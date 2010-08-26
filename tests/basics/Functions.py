@@ -1,0 +1,384 @@
+# 
+#     Kay Hayen, mailto:kayhayen@gmx.de
+# 
+#     Python test that I originally created or extracted from other peoples
+#     work. I put my parts of it in the public domain. It is at least Free
+#     Software where it's copied from other people. In these cases, I will
+#     indicate it.
+# 
+#     If you submit patches to this software in either form, you automatically
+#     grant me a copyright assignment to the new code, or in the alternative
+#     a BSD license to the new code, should your jurisdiction prevent this. This
+#     is to reserve my ability to re-license the code at any time.
+# 
+var_on_module_level = 1
+
+def closureTest1( some_arg ):
+    x = 3
+
+    def enclosed( f = "default_value" ):
+        return x
+
+    return enclosed
+
+print "Call closured function returning function:", closureTest1( some_arg = "ignored" )()
+
+def closureTest2( some_arg ):
+    def enclosed( f = "default_value" ):
+        return x
+
+    x = 4
+
+    return enclosed
+
+print "Call closured function returning function:", closureTest2( some_arg = "ignored" )()
+
+
+def defaultValueTest1( no_default, some_default_constant = 1 ):
+    return some_default_constant
+
+print "Call function with 2 parameters, one defaulted, and check that the default value is used:", defaultValueTest1( "ignored" )
+
+def defaultValueTest1a( no_default, some_default_constant_1 = 1, some_default_constant_2 = 2 ):
+    return some_default_constant_2 - some_default_constant_1
+
+print "Call function with 3 parameters, 2 defaulted, check they are used correctly:", defaultValueTest1a( "ignored" )
+
+def defaultValueTest2( no_default, some_default_variable = var_on_module_level*2 ):
+    return some_default_variable
+
+print "Call function with 2 parameters, 1 defaulted with an expression, check its result", defaultValueTest2( "ignored" )
+
+var_on_module_level = 2
+print "Call function with 2 parameters, 1 defaulted with an expression, values have changed since, check its result", defaultValueTest2( "ignored" )
+
+def contractionTest():
+    j = 2
+
+    return [ j + i for i in range(8) ]
+
+print "Call function that returns a list contraction:", contractionTest()
+
+def defaultValueTest3a( no_default, funced_defaulted = defaultValueTest2( var_on_module_level )):
+    return [ i + funced_defaulted for i in range(8) ]
+
+print "Call function that has a default value coming from a function call:", defaultValueTest3a( "ignored" )
+
+def defaultValueTest3b( no_default, funced_defaulted = defaultValueTest2(var_on_module_level )):
+    local_var = [ funced_defaulted + i for i in range(8) ]
+
+    return local_var
+
+print "Call function that returns a list contraction result via a local variable:", defaultValueTest3b( "ignored" )
+
+def defaultValueTest3c( no_default, funced_defaulted = defaultValueTest2(var_on_module_level )):
+    local_var = [ [ j+funced_defaulted+1 for j in range(i) ] for i in range(8) ]
+
+    return local_var
+
+print "Call function that returns a nested list contraction with input from default parameter", defaultValueTest3c( "ignored" )
+
+def defaultValueTest4( no_default, funced_defaulted = lambda x: x**2):
+    return funced_defaulted(4)
+
+print "Call function that returns value caculated by a lamba function as default parameter", defaultValueTest4( "ignored" )
+
+def defaultValueTest4a( no_default, funced_defaulted = lambda x: x**2):
+    c = 1
+    d = funced_defaulted(1)
+
+    r = ( i+j+c+d for i, j in zip( range(8), range( 9 ) ) )
+
+    l = []
+    for x in r:
+        l.append( x )
+
+    return l
+
+print "Call function that has a lambda calculated default parameter and a generator expression", defaultValueTest4a( "ignored" )
+
+def defaultValueTest4b( no_default, funced_defaulted = lambda x: x**3):
+    c = 1
+    d = funced_defaulted(1)
+
+    # Nested generators
+    l = []
+
+    for x in ( (d+j for j in range(4)) for i in range(8) ):
+        for y in x:
+            l.append( y )
+
+    return l
+
+print "Call function that has a lambda calculated default parameter and a nested generator expression", defaultValueTest4b( "ignored" )
+
+def defaultValueTest5( no_default, tuple_defaulted = (1,2,3)):
+    return tuple_defaulted
+
+print "Call function with default value that is a tuple", defaultValueTest5( "ignored" )
+
+def defaultValueTest6( no_default, list_defaulted = [1,2,3]):
+    return list_defaulted
+
+print "Call function with default value that is a list", defaultValueTest6( "ignored" )
+
+def lookup(unused, something):
+   something.very.namelookup.chaining()
+   something.very.namelookup.chaining()
+
+def local_function(a,z=9):
+    b = `a*a+1`
+
+    c = (a,b,a**32,a+a)
+
+    d = long("0")
+    e = int("77")
+
+    d= long(b)
+    e= long(1+1)
+
+    return a, b, c, d, e, z
+
+print "Call function with many variables calculated and returned", local_function(1,z=5)
+
+x = len( "hey" )
+
+def in_test(a):
+   # if 7 in a:
+   #   print "hey"
+
+    8 in a
+    9 not in a
+
+def printing():
+   print "Hallo"
+   print "du"
+   print "da"
+
+def my_deco( function ):
+    def new_function( c, d ):
+        return function( d, c )
+
+    return new_function
+
+@my_deco
+def decoriert(a,b):
+    def subby(a):
+        return 2 + a
+
+    return 1+subby(b)
+
+print "Function with decoration", decoriert( 3, 9 )
+
+#def var_test(a):
+#   b = len(a)
+#   c = len(a)
+
+def user():
+   global a
+
+   return a
+
+a = "oh common"
+
+some_constant_tuple = (2,5,7)
+some_semiconstant_tuple = (2,5,a)
+
+f = a * 2
+
+print defaultValueTest1("ignored")
+
+# The change of the default variable doesn't influence the default
+# parameter of defaultValueTest2, that means it's also calculated
+# at the time the function is defined.
+module_level = 7
+print defaultValueTest2("also ignored")
+
+def starArgTest( a, b, c ):
+    return a, b, c
+
+print "Function called with star arg from tuple"
+
+star_list_arg = ( 11, 44, 77 )
+print starArgTest( *star_list_arg )
+
+print "Function called with star arg from list"
+
+star_list_arg = [ 7, 8, 9 ]
+print starArgTest( *star_list_arg )
+
+star_dict_arg = {
+    "a" : 9, "b" : 3, "c": 8
+}
+
+print "Function called with star arg from dict"
+
+print starArgTest( **star_dict_arg )
+
+lambda_func = lambda a, b : a < b
+lambda_args = ( 8, 9 )
+
+print "Lambda function called with star args from tuple"
+print lambda_func( *lambda_args )
+
+print "Lambda function called with star args from list"
+lambda_args = [ 8, 7 ]
+print lambda_func( *lambda_args )
+
+
+print "Function with nested args"
+def nested_args_function( (a,b), c ):
+    return a, b, c
+
+print nested_args_function( ( 1, 2 ), 3)
+
+try:
+    nested_args_function( ( 1, 2, 3 ), 3 )
+except ValueError, e:
+    print "Calling nested with too long tuple gave:", e
+
+try:
+    nested_args_function( ( 1, ), 3 )
+except ValueError, e:
+    print "Calling nested with too short tuple gave:", e
+
+def deeply_nested_function( ( ( a, ), b, c, ( d, ( e,f ) ) ) ):
+    return a, b, c, d, e, f
+
+print "Deeply nested function", deeply_nested_function( ( ( 1, ), 2, 3, ( 4, ( 5, 6 ) ) ) )
+
+def default_giver():
+    class R:
+        def __iter__( self ):
+            print "Giving iter"
+            return iter( range(2) )
+
+    return R()
+
+print "Function with nested args that have defaults"
+def nested_args_function_with_defaults( (a,b) = default_giver(), c = 5 ):
+    return a, b, c
+
+print "Calling it"
+print nested_args_function_with_defaults()
+
+print "Generator function without context"
+def generator_without_context_function():
+    gen = ( x for x in range(9) )
+
+    return tuple( gen )
+
+print generator_without_context_function()
+
+print "Generator function with 2 iterateds"
+
+def generator_with_2_fors():
+    return tuple( ( x, y ) for x in range(2) for y in range(3) )
+
+print generator_with_2_fors()
+
+def someYielder():
+    yield 1
+    yield 2
+
+def someYieldFunctionUser():
+    result = []
+
+    for a in someYielder():
+        result.append( a )
+
+    return result
+
+print "Function that uses some yielding function coroutine"
+print someYieldFunctionUser()
+
+def someLoopYielder():
+    for i in (0, 1, 2):
+        yield i
+
+
+def someLoopYieldFunctionUser():
+    result = []
+
+    for a in someLoopYielder():
+        result.append( a )
+
+    return result
+
+print "Function that uses some yielding function coroutine that loops"
+print someLoopYieldFunctionUser()
+
+def someGeneratorClosureUser():
+    def someGenerator():
+        result = []
+
+        def userOfGeneratorLocalVar():
+            return x+1
+
+        x = 2
+
+        yield userOfGeneratorLocalVar()
+        yield 6
+
+    gen = someGenerator()
+
+    return [ gen.next(), gen.next() ]
+
+print "Function generator that uses a local function accessing its local variables to yield:"
+print someGeneratorClosureUser()
+
+def someClosureUsingGeneratorUser():
+    offered = 7
+
+    def someGenerator():
+        yield offered
+
+    return someGenerator().next()
+
+print "Function generator that yield from its closure"
+print someClosureUsingGeneratorUser()
+
+
+print "Function call with both star args and named args"
+def someFunction( a, b, c, d ):
+    print a, b, c, d
+
+# someFunction( a = 1, b = 2, **{ "c" : 3, "d" : 4 } )
+# someFunction( a = 1, b = 2, **{ "c" : 3, "d" : 4, "a" : 5 } )
+
+print "Order of evaluation of function and args:"
+
+def getFunction():
+    print "getFunction",
+
+    def x( y, u, a, k ):
+        return y, u, k, a
+
+    return x
+
+def getPlainArg1():
+    print "getPlainArg1",
+    return 9
+
+def getPlainArg2():
+    print "getPlainArg2",
+    return 13
+
+def getKeywordArg1():
+    print "getKeywordArg1",
+    return "a"
+
+def getKeywordArg2():
+    print "getKeywordArg2",
+    return "b"
+
+getFunction()( getPlainArg1(), getPlainArg2(), k = getKeywordArg1(), a = getKeywordArg2() )
+print
+
+print "Dictionary creation order:"
+
+d = {
+    getKeywordArg1() : getPlainArg1(),
+    getKeywordArg2() : getPlainArg2()
+}
+print
