@@ -109,9 +109,35 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 """
 
 function_body_template = """
+
+static PyTracebackObject *%(function_tb_maker)s( int line )
+{
+   PyFrameObject *frame = MAKE_FRAME( %(module)s, %(file_identifier)s, %(name_identifier)s, line );
+
+   PyTracebackObject *result = MAKE_TRACEBACK_START( frame, line );
+
+   Py_DECREF( frame );
+
+   assert( result );
+
+   return result;
+}
+
+static PyTracebackObject *%(function_tb_adder)s( int line )
+{
+    PyFrameObject *frame = MAKE_FRAME( %(module)s, %(file_identifier)s, %(name_identifier)s, line );
+
+    // Inlining PyTraceBack_Here may be faster
+    PyTraceBack_Here( frame );
+
+    Py_DECREF( frame );
+}
+
 static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObject *kw )
 {
 %(context_access_template)s
+
+    bool traceback = false;
 
     try
     {
@@ -128,7 +154,11 @@ static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObje
     catch (_PythonException &_exception)
     {
         _exception.toPython();
-        ADD_TRACEBACK( %(module)s, %(file_identifier)s, %(name_identifier)s, _exception.getLine() );
+
+        if ( traceback == false )
+        {
+           %(function_tb_adder)s( _exception.getLine() );
+        }
 
         return NULL;
     }

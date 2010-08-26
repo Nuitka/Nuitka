@@ -44,6 +44,8 @@ from logging import warning
 # modules is available, more trees will be available too.
 tree = TreeBuilding.buildModuleTree( Options.getPositionalArgs()[0] )
 
+cpp_filename = Options.getOutputPath( tree.getName() + ".c++" )
+
 if not Options.shallOnlyExecGcc():
     if Options.shallDumpBuiltTree():
         print "Analysis -> Tree Result"
@@ -70,6 +72,7 @@ if not Options.shallOnlyExecGcc():
 
         source_code = CodeGeneration.generateModuleCode(
             module         = tree,
+            module_name    = tree.getName(),
             generator      = generator_module,
             global_context = Contexts.PythonGlobalContext(),
             stand_alone    = True
@@ -91,7 +94,6 @@ if not Options.shallOnlyExecGcc():
         )
 
     # Write the generated source code to the file.
-    cpp_filename = Options.getOutputPath( tree.getName() + ".c++" )
     open( cpp_filename, "wb" ).write( source_code )
 
 # Inspect the running Python version for target information.

@@ -225,65 +225,65 @@ def simpleFunction30():
         yield 3
 
 def simpleFunction31():
-    def generatorFunction():
-        yield 1
-        yield 2
-        yield 3
+   def generatorFunction():
+      yield 1
+      yield 2
+      yield 3
 
-    a = []
+   a = []
 
-    for y in generatorFunction():
-        a.append( y )
+   for y in generatorFunction():
+      a.append( y )
 
-    for z in generatorFunction():
-        a.append( z )
+   for z in generatorFunction():
+      a.append( z )
 
 
 def simpleFunction32():
-    def generatorFunction():
-        yield 1
+   def generatorFunction():
+      yield 1
 
-    gen = generatorFunction()
-    gen.next()
+   gen = generatorFunction()
+   gen.next()
 
 def simpleFunction33():
-    def generatorFunction():
-        a = 1
+   def generatorFunction():
+      a = 1
 
-        yield a
+      yield a
 
-    a = []
+   a = []
 
-    for y in generatorFunction():
-        a.append( y )
+   for y in generatorFunction():
+      a.append( y )
 
 
 def simpleFunction34():
-    try:
-        raise ValueError
-    except:
-        pass
+   try:
+      raise ValueError
+   except:
+      pass
 
 def simpleFunction35():
-    try:
-        raise ValueError(1,2,3)
-    except:
-        pass
+   try:
+      raise ValueError(1,2,3)
+   except:
+      pass
 
 
 def simpleFunction36():
-    try:
-        raise TypeError, (3,x,x,x)
-    except TypeError:
-        pass
+   try:
+      raise TypeError, (3,x,x,x)
+   except TypeError:
+      pass
 
 def simpleFunction37():
-    l = [ 1, 2, 3 ]
+   l = [ 1, 2, 3 ]
 
-    try:
-        a, b = l
-    except ValueError:
-        pass
+   try:
+      a, b = l
+   except ValueError:
+      pass
 
 
 def simpleFunction38():
@@ -300,26 +300,40 @@ def simpleFunction39():
 x = 17
 
 def checkReferenceCount( checked_function, warmup = False ):
-    print checked_function,
+   sys.exc_clear()
+   print checked_function,
 
-    ref_count1 = 17
-    ref_count2 = 17
+   ref_count1 = 17
+   ref_count2 = 17
 
-    if warmup:
-        checked_function()
+   gc.collect()
+   ref_count1 = sys.gettotalrefcount()
 
-    gc.collect()
-    ref_count1 = sys.gettotalrefcount()
+   if warmup:
+      checked_function()
 
-    checked_function()
+   sys.exc_clear()
+   gc.collect()
 
-    gc.collect()
-    ref_count2 = sys.gettotalrefcount()
+   ref_count2 = sys.gettotalrefcount()
 
-    if ref_count1 != ref_count2:
-        print "FAILED", ref_count1, ref_count2
-    else:
-        print "PASSED"
+   if ref_count1 == ref_count2 and warmup:
+      print "WARMUP not needed",
+
+   gc.collect()
+   ref_count1 = sys.gettotalrefcount()
+
+   checked_function()
+
+   sys.exc_clear()
+   gc.collect()
+
+   ref_count2 = sys.gettotalrefcount()
+
+   if ref_count1 != ref_count2:
+      print "FAILED", ref_count1, ref_count2
+   else:
+      print "PASSED"
 
 checkReferenceCount( simpleFunction1 )
 checkReferenceCount( simpleFunction2 )
@@ -334,7 +348,7 @@ checkReferenceCount( simpleFunction10 )
 checkReferenceCount( simpleFunction11 )
 checkReferenceCount( simpleFunction12 )
 checkReferenceCount( simpleFunction13 )
-checkReferenceCount( simpleFunction14, warmup = True )
+checkReferenceCount( simpleFunction14 )
 checkReferenceCount( simpleFunction15 )
 checkReferenceCount( simpleFunction16 )
 checkReferenceCount( simpleFunction17 )

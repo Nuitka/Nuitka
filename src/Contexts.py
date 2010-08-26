@@ -84,6 +84,9 @@ class PythonContextBase:
 
         return result
 
+    def getCodeName():
+        assert False
+
 class PythonChildContextBase( PythonContextBase ):
     def __init__( self, parent ):
         PythonContextBase.__init__( self )
@@ -118,8 +121,6 @@ class PythonGlobalContext:
         self.module_name__      = self.getConstantHandle( "__module__" ).getCode()
         self.doc__              = self.getConstantHandle( "__doc__" ).getCode()
         self.file__             = self.getConstantHandle( "__file__" ).getCode()
-
-        self.error_unpack       = self.getConstantHandle( "too many values to unpack" ).getCode()
 
     def getConstantHandle( self, constant ):
         if constant is None:
@@ -170,11 +171,8 @@ class PythonGlobalContext:
         return CodeTemplates.global_prelude
 
     def getHelperCode( self ):
-        result = CodeTemplates.global_helper % {
-            "const_tuple_empty"  : self.const_tuple_empty,
-            "const_string_empty" : self.const_string_empty
-        }
-
+        result = CodeTemplates.global_helper
+        result += CodeTemplates.import_helper
         result += CodeTemplates.kfunction_type_code
 
         return result
@@ -353,6 +351,9 @@ class PythonModuleContext( PythonContextBase ):
     def getGlobalVariableNames( self ):
         return self.global_var_names
 
+    def getCodeName( self ):
+        return "module_" + self.name
+
 class PythonFunctionContext( PythonChildContextBase ):
     def __init__( self, parent, function ):
         PythonChildContextBase.__init__( self, parent = parent )
@@ -411,6 +412,10 @@ class PythonFunctionContext( PythonChildContextBase ):
 
     def addClassCodes( self, class_def, class_codes ):
         self.parent.addClassCodes( class_def, class_codes )
+
+    def getCodeName( self ):
+        return self.function.getCodeName()
+
 
 class PythonContractionBase( PythonChildContextBase ):
     def __init__( self, parent, loop_variables, leak_loop_vars ):

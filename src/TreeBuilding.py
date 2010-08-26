@@ -565,6 +565,7 @@ def _findModule( module_name ):
 
     if dot_pos == -1:
         module_fh, module_filename, module_desc = imp.find_module( module_name )
+        module_package = None
     else:
         parent_module_name = module_name[:dot_pos]
         child_module_name = module_name[dot_pos+1:]
@@ -574,10 +575,14 @@ def _findModule( module_name ):
         parent_module_filename = _findModule( parent_module_name )[1]
         module_fh, module_filename, module_desc = imp.find_module( child_module_name, [ P[1] ] )
 
+        module_package = os.path.basename( parent_module_filename )
+
     if module_filename == "":
         module_filename = None
 
-    return module_fh, module_filename, module_desc
+    assert module_package is None or module_package.find( "/" ) == -1
+
+    return module_fh, module_filename, module_package, module_desc
 
 def _isWhiteListedNotExistingModule( module_name ):
     return module_name in ( "mac", "nt", "os2", "_emx_link", "riscos", "ce", "riscospath", "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256", "_sha512", "_md5", "_subprocess", "msvcrt" )
@@ -594,7 +599,7 @@ def buildImportModulesNode( provider, node, source_ref ):
 
         if Options.shallFollowImports():
             try:
-                _module_fh, module_filename, _module_desc = _findModule( module_name )
+                _module_fh, module_filename, module_package, _module_desc = _findModule( module_name )
             except ImportError:
                 if not _isWhiteListedNotExistingModule( module_name ):
                     print "Warning, cannot find", module_name
@@ -602,8 +607,9 @@ def buildImportModulesNode( provider, node, source_ref ):
                 module_filename = None
         else:
             module_filename = None
+            module_package = None
 
-        imports.append( ( module_name, import_name, variable, module_filename ) )
+        imports.append( ( module_name, import_name, variable, module_filename, module_package ) )
 
     return Nodes.CPythonStatementImportModules(
         imports     = imports,
@@ -624,19 +630,20 @@ def buildImportFromNode( provider, node, source_ref ):
 
     if Options.shallFollowImports():
         try:
-            _module_fh, module_filename, _module_desc = _findModule( module_name )
+            _module_fh, module_filename, module_package, _module_desc = _findModule( module_name )
         except ImportError:
             if not _isWhiteListedNotExistingModule( module_name ):
                 print "Warning, cannot find", module_name
 
             module_filename = None
     else:
+        module_package  = None
         module_filename = None
-
 
     return Nodes.CPythonStatementImportFrom(
         provider        = provider,
         module_name     = module_name,
+        module_package  = module_package,
         module_filename = module_filename,
         imports         = imports,
         source_ref      = source_ref
@@ -968,15 +975,18 @@ class ModuleRecursionVisitor:
 
     def __call__( self, node ):
         if node.isStatementImport() or node.isStatementImportFrom():
-            for module_filename in node.getModuleFilenames():
+            for module_filename, module_package in zip( node.getModuleFilenames(), node.getModulePackages() ):
                 if self.stdlib or not module_filename.startswith( "/usr/lib/python" ):
                     if module_filename.endswith( ".py" ):
                         if module_filename not in self.imported_modules:
                             print "Recurse to", module_filename
 
-                            imported_module = buildModuleTree( module_filename )
+                            imported_module = buildModuleTree(
+                                filename = module_filename,
+                                package  = module_package
+                            )
 
-                            self.imported_modules[ module_filename ] = buildModuleTree( module_filename )
+                            self.imported_modules[ module_filename ] = imported_module
 
 def getOtherModules():
     return ModuleRecursionVisitor.imported_modules.values()
@@ -995,7 +1005,7 @@ import os
 def assignParent( tree ):
     visitTree( tree, TreeVisitorAssignParent() )
 
-def buildModuleTree( filename ):
+def buildModuleTree( filename, package = None ):
     module = compiler.parseFile( filename )
 
     source_ref = SourceCodeReference.fromFilename( filename )
@@ -1007,7 +1017,8 @@ def buildModuleTree( filename ):
 
     result = Nodes.CPythonModule(
         name       = os.path.basename( filename ).replace( ".py", "" ),
-        filename   = os.path.abspath( filename ),
+        package    = package,
+        filename   = os.path.relpath( filename ),
         doc        = module.doc,
         source_ref = source_ref,
     )

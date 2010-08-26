@@ -28,7 +28,7 @@ main_program = """\
 // The main program for C++. It needs to prepare the interpreter and then
 // calls the initialization code of the __main__ module.
 
-int main( int argc, char *argv[])
+int main( int argc, char *argv[] )
 {
     // Register the initialization functions for modules included in the binary if any
     %(prepare_modules)s
@@ -40,10 +40,6 @@ int main( int argc, char *argv[])
 }
 
 """
-
-prepare_other_module = """\
-PyImport_AppendInittab( (char *)"%(module_name)s", init%(module_name)s );"""
-
 
 module_template = """\
 
@@ -69,8 +65,28 @@ static PyObject *_module_filename_%(module_name)s;
 // The exported interface to CPython. On import of the module, this function gets called. It has have that exact function
 // name.
 
+static PyTracebackObject *%(module_tb_maker)s( int line )
+{
+   PyFrameObject *frame = MAKE_FRAME( _module_%(module_name)s, %(file_identifier)s, _python_str_angle_module, line );
+
+   PyTracebackObject *result = MAKE_TRACEBACK_START( frame, line );
+
+   Py_DECREF( frame );
+
+   assert( result );
+
+   return result;
+}
+
+void %(module_tb_adder)s( int line )
+{
+   ADD_TRACEBACK( _module_%(module_name)s, %(file_identifier)s, _python_str_angle_module, line );
+}
+
 PyMODINIT_FUNC init%(module_name)s(void)
 {
+    // puts( "in init%(module_name)s" );
+
     _module_builtin = PyImport_ImportModule( "__builtin__" );
     assert( _module_builtin );
 
@@ -96,6 +112,8 @@ PyMODINIT_FUNC init%(module_name)s(void)
     _mvar_%(module_name)s___doc__.assign( %(doc_identifier)s );
     _mvar_%(module_name)s___file__.assign( %(file_identifier)s );
 
+    bool traceback = false;
+
     try
     {
         %(module_code)s
@@ -103,7 +121,11 @@ PyMODINIT_FUNC init%(module_name)s(void)
     catch ( _PythonException &e )
     {
         e.toPython();
-        ADD_TRACEBACK( _module_%(module_name)s, %(file_identifier)s, PyString_FromString( "<module>" ), e.getLine() );
+
+        if ( traceback == false )
+        {
+            %(module_tb_adder)s( e.getLine() );
+        }
 
         PyErr_Print();
     }

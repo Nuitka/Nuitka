@@ -23,7 +23,7 @@ then
     do
         echo "Compiling $file"
 
-        Nuitka.py $file --output tests/reflected/
+        Nuitka.py $file --output-dir tests/reflected/
     done
 
     mkdir -p tests/reflected/nodes
@@ -35,7 +35,7 @@ then
         then
             echo "Compiling $file"
 
-            Nuitka.py $file --output tests/reflected/nodes
+            Nuitka.py $file --output-dir tests/reflected/nodes
         fi
     done
 
@@ -50,22 +50,22 @@ then
         then
             echo "Compiling $file"
 
-            Nuitka.py $file --output tests/reflected/templates
+            Nuitka.py $file --output-dir tests/reflected/templates
         fi
     done
 
     cp src/templates/__init__.py tests/reflected/templates/
 
-    Nuitka.py bin/Nuitka.py --output tests/reflected/ --exe
+    Nuitka.py bin/Nuitka.py --output-dir tests/reflected/ --exe
 else
     echo "Skipped."
 fi
 
+echo "PASS 2: Compiling from compiler running from .py files to single .exe."
 
+Nuitka.py bin/Nuitka.py --output-dir /tmp/ --exe --deep
 
-export PYTHONPATH=tests/reflected
-
-echo "PASS 2: Compiling from compiler running .exe and .so files."
+echo "PASS 3: Compiling from compiler running from .exe and many .so files."
 
 for file in `ls src/*.py`
 do
@@ -73,9 +73,13 @@ do
 
     rm -f /tmp/`basename $file .py`.c++
 
-    ./tests/reflected/Nuitka.exe $file --output /tmp/
+    export PYTHONPATH=tests/reflected
+    ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
+    diff -sq ./tests/reflected/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
 
-    diff -s ./tests/reflected/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
+    unset PYTHONPATH
+    /tmp/Nuitka.exe $file --output-dir /tmp/
+    diff -sq ./tests/reflected/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
 done
 
 for file in `ls src/nodes/*.py`
@@ -86,9 +90,13 @@ do
 
         rm -f /tmp/`basename $file .py`.c++
 
-        ./tests/reflected/Nuitka.exe $file --output /tmp/
+        export PYTHONPATH=tests/reflected
+        ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
+        diff -sq ./tests/reflected/nodes/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
 
-        diff -s ./tests/reflected/nodes/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
+        unset PYTHONPATH
+        /tmp/Nuitka.exe $file --output-dir /tmp/
+        diff -sq ./tests/reflected/nodes/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
     fi
 done
 
@@ -100,8 +108,12 @@ do
 
         rm -f /tmp/`basename $file .py`.c++
 
-        ./tests/reflected/Nuitka.exe $file --output /tmp/
+        export PYTHONPATH=tests/reflected
+        ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
+        diff -sq ./tests/reflected/templates/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
 
-        diff -s ./tests/reflected/templates/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
+        unset PYTHONPATH
+        /tmp/Nuitka.exe $file --output-dir /tmp/
+        diff -sq ./tests/reflected/templates/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
     fi
 done

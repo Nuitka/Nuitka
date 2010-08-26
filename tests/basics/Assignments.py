@@ -55,10 +55,14 @@ def otherFunction():
 
     print "Assignments from iterable", a ,b ,c
 
+    print "Assignments from too small iterable",
+
     try:
         f, g = 1,
     except Exception, e:
         print type(e), e
+
+    print "Assignments from too large iterable",
 
     try:
         d, e = 1, 2, 3

@@ -30,6 +30,7 @@ def tryScope1(x):
         print "No exception occured"
 
 tryScope1( 1 )
+print "*" * 20
 tryScope1( [ 1 ] )
 
 def tryScope2( x, someExceptionClass ):

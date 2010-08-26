@@ -162,6 +162,8 @@ def _namifyString( string ):
     elif _re_str_needs_no_digest.match( string ) and "\n" not in string:
         # Some strings can be left intact for source code readability.
         return "plain_" + string
+    elif len( string ) > 2 and string[0] == "<" and string[-1] == ">" and _re_str_needs_no_digest.match( string[1:-1] ) and "\n" not in string:
+        return "angle_" + string[1:-1]
     else:
         # Others are better digested to not cause compiler trouble
         return "digest_" + digest( string )
@@ -205,3 +207,7 @@ def namifyConstant( constant ):
             return "complex_%s" % str( constant ).replace( "+", "p" ).replace( "-", "m" ).replace(".","_")
     else:
         raise ExceptionCannotNamify( constant )
+
+if __name__ == "__main__":
+    for value in ( "", "<module>" ):
+        print value, ":", namifyConstant( value )

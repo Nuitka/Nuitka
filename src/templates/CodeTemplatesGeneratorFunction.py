@@ -118,12 +118,37 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 
 genfunc_yielder_template = """
 
+static PyTracebackObject *%(function_tb_maker)s( int line )
+{
+   PyFrameObject *frame = MAKE_FRAME( %(module)s, %(file_identifier)s, %(name_identifier)s, line );
+
+   PyTracebackObject *result = MAKE_TRACEBACK_START( frame, line );
+
+   Py_DECREF( frame );
+
+   assert( result );
+
+   return result;
+}
+
+static PyTracebackObject *%(function_tb_adder)s( int line )
+{
+    PyFrameObject *frame = MAKE_FRAME( %(module)s, %(file_identifier)s, %(name_identifier)s, line );
+
+    // Inlining PyTraceBack_Here may be faster
+    PyTraceBack_Here( frame );
+
+    Py_DECREF( frame );
+}
+
 static void %(function_identifier)s_context( struct _context_generator_%(function_identifier)s_t *_python_context )
 {
     assert( _python_context && _python_context->magic == 27772 );
 
     // Set the names of local variables if any
     %(local_var_naming)s
+
+    bool traceback = false;
 
     try
     {
@@ -135,7 +160,12 @@ static void %(function_identifier)s_context( struct _context_generator_%(functio
     catch (_PythonException &_exception)
     {
         _exception.toPython();
-        ADD_TRACEBACK( %(module)s, %(file_identifier)s, %(name_identifier)s, _exception.getLine() );
+
+        if ( traceback == false )
+        {
+           ADD_TRACEBACK( %(module)s, %(file_identifier)s, %(name_identifier)s, _exception.getLine() );
+        }
+
         _python_context->yielded = INCREASE_REFCOUNT( _sentinel_value );
     }
 

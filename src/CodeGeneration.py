@@ -1432,7 +1432,8 @@ def _generateStatementCode( statement, context, generator ):
                     expression = parameters[0]
                 ),
                 exception_value_identifier = None,
-                exception_tb_identifier    = None
+                exception_tb_identifier    = None,
+                exception_tb_maker         = generator.getTracebackMakerCall( context.getCodeName(), statement.getSourceReference().getLineNumber() )
             )
         elif len( parameters ) == 2:
             code = generator.getRaiseExceptionCode(
@@ -1443,7 +1444,8 @@ def _generateStatementCode( statement, context, generator ):
                 exception_value_identifier = makeExpressionCode(
                     expression = parameters[1]
                 ),
-                exception_tb_identifier    = None
+                exception_tb_identifier    = None,
+                exception_tb_maker         = generator.getTracebackMakerCall( context.getCodeName(), statement.getSourceReference().getLineNumber() )
             )
         elif len( parameters ) == 3:
             code = generator.getRaiseExceptionCode(
@@ -1467,7 +1469,7 @@ def _generateStatementCode( statement, context, generator ):
             context              = context,
             condition_identifier = makeExpressionCode( statement.getExpression() ),
             failure_identifier   = makeExpressionCode( statement.getArgument(), allow_none = True ),
-            line_number          = statement.getSourceReference().getLineNumber()
+            exception_tb_maker   = generator.getTracebackMakerCall( context.getCodeName(), statement.getSourceReference().getLineNumber() )
         )
     elif statement.isStatementExec():
         code = generateExecCode(
@@ -1518,10 +1520,8 @@ def generateStatementSequenceCode( statement_sequence, context, generator ):
     # print "\n".join( codes )
     return codes
 
-def generateModuleCode( module, global_context, stand_alone, generator ):
+def generateModuleCode( module, module_name, global_context, stand_alone, generator ):
     assert module.isModule()
-
-    module_name = "__main__" if stand_alone else module.getName()
 
     context = Contexts.PythonModuleContext(
         module_name    = module_name,
@@ -1538,6 +1538,7 @@ def generateModuleCode( module, global_context, stand_alone, generator ):
 
     return generator.getModuleCode(
         module_name         = module_name,
+        stand_alone         = stand_alone,
         doc_identifier      = context.getConstantHandle( constant = module.getDoc() ),
         filename_identifier = context.getConstantHandle( constant = module.getFilename() ),
         codes               = codes,
@@ -1559,6 +1560,7 @@ def generateExecutableCode( main_module, other_modules, generator ):
         other_module_code = generateModuleCode(
             generator      = generator,
             module         = other_module,
+            module_name    = other_module.getName(),
             global_context = global_context,
             stand_alone    = False
         )
@@ -1569,6 +1571,7 @@ def generateExecutableCode( main_module, other_modules, generator ):
     main_module_code = generateModuleCode(
         generator      = generator,
         module         = main_module,
+        module_name    = "__main__",
         global_context = global_context,
         stand_alone    = True
     )
@@ -1576,8 +1579,6 @@ def generateExecutableCode( main_module, other_modules, generator ):
     codes = main_module_code + other_modules_code
 
     return generator.getMainCode(
-        codes               = codes,
-        other_module_names  = [ other_module.getName() for other_module in other_modules ]
+        codes         = codes,
+        other_modules = other_modules
     )
-
-    return result

@@ -60,10 +60,10 @@ static PyObject *PyKFunction_repr( PyKFunctionObject *object )
     return PyString_FromFormat( "<compiled function %s at %p>", object->m_ml->ml_name, object->m_self );
 }
 
-static PyObject *PyKFunction_tp_call( PyObject *function, PyObject *arg, PyObject *kw)
+static PyObject *PyKFunction_tp_call( PyObject *function, PyObject *args, PyObject *kw)
 {
     PyCFunctionWithKeywords code = (PyCFunctionWithKeywords)PyCFunction_GET_FUNCTION( function );
-    return code( PyCFunction_GET_SELF( function ), arg, kw );
+    return code( PyCFunction_GET_SELF( function ), args, kw );
 }
 
 static long PyKFunction_tp_traverse( PyObject *function, visitproc visit, void *arg )

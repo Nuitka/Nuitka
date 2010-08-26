@@ -47,7 +47,21 @@ print "~", ~ b
 print "-", - b
 print "+", + b
 
-l =  { ( "a", "c" ) : "a,c", "b" : 2, "c" : 3, "d" : 4 }
+l =  { ( "a", "c" ) : "a,c", "b" : 2, "c" : 3, "d" : 4  }
+l[ "l", ] = "6"
+
 
 print "Extended slicing:"
 print "Should be a,c:", l[ "a", "c" ]
+
+print "Short form of extended slicing:"
+
+d = {}
+d[1] = 1
+# TODO: Enable this one CPython bug is fixed.
+# d[1,] = 2
+d[1,2] = 3
+d[1,2,3] = 4
+L = list(d)
+L.sort()
+print L

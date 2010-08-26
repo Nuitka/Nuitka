@@ -32,9 +32,13 @@ from templates.CodeTemplatesGeneratorExpression import *
 from templates.CodeTemplatesGeneratorFunction import *
 from templates.CodeTemplatesListContraction import *
 
+from templates.CodeTemplatesParameterParsing import *
+
+from templates.CodeTemplatesExceptions import *
+from templates.CodeTemplatesImporting import *
 from templates.CodeTemplatesClass import *
 
-from templates.CodeTemplatesParameterParsing import *
+
 
 global_copyright = """
 // Generated code for Python source '%(name)s'
@@ -85,6 +89,7 @@ global_helper = """\
 
 template<typename... P>
 static void PRINT_ITEMS( bool new_line, PyObject *file, P...eles );
+static PyObject *INCREASE_REFCOUNT( PyObject *object );
 
 static int _current_line = -1;
 static char *_current_file = NULL;
@@ -113,7 +118,22 @@ class _PythonException
             this->exception_tb = NULL;
         }
 
-        _PythonException( PyObject *exception, PyObject *value )
+        _PythonException( PyObject *exception, PyTracebackObject *traceback )
+        {
+            assert( exception );
+            assert( exception->ob_refcnt > 0 );
+
+            assert( traceback );
+            assert( traceback->ob_refcnt > 0 );
+
+            this->line = _current_line;
+
+            this->exception_type = exception;
+            this->exception_value = NULL;
+            this->exception_tb = (PyObject *)traceback;
+        }
+
+        _PythonException( PyObject *exception, PyObject *value, float unused )
         {
             assert( exception );
             assert( value );
@@ -121,12 +141,16 @@ class _PythonException
             assert( value->ob_refcnt > 0 );
 
             this->line = _current_line;
-            PyErr_SetObject( exception, value );
 
-            this->_importFromPython();
+            Py_INCREF( exception );
+            Py_INCREF( value );
+
+            this->exception_type = exception;
+            this->exception_value = value;
+            this->exception_tb = NULL;
         }
 
-        _PythonException( PyObject *exception, PyObject *value, PyObject *traceback )
+        _PythonException( PyObject *exception, PyObject *value, PyTracebackObject *traceback )
         {
             assert( exception );
             assert( value );
@@ -136,9 +160,10 @@ class _PythonException
             assert( traceback->ob_refcnt > 0 );
 
             this->line = _current_line;
-            PyErr_Restore( this->exception_type, this->exception_value, this->exception_tb );
 
-            this->_importFromPython();
+            this->exception_type = exception;
+            this->exception_value = value;
+            this->exception_tb = (PyObject *)traceback;
         }
 
         _PythonException( const _PythonException &other )
@@ -156,6 +181,10 @@ class _PythonException
 
         void operator=( const _PythonException &other )
         {
+            Py_XINCREF( other.exception_type );
+            Py_XINCREF( other.exception_value );
+            Py_XINCREF( other.exception_tb );
+
             Py_XDECREF( this->exception_type );
             Py_XDECREF( this->exception_value );
             Py_XDECREF( this->exception_tb );
@@ -166,9 +195,6 @@ class _PythonException
             this->exception_value = other.exception_value;
             this->exception_tb    = other.exception_tb;
 
-            Py_XINCREF( this->exception_type );
-            Py_XINCREF( this->exception_value );
-            Py_XINCREF( this->exception_tb );
         }
 
         ~_PythonException()
@@ -180,9 +206,11 @@ class _PythonException
 
         inline void _importFromPython()
         {
-            PyErr_Fetch( &this->exception_type, &this->exception_value, &this->exception_tb );
-            PyErr_NormalizeException( &this->exception_type, &this->exception_value, &this->exception_tb );
 
+            PyErr_Fetch( &this->exception_type, &this->exception_value, &this->exception_tb );
+            assert( this->exception_type );
+
+            // PyErr_NormalizeException( &this->exception_type, &this->exception_value, &this->exception_tb );
             PyErr_Clear();
         }
 
@@ -193,26 +221,76 @@ class _PythonException
 
         inline bool matches( PyObject *exception ) const
         {
-            return this->exception_type ? PyErr_GivenExceptionMatches( this->exception_type, exception ) : PyErr_ExceptionMatches( exception );
+            return PyErr_GivenExceptionMatches( this->exception_type, exception ) || PyErr_GivenExceptionMatches( this->exception_value, exception );;
         }
 
         inline void toPython()
         {
             PyErr_Restore( this->exception_type, this->exception_value, this->exception_tb );
 
+            PyThreadState *thread_state = PyThreadState_GET();
+
+            assert( this->exception_type == thread_state->curexc_type );
+            assert( thread_state->curexc_type );
+
             this->exception_type  = NULL;
             this->exception_value = NULL;
             this->exception_tb    = NULL;
         }
 
+        inline void toExceptionHandler()
+        {
+            // Restore only sets the current exception to the interpreter.
+            PyThreadState *thread_state = PyThreadState_GET();
+
+            PyObject *old_type  = thread_state->exc_type;
+            PyObject *old_value = thread_state->exc_value;
+            PyObject *old_tb    = thread_state->exc_traceback;
+
+            thread_state->exc_type = this->exception_type;
+            thread_state->exc_value = this->exception_value;
+            thread_state->exc_traceback = this->exception_tb;
+
+            Py_INCREF(  thread_state->exc_type );
+            Py_XINCREF( thread_state->exc_value );
+            Py_XINCREF(  thread_state->exc_traceback );
+
+            Py_XDECREF( old_type );
+            Py_XDECREF( old_value );
+            Py_XDECREF( old_tb );
+
+            assert( thread_state->exc_traceback );
+        }
+
         inline PyObject *getType()
         {
-            if ( this->exception_value == NULL  )
+            if ( this->exception_value == NULL )
             {
                 PyErr_NormalizeException( &this->exception_type, &this->exception_value, &this->exception_tb );
             }
 
             return this->exception_type;
+        }
+
+        inline PyObject *getTraceback() const
+        {
+            return this->exception_tb;
+        }
+
+        inline PyObject *setTraceback( PyTracebackObject *traceback )
+        {
+            assert( traceback );
+            assert( traceback->ob_refcnt > 0 );
+
+            // printf( "setTraceback %d\\n", traceback->ob_refcnt );
+
+            // Py_INCREF( traceback );
+            this->exception_tb = (PyObject *)traceback;
+        }
+
+        inline bool hasTraceback() const
+        {
+            return this->exception_tb != NULL;
         }
 
         void setType( PyObject *exception_type )
@@ -223,22 +301,9 @@ class _PythonException
 
         inline PyObject *getObject()
         {
-            if ( this->exception_value == NULL  )
-            {
-                PyErr_NormalizeException( &this->exception_type, &this->exception_value, &this->exception_tb );
-            }
+            PyErr_NormalizeException( &this->exception_type, &this->exception_value, &this->exception_tb );
 
             return this->exception_value;
-        }
-
-        inline PyObject *getTrace()
-        {
-            if ( this->exception_value == NULL  )
-            {
-                PyErr_NormalizeException( &this->exception_type, &this->exception_value, &this->exception_tb );
-            }
-
-            return this->exception_tb;
         }
 
         void dump() const
@@ -260,9 +325,17 @@ class _PythonExceptionKeeper
             empty = true;
         }
 
+        ~_PythonExceptionKeeper()
+        {
+            if ( this->empty == false)
+            {
+                delete this->saved;
+            }
+        }
+
         void save( const _PythonException &e )
         {
-            this->saved = e;
+            this->saved = new _PythonException( e );
 
             empty = false;
         }
@@ -271,7 +344,7 @@ class _PythonExceptionKeeper
         {
             if (empty == false)
             {
-                throw this->saved;
+                throw *this->saved;
             }
         }
 
@@ -283,7 +356,7 @@ class _PythonExceptionKeeper
     protected:
         bool empty;
 
-        _PythonException saved;
+        _PythonException *saved;
 };
 
 // Helper functions for reference count handling in the fly.
@@ -316,6 +389,7 @@ static void PRINT_ITEM_TO( PyObject *file, PyObject *object )
     if ( str == NULL )
     {
         PyErr_Clear();
+
         print = object;
         softspace = false;
     }
@@ -334,7 +408,7 @@ static void PRINT_ITEM_TO( PyObject *file, PyObject *object )
 
     // Check for soft space indicator, need to hold a reference to the file
     // or else __getattr__ may release "file" in the mean time.
-    if (PyFile_SoftSpace( file, !softspace ))
+    if ( PyFile_SoftSpace( file, !softspace ) )
     {
         if (unlikely( PyFile_WriteString( " ", file ) == -1 ))
         {
@@ -414,31 +488,38 @@ static void PRINT_NEW_LINE( void )
 }
 
 
-static void RAISE_EXCEPTION( PyObject *exception )
+static void RAISE_EXCEPTION( PyObject *exception, PyTracebackObject *traceback )
 {
     if ( PyExceptionClass_Check( exception ) )
     {
-        throw _PythonException( exception );
+        throw _PythonException( exception, traceback );
     }
     else if ( PyExceptionInstance_Check( exception ) )
     {
-        throw _PythonException( PyExceptionInstance_Class( exception ), exception );
+        throw _PythonException( INCREASE_REFCOUNT( PyExceptionInstance_Class( exception ) ), exception, traceback );
     }
     else
     {
-        PyErr_Format( PyExc_TypeError, "exceptions must be old-style classes or derived from BaseException, not %%s", exception->ob_type->tp_name );
+        PyErr_Format( PyExc_TypeError, "exceptions must be old-style classes or derived from BaseException, not %s", exception->ob_type->tp_name );
         throw _PythonException();
     }
 }
 
-static void RAISE_EXCEPTION( PyObject *exception, PyObject *value )
+static void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyTracebackObject *traceback )
 {
-    throw _PythonException( exception, value );
+    // TODO: Check traceback
+
+    if ( PyExceptionClass_Check( exception_type ) )
+    {
+       PyErr_NormalizeException( &exception_type, &value, (PyObject **)&traceback );
+    }
+
+    throw _PythonException( exception_type, value, traceback );
 }
 
-static void RAISE_EXCEPTION( PyObject *exception, PyObject *value, PyObject *traceback )
+static inline void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyObject *traceback )
 {
-    throw _PythonException( exception, value, traceback );
+    RAISE_EXCEPTION( exception_type, value, (PyTracebackObject *)traceback );
 }
 
 
@@ -615,7 +696,7 @@ static void PRINT_REFCOUNT( PyObject *object )
    }
 
    char buffer[1024];
-   sprintf( buffer, " refcnt %%d ", object->ob_refcnt );
+   sprintf( buffer, " refcnt %d ", object->ob_refcnt );
 
    if (unlikely( PyFile_WriteString(buffer, stdout) == -1 ))
    {
@@ -727,7 +808,7 @@ static PyObject *MAKE_DICT( P...eles )
     PyObject *elements[] = {eles...};
     int size = sizeof...(eles);
 
-    assert (size %% 2 == 0);
+    assert (size % 2 == 0);
 
     PyObject *result = PyDict_New();
 
@@ -860,7 +941,7 @@ static inline PyObject *UNPACK_NEXT( PyObject *iterator, int seq_size_so_far )
         }
         else
         {
-            PyErr_Format( PyExc_ValueError, "need more than %%d values to unpack", seq_size_so_far );
+            PyErr_Format( PyExc_ValueError, "need more than %d values to unpack", seq_size_so_far );
         }
 
         throw _PythonException();
@@ -883,7 +964,8 @@ static inline void UNPACK_ITERATOR_CHECK( PyObject *iterator )
     {
         Py_DECREF( attempt );
 
-        throw _PythonException( PyExc_ValueError, _python_str_digest_2584a53fa7f62e225b7d236321e5f7b6 ); // "too many values to unpack"
+        PyErr_Format( PyExc_ValueError, "too many values to unpack" );
+        throw _PythonException();
     }
 }
 
@@ -1388,7 +1470,7 @@ class PyObjectLocalVariable {
         {
             if ( this->object == NULL && this->var_name != NULL )
             {
-                printf( "Using uninialized variable '%%s'.\\n", PyString_AsString( this->var_name ) );
+                printf( "Using uninialized variable '%s'.\\n", PyString_AsString( this->var_name ) );
             }
             assert( this->object );
             assert( this->object->ob_refcnt > 0 );
@@ -1529,14 +1611,14 @@ class PyObjectSharedLocalVariable
 
             if ( this->storage->object == NULL )
             {
-                PyErr_Format( PyExc_NameError, "free variable '%%s' referenced before assignment in enclosing scope", PyString_AsString( this->storage->var_name ) );
+                PyErr_Format( PyExc_NameError, "free variable '%s' referenced before assignment in enclosing scope", PyString_AsString( this->storage->var_name ) );
                 throw _PythonException();
 
             }
 
             if ( (this->storage->object)->ob_refcnt == 0 )
             {
-                PyErr_Format( PyExc_NameError, "free variable '%%s' referenced after its finalization in enclosing scope", PyString_AsString( this->storage->var_name ) );
+                PyErr_Format( PyExc_NameError, "free variable '%s' referenced after its finalization in enclosing scope", PyString_AsString( this->storage->var_name ) );
                 throw _PythonException();
             }
 
@@ -1612,7 +1694,7 @@ class PyObjectGlobalVariable
                     return INCREASE_REFCOUNT( entry->me_value );
                 }
 
-                PyErr_Format( PyExc_NameError, "global name %%s is not defined", PyString_AsString( *this->var_name ) );
+                PyErr_Format( PyExc_NameError, "global name %s is not defined", PyString_AsString( *this->var_name ) );
                 throw _PythonException();
             }
             else
@@ -1627,7 +1709,7 @@ class PyObjectGlobalVariable
 
                     if (unlikely (result2 == NULL))
                     {
-                        PyErr_Format( PyExc_NameError, "global name %%s is not defined", PyString_AsString( *this->var_name ) );
+                        PyErr_Format( PyExc_NameError, "global name %s is not defined", PyString_AsString( *this->var_name ) );
                         throw _PythonException();
                     }
 
@@ -1855,73 +1937,7 @@ static PyObject *EVAL_CODE( PyCodeObject *code, PyObject *globals, PyObject *loc
     return result;
 }
 
-PythonBuiltin _python_builtin_import( "__import__" );
-
-static PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name )
-{
-    PyObject *result = PyObject_CallFunctionObjArgs( _python_builtin_import.asObject(), module_name, NULL );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    // Release the reference returned from the __import__ call, we don't trust it, because
-    // it doesn't work well with packages. Look up in sys.modules instead.
-    Py_DECREF( result );
-
-    return LOOKUP_SUBSCRIPT( PySys_GetObject( (char *)"modules" ), import_name );
-}
-
-static void IMPORT_MODULE_STAR( PyObject *target, PyObject *module_name )
-{
-    PyObject *module = IMPORT_MODULE( module_name, module_name );
-
-    if (unlikely( module == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    PyObject *iter;
-    bool all_case;
-
-    if ( PyObject *all = PyMapping_GetItemString( module, (char *)"__all__" ) )
-    {
-        iter = MAKE_ITERATOR( all );
-        all_case = true;
-    }
-    else
-    {
-        PyErr_Clear();
-
-        iter = MAKE_ITERATOR( PyModule_GetDict( module ) );
-        all_case = false;
-    }
-
-    while (PyObject *item = PyIter_Next( iter ))
-    {
-        assert( PyString_Check( item ) );
-
-        // TODO: Not yet clear, what happens with __all__ and "_" of its contents.
-        if (!all_case)
-        {
-            if ( PyString_AS_STRING( item )[0] == '_' )
-            {
-                continue;
-            }
-        }
-
-        // TODO: Check if the reference is handled correctly
-        SET_ATTRIBUTE( target, item, LOOKUP_ATTRIBUTE( module, item ) );
-
-        Py_DECREF( item );
-    }
-
-    if ( PyErr_Occurred() )
-    {
-        throw _PythonException();
-    }
-}
+static PyObject *empty_code = PyBuffer_FromMemory( NULL, 0 );
 
 static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line )
 {
@@ -1932,8 +1948,9 @@ static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, 
     assert( PyString_Check( filename ));
     assert( PyString_Check( function_name ));
 
-    static PyObject *empty_code = PyBuffer_FromMemory( NULL, 0 );
     assert( empty_code );
+
+    // printf( "MAKE_CODEOBJ code object %d\\n", empty_code->ob_refcnt );
 
     PyCodeObject *result = PyCode_New (
         0, 0, 0, 0, // argcount, locals, stacksize, flags
@@ -1949,7 +1966,7 @@ static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, 
         _python_str_empty
     );
 
-    if (unlikely( result == NULL))
+    if (unlikely( result == NULL ))
     {
         throw _PythonException();
     }
@@ -1959,16 +1976,20 @@ static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, 
 
 static PyFrameObject *MAKE_FRAME( PyObject *module, PyObject *filename, PyObject *function_name, int line )
 {
+    PyCodeObject *code = MAKE_CODEOBJ( filename, function_name, line );
+
     PyFrameObject *result = PyFrame_New(
         PyThreadState_GET(),
-        MAKE_CODEOBJ( filename, function_name, line ),
+        code,
         ((PyModuleObject *)module)->md_dict,
         NULL // No locals yet
     );
 
+    Py_DECREF( code );
+
     assert( result );
 
-    if (unlikely( result == NULL))
+    if (unlikely( result == NULL ))
     {
         throw _PythonException();
     }
@@ -1978,11 +1999,30 @@ static PyFrameObject *MAKE_FRAME( PyObject *module, PyObject *filename, PyObject
     return result;
 }
 
+static PyTracebackObject *MAKE_TRACEBACK_START( PyFrameObject *frame, int line )
+{
+    PyTracebackObject *result = PyObject_GC_New( PyTracebackObject, &PyTraceBack_Type );
+
+    result->tb_next = NULL;
+
+    Py_INCREF( frame );
+    result->tb_frame  = frame;
+
+    result->tb_lasti  = 0;
+    result->tb_lineno = line;
+
+    PyObject_GC_Track( result );
+
+    return result;
+}
+
+
 static void ADD_TRACEBACK( PyObject *module, PyObject *filename, PyObject *function_name, int line )
 {
     // TODO: The frame object really might deserve a longer life that this, it is relatively expensive to create.
     PyFrameObject *frame = MAKE_FRAME( module, filename, function_name, line );
 
+    // Inlining PyTraceBack_Here may be faster
     PyTraceBack_Here( frame );
 
     Py_DECREF( frame );
@@ -2017,6 +2057,13 @@ try
 }
 catch (_PythonException &_exception)
 {
+    if ( !_exception.hasTraceback() )
+    {
+        _exception.setTraceback( %(tb_making)s );
+    }
+    _exception.toExceptionHandler();
+    traceback = false;
+
     %(exception_code)s
 }
 """
@@ -2030,7 +2077,15 @@ try
 catch (_PythonException &_exception)
 {
     _caught_%(except_count)d = true;
-%(exception_code)s
+
+    if ( !_exception.hasTraceback() )
+    {
+        _exception.setTraceback( %(tb_making)s );
+    }
+    _exception.toExceptionHandler();
+    traceback = false;
+
+    %(exception_code)s
 }
 if (_caught_%(except_count)d == false)
 {

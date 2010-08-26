@@ -97,7 +97,7 @@ class PythonGeneratorBase:
     def getImportModulesCode( self, context, imports ):
         code = ""
 
-        for module_name, import_name, variable, _module_filename in imports:
+        for module_name, import_name, variable, _module_filename, _module_package in imports:
             code += self.getImportModuleCode(
                 context     = context,
                 module_name = module_name,
@@ -448,6 +448,8 @@ else
 
 
     def getWithCode( self, context, body_codes, assign_codes, source_identifier, with_manager_identifier, with_value_identifier ):
+        # TODO: Have a template for it.
+
         return """\
 {
    _PythonExceptionKeeper _caught_%(with_count)d;
@@ -472,7 +474,7 @@ else
 
       PyObject *exception_type  = _exception.getType();
       PyObject *exception_value = _exception.getObject();
-      PyObject *exception_tb    = _exception.getTrace();
+      PyObject *exception_tb    = _exception.getTraceback();
 
       if ( exception_tb == NULL )
          exception_tb = Py_None;
@@ -755,39 +757,48 @@ if (%(indicator_name)s == false)
 
             cond_keyword = "else if"
 
-        exception_code += [ "else", "{", "throw;", "}" ]
+        exception_code += [ "else", "{", "traceback = true; throw;", "}" ]
 
         if else_code is not None:
             return CodeTemplates.try_except_else_template % {
                 "tried_code"     : "\n    ".join( code_tried ),
                 "exception_code" : "\n    ".join( exception_code ),
                 "else_code"      : "\n    ".join( else_code ),
+                "tb_making"      : self.getTracebackMakerCall( context.getCodeName(), "_exception.getLine()" ),
                 "except_count"   : context.allocateTryNumber()
             }
         else:
             return CodeTemplates.try_except_template % {
                 "tried_code"     : "\n    ".join( code_tried ),
-                "exception_code" : "\n    ".join( exception_code )
+                "exception_code" : "\n    ".join( exception_code ),
+                "tb_making"      : self.getTracebackMakerCall( context.getCodeName(), "_exception.getLine()" ),
             }
 
 
-    def getRaiseExceptionCode( self, context, exception_type_identifier, exception_value_identifier, exception_tb_identifier ):
+    def getRaiseExceptionCode( self, context, exception_type_identifier, exception_value_identifier, exception_tb_identifier, exception_tb_maker ):
         if exception_value_identifier is None and exception_tb_identifier is None:
-            return "RAISE_EXCEPTION( %s );" % exception_type_identifier.getCodeTemporaryRef()
+            return "traceback = true; RAISE_EXCEPTION( %s, %s );" % ( exception_type_identifier.getCodeExportRef(), exception_tb_maker )
         elif exception_tb_identifier is None:
-            return "RAISE_EXCEPTION( %s, %s );" % ( exception_type_identifier.getCodeTemporaryRef(), exception_value_identifier.getCodeTemporaryRef() )
+            return "traceback = true; RAISE_EXCEPTION( %s, %s, %s );" % ( exception_type_identifier.getCodeExportRef(), exception_value_identifier.getCodeExportRef(), exception_tb_maker )
         else:
-            return "RAISE_EXCEPTION( %s, %s, %s );" % ( exception_type_identifier.getCodeTemporaryRef(), exception_value_identifier.getCodeTemporaryRef(), exception_tb_identifier.getCodeTemporaryRef() )
+
+            return "traceback = true; RAISE_EXCEPTION( %s, %s, %s );" % ( exception_type_identifier.getCodeExportRef(), exception_value_identifier.getCodeExportRef(), exception_tb_identifier.getCodeExportRef() )
 
     def getReRaiseExceptionCode( self, context ):
-        return "throw;"
+        return "traceback = true; throw;"
 
-    def getAssertCode( self, context, condition_identifier, failure_identifier, line_number ):
+    def getAssertCode( self, context, condition_identifier, failure_identifier, exception_tb_maker ):
         if failure_identifier is None:
-            return """if (CHECK_IF_FALSE( %s ))\n{ _current_line = %d; throw _PythonException( PyExc_AssertionError );\n}""" % ( condition_identifier.getCodeTemporaryRef(), line_number )
+            return CodeTemplates.assertion_without_arg % {
+                "condition" : condition_identifier.getCodeTemporaryRef(),
+                "tb_maker"  : exception_tb_maker
+            }
         else:
-            return """if (CHECK_IF_FALSE( %s ))\n{ _current_line = %d; throw _PythonException( PyExc_AssertionError, %s );\n}""" % ( condition_identifier.getCodeTemporaryRef(), line_number, failure_identifier.getCodeTemporaryRef() )
-
+            return CodeTemplates.assertion_with_arg % {
+                "condition"   : condition_identifier.getCodeTemporaryRef(),
+                "failure_arg" : failure_identifier.getCodeExportRef(),
+                "tb_maker"    : exception_tb_maker
+            }
 
     def getLoadDirCode( self, context, provider ):
         if provider.isModule():
@@ -883,7 +894,16 @@ class PythonModuleGenerator( PythonGeneratorBase ):
     def getModuleAccessCode( self, context ):
         return Identifier( "_module_%s" % context.getModuleName(), 0 )
 
-    def getModuleCode( self, context, module_name, codes, doc_identifier, filename_identifier ):
+    def getTracebackMaker( self, name ):
+        return "MAKE_TRACEBACK_" + name
+
+    def getTracebackMakerCall( self, name, line ):
+        return "MAKE_TRACEBACK_" + name + "( %s )" % line
+
+    def getTracebackAdder( self, name ):
+        return "ADD_TRACEBACK_" + name
+
+    def getModuleCode( self, context, stand_alone, module_name, codes, doc_identifier, filename_identifier ):
         header = CodeTemplates.global_copyright % { "name" : "module " + module_name }
 
         functions_decl = self.getFunctionsDecl( context = context )
@@ -898,7 +918,10 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         module_globals = "\n   ".join( [ """PyObjectGlobalVariable _mvar_%s_%s( &_module_%s, &%s );""" % ( module_name, var_name, module_name, context.getConstantHandle( constant = var_name ).getCode() ) for var_name in sorted( module_var_names ) ] );
 
-        if module_name == "__main__":
+        # Make sure that _python_str_angle_module is available to the template
+        context.getConstantHandle( constant = "<module>" )
+
+        if stand_alone:
             global_prelude = context.global_context.getPreludeCode()
             constant_init = context.global_context.getConstantCode()
             global_helper = context.global_context.getHelperCode()
@@ -915,14 +938,32 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             "module_functions_code" : functions_code,
             "module_globals"        : module_globals,
             "module_code"           : "\n      ".join( codes ),
+            "module_tb_adder"       : self.getTracebackAdder( context.getCodeName() ),
+            "module_tb_maker"       : self.getTracebackMaker( context.getCodeName() )
         }
 
         return header + global_prelude + constant_init + global_helper + module_code
 
-    def getMainCode( self, codes, other_module_names ):
+    def getMainCode( self, codes, other_modules ):
         header = CodeTemplates.global_copyright % { "name" : "module " + self.getName() }
 
-        prepare_code = [ CodeTemplates.prepare_other_module % { "module_name" : other_module_name } for other_module_name in other_module_names ]
+        prepare_code = []
+
+        for other_module in other_modules:
+            module_package = other_module.getPackage()
+            module_name = other_module.getName()
+
+            if module_package is None:
+                module_full_name = module_name
+            else:
+                module_full_name = module_package + "." + module_name
+
+            prepare_code.append (
+                CodeTemplates.prepare_other_module % {
+                    "module_name"      : module_name,
+                    "module_full_name" : module_full_name,
+                }
+            )
 
         main_code = CodeTemplates.main_program % {
             "prepare_modules" : "\n    ".join( prepare_code )
@@ -1387,14 +1428,15 @@ class PythonModuleGenerator( PythonGeneratorBase ):
         }
 
         result += CodeTemplates.genfunc_yielder_template % {
-            "function_name"              : function_name,
-            "function_identifier"        : function_identifier,
-            "function_body"              : "\n    ".join( function_codes ),
-            "local_var_naming"           : "\n    ".join( local_var_naming ),
-            "module"                     : self.getModuleAccessCode( context = context ).getCode(),
-            "name_identifier"            : self.getConstantCode( context = context, constant = function_name ),
-            "file_identifier"            : self.getConstantCode( context = context, constant = function_filename ),
-
+            "function_name"           : function_name,
+            "function_identifier"     : function_identifier,
+            "function_body"           : "\n    ".join( function_codes ),
+            "local_var_naming"        : "\n    ".join( local_var_naming ),
+            "module"                  : self.getModuleAccessCode( context = context ).getCode(),
+            "name_identifier"         : self.getConstantCode( context = context, constant = function_name ),
+            "file_identifier"         : self.getConstantCode( context = context, constant = function_filename ),
+            "function_tb_maker"       : self.getTracebackMaker( function_identifier ),
+            "function_tb_adder"       : self.getTracebackAdder( function_identifier )
         }
 
         result += CodeTemplates.genfunc_function_template % {
@@ -1477,6 +1519,8 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             "module"                  : self.getModuleAccessCode( context = context ).getCode(),
             "name_identifier"         : self.getConstantCode( context = context, constant = function_name ),
             "file_identifier"         : self.getConstantCode( context = context, constant = function_filename ),
+            "function_tb_maker"       : self.getTracebackMaker( function_identifier ),
+            "function_tb_adder"       : self.getTracebackAdder( function_identifier )
         }
 
         if function_context_decl:

@@ -36,15 +36,13 @@ the provided locals for new entries before checking globals. I do
 not see much value, all you need to do is to define the variable
 before the exec to make it work.
 
-generators have no throw() method. Would require them to not be
-callable iterators simply, but a type of their own. Not used by
-anything but contextlib yet.
+generators have no throw() method. Not used by anything but contextlib
+yet. Will work in the future.
 
 eval does not default to globals()/locals() when None is provided
 
-sys.exc_info() seems to return None, None, None in exception handler
-which it probably should not. May need some special treatment to get
-at current exception instead.
+sys.exc_info() works mostly as expected, but doesn't stack, do exceptions
+when handling exceptions are not preserved to this function.
 
 threading can block it seems
 
@@ -71,12 +69,7 @@ try: yield: finally does not execute the finally maybe
 * Modified tests:
 ********************************************************************
 
-test_array: Removed unicode tests, they have the repr() problem
-and an attribute test of __slots__ in test_subclassing that is
-not really an array test.
-
-test_asyncore: Removed test_compact_traceback, we don't yet provide
-tracebacks yet, so this gives an exception.
+test_array: Removed unicode tests, they have the repr() problem.
 
 test_compile: Removed extended slice syntax. Changed func_code
 usage to get local consts to locals(). Removed tests based on
@@ -88,8 +81,6 @@ the throw method of generators that we don't have. For the time
 being the "with" statement works, but not with generator expressions
 where there are exceptions.
 
-test_dict: Part of test_dir checks classes with __slots__ active
-and notices that it fails to work as expected, this was deactivated
 
 test_class: Part of the test uses the extended slicing syntax that
 I do not understand.
@@ -104,44 +95,21 @@ test_compiler: unreproducible results and testing a function of
 CPython does we don't need to test ourselves.
 
 test_copy: deepcopy of compiled functions refuses to work, removed
-these test cases.
+these test cases, removed func_code check
 
 test_copy_reg: removed extended slice use, removed tests of slots,
 we don't implement them.
 
-test_datetime: Everything pickling was removed, due to complaints
-about version mismatch of the pickler. Seems the pickler module
-is using something we don't have to determine its supporting
-pickling protocol.
+test_defaultdict: deepcopy is not supported, removed test_deep_copy
 
 test_decorators: A call to eval() has run time None for globals and
 this is not yet supported.
 
-test_defaultdict: deepcopy is not supported, removed test_deep_copy
-
-test_desc: test_properties checks against an implementation detail
-of properties, removed. Removed __slots__ tests, we ignore these so
-far. Also __slots__ variables are not initialized, removed tests
-that use it. The name mangling of __class_attr does not get applied
-and therefore some metaclasses do not work, removed much of
-test_metaclass that uses __class_attr tricks
-
-test_dict: crasher in test_le, no clue why __eq__ returning an
-exception is to bad
-
-test_exceptions: Removed unicode repr causing parts. Seems deprecation
-warnings are not given, probably by design, removed that test part. And
-also sys.exc_info() seems not updated in case of exceptions.
-
-test_file: Removed, because it uses heavy threading is more of a
-performance test. Blocked in some tests, indicating locking issues.
+test_exceptions: Removed unicode repr causing parts.
 
 test_ftplib: Disabled IPv6, not on my systems
 
 test_funcattrs: Disabled pars that use func_code and func_defaults
-
-test_functools: Cannot create weakrefs to compiled functions, removed
-that part
 
 test_future3: Somehow the true division as default doesn't work as
 expected, likely the C-API Py_NumberDivide should be replaced in
@@ -152,11 +120,10 @@ test_future6: Changed relative import from "." to normal import.
 test_gc: Remove use of sys._getframe and test that checks gc very
 fragile way.
 
-test_grammer: Remove test that uses extended slices. Problem with
-comparison chains that use "in", unrealistic code not yet done. Same
-with nested assignments that each unpack. Removed these statements
-from the test. Also removed testFuncDef parts that use func_code to
-test things. Also removed try: continue finally: test, we are not
+test_grammer: Problem with comparison chains that use "in", unrealistic
+code not yet done. Same with nested assignments that each unpack. Removed
+these statements from the test. Also removed testFuncDef parts that use
+func_code to test things. Also removed try: continue finally: test, we are not
 correct there, finally is not executed in that case.
 
 test_hotshot: remove test that attempts to get line numbers from
@@ -165,7 +132,8 @@ the func_code object.
 test_import: Removed test_foreign_code, disabled relative import
 tests
 
-test_inspect: No exception tracebacks yet, removed these parts
+test_inspect: No exception tracebacks yet, removed these parts, removed
+checks for argument specs of functions, not supported.
 
 test_io.py: test_newline_decoder and testReadClosed fails
 mysteriously with some unicode differences, likely because import
@@ -173,6 +141,8 @@ from future does not change literals to unicode
 
 test_logging: Logging exceptions doesn't work with every config,
 removed test_config4_ok
+
+test_marshal: removed marshal of func_code
 
 test_math: removed doc tests, they check call stack and that is not
 yet supported. removed usage of sys.argv[0] to find file in the dir
@@ -199,7 +169,7 @@ test_pty: removed traces of pids that are not reproducible
 
 test_pyexpat: removed check that is affected by unicode repr problem
 
-test_repr: removed test that checks lamba repr
+test_repr: relaxed test that checks lamba repr to allow compiled lambda
 
 test_scope: test that checks exec with free vars refusal was using
 func_code to do so, removed that part. Also removed unbound local
@@ -280,6 +250,9 @@ test_docxmlrpc: uses inspection and complains about compiled function
 test_email: removed, out of scope
 test_email_codecs: removed, out of scope
 test_email_renamed: removed, out of scope
+
+test_file: Removed, because it uses heavy threading is more of a
+performance test. Blocked in some tests, indicating locking issues.
 
 test_future4: The __future__ import doesn't change unicode literals
 to string literals. Removed.

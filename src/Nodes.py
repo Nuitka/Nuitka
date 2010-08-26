@@ -564,7 +564,7 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
 
         The module is a possible root of a tree.
     """
-    def __init__( self, name, filename, doc, source_ref ):
+    def __init__( self, name, package, filename, doc, source_ref ):
         CPythonNamedNode.__init__( self, name = name, kind = "MODULE", source_ref = source_ref )
         CPythonClosureGiver.__init__( self, "module" )
         CPythonChildrenHaving.__init__(
@@ -575,6 +575,7 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
         )
 
         self.filename = filename
+        self.package = package
         self.doc = doc
 
     setBody = CPythonChildrenHaving.childSetter( "body" )
@@ -585,6 +586,9 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
 
     def getFilename( self ):
         return self.filename
+
+    def getPackage( self ):
+        return self.package
 
     def getVariableForAssignment( self, variable_name ):
         return self.getProvidedVariable( variable_name )
@@ -1688,14 +1692,18 @@ class CPythonStatementImportModules( CPythonNode ):
     def getModuleFilenames( self ):
         return [ import_desc[3] for import_desc in self.imports if import_desc[3] is not None ]
 
+    def getModulePackages( self ):
+        return [ import_desc[4] for import_desc in self.imports if import_desc[3] is not None ]
+
 
 class CPythonStatementImportFrom( CPythonNode ):
-    def __init__( self, provider, module_name, module_filename, imports, source_ref ):
+    def __init__( self, provider, module_name, module_package, module_filename, imports, source_ref ):
         CPythonNode.__init__( self, kind = "STATEMENT_IMPORT_FROM", source_ref = source_ref )
 
         self.provider = provider
 
         self.module_filename = module_filename
+        self.module_package = module_package
         self.module_name = module_name
         self.imports = imports[:]
 
@@ -1705,12 +1713,21 @@ class CPythonStatementImportFrom( CPythonNode ):
     def getModuleName( self ):
         return self.module_name
 
+    def getModulePackage( self ):
+        return self.module_package
+
     def getTarget( self ):
         return self.provider
 
     def getModuleFilenames( self ):
         if self.module_filename is not None:
             return ( self.module_filename, )
+        else:
+            return ()
+
+    def getModulePackages( self ):
+        if self.module_filename is not None:
+            return ( self.module_package, )
         else:
             return ()
 
