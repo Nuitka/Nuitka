@@ -1,27 +1,34 @@
-# 
+#
 #     Copyright 2010, Kay Hayen, mailto:kayhayen@gmx.de
-# 
-#     Part of "Nuitka", my attempt of building an optimizing Python compiler
+#
+#     Part of "Nuitka", an attempt of building an optimizing Python compiler
 #     that is compatible and integrates with CPython, but also works on its
 #     own.
-# 
-#     If you submit patches to this software in either form, you automatically
-#     grant me a copyright assignment to the code, or in the alternative a BSD
-#     license to the code, should your jurisdiction prevent this. This is to
-#     reserve my ability to re-license the code at any time.
-# 
+#
+#     If you submit Kay Hayen patches to this software in either form, you
+#     automatically grant him a copyright assignment to the code, or in the
+#     alternative a BSD license to the code, should your jurisdiction prevent
+#     this. Obviously it won't affect code that comes to him indirectly or
+#     code you don't submit to him.
+#
+#     This is to reserve my ability to re-license the code at any time, e.g.
+#     the PSF. With this version of Nuitka, using it for Closed Source will
+#     not be allowed.
+#
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, version 3 of the License.
-# 
+#
 #     This program is distributed in the hope that it will be useful,
 #     but WITHOUT ANY WARRANTY; without even the implied warranty of
 #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
-# 
+#
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
+#     Please leave the whole of this copyright notice intact.
+#
 """ Module with transformations of the tree.
 
 Intended for locals/globals/eval replacement tricks, as well as hints being
@@ -29,9 +36,12 @@ applied here.
 
 """
 
+import SourceCodeReferences
 import TreeBuilding
 import Nodes
 import Hints
+
+from logging import warning
 
 class TreeVisitorFixupNewStaticmethod:
     """ Delete the staticmethod decorator from __new__ methods if provided.
@@ -86,7 +96,7 @@ class TreeVisitorReplaceBuiltinCalls:
 
 
 
-def replaceBuiltinsCallsThatRequireInterpreter( tree ):
+def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
     noarg_extractor = lambda node : {}
 
     def _pickLocalsForNode( node ):
@@ -151,11 +161,12 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree ):
         positional_args = node.getPositionalArguments()
 
         return Nodes.CPythonExpressionBuiltinCallEval (
-            source     = positional_args[0],
-            globals    = positional_args[1] if len( positional_args ) > 1 else _pickGlobalsForNode( node ),
-            locals     = positional_args[2] if len( positional_args ) > 2 else _pickLocalsForNode( node ),
-            mode       = "eval",
-            source_ref = node.getSourceReference()
+            source       = positional_args[0],
+            globals      = positional_args[1] if len( positional_args ) > 1 else _pickGlobalsForNode( node ),
+            locals       = positional_args[2] if len( positional_args ) > 2 else _pickLocalsForNode( node ),
+            mode         = "eval",
+            future_flags = future_flags,
+            source_ref   = node.getSourceReference()
         )
 
     def execfile_extractor( node ):
@@ -189,11 +200,11 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree ):
 
         return Nodes.CPythonStatementExec(
             source       = source_node,
-            globals     = positional_args[1] if len( positional_args ) > 1 else None,
-            locals      = positional_args[2] if len( positional_args ) > 2 else None,
-            source_ref  = source_ref
+            globals      = positional_args[1] if len( positional_args ) > 1 else None,
+            locals       = positional_args[2] if len( positional_args ) > 2 else None,
+            future_flags = future_flags,
+            source_ref   = source_ref
         )
-
 
 
     visitor = TreeVisitorReplaceBuiltinCalls(
@@ -210,5 +221,38 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree ):
     TreeBuilding.visitTree( tree, visitor )
 
     visitor = TreeVisitorFixupNewStaticmethod()
+
+    TreeBuilding.visitTree( tree, visitor )
+
+class TreeVisitorOptimizeStaticExec:
+    """ Inline constant execs.
+
+    """
+    def __init__( self, build_node ):
+        self.build_node = build_node
+
+    def __call__( self, node ):
+        if node.isStatementExec() and node.getLocals() is None and node.getGlobals() is None:
+            source = node.getSource()
+
+            if source.isConstantReference():
+                source_ref = node.getSourceReference()
+
+                try:
+                    new_node = self.build_node(
+                        provider    = node.getParentVariableProvider(),
+                        parent      = node.getParent(),
+                        source_code = source.getConstant(),
+                        filename    = source_ref.getFilename(),
+                        line_offset = source_ref.getLineNumber() - 1
+                    )
+
+                    node.replaceWith( new_node )
+                except SyntaxError:
+                    warning( "Syntax error for exec at %s" % source_ref.getAsString() )
+
+
+def replaceConstantExecs( tree, build_node ):
+    visitor = TreeVisitorOptimizeStaticExec( build_node )
 
     TreeBuilding.visitTree( tree, visitor )

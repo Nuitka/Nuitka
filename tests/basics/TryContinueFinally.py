@@ -18,33 +18,30 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-# -*- coding: utf-8 -*-
 
-def closureTest1():
-    # Assign, but the value is not supposed to be used.
-    d = 1
+def tryContinueFinallyTest():
+    print "Check if finally is executed in a continue using for loop:"
 
-    def subby():
-        return d
+    for x in range(10):
+        try:
+            if x % 2 == 1:
+                continue
+        finally:
+            print x,
 
-    d = 22222*2222
+    print
 
-    return subby()
+def tryBreakFinallyTest():
+    print "Check if finally is executed in a break using for loop:"
 
+    for x in range(10):
+        try:
+            if x == 5:
+                break
+        finally:
+            print x,
 
-def closureTest2():
-    # Using a closure variable that is not initialized at the time it is closured.
+    print
 
-    def subby():
-        return d
-
-    d = 22222*22222
-
-    return subby()
-
-
-var1 = closureTest1()
-var2 = closureTest2()
-
-print var1
-print var2
+tryContinueFinallyTest()
+tryBreakFinallyTest()

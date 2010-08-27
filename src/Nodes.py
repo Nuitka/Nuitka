@@ -1,27 +1,34 @@
-# 
+#
 #     Copyright 2010, Kay Hayen, mailto:kayhayen@gmx.de
-# 
-#     Part of "Nuitka", my attempt of building an optimizing Python compiler
+#
+#     Part of "Nuitka", an attempt of building an optimizing Python compiler
 #     that is compatible and integrates with CPython, but also works on its
 #     own.
-# 
-#     If you submit patches to this software in either form, you automatically
-#     grant me a copyright assignment to the code, or in the alternative a BSD
-#     license to the code, should your jurisdiction prevent this. This is to
-#     reserve my ability to re-license the code at any time.
-# 
+#
+#     If you submit Kay Hayen patches to this software in either form, you
+#     automatically grant him a copyright assignment to the code, or in the
+#     alternative a BSD license to the code, should your jurisdiction prevent
+#     this. Obviously it won't affect code that comes to him indirectly or
+#     code you don't submit to him.
+#
+#     This is to reserve my ability to re-license the code at any time, e.g.
+#     the PSF. With this version of Nuitka, using it for Closed Source will
+#     not be allowed.
+#
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, version 3 of the License.
-# 
+#
 #     This program is distributed in the hope that it will be useful,
 #     but WITHOUT ANY WARRANTY; without even the implied warranty of
 #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
-# 
+#
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
+#     Please leave the whole of this copyright notice intact.
+#
 """ Node classes for the analysis tree.
 
 """
@@ -564,7 +571,7 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
 
         The module is a possible root of a tree.
     """
-    def __init__( self, name, package, filename, doc, source_ref ):
+    def __init__( self, name, package, filename,source_ref ):
         CPythonNamedNode.__init__( self, name = name, kind = "MODULE", source_ref = source_ref )
         CPythonClosureGiver.__init__( self, "module" )
         CPythonChildrenHaving.__init__(
@@ -576,13 +583,16 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
 
         self.filename = filename
         self.package = package
-        self.doc = doc
+        self.doc = None
 
     setBody = CPythonChildrenHaving.childSetter( "body" )
     getStatementSequence = CPythonChildrenHaving.childGetter( "body" )
 
     def getDoc( self ):
         return self.doc
+
+    def setDoc( self, doc ):
+        self.doc = doc
 
     def getFilename( self ):
         return self.filename
@@ -649,7 +659,7 @@ class CPythonClass( CPythonNamedNode, CPythonClosureTaker, CPythonNamedCode ):
     getVariables = getClassVariables
 
 class CPythonStatementSequence( CPythonChildrenHaving, CPythonNode ):
-    def __init__( self, statements, source_ref ):
+    def __init__( self, statements, replacement, source_ref ):
         for statement in statements:
             assert statement.isStatement(), statement
 
@@ -662,7 +672,12 @@ class CPythonStatementSequence( CPythonChildrenHaving, CPythonNode ):
             }
         )
 
+        self.replacement = replacement
+
     getStatements = CPythonChildrenHaving.childGetter( "statements" )
+
+    def isReplacedStatement( self ):
+        return self.replacement
 
 class CPythonAssignTargetVariable( CPythonNode ):
     def __init__( self, variable, source_ref ):
@@ -702,7 +717,7 @@ class CPythonAssignAttribute( CPythonNode ):
     def getAttributeName( self ):
         return self.attribute
 
-    def getSource( self ):
+    def getLookupSource( self ):
         return self.expression
 
 
@@ -835,7 +850,7 @@ class CPythonParameterHaving:
         return self.parameters
 
 class CPythonExpressionLambda( CPythonChildrenHaving, CPythonNode, CPythonParameterHaving, CPythonClosureTaker, CPythonClosureGiver ):
-    def __init__( self, provider, parameters, source_ref ):
+    def __init__( self, provider, parameters,source_ref ):
         CPythonNode.__init__( self, kind = "EXPRESSION_LAMBDA_DEF", source_ref = source_ref )
         CPythonClosureTaker.__init__( self, provider )
         CPythonClosureGiver.__init__( self, code_prefix = "lamda" )
@@ -848,8 +863,19 @@ class CPythonExpressionLambda( CPythonChildrenHaving, CPythonNode, CPythonParame
             }
         )
 
+        self.is_generator = False
+
     getLambdaExpression = CPythonChildrenHaving.childGetter( "expression" )
     setBody = CPythonChildrenHaving.childSetter( "expression" )
+
+    def isGenerator( self ):
+        return self.is_generator
+
+    def markAsGenerator( self ):
+        self.is_generator = True
+
+    def getLambdaYielded( self ):
+        return self.getLambdaExpression().getExpression()
 
     def getVisitableNodes( self ):
         return self.parameters.getDefaultExpressions() + ( self.getLambdaExpression(), )
@@ -890,7 +916,7 @@ class CPythonFunction( CPythonNamedNode, CPythonParameterHaving, CPythonClosureT
         self.body = None
 
         self.decorators = tuple( decorators )
-        self.generator = False
+        self.is_generator = False
 
         self.doc = doc
 
@@ -934,10 +960,10 @@ class CPythonFunction( CPythonNamedNode, CPythonParameterHaving, CPythonClosureT
         return self.body
 
     def markAsGenerator( self ):
-        self.generator = True
+        self.is_generator = True
 
     def isGenerator( self ):
-        return self.generator
+        return self.is_generator
 
     def getDoc( self ):
         return self.doc
@@ -945,6 +971,9 @@ class CPythonFunction( CPythonNamedNode, CPythonParameterHaving, CPythonClosureT
     def getVariableForAssignment( self, variable_name ):
         if self.hasTakenVariable( variable_name ):
             result = self.getClosureVariable( variable_name )
+
+            if not result.isModuleVariable():
+                raise SyntaxError
 
             assert result.isModuleVariable()
 
@@ -1436,25 +1465,22 @@ class CPythonExpressionSlice( CPythonChildrenHaving, CPythonNode ):
     getLower = CPythonChildrenHaving.childGetter( "lower" )
 
 
-class CPythonExpressionSliceObject( CPythonNode ):
+class CPythonExpressionSliceObject( CPythonChildrenHaving, CPythonNode ):
     def __init__( self, lower, upper, step, source_ref ):
         CPythonNode.__init__( self, kind = "EXPRESSION_SLICEOBJ_REF", source_ref = source_ref )
 
-        self.lower = lower
-        self.upper = upper
-        self.step  = step
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "upper"      : upper,
+                "lower"      : lower,
+                "step"       : step
+            }
+        )
 
-    def getLower( self ):
-        return self.lower
-
-    def getUpper( self ):
-        return self.upper
-
-    def getStep( self ):
-        return self.step
-
-    def getVisitableNodes( self ):
-        return ( self.lower, self.upper, self.step )
+    getLower = CPythonChildrenHaving.childGetter( "lower" )
+    getUpper = CPythonChildrenHaving.childGetter( "upper" )
+    getStep  = CPythonChildrenHaving.childGetter( "step" )
 
 class CPythonComparison( CPythonChildrenHaving, CPythonNode ):
     def __init__( self, comparison, source_ref ):
@@ -1733,7 +1759,7 @@ class CPythonStatementImportFrom( CPythonNode ):
 
 
 class CPythonStatementExec( CPythonChildrenHaving, CPythonNode ):
-    def __init__( self, source, globals, locals, source_ref ):
+    def __init__( self, source, globals, locals, future_flags, source_ref ):
         CPythonNode.__init__( self, kind = "STATEMENT_EXEC", source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
@@ -1745,12 +1771,18 @@ class CPythonStatementExec( CPythonChildrenHaving, CPythonNode ):
             }
         )
 
+        self.future_flags = future_flags
+
     getGlobals = CPythonChildrenHaving.childGetter( "globals" )
     getLocals = CPythonChildrenHaving.childGetter( "locals" )
     getSource = CPythonChildrenHaving.childGetter( "source" )
 
     def getMode( self ):
         return "exec"
+
+    def getFutureFlags( self ):
+        return self.future_flags
+
 
 class CPythonExpressionBuiltinCallGlobals( CPythonNode ):
     def __init__( self, source_ref ):
@@ -1778,7 +1810,7 @@ class CPythonExpressionBuiltinCallVars( CPythonChildrenHaving, CPythonNode ):
     getSource = CPythonChildrenHaving.childGetter( "source" )
 
 class CPythonExpressionBuiltinCallEval( CPythonChildrenHaving, CPythonNode ):
-    def __init__( self, source, globals, locals, mode, source_ref ):
+    def __init__( self, source, globals, locals, mode, future_flags, source_ref ):
         CPythonNode.__init__( self, kind = "EXPRESSION_BUILTIN_EVAL", source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
@@ -1791,6 +1823,7 @@ class CPythonExpressionBuiltinCallEval( CPythonChildrenHaving, CPythonNode ):
         )
 
         self.mode = mode
+        self.future_flags = future_flags
 
     getSource = CPythonChildrenHaving.childGetter( "source" )
     getGlobals = CPythonChildrenHaving.childGetter( "globals" )
@@ -1798,6 +1831,9 @@ class CPythonExpressionBuiltinCallEval( CPythonChildrenHaving, CPythonNode ):
 
     def getMode( self ):
         return self.mode
+
+    def getFutureFlags( self ):
+        return self.future_flags
 
 class CPythonExpressionBuiltinCallOpen( CPythonChildrenHaving, CPythonNode ):
     def __init__( self, filename, mode, buffering, source_ref ):

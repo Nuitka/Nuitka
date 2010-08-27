@@ -1,27 +1,34 @@
-# 
+#
 #     Copyright 2010, Kay Hayen, mailto:kayhayen@gmx.de
-# 
-#     Part of "Nuitka", my attempt of building an optimizing Python compiler
+#
+#     Part of "Nuitka", an attempt of building an optimizing Python compiler
 #     that is compatible and integrates with CPython, but also works on its
 #     own.
-# 
-#     If you submit patches to this software in either form, you automatically
-#     grant me a copyright assignment to the code, or in the alternative a BSD
-#     license to the code, should your jurisdiction prevent this. This is to
-#     reserve my ability to re-license the code at any time.
-# 
+#
+#     If you submit Kay Hayen patches to this software in either form, you
+#     automatically grant him a copyright assignment to the code, or in the
+#     alternative a BSD license to the code, should your jurisdiction prevent
+#     this. Obviously it won't affect code that comes to him indirectly or
+#     code you don't submit to him.
+#
+#     This is to reserve my ability to re-license the code at any time, e.g.
+#     the PSF. With this version of Nuitka, using it for Closed Source will
+#     not be allowed.
+#
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, version 3 of the License.
-# 
+#
 #     This program is distributed in the hope that it will be useful,
 #     but WITHOUT ANY WARRANTY; without even the implied warranty of
 #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
-# 
+#
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
+#     Please leave the whole of this copyright notice intact.
+#
 """ The code generation.
 
 No language specifics at all are supposed to be present here. Instead it is using
@@ -193,15 +200,24 @@ def generateLambdaCode( lambda_expression, context, generator ):
         parameter_names = lambda_expression.getParameters().getParameterNames()
     )
 
-    code = generator.getReturnCode(
-        context    = context,
-        identifier = generateExpressionCode(
-            expression = lambda_expression.getLambdaExpression(),
-            context    = lambda_context,
-            generator  = generator,
+    if not lambda_expression.isGenerator():
+        code = generator.getReturnCode(
+            context    = context,
+            identifier = generateExpressionCode(
+                expression = lambda_expression.getLambdaExpression(),
+                context    = lambda_context,
+                generator  = generator,
+            )
         )
-    )
-
+    else:
+        code = generator.getYieldCode(
+            context    = context,
+            identifier = generateExpressionCode(
+                expression = lambda_expression.getLambdaYielded(),
+                context    = lambda_context,
+                generator  = generator,
+            )
+        )
     if Options.shallHaveStatementLines():
         codes = [ generator.getCurrentLineCode( lambda_expression.getSourceReference() ), code ]
     else:
@@ -654,10 +670,7 @@ def generateExpressionCode( expression, context, generator ):
 
         identifier = generator.getAttributeLookupCode(
             context        = context,
-            attribute_name = generator.getConstantHandle(
-                constant = attribute_name,
-                context  = context
-            ),
+            attribute_name = attribute_name,
             source         = makeExpressionCode( expression.getLookupSource() ),
         )
     elif expression.isSubscriptLookup():
@@ -692,20 +705,17 @@ def generateExpressionCode( expression, context, generator ):
 
     elif expression.isSliceObjectExpression():
         identifier = generator.getSliceObjectCode(
-            lower = generateExpressionCode(
+            lower = makeExpressionCode(
                 expression = expression.getLower(),
-                context    = context,
-                generator  = generator
+                allow_none = True
             ),
-            upper = generateExpressionCode(
+            upper = makeExpressionCode(
                 expression = expression.getUpper(),
-                context    = context,
-                generator  = generator
+                allow_none = True
             ),
-            step  = generateExpressionCode(
+            step  = makeExpressionCode(
                 expression = expression.getStep(),
-                context    = context,
-                generator  = generator
+                allow_none = True
             ),
             context = context
         )
@@ -846,18 +856,17 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
             attribute_name = mangleAttributeName(
                 attribute_name = target.getAttributeName(),
                 node           = target
-
             )
 
             code += generator.getAttributeAssignmentCode(
-                target       = generateExpressionCode(
-                    expression = target.getSource(),
+                target         = generateExpressionCode(
+                    expression = target.getLookupSource(),
                     generator  = generator,
                     context    = context
                 ),
-                attribute     = attribute_name,
-                identifier    = assign_source,
-                context       = context
+                attribute_name = attribute_name,
+                identifier     = assign_source,
+                context        = context
             )
 
             if old_ref_count:
@@ -955,9 +964,9 @@ def generateDelCode( targets, context, generator ):
             )
 
             code += generator.getAttributeDelCode(
-                target    = makeExpressionCode( target.getSource() ),
-                attribute = attribute_name,
-                context   = context
+                target         = makeExpressionCode( target.getLookupSource() ),
+                attribute_name = attribute_name,
+                context        = context
             )
         elif target.isAssignToVariable():
             code += generator.getVariableDelCode(
@@ -1028,14 +1037,15 @@ def generateEvalCode( eval_expression, context, generator ):
     )
 
     identifier = generator.getEvalCode(
-        mode               = eval_expression.getMode(),
         exec_code          = generateExpressionCode(
-            generator  = generator,
-            context    = context,
-            expression = eval_expression.getSource()
+            generator    = generator,
+            context      = context,
+            expression   = eval_expression.getSource(),
         ),
         globals_identifier = globals_identifier,
         locals_identifier  = locals_identifier,
+        mode               = eval_expression.getMode(),
+        future_flags       = generator.getFutureFlagsCode( *eval_expression.getFutureFlags() ),
         context            = context
     )
 
@@ -1066,6 +1076,8 @@ def generateExecCode( exec_def, context, generator ):
                 expression = exec_def.getSource()
             ),
             globals_identifier = globals_identifier,
+            future_flags       = generator.getFutureFlagsCode( *exec_def.getFutureFlags() ),
+
         )
 
 def generateStatementCode( statement, context, generator ):
@@ -1077,8 +1089,20 @@ def generateStatementCode( statement, context, generator ):
 
 def _generateStatementCode( statement, context, generator ):
     if not statement.isStatement():
+
+        # A statement sequence may turn up due to
+        if statement.isStatementsSequence() and statement.isReplacedStatement():
+            codes = generateStatementSequenceCode(
+                statement_sequence = statement,
+                generator          = generator,
+                context            = context
+            )
+
+            return "\n   ".join( codes )
+
         print statement.dump()
         assert False
+
 
     def makeExpressionCode( expression, allow_none = False ):
         if allow_none and expression is None:
@@ -1109,17 +1133,17 @@ def _generateStatementCode( statement, context, generator ):
     elif statement.isStatementInplaceAssignment():
         target = statement.getTarget()
 
-        if target.isVariableReference():
+        if target.isAssignToVariable():
             code = generator.getInplaceVarAssignmentCode(
-                variable   = target.getVariable(),
+                variable   = target.getTargetVariable(),
                 operator   = statement.getOperator(),
                 identifier = makeExpressionCode( statement.getExpression() ),
                 context    = context
             )
-        elif target.isSubscriptLookup():
+        elif target.isAssignToSubscript():
             code = generator.getInplaceSubscriptAssignmentCode(
                 subscribed = makeExpressionCode(
-                    expression = target.getLookupSource()
+                    expression = target.getSubscribed()
                 ),
                 subscript  = makeExpressionCode(
                     expression = target.getSubscript()
@@ -1128,20 +1152,22 @@ def _generateStatementCode( statement, context, generator ):
                 identifier = makeExpressionCode( statement.getExpression() ),
                 context    = context
             )
-        elif target.isAttributeLookup():
+        elif target.isAssignToAttribute():
+            attribute_name = mangleAttributeName(
+                attribute_name = target.getAttributeName(),
+                node           = target
+            )
+
             code = generator.getInplaceAttributeAssignmentCode(
-                target = makeExpressionCode(
+                target          = makeExpressionCode(
                     expression = target.getLookupSource()
                 ),
-                attribute  = generator.getConstantHandle(
-                    constant = target.getAttributeName(),
-                    context    = context
-                ),
-                operator   = statement.getOperator(),
-                identifier = makeExpressionCode( statement.getExpression() ),
-                context    = context
+                attribute_name  = attribute_name,
+                operator        = statement.getOperator(),
+                identifier      = makeExpressionCode( statement.getExpression() ),
+                context         = context
             )
-        elif target.isSliceLookup():
+        elif target.isAssignToSlice():
             target_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
                 sliced    = target.getLookupSource(),
                 lower     = target.getLower(),
@@ -1197,15 +1223,33 @@ def _generateStatementCode( statement, context, generator ):
                 context    = context
             )
         else:
-            code = generator.getReturnCode(
+            expression = statement.getExpression()
+
+            if expression is not None:
+                code = generator.getReturnCode(
+                    identifier = makeExpressionCode( expression ),
+                    context    = context
+                )
+            else:
+                code = generator.getReturnCode(
+                    identifier = generator.getConstantHandle( constant = None, context = context ),
+                    context    = context
+                )
+
+    elif statement.isStatementYield():
+        expression = statement.getExpression()
+
+        if expression is not None:
+            code = generator.getYieldCode(
                 identifier = makeExpressionCode( statement.getExpression() ),
                 context    = context
             )
-    elif statement.isStatementYield():
-        code = generator.getYieldCode(
-            identifier = makeExpressionCode( statement.getExpression() ),
-            context    = context
-        )
+        else:
+            code = generator.getYieldCode(
+                identifier = generator.getConstantHandle( constant = None, context = context ),
+                context    = context
+            )
+
     elif statement.isStatementWith():
         body_codes = generateStatementSequenceCode(
             statement_sequence = statement.getWithBody(),
@@ -1458,7 +1502,8 @@ def _generateStatementCode( statement, context, generator ):
                 ),
                 exception_tb_identifier    = makeExpressionCode(
                     expression = parameters[2]
-                )
+                ),
+                exception_tb_maker         = None
             )
         else:
             print parameters
@@ -1487,7 +1532,6 @@ def _generateStatementCode( statement, context, generator ):
             generator = generator,
             context   = context
         )
-
     else:
         assert False, statement.__class__
 
@@ -1517,7 +1561,6 @@ def generateStatementSequenceCode( statement_sequence, context, generator ):
 
         codes.append( code )
 
-    # print "\n".join( codes )
     return codes
 
 def generateModuleCode( module, module_name, global_context, stand_alone, generator ):

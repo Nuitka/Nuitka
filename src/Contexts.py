@@ -1,32 +1,39 @@
-# 
+#
 #     Copyright 2010, Kay Hayen, mailto:kayhayen@gmx.de
-# 
-#     Part of "Nuitka", my attempt of building an optimizing Python compiler
+#
+#     Part of "Nuitka", an attempt of building an optimizing Python compiler
 #     that is compatible and integrates with CPython, but also works on its
 #     own.
-# 
-#     If you submit patches to this software in either form, you automatically
-#     grant me a copyright assignment to the code, or in the alternative a BSD
-#     license to the code, should your jurisdiction prevent this. This is to
-#     reserve my ability to re-license the code at any time.
-# 
+#
+#     If you submit Kay Hayen patches to this software in either form, you
+#     automatically grant him a copyright assignment to the code, or in the
+#     alternative a BSD license to the code, should your jurisdiction prevent
+#     this. Obviously it won't affect code that comes to him indirectly or
+#     code you don't submit to him.
+#
+#     This is to reserve my ability to re-license the code at any time, e.g.
+#     the PSF. With this version of Nuitka, using it for Closed Source will
+#     not be allowed.
+#
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, version 3 of the License.
-# 
+#
 #     This program is distributed in the hope that it will be useful,
 #     but WITHOUT ANY WARRANTY; without even the implied warranty of
 #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
-# 
+#
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
+#     Please leave the whole of this copyright notice intact.
+#
 from Identifiers import namifyConstant, ExceptionCannotNamify, digest, Identifier, LocalVariableIdentifier, LocalLoopVariableIdentifier, ClosureVariableIdentifier
 
 import CodeTemplates
 
-import marshal, re, hashlib
+import cPickle, re, hashlib
 
 _re_python_hex_escape = re.compile( r"\\x([a-f0-9][a-f0-9])" )
 
@@ -194,29 +201,37 @@ class PythonGlobalContext:
 
         return "\n".join( statements )
 
+    def _pickRawDelimiter( self, value ):
+        delimiter = "raw"
+
+        while value.find( delimiter ) != -1:
+            delimiter = "_" + delimiter + "_"
+
+        return delimiter
+
     def _encodeString( self, value ):
-        python_repr = repr( value )[1:-1].replace( '"', r'\"' )
-        parts = re.split( _re_python_hex_escape, python_repr )
+        delimiter = self._pickRawDelimiter( value )
 
-        hex_part = False
+        start = 'R"' + delimiter + "("
+        end = ")" + delimiter + '"'
 
-        cpp_repr = ""
+        result = start + value + end
 
-        for part in parts:
-            if hex_part:
-                part = r"\%03o" % int( part, 16 )
+        # Replace \n, \r and \0 in the raw strings. The \0 gives a silly warning from
+        # gcc (bug reported) and \n and \r even lead to wrong strings. Somehow the
+        # parser of the C++ doesn't yet play nice with these.
 
-            cpp_repr += part
+        def decide( match ):
+            if match.group(0) == "\n":
+                return end + r' "\n" ' + start
+            elif match.group(0) == "\r":
+                return end + r' "\r" ' + start
+            else:
+                return end + r' "\0" ' + start
 
-            hex_part = not hex_part
+        result = re.sub( "\n|\r|" + chr(0), decide, result )
 
-        # TODO: Clarify why <???> becomes something strange as a C++ literal, this
-        # something I don't know about it.
-        cpp_repr = cpp_repr.replace( "?", r"\%03o" % ord( "?" ) )
-        cpp_repr = cpp_repr.replace( "<", r"\%03o" % ord( "<" ) )
-        cpp_repr = cpp_repr.replace( ">", r"\%03o" % ord( ">" ) )
-
-        return cpp_repr
+        return result
 
     def getConstantInitializations( self ):
         statements = []
@@ -233,25 +248,25 @@ class PythonGlobalContext:
         for constant_desc, constant_identifier in sorted( self.constants.iteritems(), cmp = myCompare ):
             constant_type, _constant_repr, constant_value = constant_desc
 
-            if constant_type == int and constant_value < 2**31:
+            if constant_type == int and abs(constant_value) < 2**31:
                 # Will fallback to marshal if they are bigger than PyInt allows.
                 statements.append( "%s = PyInt_FromLong( %s );" % ( constant_identifier, constant_value ) )
             elif constant_type == str:
                 encoded = self._encodeString( constant_value )
 
-                statements.append( """%s = PyString_FromStringAndSize( "%s", %d );""" % ( constant_identifier, encoded, len(constant_value) ) )
+                # statements.append( """puts( "%s" );""" % constant_identifier )
+                statements.append( """%s = PyString_FromStringAndSize( %s, %d );""" % ( constant_identifier, encoded, len(constant_value) ) )
                 statements.append( """assert( PyString_Size( %s ) == %d );""" % ( constant_identifier, len(constant_value) ) )
             elif constant_type in ( tuple, list, bool, float, complex, unicode, int, long ):
-                saved = marshal.dumps( constant_value )
+                saved = cPickle.dumps( constant_value )
 
                 # Check that the constant is restored correctly.
-                restored = marshal.loads( saved )
+                restored = cPickle.loads( saved )
 
-                # TODO: Do not excempt unicode
-                assert restored == constant_value or type(constant_value) == unicode, ( repr( constant_value ), "!=", repr( restored ) )
-                assert repr( constant_value ) == repr( restored ) or type(constant_value) == unicode
+                assert restored == constant_value and repr( constant_value ) == repr( restored ), ( repr( constant_value ), "!=", repr( restored ) )
+                # statements.append( """puts( "%s" );""" % constant_identifier )
 
-                statements.append( """%s = _unstreamConstant( "%s", %d );""" % ( constant_identifier, self._encodeString( saved ), len( saved ) ) )
+                statements.append( """%s = _unstreamConstant( %s, %d );""" % ( constant_identifier, self._encodeString( saved ), len( saved ) ) )
             elif constant_value is None:
                 pass
             else:
@@ -263,13 +278,14 @@ class PythonGlobalContext:
             for key, value in eval( constant_value ):
                 dict_value[ key ] = value
 
-            saved = marshal.dumps( dict_value )
+            saved = cPickle.dumps( dict_value )
 
             # Check that the constant is restored correctly.
-            restored = marshal.loads( saved )
+            restored = cPickle.loads( saved )
             assert restored == dict_value, dict_value
 
-            statements.append( """%s = _unstreamConstant( "%s", %d );""" % ( constant_identifier, self._encodeString( saved ), len( saved ) ) )
+            # statements.append( """puts( "%s" );""" % constant_identifier )
+            statements.append( """%s = _unstreamConstant( %s, %d );""" % ( constant_identifier, self._encodeString( saved ), len( saved ) ) )
 
         return "\n    ".join( statements )
 

@@ -1,27 +1,34 @@
-# 
+#
 #     Copyright 2010, Kay Hayen, mailto:kayhayen@gmx.de
-# 
-#     Part of "Nuitka", my attempt of building an optimizing Python compiler
+#
+#     Part of "Nuitka", an attempt of building an optimizing Python compiler
 #     that is compatible and integrates with CPython, but also works on its
 #     own.
-# 
-#     If you submit patches to this software in either form, you automatically
-#     grant me a copyright assignment to the code, or in the alternative a BSD
-#     license to the code, should your jurisdiction prevent this. This is to
-#     reserve my ability to re-license the code at any time.
-# 
+#
+#     If you submit Kay Hayen patches to this software in either form, you
+#     automatically grant him a copyright assignment to the code, or in the
+#     alternative a BSD license to the code, should your jurisdiction prevent
+#     this. Obviously it won't affect code that comes to him indirectly or
+#     code you don't submit to him.
+#
+#     This is to reserve my ability to re-license the code at any time, e.g.
+#     the PSF. With this version of Nuitka, using it for Closed Source will
+#     not be allowed.
+#
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, version 3 of the License.
-# 
+#
 #     This program is distributed in the hope that it will be useful,
 #     but WITHOUT ANY WARRANTY; without even the implied warranty of
 #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
-# 
+#
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
+#     Please leave the whole of this copyright notice intact.
+#
 
 from templates.CodeTemplatesMain import *
 
@@ -259,7 +266,9 @@ class _PythonException
             Py_XDECREF( old_value );
             Py_XDECREF( old_tb );
 
-            assert( thread_state->exc_traceback );
+            PySys_SetObject( (char *)"exc_type", thread_state->exc_type );
+            PySys_SetObject( (char *)"exc_value", thread_state->exc_value );
+            PySys_SetObject( (char *)"exc_traceback", thread_state->exc_traceback );
         }
 
         inline PyObject *getType()
@@ -357,6 +366,14 @@ class _PythonExceptionKeeper
         bool empty;
 
         _PythonException *saved;
+};
+
+class ContinueException
+{
+};
+
+class BreakException
+{
 };
 
 // Helper functions for reference count handling in the fly.
@@ -1836,9 +1853,8 @@ class PythonBuiltin
 };
 
 PythonBuiltin _python_builtin_compile( "compile" );
-PythonBuiltin _python_builtin_open( "open" );
 
-static PyCodeObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode )
+static PyCodeObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags )
 {
     // May be a source, but also could already be a compiled object, in which case this should
     // just return it.
@@ -1847,15 +1863,25 @@ static PyCodeObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, P
         return (PyCodeObject *)source_code;
     }
 
-    static PyObject *strip_str = PyString_FromString( "strip" );
-
     // Workaround leading whitespace causing a trouble to compile, but not eval builtin
     PyObject *source;
 
     if ( ( PyString_Check( source_code ) || PyUnicode_Check( source_code ) ) && strcmp( PyString_AsString( mode ), "exec" ) != 0 )
     {
-        // TODO: There is an API to call a method, use it.
+        static PyObject *strip_str = PyString_FromString( "strip" );
+
+        // TODO: There is an API to call a method, use it instead.
         source = LOOKUP_ATTRIBUTE( source_code, strip_str );
+        source = PyObject_CallFunctionObjArgs( source, NULL );
+
+        assert( source );
+    }
+    else if ( PyFile_Check( source_code ) && strcmp( PyString_AsString( mode ), "exec" ) == 0 )
+    {
+        static PyObject *read_str = PyString_FromString( "read" );
+
+        // TODO: There is an API to call a method, use it instead.
+        source = LOOKUP_ATTRIBUTE( source_code, read_str );
         source = PyObject_CallFunctionObjArgs( source, NULL );
 
         assert( source );
@@ -1865,13 +1891,19 @@ static PyCodeObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, P
         source = source_code;
     }
 
+    PyObject *future_flags = PyInt_FromLong( flags );
+
     PyObject *result = PyObject_CallFunctionObjArgs(
         _python_builtin_compile.asObject(),
         source,
         file_name,
         mode,
+        future_flags,      // flags
+        _python_bool_True, // dont_inherit
         NULL
     );
+
+    Py_DECREF( future_flags );
 
     if ( result == NULL )
     {
@@ -1880,6 +1912,8 @@ static PyCodeObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, P
 
     return (PyCodeObject *)result;
 }
+
+PythonBuiltin _python_builtin_open( "open" );
 
 static PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
 {
@@ -2034,7 +2068,8 @@ static void ADD_TRACEBACK( PyObject *module, PyObject *filename, PyObject *funct
 
 try_finally_template = """
 _PythonExceptionKeeper _caught_%(try_count)d;
-
+bool _continue_%(try_count)d = false;
+bool _break_%(try_count)d = false;
 try
 {
 %(tried_code)s
@@ -2043,11 +2078,28 @@ catch ( _PythonException &_exception )
 {
     _caught_%(try_count)d.save( _exception );
 }
+catch ( ContinueException &e )
+{
+    _continue_%(try_count)d = true;
+}
+catch ( BreakException &e )
+{
+    _break_%(try_count)d = true;
+}
 
 %(final_code)s
 
 _caught_%(try_count)d.rethrow();
 
+if ( _continue_%(try_count)d )
+{
+    throw ContinueException();
+}
+
+if ( _break_%(try_count)d )
+{
+    throw BreakException();
+}
 """
 
 try_except_template = """

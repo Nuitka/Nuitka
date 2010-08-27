@@ -1,346 +1,533 @@
 
-******************************************************************
-** Usage
-******************************************************************
+Recommended reading with org-mode in Emacs. An ascii format outline,
+tasks and issue tracking.
 
-Set the environment by executing misc/create-environment.sh like
-this e.g. eval `misc/create-environment` which sets the PYTHONPATH
-to the compiler, and extends PATH with a directory containing its
-binaries.
+* Usage
 
-Then look at "Nuitka.py --help" and a shortcut "Python" which always
-sets --exe and --execute, so it is somewhat similar to "python".
+** Requirements
 
-Remember, this project is not finished. Although a lot of the CPython
-test suite works, there is still unsupported functionality, and there
-is not much actual optimization done yet.
+   You need to gcc C++ compiler of at least version 4.5 available or
+   else the compilation will fail. This is due to uses of C++0x and
+   precisely the use of so called raw string literals.
 
-Consider this an Alpha release quality, do not use it for anything
-important, but feedback is very welcome.
+** Environment
 
-******************************************************************
-** Unsupported functionality
-******************************************************************
+   Set the environment by executing misc/create-environment.sh like
+   this e.g. eval `misc/create-environment` which sets the PYTHONPATH
+   to the compiler, and extends PATH with a directory containing its
+   binaries.
 
-repr( __unicode__) differences: Slightly different representations
-when using libpython, but this should not be a big concern yet and
-ought to be a CPython bug.
+** Command Line
 
-function.func_code: Does not exist. There is no bytecode anymore,
-so it doesn't make as much sense anymore.
+   Then look at "Nuitka.py --help" and a shortcut "Python" which always
+   sets --exe and --execute, so it is somewhat similar to "python".
 
-lambdas cannot be generators, I didn't know they could be.
+** Where to go next
 
-exec does not add to locals. Would require to fallback to checking
-the provided locals for new entries before checking globals. I do
-not see much value, all you need to do is to define the variable
-before the exec to make it work.
+   Remember, this project is not finished. Although a lot of the CPython
+   test suite works, there is still unsupported functionality, and there
+   is not much actual optimization done yet.
 
-generators have no throw() method. Not used by anything but contextlib
-yet. Will work in the future.
+** Word of warning
 
-eval does not default to globals()/locals() when None is provided
+   Consider this an Alpha release quality, do not use it for anything
+   important, but feedback is very welcome.
 
-sys.exc_info() works mostly as expected, but doesn't stack, do exceptions
-when handling exceptions are not preserved to this function.
+* Unsupported functionality
 
-threading can block it seems
+** function.func_code:
 
-relative imports from . are not supported yet
+   Does not exist. There is no bytecode anymore, so it doesn't make as much sense
+   anymore.
 
-try:   continue finally:   stuff
+** On function level "from import *" does not work
 
-does not execute stuff, continue needs to be treated as if it were an exception,
-the continue needs to inline the finally code or something similar.
+   Example
+   def myFunction():
+      from string import *
 
-exec open( filename) does not work
+      stuff()
 
-UnboundLocalError is not given, instead a closure variable from e.g. module
-may be used. Slightly more difficult to fix, because getVariableForReference()
-is called and later getVariableForAssignment() should notice that there is
-already a reference variable, which should be replaced then. Not too important
-though.
+   Does not generate correct C++ at this time. Similar problem to "exec does
+   not create function locals". Currently Nuitka doesn't support a dynamic
+   size of locals. Same solution applies.
 
-try: yield: finally does not execute the finally maybe
+** exec does not create function locals:
 
-** CPython Test changes:
+   Example:
 
-********************************************************************
-* Modified tests:
-********************************************************************
+   def myFunction():
+      exec( "f=2" )
 
-test_array: Removed unicode tests, they have the repr() problem.
+   The exec does not create local variables unless they already exist, by e.g.
+   having them assigned before:
 
-test_compile: Removed extended slice syntax. Changed func_code
-usage to get local consts to locals(). Removed tests based on
-func_code objects. Remove test that uses exec to enrich the
-locals
+   def myFunction():
+      f = None
 
-test_contextlib: Everything except exceptions is working. It uses
-the throw method of generators that we don't have. For the time
-being the "with" statement works, but not with generator expressions
-where there are exceptions.
+      exec( "f=2" )
 
+   Otherwise it assigns to the global variable. Solution Plan: Would require to
+   fallback to checking the provided locals for new entries before checking
+   globals variable accesses. Priority: I do not see much value, all you need to
+   do is to define the variable before the exec to make it work.
 
-test_class: Part of the test uses the extended slicing syntax that
-I do not understand.
+** generators have no throw() method:
 
-test_codeccallbacks: Removed tests that are victim of unicode repr
-differences.
+   Not used by anything but contextlib yet. Will have to work in the future, or
+   else we won't be able to fully support contextlib, which I expect will see a
+   more widespread usage.
 
-test_collections: Removed yield lambdas from the test, these are
-not supported yet.
+   eval does not default to globals()/locals() when None is provided
 
-test_compiler: unreproducible results and testing a function of
-CPython does we don't need to test ourselves.
+** sys.exc_info() does not stack
 
-test_copy: deepcopy of compiled functions refuses to work, removed
-these test cases, removed func_code check
+   It works mostly as expected, but doesn't stack, exceptions when handling
+   exceptions are not preserved to this function, which they are with CPython,
+   where each frame has its own current exception.
 
-test_copy_reg: removed extended slice use, removed tests of slots,
-we don't implement them.
+** threading can block it seems
 
-test_defaultdict: deepcopy is not supported, removed test_deep_copy
+   The generated code never lets the CPython run time switch threads, so its
+   chances to do so are reduced, which may lead to problems. I personally do
+   not care much about threads, would use subprocesses anyway.
 
-test_decorators: A call to eval() has run time None for globals and
-this is not yet supported.
+** relative imports from . are not supported yet
 
-test_exceptions: Removed unicode repr causing parts.
+   May show up in the future. Easy to work around by changing these to the
+   absolute exports normally.
 
-test_ftplib: Disabled IPv6, not on my systems
+** UnboundLocalError is not given:
 
-test_funcattrs: Disabled pars that use func_code and func_defaults
+   Instead a closure variable from e.g. module may be used. Solution: Slightly
+   more difficult to fix, because getVariableForReference() is called and later
+   the getVariableForAssignment() should notice that there is already is a
+   reference variable, which should be replaced then. Priority: Not too
+   important though.
 
-test_future3: Somehow the true division as default doesn't work as
-expected, likely the C-API Py_NumberDivide should be replaced in
-Tree transforming.
+* CPython Test changes:
 
-test_future6: Changed relative import from "." to normal import.
+** Modified tests:
 
-test_gc: Remove use of sys._getframe and test that checks gc very
-fragile way.
+This is the list of tests modified from what they are in CPython.
 
-test_grammer: Problem with comparison chains that use "in", unrealistic
-code not yet done. Same with nested assignments that each unpack. Removed
-these statements from the test. Also removed testFuncDef parts that use
-func_code to test things. Also removed try: continue finally: test, we are not
-correct there, finally is not executed in that case.
+*** test_class:
 
-test_hotshot: remove test that attempts to get line numbers from
-the func_code object.
+    Part of the test uses the extended slicing syntax that
+    I do not yet fully understand.
 
-test_import: Removed test_foreign_code, disabled relative import
-tests
+*** test_compile:
 
-test_inspect: No exception tracebacks yet, removed these parts, removed
-checks for argument specs of functions, not supported.
+    Removed extended slice syntax. Changed func_code
+    usage to get local consts to locals(). Removed tests based on
+    func_code objects. Remove test that uses exec to enrich the
+    locals
 
-test_io.py: test_newline_decoder and testReadClosed fails
-mysteriously with some unicode differences, likely because import
-from future does not change literals to unicode
+*** test_contextlib:
 
-test_logging: Logging exceptions doesn't work with every config,
-removed test_config4_ok
+    Everything except exceptions is working. It uses the throw method of generators that
+    we don't have. For the time being the "with" statement works, but not with generator
+    expressions where there are exceptions.
 
-test_marshal: removed marshal of func_code
+*** test_complexargs:
 
-test_math: removed doc tests, they check call stack and that is not
-yet supported. removed usage of sys.argv[0] to find file in the dir
-of the .py, where the .exe doesn't live.
+    Don't use exec to hide Py3K warning, because it means the compiler is not
+    used for it.
 
-test_memoryio: removed unicode sensitive parts, due to future use
-of unicode literals
+*** test_copy:
 
-test_multibytecodec: removed unicode encoding causing test, avoid
-exec of file
+    deepcopy of compiled functions refuses to work, removed these test cases,
+    removed func_code check
 
-test_mutants: added random seed
+*** test_defaultdict:
 
-test_new: removed test_code and test_function due to referenced to
-func_code
+    deepcopy is not supported, removed test_deep_copy
 
-test_pep352: No deprecation warnings, removing the tests that check
-them.
+*** test_decorators:
 
-test_property: removed test that checked enforcing of __slots__ which
-we don't support yet.
+    A call to eval() has run time None for globals and this is not yet
+    supported.
 
-test_pty: removed traces of pids that are not reproducible
+*** test_exceptions:
 
-test_pyexpat: removed check that is affected by unicode repr problem
+    Removed code objects using parts parts.
 
-test_repr: relaxed test that checks lamba repr to allow compiled lambda
+*** test_ftplib:
 
-test_scope: test that checks exec with free vars refusal was using
-func_code to do so, removed that part. Also removed unbound local
-variable test, because we can't handle that yet.
+    Disabled IPv6, not on my systems.
 
-test_signal: removed test_itimer_prof, test_itimer_virtual seems
-that signal doesn't get through, and test takes 60 seconds of CPU,
-also removed test_main because it forks and raises exception there,
-that seems different
+*** test_funcattrs:
 
-test_sort: added random seed
+    Disabled pars that use func_code and func_defaults.
 
-test_strftime: don't use current time to be reproducible, removed
-verbose outputs
+*** test_future6:
 
-test_struct: removed test that requires deprecation warnings to be
-allowed to be disabled, we don't support that yet.
+    Changed relative import from "." to normal import.
 
-test_structmembers: removed test class that only checks for
-deprecation warnings we don't give
+*** test_gc:
 
-test_sys: removed usages of getframe, func_closure, and call stack,
-removed test_object, I do not understand it. removed test that does
-require sys.stdout and sys.stderr to have same encoding which they
-do not in my test environment
+    Remove use of sys._getframe and test that checks gc very fragile way.
 
-test_undocumented_details: removed usage of func_closure
+*** test_grammer:
 
-test_weakref: removed one test from test_proxy_ref which fails due
-to a detail of how a temp variable is destroyed a bit late. removed
-the doctest execution, it is verbose and not really a test of the
-compiler
+    Problem with comparison chains that use "in", unrealistic
+    code not yet done. Same with nested assignments that each unpack. Removed
+    these statements from the test. Also removed testFuncDef parts that use
+    func_code to test things. Also removed try: continue finally: test, we are not
+    correct there, finally is not executed in that case.
 
-test_zlib: removed one test which uses much RAM
+*** test_hotshot:
 
-********************************************************************
-* Deleted tests:
-********************************************************************
+    remove test that attempts to get line numbers from the func_code object.
 
-test_aepack: ?
-test_al: ?
-test_applesingle: MacOS specific
-test/test_bsddb185.py: Outdated module of no interest.
-test_bsddb3.py: from bsddb.test import test_all fails, likely
-also outdated, test_bsddb.py passed.
-test_cd: ?
-test_cl: ?
-test_cmd_line_script: Aborts with mismatch message that seems
-not correct. But this tests running CPython as a child more
-than anything else, so it's mostly useless to debug. Could
-indicate wrong printing though.
-test_codecmaps_cn|hk|jp|kr|tw.py: These uses "urlfetch" and
-therefore have side effects not wanted.
+*** test_import:
 
-test_collections: The collections module uses _sys._getframe(1)
-which is not set in --exe mode, rendering it useless.
+    Removed test_foreign_code, disabled relative import tests
 
-test_ctypes: no ctypes.test module, where would it be?
+*** test_inspect:
 
-test_curses: uses getframe tricks, and fails to capture my mouse,
-so simply removed, out of scope for now.
+    Removed checks for argument specs of functions, not supported, for
+    frames and code.
 
-test_decimal: One test failed with my CPython already, plus it
-uses execfile, which we cannot inline yet, so it doesn't test
-the compiler much.
+*** test_io.py:
 
-test_cProfile: Performance numbers differ obviously, removed test
-that doesn't provide much info.
+    test_newline_decoder and testReadClosed fails with some unicode
+    differences, likely because import from future does not change
+    literals to unicode
 
-test_dis: we don't have any bytecode in func_code ever, removed
+*** test_marshal:
 
-test_distutils: removed, out of scope
+    removed marshal of func_code
 
-test_dl: removed, no such module
+*** test_math:
 
-test_docxmlrpc: uses inspection and complains about compiled function
+    removed doc tests, they check call stack and that is not
+    yet supported. removed usage of sys.argv[0] to find file in the dir
+    of the .py, where the .exe doesn't live.
 
-test_email: removed, out of scope
-test_email_codecs: removed, out of scope
-test_email_renamed: removed, out of scope
+*** test_mutants:
 
-test_file: Removed, because it uses heavy threading is more of a
-performance test. Blocked in some tests, indicating locking issues.
+    added random seed so the results are predictable
 
-test_future4: The __future__ import doesn't change unicode literals
-to string literals. Removed.
+*** test_new:
 
-test_gdbm: no such module, out of scope
+    removed test_code and test_function due to referenced to func_code
 
-test_gl: no such module, out of scope
+*** test_pep352:
 
-test_imageop: no such module, out of scope
+    No deprecation warnings, removing the tests that check them.
 
-test_imaplib: an import didn't work, adapted, but output differed
-due to unknown reasons in imap details, removed therefore
+*** test_pty:
 
-test_imgfile: no such module, out of scope
+    removed traces of pids that are not reproducible
 
-test_json: no such module json.test, out of scope
+*** test_repr:
 
-test_kqueue: runs only on BSD (how ever much I love my first Unix
-NetBSD, I don't have it currently), removed
+    relaxed test that checks lamba repr to allow compiled lambda
 
-test_lib2to3: no such module lib2to3.test module, out of scope
+*** test_scope:
 
-test_linuxaudiodev: removed because it wants /dev/sdp, out of scope
+    test that checks exec with free vars refusal was using func_code to do
+    so, removed that part. Also removed unbound local variable test, because
+    we can't handle that yet. Removed part that checks for allowed forms of
+    "from x import *" on function level, we don't support that yet.
 
-test_long_future: removed, because it only tests future true division,
-but we don't yet support that.
+*** test_signal:
 
-test_macos|macostools|macospath|macfs: removed, macos only
+    removed test_itimer_prof, test_itimer_virtual seems
+    that signal doesn't get through, and test takes 60 seconds of CPU,
+    also removed test_main because it forks and raises exception there,
+    that seems different
 
-test_normalization: removed, wants internet
+*** test_sort:
 
-test_os: removed, works, but out of scope and number of tests run
-differs, making it annoying. Need to find out why not all tests can
-be run
+    added random seed
 
-test_ossaudiodev: removed, want to use /dev/dsp, out of scope
+*** test_strftime:
 
-Test_pep277: removed, windows only
+    don't use current time to be reproducible, removed verbose outputs
 
-test_profilehools: removed, excessive dependence on func_code
+*** test_struct:
 
-test_py3kwarn: removed, out of scope
+    removed test that requires deprecation warnings to be
+    allowed to be disabled, we don't support that yet.
 
-test_rgbimg: no such module
+*** test_structmembers:
 
-test_runpy: removed, outputs a lot of paths in /tmp that differ
-each time
+    removed test class that only checks for deprecation warnings we don't give
 
-test_scriptpackages: removed, no such module aetools
+*** test_sys:
 
-test_smtpnet: removed, requires internet access
+    removed usages of getframe, func_closure, and call stack,
+    removed test_object, I do not understand it. removed test that does
+    require sys.stdout and sys.stderr to have same encoding which they
+    do not in my test environment, when I e.g. redirect stdout to a file
+    and leave stderr on terminal.
 
-test_socket_ssl: removed, didn't work with CPython
+*** test_undocumented_details:
 
-test_socketserver: removed, out of scope
+    removed usage of func_closure
 
-test_sqlite: no sqlite.test module, removed
+*** test_weakref:
 
-test_startfile: no such module
+    removed one test from test_proxy_ref which fails due to a detail of how a temp
+    variable is destroyed a bit late. removed the doctest execution, it is verbose
+    and not really a test of the compiler
 
-test_sunaudiodev: removed, no such module
+*** test_zlib:
 
-test_tcl: removed, no such module
+    removed one test which uses much RAM
 
-test_thread|threading.py: removed, out of scope and not determistic
-outputs
+** Deleted tests:
 
-test_timeout: removed, wants network
+*** test_aepack:
 
-test_trace: removed, out of scope
+    I don't have the module being tested it seems.
 
-test_traceback: removed, not yet supported
+*** test_al:
 
-test_unicode: removed test_repr, it fails with the hard to find
-repr error
+    I don't have the module being tested it seems.
 
-test_urllib2: removed, fails mysteriously in the library core
+*** test_applesingle:
 
-test_urllibnet: removed, wants internet
-test_urllib2net: removed, wants internet
+    MacOS specific
 
-test_warnings: removed, not yet supported
+*** test/test_bsddb185.py:
 
-test_winsound: removed, no such module
-test_winreg: removed, windows only
+    Outdated module of no interest.
 
-test_with: removed, there is a lot we don't support yet.
+*** test_bsddb3.py:
 
-test_zipfile64: removed, wants to do 6G files, thank you so much.
+    from bsddb.test import test_all fails, likely also outdated, test_bsddb.py passed.
 
-test_zipimport_support: removed, does not run with CPython
+*** test_cd:
+
+    I don't have the module being tested it seems.
+
+*** test_cl:
+    I don't have the module being tested it seems.
+
+*** test_cmd_line_script:
+
+    Aborts with mismatch message that seems not correct. But this tests running CPython
+    as a child more than anything else, so it's mostly useless to debug. Could indicate
+    wrong printing though. TODO: Check if it can be reactivated.
+
+*** test_codecmaps_cn|hk|jp|kr|tw.py:
+
+    These uses "urlfetch" and therefore have side effects not wanted.
+
+*** test_collections:
+
+    The collections module uses _sys._getframe(1) which is not set in --exe mode,
+    rendering it useless.
+
+*** test_ctypes:
+
+    no ctypes.test module, where would it be?
+
+*** test_curses:
+
+    uses getframe tricks, and fails to capture my mouse, so simply removed, out of
+    scope for now.
+
+*** test_decimal:
+
+    One test failed with my CPython already, plus it uses execfile, which we cannot
+    inline yet, so it doesn't test the compiler much. TODO: Revisit once we can inline
+    exec and execfile of constants.
+
+*** test_cProfile:
+
+    Performance numbers differ obviously, removed test that doesn't provide much info.
+
+*** test_dis:
+
+    We don't have any bytecode in func_code ever, removed
+
+*** test_distutils:
+
+    removed, out of scope
+
+*** test_dl:
+
+    removed, no such module
+
+*** test_docxmlrpc:
+
+    uses inspection and complains about compiled function
+
+*** test_email:
+
+    removed, out of scope
+
+*** test_email_codecs:
+
+    removed, out of scope
+
+*** test_email_renamed:
+
+    removed, out of scope
+
+*** test_file:
+
+    Removed, because it uses heavy threading is more of a performance test. Blocked in
+    some tests, indicating locking issues.
+
+*** test_gdbm:
+
+    no such module, out of scope
+
+*** test_gl:
+
+    no such module, out of scope
+
+*** test_imageop:
+
+    no such module, out of scope
+
+*** test_imaplib:
+
+    output differed due to unknown reasons in imap details, removed therefore
+
+*** test_imgfile:
+
+    no such module, out of scope
+
+*** test_json:
+
+    no such module json.test, out of scope
+
+*** test_kqueue:
+
+    runs only on BSD (how ever much I love my first Unix NetBSD, I don't have it
+    currently), removed
+
+*** test_lib2to3:
+
+   no such module lib2to3.test module, out of scope
+
+*** test_linuxaudiodev:
+
+    removed because it wants /dev/sdp, out of scope
+
+*** test_macos|macostools|macospath|macfs:
+
+    removed, macos only
+
+*** test_normalization:
+
+    removed, wants internet
+
+*** test_os:
+
+    removed, works, but out of scope and number of tests run differs, making it annoying. Need
+    to find out why not all tests can be run
+
+*** test_ossaudiodev:
+
+    removed, want to use /dev/dsp, out of scope
+
+*** test_pep277:
+
+    removed, windows only
+
+*** test_profilehooks:
+
+    removed, excessive dependence on func_code
+
+*** test_py3kwarn:
+
+    removed, out of scope
+
+*** test_rgbimg:
+
+    no such module
+
+*** test_runpy:
+
+    removed, outputs a lot of paths in /tmp that differ each time
+
+*** test_scriptpackages:
+
+    removed, no such module aetools
+
+*** test_smtpnet:
+
+    removed, requires internet access
+
+*** test_socket_ssl:
+
+    removed, didn't work with CPython
+
+*** test_socketserver:
+
+    removed, out of scope
+
+*** test_sqlite:
+
+    no sqlite.test module, removed
+
+*** test_startfile:
+
+    no such module
+
+*** test_sunaudiodev:
+
+    removed, no such module
+
+*** test_tcl:
+
+    removed, no such module
+
+*** test_thread|threading.py:
+
+    removed, out of scope and not determistic outputs
+
+*** test_timeout:
+
+    removed, wants network
+
+*** test_trace:
+
+    removed, out of scope
+
+*** test_traceback:
+
+    removed, not yet supported
+
+*** test_urllib2:
+
+    removed, fails mysteriously in the library core
+
+*** test_urllibnet:
+
+    removed, wants internet
+
+*** test_urllib2net:
+
+    removed, wants internet
+
+*** test_warnings:
+
+    removed, not yet supported
+
+*** test_winsound:
+
+    removed, no such module
+
+*** test_winreg:
+
+    removed, windows only
+
+*** test_with:
+
+    removed, there is a lot we don't support yet.
+
+*** test_zipfile64:
+
+    removed, wants to do 6G files, thank you so much.
+
+*** test_zipimport_support:
+
+    removed, does not run with CPython

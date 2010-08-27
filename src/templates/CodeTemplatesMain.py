@@ -1,27 +1,34 @@
-# 
+#
 #     Copyright 2010, Kay Hayen, mailto:kayhayen@gmx.de
-# 
-#     Part of "Nuitka", my attempt of building an optimizing Python compiler
+#
+#     Part of "Nuitka", an attempt of building an optimizing Python compiler
 #     that is compatible and integrates with CPython, but also works on its
 #     own.
-# 
-#     If you submit patches to this software in either form, you automatically
-#     grant me a copyright assignment to the code, or in the alternative a BSD
-#     license to the code, should your jurisdiction prevent this. This is to
-#     reserve my ability to re-license the code at any time.
-# 
+#
+#     If you submit Kay Hayen patches to this software in either form, you
+#     automatically grant him a copyright assignment to the code, or in the
+#     alternative a BSD license to the code, should your jurisdiction prevent
+#     this. Obviously it won't affect code that comes to him indirectly or
+#     code you don't submit to him.
+#
+#     This is to reserve my ability to re-license the code at any time, e.g.
+#     the PSF. With this version of Nuitka, using it for Closed Source will
+#     not be allowed.
+#
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, version 3 of the License.
-# 
+#
 #     This program is distributed in the hope that it will be useful,
 #     but WITHOUT ANY WARRANTY; without even the implied warranty of
 #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
-# 
+#
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
+#     Please leave the whole of this copyright notice intact.
+#
 
 
 main_program = """\
@@ -90,10 +97,10 @@ PyMODINIT_FUNC init%(module_name)s(void)
     _module_builtin = PyImport_ImportModule( "__builtin__" );
     assert( _module_builtin );
 
-    _module_marshal = PyImport_ImportModule( "marshal" );
-    assert( _module_marshal );
-    _module_marshal_function_loads = PyObject_GetAttrString( _module_marshal, "loads" );
-    assert( _module_marshal_function_loads );
+    _module_cPickle = PyImport_ImportModule( "cPickle" );
+    assert( _module_cPickle );
+    _module_cPickle_function_loads = PyObject_GetAttrString( _module_cPickle, "loads" );
+    assert( _module_cPickle_function_loads );
 
     _module_%(module_name)s = Py_InitModule4(
         "%(module_name)s",       // Module Name
@@ -135,8 +142,8 @@ PyMODINIT_FUNC init%(module_name)s(void)
 constant_reading = """
 
 // We unstream some constant objects using the "marshal" module function "loads"
-static PyObject *_module_marshal = NULL;
-static PyObject *_module_marshal_function_loads = NULL;
+static PyObject *_module_cPickle = NULL;
+static PyObject *_module_cPickle_function_loads = NULL;
 
 // Sentinel PyObject to be used for all our call iterator endings. It will become
 // a PyCObject pointing to NULL. TODO: Hopefully that is unique enough.
@@ -148,11 +155,10 @@ static PyObject *_unstreamConstant( char const *buffer, int size )
 {
     PyObject *temp = PyString_FromStringAndSize( buffer, size );
 
-    PyObject *result = PyObject_CallFunctionObjArgs( _module_marshal_function_loads, temp, NULL );
+    PyObject *result = PyObject_CallFunctionObjArgs( _module_cPickle_function_loads, temp, NULL );
     assert( result );
 
     Py_DECREF( temp );
-
 
     return result;
 }

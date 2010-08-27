@@ -1,0 +1,12 @@
+#!/bin/sh
+
+VER=`g++ -dumpversion | sed -e 's/\.//g'`
+
+if [ $VER -ge 450 ]
+then
+    GCC=g++
+else
+    GCC=g++-4.5
+fi
+
+exec $GCC $@

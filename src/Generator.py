@@ -1,27 +1,34 @@
-# 
+#
 #     Copyright 2010, Kay Hayen, mailto:kayhayen@gmx.de
-# 
-#     Part of "Nuitka", my attempt of building an optimizing Python compiler
+#
+#     Part of "Nuitka", an attempt of building an optimizing Python compiler
 #     that is compatible and integrates with CPython, but also works on its
 #     own.
-# 
-#     If you submit patches to this software in either form, you automatically
-#     grant me a copyright assignment to the code, or in the alternative a BSD
-#     license to the code, should your jurisdiction prevent this. This is to
-#     reserve my ability to re-license the code at any time.
-# 
+#
+#     If you submit Kay Hayen patches to this software in either form, you
+#     automatically grant him a copyright assignment to the code, or in the
+#     alternative a BSD license to the code, should your jurisdiction prevent
+#     this. Obviously it won't affect code that comes to him indirectly or
+#     code you don't submit to him.
+#
+#     This is to reserve my ability to re-license the code at any time, e.g.
+#     the PSF. With this version of Nuitka, using it for Closed Source will
+#     not be allowed.
+#
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation, version 3 of the License.
-# 
+#
 #     This program is distributed in the hope that it will be useful,
 #     but WITHOUT ANY WARRANTY; without even the implied warranty of
 #     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #     GNU General Public License for more details.
-# 
+#
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
+#     Please leave the whole of this copyright notice intact.
+#
 """ Generators for Python C/API Module Generator.
 
 Then there is a module generator for module stuff. It wants a global generator to
@@ -192,7 +199,9 @@ catch( _PythonException &_exception )
         return result
 
     def getAttributeLookupCode( self, context, attribute_name, source ):
-        return Identifier( "LOOKUP_ATTRIBUTE( %s, %s )" % ( source.getCodeTemporaryRef(), attribute_name.getCodeTemporaryRef() ), 1 )
+        attribute = self.getConstantCode( context = context, constant = attribute_name )
+
+        return Identifier( "LOOKUP_ATTRIBUTE( %s, %s )" % ( source.getCodeTemporaryRef(), attribute ), 1 )
 
     def getSubscriptLookupCode( self, context, subscript, source ):
         return Identifier( "LOOKUP_SUBSCRIPT( %s, %s )" % ( source.getCodeTemporaryRef(), subscript.getCodeTemporaryRef() ), 1 )
@@ -204,7 +213,11 @@ catch( _PythonException &_exception )
         return Identifier( "LOOKUP_SLICE( %s, %s, %s )" % ( source.getCodeTemporaryRef(), lower.getCodeTemporaryRef(), upper.getCodeTemporaryRef() ), 1 )
 
     def getSliceObjectCode( self, context, lower, upper, step ):
-        return Identifier( "MAKE_SLICEOBJ( %s, %s, %s )" % ( lower.getCodeTemporaryRef(), upper.getCodeTemporaryRef(), step.getCodeTemporaryRef() ), 1 )
+        lower = "Py_None" if lower is None else lower.getCodeTemporaryRef()
+        upper = "Py_None" if upper is None else upper.getCodeTemporaryRef()
+        step  = "Py_None" if step  is None else step.getCodeTemporaryRef()
+
+        return Identifier( "MAKE_SLICEOBJ( %s, %s, %s )" % ( lower, upper, step ), 1 )
 
     def getStatementCode( self, identifier ):
         return identifier.getCodeDropRef() + ";"
@@ -329,10 +342,10 @@ else
         return result
 
     def getLoopContinueCode( self ):
-        return "continue;"
+        return "throw ContinueException();";
 
     def getLoopBreakCode( self ):
-        return "break;"
+        return "throw BreakException();"
 
     def getComparisonExpressionCode( self, context, comparators, operands ):
         # assert len( comparators ) == 1
@@ -354,9 +367,9 @@ else
                 comparison = Identifier( "%s( %s, %s )" % ( py_api, left.getCodeTemporaryRef(), right.getCodeTemporaryRef() ), reference )
             elif comparator in PythonOperators.rich_comparison_operators:
                 comparison = Identifier( "RICH_COMPARE( %s, %s, %s )" % ( PythonOperators.rich_comparison_operators[ comparator ], right.getCodeTemporaryRef(), left.getCodeTemporaryRef() ), 1 )
-            elif comparator == "is":
+            elif comparator == "Is":
                 comparison = Identifier( "BOOL_FROM( %s == %s )" % ( left.getCodeTemporaryRef(), right.getCodeTemporaryRef() ), 0 )
-            elif comparator == "is not":
+            elif comparator == "IsNot":
                 comparison = Identifier( "BOOL_FROM( %s != %s )" % ( left.getCodeTemporaryRef(), right.getCodeTemporaryRef() ), 0 )
             else:
                 assert False, comparator
@@ -378,9 +391,9 @@ else
                     assert False, comparator
                 elif comparator in PythonOperators.rich_comparison_operators:
                     chunk = "RICH_COMPARE_BOOL( %s, %s, %s )" % ( PythonOperators.rich_comparison_operators[ comparator ], right_tmp, left_tmp.getCodeTemporaryRef() )
-                elif comparator == "is":
+                elif comparator == "Is":
                     chunk = "( %s == %s )" % ( left_tmp.getCodeTemporaryRef(), right_tmp )
-                elif comparator == "is not":
+                elif comparator == "IsNot":
                     chunk = "( %s != %s )" % ( left_tmp.getCodeTemporaryRef(), right_tmp )
                 else:
                     assert False, comparator
@@ -422,15 +435,15 @@ else
 
         return Identifier( "(%s ?: %s)" % ( result, conditions[-1].getCodeExportRef() ), 1 )
 
-    def getAttributeAssignmentCode( self, context, target, attribute, identifier ):
-        attribute = self.getConstantHandle( context = context, constant = attribute )
+    def getAttributeAssignmentCode( self, context, target, attribute_name, identifier ):
+        attribute = self.getConstantCode( context = context, constant = attribute_name )
 
-        return "SET_ATTRIBUTE( %s, %s, %s );" % ( target.getCodeObject(), attribute.getCodeTemporaryRef(), identifier.getCodeTemporaryRef() )
+        return "SET_ATTRIBUTE( %s, %s, %s );" % ( target.getCodeObject(), attribute, identifier.getCodeTemporaryRef() )
 
-    def getAttributeDelCode( self, context, target, attribute ):
-        attribute = self.getConstantHandle( context = context, constant = attribute )
+    def getAttributeDelCode( self, context, target, attribute_name ):
+        attribute = self.getConstantCode( context = context, constant = attribute_name )
 
-        return "DEL_ATTRIBUTE( %s, %s );" % ( target.getCodeObject(), attribute.getCodeTemporaryRef() )
+        return "DEL_ATTRIBUTE( %s, %s );" % ( target.getCodeObject(), attribute )
 
     def getSliceAssignmentCode( self, context, target, lower, upper, identifier  ):
         return "SET_SLICE( %s, %s, %s, %s );" % ( target.getCodeTemporaryRef(), lower.getCodeTemporaryRef(), upper.getCodeTemporaryRef(), identifier.getCodeTemporaryRef() )
@@ -530,6 +543,9 @@ PyObjectTemporary %(loop_iter_identifier)s( %(iterator)s );
 bool %(indicator_name)s = false;
 while (1)
 {
+    try
+    {
+
     PyObject *%(loop_value_identifier)s = ITERATOR_NEXT( %(loop_iter_identifier)s.asObject() );
 
     if (%(loop_value_identifier)s == NULL)
@@ -551,6 +567,15 @@ while (1)
     }
 
     %(body)s
+
+    }
+    catch( ContinueException &e )
+    { /* Nothing to do */
+    }
+    catch ( BreakException &e )
+    { /* Break the loop */
+       break;
+    }
 }
 
 if ( %(indicator_name)s)
@@ -570,15 +595,36 @@ if ( %(indicator_name)s)
     def getWhileLoopCode( self, context, condition, loop_body_codes, loop_else_codes ):
         if not loop_else_codes:
             return """\
-while (CHECK_IF_TRUE( %s )) {
+while (CHECK_IF_TRUE( %s ))
+{
+   try
+   {
 %s
+    }
+    catch( ContinueException &e )
+    { /* Nothing to do */
+    }
+    catch ( BreakException &e )
+    { /* Break the loop */
+       break;
+    }
 }""" % ( condition.getCodeTemporaryRef(), "\n    ".join( loop_body_codes ) )
         else:
             return """\
   bool %(indicator_name)s = false;
 while (CHECK_IF_TRUE( %(condition)s )) {
+    try
+    {
     %(indicator_name)s = true;
 %(loop_body_codes)s
+    }
+    catch( ContinueException &e )
+    { /* Nothing to do */
+    }
+    catch ( BreakException &e )
+    { /* Break the loop */
+       break;
+    }
 }
 if (%(indicator_name)s == false)
 {
@@ -699,24 +745,26 @@ if (%(indicator_name)s == false)
     Py_DECREF( result );
 }""" % ( subscribed.getCodeExportRef(), subscript.getCodeExportRef(), self._getInplaceOperationCode( operator = operator, operand1 = value_identifier, operand2 = identifier ).getCode() )
 
-    def getInplaceAttributeAssignmentCode( self, context, target, attribute, operator, identifier ):
+    def getInplaceAttributeAssignmentCode( self, context, target, attribute_name, operator, identifier ):
+        attribute = self.getConstantCode( context = context, constant = attribute_name )
+
         value_identifier = Identifier( "value.asObject()", 0 )
 
         return """\
 {
     PyObjectTemporary target = %s;
-    PyObjectTemporary attribute = %s;
-    PyObjectTemporary value( LOOKUP_ATTRIBUTE ( target.asObject(), attribute.asObject() ) );
+    PyObject *attribute = %s;
+    PyObjectTemporary value( LOOKUP_ATTRIBUTE ( target.asObject(), attribute ) );
 
     PyObject *result = %s;
 
     if ( result != value.asObject() )
     {
-        SET_ATTRIBUTE( target.asObject(), attribute.asObject(), result );
+        SET_ATTRIBUTE( target.asObject(), attribute, result );
     }
 
     Py_DECREF( result );
-}""" % ( target.getCodeExportRef(), attribute.getCodeExportRef(), self._getInplaceOperationCode( operator = operator, operand1 = value_identifier, operand2 = identifier ).getCode() )
+}""" % ( target.getCodeExportRef(), attribute, self._getInplaceOperationCode( operator = operator, operand1 = value_identifier, operand2 = identifier ).getCode() )
 
     def getInplaceSliceAssignmentCode( self, context, target, lower, upper, operator, identifier ):
         value_identifier = Identifier( "value.asObject()", 0 )
@@ -781,7 +829,6 @@ if (%(indicator_name)s == false)
         elif exception_tb_identifier is None:
             return "traceback = true; RAISE_EXCEPTION( %s, %s, %s );" % ( exception_type_identifier.getCodeExportRef(), exception_value_identifier.getCodeExportRef(), exception_tb_maker )
         else:
-
             return "traceback = true; RAISE_EXCEPTION( %s, %s, %s );" % ( exception_type_identifier.getCodeExportRef(), exception_value_identifier.getCodeExportRef(), exception_tb_identifier.getCodeExportRef() )
 
     def getReRaiseExceptionCode( self, context ):
@@ -849,23 +896,42 @@ if (%s)
 
         return code
 
-    def getEvalCode( self, context, mode, exec_code, globals_identifier, locals_identifier ):
-        return Identifier( "EVAL_CODE( COMPILE_CODE( %s, %s, %s ), %s, %s )" % (
+    def getFutureFlagsCode( self, future_division, unicode_literals, absolute_import ):
+        result = []
+
+        if future_division:
+            result.append( "CO_FUTURE_DIVISION" )
+
+        if unicode_literals:
+            result.append( "CO_FUTURE_UNICODE_LITERALS" )
+
+        if absolute_import:
+            result.append( "CO_FUTURE_ABSOLUTE_IMPORT" )
+
+        if result:
+            return " | ".join( result )
+        else:
+            return 0
+
+
+    def getEvalCode( self, context, mode, exec_code, globals_identifier, locals_identifier, future_flags ):
+        return Identifier( "EVAL_CODE( COMPILE_CODE( %s, %s, %s, %s ), %s, %s )" % (
             exec_code.getCodeTemporaryRef(),
             context.getConstantHandle( constant = "<string>" ).getCode(),
             context.getConstantHandle( constant = mode ).getCode(),
+            future_flags,
             globals_identifier.getCodeTemporaryRef(),
             locals_identifier.getCodeTemporaryRef() if locals_identifier is not None else "NULL"
         ), 1 )
 
-    def getExecLocalCode( self, context, exec_code, globals_identifier, provider ):
+    def getExecLocalCode( self, context, exec_code, globals_identifier, future_flags, provider ):
         locals_identifier = Identifier( "locals.asObject()", 0 )
 
         return """\
 {
     PyObjectTemporary locals = %s;
 
-    EVAL_CODE( COMPILE_CODE( %s, %s, %s ), %s, locals.asObject() );
+    EVAL_CODE( COMPILE_CODE( %s, %s, %s, %s ), %s, locals.asObject() );
 
     %s;
 }""" % (
@@ -873,6 +939,7 @@ if (%s)
          exec_code.getCodeTemporaryRef(),
          context.getConstantHandle( constant = context.getModuleName() + "::exec" ).getCode(),
          context.getConstantHandle( constant = "exec" ).getCode(),
+         future_flags,
          globals_identifier.getCodeTemporaryRef(),
          self.getStoreLocalsCode( context = context, source_identifier = locals_identifier, provider = provider )
        )
@@ -1669,18 +1736,33 @@ class PythonModuleGenerator( PythonGeneratorBase ):
         )
 
     def getLambdaCode( self, context, lambda_def, lambda_codes ):
-        return self._getFunctionCode(
-            context              = context,
-            function_name        = "<lambda>",
-            function_identifier  = lambda_def.getCodeName(),
-            parameters           = lambda_def.getParameters(),
-            user_variables       = lambda_def.getUserLocalVariables(),
-            decorators           = [], # Lambda expressions can't be decorated.
-            closure_variables    = lambda_def.getClosureVariables(),
-            function_codes       = lambda_codes,
-            function_filename    = lambda_def.getParentModule().getFilename(),
-            function_doc         = None
-        )
+        if not lambda_def.isGenerator():
+            return self._getFunctionCode(
+                context              = context,
+                function_name        = "<lambda>",
+                function_identifier  = lambda_def.getCodeName(),
+                parameters           = lambda_def.getParameters(),
+                user_variables       = lambda_def.getUserLocalVariables(),
+                decorators           = (), # Lambda expressions can't be decorated.
+                closure_variables    = lambda_def.getClosureVariables(),
+                function_codes       = lambda_codes,
+                function_filename    = lambda_def.getParentModule().getFilename(),
+                function_doc         = None # Lambda expressions don't have doc strings
+            )
+        else:
+            return self._getGeneratorFunctionCode(
+                context              = context,
+                function_name        = "<lambda>",
+                function_identifier  = lambda_def.getCodeName(),
+                parameters           = lambda_def.getParameters(),
+                user_variables       = lambda_def.getUserLocalVariables(),
+                decorators           = (), # Lambda expressions can't be decorated.
+                closure_variables    = lambda_def.getClosureVariables(),
+                function_codes       = lambda_codes,
+                function_filename    = lambda_def.getParentModule().getFilename(),
+                function_doc         = None # Lambda expressions don't have doc strings
+            )
+
 
     def getCurrentLineCode( self, source_ref ):
         return "_current_line = %d;\n" % source_ref.getLineNumber()

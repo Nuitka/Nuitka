@@ -29,49 +29,38 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-list_contraction_decl_template = """\
-static PyObject *%(contraction_identifier)s( %(contraction_parameters)s );
-"""
 
-list_contraction_loop_iterated = """\
-    PyObjectTemporary iterator_%(iter_count)d = MAKE_ITERATOR( %(iterated)s );
+class SourceCodeReference:
+    @classmethod
+    def fromFilenameAndLine( cls, filename, line ):
+        result = cls()
 
-    while (PyObject *_python_contraction_iter_value_%(iter_count)d = ITERATOR_NEXT( iterator_%(iter_count)d.asObject() ) )
-    {
-        try
-        {
-            %(loop_var_assignment_code)s
+        result.filename = filename
+        result.line = line
 
-            Py_DECREF( _python_contraction_iter_value_%(iter_count)d );
-        }
-        catch(...)
-        {
-            Py_DECREF( _python_contraction_iter_value_%(iter_count)d );
-            throw;
-        }
+        return result
 
-        if (%(contraction_condition)s)
-        {
-%(contraction_loop)s
-        }
-    }
-"""
+    def __init__( self ):
+        self.line = None
+        self.filename = None
 
-list_contraction_loop_production = """
-            APPEND_TO_LIST(
-                _python_contraction_result,
-                %(contraction_body)s
-            );
-"""
+    def __repr__( self ):
+        return "<SourceCodeReference to %s:%s>" % ( self.filename, self.line )
 
-list_contraction_code_template = """\
-static PyObject *%(contraction_identifier)s( %(contraction_parameters)s )
-{
-    PyObject *_python_contraction_result = MAKE_LIST();
+    def atLineNumber( self, line ):
+        return SourceCodeReference.fromFilenameAndLine(
+            filename = self.filename,
+            line = line
+        )
 
-%(contraction_body)s 
+    def getLineNumber( self ):
+        return self.line
 
-    return _python_contraction_result;
-}
+    def getFilename( self ):
+        return self.filename
 
-"""
+    def getAsString( self ):
+        return "%s:%s" % ( self.filename, self.line )
+
+def fromFilename( filename ):
+    return SourceCodeReference.fromFilenameAndLine( filename, 1 )

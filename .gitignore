@@ -1,0 +1,11 @@
+*.e4t
+*.e4q
+*.e4s
+*.pyc
+*.swp
+*.swo
+*.so
+*.exe
+*.c++
+tests/reflected/nodes/
+tests/reflected/templates/

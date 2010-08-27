@@ -1,26 +1,32 @@
-# 
+#
 #     Kay Hayen, mailto:kayhayen@gmx.de
-# 
-#     Python test that I originally created or extracted from other peoples
-#     work. I put my parts of it in the public domain. It is at least Free
-#     Software where it's copied from other people. In these cases, I will
-#     indicate it.
-# 
-#     If you submit patches to this software in either form, you automatically
-#     grant me a copyright assignment to the new code, or in the alternative
-#     a BSD license to the new code, should your jurisdiction prevent this. This
-#     is to reserve my ability to re-license the code at any time.
-# 
-
+#
+#     Python test originally created or extracted from other peoples work. The
+#     parts from me are in the public domain. It is at least Free Software
+#     where it's copied from other people. In these cases, it will normally be
+#     indicated.
+#
+#     If you submit Kay Hayen patches to this software in either form, you
+#     automatically grant him a copyright assignment to the code, or in the
+#     alternative a BSD license to the code, should your jurisdiction prevent
+#     this. Obviously it won't affect code that comes to him indirectly or
+#     code you don't submit to him.
+#
+#     This is to reserve my ability to re-license the code at any time, e.g.
+#     the PSF. With this version of Nuitka, using it for Closed Source will
+#     not be allowed.
+#
+#     Please leave the whole of this copyright notice intact.
+#
 module_level = 1
 
 def defaultValueTest1( no_default, some_default_constant = 1 ):
     return some_default_constant
-    
+
 def defaultValueTest2( no_default, some_default_constant = module_level*2 ):
     local_var = no_default = "1"
     return local_var, some_default_constant
-    
+
 def defaultValueTest3( no_default, funced_defaulted = defaultValueTest1(module_level)):
     return [ funced_defaulted for i in range(8) ]
 
