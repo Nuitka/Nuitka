@@ -87,8 +87,6 @@ static void _context_generator_%(function_identifier)s_destructor( void *context
 """
 
 make_genfunc_with_context_template = """
-static PyMethodDef _methoddef_%(function_identifier)s = {"%(function_name)s", (PyCFunction)%(function_identifier)s, METH_VARARGS | METH_KEYWORDS, NULL};
-
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     struct _context_common_%(function_identifier)s_t *_python_context = new _context_common_%(function_identifier)s_t;
@@ -96,24 +94,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
     // Copy the parameter default values and closure values over.
     %(function_context_copy)s
 
-    PyObject *_python_self = PyCObject_FromVoidPtr( _python_context, _context_common_%(function_identifier)s_destructor );
-
-    if (_python_self == NULL)
-    {
-        PyErr_Format( PyExc_RuntimeError, "cannot create function %(function_name)s" );
-        throw _PythonException();
-    }
-
-    PyObject *result = PyKFunction_New( &_methoddef_%(function_identifier)s, _python_self, %(module)s, %(function_doc)s );
-
-    // The self is to be released along with the new function which holds its own reference now, so release ours.
-    Py_DECREF( _python_self );
-
-    if (result == NULL)
-    {
-        PyErr_Format( PyExc_RuntimeError, "cannot create function %(function_name)s" );
-        throw _PythonException();
-    }
+    PyObject *result = PyKFunction_New( %(function_identifier)s, %(function_name_obj)s, %(module)s, %(function_doc)s, _python_context, _context_common_%(function_identifier)s_destructor );
 
     // Apply decorators if any
     %(function_decorator_calls)s
@@ -181,7 +162,7 @@ static void %(function_identifier)s_context( struct _context_generator_%(functio
 
 static PyObject *%(function_identifier)s_yielder( PyObject *self, PyObject *args, PyObject *kw )
 {
-    struct _context_generator_%(function_identifier)s_t *_python_context = (struct _context_generator_%(function_identifier)s_t *)PyCObject_AsVoidPtr( self );
+    struct _context_generator_%(function_identifier)s_t *_python_context = (struct _context_generator_%(function_identifier)s_t *)self;
 
     assert( _python_context && _python_context->magic == 27772 );
 
@@ -211,12 +192,9 @@ static PyObject *%(function_identifier)s_yielder( PyObject *self, PyObject *args
 """
 
 genfunc_function_template = """
-
-static PyMethodDef _methoddef_%(function_identifier)s_yielder = {"%(function_name)s", (PyCFunction)%(function_identifier)s_yielder, METH_NOARGS, NULL};
-
 static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObject *kw )
 {
-    struct _context_common_%(function_identifier)s_t *_python_common_context = (struct _context_common_%(function_identifier)s_t *)PyCObject_AsVoidPtr( self );
+    struct _context_common_%(function_identifier)s_t *_python_common_context = (struct _context_common_%(function_identifier)s_t *)self;
 
     try
     {
@@ -245,18 +223,7 @@ static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObje
         _python_context->magic = 27772;
         _python_context->number = ++instance_counter;
 
-        PyObject *_generator_self = PyCObject_FromVoidPtr( _python_context, _context_generator_%(function_identifier)s_destructor );
-
-        PyObject *yielder = PyKFunction_New( &_methoddef_%(function_identifier)s_yielder, _generator_self, %(module)s, Py_None );
-
-        // The _generator_self is to be released along with the new function which holds its own reference now, so release ours.
-        Py_DECREF( _generator_self );
-
-        if (yielder == NULL)
-        {
-            PyErr_Format( PyExc_RuntimeError, "cannot create function %(function_name)s" );
-            throw _PythonException();
-        }
+        PyObject *yielder = PyKFunction_New( %(function_identifier)s_yielder, %(function_name_obj)s, %(module)s, Py_None, _python_context, _context_generator_%(function_identifier)s_destructor );
 
         PyObject *result = PyCallIter_New( yielder, _sentinel_value );
 

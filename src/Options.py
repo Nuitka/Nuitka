@@ -40,47 +40,60 @@ is_Python = os.path.basename( sys.argv[0] ) == "Python"
 parser = OptionParser()
 
 parser.add_option(
-    "--exe", action="store_true", dest = "executable", default = is_Python, help = "Create a standalone executable instead of a compiled extension module.",
+    "--exe", action="store_true", dest = "executable", default = is_Python,
+    help = "Create a standalone executable instead of a compiled extension module.",
 )
 parser.add_option(
-    "--deep", action="store_true", dest = "follow_imports", default = False, help = "Descend into imported modules and compile them recursively.",
-)
-
-parser.add_option(
-    "--execute", action="store_true", dest = "immediate_execution", default = is_Python, help = "Immediate execute the created binary or import the freshly compiled module.",
+    "--deep", action="store_true", dest = "follow_imports", default = False,
+    help = "Descend into imported modules and compile them recursively.",
 )
 
 parser.add_option(
-    "--trace-execution", action="store_true", dest = "trace_execution", default = False, help = "Debug aid: Traced execution output.",
+    "--execute", action="store_true", dest = "immediate_execution", default = is_Python,
+    help = "Immediate execute the created binary or import the freshly compiled module.",
+)
+
+parser.add_option(
+    "--trace-execution", action="store_true", dest = "trace_execution", default = False,
+    help = "Debug aid: Traced execution output.",
 )
 parser.add_option(
-    "--dump-tree", action="store_true", dest = "dump_tree", default = False, help = "Debug aid: Dump the final result of analysis.",
+    "--dump-tree", action="store_true", dest = "dump_tree", default = False,
+    help = "Debug aid: Dump the final result of analysis.",
 )
 parser.add_option(
-    "--g++-only", action="store_true", dest = "cpp_only", default = False, help = "Debug aid: Compile the would be generated source file only. To allow editing and translation with same options for quick debugging changes to the generated source."
+    "--g++-only", action="store_true", dest = "cpp_only", default = False,
+    help = "Debug aid: Compile the would be generated source file only. To allow editing and translation with same options for quick debugging changes to the generated source."
 )
 parser.add_option(
-    "--display-tree", action="store_true", dest = "display_tree", default = False, help = "Debug aid: Display the final result of analysis.",
+    "--display-tree", action="store_true", dest = "display_tree", default = False,
+    help = "Debug aid: Display the final result of analysis.",
 )
 
 
 parser.add_option(
-    "--python-version", action="store", dest = "python_version", default = None, help = "Major version of Python to be used, something like 2.5 or 2.6",
+    "--python-version", action="store", dest = "python_version", default = None,
+    help = "Major version of Python to be used, something like 2.5 or 2.6",
 )
 
 parser.add_option(
-    "--python-debug", action="store_true", dest = "python_debug", default = None, help = "Use the debug version or not. Default is use what you are using with Nuitka, likely no debug.",
+    "--python-debug", action="store_true", dest = "python_debug", default = None,
+    help = "Use the debug version or not. Default is use what you are using with Nuitka, likely no debug.",
 )
 
 parser.add_option(
-    "--code-gen-statement-lines", action="store_true", dest = "statement_lines", default = True, help = "Statements shall have their line numbers set. Disable this for less precise exceptions and slightly faster code. Not recommended.",
+    "--code-gen-statement-lines", action="store_true", dest = "statement_lines", default = True,
+    help = "Statements shall have their line numbers set. Disable this for less precise exceptions and slightly faster code. Not recommended.",
 )
 
 parser.add_option(
-    "--output-dir", action="store", dest = "output_dir", default = "", help = "Where to put intermediate and final output files.",
+    "--output-dir", action="store", dest = "output_dir", default = "",
+    help = "Where to put intermediate and final output files.",
 )
 
 if is_Python:
+    count = 0
+
     for count, arg in enumerate( sys.argv ):
         if count == 0:
             continue
@@ -88,8 +101,9 @@ if is_Python:
         if arg[0] != "-":
             break
 
-    extra_args = sys.argv[count+1:]
-    sys.argv = sys.argv[0:count+1]
+    if count > 0:
+        extra_args = sys.argv[count+1:]
+        sys.argv = sys.argv[0:count+1]
 else:
     extra_args = []
 
@@ -127,7 +141,7 @@ def isOptimize():
 
 def getOutputPath( path ):
     if options.output_dir:
-        return options.output_dir + "/" + path
+        return os.path.normpath( options.output_dir + "/" + path )
     else:
         return path
 

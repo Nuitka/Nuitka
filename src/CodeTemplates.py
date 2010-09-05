@@ -33,6 +33,7 @@
 from templates.CodeTemplatesMain import *
 
 from templates.CodeTemplatesCompiledFunctionType import *
+from templates.CodeTemplatesCompiledGeneratorType import *
 
 from templates.CodeTemplatesFunction import *
 from templates.CodeTemplatesGeneratorExpression import *
@@ -1286,88 +1287,6 @@ static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject *seq2 )
     return result;
 }
 
-template<typename... P>
-static PyObject *NUMBER_AND( P...vars )
-{
-    PyObject *operands[] = {vars...};
-
-    int size = sizeof...(vars);
-
-    PyObject *result = PyNumber_And( operands[ 0 ], operands[ 1 ] );
-
-    if ( result == NULL )
-    {
-        throw _PythonException();
-    }
-
-    for (int i = 2; i < size; i++ )
-    {
-        result = PyNumber_And( result, operands[ i ] );
-
-        if ( result == NULL )
-        {
-            throw _PythonException();
-        }
-    }
-
-    return result;
-}
-
-template<typename... P>
-static PyObject *NUMBER_OR( P...vars )
-{
-    PyObject *operands[] = {vars...};
-
-    int size = sizeof...(vars);
-
-    PyObject *result = PyNumber_Or( operands[ 0 ], operands[ 1 ] );
-
-    if ( result == NULL )
-    {
-        throw _PythonException();
-    }
-
-    for (int i = 2; i < size; i++ )
-    {
-        result = PyNumber_Or( result, operands[ i ] );
-
-        if ( result == NULL )
-        {
-            throw _PythonException();
-        }
-    }
-
-    return result;
-}
-
-template<typename... P>
-static PyObject *NUMBER_XOR( P...vars )
-{
-    PyObject *operands[] = {vars...};
-
-    int size = sizeof...(vars);
-
-    PyObject *result = PyNumber_Xor( operands[ 0 ], operands[ 1 ] );
-
-    if ( result == NULL )
-    {
-        throw _PythonException();
-    }
-
-    for (int i = 2; i < size; i++ )
-    {
-        result = PyNumber_Xor( result, operands[ i ] );
-
-        if ( result == NULL )
-        {
-            throw _PythonException();
-        }
-    }
-
-    return result;
-}
-
-
 // This structure is the attachment for all generator functions without context.
 
 struct _context_genexpr_t
@@ -1659,8 +1578,6 @@ class PyObjectSharedLocalVariable
 
 
 };
-
-static PyObject *_module_builtin = NULL;
 
 class PyObjectGlobalVariable
 {

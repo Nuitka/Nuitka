@@ -99,3 +99,14 @@ def functionExecfile():
     print "execfile with globals and locals dict in a function:", global_vars.keys(), local_vars, e, f
 
 functionExecfile()
+
+def functionExecNones():
+
+    f = 0
+
+    exec ( "f=1", None, None )
+
+    print "Exec with None did update locals:", f
+
+# TODO: Enable this once working
+# functionExecNones()

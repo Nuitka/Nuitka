@@ -1,109 +1,114 @@
 
-Recommended reading with org-mode in Emacs. An ascii format outline,
-tasks and issue tracking.
+Recommended reading with org-mode in Emacs. An ASCII format outline, tasks and issue
+tracking.
 
 * Usage
 
 ** Requirements
 
-   You need to gcc C++ compiler of at least version 4.5 available or
-   else the compilation will fail. This is due to uses of C++0x and
-   precisely the use of so called raw string literals.
+   You need to gcc C++ compiler of at least version 4.5 available or else the compilation
+   will fail. This is due to uses of C++0x and precisely the use of so called raw string
+   literals.
 
 ** Environment
 
-   Set the environment by executing misc/create-environment.sh like
-   this e.g. eval `misc/create-environment` which sets the PYTHONPATH
-   to the compiler, and extends PATH with a directory containing its
-   binaries.
+   Set the environment by executing misc/create-environment.sh like this e.g. eval
+   `misc/create-environment` which sets the PYTHONPATH to the compiler, and extends PATH
+   with a directory containing its binaries.
 
 ** Command Line
 
-   Then look at "Nuitka.py --help" and a shortcut "Python" which always
-   sets --exe and --execute, so it is somewhat similar to "python".
+   Then look at "Nuitka.py --help" and a shortcut "Python" which always sets --exe and
+   --execute, so it is somewhat similar to "python".
 
 ** Where to go next
 
-   Remember, this project is not finished. Although a lot of the CPython
-   test suite works, there is still unsupported functionality, and there
-   is not much actual optimization done yet.
+   Remember, this project is not finished. Although a lot of the CPython test suite works,
+   there is still unsupported functionality, and there is not much actual optimization
+   done yet.
 
 ** Word of warning
 
-   Consider this an Alpha release quality, do not use it for anything
-   important, but feedback is very welcome.
+   Consider this an Alpha release quality, do not use it for anything important, but
+   feedback is very welcome.
 
 * Unsupported functionality
 
 ** function.func_code:
 
-   Does not exist. There is no bytecode anymore, so it doesn't make as much sense
-   anymore.
+   Does not exist. There is no bytecode anymore, so it doesn't make as much sense anymore.
 
 ** On function level "from import *" does not work
 
-   Example
-   def myFunction():
-      from string import *
+   Example def myFunction(): from string import *
 
       stuff()
 
-   Does not generate correct C++ at this time. Similar problem to "exec does
-   not create function locals". Currently Nuitka doesn't support a dynamic
-   size of locals. Same solution applies.
+   Does not generate correct C++ at this time. Similar problem to "exec does not create
+   function locals". Currently Nuitka doesn't support a dynamic size of locals. Same
+   solution applies.
 
 ** exec does not create function locals:
 
    Example:
 
-   def myFunction():
-      exec( "f=2" )
+   def myFunction(): exec( "f=2" )
 
-   The exec does not create local variables unless they already exist, by e.g.
-   having them assigned before:
+   The exec does not create local variables unless they already exist, by e.g.  having
+   them assigned before:
 
-   def myFunction():
-      f = None
+   def myFunction(): f = None
 
       exec( "f=2" )
 
-   Otherwise it assigns to the global variable. Solution Plan: Would require to
-   fallback to checking the provided locals for new entries before checking
-   globals variable accesses. Priority: I do not see much value, all you need to
-   do is to define the variable before the exec to make it work.
+   Otherwise it assigns to the global variable. Solution Plan: Would require to fallback
+   to checking the provided locals for new entries before checking globals variable
+   accesses. Priority: I do not see much value, all you need to do is to define the
+   variable before the exec to make it work.
 
 ** generators have no throw() method:
 
-   Not used by anything but contextlib yet. Will have to work in the future, or
-   else we won't be able to fully support contextlib, which I expect will see a
-   more widespread usage.
+   Not used by anything but contextlib yet. Will have to work in the future, or else we
+   won't be able to fully support contextlib, which I expect will see a more widespread
+   usage.
 
-   eval does not default to globals()/locals() when None is provided
+** generators have no send() and close() method:
+
+   I also noticed that generators don't have a send() to provide a yield return value,
+   which finally tells me why yield is an expression rather than a statement which always
+   confused me somewhat.
+
+   And they don't have a close() method either. This is used to prematurely close a
+   generator with a GeneratorExit exception.
+
+** eval and exec do not like "None" arguments.
+
+   eval does not default to globals()/locals() when None is provided at runtime, it does
+   default only when these arguments are left out.
 
 ** sys.exc_info() does not stack
 
-   It works mostly as expected, but doesn't stack, exceptions when handling
-   exceptions are not preserved to this function, which they are with CPython,
-   where each frame has its own current exception.
+   It works mostly as expected, but doesn't stack, exceptions when handling exceptions are
+   not preserved to this function, which they are with CPython, where each frame has its
+   own current exception.
 
 ** threading can block it seems
 
-   The generated code never lets the CPython run time switch threads, so its
-   chances to do so are reduced, which may lead to problems. I personally do
-   not care much about threads, would use subprocesses anyway.
+   The generated code never lets the CPython run time switch threads, so its chances to do
+   so are reduced, which may lead to problems. I personally do not care much about
+   threads, would use subprocesses anyway.
 
 ** relative imports from . are not supported yet
 
-   May show up in the future. Easy to work around by changing these to the
-   absolute exports normally.
+   May show up in the future. Easy to work around by changing these to the absolute
+   exports normally.
 
 ** UnboundLocalError is not given:
 
-   Instead a closure variable from e.g. module may be used. Solution: Slightly
-   more difficult to fix, because getVariableForReference() is called and later
-   the getVariableForAssignment() should notice that there is already is a
-   reference variable, which should be replaced then. Priority: Not too
-   important though.
+   Instead a closure variable from e.g. module may be used. Solution: Slightly more
+   difficult to fix, because getVariableForReference() is called and later the
+   getVariableForAssignment() should notice that there is already is a reference variable,
+   which should be replaced then. Priority: Not too important though.
 
 * CPython Test changes:
 
@@ -113,15 +118,13 @@ This is the list of tests modified from what they are in CPython.
 
 *** test_class:
 
-    Part of the test uses the extended slicing syntax that
-    I do not yet fully understand.
+    Part of the test uses the extended slicing syntax that I do not yet fully understand.
 
 *** test_compile:
 
-    Removed extended slice syntax. Changed func_code
-    usage to get local consts to locals(). Removed tests based on
-    func_code objects. Remove test that uses exec to enrich the
-    locals
+    Removed extended slice syntax.  Changed func_code usage to get local consts to
+    locals().  Removed tests based on func_code objects.  Remove test that uses exec to
+    enrich the locals.
 
 *** test_contextlib:
 
@@ -131,13 +134,12 @@ This is the list of tests modified from what they are in CPython.
 
 *** test_complexargs:
 
-    Don't use exec to hide Py3K warning, because it means the compiler is not
-    used for it.
+    Don't use exec to hide Py3K warning, because it means the compiler is not used for it.
 
 *** test_copy:
 
-    deepcopy of compiled functions refuses to work, removed these test cases,
-    removed func_code check
+    deepcopy of compiled functions refuses to work, removed these test cases, removed
+    func_code check
 
 *** test_defaultdict:
 
@@ -145,8 +147,7 @@ This is the list of tests modified from what they are in CPython.
 
 *** test_decorators:
 
-    A call to eval() has run time None for globals and this is not yet
-    supported.
+    A call to eval() has run time None for globals and this is not yet supported.
 
 *** test_exceptions:
 
@@ -170,11 +171,11 @@ This is the list of tests modified from what they are in CPython.
 
 *** test_grammer:
 
-    Problem with comparison chains that use "in", unrealistic
-    code not yet done. Same with nested assignments that each unpack. Removed
-    these statements from the test. Also removed testFuncDef parts that use
-    func_code to test things. Also removed try: continue finally: test, we are not
-    correct there, finally is not executed in that case.
+    Problem with comparison chains that use "in", unrealistic code not yet done. Same with
+    nested assignments that each unpack. Removed these statements from the test. Also
+    removed testFuncDef parts that use func_code to test things. Also removed try:
+    continue finally: test, we are not correct there, finally is not executed in that
+    case.
 
 *** test_hotshot:
 
@@ -186,14 +187,12 @@ This is the list of tests modified from what they are in CPython.
 
 *** test_inspect:
 
-    Removed checks for argument specs of functions, not supported, for
-    frames and code.
+    Removed checks for argument specs of functions, not supported, for frames and code.
 
 *** test_io.py:
 
-    test_newline_decoder and testReadClosed fails with some unicode
-    differences, likely because import from future does not change
-    literals to unicode
+    test_newline_decoder and testReadClosed fails with some unicode differences, likely
+    because import from future does not change literals to unicode
 
 *** test_marshal:
 
@@ -201,9 +200,8 @@ This is the list of tests modified from what they are in CPython.
 
 *** test_math:
 
-    removed doc tests, they check call stack and that is not
-    yet supported. removed usage of sys.argv[0] to find file in the dir
-    of the .py, where the .exe doesn't live.
+    removed doc tests, they check call stack and that is not yet supported. removed usage
+    of sys.argv[0] to find file in the dir of the .py, where the .exe doesn't live.
 
 *** test_mutants:
 
@@ -227,17 +225,16 @@ This is the list of tests modified from what they are in CPython.
 
 *** test_scope:
 
-    test that checks exec with free vars refusal was using func_code to do
-    so, removed that part. Also removed unbound local variable test, because
-    we can't handle that yet. Removed part that checks for allowed forms of
-    "from x import *" on function level, we don't support that yet.
+    test that checks exec with free vars refusal was using func_code to do so, removed
+    that part. Also removed unbound local variable test, because we can't handle that
+    yet. Removed part that checks for allowed forms of "from x import *" on function
+    level, we don't support that yet.
 
 *** test_signal:
 
-    removed test_itimer_prof, test_itimer_virtual seems
-    that signal doesn't get through, and test takes 60 seconds of CPU,
-    also removed test_main because it forks and raises exception there,
-    that seems different
+    removed test_itimer_prof, test_itimer_virtual seems that signal doesn't get through,
+    and test takes 60 seconds of CPU, also removed test_main because it forks and raises
+    exception there, that seems different
 
 *** test_sort:
 
@@ -249,8 +246,8 @@ This is the list of tests modified from what they are in CPython.
 
 *** test_struct:
 
-    removed test that requires deprecation warnings to be
-    allowed to be disabled, we don't support that yet.
+    removed test that requires deprecation warnings to be allowed to be disabled, we don't
+    support that yet.
 
 *** test_structmembers:
 
@@ -258,11 +255,10 @@ This is the list of tests modified from what they are in CPython.
 
 *** test_sys:
 
-    removed usages of getframe, func_closure, and call stack,
-    removed test_object, I do not understand it. removed test that does
-    require sys.stdout and sys.stderr to have same encoding which they
-    do not in my test environment, when I e.g. redirect stdout to a file
-    and leave stderr on terminal.
+    removed usages of getframe, func_closure, and call stack, removed test_object, I do
+    not understand it. removed test that does require sys.stdout and sys.stderr to have
+    same encoding which they do not in my test environment, when I e.g. redirect stdout to
+    a file and leave stderr on terminal.
 
 *** test_undocumented_details:
 
@@ -271,8 +267,8 @@ This is the list of tests modified from what they are in CPython.
 *** test_weakref:
 
     removed one test from test_proxy_ref which fails due to a detail of how a temp
-    variable is destroyed a bit late. removed the doctest execution, it is verbose
-    and not really a test of the compiler
+    variable is destroyed a bit late. removed the doctest execution, it is verbose and not
+    really a test of the compiler
 
 *** test_zlib:
 
@@ -305,13 +301,14 @@ This is the list of tests modified from what they are in CPython.
     I don't have the module being tested it seems.
 
 *** test_cl:
+
     I don't have the module being tested it seems.
 
 *** test_cmd_line_script:
 
-    Aborts with mismatch message that seems not correct. But this tests running CPython
-    as a child more than anything else, so it's mostly useless to debug. Could indicate
-    wrong printing though. TODO: Check if it can be reactivated.
+    Aborts with mismatch message that seems not correct. But this tests running CPython as
+    a child more than anything else, so it's mostly useless to debug. Could indicate wrong
+    printing though. TODO: Check if it can be reactivated.
 
 *** test_codecmaps_cn|hk|jp|kr|tw.py:
 
@@ -328,14 +325,14 @@ This is the list of tests modified from what they are in CPython.
 
 *** test_curses:
 
-    uses getframe tricks, and fails to capture my mouse, so simply removed, out of
-    scope for now.
+    uses getframe tricks, and fails to capture my mouse, so simply removed, out of scope
+    for now.
 
 *** test_decimal:
 
-    One test failed with my CPython already, plus it uses execfile, which we cannot
-    inline yet, so it doesn't test the compiler much. TODO: Revisit once we can inline
-    exec and execfile of constants.
+    One test failed with my CPython already, plus it uses execfile, which we cannot inline
+    yet, so it doesn't test the compiler much. TODO: Revisit once we can inline exec and
+    execfile of constants.
 
 *** test_cProfile:
 
@@ -421,8 +418,8 @@ This is the list of tests modified from what they are in CPython.
 
 *** test_os:
 
-    removed, works, but out of scope and number of tests run differs, making it annoying. Need
-    to find out why not all tests can be run
+    removed, works, but out of scope and number of tests run differs, making it
+    annoying. Need to find out why not all tests can be run
 
 *** test_ossaudiodev:
 

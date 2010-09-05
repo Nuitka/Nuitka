@@ -29,6 +29,12 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Variables link the storage and use of a Python variable together.
+
+Different kinds of variables represent different scopes and owners.
+
+"""
+
 class Variable:
     def __init__( self, owner, variable_name ):
         assert type( variable_name ) == str

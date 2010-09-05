@@ -55,8 +55,6 @@ static void _context_%(function_identifier)s_destructor( void *context_voidptr )
 """
 
 make_genexpr_with_context_template = """
-static PyMethodDef _methoddef_%(function_identifier)s = {"%(function_name)s", (PyCFunction)%(function_identifier)s, METH_NOARGS, NULL};
-
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     struct _context_%(function_identifier)s_t *_python_context = new _context_%(function_identifier)s_t;
@@ -67,30 +65,13 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 
     for( int i = 1; i <= sizeof( _python_context->iterators ) / sizeof( PyObject * ); i++ )
     {
-        _python_context->iterators[i] = NULL;
+        _python_context->iterators[ i ] = NULL;
     }
 
     // Copy the closure values over.
     %(function_context_copy)s
 
-    PyObject *_python_self = PyCObject_FromVoidPtr( _python_context, _context_%(function_identifier)s_destructor );
-
-    if ( _python_self == NULL )
-    {
-        PyErr_Format( PyExc_RuntimeError, "cannot create genexpr %(function_name)s" );
-        throw _PythonException();
-    }
-
-    PyObject *yielder = PyKFunction_New( &_methoddef_%(function_identifier)s, _python_self, %(module)s, %(function_doc)s );
-
-    // The self is to be released along with the new function which holds its own reference now, so release ours.
-    Py_DECREF( _python_self );
-
-    if ( yielder == NULL )
-    {
-        PyErr_Format( PyExc_RuntimeError, "cannot create genexpr %(function_name)s" );
-        throw _PythonException();
-    }
+    PyObject *yielder = PyKFunction_New( %(function_identifier)s, %(function_name_obj)s, %(module)s, %(function_doc)s, _python_context, _context_%(function_identifier)s_destructor );
 
     // Return an iterator to the yielder function.
     PyObject *result = PyCallIter_New( yielder, _sentinel_value );
@@ -125,7 +106,7 @@ genexpr_function_template = """
 static PyObject *%(function_identifier)s( PyObject *self )
 {
     // The context of the genexpr.
-    struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)PyCObject_AsVoidPtr(self);
+    struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)self;
 
     try
     {

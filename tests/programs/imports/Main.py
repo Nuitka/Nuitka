@@ -18,37 +18,12 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-def localImporter1():
-    import os
 
-    return os
+print "*** Main: Importing"
 
-def localImporter1a():
-    import os as my_os_name
+import some_package.Child2
 
-    return my_os_name
+print "*** Main: Imported"
 
-
-def localImporter2():
-    from os import path
-
-    return path
-
-def localImporter2a():
-    from os import path as renamed
-
-    return renamed
-
-print "Direct module import", localImporter1()
-print "Direct module import using rename", localImporter1a()
-
-print "From module import", localImporter2()
-print "From module import using rename", localImporter2a()
-
-from os import *
-
-print "Star import gave us", path
-
-import os.path as myname
-
-print "As import gave", myname
+print "*** Main: Some package", some_package
+print "*** Main: Imported package child", some_package.Child2

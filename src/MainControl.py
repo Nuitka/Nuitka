@@ -36,7 +36,6 @@ C/API, tp compile it to either an executable or an extension module.
 
 """
 
-import TreeTransforming
 import CodeGeneration
 import TreeBuilding
 import TreeDisplay
@@ -158,6 +157,11 @@ def getGccOptions( python_target_major_version, python_target_debug_indicator, p
     output_filename = Options.getOutputPath( target_path )
 
     gcc_options += [ "-lpython" + python_target_major_version + python_target_debug_indicator, cpp_filename, "-o " + output_filename ]
+
+    if Options.shallMakeModule():
+        gcc_options += [ "-D_NUITKA_MODULE" ]
+    else:
+        gcc_options += [ "-D_NUITKA_EXE" ]
 
     return gcc_options, output_filename
 

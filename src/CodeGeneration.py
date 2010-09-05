@@ -320,7 +320,7 @@ def generateClassBodyCode( class_def, context, generator ):
         generator          = generator
     )
 
-    return context, codes
+    return codes
 
 
 def generateClassCode( class_def, context, generator ):
@@ -343,7 +343,7 @@ def generateClassCode( class_def, context, generator ):
         context             = context
     )
 
-    class_context, class_codes = generateClassBodyCode(
+    class_codes = generateClassBodyCode(
         class_def = class_def,
         context   = context,
         generator = generator
@@ -603,7 +603,7 @@ def generateExpressionCode( expression, context, generator ):
         named_arguments = expression.getNamedArguments()
         star_dict_arg = expression.getStarDictArg()
 
-        if _areConstants( [ value for (name,value) in named_arguments ] ):
+        if _areConstants( [ value for (_name, value) in named_arguments ] ):
             named_arg_dict = {}
 
             for named_arg_desc in named_arguments:
@@ -1372,8 +1372,8 @@ def _generateStatementCode( statement, context, generator ):
         )
     elif statement.isStatementImportModule():
         code = generator.getImportModulesCode(
-            context = context,
-            imports = statement.getImports()
+            context      = context,
+            import_specs = statement.getImports()
         )
     elif statement.isStatementImportFrom():
         imports = []
@@ -1563,11 +1563,17 @@ def generateStatementSequenceCode( statement_sequence, context, generator ):
 
     return codes
 
+def generatePackageCode( package_name, generator ):
+    return generator.getPackageCode(
+        package_name = package_name
+    )
+
 def generateModuleCode( module, module_name, global_context, stand_alone, generator ):
     assert module.isModule()
 
     context = Contexts.PythonModuleContext(
         module_name    = module_name,
+        code_name      = generator.getModuleIdentifier( module_name ),
         global_context = global_context,
     )
 
@@ -1599,11 +1605,26 @@ def generateExecutableCode( main_module, other_modules, generator ):
     def myCompare( a, b ):
         return cmp( a.getName(), b.getName() )
 
+    packages_done = set()
+
+    for other_module in sorted( other_modules, cmp = myCompare ):
+        package_name = other_module.getPackage()
+
+        if package_name is not None and package_name not in packages_done:
+            package_code = generatePackageCode(
+                generator    = generator,
+                package_name = package_name
+            )
+
+            other_modules_code += package_code
+
+            packages_done.add( package_name )
+
     for other_module in sorted( other_modules, cmp = myCompare ):
         other_module_code = generateModuleCode(
             generator      = generator,
             module         = other_module,
-            module_name    = other_module.getName(),
+            module_name    = other_module.getFullName(),
             global_context = global_context,
             stand_alone    = False
         )

@@ -43,7 +43,7 @@ try:
             self.children = None
 
         def appendChild( self, item ):
-            raise NotImplemented
+            raise NotImplementedError
 
         def _children( self ):
             if self.children is None:

@@ -29,7 +29,7 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-import hashlib, marshal, re
+import hashlib, re
 
 class Identifier:
     def __init__( self, code, ref_count ):
@@ -211,10 +211,10 @@ def namifyConstant( constant ):
     elif type( constant ) == float:
         return "float_%s" % repr( constant ).replace( ".", "_" ).replace( "-", "_minus_" ).replace( "+", "" )
     elif type( constant ) == complex:
-            return "complex_%s" % str( constant ).replace( "+", "p" ).replace( "-", "m" ).replace(".","_")
+        return "complex_%s" % str( constant ).replace( "+", "p" ).replace( "-", "m" ).replace(".","_")
     else:
         raise ExceptionCannotNamify( constant )
 
 if __name__ == "__main__":
-    for value in ( "", "<module>" ):
-        print value, ":", namifyConstant( value )
+    for d_value in ( "", "<module>" ):
+        print d_value, ":", namifyConstant( d_value )

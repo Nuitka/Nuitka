@@ -36,10 +36,8 @@ applied here.
 
 """
 
-import SourceCodeReferences
 import TreeBuilding
 import Nodes
-import Hints
 
 from logging import warning
 
@@ -97,8 +95,6 @@ class TreeVisitorReplaceBuiltinCalls:
 
 
 def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
-    noarg_extractor = lambda node : {}
-
     def _pickLocalsForNode( node ):
         provider = node.getParentVariableProvider()
 
@@ -162,8 +158,8 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
 
         return Nodes.CPythonExpressionBuiltinCallEval (
             source       = positional_args[0],
-            globals      = positional_args[1] if len( positional_args ) > 1 else _pickGlobalsForNode( node ),
-            locals       = positional_args[2] if len( positional_args ) > 2 else _pickLocalsForNode( node ),
+            globals_arg  = positional_args[1] if len( positional_args ) > 1 else _pickGlobalsForNode( node ),
+            locals_arg   = positional_args[2] if len( positional_args ) > 2 else _pickLocalsForNode( node ),
             mode         = "eval",
             future_flags = future_flags,
             source_ref   = node.getSourceReference()
@@ -200,8 +196,8 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
 
         return Nodes.CPythonStatementExec(
             source       = source_node,
-            globals      = positional_args[1] if len( positional_args ) > 1 else None,
-            locals       = positional_args[2] if len( positional_args ) > 2 else None,
+            globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
+            locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
             future_flags = future_flags,
             source_ref   = source_ref
         )
@@ -249,7 +245,7 @@ class TreeVisitorOptimizeStaticExec:
 
                     node.replaceWith( new_node )
                 except SyntaxError:
-                    warning( "Syntax error for exec at %s" % source_ref.getAsString() )
+                    warning( "Syntax error will be raised at runtime for exec at %s" % source_ref.getAsString() )
 
 
 def replaceConstantExecs( tree, build_node ):

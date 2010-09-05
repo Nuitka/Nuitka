@@ -29,13 +29,12 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Python operator tables
 
-# TODO: No more needed maybe
-multiple_arg_operators = {
-    "Bitand"     : "NUMBER_AND",
-    "Bitor"      : "NUMBER_OR",
-    "Bitxor"     : "NUMBER_XOR",
-}
+These are mostly used to look up the Python C/API from operations or a
+wrapper used.
+
+"""
 
 binary_operators = {
     "Pow"        : "PyNumber_Power",

@@ -29,7 +29,7 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-from Identifiers import namifyConstant, ExceptionCannotNamify, digest, Identifier, LocalVariableIdentifier, LocalLoopVariableIdentifier, ClosureVariableIdentifier
+from Identifiers import namifyConstant, ExceptionCannotNamify, digest, Identifier, LocalVariableIdentifier, ClosureVariableIdentifier
 
 import CodeTemplates
 
@@ -78,8 +78,12 @@ class PythonContextBase:
     def isParametersViaContext( self ):
         return False
 
+    def getModuleCodeName( self ):
+        return self.parent.getModuleCodeName()
+
     def getModuleName( self ):
         return self.parent.getModuleName()
+
 
     def getTempObjectVariable( self ):
         # TODO: Make sure these are actually indepedent in generated code between different
@@ -90,9 +94,6 @@ class PythonContextBase:
         self.temp_counter += 1
 
         return result
-
-    def getCodeName():
-        assert False
 
 class PythonChildContextBase( PythonContextBase ):
     def __init__( self, parent ):
@@ -180,7 +181,9 @@ class PythonGlobalContext:
     def getHelperCode( self ):
         result = CodeTemplates.global_helper
         result += CodeTemplates.import_helper
+        result += CodeTemplates.gfunction_type_code
         result += CodeTemplates.kfunction_type_code
+
 
         return result
 
@@ -249,7 +252,7 @@ class PythonGlobalContext:
             constant_type, _constant_repr, constant_value = constant_desc
 
             if constant_type == int and abs(constant_value) < 2**31:
-                # Will fallback to marshal if they are bigger than PyInt allows.
+                # Will fallback to cPickle if they are bigger than PyInt allows.
                 statements.append( "%s = PyInt_FromLong( %s );" % ( constant_identifier, constant_value ) )
             elif constant_type == str:
                 encoded = self._encodeString( constant_value )
@@ -291,9 +294,11 @@ class PythonGlobalContext:
 
 
 class PythonModuleContext( PythonContextBase ):
-    def __init__( self, module_name, global_context ):
+    def __init__( self, module_name, code_name, global_context ):
         PythonContextBase.__init__( self )
+
         self.name = module_name
+        self.code_name = code_name
 
         self.global_context = global_context
         self.functions = {}
@@ -349,8 +354,10 @@ class PythonModuleContext( PythonContextBase ):
     def getName( self ):
         return self.name
 
-    def getModuleName( self ):
-        return self.getName()
+    getModuleName = getName
+
+    def getModuleCodeName( self ):
+        return self.getCodeName()
 
     def hasLocalVariable( self, var_name ):
         return False
@@ -368,7 +375,7 @@ class PythonModuleContext( PythonContextBase ):
         return self.global_var_names
 
     def getCodeName( self ):
-        return "module_" + self.name
+        return self.code_name
 
 class PythonFunctionContext( PythonChildContextBase ):
     def __init__( self, parent, function ):

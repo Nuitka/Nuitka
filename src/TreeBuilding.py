@@ -29,15 +29,22 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Build the internal node tree from source code.
 
-from nodes.ParameterSpec import ParameterSpec
+Does all the Python parsing and puts it into a tree structure for use in
+later stages of the compiler.
+
+"""
 
 import SourceCodeReferences
 import TreeTransforming
 import PythonOperators
-import Variables
 import Options
+
 import Nodes
+
+from nodes.ParameterSpec import ParameterSpec
+from nodes.ImportSpec import ImportSpec
 
 import ast, imp, sys
 
@@ -50,23 +57,29 @@ def getPythonVersion():
 
 _future_stack = []
 
-def initFuture():
-    global _future_division, _unicode_literals, _absolute_import
+_future_division = None
+_unicode_literals = None
+_absolute_import = None
+_future_print = None
 
-    _future_division  = getPythonVersion() >= 300
-    _unicode_literals = getPythonVersion() >= 300
+def initFuture():
+    global _future_division, _unicode_literals, _absolute_import, _future_print
+
+    _future_division   = getPythonVersion() >= 300
+    _unicode_literals  = getPythonVersion() >= 300
     _absolute_import   = getPythonVersion() >= 270
+    _future_print      = getPythonVersion() >= 300
 
 def pushFuture():
-    global _future_division, _unicode_literals, _absolute_import
-
-    _future_stack.append( ( _future_division, _unicode_literals, _absolute_import ) )
+    _future_stack.append( ( _future_division, _unicode_literals, _absolute_import, _future_print ) )
 
 def popFuture():
-    _future_division, _unicode_literals, _absolute_import = _future_stack.pop()
+    global _future_division, _unicode_literals, _absolute_import, _future_print
+
+    _future_division, _unicode_literals, _absolute_import, _future_print = _future_stack.pop()
 
 def getFuture():
-    return _future_division, _unicode_literals, _absolute_import
+    return _future_division, _unicode_literals, _absolute_import, _future_print
 
 
 def dump( node ):
@@ -90,8 +103,6 @@ def buildReplacementStatementsNode( provider, nodes, source_ref ):
         source_ref  = source_ref
     )
 
-# TODO: Might have become unnecessary if tree analysis does compensate
-# the reversal
 def buildDecoratorNodes( provider, nodes, source_ref ):
     return buildNodeList( provider, reversed( nodes ), source_ref )
 
@@ -378,7 +389,7 @@ def buildQuals( provider, result, quals, source_ref ):
             else:
                 condition = Nodes.CPythonExpressionAND( expressions = conditions, source_ref = source_ref )
         else:
-            condition = None
+            condition = Nodes.CPythonExpressionConstant( constant = True, source_ref = source_ref )
 
         # Different for list contractions and generator expressions
         source = qual.iter
@@ -543,25 +554,20 @@ def buildSubscriptNode( provider, node, source_ref ):
         assert False
 
 
-def _findModule( module_name ):
-    # The os.path is strangely hacked into the os module, dispatching per platform, We either
-    # cannot look into it, or we require to be on the target platform. Non Linux is unusually
-    # enough, cross platform compile, I give up on.
-    if module_name == "os.path":
-        module_name = os.path.basename( os.path.__file__ ).replace( ".pyc", "" )
-
+def _findModuleInPath( module_name, sys_path ):
     dot_pos = module_name.rfind( "." )
 
     if dot_pos == -1:
-        module_fh, module_filename, module_desc = imp.find_module( module_name )
+        module_fh, module_filename, module_desc = imp.find_module( module_name, sys_path )
+
         module_package = None
     else:
         parent_module_name = module_name[:dot_pos]
         child_module_name = module_name[dot_pos+1:]
 
-        P = imp.find_module( parent_module_name )
+        P = imp.find_module( parent_module_name, sys_path )
 
-        parent_module_filename = _findModule( parent_module_name )[1]
+        parent_module_filename = _findModuleInPath( parent_module_name, sys_path )[1]
         module_fh, module_filename, module_desc = imp.find_module( child_module_name, [ P[1] ] )
 
         module_package = os.path.basename( parent_module_filename )
@@ -571,43 +577,96 @@ def _findModule( module_name ):
 
     assert module_package is None or module_package.find( "/" ) == -1
 
+    module_filename = os.path.normpath( module_filename )
+
     return module_fh, module_filename, module_package, module_desc
 
+
+def _findModule( module_name, parent_package ):
+    # The os.path is strangely hacked into the os module, dispatching per platform, we
+    # either cannot look into it, or we require to be on the target platform. Non Linux
+    # is unusually enough, cross platform compile, I give up on that.
+    if module_name == "os.path" and parent_package is None:
+        return None, os.path.__file__.replace( ".pyc", ".py" ), "os", None
+
+    if parent_package is not None:
+        try:
+            # First try to find the module in a package if possible
+            module_fh, module_filename, module_package, module_desc = _findModuleInPath( module_name, [ parent_package ] )
+
+            assert module_package is None
+            module_package = parent_package
+
+            return module_fh, module_filename, module_package, module_desc
+        except ImportError:
+            pass
+
+    # Find modules in the current directory too, it's searched although it's not in
+    # sys.path normally.
+
+    return _findModuleInPath( module_name, sys.path + [ "." ] )
+
 def _isWhiteListedNotExistingModule( module_name ):
-    return module_name in ( "mac", "nt", "os2", "_emx_link", "riscos", "ce", "riscospath", "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256", "_sha512", "_md5", "_subprocess", "msvcrt" )
+    return module_name in ( "mac", "nt", "os2", "_emx_link", "riscos", "ce", "riscospath", "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256", "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle", "marshal", "imp", "sys" )
 
 def buildImportModulesNode( provider, node, source_ref ):
-    imports = []
+    parent_package = provider.getParentModule().getPackage()
+
+    import_specs = []
 
     for import_desc in node.names:
         module_name, local_name = import_desc.name, import_desc.asname
 
-        variable = provider.getVariableForAssignment( local_name if local_name is not None else module_name.split(".")[0] )
+        module_topname = module_name.split(".")[0]
+        module_basename =  module_name.split(".")[-1]
 
-        import_name = module_name.split(".")[0] if not local_name else module_name
+        variable = provider.getVariableForAssignment( local_name if local_name is not None else module_topname )
 
         if Options.shallFollowImports():
             try:
-                _module_fh, module_filename, module_package, _module_desc = _findModule( module_name )
+                _module_fh, module_filename, module_package, _module_desc = _findModule( module_name, parent_package )
             except ImportError:
                 if not _isWhiteListedNotExistingModule( module_name ):
-                    print "Warning, cannot find", module_name
+                    warning( "Warning, cannot find " + module_name )
 
-                module_package  = None
+                if module_name.find( "." ) != -1:
+                    module_package = module_name[ : module_name.rfind( "." ) ]
+                else:
+                    module_package = None
+
                 module_filename = None
         else:
-            module_package  = None
+            if module_name.find( "." ) != -1:
+                module_package = module_name[ : module_name.rfind( "." ) ]
+            else:
+                module_package = None
+
             module_filename = None
 
-        imports.append( ( module_name, import_name, variable, module_filename, module_package ) )
+        if local_name is not None:
+            import_name = module_name
+        elif parent_package is not None and module_package is not None and module_package.startswith( parent_package ) and not module_name.startswith( module_package ):
+            import_name = module_package + "." + module_topname
+        else:
+            import_name = module_topname
+
+        import_spec = ImportSpec(
+            module_package  = module_package,
+            module_name     = module_basename,
+            import_name     = import_name,
+            variable        = variable,
+            module_filename = module_filename,
+        )
+
+        import_specs.append( import_spec )
 
     return Nodes.CPythonStatementImportModules(
-        imports     = imports,
-        source_ref  = source_ref
+        import_specs = import_specs,
+        source_ref   = source_ref
     )
 
 def buildImportFromNode( provider, node, source_ref ):
-#    assert node.level == 0, source_ref
+    parent_package = provider.getParentModule().getPackage()
 
     module_name = node.module
 
@@ -627,7 +686,8 @@ def buildImportFromNode( provider, node, source_ref ):
                 global _future_division
                 _future_division = True
             elif object_name == "print_function":
-                warning( "The print_function future statement is not supported yet." )
+                global _future_print
+                _future_print = True
             elif object_name in ( "nested_scopes", "generators", ):
                 pass
             else:
@@ -642,7 +702,7 @@ def buildImportFromNode( provider, node, source_ref ):
 
     if Options.shallFollowImports():
         try:
-            _module_fh, module_filename, module_package, _module_desc = _findModule( module_name )
+            _module_fh, module_filename, module_package, _module_desc = _findModule( module_name, parent_package )
         except ImportError:
             if not _isWhiteListedNotExistingModule( module_name ):
                 print "Warning, cannot find", module_name
@@ -662,7 +722,6 @@ def buildImportFromNode( provider, node, source_ref ):
         source_ref      = source_ref
     )
 
-
 def buildPrintNode( provider, node, source_ref ):
     values = buildNodeList( provider, node.values, source_ref )
     dest = buildNode( provider, node.dest, source_ref ) if node.dest is not None else None
@@ -675,26 +734,26 @@ def buildPrintNode( provider, node, source_ref ):
     )
 
 def buildExecNode( provider, node, source_ref ):
-    globals = node.globals
-    locals = node.locals
+    exec_globals = node.globals
+    exec_locals = node.locals
     body = node.body
 
     # Allow exec(a,b,c) to be same as exec a, b, c
-    if locals is None and globals is None and getKind( body ) == "Tuple":
+    if exec_locals is None and exec_globals is None and getKind( body ) == "Tuple":
         parts = body.elts
         body  = parts[0]
-        globals = parts[1]
+        exec_globals = parts[1]
 
         if len( parts ) > 2:
-            locals = parts[2]
+            exec_locals = parts[2]
 
-    globals_node = buildNode( provider, globals, source_ref ) if globals is not None else None
-    locals_node = buildNode( provider, locals, source_ref ) if locals is not None else None
+    globals_node = buildNode( provider, exec_globals, source_ref ) if exec_globals is not None else None
+    locals_node = buildNode( provider, exec_locals, source_ref ) if exec_locals is not None else None
 
     return Nodes.CPythonStatementExec(
         source       = buildNode( provider, body, source_ref ),
-        globals      = globals_node,
-        locals       = locals_node,
+        globals_arg  = globals_node,
+        locals_arg   = locals_node,
         future_flags = getFuture(),
         source_ref   = source_ref
     )
@@ -913,12 +972,6 @@ def buildNode( provider, node, source_ref ):
                 )
             else:
                 result = buildNode( provider, node.value, source_ref )
-        elif kind in PythonOperators.multiple_arg_operators:
-            result = Nodes.CPythonExpressionMultiArgOperation(
-                operator   = PythonOperators.multiple_arg_operators[ kind ],
-                operands   = buildNodeList( provider, node.nodes, source_ref ),
-                source_ref = source_ref
-            )
         elif kind == "BoolOp" or ( kind == "UnaryOp" and getKind( node.op ) == "Not" ):
             result = buildBoolOpNode(
                 provider   = provider,
@@ -1253,11 +1306,11 @@ def buildModuleTree( filename, package = None ):
     result = Nodes.CPythonModule(
         name       = os.path.basename( filename ).replace( ".py", "" ),
         package    = package,
-        filename   = os.path.abspath( filename ),
+        filename   = os.path.relpath( filename ),
         source_ref = source_ref
     )
 
-    body = buildParseTree(
+    buildParseTree(
         provider    = result,
         source_code = open( filename ).read(),
         filename    = filename,

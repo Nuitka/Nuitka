@@ -53,7 +53,7 @@ static void _context_%(function_identifier)s_destructor( void *context_voidptr )
 
 function_context_access_template = """
     // The context of the function.
-    struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)PyCObject_AsVoidPtr(self);
+    struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)self;
 """
 
 function_context_unused_template = """
@@ -61,8 +61,6 @@ function_context_unused_template = """
 """
 
 make_function_with_context_template = """
-static PyMethodDef _methoddef_%(function_identifier)s = {"%(function_name)s", (PyCFunction)%(function_identifier)s, METH_VARARGS | METH_KEYWORDS, NULL};
-
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     struct _context_%(function_identifier)s_t *_python_context = new _context_%(function_identifier)s_t;
@@ -70,24 +68,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
     // Copy the parameter default values and closure values over.
     %(function_context_copy)s
 
-    PyObject *_python_self = PyCObject_FromVoidPtr( _python_context, _context_%(function_identifier)s_destructor );
-
-    if (_python_self == NULL)
-    {
-        PyErr_Format( PyExc_RuntimeError, "cannot create function %(function_name)s" );
-        throw _PythonException();
-    }
-
-    PyObject *result = PyKFunction_New( &_methoddef_%(function_identifier)s, _python_self, %(module)s, %(function_doc)s );
-
-    // The self is to be released along with the new function which holds its own reference now, so release ours.
-    Py_DECREF( _python_self );
-
-    if (result == NULL)
-    {
-        PyErr_Format( PyExc_RuntimeError, "cannot create function %(function_name)s" );
-        throw _PythonException();
-    }
+    PyObject *result = PyKFunction_New( %(function_identifier)s, %(function_name_obj)s, %(module)s, %(function_doc)s, _python_context, _context_%(function_identifier)s_destructor );
 
     // Apply decorators if any
     %(function_decorator_calls)s
@@ -97,16 +78,9 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 """
 
 make_function_without_context_template = """
-static PyMethodDef _methoddef_%(function_identifier)s = {"%(function_name)s", (PyCFunction)%(function_identifier)s, METH_VARARGS | METH_KEYWORDS, NULL};
-
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
-    PyObject *result = PyKFunction_New( &_methoddef_%(function_identifier)s, Py_None, %(module)s, %(function_doc)s );
-    if (result == NULL)
-    {
-        PyErr_Format( PyExc_RuntimeError, "cannot create function %(function_name)s" );
-        throw _PythonException();
-    }
+    PyObject *result = PyKFunction_New( %(function_identifier)s, %(function_name_obj)s, %(module)s, %(function_doc)s );
 
     // Apply decorators if any
     %(function_decorator_calls)s

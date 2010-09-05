@@ -30,15 +30,30 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-prepare_other_module = """\
-{ int res = PyImport_AppendInittab( (char *)"%(module_full_name)s", init%(module_name)s ); assert( res != -1 ); }"""
-
 import_helper = """
+
+#ifdef _NUITKA_EXE
+static bool FIND_EMBEDDED_MODULE( char const *name );
+#endif
+
 static PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name )
 {
+
+#ifdef _NUITKA_EXE
+    // First try our own package resistent form of frozen modules if we have
+    // them embedded. And avoid recursion here too, in case of cyclic dependencies.
+    if ( !HAS_KEY( PySys_GetObject( (char *)"modules" ), module_name ) )
+    {
+        if ( FIND_EMBEDDED_MODULE( PyString_AsString( module_name ) ) )
+        {
+            return LOOKUP_SUBSCRIPT( PySys_GetObject( (char *)"modules" ), import_name );
+        }
+    }
+#endif
+
     int line = _current_line;
 
-    PyObject *result = PyImport_ImportModuleLevel( PyString_AsString( module_name ), NULL, NULL, NULL, -1 );
+    PyObject *result = PyImport_ImportModuleEx( PyString_AsString( module_name ), NULL, NULL, NULL );
 
     if (unlikely( result == NULL ))
     {

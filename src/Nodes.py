@@ -240,6 +240,9 @@ class CPythonNode:
     def isStatementReturn( self ):
         return self.kind == "STATEMENT_RETURN"
 
+    def isStatementYield( self ):
+        return self.kind == "STATEMENT_YIELD"
+
     def isStatementImportModule( self ):
         return self.kind == "STATEMENT_IMPORT_MODULE"
 
@@ -251,12 +254,6 @@ class CPythonNode:
 
     def isStatementsSequence( self ):
         return self.kind == "STATEMENTS_SEQUENCE"
-
-    def isDefaultParameterCalculation( self ):
-        return self.kind == "EXPRESSION_DEFAULT_PARAMETER"
-
-    def isStatementYield( self ):
-        return self.kind == "STATEMENT_YIELD"
 
     def isStatementRaiseException( self ):
         return self.kind == "STATEMENT_RAISE_EXCEPTION"
@@ -320,9 +317,6 @@ class CPythonNode:
 
     def getVisitableNodes( self ):
         return ()
-
-    def getExpressionValues( self ):
-        return self.getVisitableNodes()
 
     def _getNiceName( self ):
         if self.isExpressionLambda():
@@ -405,6 +399,7 @@ class CPythonNamedCode:
 class CPythonNamedNode( CPythonNode ):
     def __init__( self, name, kind, source_ref ):
         assert name is not None
+        assert name.find( " " ) == -1
 
         CPythonNode.__init__( self, kind = kind, source_ref = source_ref )
 
@@ -417,17 +412,20 @@ class CPythonNamedNode( CPythonNode ):
         return self.name
 
     def getDetail( self ):
-        return self.getName()
+        return self.getFullName()
 
 class CPythonChildrenHaving:
     def __init__( self, names ):
         self.named_children = dict( names )
 
-        for key, value in names.iteritems():
+        for value in names.values():
             assert type( value ) != list
 
     def setChild( self, name, value ):
         assert name in self.named_children
+
+        if type( value ) == list:
+            value = tuple( value )
 
         self.named_children[ name ] = value
 
@@ -447,8 +445,6 @@ class CPythonChildrenHaving:
     def childSetter( name ):
         def setter( self, value ):
             self.setChild( name, value )
-
-            assert self.getChild( name ) == value
 
         return setter
 
@@ -571,7 +567,7 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
 
         The module is a possible root of a tree.
     """
-    def __init__( self, name, package, filename,source_ref ):
+    def __init__( self, name, package, filename, source_ref ):
         CPythonNamedNode.__init__( self, name = name, kind = "MODULE", source_ref = source_ref )
         CPythonClosureGiver.__init__( self, "module" )
         CPythonChildrenHaving.__init__(
@@ -599,6 +595,12 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
 
     def getPackage( self ):
         return self.package
+
+    def getFullName( self ):
+        if self.package:
+            return self.package + "." + self.getName()
+        else:
+            return self.getName()
 
     def getVariableForAssignment( self, variable_name ):
         return self.getProvidedVariable( variable_name )
@@ -630,9 +632,6 @@ class CPythonClass( CPythonNamedNode, CPythonClosureTaker, CPythonNamedCode ):
 
     def getDecorators( self ):
         return self.decorators
-
-    def getExpressionValues( self ):
-        return ()
 
     def getBody( self ):
         return self.body
@@ -850,7 +849,7 @@ class CPythonParameterHaving:
         return self.parameters
 
 class CPythonExpressionLambda( CPythonChildrenHaving, CPythonNode, CPythonParameterHaving, CPythonClosureTaker, CPythonClosureGiver ):
-    def __init__( self, provider, parameters,source_ref ):
+    def __init__( self, provider, parameters, source_ref ):
         CPythonNode.__init__( self, kind = "EXPRESSION_LAMBDA_DEF", source_ref = source_ref )
         CPythonClosureTaker.__init__( self, provider )
         CPythonClosureGiver.__init__( self, code_prefix = "lamda" )
@@ -932,11 +931,11 @@ class CPythonFunction( CPythonNamedNode, CPythonParameterHaving, CPythonClosureT
     def getFunctionName( self ):
         return self.name
 
+    def getDoc( self ):
+        return self.doc
+
     def getDecorators( self ):
         return self.decorators
-
-    def hasDefaultParameter( self, parameter_name ):
-        return parameter_name in self.getDefaultParameterNames()
 
     def getLocalVariableNames( self ):
         return Variables.getNames( self.getLocalVariables() )
@@ -950,9 +949,6 @@ class CPythonFunction( CPythonNamedNode, CPythonParameterHaving, CPythonClosureT
     def getVariables( self ):
         return self.providing.values()
 
-    def getExpressionValues( self ):
-        return ()
-
     def setBody( self, body ):
         self.body = body
 
@@ -964,9 +960,6 @@ class CPythonFunction( CPythonNamedNode, CPythonParameterHaving, CPythonClosureT
 
     def isGenerator( self ):
         return self.is_generator
-
-    def getDoc( self ):
-        return self.doc
 
     def getVariableForAssignment( self, variable_name ):
         if self.hasTakenVariable( variable_name ):
@@ -1123,28 +1116,6 @@ class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNode ):
     def hasOnlyPositionalArguments( self ):
         return not self.getNamedArguments() and not self.getStarListArg() and not self.getStarDictArg()
 
-class CPythonExpressionMultiArgOperation( CPythonNode ):
-    def __init__( self, operator, operands, source_ref ):
-        for operand in operands:
-            assert operand.isExpression(), operand
-
-        CPythonNode.__init__( self, kind = "EXPRESSION_MULTIARG_OPERATION", source_ref = source_ref )
-
-        self.operands = tuple( operands )
-        self.operator = operator
-
-    def getOperation( self ):
-        return self.operator
-
-    def getDetail( self ):
-        return self.operator
-
-    def getOperands( self ):
-        return self.operands
-
-    def getVisitableNodes( self ):
-        return self.operands
-
 class CPythonExpressionBinaryOperation( CPythonChildrenHaving, CPythonNode ):
     def __init__( self, operator, left, right, source_ref ):
         assert left.isExpression() and right.isExpression, ( left, right )
@@ -1190,69 +1161,54 @@ class CPythonExpressionUnaryOperation( CPythonNode ):
         return ( self.operand, )
 
 
-class CPythonExpressionContractionBase( CPythonNode, CPythonClosureTaker, CPythonClosureGiver ):
+class CPythonExpressionContractionBase( CPythonChildrenHaving, CPythonNode, CPythonClosureTaker, CPythonClosureGiver ):
     def __init__( self, kind, code_prefix, provider, source_ref ):
         CPythonNode.__init__( self, kind = kind, source_ref = source_ref )
         CPythonClosureTaker.__init__( self, provider )
         CPythonClosureGiver.__init__( self, code_prefix = code_prefix )
 
-        self.conditions = None
-        self.sources = None
-        self.targets = None
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "body"       : None,
+                "conditions" : None,
+                "sources"    : None,
+                "targets"    : None
+            }
+        )
 
     def getName( self ):
         return "<%s> at %s" % ( self.code_prefix, self.source_ref.getAsString() )
 
-    def getVisitableNodes( self ):
-        result = self.sources + self.targets + ( self.body, )
-
-        result = list( result )
-
-        for condition in self.conditions:
-            if condition is not None:
-                result.append( condition )
-
-        return result
-
-    def setSources( self, sources ):
-        self.sources = tuple( sources )
-
-    def getIterateds( self ):
-        return self.sources
+    setSources = CPythonChildrenHaving.childSetter( "sources" )
+    getIterateds = CPythonChildrenHaving.childGetter( "sources" )
 
     def getIteratedsCount( self ):
-        return len( self.sources )
+        return len( self.getIterateds() )
 
-    def setConditions( self, conditions ):
-        self.conditions = tuple( conditions )
+    setConditions = CPythonChildrenHaving.childSetter( "conditions" )
+    getConditions = CPythonChildrenHaving.childGetter( "conditions" )
 
-    def getConditions( self ):
-        return self.conditions
+    getLoopVariableAssignments = CPythonChildrenHaving.childGetter( "targets" )
+    getTargets = getLoopVariableAssignments
 
-    def getLoopVariableAssignments( self ):
-        return self.targets
-
-    def getBody( self ):
-        return self.body
-
-    def setBody( self, body ):
-        self.body = body
+    setBody = CPythonChildrenHaving.childSetter( "body" )
+    getBody = CPythonChildrenHaving.childGetter( "body" )
 
     def setTargets( self, targets ):
-        assert self.targets is None
+        assert self.getLoopVariableAssignments() is None
 
-        self.targets = tuple( targets )
+        self._setTargets( targets )
 
-        for target in self.targets:
+        for target in targets:
             self.registerProvidedVariables( target.getTargetVariables() )
 
-    def getTargets( self ):
-        return self.targets
+    _setTargets = CPythonChildrenHaving.childSetter( "targets" )
 
     def getTargetVariables( self ):
         result = []
 
-        for target in self.targets:
+        for target in self.getLoopVariableAssignments():
             result += list( target.getTargetVariables() )
 
         return result
@@ -1616,9 +1572,6 @@ class CPythonStatementTryFinally( CPythonNode ):
     def getBlockFinal( self ):
         return self.final
 
-    def getExpressionValues( self ):
-        return ()
-
 
 class CPythonStatementTryExcept( CPythonNode ):
     def __init__( self, tried, no_raise, catchers, assigns, catcheds, source_ref ):
@@ -1660,17 +1613,11 @@ class CPythonStatementTryExcept( CPythonNode ):
     def getExceptionAssigns( self ):
         return self.assigns
 
-    def getExpressionValues( self ):
-        return ()
-
     def getExceptionCatchers( self ):
         return self.catchers
 
     def getExceptionCatchBranches( self ):
         return self.catcheds
-
-    def getNoExceptionBranch( self ):
-        return self.no_catch
 
 
 class CPythonStatementRaiseException( CPythonNode ):
@@ -1707,19 +1654,19 @@ class CPythonStatementPass( CPythonNode ):
 
 
 class CPythonStatementImportModules( CPythonNode ):
-    def __init__( self, imports, source_ref ):
+    def __init__( self, import_specs, source_ref ):
         CPythonNode.__init__( self, kind = "STATEMENT_IMPORT_MODULE", source_ref = source_ref )
 
-        self.imports = imports[:]
+        self.import_specs = tuple( import_specs )
 
     def getImports( self ):
-        return self.imports
+        return self.import_specs
 
     def getModuleFilenames( self ):
-        return [ import_desc[3] for import_desc in self.imports if import_desc[3] is not None ]
+        return [ import_spec.getFilename() for import_spec in self.import_specs if import_spec.getFilename() is not None ]
 
     def getModulePackages( self ):
-        return [ import_desc[4] for import_desc in self.imports if import_desc[3] is not None ]
+        return [ import_spec.getPackage() for import_spec in self.import_specs if import_spec.getFilename() is not None ]
 
 
 class CPythonStatementImportFrom( CPythonNode ):
@@ -1759,14 +1706,14 @@ class CPythonStatementImportFrom( CPythonNode ):
 
 
 class CPythonStatementExec( CPythonChildrenHaving, CPythonNode ):
-    def __init__( self, source, globals, locals, future_flags, source_ref ):
+    def __init__( self, source, globals_arg, locals_arg, future_flags, source_ref ):
         CPythonNode.__init__( self, kind = "STATEMENT_EXEC", source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
             names = {
-                "globals" : globals,
-                "locals"  : locals,
+                "globals" : globals_arg,
+                "locals"  : locals_arg,
                 "source"  : source
             }
         )
@@ -1810,15 +1757,15 @@ class CPythonExpressionBuiltinCallVars( CPythonChildrenHaving, CPythonNode ):
     getSource = CPythonChildrenHaving.childGetter( "source" )
 
 class CPythonExpressionBuiltinCallEval( CPythonChildrenHaving, CPythonNode ):
-    def __init__( self, source, globals, locals, mode, future_flags, source_ref ):
+    def __init__( self, source, globals_arg, locals_arg, mode, future_flags, source_ref ):
         CPythonNode.__init__( self, kind = "EXPRESSION_BUILTIN_EVAL", source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
             names = {
                 "source"  : source,
-                "globals" : globals,
-                "locals"  : locals,
+                "globals" : globals_arg,
+                "locals"  : locals_arg,
             }
         )
 
