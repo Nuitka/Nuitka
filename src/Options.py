@@ -82,7 +82,7 @@ parser.add_option(
 )
 
 parser.add_option(
-    "--code-gen-statement-lines", action="store_true", dest = "statement_lines", default = True,
+    "--code-gen-no-statement-lines", action="store_false", dest = "statement_lines", default = True,
     help = "Statements shall have their line numbers set. Disable this for less precise exceptions and slightly faster code. Not recommended.",
 )
 
