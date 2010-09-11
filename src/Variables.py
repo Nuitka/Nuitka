@@ -37,7 +37,7 @@ Different kinds of variables represent different scopes and owners.
 
 class Variable:
     def __init__( self, owner, variable_name ):
-        assert type( variable_name ) == str
+        assert type( variable_name ) == str, variable_name
 
         self.variable_name = variable_name
         self.owner = owner

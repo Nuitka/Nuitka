@@ -34,7 +34,7 @@ static PyObject *%(contraction_identifier)s( %(contraction_parameters)s );
 """
 
 list_contraction_loop_iterated = """\
-    PyObjectTemporary iterator_%(iter_count)d = MAKE_ITERATOR( %(iterated)s );
+    PyObjectTemporary iterator_%(iter_count)d( MAKE_ITERATOR( %(iterated)s ) );
 
     while (PyObject *_python_contraction_iter_value_%(iter_count)d = ITERATOR_NEXT( iterator_%(iter_count)d.asObject() ) )
     {

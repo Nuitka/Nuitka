@@ -142,7 +142,7 @@ def getGccOptions( python_target_major_version, python_target_debug_indicator, p
 
     if Options.isOptimize():
         gcc_options += [
-            " -D__PYDRA_NO_ASSERT__",
+            " -D__NUITKA_NO_ASSERT__",
             "-O3"
         ]
 

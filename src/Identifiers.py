@@ -94,6 +94,9 @@ class LocalVariableIdentifier( Identifier ):
     def getCodeObject( self ):
         return "%s.asObject()" % self.getCode()
 
+    def getCodeDropRef( self ):
+        return self.getCodeObject()
+
 
 class LocalLoopVariableIdentifier( Identifier ):
     def __init__( self, loopvar_name ):
@@ -200,6 +203,8 @@ def namifyConstant( constant ):
             return "long_neg_%d" % abs( constant )
     elif type( constant ) == bool:
         return "bool_%s" % constant
+    elif constant is None:
+        return "none"
     elif type( constant ) == str:
         return "str_" + _namifyString( constant )
     elif type( constant ) == unicode:

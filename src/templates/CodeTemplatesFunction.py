@@ -68,7 +68,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
     // Copy the parameter default values and closure values over.
     %(function_context_copy)s
 
-    PyObject *result = PyKFunction_New( %(function_identifier)s, %(function_name_obj)s, %(module)s, %(function_doc)s, _python_context, _context_%(function_identifier)s_destructor );
+    PyObject *result = Nuitka_Function_New( %(function_identifier)s, %(function_name_obj)s, %(module)s, %(function_doc)s, _python_context, _context_%(function_identifier)s_destructor );
 
     // Apply decorators if any
     %(function_decorator_calls)s
@@ -80,7 +80,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 make_function_without_context_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
-    PyObject *result = PyKFunction_New( %(function_identifier)s, %(function_name_obj)s, %(module)s, %(function_doc)s );
+    PyObject *result = Nuitka_Function_New( %(function_identifier)s, %(function_name_obj)s, %(module)s, %(function_doc)s );
 
     // Apply decorators if any
     %(function_decorator_calls)s

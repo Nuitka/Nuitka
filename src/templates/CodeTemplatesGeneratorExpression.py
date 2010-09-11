@@ -35,11 +35,6 @@ genexpr_context_body_template = """
 // It is allocated at the time the genexpr object is created.
 struct _context_%(function_identifier)s_t
 {
-    // Store the iterator provided at creation time here.
-    PyObject *iterators[ %(iterator_count)d ];
-
-    int iterator_level;
-
     // The generator expression can access a read-only closure of the creator.
     %(function_context_decl)s
 };
@@ -59,28 +54,10 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 {
     struct _context_%(function_identifier)s_t *_python_context = new _context_%(function_identifier)s_t;
 
-    // Set the iterator for the yielder to use
-    _python_context->iterators[ 0 ] = MAKE_ITERATOR( iterated );
-    _python_context->iterator_level = 0;
-
-    for( int i = 1; i <= sizeof( _python_context->iterators ) / sizeof( PyObject * ); i++ )
-    {
-        _python_context->iterators[ i ] = NULL;
-    }
-
     // Copy the closure values over.
     %(function_context_copy)s
 
-    PyObject *yielder = PyKFunction_New( %(function_identifier)s, %(function_name_obj)s, %(module)s, %(function_doc)s, _python_context, _context_%(function_identifier)s_destructor );
-
-    // Return an iterator to the yielder function.
-    PyObject *result = PyCallIter_New( yielder, _sentinel_value );
-
-    if ( result == NULL )
-    {
-        PyErr_Format( PyExc_RuntimeError, "cannot create genexpr %(function_name)s" );
-        throw _PythonException();
-    }
+    PyObject *result = Nuitka_Genexpr_New( %(function_identifier)s, %(function_name_obj)s, iterated, %(iterator_count)d, _python_context, _context_%(function_identifier)s_destructor );
 
     return result;
 }
@@ -95,7 +72,7 @@ condition = %(condition_code)s;
 
 genexpr_iterator_making = """
 case %(iterator_index)d:
-   _python_context->iterators[ %(iterator_index)d ] = MAKE_ITERATOR( %(iterated_code)s );
+   generator->iterators[ %(iterator_index)d ] = MAKE_ITERATOR( %(iterated_code)s );
    break;
 """
 
@@ -103,18 +80,20 @@ genexpr_function_template = """
 // The function that is iterated over during generator expression execution. It is supposed to yield the next
 // value as a return value.
 
-static PyObject *%(function_identifier)s( PyObject *self )
+static PyObject *%(function_identifier)s( Nuitka_GenexprObject *generator )
 {
     // The context of the genexpr.
-    struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)self;
+    struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)generator->m_context;
+
+    %(line_number_code)s
 
     try
     {
-        while (_python_context->iterator_level != -1 && _python_context->iterator_level < %(iterator_count)d)
+        while ( generator->iterator_level != -1 && generator->iterator_level < %(iterator_count)d )
         {
-            if ( _python_context->iterators[ _python_context->iterator_level ] == NULL )
+            if ( generator->iterators[ generator->iterator_level ] == NULL )
             {
-                switch(_python_context->iterator_level)
+                switch( generator->iterator_level )
                 {
                    case 0:
                        assert( false );
@@ -122,23 +101,24 @@ static PyObject *%(function_identifier)s( PyObject *self )
                    %(iterator_making)s
                 }
             }
-            // TODO: Need to construct the iterators except level 0 here and create their iterator
+
+            // Need to construct the iterators except level 0 here and create their iterator
             // if it is NULL
 
-            PyObject *_python_genexpr_iter_value = ITERATOR_NEXT( _python_context->iterators[ _python_context->iterator_level ] );
+            PyObject *_python_genexpr_iter_value = ITERATOR_NEXT( generator->iterators[ generator->iterator_level ] );
 
             if ( _python_genexpr_iter_value == NULL )
             {
-                Py_DECREF( _python_context->iterators[ _python_context->iterator_level ] );
-                _python_context->iterators[ _python_context->iterator_level ] = NULL;
+                Py_DECREF( generator->iterators[ generator->iterator_level ] );
+                generator->iterators[ generator->iterator_level ] = NULL;
 
-                _python_context->iterator_level -= 1;
+                generator->iterator_level -= 1;
             }
             else
             {
                 bool condition;
 
-                switch (_python_context->iterator_level)
+                switch( generator->iterator_level )
                 {
                     %(iterator_value_assign)s
                 }
@@ -146,24 +126,24 @@ static PyObject *%(function_identifier)s( PyObject *self )
                 // plug condition here, just don't increase if it mismatches
                 if ( condition )
                 {
-                    _python_context->iterator_level += 1;
+                    generator->iterator_level += 1;
                 }
             }
         }
 
-        if ( _python_context->iterator_level == -1)
+        if ( generator->iterator_level == -1 )
         {
-            return INCREASE_REFCOUNT( _sentinel_value );
+            return _sentinel_value;
         }
         else
         {
-            _python_context->iterator_level = %(iterator_count)d - 1;
+            generator->iterator_level = %(iterator_count)d - 1;
 
             // Actual expressions generated.
             %(function_body)s
         }
     }
-    catch (_PythonException &_exception)
+    catch ( _PythonException &_exception )
     {
         _exception.toPython();
         ADD_TRACEBACK( %(module)s, %(file_identifier)s, %(name_identifier)s, _exception.getLine() );

@@ -172,9 +172,9 @@ PyMODINIT_FUNC init%(module_identifier)s(void)
     // Initialize the constant values used.
     _initConstants();
 
-    // Initialize the compiled types for functions and generators
-    initKFunctionType();
-    initGFunctionType();
+    // Initialize the compiled types of Nuitka.
+    PyType_Ready( &Nuitka_Function_Type );
+    PyType_Ready( &Nuitka_Genexpr_Type );
 
     %(module_inits)s
 

@@ -37,12 +37,9 @@ and builtin functions, or even better.
 
 kfunction_type_code = """
 
-// *** KFunction type begin
-PyTypeObject PyKFunction_Type;
+// *** Nuitka_Function type begin
 
-typedef void (*releaser)( void *);
-
-// The PyKFunctionObject is the storage associated with a compiled function instance
+// The Nuitka_FunctionObject is the storage associated with a compiled function instance
 // of which there can be many for each code.
 typedef struct {
     PyObject_HEAD
@@ -62,21 +59,21 @@ typedef struct {
     PyObject *m_weakrefs;
 
     long m_counter;
-} PyKFunctionObject;
+} Nuitka_FunctionObject;
 
 // tp_descr_get slot, bind a function to an object.
-static PyObject *PyKFunction_descr_get( PyObject *function, PyObject *object, PyObject *klass )
+static PyObject *Nuitka_Function_descr_get( PyObject *function, PyObject *object, PyObject *klass )
 {
     return PyMethod_New( function, object == Py_None ? NULL : object, klass );
 }
 
  // tp_repr slot, decide how a function shall be output
-static PyObject *PyKFunction_repr( PyKFunctionObject *object )
+static PyObject *Nuitka_Function_repr( Nuitka_FunctionObject *object )
 {
     return PyString_FromFormat( "<compiled function %s at %p>", PyString_AsString( object->m_name ), object );
 }
 
-static PyObject *PyKFunction_tp_call( PyKFunctionObject *function, PyObject *args, PyObject *kw )
+static PyObject *Nuitka_Function_tp_call( Nuitka_FunctionObject *function, PyObject *args, PyObject *kw )
 {
     if ( function->m_has_args )
     {
@@ -88,7 +85,7 @@ static PyObject *PyKFunction_tp_call( PyKFunctionObject *function, PyObject *arg
     }
 }
 
-static long PyKFunction_tp_traverse( PyObject *function, visitproc visit, void *arg )
+static long Nuitka_Function_tp_traverse( PyObject *function, visitproc visit, void *arg )
 {
     // TODO: Identify the impact of not visiting owned objects and/or if it could be NULL
     // instead. The methodobject visits its self and module. I understand this is probably
@@ -97,7 +94,7 @@ static long PyKFunction_tp_traverse( PyObject *function, visitproc visit, void *
     return 0;
 }
 
-static int PyKFunction_tp_compare( PyKFunctionObject *a, PyKFunctionObject *b )
+static int Nuitka_Function_tp_compare( Nuitka_FunctionObject *a, Nuitka_FunctionObject *b )
 {
     if ( a->m_counter == b->m_counter )
     {
@@ -109,17 +106,17 @@ static int PyKFunction_tp_compare( PyKFunctionObject *a, PyKFunctionObject *b )
     }
 }
 
-static long PyKFunction_tp_hash( PyKFunctionObject *function )
+static long Nuitka_Function_tp_hash( Nuitka_FunctionObject *function )
 {
     return function->m_counter;
 }
 
-static PyObject *PyKFunction_get_name( PyKFunctionObject *object )
+static PyObject *Nuitka_Function_get_name( Nuitka_FunctionObject *object )
 {
     return INCREASE_REFCOUNT( object->m_name );
 }
 
-static int PyKFunction_set_name( PyKFunctionObject *object, PyObject *value )
+static int Nuitka_Function_set_name( Nuitka_FunctionObject *object, PyObject *value )
 {
     if (value == NULL || PyString_Check( value ) == 0)
     {
@@ -134,12 +131,12 @@ static int PyKFunction_set_name( PyKFunctionObject *object, PyObject *value )
     return 0;
 }
 
-static PyObject *PyKFunction_get_doc( PyKFunctionObject *object )
+static PyObject *Nuitka_Function_get_doc( Nuitka_FunctionObject *object )
 {
     return INCREASE_REFCOUNT( object->m_doc );
 }
 
-static int PyKFunction_set_doc( PyKFunctionObject *object, PyObject *value )
+static int Nuitka_Function_set_doc( Nuitka_FunctionObject *object, PyObject *value )
 {
     if ( value == Py_None || value == NULL )
     {
@@ -158,7 +155,7 @@ static int PyKFunction_set_doc( PyKFunctionObject *object, PyObject *value )
     return 0;
 }
 
-static PyObject *PyKFunction_get_dict( PyKFunctionObject *object )
+static PyObject *Nuitka_Function_get_dict( Nuitka_FunctionObject *object )
 {
    if ( object->m_dict == NULL )
    {
@@ -168,7 +165,7 @@ static PyObject *PyKFunction_get_dict( PyKFunctionObject *object )
    return INCREASE_REFCOUNT( object->m_dict );
 }
 
-static int PyKFunction_set_dict( PyKFunctionObject *object, PyObject *value )
+static int Nuitka_Function_set_dict( Nuitka_FunctionObject *object, PyObject *value )
 {
     if (value == NULL)
     {
@@ -190,18 +187,18 @@ static int PyKFunction_set_dict( PyKFunctionObject *object, PyObject *value )
     }
 }
 
-static int PyKFunction_set_globals( PyKFunctionObject *object, PyObject *value )
+static int Nuitka_Function_set_globals( Nuitka_FunctionObject *object, PyObject *value )
 {
     PyErr_Format( PyExc_TypeError, "readonly attribute" );
     return -1;
 }
 
-static PyObject *PyKFunction_get_globals( PyKFunctionObject *object )
+static PyObject *Nuitka_Function_get_globals( Nuitka_FunctionObject *object )
 {
     return INCREASE_REFCOUNT( PyModule_GetDict( object->m_module ) );
 }
 
-static int PyKFunction_set_module( PyKFunctionObject *object, PyObject *value )
+static int Nuitka_Function_set_module( Nuitka_FunctionObject *object, PyObject *value )
 {
     if ( object->m_dict == NULL )
     {
@@ -211,7 +208,7 @@ static int PyKFunction_set_module( PyKFunctionObject *object, PyObject *value )
     return PyDict_SetItemString( object->m_dict, (char * )"__module__", value );
 }
 
-static PyObject *PyKFunction_get_module( PyKFunctionObject *object )
+static PyObject *Nuitka_Function_get_module( Nuitka_FunctionObject *object )
 {
     if ( object->m_dict )
     {
@@ -223,7 +220,7 @@ static PyObject *PyKFunction_get_module( PyKFunctionObject *object )
         }
     }
 
-    int res = PyKFunction_set_module( object, PyString_FromString( PyModule_GetName( object->m_module ) ) );
+    int res = Nuitka_Function_set_module( object, PyString_FromString( PyModule_GetName( object->m_module ) ) );
 
     assert( res == 0 );
 
@@ -231,22 +228,22 @@ static PyObject *PyKFunction_get_module( PyKFunctionObject *object )
 }
 
 
-static PyGetSetDef PyKFunction_getset[] =
+static PyGetSetDef Nuitka_Function_getset[] =
 {
-   { (char *)"func_name",    (getter)PyKFunction_get_name,    (setter)PyKFunction_set_name, NULL },
-   { (char *)"__name__" ,    (getter)PyKFunction_get_name,    (setter)PyKFunction_set_name, NULL },
-   { (char *)"func_doc",     (getter)PyKFunction_get_doc,     (setter)PyKFunction_set_doc, NULL },
-   { (char *)"__doc__" ,     (getter)PyKFunction_get_doc,     (setter)PyKFunction_set_doc, NULL },
-   { (char *)"func_dict",    (getter)PyKFunction_get_dict,    (setter)PyKFunction_set_dict, NULL },
-   { (char *)"__dict__",     (getter)PyKFunction_get_dict,    (setter)PyKFunction_set_dict, NULL },
-   { (char *)"func_globals", (getter)PyKFunction_get_globals, (setter)PyKFunction_set_globals, NULL },
-   { (char *)"__globals__",  (getter)PyKFunction_get_globals, (setter)PyKFunction_set_globals, NULL },
-   { (char *)"__module__",   (getter)PyKFunction_get_module,  (setter)PyKFunction_set_module, NULL },
+   { (char *)"func_name",    (getter)Nuitka_Function_get_name,    (setter)Nuitka_Function_set_name, NULL },
+   { (char *)"__name__" ,    (getter)Nuitka_Function_get_name,    (setter)Nuitka_Function_set_name, NULL },
+   { (char *)"func_doc",     (getter)Nuitka_Function_get_doc,     (setter)Nuitka_Function_set_doc, NULL },
+   { (char *)"__doc__" ,     (getter)Nuitka_Function_get_doc,     (setter)Nuitka_Function_set_doc, NULL },
+   { (char *)"func_dict",    (getter)Nuitka_Function_get_dict,    (setter)Nuitka_Function_set_dict, NULL },
+   { (char *)"__dict__",     (getter)Nuitka_Function_get_dict,    (setter)Nuitka_Function_set_dict, NULL },
+   { (char *)"func_globals", (getter)Nuitka_Function_get_globals, (setter)Nuitka_Function_set_globals, NULL },
+   { (char *)"__globals__",  (getter)Nuitka_Function_get_globals, (setter)Nuitka_Function_set_globals, NULL },
+   { (char *)"__module__",   (getter)Nuitka_Function_get_module,  (setter)Nuitka_Function_set_module, NULL },
    { NULL }
 };
 
 
-static void PyKFunction_tp_dealloc( PyKFunctionObject *function )
+static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
 {
     _PyObject_GC_UNTRACK( function );
 
@@ -266,65 +263,59 @@ static void PyKFunction_tp_dealloc( PyKFunctionObject *function )
     PyObject_GC_Del( function );
 }
 
-
-static void initKFunctionType()
+static PyTypeObject Nuitka_Function_Type =
 {
-    PyKFunction_Type =
-    {
-        PyVarObject_HEAD_INIT(&PyType_Type, 0)
-        "compiled_function_or_method",              // tp_name
-        sizeof(PyKFunctionObject),                  // tp_basicsize
-        0,                                          // tp_itemsize
-        (destructor)PyKFunction_tp_dealloc,         // tp_dealloc
-        0,                                          // tp_print
-        0,                                          // tp_getattr
-        0,                                          // tp_setattr
-        (cmpfunc)PyKFunction_tp_compare,            // tp_compare
-        (reprfunc)PyKFunction_repr,                 // tp_repr
-        0,                                          // tp_as_number
-        0,                                          // tp_as_sequence
-        0,                                          // tp_as_mapping
-        (hashfunc)PyKFunction_tp_hash,              // tp_hash
-        (ternaryfunc)PyKFunction_tp_call,           // tp_call
-        0,                                          // tp_str
-        PyObject_GenericGetAttr,                    // tp_getattro
-        0,                                          // tp_setattro
-        0,                                          // tp_as_buffer
-        Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,    // tp_flags
-        0,                                          // tp_doc
-        (traverseproc)PyKFunction_tp_traverse,      // tp_traverse
-        0,                                          // tp_clear
-        0,                                          // tp_richcompare
-        offsetof(PyKFunctionObject, m_weakrefs),    // tp_weaklistoffset
-        0,                                          // tp_iter
-        0,                                          // tp_iternext
-        0,                                          // tp_methods
-        0,                                          // tp_members
-        PyKFunction_getset,                         // tp_getset
-        0,                                          // tp_base
-        0,                                          // tp_dict
-        PyKFunction_descr_get,                      // tp_descr_get
-        0,                                          // tp_descr_set
-        offsetof( PyKFunctionObject, m_dict ),      // tp_dictoffset
-        0,                                          // tp_init
-        0,                                          // tp_alloc
-        0,                                          // tp_new
-        0,                                          // tp_free
-        0,                                          // tp_is_gc
-        0,                                          // tp_bases
-        0,                                          // tp_mro
-        0,                                          // tp_cache
-        0,                                          // tp_subclasses
-        0,                                          // tp_weaklist
-        0,                                          // tp_del
-    };
-
-    PyType_Ready( &PyKFunction_Type );
-}
+    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+    "compiled_function_or_method",                  // tp_name
+    sizeof(Nuitka_FunctionObject),                  // tp_basicsize
+    0,                                              // tp_itemsize
+    (destructor)Nuitka_Function_tp_dealloc,         // tp_dealloc
+    0,                                              // tp_print
+    0,                                              // tp_getattr
+    0,                                              // tp_setattr
+    (cmpfunc)Nuitka_Function_tp_compare,            // tp_compare
+    (reprfunc)Nuitka_Function_repr,                 // tp_repr
+    0,                                              // tp_as_number
+    0,                                              // tp_as_sequence
+    0,                                              // tp_as_mapping
+    (hashfunc)Nuitka_Function_tp_hash,              // tp_hash
+    (ternaryfunc)Nuitka_Function_tp_call,           // tp_call
+    0,                                              // tp_str
+    PyObject_GenericGetAttr,                        // tp_getattro
+    0,                                              // tp_setattro
+    0,                                              // tp_as_buffer
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,        // tp_flags
+    0,                                              // tp_doc
+    (traverseproc)Nuitka_Function_tp_traverse,      // tp_traverse
+    0,                                              // tp_clear
+    0,                                              // tp_richcompare
+    offsetof( Nuitka_FunctionObject, m_weakrefs ),  // tp_weaklistoffset
+    0,                                              // tp_iter
+    0,                                              // tp_iternext
+    0,                                              // tp_methods
+    0,                                              // tp_members
+    Nuitka_Function_getset,                         // tp_getset
+    0,                                              // tp_base
+    0,                                              // tp_dict
+    Nuitka_Function_descr_get,                      // tp_descr_get
+    0,                                              // tp_descr_set
+    offsetof( Nuitka_FunctionObject, m_dict ),      // tp_dictoffset
+    0,                                              // tp_init
+    0,                                              // tp_alloc
+    0,                                              // tp_new
+    0,                                              // tp_free
+    0,                                              // tp_is_gc
+    0,                                              // tp_bases
+    0,                                              // tp_mro
+    0,                                              // tp_cache
+    0,                                              // tp_subclasses
+    0,                                              // tp_weaklist
+    0,                                              // tp_del
+};
 
 static inline PyObject *make_kfunction( void *code, PyObject *name, PyObject *module, PyObject *doc, bool has_args, void *context, releaser cleanup )
 {
-    PyKFunctionObject *result = PyObject_GC_New( PyKFunctionObject, &PyKFunction_Type );
+    Nuitka_FunctionObject *result = PyObject_GC_New( Nuitka_FunctionObject, &Nuitka_Function_Type );
 
     if ( result == NULL )
     {
@@ -346,28 +337,28 @@ static inline PyObject *make_kfunction( void *code, PyObject *name, PyObject *mo
 
     result->m_weakrefs = NULL;
 
-    static long PyKFunction_counter = 0;
-    result->m_counter = PyKFunction_counter++;
+    static long Nuitka_Function_counter = 0;
+    result->m_counter = Nuitka_Function_counter++;
 
     _PyObject_GC_TRACK( result );
     return (PyObject *)result;
 }
 
 // Make a function without context.
-static PyObject *PyKFunction_New( PyCFunctionWithKeywords code, PyObject *name, PyObject *module, PyObject *doc )
+static PyObject *Nuitka_Function_New( PyCFunctionWithKeywords code, PyObject *name, PyObject *module, PyObject *doc )
 {
     return make_kfunction( (void *)code, name, module, doc, true, NULL, NULL );
 }
 
 // Make a function with context.
 
-static PyObject *PyKFunction_New( PyCFunctionWithKeywords code, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+static PyObject *Nuitka_Function_New( PyCFunctionWithKeywords code, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup )
 {
     return make_kfunction( (void *)code, name, module, doc, true, context, cleanup );
 }
 
 // Make a function that is only a yielder, no args.
-static PyObject *PyKFunction_New( PyNoArgsFunction code, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+static PyObject *Nuitka_Function_New( PyNoArgsFunction code, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup )
 {
     return make_kfunction( (void *)code, name, module, doc, false, context, cleanup );
 }

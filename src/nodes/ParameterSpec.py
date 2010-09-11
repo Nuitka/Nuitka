@@ -115,8 +115,6 @@ class ParameterSpec( ParameterSpecTuple ):
             if normal_arg in normal_args[ count+1:] or normal_arg in ( list_star_arg, dict_star_arg ):
                 raise SyntaxError( "Duplicate argument detected" )
 
-
-
     def __repr__( self ):
         parts = [ str(normal_arg) for normal_arg in self.normal_args ]
 

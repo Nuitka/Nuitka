@@ -33,7 +33,7 @@
 from templates.CodeTemplatesMain import *
 
 from templates.CodeTemplatesCompiledFunctionType import *
-from templates.CodeTemplatesCompiledGeneratorType import *
+from templates.CodeTemplatesCompiledGenexprType import *
 
 from templates.CodeTemplatesFunction import *
 from templates.CodeTemplatesGeneratorExpression import *
@@ -59,7 +59,7 @@ global_copyright = """
 # Template for the global stuff that must be had, compiling one or multple modules.
 global_prelude = """\
 
-#ifdef __PYDRA_NO_ASSERT__
+#ifdef __NUITKA_NO_ASSERT__
 #define NDEBUG
 #endif
 
@@ -84,6 +84,8 @@ global_prelude = """\
 #endif
 
 PyObject *_expression_temps[100];
+PyObject *_eval_globals_tmp;
+PyObject *_eval_locals_tmp;
 
 // From CPython, to allow us quick access to the dictionary of an module.
 typedef struct {
@@ -922,12 +924,16 @@ static PyObject *ITERATOR_NEXT( PyObject *iterator )
     assert( iterator != NULL );
     assert( iterator->ob_refcnt > 0 );
 
+    int line = _current_line;
+
     PyObject *result = PyIter_Next( iterator );
 
     if ( result == NULL )
     {
         if ( PyErr_Occurred() != NULL )
         {
+            _current_line = line;
+
             throw _PythonException();
         }
     }
@@ -1287,63 +1293,51 @@ static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject *seq2 )
     return result;
 }
 
-// This structure is the attachment for all generator functions without context.
-
-struct _context_genexpr_t
-{
-    _context_genexpr_t( PyObject *iterator )
-    {
-        assert (iterator);
-        assert (iterator->ob_refcnt > 0);
-
-        this->iterator = iterator;
-    }
-
-    // Store the iterator provided at creation time here.
-    PyObject *iterator;
-};
-
-static void _context_genexpr_destructor( void *context_voidptr )
-{
-    _context_genexpr_t *_python_context = (struct _context_genexpr_t *)context_voidptr;
-
-    delete _python_context;
-}
-
-
 // Helper class to be used when PyObject * are provided as parameters where they
 // are not consumed, but not needed anymore after the call and and need a release
 // as soon as possible.
 
 class PyObjectTemporary {
     public:
-        PyObjectTemporary( PyObject *object )
+        explicit PyObjectTemporary( PyObject *object )
         {
             assert( object );
             assert( object->ob_refcnt > 0 );
 
             this->object = object;
-
-#ifdef __PYDRA_REF_DEBUG__
-            printf( "Create Temp '" );
-            PRINT_ITEM( this->object );
-#endif
         }
 
-        ~PyObjectTemporary() {
-#ifdef __PYDRA_REF_DEBUG__
-            printf( "Delete Temp '" );
-            PRINT_ITEM( this->object );
-#endif
+        PyObjectTemporary( const PyObjectTemporary &object ) = delete;
+
+        ~PyObjectTemporary()
+        {
             Py_DECREF( this->object );
         }
 
         PyObject *asObject()
         {
-            assert( this->object );
             assert( this->object->ob_refcnt > 0 );
 
             return this->object;
+        }
+
+        void assign( PyObject *object )
+        {
+            Py_DECREF( this->object );
+
+            assert( object );
+            assert( object->ob_refcnt > 0 );
+
+            this->object = object;
+        }
+
+        void checkSanity( char const *message ) const
+        {
+            if ( this->object->ob_refcnt <= 0 )
+            {
+                puts( message );
+                assert( false );
+            }
         }
     private:
         PyObject *object;
@@ -1383,16 +1377,6 @@ class PyObjectLocalVariable {
             assert( object );
             assert( object->ob_refcnt > 0 );
 
-#ifdef __PYDRA_REF_DEBUG__
-            if (this->object)
-            {
-               printf( "Delete Local:" );
-               PRINT_ITEM( this->object );
-               PRINT_REFCOUNT( this->object );
-               puts( "" );
-            }
-#endif
-
             PyObject *old_object = this->free_value ? this->object : NULL;
 
             this->object = object;
@@ -1406,8 +1390,10 @@ class PyObjectLocalVariable {
         {
             if ( this->object == NULL && this->var_name != NULL )
             {
-                printf( "Using uninialized variable '%s'.\\n", PyString_AsString( this->var_name ) );
+                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", PyString_AsString( this->var_name ) );
+                throw _PythonException();
             }
+
             assert( this->object );
             assert( this->object->ob_refcnt > 0 );
 
@@ -1423,16 +1409,7 @@ class PyObjectLocalVariable {
         {
             if ( this->free_value )
             {
-#ifdef __PYDRA_REF_DEBUG__
-                if (this->object)
-                {
-                    printf( "Delete Local:" );
-                    PRINT_ITEM( this->object );
-                    PRINT_REFCOUNT( this->object );
-                    puts( "" );
-                }
-#endif
-
+                // TODO: Why would free_value be true if this->object were NULL.
                 Py_XDECREF( this->object );
             }
 
@@ -1693,14 +1670,7 @@ class PyObjectGlobalVariable
 
 static PyObject *MAKE_LOCALS_DICT( void )
 {
-    PyObject *result = PyDict_New();
-
-    if (result == NULL)
-    {
-        throw _PythonException();
-    }
-
-    return result;
+    return MAKE_DICT();
 }
 
 template<typename T>
@@ -1743,6 +1713,54 @@ static PyObject *MAKE_LOCALS_DICT( P...variables )
     return result;
 }
 
+static PyObject *MAKE_LOCALS_DIR( void )
+{
+    return MAKE_LIST();
+}
+
+template<typename T>
+static void FILL_LOCALS_DIR( PyObject *list, T variable )
+{
+    if ( variable->isInitialized() )
+    {
+        int res = PyList_Append( list, variable->getVariableName() );
+
+        if ( res == -1 )
+        {
+            throw _PythonException();
+        }
+    }
+}
+
+template<typename T, typename... P>
+static void FILL_LOCALS_DIR( PyObject *list, T variable, P... variables )
+{
+    if ( variable->isInitialized() )
+    {
+        int res = PyList_Append( list, variable->getVariableName() );
+
+        if ( res == -1 )
+        {
+            throw _PythonException();
+        }
+    }
+
+    FILL_LOCALS_DIR( list, variables... );
+}
+
+template<typename... P>
+static PyObject *MAKE_LOCALS_DIR( P...variables )
+{
+    PyObject *result = MAKE_LOCALS_DIR();
+
+    FILL_LOCALS_DIR( result, variables... );
+
+    return result;
+}
+
+
+
+
 class PythonBuiltin
 {
     public:
@@ -1771,16 +1789,16 @@ class PythonBuiltin
 
 PythonBuiltin _python_builtin_compile( "compile" );
 
-static PyCodeObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags )
+static PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags )
 {
     // May be a source, but also could already be a compiled object, in which case this should
     // just return it.
     if ( PyCode_Check( source_code ) )
     {
-        return (PyCodeObject *)source_code;
+        return INCREASE_REFCOUNT( source_code );
     }
 
-    // Workaround leading whitespace causing a trouble to compile, but not eval builtin
+    // Workaround leading whitespace causing a trouble to compile builtin, but not eval builtin
     PyObject *source;
 
     if ( ( PyString_Check( source_code ) || PyUnicode_Check( source_code ) ) && strcmp( PyString_AsString( mode ), "exec" ) != 0 )
@@ -1827,7 +1845,7 @@ static PyCodeObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, P
         throw _PythonException();
     }
 
-    return (PyCodeObject *)result;
+    return result;
 }
 
 PythonBuiltin _python_builtin_open( "open" );
@@ -1850,7 +1868,7 @@ static PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffe
     return result;
 }
 
-static PyObject *EVAL_CODE( PyCodeObject *code, PyObject *globals, PyObject *locals )
+static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {
     if ( PyDict_Check( globals ) == 0 )
     {
@@ -1878,7 +1896,7 @@ static PyObject *EVAL_CODE( PyCodeObject *code, PyObject *globals, PyObject *loc
         }
     }
 
-    PyObject *result = PyEval_EvalCode( code, globals, locals );
+    PyObject *result = PyEval_EvalCode( (PyCodeObject *)code, globals, locals );
 
     if ( result == NULL )
     {
@@ -2078,3 +2096,106 @@ import_from_template = """
 }
 
 """
+
+for_loop_template = """\
+{
+PyObjectTemporary %(loop_iter_identifier)s( %(iterator)s );
+bool %(indicator_name)s = false;
+while (1)
+{
+    %(line_number_code)s
+
+    try
+    {
+
+        PyObject *%(loop_value_identifier)s = ITERATOR_NEXT( %(loop_iter_identifier)s.asObject() );
+
+        if (%(loop_value_identifier)s == NULL)
+        {
+            %(indicator_name)s = true;
+            break;
+        }
+
+    try
+    {
+        %(loop_var_assignment_code)s
+
+        Py_DECREF( %(loop_value_identifier)s );
+    }
+    catch(...)
+    {
+        Py_DECREF( %(loop_value_identifier)s );
+        throw;
+    }
+
+    %(body)s
+
+    }
+    catch( ContinueException &e )
+    { /* Nothing to do */
+    }
+    catch ( BreakException &e )
+    { /* Break the loop */
+       break;
+    }
+}
+
+if ( %(indicator_name)s)
+{
+    %(else_codes)s
+}
+}"""
+
+exec_local_template = """\
+{
+    PyObjectTemporary globals( %(globals_identifier)s );
+    PyObjectTemporary locals( %(locals_identifier)s );
+
+    bool own_locals = true;
+
+    if ( locals.asObject() == Py_None && globals.asObject() == Py_None )
+    {
+        globals.assign( %(make_globals_identifier)s );
+        locals.assign( %(make_locals_identifier)s );
+        own_locals = true;
+    }
+    else
+    {
+        own_locals = false;
+    }
+
+    PyObjectTemporary code( COMPILE_CODE( %(source_identifier)s, %(filename_identifier)s, %(mode_identifier)s, %(future_flags)s ) );
+
+    PyObject *result = EVAL_CODE( code.asObject(), globals.asObject(), locals.asObject() );
+    Py_DECREF( result );
+
+    if ( own_locals )
+    {
+%(store_locals_code)s
+    }
+}
+"""
+
+exec_global_template = """\
+{
+    PyObjectTemporary globals( %(globals_identifier)s );
+    PyObjectTemporary locals( %(locals_identifier)s );
+
+    if ( globals.asObject() == Py_None )
+    {
+        globals.assign( %(make_globals_identifier)s );
+    }
+
+    PyObjectTemporary code( COMPILE_CODE( %(source_identifier)s, %(filename_identifier)s, %(mode_identifier)s, %(future_flags)s ) );
+
+    PyObject *result = EVAL_CODE( code.asObject(), globals.asObject(), locals.asObject() );
+    Py_DECREF( result );
+}
+"""
+
+eval_local_template = """\
+EVAL_CODE( PyObjectTemporary( COMPILE_CODE(  %(source_identifier)s, %(filename_identifier)s, %(mode_identifier)s, %(future_flags)s ) ).asObject(), ( _eval_globals_tmp = %(globals_identifier)s ) == Py_None ? %(make_globals_identifier)s : _eval_globals_tmp, ( _eval_locals_tmp = %(locals_identifier)s ) == Py_None ? ( _eval_globals_tmp = %(globals_identifier)s ) == Py_None ?  %(make_locals_identifier)s : _eval_globals_tmp : _eval_locals_tmp )"""
+
+
+eval_global_template = """\
+EVAL_CODE( PyObjectTemporary( COMPILE_CODE(  %(source_identifier)s, %(filename_identifier)s, %(mode_identifier)s, %(future_flags)s ) ).asObject(), ( _eval_globals_tmp = %(globals_identifier)s ) == Py_None ? %(make_globals_identifier)s : _eval_globals_tmp, %(locals_identifier)s )"""

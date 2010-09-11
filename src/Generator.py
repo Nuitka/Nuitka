@@ -46,6 +46,7 @@ from Identifiers import Identifier, LocalVariableIdentifier, TempVariableIdentif
 import PythonOperators
 import CodeTemplates
 import Variables
+import Options
 
 class PythonGeneratorBase:
     def getConstantHandle( self, context, constant ):
@@ -534,61 +535,17 @@ else
 
         return Identifier( "_python_for_loop_iterator_%d" % for_count, 0 ), Identifier(  "_python_for_loop_itervalue_%d" % for_count, 0 )
 
-    def getForLoopCode( self, context, iterator, iter_name, iter_value, loop_var_code, loop_body_codes, loop_else_codes ):
-        return """\
-{
-PyObjectTemporary %(loop_iter_identifier)s( %(iterator)s );
-bool %(indicator_name)s = false;
-while (1)
-{
-    try
-    {
-
-    PyObject *%(loop_value_identifier)s = ITERATOR_NEXT( %(loop_iter_identifier)s.asObject() );
-
-    if (%(loop_value_identifier)s == NULL)
-    {
-       %(indicator_name)s = true;
-       break;
-    }
-
-    try
-    {
-        %(loop_var_assignment_code)s
-
-        Py_DECREF( %(loop_value_identifier)s );
-    }
-    catch(...)
-    {
-        Py_DECREF( %(loop_value_identifier)s );
-        throw;
-    }
-
-    %(body)s
-
-    }
-    catch( ContinueException &e )
-    { /* Nothing to do */
-    }
-    catch ( BreakException &e )
-    { /* Break the loop */
-       break;
-    }
-}
-
-if ( %(indicator_name)s)
-{
-    %(else_codes)s
-}
-}""" % {
-    "body"                     : "\n    ".join( loop_body_codes ),
-    "else_codes"               : "\n    ".join( loop_else_codes ),
-    "iterator"                 : iterator.getCodeExportRef(),
-    "loop_iter_identifier"     : iter_name.getCode(),
-    "loop_value_identifier"    : iter_value.getCode(),
-    "loop_var_assignment_code" : loop_var_code,
-    "indicator_name"  : "_python_for_loop_indicator_%d" % context.allocateForLoopNumber()
-}
+    def getForLoopCode( self, context, line_number_code, iterator, iter_name, iter_value, loop_var_code, loop_body_codes, loop_else_codes ):
+        return CodeTemplates.for_loop_template % {
+            "body"                     : "\n    ".join( loop_body_codes ),
+            "else_codes"               : "\n    ".join( loop_else_codes ),
+            "iterator"                 : iterator.getCodeExportRef(),
+            "line_number_code"         : line_number_code,
+            "loop_iter_identifier"     : iter_name.getCode(),
+            "loop_value_identifier"    : iter_value.getCode(),
+            "loop_var_assignment_code" : loop_var_code,
+            "indicator_name"           : "_python_for_loop_indicator_%d" % context.allocateForLoopNumber()
+        }
 
     def getWhileLoopCode( self, context, condition, loop_body_codes, loop_else_codes ):
         if not loop_else_codes:
@@ -713,7 +670,7 @@ if (%(indicator_name)s == false)
 
         return """\
 {
-    PyObjectTemporary value = %s;
+    PyObjectTemporary value( %s );
     PyObject *result = %s;
 
     if ( result != value.asObject() )
@@ -729,9 +686,9 @@ if (%(indicator_name)s == false)
 
         return """\
 {
-    PyObjectTemporary subscribed = %s;
-    PyObjectTemporary subscript = %s;
-    PyObjectTemporary value = LOOKUP_SUBSCRIPT( subscribed.asObject(), subscript.asObject() );
+    PyObjectTemporary subscribed( %s );
+    PyObjectTemporary subscript( %s );
+    PyObjectTemporary value( LOOKUP_SUBSCRIPT( subscribed.asObject(), subscript.asObject() ) );
 
     PyObject *result = %s;
 
@@ -750,7 +707,7 @@ if (%(indicator_name)s == false)
 
         return """\
 {
-    PyObjectTemporary target = %s;
+    PyObjectTemporary target( %s );
     PyObject *attribute = %s;
     PyObjectTemporary value( LOOKUP_ATTRIBUTE ( target.asObject(), attribute ) );
 
@@ -769,9 +726,10 @@ if (%(indicator_name)s == false)
 
         return """\
 {
-    PyObjectTemporary target = %s;
-    PyObjectTemporary value = LOOKUP_SLICE( target.asObject(), %s, %s );
-    PyObjectTemporary updated = %s;
+    PyObjectTemporary target( %s );
+    PyObjectTemporary value( LOOKUP_SLICE( target.asObject(), %s, %s ) );
+    PyObjectTemporary updated( %s );
+
     SET_SLICE( target.asObject(), %s, %s, updated.asObject() );
 }""" % ( target.getCodeExportRef(), lower.getCode(), upper.getCode(), self._getInplaceOperationCode( operator = operator, operand1 = value_identifier, operand2 = identifier ).getCode(), lower.getCode(), upper.getCode() )
 
@@ -845,11 +803,33 @@ if (%(indicator_name)s == false)
                 "tb_maker"    : exception_tb_maker
             }
 
+    def _getLocalVariableList( self, context, provider ):
+        if provider.isFunctionReference():
+            # Sort parameter variables of functions to the end.
+
+            start_part = []
+            end_part = []
+
+            for variable in provider.getVariables():
+                if variable.isParameterVariable():
+                    end_part.append( variable )
+                else:
+                    start_part.append( variable )
+
+            variables = start_part + end_part
+        else:
+            variables = provider.getVariables()
+
+        return [ "&%s" % self.getVariableHandle( variable = variable, context = context ).getCode() for variable in variables if not variable.isModuleVariable() ]
+
+
     def getLoadDirCode( self, context, provider ):
         if provider.isModule():
             return Identifier( "PyDict_Keys( %s )" % self.getLoadGlobalsCode( context = context, module = provider ).getCodeTemporaryRef(), 1 )
         else:
-            return Identifier( "PyDict_Keys( %s )" % self.getLoadLocalsCode( context = context, provider = provider ).getCodeTemporaryRef(), 1 )
+            local_list = self._getLocalVariableList( context = context, provider = provider )
+
+            return Identifier( "MAKE_LOCALS_DIR( %s )" % ", ".join( local_list ), 1 )
 
     def getLoadVarsCode( self, context, identifier ):
         return Identifier( "LOOKUP_VARS( %s )" % identifier.getCodeTemporaryRef(), 1 )
@@ -857,12 +837,19 @@ if (%(indicator_name)s == false)
     def getLoadGlobalsCode( self, context, module ):
         return Identifier( "PyModule_GetDict( %(module_identifier)s )" % { "module_identifier" : self.getModuleAccessCode( context ) }, 0 )
 
+    def getLoadGlobalsCodeIfNone( self, context, module, identifier ):
+        return Identifier( "(( _eval_globals_tmp = %(identifier)s ) != Py_None ? _eval_globals_tmp : %(globals_identifier)s )" % { "globals_identifier" : self.getLoadGlobalsCode( context = context, module = module ).getCodeObject(), "identifier" : identifier.getCodeObject() }, identifier.getRefCount() )
+
     def getLoadLocalsCode( self, context, provider ):
         assert not provider.isModule()
 
         local_list = [ "&%s" % self.getVariableHandle( variable = variable, context = context ).getCode() for variable in provider.getVariables() if not variable.isModuleVariable() ]
 
         return Identifier( "MAKE_LOCALS_DICT( %s )" % ", ".join( local_list ), 1 )
+
+    def getLoadLocalsCodeIfNone( self, context, provider, identifier ):
+        return Identifier( "(( _eval_globals_tmp = %(identifier)s ) != Py_None ? _eval_globals_tmp : %(locals_identifier)s )" % { "locals_identifier" : self.getLoadLocalsCode( context = context, provider = provider ).getCodeObject(), "identifier" : identifier.getCodeObject() }, identifier.getRefCount() )
+
 
     def getStoreLocalsCode( self, context, source_identifier, provider ):
         assert not provider.isModule()
@@ -915,35 +902,59 @@ if (%s)
             return 0
 
 
-    def getEvalCode( self, context, mode, exec_code, globals_identifier, locals_identifier, future_flags ):
-        return Identifier( "EVAL_CODE( COMPILE_CODE( %s, %s, %s, %s ), %s, %s )" % (
-            exec_code.getCodeTemporaryRef(),
-            context.getConstantHandle( constant = "<string>" ).getCode(),
-            context.getConstantHandle( constant = mode ).getCode(),
-            future_flags,
-            globals_identifier.getCodeTemporaryRef(),
-            locals_identifier.getCodeTemporaryRef() if locals_identifier is not None else "NULL"
-        ), 1 )
+    def getEvalCode( self, context, mode, exec_code, globals_identifier, locals_identifier, future_flags, provider ):
+        if provider.isModule():
+            return Identifier(
+                CodeTemplates.eval_global_template % {
+                    "globals_identifier"     : globals_identifier.getCodeTemporaryRef(),
+                    "locals_identifier"      : locals_identifier.getCodeTemporaryRef(),
+                    "make_globals_identifier" : self.getLoadGlobalsCode( context = context, module = provider ).getCodeExportRef(),
+                    "source_identifier"      : exec_code.getCodeTemporaryRef(),
+                    "filename_identifier"    : self.getConstantCode( constant = "<string>", context = context ),
+                    "mode_identifier"        : self.getConstantCode( constant = "eval", context = context ),
+                    "future_flags"           : future_flags,
+            }, 1 )
+        else:
+            return Identifier(
+                CodeTemplates.eval_local_template % {
+                    "globals_identifier"     : globals_identifier.getCodeTemporaryRef(),
+                    "locals_identifier"      : locals_identifier.getCodeTemporaryRef(),
+                    "make_globals_identifier" : self.getLoadGlobalsCode( context = context, module = provider ).getCodeExportRef(),
+                    "make_locals_identifier" : self.getLoadLocalsCode( context = context, provider = provider ).getCodeExportRef(),
+                    "source_identifier"      : exec_code.getCodeTemporaryRef(),
+                    "filename_identifier"    : self.getConstantCode( constant = "<string>", context = context ),
+                    "mode_identifier"        : self.getConstantCode( constant = "eval", context = context ),
+                    "future_flags"           : future_flags,
+            }, 1 )
 
-    def getExecLocalCode( self, context, exec_code, globals_identifier, future_flags, provider ):
-        locals_identifier = Identifier( "locals.asObject()", 0 )
+    def getExecCode( self, context, exec_code, globals_identifier, locals_identifier, future_flags, provider ):
+        if provider.isModule():
+            return CodeTemplates.exec_global_template % {
+                "globals_identifier"     : globals_identifier.getCodeExportRef(),
+                "locals_identifier"      : locals_identifier.getCodeExportRef(),
+                "make_globals_identifier" : self.getLoadGlobalsCode( context = context, module = provider ).getCodeExportRef(),
+                "source_identifier"      : exec_code.getCodeTemporaryRef(),
+                "filename_identifier"    : self.getConstantCode( constant = "<string>", context = context ),
+                "mode_identifier"        : self.getConstantCode( constant = "exec", context = context ),
+                "future_flags"           : future_flags,
+            }
+        else:
+            locals_temp_identifier = Identifier( "locals.asObject()", 0 )
 
-        return """\
-{
-    PyObjectTemporary locals = %s;
+            return CodeTemplates.exec_local_template % {
+                "globals_identifier"     : globals_identifier.getCodeExportRef(),
+                "locals_identifier"      : locals_identifier.getCodeExportRef(),
+                "make_globals_identifier" : self.getLoadGlobalsCode( context = context, module = provider.getParentModule() ).getCodeExportRef(),
+                "make_locals_identifier" : self.getLoadLocalsCode( context = context, provider = provider ).getCodeExportRef(),
+                "source_identifier"      : exec_code.getCodeTemporaryRef(),
+                "filename_identifier"    : self.getConstantCode( constant = "<string>", context = context ),
+                # TODO: Make this optional.
+                # filename_identifier"    : context.getConstantHandle( constant = provider.getParentModule().getFullName() + "::exec" ).getCode(),
+                "mode_identifier"        : self.getConstantCode( constant = "exec", context = context ),
+                "future_flags"           : future_flags,
+                "store_locals_code"      : self.getStoreLocalsCode( context = context, source_identifier = locals_temp_identifier, provider = provider )
+            }
 
-    EVAL_CODE( COMPILE_CODE( %s, %s, %s, %s ), %s, locals.asObject() );
-
-    %s;
-}""" % (
-         self.getLoadLocalsCode( provider = provider, context = context ).getCodeExportRef(),
-         exec_code.getCodeTemporaryRef(),
-         context.getConstantHandle( constant = provider.getParentModule().getFullName() + "::exec" ).getCode(),
-         context.getConstantHandle( constant = "exec" ).getCode(),
-         future_flags,
-         globals_identifier.getCodeTemporaryRef(),
-         self.getStoreLocalsCode( context = context, source_identifier = locals_identifier, provider = provider )
-       )
 
     def getBuiltinOpenCode( self, context, filename, mode, buffering ):
         return Identifier( "OPEN_FILE( %s, %s, %s )" % (
@@ -1649,7 +1660,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
         return result
 
     def getGeneratorExpressionCode( self, context, generator, generator_identifier, generator_code, generator_conditions, generator_iterateds, loop_var_codes ):
-        function_name     = generator.getFullName()
+        function_name     = "<" + generator.getFullName() + ">"
         function_filename = generator.getParentModule().getFilename()
 
         function_context_decl = []
@@ -1672,10 +1683,9 @@ class PythonModuleGenerator( PythonGeneratorBase ):
         result = ""
 
         result += CodeTemplates.genexpr_context_body_template % {
-            "function_identifier"        : generator_identifier,
-            "function_context_decl"      : "\n    ".join( function_context_decl ),
-            "function_context_release"   : "\n    ".join( function_context_release ),
-            "iterator_count"             : len( generator.getTargets() )
+            "function_identifier"      : generator_identifier,
+            "function_context_decl"    : "\n    ".join( function_context_decl ),
+            "function_context_release" : "\n    ".join( function_context_release ),
         }
 
         iterator_value_assign = ""
@@ -1696,6 +1706,8 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             }
 
 
+        line_number_code = self.getCurrentLineCode( generator.getSourceReference() ) if Options.shallHaveStatementLines() else ""
+
         result += CodeTemplates.genexpr_function_template % {
             "function_name"              : function_name,
             "function_identifier"        : generator_identifier,
@@ -1709,6 +1721,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             "module"                     : self.getModuleAccessCode( context = context ),
             "name_identifier"            : self.getConstantCode( context = context, constant = function_name ),
             "file_identifier"            : self.getConstantCode( context = context, constant = function_filename ),
+            "line_number_code"           : line_number_code,
         }
 
         full_name = generator.getFullName()
@@ -1720,6 +1733,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             "function_creation_args"     : ", ".join( function_creation_args ),
             "function_context_copy"      : "\n    ".join( function_context_copy ),
             "function_doc"               : "Py_None",
+            "iterator_count"             : len( generator.getTargets() ),
             "module"                     : self.getModuleAccessCode( context = context ),
         }
 

@@ -35,6 +35,8 @@
 
 import Variables
 
+from odict import OrderedDict
+
 class CPythonNode:
     def __init__( self, kind, source_ref ):
         assert source_ref is not None
@@ -115,7 +117,12 @@ class CPythonNode:
             else:
                 return parent
         elif parent.isClassReference():
-            if previous in parent.getDecorators():
+            if previous in parent.getDecorators() or previous in parent.getBaseClasses():
+                return parent.getParentVariableProvider()
+            else:
+                return parent
+        elif parent.isExpressionGenerator():
+            if previous == parent.getIterateds()[0]:
                 return parent.getParentVariableProvider()
             else:
                 return parent
@@ -496,7 +503,7 @@ class CPythonClosureGiver( CPythonNamedCode ):
     """ Mixin for nodes that provide variables for closure takers. """
     def __init__( self, code_prefix ):
         CPythonNamedCode.__init__( self, code_prefix )
-        self.providing = {}
+        self.providing = OrderedDict()
 
     def hasProvidedVariable( self, variable_name ):
         return variable_name in self.providing
@@ -561,6 +568,10 @@ class CPythonClosureTaker:
         else:
             return False
 
+    # Normally it's good to lookup name references immediately, but in case of a function body it
+    # is not allowed to do that, because a later assignment needs to be queried first.
+    def isEarlyClosure( self ):
+        return True
 
 class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGiver ):
     """ Module
@@ -611,11 +622,17 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
     def createProvidedVariable( self, variable_name ):
         return Variables.ModuleVariable( self, variable_name )
 
+    def isEarlyClosure( self ):
+        return True
+
+
 class CPythonClass( CPythonNamedNode, CPythonClosureTaker, CPythonNamedCode ):
-    def __init__( self, provider, name, doc, bases, decorators, source_ref ):
+    def __init__( self, provider, variable, name, doc, bases, decorators, source_ref ):
         CPythonNamedNode.__init__( self, name = name, kind = "STATEMENT_CLASS_DEF", source_ref = source_ref )
         CPythonClosureTaker.__init__( self, provider )
         CPythonNamedCode.__init__( self, "class" )
+
+        self.target_variable = variable
 
         self.decorators = tuple( decorators )
         self.bases = tuple( bases )
@@ -623,6 +640,9 @@ class CPythonClass( CPythonNamedNode, CPythonClosureTaker, CPythonNamedCode ):
 
         self.body = None
         self.variables = {}
+
+    def getTargetVariable( self ):
+        return self.target_variable
 
     def getVisitableNodes( self ):
         return ( self.body, ) + self.bases + self.decorators
@@ -904,13 +924,15 @@ class CPythonExpressionLambda( CPythonChildrenHaving, CPythonNode, CPythonParame
 
 
 class CPythonFunction( CPythonNamedNode, CPythonParameterHaving, CPythonClosureTaker, CPythonClosureGiver ):
-    def __init__( self, provider, name, doc, decorators, parameters, source_ref ):
+    def __init__( self, provider, variable, name, doc, decorators, parameters, source_ref ):
         CPythonNamedNode.__init__( self, name = name, kind = "STATEMENT_FUNCTION_DEF", source_ref = source_ref )
 
         CPythonClosureTaker.__init__( self, provider )
         CPythonClosureGiver.__init__( self, code_prefix = "function" )
 
         CPythonParameterHaving.__init__( self, parameters )
+
+        self.target_variable = variable
 
         self.body = None
 
@@ -927,6 +949,9 @@ class CPythonFunction( CPythonNamedNode, CPythonParameterHaving, CPythonClosureT
 
     def getDetail( self ):
         return self.name
+
+    def getTargetVariable( self ):
+        return self.target_variable
 
     def getFunctionName( self ):
         return self.name
@@ -990,11 +1015,22 @@ class CPythonFunction( CPythonNamedNode, CPythonParameterHaving, CPythonClosureT
     def createProvidedVariable( self, variable_name ):
         return Variables.LocalVariable( owner = self, variable_name = variable_name )
 
-class CPythonExpressionVariable( CPythonNode ):
-    def __init__( self, variable, source_ref ):
-        assert isinstance( variable, Variables.Variable )
+    def isEarlyClosure( self ):
+        return False
 
+
+class CPythonExpressionVariable( CPythonNode ):
+    def __init__( self, variable_name, source_ref ):
         CPythonNode.__init__( self, kind = "EXPRESSION_VARIABLE_REF", source_ref = source_ref )
+
+        self.variable_name = variable_name
+        self.variable = None
+
+    def getVariableName( self ):
+        return self.variable_name
+
+    def setVariable( self, variable ):
+        assert isinstance( variable, Variables.Variable )
 
         self.variable = variable
 
@@ -1002,7 +1038,7 @@ class CPythonExpressionVariable( CPythonNode ):
         return self.variable
 
     def getDetail( self ):
-        return self.variable.getName()
+        return self.variable_name
 
 
 class CPythonStatementReturn( CPythonChildrenHaving, CPythonNode ):
@@ -1638,6 +1674,9 @@ class CPythonStatementRaiseException( CPythonNode ):
         else:
             return ()
 
+    def getVisitableNodes( self ):
+        return self.getExceptionParameters()
+
 class CPythonStatementContinueLoop( CPythonNode ):
     def __init__( self, source_ref ):
         CPythonNode.__init__( self, kind = "STATEMENT_CONTINUE_LOOP", source_ref = source_ref )
@@ -1720,8 +1759,8 @@ class CPythonStatementExec( CPythonChildrenHaving, CPythonNode ):
 
         self.future_flags = future_flags
 
-    getGlobals = CPythonChildrenHaving.childGetter( "globals" )
-    getLocals = CPythonChildrenHaving.childGetter( "locals" )
+    _getGlobals = CPythonChildrenHaving.childGetter( "globals" )
+    _getLocals = CPythonChildrenHaving.childGetter( "locals" )
     getSource = CPythonChildrenHaving.childGetter( "source" )
 
     def getMode( self ):
@@ -1730,6 +1769,20 @@ class CPythonStatementExec( CPythonChildrenHaving, CPythonNode ):
     def getFutureFlags( self ):
         return self.future_flags
 
+    def _convertNoneConstantToNone( self, value ):
+        if value is not None and value.isConstantReference() and value.getConstant() is None:
+            return None
+        else:
+            return value
+
+    def getLocals( self ):
+        return self._convertNoneConstantToNone( self._getLocals() )
+
+    def getGlobals( self ):
+        if self.getLocals() is None:
+            return self._convertNoneConstantToNone( self._getGlobals() )
+        else:
+            return self._getGlobals()
 
 class CPythonExpressionBuiltinCallGlobals( CPythonNode ):
     def __init__( self, source_ref ):

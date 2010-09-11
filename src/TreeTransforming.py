@@ -158,8 +158,8 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
 
         return Nodes.CPythonExpressionBuiltinCallEval (
             source       = positional_args[0],
-            globals_arg  = positional_args[1] if len( positional_args ) > 1 else _pickGlobalsForNode( node ),
-            locals_arg   = positional_args[2] if len( positional_args ) > 2 else _pickLocalsForNode( node ),
+            globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
+            locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
             mode         = "eval",
             future_flags = future_flags,
             source_ref   = node.getSourceReference()

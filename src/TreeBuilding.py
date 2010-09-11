@@ -81,13 +81,18 @@ def popFuture():
 def getFuture():
     return _future_division, _unicode_literals, _absolute_import, _future_print
 
-
 def dump( node ):
     print ast.dump( node )
 
-
 def getKind( node ):
     return node.__class__.__name__.split( "." )[-1]
+
+_delayed_works = []
+
+def pushDelayedWork( delayed_work ):
+    global _delayed_works
+
+    _delayed_works.append( delayed_work )
 
 def buildStatementsNode( provider, nodes, source_ref ):
     return Nodes.CPythonStatementSequence(
@@ -117,6 +122,7 @@ def buildClassNode( provider, node, source_ref ):
 
     result = Nodes.CPythonClass(
         provider       = TransitiveProvider( provider ),
+        variable       = provider.getVariableForAssignment( node.name ),
         name           = node.name,
         doc            = class_doc,
         bases          = bases,
@@ -124,11 +130,17 @@ def buildClassNode( provider, node, source_ref ):
         source_ref     = source_ref
     )
 
-    # Make sure class name is taken as a variable by the provider. Defining a classes
-    # always assigns a variable of the same name to it.
-    provider.getVariableForAssignment( node.name )
+    def delayedWork():
+        body = buildStatementsNode(
+            provider   = result,
+            nodes      = node.body,
+            source_ref = source_ref,
+        )
 
-    _delayed_bodies.append( ( result, body, source_ref ) )
+        result.setBody( body )
+
+
+    pushDelayedWork( delayedWork )
 
     return result
 
@@ -166,18 +178,25 @@ def buildFunctionNode( provider, node, source_ref ):
     decorators = buildDecoratorNodes( provider, node.decorator_list, source_ref )
 
     result = Nodes.CPythonFunction(
-        provider             = TransitiveProvider( provider ),
-        name                 = node.name,
-        doc                  = function_doc,
-        parameters           = buildParameterSpec( provider, node, source_ref ),
-        decorators           = decorators,
-        source_ref           = source_ref
+        provider   = TransitiveProvider( provider ),
+        variable   = provider.getVariableForAssignment( node.name ),
+        parameters = buildParameterSpec( provider, node, source_ref ),
+        name       = node.name,
+        doc        = function_doc,
+        decorators = decorators,
+        source_ref = source_ref
     )
 
-    _delayed_bodies.append( ( result, body, source_ref ) )
+    def delayedWork():
+        body = buildStatementsNode(
+            provider   = result,
+            nodes      = node.body,
+            source_ref = source_ref,
+        )
 
-    # Make sure the provider knows it has a variable of the functions name.
-    _function_variable = provider.getVariableForAssignment( node.name )
+        result.setBody( body )
+
+    pushDelayedWork( delayedWork )
 
     return result
 
@@ -191,7 +210,17 @@ def buildLambdaNode( provider, node, source_ref ):
         source_ref = source_ref,
     )
 
-    _delayed_bodies.append( ( result, node.body, source_ref ) )
+    def delayedWork():
+        body = buildNode(
+            provider   = result,
+            node       = node.body,
+            source_ref = source_ref,
+        )
+
+        result.setBody( body )
+
+
+    pushDelayedWork( delayedWork )
 
     return result
 
@@ -412,14 +441,23 @@ def buildListContractionNode( provider, node, source_ref ):
         source_ref  = source_ref
     )
 
-    _delayed_bodies.append( ( result, node.elt, source_ref ) )
-
     buildQuals(
         provider      = provider,
         result        = result,
         quals         = node.generators,
         source_ref    = source_ref
     )
+
+    def delayedWork():
+        body = buildNode(
+            provider   = result,
+            node       = node.elt,
+            source_ref = source_ref,
+        )
+
+        result.setBody( body )
+
+    pushDelayedWork( delayedWork )
 
     return result
 
@@ -431,14 +469,24 @@ def buildGeneratorExpressionNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-    _delayed_bodies.append( ( result, node.elt, source_ref ) )
-
     buildQuals(
         provider      = provider,
         result        = result,
         quals         = node.generators,
         source_ref    = source_ref
     )
+
+    def delayedWork():
+        body = buildNode(
+            provider   = result,
+            node       = node.elt,
+            source_ref = source_ref,
+        )
+
+        result.setBody( body )
+
+
+    pushDelayedWork( delayedWork )
 
     return result
 
@@ -609,13 +657,12 @@ def _findModule( module_name, parent_package ):
 def _isWhiteListedNotExistingModule( module_name ):
     return module_name in ( "mac", "nt", "os2", "_emx_link", "riscos", "ce", "riscospath", "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256", "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle", "marshal", "imp", "sys" )
 
-def buildImportModulesNode( provider, node, source_ref ):
-    parent_package = provider.getParentModule().getPackage()
 
+def _buildImportModulesNode( provider, parent_package, import_names, source_ref ):
     import_specs = []
 
-    for import_desc in node.names:
-        module_name, local_name = import_desc.name, import_desc.asname
+    for import_desc in import_names:
+        module_name, local_name = import_desc
 
         module_topname = module_name.split(".")[0]
         module_basename =  module_name.split(".")[-1]
@@ -665,6 +712,14 @@ def buildImportModulesNode( provider, node, source_ref ):
         source_ref   = source_ref
     )
 
+def buildImportModulesNode( provider, node, source_ref ):
+    return _buildImportModulesNode(
+        provider       = provider,
+        parent_package = provider.getParentModule().getPackage(),
+        import_names   = [ ( import_desc.name, import_desc.asname ) for import_desc in node.names ],
+        source_ref     = source_ref
+    )
+
 def buildImportFromNode( provider, node, source_ref ):
     parent_package = provider.getParentModule().getPackage()
 
@@ -692,13 +747,23 @@ def buildImportFromNode( provider, node, source_ref ):
                 pass
             else:
                 warning( "Ignoring unkown future directive '%s'" % object_name )
+    elif module_name == "":
+        return _buildImportModulesNode(
+            provider      = provider,
+            parent_package = None,
+            import_names   = [ ( parent_package + "." +  import_desc.name, import_desc.asname ) for import_desc in node.names ],
+            source_ref     = source_ref
+        )
+
 
     imports = []
 
     for import_desc in node.names:
         object_name, local_name = import_desc.name, import_desc.asname
 
-        imports.append( ( object_name, local_name if local_name is not None else object_name ) )
+        local_variable = provider.getVariableForAssignment( local_name if local_name is not None else object_name )
+
+        imports.append( ( object_name, local_variable ) )
 
     if Options.shallFollowImports():
         try:
@@ -749,6 +814,12 @@ def buildExecNode( provider, node, source_ref ):
 
     globals_node = buildNode( provider, exec_globals, source_ref ) if exec_globals is not None else None
     locals_node = buildNode( provider, exec_locals, source_ref ) if exec_locals is not None else None
+
+    if locals_node is not None and locals_node.isConstantReference() and locals_node.getConstant() is None:
+        locals_node = None
+
+    if locals_node is None and globals_node is not None and globals_node.isConstantReference() and globals_node.getConstant() is None:
+        globals_node = None
 
     return Nodes.CPythonStatementExec(
         source       = buildNode( provider, body, source_ref ),
@@ -866,6 +937,11 @@ def buildBoolOpNode( provider, node, source_ref ):
     else:
         assert False, bool_op
 
+quick_names = {
+    "None"  : None,
+    "True"  : True,
+    "False" : False
+}
 
 def buildNode( provider, node, source_ref ):
     try:
@@ -1093,10 +1169,19 @@ def buildNode( provider, node, source_ref ):
                 source_ref = source_ref
             )
         elif kind == "Name":
-            result = Nodes.CPythonExpressionVariable(
-                variable   = provider.getVariableForReference( node.id ),
-                source_ref = source_ref
-            )
+            if node.id in quick_names:
+                result = Nodes.CPythonExpressionConstant(
+                    constant   = quick_names[ node.id ],
+                    source_ref = source_ref
+                )
+            else:
+                result = Nodes.CPythonExpressionVariable(
+                    variable_name = node.id,
+                    source_ref    = source_ref
+                )
+
+                if provider.isEarlyClosure():
+                    result.setVariable( provider.getVariableForReference( node.id ) )
         elif kind == "Str":
             result = buildStringNode(
                 provider   = provider,
@@ -1184,6 +1269,12 @@ class ModuleRecursionVisitor:
 
                             self.imported_modules[ os.path.relpath( module_filename ) ] = imported_module
 
+
+class VariableClosureLookupVisitor:
+    def __call__( self, node ):
+        if node.isVariableReference() and node.getVariable() is None:
+            node.setVariable( node.getParentVariableProvider().getVariableForReference( node.getVariableName() ) )
+
 def getOtherModules():
     return ModuleRecursionVisitor.imported_modules.values()
 
@@ -1192,9 +1283,6 @@ def visitTree( tree, visitor ):
 
     for visitable in tree.getVisitableNodes():
         visitTree( visitable, visitor )
-
-_delayed_bodies = []
-
 
 import os
 
@@ -1239,25 +1327,10 @@ def buildParseTree( provider, source_code, filename, line_offset, replacement ):
         provider.setBody( result )
         provider.setDoc( doc )
 
-    while _delayed_bodies:
-        delayed_body = _delayed_bodies.pop()
+    while _delayed_works:
+        delayed_work = _delayed_works.pop()
 
-        structure, body, source_ref = delayed_body
-
-        if type( body ) in ( tuple, list ):
-            body = buildStatementsNode(
-                provider   = structure,
-                nodes      = body,
-                source_ref = source_ref,
-            )
-        else:
-            body = buildNode(
-                provider   = structure,
-                node       = body,
-                source_ref = source_ref,
-            )
-
-        structure.setBody( body )
+        delayed_work()
 
     return result
 
@@ -1285,12 +1358,17 @@ def applyImmediateTransformations( tree ):
         visitTree( tree, ModuleRecursionVisitor( parent_module, parent_module.getFilename(), Options.includeStandardLibrary() ) )
 
     # 2. Replace exec with string constant as parameters with the code inlined
-    # instead. This is an optimization that is easy to do and useful for large
-    # parts of the CPython test suite that exec constant strings.
+    # instead. This is an optimization that is easy to do and useful for large parts of
+    # the CPython test suite that exec constant strings.
     if Options.shallOptimizeStringExec():
         TreeTransforming.replaceConstantExecs( tree, buildReplacementTree )
 
-    # 3. Replace calls to locals, globals or eval with our own variants, because these
+    # 3. Now that the tree is complete, make a second pass and find the referenced
+    # variable for every name lookup done. Afterwards no more getVariableForAssignment
+    # should be called.
+    visitTree( tree, VariableClosureLookupVisitor() )
+
+    # 4. Replace calls to locals, globals or eval with our own variants, because these
     # will refuse to work (exe case) or give incorrect results (module case).
     TreeTransforming.replaceBuiltinsCallsThatRequireInterpreter( tree, getFuture() )
 
@@ -1298,8 +1376,8 @@ def applyImmediateTransformations( tree ):
 def buildModuleTree( filename, package = None ):
     initFuture()
 
-    global _delayed_bodies
-    _delayed_bodies = []
+    global _delayed_works
+    _delayed_works = []
 
     source_ref = SourceCodeReferences.fromFilename( filename )
 

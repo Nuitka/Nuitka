@@ -101,12 +101,47 @@ def functionExecfile():
 functionExecfile()
 
 def functionExecNones():
-
     f = 0
 
     exec ( "f=1", None, None )
 
-    print "Exec with None did update locals:", f
+    print "Exec with None as tuple args did update locals:", f
 
-# TODO: Enable this once working
-# functionExecNones()
+    exec "f=2" in None, None
+
+    print "Exec with None as normal args did update locals:", f
+
+functionExecNones()
+
+def functionEvalNones2():
+    f = 11
+
+    code = "f"
+    g = None
+    l = None
+
+    f1 = eval ( code, l, g )
+
+    print "Eval with None arguments from variables did access locals:", f1
+
+
+functionEvalNones2()
+
+def functionExecNones2():
+    f = 0
+
+    code = "f=1"
+    g = None
+    l = None
+
+    exec ( code, l, g )
+
+    print "Exec with None as tuple args from variable did update locals:", f
+
+    code = "f=2"
+
+    exec code in l, g
+
+    print "Exec with None as normal args did update locals:", f
+
+functionExecNones2()

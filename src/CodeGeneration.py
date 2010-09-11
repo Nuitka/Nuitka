@@ -218,6 +218,7 @@ def generateLambdaCode( lambda_expression, context, generator ):
                 generator  = generator,
             )
         )
+
     if Options.shallHaveStatementLines():
         codes = [ generator.getCurrentLineCode( lambda_expression.getSourceReference() ), code ]
     else:
@@ -303,7 +304,7 @@ def generateFunctionCode( function, context, generator ):
     )
 
     return generator.getAssignmentCode(
-        variable   = function.getParentVariableProvider().getVariableForAssignment( variable_name = function.getName() ),
+        variable   = function.getTargetVariable(),
         identifier = function_creation_identifier,
         context    = context
     )
@@ -374,7 +375,7 @@ def generateClassCode( class_def, context, generator ):
     )
 
     return generator.getAssignmentCode(
-        variable   = class_def.getParentVariableProvider().getVariableForAssignment( variable_name = class_def.getName() ),
+        variable   = class_def.getTargetVariable(),
         identifier = class_creation_identifier,
         context    = context
     )
@@ -823,7 +824,7 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
         brace = False
     else:
         if value.getRefCount():
-            code = "PyObjectTemporary _python_rvalue_%d = %s;\n" % ( recursion, value.getCodeObject() )
+            code = "PyObjectTemporary _python_rvalue_%d( %s );\n" % ( recursion, value.getCodeObject() )
             assign_source = Generator.Identifier( "_python_rvalue_%d.asObject()" % recursion, 0 )
         else:
             code = "PyObject *_python_rvalue_%d = %s;\n" % ( recursion, value.getCodeObject() )
@@ -995,46 +996,28 @@ def generateDelCode( targets, context, generator ):
 
     return code
 
-def _getGlobalsLocalsDefaulted( generator, context, exec_def ):
-    exec_globals = exec_def.getGlobals()
+def generateEvalCode( eval_expression, context, generator ):
+    exec_globals = eval_expression.getGlobals()
 
     if exec_globals is None:
-        exec_globals = generator.getLoadGlobalsCode(
-            context  = context,
-            module   = exec_def.getParentModule()
-        )
+        globals_identifier = generator.getConstantHandle( constant = None, context = context )
     else:
-        exec_globals = generateExpressionCode(
+        globals_identifier = generateExpressionCode(
             expression = exec_globals,
             context    = context,
             generator  = generator
         )
 
-    exec_locals = exec_def.getLocals()
+    exec_locals = eval_expression.getLocals()
 
-    if exec_locals is None and exec_def.getGlobals() is None:
-        exec_provider = exec_def.getParentVariableProvider()
-
-        if not exec_provider.isModule():
-            exec_locals = generator.getLoadLocalsCode(
-                context  = context,
-                provider = exec_provider
-            )
-    elif exec_locals is not None:
-        exec_locals = generateExpressionCode(
+    if exec_locals is None:
+        locals_identifier = generator.getConstantHandle( constant = None, context = context )
+    else:
+        locals_identifier = generateExpressionCode(
             expression = exec_locals,
             context    = context,
             generator  = generator
         )
-
-    return exec_globals, exec_locals
-
-def generateEvalCode( eval_expression, context, generator ):
-    globals_identifier, locals_identifier = _getGlobalsLocalsDefaulted(
-        generator = generator,
-        context   = context,
-        exec_def  = eval_expression
-    )
 
     identifier = generator.getEvalCode(
         exec_code          = generateExpressionCode(
@@ -1046,39 +1029,48 @@ def generateEvalCode( eval_expression, context, generator ):
         locals_identifier  = locals_identifier,
         mode               = eval_expression.getMode(),
         future_flags       = generator.getFutureFlagsCode( *eval_expression.getFutureFlags() ),
+        provider           = eval_expression.getParentVariableProvider(),
         context            = context
+
     )
 
     return identifier
 
 def generateExecCode( exec_def, context, generator ):
-    if exec_def.getGlobals() is not None or exec_def.getParentVariableProvider().isModule():
-        return generator.getStatementCode(
-            generateEvalCode(
-                eval_expression = exec_def,
-                generator       = generator,
-                context         = context
-            )
-        )
+    exec_globals = exec_def.getGlobals()
+
+    if exec_globals is None:
+        globals_identifier = generator.getConstantHandle( constant = None, context = context )
     else:
-        globals_identifier, _locals_identifier = _getGlobalsLocalsDefaulted(
-            generator = generator,
-            context   = context,
-            exec_def  = exec_def
+        globals_identifier = generateExpressionCode(
+            expression = exec_globals,
+            context    = context,
+            generator  = generator
         )
 
-        return generator.getExecLocalCode(
-            context            = context,
-            provider           = exec_def.getParentVariableProvider(),
-            exec_code          = generateExpressionCode(
-                generator  = generator,
-                context    = context,
-                expression = exec_def.getSource()
-            ),
-            globals_identifier = globals_identifier,
-            future_flags       = generator.getFutureFlagsCode( *exec_def.getFutureFlags() ),
+    exec_locals = exec_def.getLocals()
 
+    if exec_locals is None:
+        locals_identifier = generator.getConstantHandle( constant = None, context = context )
+    elif exec_locals is not None:
+        locals_identifier = generateExpressionCode(
+            expression = exec_locals,
+            context    = context,
+            generator  = generator
         )
+
+    return generator.getExecCode(
+        context            = context,
+        provider           = exec_def.getParentVariableProvider(),
+        exec_code          = generateExpressionCode(
+            generator  = generator,
+            context    = context,
+            expression = exec_def.getSource()
+        ),
+        globals_identifier = globals_identifier,
+        locals_identifier  = locals_identifier,
+        future_flags       = generator.getFutureFlagsCode( *exec_def.getFutureFlags() )
+    )
 
 def generateStatementCode( statement, context, generator ):
     try:
@@ -1308,14 +1300,17 @@ def _generateStatementCode( statement, context, generator ):
         else:
             loop_else_codes = []
 
+        line_number_code = generator.getCurrentLineCode( statement.getIterated().getSourceReference() ) if Options.shallHaveStatementLines() else ""
+
         code = generator.getForLoopCode(
-            iterator        = iterator,
-            iter_name       = iter_name,
-            iter_value      = iter_value,
-            loop_var_code   = assignment_code,
-            loop_body_codes = loop_body_codes,
-            loop_else_codes = loop_else_codes,
-            context         = context
+            line_number_code = line_number_code,
+            iterator         = iterator,
+            iter_name        = iter_name,
+            iter_value       = iter_value,
+            loop_var_code    = assignment_code,
+            loop_body_codes  = loop_body_codes,
+            loop_else_codes  = loop_else_codes,
+            context          = context
         )
     elif statement.isStatementWhileLoop():
         loop_body_codes = generateStatementSequenceCode(
@@ -1376,14 +1371,9 @@ def _generateStatementCode( statement, context, generator ):
             import_specs = statement.getImports()
         )
     elif statement.isStatementImportFrom():
-        imports = []
-
-        for object_name, local_name in statement.getImports():
-            imports.append( ( object_name, statement.getTarget().getVariableForAssignment( local_name ) ) )
-
         code = generator.getImportFromCode(
             module_name = statement.getModuleName(),
-            imports     = imports,
+            imports     = statement.getImports(),
             context     = context,
         )
     elif statement.isStatementTryFinally():

@@ -19,6 +19,8 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
+print "*** Child2: Begin"
+
 import Child1
 
 print "*** Child2: Child2 is in", __package__

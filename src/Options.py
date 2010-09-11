@@ -91,6 +91,12 @@ parser.add_option(
     help = "Where to put intermediate and final output files.",
 )
 
+parser.add_option(
+    "--version", action="store_true", dest = "version", default = False,
+    help = "Output only version, then exit.",
+)
+
+
 if is_Python:
     count = 0
 
@@ -108,6 +114,12 @@ else:
     extra_args = []
 
 options, positional_args = parser.parse_args()
+
+if options.version:
+    print >>sys.stderr, """\
+Nuitka V0.2.2
+Copyright (C) 2010 Kay Hayen."""
+    sys.exit(0)
 
 def shallTraceExecution():
     return options.trace_execution

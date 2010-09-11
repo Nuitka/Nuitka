@@ -94,7 +94,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
     // Copy the parameter default values and closure values over.
     %(function_context_copy)s
 
-    PyObject *result = PyKFunction_New( %(function_identifier)s, %(function_name_obj)s, %(module)s, %(function_doc)s, _python_context, _context_common_%(function_identifier)s_destructor );
+    PyObject *result = Nuitka_Function_New( %(function_identifier)s, %(function_name_obj)s, %(module)s, %(function_doc)s, _python_context, _context_common_%(function_identifier)s_destructor );
 
     // Apply decorators if any
     %(function_decorator_calls)s
@@ -223,7 +223,7 @@ static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObje
         _python_context->magic = 27772;
         _python_context->number = ++instance_counter;
 
-        PyObject *yielder = PyKFunction_New( %(function_identifier)s_yielder, %(function_name_obj)s, %(module)s, Py_None, _python_context, _context_generator_%(function_identifier)s_destructor );
+        PyObject *yielder = Nuitka_Function_New( %(function_identifier)s_yielder, %(function_name_obj)s, %(module)s, Py_None, _python_context, _context_generator_%(function_identifier)s_destructor );
 
         PyObject *result = PyCallIter_New( yielder, _sentinel_value );
 

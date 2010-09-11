@@ -18,3 +18,7 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+
+print "*** Child3: Begin"
+
+print "*** Child3: End"

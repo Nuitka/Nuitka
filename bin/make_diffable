@@ -36,7 +36,7 @@ import sys, re
 ran_re = re.compile( r"^(Ran \d+ tests? in )\d+\.\d+s$" )
 instance_re = re.compile( r"at 0x[0-9a-f]+" )
 compiled_function_re = re.compile( r"\<compiled function" )
-compiled_generator_re = re.compile( r"\<callable-iterator object" )
+compiled_generator_re = re.compile( r"\<compiled generator object \<.*?\>" )
 
 for line in sys.stdin:
     line = instance_re.sub( "at 0xxxxxxxxx", line )

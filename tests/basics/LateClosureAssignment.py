@@ -18,10 +18,10 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-# -*- coding: utf-8 -*-
 
 def closureTest1():
-    # Assign, but the value is not supposed to be used.
+    # Assign, but the value is not supposed to be used by the function, instead the later
+    # update is effective.
     d = 1
 
     def subby():
@@ -33,18 +33,62 @@ def closureTest1():
 
 
 def closureTest2():
-    # Using a closure variable that is not initialized at the time it is closured.
+    # Using a closure variable that is not initialized at the time it is closured should
+    # work as well.
 
     def subby():
         return d
 
-    d = 22222*22222
+    d = 2222*2222
 
     return subby()
 
+def closureTest3():
+    def subby():
+        return d
 
-var1 = closureTest1()
-var2 = closureTest2()
+    try:
+        return subby()
+    except NameError:
+        return 88
 
-print var1
-print var2
+d = 1
+
+def scopeTest4():
+    try:
+        return d
+
+        d = 1
+    except UnboundLocalError, e:
+        return e
+
+
+print "Test closure where value is overwritten:", closureTest1()
+print "Test closure where value is assigned only late:", closureTest2()
+
+print "Test function where closured value is never assigned:", closureTest3()
+
+print "Scope test where UnboundLocalError is expected:", scopeTest4()
+
+
+def function():
+    pass
+
+class ClosureLocalizerClass:
+    print "Function before assigned in a class", function
+
+    function = 1
+
+    print "Function after it was assigned in class", function
+
+ClosureLocalizerClass()
+
+def ClosureLocalizerFunction():
+    try:
+        function = function
+
+        print "Function didn't give unbound local error"
+    except UnboundLocalError:
+        print "Function gave unbound local error when accessing function before assignment."
+
+ClosureLocalizerFunction()
