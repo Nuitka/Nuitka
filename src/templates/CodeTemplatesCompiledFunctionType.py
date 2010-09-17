@@ -35,9 +35,11 @@ The backbone of the integration into CPython. Try to behave as well as normal fu
 and builtin functions, or even better.
 """
 
-kfunction_type_code = """
+compiled_function_type_code = """
 
 // *** Nuitka_Function type begin
+
+typedef void (*releaser)( void * );
 
 // The Nuitka_FunctionObject is the storage associated with a compiled function instance
 // of which there can be many for each code.

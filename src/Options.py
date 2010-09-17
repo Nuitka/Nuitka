@@ -31,6 +31,10 @@
 #
 """ Options module """
 
+version_string = """\
+Nuitka V0.2.3
+Copyright (C) 2010 Kay Hayen."""
+
 from optparse import OptionParser
 
 import sys, os
@@ -116,9 +120,7 @@ else:
 options, positional_args = parser.parse_args()
 
 if options.version:
-    print >>sys.stderr, """\
-Nuitka V0.2.2
-Copyright (C) 2010 Kay Hayen."""
+    print >>sys.stderr, version_string
     sys.exit(0)
 
 def shallTraceExecution():

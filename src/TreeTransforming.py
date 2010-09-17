@@ -36,6 +36,7 @@ applied here.
 
 """
 
+import TreeOperations
 import TreeBuilding
 import Nodes
 
@@ -90,7 +91,7 @@ class TreeVisitorReplaceBuiltinCalls:
                             if new_node.isStatement() and node.parent.isStatementExpression():
                                 node.parent.replaceWith( new_node )
 
-                            TreeBuilding.assignParent( node.parent )
+                            TreeOperations.assignParent( node.parent )
 
 
 
@@ -214,11 +215,11 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
         }
     )
 
-    TreeBuilding.visitTree( tree, visitor )
+    TreeOperations.visitTree( tree, visitor )
 
     visitor = TreeVisitorFixupNewStaticmethod()
 
-    TreeBuilding.visitTree( tree, visitor )
+    TreeOperations.visitTree( tree, visitor )
 
 class TreeVisitorOptimizeStaticExec:
     """ Inline constant execs.
@@ -251,4 +252,4 @@ class TreeVisitorOptimizeStaticExec:
 def replaceConstantExecs( tree, build_node ):
     visitor = TreeVisitorOptimizeStaticExec( build_node )
 
-    TreeBuilding.visitTree( tree, visitor )
+    TreeOperations.visitTree( tree, visitor )

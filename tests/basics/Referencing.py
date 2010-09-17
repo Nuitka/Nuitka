@@ -304,6 +304,13 @@ def simpleFunction39():
    class Parent( object ):
       pass
 
+
+def simpleFunction40():
+   def myGenerator():
+      yield 1
+
+   myGenerator()
+
 x = 17
 
 def checkReferenceCount( checked_function, warmup = False ):
@@ -381,3 +388,4 @@ checkReferenceCount( simpleFunction36 )
 checkReferenceCount( simpleFunction37 )
 checkReferenceCount( simpleFunction38 )
 checkReferenceCount( simpleFunction39, warmup = True )
+checkReferenceCount( simpleFunction40 )

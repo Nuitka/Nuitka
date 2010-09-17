@@ -31,8 +31,6 @@
 #
 genfunc_context_body_template = """
 
-#include <ucontext.h>
-
 // This structure is for attachment as self of the generator function %(function_identifier)s and
 // contains the common closure. It is allocated at the time the genexpr object is created.
 struct _context_common_%(function_identifier)s_t
@@ -45,25 +43,9 @@ struct _context_generator_%(function_identifier)s_t
 {
     _context_common_%(function_identifier)s_t *common_context;
 
-    // The context to which the yielder hands over.
-    ucontext_t yielder_context;
-    ucontext_t caller_context;
-
-    // The yielded value, to be filled by yielder before stopping activity and read
-    // back by generator after switch back
-    PyObject *yielded;
-
     // The generator function instance can access its parameters from creation time.
     %(function_instance_context_decl)s
-
-    int magic;
-    int number;
 };
-
-#ifndef __INSTANCE_COUNTER__
-static int instance_counter = 0;
-#define __INSTANCE_COUNTER__
-#endif
 
 static void _context_common_%(function_identifier)s_destructor( void *context_voidptr )
 {
@@ -77,10 +59,6 @@ static void _context_common_%(function_identifier)s_destructor( void *context_vo
 static void _context_generator_%(function_identifier)s_destructor( void *context_voidptr )
 {
     _context_generator_%(function_identifier)s_t *_python_context = (struct _context_generator_%(function_identifier)s_t *)context_voidptr;
-
-    assert( _python_context && _python_context->magic == 27772 );
-
-    free( _python_context->yielder_context.uc_stack.ss_sp );
 
     delete _python_context;
 }
@@ -129,23 +107,28 @@ static PyTracebackObject *%(function_tb_adder)s( int line )
     Py_DECREF( frame );
 }
 
-static void %(function_identifier)s_context( struct _context_generator_%(function_identifier)s_t *_python_context )
+static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
-    assert( _python_context && _python_context->magic == 27772 );
-
-    // Set the names of local variables if any
-    %(local_var_naming)s
-
-    bool traceback = false;
+    bool traceback;
 
     try
     {
+        traceback = true;
+        CHECK_EXCEPTION( generator );
+        traceback = false;
+
+        struct _context_generator_%(function_identifier)s_t *_python_context = (_context_generator_%(function_identifier)s_t *)generator->m_context;
+
+        // Set the names of local variables if any
+        %(local_var_naming)s
+
         // Actual function code.
         %(function_body)s
 
-        _python_context->yielded = INCREASE_REFCOUNT( _sentinel_value );
+        PyErr_SetNone( PyExc_StopIteration );
+        generator->m_yielded = NULL;
     }
-    catch (_PythonException &_exception)
+    catch ( _PythonException &_exception )
     {
         _exception.toPython();
 
@@ -154,41 +137,17 @@ static void %(function_identifier)s_context( struct _context_generator_%(functio
            ADD_TRACEBACK( %(module)s, %(file_identifier)s, %(name_identifier)s, _exception.getLine() );
         }
 
-        _python_context->yielded = INCREASE_REFCOUNT( _sentinel_value );
+        generator->m_yielded = NULL;
     }
 
-    swapcontext( &_python_context->yielder_context, &_python_context->caller_context );
+    swapcontext( &generator->m_yielder_context, &generator->m_caller_context );
 }
 
-static PyObject *%(function_identifier)s_yielder( PyObject *self, PyObject *args, PyObject *kw )
-{
-    struct _context_generator_%(function_identifier)s_t *_python_context = (struct _context_generator_%(function_identifier)s_t *)self;
+"""
 
-    assert( _python_context && _python_context->magic == 27772 );
-
-    if ( _python_context->yielded != _sentinel_value )
-    {
-        _python_context->yielded = NULL;
-
-        // Continue the yielder function.
-        swapcontext( &_python_context->caller_context, &_python_context->yielder_context );
-
-        // It is expected to fill next value before the swap back.
-        PyObject *result = _python_context->yielded;
-
-        if ( _python_context->yielded != _sentinel_value )
-        {
-            _python_context->yielded = NULL;
-        }
-
-        return result;
-    }
-    else
-    {
-       PyErr_Format( PyExc_StopIteration, "generator function is finished" );
-       return NULL;
-    }
-}
+genfunc_yield_terminator = """\
+    PyErr_SetNone( PyExc_StopIteration );
+    throw _PythonException();
 """
 
 genfunc_function_template = """
@@ -200,36 +159,14 @@ static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObje
     {
         struct _context_generator_%(function_identifier)s_t *_python_context = new _context_generator_%(function_identifier)s_t;
 
-        _python_context->yielder_context.uc_stack.ss_sp = NULL;
-        _python_context->yielder_context.uc_link = NULL;
-        _python_context->yielded = NULL;
-
         %(parameter_parsing_code)s
 
-        // TODO: Is this one necessary at all?
-        if (getcontext( &_python_context->yielder_context ) == -1)
-        {
-            PyErr_Format( PyExc_RuntimeError, "cannot create function %(function_name)s" );
-            throw _PythonException();
-        }
-
-        // Prepare the generator context to run
-        _python_context->yielder_context.uc_stack.ss_size = 1024*1024;
-        _python_context->yielder_context.uc_stack.ss_sp = malloc( _python_context->yielder_context.uc_stack.ss_size );
-
-        makecontext( &_python_context->yielder_context, (void (*)())%(function_identifier)s_context, 1, _python_context );
-
         _python_context->common_context = _python_common_context;
-        _python_context->magic = 27772;
-        _python_context->number = ++instance_counter;
 
-        PyObject *yielder = Nuitka_Function_New( %(function_identifier)s_yielder, %(function_name_obj)s, %(module)s, Py_None, _python_context, _context_generator_%(function_identifier)s_destructor );
+        PyObject *result = Nuitka_Generator_New( %(function_identifier)s_context, %(function_name_obj)s, _python_context, _context_generator_%(function_identifier)s_destructor );
 
-        PyObject *result = PyCallIter_New( yielder, _sentinel_value );
 
-        Py_DECREF( yielder );
-
-        if (result == NULL)
+        if ( result == NULL )
         {
             PyErr_Format( PyExc_RuntimeError, "cannot create function %(function_name)s" );
             throw _PythonException();
@@ -237,7 +174,7 @@ static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObje
 
         return result;
     }
-    catch (_PythonException &_exception)
+    catch ( _PythonException &_exception )
     {
         _exception.toPython();
 

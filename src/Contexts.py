@@ -35,8 +35,6 @@ import CodeTemplates
 
 import cPickle, re, hashlib
 
-_re_python_hex_escape = re.compile( r"\\x([a-f0-9][a-f0-9])" )
-
 class PythonContextBase:
     def __init__( self ):
         self.variables = set()
@@ -78,13 +76,6 @@ class PythonContextBase:
     def isParametersViaContext( self ):
         return False
 
-    def getModuleCodeName( self ):
-        return self.parent.getModuleCodeName()
-
-    def getModuleName( self ):
-        return self.parent.getModuleName()
-
-
     def getTempObjectVariable( self ):
         # TODO: Make sure these are actually indepedent in generated code between different
         # contexts
@@ -94,6 +85,7 @@ class PythonContextBase:
         self.temp_counter += 1
 
         return result
+
 
 class PythonChildContextBase( PythonContextBase ):
     def __init__( self, parent ):
@@ -115,6 +107,13 @@ class PythonChildContextBase( PythonContextBase ):
 
     def addGlobalVariableNameUsage( self, var_name ):
         self.parent.addGlobalVariableNameUsage( var_name )
+
+    def getModuleCodeName( self ):
+        return self.parent.getModuleCodeName()
+
+    def getModuleName( self ):
+        return self.parent.getModuleName()
+
 
 class PythonGlobalContext:
     def __init__( self ):
@@ -140,6 +139,8 @@ class PythonGlobalContext:
                 self.constant_dicts[ dict_key ] = self._getConstantHandle( constant )
 
             return Identifier( self.constant_dicts[ dict_key ], 0 )
+        elif constant is Ellipsis:
+            return Identifier( "Py_Ellipsis", 0 )
         else:
             key = ( type( constant ), repr( constant ), constant )
 
@@ -172,6 +173,8 @@ class PythonGlobalContext:
                 return "_python_dict_empty"
             else:
                 return "_python_dict_" + hashlib.md5( repr( constant ) ).hexdigest()
+        elif constant is Ellipsis:
+            return "Py_Ellipsis"
         else:
             raise Exception( "Unknown type for constant handle", type( constant ), constant  )
 
@@ -181,9 +184,10 @@ class PythonGlobalContext:
     def getHelperCode( self ):
         result = CodeTemplates.global_helper
         result += CodeTemplates.import_helper
-        result += CodeTemplates.gfunction_type_code
-        result += CodeTemplates.kfunction_type_code
 
+        result += CodeTemplates.compiled_function_type_code
+        result += CodeTemplates.compiled_generator_type_code
+        result += CodeTemplates.compiled_genexpr_type_code
 
         return result
 
@@ -378,10 +382,11 @@ class PythonModuleContext( PythonContextBase ):
         return self.code_name
 
 class PythonFunctionContext( PythonChildContextBase ):
-    def __init__( self, parent, function ):
+    def __init__( self, parent, function, locals_dict ):
         PythonChildContextBase.__init__( self, parent = parent )
 
         self.function = function
+        self.locals_dict = locals_dict
 
         self.lambda_count = 0
 

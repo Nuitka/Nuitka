@@ -39,6 +39,7 @@ As such this is the place that knows how to take a condition and two code branch
 and make a code block out of it.
 """
 
+import TreeOperations
 import Generator
 import Contexts
 import Options
@@ -210,12 +211,14 @@ def generateLambdaCode( lambda_expression, context, generator ):
             )
         )
     else:
-        code = generator.getYieldCode(
-            context    = context,
-            identifier = generateExpressionCode(
-                expression = lambda_expression.getLambdaYielded(),
-                context    = lambda_context,
-                generator  = generator,
+        code = generator.getStatementCode(
+            identifier = generator.getYieldCode(
+                context    = context,
+                identifier = generateExpressionCode(
+                    expression = lambda_expression.getLambdaExpression().getExpression(),
+                    context    = lambda_context,
+                    generator  = generator,
+                )
             )
         )
 
@@ -249,16 +252,35 @@ def generateLambdaCode( lambda_expression, context, generator ):
 
     return code
 
+class _OverflowCheckVisitor:
+    def __init__( self ):
+        self.result = False
+
+    def __call__( self, node ):
+        if node.isStatementImportFrom():
+            for local_name, variable in node.getImports():
+                if local_name == "*":
+                    raise TreeOperations.ExitVisit
+
+def hasOverflowLocalsNeed( node ):
+    visitor = _OverflowCheckVisitor()
+
+    TreeOperations.visitTree( node, visitor )
+
+    return visitor.result
 
 def generateFunctionBodyCode( function, context, generator ):
+    body = function.getBody()
+
     context = Contexts.PythonFunctionContext(
-        parent   = context,
-        function = function
+        parent      = context,
+        function    = function,
+        locals_dict = hasOverflowLocalsNeed( body )
     )
 
     codes = generateStatementSequenceCode(
         context            = context,
-        statement_sequence = function.getBody(),
+        statement_sequence = body,
         generator          = generator
     )
 
@@ -807,6 +829,20 @@ def generateExpressionCode( expression, context, generator ):
             context               = context,
             generator             = generator
         )
+    elif expression.isExpressionYield():
+        yielded = expression.getExpression()
+
+        if yielded is not None:
+            identifier = generator.getYieldCode(
+                identifier = makeExpressionCode( yielded ),
+                context    = context
+            )
+        else:
+            identifier = generator.getYieldCode(
+                identifier = generator.getConstantHandle( constant = None, context = context ),
+                context    = context
+            )
+
     else:
         assert False, expression
 
@@ -1210,10 +1246,7 @@ def _generateStatementCode( statement, context, generator ):
         parent_function = statement.getParentFunction()
 
         if parent_function is not None and parent_function.isGenerator():
-            code = generator.getYieldCode(
-                identifier = generator.getYieldTerminator(),
-                context    = context
-            )
+            code = generator.getYieldTerminatorCode()
         else:
             expression = statement.getExpression()
 
@@ -1227,21 +1260,6 @@ def _generateStatementCode( statement, context, generator ):
                     identifier = generator.getConstantHandle( constant = None, context = context ),
                     context    = context
                 )
-
-    elif statement.isStatementYield():
-        expression = statement.getExpression()
-
-        if expression is not None:
-            code = generator.getYieldCode(
-                identifier = makeExpressionCode( statement.getExpression() ),
-                context    = context
-            )
-        else:
-            code = generator.getYieldCode(
-                identifier = generator.getConstantHandle( constant = None, context = context ),
-                context    = context
-            )
-
     elif statement.isStatementWith():
         body_codes = generateStatementSequenceCode(
             statement_sequence = statement.getWithBody(),
@@ -1355,16 +1373,6 @@ def _generateStatementCode( statement, context, generator ):
         code = generator.getLoopContinueCode()
     elif statement.isStatementBreak():
         code = generator.getLoopBreakCode()
-    elif statement.isAttributeAssignment():
-        code = generator.getAttributeAssignmentCode(
-            context        = context,
-            attribute_name = generator.getConstantHandle(
-                constant = statement.getAttributeName(),
-                context  = context
-            ),
-            target         = statement.getTarget(),
-            value          = statement.getValue()
-        )
     elif statement.isStatementImportModule():
         code = generator.getImportModulesCode(
             context      = context,

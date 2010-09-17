@@ -1,4 +1,3 @@
-#!/usr/bin/python
 #
 #     Copyright 2010, Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -31,21 +30,30 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-import sys, re
+class ExitVisit( BaseException ):
+    pass
 
-ran_re = re.compile( r"^(Ran \d+ tests? in )\d+\.\d+s$" )
-instance_re = re.compile( r"at 0x[0-9a-f]+" )
-compiled_function_re = re.compile( r"\<compiled function" )
-compiled_genexpr_re = re.compile( r"\<compiled generator object \<.*?\>" )
-compiled_generator_re = re.compile( r"\<compiled generator object (.*?) at" )
+def visitTree( tree, visitor ):
+    try:
+        visitor( tree )
 
-for line in sys.stdin:
-    line = instance_re.sub( "at 0xxxxxxxxx", line )
-    line = compiled_function_re.sub( "<function", line )
-    line = compiled_genexpr_re.sub( "<generator object <genexpr>", line )
-    line = compiled_generator_re.sub( r"<generator object \1 at", line )
+        for visitable in tree.getVisitableNodes():
+            visitTree( visitable, visitor )
 
-    if ran_re.match( line ):
-        print ran_re.match( line ).group(1) + " x.xxxs"
-    else:
-        print line,
+    except ExitVisit:
+        pass
+
+
+class _TreeVisitorAssignParent:
+    def __call__( self, node ):
+        for child in node.getVisitableNodes():
+            if child is None:
+                raise AssertionError( "none child encountered", node, node.source_ref )
+
+            try:
+                child.parent = node
+            except AttributeError:
+                raise AssertionError( "strange child encountered", node, node.source_ref, child )
+
+def assignParent( tree ):
+    visitTree( tree, _TreeVisitorAssignParent() )

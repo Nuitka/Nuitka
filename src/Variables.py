@@ -153,9 +153,6 @@ class LocalVariable( Variable ):
     def isLocalVariable( self ):
         return True
 
-def makeLocalVariables( variable_names ):
-    return [ LocalVariable( variable_name = variable_name ) for variable_name in variable_names ]
-
 class LocalLoopVariable( LocalVariable ):
     def __init__( self, owner, variable_name ):
         LocalVariable.__init__( self, owner = owner, variable_name = variable_name )
@@ -165,10 +162,6 @@ class LocalLoopVariable( LocalVariable ):
 
     def isLocalLoopVariable( self ):
         return True
-
-
-def makeLocalLoopVariables( variable_names ):
-    return [ LocalLoopVariable( variable_name = variable_name ) for variable_name in variable_names ]
 
 class ModuleVariable( Variable ):
     def __init__( self, module, variable_name ):

@@ -35,14 +35,12 @@ Another cornerstone of the integration into CPython. Try to behave as well as no
 generator expression objects do or even better.
 """
 
-gfunction_type_code = """
+compiled_genexpr_type_code = """
 
 // *** Nuitka_Genexpr type begin
 
 // TODO: Could optimize it through a compile time determination.
 const int MAX_ITERATOR_COUNT = 20;
-
-typedef void (*releaser)( void * );
 
 // The Nuitka_GenexprObject is the storage associated with a compiled generator object
 // instance of which there can be many for each code.
@@ -54,14 +52,13 @@ typedef struct {
     void *m_context;
     releaser m_cleanup;
 
-    PyObject *m_dict;
     PyObject *m_weakrefs;
 
     bool m_running;
     void *m_code;
 
     // Was it ever used, is it still running, or already finished.
-    int m_status;
+    Generator_Status m_status;
 
     // Store the iterator provided at creation time here.
     PyObject *iterators[ MAX_ITERATOR_COUNT ];
@@ -71,11 +68,6 @@ typedef struct {
 } Nuitka_GenexprObject;
 
 typedef PyObject * (*producer)( Nuitka_GenexprObject * );
-
-
-const int state_unused = 0;
-const int state_running = 1;
-const int state_finished = 2;
 
 static PyObject *Nuitka_Genexpr_tp_repr( Nuitka_GenexprObject *generator )
 {
@@ -107,7 +99,6 @@ static void Nuitka_Genexpr_tp_dealloc( Nuitka_GenexprObject *generator )
     }
 
     Py_DECREF( generator->m_name );
-    Py_XDECREF( generator->m_dict );
 
     for( int i = 0; i <= generator->iterator_level; i++ )
     {
@@ -122,7 +113,7 @@ static void Nuitka_Genexpr_tp_dealloc( Nuitka_GenexprObject *generator )
 
 static PyObject *Nuitka_Genexpr_tp_iternext( Nuitka_GenexprObject *generator )
 {
-    if ( generator->m_status != state_finished )
+    if ( generator->m_status != Generator_Status::status_Finished )
     {
         if ( generator->m_running )
         {
@@ -139,7 +130,7 @@ static PyObject *Nuitka_Genexpr_tp_iternext( Nuitka_GenexprObject *generator )
 
         if ( result == _sentinel_value )
         {
-            generator->m_status = state_finished;
+            generator->m_status = Generator_Status::status_Finished;
 
             PyErr_SetNone( PyExc_StopIteration );
             return NULL;
@@ -148,11 +139,11 @@ static PyObject *Nuitka_Genexpr_tp_iternext( Nuitka_GenexprObject *generator )
         {
             if ( result )
             {
-                generator->m_status = state_running;
+                generator->m_status = Generator_Status::status_Running;
             }
             else
             {
-                generator->m_status = state_finished;
+                generator->m_status = Generator_Status::status_Finished;
             }
 
             return result;
@@ -167,7 +158,7 @@ static PyObject *Nuitka_Genexpr_tp_iternext( Nuitka_GenexprObject *generator )
 
 static PyObject *Nuitka_Genexpr_send( Nuitka_GenexprObject *generator, PyObject *value )
 {
-    if ( generator->m_status == state_unused && value != NULL && value != Py_None )
+    if ( generator->m_status == Generator_Status::status_Unused && value != NULL && value != Py_None )
     {
         PyErr_Format( PyExc_TypeError, "can't send non-None value to a just-started generator" );
         return NULL;
@@ -178,7 +169,7 @@ static PyObject *Nuitka_Genexpr_send( Nuitka_GenexprObject *generator, PyObject 
 
 static PyObject *Nuitka_Genexpr_close( Nuitka_GenexprObject *generator, PyObject *args )
 {
-    generator->m_status = state_finished;
+    generator->m_status = Generator_Status::status_Finished;
     return INCREASE_REFCOUNT( Py_None );
 }
 
@@ -194,7 +185,7 @@ static PyObject *Nuitka_Genexpr_throw( Nuitka_GenexprObject *generator, PyObject
     }
 
     PyErr_Restore( exception_type, exception_value, exception_tb );
-    generator->m_status = state_finished;
+    generator->m_status = Generator_Status::status_Finished;
 
     return NULL;
 }
@@ -255,7 +246,7 @@ static PyTypeObject Nuitka_Genexpr_Type =
     0,                                             // tp_dict
     0,                                             // tp_descr_get
     0,                                             // tp_descr_set
-    offsetof( Nuitka_GenexprObject, m_dict ),      // tp_dictoffset
+    0                                       ,      // tp_dictoffset
     0,                                             // tp_init
     0,                                             // tp_alloc
     0,                                             // tp_new
@@ -287,9 +278,8 @@ static PyObject *Nuitka_Genexpr_New( producer code, PyObject *name, PyObject *it
     result->m_cleanup = cleanup;
 
     result->m_weakrefs = NULL;
-    result->m_dict = NULL;
 
-    result->m_status = state_unused;
+    result->m_status = Generator_Status::status_Unused;
     result->m_running = false;
 
     // Store the iterator information provided at creation time here.
@@ -306,5 +296,7 @@ static PyObject *Nuitka_Genexpr_New( producer code, PyObject *name, PyObject *it
     _PyObject_GC_TRACK( result );
     return (PyObject *)result;
 }
+
+// *** Nuitka_Genexpr type end
 
 """

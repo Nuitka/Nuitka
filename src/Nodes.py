@@ -223,14 +223,14 @@ class CPythonNode:
     def isSliceObjectExpression( self ):
         return self.kind == "EXPRESSION_SLICEOBJ_REF"
 
-    def isAttributeAssignment( self ):
-        return self.kind == "STATEMENT_ATTRIBUTE_ASSIGNMENT"
-
     def isExpressionComparison( self ):
         return self.kind == "EXPRESSION_COMPARISON"
 
     def isConditionalExpression( self ):
         return self.kind == "EXPRESSION_CONDITIONAL"
+
+    def isExpressionYield( self ):
+        return self.kind == "EXPRESSION_YIELD"
 
     def isStatementAssignment( self ):
         return self.kind == "STATEMENT_ASSIGNMENT"
@@ -246,9 +246,6 @@ class CPythonNode:
 
     def isStatementReturn( self ):
         return self.kind == "STATEMENT_RETURN"
-
-    def isStatementYield( self ):
-        return self.kind == "STATEMENT_YIELD"
 
     def isStatementImportModule( self ):
         return self.kind == "STATEMENT_IMPORT_MODULE"
@@ -893,9 +890,6 @@ class CPythonExpressionLambda( CPythonChildrenHaving, CPythonNode, CPythonParame
     def markAsGenerator( self ):
         self.is_generator = True
 
-    def getLambdaYielded( self ):
-        return self.getLambdaExpression().getExpression()
-
     def getVisitableNodes( self ):
         return self.parameters.getDefaultExpressions() + ( self.getLambdaExpression(), )
 
@@ -1041,9 +1035,9 @@ class CPythonExpressionVariable( CPythonNode ):
         return self.variable_name
 
 
-class CPythonStatementReturn( CPythonChildrenHaving, CPythonNode ):
+class CPythonExpressionYield( CPythonChildrenHaving, CPythonNode ):
     def __init__( self, expression, source_ref ):
-        CPythonNode.__init__( self, kind = "STATEMENT_RETURN", source_ref = source_ref )
+        CPythonNode.__init__( self, kind = "EXPRESSION_YIELD", source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
@@ -1055,9 +1049,9 @@ class CPythonStatementReturn( CPythonChildrenHaving, CPythonNode ):
     getExpression = CPythonChildrenHaving.childGetter( "expression" )
 
 
-class CPythonStatementYield( CPythonChildrenHaving, CPythonNode ):
+class CPythonStatementReturn( CPythonChildrenHaving, CPythonNode ):
     def __init__( self, expression, source_ref ):
-        CPythonNode.__init__( self, kind = "STATEMENT_YIELD", source_ref = source_ref )
+        CPythonNode.__init__( self, kind = "STATEMENT_RETURN", source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
@@ -1718,6 +1712,9 @@ class CPythonStatementImportFrom( CPythonNode ):
         self.module_package = module_package
         self.module_name = module_name
         self.imports = imports[:]
+
+    def getDetail( self ):
+        return ";".join( str(v) for v in self.getImports() )
 
     def getImports( self ):
         return self.imports

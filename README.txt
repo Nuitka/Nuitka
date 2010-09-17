@@ -37,8 +37,8 @@ This is an ASCII format outline, used for tasks and issue tracking in Nuitka.
 
 ** function.func_code:
 
-   Does not exist. There is no bytecode with Nuitka's compiled function objects, so there
-   is no way to provide bytecode.
+   Cannot not exist for native compiled functions. There is no bytecode with Nuitka's
+   compiled function objects, so there is no way to provide bytecode.
 
 ** On function level "from import *" does not work
 
@@ -73,21 +73,6 @@ This is an ASCII format outline, used for tasks and issue tracking in Nuitka.
    variable accesses. Priority: I do not see much value, all you need to do is to define
    the variable before the exec to make it work.
 
-** generators functions have no throw() method:
-
-   Not used by anything but contextlib yet. Will have to work in the future, or else we
-   won't be able to fully support contextlib, which I expect will see a more widespread
-   usage.
-
-** generators function have no send() and close() method:
-
-   I also noticed that generators functions don't have a send() to provide a yield return
-   value, which finally tells me why yield is an expression rather than a statement which
-   always confused me somewhat.
-
-   And they don't have a close() method either. This is used to prematurely close a
-   generator with a GeneratorExit exception.
-
 ** sys.exc_info() does not stack
 
    It works mostly as expected, but doesn't stack, exceptions when handling exceptions are
@@ -113,21 +98,10 @@ This is an ASCII format outline, used for tasks and issue tracking in Nuitka.
 
 This is the list of tests modified from what they are in CPython.
 
-*** test_class:
-
-    Part of the test uses the extended slicing syntax that I do not yet fully understand.
-
 *** test_compile:
 
-    Removed extended slice syntax.  Changed func_code usage to get local consts to
-    locals().  Removed tests based on func_code objects.  Remove test that uses exec to
-    enrich the locals.
-
-*** test_contextlib:
-
-    Everything except exceptions is working. It uses the throw method of generators that
-    we don't have. For the time being the "with" statement works, but not with generator
-    expressions where there are exceptions.
+    Changed func_code usage to get local consts to locals().  Removed tests based on
+    func_code objects.  Remove test that uses exec to enrich the locals.
 
 *** test_complexargs:
 

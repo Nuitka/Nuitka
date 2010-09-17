@@ -289,6 +289,8 @@ def someYielder():
     yield 2
 
 def someYieldFunctionUser():
+    print "someYielder", someYielder()
+
     result = []
 
     for a in someYielder():
@@ -389,3 +391,68 @@ d = {
     getKeywordArg2() : getPlainArg2()
 }
 print
+
+print "Throwing an exception to a generator function:"
+
+def someGeneratorFunction():
+    try:
+        yield 1
+        yield 2
+    except:
+        yield 3
+
+    yield 4
+
+gen1 = someGeneratorFunction()
+
+print "Fresh Generator Function throwing gives",
+
+try:
+    print gen1.throw( ValueError ),
+except ValueError:
+    print "exception indeed"
+
+gen2 = someGeneratorFunction()
+
+print "Used Generator Funtion throwing gives",
+gen2.next()
+print gen2.throw( ValueError ), "indeed"
+
+gen3 = someGeneratorFunction()
+
+print "Fresh Generator Function close gives",
+print gen3.close()
+
+gen4 = someGeneratorFunction()
+
+print "Used Generator Function that miscatches close gives",
+gen4.next()
+try:
+    print gen4.close(),
+except RuntimeError:
+    print "runtime exception indeed"
+
+
+gen5 = someGeneratorFunction()
+
+print "Used Generator Function close gives",
+gen5.next()
+gen5.next()
+gen5.next()
+
+print gen5.close(),
+
+def receivingGenerator():
+    while True:
+       a = yield 4
+       yield a
+
+print "Generator function that receives",
+
+gen6 = receivingGenerator()
+
+print gen6.next(),
+print gen6.send( 5 ),
+print gen6.send( 6 ),
+print gen6.send( 7 ),
+print gen6.send( 8 )

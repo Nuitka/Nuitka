@@ -39,6 +39,7 @@ later stages of the compiler.
 import SourceCodeReferences
 import TreeTransforming
 import PythonOperators
+import TreeOperations
 import Options
 
 import Nodes
@@ -246,9 +247,9 @@ def buildFunctionCallNode( provider, node, source_ref ):
     positional_args = buildNodeList( provider, node.args, source_ref )
 
     named_args = []
+
     for keyword in node.keywords:
         named_args.append( ( keyword.arg, buildNode( provider, keyword.value, source_ref ) ) )
-
 
     return Nodes.CPythonExpressionFunctionCall(
         called_expression = buildNode( provider, node.func, source_ref ),
@@ -308,9 +309,9 @@ def buildDictionaryNode( provider, node, source_ref ):
         )
 
 def buildAssignTarget( provider, node, source_ref ):
-    kind = getKind( node )
-
     assert getKind( node.ctx ) in ( "Store", "Del" )
+
+    kind = getKind( node )
 
     if kind == "Name":
         return Nodes.CPythonAssignTargetVariable( variable = provider.getVariableForAssignment( variable_name = node.id ), source_ref = source_ref )
@@ -324,13 +325,15 @@ def buildAssignTarget( provider, node, source_ref ):
 
         return Nodes.CPythonAssignTuple( elements = elements, source_ref = source_ref )
     elif kind == "Subscript":
-        if getKind( node.slice ) == "Index":
+        slice_kind = getKind( node.slice )
+
+        if slice_kind == "Index":
             return Nodes.CPythonAssignSubscript(
                 expression = buildNode( provider, node.value, source_ref ),
                 subscript  = buildNode( provider, node.slice.value, source_ref ),
                 source_ref = source_ref
             )
-        elif getKind( node.slice ) == "Slice":
+        elif slice_kind == "Slice":
             lower = buildNode( provider, node.slice.lower, source_ref ) if node.slice.lower is not None else None
             upper = buildNode( provider, node.slice.upper, source_ref ) if node.slice.upper is not None else None
 
@@ -354,9 +357,23 @@ def buildAssignTarget( provider, node, source_ref ):
                     upper      = upper,
                     source_ref = source_ref
                 )
+        elif slice_kind == "ExtSlice":
+            return Nodes.CPythonAssignSubscript(
+                expression = buildNode( provider, node.value, source_ref ),
+                subscript  = _buildExtSliceNode( provider, node, source_ref ),
+                source_ref = source_ref
+            )
+        elif slice_kind == "Ellipsis":
+            return Nodes.CPythonAssignSubscript(
+                expression = buildNode( provider, node.value, source_ref ),
+                subscript  = Nodes.CPythonExpressionConstant(
+                    constant   = Ellipsis,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            )
         else:
             assert False, node.slice
-
     else:
         print dir(node)
         assert False, ( source_ref, ast.dump( node ) )
@@ -565,16 +582,57 @@ def buildAssertNode( provider, node, source_ref ):
     )
 
 
+def _buildExtSliceNode( provider, node, source_ref ):
+    elements = []
+
+    for dim in node.slice.dims:
+        dim_kind = getKind( dim )
+
+        if dim_kind == "Slice":
+            lower = buildNode( provider, dim.lower, source_ref ) if dim.lower is not None else None
+            upper = buildNode( provider, dim.upper, source_ref ) if dim.upper is not None else None
+            step = buildNode( provider, dim.step,  source_ref ) if dim.step is not None else None
+
+            element = Nodes.CPythonExpressionSliceObject(
+                lower      = lower,
+                upper      = upper,
+                step       = step,
+                source_ref = source_ref
+            )
+        elif dim_kind == "Ellipsis":
+            element = Nodes.CPythonExpressionConstant(
+                constant   = Ellipsis,
+                source_ref = source_ref
+            )
+        elif dim_kind == "Index":
+            element = buildNode(
+                provider   = provider,
+                node       = dim.value,
+                source_ref = source_ref
+            )
+        else:
+            assert False, dim
+
+        elements.append( element )
+
+    return Nodes.CPythonExpressionSequenceCreation(
+        sequence_kind = "TUPLE",
+        elements      = elements,
+        source_ref    = source_ref
+    )
+
 def buildSubscriptNode( provider, node, source_ref ):
     assert getKind( node.ctx ) == "Load", source_ref
 
-    if getKind( node.slice ) == "Index":
+    kind = getKind( node.slice )
+
+    if kind == "Index":
         return Nodes.CPythonExpressionSubscriptionLookup(
             expression = buildNode( provider, node.value, source_ref ),
             subscript  = buildNode( provider, node.slice.value, source_ref ),
             source_ref = source_ref
         )
-    elif getKind( node.slice ) == "Slice":
+    elif kind == "Slice":
         lower = buildNode( provider, node.slice.lower, source_ref ) if node.slice.lower is not None else None
         upper = buildNode( provider, node.slice.upper, source_ref ) if node.slice.upper is not None else None
 
@@ -598,8 +656,23 @@ def buildSubscriptNode( provider, node, source_ref ):
                 upper      = upper,
                 source_ref = source_ref
             )
+    elif kind == "ExtSlice":
+        return Nodes.CPythonExpressionSubscriptionLookup(
+            expression = buildNode( provider, node.value, source_ref ),
+            subscript  = _buildExtSliceNode( provider, node, source_ref ),
+            source_ref = source_ref
+        )
+    elif kind == "Ellipsis":
+        return Nodes.CPythonExpressionSubscriptionLookup(
+            expression = buildNode( provider, node.value, source_ref ),
+            subscript  = Nodes.CPythonExpressionConstant(
+                    constant   = Ellipsis,
+                    source_ref = source_ref
+            ),
+            source_ref = source_ref
+        )
     else:
-        assert False
+        assert False, kind
 
 
 def _findModuleInPath( module_name, sys_path ):
@@ -655,7 +728,7 @@ def _findModule( module_name, parent_package ):
     return _findModuleInPath( module_name, sys.path + [ "." ] )
 
 def _isWhiteListedNotExistingModule( module_name ):
-    return module_name in ( "mac", "nt", "os2", "_emx_link", "riscos", "ce", "riscospath", "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256", "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle", "marshal", "imp", "sys" )
+    return module_name in ( "mac", "nt", "os2", "_emx_link", "riscos", "ce", "riscospath", "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256", "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle", "marshal", "imp", "sys", "itertools" )
 
 
 def _buildImportModulesNode( provider, parent_package, import_names, source_ref ):
@@ -993,7 +1066,7 @@ def buildNode( provider, node, source_ref ):
         elif kind == "Yield":
             provider.markAsGenerator()
 
-            result = Nodes.CPythonStatementYield(
+            result = Nodes.CPythonExpressionYield(
                 expression = buildNode( provider, node.value, source_ref ) if node.value is not None else None,
                 source_ref = source_ref
             )
@@ -1036,18 +1109,10 @@ def buildNode( provider, node, source_ref ):
                 source_ref = source_ref
             )
         elif kind == "Expr":
-            # Although the Python doc calls it a statement, you can write "a = yield value" and expect it
-            # to work. The tree we are visiting represents that by discarding the value that yield
-            # produced (None normally). We allow yield to be a real statement to us. Another hack
-            # would be needed to assignments to use None to handle the syntax fully, but for the time
-            # being this is not even a plan to add.
-            if getKind( node.value ) != "Yield":
-                result = Nodes.CPythonStatementExpressionOnly(
-                    expression = buildNode( provider, node.value, source_ref ),
-                    source_ref = source_ref
-                )
-            else:
-                result = buildNode( provider, node.value, source_ref )
+            result = Nodes.CPythonStatementExpressionOnly(
+                expression = buildNode( provider, node.value, source_ref ),
+                source_ref = source_ref
+            )
         elif kind == "BoolOp" or ( kind == "UnaryOp" and getKind( node.op ) == "Not" ):
             result = buildBoolOpNode(
                 provider   = provider,
@@ -1220,7 +1285,7 @@ def buildNode( provider, node, source_ref ):
                 source_ref = source_ref
             )
         else:
-            assert False
+            assert False, kind
 
         assert isinstance( result, Nodes.CPythonNode )
 
@@ -1232,16 +1297,6 @@ def buildNode( provider, node, source_ref ):
         dump( node )
         raise
 
-class TreeVisitorAssignParent:
-    def __call__( self, node ):
-        for child in node.getVisitableNodes():
-            if child is None:
-                raise AssertionError( "none child encountered", node, node.source_ref )
-
-            try:
-                child.parent = node
-            except AttributeError:
-                raise AssertionError( "strange child encountered", node, node.source_ref, child )
 
             # print node, "<-", child
 
@@ -1278,16 +1333,7 @@ class VariableClosureLookupVisitor:
 def getOtherModules():
     return ModuleRecursionVisitor.imported_modules.values()
 
-def visitTree( tree, visitor ):
-    visitor( tree )
-
-    for visitable in tree.getVisitableNodes():
-        visitTree( visitable, visitor )
-
 import os
-
-def assignParent( tree ):
-    visitTree( tree, TreeVisitorAssignParent() )
 
 def extractDocFromBody( node ):
     # Work around ast.get_docstring breakage.
@@ -1339,7 +1385,7 @@ def buildReplacementTree( provider, parent, source_code, filename, line_offset )
 
     result = buildParseTree( provider, source_code, filename, line_offset, replacement = True )
 
-    assignParent( result )
+    TreeOperations.assignParent( result )
     result.parent = parent
 
     applyImmediateTransformations( result )
@@ -1355,7 +1401,7 @@ def applyImmediateTransformations( tree ):
     if Options.shallFollowImports():
         parent_module = tree.getParentModule()
 
-        visitTree( tree, ModuleRecursionVisitor( parent_module, parent_module.getFilename(), Options.includeStandardLibrary() ) )
+        TreeOperations.visitTree( tree, ModuleRecursionVisitor( parent_module, parent_module.getFilename(), Options.includeStandardLibrary() ) )
 
     # 2. Replace exec with string constant as parameters with the code inlined
     # instead. This is an optimization that is easy to do and useful for large parts of
@@ -1366,7 +1412,7 @@ def applyImmediateTransformations( tree ):
     # 3. Now that the tree is complete, make a second pass and find the referenced
     # variable for every name lookup done. Afterwards no more getVariableForAssignment
     # should be called.
-    visitTree( tree, VariableClosureLookupVisitor() )
+    TreeOperations.visitTree( tree, VariableClosureLookupVisitor() )
 
     # 4. Replace calls to locals, globals or eval with our own variants, because these
     # will refuse to work (exe case) or give incorrect results (module case).
@@ -1397,7 +1443,7 @@ def buildModuleTree( filename, package = None ):
     )
 
 
-    assignParent( result )
+    TreeOperations.assignParent( result )
 
     applyImmediateTransformations( result )
 

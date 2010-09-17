@@ -32,6 +32,7 @@
 
 from templates.CodeTemplatesMain import *
 
+from templates.CodeTemplatesCompiledGeneratorType import *
 from templates.CodeTemplatesCompiledFunctionType import *
 from templates.CodeTemplatesCompiledGenexprType import *
 
@@ -1996,7 +1997,6 @@ static void ADD_TRACEBACK( PyObject *module, PyObject *filename, PyObject *funct
 
     Py_DECREF( frame );
 }
-
 
 """
 

@@ -62,10 +62,10 @@ class PythonGeneratorBase:
             return "return;"
 
     def getYieldCode( self, context, identifier ):
-        return "_python_context->yielded = %s; swapcontext( &_python_context->yielder_context, &_python_context->caller_context );" % identifier.getCodeExportRef()
+        return Identifier( "YIELD_VALUE( generator, %s )" % identifier.getCodeExportRef(), 0 )
 
-    def getYieldTerminator( self ):
-        return Identifier( "_sentinel_value", 0 )
+    def getYieldTerminatorCode( self ):
+        return CodeTemplates.genfunc_yield_terminator;
 
     def getSequenceCreationCode( self, context, sequence_kind, element_identifiers ):
         assert sequence_kind in ( "tuple", "list" )
@@ -494,7 +494,7 @@ else
       assert( exception_type );
       assert( exception_value );
 
-      PyObject *result = PyObject_CallMethod( %(manager)s.asObject(), (char *)"__exit__",  (char *)"OOO", exception_type, exception_value, exception_tb, NULL );
+      PyObject *result = PyObject_CallMethod( %(manager)s.asObject(), (char *)"__exit__",  (char *)"OOO", INCREASE_REFCOUNT( exception_type ), INCREASE_REFCOUNT( exception_value ), INCREASE_REFCOUNT( exception_tb ), NULL );
 
       if ( result == NULL )
       {
