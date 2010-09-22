@@ -68,7 +68,7 @@ static PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name )
     return LOOKUP_SUBSCRIPT( PySys_GetObject( (char *)"modules" ), import_name );
 }
 
-static void IMPORT_MODULE_STAR( PyObject *target, PyObject *module_name )
+static void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name )
 {
     PyObject *module = IMPORT_MODULE( module_name, module_name );
 
@@ -91,12 +91,12 @@ static void IMPORT_MODULE_STAR( PyObject *target, PyObject *module_name )
         all_case = false;
     }
 
-    while (PyObject *item = PyIter_Next( iter ))
+    while ( PyObject *item = PyIter_Next( iter ) )
     {
         assert( PyString_Check( item ) );
 
         // TODO: Not yet clear, what happens with __all__ and "_" of its contents.
-        if (!all_case)
+        if ( all_case == false )
         {
             if ( PyString_AS_STRING( item )[0] == '_' )
             {
@@ -105,7 +105,14 @@ static void IMPORT_MODULE_STAR( PyObject *target, PyObject *module_name )
         }
 
         // TODO: Check if the reference is handled correctly
-        SET_ATTRIBUTE( target, item, LOOKUP_ATTRIBUTE( module, item ) );
+        if ( is_module )
+        {
+            SET_ATTRIBUTE( target, item, LOOKUP_ATTRIBUTE( module, item ) );
+        }
+        else
+        {
+            SET_SUBSCRIPT( target, item, LOOKUP_ATTRIBUTE( module, item ) );
+        }
 
         Py_DECREF( item );
     }

@@ -86,6 +86,8 @@ class PythonContextBase:
 
         return result
 
+    def hasLocalsDict( self ):
+        return False
 
 class PythonChildContextBase( PythonContextBase ):
     def __init__( self, parent ):
@@ -382,11 +384,10 @@ class PythonModuleContext( PythonContextBase ):
         return self.code_name
 
 class PythonFunctionContext( PythonChildContextBase ):
-    def __init__( self, parent, function, locals_dict ):
+    def __init__( self, parent, function ):
         PythonChildContextBase.__init__( self, parent = parent )
 
         self.function = function
-        self.locals_dict = locals_dict
 
         self.lambda_count = 0
 
@@ -395,7 +396,10 @@ class PythonFunctionContext( PythonChildContextBase ):
             self.getConstantHandle( constant = local_name )
 
     def __repr__( self ):
-        return "<PythonFunctionContext for function '%s'>" % self.function.getName()
+        return "<PythonFunctionContext for function '%s' local dict %s>" % ( self.function.getName(), self.locals_dict )
+
+    def hasLocalsDict( self ):
+        return self.function.hasLocalsDict()
 
     def hasLocalVariable( self, var_name ):
         return var_name in self.function.getLocalVariableNames()

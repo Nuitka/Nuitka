@@ -150,12 +150,12 @@ static PyTracebackObject *%(module_tb_maker)s( int line )
    return result;
 }
 
-void %(module_tb_adder)s( int line )
+static void %(module_tb_adder)s( int line )
 {
    ADD_TRACEBACK( _module_%(module_identifier)s, %(file_identifier)s, _python_str_angle_module, line );
 }
 
-PyMODINIT_FUNC init%(module_identifier)s(void)
+NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 {
     // puts( "in init%(module_identifier)s" );
 

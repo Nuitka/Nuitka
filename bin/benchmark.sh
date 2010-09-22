@@ -1,3 +1,4 @@
+#!/bin/sh -e
 #
 #     Copyright 2010, Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -30,40 +31,13 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-class ExitVisit( BaseException ):
-    pass
+MODULE=$1
 
-def visitTree( tree, visitor ):
-    try:
-        visitor( tree )
+Nuitka.py --exe --output-dir=/tmp/ $MODULE
 
-        for visitable in tree.getVisitableNodes():
-            visitTree( visitable, visitor )
+OUTPUT="/tmp/`basename $MODULE .py`.exe"
+LOGFILE="/tmp/`basename $MODULE .py`.log"
 
-    except ExitVisit:
-        pass
+ls -l $OUTPUT
 
-def visitScope( tree, visitor ):
-    try:
-        visitor( tree )
-
-        for visitable in tree.getSameScopeNodes():
-            visitScope( visitable, visitor )
-
-    except ExitVisit:
-        pass
-
-
-class _TreeVisitorAssignParent:
-    def __call__( self, node ):
-        for child in node.getVisitableNodes():
-            if child is None:
-                raise AssertionError( "none child encountered", node, node.source_ref )
-
-            try:
-                child.parent = node
-            except AttributeError:
-                raise AssertionError( "strange child encountered", node, node.source_ref, child )
-
-def assignParent( tree ):
-    visitTree( tree, _TreeVisitorAssignParent() )
+valgrind -q --tool=callgrind --callgrind-out-file=$LOGFILE --zero-before=init__main__ $OUTPUT

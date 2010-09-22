@@ -32,11 +32,11 @@
 """ The code generation.
 
 No language specifics at all are supposed to be present here. Instead it is using
-primitives from the given generator objects to build either Identifiers or to
-build code constructs.
+primitives from the given generator to build either Identifiers (referenced counted
+expressions) or code sequences (list of strings).
 
-As such this is the place that knows how to take a condition and two code branches
-and make a code block out of it.
+As such this is the place that knows how to take a condition and two code branches and
+make a code block out of it. But it doesn't contain any target language syntax.
 """
 
 import TreeOperations
@@ -252,30 +252,12 @@ def generateLambdaCode( lambda_expression, context, generator ):
 
     return code
 
-class _OverflowCheckVisitor:
-    def __init__( self ):
-        self.result = False
-
-    def __call__( self, node ):
-        if node.isStatementImportFrom():
-            for local_name, variable in node.getImports():
-                if local_name == "*":
-                    raise TreeOperations.ExitVisit
-
-def hasOverflowLocalsNeed( node ):
-    visitor = _OverflowCheckVisitor()
-
-    TreeOperations.visitTree( node, visitor )
-
-    return visitor.result
-
 def generateFunctionBodyCode( function, context, generator ):
     body = function.getBody()
 
     context = Contexts.PythonFunctionContext(
-        parent      = context,
-        function    = function,
-        locals_dict = hasOverflowLocalsNeed( body )
+        parent   = context,
+        function = function
     )
 
     codes = generateStatementSequenceCode(
@@ -763,7 +745,7 @@ def generateExpressionCode( expression, context, generator ):
             context   = context
         )
     elif expression.isConditionalExpression():
-        identifier = generator.getConditionalExpressionCallCode(
+        identifier = generator.getConditionalExpressionCode(
             condition = makeExpressionCode( expression.getCondition() ),
             codes_yes = makeExpressionCode( expression.getExpressionYes() ),
             codes_no  = makeExpressionCode( expression.getExpressionNo() ),
@@ -777,7 +759,8 @@ def generateExpressionCode( expression, context, generator ):
     elif expression.isBuiltinLocals():
         identifier = generator.getLoadLocalsCode(
             context  = context,
-            provider = expression.getParentVariableProvider()
+            provider = expression.getParentVariableProvider(),
+            direct   = False
         )
     elif expression.isBuiltinDir():
         identifier = generator.getLoadDirCode(

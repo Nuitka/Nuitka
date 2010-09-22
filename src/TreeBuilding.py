@@ -834,7 +834,10 @@ def buildImportFromNode( provider, node, source_ref ):
     for import_desc in node.names:
         object_name, local_name = import_desc.name, import_desc.asname
 
-        local_variable = provider.getVariableForAssignment( local_name if local_name is not None else object_name )
+        if object_name == "*":
+            local_variable = None
+        else:
+            local_variable = provider.getVariableForAssignment( local_name if local_name is not None else object_name )
 
         imports.append( ( object_name, local_variable ) )
 

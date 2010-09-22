@@ -122,6 +122,8 @@ static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObje
 
     try
     {
+        %(function_dict_setup)s
+
         %(parameter_parsing_code)s
 
         // Local variable declarations.
@@ -132,7 +134,7 @@ static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObje
 
         return INCREASE_REFCOUNT( Py_None );
     }
-    catch (_PythonException &_exception)
+    catch ( _PythonException &_exception )
     {
         _exception.toPython();
 

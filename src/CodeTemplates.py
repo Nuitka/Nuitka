@@ -72,9 +72,9 @@ global_prelude = """\
 #include <stdio.h>
 #include <string>
 
-// An idea I first saw used with Cython, hint the compiler about branches that are more or less likely to
-// be taken. And hint the compiler about things that we assume to be normally true. If other compilers
-// can do similar, I would be grateful for howtos.
+// An idea I first saw used with Cython, hint the compiler about branches that are more or
+// less likely to be taken. And hint the compiler about things that we assume to be
+// normally true. If other compilers can do similar, I would be grateful for howtos.
 
 #ifdef __GNUC__
 #define likely(x) __builtin_expect(!!(x), 1)
@@ -84,9 +84,17 @@ global_prelude = """\
 #define unlikely(x) (x)
 #endif
 
-PyObject *_expression_temps[100];
-PyObject *_eval_globals_tmp;
-PyObject *_eval_locals_tmp;
+// An idea to reduce the amount of exported symbols, esp. as we are using C++ and classes
+// do not allow to limit their visibility normally.
+#ifdef __GNUC__
+#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__((visibility( "default" )))
+#else
+#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC
+#endif
+
+static PyObject *_expression_temps[100];
+static PyObject *_eval_globals_tmp;
+static PyObject *_eval_locals_tmp;
 
 // From CPython, to allow us quick access to the dictionary of an module.
 typedef struct {
@@ -577,11 +585,6 @@ static bool CHECK_IF_FALSE( PyObject *object )
 static PyObject *BOOL_FROM( bool value )
 {
     return value ? _python_bool_True : _python_bool_False;
-}
-
-static PyObject *TO_BOOL( PyObject *object )
-{
-    return BOOL_FROM( CHECK_IF_TRUE( object ));
 }
 
 static PyObject *UNARY_NOT( PyObject *object )
@@ -1344,6 +1347,69 @@ class PyObjectTemporary {
         PyObject *object;
 };
 
+class PyObjectLocalDictVariable {
+    public:
+        explicit PyObjectLocalDictVariable( PyObject *storage, PyObject *var_name ) {
+            this->storage    = storage;
+            this->var_name   = var_name;
+        }
+
+        PyObject *asObject() const
+        {
+            // TODO: Dictionary quick access code could be used here too.
+            PyObject *result = PyDict_GetItem( this->storage, this->var_name );
+
+            if ( result == NULL )
+            {
+                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", PyString_AsString( this->var_name ) );
+                throw _PythonException();
+            }
+
+            assert( result->ob_refcnt > 0 );
+
+            return result;
+        }
+
+        void operator=( PyObject *object )
+        {
+            assert( object );
+            assert( object->ob_refcnt > 0 );
+
+            int res = PyDict_SetItem( this->storage, this->var_name, object );
+
+            assert( res == 0 );
+        }
+
+        bool isInitialized() const
+        {
+            return PyDict_Contains( this->storage, this->var_name ) == 1;
+        }
+
+        void del()
+        {
+            int res = PyDict_DelItem( this->storage, this->var_name );
+
+            if ( res == -1 )
+            {
+                // TODO: Probably an error should be raised?
+                PyErr_Clear();
+            }
+        }
+
+
+        PyObject *getVariableName() const
+        {
+            return this->var_name;
+        }
+
+
+
+    private:
+        PyObject *storage;
+        PyObject *var_name;
+
+};
+
 class PyObjectLocalVariable {
     public:
         explicit PyObjectLocalVariable( PyObject *var_name, PyObject *object = NULL, bool free_value = true ) {
@@ -1360,7 +1426,11 @@ class PyObjectLocalVariable {
 
         ~PyObjectLocalVariable()
         {
-            this->del();
+            if ( this->free_value )
+            {
+                // TODO: Why would free_value be true if this->object were NULL.
+                Py_XDECREF( this->object );
+            }
         }
 
         void setVariableName( PyObject *var_name )
@@ -1408,10 +1478,15 @@ class PyObjectLocalVariable {
 
         void del()
         {
+            if ( this->object == NULL )
+            {
+                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", PyString_AsString( this->var_name ) );
+                throw _PythonException();
+            }
+
             if ( this->free_value )
             {
-                // TODO: Why would free_value be true if this->object were NULL.
-                Py_XDECREF( this->object );
+                Py_DECREF( this->object );
             }
 
             this->object = NULL;
@@ -1525,14 +1600,14 @@ class PyObjectSharedLocalVariable
 
             if ( this->storage->object == NULL )
             {
-                PyErr_Format( PyExc_NameError, "free variable '%s' referenced before assignment in enclosing scope", PyString_AsString( this->storage->var_name ) );
+                PyErr_Format( PyExc_UnboundLocalError, "free variable '%s' referenced before assignment in enclosing scope", PyString_AsString( this->storage->var_name ) );
                 throw _PythonException();
 
             }
 
             if ( (this->storage->object)->ob_refcnt == 0 )
             {
-                PyErr_Format( PyExc_NameError, "free variable '%s' referenced after its finalization in enclosing scope", PyString_AsString( this->storage->var_name ) );
+                PyErr_Format( PyExc_UnboundLocalError, "free variable '%s' referenced after its finalization in enclosing scope", PyString_AsString( this->storage->var_name ) );
                 throw _PythonException();
             }
 
@@ -1583,7 +1658,7 @@ class PyObjectGlobalVariable
                 PyDictObject *dict = (PyDictObject *)((PyModuleObject *)*this->module_ptr)->md_dict;
                 PyDictEntry *entry = dict->ma_lookup( dict, *this->var_name, hash );
 
-                if (unlikely(entry == NULL))
+                if (unlikely( entry == NULL ))
                 {
                     throw _PythonException();
                 }
@@ -1632,6 +1707,18 @@ class PyObjectGlobalVariable
             }
         }
 
+        PyObject *asObject( PyObject *dict ) const
+        {
+            if ( PyDict_Contains( dict, *this->var_name ))
+            {
+                return PyDict_GetItem( dict, *this->var_name );
+            }
+            else
+            {
+                return this->asObject();
+            }
+        }
+
         void assign( PyObject *value ) const
         {
             SET_ATTRIBUTE( *this->module_ptr, *this->var_name, value );
@@ -1639,14 +1726,20 @@ class PyObjectGlobalVariable
 
         void del() const
         {
-           DEL_ATTRIBUTE(  *this->module_ptr, *this->var_name );
+            int status = PyObject_DelAttr( *this->module_ptr, *this->var_name );
+
+            if ( status == -1 )
+            {
+                PyErr_Format( PyExc_NameError, "name '%s' is not defined", PyString_AsString( *this->var_name ) );
+                throw _PythonException();
+            }
         }
 
         bool isInitialized() const
         {
             long hash = ((PyStringObject *)*this->var_name)->ob_shash;
 
-            if (hash != -1)
+            if ( hash != -1 )
             {
                 PyDictObject *dict = (PyDictObject *)((PyModuleObject *)*this->module_ptr)->md_dict;
                 PyDictEntry *entry = dict->ma_lookup( dict, *this->var_name, hash );
@@ -1788,7 +1881,7 @@ class PythonBuiltin
         PyObject *value;
 };
 
-PythonBuiltin _python_builtin_compile( "compile" );
+static PythonBuiltin _python_builtin_compile( "compile" );
 
 static PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags )
 {
@@ -1849,7 +1942,7 @@ static PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObj
     return result;
 }
 
-PythonBuiltin _python_builtin_open( "open" );
+static PythonBuiltin _python_builtin_open( "open" );
 
 static PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
 {

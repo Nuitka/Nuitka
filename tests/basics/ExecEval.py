@@ -55,18 +55,20 @@ print "2+2=",d
 def functionExec1():
     a = 1
 
-    exec( "a=2" )
+    code = "a=2"
+    exec( code )
 
     return a
 
 def functionExec2():
     a = 1
 
-    exec "a=2" in globals(), locals()
+    code = "a=2"
+    exec code in globals(), locals()
 
     return a
 
-print "exec in function with and with locals() provided:", functionExec1(), functionExec2()
+print "exec in function without and with locals() provided:", functionExec1(), functionExec2()
 
 f = open( "/tmp/execfile.py", "wb" )
 f.write( "e=7\nf=8\n" )

@@ -19,28 +19,23 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-def starImporterFunction():
-    from sys import *
+a = 3
 
-    print "Version", version.split()[0]
+del a
 
-starImporterFunction()
+try:
+    del a
+except NameError, e:
+    print "Raised expected exception:", e
 
-def deepExec():
-    for_closure = 3
+def someFunction():
+   b = 1
 
-    def execFunction():
-        code = "f=2"
+   del b
 
-        # Can fool it to nest
-        exec code in None, None
+   try:
+       del b
+   except UnboundLocalError, e:
+       print "Raised expected exception:", e
 
-        print "Locals now", locals()
-
-        print "Closure was taken", for_closure
-        print "Globals still work", starImporterFunction
-        print "Added local from code", f
-
-    execFunction()
-
-deepExec()
+someFunction()

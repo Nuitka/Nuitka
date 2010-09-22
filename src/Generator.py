@@ -29,15 +29,11 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Generators for Python C/API Module Generator.
+""" Generators for Python C/API.
 
-Then there is a module generator for module stuff. It wants a global generator to
-put things into and produces a file. The idea is that module generators for
-multiple modules may interact later.
-
-There is one generator for global stuff. Global means that these things can be
-used by all modules. This of course only really means global when we are compiling
-a whole program nd have a set of modules.
+This is the actual C++ code generator. It has methods and should be the only place to know
+what C++ is like. Ideally it would be possible to replace the target language by changing
+this one and the templates, and otherwise nothing else.
 
 """
 
@@ -159,10 +155,13 @@ catch( _PythonException &_exception )
                 "import_list"    : self.getConstantHandle(
                     context  = context,
                     constant = tuple( object_names )
-                    ).getCode()
-                }
+                ).getCode()
+            }
         else:
-            return """   IMPORT_MODULE_STAR( %s, %s );""" % ( self.getModuleAccessCode( context = context ), self.getConstantCode( constant = module_name, context = context ) )
+            if not context.hasLocalsDict():
+                return """   IMPORT_MODULE_STAR( %s, true, %s );""" % ( self.getModuleAccessCode( context = context ), self.getConstantCode( constant = module_name, context = context ) )
+            else:
+                return """   IMPORT_MODULE_STAR( locals_dict.asObject(), false, %s );""" % self.getConstantCode( constant = module_name, context = context )
 
     def getMaxIndexCode( self, context ):
         return Identifier( "PY_SSIZE_T_MAX", 0 )
@@ -266,13 +265,11 @@ catch( _PythonException &_exception )
             context        = context
         )
 
-    def getConditionalExpressionCallCode( self, context, condition, codes_no, codes_yes ):
-        check = "IF_TRUE"
-
+    def getConditionalExpressionCode( self, context, condition, codes_no, codes_yes ):
         if codes_yes.getRefCount() == codes_no.getRefCount():
-            return Identifier( "(CHECK_%s( %s ) ? %s : %s)" % ( check, condition.getCodeTemporaryRef(), codes_yes.getCodeObject(), codes_no.getCodeObject()), codes_yes.getRefCount() )
+            return Identifier( "(CHECK_IF_TRUE( %s ) ? %s : %s)" % ( condition.getCodeTemporaryRef(), codes_yes.getCodeObject(), codes_no.getCodeObject()), codes_yes.getRefCount() )
         else:
-            return Identifier( "(CHECK_%s( %s ) ? %s : %s)" % ( check, condition.getCodeTemporaryRef(), codes_yes.getCodeExportRef(), codes_no.getCodeExportRef() ), 1 )
+            return Identifier( "(CHECK_IF_TRUE( %s ) ? %s : %s)" % ( condition.getCodeTemporaryRef(), codes_yes.getCodeExportRef(), codes_no.getCodeExportRef() ), 1 )
 
     def getGeneratorExpressionCreationCode( self, context, iterated_identifier, generator_expression ):
         args =  [ self.getIteratorCreationCode( context = context, iterated = iterated_identifier ).getCodeExportRef() ]
@@ -311,9 +308,6 @@ catch( _PythonException &_exception )
         )
 
     def getBranchCode( self, context, conditions, branches_codes ):
-        # Remove the implicit "not" that Python always has in branch check.
-        # check = "IF_TRUE" if check == "IF_FALSE" else "IF_FALSE"
-
         keyword = "if"
 
         result = ""
@@ -409,12 +403,6 @@ else
 
         return comparison
 
-    def getConditionOrCode( self, context, conditions ):
-        return "(%s)" % " || ".join( conditions )
-
-    def getConditionAndCode( self, context, conditions ):
-        return "(%s)" % " && ".join( conditions )
-
     def getConditionNotCode( self, context, condition ):
         return Identifier( "UNARY_NOT( %s )" % condition.getCodeTemporaryRef(), 0 )
 
@@ -449,9 +437,6 @@ else
 
     def getSliceDelCode( self, context, target, lower, upper ):
         return "DEL_SLICE( %s, %s, %s );" % ( target.getCodeTemporaryRef(), lower.getCodeTemporaryRef() if lower is not None else "Py_None", upper.getCodeTemporaryRef() if upper is not None else "Py_None" )
-
-    def getBoolCreationCode( self, context, identifier ):
-        return Identifier( "TO_BOOL( %s )" % identifier.getCodeTemporaryRef(), 0 )
 
     def getWithNames( self, context ):
         with_count = context.allocateWithNumber()
@@ -552,8 +537,8 @@ else
             return """\
 while (CHECK_IF_TRUE( %s ))
 {
-   try
-   {
+    try
+    {
 %s
     }
     catch( ContinueException &e )
@@ -592,9 +577,6 @@ if (%(indicator_name)s == false)
     "indicator_name"  : "_python_for_loop_indicator_%d" % context.allocateWhileLoopNumber()
 }
 
-    def getReferenceBumpCode( self, identifier ):
-        return "INCREASE_REFCOUNT( %s )" % identifier
-
     def getVariableHandle( self, context, variable ):
         assert isinstance( variable, Variables.Variable ), variable
 
@@ -607,7 +589,10 @@ if (%(indicator_name)s == false)
         elif variable.isModuleVariable():
             context.addGlobalVariableNameUsage( var_name )
 
-            return Identifier( "_mvar_%s_%s.asObject()" % ( context.getModuleCodeName(), var_name ), 1 )
+            if not context.hasLocalsDict():
+                return Identifier( "_mvar_%s_%s.asObject()" % ( context.getModuleCodeName(), var_name ), 1 )
+            else:
+                return Identifier( "_mvar_%s_%s.asObject( locals_dict.asObject() )" % ( context.getModuleCodeName(), var_name ), 1 )
         else:
             assert False, variable
 
@@ -827,9 +812,12 @@ if (%(indicator_name)s == false)
         if provider.isModule():
             return Identifier( "PyDict_Keys( %s )" % self.getLoadGlobalsCode( context = context, module = provider ).getCodeTemporaryRef(), 1 )
         else:
-            local_list = self._getLocalVariableList( context = context, provider = provider )
+            if not context.hasLocalsDict():
+                local_list = self._getLocalVariableList( context = context, provider = provider )
 
-            return Identifier( "MAKE_LOCALS_DIR( %s )" % ", ".join( local_list ), 1 )
+                return Identifier( "MAKE_LOCALS_DIR( %s )" % ", ".join( local_list ), 1 )
+            else:
+                return Identifier( "PyDict_Keys( locals.asObject() )", 1 )
 
     def getLoadVarsCode( self, context, identifier ):
         return Identifier( "LOOKUP_VARS( %s )" % identifier.getCodeTemporaryRef(), 1 )
@@ -837,19 +825,18 @@ if (%(indicator_name)s == false)
     def getLoadGlobalsCode( self, context, module ):
         return Identifier( "PyModule_GetDict( %(module_identifier)s )" % { "module_identifier" : self.getModuleAccessCode( context ) }, 0 )
 
-    def getLoadGlobalsCodeIfNone( self, context, module, identifier ):
-        return Identifier( "(( _eval_globals_tmp = %(identifier)s ) != Py_None ? _eval_globals_tmp : %(globals_identifier)s )" % { "globals_identifier" : self.getLoadGlobalsCode( context = context, module = module ).getCodeObject(), "identifier" : identifier.getCodeObject() }, identifier.getRefCount() )
-
-    def getLoadLocalsCode( self, context, provider ):
+    def getLoadLocalsCode( self, context, provider, direct ):
         assert not provider.isModule()
 
-        local_list = [ "&%s" % self.getVariableHandle( variable = variable, context = context ).getCode() for variable in provider.getVariables() if not variable.isModuleVariable() ]
+        if not context.hasLocalsDict():
+            local_list = [ "&%s" % self.getVariableHandle( variable = variable, context = context ).getCode() for variable in provider.getVariables() if not variable.isModuleVariable() ]
 
-        return Identifier( "MAKE_LOCALS_DICT( %s )" % ", ".join( local_list ), 1 )
-
-    def getLoadLocalsCodeIfNone( self, context, provider, identifier ):
-        return Identifier( "(( _eval_globals_tmp = %(identifier)s ) != Py_None ? _eval_globals_tmp : %(locals_identifier)s )" % { "locals_identifier" : self.getLoadLocalsCode( context = context, provider = provider ).getCodeObject(), "identifier" : identifier.getCodeObject() }, identifier.getRefCount() )
-
+            return Identifier( "MAKE_LOCALS_DICT( %s )" % ", ".join( local_list ), 1 )
+        else:
+            if direct:
+                return Identifier( "locals_dict.asObject()", 0 )
+            else:
+                return Identifier( "PyDict_Copy( locals_dict.asObject() )", 1 )
 
     def getStoreLocalsCode( self, context, source_identifier, provider ):
         assert not provider.isModule()
@@ -915,16 +902,19 @@ if (%s)
                     "future_flags"           : future_flags,
             }, 1 )
         else:
+            make_globals_identifier = self.getLoadGlobalsCode( context = context, module = provider ).getCodeExportRef()
+            make_locals_identifier = self.getLoadLocalsCode( context = context, provider = provider, direct = True ).getCodeExportRef()
+
             return Identifier(
                 CodeTemplates.eval_local_template % {
-                    "globals_identifier"     : globals_identifier.getCodeTemporaryRef(),
-                    "locals_identifier"      : locals_identifier.getCodeTemporaryRef(),
-                    "make_globals_identifier" : self.getLoadGlobalsCode( context = context, module = provider ).getCodeExportRef(),
-                    "make_locals_identifier" : self.getLoadLocalsCode( context = context, provider = provider ).getCodeExportRef(),
-                    "source_identifier"      : exec_code.getCodeTemporaryRef(),
-                    "filename_identifier"    : self.getConstantCode( constant = "<string>", context = context ),
-                    "mode_identifier"        : self.getConstantCode( constant = "eval", context = context ),
-                    "future_flags"           : future_flags,
+                    "globals_identifier"      : globals_identifier.getCodeTemporaryRef(),
+                    "locals_identifier"       : locals_identifier.getCodeTemporaryRef(),
+                    "make_globals_identifier" : make_globals_identifier,
+                    "make_locals_identifier"  : make_locals_identifier,
+                    "source_identifier"       : exec_code.getCodeTemporaryRef(),
+                    "filename_identifier"     : self.getConstantCode( constant = "<string>", context = context ),
+                    "mode_identifier"         : self.getConstantCode( constant = "eval", context = context ),
+                    "future_flags"            : future_flags,
             }, 1 )
 
     def getExecCode( self, context, exec_code, globals_identifier, locals_identifier, future_flags, provider ):
@@ -941,18 +931,21 @@ if (%s)
         else:
             locals_temp_identifier = Identifier( "locals.asObject()", 0 )
 
+            make_globals_identifier = self.getLoadGlobalsCode( context = context, module = provider ).getCodeExportRef()
+            make_locals_identifier = self.getLoadLocalsCode( context = context, provider = provider, direct = True ).getCodeExportRef()
+
             return CodeTemplates.exec_local_template % {
-                "globals_identifier"     : globals_identifier.getCodeExportRef(),
-                "locals_identifier"      : locals_identifier.getCodeExportRef(),
-                "make_globals_identifier" : self.getLoadGlobalsCode( context = context, module = provider.getParentModule() ).getCodeExportRef(),
-                "make_locals_identifier" : self.getLoadLocalsCode( context = context, provider = provider ).getCodeExportRef(),
-                "source_identifier"      : exec_code.getCodeTemporaryRef(),
-                "filename_identifier"    : self.getConstantCode( constant = "<string>", context = context ),
+                "globals_identifier"      : globals_identifier.getCodeExportRef(),
+                "locals_identifier"       : locals_identifier.getCodeExportRef(),
+                "make_globals_identifier" : make_globals_identifier,
+                "make_locals_identifier"  : make_locals_identifier,
+                "source_identifier"       : exec_code.getCodeTemporaryRef(),
+                "filename_identifier"     : self.getConstantCode( constant = "<string>", context = context ),
                 # TODO: Make this optional.
                 # filename_identifier"    : context.getConstantHandle( constant = provider.getParentModule().getFullName() + "::exec" ).getCode(),
-                "mode_identifier"        : self.getConstantCode( constant = "exec", context = context ),
-                "future_flags"           : future_flags,
-                "store_locals_code"      : self.getStoreLocalsCode( context = context, source_identifier = locals_temp_identifier, provider = provider )
+                "mode_identifier"         : self.getConstantCode( constant = "exec", context = context ),
+                "future_flags"            : future_flags,
+                "store_locals_code"       : self.getStoreLocalsCode( context = context, source_identifier = locals_temp_identifier, provider = provider )
             }
 
 
@@ -1015,7 +1008,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         module_identifier = self.getModuleIdentifier( module_name )
 
-        module_globals = "\n   ".join( [ """PyObjectGlobalVariable _mvar_%s_%s( &_module_%s, &%s );""" % ( module_identifier, var_name, module_identifier, context.getConstantHandle( constant = var_name ).getCode() ) for var_name in sorted( module_var_names ) ] )
+        module_globals = "\n".join( [ """static PyObjectGlobalVariable _mvar_%s_%s( &_module_%s, &%s );""" % ( module_identifier, var_name, module_identifier, context.getConstantHandle( constant = var_name ).getCode() ) for var_name in sorted( module_var_names ) ] )
 
         # Make sure that _python_str_angle_module is available to the template
         context.getConstantHandle( constant = "<module>" )
@@ -1278,7 +1271,13 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
     def _getLocalVariableInitCode( self, context, variable, init_from = None, needs_no_free = False, in_context = False, shared = False ):
         shared = shared or variable.isShared()
-        result = "PyObjectLocalVariable" if not shared else "PyObjectSharedLocalVariable"
+
+        if shared:
+            result = "PyObjectSharedLocalVariable"
+        elif context.hasLocalsDict():
+            result = "PyObjectLocalDictVariable"
+        else:
+            result = "PyObjectLocalVariable"
 
         var_name = variable.getName()
 
@@ -1293,7 +1292,12 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             result += "python_var_%s" % var_name
 
         if not in_context:
-            result += "( %s" % context.getConstantHandle( constant = var_name ).getCode()
+            result += "( "
+
+            if context.hasLocalsDict():
+                result += "locals_dict.asObject(), ";
+
+            result += "%s" % context.getConstantHandle( constant = var_name ).getCode()
 
             if init_from is not None:
                 result += ", " + init_from
@@ -1597,6 +1601,11 @@ class PythonModuleGenerator( PythonGeneratorBase ):
         )
 
         # User local variable initializations
+        if context.hasLocalsDict():
+            function_dict_setup = "// Locals setup.\n      PyObjectTemporary locals_dict( PyDict_New() );\n"
+        else:
+            function_dict_setup = ""
+
         local_var_inits = [ self._getLocalVariableInitCode( context, variable ) for variable in user_variables ]
 
         function_decorator_calls = self._getDecoratorsCallCode(
@@ -1632,7 +1641,8 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             "name_identifier"         : self.getConstantCode( context = context, constant = function_name ),
             "file_identifier"         : self.getConstantCode( context = context, constant = function_filename ),
             "function_tb_maker"       : self.getTracebackMaker( function_identifier ),
-            "function_tb_adder"       : self.getTracebackAdder( function_identifier )
+            "function_tb_adder"       : self.getTracebackAdder( function_identifier ),
+            "function_dict_setup"     : function_dict_setup
         }
 
         if function_context_decl:
@@ -1833,7 +1843,17 @@ class PythonModuleGenerator( PythonGeneratorBase ):
         if for_argument:
             # Not every reference counts, therefore the above may be a weak reference.
 
-            kind = "PyObjectSharedLocalVariable" if variable.getReferenced().isShared() else "PyObjectLocalVariable"
+            owner = variable.getOwner()
+
+            if not owner.isParentVariableProvider():
+                owner = owner.getParentVariableProvider()
+
+            if owner.hasLocalsDict():
+                kind = "PyObjectLocalDictVariable"
+            elif variable.getReferenced().isShared():
+                kind = "PyObjectSharedLocalVariable"
+            else:
+                kind = "PyObjectLocalVariable"
 
             return "%s &_python_closure_%s" % (kind, variable.getName())
         else:

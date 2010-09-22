@@ -31,12 +31,13 @@
 #
 """ This is the main control actions of Nuitka, for use in several main programs.
 
-This can do all the steps to translate one module to a C++ source code using Python
-C/API, tp compile it to either an executable or an extension module.
+This can do all the steps to translate one module to a target language using the Python
+C/API, to compile it to either an executable or an extension module.
 
 """
 
 import CodeGeneration
+import TreeOperations
 import TreeBuilding
 import TreeDisplay
 import Generator
@@ -71,10 +72,51 @@ def dumpTree( tree ):
 def displayTree( tree ):
     TreeDisplay.displayTreeInspector( tree )
 
+class _OverflowCheckVisitor:
+    def __init__( self ):
+        self.result = False
+
+    def __call__( self, node ):
+        if node.isStatementImportFrom():
+            for local_name, variable in node.getImports():
+                if local_name == "*":
+                    self.result = True
+                    raise TreeOperations.ExitVisit
+
+        if node.isStatementExec():
+            self.result = True
+            raise TreeOperations.ExitVisit
+
+    def getResult( self ):
+        return self.result
+
+
+def checkOverflowNeed( node ):
+    visitor = _OverflowCheckVisitor()
+
+    TreeOperations.visitScope( node, visitor )
+
+    return visitor.getResult()
+
+
+
+class _PrepareCodeGenerationVisitor:
+    def __call__( self, node ):
+        if node.isFunctionReference():
+            if checkOverflowNeed( node.getBody() ):
+                node.markAsLocalsDict()
+
+def _prepareCodeGeneration( tree ):
+    visitor = _PrepareCodeGenerationVisitor()
+
+    TreeOperations.visitTree( tree, visitor )
+
 def makeModuleSource( tree ):
     generator_module = Generator.PythonModuleGenerator(
         module_name = tree.getName(),
     )
+
+    _prepareCodeGeneration( tree )
 
     source_code = CodeGeneration.generateModuleCode(
         module         = tree,
@@ -95,6 +137,11 @@ def makeMainSource( tree ):
 
     if tree in other_modules:
         other_modules.remove( tree )
+
+    for module in other_modules:
+        _prepareCodeGeneration( module )
+
+    _prepareCodeGeneration( tree )
 
     source_code = CodeGeneration.generateExecutableCode(
         main_module   = tree,
@@ -131,7 +178,10 @@ def getGccOptions( python_target_major_version, python_target_debug_indicator, p
     if not os.path.exists( python_header_path + "/Python.h" ):
         warning( "The Python headers seem to be not installed. Expect C++ compiler failures." )
 
-    gcc_options = ["-std=c++0x", "-I" + python_header_path ]
+    gcc_options = [ "-std=c++0x", "-I" + python_header_path ]
+
+    if True:
+        gcc_options += [ "-fvisibility=hidden", "-fvisibility-inlines-hidden" ]
 
     if Options.isDebug():
         gcc_options += [

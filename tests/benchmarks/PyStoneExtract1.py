@@ -20,7 +20,8 @@
 #
 # This taken from CPython's pystone test, and is an extract of it I made
 # to analyse the differences between CPython and Nuitka performance. It
-# was under PSF 2 license. It's not very useful anymore.
+# was under PSF 2 license. It's not very useful anymore, but it is under
+# that license still.
 
 from time import clock
 
@@ -40,26 +41,10 @@ def Proc4():
     BoolLoc = BoolLoc or BoolGlob
     Char2Glob = 'B'
 
-def pystones(loops):
-    return Proc0(loops)
-
-def Proc0(loops):
-
-    starttime = clock()
-    for i in range(loops):
-        pass
-    nulltime = clock() - starttime
-
-    starttime = clock()
-
-    for i in range(loops):
+def benchmark( loops ):
+    for i in xrange( loops ):
         Proc4()
 
-    benchtime = clock() - starttime - nulltime
-    return benchtime, (loops / benchtime)
 
 if __name__ == "__main__":
-    benchtime, stones = pystones( LOOPS )
-    print "Pystone(%s) time for %d passes = %g" % \
-          (__version__, LOOPS, benchtime)
-    print "This machine benchmarks at %g pystones/second" % stones
+    benchmark( LOOPS )

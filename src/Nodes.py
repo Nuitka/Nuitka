@@ -322,6 +322,8 @@ class CPythonNode:
     def getVisitableNodes( self ):
         return ()
 
+    getSameScopeNodes = getVisitableNodes
+
     def _getNiceName( self ):
         if self.isExpressionLambda():
             result = "lambda"
@@ -467,6 +469,21 @@ class CPythonChildrenHaving:
 
         return tuple( result )
 
+    def getSameScopeNodes( self ):
+        result = []
+
+        for key, value in self.named_children.iteritems():
+            if value is None or key == "body":
+                pass
+            elif type( value ) == tuple:
+                result += list( value )
+            elif isinstance( value, CPythonNode ):
+                result.append( value )
+            else:
+                assert False, ( key, value, value.__class__ )
+
+        return tuple( result )
+
     def replaceChild( self, old_node, new_node ):
         for key, value in self.named_children.iteritems():
             if value is None:
@@ -526,6 +543,9 @@ class CPythonClosureGiver( CPythonNamedCode ):
     def getProvidedVariables( self ):
         return self.providing.values()
 
+    def hasLocalsDict( self ):
+        return False
+
 class CPythonClosureTaker:
     """ Mixin for nodes that accept variables from closure givers. """
 
@@ -581,7 +601,7 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
         CPythonChildrenHaving.__init__(
             self,
             names = {
-                "body" : None
+                "frame" : None
             }
         )
 
@@ -589,8 +609,8 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
         self.package = package
         self.doc = None
 
-    setBody = CPythonChildrenHaving.childSetter( "body" )
-    getStatementSequence = CPythonChildrenHaving.childGetter( "body" )
+    setBody = CPythonChildrenHaving.childSetter( "frame" )
+    getStatementSequence = CPythonChildrenHaving.childGetter( "frame" )
 
     def getDoc( self ):
         return self.doc
@@ -644,6 +664,9 @@ class CPythonClass( CPythonNamedNode, CPythonClosureTaker, CPythonNamedCode ):
     def getVisitableNodes( self ):
         return ( self.body, ) + self.bases + self.decorators
 
+    def getSameScopeNodes( self ):
+        return self.bases + self.decorators
+
     def getBaseClasses( self ):
         return self.bases
 
@@ -673,6 +696,9 @@ class CPythonClass( CPythonNamedNode, CPythonClosureTaker, CPythonNamedCode ):
         return self.variables.values()
 
     getVariables = getClassVariables
+
+    def hasLocalsDict( self ):
+        return False
 
 class CPythonStatementSequence( CPythonChildrenHaving, CPythonNode ):
     def __init__( self, statements, replacement, source_ref ):
@@ -875,14 +901,14 @@ class CPythonExpressionLambda( CPythonChildrenHaving, CPythonNode, CPythonParame
         CPythonChildrenHaving.__init__(
             self,
             names = {
-                "expression" : None
+                "body" : None
             }
         )
 
         self.is_generator = False
 
-    getLambdaExpression = CPythonChildrenHaving.childGetter( "expression" )
-    setBody = CPythonChildrenHaving.childSetter( "expression" )
+    getLambdaExpression = CPythonChildrenHaving.childGetter( "body" )
+    setBody = CPythonChildrenHaving.childSetter( "body" )
 
     def isGenerator( self ):
         return self.is_generator
@@ -931,12 +957,17 @@ class CPythonFunction( CPythonNamedNode, CPythonParameterHaving, CPythonClosureT
         self.body = None
 
         self.decorators = tuple( decorators )
+
         self.is_generator = False
+        self.locals_dict = False
 
         self.doc = doc
 
     def getVisitableNodes( self ):
         return self.parameters.getDefaultExpressions() + ( self.body, ) + self.decorators
+
+    def getSameScopeNodes( self ):
+        return self.parameters.getDefaultExpressions() + self.decorators
 
     def getDescription( self ):
         return "Function '%s' with %s" % ( self.name, self.parameters )
@@ -976,6 +1007,12 @@ class CPythonFunction( CPythonNamedNode, CPythonParameterHaving, CPythonClosureT
 
     def markAsGenerator( self ):
         self.is_generator = True
+
+    def markAsLocalsDict( self ):
+        self.locals_dict = True
+
+    def hasLocalsDict( self ):
+        return self.locals_dict
 
     def isGenerator( self ):
         return self.is_generator
@@ -1335,11 +1372,11 @@ class CPythonStatementWith( CPythonChildrenHaving, CPythonNode ):
             names = {
                 "expression" : source,
                 "target"     : target,
-                "body"       : body
+                "frame"      : body
             }
         )
 
-    getWithBody = CPythonChildrenHaving.childGetter( "body" )
+    getWithBody = CPythonChildrenHaving.childGetter( "frame" )
     getTarget = CPythonChildrenHaving.childGetter( "target" )
     getExpression = CPythonChildrenHaving.childGetter( "expression" )
 
@@ -1353,13 +1390,13 @@ class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNode ):
                 "iterated" : source,
                 "target"   : target,
                 "else"     : no_break,
-                "body"     : body
+                "frame"    : body
             }
         )
 
     getIterated = CPythonChildrenHaving.childGetter( "iterated" )
     getLoopVariableAssignment = CPythonChildrenHaving.childGetter( "target" )
-    getBody = CPythonChildrenHaving.childGetter( "body" )
+    getBody = CPythonChildrenHaving.childGetter( "frame" )
     getNoBreak = CPythonChildrenHaving.childGetter( "else" )
 
 class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNode ):
@@ -1371,11 +1408,11 @@ class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNode ):
             names = {
                 "condition" : condition,
                 "else"      : no_enter,
-                "body"      : body
+                "frame"     : body
             }
         )
 
-    getLoopBody = CPythonChildrenHaving.childGetter( "body" )
+    getLoopBody = CPythonChildrenHaving.childGetter( "frame" )
     getCondition = CPythonChildrenHaving.childGetter( "condition" )
     getNoEnter = CPythonChildrenHaving.childGetter( "else" )
 

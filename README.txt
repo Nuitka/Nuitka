@@ -1,15 +1,15 @@
+-*- org -*-
 
-Recommended reading with org-mode in Emacs.
-
-This is an ASCII format outline, used for tasks and issue tracking in Nuitka.
+Recommended reading with org-mode in Emacs. This is an ASCII format outline, used for
+tasks and issue tracking in Nuitka.
 
 * Usage
 
 ** Requirements
 
    You need to use the GNU g++ compiler of at least version 4.5 available or else the
-   compilation will fail. This is due to uses of C++0x and precisely 4.5 because of the
-   use of so called "raw string" literals in Nuitka.
+   compilation will fail. This is due to uses of C++0x and at least 4.5 because of the use
+   of so called "raw string" literals in Nuitka, which are new in that version of g++.
 
 ** Environment
 
@@ -39,39 +39,6 @@ This is an ASCII format outline, used for tasks and issue tracking in Nuitka.
 
    Cannot not exist for native compiled functions. There is no bytecode with Nuitka's
    compiled function objects, so there is no way to provide bytecode.
-
-** On function level "from import *" does not work
-
-   Example
-
-   def myFunction():
-      from string import *
-
-      stuff()
-
-   Does not generate correct C++ at this time. Similar problem to "exec does not create
-   function locals". Currently Nuitka doesn't support a dynamic size of locals. Same
-   solution applies.
-
-** exec does not create function locals:
-
-   Example:
-
-   def myFunction():
-       exec( "f=2" )
-
-   The exec does not create local variables unless they already exist, by e.g.  having
-   them assigned before:
-
-   def myFunction():
-       f = None
-
-       exec( "f=2" )
-
-   Otherwise the code believes that f is a global variable. Solution Plan: Would require
-   to fallback to checking the provided locals for new entries before checking globals
-   variable accesses. Priority: I do not see much value, all you need to do is to define
-   the variable before the exec to make it work.
 
 ** sys.exc_info() does not stack
 
@@ -197,9 +164,8 @@ This is the list of tests modified from what they are in CPython.
 *** test_scope:
 
     A test that checks exec with free vars refusal was using func_code to do so, removed
-    that part. Also removed unbound local variable test, because we can't handle that
-    yet. Removed part that checks for allowed forms of "from x import *" on function
-    level, we don't support that yet.
+    that part. A test that wanted the gc.collect() to find a cyclic dependency was removed
+    as we free more immediately.
 
 *** test_signal:
 
@@ -487,10 +453,6 @@ This is the list of tests modified from what they are in CPython.
 *** test_winreg:
 
     Removed, windows only
-
-*** test_with:
-
-    Removed, there is a lot we don't support yet.
 
 *** test_zipfile64:
 
