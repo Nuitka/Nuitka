@@ -98,13 +98,27 @@ def checkOverflowNeed( node ):
 
     return visitor.getResult()
 
-
-
 class _PrepareCodeGenerationVisitor:
     def __call__( self, node ):
         if node.isFunctionReference():
             if checkOverflowNeed( node.getBody() ):
                 node.markAsLocalsDict()
+
+        if node.isStatementBreak() or node.isStatementContinue():
+            search = node.getParent()
+
+            crossed_try = False
+
+            while not search.isStatementForLoop() and not search.isStatementWhileLoop():
+                last_search = search
+                search = search.getParent()
+
+                if search.isStatementTryFinally() and last_search == search.getBlockTry():
+                    crossed_try = True
+
+            if crossed_try:
+                search.markAsExceptionBreakContinue()
+                node.markAsExceptionBreakContinue()
 
 def _prepareCodeGeneration( tree ):
     visitor = _PrepareCodeGenerationVisitor()
@@ -192,9 +206,13 @@ def getGccOptions( python_target_major_version, python_target_debug_indicator, p
 
     if Options.isOptimize():
         gcc_options += [
-            " -D__NUITKA_NO_ASSERT__",
             "-O3"
         ]
+
+        if not Options.isDebug():
+            gcc_options += [
+                " -D__NUITKA_NO_ASSERT__",
+            ]
 
     # Compile the generated source immediately.
     if Options.shallMakeModule():
@@ -212,6 +230,9 @@ def getGccOptions( python_target_major_version, python_target_debug_indicator, p
         gcc_options += [ "-D_NUITKA_MODULE" ]
     else:
         gcc_options += [ "-D_NUITKA_EXE" ]
+
+    if False:
+        print gcc_options
 
     return gcc_options, output_filename
 

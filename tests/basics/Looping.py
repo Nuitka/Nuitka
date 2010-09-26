@@ -18,7 +18,6 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-# -*- coding: utf-8 -*-
 
 def cond():
     return False

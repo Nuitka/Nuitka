@@ -217,6 +217,34 @@ def namifyConstant( constant ):
         return "float_%s" % repr( constant ).replace( ".", "_" ).replace( "-", "_minus_" ).replace( "+", "" )
     elif type( constant ) == complex:
         return "complex_%s" % str( constant ).replace( "+", "p" ).replace( "-", "m" ).replace(".","_")
+    elif type( constant ) == dict:
+        if constant == {}:
+            return "dict_empty"
+        else:
+            return "dict_" + hashlib.md5( repr( constant ) ).hexdigest()
+    elif type( constant ) == set:
+        if constant == set():
+            return "set_empty"
+        else:
+            return "set_" + hashlib.md5( repr( constant ) ).hexdigest()
+    elif type( constant ) == tuple:
+        if constant == ():
+            return "tuple_empty"
+        else:
+            result = "tuple_"
+
+            try:
+                parts = []
+
+                for value in constant:
+                    parts.append( namifyConstant( value ) )
+
+                return result + "_".join( parts )
+            except ExceptionCannotNamify:
+                print "Warning, couldn't namify", value
+
+                return "tuple_" + hashlib.md5( repr( constant ) ).hexdigest()
+
     else:
         raise ExceptionCannotNamify( constant )
 

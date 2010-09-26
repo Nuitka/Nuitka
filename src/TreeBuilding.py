@@ -296,7 +296,7 @@ def buildDictionaryNode( provider, node, source_ref ):
         if constant:
             constant_value[ key_node.getConstant() ] = value_node.getConstant()
 
-    if False and constant:
+    if constant:
         return Nodes.CPythonExpressionConstant(
             constant   = constant_value,
             source_ref = source_ref
@@ -304,6 +304,30 @@ def buildDictionaryNode( provider, node, source_ref ):
     else:
         return Nodes.CPythonExpressionDictionaryCreation(
             keys       = keys,
+            values     = values,
+            source_ref = source_ref
+        )
+
+def buildSetNode( provider, node, source_ref ):
+    values = buildNodeList( provider, node.elts, source_ref )
+
+    constant_value = set()
+    constant = True
+
+    for value in values:
+        if not value.isConstantReference():
+            constant = False
+            break
+
+        constant_value.add( value.getConstant() )
+
+    if constant:
+        return Nodes.CPythonExpressionConstant(
+            constant   = constant_value,
+            source_ref = source_ref
+        )
+    else:
+        return Nodes.CPythonExpressionSetCreation(
             values     = values,
             source_ref = source_ref
         )
@@ -1107,6 +1131,12 @@ def buildNode( provider, node, source_ref ):
             )
         elif kind == "Dict":
             result = buildDictionaryNode(
+                provider   = provider,
+                node       = node,
+                source_ref = source_ref
+            )
+        elif kind == "Set":
+            result = buildSetNode(
                 provider   = provider,
                 node       = node,
                 source_ref = source_ref

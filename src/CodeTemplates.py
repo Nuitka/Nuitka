@@ -50,11 +50,16 @@ from templates.CodeTemplatesClass import *
 
 
 global_copyright = """
-// Generated code for Python source '%(name)s'
+// Generated code for Python source for module '%(name)s'
 
 // This code is in part copyright Kay Hayen, license GPLv3. This has the consequence that
 // your must either obtain a commercial license or also publish your original source code
 // under the same license unless you don't distribute this source or its binary.
+"""
+
+module_header = """
+// Generated code for Python source for module '%(name)s'
+
 """
 
 # Template for the global stuff that must be had, compiling one or multple modules.
@@ -427,8 +432,8 @@ static void PRINT_ITEM_TO( PyObject *file, PyObject *object )
         char *buffer;
         Py_ssize_t length;
 
-        int res = PyString_AsStringAndSize( str, &buffer, &length );
-        assert( res != -1 );
+        int status = PyString_AsStringAndSize( str, &buffer, &length );
+        assert( status != -1 );
 
         softspace = length > 0 && buffer[length - 1 ] == '\t';
 
@@ -557,14 +562,14 @@ static bool CHECK_IF_TRUE( PyObject *object )
     assert( object != NULL );
     assert( object->ob_refcnt > 0 );
 
-    int res = PyObject_IsTrue( object );
+    int status = PyObject_IsTrue( object );
 
-    if (res == -1)
+    if (unlikely( status == -1 ))
     {
         throw _PythonException();
     }
 
-    return res == 1;
+    return status == 1;
 }
 
 static bool CHECK_IF_FALSE( PyObject *object )
@@ -572,14 +577,14 @@ static bool CHECK_IF_FALSE( PyObject *object )
     assert( object != NULL );
     assert( object->ob_refcnt > 0 );
 
-    int res = PyObject_Not( object );
+    int status = PyObject_Not( object );
 
-    if (res == -1)
+    if (unlikely( status == -1 ))
     {
         throw _PythonException();
     }
 
-    return res == 1;
+    return status == 1;
 }
 
 static PyObject *BOOL_FROM( bool value )
@@ -607,7 +612,7 @@ static PyObject *BINARY_OPERATION( binary_api api, PyObject *operand1, PyObject 
 
     PyObject *result = api( operand1, operand2 );
 
-    if (result == NULL)
+    if (unlikely (result == NULL))
     {
         _current_line = line;
         throw _PythonException();
@@ -622,7 +627,7 @@ static PyObject *UNARY_OPERATION( unary_api api, PyObject *operand )
 {
     PyObject *result = api( operand );
 
-    if (result == NULL)
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
@@ -634,7 +639,7 @@ static PyObject *POWER_OPERATION( PyObject *operand1, PyObject *operand2 )
 {
     PyObject *result = PyNumber_Power( operand1, operand2, Py_None );
 
-    if (result == NULL)
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
@@ -646,7 +651,7 @@ static PyObject *POWER_OPERATION_INPLACE( PyObject *operand1, PyObject *operand2
 {
     PyObject *result = PyNumber_InPlacePower( operand1, operand2, Py_None );
 
-    if (result == NULL)
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
@@ -659,7 +664,7 @@ static PyObject *RICH_COMPARE( int opid, PyObject *operand2, PyObject *operand1 
     int line = _current_line;
     PyObject *result = PyObject_RichCompare( operand1, operand2, opid );
 
-    if ( result == NULL )
+    if (unlikely (result == NULL))
     {
         _current_line = line;
         throw _PythonException();
@@ -673,7 +678,7 @@ static bool RICH_COMPARE_BOOL( int opid, PyObject *operand2, PyObject *operand1 
     int line = _current_line;
     int result = PyObject_RichCompareBool( operand1, operand2, opid );
 
-    if ( result == -1 )
+    if (unlikely( result == -1 ))
     {
         _current_line = line;
         throw _PythonException();
@@ -741,7 +746,7 @@ static PyObject *CALL_FUNCTION( PyObject *named_args, PyObject *positional_args,
 
     PyObject *result = PyObject_Call( function_object, positional_args, named_args );
 
-    if (result == NULL)
+    if (unlikely (result == NULL))
     {
         _current_line = line;
         throw _PythonException();
@@ -754,7 +759,7 @@ static PyObject *TO_TUPLE( PyObject *seq_obj )
 {
     PyObject *result = PySequence_Tuple( seq_obj );
 
-    if (result == NULL)
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
@@ -779,7 +784,7 @@ static PyObject *MAKE_TUPLE( P...eles )
 
         PyObject *result = PyTuple_New( size );
 
-        if (result == NULL)
+        if (unlikely (result == NULL))
         {
             throw _PythonException();
         }
@@ -808,7 +813,7 @@ static PyObject *MAKE_LIST( P...eles )
 
     PyObject *result = PyList_New( size );
 
-    if (result == NULL)
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
@@ -821,7 +826,7 @@ static PyObject *MAKE_LIST( P...eles )
         PyList_SET_ITEM( result, i, elements[ size - 1 - i ] );
     }
 
-    assert (result->ob_refcnt == 1);
+    assert( result->ob_refcnt == 1 );
 
     return result;
 }
@@ -836,16 +841,16 @@ static PyObject *MAKE_DICT( P...eles )
 
     PyObject *result = PyDict_New();
 
-    if (result == NULL)
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
 
     for( int i = 0; i < size; i += 2 )
     {
-        int res = PyDict_SetItem( result, elements[i], elements[i+1] );
+        int status = PyDict_SetItem( result, elements[i], elements[i+1] );
 
-        if ( res == -1 )
+        if (unlikely( status == -1 ))
         {
             throw _PythonException();
         }
@@ -858,14 +863,14 @@ static PyObject *MERGE_DICTS( PyObject *dict_a, PyObject *dict_b, bool allow_con
 {
     PyObject *result = PyDict_Copy( dict_a );
 
-    if ( result == NULL )
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
 
-    int res = PyDict_Merge( result, dict_b, 1 );
+    int status = PyDict_Merge( result, dict_b, 1 );
 
-    if ( res == -1 )
+    if (unlikely( status == -1 ))
     {
         throw _PythonException();
     }
@@ -875,6 +880,33 @@ static PyObject *MERGE_DICTS( PyObject *dict_a, PyObject *dict_b, bool allow_con
         Py_DECREF( result );
 
         PyErr_Format( PyExc_TypeError, "got multiple values for keyword argument" );
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+static void DICT_SET_ITEM( PyObject *dict, PyObject *key, PyObject *value )
+{
+    int status = PyDict_SetItem( dict, key, value );
+
+    if (unlikely( status == -1))
+    {
+        throw _PythonException();
+    }
+}
+
+template<typename... P>
+static PyObject *MAKE_SET( P...eles )
+{
+    PyObject *tuple = MAKE_TUPLE( eles... );
+
+    PyObject *result = PySet_New( tuple );
+
+    Py_DECREF( tuple );
+
+    if (unlikely (result == NULL))
+    {
         throw _PythonException();
     }
 
@@ -901,7 +933,7 @@ static PyObject *SEQUENCE_ELEMENT( PyObject *sequence, Py_ssize_t element )
 {
     PyObject *result = PySequence_GetItem( sequence, element );
 
-    if (result == NULL)
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
@@ -913,7 +945,7 @@ static PyObject *MAKE_ITERATOR( PyObject *iterated )
 {
     PyObject *result = PyObject_GetIter( iterated );
 
-    if (result == NULL)
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
@@ -932,7 +964,7 @@ static PyObject *ITERATOR_NEXT( PyObject *iterator )
 
     PyObject *result = PyIter_Next( iterator );
 
-    if ( result == NULL )
+    if (unlikely (result == NULL))
     {
         if ( PyErr_Occurred() != NULL )
         {
@@ -956,7 +988,7 @@ static inline PyObject *UNPACK_NEXT( PyObject *iterator, int seq_size_so_far )
 
     PyObject *result = PyIter_Next( iterator );
 
-    if ( result == NULL )
+    if (unlikely (result == NULL))
     {
         if ( PyErr_Occurred() != NULL )
         {
@@ -1041,7 +1073,7 @@ static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObject *subscript )
 
     PyObject *result = PyObject_GetItem( source, subscript );
 
-    if (result == NULL)
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
@@ -1068,7 +1100,7 @@ static PyObject *LOOKUP_VARS( PyObject *source )
 
     PyObject *result = PyObject_GetAttr( source, dict_str );
 
-    if (result == NULL)
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
@@ -1088,7 +1120,7 @@ static void SET_SUBSCRIPT( PyObject *target, PyObject *subscript, PyObject *valu
 
     int status = PyObject_SetItem( target, subscript, value );
 
-    if (status == -1)
+    if (unlikely( status == -1 ))
     {
         throw _PythonException();
     }
@@ -1103,7 +1135,7 @@ static void DEL_SUBSCRIPT( PyObject *target, PyObject *subscript )
 
     int status = PyObject_DelItem( target, subscript );
 
-    if (status == -1)
+    if (unlikely( status == -1 ))
     {
         throw _PythonException();
     }
@@ -1117,7 +1149,7 @@ static PyObject *LOOKUP_SLICE( PyObject *source, Py_ssize_t lower, Py_ssize_t up
 
     PyObject *result = PySequence_GetSlice( source, lower, upper);
 
-    if (result == NULL)
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
@@ -1134,7 +1166,7 @@ static void SET_SLICE( PyObject *target, Py_ssize_t lower, Py_ssize_t upper, PyO
 
     int status = PySequence_SetSlice( target, lower, upper, value );
 
-    if (status == -1)
+    if (unlikely( status == -1 ))
     {
         throw _PythonException();
     }
@@ -1151,7 +1183,7 @@ static void DEL_SLICE( PyObject *target, PyObject *lower, PyObject *upper )
     {
         int status = PySequence_DelSlice( target, lower != Py_None ? CONVERT_TO_INDEX( lower ) : 0, upper != Py_None ? CONVERT_TO_INDEX( upper ) : PY_SSIZE_T_MAX );
 
-        if (status == -1)
+        if (unlikely( status == -1 ))
         {
             throw _PythonException();
         }
@@ -1169,7 +1201,7 @@ static void DEL_SLICE( PyObject *target, PyObject *lower, PyObject *upper )
 
         Py_DECREF( slice );
 
-        if (status == -1)
+        if (unlikely( status == -1 ))
         {
             throw _PythonException();
         }
@@ -1187,7 +1219,7 @@ static PyObject *MAKE_SLICEOBJ( PyObject *start, PyObject *stop, PyObject *step 
 
     PyObject *result = PySlice_New( start, stop, step );
 
-    if (result == NULL)
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
@@ -1208,7 +1240,7 @@ static Py_ssize_t CONVERT_TO_INDEX( PyObject *value )
     {
         Py_ssize_t result = PyNumber_AsSsize_t( value, NULL );
 
-        if ( result == -1 && PyErr_Occurred() )
+        if (unlikely( result == -1 && PyErr_Occurred() ))
         {
             throw _PythonException();
         }
@@ -1231,7 +1263,7 @@ static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObject *attr_name )
 
     PyObject *result = PyObject_GetAttr( source, attr_name );
 
-    if (result == NULL)
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
@@ -1252,7 +1284,7 @@ static void SET_ATTRIBUTE( PyObject *target, PyObject *attr_name, PyObject *valu
 
     int status = PyObject_SetAttr( target, attr_name, value );
 
-    if (status == -1)
+    if (unlikely( status == -1 ))
     {
         throw _PythonException();
     }
@@ -1267,7 +1299,7 @@ static void DEL_ATTRIBUTE( PyObject *target, PyObject *attr_name )
 
     int status = PyObject_DelAttr( target, attr_name );
 
-    if (status == -1)
+    if (unlikely( status == -1 ))
     {
         throw _PythonException();
     }
@@ -1276,9 +1308,9 @@ static void DEL_ATTRIBUTE( PyObject *target, PyObject *attr_name )
 
 static void APPEND_TO_LIST( PyObject *list, PyObject *item)
 {
-    int res = PyList_Append( list, item );
+    int status = PyList_Append( list, item );
 
-    if (res == -1)
+    if (unlikely( status == -1 ))
     {
         throw _PythonException();
     }
@@ -1289,7 +1321,7 @@ static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject *seq2 )
 
     PyObject *result = PySequence_Concat( seq1, seq2 );
 
-    if (result == NULL)
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
@@ -1359,7 +1391,7 @@ class PyObjectLocalDictVariable {
             // TODO: Dictionary quick access code could be used here too.
             PyObject *result = PyDict_GetItem( this->storage, this->var_name );
 
-            if ( result == NULL )
+            if (unlikely (result == NULL))
             {
                 PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", PyString_AsString( this->var_name ) );
                 throw _PythonException();
@@ -1375,9 +1407,9 @@ class PyObjectLocalDictVariable {
             assert( object );
             assert( object->ob_refcnt > 0 );
 
-            int res = PyDict_SetItem( this->storage, this->var_name, object );
+            int status = PyDict_SetItem( this->storage, this->var_name, object );
 
-            assert( res == 0 );
+            assert( status == 0 );
         }
 
         bool isInitialized() const
@@ -1387,9 +1419,9 @@ class PyObjectLocalDictVariable {
 
         void del()
         {
-            int res = PyDict_DelItem( this->storage, this->var_name );
+            int status = PyDict_DelItem( this->storage, this->var_name );
 
-            if ( res == -1 )
+            if (unlikely( status == -1 ))
             {
                 // TODO: Probably an error should be raised?
                 PyErr_Clear();
@@ -1402,12 +1434,9 @@ class PyObjectLocalDictVariable {
             return this->var_name;
         }
 
-
-
     private:
         PyObject *storage;
         PyObject *var_name;
-
 };
 
 class PyObjectLocalVariable {
@@ -1628,9 +1657,33 @@ class PyObjectSharedLocalVariable
         PyObjectSharedLocalVariable( PyObjectSharedLocalVariable & );
 
         PyObjectSharedStorage *storage;
-
-
 };
+
+static PyDictEntry *GET_PYDICT_ENTRY( PyModuleObject *module, PyStringObject *key )
+{
+    // Idea similar to LOAD_GLOBAL in CPython. Because the variable name is a string, we
+    // can shortcut much of the dictionary code by using its hash and dictionary knowledge
+    // here. Only improvement would be to identify how to ensure that the hash is computed
+    // already. Calling hash early on could do that potentially.
+
+    long hash = key->ob_shash;
+
+    if ( hash == -1 )
+    {
+        hash = PyString_Type.tp_hash( (PyObject *)key );
+    }
+
+    PyDictObject *dict = (PyDictObject *)(module->md_dict);
+    assert( PyDict_CheckExact( dict ));
+
+    PyDictEntry *entry = dict->ma_lookup( dict, (PyObject *)key, hash );
+
+    // The "entry" cannot be NULL, it can only be empty for a string dict lookup, but at
+    // least assert it.
+    assert( entry != NULL );
+
+    return entry;
+}
 
 class PyObjectGlobalVariable
 {
@@ -1640,78 +1693,35 @@ class PyObjectGlobalVariable
             assert( module_ptr );
             assert( var_name );
 
-            this->module_ptr = module_ptr;
-            this->var_name   = var_name;
+            this->module_ptr = (PyModuleObject **)module_ptr;
+            this->var_name   = (PyStringObject **)var_name;
         }
 
         PyObject *asObject() const
         {
-            // Idea similar to LOAD_GLOBAL in CPython. Because the variable name is a string, we can shortcut
-            // much of the dictionary code by using its hash and dictionary knowledge here. Only improvement
-            // would be to identify how to ensure that the hash is computed already. Calling hash early on
-            // could do that potentially.
+            PyDictEntry *entry = GET_PYDICT_ENTRY( *this->module_ptr, *this->var_name );
 
-            long hash = ((PyStringObject *)*this->var_name)->ob_shash;
-
-            if (hash != -1)
+            if (likely( entry->me_value != NULL ))
             {
-                PyDictObject *dict = (PyDictObject *)((PyModuleObject *)*this->module_ptr)->md_dict;
-                PyDictEntry *entry = dict->ma_lookup( dict, *this->var_name, hash );
-
-                if (unlikely( entry == NULL ))
-                {
-                    throw _PythonException();
-                }
-
-                if (likely( entry->me_value ))
-                {
-                    return INCREASE_REFCOUNT( entry->me_value );
-                }
-
-                dict = (PyDictObject *)((PyModuleObject *)_module_builtin)->md_dict;
-                entry = dict->ma_lookup( dict, *this->var_name, hash );
-
-                if (unlikely( entry == NULL ))
-                {
-                    throw _PythonException();
-                }
-
-                if (likely( entry->me_value != NULL ))
-                {
-                    return INCREASE_REFCOUNT( entry->me_value );
-                }
-
-                PyErr_Format( PyExc_NameError, "global name %s is not defined", PyString_AsString( *this->var_name ) );
-                throw _PythonException();
+                return INCREASE_REFCOUNT( entry->me_value );
             }
-            else
+
+            entry = GET_PYDICT_ENTRY( _module_builtin, *this->var_name );
+
+            if (likely( entry->me_value != NULL ))
             {
-                PyObject *result = PyObject_GetAttr( *this->module_ptr, *this->var_name );
-
-                if (unlikely (result == NULL))
-                {
-                    PyErr_Clear();
-
-                    PyObject *result2 = PyObject_GetAttr( _module_builtin, *this->var_name );
-
-                    if (unlikely (result2 == NULL))
-                    {
-                        PyErr_Format( PyExc_NameError, "global name %s is not defined", PyString_AsString( *this->var_name ) );
-                        throw _PythonException();
-                    }
-
-                    return result2;
-                }
-
-                return result;
+                return INCREASE_REFCOUNT( entry->me_value );
             }
+
+            PyErr_Format( PyExc_NameError, "global name %s is not defined", PyString_AsString( (PyObject *)*this->var_name ) );
+            throw _PythonException();
         }
 
         PyObject *asObject( PyObject *dict ) const
         {
-            if ( PyDict_Contains( dict, *this->var_name ))
+            if ( PyDict_Contains( dict, (PyObject *)*this->var_name ) )
             {
-                return PyDict_GetItem( dict, *this->var_name );
+                return PyDict_GetItem( dict, (PyObject *)*this->var_name );
             }
             else
             {
@@ -1721,45 +1731,57 @@ class PyObjectGlobalVariable
 
         void assign( PyObject *value ) const
         {
-            SET_ATTRIBUTE( *this->module_ptr, *this->var_name, value );
+            PyDictEntry *entry = GET_PYDICT_ENTRY( *this->module_ptr, *this->var_name );
+
+            // Values are more likely set than not set, in that case speculatively try the
+            // quickest access method.
+            if (likely( entry->me_value != NULL ))
+            {
+                PyObject *old = entry->me_value;
+                entry->me_value = value;
+
+                Py_DECREF( old );
+            }
+            else
+            {
+                DICT_SET_ITEM( (*this->module_ptr)->md_dict, (PyObject *)*this->var_name, value );
+                Py_DECREF( value );
+            }
+        }
+
+        void assign0( PyObject *value ) const
+        {
+            DICT_SET_ITEM( (*this->module_ptr)->md_dict, (PyObject *)*this->var_name, value );
         }
 
         void del() const
         {
-            int status = PyObject_DelAttr( *this->module_ptr, *this->var_name );
+            int status = PyDict_DelItem( (*this->module_ptr)->md_dict, (PyObject *)*this->var_name );
 
-            if ( status == -1 )
+            if (unlikely( status == -1 ))
             {
-                PyErr_Format( PyExc_NameError, "name '%s' is not defined", PyString_AsString( *this->var_name ) );
+                PyErr_Format( PyExc_NameError, "name '%s' is not defined", PyString_AsString( (PyObject *)*this->var_name ) );
                 throw _PythonException();
             }
         }
 
         bool isInitialized() const
         {
-            long hash = ((PyStringObject *)*this->var_name)->ob_shash;
+            PyDictEntry *entry = GET_PYDICT_ENTRY( *this->module_ptr, *this->var_name );
 
-            if ( hash != -1 )
+            if (likely( entry->me_value != NULL ))
             {
-                PyDictObject *dict = (PyDictObject *)((PyModuleObject *)*this->module_ptr)->md_dict;
-                PyDictEntry *entry = dict->ma_lookup( dict, *this->var_name, hash );
-
-                if (unlikely(entry == NULL))
-                {
-                    throw _PythonException();
-                }
-
-                return entry->me_value != NULL;
+                return true;
             }
-            else
-            {
-                return PyObject_HasAttr( *this->module_ptr, *this->var_name );
-            }
+
+            entry = GET_PYDICT_ENTRY( _module_builtin, *this->var_name );
+
+            return entry->me_value != NULL;
         }
 
     private:
-       PyObject **module_ptr;
-       PyObject **var_name;
+       PyModuleObject **module_ptr;
+       PyStringObject **var_name;
 };
 
 static PyObject *MAKE_LOCALS_DICT( void )
@@ -1772,9 +1794,9 @@ static void FILL_LOCALS_DICT( PyObject *dict, T variable )
 {
     if ( variable->isInitialized() )
     {
-        int res = PyDict_SetItem( dict, variable->getVariableName(), variable->asObject() );
+        int status = PyDict_SetItem( dict, variable->getVariableName(), variable->asObject() );
 
-        if ( res == -1 )
+        if (unlikely( status == -1 ))
         {
             throw _PythonException();
         }
@@ -1786,9 +1808,9 @@ static void FILL_LOCALS_DICT( PyObject *dict, T variable, P... variables )
 {
     if ( variable->isInitialized() )
     {
-        int res = PyDict_SetItem( dict, variable->getVariableName(), variable->asObject() );
+        int status = PyDict_SetItem( dict, variable->getVariableName(), variable->asObject() );
 
-        if ( res == -1 )
+        if (unlikely( status == -1 ))
         {
             throw _PythonException();
         }
@@ -1817,9 +1839,9 @@ static void FILL_LOCALS_DIR( PyObject *list, T variable )
 {
     if ( variable->isInitialized() )
     {
-        int res = PyList_Append( list, variable->getVariableName() );
+        int status = PyList_Append( list, variable->getVariableName() );
 
-        if ( res == -1 )
+        if (unlikely( status == -1 ))
         {
             throw _PythonException();
         }
@@ -1831,9 +1853,9 @@ static void FILL_LOCALS_DIR( PyObject *list, T variable, P... variables )
 {
     if ( variable->isInitialized() )
     {
-        int res = PyList_Append( list, variable->getVariableName() );
+        int status = PyList_Append( list, variable->getVariableName() );
 
-        if ( res == -1 )
+        if (unlikely( status == -1 ))
         {
             throw _PythonException();
         }
@@ -1868,7 +1890,8 @@ class PythonBuiltin
         {
             if ( this->value == NULL )
             {
-                this->value = PyObject_GetAttrString( _module_builtin, this->name );
+                // TODO: Use GET_PYDICT_ENTRY here too.
+                this->value = PyObject_GetAttrString( (PyObject *)_module_builtin, this->name );
             }
 
             assert( this->value != NULL );
@@ -1885,8 +1908,8 @@ static PythonBuiltin _python_builtin_compile( "compile" );
 
 static PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags )
 {
-    // May be a source, but also could already be a compiled object, in which case this should
-    // just return it.
+    // May be a source, but also could already be a compiled object, in which case this
+    // should just return it.
     if ( PyCode_Check( source_code ) )
     {
         return INCREASE_REFCOUNT( source_code );
@@ -1934,7 +1957,7 @@ static PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObj
 
     Py_DECREF( future_flags );
 
-    if ( result == NULL )
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
@@ -1954,7 +1977,7 @@ static PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffe
         NULL
     );
 
-    if (result == NULL)
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
@@ -1984,7 +2007,7 @@ static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals 
     // Set the __builtin__ in globals, it is expected to be present.
     if ( PyMapping_HasKeyString( globals, (char *)"__builtins__" ) == 0 )
     {
-        if ( PyMapping_SetItemString( globals, (char *)"__builtins__", _module_builtin ) == -1 )
+        if ( PyMapping_SetItemString( globals, (char *)"__builtins__", (PyObject *)_module_builtin ) == -1 )
         {
             throw _PythonException();
         }
@@ -1992,7 +2015,7 @@ static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals 
 
     PyObject *result = PyEval_EvalCode( (PyCodeObject *)code, globals, locals );
 
-    if ( result == NULL )
+    if (unlikely (result == NULL))
     {
         throw _PythonException();
     }
@@ -2004,9 +2027,9 @@ static PyObject *empty_code = PyBuffer_FromMemory( NULL, 0 );
 
 static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line )
 {
-    // TODO: Potentially it is possible to create a line2no table that will
-    // allow to use only one code object per function, this could then be
-    // cached and presumably be much faster, because it could be reused.
+    // TODO: Potentially it is possible to create a line2no table that will allow to use
+    // only one code object per function, this could then be cached and presumably be much
+    // faster, because it could be reused.
 
     assert( PyString_Check( filename ));
     assert( PyString_Check( function_name ));
@@ -2050,8 +2073,6 @@ static PyFrameObject *MAKE_FRAME( PyObject *module, PyObject *filename, PyObject
 
     Py_DECREF( code );
 
-    assert( result );
-
     if (unlikely( result == NULL ))
     {
         throw _PythonException();
@@ -2082,7 +2103,8 @@ static PyTracebackObject *MAKE_TRACEBACK_START( PyFrameObject *frame, int line )
 
 static void ADD_TRACEBACK( PyObject *module, PyObject *filename, PyObject *function_name, int line )
 {
-    // TODO: The frame object really might deserve a longer life that this, it is relatively expensive to create.
+    // TODO: The frame object really might deserve a longer life that this, it is
+    // relatively expensive to create.
     PyFrameObject *frame = MAKE_FRAME( module, filename, function_name, line );
 
     // Inlining PyTraceBack_Here may be faster
@@ -2135,7 +2157,7 @@ try
 {
 %(tried_code)s
 }
-catch (_PythonException &_exception)
+catch ( _PythonException &_exception )
 {
     if ( !_exception.hasTraceback() )
     {
@@ -2154,7 +2176,7 @@ try
 {
 %(tried_code)s
 }
-catch (_PythonException &_exception)
+catch ( _PythonException &_exception )
 {
     _caught_%(except_count)d = true;
 
@@ -2167,7 +2189,7 @@ catch (_PythonException &_exception)
 
     %(exception_code)s
 }
-if (_caught_%(except_count)d == false)
+if ( _caught_%(except_count)d == false )
 {
 %(else_code)s
 }
@@ -2178,7 +2200,7 @@ import_from_template = """
 {
     PyObject *_module_temp = PyImport_ImportModuleEx( (char *)"%(module_name)s", NULL, NULL, %(import_list)s );
 
-    if ( unlikely( _module_temp == NULL ) )
+    if (unlikely( _module_temp == NULL ))
     {
         throw _PythonException();
     }
@@ -2194,35 +2216,28 @@ for_loop_template = """\
 {
 PyObjectTemporary %(loop_iter_identifier)s( %(iterator)s );
 bool %(indicator_name)s = false;
-while (1)
+while( true )
 {
     %(line_number_code)s
 
     try
     {
-
         PyObject *%(loop_value_identifier)s = ITERATOR_NEXT( %(loop_iter_identifier)s.asObject() );
 
-        if (%(loop_value_identifier)s == NULL)
+        // Check if end of iterator is reached
+        if ( %(loop_value_identifier)s == NULL )
         {
             %(indicator_name)s = true;
             break;
         }
 
-    try
-    {
-        %(loop_var_assignment_code)s
+        {
+            PyObjectTemporary %(loop_object_identifier)s( %(loop_value_identifier)s );
 
-        Py_DECREF( %(loop_value_identifier)s );
-    }
-    catch(...)
-    {
-        Py_DECREF( %(loop_value_identifier)s );
-        throw;
-    }
+            %(loop_var_assignment_code)s
+        }
 
-    %(body)s
-
+        %(body)s
     }
     catch( ContinueException &e )
     { /* Nothing to do */

@@ -197,14 +197,14 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 """
 
 module_plain_init_template = """
-    _mvar_%(module_identifier)s___doc__.assign( %(doc_identifier)s );
-    _mvar_%(module_identifier)s___file__.assign( %(file_identifier)s );
+    _mvar_%(module_identifier)s___doc__.assign0( %(doc_identifier)s );
+    _mvar_%(module_identifier)s___file__.assign0( %(file_identifier)s );
 """
 
 module_package_init_template = """
-    _mvar_%(module_identifier)s___doc__.assign( %(doc_identifier)s );
-    _mvar_%(module_identifier)s___file__.assign( %(file_identifier)s );
-    _mvar_%(module_identifier)s___package__.assign( %(package_name_identifier)s );
+    _mvar_%(module_identifier)s___doc__.assign0( %(doc_identifier)s );
+    _mvar_%(module_identifier)s___file__.assign0( %(file_identifier)s );
+    _mvar_%(module_identifier)s___package__.assign0( %(package_name_identifier)s );
 
     init%(package_identifier)s();
 
@@ -235,7 +235,7 @@ static PyObject *_unstreamConstant( char const *buffer, int size )
     return result;
 }
 
-static PyObject *_module_builtin = NULL;
+static PyModuleObject *_module_builtin = NULL;
 
 static int _initConstants()
 {
@@ -244,7 +244,7 @@ static int _initConstants()
         _sentinel_value = PyCObject_FromVoidPtr( NULL, NULL );
         assert( _sentinel_value );
 
-        _module_builtin = PyImport_ImportModule( "__builtin__" );
+        _module_builtin = (PyModuleObject *)PyImport_ImportModule( "__builtin__" );
         assert( _module_builtin );
 
         _module_cPickle = PyImport_ImportModule( "cPickle" );

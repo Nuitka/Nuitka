@@ -24,14 +24,16 @@ tasks and issue tracking in Nuitka.
 
 ** Where to go next
 
-   Remember, this project is not finished. Although most of the CPython test suite works,
-   there is still unsupported functionality, and there is not much actual optimization
-   done yet.
+   Remember, this project is not yet complete. Although most of the CPython test suite
+   works, there is still more polish needed, to make it do enough optimizations to be
+   worth while. Try it out. Subscribe to its mailing list or contact me via email with
+   your questions.
 
-** Word of warning
+** Word of Warning
 
-   Consider this an alpha release quality, do not use it for anything important, but
-   feedback is very welcome.
+   Consider this a beta release quality, do not use it for anything important, but
+   feedback is very welcome. Esp. if you find that anything doesn't work, because the
+   project is now at the stage that it should.
 
 * Unsupported functionality
 
@@ -83,10 +85,6 @@ This is the list of tests modified from what they are in CPython.
 
     deepcopy is not supported, removed test_deep_copy
 
-*** test_decorators:
-
-    A call to eval() has run time None for globals and this is not yet supported.
-
 *** test_exceptions:
 
     Removed code objects using parts parts.
@@ -97,7 +95,7 @@ This is the list of tests modified from what they are in CPython.
 
 *** test_funcattrs:
 
-    Disabled pars that use func_code and func_defaults.
+    Disabled parts that use func_code and func_defaults.
 
 *** test_future6:
 
@@ -461,3 +459,42 @@ This is the list of tests modified from what they are in CPython.
 *** test_zipimport_support:
 
     Removed, does not run with CPython
+
+
+* Optimizations
+
+** Constant Propagations
+
+At the core of optimizations there needs to be a mechanic that attempts to determine run
+time values as constants. A called expression may be constant and then needs no module
+lookup. In the very least, a likely value should be determined, and if true, it could be
+used for quicker result paths.
+
+** Builtin Type Inference
+
+When a construct like "in xrange()" or "in range()" is used, it should be possible to know
+what the iteration does and represent that, so that iterator users can use that instead.
+
+I consider that:
+
+for i in xrange(1000):
+   something(i)
+
+could translate xrange(1000) into an object of a special class that does the integer
+looping more efficiently.
+
+** Quicker function calls
+
+Functions should be restructured so that their parameter parsing and tp_call interface is
+separate from the actual body. This way the call can be optimized. One problem is that the
+evaluation order can differ.
+
+def f( a, b, c ):
+   return a, b, c
+
+f( c = get1(), b = get2(), c = get3() )
+
+This will evaluate first get1(), then get2() and then get3() and then make the call. In
+C++ whatever way the signature is written, its order is fixed. Therefore it may be
+necessary to use the sequence operator in the call or wrapping calls with different
+parameter order for every possible combination used.

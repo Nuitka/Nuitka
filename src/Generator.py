@@ -88,6 +88,14 @@ class PythonGeneratorBase:
 
         return Identifier( "MAKE_DICT( %s )" % ( ", ".join( args ) ), 1 )
 
+    def getSetCreationCode( self, context, values ):
+        args = []
+
+        for value in reversed( values ):
+            args.append( value.getCodeTemporaryRef() )
+
+        return Identifier( "MAKE_SET( %s )" % ( ", ".join( args ) ), 1 )
+
     def getDictionaryMergeCode( self, dict1_identifier, dict2_identifier ):
         return Identifier( "MERGE_DICTS( %s, %s, false )" % ( dict1_identifier.getCodeTemporaryRef(), dict2_identifier.getCodeTemporaryRef() ), 1 )
 
@@ -334,11 +342,17 @@ else
 
         return result
 
-    def getLoopContinueCode( self ):
-        return "throw ContinueException();"
+    def getLoopContinueCode( self, needs_exceptions ):
+        if needs_exceptions:
+            return "throw ContinueException();"
+        else:
+            return "continue;"
 
-    def getLoopBreakCode( self ):
-        return "throw BreakException();"
+    def getLoopBreakCode( self, needs_exceptions ):
+        if needs_exceptions:
+            return "throw BreakException();"
+        else:
+            return "break;"
 
     def getComparisonExpressionCode( self, context, comparators, operands ):
         # assert len( comparators ) == 1
@@ -518,16 +532,17 @@ else
     def getForLoopNames( self, context ):
         for_count = context.allocateForLoopNumber()
 
-        return Identifier( "_python_for_loop_iterator_%d" % for_count, 0 ), Identifier(  "_python_for_loop_itervalue_%d" % for_count, 0 )
+        return "_python_for_loop_iterator_%d" % for_count, "_python_for_loop_itervalue_%d" % for_count, TempVariableIdentifier( "itertemp_%d" % for_count )
 
-    def getForLoopCode( self, context, line_number_code, iterator, iter_name, iter_value, loop_var_code, loop_body_codes, loop_else_codes ):
+    def getForLoopCode( self, context, line_number_code, iterator, iter_name, iter_value, iter_object, loop_var_code, loop_body_codes, loop_else_codes ):
         return CodeTemplates.for_loop_template % {
             "body"                     : "\n    ".join( loop_body_codes ),
             "else_codes"               : "\n    ".join( loop_else_codes ),
             "iterator"                 : iterator.getCodeExportRef(),
             "line_number_code"         : line_number_code,
-            "loop_iter_identifier"     : iter_name.getCode(),
-            "loop_value_identifier"    : iter_value.getCode(),
+            "loop_iter_identifier"     : iter_name,
+            "loop_value_identifier"    : iter_value,
+            "loop_object_identifier"   : iter_object.getCode(),
             "loop_var_assignment_code" : loop_var_code,
             "indicator_name"           : "_python_for_loop_indicator_%d" % context.allocateForLoopNumber()
         }
@@ -604,7 +619,7 @@ if (%(indicator_name)s == false)
 
             context.addGlobalVariableNameUsage( var_name )
 
-            return "_mvar_%s_%s.assign( %s );" % ( context.getModuleCodeName(), var_name, identifier.getCodeTemporaryRef() )
+            return "_mvar_%s_%s.assign( %s );" % ( context.getModuleCodeName(), var_name, identifier.getCodeExportRef() )
         else:
             return "%s = %s;" % ( self.getVariableHandle( variable = variable, context = context ).getCode(), identifier.getCodeExportRef() )
 
@@ -991,8 +1006,6 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
     def getModuleCode( self, context, stand_alone, module_name, codes, doc_identifier, filename_identifier ):
 
-        header = CodeTemplates.global_copyright % { "name" : "module " + module_name }
-
         functions_decl = self.getFunctionsDecl( context = context )
         functions_code = self.getFunctionsCode( context = context )
 
@@ -1014,10 +1027,12 @@ class PythonModuleGenerator( PythonGeneratorBase ):
         context.getConstantHandle( constant = "<module>" )
 
         if stand_alone:
+            header = CodeTemplates.global_copyright % { "name" : module_name }
             global_prelude = context.global_context.getPreludeCode()
             constant_init = context.global_context.getConstantCode()
             global_helper = context.global_context.getHelperCode()
         else:
+            header = CodeTemplates.module_header % { "name" : module_name }
             global_prelude = ""
             constant_init = ""
             global_helper = ""
@@ -1057,8 +1072,6 @@ class PythonModuleGenerator( PythonGeneratorBase ):
         return header + global_prelude + constant_init + global_helper + module_code
 
     def getMainCode( self, codes, other_modules ):
-        header = CodeTemplates.global_copyright % { "name" : "module " + self.getName() }
-
         module_inittab = []
 
         for other_module in other_modules:
@@ -1075,7 +1088,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             "module_inittab" : "\n    ".join( module_inittab )
         }
 
-        return header + codes + main_code
+        return codes + main_code
 
 
     def getFunctionsCode( self, context ):

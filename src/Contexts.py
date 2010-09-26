@@ -35,6 +35,28 @@ import CodeTemplates
 
 import cPickle, re, hashlib
 
+class Constant:
+    def __init__( self, constant ):
+        self.constant = constant
+
+        try:
+            self.hash = hash( constant )
+        except:
+            self.hash = 55
+
+    def getConstant( self ):
+        return self.constant
+
+    def __hash__( self ):
+        return self.hash
+
+    def __eq__( self, other ):
+        assert isinstance( other, self.__class__ )
+
+        return type( self.constant ) is type( other.constant ) and self.constant == other.constant and repr( self.constant ) == repr( other.constant )
+
+        assert False
+
 class PythonContextBase:
     def __init__( self ):
         self.variables = set()
@@ -121,6 +143,7 @@ class PythonGlobalContext:
     def __init__( self ):
         self.constants = {}
         self.constant_dicts = {}
+        self.constant_sets = {}
 
         self.const_tuple_empty  = self.getConstantHandle( () ).getCode()
         self.const_string_empty = self.getConstantHandle( "" ).getCode()
@@ -140,11 +163,18 @@ class PythonGlobalContext:
             if dict_key not in self.constant_dicts:
                 self.constant_dicts[ dict_key ] = self._getConstantHandle( constant )
 
-            return Identifier( self.constant_dicts[ dict_key ], 0 )
+            return Identifier( "PyDict_Copy( %s )" % self.constant_dicts[ dict_key ], 1 )
+        elif type( constant ) == set:
+            set_key = repr( sorted( constant ) )
+
+            if set_key not in self.constant_sets:
+                self.constant_sets[ set_key ] = self._getConstantHandle( constant )
+
+            return Identifier( "PySet_New( %s )" % self.constant_sets[ set_key ], 1 )
         elif constant is Ellipsis:
             return Identifier( "Py_Ellipsis", 0 )
         else:
-            key = ( type( constant ), repr( constant ), constant )
+            key = ( type( constant ), repr( constant ), Constant( constant ) )
 
             if key not in self.constants:
                 self.constants[ key ] = self._getConstantHandle( constant )
@@ -152,29 +182,8 @@ class PythonGlobalContext:
             return Identifier( self.constants[ key ], 0 )
 
     def _getConstantHandle( self, constant ):
-        if type( constant ) in ( int, long, str, unicode, float, bool, complex ):
+        if type( constant ) in ( int, long, str, unicode, float, bool, complex, dict, set, tuple ):
             return "_python_" + namifyConstant( constant )
-        elif constant == ():
-            return "_python_tuple_empty"
-        elif type ( constant ) == tuple:
-            result = "_python_tuple_"
-
-            try:
-                parts = []
-
-                for value in constant:
-                    parts.append( namifyConstant( value ) )
-
-                return result + "_".join( parts )
-            except ExceptionCannotNamify:
-                print "Warning, couldn't namify", value
-
-                return result + digest( repr( constant ) )
-        elif type( constant ) == dict:
-            if constant == {}:
-                return "_python_dict_empty"
-            else:
-                return "_python_dict_" + hashlib.md5( repr( constant ) ).hexdigest()
         elif constant is Ellipsis:
             return "Py_Ellipsis"
         else:
@@ -206,6 +215,9 @@ class PythonGlobalContext:
             statements.append( "static PyObject *%s = NULL;" % constant_name )
 
         for constant_name in sorted( self.constant_dicts.values() ):
+            statements.append( "static PyObject *%s = NULL;" % constant_name )
+
+        for constant_name in sorted( self.constant_sets.values() ):
             statements.append( "static PyObject *%s = NULL;" % constant_name )
 
         return "\n".join( statements )
@@ -256,8 +268,9 @@ class PythonGlobalContext:
 
         for constant_desc, constant_identifier in sorted( self.constants.iteritems(), cmp = myCompare ):
             constant_type, _constant_repr, constant_value = constant_desc
+            constant_value = constant_value.getConstant()
 
-            if constant_type == int and abs(constant_value) < 2**31:
+            if constant_type == int and abs( constant_value ) < 2**31:
                 # Will fallback to cPickle if they are bigger than PyInt allows.
                 statements.append( "%s = PyInt_FromLong( %s );" % ( constant_identifier, constant_value ) )
             elif constant_type == str:
@@ -296,7 +309,22 @@ class PythonGlobalContext:
             # statements.append( """puts( "%s" );""" % constant_identifier )
             statements.append( """%s = _unstreamConstant( %s, %d );""" % ( constant_identifier, self._encodeString( saved ), len( saved ) ) )
 
-        return "\n    ".join( statements )
+        for constant_value, constant_identifier in sorted( self.constant_sets.iteritems() ):
+            set_value = set()
+
+            for value in eval( constant_value ):
+                set_value.add( value )
+
+            saved = cPickle.dumps( set_value )
+
+            # Check that the constant is restored correctly.
+            restored = cPickle.loads( saved )
+            assert restored == set_value, set_value
+
+            # statements.append( """puts( "%s" );""" % constant_identifier )
+            statements.append( """%s = _unstreamConstant( %s, %d );""" % ( constant_identifier, self._encodeString( saved ), len( saved ) ) )
+
+        return "\n        ".join( statements )
 
 
 class PythonModuleContext( PythonContextBase ):

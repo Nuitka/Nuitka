@@ -408,30 +408,32 @@ def generateComparisonExpressionCode( comparison_expression, context, generator 
     )
 
 def generateDictionaryCreationCode( keys, values, context, generator ):
-    key_identifiers = []
+    key_identifiers = generateExpressionsCode(
+        expressions = keys,
+        context     = context,
+        generator   = generator
+    )
 
-    for key in keys:
-        identifier = generateExpressionCode(
-            expression = key,
-            context    = context,
-            generator  = generator
-        )
-
-        key_identifiers.append( identifier )
-
-    value_identifiers = []
-
-    for value in values:
-        identifier = generateExpressionCode(
-            expression = value,
-            context    = context,
-            generator  = generator
-        )
-
-        value_identifiers.append( identifier )
+    value_identifiers = generateExpressionsCode(
+        expressions = values,
+        context     = context,
+        generator   = generator
+    )
 
     return generator.getDictionaryCreationCode(
         keys    = key_identifiers,
+        values  = value_identifiers,
+        context = context
+    )
+
+def generateSetCreationCode( values, context, generator ):
+    value_identifiers = generateExpressionsCode(
+        expressions = values,
+        context     = context,
+        generator   = generator
+    )
+
+    return generator.getSetCreationCode(
         values  = value_identifiers,
         context = context
     )
@@ -541,6 +543,12 @@ def generateExpressionCode( expression, context, generator ):
     elif expression.isDictionaryCreation():
         identifier = generateDictionaryCreationCode(
             keys      = expression.getKeys(),
+            values    = expression.getValues(),
+            context   = context,
+            generator = generator
+        )
+    elif expression.isSetCreation():
+        identifier = generateSetCreationCode(
             values    = expression.getValues(),
             context   = context,
             generator = generator
@@ -1272,7 +1280,7 @@ def _generateStatementCode( statement, context, generator ):
         )
 
     elif statement.isStatementForLoop():
-        iter_name, iter_value = generator.getForLoopNames( context = context )
+        iter_name, iter_value, iter_object = generator.getForLoopNames( context = context )
 
         iterator = generator.getIteratorCreationCode(
             iterated = makeExpressionCode( statement.getIterated() ),
@@ -1281,7 +1289,7 @@ def _generateStatementCode( statement, context, generator ):
 
         assignment_code = generateAssignmentCode(
             targets   = [ statement.getLoopVariableAssignment() ],
-            value     = iter_value,
+            value     = iter_object,
             context   = context,
             generator = generator
         )
@@ -1308,6 +1316,7 @@ def _generateStatementCode( statement, context, generator ):
             iterator         = iterator,
             iter_name        = iter_name,
             iter_value       = iter_value,
+            iter_object      = iter_object,
             loop_var_code    = assignment_code,
             loop_body_codes  = loop_body_codes,
             loop_else_codes  = loop_else_codes,
@@ -1353,9 +1362,9 @@ def _generateStatementCode( statement, context, generator ):
             context        = context
         )
     elif statement.isStatementContinue():
-        code = generator.getLoopContinueCode()
+        code = generator.getLoopContinueCode( statement.needsExceptionBreakContinue() )
     elif statement.isStatementBreak():
-        code = generator.getLoopBreakCode()
+        code = generator.getLoopBreakCode( statement.needsExceptionBreakContinue() )
     elif statement.isStatementImportModule():
         code = generator.getImportModulesCode(
             context      = context,

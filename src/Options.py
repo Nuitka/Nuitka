@@ -32,7 +32,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.2.4
+Nuitka V0.3.0
 Copyright (C) 2010 Kay Hayen."""
 
 from optparse import OptionParser
@@ -77,7 +77,7 @@ parser.add_option(
 
 parser.add_option(
     "--python-version", action="store", dest = "python_version", default = None,
-    help = "Major version of Python to be used, something like 2.5 or 2.6",
+    help = "Major version of Python to be used, something like 2.6 or 2.7",
 )
 
 parser.add_option(
@@ -91,6 +91,11 @@ parser.add_option(
 )
 
 parser.add_option(
+    "--no-optimization", action="store_true", dest = "no_optimize", default = False,
+    help = "Disable all optimization steps.",
+)
+
+parser.add_option(
     "--output-dir", action="store", dest = "output_dir", default = "",
     help = "Where to put intermediate and final output files.",
 )
@@ -98,6 +103,11 @@ parser.add_option(
 parser.add_option(
     "--version", action="store_true", dest = "version", default = False,
     help = "Output only version, then exit.",
+)
+
+parser.add_option(
+    "--debug", action="store_true", dest = "debug", default = False,
+    help = "Keep debug info in the resulting object file.",
 )
 
 
@@ -148,10 +158,10 @@ def shallFollowImports():
     return options.follow_imports
 
 def isDebug():
-    return True
+    return options.debug
 
 def isOptimize():
-    return False
+    return not options.no_optimize
 
 def getOutputPath( path ):
     if options.output_dir:

@@ -208,6 +208,9 @@ class CPythonNode:
     def isDictionaryCreation( self ):
         return self.kind == "EXPRESSION_MAKE_DICTIONARY"
 
+    def isSetCreation( self ):
+        return self.kind == "EXPRESSION_MAKE_SET"
+
     def isFunctionCall( self ):
         return self.kind == "EXPRESSION_FUNCTION_CALL"
 
@@ -589,6 +592,18 @@ class CPythonClosureTaker:
     # is not allowed to do that, because a later assignment needs to be queried first.
     def isEarlyClosure( self ):
         return True
+
+class MarkExceptionBreakContinueIndicator:
+    """ Can have an indication of a break and continue as a real exception is needed. """
+
+    def __init__( self ):
+        self.break_continue_exception = False
+
+    def markAsExceptionBreakContinue( self ):
+        self.break_continue_exception = True
+
+    def needsExceptionBreakContinue( self ):
+        return self.break_continue_exception
 
 class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGiver ):
     """ Module
@@ -1363,6 +1378,20 @@ class CPythonExpressionDictionaryCreation( CPythonChildrenHaving, CPythonNode ):
     getKeys = CPythonChildrenHaving.childGetter( "keys" )
     getValues = CPythonChildrenHaving.childGetter( "values" )
 
+class CPythonExpressionSetCreation( CPythonChildrenHaving, CPythonNode ):
+    def __init__( self, values, source_ref ):
+        CPythonNode.__init__( self, kind = "EXPRESSION_MAKE_SET", source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "values" : tuple( values )
+            }
+        )
+
+    getValues = CPythonChildrenHaving.childGetter( "values" )
+
+
 class CPythonStatementWith( CPythonChildrenHaving, CPythonNode ):
     def __init__( self, source, target, body, source_ref ):
         CPythonNode.__init__( self, kind = "STATEMENT_WITH", source_ref = source_ref )
@@ -1380,7 +1409,7 @@ class CPythonStatementWith( CPythonChildrenHaving, CPythonNode ):
     getTarget = CPythonChildrenHaving.childGetter( "target" )
     getExpression = CPythonChildrenHaving.childGetter( "expression" )
 
-class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNode ):
+class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNode, MarkExceptionBreakContinueIndicator ):
     def __init__( self, source, target, body, no_break, source_ref ):
         CPythonNode.__init__( self, kind = "STATEMENT_FOR_LOOP", source_ref = source_ref )
 
@@ -1394,12 +1423,14 @@ class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNode ):
             }
         )
 
+        MarkExceptionBreakContinueIndicator.__init__( self )
+
     getIterated = CPythonChildrenHaving.childGetter( "iterated" )
     getLoopVariableAssignment = CPythonChildrenHaving.childGetter( "target" )
     getBody = CPythonChildrenHaving.childGetter( "frame" )
     getNoBreak = CPythonChildrenHaving.childGetter( "else" )
 
-class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNode ):
+class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNode, MarkExceptionBreakContinueIndicator ):
     def __init__( self, condition, body, no_enter, source_ref ):
         CPythonNode.__init__( self, kind = "STATEMENT_WHILE_LOOP", source_ref = source_ref )
 
@@ -1411,6 +1442,8 @@ class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNode ):
                 "frame"     : body
             }
         )
+
+        MarkExceptionBreakContinueIndicator.__init__( self )
 
     getLoopBody = CPythonChildrenHaving.childGetter( "frame" )
     getCondition = CPythonChildrenHaving.childGetter( "condition" )
@@ -1708,15 +1741,15 @@ class CPythonStatementRaiseException( CPythonNode ):
     def getVisitableNodes( self ):
         return self.getExceptionParameters()
 
-class CPythonStatementContinueLoop( CPythonNode ):
+class CPythonStatementContinueLoop( CPythonNode, MarkExceptionBreakContinueIndicator ):
     def __init__( self, source_ref ):
         CPythonNode.__init__( self, kind = "STATEMENT_CONTINUE_LOOP", source_ref = source_ref )
+        MarkExceptionBreakContinueIndicator.__init__( self )
 
-
-class CPythonStatementBreakLoop( CPythonNode ):
+class CPythonStatementBreakLoop( CPythonNode, MarkExceptionBreakContinueIndicator ):
     def __init__( self, source_ref ):
         CPythonNode.__init__( self, kind = "STATEMENT_BREAK_LOOP", source_ref = source_ref )
-
+        MarkExceptionBreakContinueIndicator.__init__( self )
 
 class CPythonStatementPass( CPythonNode ):
     def __init__( self, source_ref ):
