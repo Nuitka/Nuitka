@@ -127,5 +127,7 @@ def branchingFunction( a, b, c ):
         (b or (c*2 if c else 6) if b-1 else a and b and c)
     print v
 
+    if True:
+        print "Predictable branch taken"
 
 branchingFunction(1,0,3)

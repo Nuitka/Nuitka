@@ -43,11 +43,11 @@ from templates.CodeTemplatesListContraction import *
 
 from templates.CodeTemplatesParameterParsing import *
 
+from templates.CodeTemplatesAssignments import *
 from templates.CodeTemplatesExceptions import *
 from templates.CodeTemplatesImporting import *
 from templates.CodeTemplatesClass import *
-
-
+from templates.CodeTemplatesLoops import *
 
 global_copyright = """
 // Generated code for Python source for module '%(name)s'
@@ -435,7 +435,7 @@ static void PRINT_ITEM_TO( PyObject *file, PyObject *object )
         int status = PyString_AsStringAndSize( str, &buffer, &length );
         assert( status != -1 );
 
-        softspace = length > 0 && buffer[length - 1 ] == '\t';
+        softspace = length > 0 && buffer[length - 1 ] == '\\t';
 
         print = str;
     }
@@ -990,11 +990,6 @@ static inline PyObject *UNPACK_NEXT( PyObject *iterator, int seq_size_so_far )
 
     if (unlikely (result == NULL))
     {
-        if ( PyErr_Occurred() != NULL )
-        {
-            throw _PythonException();
-        }
-
         if ( seq_size_so_far == 1 )
         {
             PyErr_Format( PyExc_ValueError, "need more than 1 value to unpack" );
@@ -1035,7 +1030,7 @@ static PyObject *SELECT_IF_TRUE( PyObject *object )
     assert( object != NULL );
     assert( object->ob_refcnt > 0 );
 
-    if (CHECK_IF_TRUE( object ))
+    if ( CHECK_IF_TRUE( object ) )
     {
         return object;
     }
@@ -1052,7 +1047,7 @@ static PyObject *SELECT_IF_FALSE( PyObject *object )
     assert( object != NULL );
     assert( object->ob_refcnt > 0 );
 
-    if (CHECK_IF_FALSE( object ))
+    if ( CHECK_IF_FALSE( object ) )
     {
         return object;
     }
@@ -1381,9 +1376,16 @@ class PyObjectTemporary {
 
 class PyObjectLocalDictVariable {
     public:
-        explicit PyObjectLocalDictVariable( PyObject *storage, PyObject *var_name ) {
+        explicit PyObjectLocalDictVariable( PyObject *storage, PyObject *var_name, PyObject *object = NULL )
+        {
             this->storage    = storage;
             this->var_name   = var_name;
+
+            if ( object != NULL )
+            {
+                int status = PyDict_SetItem( this->storage, this->var_name, object );
+                assert( status == 0 );
+            }
         }
 
         PyObject *asObject() const
@@ -1408,7 +1410,6 @@ class PyObjectLocalDictVariable {
             assert( object->ob_refcnt > 0 );
 
             int status = PyDict_SetItem( this->storage, this->var_name, object );
-
             assert( status == 0 );
         }
 
@@ -1441,7 +1442,8 @@ class PyObjectLocalDictVariable {
 
 class PyObjectLocalVariable {
     public:
-        explicit PyObjectLocalVariable( PyObject *var_name, PyObject *object = NULL, bool free_value = true ) {
+        explicit PyObjectLocalVariable( PyObject *var_name, PyObject *object = NULL, bool free_value = true )
+        {
             this->var_name   = var_name;
             this->object     = object;
             this->free_value = free_value;
@@ -1874,7 +1876,53 @@ static PyObject *MAKE_LOCALS_DIR( P...variables )
     return result;
 }
 
+static PyObject *TUPLE_COPY( PyObject *tuple )
+{
+    assert( tuple != NULL );
+    assert( tuple->ob_refcnt > 0 );
 
+    assert( PyTuple_CheckExact( tuple ) );
+
+    Py_ssize_t size = PyTuple_GET_SIZE( tuple );
+
+    PyObject *result = PyTuple_New( size );
+
+    if (unlikely (result == NULL))
+    {
+        throw _PythonException();
+    }
+
+    for ( Py_ssize_t i = 0; i < size; i++ )
+    {
+        PyTuple_SET_ITEM( result, i, INCREASE_REFCOUNT( PyTuple_GET_ITEM( tuple, i ) ) );
+    }
+
+    return result;
+}
+
+static PyObject *LIST_COPY( PyObject *list )
+{
+    assert( list != NULL );
+    assert( list->ob_refcnt > 0 );
+
+    assert( PyList_CheckExact( list ) );
+
+    Py_ssize_t size = PyList_GET_SIZE( list );
+
+    PyObject *result = PyList_New( size );
+
+    if (unlikely (result == NULL))
+    {
+        throw _PythonException();
+    }
+
+    for ( Py_ssize_t i = 0; i < size; i++ )
+    {
+        PyList_SET_ITEM( result, i, INCREASE_REFCOUNT( PyList_GET_ITEM( list, i ) ) );
+    }
+
+    return result;
+}
 
 
 class PythonBuiltin
@@ -2100,7 +2148,6 @@ static PyTracebackObject *MAKE_TRACEBACK_START( PyFrameObject *frame, int line )
     return result;
 }
 
-
 static void ADD_TRACEBACK( PyObject *module, PyObject *filename, PyObject *function_name, int line )
 {
     // TODO: The frame object really might deserve a longer life that this, it is
@@ -2112,7 +2159,6 @@ static void ADD_TRACEBACK( PyObject *module, PyObject *filename, PyObject *funct
 
     Py_DECREF( frame );
 }
-
 """
 
 
@@ -2194,65 +2240,6 @@ if ( _caught_%(except_count)d == false )
 %(else_code)s
 }
 """
-
-
-import_from_template = """
-{
-    PyObject *_module_temp = PyImport_ImportModuleEx( (char *)"%(module_name)s", NULL, NULL, %(import_list)s );
-
-    if (unlikely( _module_temp == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    %(module_imports)s
-
-    Py_DECREF( _module_temp );
-}
-
-"""
-
-for_loop_template = """\
-{
-PyObjectTemporary %(loop_iter_identifier)s( %(iterator)s );
-bool %(indicator_name)s = false;
-while( true )
-{
-    %(line_number_code)s
-
-    try
-    {
-        PyObject *%(loop_value_identifier)s = ITERATOR_NEXT( %(loop_iter_identifier)s.asObject() );
-
-        // Check if end of iterator is reached
-        if ( %(loop_value_identifier)s == NULL )
-        {
-            %(indicator_name)s = true;
-            break;
-        }
-
-        {
-            PyObjectTemporary %(loop_object_identifier)s( %(loop_value_identifier)s );
-
-            %(loop_var_assignment_code)s
-        }
-
-        %(body)s
-    }
-    catch( ContinueException &e )
-    { /* Nothing to do */
-    }
-    catch ( BreakException &e )
-    { /* Break the loop */
-       break;
-    }
-}
-
-if ( %(indicator_name)s)
-{
-    %(else_codes)s
-}
-}"""
 
 exec_local_template = """\
 {

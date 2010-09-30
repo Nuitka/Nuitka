@@ -263,11 +263,28 @@ def buildFunctionCallNode( provider, node, source_ref ):
 def buildSequenceCreationNode( provider, node, source_ref ):
     elements = buildNodeList( provider, node.elts, source_ref )
 
-    return Nodes.CPythonExpressionSequenceCreation(
-        sequence_kind = getKind( node ).upper(),
-        elements      = elements,
-        source_ref    = source_ref
-    )
+    for element in elements:
+        if not element.isConstantReference() or element.isMutable():
+            constant = False
+            break
+    else:
+        constant = True
+
+    sequence_kind = getKind( node ).upper()
+
+    if constant:
+        const_type = tuple if sequence_kind == "TUPLE" else list
+
+        return Nodes.CPythonExpressionConstant(
+            constant   = const_type( element.getConstant() for element in elements ),
+            source_ref = source_ref
+        )
+    else:
+        return Nodes.CPythonExpressionSequenceCreation(
+            sequence_kind = sequence_kind,
+            elements      = elements,
+            source_ref    = source_ref
+        )
 
 def _areConstants( expressions ):
     for expression in expressions:
@@ -281,7 +298,6 @@ def buildDictionaryNode( provider, node, source_ref ):
     values = []
 
     constant = True
-    constant_value = {}
 
     for key, value in zip( node.keys, node.values ):
         key_node = buildNode( provider, key, source_ref )
@@ -291,12 +307,14 @@ def buildDictionaryNode( provider, node, source_ref ):
         values.append( value_node )
 
         constant = constant and key_node.isConstantReference()
-        constant = constant and value_node.isConstantReference()
-
-        if constant:
-            constant_value[ key_node.getConstant() ] = value_node.getConstant()
+        constant = constant and value_node.isConstantReference() and not value_node.isMutable()
 
     if constant:
+        constant_value = dict.fromkeys( [ key.getConstant() for key in keys ], None )
+
+        for count, key in enumerate( keys ):
+            constant_value[ key.getConstant() ] = values[ count ].getConstant()
+
         return Nodes.CPythonExpressionConstant(
             constant   = constant_value,
             source_ref = source_ref
@@ -311,7 +329,6 @@ def buildDictionaryNode( provider, node, source_ref ):
 def buildSetNode( provider, node, source_ref ):
     values = buildNodeList( provider, node.elts, source_ref )
 
-    constant_value = set()
     constant = True
 
     for value in values:
@@ -319,9 +336,9 @@ def buildSetNode( provider, node, source_ref ):
             constant = False
             break
 
-        constant_value.add( value.getConstant() )
-
     if constant:
+        constant_value = frozenset( value.getConstant() for value in values )
+
         return Nodes.CPythonExpressionConstant(
             constant   = constant_value,
             source_ref = source_ref

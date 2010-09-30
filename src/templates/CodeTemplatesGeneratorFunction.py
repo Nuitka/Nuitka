@@ -97,16 +97,6 @@ static PyTracebackObject *%(function_tb_maker)s( int line )
    return result;
 }
 
-static PyTracebackObject *%(function_tb_adder)s( int line )
-{
-    PyFrameObject *frame = MAKE_FRAME( %(module)s, %(file_identifier)s, %(name_identifier)s, line );
-
-    // Inlining PyTraceBack_Here may be faster
-    PyTraceBack_Here( frame );
-
-    Py_DECREF( frame );
-}
-
 static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
     bool traceback;
@@ -119,11 +109,11 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 
         struct _context_generator_%(function_identifier)s_t *_python_context = (_context_generator_%(function_identifier)s_t *)generator->m_context;
 
-        // Set the names of local variables if any
-        %(local_var_naming)s
+        // Local variable inits
+%(function_var_inits)s
 
         // Actual function code.
-        %(function_body)s
+%(function_body)s
 
         PyErr_SetNone( PyExc_StopIteration );
         generator->m_yielded = NULL;
@@ -151,7 +141,7 @@ genfunc_yield_terminator = """\
 """
 
 genfunc_function_template = """
-static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObject *kw )
+static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_object_decl)s )
 {
     struct _context_common_%(function_identifier)s_t *_python_common_context = (struct _context_common_%(function_identifier)s_t *)self;
 
@@ -159,18 +149,17 @@ static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObje
     {
         struct _context_generator_%(function_identifier)s_t *_python_context = new _context_generator_%(function_identifier)s_t;
 
-        %(parameter_parsing_code)s
-
         _python_context->common_context = _python_common_context;
 
         PyObject *result = Nuitka_Generator_New( %(function_identifier)s_context, %(function_name_obj)s, _python_context, _context_generator_%(function_identifier)s_destructor );
-
 
         if ( result == NULL )
         {
             PyErr_Format( PyExc_RuntimeError, "cannot create function %(function_name)s" );
             throw _PythonException();
         }
+
+%(parameter_context_assign)s
 
         return result;
     }
@@ -180,5 +169,20 @@ static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObje
 
         return NULL;
     }
+}
+
+static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObject *kw )
+{
+    struct _context_common_%(function_identifier)s_t *_python_context = (struct _context_common_%(function_identifier)s_t *)self;
+
+%(parameter_parsing_code)s
+
+    return impl_%(function_identifier)s( self%(parameter_object_list)s );
+
+error_exit:;
+
+%(parameter_release_code)s
+    return NULL;
+
 }
 """

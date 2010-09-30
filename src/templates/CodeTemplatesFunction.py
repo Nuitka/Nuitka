@@ -45,7 +45,7 @@ static void _context_%(function_identifier)s_destructor( void *context_voidptr )
 {
     _context_%(function_identifier)s_t *_python_context = (_context_%(function_identifier)s_t *)context_voidptr;
 
-    %(function_context_free)s
+%(function_context_free)s
 
     delete _python_context;
 }
@@ -56,9 +56,8 @@ function_context_access_template = """
     struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)self;
 """
 
-function_context_unused_template = """
-    // The function uses no context.
-"""
+function_context_unused_template = """\
+    // The function uses no context."""
 
 make_function_with_context_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
@@ -71,7 +70,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
     PyObject *result = Nuitka_Function_New( %(function_identifier)s, %(function_name_obj)s, %(module)s, %(function_doc)s, _python_context, _context_%(function_identifier)s_destructor );
 
     // Apply decorators if any
-    %(function_decorator_calls)s
+%(function_decorator_calls)s
 
     return result;
 }
@@ -83,7 +82,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
     PyObject *result = Nuitka_Function_New( %(function_identifier)s, %(function_name_obj)s, %(module)s, %(function_doc)s );
 
     // Apply decorators if any
-    %(function_decorator_calls)s
+%(function_decorator_calls)s
 
     return result;
 }
@@ -104,17 +103,7 @@ static PyTracebackObject *%(function_tb_maker)s( int line )
    return result;
 }
 
-static PyTracebackObject *%(function_tb_adder)s( int line )
-{
-    PyFrameObject *frame = MAKE_FRAME( %(module)s, %(file_identifier)s, %(name_identifier)s, line );
-
-    // Inlining PyTraceBack_Here may be faster
-    PyTraceBack_Here( frame );
-
-    Py_DECREF( frame );
-}
-
-static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObject *kw )
+static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_object_decl)s )
 {
 %(context_access_template)s
 
@@ -122,15 +111,11 @@ static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObje
 
     try
     {
-        %(function_dict_setup)s
-
-        %(parameter_parsing_code)s
-
         // Local variable declarations.
-        %(function_locals)s
+%(function_locals)s
 
         // Actual function code.
-        %(function_body)s
+%(function_body)s
 
         return INCREASE_REFCOUNT( Py_None );
     }
@@ -140,10 +125,30 @@ static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObje
 
         if ( traceback == false )
         {
-           %(function_tb_adder)s( _exception.getLine() );
+            ADD_TRACEBACK( %(module)s, %(file_identifier)s, %(name_identifier)s, _exception.getLine() );
         }
 
         return NULL;
     }
 }
+
+static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObject *kw )
+{
+%(context_access_template)s
+
+%(parameter_parsing_code)s
+
+    return impl_%(function_identifier)s( self%(parameter_object_list)s );
+
+error_exit:;
+
+%(parameter_release_code)s
+    return NULL;
+
+}
+"""
+
+function_dict_setup = """\
+// Locals dictionary setup.
+PyObjectTemporary locals_dict( PyDict_New() );
 """

@@ -37,6 +37,8 @@ import Variables
 
 from odict import OrderedDict
 
+NoneType = type(None)
+
 class CPythonNode:
     def __init__( self, kind, source_ref ):
         assert source_ref is not None
@@ -888,6 +890,7 @@ class CPythonStatementAssignmentInplace( CPythonChildrenHaving, CPythonNode ):
 class CPythonExpressionConstant( CPythonNode ):
     def __init__( self, constant, source_ref ):
         CPythonNode.__init__( self, kind = "EXPRESSION_CONSTANT_REF", source_ref = source_ref )
+
         self.constant = constant
 
     def getDetail( self ):
@@ -895,6 +898,25 @@ class CPythonExpressionConstant( CPythonNode ):
 
     def getConstant( self ):
         return self.constant
+
+    def _isMutable( self, constant ):
+        constant_type = type( constant )
+
+        if constant_type in ( str, unicode, complex, int, long, bool, float, NoneType ):
+            return False
+        elif constant_type in ( dict, list ):
+            return True
+        elif constant_type is tuple:
+            for value in constant:
+                if self._isMutable( value ):
+                    return False
+            else:
+                return True
+        else:
+            assert False, constant_type
+
+    def isMutable( self ):
+        return self._isMutable( self.constant )
 
 class CPythonParameterHaving:
     def __init__( self, parameters ):

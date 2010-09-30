@@ -29,19 +29,17 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Templates for raising exceptions and making assertions."""
 
 
-assertion_without_arg = """\
-if ( %(condition)s )
+template_inplace_var_assignment = """\
 {
-    traceback = true; RAISE_EXCEPTION( INCREASE_REFCOUNT( PyExc_AssertionError ), %(tb_maker)s );
-}
-"""
+    PyObjectTemporary value( %(assign_source_identifier)s );
+    PyObject *result = %(inplace_operation_code)s;
 
-assertion_with_arg = """\
-if ( %(condition)s )
-{
-    traceback = true; RAISE_EXCEPTION( INCREASE_REFCOUNT( PyExc_AssertionError ), %(failure_arg)s, %(tb_maker)s );
-}
-"""
+    if ( result != value.asObject() )
+    {
+        %(assignment_code)s
+    }
+
+    Py_DECREF( result );
+}"""

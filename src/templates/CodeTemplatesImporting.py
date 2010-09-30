@@ -123,3 +123,30 @@ static void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *modu
     }
 }
 """
+
+import_from_template = """\
+{
+    PyObject *_module_temp = PyImport_ImportModuleEx( (char *)"%(module_name)s", NULL, NULL, %(import_list)s );
+
+    if (unlikely( _module_temp == NULL ))
+    {
+        throw _PythonException();
+    }
+
+%(module_imports)s
+
+    Py_DECREF( _module_temp );
+}
+"""
+
+import_item_code = """\
+// Template import_item_code
+try
+{
+    %(lookup_code)s
+}
+catch( _PythonException &_exception )
+{
+    _exception.setType( PyExc_ImportError );
+    throw _exception;
+}"""

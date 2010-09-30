@@ -40,6 +40,7 @@ make a code block out of it. But it doesn't contain any target language syntax.
 """
 
 import TreeOperations
+import Identifiers
 import Generator
 import Contexts
 import Options
@@ -77,6 +78,34 @@ def generateSequenceCreationCode( sequence_kind, elements, context, generator ):
         element_identifiers = identifiers,
         context             = context
     )
+
+def generateConditionCode( condition, context, generator, inverted = False, allow_none = False ):
+    if condition is None and allow_none:
+        assert not inverted
+
+        return generator.getTrueExpressionCode()
+    elif condition.isConstantReference():
+        if condition.getConstant():
+            if inverted:
+                return generator.getFalseExpressionCode()
+            else:
+                return generator.getTrueExpressionCode()
+        else:
+            if inverted:
+                return generator.getTrueExpressionCode()
+            else:
+                return generator.getFalseExpressionCode()
+    else:
+        condition_identifier = generateExpressionCode(
+            context    = context,
+            generator  = generator,
+            expression = condition
+        )
+
+        return (generator.getConditionCheckFalseCode if inverted else generator.getConditionCheckTrueCode)(
+            context   = context,
+            condition = condition_identifier
+        )
 
 def generateContractionCode( contraction, context, generator ):
     loop_var_assigns = contraction.getLoopVariableAssignments()
@@ -118,17 +147,12 @@ def generateContractionCode( contraction, context, generator ):
     contraction_condition_identifiers = []
 
     for condition in conditions:
-        if condition is None:
-            contraction_condition_identifier = generator.getTrueExpressionCode()
-        else:
-            contraction_condition_identifier = generator.getConditionCheckTrueCode(
-                context   = context,
-                condition = generateExpressionCode(
-                    context    = context,
-                    generator  = generator,
-                    expression = condition
-                )
-            )
+        contraction_condition_identifier = generateConditionCode(
+            condition  = condition,
+            allow_none = True,
+            context    = context,
+            generator  = generator
+        )
 
         contraction_condition_identifiers.append( contraction_condition_identifier )
 
@@ -442,6 +466,9 @@ def _areConstants( expressions ):
     for expression in expressions:
         if not expression.isConstantReference():
             return False
+
+        if type( expression.getConstant() ) in ( dict, list, set ):
+            return False
     else:
         return True
 
@@ -522,9 +549,9 @@ def generateExpressionCode( expression, context, generator ):
             context  = context
         )
     elif expression.isConstantReference():
-        identifier = generator.getConstantHandle(
-            constant   = expression.getConstant(),
-            context    = context
+        identifier = generator.getConstantAccess(
+            constant = expression.getConstant(),
+            context  = context
         )
     elif expression.isOperation():
         identifier = generateOperationCode(
@@ -749,12 +776,12 @@ def generateExpressionCode( expression, context, generator ):
         )
     elif expression.isConditionNOT():
         identifier = generator.getConditionNotCode(
-            condition = generateExpressionCode( expression = expression.getExpression(), generator = generator, context = context ),
+            condition = makeExpressionCode( expression = expression.getExpression() ),
             context   = context
         )
     elif expression.isConditionalExpression():
         identifier = generator.getConditionalExpressionCode(
-            condition = makeExpressionCode( expression.getCondition() ),
+            condition = generateConditionCode( condition = expression.getCondition(), generator = generator, context = context ),
             codes_yes = makeExpressionCode( expression.getExpressionYes() ),
             codes_no  = makeExpressionCode( expression.getExpressionNo() ),
             context   = context
@@ -842,8 +869,9 @@ def generateExpressionCode( expression, context, generator ):
 
     return identifier
 
-
 def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
+    # print recursion, targets, '->', value
+
     if len( targets ) == 1 and not targets[0].isAssignToTuple():
         assign_source = value
         code = ""
@@ -859,9 +887,9 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
 
         brace = True
 
-    old_ref_count = value.getRefCount()
+    assign_source = Identifiers.ConsumedProxyIdentifier( assign_source )
 
-    for target in targets:
+    for count, target in enumerate( targets ):
         if target.isAssignToSubscript():
             code += generator.getSubscriptAssignmentCode(
                 subscribed    = generateExpressionCode(
@@ -877,9 +905,6 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
                 identifier    = assign_source,
                 context       = context
             )
-
-            if old_ref_count:
-                value.setRefCount( 0 )
         elif target.isAssignToAttribute():
             attribute_name = mangleAttributeName(
                 attribute_name = target.getAttributeName(),
@@ -896,9 +921,6 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
                 identifier     = assign_source,
                 context        = context
             )
-
-            if old_ref_count:
-                value.setRefCount( 0 )
         elif target.isAssignToSlice():
             expression_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
                 sliced    = target.getLookupSource(),
@@ -921,9 +943,6 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
                 identifier = assign_source,
                 context    = context
             )
-
-            if old_ref_count:
-                value.setRefCount( 0 )
         elif target.isAssignToTuple():
             elements = target.getElements()
 
@@ -950,18 +969,13 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
         else:
             assert False, (target, target.getSourceReference())
 
-        code += "\n"
-
-    assert code.endswith( "\n" )
+    if brace:
+        code = generator.getBlockedCode( code )
 
     if recursion == 1:
-        code = "\n".join( [ "   " + line for line in code.split( "\n" ) ] )
+        code = code.rstrip()
 
-    if brace:
-        code = "{\n%s\n}" % code
-
-    if old_ref_count:
-        value.setRefCount( old_ref_count )
+    # print "code: ", code
 
     return code
 
@@ -1117,7 +1131,7 @@ def _generateStatementCode( statement, context, generator ):
                 context            = context
             )
 
-            return "\n   ".join( codes )
+            return "\n".join( codes )
 
         print statement.dump()
         assert False
@@ -1287,6 +1301,7 @@ def _generateStatementCode( statement, context, generator ):
             context  = context
         )
 
+
         assignment_code = generateAssignmentCode(
             targets   = [ statement.getLoopVariableAssignment() ],
             value     = iter_object,
@@ -1317,9 +1332,10 @@ def _generateStatementCode( statement, context, generator ):
             iter_name        = iter_name,
             iter_value       = iter_value,
             iter_object      = iter_object,
-            loop_var_code    = assignment_code,
+            assignment_code  = assignment_code,
             loop_body_codes  = loop_body_codes,
             loop_else_codes  = loop_else_codes,
+            needs_exceptions = statement.needsExceptionBreakContinue(),
             context          = context
         )
     elif statement.isStatementWhileLoop():
@@ -1339,10 +1355,15 @@ def _generateStatementCode( statement, context, generator ):
             loop_else_codes = []
 
         code = generator.getWhileLoopCode(
-            condition       = makeExpressionCode( statement.getCondition() ),
-            loop_body_codes = loop_body_codes,
-            loop_else_codes = loop_else_codes,
-            context         = context
+            condition        = generateConditionCode(
+                condition = statement.getCondition(),
+                generator = generator,
+                context   = context
+            ),
+            loop_body_codes  = loop_body_codes,
+            loop_else_codes  = loop_else_codes,
+            context          = context,
+            needs_exceptions = statement.needsExceptionBreakContinue(),
         )
     elif statement.isStatementConditional():
         branches_codes = []
@@ -1357,7 +1378,7 @@ def _generateStatementCode( statement, context, generator ):
             branches_codes.append( branch_codes )
 
         code = generator.getBranchCode(
-            conditions     = [ makeExpressionCode( condition ) for condition in statement.getConditions() ],
+            conditions     = [ generateConditionCode( condition = condition, generator = generator, context = context ) for condition in statement.getConditions() ],
             branches_codes = branches_codes,
             context        = context
         )
@@ -1502,7 +1523,12 @@ def _generateStatementCode( statement, context, generator ):
     elif statement.isStatementAssert():
         return generator.getAssertCode(
             context              = context,
-            condition_identifier = makeExpressionCode( statement.getExpression() ),
+            condition_identifier = generateConditionCode(
+                condition = statement.getExpression(),
+                inverted  = True,
+                generator = generator,
+                context   = context
+            ),
             failure_identifier   = makeExpressionCode( statement.getArgument(), allow_none = True ),
             exception_tb_maker   = generator.getTracebackMakerCall( context.getCodeName(), statement.getSourceReference().getLineNumber() )
         )
@@ -1528,6 +1554,8 @@ def _generateStatementCode( statement, context, generator ):
     if Options.shallHaveStatementLines():
         code = generator.getCurrentLineCode( statement.getSourceReference() ) + code
 
+    assert code == code.lstrip()
+
     return code
 
 def generateStatementSequenceCode( statement_sequence, context, generator ):
@@ -1549,7 +1577,16 @@ def generateStatementSequenceCode( statement_sequence, context, generator ):
             generator = generator
         )
 
-        codes.append( code )
+        # Can happen for "global" declarations, these are still in the node tree and yield
+        # no code.
+        if code == "":
+            continue
+
+        statement_codes = code.split( "\n" )
+
+        assert statement_codes[0].strip() != "", ( "Code '%s'" % code, statement )
+
+        codes += statement_codes
 
     return codes
 

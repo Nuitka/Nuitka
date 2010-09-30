@@ -39,10 +39,6 @@ class Identifier:
     def getRefCount( self ):
         return self.ref_count
 
-    def setRefCount( self, ref_count ):
-        assert hasattr( self, "ref_count" )
-        self.ref_count = ref_count
-
     def getCode( self ):
         return self.code
 
@@ -158,6 +154,37 @@ class ClosureVariableIdentifier( Identifier ):
     def getCodeDropRef( self ):
         return "DECREASE_REFCOUNT( %s )" % self.getCodeObject()
 
+class ConsumedProxyIdentifier:
+    def __init__( self, target ):
+        self.target = target
+        self.given = False
+
+    def getCode( self ):
+        return self.target.getCode()
+
+    def getCodeObject( self ):
+        return self.target.getCodeObject()
+
+    def getCodeExportRef( self ):
+        if self.given:
+            return self.target.getCodeObject()
+        else:
+            self.given = True
+
+            return self.target.getCodeExportRef()
+
+    def getCodeTemporaryRef( self ):
+        if self.given:
+            return self.target.getCodeObject()
+        else:
+            self.given = True
+
+            return self.target.getCodeTemporaryRef()
+
+    def getRefCount( self ):
+        return 0 if self.given else self.target.getRefCount()
+
+
 class ExceptionCannotNamify( Exception ):
     pass
 
@@ -244,9 +271,26 @@ def namifyConstant( constant ):
                 print "Warning, couldn't namify", value
 
                 return "tuple_" + hashlib.md5( repr( constant ) ).hexdigest()
+    elif type( constant ) == list:
+        if constant == []:
+            return "list_empty"
+        else:
+            result = "list_"
 
+            try:
+                parts = []
+
+                for value in constant:
+                    parts.append( namifyConstant( value ) )
+
+                return result + "_".join( parts )
+            except ExceptionCannotNamify:
+                print "Warning, couldn't namify", value
+
+                return "list_" + hashlib.md5( repr( constant ) ).hexdigest()
     else:
         raise ExceptionCannotNamify( constant )
+
 
 if __name__ == "__main__":
     for d_value in ( "", "<module>" ):

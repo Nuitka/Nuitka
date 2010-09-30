@@ -142,8 +142,6 @@ class PythonChildContextBase( PythonContextBase ):
 class PythonGlobalContext:
     def __init__( self ):
         self.constants = {}
-        self.constant_dicts = {}
-        self.constant_sets = {}
 
         self.const_tuple_empty  = self.getConstantHandle( () ).getCode()
         self.const_string_empty = self.getConstantHandle( "" ).getCode()
@@ -157,20 +155,6 @@ class PythonGlobalContext:
     def getConstantHandle( self, constant ):
         if constant is None:
             return Identifier( "Py_None", 0 )
-        elif type( constant ) == dict:
-            dict_key = repr( sorted( constant.iteritems() ) )
-
-            if dict_key not in self.constant_dicts:
-                self.constant_dicts[ dict_key ] = self._getConstantHandle( constant )
-
-            return Identifier( "PyDict_Copy( %s )" % self.constant_dicts[ dict_key ], 1 )
-        elif type( constant ) == set:
-            set_key = repr( sorted( constant ) )
-
-            if set_key not in self.constant_sets:
-                self.constant_sets[ set_key ] = self._getConstantHandle( constant )
-
-            return Identifier( "PySet_New( %s )" % self.constant_sets[ set_key ], 1 )
         elif constant is Ellipsis:
             return Identifier( "Py_Ellipsis", 0 )
         else:
@@ -182,7 +166,12 @@ class PythonGlobalContext:
             return Identifier( self.constants[ key ], 0 )
 
     def _getConstantHandle( self, constant ):
-        if type( constant ) in ( int, long, str, unicode, float, bool, complex, dict, set, tuple ):
+        constant_type = type( constant )
+        if constant_type in ( int, long, str, unicode, float, bool, complex, tuple, list ):
+            return "_python_" + namifyConstant( constant )
+        elif constant_type is dict:
+            return "_python_" + namifyConstant( constant )
+        elif constant_type is dict:
             return "_python_" + namifyConstant( constant )
         elif constant is Ellipsis:
             return "Py_Ellipsis"
@@ -212,12 +201,6 @@ class PythonGlobalContext:
         statements = []
 
         for constant_name in sorted( self.constants.values()  ):
-            statements.append( "static PyObject *%s = NULL;" % constant_name )
-
-        for constant_name in sorted( self.constant_dicts.values() ):
-            statements.append( "static PyObject *%s = NULL;" % constant_name )
-
-        for constant_name in sorted( self.constant_sets.values() ):
             statements.append( "static PyObject *%s = NULL;" % constant_name )
 
         return "\n".join( statements )
@@ -279,14 +262,13 @@ class PythonGlobalContext:
                 # statements.append( """puts( "%s" );""" % constant_identifier )
                 statements.append( """%s = PyString_FromStringAndSize( %s, %d );""" % ( constant_identifier, encoded, len(constant_value) ) )
                 statements.append( """assert( PyString_Size( %s ) == %d );""" % ( constant_identifier, len(constant_value) ) )
-            elif constant_type in ( tuple, list, bool, float, complex, unicode, int, long ):
+            elif constant_type in ( tuple, list, bool, float, complex, unicode, int, long, dict, set ):
                 saved = cPickle.dumps( constant_value )
 
                 # Check that the constant is restored correctly.
                 restored = cPickle.loads( saved )
 
-                assert restored == constant_value and repr( constant_value ) == repr( restored ), ( repr( constant_value ), "!=", repr( restored ) )
-                # statements.append( """puts( "%s" );""" % constant_identifier )
+                assert restored == constant_value, ( repr( constant_value ), "!=", repr( restored ) )
 
                 statements.append( """%s = _unstreamConstant( %s, %d );""" % ( constant_identifier, self._encodeString( saved ), len( saved ) ) )
             elif constant_value is None:
@@ -294,35 +276,6 @@ class PythonGlobalContext:
             else:
                 assert False, (type(constant_value), constant_value, constant_identifier)
 
-        for constant_value, constant_identifier in sorted( self.constant_dicts.iteritems() ):
-            dict_value = {}
-
-            for key, value in eval( constant_value ):
-                dict_value[ key ] = value
-
-            saved = cPickle.dumps( dict_value )
-
-            # Check that the constant is restored correctly.
-            restored = cPickle.loads( saved )
-            assert restored == dict_value, dict_value
-
-            # statements.append( """puts( "%s" );""" % constant_identifier )
-            statements.append( """%s = _unstreamConstant( %s, %d );""" % ( constant_identifier, self._encodeString( saved ), len( saved ) ) )
-
-        for constant_value, constant_identifier in sorted( self.constant_sets.iteritems() ):
-            set_value = set()
-
-            for value in eval( constant_value ):
-                set_value.add( value )
-
-            saved = cPickle.dumps( set_value )
-
-            # Check that the constant is restored correctly.
-            restored = cPickle.loads( saved )
-            assert restored == set_value, set_value
-
-            # statements.append( """puts( "%s" );""" % constant_identifier )
-            statements.append( """%s = _unstreamConstant( %s, %d );""" % ( constant_identifier, self._encodeString( saved ), len( saved ) ) )
 
         return "\n        ".join( statements )
 
@@ -451,10 +404,7 @@ class PythonFunctionContext( PythonChildContextBase ):
             return ClosureVariableIdentifier( var_name, from_context = "_python_context->common_context->" )
 
     def getDefaultHandle( self, var_name ):
-        if not self.function.isGenerator():
-            return Identifier( "_python_context->default_value_" + var_name, 0 )
-        else:
-            return Identifier( "_python_context->common_context->default_value_" + var_name, 0 )
+        return Identifier( "_python_context->default_value_" + var_name, 0 )
 
     def getLambdaExpressionCodeHandle( self, lambda_expression ):
         return self.parent.getLambdaExpressionCodeHandle( lambda_expression = lambda_expression )

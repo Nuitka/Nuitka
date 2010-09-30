@@ -36,12 +36,12 @@ module_inittab_entry = """\
 """
 
 main_program = """\
-// The main program for C++. It needs to prepare the interpreter and then
-// calls the initialization code of the __main__ module.
+// The main program for C++. It needs to prepare the interpreter and then calls the
+// initialization code of the __main__ module.
 
 static struct _inittab _module_inittab[] =
 {
-    %(module_inittab)s
+%(module_inittab)s
     NULL, NULL
 };
 
@@ -85,7 +85,6 @@ int main( int argc, char *argv[] )
         PyErr_Print();
     }
 }
-
 """
 
 package_template = """\
@@ -122,9 +121,6 @@ module_template = """\
 
 static PyObject *_module_%(module_identifier)s;
 
-// The module filename.
-static PyObject *_module_filename_%(module_identifier)s;
-
 // The module level variables.
 %(module_globals)s
 
@@ -150,15 +146,15 @@ static PyTracebackObject *%(module_tb_maker)s( int line )
    return result;
 }
 
-static void %(module_tb_adder)s( int line )
-{
-   ADD_TRACEBACK( _module_%(module_identifier)s, %(file_identifier)s, _python_str_angle_module, line );
-}
-
 NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 {
     // puts( "in init%(module_identifier)s" );
 
+
+    // Create the module object first. There are no methods initially, all are added
+    // dynamically in actual code only.  Also no __doc__ is initially set, as it could not
+    // contain 0 this way, added early in actual code.  No self for modules, we have no
+    // use for it.
     _module_%(module_identifier)s = Py_InitModule4(
         "%(module_name)s",       // Module Name
         NULL,                    // No methods initially, all are added dynamically in actual code only.
@@ -176,40 +172,40 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
     PyType_Ready( &Nuitka_Function_Type );
     PyType_Ready( &Nuitka_Genexpr_Type );
 
-    %(module_inits)s
+    // Initialize the standard module attributes.
+%(module_inits)s
 
+    // Module code
     bool traceback = false;
 
     try
     {
-        %(module_code)s
+%(module_code)s
     }
-    catch ( _PythonException &e )
+    catch ( _PythonException &_exception )
     {
-        e.toPython();
+        _exception.toPython();
 
         if ( traceback == false )
         {
-            %(module_tb_adder)s( e.getLine() );
+            ADD_TRACEBACK( _module_%(module_identifier)s, %(file_identifier)s, _python_str_angle_module, _exception.getLine() );
         }
     }
 }
 """
 
-module_plain_init_template = """
+module_plain_init_template = """\
     _mvar_%(module_identifier)s___doc__.assign0( %(doc_identifier)s );
-    _mvar_%(module_identifier)s___file__.assign0( %(file_identifier)s );
-"""
+    _mvar_%(module_identifier)s___file__.assign0( %(file_identifier)s );"""
 
-module_package_init_template = """
+module_package_init_template = """\
     _mvar_%(module_identifier)s___doc__.assign0( %(doc_identifier)s );
     _mvar_%(module_identifier)s___file__.assign0( %(file_identifier)s );
     _mvar_%(module_identifier)s___package__.assign0( %(package_name_identifier)s );
 
     init%(package_identifier)s();
 
-    SET_ATTRIBUTE( _package_%(package_identifier)s, %(module_name)s, _module_%(module_identifier)s );
-"""
+    SET_ATTRIBUTE( _package_%(package_identifier)s, %(module_name)s, _module_%(module_identifier)s );"""
 
 constant_reading = """
 
@@ -255,5 +251,4 @@ static int _initConstants()
         %(const_init)s
     }
 }
-
 """

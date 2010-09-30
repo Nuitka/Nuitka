@@ -27,3 +27,24 @@ for value in (0, 0L, 3L, -4L, 17, "hey", (0, ),(0L, ) ):
 print 1 == 0
 
 print repr(0L), repr(0L) == "0L"
+
+print {} is {}
+
+a = ( {}, [] )
+
+a[0][1] = 2
+a[1].append( 3 )
+
+print a
+
+print ( {}, [] )
+
+def argChanger( a ):
+   a[0][1] = 2
+   a[1].append( 3 )
+
+   return a
+
+print argChanger( ( {}, [] ) )
+
+print ( {}, [] )

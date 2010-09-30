@@ -123,6 +123,9 @@ class NestedParameterVariable( Variable ):
     def getVariables( self ):
         return self.parameter_spec.getVariables()
 
+    def getAllVariables( self ):
+        return self.parameter_spec.getAllVariables()
+
     def getTopLevelVariables( self ):
         return self.parameter_spec.getTopLevelVariables()
 

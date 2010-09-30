@@ -91,6 +91,15 @@ class ParameterSpecTuple:
 
         return result
 
+    def getAllVariables( self ):
+        result = self.normal_variables[:]
+
+        for variable in self.normal_variables:
+            if variable.isNestedParameterVariable():
+                result += variable.getAllVariables()
+
+        return result
+
     def getTopLevelVariables( self ):
         return self.normal_variables
 
@@ -168,6 +177,18 @@ class ParameterSpec( ParameterSpecTuple ):
             result.append( self.dict_star_variable )
 
         return result
+
+    def getAllVariables( self ):
+        result = ParameterSpecTuple.getAllVariables( self )
+
+        if self.list_star_variable is not None:
+            result.append( self.list_star_variable )
+
+        if self.dict_star_variable is not None:
+            result.append( self.dict_star_variable )
+
+        return result
+
 
     def getListStarArgName( self ):
         return self.list_star_arg

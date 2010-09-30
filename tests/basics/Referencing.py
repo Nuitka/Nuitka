@@ -214,12 +214,12 @@ def simpleFunction27():
     return inplace_adder( 3 )
 
 def simpleFunction28():
-    a = { "g": [ 8 ] }
+    a = { "g": [ 8 ], "h": 2 }
 
     def inplace_adder( b ):
         a[ "g" ] += b
 
-    return inplace_adder( [ 3 ] )
+    return inplace_adder( [ 3, 5 ] )
 
 
 def simpleFunction29():
