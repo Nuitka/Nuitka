@@ -18,8 +18,3 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-
-import some_package.DeepChild
-import some_package.deep_package.DeepDeepChild
-
-print "Done."

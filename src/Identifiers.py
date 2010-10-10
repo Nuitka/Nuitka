@@ -39,6 +39,10 @@ class Identifier:
     def getRefCount( self ):
         return self.ref_count
 
+    def setRefCount( self, ref_count ):
+        assert hasattr( self, "ref_count" )
+        self.ref_count = ref_count
+
     def getCode( self ):
         return self.code
 
@@ -154,37 +158,6 @@ class ClosureVariableIdentifier( Identifier ):
     def getCodeDropRef( self ):
         return "DECREASE_REFCOUNT( %s )" % self.getCodeObject()
 
-class ConsumedProxyIdentifier:
-    def __init__( self, target ):
-        self.target = target
-        self.given = False
-
-    def getCode( self ):
-        return self.target.getCode()
-
-    def getCodeObject( self ):
-        return self.target.getCodeObject()
-
-    def getCodeExportRef( self ):
-        if self.given:
-            return self.target.getCodeObject()
-        else:
-            self.given = True
-
-            return self.target.getCodeExportRef()
-
-    def getCodeTemporaryRef( self ):
-        if self.given:
-            return self.target.getCodeObject()
-        else:
-            self.given = True
-
-            return self.target.getCodeTemporaryRef()
-
-    def getRefCount( self ):
-        return 0 if self.given else self.target.getRefCount()
-
-
 class ExceptionCannotNamify( Exception ):
     pass
 
@@ -254,6 +227,11 @@ def namifyConstant( constant ):
             return "set_empty"
         else:
             return "set_" + hashlib.md5( repr( constant ) ).hexdigest()
+    elif type( constant ) == frozenset:
+        if constant == frozenset():
+            return "frozenset_empty"
+        else:
+            return "frozenset_" + hashlib.md5( repr( constant ) ).hexdigest()
     elif type( constant ) == tuple:
         if constant == ():
             return "tuple_empty"
@@ -290,7 +268,6 @@ def namifyConstant( constant ):
                 return "list_" + hashlib.md5( repr( constant ) ).hexdigest()
     else:
         raise ExceptionCannotNamify( constant )
-
 
 if __name__ == "__main__":
     for d_value in ( "", "<module>" ):

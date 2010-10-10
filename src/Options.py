@@ -32,7 +32,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.3.1
+Nuitka V0.3.2
 Copyright (C) 2010 Kay Hayen."""
 
 from optparse import OptionParser

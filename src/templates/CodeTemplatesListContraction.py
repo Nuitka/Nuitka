@@ -29,15 +29,16 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-list_contraction_decl_template = """\
+contraction_decl_template = """\
 static PyObject *%(contraction_identifier)s( %(contraction_parameters)s );
 """
 
-list_contraction_loop_iterated = """\
+contraction_loop_iterated = """\
     PyObjectTemporary iterator_%(iter_count)d( MAKE_ITERATOR( %(iterated)s ) );
 
-    while (PyObject *_python_contraction_iter_value_%(iter_count)d = ITERATOR_NEXT( iterator_%(iter_count)d.asObject() ) )
+    while ( PyObject *_python_contraction_iter_value_%(iter_count)d = ITERATOR_NEXT( iterator_%(iter_count)d.asObject() ) )
     {
+        // TODO: Use PyObjectTemporary instead of try/catch here.
         try
         {
             %(loop_var_assignment_code)s
@@ -50,28 +51,52 @@ list_contraction_loop_iterated = """\
             throw;
         }
 
-        if (%(contraction_condition)s)
+        if ( %(contraction_condition)s )
         {
 %(contraction_loop)s
         }
     }
 """
 
-list_contraction_loop_production = """
+list_contraction_loop_production = """\
             APPEND_TO_LIST(
                 _python_contraction_result,
                 %(contraction_body)s
-            );
-"""
+            );"""
 
-list_contraction_code_template = """\
+set_contraction_loop_production = """\
+            ADD_TO_SET(
+                _python_contraction_result,
+                %(contraction_body)s
+            );"""
+
+
+dict_contraction_loop_production = """\
+            DICT_SET_ITEM(
+                _python_contraction_result,
+                %(key_identifier)s,
+                %(value_identifier)s
+            );"""
+
+
+contraction_code_template = """\
 static PyObject *%(contraction_identifier)s( %(contraction_parameters)s )
 {
-    PyObject *_python_contraction_result = MAKE_LIST();
+%(contraction_var_decl)s
 
-%(contraction_body)s 
+%(contraction_body)s
 
     return _python_contraction_result;
 }
-
 """
+
+list_contration_var_decl = """\
+PyObject *_python_contraction_result = MAKE_LIST();""";
+
+dict_contration_var_decl = """\
+PyObject *_python_contraction_result = MAKE_DICT();
+%(local_var_decl)s""";
+
+set_contration_var_decl = """\
+PyObject *_python_contraction_result = MAKE_SET();
+%(local_var_decl)s""";

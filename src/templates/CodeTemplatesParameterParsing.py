@@ -63,7 +63,7 @@ if (unlikely( !%(has_list_star_arg)s && args_size > %(top_level_parameter_count)
 }
 
 // Check if too little arguments were given.
-if (unlikely( args_size + kw_size < %(required_parameter_count)d))
+if (unlikely( args_size + kw_size < %(required_parameter_count)d ))
 {
     if ( %(top_level_parameter_count)d == 1 )
     {
@@ -112,6 +112,20 @@ if ( kw == NULL )
 else
 {
     _python_par_%(dict_star_parameter_name)s = PyDict_Copy( kw );
+
+    if (unlikely( _python_par_%(dict_star_parameter_name)s == NULL ))
+    {
+        PyErr_Clear();
+
+        _python_par_%(dict_star_parameter_name)s = MAKE_DICT();
+
+        if (unlikely( PyDict_Update( _python_par_%(dict_star_parameter_name)s, kw ) != 0 ))
+        {
+            PyErr_Format( PyExc_TypeError, "after ** must be a mapping, not %%s", kw->ob_type->tp_name );
+
+            goto error_exit;
+        }
+    }
 }
 """
 
@@ -122,9 +136,9 @@ parse_argument_template_check_dict_parameter_with_star_dict = """
 
     if ( kw_arg_value != NULL )
     {
-        if (unlikely( _python_par_%(parameter_name)s ) )
+        if (unlikely( _python_par_%(parameter_name)s ))
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s got multiple values for keyword argument '%(parameter_name)s'" );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() got multiple values for keyword argument '%(parameter_name)s'" );
             goto error_exit;
         }
 
@@ -143,9 +157,9 @@ if ( kw != NULL )
 
     if ( kw_arg_value != NULL )
     {
-        if (unlikely( _python_par_%(parameter_name)s ) )
+        if (unlikely( _python_par_%(parameter_name)s ))
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s got multiple values for keyword argument '%(parameter_name)s'" );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() got multiple values for keyword argument '%(parameter_name)s'" );
             goto error_exit;
         }
 

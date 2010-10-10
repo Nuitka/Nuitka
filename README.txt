@@ -35,31 +35,53 @@ tasks and issue tracking in Nuitka.
    feedback is very welcome. Esp. if you find that anything doesn't work, because the
    project is now at the stage that it should.
 
+   A known problem is that --deep mode can create C++ source code that is virtually
+   impossible to compile because g++ won't manage to complete the process. I will make
+   changes that enable paralell compilation of smaller chunks. But right now it is not
+   done.
+
 * Unsupported functionality
 
-** function.func_code:
+** General
 
-   Cannot not exist for native compiled functions. There is no bytecode with Nuitka's
-   compiled function objects, so there is no way to provide bytecode.
+*** function.func_code:
 
-** sys.exc_info() does not stack
+    Cannot not exist for native compiled functions. There is no bytecode with Nuitka's
+    compiled function objects, so there is no way to provide bytecode.
 
-   It works mostly as expected, but doesn't stack, exceptions when handling exceptions are
-   not preserved to this function, which they are with CPython, where each frame has its
-   own current exception.
+*** sys.exc_info() does not stack
 
-** threading can block it seems
+    It works mostly as expected, but doesn't stack, exceptions when handling exceptions
+    are not preserved to this function, which they are with CPython, where each frame has
+    its own current exception.
 
-   The generated code never lets the CPython run time switch threads, so its chances to do
-   so are reduced, which may lead to problems. I personally do not care much about
-   threads, would use subprocesses anyway.
+*** threading can block it seems
 
-** relative import "from . import x" is partially supported only
+    The generated code never lets the CPython run time switch threads, so its chances to do
+    so are reduced, which may lead to problems. I personally do not care much about
+    threads, would use subprocesses anyway.
 
-   Relative imports of this form work perfectly in --deep mode, because only then the package
-   of the importing module is known. Currently there is no way to tell the compiler what the
-   package the compiled module is when compiling in stand alone mode. This may change in the
-   future.
+*** Start of function call vs. end of function call in traceback output
+
+    In CPython the traceback points to the end of the function call, whereas Nuitka has it
+    point to the first line of the function call. This is due to the use of the ast.parse
+    over bytecode it seems and not easy to overcome. It would require parsing the source
+    on our own and search for the end of the function call.
+
+** Deep Mode (Everything into one exe)
+
+*** Packages __init__.py code is ignored
+
+    For packages no init code is currently run. This will change in the future, but
+    describes a limitation that currently exists. Normally __init__.py shouldn't do too
+    relevant things.
+
+*** relative import "from . import x" is partially supported only
+
+    Relative imports of this form work perfectly in --deep mode, because only then the package
+    of the importing module is known. Currently there is no way to tell the compiler what the
+    package the compiled module is when compiling in stand alone mode. This may change in the
+    future.
 
 * CPython Test changes:
 
@@ -72,9 +94,19 @@ This is the list of tests modified from what they are in CPython.
     Changed func_code usage to get local consts to locals().  Removed tests based on
     func_code objects.  Remove test that uses exec to enrich the locals.
 
+*** test_compiler:
+
+    Removed test that compiled for a random time producing indetermistic output in its
+    report.
+
 *** test_complexargs:
 
     Don't use exec to hide Py3K warning, because it means the compiler is not used for it.
+
+*** test_cookie:
+
+    Removed part of the test that is a difference between Python2.6 and Python2.7 plus it
+    is affected by the function call line difference.
 
 *** test_copy:
 

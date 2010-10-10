@@ -609,12 +609,11 @@ typedef PyObject *(binary_api)( PyObject *, PyObject * );
 static PyObject *BINARY_OPERATION( binary_api api, PyObject *operand1, PyObject *operand2 )
 {
     int line = _current_line;
-
     PyObject *result = api( operand1, operand2 );
+    _current_line = line;
 
     if (unlikely (result == NULL))
     {
-        _current_line = line;
         throw _PythonException();
     }
 
@@ -663,10 +662,10 @@ static PyObject *RICH_COMPARE( int opid, PyObject *operand2, PyObject *operand1 
 {
     int line = _current_line;
     PyObject *result = PyObject_RichCompare( operand1, operand2, opid );
+    _current_line = line;
 
     if (unlikely (result == NULL))
     {
-        _current_line = line;
         throw _PythonException();
     }
 
@@ -677,10 +676,10 @@ static bool RICH_COMPARE_BOOL( int opid, PyObject *operand2, PyObject *operand1 
 {
     int line = _current_line;
     int result = PyObject_RichCompareBool( operand1, operand2, opid );
+    _current_line = line;
 
     if (unlikely( result == -1 ))
     {
-        _current_line = line;
         throw _PythonException();
     }
 
@@ -743,12 +742,11 @@ static PyObject *CALL_FUNCTION( PyObject *named_args, PyObject *positional_args,
     assert( named_args == NULL || named_args->ob_refcnt > 0 );
 
     int line = _current_line;
-
     PyObject *result = PyObject_Call( function_object, positional_args, named_args );
+    _current_line = line;
 
     if (unlikely (result == NULL))
     {
-        _current_line = line;
         throw _PythonException();
     }
 
@@ -872,10 +870,12 @@ static PyObject *MERGE_DICTS( PyObject *dict_a, PyObject *dict_b, bool allow_con
 
     if (unlikely( status == -1 ))
     {
+        Py_DECREF( result );
+
         throw _PythonException();
     }
 
-    if ( allow_conflict == false && PyDict_Size( dict_a ) + PyDict_Size( dict_b ) != PyDict_Size( result ))
+    if ( allow_conflict == false && PyDict_Size( dict_a ) + PyMapping_Size( dict_b ) != PyDict_Size( result ))
     {
         Py_DECREF( result );
 
@@ -961,15 +961,13 @@ static PyObject *ITERATOR_NEXT( PyObject *iterator )
     assert( iterator->ob_refcnt > 0 );
 
     int line = _current_line;
-
     PyObject *result = PyIter_Next( iterator );
+    _current_line = line;
 
     if (unlikely (result == NULL))
     {
         if ( PyErr_Occurred() != NULL )
         {
-            _current_line = line;
-
             throw _PythonException();
         }
     }
@@ -1256,7 +1254,9 @@ static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObject *attr_name )
     assert (attr_name);
     assert (attr_name->ob_refcnt > 0);
 
+    int line = _current_line;
     PyObject *result = PyObject_GetAttr( source, attr_name );
+    _current_line = line;
 
     if (unlikely (result == NULL))
     {
@@ -1300,8 +1300,7 @@ static void DEL_ATTRIBUTE( PyObject *target, PyObject *attr_name )
     }
 }
 
-
-static void APPEND_TO_LIST( PyObject *list, PyObject *item)
+static void APPEND_TO_LIST( PyObject *list, PyObject *item )
 {
     int status = PyList_Append( list, item );
 
@@ -1311,9 +1310,20 @@ static void APPEND_TO_LIST( PyObject *list, PyObject *item)
     }
 }
 
+static void ADD_TO_SET( PyObject *set, PyObject *item )
+{
+    int status = PySet_Add( set, item );
+
+    if (unlikely( status == -1 ))
+    {
+        throw _PythonException();
+    }
+}
+
+
+
 static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject *seq2 )
 {
-
     PyObject *result = PySequence_Concat( seq1, seq2 );
 
     if (unlikely (result == NULL))
@@ -1442,14 +1452,15 @@ class PyObjectLocalDictVariable {
 
 class PyObjectLocalVariable {
     public:
-        explicit PyObjectLocalVariable( PyObject *var_name, PyObject *object = NULL, bool free_value = true )
+        explicit PyObjectLocalVariable( PyObject *var_name, PyObject *object = NULL, bool free_value = false )
         {
             this->var_name   = var_name;
             this->object     = object;
             this->free_value = free_value;
         }
 
-        explicit PyObjectLocalVariable() {
+        explicit PyObjectLocalVariable()
+        {
             this->var_name   = NULL;
             this->object     = NULL;
             this->free_value = false;
@@ -1459,8 +1470,7 @@ class PyObjectLocalVariable {
         {
             if ( this->free_value )
             {
-                // TODO: Why would free_value be true if this->object were NULL.
-                Py_XDECREF( this->object );
+                Py_DECREF( this->object );
             }
         }
 
@@ -1479,13 +1489,20 @@ class PyObjectLocalVariable {
             assert( object );
             assert( object->ob_refcnt > 0 );
 
-            PyObject *old_object = this->free_value ? this->object : NULL;
+            if ( this->free_value )
+            {
+                PyObject *old_object = this->object;
 
-            this->object = object;
-            this->free_value = true;
+                this->object = object;
 
-            // Free old value if any available and owned.
-            Py_XDECREF( old_object );
+                // Free old value if any available and owned.
+                Py_DECREF( old_object );
+            }
+            else
+            {
+                this->object = object;
+                this->free_value = true;
+            }
         }
 
         PyObject *asObject() const
@@ -1521,7 +1538,7 @@ class PyObjectLocalVariable {
             }
 
             this->object = NULL;
-            this->free_value = true;
+            this->free_value = false;
         }
 
         PyObject *getVariableName() const
@@ -1553,7 +1570,7 @@ class PyObjectSharedStorage
         {
             if ( this->free_value )
             {
-                Py_XDECREF( this->object );
+                Py_DECREF( this->object );
             }
         }
 
@@ -1562,13 +1579,20 @@ class PyObjectSharedStorage
             assert( object );
             assert( object->ob_refcnt > 0 );
 
-            PyObject *old_object = this->free_value ? this->object : NULL;
+            if ( this->free_value )
+            {
+                PyObject *old_object = this->object;
 
-            this->object = object;
-            this->free_value = true;
+                this->object = object;
 
-            // Free old value if any available and owned.
-            Py_XDECREF( old_object );
+                // Free old value if any available and owned.
+                Py_DECREF( old_object );
+            }
+            else
+            {
+                this->object = object;
+                this->free_value = true;
+            }
         }
 
         PyObject *var_name;
@@ -1580,7 +1604,7 @@ class PyObjectSharedStorage
 class PyObjectSharedLocalVariable
 {
     public:
-        explicit PyObjectSharedLocalVariable( PyObject *var_name, PyObject *object = NULL, bool free_value = true )
+        explicit PyObjectSharedLocalVariable( PyObject *var_name, PyObject *object = NULL, bool free_value = false )
         {
             this->storage = new PyObjectSharedStorage( var_name, object, free_value );
         }
@@ -1715,7 +1739,7 @@ class PyObjectGlobalVariable
                 return INCREASE_REFCOUNT( entry->me_value );
             }
 
-            PyErr_Format( PyExc_NameError, "global name %s is not defined", PyString_AsString( (PyObject *)*this->var_name ) );
+            PyErr_Format( PyExc_NameError, "global name '%s' is not defined", PyString_AsString( (PyObject *)*this->var_name ) );
             throw _PythonException();
         }
 
@@ -2053,9 +2077,9 @@ static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals 
     }
 
     // Set the __builtin__ in globals, it is expected to be present.
-    if ( PyMapping_HasKeyString( globals, (char *)"__builtins__" ) == 0 )
+    if ( PyDict_GetItemString( globals, (char *)"__builtins__" ) == NULL )
     {
-        if ( PyMapping_SetItemString( globals, (char *)"__builtins__", (PyObject *)_module_builtin ) == -1 )
+        if ( PyDict_SetItemString( globals, (char *)"__builtins__", (PyObject *)_module_builtin ) == -1 )
         {
             throw _PythonException();
         }
@@ -2063,7 +2087,7 @@ static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals 
 
     PyObject *result = PyEval_EvalCode( (PyCodeObject *)code, globals, locals );
 
-    if (unlikely (result == NULL))
+    if (unlikely( result == NULL ))
     {
         throw _PythonException();
     }
@@ -2208,11 +2232,11 @@ catch ( _PythonException &_exception )
     if ( !_exception.hasTraceback() )
     {
         _exception.setTraceback( %(tb_making)s );
+        traceback = true;
     }
     _exception.toExceptionHandler();
-    traceback = false;
 
-    %(exception_code)s
+%(exception_code)s
 }
 """
 
@@ -2229,11 +2253,11 @@ catch ( _PythonException &_exception )
     if ( !_exception.hasTraceback() )
     {
         _exception.setTraceback( %(tb_making)s );
+        traceback = true;
     }
     _exception.toExceptionHandler();
-    traceback = false;
 
-    %(exception_code)s
+%(exception_code)s
 }
 if ( _caught_%(except_count)d == false )
 {
@@ -2294,3 +2318,67 @@ EVAL_CODE( PyObjectTemporary( COMPILE_CODE(  %(source_identifier)s, %(filename_i
 
 eval_global_template = """\
 EVAL_CODE( PyObjectTemporary( COMPILE_CODE(  %(source_identifier)s, %(filename_identifier)s, %(mode_identifier)s, %(future_flags)s ) ).asObject(), ( _eval_globals_tmp = %(globals_identifier)s ) == Py_None ? %(make_globals_identifier)s : _eval_globals_tmp, %(locals_identifier)s )"""
+
+with_template = """\
+{
+    _PythonExceptionKeeper _caught_%(with_count)d;
+
+    PyObjectTemporary %(manager)s( %(source)s );
+
+    // Should have a CALL_FUNCTION that does this for us.
+    PyObject *_enter_result = PyObject_CallMethod( %(manager)s.asObject(), (char *)"__enter__", NULL );
+
+    if (unlikely( _enter_result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    PyObjectTemporary %(value)s( _enter_result );
+
+    try
+    {
+%(assign)s
+%(body)s
+    }
+    catch ( _PythonException &_exception )
+    {
+        _caught_%(with_count)d.save( _exception );
+
+        PyObject *exception_type  = _exception.getType();
+        PyObject *exception_value = _exception.getObject();
+        PyObject *exception_tb    = _exception.getTraceback();
+
+        if ( exception_tb == NULL )
+            exception_tb = Py_None;
+
+        assert( exception_type != NULL );
+        assert( exception_value != NULL );
+
+        PyObject *result = PyObject_CallMethod( %(manager)s.asObject(), (char *)"__exit__",  (char *)"OOO", INCREASE_REFCOUNT( exception_type ), INCREASE_REFCOUNT( exception_value ), INCREASE_REFCOUNT( exception_tb ), NULL );
+
+        if (unlikely( result == NULL ))
+        {
+            throw _PythonException();
+        }
+
+        if ( CHECK_IF_TRUE( result ) )
+        {
+            PyErr_Clear();
+        }
+        else
+        {
+            _caught_%(with_count)d.rethrow();
+        }
+    }
+
+    if ( _caught_%(with_count)d.isEmpty() )
+    {
+        PyObject *result = PyObject_CallMethod( %(manager)s.asObject(), (char *)"__exit__",  (char *)"OOO", Py_None, Py_None, Py_None, NULL );
+
+        if (unlikely( result == NULL ))
+        {
+            throw _PythonException();
+        }
+    }
+}
+"""

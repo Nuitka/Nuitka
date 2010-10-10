@@ -60,15 +60,10 @@ class PythonGeneratorBase:
             return Identifier( "PyDict_Copy( %s )" % self.getConstantCode( constant = constant, context = context ), 1 )
         elif type( constant ) is set:
             return Identifier( "PySet_New( %s )" % self.getConstantCode( constant = constant, context = context ), 1 )
-        elif type( constant ) is tuple:
-            return Identifier( "TUPLE_COPY( %s )" % self.getConstantCode( constant = constant, context = context ), 1 )
         elif type( constant ) is list:
             return Identifier( "LIST_COPY( %s )" % self.getConstantCode( constant = constant, context = context ), 1 )
         else:
             return self.getConstantHandle( context = context, constant = constant )
-
-    def getBlockedCode( self, code ):
-        return "{\n%s}" % _indentedCode( code.split( "\n" ), 4 )
 
     def getReturnCode( self, context, identifier ):
         if identifier is not None:
@@ -270,7 +265,7 @@ class PythonGeneratorBase:
             if variable.isClosureReference():
                 args.append( self.getVariableHandle( context = context, variable = variable.getReferenced() ).getCode() )
 
-        if contraction.isListContraction():
+        if not contraction.isExpressionGenerator():
             prefix = ""
         else:
             prefix = "MAKE_FUNCTION_"
@@ -350,6 +345,8 @@ else
 {
 %s
 }""" % ( _indentedCode( branches_codes[-1], 4 ) )
+
+        result = result.rstrip()
 
         return result
 
@@ -478,80 +475,21 @@ else
     def getWithCode( self, context, body_codes, assign_codes, source_identifier, with_manager_identifier, with_value_identifier ):
         # TODO: Have a template for it.
 
-        return """\
-{
-   _PythonExceptionKeeper _caught_%(with_count)d;
-
-   PyObjectTemporary %(manager)s( %(source)s );
-
-   // Should have a CALL_FUNCTION that does this for us.
-   PyObject *_enter_result = PyObject_CallMethod( %(manager)s.asObject(), (char *)"__enter__", NULL );
-   if (unlikely( _enter_result == NULL ))
-   {
-      throw _PythonException();
-   }
-   PyObjectTemporary %(value)s( _enter_result );
-   try
-   {
-      %(assign)s
-      %(body)s
-   }
-   catch ( _PythonException &_exception )
-   {
-      _caught_%(with_count)d.save( _exception );
-
-      PyObject *exception_type  = _exception.getType();
-      PyObject *exception_value = _exception.getObject();
-      PyObject *exception_tb    = _exception.getTraceback();
-
-      if ( exception_tb == NULL )
-         exception_tb = Py_None;
-
-      assert( exception_type );
-      assert( exception_value );
-
-      PyObject *result = PyObject_CallMethod( %(manager)s.asObject(), (char *)"__exit__",  (char *)"OOO", INCREASE_REFCOUNT( exception_type ), INCREASE_REFCOUNT( exception_value ), INCREASE_REFCOUNT( exception_tb ), NULL );
-
-      if ( result == NULL )
-      {
-         throw _PythonException();
-      }
-
-      if ( CHECK_IF_TRUE( result ))
-      {
-         PyErr_Clear();
-      }
-      else
-      {
-         _caught_%(with_count)d.rethrow();
-      }
-   }
-
-   if ( _caught_%(with_count)d.isEmpty() )
-   {
-      PyObject *result = PyObject_CallMethod( %(manager)s.asObject(), (char *)"__exit__",  (char *)"OOO", Py_None, Py_None, Py_None, NULL );
-
-      if (unlikely( result == NULL ))
-      {
-         throw _PythonException();
-      }
-   }
-}
-""" % {
-   "assign"     : assign_codes if assign_codes is not None else "",
-   "body"       : "\n    ".join( body_codes ),
-   "source"     : source_identifier.getCodeExportRef(),
-   "manager"    : with_manager_identifier.getCode(),
-   "value"      : with_value_identifier.getCode(),
-   "with_count" : context.with_count,
-}
+        return CodeTemplates.with_template % {
+            "assign"     : _indentedCode( assign_codes if assign_codes is not None else ( '''// No "as" target variable for with'ed expression''', ), 8 ),
+            "body"       : _indentedCode( body_codes, 8 ),
+            "source"     : source_identifier.getCodeExportRef(),
+            "manager"    : with_manager_identifier.getCode(),
+            "value"      : with_value_identifier.getCode(),
+            "with_count" : context.with_count,
+        }
 
     def getForLoopNames( self, context ):
         for_count = context.allocateForLoopNumber()
 
         return "_python_for_loop_iterator_%d" % for_count, "_python_for_loop_itervalue_%d" % for_count, TempVariableIdentifier( "itertemp_%d" % for_count )
 
-    def getForLoopCode( self, context, line_number_code, iterator, iter_name, iter_value, iter_object, assignment_code, loop_body_codes, loop_else_codes, needs_exceptions ):
+    def getForLoopCode( self, context, line_number_code, iterator, iter_name, iter_value, iter_object, loop_var_code, loop_body_codes, loop_else_codes, needs_exceptions ):
         return CodeTemplates.getForLoopTemplate( needs_exceptions = needs_exceptions, has_else_codes = loop_else_codes ) % {
             "body"                     : _indentedCode( loop_body_codes, 8 ),
             "else_codes"               : _indentedCode( loop_else_codes, 4 ),
@@ -560,7 +498,7 @@ else
             "loop_iter_identifier"     : iter_name,
             "loop_value_identifier"    : iter_value,
             "loop_object_identifier"   : iter_object.getCode(),
-            "loop_var_assignment_code" : _indentedCode( assignment_code.split("\n"), 12 ),
+            "loop_var_assignment_code" : _indentedCode( loop_var_code.split("\n"), 12 ),
             "indicator_name"           : "_python_for_loop_indicator_%d" % context.allocateForLoopNumber()
         }
 
@@ -599,9 +537,9 @@ else
 
             context.addGlobalVariableNameUsage( var_name )
 
-            return "_mvar_%s_%s.assign( %s );\n" % ( context.getModuleCodeName(), var_name, identifier.getCodeExportRef() )
+            return "_mvar_%s_%s.assign( %s );" % ( context.getModuleCodeName(), var_name, identifier.getCodeExportRef() )
         else:
-            return "%s = %s;\n" % ( self.getVariableHandle( variable = variable, context = context ).getCode(), identifier.getCodeExportRef() )
+            return "%s = %s;" % ( self.getVariableHandle( variable = variable, context = context ).getCode(), identifier.getCodeExportRef() )
 
     def getVariableDelCode( self, context, variable ):
         assert isinstance( variable, Variables.Variable ), variable
@@ -651,7 +589,7 @@ else
         return CodeTemplates.template_inplace_var_assignment % {
             "assign_source_identifier" : self.getVariableHandle( variable = variable, context = context ).getCodeExportRef(),
             "inplace_operation_code" : self._getInplaceOperationCode( operator = operator, operand1 = value_identifier, operand2 = identifier ).getCode(),
-            "assignment_code" : self.getAssignmentCode( variable = variable, context = context, identifier = result_identifier ).rstrip()
+            "assignment_code" : self.getAssignmentCode( variable = variable, context = context, identifier = result_identifier )
         }
 
 
@@ -735,20 +673,20 @@ else
 
             cond_keyword = "else if"
 
-        exception_code += [ "else", "{", "traceback = true; throw;", "}" ]
+        exception_code += [ "else", "{", "    throw;", "}" ]
 
         if else_code is not None:
             return CodeTemplates.try_except_else_template % {
-                "tried_code"     : "\n    ".join( code_tried ),
-                "exception_code" : "\n    ".join( exception_code ),
-                "else_code"      : "\n    ".join( else_code ),
+                "tried_code"     : _indentedCode( code_tried, 4 ),
+                "exception_code" : _indentedCode( exception_code, 4 ),
+                "else_code"      : _indentedCode( else_code, 4 ),
                 "tb_making"      : self.getTracebackMakerCall( context.getCodeName(), "_exception.getLine()" ),
                 "except_count"   : context.allocateTryNumber()
             }
         else:
             return CodeTemplates.try_except_template % {
-                "tried_code"     : "\n    ".join( code_tried ),
-                "exception_code" : "\n    ".join( exception_code ),
+                "tried_code"     : _indentedCode( code_tried, 4 ),
+                "exception_code" : _indentedCode( exception_code, 4 ),
                 "tb_making"      : self.getTracebackMakerCall( context.getCodeName(), "_exception.getLine()" ),
             }
 
@@ -762,7 +700,7 @@ else
             return "traceback = true; RAISE_EXCEPTION( %s, %s, %s );" % ( exception_type_identifier.getCodeExportRef(), exception_value_identifier.getCodeExportRef(), exception_tb_identifier.getCodeExportRef() )
 
     def getReRaiseExceptionCode( self, context ):
-        return "traceback = true; throw;"
+        return "throw;"
 
     def getAssertCode( self, context, condition_identifier, failure_identifier, exception_tb_maker ):
         if failure_identifier is None:
@@ -1068,18 +1006,9 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             return cmp( a[0].getCodeName(), b[0].getCodeName() )
 
         for contraction_info in sorted( context.getContractionsCodes(), cmp = myCompare ):
-            contraction, contraction_identifier, _contraction_context, loop_var_codes, contraction_code, contraction_conditions, contraction_iterateds = contraction_info
+            contraction, contraction_identifier, contraction_context, loop_var_codes, contraction_code, contraction_conditions, contraction_iterateds = contraction_info
 
-            if contraction.isListContraction():
-                result += self.getListContractionCode(
-                    contraction            = contraction,
-                    contraction_identifier = contraction_identifier,
-                    contraction_code       = contraction_code,
-                    contraction_conditions = contraction_conditions,
-                    contraction_iterateds  = contraction_iterateds,
-                    loop_var_codes         = loop_var_codes
-                )
-            else:
+            if contraction.isExpressionGenerator():
                 result += self.getGeneratorExpressionCode(
                     context              = context,
                     generator            = contraction,
@@ -1089,6 +1018,17 @@ class PythonModuleGenerator( PythonGeneratorBase ):
                     generator_iterateds  = contraction_iterateds,
                     loop_var_codes       = loop_var_codes
                 )
+            else:
+                result += self.getContractionCode(
+                    contraction            = contraction,
+                    contraction_context    = contraction_context,
+                    contraction_identifier = contraction_identifier,
+                    contraction_code       = contraction_code,
+                    contraction_conditions = contraction_conditions,
+                    contraction_iterateds  = contraction_iterateds,
+                    loop_var_codes         = loop_var_codes
+                )
+
 
         functions_infos = context.getFunctionsCodes()
 
@@ -1126,15 +1066,15 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         for contraction_info in sorted( context.getContractionsCodes(), cmp = myCompare ):
             contraction, contraction_identifier, _contraction_context, _loop_var_code, _contraction_code, _contraction_conditions, _contraction_iterateds = contraction_info
-            if contraction.isListContraction():
-                result += self.getListContractionDecl(
-                    contraction            = contraction,
-                    contraction_identifier = contraction_identifier
-                )
-            else:
+            if contraction.isExpressionGenerator():
                 result += self.getGeneratorExpressionDecl(
                     generator_expression = contraction,
                     generator_identifier = contraction_identifier
+                )
+            else:
+                result += self.getContractionDecl(
+                    contraction            = contraction,
+                    contraction_identifier = contraction_identifier
                 )
 
         functions_infos = context.getFunctionsCodes()
@@ -1160,7 +1100,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         return result
 
-    def _getListContractionParameters( self, contraction ):
+    def _getContractionParameters( self, contraction ):
         contraction_parameters = [ "PyObject *iterated" ]
 
         for variable in contraction.getClosureVariables():
@@ -1170,29 +1110,57 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         return contraction_parameters
 
-    def getListContractionDecl( self, contraction, contraction_identifier ):
-        contraction_parameters = self._getListContractionParameters(
+    def getContractionDecl( self, contraction, contraction_identifier ):
+        contraction_parameters = self._getContractionParameters(
             contraction = contraction
         )
 
-        return CodeTemplates.list_contraction_decl_template % {
+        return CodeTemplates.contraction_decl_template % {
            "contraction_identifier" : contraction_identifier,
            "contraction_parameters" : ", ".join( contraction_parameters )
         }
 
-    def getListContractionCode( self, contraction, contraction_identifier, loop_var_codes, contraction_code, contraction_conditions, contraction_iterateds ):
-        contraction_parameters = self._getListContractionParameters(
+    def getContractionCode( self, contraction, contraction_context, contraction_identifier, loop_var_codes, contraction_code, contraction_conditions, contraction_iterateds ):
+        contraction_parameters = self._getContractionParameters(
             contraction = contraction
         )
 
-        contraction_loop = CodeTemplates.list_contraction_loop_production % {
-            "contraction_body"           : contraction_code.getCodeTemporaryRef(),
+        if contraction.isListContraction():
+            contraction_decl_template = CodeTemplates.list_contration_var_decl
+            contraction_loop = CodeTemplates.list_contraction_loop_production % {
+                "contraction_body" : contraction_code.getCodeTemporaryRef(),
+            }
+        elif contraction.isSetContraction():
+            contraction_decl_template = CodeTemplates.set_contration_var_decl
+            contraction_loop = CodeTemplates.set_contraction_loop_production % {
+                "contraction_body" : contraction_code.getCodeTemporaryRef(),
+            }
+
+        elif contraction.isDictContraction():
+            contraction_decl_template = CodeTemplates.dict_contration_var_decl
+            contraction_loop = CodeTemplates.dict_contraction_loop_production % {
+                "key_identifier" : contraction_code[0].getCodeTemporaryRef(),
+                "value_identifier" : contraction_code[1].getCodeTemporaryRef()
+            }
+
+        else:
+            assert False, contraction
+
+        local_var_decl = []
+
+        for variable in contraction.getProvidedVariables():
+            if not variable.isClosureReference():
+                local_var_decl.append( self._getLocalVariableInitCode( contraction_context, variable, in_context = False ) )
+
+
+        contraction_var_decl = contraction_decl_template % {
+            "local_var_decl" : "\n    ".join( local_var_decl )
         }
 
         contraction_iterateds.insert( 0, Identifier( "iterated", 0 ) )
 
         for count, ( contraction_condition, contraction_iterated, loop_var_code ) in enumerate( reversed( zip( contraction_conditions, contraction_iterateds, loop_var_codes ) ) ):
-            contraction_loop = CodeTemplates.list_contraction_loop_iterated % {
+            contraction_loop = CodeTemplates.contraction_loop_iterated % {
                 "contraction_loop"         : contraction_loop,
                 "iter_count"               : len( loop_var_codes ) - count,
                 "iterated"                 : contraction_iterated.getCodeTemporaryRef(),
@@ -1200,14 +1168,15 @@ class PythonModuleGenerator( PythonGeneratorBase ):
                 "contraction_condition"    : contraction_condition.getCode()
             }
 
-        return CodeTemplates.list_contraction_code_template % {
+        return CodeTemplates.contraction_code_template % {
             "contraction_identifier" : contraction_identifier,
             "contraction_parameters" : ", ".join( contraction_parameters ),
-            "contraction_body"       : contraction_loop
+            "contraction_body"       : contraction_loop,
+            "contraction_var_decl"   : _indentedCode( contraction_var_decl.split( "\n" ), 4 )
         }
 
     def getContractionIterValueIdentifier( self, context, index ):
-        if context.isListContraction():
+        if not context.isGeneratorExpression():
             return Identifier( "_python_contraction_iter_value_%d" % index, 0 )
         else:
             return Identifier( "_python_genexpr_iter_value", 0 )
@@ -1285,6 +1254,13 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             if init_from is not None:
                 result += ", " + init_from
 
+                if context.hasLocalsDict():
+                    assert not needs_no_free
+                else:
+                    if not needs_no_free:
+                        result += ", true"
+
+
             if needs_no_free:
                 result += ", false"
 
@@ -1309,9 +1285,9 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         top_level_parameters = parameters.getTopLevelVariables()
 
-        parameter_parsing_code = "\n".join( [ "PyObject *_python_par_" + variable.getName() + " = NULL;" for variable in set( parameters.getAllVariables() ) ] )
+        parameter_parsing_code = "\n".join( [ "PyObject *_python_par_" + variable.getName() + " = NULL;" for variable in parameters.getAllVariables() ] )
 
-        parameter_release_codes = [ "Py_XDECREF( _python_par_" + variable.getName() + " );" for variable in set( parameters.getAllVariables() ) ]
+        parameter_release_codes = [ "Py_XDECREF( _python_par_" + variable.getName() + " );" for variable in parameters.getAllVariables() ]
 
         if parameters.isEmpty():
             parameter_parsing_code += CodeTemplates.parse_argument_template_refuse_parameters % {

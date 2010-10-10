@@ -40,7 +40,6 @@ make a code block out of it. But it doesn't contain any target language syntax.
 """
 
 import TreeOperations
-import Identifiers
 import Generator
 import Contexts
 import Options
@@ -123,13 +122,27 @@ def generateContractionCode( contraction, context, generator ):
 
         loop_var_codes.append( loop_var_code )
 
-    contraction_code = generateExpressionCode(
-        context    = context,
-        generator  = generator,
-        expression = body
-    )
+    if not contraction.isDictContraction():
+        contraction_code = generateExpressionCode(
+            context    = context,
+            generator  = generator,
+            expression = body
+        )
+    else:
+        contraction_code = (
+            generateExpressionCode(
+                context    = context,
+                generator  = generator,
+                expression = body.getKey()
+            ),
+            generateExpressionCode(
+                context    = context,
+                generator  = generator,
+                expression = body.getValue()
+            )
+        )
 
-    iterateds        = contraction.getIterateds()
+    iterateds = contraction.getIterateds()
 
     iterated_identifier = generateExpressionCode(
         expression = iterateds[0],
@@ -180,6 +193,32 @@ def generateContractionCode( contraction, context, generator ):
 def generateListContractionCode( contraction, context, generator ):
     # Have a separate context to create list contraction code.
     contraction_context = Contexts.PythonListContractionContext(
+        parent         = context,
+        loop_variables = contraction.getTargetVariables()
+    )
+
+    return generateContractionCode(
+        contraction = contraction,
+        context     = contraction_context,
+        generator   = generator
+    )
+
+def generateSetContractionCode( contraction, context, generator ):
+    # Have a separate context to create list contraction code.
+    contraction_context = Contexts.PythonSetContractionContext(
+        parent         = context,
+        loop_variables = contraction.getTargetVariables()
+    )
+
+    return generateContractionCode(
+        contraction = contraction,
+        context     = contraction_context,
+        generator   = generator
+    )
+
+def generateDictContractionCode( contraction, context, generator ):
+    # Have a separate context to create list contraction code.
+    contraction_context = Contexts.PythonDictContractionContext(
         parent         = context,
         loop_variables = contraction.getTargetVariables()
     )
@@ -702,6 +741,18 @@ def generateExpressionCode( expression, context, generator ):
             context     = context,
             generator   = generator
         )
+    elif expression.isSetContraction():
+        identifier = generateSetContractionCode(
+            contraction = expression,
+            context     = context,
+            generator   = generator
+        )
+    elif expression.isDictContraction():
+        identifier = generateDictContractionCode(
+            contraction = expression,
+            context     = context,
+            generator   = generator
+        )
     elif expression.isAttributeLookup():
         attribute_name = mangleAttributeName(
             attribute_name = expression.getAttributeName(),
@@ -860,7 +911,6 @@ def generateExpressionCode( expression, context, generator ):
                 identifier = generator.getConstantHandle( constant = None, context = context ),
                 context    = context
             )
-
     else:
         assert False, expression
 
@@ -869,9 +919,8 @@ def generateExpressionCode( expression, context, generator ):
 
     return identifier
 
-def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
-    # print recursion, targets, '->', value
 
+def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
     if len( targets ) == 1 and not targets[0].isAssignToTuple():
         assign_source = value
         code = ""
@@ -887,9 +936,9 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
 
         brace = True
 
-    assign_source = Identifiers.ConsumedProxyIdentifier( assign_source )
+    old_ref_count = assign_source.getRefCount()
 
-    for count, target in enumerate( targets ):
+    for target in targets:
         if target.isAssignToSubscript():
             code += generator.getSubscriptAssignmentCode(
                 subscribed    = generateExpressionCode(
@@ -905,6 +954,9 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
                 identifier    = assign_source,
                 context       = context
             )
+
+            if old_ref_count:
+                value.setRefCount( 0 )
         elif target.isAssignToAttribute():
             attribute_name = mangleAttributeName(
                 attribute_name = target.getAttributeName(),
@@ -921,6 +973,9 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
                 identifier     = assign_source,
                 context        = context
             )
+
+            if old_ref_count:
+                value.setRefCount( 0 )
         elif target.isAssignToSlice():
             expression_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
                 sliced    = target.getLookupSource(),
@@ -943,6 +998,9 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
                 identifier = assign_source,
                 context    = context
             )
+
+            if old_ref_count:
+                value.setRefCount( 0 )
         elif target.isAssignToTuple():
             elements = target.getElements()
 
@@ -969,13 +1027,18 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
         else:
             assert False, (target, target.getSourceReference())
 
+        code += "\n"
+
+    assert code.endswith( "\n" )
+
     if brace:
-        code = generator.getBlockedCode( code )
+        code = "{\n%s\n}" % code
+
+    if old_ref_count:
+        value.setRefCount( old_ref_count )
 
     if recursion == 1:
         code = code.rstrip()
-
-    # print "code: ", code
 
     return code
 
@@ -1301,7 +1364,6 @@ def _generateStatementCode( statement, context, generator ):
             context  = context
         )
 
-
         assignment_code = generateAssignmentCode(
             targets   = [ statement.getLoopVariableAssignment() ],
             value     = iter_object,
@@ -1332,7 +1394,7 @@ def _generateStatementCode( statement, context, generator ):
             iter_name        = iter_name,
             iter_value       = iter_value,
             iter_object      = iter_object,
-            assignment_code  = assignment_code,
+            loop_var_code    = assignment_code,
             loop_body_codes  = loop_body_codes,
             loop_else_codes  = loop_else_codes,
             needs_exceptions = statement.needsExceptionBreakContinue(),

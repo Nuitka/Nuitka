@@ -167,11 +167,8 @@ class PythonGlobalContext:
 
     def _getConstantHandle( self, constant ):
         constant_type = type( constant )
-        if constant_type in ( int, long, str, unicode, float, bool, complex, tuple, list ):
-            return "_python_" + namifyConstant( constant )
-        elif constant_type is dict:
-            return "_python_" + namifyConstant( constant )
-        elif constant_type is dict:
+
+        if constant_type in ( int, long, str, unicode, float, bool, complex, tuple, list, dict, frozenset ):
             return "_python_" + namifyConstant( constant )
         elif constant is Ellipsis:
             return "Py_Ellipsis"
@@ -262,8 +259,8 @@ class PythonGlobalContext:
                 # statements.append( """puts( "%s" );""" % constant_identifier )
                 statements.append( """%s = PyString_FromStringAndSize( %s, %d );""" % ( constant_identifier, encoded, len(constant_value) ) )
                 statements.append( """assert( PyString_Size( %s ) == %d );""" % ( constant_identifier, len(constant_value) ) )
-            elif constant_type in ( tuple, list, bool, float, complex, unicode, int, long, dict, set ):
-                saved = cPickle.dumps( constant_value )
+            elif constant_type in ( tuple, list, bool, float, complex, unicode, int, long, dict, frozenset, set ):
+                saved = cPickle.dumps( constant_value, protocol = 0 if constant_type is unicode else 2 )
 
                 # Check that the constant is restored correctly.
                 restored = cPickle.loads( saved )
@@ -437,8 +434,8 @@ class PythonContractionBase( PythonChildContextBase ):
     def isClosureViaContext( self ):
         return False
 
-    def isListContraction( self ):
-        return self.__class__ == PythonListContractionContext
+    def isGeneratorExpression( self ):
+        return self.__class__ == PythonGeneratorExpressionContext
 
 class PythonListContractionContext( PythonContractionBase ):
     def __init__( self, parent, loop_variables ):
@@ -455,7 +452,6 @@ class PythonListContractionContext( PythonContractionBase ):
     def getLocalHandle( self, var_name ):
         return self.getClosureHandle( var_name )
 
-
 class PythonGeneratorExpressionContext( PythonContractionBase ):
     def __init__( self, parent, loop_variables ):
         PythonContractionBase.__init__(
@@ -470,6 +466,38 @@ class PythonGeneratorExpressionContext( PythonContractionBase ):
 
     def getLocalHandle( self, var_name ):
         return LocalVariableIdentifier( var_name, from_context = True )
+
+class PythonSetContractionContext( PythonContractionBase ):
+    def __init__( self, parent, loop_variables ):
+        PythonContractionBase.__init__(
+            self,
+            parent         = parent,
+            loop_variables = loop_variables,
+            leak_loop_vars = False
+        )
+
+    def getClosureHandle( self, var_name ):
+        return ClosureVariableIdentifier( var_name, from_context = "" )
+
+    def getLocalHandle( self, var_name ):
+        return LocalVariableIdentifier( var_name, from_context = False )
+
+
+class PythonDictContractionContext( PythonContractionBase ):
+    def __init__( self, parent, loop_variables ):
+        PythonContractionBase.__init__(
+            self,
+            parent         = parent,
+            loop_variables = loop_variables,
+            leak_loop_vars = False
+        )
+
+    def getClosureHandle( self, var_name ):
+        return ClosureVariableIdentifier( var_name, from_context = "" )
+
+    def getLocalHandle( self, var_name ):
+        return LocalVariableIdentifier( var_name, from_context = False )
+
 
 class PythonLambdaExpressionContext( PythonChildContextBase ):
     def __init__( self, parent, parameter_names ):

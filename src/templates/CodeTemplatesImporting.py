@@ -52,12 +52,11 @@ static PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name )
 #endif
 
     int line = _current_line;
-
     PyObject *result = PyImport_ImportModuleEx( PyString_AsString( module_name ), NULL, NULL, NULL );
+    _current_line = line;
 
     if (unlikely( result == NULL ))
     {
-        _current_line = line;
         throw _PythonException();
     }
 

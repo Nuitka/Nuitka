@@ -311,6 +311,24 @@ def simpleFunction40():
 
    myGenerator()
 
+def simpleFunction41():
+   a = b = 2
+
+
+def simpleFunction42():
+   a = b = 2 * x
+
+
+def simpleFunction43():
+   class D:
+      pass
+
+   a = D()
+
+   a.b = 1
+
+
+
 x = 17
 
 def checkReferenceCount( checked_function, warmup = False ):
@@ -389,3 +407,6 @@ checkReferenceCount( simpleFunction37 )
 checkReferenceCount( simpleFunction38 )
 checkReferenceCount( simpleFunction39, warmup = True )
 checkReferenceCount( simpleFunction40 )
+checkReferenceCount( simpleFunction41 )
+checkReferenceCount( simpleFunction42 )
+checkReferenceCount( simpleFunction43 )

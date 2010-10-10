@@ -72,6 +72,14 @@ def dumpTree( tree ):
 def displayTree( tree ):
     TreeDisplay.displayTreeInspector( tree )
 
+def _couldBeNone( node ):
+    if node is None:
+        return True
+    elif node.isDictionaryCreation():
+        return False
+    else:
+        return True
+
 class _OverflowCheckVisitor:
     def __init__( self ):
         self.result = False
@@ -83,7 +91,7 @@ class _OverflowCheckVisitor:
                     self.result = True
                     raise TreeOperations.ExitVisit
 
-        if node.isStatementExec():
+        if node.isStatementExec() and _couldBeNone( node.getGlobals() ):
             self.result = True
             raise TreeOperations.ExitVisit
 

@@ -165,6 +165,12 @@ class CPythonNode:
     def isListContraction( self ):
         return self.kind == "EXPRESSION_LIST_CONTRACTION"
 
+    def isSetContraction( self ):
+        return self.kind == "EXPRESSION_SET_CONTRACTION"
+
+    def isDictContraction( self ):
+        return self.kind == "EXPRESSION_DICT_CONTRACTION"
+
     def isClassReference( self ):
         return self.kind == "STATEMENT_CLASS_DEF"
 
@@ -334,6 +340,10 @@ class CPythonNode:
             result = "lambda"
         elif self.isExpressionGenerator():
             result = "genexpr"
+        elif self.isSetContraction():
+            result = "setcontr"
+        elif self.isDictContraction():
+            result = "dictcontr"
         else:
             result = self.getName()
 
@@ -342,7 +352,7 @@ class CPythonNode:
     def getFullName( self ):
         result = self._getNiceName()
 
-        assert "<" not in result
+        assert "<" not in result, result
 
         current = self
 
@@ -658,6 +668,10 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
 
     def isEarlyClosure( self ):
         return True
+
+class CPythonPackage( CPythonNamedNode ):
+    def __init__( self, name, parent_package, filename, source_ref ):
+        CPythonNamedNode.__init__( self, name = name, kind = "PACKAGE", source_ref = source_ref )
 
 
 class CPythonClass( CPythonNamedNode, CPythonClosureTaker, CPythonNamedCode ):
@@ -1337,7 +1351,7 @@ class CPythonExpressionListContraction( CPythonExpressionContractionBase ):
         CPythonExpressionContractionBase.__init__(
             self,
             kind        = "EXPRESSION_LIST_CONTRACTION",
-            code_prefix = "contraction",
+            code_prefix = "listcontr",
             provider    = provider,
             source_ref  = source_ref
         )
@@ -1362,6 +1376,48 @@ class CPythonGeneratorExpression( CPythonExpressionContractionBase ):
     def createProvidedVariable( self, variable_name ):
         return Variables.LocalLoopVariable( owner = self, variable_name = variable_name )
 
+class CPythonExpressionSetContraction( CPythonExpressionContractionBase ):
+    def __init__( self, provider, source_ref ):
+        CPythonExpressionContractionBase.__init__(
+            self,
+            kind        = "EXPRESSION_SET_CONTRACTION",
+            code_prefix = "setcontr",
+            provider    = provider,
+            source_ref  = source_ref
+        )
+
+    def createProvidedVariable( self, variable_name ):
+        return Variables.LocalLoopVariable( owner = self, variable_name = variable_name )
+
+
+class CPythonExpressionDictContraction( CPythonExpressionContractionBase ):
+    def __init__( self, provider, source_ref ):
+        CPythonExpressionContractionBase.__init__(
+            self,
+            kind        = "EXPRESSION_DICT_CONTRACTION",
+            code_prefix = "dictcontr",
+            provider    = provider,
+            source_ref  = source_ref
+        )
+
+    def createProvidedVariable( self, variable_name ):
+        return Variables.LocalLoopVariable( owner = self, variable_name = variable_name )
+
+class CPythonExpressionDictContractionKeyValue( CPythonChildrenHaving, CPythonNode ):
+    def __init__( self, provider, key, value, source_ref ):
+        CPythonNode.__init__( self, kind = "EXPRESSION_DICT_PAIR", source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "key"   : key,
+                "value" : value
+            }
+        )
+
+    getKey = CPythonChildrenHaving.childGetter( "key" )
+    getValue = CPythonChildrenHaving.childGetter( "value" )
+
 class CPythonExpressionSequenceCreation( CPythonChildrenHaving, CPythonNode ):
     def __init__( self, sequence_kind, elements, source_ref ):
         assert sequence_kind in ( "TUPLE", "LIST" ), sequence_kind
@@ -1384,6 +1440,7 @@ class CPythonExpressionSequenceCreation( CPythonChildrenHaving, CPythonNode ):
         return self.sequence_kind
 
     getElements = CPythonChildrenHaving.childGetter( "elements" )
+
 
 class CPythonExpressionDictionaryCreation( CPythonChildrenHaving, CPythonNode ):
     def __init__( self, keys, values, source_ref ):

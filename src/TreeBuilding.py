@@ -495,15 +495,15 @@ def buildQuals( provider, result, quals, source_ref ):
 
 def buildListContractionNode( provider, node, source_ref ):
     result = Nodes.CPythonExpressionListContraction(
-        provider    = provider,
-        source_ref  = source_ref
+        provider   = provider,
+        source_ref = source_ref
     )
 
     buildQuals(
-        provider      = provider,
-        result        = result,
-        quals         = node.generators,
-        source_ref    = source_ref
+        provider   = provider,
+        result     = result,
+        quals      = node.generators,
+        source_ref = source_ref
     )
 
     def delayedWork():
@@ -514,6 +514,71 @@ def buildListContractionNode( provider, node, source_ref ):
         )
 
         result.setBody( body )
+
+    pushDelayedWork( delayedWork )
+
+    return result
+
+def buildSetContractionNode( provider, node, source_ref ):
+    result = Nodes.CPythonExpressionSetContraction(
+        provider   = provider,
+        source_ref = source_ref
+    )
+
+    buildQuals(
+        provider   = provider,
+        result     = result,
+        quals      = node.generators,
+        source_ref = source_ref
+    )
+
+    def delayedWork():
+        body = buildNode(
+            provider   = result,
+            node       = node.elt,
+            source_ref = source_ref,
+        )
+
+        result.setBody( body )
+
+    pushDelayedWork( delayedWork )
+
+    return result
+
+def buildDictContractionNode( provider, node, source_ref ):
+    result = Nodes.CPythonExpressionDictContraction(
+        provider   = provider,
+        source_ref = source_ref
+    )
+
+    buildQuals(
+        provider   = provider,
+        result     = result,
+        quals      = node.generators,
+        source_ref = source_ref
+    )
+
+    def delayedWork():
+        key_node = buildNode(
+            provider   = result,
+            node       = node.key,
+            source_ref = source_ref,
+        )
+
+        value_node = buildNode(
+            provider   = result,
+            node       = node.value,
+            source_ref = source_ref,
+        )
+
+        result.setBody(
+            Nodes.CPythonExpressionDictContractionKeyValue(
+                provider   = result,
+                key        = key_node,
+                value      = value_node,
+                source_ref = source_ref
+            )
+        )
 
     pushDelayedWork( delayedWork )
 
@@ -715,58 +780,39 @@ def buildSubscriptNode( provider, node, source_ref ):
     else:
         assert False, kind
 
+_debug_module_finding = False
 
-def _findModuleInPath( module_name, sys_path ):
-    dot_pos = module_name.rfind( "." )
+def _findModuleInPath( module_name, package_name ):
+    if _debug_module_finding:
+        print "_findModuleInPath: Enter", module_name, package_name
 
-    if dot_pos == -1:
-        module_fh, module_filename, module_desc = imp.find_module( module_name, sys_path )
+    ext_path = [ element + os.path.sep + package_name.replace( ".", os.path.sep ) for element in sys.path + ["."] ]
 
-        module_package = None
-    else:
-        parent_module_name = module_name[:dot_pos]
-        child_module_name = module_name[dot_pos+1:]
+    _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
 
-        P = imp.find_module( parent_module_name, sys_path )
-
-        parent_module_filename = _findModuleInPath( parent_module_name, sys_path )[1]
-        module_fh, module_filename, module_desc = imp.find_module( child_module_name, [ P[1] ] )
-
-        module_package = os.path.basename( parent_module_filename )
-
-    if module_filename == "":
-        module_filename = None
-
-    assert module_package is None or module_package.find( "/" ) == -1
-
-    module_filename = os.path.normpath( module_filename )
-
-    return module_fh, module_filename, module_package, module_desc
-
+    return module_filename
 
 def _findModule( module_name, parent_package ):
+    if _debug_module_finding:
+        print "_findModule: Enter", module_name, "in", parent_package
+
     # The os.path is strangely hacked into the os module, dispatching per platform, we
-    # either cannot look into it, or we require to be on the target platform. Non Linux
-    # is unusually enough, cross platform compile, I give up on that.
+    # either cannot look into it, or we require to be on the target platform. Non-Linux is
+    # unusually enough, but common, cross platform compile, lets give up on that.
     if module_name == "os.path" and parent_package is None:
-        return None, os.path.__file__.replace( ".pyc", ".py" ), "os", None
+        parent_package = "os"
+        module_name = os.path.basename( os.path.__file__ ).replace( ".pyc", "" )
 
-    if parent_package is not None:
-        try:
-            # First try to find the module in a package if possible
-            module_fh, module_filename, module_package, module_desc = _findModuleInPath( module_name, [ parent_package ] )
+    if module_name.find( "." ) != -1:
+        package_part = module_name[ : module_name.rfind( "." ) ]
+        module_name = module_name[ module_name.rfind( "." ) + 1 : ]
 
-            assert module_package is None
-            module_package = parent_package
-
-            return module_fh, module_filename, module_package, module_desc
-        except ImportError:
-            pass
-
-    # Find modules in the current directory too, it's searched although it's not in
-    # sys.path normally.
-
-    return _findModuleInPath( module_name, sys.path + [ "." ] )
+        if parent_package is not None:
+            return _findModule( package_part, parent_package + "." + package_part )
+        else:
+            return _findModule( module_name, package_part )
+    else:
+        return _findModuleInPath( module_name, parent_package ), parent_package
 
 def _isWhiteListedNotExistingModule( module_name ):
     return module_name in ( "mac", "nt", "os2", "_emx_link", "riscos", "ce", "riscospath", "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256", "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle", "marshal", "imp", "sys", "itertools" )
@@ -785,7 +831,7 @@ def _buildImportModulesNode( provider, parent_package, import_names, source_ref 
 
         if Options.shallFollowImports():
             try:
-                _module_fh, module_filename, module_package, _module_desc = _findModule( module_name, parent_package )
+                module_filename, module_package = _findModule( module_name, parent_package )
             except ImportError:
                 if not _isWhiteListedNotExistingModule( module_name ):
                     warning( "Warning, cannot find " + module_name )
@@ -884,7 +930,7 @@ def buildImportFromNode( provider, node, source_ref ):
 
     if Options.shallFollowImports():
         try:
-            _module_fh, module_filename, module_package, _module_desc = _findModule( module_name, parent_package )
+            module_filename, module_package = _findModule( module_name, parent_package )
         except ImportError:
             if not _isWhiteListedNotExistingModule( module_name ):
                 print "Warning, cannot find", module_name
@@ -1146,6 +1192,18 @@ def buildNode( provider, node, source_ref ):
                 node       = node,
                 source_ref = source_ref
             )
+        elif kind == "SetComp":
+            result = buildSetContractionNode(
+                provider   = provider,
+                node       = node,
+                source_ref = source_ref
+            )
+        elif kind == "DictComp":
+            result = buildDictContractionNode(
+                provider   = provider,
+                node       = node,
+                source_ref = source_ref
+            )
         elif kind == "Dict":
             result = buildDictionaryNode(
                 provider   = provider,
@@ -1394,6 +1452,11 @@ def extractDocFromBody( node ):
 
 
 def buildParseTree( provider, source_code, filename, line_offset, replacement ):
+    # Workaround: ast.parse cannot cope with some situations where a file is not terminated
+    # by a new line.
+    if not source_code.endswith( "\n" ):
+        source_code = source_code + "\n"
+
     body = ast.parse( source_code, filename )
     assert getKind( body ) == "Module"
 
@@ -1475,13 +1538,11 @@ def buildModuleTree( filename, package = None ):
     global _delayed_works
     _delayed_works = []
 
-    source_ref = SourceCodeReferences.fromFilename( filename )
-
     result = Nodes.CPythonModule(
         name       = os.path.basename( filename ).replace( ".py", "" ),
         package    = package,
         filename   = os.path.relpath( filename ),
-        source_ref = source_ref
+        source_ref = SourceCodeReferences.fromFilename( filename )
     )
 
     buildParseTree(
