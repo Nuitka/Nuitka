@@ -476,7 +476,7 @@ else
         # TODO: Have a template for it.
 
         return CodeTemplates.with_template % {
-            "assign"     : _indentedCode( assign_codes if assign_codes is not None else ( '''// No "as" target variable for with'ed expression''', ), 8 ),
+            "assign"     : _indentedCode( assign_codes.split("\n") if assign_codes is not None else ( '''// No "as" target variable for with'ed expression''', ), 8 ),
             "body"       : _indentedCode( body_codes, 8 ),
             "source"     : source_identifier.getCodeExportRef(),
             "manager"    : with_manager_identifier.getCode(),
