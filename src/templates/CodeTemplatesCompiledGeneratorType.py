@@ -32,7 +32,7 @@
 """ Compiled generator function type.
 
 Another cornerstone of the integration into CPython. Try to behave as well as normal
-generator expression objects do or even better.
+generator function objects do or even better.
 """
 
 compiled_generator_type_code = """
@@ -65,7 +65,7 @@ typedef struct {
     // TODO: Clarify if weakrefs are supported for generator objects in CPython.
     PyObject *m_weakrefs;
 
-    bool m_running;
+    int m_running;
 
     void *m_code;
 
@@ -164,15 +164,21 @@ static PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyOb
 
         PyObject *result = Nuitka_Generator_send( generator, Py_None );
 
-        if (!( result == NULL || PyErr_ExceptionMatches( PyExc_StopIteration ) || PyErr_ExceptionMatches( PyExc_GeneratorExit )))
+        if ( result )
         {
-            Py_XDECREF( result );
+            Py_DECREF( result );
 
-            PyErr_Format( PyExc_RuntimeError, "generator refused GeneratorExit" );
+            PyErr_Format( PyExc_RuntimeError, "generator ignored GeneratorExit" );
+            return NULL;
+        } else if ( PyErr_ExceptionMatches( PyExc_StopIteration ) || PyErr_ExceptionMatches( PyExc_GeneratorExit ))
+        {
+            PyErr_Clear();
+            return INCREASE_REFCOUNT( Py_None );
+        }
+        else
+        {
             return NULL;
         }
-
-        PyErr_Clear();
     }
 
     return INCREASE_REFCOUNT( Py_None );
@@ -184,7 +190,15 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
     generator->ob_refcnt = 1;
 
     PyObject *close_result = Nuitka_Generator_close( generator, NULL );
-    Py_XDECREF( close_result );
+
+    if ( close_result == NULL )
+    {
+        PyErr_WriteUnraisable( (PyObject *)generator );
+    }
+    else
+    {
+        Py_DECREF( close_result );
+    }
 
     assert( generator->ob_refcnt == 1 );
     generator->ob_refcnt = 0;
@@ -223,13 +237,39 @@ static PyObject *Nuitka_Generator_throw( Nuitka_GeneratorObject *generator, PyOb
         return NULL;
     }
 
+    if ( PyExceptionInstance_Check( generator->m_exception_type ) )
+    {
+        if ( generator->m_exception_value && generator->m_exception_value != Py_None )
+        {
+            PyErr_Format( PyExc_TypeError, "instance exception may not have a separate value" );
+            return NULL;
+        }
+
+        generator->m_exception_value = generator->m_exception_type;
+        generator->m_exception_type = INCREASE_REFCOUNT( PyExceptionInstance_Class( generator->m_exception_type ) );
+    }
+    else if ( !PyExceptionClass_Check( generator->m_exception_type ) )
+    {
+        PyErr_Format( PyExc_TypeError, "exceptions must be classes, or instances, not %s", generator->m_exception_type->ob_type->tp_name );
+        return NULL;
+    }
+
+    if ( generator->m_exception_tb != NULL && generator->m_exception_tb != Py_None && !PyTraceBack_Check( generator->m_exception_tb ) )
+    {
+        PyErr_Format( PyExc_TypeError, "throw() third argument must be a traceback object" );
+        return NULL;
+    }
+
+    PyErr_NormalizeException( &generator->m_exception_type, &generator->m_exception_value, &generator->m_exception_tb );
+
     if ( generator->m_status != Generator_Status::status_Finished )
     {
         return Nuitka_Generator_send( generator, Py_None );
     }
     else
     {
-        return Py_None;
+        PyErr_Restore( generator->m_exception_type, generator->m_exception_value, generator->m_exception_tb );
+        return NULL;
     }
 }
 
@@ -246,11 +286,20 @@ static PyGetSetDef Nuitka_Generator_getsetlist[] =
 
 static PyMethodDef Nuitka_Generator_methods[] =
 {
-    { "send", (PyCFunction)Nuitka_Generator_send,  METH_O, NULL },
-    {"throw", (PyCFunction)Nuitka_Generator_throw, METH_VARARGS, NULL },
-    {"close", (PyCFunction)Nuitka_Generator_close, METH_NOARGS, NULL },
+    { "send",  (PyCFunction)Nuitka_Generator_send,  METH_O, NULL },
+    { "throw", (PyCFunction)Nuitka_Generator_throw, METH_VARARGS, NULL },
+    { "close", (PyCFunction)Nuitka_Generator_close, METH_NOARGS, NULL },
     { NULL }
 };
+
+#include <structmember.h>
+
+static PyMemberDef Nuitka_Generator_members[] =
+{
+    { (char *)"gi_running", T_INT, offsetof( Nuitka_GeneratorObject, m_running ), RO },
+    { NULL }
+};
+
 
 static PyTypeObject Nuitka_Generator_Type =
 {
@@ -283,7 +332,7 @@ static PyTypeObject Nuitka_Generator_Type =
     PyObject_SelfIter,                               // tp_iter
     (iternextfunc)Nuitka_Generator_tp_iternext,      // tp_iternext
     Nuitka_Generator_methods,                        // tp_methods
-    0,                                               // tp_members
+    Nuitka_Generator_members,                        // tp_members
     Nuitka_Generator_getsetlist,                     // tp_getset
     0,                                               // tp_base
     0,                                               // tp_dict
@@ -302,6 +351,16 @@ static PyTypeObject Nuitka_Generator_Type =
     0,                                               // tp_weaklist
     0                                                // tp_del
 };
+
+static inline bool Nuitka_Generator_Check( PyObject *object )
+{
+    return Py_TYPE( object ) == &Nuitka_Generator_Type;
+}
+
+static inline PyObject *Nuitka_Generator_GetName( PyObject *object )
+{
+    return ((Nuitka_GeneratorObject *)object)->m_name;
+}
 
 typedef void (*yielder_func)( Nuitka_GeneratorObject * );
 

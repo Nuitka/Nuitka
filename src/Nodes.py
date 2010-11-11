@@ -118,6 +118,11 @@ class CPythonNode:
                 return parent.getParentVariableProvider()
             else:
                 return parent
+        elif parent.isExpressionLambda():
+            if previous in parent.getParameters().getDefaultExpressions():
+                return parent.getParentVariableProvider()
+            else:
+                return parent
         elif parent.isClassReference():
             if previous in parent.getDecorators() or previous in parent.getBaseClasses():
                 return parent.getParentVariableProvider()
@@ -689,6 +694,8 @@ class CPythonClass( CPythonNamedNode, CPythonClosureTaker, CPythonNamedCode ):
         self.body = None
         self.variables = {}
 
+        self.locals_dict = False
+
     def getTargetVariable( self ):
         return self.target_variable
 
@@ -729,7 +736,11 @@ class CPythonClass( CPythonNamedNode, CPythonClosureTaker, CPythonNamedCode ):
     getVariables = getClassVariables
 
     def hasLocalsDict( self ):
-        return False
+        return self.locals_dict
+
+    def markAsLocalsDict( self ):
+        self.locals_dict = True
+
 
 class CPythonStatementSequence( CPythonChildrenHaving, CPythonNode ):
     def __init__( self, statements, replacement, source_ref ):
@@ -926,6 +937,14 @@ class CPythonExpressionConstant( CPythonNode ):
                     return False
             else:
                 return True
+        elif constant is Ellipsis:
+            # Note: Workaround for Ellipsis not being handled by the pickle module,
+            # pretend it would be mutable, then it doesn't get pickled as part of lists or
+            # tuples. This is a loss of efficiency, but usage of Ellipsis will be very
+            # limited normally anyway.
+            return True
+
+            return False
         else:
             assert False, constant_type
 

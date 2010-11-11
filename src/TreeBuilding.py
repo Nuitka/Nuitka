@@ -115,7 +115,7 @@ def buildDecoratorNodes( provider, nodes, source_ref ):
 def buildClassNode( provider, node, source_ref ):
     assert getKind( node ) == "ClassDef"
 
-    body, class_doc = extractDocFromBody( node )
+    class_body, class_doc = extractDocFromBody( node )
 
     decorators = buildDecoratorNodes( provider, node.decorator_list, source_ref )
 
@@ -134,7 +134,7 @@ def buildClassNode( provider, node, source_ref ):
     def delayedWork():
         body = buildStatementsNode(
             provider   = result,
-            nodes      = node.body,
+            nodes      = class_body,
             source_ref = source_ref,
         )
 
@@ -264,6 +264,7 @@ def buildSequenceCreationNode( provider, node, source_ref ):
     elements = buildNodeList( provider, node.elts, source_ref )
 
     for element in elements:
+        # TODO: The handling of mutable should be solved already.
         if not element.isConstantReference() or element.isMutable():
             constant = False
             break
@@ -786,8 +787,16 @@ def _findModuleInPath( module_name, package_name ):
     if _debug_module_finding:
         print "_findModuleInPath: Enter", module_name, package_name
 
-    ext_path = [ element + os.path.sep + package_name.replace( ".", os.path.sep ) for element in sys.path + ["."] ]
+    if package_name is not None:
+        ext_path = [ element + os.path.sep + package_name.replace( ".", os.path.sep ) for element in sys.path + ["."] ]
+        try:
+            _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
 
+            return module_filename
+        except ImportError:
+            pass
+
+    ext_path = sys.path + ["."]
     _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
 
     return module_filename
@@ -903,7 +912,7 @@ def buildImportFromNode( provider, node, source_ref ):
             elif object_name == "print_function":
                 global _future_print
                 _future_print = True
-            elif object_name in ( "nested_scopes", "generators", ):
+            elif object_name in ( "nested_scopes", "generators", "with_statement" ):
                 pass
             else:
                 warning( "Ignoring unkown future directive '%s'" % object_name )
@@ -1100,7 +1109,7 @@ def buildBoolOpNode( provider, node, source_ref ):
     else:
         assert False, bool_op
 
-quick_names = {
+_quick_names = {
     "None"  : None,
     "True"  : True,
     "False" : False
@@ -1342,9 +1351,9 @@ def buildNode( provider, node, source_ref ):
                 source_ref = source_ref
             )
         elif kind == "Name":
-            if node.id in quick_names:
+            if node.id in _quick_names:
                 result = Nodes.CPythonExpressionConstant(
-                    constant   = quick_names[ node.id ],
+                    constant   = _quick_names[ node.id ],
                     source_ref = source_ref
                 )
             else:

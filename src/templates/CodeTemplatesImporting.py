@@ -40,8 +40,8 @@ static PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name )
 {
 
 #ifdef _NUITKA_EXE
-    // First try our own package resistent form of frozen modules if we have
-    // them embedded. And avoid recursion here too, in case of cyclic dependencies.
+    // First try our own package resistent form of frozen modules if we have them
+    // embedded. And avoid recursion here too, in case of cyclic dependencies.
     if ( !HAS_KEY( PySys_GetObject( (char *)"modules" ), module_name ) )
     {
         if ( FIND_EMBEDDED_MODULE( PyString_AsString( module_name ) ) )
@@ -60,8 +60,8 @@ static PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name )
         throw _PythonException();
     }
 
-    // Release the reference returned from the __import__ call, we don't trust it, because
-    // it doesn't work well with packages. Look up in sys.modules instead.
+    // Release the reference returned from the import, we don't trust it, because it
+    // doesn't work well with packages. Look up in sys.modules instead.
     Py_DECREF( result );
 
     return LOOKUP_SUBSCRIPT( PySys_GetObject( (char *)"modules" ), import_name );

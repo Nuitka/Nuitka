@@ -38,7 +38,9 @@ instance_re = re.compile( r"at 0x[0-9a-f]+" )
 compiled_function_re = re.compile( r"\<compiled function" )
 compiled_genexpr_re = re.compile( r"\<compiled generator object \<.*?\>" )
 compiled_generator_re = re.compile( r"\<compiled generator object (.*?) at" )
-unbound_method_re = re.compile( r"unbound method .*?(\(\)|_or_method object)" )
+unbound_method_re = re.compile( r"unbound method .*?(\(\)| object)" )
+compiled_type_re = re.compile( r"type 'compiled_" )
+global_name_error_re = re.compile( r"global (name ')(.*?)(' is not defined)" )
 
 for line in sys.stdin:
     line = instance_re.sub( r"at 0xxxxxxxxx", line )
@@ -46,6 +48,11 @@ for line in sys.stdin:
     line = compiled_genexpr_re.sub( r"<generator object <genexpr>", line )
     line = compiled_generator_re.sub( r"<generator object \1 at", line )
     line = unbound_method_re.sub( r"unbound method <xxxxx> object", line )
+    line = compiled_type_re.sub( r"type '", line )
+    line = global_name_error_re.sub( r"\1\2\3", line )
+
+    line = line.replace( "must be a mapping, not compiled_function", "must be a mapping, not function" )
+    line = line.replace( "must be a sequence, not compiled_function", "must be a sequence, not function" )
 
     if ran_re.match( line ):
         print ran_re.match( line ).group(1) + " x.xxxs"

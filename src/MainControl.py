@@ -77,12 +77,17 @@ def _couldBeNone( node ):
         return True
     elif node.isDictionaryCreation():
         return False
+    elif node.isBuiltinGlobals() or node.isBuiltinLocals() or node.isBuiltinDir() or node.isBuiltinVars():
+        return False
     else:
+        # assert False, node
         return True
 
 class _OverflowCheckVisitor:
-    def __init__( self ):
+    def __init__( self, checked_node ):
         self.result = False
+
+        self.is_class = checked_node.getParent().isClassReference()
 
     def __call__( self, node ):
         if node.isStatementImportFrom():
@@ -95,12 +100,16 @@ class _OverflowCheckVisitor:
             self.result = True
             raise TreeOperations.ExitVisit
 
+        if self.is_class and node.isBuiltinLocals():
+            self.result = True
+            raise TreeOperations.ExitVisit
+
     def getResult( self ):
         return self.result
 
 
 def checkOverflowNeed( node ):
-    visitor = _OverflowCheckVisitor()
+    visitor = _OverflowCheckVisitor( node )
 
     TreeOperations.visitScope( node, visitor )
 
@@ -108,7 +117,7 @@ def checkOverflowNeed( node ):
 
 class _PrepareCodeGenerationVisitor:
     def __call__( self, node ):
-        if node.isFunctionReference():
+        if node.isFunctionReference() or node.isClassReference():
             if checkOverflowNeed( node.getBody() ):
                 node.markAsLocalsDict()
 

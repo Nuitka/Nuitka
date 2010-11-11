@@ -31,8 +31,8 @@
 #
 genexpr_context_body_template = """
 
-// This structure is for attachment as self of %(function_identifier)s.
-// It is allocated at the time the genexpr object is created.
+// This structure is for attachment as self of %(function_identifier)s. It is allocated at
+// the time the genexpr object is created.
 struct _context_%(function_identifier)s_t
 {
     // The generator expression can access a read-only closure of the creator.
@@ -77,8 +77,8 @@ case %(iterator_index)d:
 """
 
 genexpr_function_template = """
-// The function that is iterated over during generator expression execution. It is supposed to yield the next
-// value as a return value.
+// The function that is iterated over during generator expression execution. It is
+// supposed to yield the next value as a return value.
 
 static PyObject *%(function_identifier)s( Nuitka_GenexprObject *generator )
 {

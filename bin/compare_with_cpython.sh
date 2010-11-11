@@ -43,24 +43,24 @@ echo "Comparing $MODULE using $PYTHON ..."
 
 if [ "$MODE" = "silent" ]
 then
-    $PYTHON $1 | make_diffable >/tmp/cpython.out
+    $PYTHON $1 | make_diffable >/tmp/cpython.out.$$
 
-    $PYTHON `which Nuitka.py` --exe --execute $1 | make_diffable >/tmp/nuitka.out
+    $PYTHON `which Nuitka.py` --exe --execute $1 | make_diffable >/tmp/nuitka.out.$$
 else
     echo "*******************************************************"
     echo "CPython:"
     echo "*******************************************************"
 
-    $PYTHON $1 | make_diffable | tee /tmp/cpython.out
+    $PYTHON $1 | make_diffable | tee /tmp/cpython.out.$$
 
     echo "*******************************************************"
     echo "Nuitka:"
     echo "*******************************************************"
-    $PYTHON `which Nuitka.py` --exe --execute $1 | make_diffable | tee /tmp/nuitka.out
+    $PYTHON `which Nuitka.py` --exe --execute $1 | make_diffable | tee /tmp/nuitka.out.$$
 
     echo "*******************************************************"
     echo "Diff:"
     echo "*******************************************************"
 fi
 
-exec diff -s /tmp/cpython.out /tmp/nuitka.out
+exec diff -us /tmp/cpython.out.$$ /tmp/nuitka.out.$$

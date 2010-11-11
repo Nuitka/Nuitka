@@ -30,25 +30,48 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-parse_argument_template_refuse_parameters = """
+parse_argument_template_take_counts = """
 Py_ssize_t args_size = PyTuple_GET_SIZE( args );
 Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
+int args_usable_count = args_size < %(top_level_parameter_count)d ? args_size : %(top_level_parameter_count)d;
+int kw_args_used = 0;
+"""
 
+parse_argument_template_refuse_parameters = """
 if (unlikely( args_size + kw_size > 0 ))
 {
     PyErr_Format( PyExc_TypeError, "%(function_name)s() takes no arguments (%%d given)", args_size+kw_size );
     goto error_exit;
 }
 """
-parse_argument_template_check_counts = """
 
-Py_ssize_t args_size = PyTuple_GET_SIZE( args );
-Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
-int args_usable_count = args_size < %(top_level_parameter_count)d ? args_size : %(top_level_parameter_count)d;
-int kw_args_used = 0;
+parse_argument_template_check_counts_with_list_star_arg = """
+// Check if too little arguments were given.
+if (unlikely( args_size + kw_size < %(required_parameter_count)d ))
+{
+    if ( %(top_level_parameter_count)d == 1 )
+    {
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least 1 argument (%%d given)", args_size+kw_size );
+    }
+    else
+    {
+        if ( kw_size > 0 )
+        {
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d non-keyword arguments (%%d given)", %(top_level_parameter_count)d, args_size+kw_size );
+        }
+        else
+        {
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%d given)", %(top_level_parameter_count)d, args_size+kw_size );
+        }
+    }
 
+    goto error_exit;
+}
+"""
+
+parse_argument_template_check_counts_without_list_star_arg = """
 // Check if too many arguments were given in case of non star args
-if (unlikely( !%(has_list_star_arg)s && args_size > %(top_level_parameter_count)d ))
+if (unlikely( args_size > %(top_level_parameter_count)d ))
 {
     if ( %(top_level_parameter_count)d == 1 )
     {
@@ -130,7 +153,7 @@ else
 """
 
 parse_argument_template_check_dict_parameter_with_star_dict = """
-// Check if argument %(parameter_name)s was given as plain arg and as keyword argument
+// Check if argument %(parameter_name)s was given as plain and keyword argument
 {
     PyObject *kw_arg_value = PyDict_GetItem( _python_par_%(dict_star_parameter_name)s, %(parameter_name_object)s );
 
@@ -150,8 +173,8 @@ parse_argument_template_check_dict_parameter_with_star_dict = """
 """
 
 parse_argument_template_check_dict_parameter_without_star_dict = """
-// Check if argument %(parameter_name)s was given as plain arg and as keyword argument
-if ( kw != NULL )
+// Check if argument %(parameter_name)s was given as plain and keyword argument
+if ( kw_size > 0 )
 {
     PyObject *kw_arg_value = PyDict_GetItem( kw, %(parameter_name_object)s );
 
@@ -174,7 +197,8 @@ parse_argument_template_copy_default_value = """\
 if ( _python_par_%(parameter_name)s == NULL )
 {
     _python_par_%(parameter_name)s = INCREASE_REFCOUNT( %(default_identifier)s );
-}"""
+}
+"""
 
 parse_argument_template_check_dict_parameter_unused_without_star_dict = """
 if ( kw_args_used != kw_size )
@@ -182,16 +206,8 @@ if ( kw_args_used != kw_size )
     Py_ssize_t ppos = 0;
     PyObject *key, *value;
 
-    while( true )
+    while( PyDict_Next( kw, &ppos, &key, &value ) )
     {
-        int result = PyDict_Next( kw, &ppos, &key, &value );
-
-        if (unlikely( result == 0 ))
-        {
-            PyErr_Format( PyExc_RuntimeError, "Implementation error in dict varargs processing" );
-            goto error_exit;
-        }
-
         if (unlikely( PySequence_Contains( %(parameter_names_tuple)s, key ) == 0 ))
         {
             PyErr_Format( PyExc_TypeError, "%(function_name)s() got an unexpected keyword argument '%%s'", PyString_Check( key ) ? PyString_AsString( key ) : "<non-string>" );

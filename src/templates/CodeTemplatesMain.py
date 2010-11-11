@@ -130,21 +130,8 @@ static PyObject *_module_%(module_identifier)s;
 // The module function definitions.
 %(module_functions_code)s
 
-// The exported interface to CPython. On import of the module, this function gets called. It has have that exact function
-// name.
-
-static PyTracebackObject *%(module_tb_maker)s( int line )
-{
-   PyFrameObject *frame = MAKE_FRAME( _module_%(module_identifier)s, %(file_identifier)s, _python_str_angle_module, line );
-
-   PyTracebackObject *result = MAKE_TRACEBACK_START( frame, line );
-
-   Py_DECREF( frame );
-
-   assert( result );
-
-   return result;
-}
+// The exported interface to CPython. On import of the module, this function gets
+// called. It has have that exact function name.
 
 NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 {

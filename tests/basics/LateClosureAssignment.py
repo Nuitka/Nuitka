@@ -92,3 +92,21 @@ def ClosureLocalizerFunction():
         print "Function gave unbound local error when accessing function before assignment."
 
 ClosureLocalizerFunction()
+
+class X:
+    def __init__( self, x ):
+        self.x = x
+
+def changingClosure():
+    a = 1
+
+    def closureTaker():
+        return X(a)
+
+    x = closureTaker()
+    a=2
+    print x.x
+    x = closureTaker()
+    print x.x
+
+changingClosure()

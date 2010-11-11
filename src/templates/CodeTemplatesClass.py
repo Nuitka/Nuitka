@@ -41,15 +41,33 @@ class_dict_template = """
 
 static PyObject *%(class_identifier)s( %(class_dict_args)s )
 {
+    bool traceback = false;
+
     // Local variable declarations.
-    %(class_var_decl)s
+%(class_var_decl)s
 
-    // Actual class code.
-    %(class_body)s
+    try
+    {
+        // Actual class code.
+%(class_body)s
 
-    %(class_dict_creation)s;
+%(class_dict_creation)s
 
-    return result;
+        return result;
+    }
+    catch ( _PythonException &_exception )
+    {
+        if ( traceback == false )
+        {
+            _exception.toPython();
+            ADD_TRACEBACK( %(module_identifier)s, %(filename_identifier)s, %(name_identifier)s, _exception.getLine() );
+            throw _PythonException();
+        }
+        else
+        {
+            throw;
+        }
+    }
 }
 
 static PyObject *MAKE_CLASS_%(class_identifier)s( %(class_creation_args)s )
@@ -109,10 +127,8 @@ static PyObject *MAKE_CLASS_%(class_identifier)s( %(class_creation_args)s )
     }
 
     // Apply decorators if any
-    %(class_decorator_calls)s
+%(class_decorator_calls)s\
 
     return result;
 }
-
-
 """

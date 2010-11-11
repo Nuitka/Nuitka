@@ -74,13 +74,13 @@ class Variable:
     def isModuleVariable( self ):
         return False
 
-    def isShared( self ):
-        variable = self
+    def _checkShared( self, variable ):
+        for reference in variable.references:
+            # print "Checking", reference, "of", variable
 
-        if variable.isClosureReference():
-            return variable.getReferenced().isShared()
+            if self._checkShared( reference ):
+                return True
 
-        for reference in self.references:
             top_owner = reference.getReferenced().getOwner()
             owner = reference.getOwner()
 
@@ -89,9 +89,18 @@ class Variable:
                     return True
 
                 owner = owner.getParentVariableProvider()
-
         else:
             return False
+
+
+    def isShared( self ):
+        variable = self
+
+        while variable.isClosureReference():
+            variable = variable.getReferenced()
+
+        return self._checkShared( variable )
+
 
 class ParameterVariable( Variable ):
     def __init__( self, owner, parameter_name ):

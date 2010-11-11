@@ -103,3 +103,12 @@ def classdecorator( cls ):
 @classdecorator
 class MyClass:
     __metaclass__ = MetaClass
+
+print "Class that updates its locals",
+
+class DictUpdating:
+    a = 1
+
+    locals().update( { "b" : 2 } )
+
+print DictUpdating.b

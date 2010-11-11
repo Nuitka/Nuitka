@@ -268,7 +268,7 @@ static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
 static PyTypeObject Nuitka_Function_Type =
 {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
-    "compiled_function_or_method",                  // tp_name
+    "compiled_function",                            // tp_name
     sizeof(Nuitka_FunctionObject),                  // tp_basicsize
     0,                                              // tp_itemsize
     (destructor)Nuitka_Function_tp_dealloc,         // tp_dealloc
@@ -344,6 +344,16 @@ static inline PyObject *make_kfunction( void *code, PyObject *name, PyObject *mo
 
     _PyObject_GC_TRACK( result );
     return (PyObject *)result;
+}
+
+static inline bool Nuitka_Function_Check( PyObject *object )
+{
+    return Py_TYPE( object ) == &Nuitka_Function_Type;
+}
+
+static inline PyObject *Nuitka_Function_GetName( PyObject *object )
+{
+    return ((Nuitka_FunctionObject *)object)->m_name;
 }
 
 // Make a function without context.

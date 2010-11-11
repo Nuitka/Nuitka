@@ -456,3 +456,23 @@ print gen6.send( 5 ),
 print gen6.send( 6 ),
 print gen6.send( 7 ),
 print gen6.send( 8 )
+
+print "Generator function whose generator is copied",
+
+def generatorFunction():
+    yield 1
+    yield 2
+
+gen7 = generatorFunction()
+gen7.next()
+
+gen8 = iter(gen7)
+print gen8.next()
+
+def doubleStarArgs( *a, **d ):
+    return a, d
+
+from UserDict import UserDict
+
+print "Function that has keyword argument matching the list star arg name",
+print doubleStarArgs( 1, **UserDict( a = 2 ) )

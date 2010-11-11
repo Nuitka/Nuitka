@@ -29,11 +29,11 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-from Identifiers import namifyConstant, ExceptionCannotNamify, digest, Identifier, LocalVariableIdentifier, ClosureVariableIdentifier
+from Identifiers import namifyConstant, ExceptionCannotNamify, digest, Identifier, ConstantIdentifier, LocalVariableIdentifier, ClosureVariableIdentifier
 
 import CodeTemplates
 
-import cPickle, re, hashlib
+import cPickle, pickle, re, hashlib
 
 class Constant:
     def __init__( self, constant ):
@@ -149,8 +149,12 @@ class PythonGlobalContext:
         self.const_bool_false   = self.getConstantHandle( False ).getCode()
 
         self.module_name__      = self.getConstantHandle( "__module__" ).getCode()
+        self.class__            = self.getConstantHandle( "__class__" ).getCode()
+        self.dict__             = self.getConstantHandle( "__dict__" ).getCode()
         self.doc__              = self.getConstantHandle( "__doc__" ).getCode()
         self.file__             = self.getConstantHandle( "__file__" ).getCode()
+        self.enter__            = self.getConstantHandle( "__enter__" ).getCode()
+        self.exit__             = self.getConstantHandle( "__exit__" ).getCode()
 
     def getConstantHandle( self, constant ):
         if constant is None:
@@ -163,7 +167,7 @@ class PythonGlobalContext:
             if key not in self.constants:
                 self.constants[ key ] = self._getConstantHandle( constant )
 
-            return Identifier( self.constants[ key ], 0 )
+            return ConstantIdentifier( self.constants[ key ] )
 
     def _getConstantHandle( self, constant ):
         constant_type = type( constant )
@@ -260,7 +264,15 @@ class PythonGlobalContext:
                 statements.append( """%s = PyString_FromStringAndSize( %s, %d );""" % ( constant_identifier, encoded, len(constant_value) ) )
                 statements.append( """assert( PyString_Size( %s ) == %d );""" % ( constant_identifier, len(constant_value) ) )
             elif constant_type in ( tuple, list, bool, float, complex, unicode, int, long, dict, frozenset, set ):
-                saved = cPickle.dumps( constant_value, protocol = 0 if constant_type is unicode else 2 )
+                # Note: The marshal module cannot persist all unicode strings and
+                # therefore cannot be used.  The cPickle fails to gives reproducible
+                # results for some tuples, which needs clarification. In the mean time we
+                # are using pickle.
+                try:
+                    saved = pickle.dumps( constant_value, protocol = 0 if constant_type is unicode else 0 )
+                except TypeError:
+                    print repr( constant_value )
+                    raise
 
                 # Check that the constant is restored correctly.
                 restored = cPickle.loads( saved )
@@ -278,11 +290,12 @@ class PythonGlobalContext:
 
 
 class PythonModuleContext( PythonContextBase ):
-    def __init__( self, module_name, code_name, global_context ):
+    def __init__( self, module_name, code_name, filename, global_context ):
         PythonContextBase.__init__( self )
 
         self.name = module_name
         self.code_name = code_name
+        self.filename = filename
 
         self.global_context = global_context
         self.functions = {}
@@ -302,10 +315,10 @@ class PythonModuleContext( PythonContextBase ):
     def addFunctionCodes( self, function, function_context, function_codes ):
         self.function_codes.append( ( function, function_context, function_codes ) )
 
-    def addClassCodes( self, class_def, class_codes ):
+    def addClassCodes( self, class_def, class_context, class_codes ):
         assert class_def not in self.class_codes
 
-        self.class_codes[ class_def ] = class_codes
+        self.class_codes[ class_def ] = ( class_context, class_codes )
 
     def addLambdaCodes( self, lambda_def, lambda_code, lambda_context ):
         self.lambda_codes.append( ( lambda_def, lambda_code, lambda_context ) )
@@ -361,6 +374,14 @@ class PythonModuleContext( PythonContextBase ):
     def getCodeName( self ):
         return self.code_name
 
+    def getTracebackName( self ):
+        return "<module>"
+
+    def getTracebackFilename( self ):
+        return self.filename
+
+
+
 class PythonFunctionContext( PythonChildContextBase ):
     def __init__( self, parent, function ):
         PythonChildContextBase.__init__( self, parent = parent )
@@ -374,7 +395,7 @@ class PythonFunctionContext( PythonChildContextBase ):
             self.getConstantHandle( constant = local_name )
 
     def __repr__( self ):
-        return "<PythonFunctionContext for function '%s' local dict %s>" % ( self.function.getName(), self.locals_dict )
+        return "<PythonFunctionContext for function '%s'>" % self.function.getName()
 
     def hasLocalsDict( self ):
         return self.function.hasLocalsDict()
@@ -417,11 +438,19 @@ class PythonFunctionContext( PythonChildContextBase ):
     def addFunctionCodes( self, function, function_context, function_codes ):
         self.parent.addFunctionCodes( function, function_context, function_codes )
 
-    def addClassCodes( self, class_def, class_codes ):
-        self.parent.addClassCodes( class_def, class_codes )
+    def addClassCodes( self, class_def, class_context, class_codes ):
+        self.parent.addClassCodes( class_def, class_context, class_codes )
 
     def getCodeName( self ):
         return self.function.getCodeName()
+
+    def getTracebackName( self ):
+        return self.function.getName()
+
+    def getTracebackFilename( self ):
+        # TODO: Memoize would do wonders for these things mayhaps.
+        return self.function.getParentModule().getFilename()
+
 
 
 class PythonContractionBase( PythonChildContextBase ):
@@ -542,8 +571,20 @@ class PythonClassContext( PythonChildContextBase ):
     def addFunctionCodes( self, function, function_context, function_codes ):
         self.parent.addFunctionCodes( function, function_context, function_codes )
 
-    def addClassCodes( self, class_def, class_codes ):
-        self.parent.addClassCodes( class_def, class_codes )
+    def addClassCodes( self, class_def, class_context, class_codes ):
+        self.parent.addClassCodes( class_def, class_context, class_codes )
 
     def isClosureViaContext( self ):
         return False
+
+    def getTracebackName( self ):
+        return self.class_def.getName()
+
+    def getTracebackFilename( self ):
+        return self.class_def.getParentModule().getFilename()
+
+    def getCodeName( self ):
+        return self.class_def.getCodeName()
+
+    def hasLocalsDict( self ):
+        return self.class_def.hasLocalsDict()

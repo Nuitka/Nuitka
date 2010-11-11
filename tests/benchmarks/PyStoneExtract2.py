@@ -18,10 +18,9 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-# This taken from CPython's pystone test, and is an extract of it I made
-# to analyse the differences between CPython and Nuitka performance. It
-# was under PSF 2 license. It's not very useful anymore, but it is under
-# that license still.
+# This taken from CPython's pystone test, and is an extract of it I made to analyse the
+# differences between CPython and Nuitka performance. It was under PSF 2 license. It's not
+# very useful anymore, but it is under that license still.
 
 from time import clock
 

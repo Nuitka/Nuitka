@@ -68,6 +68,14 @@ tasks and issue tracking in Nuitka.
     over bytecode it seems and not easy to overcome. It would require parsing the source
     on our own and search for the end of the function call.
 
+*** Yield in generator expressions is not supported
+
+    In CPython you can write this strange construct: (i for i in (yield) if (yield))
+
+    This is not currently supported in Nuitka, "only" generator functions are. It can be and
+    will be, but it's a strange corner case to start with.
+
+
 ** Deep Mode (Everything into one exe)
 
 *** Packages __init__.py code is ignored
@@ -89,225 +97,261 @@ tasks and issue tracking in Nuitka.
 
 This is the list of tests modified from what they are in CPython.
 
-*** test_compile:
+*** test_cmd_line:
 
-    Changed func_code usage to get local consts to locals().  Removed tests based on
-    func_code objects.  Remove test that uses exec to enrich the locals.
-
-*** test_compiler:
-
-    Removed test that compiled for a random time producing indetermistic output in its
-    report.
-
-*** test_complexargs:
-
-    Don't use exec to hide Py3K warning, because it means the compiler is not used for it.
-
-*** test_cookie:
-
-    Removed part of the test that is a difference between Python2.6 and Python2.7 plus it
-    is affected by the function call line difference.
-
-*** test_copy:
-
-    deepcopy of compiled functions refuses to work, removed these test cases, removed
-    func_code check
-
-*** test_defaultdict:
-
-    deepcopy is not supported, removed test_deep_copy
-
-*** test_exceptions:
-
-    Removed code objects using parts parts.
-
-*** test_ftplib:
-
-    Disabled IPv6, not on my systems.
-
-*** test_funcattrs:
-
-    Disabled parts that use func_code and func_defaults.
-
-*** test_future6:
-
-    Changed relative import from "." to normal import.
-
-*** test_gc:
-
-    Remove use of sys._getframe and test that checks gc very fragile way.
-
-*** test_grammar:
-
-    Problem with comparison chains that use "in", unrealistic code not yet done. Same with
-    nested assignments that each unpack. Removed these statements from the test. Also
-    removed testFuncDef parts that use func_code to test things. Also removed try:
-    continue finally: test, we are not correct there, finally is not executed in that
-    case.
-
-*** test_hotshot:
-
-    Removed test that attempts to get line numbers from the func_code object.
-
-*** test_import:
-
-    Removed test_foreign_code, test_relimport_star.
-
-*** test_inspect:
-
-    Removed checks for argument specs of functions, not supported, for frames and code.
-
-*** test_io.py:
-
-    test_newline_decoder and testReadClosed fails with some unicode differences, likely
-    because import from future does not change literals to unicode
-
-*** test_marshal:
-
-    Removed marshal of func_code
-
-*** test_math:
-
-    Removed doc tests, they check call stack and that is not yet supported. removed usage
-    of sys.argv[0] to find file in the dir of the .py, where the .exe doesn't live.
-
-*** test_mutants:
-
-    Added random seed so the results are predictable
-
-*** test_new:
-
-    Removed test_code and test_function due to referenced to func_code
-
-*** test_pep352:
-
-    No deprecation warnings, removing the tests that check them.
-
-*** test_pty:
-
-    Removed traces of pids that are not reproducible
-
-*** test_repr:
-
-    Relaxed test that checks lamba repr to allow compiled lambda
-
-*** test_scope:
-
-    A test that checks exec with free vars refusal was using func_code to do so, removed
-    that part. A test that wanted the gc.collect() to find a cyclic dependency was removed
-    as we free more immediately.
-
-*** test_signal:
-
-    Removed test_itimer_prof, test_itimer_virtual seems that signal doesn't get through,
-    and test takes 60 seconds of CPU, also removed test_main because it forks and raises
-    exception there, that seems different
-
-*** test_sort:
-
-    Added random seed
-
-*** test_strftime:
-
-    Don't use current time to be reproducible, removed verbose outputs
-
-*** test_struct:
-
-    Removed test that requires deprecation warnings to be allowed to be disabled, we don't
-    support that yet.
-
-*** test_structmembers:
-
-    Removed test class that only checks for deprecation warnings we don't give
-
-*** test_sys:
-
-    Removed usages of getframe, func_closure, and call stack, removed test_object, I do
-    not understand it. removed test that does require sys.stdout and sys.stderr to have
-    same encoding which they do not in my test environment, when I e.g. redirect stdout to
-    a file and leave stderr on terminal.
-
-*** test_undocumented_details:
-
-    Removed usage of func_closure
-
-*** test_weakref:
-
-    Removed one test from test_proxy_ref which fails due to a detail of how a temp
-    variable is destroyed a bit late. removed the doctest execution, it is verbose and not
-    really a test of the compiler
-
-*** test_zlib:
-
-    Removed one test which uses much RAM
-
-** Deleted tests:
-
-*** test_aepack:
-
-    I don't have the module being tested it seems.
-
-*** test_al:
-
-    I don't have the module being tested it seems.
-
-*** test_applesingle:
-
-    MacOS specific
-
-*** test/test_bsddb185.py:
-
-    Outdated module of no interest.
-
-*** test_bsddb3.py:
-
-    The "from bsddb.test import test_all" fails, likely also outdated, test_bsddb.py passed.
-
-*** test_cd:
-
-    I don't have the module being tested it seems.
-
-*** test_cl:
-
-    I don't have the module being tested it seems.
-
-*** test_cmd_line_script:
-
-    Aborts with mismatch message that seems not correct. But this tests running CPython as
-    a child more than anything else, so it's mostly useless to debug. Could indicate wrong
-    printing though. TODO: Check if it can be reactivated.
-
-*** test_codecmaps_cn|hk|jp|kr|tw.py:
-
-    These uses "urlfetch" and therefore have side effects not wanted.
+    Usability Fix: Removed test that checks for the version parameter output, which
+    doesn't match when the CPython binary is not the system python.
 
 *** test_collections:
 
-    The collections module uses _sys._getframe(1) which is not set in --exe mode,
-    rendering it useless.
+    Compatability Fix: Removed check that the __module__ is set correctly by the
+    collections namedtuple module, as it uses sys._getframe() which is not currently
+    supported.
 
-*** test_ctypes:
+    Compatability Fix: Removed test_pickle which fails because of namespace issues likely
+    caused the same issue as above.
 
-    No ctypes.test module, where would it be?
+*** test_compile:
+
+    Compatability Fix: Removed test_mangling, because of heavy use of the func_code
+    attribute co_varnames which we don't support yet.
+
+    Compatability Fix: Removed assertion in test_for_distinct_code_objects which checks
+    func_code which we don't support yet.
+
+    Compatability Fix: Removed test_32_63_bit_values which uses co_consts which we don't
+    support at all.
+
+*** test_compiler:
+
+    Usability Fix: Removed testCompileLibrary which byte code compiled for a random time
+    producing indetermistic output between runs.
+
+*** test_complexargs:
+
+    Usability Fix: Don't use exec with dedent to hide Py3K warning, because it means the
+    compiler is not used for it.
+
+*** test_cookie (26 only):
+
+    Usability Fix: Removed part of the test that is a difference between Python 2.6 and
+    Python 2.7 plus it is affected by the function call line difference.
+
+*** test_copy:
+
+    Compatability Fix: Removed func_code attribute usage from test_copy_atomic.
+
+    Compatability Fix: Removed func_code attribute usage from test_deepcopy_atomic.
+
+    Compatability Fix: Removed test_copy_function test, which is refused by copy with an
+    exception "TypeError: object.__new__(compiled_function) is not safe, use
+    compiled_function.__new__()"
+
+    Compatability Fix: Removed test_deepcopy_function test, which is refused by copy with
+    an exception "TypeError: object.__new__(compiled_function) is not safe, use
+    compiled_function.__new__()"
+
+    TODO: Add __reduce__ and/or __reduce_ex__ slots to resolve the later. They would allow
+    to pickle compiled functions too.
+
+*** test_decimal:
+
+    Usability Fix: Was using sys.argv[0] to find the containing directory which may not be
+    what we are using.
+
+*** test_defaultdict:
+
+    Compatability Fix: Removed test_deep_copy test
+
+*** test_exceptions:
+
+    Compatability Fix: Removed usage of f_back of frame objects in tracebacks, they are not
+    linked with Nuitka, although the traceback itself is.
+
+*** test_funcattrs:
+
+    Compatability Fix: Disabled parts that use func_code and func_defaults:
+    test_blank_func_defaults, test_copying_func_code, test_empty_cell, test_func_closure,
+    test_func_code, test_func_default_args
+
+    Note: We could support the attribute func_defaults or even func_closure relatively easy,
+    but it's probably not worth it.
+
+*** test_functools:
+
+    Compatability Fix: Disabled test_pickle, because compiled functions cannot be pickled
+    yet.
+
+*** test_gc:
+
+    Compatability Fix: Disabled test_frame, test_function, test_count because of use of
+    sys._getframe and test that checks gc very fragile way.
+
+*** test_grammar:
+
+    Workaround: Problem with comparison chains that use "in", unrealistic code not yet
+    support, one day these need to be supported though.
+
+    Compatability Fix: Removed parts of testFuncDef parts that use func_code to test things.
+
+*** test_hotshot:
+
+    Compatability Fix: Removed test_line_numbers because that one attempts to get line
+    numbers from the func_code object.
+
+*** test_inspect:
+
+    Compatability Fix: Removed checks for argument specs of functions, not supported by
+    the module for compiled functions.
+
+    Compatability Fix: Removed checks for type of generator, doesn't match for compiled
+    generator expressions.
+
+*** test_io.py:
+
+    Compatability Fix: Removed tests that require threading to work.
+
+*** test_marshal:
+
+    Compatability Fix: Removed marshal of func_code
+
+*** test_math:
+
+    Compatability Fix: Removed doc test read from file, it checks call stack and that is
+    not yet supported.
+
+    Usability Fix: Was using sys.argv[0] to find the containing directory which may not be
+    what we are using.
+
+*** test_module:
+
+    Usability Fix: Strangely the test_dont_clear_dict fails with CPython here, so disabled
+    it, because with Nuitka it passes.
+
+*** test_mutants:
+
+    Usability Fix: Added random seed so the results are predictable.
+
+*** test_new:
+
+    Compatability Fix: Removed test_code and test_function due to referenced to func_code.
+
+*** test_pep352:
+
+    Usability Fix: No deprecation warnings, removing the test that checks them.
+
+*** test_pty:
+
+    Usability Fix: Disabled verbose tracing of pids that are not reproducible.
+
+*** test_repr:
+
+    Usability Fix: Relaxed test that checks lamba repr to allow compiled lambda.
+
+*** test_scope:
+
+    Compatability Fix: Removed testEvalExecFreeVars due to reference to func_code.
+
+    Compatability Fix: Removed testComplexDefinitions due to usage of "exec in locals()"
+    which is not supported when it comes to actually changing locals.
+
+*** test_signal:
+
+    Usability Fix: Removed test_itimer_prof, test_itimer_virtual seems that signal doesn't
+    get through, and test takes 60 seconds of CPU.
+
+*** test_site:
+
+    Usability Fix: Removed test that wants to check the Python -s function, which the
+    compiled test doesn't have of course.
+
+    Usability Fix: Removed check for site package directory which seems to differ for
+    Debian.
+
+*** test_sort:
+
+    Usability Fix: Added random seed
+
+*** test_strftime:
+
+    Usability Fix: Don't use current time to be reproducible, removed verbose outputs
+
+*** test_struct:
+
+    Compatability Fix: Removed test parts that use the inspect module to determine the line
+    number.
+
+*** test_sys:
+
+    Usability Fix: Removed test_43581 that does require sys.stdout and sys.stderr to have
+    same encoding which they do not in my test environment, when I e.g. redirect stdout to
+    a file and leave stderr on terminal.
+
+    Compatability Fix: Removed usage of sys._getframe in test_getframe which we don't support.
+
+    Compatability Fix: Removed usage of func_closure in test_objecttypes.
+
+    Compatability Fix: Removed test_current_frames due to reference to CPython only list
+    of current frames of all threads.
+
+    Compatability Fix: Removed test_exc_clear which fails to work because exceptions
+    currently do not stack.
+
+    Compatability Fix: Removed check for dictionary size, PyDict_Copy() doesn't match the
+    expectations and uses more memory for copied constants. Also bytecode functions are a
+    bit bigger than the uncompiled ones. And generator functions are way bigger as they
+    store 2 contexts for the switch.
+
+*** test_sysconfig:
+
+    Usability Fix: Removed test that insisted on a specific set of flags, but Debian's
+    Python seems to have more.
+
+*** test_undocumented_details:
+
+    Compatability Fix: Removed usage of func_closure
+
+*** test_weakref:
+
+    Compatability Fix: Removed one test from test_proxy_ref which fails due to a detail of
+    how a temp variable is destroyed a bit late.
+
+    Usability Fix: Removed the doctest execution, it is verbose and not really a test of
+    the compiler.
+
+*** test_zlib:
+
+    Usability Fix: Removed tests which use too much RAM
+
+*** test_zimport:
+
+    Compatability Fix: Removed testTraceback which exhibits that tracebacks are somehow
+    not perfect yet.
+
+
+** Deleted tests:
+
+*** test_argparse:
+
+    Removed, out of scope, wants to fork a new Python similar to the running Python which
+    doesn't work when sys.argv[0] is an executable instead.
 
 *** test_curses:
 
     Uses getframe tricks, and fails to capture my mouse, so simply removed, out of scope
     for now.
 
-*** test_decimal:
+*** test_capi:
 
-    One test failed with my CPython already, plus it uses execfile, which we cannot inline
-    yet, so it doesn't test the compiler much. TODO: Revisit once we can inline exec and
-    execfile of constants.
+    Removed, because it requires threading to work.
 
-*** test_cProfile:
+*** test_cprofile:
 
-    Performance numbers differ obviously, removed test that doesn't provide much info.
+    Removed, performance numbers differ obviously, doesn't provide much info.
 
 *** test_dis:
 
-    We don't have any bytecode in func_code ever, removed
+    Removed, we don't have any bytecode in func_code ever.
 
 *** test_distutils:
 
@@ -319,134 +363,50 @@ This is the list of tests modified from what they are in CPython.
 
 *** test_docxmlrpc:
 
-    Uses inspection and complains about compiled function
-
-*** test_email:
-
-    Removed, out of scope
-
-*** test_email_codecs:
-
-    Removed, out of scope
-
-*** test_email_renamed:
-
-    Removed, out of scope
+    Removed, uses inspection and complains about compiled function not being a function.
 
 *** test_file:
 
     Removed, because it uses heavy threading is more of a performance test. Blocked in
     some tests, indicating locking issues.
 
-*** test_gdbm:
+*** test_gdb:
 
-    No such module, out of scope
-
-*** test_gl:
-
-    No such module, out of scope
-
-*** test_imageop:
-
-    No such module, out of scope
+    Removed, out of scope.
 
 *** test_imaplib:
 
-    Output differed due to unknown reasons in imap details, removed therefore
+    Usability Fix: Import test_support through test package.
 
-*** test_imgfile:
+    Usability Fix: Verbose output differed due to unknown reasons in imap details, removed
+    therefore disabled verbose output.
 
-    No such module, out of scope
+*** test_import:
 
-*** test_json:
+    Usability Fix: Removed test_import_initless_directory_warning because it relies on a
+    directory to exist that doesn't on my Debian Squeeze system.
 
-    No such module json.test, out of scope
+*** test_peepholer:
 
-*** test_kqueue:
-
-    Runs only on BSD (how ever much I love my first Unix NetBSD, I don't have it
-    currently), removed
-
-*** test_lib2to3:
-
-    No such module lib2to3.test module, out of scope
-
-*** test_linuxaudiodev:
-
-    Removed because it wants /dev/sdp, out of scope
-
-*** test_macos|macostools|macospath|macfs:
-
-    Removed, macos only
-
-*** test_normalization:
-
-    Removed, wants internet
-
-*** test_os:
-
-    Removed, works, but out of scope and number of tests run differs, making it
-    annoying. Need to find out why not all tests can be run
-
-*** test_ossaudiodev:
-
-    Removed, want to use /dev/dsp, out of scope
-
-*** test_pep277:
-
-    Removed, windows only
+    Removed, refers only to bytecode which compiled functions don't have, so it's out of
+    scope.
 
 *** test_profilehooks:
 
-    Removed, excessive dependence on func_code
-
-*** test_py3kwarn:
-
-    Removed, out of scope
-
-*** test_rgbimg:
-
-    No such module
+    Removed, excessive dependence on func_code.
 
 *** test_runpy:
 
-    Removed, outputs a lot of paths in /tmp that differ each time
-
-*** test_scriptpackages:
-
-    Removed, no such module aetools
-
-*** test_smtpnet:
-
-    Removed, requires internet access
-
-*** test_socket_ssl:
-
-    Removed, didn't work with CPython
+    Usability Fix: Set verbose = 0 to avoid output of lot of temporary filenames and paths
+    in /tmp that differ each time.
 
 *** test_socketserver:
 
     Removed, out of scope
 
-*** test_sqlite:
+*** test_threading.py:
 
-    No sqlite.test module, removed
-
-*** test_startfile:
-
-    No such module
-
-*** test_sunaudiodev:
-
-    Removed, no such module
-
-*** test_tcl:
-
-    Removed, no such module
-
-*** test_thread|threading.py:
-
-    Removed, out of scope and not determistic outputs
+    Removed, out of scope.
 
 *** test_timeout:
 
@@ -455,10 +415,6 @@ This is the list of tests modified from what they are in CPython.
 *** test_trace:
 
     Removed, out of scope
-
-*** test_traceback:
-
-    Removed, not yet supported
 
 *** test_urllib2:
 
@@ -476,17 +432,9 @@ This is the list of tests modified from what they are in CPython.
 
     Removed, not yet supported
 
-*** test_winsound:
+***  test_zipfile|test_zipfile64:
 
-    Removed, no such module
-
-*** test_winreg:
-
-    Removed, windows only
-
-*** test_zipfile64:
-
-    Removed, wants to do 6G files, thank you so much.
+    Removed, out of scope.
 
 *** test_zipimport_support:
 

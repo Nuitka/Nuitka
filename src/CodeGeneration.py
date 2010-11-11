@@ -43,6 +43,7 @@ import TreeOperations
 import Generator
 import Contexts
 import Options
+import Nodes
 
 def mangleAttributeName( attribute_name, node ):
     if not attribute_name.startswith( "__" ) or attribute_name.endswith( "__" ):
@@ -52,6 +53,9 @@ def mangleAttributeName( attribute_name, node ):
 
     while node is not None:
         node = node.getParent()
+
+        if node is None:
+            break
 
         if node.isClassReference():
             if seen_function:
@@ -66,17 +70,25 @@ def mangleAttributeName( attribute_name, node ):
 def generateSequenceCreationCode( sequence_kind, elements, context, generator ):
     # print "   generateSequenceCreationCode:", sequence_kind, "in", context, "with", generator
 
-    identifiers = generateExpressionsCode(
-        expressions = elements,
-        context     = context,
-        generator   = generator
-    )
+    if _areConstants( elements ):
+        sequence_type = tuple if sequence_kind == "tuple" else list
 
-    return generator.getSequenceCreationCode(
-        sequence_kind       = sequence_kind,
-        element_identifiers = identifiers,
-        context             = context
-    )
+        return generator.getConstantHandle(
+            context  = context,
+            constant = sequence_type( ( element.getConstant() for element in elements ) )
+        )
+    else:
+        identifiers = generateExpressionsCode(
+            expressions = elements,
+            context     = context,
+            generator   = generator
+        )
+
+        return generator.getSequenceCreationCode(
+            sequence_kind       = sequence_kind,
+            element_identifiers = identifiers,
+            context             = context
+        )
 
 def generateConditionCode( condition, context, generator, inverted = False, allow_none = False ):
     if condition is None and allow_none:
@@ -94,6 +106,20 @@ def generateConditionCode( condition, context, generator, inverted = False, allo
                 return generator.getTrueExpressionCode()
             else:
                 return generator.getFalseExpressionCode()
+    elif condition.isExpressionComparison():
+        result = generator.getComparisonExpressionBoolCode(
+            comparators = condition.getComparators(),
+            operands    = [ generateExpressionCode( expression = operand, context = context, generator = generator ) for operand in condition.getOperands() ],
+            context     = context
+        )
+
+        if inverted:
+            result = generator.getConditionNotBoolCode(
+                condition = result,
+                context   = context
+            )
+
+        return result
     else:
         condition_identifier = generateExpressionCode(
             context    = context,
@@ -278,13 +304,14 @@ def generateLambdaCode( lambda_expression, context, generator ):
             identifier = generator.getYieldCode(
                 context    = context,
                 identifier = generateExpressionCode(
-                    expression = lambda_expression.getLambdaExpression().getExpression(),
+                    expression = lambda_expression.getLambdaExpression(),
                     context    = lambda_context,
                     generator  = generator,
                 )
             )
         )
 
+    # TODO: This ought to be done a bit prettier in a function for every user.
     if Options.shallHaveStatementLines():
         codes = [ generator.getCurrentLineCode( lambda_expression.getSourceReference() ), code ]
     else:
@@ -388,30 +415,20 @@ def generateClassBodyCode( class_def, context, generator ):
         generator          = generator
     )
 
-    return codes
+    return context, codes
 
 
 def generateClassCode( class_def, context, generator ):
     assert class_def.isClassReference()
 
-    bases = []
-
-    for base_class in class_def.getBaseClasses():
-        bases.append(
-            generateExpressionCode(
-                expression = base_class,
-                context    = context,
-                generator  = generator
-            )
-        )
-
-    bases_identifier = generator.getSequenceCreationCode(
-        sequence_kind       = "tuple",
-        element_identifiers = bases,
-        context             = context
+    bases_identifier = generateSequenceCreationCode(
+        sequence_kind = "tuple",
+        elements      = class_def.getBaseClasses(),
+        context       = context,
+        generator     = generator
     )
 
-    class_codes = generateClassBodyCode(
+    class_context, class_codes = generateClassBodyCode(
         class_def = class_def,
         context   = context,
         generator = generator
@@ -437,8 +454,9 @@ def generateClassCode( class_def, context, generator ):
     )
 
     context.addClassCodes(
-        class_def   = class_def,
-        class_codes = class_codes,
+        class_def     = class_def,
+        class_context = class_context,
+        class_codes   = class_codes,
     )
 
     return generator.getAssignmentCode(
@@ -471,23 +489,34 @@ def generateComparisonExpressionCode( comparison_expression, context, generator 
     )
 
 def generateDictionaryCreationCode( keys, values, context, generator ):
-    key_identifiers = generateExpressionsCode(
-        expressions = keys,
-        context     = context,
-        generator   = generator
-    )
+    if _areConstants( keys ) and _areConstants( values ):
+        constant = {}
 
-    value_identifiers = generateExpressionsCode(
-        expressions = values,
-        context     = context,
-        generator   = generator
-    )
+        for key, value in zip( keys, values ):
+            constant[ key.getConstant() ] = value.getConstant()
 
-    return generator.getDictionaryCreationCode(
-        keys    = key_identifiers,
-        values  = value_identifiers,
-        context = context
-    )
+        return generator.getConstantHandle(
+            context  = context,
+            constant = constant
+        )
+    else:
+        key_identifiers = generateExpressionsCode(
+            expressions = keys,
+            context     = context,
+            generator   = generator
+        )
+
+        value_identifiers = generateExpressionsCode(
+            expressions = values,
+            context     = context,
+            generator   = generator
+        )
+
+        return generator.getDictionaryCreationCode(
+            keys    = key_identifiers,
+            values  = value_identifiers,
+            context = context
+        )
 
 def generateSetCreationCode( values, context, generator ):
     value_identifiers = generateExpressionsCode(
@@ -506,7 +535,7 @@ def _areConstants( expressions ):
         if not expression.isConstantReference():
             return False
 
-        if type( expression.getConstant() ) in ( dict, list, set ):
+        if expression.isMutable():
             return False
     else:
         return True
@@ -549,15 +578,67 @@ def generateSliceAccessIdentifiers( sliced, lower, upper, context, generator ):
 
     return sliced, lower, upper
 
+def generateFunctionCallCode( function, context, generator ):
+    function_identifier = generateExpressionCode(
+        expression = function.getCalledExpression(),
+        context    = context,
+        generator  = generator
+    )
+
+    positional_args_identifier = generateSequenceCreationCode(
+        sequence_kind = "tuple",
+        elements      = function.getPositionalArguments(),
+        context       = context,
+        generator     = generator
+    )
+
+    named_arguments = function.getNamedArguments()
+
+    kw_identifier = generateDictionaryCreationCode(
+        keys      = [ Nodes.CPythonExpressionConstant( named_arg_desc[0], source_ref = function.getSourceReference() ) for named_arg_desc in named_arguments ],
+        values    = [ named_arg_desc[1] for named_arg_desc in named_arguments ],
+        context   = context,
+        generator = generator
+    )
+
+    star_list_identifier = generateExpressionCode(
+        expression = function.getStarListArg(),
+        allow_none = True,
+        context    = context,
+        generator  = generator
+    )
+
+    star_dict_identifier = generateExpressionCode(
+        expression = function.getStarDictArg(),
+        allow_none = True,
+        context    = context,
+        generator  = generator
+    )
+
+    # TODO: Try to predict and remove empty star_list_identifier and star_dict_identifier so that
+    # the overhead associated can be eliminated. This probably should happen early on.
+
+    return generator.getFunctionCallCode(
+        function_identifier  = function_identifier,
+        argument_tuple       = positional_args_identifier,
+        argument_dictionary  = kw_identifier,
+        star_list_identifier = star_list_identifier,
+        star_dict_identifier = star_dict_identifier,
+        context              = context,
+    )
+
 
 def generateExpressionsCode( expressions, context, generator ):
     assert type( expressions ) in ( tuple, list )
 
     return [ generateExpressionCode( expression = expression, context = context, generator = generator ) for expression in expressions ]
 
-def generateExpressionCode( expression, context, generator ):
+def generateExpressionCode( expression, context, generator, allow_none = False ):
     # print "*" * 80
     # print "  generateExpressionCode:", expression, "in", context, "with", generator
+
+    if expression is None and allow_none:
+        return None
 
     def makeExpressionCode( expression, allow_none = False ):
         if allow_none and expression is None:
@@ -620,120 +701,10 @@ def generateExpressionCode( expression, context, generator ):
             generator = generator
         )
     elif expression.isFunctionCall():
-        function_identifier = generateExpressionCode(
-            expression = expression.getCalledExpression(),
+        identifier = generateFunctionCallCode(
+            function = expression,
             context    = context,
             generator  = generator
-        )
-
-        positional_args = expression.getPositionalArguments()
-        star_list_arg = expression.getStarListArg()
-
-        if _areConstants( positional_args ) and star_list_arg is None:
-            args_identifier = generator.getConstantHandle(
-                context = context,
-                constant = tuple( ( positional_arg.getConstant() for positional_arg in positional_args ) )
-            )
-
-            args_tuple = True
-        else:
-            if positional_args:
-                positional_args_identifier = generateSequenceCreationCode(
-                    sequence_kind = "tuple",
-                    elements      = positional_args,
-                    context       = context,
-                    generator     = generator
-                )
-            else:
-                positional_args_identifier = None
-
-            if star_list_arg is not None:
-                star_arg_identifier = generateExpressionCode(
-                    expression = star_list_arg,
-                    context    = context,
-                    generator  = generator
-                )
-            else:
-                star_arg_identifier = None
-
-            if positional_args_identifier is not None and star_arg_identifier is not None:
-                args_identifier = generator.getSequenceConcatCode(
-                    seq1_identifier = positional_args_identifier,
-                    seq2_identifier = generator.getTupleConversionCode(
-                        sequence_identifier = star_arg_identifier
-                    )
-                )
-
-                args_tuple = False
-            elif positional_args_identifier is None and star_arg_identifier is not None:
-                args_identifier = star_arg_identifier
-
-                args_tuple = False
-            elif positional_args_identifier is not None and star_arg_identifier is None:
-                args_identifier = positional_args_identifier
-
-                args_tuple = True
-            else:
-                assert False
-
-        if not args_tuple:
-            args_identifier = generator.getTupleConversionCode( sequence_identifier = args_identifier )
-
-        named_arguments = expression.getNamedArguments()
-        star_dict_arg = expression.getStarDictArg()
-
-        if _areConstants( [ value for (_name, value) in named_arguments ] ):
-            named_arg_dict = {}
-
-            for named_arg_desc in named_arguments:
-                named_arg_name, named_arg_value = named_arg_desc
-
-                named_arg_dict[ named_arg_name ] = named_arg_value.getConstant()
-
-            kw_identifier = generator.getConstantHandle( context = context, constant = named_arg_dict )
-        else:
-            kw_key_identifiers = []
-            kw_value_identifiers = []
-
-            for named_arg_desc in named_arguments:
-                named_arg_name, named_arg_value = named_arg_desc
-                assert type( named_arg_name ) == str
-
-                named_arg_value_identifier = generateExpressionCode(
-                    expression = named_arg_value,
-                    context    = context,
-                    generator  = generator
-                )
-
-                kw_key_identifiers.append( generator.getConstantHandle( context = context, constant = named_arg_name ) )
-                kw_value_identifiers.append( named_arg_value_identifier )
-
-            kw_identifier = generator.getDictionaryCreationCode(
-                context = context,
-                keys    = kw_key_identifiers,
-                values  = kw_value_identifiers
-            )
-
-        if star_dict_arg is not None:
-            star_dict_identifier = generateExpressionCode(
-                expression = star_dict_arg,
-                context    = context,
-                generator  = generator
-            )
-
-            if kw_identifier.getCode() == "_python_dict_empty":
-                kw_identifier = star_dict_identifier
-            else:
-                kw_identifier = generator.getDictionaryMergeCode(
-                   dict1_identifier = kw_identifier,
-                   dict2_identifier = star_dict_identifier
-                )
-
-        identifier = generator.getFunctionCallCode(
-            function_identifier = function_identifier,
-            argument_tuple      = args_identifier,
-            argument_dictionary = kw_identifier,
-            context             = context,
         )
     elif expression.isListContraction():
         identifier = generateListContractionCode(
@@ -846,7 +817,7 @@ def generateExpressionCode( expression, context, generator ):
         identifier = generator.getLoadLocalsCode(
             context  = context,
             provider = expression.getParentVariableProvider(),
-            direct   = False
+            direct   = expression.getParentVariableProvider().isClassReference()
         )
     elif expression.isBuiltinDir():
         identifier = generator.getLoadDirCode(
@@ -908,13 +879,16 @@ def generateExpressionCode( expression, context, generator ):
             )
         else:
             identifier = generator.getYieldCode(
-                identifier = generator.getConstantHandle( constant = None, context = context ),
+                identifier = generator.getConstantHandle(
+                    constant = None,
+                    context  = context
+                ),
                 context    = context
             )
     else:
         assert False, expression
 
-    if not hasattr( identifier, "getCode" ):
+    if not hasattr( identifier, "getCodeTemporaryRef" ):
         assert False, identifier
 
     return identifier
@@ -927,16 +901,16 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
 
         brace = False
     else:
-        if value.getRefCount():
-            code = "PyObjectTemporary _python_rvalue_%d( %s );\n" % ( recursion, value.getCodeObject() )
+        if value.getCheapRefCount() == 1:
+            code = "PyObjectTemporary _python_rvalue_%d( %s );\n" % ( recursion, value.getCodeExportRef() )
             assign_source = Generator.Identifier( "_python_rvalue_%d.asObject()" % recursion, 0 )
         else:
-            code = "PyObject *_python_rvalue_%d = %s;\n" % ( recursion, value.getCodeObject() )
+            code = "PyObject *_python_rvalue_%d = %s;\n" % ( recursion, value.getCodeTemporaryRef() )
             assign_source = Generator.Identifier( "_python_rvalue_%d" % recursion, 0 )
 
         brace = True
 
-    old_ref_count = assign_source.getRefCount()
+    unpacked = False
 
     for target in targets:
         if target.isAssignToSubscript():
@@ -955,8 +929,7 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
                 context       = context
             )
 
-            if old_ref_count:
-                value.setRefCount( 0 )
+            code += "\n"
         elif target.isAssignToAttribute():
             attribute_name = mangleAttributeName(
                 attribute_name = target.getAttributeName(),
@@ -974,8 +947,7 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
                 context        = context
             )
 
-            if old_ref_count:
-                value.setRefCount( 0 )
+            code += "\n"
         elif target.isAssignToSlice():
             expression_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
                 sliced    = target.getLookupSource(),
@@ -992,6 +964,8 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
                 identifier = assign_source,
                 context    = context
             )
+
+            code += "\n"
         elif target.isAssignToVariable():
             code += generator.getAssignmentCode(
                 variable   = target.getTargetVariable(),
@@ -999,8 +973,7 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
                 context    = context
             )
 
-            if old_ref_count:
-                value.setRefCount( 0 )
+            code += "\n"
         elif target.isAssignToTuple():
             elements = target.getElements()
 
@@ -1008,12 +981,15 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
 
             lvalue_identifiers = [ generator.getTupleUnpackLeftValueCode( recursion, count+1 ) for count in range( len( elements )) ]
 
-            code += generator.getUnpackTupleCode(
-                assign_source       = assign_source,
-                iterator_identifier = iterator_identifier,
-                lvalue_identifiers  = lvalue_identifiers,
-                context             = context
-            )
+            if not unpacked:
+                code += generator.getUnpackTupleCode(
+                    assign_source       = assign_source,
+                    iterator_identifier = iterator_identifier,
+                    lvalue_identifiers  = lvalue_identifiers,
+                    context             = context
+                )
+
+                unpacked = True
 
             for count, element in enumerate( elements ):
                 code += generateAssignmentCode(
@@ -1027,15 +1003,12 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
         else:
             assert False, (target, target.getSourceReference())
 
-        code += "\n"
-
-    assert code.endswith( "\n" )
+    assert code.endswith( "\n" ), code
 
     if brace:
-        code = "{\n%s\n}" % code
-
-    if old_ref_count:
-        value.setRefCount( old_ref_count )
+        # TODO: Making a block out of it, means this should be a in Generator, using it's
+        # private functionality even
+        code = "{\n%s}\n" % Generator._indentedCode( code.split("\n"), 4 )
 
     if recursion == 1:
         code = code.rstrip()
@@ -1550,7 +1523,7 @@ def _generateStatementCode( statement, context, generator ):
                 ),
                 exception_value_identifier = None,
                 exception_tb_identifier    = None,
-                exception_tb_maker         = generator.getTracebackMakerCall( context.getCodeName(), statement.getSourceReference().getLineNumber() )
+                exception_tb_maker         = generator.getTracebackMakingIdentifier( context, statement.getSourceReference().getLineNumber() )
             )
         elif len( parameters ) == 2:
             code = generator.getRaiseExceptionCode(
@@ -1562,7 +1535,7 @@ def _generateStatementCode( statement, context, generator ):
                     expression = parameters[1]
                 ),
                 exception_tb_identifier    = None,
-                exception_tb_maker         = generator.getTracebackMakerCall( context.getCodeName(), statement.getSourceReference().getLineNumber() )
+                exception_tb_maker         = generator.getTracebackMakingIdentifier( context, statement.getSourceReference().getLineNumber() )
             )
         elif len( parameters ) == 3:
             code = generator.getRaiseExceptionCode(
@@ -1583,7 +1556,7 @@ def _generateStatementCode( statement, context, generator ):
 
             assert False
     elif statement.isStatementAssert():
-        return generator.getAssertCode(
+        code = generator.getAssertCode(
             context              = context,
             condition_identifier = generateConditionCode(
                 condition = statement.getExpression(),
@@ -1592,7 +1565,7 @@ def _generateStatementCode( statement, context, generator ):
                 context   = context
             ),
             failure_identifier   = makeExpressionCode( statement.getArgument(), allow_none = True ),
-            exception_tb_maker   = generator.getTracebackMakerCall( context.getCodeName(), statement.getSourceReference().getLineNumber() )
+            exception_tb_maker   = generator.getTracebackMakingIdentifier( context, statement.getSourceReference().getLineNumber() )
         )
     elif statement.isStatementExec():
         code = generateExecCode(
@@ -1663,6 +1636,7 @@ def generateModuleCode( module, module_name, global_context, stand_alone, genera
     context = Contexts.PythonModuleContext(
         module_name    = module_name,
         code_name      = generator.getModuleIdentifier( module_name ),
+        filename       = module.getFilename(),
         global_context = global_context,
     )
 

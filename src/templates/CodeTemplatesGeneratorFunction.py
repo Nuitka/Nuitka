@@ -35,8 +35,11 @@ genfunc_context_body_template = """
 // contains the common closure. It is allocated at the time the genexpr object is created.
 struct _context_common_%(function_identifier)s_t
 {
+    // Ref count to keep track of common context usage and release only when it's the last one
+    int ref_count;
+
     // The generator function can access a read-only closure of the creator.
-    %(function_common_context_decl)s
+%(function_common_context_decl)s
 };
 
 struct _context_generator_%(function_identifier)s_t
@@ -44,21 +47,27 @@ struct _context_generator_%(function_identifier)s_t
     _context_common_%(function_identifier)s_t *common_context;
 
     // The generator function instance can access its parameters from creation time.
-    %(function_instance_context_decl)s
+%(function_instance_context_decl)s
 };
 
 static void _context_common_%(function_identifier)s_destructor( void *context_voidptr )
 {
     _context_common_%(function_identifier)s_t *_python_context = (struct _context_common_%(function_identifier)s_t *)context_voidptr;
 
-    %(function_context_free)s
+    _python_context->ref_count -= 1;
 
-    delete _python_context;
+    if ( _python_context->ref_count == 0 )
+    {
+        %(function_context_free)s
+        delete _python_context;
+    }
 }
 
 static void _context_generator_%(function_identifier)s_destructor( void *context_voidptr )
 {
     _context_generator_%(function_identifier)s_t *_python_context = (struct _context_generator_%(function_identifier)s_t *)context_voidptr;
+
+    _context_common_%(function_identifier)s_destructor( _python_context->common_context );
 
     delete _python_context;
 }
@@ -68,14 +77,15 @@ make_genfunc_with_context_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     struct _context_common_%(function_identifier)s_t *_python_context = new _context_common_%(function_identifier)s_t;
+    _python_context->ref_count = 1;
 
     // Copy the parameter default values and closure values over.
-    %(function_context_copy)s
+%(function_context_copy)s
 
     PyObject *result = Nuitka_Function_New( %(function_identifier)s, %(function_name_obj)s, %(module)s, %(function_doc)s, _python_context, _context_common_%(function_identifier)s_destructor );
 
     // Apply decorators if any
-    %(function_decorator_calls)s
+%(function_decorator_calls)s
 
     return result;
 }
@@ -83,20 +93,6 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 """
 
 genfunc_yielder_template = """
-
-static PyTracebackObject *%(function_tb_maker)s( int line )
-{
-   PyFrameObject *frame = MAKE_FRAME( %(module)s, %(file_identifier)s, %(name_identifier)s, line );
-
-   PyTracebackObject *result = MAKE_TRACEBACK_START( frame, line );
-
-   Py_DECREF( frame );
-
-   assert( result );
-
-   return result;
-}
-
 static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
     bool traceback;
@@ -118,13 +114,18 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
         PyErr_SetNone( PyExc_StopIteration );
         generator->m_yielded = NULL;
     }
+    catch ( ReturnException &e )
+    {
+        PyErr_SetNone( PyExc_StopIteration );
+        generator->m_yielded = NULL;
+    }
     catch ( _PythonException &_exception )
     {
         _exception.toPython();
 
         if ( traceback == false )
         {
-           ADD_TRACEBACK( %(module)s, %(file_identifier)s, %(name_identifier)s, _exception.getLine() );
+           ADD_TRACEBACK( %(module_identifier)s, %(filename_identifier)s, %(name_identifier)s, _exception.getLine() );
         }
 
         generator->m_yielded = NULL;
@@ -136,8 +137,7 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 """
 
 genfunc_yield_terminator = """\
-    PyErr_SetNone( PyExc_StopIteration );
-    throw _PythonException();
+throw ReturnException();
 """
 
 genfunc_function_template = """
@@ -150,11 +150,14 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_object_
         struct _context_generator_%(function_identifier)s_t *_python_context = new _context_generator_%(function_identifier)s_t;
 
         _python_context->common_context = _python_common_context;
+        _python_common_context->ref_count += 1;
 
         PyObject *result = Nuitka_Generator_New( %(function_identifier)s_context, %(function_name_obj)s, _python_context, _context_generator_%(function_identifier)s_destructor );
 
         if ( result == NULL )
         {
+            delete _python_context;
+
             PyErr_Format( PyExc_RuntimeError, "cannot create function %(function_name)s" );
             throw _PythonException();
         }

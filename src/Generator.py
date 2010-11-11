@@ -37,7 +37,7 @@ this one and the templates, and otherwise nothing else.
 
 """
 
-from Identifiers import Identifier, LocalVariableIdentifier, TempVariableIdentifier
+from Identifiers import Identifier, ModuleVariableIdentifier, LocalVariableIdentifier, TempVariableIdentifier
 
 import PythonOperators
 import CodeTemplates
@@ -85,13 +85,9 @@ class PythonGeneratorBase:
         else:
             args = [ element_identifier.getCodeExportRef() for element_identifier in element_identifiers ]
 
+        assert not ( sequence_kind == "tuple" and len( args ) == 0 )
+
         return Identifier( "MAKE_%s( %s )" % ( sequence_kind.upper(), ", ".join( reversed( args ) ) ), 1 )
-
-    def getSequenceConcatCode( self, seq1_identifier, seq2_identifier ):
-        return Identifier( "SEQUENCE_CONCAT( %s, %s )" % ( seq1_identifier.getCodeTemporaryRef(), seq2_identifier.getCodeTemporaryRef() ), 1 )
-
-    def getTupleConversionCode( self, sequence_identifier ):
-        return Identifier( "TO_TUPLE( %s )" % sequence_identifier.getCodeTemporaryRef(), 1 )
 
     def getDictionaryCreationCode( self, context, keys, values ):
         args = []
@@ -109,9 +105,6 @@ class PythonGeneratorBase:
             args.append( value.getCodeTemporaryRef() )
 
         return Identifier( "MAKE_SET( %s )" % ( ", ".join( args ) ), 1 )
-
-    def getDictionaryMergeCode( self, dict1_identifier, dict2_identifier ):
-        return Identifier( "MERGE_DICTS( %s, %s, false )" % ( dict1_identifier.getCodeTemporaryRef(), dict2_identifier.getCodeTemporaryRef() ), 1 )
 
     def getImportModuleCode( self, context, module_name, import_name, variable ):
         return self.getAssignmentCode(
@@ -187,12 +180,43 @@ class PythonGeneratorBase:
     def getIndexCode( self, context, identifier ):
         return Identifier( "CONVERT_TO_INDEX( %s )" % identifier.getCodeTemporaryRef(), 0 )
 
-    def getFunctionCallCode( self, context, function_identifier, argument_tuple, argument_dictionary ):
-        return Identifier( "CALL_FUNCTION( %(named_args)s, %(pos_args)s, %(function)s )" % {
-            "function"   : function_identifier.getCodeTemporaryRef(),
-            "pos_args"   : argument_tuple.getCodeTemporaryRef(),
-            "named_args" : argument_dictionary.getCodeTemporaryRef() if argument_dictionary.getCode() != "_python_dict_empty" else "NULL"
-        }, 1 )
+    def getFunctionCallCode( self, context, function_identifier, argument_tuple, argument_dictionary, star_list_identifier, star_dict_identifier ):
+        if False and star_dict_identifier is not None and argument_dictionary.getCode() == "_python_dict_empty":
+            # TODO: Should check for Dict and probably make a copy from the potential mapping it is
+            argument_dictionary  = star_dict_identifier
+            star_dict_identifier = None
+
+        if star_dict_identifier is None:
+            if star_list_identifier is None:
+                return Identifier( "CALL_FUNCTION( %(named_args)s, %(pos_args)s, %(function)s )" % {
+                    "function"   : function_identifier.getCodeTemporaryRef(),
+                    "pos_args"   : argument_tuple.getCodeTemporaryRef(),
+                    "named_args" : argument_dictionary.getCodeTemporaryRef() if argument_dictionary.getCode() != "_python_dict_empty" else "NULL"
+                }, 1 )
+            else:
+                return Identifier( "CALL_FUNCTION_STAR_LIST( %(star_list_arg)s, %(named_args)s, %(pos_args)s, %(function)s )" % {
+                    "function"   : function_identifier.getCodeTemporaryRef(),
+                    "pos_args"   : argument_tuple.getCodeTemporaryRef(),
+                    "named_args" : argument_dictionary.getCodeTemporaryRef() if argument_dictionary.getCode() != "_python_dict_empty" else "NULL",
+                    "star_list_arg" : star_list_identifier.getCodeTemporaryRef()
+                }, 1 )
+        else:
+            if star_list_identifier is not None:
+                return Identifier( "CALL_FUNCTION_STAR_BOTH( %(star_dict_arg)s, %(star_list_arg)s, %(named_args)s, %(pos_args)s, %(function)s )" % {
+                    "function"      : function_identifier.getCodeTemporaryRef(),
+                    "pos_args"      : argument_tuple.getCodeTemporaryRef(),
+                    "named_args"    : argument_dictionary.getCodeTemporaryRef(),
+                    "star_list_arg" : star_list_identifier.getCodeTemporaryRef(),
+                    "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
+                }, 1 )
+            else:
+                return Identifier( "CALL_FUNCTION_STAR_DICT( %(star_dict_arg)s, %(named_args)s, %(pos_args)s, %(function)s )" % {
+                    "function"      : function_identifier.getCodeTemporaryRef(),
+                    "pos_args"      : argument_tuple.getCodeTemporaryRef(),
+                    "named_args"    : argument_dictionary.getCodeTemporaryRef(),
+                    "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
+                }, 1 )
+
 
     def getIteratorCreationCode( self, context, iterated ):
         return Identifier( "MAKE_ITERATOR( %s )" % ( iterated.getCodeTemporaryRef() ), 1 )
@@ -209,7 +233,7 @@ class PythonGeneratorBase:
         for count, lvalue_identifier in enumerate( lvalue_identifiers ):
             result += "PyObjectTemporary %s( %s );\n" % ( lvalue_identifier.getCode(), self.getUnpackNextCode( context = context, iterator = iterator_identifier, element_count = count+1 ).getCodeExportRef( ) )
 
-        result += "UNPACK_ITERATOR_CHECK( %s );\n" % iterator_identifier.getCodeObject()
+        result += "UNPACK_ITERATOR_CHECK( %s );\n" % iterator_identifier.getCodeTemporaryRef()
 
         return result
 
@@ -281,8 +305,11 @@ class PythonGeneratorBase:
         )
 
     def getConditionalExpressionCode( self, context, condition, codes_no, codes_yes ):
-        if codes_yes.getRefCount() == codes_no.getRefCount():
-            return Identifier( "( %s ? %s : %s )" % ( condition.getCode(), codes_yes.getCodeObject(), codes_no.getCodeObject()), codes_yes.getRefCount() )
+        if codes_yes.getCheapRefCount() == codes_no.getCheapRefCount():
+            if codes_yes.getCheapRefCount == 0:
+                return Identifier( "( %s ? %s : %s )" % ( condition.getCode(), codes_yes.getCodeTemporaryRef(), codes_no.getCodeTemporaryRef() ), 0 )
+            else:
+                return Identifier( "( %s ? %s : %s )" % ( condition.getCode(), codes_yes.getCodeExportRef(), codes_no.getCodeExportRef() ), 1 )
         else:
             return Identifier( "( %s ? %s : %s )" % ( condition.getCode(), codes_yes.getCodeExportRef(), codes_no.getCodeExportRef() ), 1 )
 
@@ -375,6 +402,7 @@ else
 
                 if py_api.startswith( "SEQUENCE_CONTAINS" ):
                     left, right = right, left
+
                     reference = 0
                 else:
                     reference = 1
@@ -425,8 +453,76 @@ else
 
         return comparison
 
+    def getComparisonExpressionBoolCode( self, context, comparators, operands ):
+        # assert len( comparators ) == 1
+
+        if len( comparators ) == 1:
+            comparator = comparators[0]
+
+            left, right = operands
+
+            if comparator in PythonOperators.normal_comparison_operators:
+                py_api = PythonOperators.normal_comparison_operators[ comparator ]
+
+                if py_api.startswith( "SEQUENCE_CONTAINS" ):
+                    left, right = right, left
+
+                    reference = 0
+                else:
+                    reference = 1
+
+                comparison = Identifier( "%s_BOOL( %s, %s )" % ( py_api, left.getCodeTemporaryRef(), right.getCodeTemporaryRef() ), reference )
+            elif comparator in PythonOperators.rich_comparison_operators:
+                comparison = Identifier( "RICH_COMPARE_BOOL( %s, %s, %s )" % ( PythonOperators.rich_comparison_operators[ comparator ], right.getCodeTemporaryRef(), left.getCodeTemporaryRef() ), 0 )
+            elif comparator == "Is":
+                comparison = Identifier( "(%s == %s)" % ( left.getCodeTemporaryRef(), right.getCodeTemporaryRef() ), 0 )
+            elif comparator == "IsNot":
+                comparison = Identifier( "( %s != %s )" % ( left.getCodeTemporaryRef(), right.getCodeTemporaryRef() ), 0 )
+            else:
+                assert False, comparator
+
+        else:
+            left_tmp = operands[0]
+
+            comparison = ""
+
+            for count, comparator in enumerate( comparators ):
+                right_tmp = operands[ count + 1 ].getCodeTemporaryRef()
+
+                if count < len( comparators ) - 1:
+                    temp_storage_var = context.getTempObjectVariable()
+
+                    right_tmp = "(%s = %s)" % ( temp_storage_var.getCode(), right_tmp )
+
+                if comparator in PythonOperators.normal_comparison_operators:
+                    assert False, comparator
+                elif comparator in PythonOperators.rich_comparison_operators:
+                    chunk = "RICH_COMPARE_BOOL( %s, %s, %s )" % ( PythonOperators.rich_comparison_operators[ comparator ], right_tmp, left_tmp.getCodeTemporaryRef() )
+                elif comparator == "Is":
+                    chunk = "( %s == %s )" % ( left_tmp.getCodeTemporaryRef(), right_tmp )
+                elif comparator == "IsNot":
+                    chunk = "( %s != %s )" % ( left_tmp.getCodeTemporaryRef(), right_tmp )
+                else:
+                    assert False, comparator
+
+                if comparison == "":
+                    comparison = chunk
+                else:
+                    comparison = comparison + " && " + chunk
+
+                if count < len( comparators ):
+                    left_tmp = temp_storage_var
+
+            comparison = Identifier( "( %s )" % comparison, 0 )
+
+        return comparison
+
+
     def getConditionNotCode( self, context, condition ):
         return Identifier( "UNARY_NOT( %s )" % condition.getCodeTemporaryRef(), 0 )
+
+    def getConditionNotBoolCode( self, context, condition ):
+        return Identifier( "(!( %s ))" % condition.getCodeTemporaryRef(), 0 )
 
     def getConditionCheckTrueCode( self, context, condition ):
         return Identifier( "CHECK_IF_TRUE( %s )" % condition.getCodeTemporaryRef(), 0 )
@@ -453,12 +549,12 @@ else
     def getAttributeAssignmentCode( self, context, target, attribute_name, identifier ):
         attribute = self.getConstantCode( context = context, constant = attribute_name )
 
-        return "SET_ATTRIBUTE( %s, %s, %s );" % ( target.getCodeObject(), attribute, identifier.getCodeTemporaryRef() )
+        return "SET_ATTRIBUTE( %s, %s, %s );" % ( target.getCodeTemporaryRef(), attribute, identifier.getCodeTemporaryRef() )
 
     def getAttributeDelCode( self, context, target, attribute_name ):
         attribute = self.getConstantCode( context = context, constant = attribute_name )
 
-        return "DEL_ATTRIBUTE( %s, %s );" % ( target.getCodeObject(), attribute )
+        return "DEL_ATTRIBUTE( %s, %s );" % ( target.getCodeTemporaryRef(), attribute )
 
     def getSliceAssignmentCode( self, context, target, lower, upper, identifier  ):
         return "SET_SLICE( %s, %s, %s, %s );" % ( target.getCodeTemporaryRef(), lower.getCodeTemporaryRef(), upper.getCodeTemporaryRef(), identifier.getCodeTemporaryRef() )
@@ -473,15 +569,21 @@ else
 
 
     def getWithCode( self, context, body_codes, assign_codes, source_identifier, with_manager_identifier, with_value_identifier ):
-        # TODO: Have a template for it.
+
+        traceback_name = context.getTracebackName()
+        traceback_filename = context.getTracebackFilename()
 
         return CodeTemplates.with_template % {
-            "assign"     : _indentedCode( assign_codes.split("\n") if assign_codes is not None else ( '''// No "as" target variable for with'ed expression''', ), 8 ),
-            "body"       : _indentedCode( body_codes, 8 ),
-            "source"     : source_identifier.getCodeExportRef(),
-            "manager"    : with_manager_identifier.getCode(),
-            "value"      : with_value_identifier.getCode(),
-            "with_count" : context.with_count,
+            "assign"            : _indentedCode( assign_codes.split("\n") if assign_codes is not None else ( """// No "as" target variable for with'ed expression""", ), 8 ),
+            "body"              : _indentedCode( body_codes, 8 ),
+            "source"            : source_identifier.getCodeExportRef(),
+            "manager"           : with_manager_identifier.getCode(),
+            "value"             : with_value_identifier.getCode(),
+            "with_count"        : context.with_count,
+            "module_identifier" : self.getModuleAccessCode( context = context ),
+            "triple_none_tuple" : self.getConstantCode( context = context, constant = ( None, None, None ) ),
+            "name_identifier"   : self.getConstantCode( context = context, constant = traceback_name ),
+            "file_identifier"   : self.getConstantCode( context = context, constant = traceback_filename ),
         }
 
     def getForLoopNames( self, context ):
@@ -510,6 +612,14 @@ else
             "indicator_name"  : "_python_for_loop_indicator_%d" % context.allocateWhileLoopNumber()
         }
 
+    def _getGlobalVariableHandle( self, context, variable ):
+        assert variable.isModuleVariable()
+
+        var_name = variable.getName()
+        context.addGlobalVariableNameUsage( var_name )
+
+        return Identifier( "_mvar_%s_%s.asObject()" % ( context.getModuleCodeName(), var_name ), 1 )
+
     def getVariableHandle( self, context, variable ):
         assert isinstance( variable, Variables.Variable ), variable
 
@@ -523,7 +633,7 @@ else
             context.addGlobalVariableNameUsage( var_name )
 
             if not context.hasLocalsDict():
-                return Identifier( "_mvar_%s_%s.asObject()" % ( context.getModuleCodeName(), var_name ), 1 )
+                return ModuleVariableIdentifier( var_name, context.getModuleCodeName() )
             else:
                 return Identifier( "_mvar_%s_%s.asObject( locals_dict.asObject() )" % ( context.getModuleCodeName(), var_name ), 1 )
         else:
@@ -648,8 +758,8 @@ else
     def getTryFinallyCode( self, context, code_tried, code_final ):
         return CodeTemplates.try_finally_template % {
             "try_count"  : context.allocateTryNumber(),
-            "tried_code" : "\n   ".join( code_tried ),
-            "final_code" : "\n   ".join( code_final )
+            "tried_code" : _indentedCode( code_tried, 4 ),
+            "final_code" : _indentedCode( code_final, 4 )
         }
 
     def getTryExceptCode( self, context, code_tried, exception_identifiers, exception_assignments, catcher_codes, else_code ):
@@ -664,9 +774,10 @@ else
                 exception_code.append( "%s (true)" % cond_keyword )
 
             exception_code.append( "{" )
+            exception_code.append( "    traceback = false;" )
 
             if exception_assignment is not None:
-                exception_code.append( exception_assignment )
+                exception_code.append( _indentedCode( exception_assignment.split("\n"), 4 ) )
 
             exception_code += [ "    " + line for line in code ]
             exception_code.append( "}" )
@@ -675,44 +786,46 @@ else
 
         exception_code += [ "else", "{", "    throw;", "}" ]
 
+        tb_making = self.getTracebackMakingIdentifier( context, "_exception.getLine()" ).getCodeExportRef()
+
         if else_code is not None:
             return CodeTemplates.try_except_else_template % {
                 "tried_code"     : _indentedCode( code_tried, 4 ),
                 "exception_code" : _indentedCode( exception_code, 4 ),
                 "else_code"      : _indentedCode( else_code, 4 ),
-                "tb_making"      : self.getTracebackMakerCall( context.getCodeName(), "_exception.getLine()" ),
+                "tb_making"      : tb_making,
                 "except_count"   : context.allocateTryNumber()
             }
         else:
             return CodeTemplates.try_except_template % {
                 "tried_code"     : _indentedCode( code_tried, 4 ),
                 "exception_code" : _indentedCode( exception_code, 4 ),
-                "tb_making"      : self.getTracebackMakerCall( context.getCodeName(), "_exception.getLine()" ),
+                "tb_making"      : tb_making,
             }
 
 
     def getRaiseExceptionCode( self, context, exception_type_identifier, exception_value_identifier, exception_tb_identifier, exception_tb_maker ):
         if exception_value_identifier is None and exception_tb_identifier is None:
-            return "traceback = true; RAISE_EXCEPTION( %s, %s );" % ( exception_type_identifier.getCodeExportRef(), exception_tb_maker )
+            return "traceback = true; RAISE_EXCEPTION( %s, %s );" % ( exception_type_identifier.getCodeExportRef(), exception_tb_maker.getCodeExportRef() )
         elif exception_tb_identifier is None:
-            return "traceback = true; RAISE_EXCEPTION( %s, %s, %s );" % ( exception_type_identifier.getCodeExportRef(), exception_value_identifier.getCodeExportRef(), exception_tb_maker )
+            return "traceback = true; RAISE_EXCEPTION( %s, %s, %s );" % ( exception_type_identifier.getCodeExportRef(), exception_value_identifier.getCodeExportRef(), exception_tb_maker.getCodeExportRef() )
         else:
             return "traceback = true; RAISE_EXCEPTION( %s, %s, %s );" % ( exception_type_identifier.getCodeExportRef(), exception_value_identifier.getCodeExportRef(), exception_tb_identifier.getCodeExportRef() )
 
     def getReRaiseExceptionCode( self, context ):
-        return "throw;"
+        return "RERAISE_EXCEPTION();"
 
     def getAssertCode( self, context, condition_identifier, failure_identifier, exception_tb_maker ):
         if failure_identifier is None:
             return CodeTemplates.assertion_without_arg % {
                 "condition" : condition_identifier.getCode(),
-                "tb_maker"  : exception_tb_maker
+                "tb_maker"  : exception_tb_maker.getCodeExportRef()
             }
         else:
             return CodeTemplates.assertion_with_arg % {
                 "condition"   : condition_identifier.getCode(),
                 "failure_arg" : failure_identifier.getCodeExportRef(),
-                "tb_maker"    : exception_tb_maker
+                "tb_maker"    : exception_tb_maker.getCodeExportRef()
             }
 
     def _getLocalVariableList( self, context, provider ):
@@ -787,7 +900,7 @@ else
                 )
 
                 code += """\
-if (%s)
+if ( %s )
 {
    %s
 }
@@ -847,13 +960,13 @@ if (%s)
     def getExecCode( self, context, exec_code, globals_identifier, locals_identifier, future_flags, provider ):
         if provider.isModule():
             return CodeTemplates.exec_global_template % {
-                "globals_identifier"     : globals_identifier.getCodeExportRef(),
-                "locals_identifier"      : locals_identifier.getCodeExportRef(),
+                "globals_identifier"      : globals_identifier.getCodeExportRef(),
+                "locals_identifier"       : locals_identifier.getCodeExportRef(),
                 "make_globals_identifier" : self.getLoadGlobalsCode( context = context, module = provider ).getCodeExportRef(),
-                "source_identifier"      : exec_code.getCodeTemporaryRef(),
-                "filename_identifier"    : self.getConstantCode( constant = "<string>", context = context ),
-                "mode_identifier"        : self.getConstantCode( constant = "exec", context = context ),
-                "future_flags"           : future_flags,
+                "source_identifier"       : exec_code.getCodeTemporaryRef(),
+                "filename_identifier"     : self.getConstantCode( constant = "<string>", context = context ),
+                "mode_identifier"         : self.getConstantCode( constant = "exec", context = context ),
+                "future_flags"            : future_flags,
             }
         else:
             locals_temp_identifier = Identifier( "locals.asObject()", 0 )
@@ -872,7 +985,7 @@ if (%s)
                 # filename_identifier"    : context.getConstantHandle( constant = provider.getParentModule().getFullName() + "::exec" ).getCode(),
                 "mode_identifier"         : self.getConstantCode( constant = "exec", context = context ),
                 "future_flags"            : future_flags,
-                "store_locals_code"       : self.getStoreLocalsCode( context = context, source_identifier = locals_temp_identifier, provider = provider )
+                "store_locals_code"       : _indentedCode( self.getStoreLocalsCode( context = context, source_identifier = locals_temp_identifier, provider = provider ).split("\n"), 8 )
             }
 
 
@@ -893,11 +1006,16 @@ class PythonModuleGenerator( PythonGeneratorBase ):
     def getModuleAccessCode( self, context ):
         return Identifier( "_module_%s" % context.getModuleCodeName(), 0 ).getCode()
 
-    def getTracebackMaker( self, name ):
-        return "MAKE_TRACEBACK_" + name
+    def getFrameMakingIdentifier( self, context, line ):
+        return Identifier( """MAKE_FRAME( %(module_identifier)s, %(module_filename_identifier)s, %(code_identifier)s, %(line)s )""" % {
+            "module_identifier"          : self.getModuleAccessCode( context = context ),
+            "module_filename_identifier" : self.getConstantCode( context = context, constant = context.getTracebackFilename() ),
+            "code_identifier"            : self.getConstantCode( context = context, constant = context.getTracebackName() ),
+            "line"                       : line
+        }, 1 )
 
-    def getTracebackMakerCall( self, name, line ):
-        return "MAKE_TRACEBACK_" + name + "( %s )" % line
+    def getTracebackMakingIdentifier( self, context, line ):
+        return Identifier( "MAKE_TRACEBACK( %s, %s )" % ( self.getFrameMakingIdentifier( context = context, line = line ).getCodeTemporaryRef(), line ), 1 )
 
     def getModuleIdentifier( self, module_name ):
         return module_name.replace( ".", "__" )
@@ -948,9 +1066,9 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         if module_name.find( "." ) == -1:
             module_inits = CodeTemplates.module_plain_init_template % {
-                "module_identifier"     : module_identifier,
-                "file_identifier"       : filename_identifier.getCode(),
-                "doc_identifier"        : doc_identifier.getCode(),
+                "module_identifier" : module_identifier,
+                "file_identifier"   : filename_identifier.getCode(),
+                "doc_identifier"    : doc_identifier.getCode(),
 
             }
         else:
@@ -974,7 +1092,6 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             "module_inits"          : module_inits,
             "file_identifier"       : filename_identifier.getCode(),
             "module_code"           : _indentedCode( codes, 8 ),
-            "module_tb_maker"       : self.getTracebackMaker( module_identifier )
         }
 
         return header + global_prelude + constant_init + global_helper + module_code
@@ -1041,9 +1158,9 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         classes_infos = context.getClassesCodes()
 
-        for class_def, class_codes in sorted( classes_infos.iteritems(), cmp = myCompare ):
+        for class_def, ( class_context, class_codes ) in sorted( classes_infos.iteritems(), cmp = myCompare ):
             result += self.getClassCode(
-                context     = context,
+                context     = class_context,
                 class_def   = class_def,
                 class_codes = class_codes
             )
@@ -1087,7 +1204,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         classes_infos = context.getClassesCodes()
 
-        for class_def, _class_codes in sorted( classes_infos.iteritems(), cmp = myCompare ):
+        for class_def, ( _class_context, _class_codes ) in sorted( classes_infos.iteritems(), cmp = myCompare ):
             result += self.getClassDecl(
                 context   = context,
                 class_def = class_def,
@@ -1154,7 +1271,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
 
         contraction_var_decl = contraction_decl_template % {
-            "local_var_decl" : "\n    ".join( local_var_decl )
+            "local_var_decl" : _indentedCode( local_var_decl, 4 )
         }
 
         contraction_iterateds.insert( 0, Identifier( "iterated", 0 ) )
@@ -1221,7 +1338,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             )
         }
 
-    def _getLocalVariableInitCode( self, context, variable, init_from = None, needs_no_free = False, in_context = False, shared = False ):
+    def _getLocalVariableInitCode( self, context, variable, init_from = None, needs_no_free = False, in_context = False, shared = False, mangle_name = None ):
         shared = shared or variable.isShared()
 
         if shared:
@@ -1232,6 +1349,14 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             result = "PyObjectLocalVariable"
 
         var_name = variable.getName()
+
+        def mangleName( name ):
+            if mangle_name is None or not name.startswith( "__" ) or name.endswith( "__" ):
+                return name
+            else:
+                return "_" + mangle_name + name
+
+        store_name = mangleName( var_name )
 
         result += " "
 
@@ -1249,7 +1374,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             if context.hasLocalsDict():
                 result += "locals_dict.asObject(), ";
 
-            result += "%s" % context.getConstantHandle( constant = var_name ).getCode()
+            result += "%s" % context.getConstantHandle( constant = store_name ).getCode()
 
             if init_from is not None:
                 result += ", " + init_from
@@ -1259,7 +1384,6 @@ class PythonModuleGenerator( PythonGeneratorBase ):
                 else:
                     if not needs_no_free:
                         result += ", true"
-
 
             if needs_no_free:
                 result += ", false"
@@ -1289,17 +1413,29 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         parameter_release_codes = [ "Py_XDECREF( _python_par_" + variable.getName() + " );" for variable in parameters.getAllVariables() ]
 
+        parameter_parsing_code += CodeTemplates.parse_argument_template_take_counts % {
+            "top_level_parameter_count" : len( top_level_parameters ),
+        }
+
         if parameters.isEmpty():
             parameter_parsing_code += CodeTemplates.parse_argument_template_refuse_parameters % {
                 "function_name" : function_name,
             }
         else:
-            parameter_parsing_code += CodeTemplates.parse_argument_template_check_counts % {
+            if top_level_parameters and parameters.getDictStarArgVariable() is None:
+                parameter_parsing_code += CodeTemplates.parse_argument_template_check_dict_parameter_unused_without_star_dict % {
+                    "function_name"          : function_name,
+                    "parameter_names_tuple" : self.getConstantCode( context = context, constant = tuple( variable.getName() for variable in function_parameter_variables ) )
+                }
+
+            check_template = CodeTemplates.parse_argument_template_check_counts_without_list_star_arg if parameters.getListStarArgVariable() is None else CodeTemplates.parse_argument_template_check_counts_with_list_star_arg
+            parameter_parsing_code += check_template % {
                 "function_name"             : function_name,
                 "top_level_parameter_count" : len( top_level_parameters ),
                 "required_parameter_count"  : len( top_level_parameters ) - parameters.getDefaultParameterCount(),
-                "has_list_star_arg"         : "false" if parameters.getListStarArgVariable() is None else "true"
             }
+
+
 
         if top_level_parameters:
             parameter_parsing_code += """// Copy normal parameter values given as part of the args list to the respective variables\n"""
@@ -1341,12 +1477,6 @@ class PythonModuleGenerator( PythonGeneratorBase ):
                         "parameter_identifier"  : self.getVariableHandle( variable = variable, context = context ).getCode(),
                         "parameter_name_object" : self.getConstantCode( constant = variable.getName(), context = context )
                     }
-
-            if top_level_parameters:
-                parameter_parsing_code += CodeTemplates.parse_argument_template_check_dict_parameter_unused_without_star_dict % {
-                    "function_name"          : function_name,
-                    "parameter_names_tuple" : self.getConstantCode( context = context, constant = tuple( variable.getName() for variable in function_parameter_variables ) )
-                }
 
         if parameters.hasDefaultParameters():
             parameter_parsing_code += "// Assign values not given to defaults\n"
@@ -1415,14 +1545,16 @@ class PythonModuleGenerator( PythonGeneratorBase ):
     def _getDecoratorsCallCode( self, decorators, context ):
         def _getCall( count ):
             return self.getFunctionCallCode(
-                context             = context,
-                function_identifier = Identifier( "decorator_%d" % count, 0 ),
-                argument_tuple      = self.getSequenceCreationCode(
+                context              = context,
+                function_identifier  = Identifier( "decorator_%d" % count, 0 ),
+                argument_tuple       = self.getSequenceCreationCode(
                     sequence_kind       = "tuple",
                     element_identifiers = [ Identifier( "result", 1 ) ],
                     context             = context
                 ),
-                argument_dictionary = Identifier( "NULL", 0 )
+                argument_dictionary  = Identifier( "NULL", 0 ),
+                star_dict_identifier = None,
+                star_list_identifier = None
             )
 
 
@@ -1481,20 +1613,19 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         result = CodeTemplates.genfunc_context_body_template % {
             "function_identifier"            : function_identifier,
-            "function_common_context_decl"   : "\n    ".join( function_context_decl ),
-            "function_instance_context_decl" : "\n    ".join( function_parameter_decl + local_var_decl ),
-            "function_context_free"          : "\n    ".join( function_context_free ),
+            "function_common_context_decl"   : _indentedCode( function_context_decl, 4 ),
+            "function_instance_context_decl" : _indentedCode( function_parameter_decl + local_var_decl, 4 ),
+            "function_context_free"          : _indentedCode( function_context_free, 8 ),
         }
 
         result += CodeTemplates.genfunc_yielder_template % {
-            "function_name"           : function_name,
-            "function_identifier"     : function_identifier,
-            "function_body"           : _indentedCode( function_codes, 8 ),
-            "function_var_inits"      : _indentedCode( function_var_inits, 8 ),
-            "module"                  : self.getModuleAccessCode( context = context ),
-            "name_identifier"         : self.getConstantCode( context = context, constant = function_name ),
-            "file_identifier"         : self.getConstantCode( context = context, constant = function_filename ),
-            "function_tb_maker"       : self.getTracebackMaker( function_identifier )
+            "function_name"       : function_name,
+            "function_identifier" : function_identifier,
+            "function_body"       : _indentedCode( function_codes, 8 ),
+            "function_var_inits"  : _indentedCode( function_var_inits, 8 ),
+            "module_identifier"   : self.getModuleAccessCode( context = context ),
+            "name_identifier"     : self.getConstantCode( context = context, constant = function_name ),
+            "filename_identifier" : self.getConstantCode( context = context, constant = function_filename )
         }
 
         result += CodeTemplates.genfunc_function_template % {
@@ -1506,7 +1637,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             "parameter_context_assign" : _indentedCode( parameter_context_assign, 4 ),
             "parameter_object_decl"  : parameter_object_decl,
             "parameter_object_list"  : parameter_object_list,
-            "function_context_copy"  : "\n    ".join( function_context_copy ),
+            "function_context_copy"  : _indentedCode( function_context_copy, 4 ),
             "module"                 : self.getModuleAccessCode( context = context ),
         }
 
@@ -1516,8 +1647,8 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             "function_name_obj"          : self.getConstantCode( context = context, constant = function_name ),
             "function_identifier"        : function_identifier,
             "function_creation_args"     : function_creation_args,
-            "function_decorator_calls"   : "\n    ".join( function_decorator_calls ),
-            "function_context_copy"      : "\n    ".join( function_context_copy ),
+            "function_decorator_calls"   : _indentedCode( function_decorator_calls, 4 ),
+            "function_context_copy"      : _indentedCode( function_context_copy, 4 ),
             "function_doc"               : function_doc,
             "module"                     : self.getModuleAccessCode( context = context ),
         }
@@ -1573,9 +1704,9 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         if function_context_decl:
             result += CodeTemplates.function_context_body_template % {
-                "function_identifier" : function_identifier,
-                "function_context_decl"      : "\n    ".join( function_context_decl ),
-                "function_context_free"      : "\n    ".join( function_context_free ),
+                "function_identifier"   : function_identifier,
+                "function_context_decl" : _indentedCode( function_context_decl, 4 ),
+                "function_context_free" : _indentedCode( function_context_free, 4 ),
             }
 
             context_access_template = CodeTemplates.function_context_access_template % {
@@ -1594,10 +1725,9 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             "parameter_object_list"   : parameter_object_list,
             "function_locals"         : _indentedCode( function_locals, 8 ),
             "function_body"           : _indentedCode( function_codes, 8 ),
-            "module"                  : self.getModuleAccessCode( context = context ),
+            "module_identifier"       : self.getModuleAccessCode( context = context ),
             "name_identifier"         : self.getConstantCode( context = context, constant = function_name ),
-            "file_identifier"         : self.getConstantCode( context = context, constant = function_filename ),
-            "function_tb_maker"       : self.getTracebackMaker( function_identifier )
+            "filename_identifier"     : self.getConstantCode( context = context, constant = function_filename ),
         }
 
         if function_context_decl:
@@ -1606,8 +1736,8 @@ class PythonModuleGenerator( PythonGeneratorBase ):
                 "function_name_obj"          : self.getConstantCode( context = context, constant = function_name ),
                 "function_identifier"        : function_identifier,
                 "function_creation_args"     : function_creation_args,
-                "function_decorator_calls"   : "\n    ".join( function_decorator_calls ),
-                "function_context_copy"      : "\n    ".join( function_context_copy ),
+                "function_decorator_calls"   : _indentedCode( function_decorator_calls, 4 ),
+                "function_context_copy"      : _indentedCode( function_context_copy, 4 ),
                 "function_doc"               : function_doc,
                 "module"                     : self.getModuleAccessCode( context = context ),
             }
@@ -1617,7 +1747,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
                 "function_name_obj"          : self.getConstantCode( context = context, constant = function_name ),
                 "function_identifier"        : function_identifier,
                 "function_creation_args"     : function_creation_args,
-                "function_decorator_calls"   : "\n    ".join( function_decorator_calls ),
+                "function_decorator_calls"   : _indentedCode( function_decorator_calls, 4 ),
                 "function_doc"               : function_doc,
                 "module"                     : self.getModuleAccessCode( context = context ),
             }
@@ -1803,7 +1933,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             if not owner.isParentVariableProvider():
                 owner = owner.getParentVariableProvider()
 
-            if owner.hasLocalsDict():
+            if owner.hasLocalsDict() and not for_argument:
                 kind = "PyObjectLocalDictVariable"
             elif variable.getReferenced().isShared():
                 kind = "PyObjectSharedLocalVariable"
@@ -1866,14 +1996,8 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         class_var_decl = []
 
-        def mangleName( name ):
-            if not name.startswith( "__" ) or name.endswith( "__" ):
-                return name
-            else:
-                return "_" + class_def.getName() + name
-
         for class_variable in class_variables:
-            class_var_decl.append( "PyObjectLocalVariable _python_var_%s( %s );" % ( class_variable.getName(), context.getConstantHandle( constant = mangleName( class_variable.getName() ) ).getCode() ) )
+            class_var_decl.append( self._getLocalVariableInitCode( context, class_variable, in_context = False, mangle_name = class_def.getName() ) )
 
         class_creation_args, class_dict_args = self._getClassCreationArgs(
             class_def = class_def,
@@ -1881,6 +2005,12 @@ class PythonModuleGenerator( PythonGeneratorBase ):
         )
 
         auto_static = ( "__new__", )
+
+        if context.hasLocalsDict():
+            class_locals = CodeTemplates.function_dict_setup.split("\n") + class_var_decl
+        else:
+            class_locals = class_var_decl
+
         class_dict_creation = ""
 
         for class_variable in class_variables:
@@ -1890,7 +2020,10 @@ class PythonModuleGenerator( PythonGeneratorBase ):
                 var_identifier = LocalVariableIdentifier( class_variable.getName() )
                 class_dict_creation += '%s = MAKE_STATIC_METHOD( %s );\n' % ( var_identifier.getCode(), var_identifier.getCodeObject() )
 
-        class_dict_creation += "PyObject *result = MAKE_LOCALS_DICT( %s );" % ", ".join( "&%s" % LocalVariableIdentifier( class_variable.getName() ).getCode() for class_variable in class_variables )
+        if context.hasLocalsDict():
+            class_dict_creation += "PyObject *result = INCREASE_REFCOUNT( locals_dict.asObject() );"
+        else:
+            class_dict_creation += "PyObject *result = MAKE_LOCALS_DICT( %s );" % ", ".join( "&%s" % LocalVariableIdentifier( class_variable.getName() ).getCode() for class_variable in class_variables )
 
         class_decorator_calls = self._getDecoratorsCallCode(
             decorators = class_def.getDecorators(),
@@ -1908,15 +2041,19 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             "module_name"           : self.getConstantCode( constant = context.getModuleName(), context = context ),
             "class_dict_args"       : ", ".join( class_dict_args ),
             "class_creation_args"   : ", ".join( class_creation_args ),
-            "class_var_decl"        : "\n    ".join( class_var_decl ),
-            "class_dict_creation"   : class_dict_creation,
-            "class_decorator_calls" : "\n    ".join( class_decorator_calls ),
-            "class_body"            : "\n    ".join( class_codes ),
+            "class_var_decl"        : _indentedCode( class_locals, 4 ),
+            "class_dict_creation"   : _indentedCode( class_dict_creation.split("\n"), 8 ),
+            "class_decorator_calls" : _indentedCode( class_decorator_calls, 4 ),
+            "class_body"            : _indentedCode( class_codes, 8 ),
+            "module_identifier"     : self.getModuleAccessCode( context = context ),
+            "name_identifier"       : self.getConstantCode( context = context, constant = class_def.getName() ),
+            "filename_identifier"   : self.getConstantCode( context = context, constant = class_def.getParentModule().getFilename() ),
+
             "metaclass_global_test" : self.getVariableTestCode(
                 context  = context,
                 variable = metaclass_variable
             ),
-            "metaclass_global_var"  : self.getVariableHandle(
+            "metaclass_global_var"  : self._getGlobalVariableHandle(
                 context  = context,
                 variable = metaclass_variable
             ).getCode(),

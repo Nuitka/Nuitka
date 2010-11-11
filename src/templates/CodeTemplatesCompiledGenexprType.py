@@ -54,7 +54,7 @@ typedef struct {
 
     PyObject *m_weakrefs;
 
-    bool m_running;
+    int m_running;
     void *m_code;
 
     // Was it ever used, is it still running, or already finished.
@@ -203,9 +203,17 @@ static PyGetSetDef Nuitka_Genexpr_getsetlist[] =
 
 static PyMethodDef Nuitka_Genexpr_methods[] =
 {
-    { "send", (PyCFunction)Nuitka_Genexpr_send,  METH_O, NULL },
-    {"throw", (PyCFunction)Nuitka_Genexpr_throw, METH_VARARGS, NULL },
-    {"close", (PyCFunction)Nuitka_Genexpr_close, METH_NOARGS, NULL },
+    {  "send", (PyCFunction)Nuitka_Genexpr_send,  METH_O, NULL },
+    { "throw", (PyCFunction)Nuitka_Genexpr_throw, METH_VARARGS, NULL },
+    { "close", (PyCFunction)Nuitka_Genexpr_close, METH_NOARGS, NULL },
+    { NULL }
+};
+
+#include <structmember.h>
+
+static PyMemberDef Nuitka_Genexpr_members[] =
+{
+    { (char *)"gi_running", T_INT, offsetof( Nuitka_GenexprObject, m_running ), RO },
     { NULL }
 };
 
@@ -240,7 +248,7 @@ static PyTypeObject Nuitka_Genexpr_Type =
     PyObject_SelfIter,                             // tp_iter
     (iternextfunc)Nuitka_Genexpr_tp_iternext,      // tp_iternext
     Nuitka_Genexpr_methods,                        // tp_methods
-    0,                                             // tp_members
+    Nuitka_Genexpr_members,                        // tp_members
     Nuitka_Genexpr_getsetlist,                     // tp_getset
     0,                                             // tp_base
     0,                                             // tp_dict

@@ -90,19 +90,6 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 
 function_body_template = """
 
-static PyTracebackObject *%(function_tb_maker)s( int line )
-{
-   PyFrameObject *frame = MAKE_FRAME( %(module)s, %(file_identifier)s, %(name_identifier)s, line );
-
-   PyTracebackObject *result = MAKE_TRACEBACK_START( frame, line );
-
-   Py_DECREF( frame );
-
-   assert( result );
-
-   return result;
-}
-
 static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_object_decl)s )
 {
 %(context_access_template)s
@@ -125,7 +112,7 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_object_
 
         if ( traceback == false )
         {
-            ADD_TRACEBACK( %(module)s, %(file_identifier)s, %(name_identifier)s, _exception.getLine() );
+            ADD_TRACEBACK( %(module_identifier)s, %(filename_identifier)s, %(name_identifier)s, _exception.getLine() );
         }
 
         return NULL;
