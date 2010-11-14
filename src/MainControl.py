@@ -209,7 +209,7 @@ def getGccOptions( python_target_major_version, python_target_debug_indicator, p
     if not os.path.exists( python_header_path + "/Python.h" ):
         warning( "The Python headers seem to be not installed. Expect C++ compiler failures." )
 
-    gcc_options = [ "-std=c++0x", "-I" + python_header_path ]
+    gcc_options = [ "-std=c++0x", "-I" + python_header_path, "-I$NUITKA_INCLUDE" ]
 
     if True:
         gcc_options += [ "-fvisibility=hidden", "-fvisibility-inlines-hidden" ]

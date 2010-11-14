@@ -22,10 +22,7 @@
 # differences between CPython and Nuitka performance. It was under PSF 2 license. It's not
 # very useful anymore, but it is under that license still.
 
-from time import clock
-
 LOOPS = 5000000
-
 
 class Record:
 

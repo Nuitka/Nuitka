@@ -35,3 +35,4 @@ cd `dirname $0`/..
 
 echo "export PYTHONPATH=`pwd`:`pwd`/src"
 echo "export PATH=$PATH:`pwd`/bin"
+echo "export NUITKA_INCLUDE=`pwd`/include"

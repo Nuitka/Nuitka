@@ -239,3 +239,8 @@ static int _initConstants()
     }
 }
 """
+
+module_header = """
+// Generated code for Python source for module '%(name)s'
+
+"""
