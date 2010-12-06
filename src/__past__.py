@@ -29,12 +29,13 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Compiled generator object type.
 
-Another cornerstone of the integration into CPython. Try to behave as well as normal
-generator expression objects do or even better.
-"""
+try:
+    long = long
+except NameError:
+    long = int
 
-compiled_genexpr_type_code = """\
-#include "nuitka/compiled_genexpr.hpp"
-"""
+try:
+    unicode = unicode
+except NameError:
+    unicode = str

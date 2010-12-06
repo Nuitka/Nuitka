@@ -108,6 +108,8 @@ class ParameterSpecTuple:
 
 class ParameterSpec( ParameterSpecTuple ):
     def __init__( self, normal_args, list_star_arg, dict_star_arg, default_values ):
+        assert None not in normal_args
+
         self.nest_count = 1
 
         ParameterSpecTuple.__init__( self, normal_args )

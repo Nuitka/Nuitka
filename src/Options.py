@@ -31,8 +31,10 @@
 #
 """ Options module """
 
+from __future__ import print_function
+
 version_string = """\
-Nuitka V0.3.3
+Nuitka V0.3.4pre1
 Copyright (C) 2010 Kay Hayen."""
 
 from optparse import OptionParser
@@ -105,9 +107,15 @@ parser.add_option(
     help = "Output only version, then exit.",
 )
 
+
 parser.add_option(
     "--debug", action="store_true", dest = "debug", default = False,
-    help = "Keep debug info in the resulting object file.",
+    help = "Keep debug info in the resulting object file for better gdb interaction.",
+)
+
+parser.add_option(
+    "--show-scons", action="store_true", dest = "show_scons", default = False,
+    help = "Operate scons in non-quiet mode, showing the commands executed.",
 )
 
 
@@ -130,7 +138,7 @@ else:
 options, positional_args = parser.parse_args()
 
 if options.version:
-    print >>sys.stderr, version_string
+    print( version_string, file=sys.stderr )
     sys.exit(0)
 
 def shallTraceExecution():
@@ -180,3 +188,6 @@ def getMainArgs():
 
 def shallOptimizeStringExec():
     return True
+
+def isShowScons():
+    return options.show_scons

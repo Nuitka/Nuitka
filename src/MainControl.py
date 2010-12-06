@@ -36,6 +36,8 @@ C/API, to compile it to either an executable or an extension module.
 
 """
 
+from __future__ import print_function
+
 import CodeGeneration
 import TreeOperations
 import TreeBuilding
@@ -58,15 +60,15 @@ def createNodeTree( filename ):
     return TreeBuilding.buildModuleTree( filename )
 
 def dumpTree( tree ):
-    print "Analysis -> Tree Result"
+    print( "Analysis -> Tree Result" )
 
-    print "*" * 80
-    print "*" * 80
-    print "*" * 80
+    print( "*" * 80 )
+    print( "*" * 80 )
+    print("*" * 80)
     tree.dump()
-    print "*" * 80
-    print "*" * 80
-    print "*" * 80
+    print( "*" * 80 )
+    print( "*" * 80 )
+    print( "*" * 80 )
 
 
 def displayTree( tree ):
@@ -159,77 +161,116 @@ def makeModuleSource( tree ):
 
     return source_code
 
-def makeMainSource( tree ):
-    generator_module = Generator.PythonModuleGenerator(
-        module_name = "__main__",
+def makeSourceDirectory( main_module ):
+    assert main_module.isModule()
+
+    source_dir = main_module.getName() + ".build/"
+
+    if os.path.exists( source_dir ):
+        os.system( "rm -f " + source_dir + "/*.cpp " + source_dir + "/*.hpp" )
+    else:
+        os.mkdir( source_dir )
+
+    generator = Generator.PythonModuleGenerator(
+        module_name = main_module.getName() if Options.shallMakeModule() else "__main__"
     )
+
+    global_context = Contexts.PythonGlobalContext()
 
     other_modules = TreeBuilding.getOtherModules()
 
-    if tree in other_modules:
-        other_modules.remove( tree )
+    if main_module in other_modules:
+        other_modules.remove( main_module )
 
-    for module in other_modules:
-        _prepareCodeGeneration( module )
+    declarations = ""
 
-    _prepareCodeGeneration( tree )
+    packages_done = set()
 
-    source_code = CodeGeneration.generateExecutableCode(
-        main_module   = tree,
-        other_modules = other_modules,
-        generator     = generator_module
+    for other_module in sorted( other_modules, key = lambda x : x.getName() ):
+        _prepareCodeGeneration( other_module )
+
+        package_name = other_module.getPackage()
+
+        if package_name is not None and package_name not in packages_done:
+            package_header, package_body = CodeGeneration.generatePackageCode(
+                generator    = generator,
+                package_name = package_name
+            )
+
+            declarations += package_header
+            writeSourceCode( source_dir + package_name + ".cpp", package_body )
+
+            packages_done.add( package_name )
+
+    for other_module in sorted( other_modules, key = lambda x : x.getName() ):
+        other_module_code = CodeGeneration.generateModuleCode(
+            generator      = generator,
+            module         = other_module,
+            module_name    = other_module.getFullName(),
+            global_context = global_context,
+            stand_alone    = False
+        )
+
+        writeSourceCode( source_dir + other_module.getFullName() + ".cpp", other_module_code )
+
+        declarations += generator.getModuleDeclarationCode( other_module.getFullName() )
+
+    declarations += global_context.getConstantDeclarations( for_header = True )
+
+    declarations = """\
+#ifndef __NUITKA_DECLARATIONS_H
+#define __NUITKA_DECLARATIONS_H
+%s
+#endif
+""" % declarations
+
+    writeSourceCode( source_dir + "__constants.hpp", declarations )
+
+    _prepareCodeGeneration( main_module )
+
+    # Create code for the main module.
+    source_code = CodeGeneration.generateModuleCode(
+        generator      = generator,
+        module         = main_module,
+        module_name    = generator.getName(),
+        global_context = global_context,
+        stand_alone    = True
     )
 
-    return source_code
+    if not Options.shallMakeModule():
+        source_code = generator.getMainCode(
+            codes         = source_code,
+            other_modules = other_modules
+        )
+
+    writeSourceCode( source_dir + "__main__.cpp", source_code )
+
+def runScons( name, quiet ):
+    def asBoolStr( value ):
+        return "true" if value else "false"
+
+    result_file = Options.getOutputPath( name )
+
+    options = {
+        "name"           : name,
+        "result_file"    : result_file,
+        "debug_mode"     : asBoolStr( Options.isDebug() ),
+        "module_mode"    : asBoolStr( Options.shallMakeModule() ),
+        "optimize_mode"  : asBoolStr( Options.isOptimize() ),
+        "python_version" : Options.options.python_version if Options.options.python_version is not None else "%d.%d" % ( sys.version_info[0], sys.version_info[1] ),
+        "python_debug"   : asBoolStr( Options.options.python_debug if Options.options.python_debug is not None else hasattr( sys, "getobjects" ) )
+    }
+
+    command = "scons" + (" --quiet" if quiet else "") + " -f " + os.environ[ "NUITKA_SCONS" ] + "/SingleExe.scons " + " ".join( "%s=%s" % (key,value) for key, value in options.items() )
+
+    return 0 == os.system( command ), options
 
 def writeSourceCode( cpp_filename, source_code ):
-    open( cpp_filename, "wb" ).write( source_code )
-
-
-def getPythonVersionPaths():
-    """ Inspect options and the running Python version for target information. """
-
-    if Options.options.python_version is None:
-        major_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
-    else:
-        major_version = Options.options.python_version
-
-    if Options.options.python_debug is None:
-        use_debug = hasattr( sys, "getobjects" )
-    else:
-        use_debug = Options.options.python_debug
-
-    debug_indicator = "_d" if use_debug else ""
-
-    python_header_path = "/usr/include/python" + major_version + debug_indicator
-
-    return major_version, debug_indicator,  python_header_path
+    open( cpp_filename, "w" ).write( source_code )
 
 def getGccOptions( python_target_major_version, python_target_debug_indicator, python_header_path, cpp_filename, tree ):
     if not os.path.exists( python_header_path + "/Python.h" ):
         warning( "The Python headers seem to be not installed. Expect C++ compiler failures." )
-
-    gcc_options = [ "-std=c++0x", "-I" + python_header_path, "-I$NUITKA_INCLUDE" ]
-
-    if True:
-        gcc_options += [ "-fvisibility=hidden", "-fvisibility-inlines-hidden" ]
-
-    if Options.isDebug():
-        gcc_options += [
-            # "-save-temps",
-            "-g",
-            "-O2"
-        ]
-
-    if Options.isOptimize():
-        gcc_options += [
-            "-O3"
-        ]
-
-        if not Options.isDebug():
-            gcc_options += [
-                " -D__NUITKA_NO_ASSERT__",
-            ]
 
     # Compile the generated source immediately.
     if Options.shallMakeModule():
@@ -240,23 +281,6 @@ def getGccOptions( python_target_major_version, python_target_debug_indicator, p
         target_path = tree.getName() + ".exe"
 
     output_filename = Options.getOutputPath( target_path )
-
-    gcc_options += [ "-lpython" + python_target_major_version + python_target_debug_indicator, cpp_filename, "-o " + output_filename ]
-
-    if Options.shallMakeModule():
-        gcc_options += [ "-D_NUITKA_MODULE" ]
-    else:
-        gcc_options += [ "-D_NUITKA_EXE" ]
-
-    if False:
-        print gcc_options
-
-    return gcc_options, output_filename
-
-def runCompiler( gcc_options ):
-    result = os.system( "g++-nuitka " + " ".join( gcc_options ) )
-
-    return result == 0
 
 def executeMain( output_filename, tree ):
     os.execl( output_filename, tree.getName() + ".exe", *Options.getMainArgs() )

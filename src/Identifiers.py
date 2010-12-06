@@ -29,7 +29,13 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+
+from __future__ import print_function
+from __past__ import long, unicode
+
 import hashlib, re
+
+from logging import warning
 
 class Identifier:
     def __init__( self, code, ref_count ):
@@ -177,7 +183,10 @@ class ExceptionCannotNamify( Exception ):
     pass
 
 def digest( value ):
-    return hashlib.md5( value ).hexdigest()
+    if str is not unicode:
+        return hashlib.md5( value ).hexdigest()
+    else:
+        return hashlib.md5( value.encode( "utf_8" ) ).hexdigest()
 
 _re_str_needs_no_digest = re.compile( r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.S )
 
@@ -192,6 +201,8 @@ def _namifyString( string ):
     else:
         # Others are better digested to not cause compiler trouble
         return "digest_" + digest( string )
+
+
 
 def isAscii( string ):
     try:
@@ -238,17 +249,17 @@ def namifyConstant( constant ):
         if constant == {}:
             return "dict_empty"
         else:
-            return "dict_" + hashlib.md5( repr( constant ) ).hexdigest()
+            return "dict_" + digest( repr( constant ) )
     elif type( constant ) == set:
         if constant == set():
             return "set_empty"
         else:
-            return "set_" + hashlib.md5( repr( constant ) ).hexdigest()
+            return "set_" + digest( repr( constant ) )
     elif type( constant ) == frozenset:
         if constant == frozenset():
             return "frozenset_empty"
         else:
-            return "frozenset_" + hashlib.md5( repr( constant ) ).hexdigest()
+            return "frozenset_" + digest( repr( constant ) )
     elif type( constant ) == tuple:
         if constant == ():
             return "tuple_empty"
@@ -263,7 +274,7 @@ def namifyConstant( constant ):
 
                 return result + "_".join( parts )
             except ExceptionCannotNamify:
-                print "Warning, couldn't namify", value
+                warning( "Couldn't namify '%r'" % value )
 
                 return "tuple_" + hashlib.md5( repr( constant ) ).hexdigest()
     elif type( constant ) == list:
@@ -280,12 +291,8 @@ def namifyConstant( constant ):
 
                 return result + "_".join( parts )
             except ExceptionCannotNamify:
-                print "Warning, couldn't namify", value
+                warning( "Couldn't namify '%r'" % value )
 
                 return "list_" + hashlib.md5( repr( constant ) ).hexdigest()
     else:
         raise ExceptionCannotNamify( constant )
-
-if __name__ == "__main__":
-    for d_value in ( "", "<module>" ):
-        print d_value, ":", namifyConstant( d_value )

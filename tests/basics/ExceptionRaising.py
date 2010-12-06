@@ -109,7 +109,11 @@ def checkTraceback():
         print "Check traceback:"
 
         traceback.print_tb( sys.exc_info()[2], file = sys.stdout )
+
         print "End of traceback"
+
+        print "Type is", sys.exc_info()[0]
+        print "Value is", sys.exc_info()[1]
 
 print "*" * 20
 

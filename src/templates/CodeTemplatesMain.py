@@ -32,24 +32,21 @@
 
 
 module_inittab_entry = """\
-(char *)"%(module_name)s", init%(module_identifier)s,
-"""
+(char *)"%(module_name)s", init%(module_identifier)s,"""
 
 main_program = """\
-// The main program for C++. It needs to prepare the interpreter and then calls the
-// initialization code of the __main__ module.
-
+// Our own inittab for lookup of "frozen" modules, i.e. the ones included in this binary.
 static struct _inittab _module_inittab[] =
 {
 %(module_inittab)s
     NULL, NULL
 };
 
-static bool FIND_EMBEDDED_MODULE( char const *name )
+bool FIND_EMBEDDED_MODULE( char const *name )
 {
     struct _inittab *current = _module_inittab;
 
-    while (current->name)
+    while ( current->name != NULL )
     {
        if ( strcmp( name, current->name ) == 0 )
        {
@@ -69,6 +66,9 @@ static bool FIND_EMBEDDED_MODULE( char const *name )
     return false;
 }
 
+// The main program for C++. It needs to prepare the interpreter and then calls the
+// initialization code of the __main__ module.
+
 int main( int argc, char *argv[] )
 {
     // Register the initialization functions for modules included in the binary if any
@@ -77,6 +77,14 @@ int main( int argc, char *argv[] )
 
     Py_Initialize();
     PySys_SetArgv( argc, argv );
+
+    // Initialize the constant values used.
+    _initConstants();
+
+    // Initialize the compiled types of Nuitka.
+    PyType_Ready( &Nuitka_Generator_Type );
+    PyType_Ready( &Nuitka_Function_Type );
+    PyType_Ready( &Nuitka_Genexpr_Type );
 
     init__main__();
 
@@ -87,13 +95,22 @@ int main( int argc, char *argv[] )
 }
 """
 
-package_template = """\
+package_header_template = """\
+#include "nuitka/prelude.hpp"
+
+extern PyObject *_package_%(package_identifier)s;
+
+extern void init%(package_identifier)s(void);
+"""
+
+package_body_template = """\
+#include "nuitka/prelude.hpp"
 
 // The _package_%(package_identifier)s is a Python object pointer of module type.
 
-static PyObject *_package_%(package_identifier)s = NULL;
+PyObject *_package_%(package_identifier)s = NULL;
 
-static void init%(package_identifier)s(void)
+void init%(package_identifier)s(void)
 {
     if ( _package_%(package_identifier)s == NULL )
     {
@@ -111,15 +128,23 @@ static void init%(package_identifier)s(void)
 
 """
 
-module_template = """\
+module_header_template = """\
 
-// The _module_%(module_identifier)s is a Python object pointer  of module type.
+NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void);
+extern PyObject *_module_%(module_identifier)s;
+
+"""
+
+module_body_template = """\
+#include "nuitka/prelude.hpp"
+
+// The _module_%(module_identifier)s is a Python object pointer of module type.
 
 // Note: For full compatability with CPython, every module variable access needs to go
 // through it except for cases where the module cannot possibly have changed in the mean
 // time.
 
-static PyObject *_module_%(module_identifier)s;
+PyObject *_module_%(module_identifier)s;
 
 // The module level variables.
 %(module_globals)s
@@ -135,8 +160,20 @@ static PyObject *_module_%(module_identifier)s;
 
 NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 {
-    // puts( "in init%(module_identifier)s" );
+#ifdef _NUITKA_MODULE
+    // In case of a stand alone extension module, need to call initialization the init here
+    // because that's how we are going to get called here.
 
+    // Initialize the constant values used.
+    _initConstants();
+
+    // Initialize the compiled types of Nuitka.
+    PyType_Ready( &Nuitka_Generator_Type );
+    PyType_Ready( &Nuitka_Function_Type );
+    PyType_Ready( &Nuitka_Genexpr_Type );
+#endif
+
+    // puts( "in init%(module_identifier)s" );
 
     // Create the module object first. There are no methods initially, all are added
     // dynamically in actual code only.  Also no __doc__ is initially set, as it could not
@@ -151,13 +188,6 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
     );
 
     assert( _module_%(module_identifier)s );
-
-    // Initialize the constant values used.
-    _initConstants();
-
-    // Initialize the compiled types of Nuitka.
-    PyType_Ready( &Nuitka_Function_Type );
-    PyType_Ready( &Nuitka_Genexpr_Type );
 
     // Initialize the standard module attributes.
 %(module_inits)s
@@ -195,6 +225,10 @@ module_package_init_template = """\
     SET_ATTRIBUTE( _package_%(package_identifier)s, %(module_name)s, _module_%(module_identifier)s );"""
 
 constant_reading = """
+#include "nuitka/prelude.hpp"
+
+// The current line of code execution.
+int _current_line;
 
 // We unstream some constant objects using the "cPickle" module function "loads"
 static PyObject *_module_cPickle = NULL;
@@ -202,7 +236,7 @@ static PyObject *_module_cPickle_function_loads = NULL;
 
 // Sentinel PyObject to be used for all our call iterator endings. It will become
 // a PyCObject pointing to NULL. TODO: Hopefully that is unique enough.
-static PyObject *_sentinel_value = NULL;
+PyObject *_sentinel_value = NULL;
 
 %(const_declarations)s
 
@@ -218,7 +252,7 @@ static PyObject *_unstreamConstant( char const *buffer, int size )
     return result;
 }
 
-static PyModuleObject *_module_builtin = NULL;
+PyModuleObject *_module_builtin = NULL;
 
 static int _initConstants()
 {
@@ -230,8 +264,13 @@ static int _initConstants()
         _module_builtin = (PyModuleObject *)PyImport_ImportModule( "__builtin__" );
         assert( _module_builtin );
 
+#if PY_MAJOR_VERSION < 3
         _module_cPickle = PyImport_ImportModule( "cPickle" );
+#else
+        _module_cPickle = PyImport_ImportModule( "pickle" );
+#endif
         assert( _module_cPickle );
+
         _module_cPickle_function_loads = PyObject_GetAttrString( _module_cPickle, "loads" );
         assert( _module_cPickle_function_loads );
 
@@ -242,5 +281,4 @@ static int _initConstants()
 
 module_header = """
 // Generated code for Python source for module '%(name)s'
-
 """

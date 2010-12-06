@@ -33,7 +33,6 @@
 from templates.CodeTemplatesMain import *
 
 from templates.CodeTemplatesCompiledGeneratorType import *
-from templates.CodeTemplatesCompiledFunctionType import *
 from templates.CodeTemplatesCompiledGenexprType import *
 
 from templates.CodeTemplatesFunction import *
@@ -59,11 +58,7 @@ global_copyright = """
 
 # Template for the global stuff that must be had, compiling one or multple modules.
 global_prelude = """\
-#include "nuitka/prelude.h++"
-"""
-
-global_helper = """\
-#include "nuitka/helpers.h++"
+#include "nuitka/prelude.hpp"
 """
 
 try_finally_template = """

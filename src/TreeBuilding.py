@@ -36,6 +36,9 @@ later stages of the compiler.
 
 """
 
+from __future__ import print_function
+from __past__ import long, unicode
+
 import SourceCodeReferences
 import TreeTransforming
 import PythonOperators
@@ -83,7 +86,7 @@ def getFuture():
     return _future_division, _unicode_literals, _absolute_import, _future_print
 
 def dump( node ):
-    print ast.dump( node )
+    print( ast.dump( node ) )
 
 def getKind( node ):
     return node.__class__.__name__.split( "." )[-1]
@@ -154,8 +157,14 @@ def buildParameterSpec( provider, node, source_ref ):
     def extractArg( arg ):
         if getKind( arg ) == "Name":
             return arg.id
+        elif getKind( arg ) == "arg":
+            assert arg.annotation is None
+
+            return arg.arg
         elif getKind( arg ) == "Tuple":
             return tuple( [ extractArg( arg ) for arg in arg.elts ] )
+        else:
+            assert False, getKind( arg )
 
     argnames = [ extractArg( arg ) for arg in node.args.args ]
 
@@ -351,11 +360,15 @@ def buildSetNode( provider, node, source_ref ):
         )
 
 def buildAssignTarget( provider, node, source_ref ):
-    assert getKind( node.ctx ) in ( "Store", "Del" )
+    if hasattr( node, "ctx" ):
+        assert getKind( node.ctx ) in ( "Store", "Del" )
 
     kind = getKind( node )
 
-    if kind == "Name":
+    if type( node ) is str:
+        # Python >= 3.1 only
+        return Nodes.CPythonAssignTargetVariable( variable = provider.getVariableForAssignment( variable_name = node ), source_ref = source_ref )
+    elif kind == "Name":
         return Nodes.CPythonAssignTargetVariable( variable = provider.getVariableForAssignment( variable_name = node.id ), source_ref = source_ref )
     elif kind == "Attribute":
         return Nodes.CPythonAssignAttribute( expression = buildNode( provider, node.value, source_ref ), attribute = node.attr, source_ref = source_ref )
@@ -417,7 +430,6 @@ def buildAssignTarget( provider, node, source_ref ):
         else:
             assert False, node.slice
     else:
-        print dir(node)
         assert False, ( source_ref, ast.dump( node ) )
 
 def buildAssignNode( provider, node, source_ref ):
@@ -785,7 +797,7 @@ _debug_module_finding = False
 
 def _findModuleInPath( module_name, package_name ):
     if _debug_module_finding:
-        print "_findModuleInPath: Enter", module_name, package_name
+        print( "_findModuleInPath: Enter", module_name, package_name )
 
     if package_name is not None:
         ext_path = [ element + os.path.sep + package_name.replace( ".", os.path.sep ) for element in sys.path + ["."] ]
@@ -803,7 +815,7 @@ def _findModuleInPath( module_name, package_name ):
 
 def _findModule( module_name, parent_package ):
     if _debug_module_finding:
-        print "_findModule: Enter", module_name, "in", parent_package
+        print( "_findModule: Enter", module_name, "in", parent_package )
 
     # The os.path is strangely hacked into the os module, dispatching per platform, we
     # either cannot look into it, or we require to be on the target platform. Non-Linux is
@@ -824,7 +836,7 @@ def _findModule( module_name, parent_package ):
         return _findModuleInPath( module_name, parent_package ), parent_package
 
 def _isWhiteListedNotExistingModule( module_name ):
-    return module_name in ( "mac", "nt", "os2", "_emx_link", "riscos", "ce", "riscospath", "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256", "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle", "marshal", "imp", "sys", "itertools" )
+    return module_name in ( "mac", "nt", "os2", "_emx_link", "riscos", "ce", "riscospath", "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256", "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle", "marshal", "imp", "sys", "itertools", "cStringIO", "time", "zlib", "thread", "math", "errno", "operator" )
 
 
 def _buildImportModulesNode( provider, parent_package, import_names, source_ref ):
@@ -942,7 +954,7 @@ def buildImportFromNode( provider, node, source_ref ):
             module_filename, module_package = _findModule( module_name, parent_package )
         except ImportError:
             if not _isWhiteListedNotExistingModule( module_name ):
-                print "Warning, cannot find", module_name
+                warning( "Cannot find module '%s'." % module_name )
 
             module_package  = None
             module_filename = None
@@ -1410,12 +1422,8 @@ def buildNode( provider, node, source_ref ):
     except SyntaxError:
         raise
     except:
-        print "Problem at", source_ref, "with",
-        dump( node )
+        warning( "Problem at '%s' with %s." % ( source_ref, ast.dump( node ) ) )
         raise
-
-
-            # print node, "<-", child
 
 class ModuleRecursionVisitor:
     imported_modules = {}
@@ -1432,7 +1440,7 @@ class ModuleRecursionVisitor:
                 if self.stdlib or not module_filename.startswith( "/usr/lib/python" ):
                     if module_filename.endswith( ".py" ):
                         if os.path.relpath( module_filename ) not in self.imported_modules:
-                            print "Recurse to", module_filename
+                            print( "Recurse to", module_filename )
 
                             imported_module = buildModuleTree(
                                 filename = module_filename,

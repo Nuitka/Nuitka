@@ -1,4 +1,3 @@
-#!/bin/bash
 #
 #     Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -20,45 +19,18 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-cd `dirname $0`
+a = 1
+b = 1
 
-if [ "$PYTHON" = "" ]
-then
-    export PYTHON=python
-fi
+def someFunction():
+    a = a
 
-for file in *.py
-do
-    if [ "$PYTHON" = "python3.1" ]
-    then
-        cp $file /tmp/
-        file=/tmp/$file
+class someClass():
+    b = b
 
-        2to3 --no-diffs $file -w
-    fi
+someClass()
 
-    if [ "$file" = "Referencing.py" ]
-    then
-        if [ -f /usr/bin/${PYTHON}-dbg ]
-        then
-            export USE_PYTHON=python-dbg
-        else
-            echo "Skip reference count test, CPython debug version not found."
-            continue
-        fi
-    else
-        export USE_PYTHON=$PYTHON
-    fi
-
-    PYTHON=$USE_PYTHON compare_with_cpython.sh $file silent
-
-    if [ "$?" != 0 ]
-    then
-       echo "FAILED $file, run compare_with_cpython.sh $file"
-
-       if [ "$1" = "search" ]
-       then
-           exit 1
-       fi
-    fi
-done
+try:
+    someFunction()
+except UnboundLocalError:
+    print "Expected unbound local error occured."

@@ -1,67 +1,36 @@
-#
-#     Copyright 2010, Kay Hayen, mailto:kayhayen@gmx.de
-#
-#     Part of "Nuitka", an attempt of building an optimizing Python compiler
-#     that is compatible and integrates with CPython, but also works on its
-#     own.
-#
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
-#
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
-#
-#     This program is free software: you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
-#     the Free Software Foundation, version 3 of the License.
-#
-#     This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
-#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#     GNU General Public License for more details.
-#
-#     You should have received a copy of the GNU General Public License
-#     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#     Please leave the whole of this copyright notice intact.
-#
-""" Compiled function type.
+//
+//     Copyright 2010, Kay Hayen, mailto:kayhayen@gmx.de
+//
+//     Part of "Nuitka", an attempt of building an optimizing Python compiler
+//     that is compatible and integrates with CPython, but also works on its
+//     own.
+//
+//     If you submit Kay Hayen patches to this software in either form, you
+//     automatically grant him a copyright assignment to the code, or in the
+//     alternative a BSD license to the code, should your jurisdiction prevent
+//     this. Obviously it won't affect code that comes to him indirectly or
+//     code you don't submit to him.
+//
+//     This is to reserve my ability to re-license the code at any time, e.g.
+//     the PSF. With this version of Nuitka, using it for Closed Source will
+//     not be allowed.
+//
+//     This program is free software: you can redistribute it and/or modify
+//     it under the terms of the GNU General Public License as published by
+//     the Free Software Foundation, version 3 of the License.
+//
+//     This program is distributed in the hope that it will be useful,
+//     but WITHOUT ANY WARRANTY; without even the implied warranty of
+//     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//     GNU General Public License for more details.
+//
+//     You should have received a copy of the GNU General Public License
+//     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+//     Please leave the whole of this copyright notice intact.
+//
 
-The backbone of the integration into CPython. Try to behave as well as normal functions
-and builtin functions, or even better.
-"""
-
-compiled_function_type_code = """
-
-// *** Nuitka_Function type begin
-
-typedef void (*releaser)( void * );
-
-// The Nuitka_FunctionObject is the storage associated with a compiled function instance
-// of which there can be many for each code.
-typedef struct {
-    PyObject_HEAD
-
-    PyObject *m_name;
-
-    void *m_context;
-    releaser m_cleanup;
-
-    PyObject *m_module;
-    PyObject *m_doc;
-
-    void *m_code;
-    bool m_has_args;
-
-    PyObject *m_dict;
-    PyObject *m_weakrefs;
-
-    long m_counter;
-} Nuitka_FunctionObject;
+#include "nuitka/prelude.hpp"
 
 // tp_descr_get slot, bind a function to an object.
 static PyObject *Nuitka_Function_descr_get( PyObject *function, PyObject *object, PyObject *klass )
@@ -265,7 +234,7 @@ static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
     PyObject_GC_Del( function );
 }
 
-static PyTypeObject Nuitka_Function_Type =
+PyTypeObject Nuitka_Function_Type =
 {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
     "compiled_function",                            // tp_name
@@ -346,35 +315,20 @@ static inline PyObject *make_kfunction( void *code, PyObject *name, PyObject *mo
     return (PyObject *)result;
 }
 
-static inline bool Nuitka_Function_Check( PyObject *object )
-{
-    return Py_TYPE( object ) == &Nuitka_Function_Type;
-}
-
-static inline PyObject *Nuitka_Function_GetName( PyObject *object )
-{
-    return ((Nuitka_FunctionObject *)object)->m_name;
-}
-
 // Make a function without context.
-static PyObject *Nuitka_Function_New( PyCFunctionWithKeywords code, PyObject *name, PyObject *module, PyObject *doc )
+PyObject *Nuitka_Function_New( PyCFunctionWithKeywords code, PyObject *name, PyObject *module, PyObject *doc )
 {
     return make_kfunction( (void *)code, name, module, doc, true, NULL, NULL );
 }
 
 // Make a function with context.
-
-static PyObject *Nuitka_Function_New( PyCFunctionWithKeywords code, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+PyObject *Nuitka_Function_New( PyCFunctionWithKeywords code, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup )
 {
     return make_kfunction( (void *)code, name, module, doc, true, context, cleanup );
 }
 
 // Make a function that is only a yielder, no args.
-static PyObject *Nuitka_Function_New( PyNoArgsFunction code, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+PyObject *Nuitka_Function_New( PyNoArgsFunction code, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup )
 {
     return make_kfunction( (void *)code, name, module, doc, false, context, cleanup );
 }
-
-// *** KFunction type end
-
-"""

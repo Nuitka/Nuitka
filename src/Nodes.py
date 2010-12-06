@@ -33,6 +33,9 @@
 
 """
 
+from __future__ import print_function
+from __past__ import long, unicode
+
 import Variables
 
 from odict import OrderedDict
@@ -140,14 +143,14 @@ class CPythonNode:
         return self.source_ref
 
     def dump( self, level = 0 ):
-        print "    " * level, self
+        print( "    " * level, self )
 
-        print "    " * level, "*" * 10
+        print( "    " * level, "*" * 10 )
 
         for visitable in self.getVisitableNodes():
             visitable.dump( level + 1 )
 
-        print "    " * level, "*" * 10
+        print( "    " * level, "*" * 10 )
 
     def isModule( self ):
         return self.kind == "MODULE"
@@ -477,7 +480,7 @@ class CPythonChildrenHaving:
     def getVisitableNodes( self ):
         result = []
 
-        for key, value in self.named_children.iteritems():
+        for key, value in self.named_children.items():
             if value is None:
                 pass
             elif type( value ) == tuple:
@@ -492,7 +495,7 @@ class CPythonChildrenHaving:
     def getSameScopeNodes( self ):
         result = []
 
-        for key, value in self.named_children.iteritems():
+        for key, value in self.named_children.items():
             if value is None or key == "body":
                 pass
             elif type( value ) == tuple:
@@ -505,7 +508,7 @@ class CPythonChildrenHaving:
         return tuple( result )
 
     def replaceChild( self, old_node, new_node ):
-        for key, value in self.named_children.iteritems():
+        for key, value in self.named_children.items():
             if value is None:
                 pass
             elif type( value ) == tuple:
@@ -581,7 +584,8 @@ class CPythonClosureTaker:
         result = self.provider.getVariableForReference( variable_name )
 
         if result is None:
-            print "Fail to closure", self, self.provider, variable_name
+            print( "Fail to closure", self, self.provider, variable_name )
+            assert False
 
         if not result.isModuleVariable():
             result = Variables.ClosureVariableReference( self, result )
@@ -593,10 +597,7 @@ class CPythonClosureTaker:
         return result
 
     def getClosureVariables( self ):
-        def myCompare( a, b ):
-            return cmp( a.getName(), b.getName() )
-
-        return tuple( sorted( self.closure, cmp = myCompare ))
+        return tuple( sorted( self.closure, key = lambda x : x.getName() ))
 
     def hasTakenVariable( self, variable_name ):
         for variable in self.taken:

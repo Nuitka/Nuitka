@@ -1,16 +1,55 @@
+//
+//     Copyright 2010, Kay Hayen, mailto:kayhayen@gmx.de
+//
+//     Part of "Nuitka", an attempt of building an optimizing Python compiler
+//     that is compatible and integrates with CPython, but also works on its
+//     own.
+//
+//     If you submit Kay Hayen patches to this software in either form, you
+//     automatically grant him a copyright assignment to the code, or in the
+//     alternative a BSD license to the code, should your jurisdiction prevent
+//     this. Obviously it won't affect code that comes to him indirectly or
+//     code you don't submit to him.
+//
+//     This is to reserve my ability to re-license the code at any time, e.g.
+//     the PSF. With this version of Nuitka, using it for Closed Source will
+//     not be allowed.
+//
+//     This program is free software: you can redistribute it and/or modify
+//     it under the terms of the GNU General Public License as published by
+//     the Free Software Foundation, version 3 of the License.
+//
+//     This program is distributed in the hope that it will be useful,
+//     but WITHOUT ANY WARRANTY; without even the implied warranty of
+//     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//     GNU General Public License for more details.
+//
+//     You should have received a copy of the GNU General Public License
+//     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+//     Please leave the whole of this copyright notice intact.
+//
 #ifndef __NUITKA_HELPERS_H__
 #define __NUITKA_HELPERS_H__
+
+#include "__constants.hpp"
+
+// From CPython, to allow us quick access to the dictionary of an module, the structure is
+// normally private, but we need it for quick access to the module dictionary.
+typedef struct {
+    PyObject_HEAD
+    PyObject *md_dict;
+} PyModuleObject;
 
 template<typename... P>
 static void PRINT_ITEMS( bool new_line, PyObject *file, P...eles );
 static PyObject *INCREASE_REFCOUNT( PyObject *object );
 
-static int _current_line = -1;
-static char *_current_file = NULL;
+extern int _current_line;
 
-// Helper class to be used when PyObject * are provided as parameters where they
-// are not consumed, but not needed anymore after the call and and need a release
-// as soon as possible.
+// Helper class to be used when "PyObject *" are provided as parameters where they are not
+// consumed, but not needed anymore after the call and and need a release as soon as
+// possible.
 
 class PyObjectTemporary {
     public:
@@ -97,23 +136,6 @@ class _PythonException
             this->exception_type = exception;
             this->exception_value = NULL;
             this->exception_tb = (PyObject *)traceback;
-        }
-
-        _PythonException( PyObject *exception, PyObject *value, float unused )
-        {
-            assert( exception );
-            assert( value );
-            assert( exception->ob_refcnt > 0 );
-            assert( value->ob_refcnt > 0 );
-
-            this->line = _current_line;
-
-            Py_INCREF( exception );
-            Py_INCREF( value );
-
-            this->exception_type = exception;
-            this->exception_value = value;
-            this->exception_tb = NULL;
         }
 
         _PythonException( PyObject *exception, PyObject *value, PyTracebackObject *traceback )
@@ -358,127 +380,14 @@ static PyObject *INCREASE_REFCOUNT( PyObject *object )
 
 static PyObject *DECREASE_REFCOUNT( PyObject *object )
 {
+    assert( object->ob_refcnt > 0 );
+
     Py_DECREF( object );
 
     return object;
 }
 
-
-// Helper functions for print. Need to play nice with Python softspace behaviour.
-
-
-static void PRINT_ITEM_TO( PyObject *file, PyObject *object )
-{
-    PyObject *str = PyObject_Str( object );
-    PyObject *print;
-    bool softspace;
-
-    if ( str == NULL )
-    {
-        PyErr_Clear();
-
-        print = object;
-        softspace = false;
-    }
-    else
-    {
-        char *buffer;
-        Py_ssize_t length;
-
-        int status = PyString_AsStringAndSize( str, &buffer, &length );
-        assert( status != -1 );
-
-        softspace = length > 0 && buffer[length - 1 ] == '\t';
-
-        print = str;
-    }
-
-    // Check for soft space indicator, need to hold a reference to the file
-    // or else __getattr__ may release "file" in the mean time.
-    if ( PyFile_SoftSpace( file, !softspace ) )
-    {
-        if (unlikely( PyFile_WriteString( " ", file ) == -1 ))
-        {
-            Py_DECREF( file );
-            Py_DECREF( str );
-            throw _PythonException();
-        }
-    }
-
-    if ( unlikely( PyFile_WriteObject( print, file, Py_PRINT_RAW ) == -1 ))
-    {
-        Py_XDECREF( str );
-        throw _PythonException();
-    }
-
-    Py_XDECREF( str );
-
-    if ( softspace )
-    {
-        PyFile_SoftSpace( file, !softspace );
-    }
-}
-
-static void PRINT_NEW_LINE_TO( PyObject *file )
-{
-    if (unlikely( PyFile_WriteString( "\n", file ) == -1))
-    {
-        throw _PythonException();
-    }
-
-    PyFile_SoftSpace( file, 0 );
-}
-
-static PyObject *GET_STDOUT()
-{
-    PyObject *stdout = PySys_GetObject( (char *)"stdout" );
-
-    if (unlikely( stdout == NULL ))
-    {
-        PyErr_Format( PyExc_RuntimeError, "lost sys.stdout" );
-        throw _PythonException();
-    }
-
-    return stdout;
-}
-
-template<typename... P>
-static void PRINT_ITEMS( bool new_line, PyObject *file, P...eles )
-{
-    int size = sizeof...(eles);
-
-    if ( file == NULL || file == Py_None )
-    {
-        file = GET_STDOUT();
-    }
-
-    // Need to hold a reference for the case that the printing somehow removes
-    // the last reference to "file" while printing.
-    Py_INCREF( file );
-
-    PyObject *elements[] = {eles...};
-
-    for( int i = 0; i < size; i++ )
-    {
-        PRINT_ITEM_TO( file, elements[ i ] );
-    }
-
-    if ( new_line )
-    {
-        PRINT_NEW_LINE_TO( file );
-    }
-
-    // TODO: Use of PyObjectTemporary should be possible, this won't be
-    // exception safe otherwise
-    Py_DECREF( file );
-}
-
-
-static void PRINT_NEW_LINE( void )
-{
-    PRINT_NEW_LINE_TO( GET_STDOUT() );
-}
-
+#include "printing.hpp"
 
 static void RAISE_EXCEPTION( PyObject *exception, PyTracebackObject *traceback )
 {
@@ -493,7 +402,11 @@ static void RAISE_EXCEPTION( PyObject *exception, PyTracebackObject *traceback )
     else
     {
         PyErr_Format( PyExc_TypeError, "exceptions must be old-style classes or derived from BaseException, not %s", exception->ob_type->tp_name );
-        throw _PythonException();
+
+         _PythonException to_throw;
+         to_throw.setTraceback( traceback );
+
+         throw to_throw;
     }
 }
 
@@ -756,17 +669,21 @@ static inline PyObject *Nuitka_Function_GetName( PyObject *object );
 static inline bool Nuitka_Generator_Check( PyObject *object );
 static inline PyObject *Nuitka_Generator_GetName( PyObject *object );
 
+#if PY_MAJOR_VERSION < 3
+#define Nuitka_String_AsString PyString_AsString
+#else
+#define Nuitka_String_AsString _PyUnicode_AsString
+#endif
+
 static char const *GET_CALLABLE_NAME( PyObject *object )
 {
-    // TODO: add NUITKA types.
-
     if ( Nuitka_Function_Check( object ) )
     {
-        return PyString_AsString( Nuitka_Function_GetName( object ) );
+        return Nuitka_String_AsString( Nuitka_Function_GetName( object ) );
     }
     else if ( Nuitka_Generator_Check( object ) )
     {
-        return PyString_AsString( Nuitka_Generator_GetName( object ) );
+        return Nuitka_String_AsString( Nuitka_Generator_GetName( object ) );
     }
     else if ( PyMethod_Check( object ) )
     {
@@ -774,16 +691,18 @@ static char const *GET_CALLABLE_NAME( PyObject *object )
     }
     else if ( PyFunction_Check( object ) )
     {
-        return PyString_AsString( ((PyFunctionObject*)object)->func_name );
+        return Nuitka_String_AsString( ((PyFunctionObject*)object)->func_name );
     }
+#if PY_MAJOR_VERSION < 3
     else if ( PyInstance_Check( object ) )
     {
-        return PyString_AsString( ((PyInstanceObject*)object)->in_class->cl_name );
+        return Nuitka_String_AsString( ((PyInstanceObject*)object)->in_class->cl_name );
     }
     else if ( PyClass_Check( object ) )
     {
-        return PyString_AsString(((PyClassObject*)object)->cl_name );
+        return Nuitka_String_AsString(((PyClassObject*)object)->cl_name );
     }
+#endif
     else if ( PyCFunction_Check( object ) )
     {
         return ((PyCFunctionObject*)object)->m_ml->ml_name;
@@ -800,6 +719,7 @@ static const char *GET_CALLABLE_DESC( PyObject *object )
     {
         return "()";
     }
+#if PY_MAJOR_VERSION < 3
     else if ( PyClass_Check( object ) )
     {
         return " constructor";
@@ -808,6 +728,7 @@ static const char *GET_CALLABLE_DESC( PyObject *object )
     {
         return " instance";
     }
+#endif
     else
     {
         return " object";
@@ -841,7 +762,7 @@ static PyObject *CALL_FUNCTION_STAR_DICT( PyObject *dict_star_arg, PyObject *nam
         {
             if ( PyMapping_HasKey( dict_star_arg, key ))
             {
-                PyErr_Format( PyExc_TypeError, "%s%s got multiple values for keyword argument '%s'", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), PyString_AsString( key ) );
+                PyErr_Format( PyExc_TypeError, "%s%s got multiple values for keyword argument '%s'", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), Nuitka_String_AsString( key ) );
                 throw _PythonException();
             }
         }
@@ -858,7 +779,11 @@ static PyObject *CALL_FUNCTION_STAR_DICT( PyObject *dict_star_arg, PyObject *nam
 
     while ( PyDict_Next( result.asObject(), &pos, &key, &value ) )
     {
+#if PY_MAJOR_VERSION < 3
         if (unlikely( PyString_Check( key ) == 0 && PyUnicode_Check( key ) == 0 ))
+#else
+        if (unlikely( PyUnicode_Check( key ) == 0 ))
+#endif
         {
             PyErr_Format( PyExc_TypeError, "%s%s keywords must be strings", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ) );
             throw _PythonException();
@@ -1040,18 +965,31 @@ static void DICT_SET_ITEM( PyObject *dict, PyObject *key, PyObject *value )
     }
 }
 
+#if PY_MAJOR_VERSION < 3
 static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, PyStringObject *key )
+#else
+static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, PyUnicodeObject *key )
+#endif
 {
     assert( PyDict_CheckExact( dict ) );
 
     // Only improvement would be to identify how to ensure that the hash is computed
     // already. Calling hash early on could do that potentially.
-
+#if PY_MAJOR_VERSION < 3
     long hash = key->ob_shash;
+#else
+    long hash = key->hash;
+#endif
 
     if ( hash == -1 )
     {
+#if PY_MAJOR_VERSION < 3
         hash = PyString_Type.tp_hash( (PyObject *)key );
+        key->ob_shash = hash;
+#else
+        hash = PyUnicode_Type.tp_hash( (PyObject *)key );
+        key->hash = hash;
+#endif
     }
 
     PyDictEntry *entry = dict->ma_lookup( dict, (PyObject *)key, hash );
@@ -1063,7 +1001,11 @@ static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, PyStringObject *key )
     return entry;
 }
 
+#if PY_MAJOR_VERSION < 3
 static PyDictEntry *GET_PYDICT_ENTRY( PyModuleObject *module, PyStringObject *key )
+#else
+static PyDictEntry *GET_PYDICT_ENTRY( PyModuleObject *module, PyUnicodeObject *key )
+#endif
 {
     // Idea similar to LOAD_GLOBAL in CPython. Because the variable name is a string, we
     // can shortcut much of the dictionary code by using its hash and dictionary knowledge
@@ -1274,9 +1216,7 @@ static PyObject *LOOKUP_VARS( PyObject *source )
     assert( source );
     assert( source->ob_refcnt > 0 );
 
-    static PyObject *dict_str = PyString_FromString( "__dict__" );
-
-    PyObject *result = PyObject_GetAttr( source, dict_str );
+    PyObject *result = PyObject_GetAttr( source, _python_str_plain___dict__ );
 
     if (unlikely( result == NULL ))
     {
@@ -1410,11 +1350,14 @@ static Py_ssize_t CONVERT_TO_INDEX( PyObject *value )
     assert( value );
     assert( value->ob_refcnt > 0 );
 
+#if PY_MAJOR_VERSION < 3
     if ( PyInt_Check( value ) )
     {
         return PyInt_AS_LONG( value );
     }
-    else if ( PyIndex_Check( value ) )
+    else
+#endif
+    if ( PyIndex_Check( value ) )
     {
         Py_ssize_t result = PyNumber_AsSsize_t( value, NULL );
 
@@ -1432,6 +1375,7 @@ static Py_ssize_t CONVERT_TO_INDEX( PyObject *value )
     }
 }
 
+#if PY_MAJOR_VERSION < 3
 static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *klass, PyObject *attr_name )
 {
     PyObject *result = GET_PYDICT_ENTRY( (PyDictObject *)klass->cl_dict, (PyStringObject *)attr_name )->me_value;
@@ -1453,7 +1397,9 @@ static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *klass, PyObject *attr_n
 
     return result;
 }
+#endif
 
+#if PY_MAJOR_VERSION < 3
 static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 {
     assert( PyInstance_Check( source ) );
@@ -1539,6 +1485,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
         }
     }
 }
+#endif
 
 static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObject *attr_name )
 {
@@ -1547,11 +1494,13 @@ static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObject *attr_name )
     assert( attr_name );
     assert( attr_name->ob_refcnt > 0 );
 
+#if PY_MAJOR_VERSION < 3
     if ( PyInstance_Check( source ) )
     {
         return LOOKUP_INSTANCE( source, attr_name );
     }
     else
+#endif
     {
         int line = _current_line;
         PyObject *result = PyObject_GetAttr( source, attr_name );
@@ -1577,6 +1526,7 @@ static void SET_ATTRIBUTE( PyObject *target, PyObject *attr_name, PyObject *valu
     assert( value );
     assert( value->ob_refcnt > 0 );
 
+#if PY_MAJOR_VERSION < 3
     if ( PyInstance_Check( target ) )
     {
         PyInstanceObject *target_instance = (PyInstanceObject *)target;
@@ -1634,6 +1584,7 @@ static void SET_ATTRIBUTE( PyObject *target, PyObject *attr_name, PyObject *valu
         }
     }
     else
+#endif
     {
         int status = PyObject_SetAttr( target, attr_name, value );
 
@@ -1661,10 +1612,12 @@ static void DEL_ATTRIBUTE( PyObject *target, PyObject *attr_name )
 
 static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject *attr_name )
 {
+#if PY_MAJOR_VERSION < 3
     if ( PyInstance_Check( source ) )
     {
         return LOOKUP_INSTANCE( source, attr_name );
     }
+#endif
 
     // TODO: There is heavy optimization in CPython to avoid it. Potentially that's worth
     // it to imitate that.
@@ -1773,7 +1726,7 @@ class PyObjectLocalDictVariable {
 
             if (unlikely( result == NULL ))
             {
-                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", PyString_AsString( this->var_name ) );
+                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
                 throw _PythonException();
             }
 
@@ -1882,7 +1835,7 @@ class PyObjectLocalVariable {
         {
             if ( this->object == NULL && this->var_name != NULL )
             {
-                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", PyString_AsString( this->var_name ) );
+                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
                 throw _PythonException();
             }
 
@@ -1906,7 +1859,7 @@ class PyObjectLocalVariable {
         {
             if ( this->object == NULL )
             {
-                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", PyString_AsString( this->var_name ) );
+                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
                 throw _PythonException();
             }
 
@@ -2038,14 +1991,14 @@ class PyObjectSharedLocalVariable
 
             if ( this->storage->object == NULL )
             {
-                PyErr_Format( PyExc_UnboundLocalError, "free variable '%s' referenced before assignment in enclosing scope", PyString_AsString( this->storage->getVarName() ) );
+                PyErr_Format( PyExc_UnboundLocalError, "free variable '%s' referenced before assignment in enclosing scope", Nuitka_String_AsString( this->storage->getVarName() ) );
                 throw _PythonException();
 
             }
 
             if ( (this->storage->object)->ob_refcnt == 0 )
             {
-                PyErr_Format( PyExc_UnboundLocalError, "free variable '%s' referenced after its finalization in enclosing scope", PyString_AsString( this->storage->getVarName() ) );
+                PyErr_Format( PyExc_UnboundLocalError, "free variable '%s' referenced after its finalization in enclosing scope", Nuitka_String_AsString( this->storage->getVarName() ) );
                 throw _PythonException();
             }
 
@@ -2072,6 +2025,8 @@ class PyObjectSharedLocalVariable
 
         PyObjectSharedStorage *storage;
 };
+
+extern PyModuleObject *_module_builtin;
 
 class PyObjectGlobalVariable
 {
@@ -2105,7 +2060,7 @@ class PyObjectGlobalVariable
                 return entry->me_value;
             }
 
-            PyErr_Format( PyExc_NameError, "global name '%s' is not defined", PyString_AsString( (PyObject *)*this->var_name ) );
+            PyErr_Format( PyExc_NameError, "global name '%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
             throw _PythonException();
         }
 
@@ -2129,7 +2084,7 @@ class PyObjectGlobalVariable
                 return INCREASE_REFCOUNT( entry->me_value );
             }
 
-            PyErr_Format( PyExc_NameError, "global name '%s' is not defined", PyString_AsString( (PyObject *)*this->var_name ) );
+            PyErr_Format( PyExc_NameError, "global name '%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
             throw _PythonException();
         }
 
@@ -2191,7 +2146,7 @@ class PyObjectGlobalVariable
 
             if (unlikely( status == -1 ))
             {
-                PyErr_Format( PyExc_NameError, "name '%s' is not defined", PyString_AsString( (PyObject *)*this->var_name ) );
+                PyErr_Format( PyExc_NameError, "name '%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
                 throw _PythonException();
             }
         }
@@ -2381,86 +2336,10 @@ class PythonBuiltin
         PyObject *value;
 };
 
-static PythonBuiltin _python_builtin_compile( "compile" );
+// Compile source code given, pretending the file name was given.
+PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags );
 
-static PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags )
-{
-    // May be a source, but also could already be a compiled object, in which case this
-    // should just return it.
-    if ( PyCode_Check( source_code ) )
-    {
-        return INCREASE_REFCOUNT( source_code );
-    }
-
-    // Workaround leading whitespace causing a trouble to compile builtin, but not eval builtin
-    PyObject *source;
-
-    if ( ( PyString_Check( source_code ) || PyUnicode_Check( source_code ) ) && strcmp( PyString_AsString( mode ), "exec" ) != 0 )
-    {
-        static PyObject *strip_str = PyString_FromString( "strip" );
-
-        // TODO: There is an API to call a method, use it instead.
-        source = LOOKUP_ATTRIBUTE( source_code, strip_str );
-        source = PyObject_CallFunctionObjArgs( source, NULL );
-
-        assert( source );
-    }
-    else if ( PyFile_Check( source_code ) && strcmp( PyString_AsString( mode ), "exec" ) == 0 )
-    {
-        static PyObject *read_str = PyString_FromString( "read" );
-
-        // TODO: There is an API to call a method, use it instead.
-        source = LOOKUP_ATTRIBUTE( source_code, read_str );
-        source = PyObject_CallFunctionObjArgs( source, NULL );
-
-        assert( source );
-    }
-    else
-    {
-        source = source_code;
-    }
-
-    PyObject *future_flags = PyInt_FromLong( flags );
-
-    PyObject *result = PyObject_CallFunctionObjArgs(
-        _python_builtin_compile.asObject(),
-        source,
-        file_name,
-        mode,
-        future_flags,      // flags
-        _python_bool_True, // dont_inherit
-        NULL
-    );
-
-    Py_DECREF( future_flags );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
-static PythonBuiltin _python_builtin_open( "open" );
-
-static PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
-{
-    PyObject *result = PyObject_CallFunctionObjArgs(
-        _python_builtin_open.asObject(),
-        file_name,
-        mode,
-        buffering,
-        NULL
-    );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
+PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering );
 
 static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {
@@ -2500,65 +2379,8 @@ static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals 
     return result;
 }
 
-static PyObject *empty_code = PyBuffer_FromMemory( NULL, 0 );
-
-static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line )
-{
-    // TODO: Potentially it is possible to create a line2no table that will allow to use
-    // only one code object per function, this could then be cached and presumably be much
-    // faster, because it could be reused.
-
-    assert( PyString_Check( filename ) );
-    assert( PyString_Check( function_name ) );
-
-    assert( empty_code );
-
-    // printf( "MAKE_CODEOBJ code object %d\n", empty_code->ob_refcnt );
-
-    PyCodeObject *result = PyCode_New (
-        0, 0, 0, 0, // argcount, locals, stacksize, flags
-        empty_code, //
-        _python_tuple_empty,
-        _python_tuple_empty,
-        _python_tuple_empty,
-        _python_tuple_empty,
-        _python_tuple_empty,
-        filename,
-        function_name,
-        line,
-        _python_str_empty
-    );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
-static PyObject *MAKE_FRAME( PyObject *module, PyObject *filename, PyObject *function_name, int line )
-{
-    PyCodeObject *code = MAKE_CODEOBJ( filename, function_name, line );
-
-    PyFrameObject *result = PyFrame_New(
-        PyThreadState_GET(),
-        code,
-        ((PyModuleObject *)module)->md_dict,
-        NULL // No locals yet
-    );
-
-    Py_DECREF( code );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    result->f_lineno = line;
-
-    return (PyObject *)result;
-}
+// Create a frame for the given code location.
+PyObject *MAKE_FRAME( PyObject *module, PyObject *filename, PyObject *function_name, int line );
 
 static PyTracebackObject *MAKE_TRACEBACK( PyObject *frame, int line )
 {
@@ -2586,5 +2408,9 @@ static void ADD_TRACEBACK( PyObject *module, PyObject *filename, PyObject *funct
 
     Py_DECREF( frame );
 }
+
+PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name );
+
+void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name );
 
 #endif

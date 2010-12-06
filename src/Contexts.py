@@ -29,11 +29,24 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+
+from __past__ import long, unicode
+
+# Work around for CPython 3.1 removal of cpickle.
+try:
+    import cPickle as cpickle
+except ImportError:
+    import pickle as cpickle
+
+import pickle, re, hashlib
+
 from Identifiers import namifyConstant, ExceptionCannotNamify, digest, Identifier, ConstantIdentifier, LocalVariableIdentifier, ClosureVariableIdentifier
 
 import CodeTemplates
 
-import cPickle, pickle, re, hashlib
+
+
+from logging import warning
 
 class Constant:
     def __init__( self, constant ):
@@ -182,27 +195,22 @@ class PythonGlobalContext:
     def getPreludeCode( self ):
         return CodeTemplates.global_prelude
 
-    def getHelperCode( self ):
-        result = CodeTemplates.global_helper
-        result += CodeTemplates.import_helper
-
-        result += CodeTemplates.compiled_function_type_code
-        result += CodeTemplates.compiled_generator_type_code
-        result += CodeTemplates.compiled_genexpr_type_code
-
-        return result
-
     def getConstantCode( self ):
         return CodeTemplates.constant_reading % {
             "const_init"         : self.getConstantInitializations(),
-            "const_declarations" : self.getConstantDeclarations(),
+            "const_declarations" : self.getConstantDeclarations( for_header = False ),
         }
 
-    def getConstantDeclarations( self ):
+    def getConstantDeclarations( self, for_header ):
         statements = []
 
         for constant_name in sorted( self.constants.values()  ):
-            statements.append( "static PyObject *%s = NULL;" % constant_name )
+            if for_header:
+                declaration = "extern PyObject *%s;" % constant_name
+            else:
+                declaration = "PyObject *%s;" % constant_name
+
+            statements.append( declaration )
 
         return "\n".join( statements )
 
@@ -241,28 +249,13 @@ class PythonGlobalContext:
     def getConstantInitializations( self ):
         statements = []
 
-        def myCompare( a, b ):
-            if False:
-                type_cmp_result = cmp( a[0][0], b[0][0] )
-
-                if type_cmp_result != 0:
-                    return type_cmp_result
-
-            return cmp( a[1], b[1] )
-
-        for constant_desc, constant_identifier in sorted( self.constants.iteritems(), cmp = myCompare ):
+        for constant_desc, constant_identifier in sorted( self.constants.items(), key = lambda x: x[1] ):
             constant_type, _constant_repr, constant_value = constant_desc
             constant_value = constant_value.getConstant()
 
             if constant_type == int and abs( constant_value ) < 2**31:
                 # Will fallback to cPickle if they are bigger than PyInt allows.
                 statements.append( "%s = PyInt_FromLong( %s );" % ( constant_identifier, constant_value ) )
-            elif constant_type == str:
-                encoded = self._encodeString( constant_value )
-
-                # statements.append( """puts( "%s" );""" % constant_identifier )
-                statements.append( """%s = PyString_FromStringAndSize( %s, %d );""" % ( constant_identifier, encoded, len(constant_value) ) )
-                statements.append( """assert( PyString_Size( %s ) == %d );""" % ( constant_identifier, len(constant_value) ) )
             elif constant_type in ( tuple, list, bool, float, complex, unicode, int, long, dict, frozenset, set ):
                 # Note: The marshal module cannot persist all unicode strings and
                 # therefore cannot be used.  The cPickle fails to gives reproducible
@@ -271,15 +264,24 @@ class PythonGlobalContext:
                 try:
                     saved = pickle.dumps( constant_value, protocol = 0 if constant_type is unicode else 0 )
                 except TypeError:
-                    print repr( constant_value )
+                    warning( "Problem with persisting constant '%r'." % constant_value )
                     raise
 
                 # Check that the constant is restored correctly.
-                restored = cPickle.loads( saved )
+                restored = cpickle.loads( saved )
 
                 assert restored == constant_value, ( repr( constant_value ), "!=", repr( restored ) )
 
+                if str is unicode:
+                    saved = saved.decode( "utf_8" )
+
                 statements.append( """%s = _unstreamConstant( %s, %d );""" % ( constant_identifier, self._encodeString( saved ), len( saved ) ) )
+            elif constant_type == str:
+                encoded = self._encodeString( constant_value )
+
+                # statements.append( """puts( "%s" );""" % constant_identifier )
+                statements.append( """%s = PyString_FromStringAndSize( %s, %d );""" % ( constant_identifier, encoded, len(constant_value) ) )
+                statements.append( """assert( PyString_Size( %s ) == %d );""" % ( constant_identifier, len(constant_value) ) )
             elif constant_value is None:
                 pass
             else:

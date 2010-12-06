@@ -39,6 +39,9 @@ As such this is the place that knows how to take a condition and two code branch
 make a code block out of it. But it doesn't contain any target language syntax.
 """
 
+from __future__ import print_function
+
+
 import TreeOperations
 import Generator
 import Contexts
@@ -68,8 +71,6 @@ def mangleAttributeName( attribute_name, node ):
     return attribute_name
 
 def generateSequenceCreationCode( sequence_kind, elements, context, generator ):
-    # print "   generateSequenceCreationCode:", sequence_kind, "in", context, "with", generator
-
     if _areConstants( elements ):
         sequence_type = tuple if sequence_kind == "tuple" else list
 
@@ -634,9 +635,6 @@ def generateExpressionsCode( expressions, context, generator ):
     return [ generateExpressionCode( expression = expression, context = context, generator = generator ) for expression in expressions ]
 
 def generateExpressionCode( expression, context, generator, allow_none = False ):
-    # print "*" * 80
-    # print "  generateExpressionCode:", expression, "in", context, "with", generator
-
     if expression is None and allow_none:
         return None
 
@@ -651,18 +649,17 @@ def generateExpressionCode( expression, context, generator, allow_none = False )
         )
 
     if not expression.isExpression():
-        print "No expression", expression
-        print expression.dump()
-        print expression.parent
-        assert False
+        print( "No expression", expression )
 
-    # print "Expression ->", expression, type( expression ) if type( expression ) != type( context ) else expression.__class__
+        expression.dump()
+        assert False, expression
 
     if expression.isVariableReference():
         if expression.getVariable() is None:
-            print expression.getVariableName(), expression.getSourceReference()
+            print( "Illegal variable reference, not resolved" )
+
             expression.dump()
-            assert False
+            assert False, expression.getSourceReference()
 
         identifier = generator.getVariableHandle(
             variable = expression.getVariable(),
@@ -1153,7 +1150,7 @@ def generateStatementCode( statement, context, generator ):
     try:
         return _generateStatementCode( statement, context, generator )
     except:
-        print "Problem with", statement, "at", statement.getSourceReference()
+        print( "Problem with", statement, "at", statement.getSourceReference() )
         raise
 
 def _generateStatementCode( statement, context, generator ):
@@ -1169,7 +1166,7 @@ def _generateStatementCode( statement, context, generator ):
 
             return "\n".join( codes )
 
-        print statement.dump()
+        statement.dump()
         assert False
 
 
@@ -1552,9 +1549,7 @@ def _generateStatementCode( statement, context, generator ):
                 exception_tb_maker         = None
             )
         else:
-            print parameters
-
-            assert False
+            assert False, parameters
     elif statement.isStatementAssert():
         code = generator.getAssertCode(
             context              = context,
@@ -1594,8 +1589,6 @@ def _generateStatementCode( statement, context, generator ):
     return code
 
 def generateStatementSequenceCode( statement_sequence, context, generator ):
-    # print statement_sequence, "in", context, "with", generator, statement_sequence.parent
-
     assert statement_sequence.isStatementsSequence(), statement_sequence
 
     statements = statement_sequence.getStatements()
@@ -1655,57 +1648,4 @@ def generateModuleCode( module, module_name, global_context, stand_alone, genera
         filename_identifier = context.getConstantHandle( constant = module.getFilename() ),
         codes               = codes,
         context             = context,
-    )
-
-def generateExecutableCode( main_module, other_modules, generator ):
-    assert main_module.isModule()
-
-    global_context = Contexts.PythonGlobalContext()
-
-    # Create code for the other modules.
-    other_modules_code = ""
-
-    def myCompare( a, b ):
-        return cmp( a.getName(), b.getName() )
-
-    packages_done = set()
-
-    for other_module in sorted( other_modules, cmp = myCompare ):
-        package_name = other_module.getPackage()
-
-        if package_name is not None and package_name not in packages_done:
-            package_code = generatePackageCode(
-                generator    = generator,
-                package_name = package_name
-            )
-
-            other_modules_code += package_code
-
-            packages_done.add( package_name )
-
-    for other_module in sorted( other_modules, cmp = myCompare ):
-        other_module_code = generateModuleCode(
-            generator      = generator,
-            module         = other_module,
-            module_name    = other_module.getFullName(),
-            global_context = global_context,
-            stand_alone    = False
-        )
-
-        other_modules_code += other_module_code
-
-    # Create code for the main module.
-    main_module_code = generateModuleCode(
-        generator      = generator,
-        module         = main_module,
-        module_name    = "__main__",
-        global_context = global_context,
-        stand_alone    = True
-    )
-
-    codes = main_module_code + other_modules_code
-
-    return generator.getMainCode(
-        codes         = codes,
-        other_modules = other_modules
     )

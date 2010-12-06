@@ -92,11 +92,12 @@ class PythonGeneratorBase:
     def getDictionaryCreationCode( self, context, keys, values ):
         args = []
 
-        for key, value in reversed( zip( keys, values ) ):
-            args.append( key.getCodeTemporaryRef() )
+        for key, value in zip( keys, values ):
             args.append( value.getCodeTemporaryRef() )
+            args.append( key.getCodeTemporaryRef() )
 
-        return Identifier( "MAKE_DICT( %s )" % ( ", ".join( args ) ), 1 )
+
+        return Identifier( "MAKE_DICT( %s )" % ( ", ".join( reversed( args ) ) ), 1 )
 
     def getSetCreationCode( self, context, values ):
         args = []
@@ -767,7 +768,7 @@ else
 
         cond_keyword = "if"
 
-        for exception_identifier, exception_assignment, code in zip( exception_identifiers, exception_assignments, catcher_codes ):
+        for exception_identifier, exception_assignment, handler_code in zip( exception_identifiers, exception_assignments, catcher_codes ):
             if exception_identifier is not None:
                 exception_code.append( "%s (_exception.matches(%s))" % ( cond_keyword, exception_identifier.getCodeTemporaryRef() ) )
             else:
@@ -779,7 +780,7 @@ else
             if exception_assignment is not None:
                 exception_code.append( _indentedCode( exception_assignment.split("\n"), 4 ) )
 
-            exception_code += [ "    " + line for line in code ]
+            exception_code += _indentedCode( handler_code, 4 ).split("\n")
             exception_code.append( "}" )
 
             cond_keyword = "else if"
@@ -1026,13 +1027,18 @@ class PythonModuleGenerator( PythonGeneratorBase ):
     def getPackageCode( self, package_name ):
         package_identifier = self.getPackageIdentifier( package_name )
 
-        return CodeTemplates.package_template % {
+        header = CodeTemplates.package_header_template % {
+            "package_identifier" : package_identifier,
+        }
+
+        body = CodeTemplates.package_body_template % {
             "package_name"       : package_name,
             "package_identifier" : package_identifier,
         }
 
-    def getModuleCode( self, context, stand_alone, module_name, codes, doc_identifier, filename_identifier ):
+        return header, body
 
+    def getModuleCode( self, context, stand_alone, module_name, codes, doc_identifier, filename_identifier ):
         functions_decl = self.getFunctionsDecl( context = context )
         functions_code = self.getFunctionsCode( context = context )
 
@@ -1053,24 +1059,16 @@ class PythonModuleGenerator( PythonGeneratorBase ):
         # Make sure that _python_str_angle_module is available to the template
         context.getConstantHandle( constant = "<module>" )
 
-        if stand_alone:
-            header = CodeTemplates.global_copyright % { "name" : module_name }
-            global_prelude = context.global_context.getPreludeCode()
-            constant_init = context.global_context.getConstantCode()
-            global_helper = context.global_context.getHelperCode()
-        else:
-            header = CodeTemplates.module_header % { "name" : module_name }
-            global_prelude = ""
-            constant_init = ""
-            global_helper = ""
-
         if module_name.find( "." ) == -1:
+            package_name = None
+
             module_inits = CodeTemplates.module_plain_init_template % {
                 "module_identifier" : module_identifier,
                 "file_identifier"   : filename_identifier.getCode(),
                 "doc_identifier"    : doc_identifier.getCode(),
 
             }
+
         else:
             package_name = module_name[:module_name.rfind( "." )]
 
@@ -1083,7 +1081,16 @@ class PythonModuleGenerator( PythonGeneratorBase ):
                 "package_identifier"      : self.getPackageIdentifier( package_name )
             }
 
-        module_code = CodeTemplates.module_template % {
+        if stand_alone:
+            header = CodeTemplates.global_copyright % { "name" : module_name }
+            constant_init = context.global_context.getConstantCode()
+        else:
+            header = CodeTemplates.module_header % {
+                "name" : module_name,
+            }
+            constant_init = ""
+
+        module_code = CodeTemplates.module_body_template % {
             "module_name"           : module_name,
             "module_identifier"     : module_identifier,
             "module_functions_decl" : functions_decl,
@@ -1094,7 +1101,13 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             "module_code"           : _indentedCode( codes, 8 ),
         }
 
-        return header + global_prelude + constant_init + global_helper + module_code
+        return header + constant_init + module_code
+
+    def getModuleDeclarationCode( self, module_name ):
+        return CodeTemplates.module_header_template % {
+            "module_name"       : module_name,
+            "module_identifier" : self.getModuleIdentifier( module_name ),
+        }
 
     def getMainCode( self, codes, other_modules ):
         module_inittab = []
@@ -1110,7 +1123,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             )
 
         main_code = CodeTemplates.main_program % {
-            "module_inittab" : "\n    ".join( module_inittab )
+            "module_inittab" : _indentedCode( module_inittab, 4 )
         }
 
         return codes + main_code
@@ -1119,10 +1132,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
     def getFunctionsCode( self, context ):
         result = ""
 
-        def myCompare( a, b ):
-            return cmp( a[0].getCodeName(), b[0].getCodeName() )
-
-        for contraction_info in sorted( context.getContractionsCodes(), cmp = myCompare ):
+        for contraction_info in sorted( context.getContractionsCodes(), key = lambda x : x[0].getCodeName() ):
             contraction, contraction_identifier, contraction_context, loop_var_codes, contraction_code, contraction_conditions, contraction_iterateds = contraction_info
 
             if contraction.isExpressionGenerator():
@@ -1149,7 +1159,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         functions_infos = context.getFunctionsCodes()
 
-        for function, function_context, function_codes in sorted( functions_infos, cmp = myCompare ):
+        for function, function_context, function_codes in sorted( functions_infos, key = lambda x : x[0].getCodeName() ):
             result += self.getFunctionCode(
                 context        = function_context,
                 function       = function,
@@ -1158,14 +1168,14 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         classes_infos = context.getClassesCodes()
 
-        for class_def, ( class_context, class_codes ) in sorted( classes_infos.iteritems(), cmp = myCompare ):
+        for class_def, ( class_context, class_codes ) in sorted( classes_infos.items(), key = lambda x : x[0].getCodeName() ):
             result += self.getClassCode(
                 context     = class_context,
                 class_def   = class_def,
                 class_codes = class_codes
             )
 
-        for lambda_def, lambda_codes, lambda_context in sorted( context.getLambdasCodes(), cmp = myCompare ):
+        for lambda_def, lambda_codes, lambda_context in sorted( context.getLambdasCodes(), key = lambda x : x[0].getCodeName() ):
             result += self.getLambdaCode(
                 context      = lambda_context,
                 lambda_def   = lambda_def,
@@ -1177,11 +1187,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
     def getFunctionsDecl( self, context ):
         result = ""
 
-        def myCompare( a, b ):
-            return cmp( a[0].getCodeName(), b[0].getCodeName() )
-
-
-        for contraction_info in sorted( context.getContractionsCodes(), cmp = myCompare ):
+        for contraction_info in sorted( context.getContractionsCodes(), key = lambda x : x[0].getCodeName() ):
             contraction, contraction_identifier, _contraction_context, _loop_var_code, _contraction_code, _contraction_conditions, _contraction_iterateds = contraction_info
             if contraction.isExpressionGenerator():
                 result += self.getGeneratorExpressionDecl(
@@ -1196,7 +1202,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         functions_infos = context.getFunctionsCodes()
 
-        for function, function_context, _function_codes in sorted( functions_infos, cmp = myCompare ):
+        for function, function_context, _function_codes in sorted( functions_infos, key = lambda x : x[0].getCodeName() ):
             result += self.getFunctionDecl(
                 context  = function_context,
                 function = function,
@@ -1204,13 +1210,13 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         classes_infos = context.getClassesCodes()
 
-        for class_def, ( _class_context, _class_codes ) in sorted( classes_infos.iteritems(), cmp = myCompare ):
+        for class_def, ( _class_context, _class_codes ) in sorted( classes_infos.items(), key = lambda x : x[0].getCodeName() ):
             result += self.getClassDecl(
                 context   = context,
                 class_def = class_def,
             )
 
-        for lambda_def, _lambda_code, _lambda_context in sorted( context.getLambdasCodes(), cmp = myCompare ):
+        for lambda_def, _lambda_code, _lambda_context in sorted( context.getLambdasCodes(), key = lambda x : x[0].getCodeName() ):
             result += self.getLambdaDecl(
                 lambda_def = lambda_def
             )
@@ -1276,7 +1282,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
 
         contraction_iterateds.insert( 0, Identifier( "iterated", 0 ) )
 
-        for count, ( contraction_condition, contraction_iterated, loop_var_code ) in enumerate( reversed( zip( contraction_conditions, contraction_iterateds, loop_var_codes ) ) ):
+        for count, ( contraction_condition, contraction_iterated, loop_var_code ) in enumerate ( reversed( list( zip( contraction_conditions, contraction_iterateds, loop_var_codes ) ) ) ):
             contraction_loop = CodeTemplates.contraction_loop_iterated % {
                 "contraction_loop"         : contraction_loop,
                 "iter_count"               : len( loop_var_codes ) - count,

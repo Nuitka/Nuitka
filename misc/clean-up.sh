@@ -1,3 +1,4 @@
+#!/bin/sh
 #
 #     Copyright 2010, Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -29,12 +30,5 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Compiled generator object type.
 
-Another cornerstone of the integration into CPython. Try to behave as well as normal
-generator expression objects do or even better.
-"""
-
-compiled_genexpr_type_code = """\
-#include "nuitka/compiled_genexpr.hpp"
-"""
+find . -name \*.build -exec echo rm -rf {} \;

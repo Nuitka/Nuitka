@@ -240,6 +240,12 @@ This is the list of tests modified from what they are in CPython.
 
     Usability Fix: No deprecation warnings, removing the test that checks them.
 
+*** test_pydoc:
+
+    Usability Fix: Removed test_not_here, test_bad_import, test_input_strip, because they
+    try to run py_doc with the compiled exe, which cannot work and wouldn't be a test of
+    the compiler anyway.
+
 *** test_pty:
 
     Usability Fix: Disabled verbose tracing of pids that are not reproducible.

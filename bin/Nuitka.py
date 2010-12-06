@@ -79,10 +79,6 @@ tree = MainControl.createNodeTree(
     filename = Options.getPositionalArgs()[0]
 )
 
-cpp_filename = Options.getOutputPath(
-    tree.getName() + ".c++"
-)
-
 if not Options.shallOnlyExecGcc():
     if Options.shallDumpBuiltTree():
         MainControl.dumpTree( tree )
@@ -90,32 +86,13 @@ if not Options.shallOnlyExecGcc():
     if Options.shallDisplayBuiltTree():
         MainControl.displayTree( tree )
 
-    # Now build the target language code
-    if Options.shallMakeModule():
-        source_code = MainControl.makeModuleSource( tree )
-    else:
-        source_code = MainControl.makeMainSource( tree )
+    # Now build the target language code for the whole tree.
+    source_code = MainControl.makeSourceDirectory( tree )
 
-    # Write it to disk. May consider using -pipe some day
-    MainControl.writeSourceCode(
-        cpp_filename = cpp_filename,
-        source_code  = source_code
-    )
-
-# Inspect the running Python version for target information.
-python_target_major_version, python_target_debug_indicator, python_header_path = MainControl.getPythonVersionPaths()
-
-# Build the output filename and the g++ options
-gcc_options, output_filename = MainControl.getGccOptions(
-    tree                          = tree,
-    cpp_filename                  = cpp_filename,
-    python_target_major_version   = python_target_major_version,
-    python_target_debug_indicator = python_target_debug_indicator,
-    python_header_path            = python_header_path
-)
-
-result = MainControl.runCompiler(
-    gcc_options = gcc_options
+# Run the Scons to build things.
+result, options = MainControl.runScons(
+    name  = tree.getName(),
+    quiet = not Options.isShowScons()
 )
 
 # Exit if compilation failed.
@@ -128,4 +105,4 @@ if Options.shallExecuteImmediately():
     if Options.shallMakeModule():
         MainControl.executeModule( tree )
     else:
-        MainControl.executeMain( output_filename, tree )
+        MainControl.executeMain( options[ "result_file" ] + ".exe", tree )
