@@ -575,16 +575,16 @@ else
         traceback_filename = context.getTracebackFilename()
 
         return CodeTemplates.with_template % {
-            "assign"            : _indentedCode( assign_codes.split("\n") if assign_codes is not None else ( """// No "as" target variable for with'ed expression""", ), 8 ),
-            "body"              : _indentedCode( body_codes, 8 ),
-            "source"            : source_identifier.getCodeExportRef(),
-            "manager"           : with_manager_identifier.getCode(),
-            "value"             : with_value_identifier.getCode(),
-            "with_count"        : context.with_count,
-            "module_identifier" : self.getModuleAccessCode( context = context ),
-            "triple_none_tuple" : self.getConstantCode( context = context, constant = ( None, None, None ) ),
-            "name_identifier"   : self.getConstantCode( context = context, constant = traceback_name ),
-            "file_identifier"   : self.getConstantCode( context = context, constant = traceback_filename ),
+            "assign"              : _indentedCode( assign_codes.split("\n") if assign_codes is not None else ( """// No "as" target variable for with'ed expression""", ), 8 ),
+            "body"                : _indentedCode( body_codes, 8 ),
+            "source"              : source_identifier.getCodeExportRef(),
+            "manager"             : with_manager_identifier.getCode(),
+            "value"               : with_value_identifier.getCode(),
+            "with_count"          : context.with_count,
+            "module_identifier"   : self.getModuleAccessCode( context = context ),
+            "triple_none_tuple"   : self.getConstantCode( context = context, constant = ( None, None, None ) ),
+            "name_identifier"     : self.getConstantCode( context = context, constant = traceback_name ),
+            "filename_identifier" : self.getConstantCode( context = context, constant = traceback_filename ),
         }
 
     def getForLoopNames( self, context ):
@@ -997,6 +997,17 @@ if ( %s )
             buffering.getCodeTemporaryRef() if buffering is not None else "NULL"
         ), 1 )
 
+    def getBuiltinImportCode( self, context, module_name ):
+        module_name_identifier = self.getConstantCode( constant = module_name, context = context )
+
+        return Identifier( "IMPORT_MODULE( %s, %s )" % ( module_name_identifier, module_name_identifier ), 1 )
+
+    def getBuiltinChrCode( self, context, value ):
+        return Identifier( "CHR( %s )" % value.getCodeTemporaryRef(), 1 )
+
+    def getBuiltinOrdCode( self, context, value ):
+        return Identifier( "ORD( %s )" % value.getCodeTemporaryRef(), 1 )
+
 class PythonModuleGenerator( PythonGeneratorBase ):
     def __init__( self, module_name ):
         self.module_name = module_name
@@ -1019,21 +1030,40 @@ class PythonModuleGenerator( PythonGeneratorBase ):
         return Identifier( "MAKE_TRACEBACK( %s, %s )" % ( self.getFrameMakingIdentifier( context = context, line = line ).getCodeTemporaryRef(), line ), 1 )
 
     def getModuleIdentifier( self, module_name ):
-        return module_name.replace( ".", "__" )
+        return module_name.replace( ".", "__" ).replace( "-", "_" )
 
     def getPackageIdentifier( self, module_name ):
         return module_name.replace( ".", "__" )
 
-    def getPackageCode( self, package_name ):
+    def getPackageCode( self, context, package_name, doc_identifier, filename_identifier ):
         package_identifier = self.getPackageIdentifier( package_name )
 
         header = CodeTemplates.package_header_template % {
             "package_identifier" : package_identifier,
         }
 
+        package_identifier = self.getPackageIdentifier( package_name )
+
+        package_var_names = context.getGlobalVariableNames()
+
+        # These ones are used in the init code to set these variables to their values
+        # after module creation.
+        package_var_names.add( "__file__" )
+        package_var_names.add( "__doc__" )
+
+        if package_name.find( "." ) != -1:
+            package_var_names.add( "__package__" )
+
+        package_globals = "\n".join( [ """static PyObjectGlobalVariable _mvar_%s_%s( &_package_%s, &%s );""" % ( package_identifier, var_name, package_identifier, context.getConstantHandle( constant = var_name ).getCode() ) for var_name in sorted( package_var_names ) ] )
+
         body = CodeTemplates.package_body_template % {
             "package_name"       : package_name,
             "package_identifier" : package_identifier,
+            "package_globals"    : package_globals,
+            "package_inits"      : CodeTemplates.package_init_template % {
+                "package_identifier"  : package_identifier,
+                "filename_identifier" : filename_identifier.getCode(),
+            }
         }
 
         return header, body
@@ -1063,19 +1093,17 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             package_name = None
 
             module_inits = CodeTemplates.module_plain_init_template % {
-                "module_identifier" : module_identifier,
-                "file_identifier"   : filename_identifier.getCode(),
-                "doc_identifier"    : doc_identifier.getCode(),
-
+                "module_identifier"   : module_identifier,
+                "filename_identifier" : filename_identifier.getCode(),
+                "doc_identifier"      : doc_identifier.getCode(),
             }
-
         else:
             package_name = module_name[:module_name.rfind( "." )]
 
             module_inits = CodeTemplates.module_package_init_template % {
                 "module_identifier"       : module_identifier,
                 "module_name"             : self.getConstantCode( context = context, constant = module_name.split(".")[-1] ),
-                "file_identifier"         : filename_identifier.getCode(),
+                "filename_identifier"     : filename_identifier.getCode(),
                 "doc_identifier"          : doc_identifier.getCode(),
                 "package_name_identifier" : self.getConstantCode( context = context, constant = package_name ),
                 "package_identifier"      : self.getPackageIdentifier( package_name )
@@ -1097,7 +1125,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             "module_functions_code" : functions_code,
             "module_globals"        : module_globals,
             "module_inits"          : module_inits,
-            "file_identifier"       : filename_identifier.getCode(),
+            "filename_identifier"   : filename_identifier.getCode(),
             "module_code"           : _indentedCode( codes, 8 ),
         }
 
@@ -1821,7 +1849,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             "function_body"              : self.getReturnCode( context = context, identifier = generator_code ),
             "module"                     : self.getModuleAccessCode( context = context ),
             "name_identifier"            : self.getConstantCode( context = context, constant = function_name ),
-            "file_identifier"            : self.getConstantCode( context = context, constant = function_filename ),
+            "filename_identifier"        : self.getConstantCode( context = context, constant = function_filename ),
             "line_number_code"           : line_number_code,
         }
 

@@ -43,6 +43,7 @@ import SourceCodeReferences
 import TreeTransforming
 import PythonOperators
 import TreeOperations
+import Importing
 import Options
 
 import Nodes
@@ -793,51 +794,7 @@ def buildSubscriptNode( provider, node, source_ref ):
     else:
         assert False, kind
 
-_debug_module_finding = False
-
-def _findModuleInPath( module_name, package_name ):
-    if _debug_module_finding:
-        print( "_findModuleInPath: Enter", module_name, package_name )
-
-    if package_name is not None:
-        ext_path = [ element + os.path.sep + package_name.replace( ".", os.path.sep ) for element in sys.path + ["."] ]
-        try:
-            _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
-
-            return module_filename
-        except ImportError:
-            pass
-
-    ext_path = sys.path + ["."]
-    _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
-
-    return module_filename
-
-def _findModule( module_name, parent_package ):
-    if _debug_module_finding:
-        print( "_findModule: Enter", module_name, "in", parent_package )
-
-    # The os.path is strangely hacked into the os module, dispatching per platform, we
-    # either cannot look into it, or we require to be on the target platform. Non-Linux is
-    # unusually enough, but common, cross platform compile, lets give up on that.
-    if module_name == "os.path" and parent_package is None:
-        parent_package = "os"
-        module_name = os.path.basename( os.path.__file__ ).replace( ".pyc", "" )
-
-    if module_name.find( "." ) != -1:
-        package_part = module_name[ : module_name.rfind( "." ) ]
-        module_name = module_name[ module_name.rfind( "." ) + 1 : ]
-
-        if parent_package is not None:
-            return _findModule( package_part, parent_package + "." + package_part )
-        else:
-            return _findModule( module_name, package_part )
-    else:
-        return _findModuleInPath( module_name, parent_package ), parent_package
-
-def _isWhiteListedNotExistingModule( module_name ):
-    return module_name in ( "mac", "nt", "os2", "_emx_link", "riscos", "ce", "riscospath", "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256", "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle", "marshal", "imp", "sys", "itertools", "cStringIO", "time", "zlib", "thread", "math", "errno", "operator" )
-
+from Importing import _isWhiteListedNotExistingModule
 
 def _buildImportModulesNode( provider, parent_package, import_names, source_ref ):
     import_specs = []
@@ -848,33 +805,17 @@ def _buildImportModulesNode( provider, parent_package, import_names, source_ref 
         module_topname = module_name.split(".")[0]
         module_basename =  module_name.split(".")[-1]
 
+        module_package, module_name, module_filename = Importing.findModule(
+            module_name    = module_name,
+            parent_package = parent_package
+        )
+
         variable = provider.getVariableForAssignment( local_name if local_name is not None else module_topname )
-
-        if Options.shallFollowImports():
-            try:
-                module_filename, module_package = _findModule( module_name, parent_package )
-            except ImportError:
-                if not _isWhiteListedNotExistingModule( module_name ):
-                    warning( "Warning, cannot find " + module_name )
-
-                if module_name.find( "." ) != -1:
-                    module_package = module_name[ : module_name.rfind( "." ) ]
-                else:
-                    module_package = None
-
-                module_filename = None
-        else:
-            if module_name.find( "." ) != -1:
-                module_package = module_name[ : module_name.rfind( "." ) ]
-            else:
-                module_package = None
-
-            module_filename = None
 
         if local_name is not None:
             import_name = module_name
-        elif parent_package is not None and module_package is not None and module_package.startswith( parent_package ) and not module_name.startswith( module_package ):
-            import_name = module_package + "." + module_topname
+        elif parent_package is not None and module_package is not None and module_package.getName().startswith( parent_package.getName() ) and not module_name.startswith( module_package.getName() ):
+            import_name = module_package.getName() + "." + module_topname
         else:
             import_name = module_topname
 
@@ -903,7 +844,6 @@ def buildImportModulesNode( provider, node, source_ref ):
 
 def buildImportFromNode( provider, node, source_ref ):
     parent_package = provider.getParentModule().getPackage()
-
     module_name = node.module
 
     if module_name == "__future__":
@@ -930,12 +870,11 @@ def buildImportFromNode( provider, node, source_ref ):
                 warning( "Ignoring unkown future directive '%s'" % object_name )
     elif module_name == "":
         return _buildImportModulesNode(
-            provider      = provider,
+            provider       = provider,
             parent_package = None,
-            import_names   = [ ( parent_package + "." +  import_desc.name, import_desc.asname ) for import_desc in node.names ],
+            import_names   = [ ( parent_package.getName() + "." +  import_desc.name, import_desc.asname ) for import_desc in node.names ],
             source_ref     = source_ref
         )
-
 
     imports = []
 
@@ -949,18 +888,16 @@ def buildImportFromNode( provider, node, source_ref ):
 
         imports.append( ( object_name, local_variable ) )
 
-    if Options.shallFollowImports():
-        try:
-            module_filename, module_package = _findModule( module_name, parent_package )
-        except ImportError:
-            if not _isWhiteListedNotExistingModule( module_name ):
-                warning( "Cannot find module '%s'." % module_name )
+    module_package, module_name, module_filename = Importing.findModule(
+        module_name    = module_name,
+        parent_package = parent_package
+    )
 
-            module_package  = None
-            module_filename = None
-    else:
-        module_package  = None
-        module_filename = None
+    if module_package is not None:
+        module_package = Nodes.CPythonPackage(
+            parent_package = parent_package,
+            package_name   = module_package
+        )
 
     return Nodes.CPythonStatementImportFrom(
         provider        = provider,
@@ -1434,20 +1371,33 @@ class ModuleRecursionVisitor:
 
         self.stdlib = stdlib
 
+    def _consider( self, module_filename, module_package ):
+        assert module_package is None or isinstance( module_package, Nodes.CPythonPackage )
+
+        if module_filename.endswith( ".py" ):
+            if self.stdlib or not module_filename.startswith( "/usr/lib/python" ):
+                if os.path.relpath( module_filename ) not in self.imported_modules:
+                    print( "Recurse to", module_filename )
+
+                    imported_module = buildModuleTree(
+                        filename = module_filename,
+                        package  = module_package
+                    )
+
+                    self.imported_modules[ os.path.relpath( module_filename ) ] = imported_module
+
     def __call__( self, node ):
         if node.isStatementImport() or node.isStatementImportFrom():
             for module_filename, module_package in zip( node.getModuleFilenames(), node.getModulePackages() ):
-                if self.stdlib or not module_filename.startswith( "/usr/lib/python" ):
-                    if module_filename.endswith( ".py" ):
-                        if os.path.relpath( module_filename ) not in self.imported_modules:
-                            print( "Recurse to", module_filename )
-
-                            imported_module = buildModuleTree(
-                                filename = module_filename,
-                                package  = module_package
-                            )
-
-                            self.imported_modules[ os.path.relpath( module_filename ) ] = imported_module
+                self._consider(
+                    module_filename = module_filename,
+                    module_package  = module_package
+                )
+        elif node.isBuiltinImport():
+           self._consider(
+                module_filename = node.getModuleFilename(),
+                module_package  = node.getModulePackage()
+            )
 
 
 class VariableClosureLookupVisitor:
@@ -1531,7 +1481,10 @@ def applyImmediateTransformations( tree ):
     if Options.shallFollowImports():
         parent_module = tree.getParentModule()
 
-        TreeOperations.visitTree( tree, ModuleRecursionVisitor( parent_module, parent_module.getFilename(), Options.includeStandardLibrary() ) )
+        TreeOperations.visitTree(
+            tree    = tree,
+            visitor = ModuleRecursionVisitor( parent_module, parent_module.getFilename(), Options.shallFollowStandardLibrary() )
+        )
 
     # 2. Replace exec with string constant as parameters with the code inlined
     # instead. This is an optimization that is easy to do and useful for large parts of
@@ -1548,8 +1501,19 @@ def applyImmediateTransformations( tree ):
     # will refuse to work (exe case) or give incorrect results (module case).
     TreeTransforming.replaceBuiltinsCallsThatRequireInterpreter( tree, getFuture() )
 
+    # 5. Look at the imports and recurse into them again, because new ones may have surfaced
+    if Options.shallFollowImports():
+        parent_module = tree.getParentModule()
+
+        TreeOperations.visitTree(
+            tree    = tree,
+            visitor = ModuleRecursionVisitor( parent_module, parent_module.getFilename(), Options.shallFollowStandardLibrary() )
+        )
+
 
 def buildModuleTree( filename, package = None ):
+    assert package is None or isinstance( package, Nodes.CPythonPackage )
+
     initFuture()
 
     global _delayed_works

@@ -19,8 +19,4 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-cd deep
-
-Python --deep DeepProgram.py
-
-cd - >/dev/null
+__import__( "dash-module" )

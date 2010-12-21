@@ -38,6 +38,7 @@ applied here.
 
 import TreeOperations
 import TreeBuilding
+import Importing
 import Nodes
 
 from logging import warning
@@ -150,14 +151,12 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
         else:
             assert False
 
-
-
     def eval_extractor( node ):
         assert node.hasOnlyPositionalArguments()
 
         positional_args = node.getPositionalArguments()
 
-        return Nodes.CPythonExpressionBuiltinCallEval (
+        return Nodes.CPythonExpressionBuiltinCallEval(
             source       = positional_args[0],
             globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
             locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
@@ -203,15 +202,79 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
             source_ref   = source_ref
         )
 
+    def import_extractor( node ):
+        if node.isFunctionCall() and node.hasOnlyPositionalArguments():
+            positional_args = node.getPositionalArguments()
+
+            if len( positional_args ) == 1 and positional_args[0].isConstantReference():
+                module_name = positional_args[0].getConstant()
+
+                if type( module_name ) is str and module_name.find( "." ) == -1:
+                    module_package, module_name, module_filename = Importing.findModule(
+                        module_name    = module_name,
+                        parent_package = node.getParentModule().getPackage()
+                    )
+
+                    return Nodes.CPythonExpressionImport(
+                        module_package  = module_package,
+                        module_name     = module_name,
+                        module_filename = module_filename,
+                        source_ref      = node.getSourceReference()
+                    )
+        else:
+            return None
+
+    def chr_extractor( node ):
+        if node.isFunctionCall() and node.hasOnlyPositionalArguments():
+            positional_args = node.getPositionalArguments()
+
+            if len( positional_args ) == 1:
+                if positional_args[0].isConstantReference():
+                    try:
+                        return Nodes.CPythonExpressionConstant(
+                            constant   = chr( positional_args[0] ),
+                            source_ref = node.getSourceReference()
+                        )
+                    except:
+                        return None
+                else:
+                    return Nodes.CPythonExpressionBuiltinCallChr(
+                        value      = positional_args[0],
+                        source_ref = node.getSourceReference()
+                    )
+
+
+    def ord_extractor( node ):
+        if node.isFunctionCall() and node.hasOnlyPositionalArguments():
+            positional_args = node.getPositionalArguments()
+
+            if len( positional_args ) == 1:
+                if positional_args[0].isConstantReference():
+                    try:
+                        return Nodes.CPythonExpressionConstant(
+                            constant   = ord( positional_args[0] ),
+                            source_ref = node.getSourceReference()
+                        )
+                    except:
+                        return None
+                else:
+                    return Nodes.CPythonExpressionBuiltinCallOrd(
+                        value      = positional_args[0],
+                        source_ref = node.getSourceReference()
+                    )
+
 
     visitor = TreeVisitorReplaceBuiltinCalls(
         replacements = {
-            "globals"  : globals_extractor,
-            "locals"   : locals_extractor,
-            "dir"      : dir_extractor,
-            "vars"     : vars_extractor,
-            "eval"     : eval_extractor,
-            "execfile" : execfile_extractor
+            "globals"    : globals_extractor,
+            "locals"     : locals_extractor,
+            "dir"        : dir_extractor,
+            "vars"       : vars_extractor,
+            "eval"       : eval_extractor,
+            "execfile"   : execfile_extractor,
+            "__import__" : import_extractor,
+            "chr"        : chr_extractor,
+            "ord"        : ord_extractor,
         }
     )
 

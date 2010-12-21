@@ -30,8 +30,12 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
+
 class ImportSpec:
     def __init__( self, module_package, module_name, import_name, variable, module_filename ):
+        import Nodes
+        assert module_package is None or isinstance( module_package, Nodes.CPythonPackage )
+
         self.module_package  = module_package
         self.module_name     = module_name
         self.import_name     = import_name
@@ -54,7 +58,7 @@ class ImportSpec:
 
     def getFullName( self ):
         if self.module_package:
-            return self.module_package + "." + self.module_name
+            return self.module_package.getName() + "." + self.module_name
         else:
             return self.module_name
 

@@ -110,6 +110,9 @@ package_body_template = """\
 
 PyObject *_package_%(package_identifier)s = NULL;
 
+// The package level variables.
+%(package_globals)s
+
 void init%(package_identifier)s(void)
 {
     if ( _package_%(package_identifier)s == NULL )
@@ -124,6 +127,9 @@ void init%(package_identifier)s(void)
 
         assert( _package_%(package_identifier)s );
     }
+
+    // Initialize the standard module attributes.
+%(package_inits)s
 }
 
 """
@@ -205,7 +211,7 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 
         if ( traceback == false )
         {
-            ADD_TRACEBACK( _module_%(module_identifier)s, %(file_identifier)s, _python_str_angle_module, _exception.getLine() );
+            ADD_TRACEBACK( _module_%(module_identifier)s, %(filename_identifier)s, _python_str_angle_module, _exception.getLine() );
         }
     }
 }
@@ -213,16 +219,19 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 
 module_plain_init_template = """\
     _mvar_%(module_identifier)s___doc__.assign0( %(doc_identifier)s );
-    _mvar_%(module_identifier)s___file__.assign0( %(file_identifier)s );"""
+    _mvar_%(module_identifier)s___file__.assign0( %(filename_identifier)s );"""
 
 module_package_init_template = """\
     _mvar_%(module_identifier)s___doc__.assign0( %(doc_identifier)s );
-    _mvar_%(module_identifier)s___file__.assign0( %(file_identifier)s );
+    _mvar_%(module_identifier)s___file__.assign0( %(filename_identifier)s );
     _mvar_%(module_identifier)s___package__.assign0( %(package_name_identifier)s );
 
     init%(package_identifier)s();
 
     SET_ATTRIBUTE( _package_%(package_identifier)s, %(module_name)s, _module_%(module_identifier)s );"""
+
+package_init_template = """\
+    _mvar_%(package_identifier)s___file__.assign0( %(filename_identifier)s );"""
 
 constant_reading = """
 #include "nuitka/prelude.hpp"

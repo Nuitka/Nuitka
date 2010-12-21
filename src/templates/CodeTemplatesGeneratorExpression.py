@@ -146,7 +146,7 @@ static PyObject *%(function_identifier)s( Nuitka_GenexprObject *generator )
     catch ( _PythonException &_exception )
     {
         _exception.toPython();
-        ADD_TRACEBACK( %(module)s, %(file_identifier)s, %(name_identifier)s, _exception.getLine() );
+        ADD_TRACEBACK( %(module)s, %(filename_identifier)s, %(name_identifier)s, _exception.getLine() );
 
         return NULL;
     }

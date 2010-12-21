@@ -634,7 +634,7 @@ static void PRINT_REFCOUNT( PyObject *object )
    }
 
    char buffer[1024];
-   sprintf( buffer, " refcnt %d ", object->ob_refcnt );
+   sprintf( buffer, " refcnt %zd ", object->ob_refcnt );
 
    if (unlikely( PyFile_WriteString(buffer, stdout) == -1 ))
    {
@@ -2340,6 +2340,11 @@ class PythonBuiltin
 PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags );
 
 PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering );
+
+// For quicker builtin chr() functionality.
+PyObject *CHR( PyObject *value );
+// For quicker builtin ord() functionality.
+PyObject *ORD( PyObject *value );
 
 static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {

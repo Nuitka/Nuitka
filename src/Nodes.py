@@ -197,6 +197,9 @@ class CPythonNode:
     def isConstantReference( self ):
         return self.kind == "EXPRESSION_CONSTANT_REF"
 
+    def isBuiltinImport( self ):
+        return self.kind == "EXPRESSION_BUILTIN_IMPORT"
+
     def isBuiltinGlobals( self ):
         return self.kind == "EXPRESSION_BUILTIN_GLOBALS"
 
@@ -214,6 +217,12 @@ class CPythonNode:
 
     def isBuiltinOpen( self ):
         return self.kind == "EXPRESSION_BUILTIN_OPEN"
+
+    def isBuiltinChr( self ):
+        return self.kind == "EXPRESSION_BUILTIN_CHR"
+
+    def isBuiltinOrd( self ):
+        return self.kind == "EXPRESSION_BUILTIN_ORD"
 
     def isOperation( self ):
         return self.kind in ( "EXPRESSION_BINARY_OPERATION", "EXPRESSION_UNARY_OPERATION", "EXPRESSION_MULTIARG_OPERATION" )
@@ -629,6 +638,8 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
         The module is a possible root of a tree.
     """
     def __init__( self, name, package, filename, source_ref ):
+        assert package is None or isinstance( package, CPythonPackage )
+
         CPythonNamedNode.__init__( self, name = name, kind = "MODULE", source_ref = source_ref )
         CPythonClosureGiver.__init__( self, "module" )
         CPythonChildrenHaving.__init__(
@@ -659,7 +670,7 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
 
     def getFullName( self ):
         if self.package:
-            return self.package + "." + self.getName()
+            return self.package.getName() + "." + self.getName()
         else:
             return self.getName()
 
@@ -676,8 +687,15 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
         return True
 
 class CPythonPackage( CPythonNamedNode ):
-    def __init__( self, name, parent_package, filename, source_ref ):
+    def __init__( self, name, parent_package, source_ref ):
         CPythonNamedNode.__init__( self, name = name, kind = "PACKAGE", source_ref = source_ref )
+
+    def getFilename( self ):
+        return self.source_ref.getFilename()
+
+    def getDoc( self ):
+        # TODO: Check if they can have it.
+        return None
 
 
 class CPythonClass( CPythonNamedNode, CPythonClosureTaker, CPythonNamedCode ):
@@ -1854,6 +1872,24 @@ class CPythonStatementPass( CPythonNode ):
     def __init__( self, source_ref ):
         CPythonNode.__init__( self, kind = "STATEMENT_PASS", source_ref = source_ref )
 
+class CPythonExpressionImport( CPythonNode ):
+    def __init__( self, module_package, module_name, module_filename, source_ref ):
+        assert module_package is None or isinstance( module_package, CPythonPackage )
+
+        CPythonNode.__init__( self, kind = "EXPRESSION_BUILTIN_IMPORT", source_ref = source_ref )
+
+        self.module_package = module_package
+        self.module_name = module_name
+        self.module_filename = module_filename
+
+    def getModuleName( self ):
+        return self.module_name
+
+    def getModuleFilename( self ):
+        return self.module_filename
+
+    def getModulePackage( self ):
+        return self.module_package
 
 class CPythonStatementImportModules( CPythonNode ):
     def __init__( self, import_specs, source_ref ):
@@ -2017,3 +2053,29 @@ class CPythonExpressionBuiltinCallOpen( CPythonChildrenHaving, CPythonNode ):
     getFilename = CPythonChildrenHaving.childGetter( "filename" )
     getMode = CPythonChildrenHaving.childGetter( "mode" )
     getBuffering = CPythonChildrenHaving.childGetter( "buffering" )
+
+class CPythonExpressionBuiltinCallChr( CPythonChildrenHaving, CPythonNode ):
+    def __init__( self, value, source_ref ):
+        CPythonNode.__init__( self, kind = "EXPRESSION_BUILTIN_CHR", source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "value"     : value,
+            }
+        )
+
+    getValue = CPythonChildrenHaving.childGetter( "value" )
+
+class CPythonExpressionBuiltinCallOrd( CPythonChildrenHaving, CPythonNode ):
+    def __init__( self, value, source_ref ):
+        CPythonNode.__init__( self, kind = "EXPRESSION_BUILTIN_ORD", source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "value"     : value,
+            }
+        )
+
+    getValue = CPythonChildrenHaving.childGetter( "value" )

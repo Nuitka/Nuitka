@@ -882,6 +882,21 @@ def generateExpressionCode( expression, context, generator, allow_none = False )
                 ),
                 context    = context
             )
+    elif expression.isBuiltinImport():
+        return generator.getBuiltinImportCode(
+            module_name = expression.getModuleName(),
+            context     = context
+        )
+    elif expression.isBuiltinChr():
+        return generator.getBuiltinChrCode(
+            value   = makeExpressionCode( expression.getValue() ),
+            context = context
+        )
+    elif expression.isBuiltinOrd():
+        return generator.getBuiltinOrdCode(
+            value   = makeExpressionCode( expression.getValue() ),
+            context = context
+        )
     else:
         assert False, expression
 
@@ -1618,9 +1633,17 @@ def generateStatementSequenceCode( statement_sequence, context, generator ):
 
     return codes
 
-def generatePackageCode( package_name, generator ):
+def generatePackageCode( package, global_context, generator ):
+    context = Contexts.PythonPackageContext(
+        package_name   = package.getName(),
+        global_context = global_context,
+    )
+
     return generator.getPackageCode(
-        package_name = package_name
+        context             = context,
+        package_name        = package.getName(),
+        doc_identifier      = context.getConstantHandle( constant = package.getDoc() ),
+        filename_identifier = context.getConstantHandle( constant = package.getFilename() ),
     )
 
 def generateModuleCode( module, module_name, global_context, stand_alone, generator ):

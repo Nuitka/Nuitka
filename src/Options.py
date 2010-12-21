@@ -34,7 +34,7 @@
 from __future__ import print_function
 
 version_string = """\
-Nuitka V0.3.4pre1
+Nuitka V0.3.4pre2
 Copyright (C) 2010 Kay Hayen."""
 
 from optparse import OptionParser
@@ -165,6 +165,9 @@ def shallMakeModule():
 def shallFollowImports():
     return options.follow_imports
 
+def shallFollowStandardLibrary():
+    return False
+
 def isDebug():
     return options.debug
 
@@ -176,9 +179,6 @@ def getOutputPath( path ):
         return os.path.normpath( options.output_dir + "/" + path )
     else:
         return path
-
-def includeStandardLibrary():
-    return False
 
 def getPositionalArgs():
     return positional_args

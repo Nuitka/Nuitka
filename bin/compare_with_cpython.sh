@@ -45,18 +45,17 @@ if [ "$MODE" = "silent" ]
 then
     $PYTHON $1 | make_diffable >/tmp/cpython.out.$$
 
-    $PYTHON `which Nuitka.py` --exe --execute $1 | make_diffable >/tmp/nuitka.out.$$
+    $PYTHON `which Nuitka.py` $NUITKA_EXTRA_OPTIONS --exe --execute $1 | make_diffable >/tmp/nuitka.out.$$
 else
     echo "*******************************************************"
     echo "CPython:"
     echo "*******************************************************"
-
     $PYTHON $1 | make_diffable | tee /tmp/cpython.out.$$
 
     echo "*******************************************************"
     echo "Nuitka:"
     echo "*******************************************************"
-    $PYTHON `which Nuitka.py` --exe --execute $1 | make_diffable | tee /tmp/nuitka.out.$$
+    $PYTHON `which Nuitka.py` $NUITKA_EXTRA_OPTIONS --exe --execute $1 | make_diffable | tee /tmp/nuitka.out.$$
 
     echo "*******************************************************"
     echo "Diff:"

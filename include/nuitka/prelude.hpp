@@ -42,6 +42,8 @@
 #include "methodobject.h"
 #include "frameobject.h"
 #include <stdio.h>
+#include <stddef.h>
+
 
 // An idea I first saw used with Cython, hint the compiler about branches that are more or
 // less likely to be taken. And hint the compiler about things that we assume to be

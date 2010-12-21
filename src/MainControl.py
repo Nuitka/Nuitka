@@ -164,10 +164,13 @@ def makeModuleSource( tree ):
 def makeSourceDirectory( main_module ):
     assert main_module.isModule()
 
-    source_dir = main_module.getName() + ".build/"
+    source_dir = Options.getOutputPath( main_module.getName() + ".build" )
+
+    if not source_dir.endswith( "/" ):
+        source_dir += "/"
 
     if os.path.exists( source_dir ):
-        os.system( "rm -f " + source_dir + "/*.cpp " + source_dir + "/*.hpp" )
+        os.system( "rm -f '" + source_dir + "'/*.cpp '" + source_dir + "'/*.hpp" )
     else:
         os.mkdir( source_dir )
 
@@ -189,25 +192,29 @@ def makeSourceDirectory( main_module ):
     for other_module in sorted( other_modules, key = lambda x : x.getName() ):
         _prepareCodeGeneration( other_module )
 
-        package_name = other_module.getPackage()
+        package = other_module.getPackage()
 
-        if package_name is not None and package_name not in packages_done:
-            package_header, package_body = CodeGeneration.generatePackageCode(
-                generator    = generator,
-                package_name = package_name
-            )
+        if package is not None:
+            package_name = package.getName()
 
-            declarations += package_header
-            writeSourceCode( source_dir + package_name + ".cpp", package_body )
+            if package_name not in packages_done:
+                package_header, package_body = CodeGeneration.generatePackageCode(
+                    package        = package,
+                    generator      = generator,
+                    global_context = global_context,
+                )
 
-            packages_done.add( package_name )
+                declarations += package_header
+                writeSourceCode( source_dir + package_name + ".cpp", package_body )
+
+                packages_done.add( package_name )
 
     for other_module in sorted( other_modules, key = lambda x : x.getName() ):
         other_module_code = CodeGeneration.generateModuleCode(
             generator      = generator,
+            global_context = global_context,
             module         = other_module,
             module_name    = other_module.getFullName(),
-            global_context = global_context,
             stand_alone    = False
         )
 
@@ -250,10 +257,12 @@ def runScons( name, quiet ):
         return "true" if value else "false"
 
     result_file = Options.getOutputPath( name )
+    source_dir = Options.getOutputPath( name + ".build" )
 
     options = {
         "name"           : name,
         "result_file"    : result_file,
+        "source_dir"     : source_dir,
         "debug_mode"     : asBoolStr( Options.isDebug() ),
         "module_mode"    : asBoolStr( Options.shallMakeModule() ),
         "optimize_mode"  : asBoolStr( Options.isOptimize() ),
@@ -261,26 +270,15 @@ def runScons( name, quiet ):
         "python_debug"   : asBoolStr( Options.options.python_debug if Options.options.python_debug is not None else hasattr( sys, "getobjects" ) )
     }
 
-    command = "scons" + (" --quiet" if quiet else "") + " -f " + os.environ[ "NUITKA_SCONS" ] + "/SingleExe.scons " + " ".join( "%s=%s" % (key,value) for key, value in options.items() )
+    scons_command = "scons" + (" --quiet" if quiet else "") + " -f " + os.environ[ "NUITKA_SCONS" ] + "/SingleExe.scons " + " ".join( "%s=%s" % (key,value) for key, value in options.items() )
 
-    return 0 == os.system( command ), options
+    if Options.isShowScons():
+        print( "Scons command:", scons_command )
+
+    return 0 == os.system( scons_command ), options
 
 def writeSourceCode( cpp_filename, source_code ):
     open( cpp_filename, "w" ).write( source_code )
-
-def getGccOptions( python_target_major_version, python_target_debug_indicator, python_header_path, cpp_filename, tree ):
-    if not os.path.exists( python_header_path + "/Python.h" ):
-        warning( "The Python headers seem to be not installed. Expect C++ compiler failures." )
-
-    # Compile the generated source immediately.
-    if Options.shallMakeModule():
-        gcc_options += [ "-shared", "-fPIC" ]
-
-        target_path = tree.getName() + ".so"
-    else:
-        target_path = tree.getName() + ".exe"
-
-    output_filename = Options.getOutputPath( target_path )
 
 def executeMain( output_filename, tree ):
     os.execl( output_filename, tree.getName() + ".exe", *Options.getMainArgs() )

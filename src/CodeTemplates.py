@@ -32,9 +32,6 @@
 
 from templates.CodeTemplatesMain import *
 
-from templates.CodeTemplatesCompiledGeneratorType import *
-from templates.CodeTemplatesCompiledGenexprType import *
-
 from templates.CodeTemplatesFunction import *
 from templates.CodeTemplatesGeneratorExpression import *
 from templates.CodeTemplatesGeneratorFunction import *
@@ -231,7 +228,7 @@ with_template = """\
     catch ( _PythonException &_exception )
     {
         _exception.toPython();
-        ADD_TRACEBACK( %(module_identifier)s, %(file_identifier)s, %(name_identifier)s, _exception.getLine() );
+        ADD_TRACEBACK( %(module_identifier)s, %(filename_identifier)s, %(name_identifier)s, _exception.getLine() );
         traceback = true;
         _exception._importFromPython();
 

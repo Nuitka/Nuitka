@@ -290,6 +290,22 @@ class PythonGlobalContext:
 
         return "\n        ".join( statements )
 
+class PythonPackageContext( PythonContextBase ):
+    def __init__( self, package_name, global_context ):
+        PythonContextBase.__init__( self )
+
+        self.package_name = package_name
+
+        self.global_context = global_context
+
+        self.global_var_names = set()
+
+    def getConstantHandle( self, constant ):
+        return self.global_context.getConstantHandle( constant )
+
+    def getGlobalVariableNames( self ):
+        return self.global_var_names
+
 
 class PythonModuleContext( PythonContextBase ):
     def __init__( self, module_name, code_name, filename, global_context ):

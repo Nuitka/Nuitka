@@ -36,7 +36,6 @@
 #include "methodobject.h"
 #include "frameobject.h"
 
-
 // Compiled function type.
 
 // The backbone of the integration into CPython. Try to behave as well as normal functions

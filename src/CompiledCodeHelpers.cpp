@@ -113,6 +113,79 @@ PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
     return result;
 }
 
+PyObject *CHR( PyObject *value )
+{
+    long x = PyInt_AsLong( value );
+
+    if ( x < 0 || x >= 256 )
+    {
+        PyErr_Format( PyExc_ValueError, "chr() arg not in range(256)" );
+        throw _PythonException();
+    }
+
+    // TODO: A switch statement might be faster, because no object needs to be created at
+    // all, this is how CPython does it.
+    char s[1];
+    s[0] = (char)x;
+
+    return PyString_FromStringAndSize( s, 1 );
+}
+
+PyObject *ORD( PyObject *value )
+{
+    long result;
+
+    if (likely( PyString_Check( value ) ))
+    {
+        Py_ssize_t size = PyString_GET_SIZE( value );
+
+        if (likely( size == 1 ))
+        {
+            result = long( ((unsigned char *)PyString_AS_STRING( value ))[0] );
+        }
+        else
+        {
+            PyErr_Format( PyExc_TypeError, "ord() expected a character, but string of length %d found", size );
+            throw _PythonException();
+        }
+    }
+    else if ( PyByteArray_Check( value ) )
+    {
+        Py_ssize_t size = PyByteArray_GET_SIZE( value );
+
+        if (likely( size == 1 ))
+        {
+            result = long( ((unsigned char *)PyByteArray_AS_STRING( value ))[0] );
+        }
+        else
+        {
+            PyErr_Format( PyExc_TypeError, "ord() expected a character, but byte array of length %d found", size );
+            throw _PythonException();
+        }
+    }
+    else if ( PyUnicode_Check( value ) )
+    {
+        Py_ssize_t size = PyUnicode_GET_SIZE( value );
+
+        if (likely( size == 1 ))
+        {
+            result = long( ((unsigned char *)PyUnicode_AS_UNICODE( value ))[0] );
+        }
+        else
+        {
+            PyErr_Format( PyExc_TypeError, "ord() expected a character, but unicode string of length %d found", size );
+            throw _PythonException();
+        }
+    }
+    else
+    {
+        PyErr_Format( PyExc_TypeError, "ord() expected string of length 1, but %s found", value->ob_type->tp_name );
+        throw _PythonException();
+    }
+
+    return PyInt_FromLong( result );
+}
+
 static PyObject *empty_code = PyBuffer_FromMemory( NULL, 0 );
 
 static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line )

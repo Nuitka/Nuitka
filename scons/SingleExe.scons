@@ -44,7 +44,7 @@ env = Environment(
 env[ "CXX" ] = "g++-nuitka"
 
 source_name = ARGUMENTS[ "name" ]
-source_dir = source_name + ".build"
+source_dir = ARGUMENTS.get( "source_dir", source_name + ".build" )
 
 env[ "BUILD_DIR" ] = source_dir
 
@@ -53,14 +53,21 @@ def getBoolOption( option_name, default ):
 
     return value.lower() in ( "yes", "true", "1" )
 
-debug_mode = getBoolOption( "debug", False )
-optimize_mode = getBoolOption( "optimize", False )
+debug_mode = getBoolOption( "debug_mode", False )
+optimize_mode = getBoolOption( "optimize_mode", True )
 module_mode = getBoolOption( "module_mode", False )
 
 result_file = ARGUMENTS.get( "result_file", source_name )
 
 # All Nuitka generated C++ is C++0X standard, so make that clear.
 env.Append( CCFLAGS = [ "-std=c++0x" ] )
+
+# Use link time optimizations so that the gcc can help with optimization across files, but
+# unfortunately at this time it seriously slows down the compiled code. This may be
+# because it needs -O3 option to be effective.
+
+# env.Append( CCFLAGS = [ "-flto" ] )
+# env.Append( LINKFLAGS = [ "-flto" ] )
 
 # Python version, use the scons one if not given.
 python_version = ARGUMENTS.get( "python_version", None )
@@ -104,8 +111,11 @@ else:
 def discoverSourceFiles():
     result = []
 
-    # TODO: libnuitka.a should be here instead.
+    # TODO: Some reference to a libnuitka.a should be here instead, but for now it's
+    # simpler like this while Nuitka is not packaged, and the .o is writable there.
     result.append( os.environ.get( "NUITKA_CPP", "./src/" ) + "/CompiledFunctionType.cpp" )
+    result.append( os.environ.get( "NUITKA_CPP", "./src/" ) + "/CompiledGeneratorType.cpp" )
+    result.append( os.environ.get( "NUITKA_CPP", "./src/" ) + "/CompiledGenexprType.cpp" )
     result.append( os.environ.get( "NUITKA_CPP", "./src/" ) + "/CompiledCodeHelpers.cpp" )
 
     for filename in os.listdir( source_dir ):
