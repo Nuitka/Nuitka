@@ -175,20 +175,32 @@ class LocalLoopVariable( LocalVariable ):
     def isLocalLoopVariable( self ):
         return True
 
+_module_variables = {}
+
 class ModuleVariable( Variable ):
     def __init__( self, module, variable_name ):
         Variable.__init__( self, owner = module, variable_name = variable_name )
-
         self.module = module
+
+        key = self._getKey()
+
+        assert key not in _module_variables, key
+        _module_variables[ key ] = self
 
     def __repr__( self ):
         return "<ModuleVariable '%s' of '%s'>" % ( self.variable_name, self.owner.getName() )
+
+    def _getKey( self ):
+        return self.getModuleName(), self.getName()
 
     def isModuleVariable( self ):
         return True
 
     def getModuleName( self ):
         return self.module.getName()
+
+    def _checkShared( self, variable ):
+        assert False, variable
 
 class ClosureVariableReference( Variable ):
     def __init__( self, owner, variable ):

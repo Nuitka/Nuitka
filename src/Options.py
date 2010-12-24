@@ -34,7 +34,7 @@
 from __future__ import print_function
 
 version_string = """\
-Nuitka V0.3.4pre2
+Nuitka V0.3.4pre3
 Copyright (C) 2010 Kay Hayen."""
 
 from optparse import OptionParser

@@ -229,7 +229,6 @@ with_template = """\
     {
         _exception.toPython();
         ADD_TRACEBACK( %(module_identifier)s, %(filename_identifier)s, %(name_identifier)s, _exception.getLine() );
-        traceback = true;
         _exception._importFromPython();
 
         _caught_%(with_count)d.save( _exception );
@@ -251,6 +250,7 @@ with_template = """\
         }
         else
         {
+            traceback = true;
             _caught_%(with_count)d.rethrow();
         }
     }

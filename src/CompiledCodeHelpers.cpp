@@ -169,7 +169,7 @@ PyObject *ORD( PyObject *value )
 
         if (likely( size == 1 ))
         {
-            result = long( ((unsigned char *)PyUnicode_AS_UNICODE( value ))[0] );
+            result = long( *PyUnicode_AS_UNICODE( value ) );
         }
         else
         {

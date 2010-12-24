@@ -90,6 +90,7 @@ static PyObject *%(contraction_identifier)s( %(contraction_parameters)s )
 }
 """
 
+# Note: List contractions have no local variables, they share everything with the outside world.
 list_contration_var_decl = """\
 PyObject *_python_contraction_result = MAKE_LIST();""";
 

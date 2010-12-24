@@ -194,12 +194,8 @@ class _PythonException
 
         inline void _importFromPython()
         {
-
             PyErr_Fetch( &this->exception_type, &this->exception_value, &this->exception_tb );
             assert( this->exception_type );
-
-            // TODO: Is this necessary at all?
-            PyErr_Clear();
         }
 
         inline int getLine() const
@@ -319,12 +315,12 @@ class _PythonExceptionKeeper
     public:
         _PythonExceptionKeeper()
         {
-            empty = true;
+            saved = NULL;
         }
 
         ~_PythonExceptionKeeper()
         {
-            if ( this->empty == false)
+            if ( this->saved )
             {
                 delete this->saved;
             }
@@ -333,13 +329,11 @@ class _PythonExceptionKeeper
         void save( const _PythonException &e )
         {
             this->saved = new _PythonException( e );
-
-            empty = false;
         }
 
         void rethrow()
         {
-            if (empty == false)
+            if ( this->saved )
             {
                 throw *this->saved;
             }
@@ -347,7 +341,7 @@ class _PythonExceptionKeeper
 
         bool isEmpty() const
         {
-            return this->empty;
+            return this->saved == NULL;
         }
 
     private:

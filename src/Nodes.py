@@ -62,7 +62,7 @@ class CPythonNode:
 
     def getDescription( self ):
         """ Description of the node, intented for use in __repr__ and graphical display."""
-        return self.kind
+        return "%s at %s" % ( self.kind, self.source_ref )
 
     def getDetail( self ):
         """ Description of the node, intented for use in __repr__ and graphical display."""
@@ -588,22 +588,27 @@ class CPythonClosureTaker:
         self.closure = set()
 
     def getClosureVariable( self, variable_name ):
-        # result = self.provider.getProvidedVariable( variable_name )
-
         result = self.provider.getVariableForReference( variable_name )
+        assert result is not None, ( "Fail to closure", self, self.provider, variable_name )
 
-        if result is None:
-            print( "Fail to closure", self, self.provider, variable_name )
-            assert False
+        return self._addClosureVariable( result )
 
-        if not result.isModuleVariable():
-            result = Variables.ClosureVariableReference( self, result )
+    def getModuleClosureVariable( self, variable_name ):
+        result = self.provider.getParentModule().getProvidedVariable( variable_name = variable_name )
 
-            self.closure.add( result )
+        return self._addClosureVariable( result )
 
-        self.taken.add( result )
 
-        return result
+    def _addClosureVariable( self, variable ):
+        if variable.isModuleVariable():
+            pass
+        else:
+            variable = Variables.ClosureVariableReference( self, variable )
+            self.closure.add( variable )
+
+        self.taken.add( variable )
+
+        return variable
 
     def getClosureVariables( self ):
         return tuple( sorted( self.closure, key = lambda x : x.getName() ))
@@ -688,6 +693,9 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
 
 class CPythonPackage( CPythonNamedNode ):
     def __init__( self, name, parent_package, source_ref ):
+        assert type(name) is str, type(name)
+        assert type(parent_package) in (type(None), CPythonPackage )
+
         CPythonNamedNode.__init__( self, name = name, kind = "PACKAGE", source_ref = source_ref )
 
     def getFilename( self ):

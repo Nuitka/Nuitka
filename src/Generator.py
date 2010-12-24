@@ -1300,7 +1300,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
         local_var_decl = []
 
         for variable in contraction.getProvidedVariables():
-            if not variable.isClosureReference():
+            if not variable.isClosureReference() and not variable.isModuleVariable():
                 local_var_decl.append( self._getLocalVariableInitCode( contraction_context, variable, in_context = False ) )
 
 
@@ -1373,6 +1373,8 @@ class PythonModuleGenerator( PythonGeneratorBase ):
         }
 
     def _getLocalVariableInitCode( self, context, variable, init_from = None, needs_no_free = False, in_context = False, shared = False, mangle_name = None ):
+        assert not variable.isModuleVariable()
+
         shared = shared or variable.isShared()
 
         if shared:
@@ -2064,8 +2066,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
             context    = context
         )
 
-        metaclass_variable = Variables.ModuleVariable(
-            module = class_def.getParentModule(),
+        metaclass_variable = class_def.getParentModule().getVariableForReference(
             variable_name = "__metaclass__"
         )
 

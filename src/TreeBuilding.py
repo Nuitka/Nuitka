@@ -893,12 +893,6 @@ def buildImportFromNode( provider, node, source_ref ):
         parent_package = parent_package
     )
 
-    if module_package is not None:
-        module_package = Nodes.CPythonPackage(
-            parent_package = parent_package,
-            package_name   = module_package
-        )
-
     return Nodes.CPythonStatementImportFrom(
         provider        = provider,
         module_name     = module_name,
@@ -965,6 +959,8 @@ def buildNodeList( provider, nodes, source_ref ):
         return []
 
 def buildGlobalDeclarationNode( provider, node, source_ref ):
+    # Need to catch the error of declaring a parameter variable as global ourselves
+    # here. The AST parsing doesn't catch it.
     try:
         parameters = provider.getParameters()
 
@@ -974,14 +970,9 @@ def buildGlobalDeclarationNode( provider, node, source_ref ):
     except AttributeError:
         pass
 
+    # Make sure the provide has these global variables taken.
     for variable_name in node.names:
-        variable = provider.getParentModule().createProvidedVariable( variable_name = variable_name )
-
-        # Big friendship with closure taker here. Something that takes module variables has that
-        # self.taken from being a CPythonClosureTaker, could be an interface of it too.
-        provider.taken.add( variable )
-
-
+        provider.getModuleClosureVariable( variable_name = variable_name )
 
     return Nodes.CPythonDeclareGlobal(
         variables  = node.names,
@@ -1021,6 +1012,9 @@ class TransitiveProvider:
 
     def isModule( self ):
         return self.effective_provider.isModule()
+
+    def getParentModule( self ):
+        return self.effective_provider.getParentModule()
 
     def createProvidedVariable( self, variable_name ):
         return self.effective_provider.createProvidedVariable( variable_name = variable_name )
