@@ -1008,6 +1008,18 @@ if ( %s )
     def getBuiltinOrdCode( self, context, value ):
         return Identifier( "ORD( %s )" % value.getCodeTemporaryRef(), 1 )
 
+    def getBuiltinType1Code( self, context, value ):
+        return Identifier( "BUILTIN_TYPE1( %s )" % value.getCodeTemporaryRef(), 1 )
+
+    def getBuiltinType3Code( self, context, name_identifier, bases_identifier, dict_identifier ):
+        return Identifier( "BUILTIN_TYPE3( %s, %s, %s, %s )" % (
+            self.getConstantCode( constant = context.getModuleName(), context = context ),
+            name_identifier.getCodeTemporaryRef(),
+            bases_identifier.getCodeTemporaryRef(),
+            dict_identifier.getCodeTemporaryRef()
+        ), 1 )
+
+
 class PythonModuleGenerator( PythonGeneratorBase ):
     def __init__( self, module_name ):
         self.module_name = module_name

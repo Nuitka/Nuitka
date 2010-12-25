@@ -897,6 +897,18 @@ def generateExpressionCode( expression, context, generator, allow_none = False )
             value   = makeExpressionCode( expression.getValue() ),
             context = context
         )
+    elif expression.isBuiltinType1():
+        return generator.getBuiltinType1Code(
+            value   = makeExpressionCode( expression.getValue() ),
+            context = context
+        )
+    elif expression.isBuiltinType3():
+        return generator.getBuiltinType3Code(
+            name_identifier  = makeExpressionCode( expression.getTypeName() ),
+            bases_identifier = makeExpressionCode( expression.getBases() ),
+            dict_identifier  = makeExpressionCode( expression.getDict() ),
+            context          = context
+        )
     else:
         assert False, expression
 

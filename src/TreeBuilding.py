@@ -844,7 +844,7 @@ def buildImportModulesNode( provider, node, source_ref ):
 
 def buildImportFromNode( provider, node, source_ref ):
     parent_package = provider.getParentModule().getPackage()
-    module_name = node.module
+    module_name = node.module if node.module is not None else ""
 
     if module_name == "__future__":
         assert provider.isModule()
@@ -869,12 +869,20 @@ def buildImportFromNode( provider, node, source_ref ):
             else:
                 warning( "Ignoring unkown future directive '%s'" % object_name )
     elif module_name == "":
-        return _buildImportModulesNode(
-            provider       = provider,
-            parent_package = None,
-            import_names   = [ ( parent_package.getName() + "." +  import_desc.name, import_desc.asname ) for import_desc in node.names ],
-            source_ref     = source_ref
-        )
+        if parent_package is not None:
+            return _buildImportModulesNode(
+                provider       = provider,
+                parent_package = None,
+                import_names   = [ ( parent_package.getName() + "." +  import_desc.name, import_desc.asname ) for import_desc in node.names ],
+                source_ref     = source_ref
+            )
+        else:
+            return _buildImportModulesNode(
+                provider       = provider,
+                parent_package = None,
+                import_names   = [ ( import_desc.name, import_desc.asname ) for import_desc in node.names ],
+                source_ref     = source_ref
+            )
 
     imports = []
 

@@ -2331,14 +2331,20 @@ class PythonBuiltin
 };
 
 // Compile source code given, pretending the file name was given.
-PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags );
+extern PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags );
 
-PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering );
+extern PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering );
 
 // For quicker builtin chr() functionality.
-PyObject *CHR( PyObject *value );
+extern PyObject *CHR( PyObject *value );
 // For quicker builtin ord() functionality.
-PyObject *ORD( PyObject *value );
+extern PyObject *ORD( PyObject *value );
+
+// For quicker type() functionality if 1 argument is given.
+extern PyObject *BUILTIN_TYPE1( PyObject *arg );
+
+// For quicker type() functionality if 3 arguments are given (to build a new type).
+extern PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict );
 
 static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {

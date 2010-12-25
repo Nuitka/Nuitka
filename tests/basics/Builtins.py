@@ -64,3 +64,9 @@ def someFunctionUsingDir():
     print "Function dir", dir()
 
 someFunctionUsingDir()
+
+print "Making a new type, with type() and 3 args:",
+new_class = type( "Name", (object, ), {} )
+print new_class, new_class()
+
+print "None has type", type(None)

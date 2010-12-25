@@ -263,6 +263,23 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
                         source_ref = node.getSourceReference()
                     )
 
+    def type_extractor( node ):
+        if node.isFunctionCall() and node.hasOnlyPositionalArguments():
+            positional_args = node.getPositionalArguments()
+
+            if len( positional_args ) == 1:
+                return Nodes.CPythonExpressionBuiltinCallType1(
+                    value = positional_args[0],
+                    source_ref = node.getSourceReference()
+                )
+            elif len( positional_args ) == 3:
+                return Nodes.CPythonExpressionBuiltinCallType3(
+                    type_name = positional_args[0],
+                    bases     = positional_args[1],
+                    type_dict = positional_args[2],
+                    source_ref = node.getSourceReference()
+                )
+
 
     visitor = TreeVisitorReplaceBuiltinCalls(
         replacements = {
@@ -275,6 +292,7 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
             "__import__" : import_extractor,
             "chr"        : chr_extractor,
             "ord"        : ord_extractor,
+            "type"       : type_extractor
         }
     )
 

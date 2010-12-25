@@ -186,6 +186,48 @@ PyObject *ORD( PyObject *value )
     return PyInt_FromLong( result );
 }
 
+PyObject *BUILTIN_TYPE1( PyObject *arg )
+{
+    return INCREASE_REFCOUNT( (PyObject *)Py_TYPE( arg ) );
+}
+
+PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict )
+{
+
+    PyObject *result = PyType_Type.tp_new( &PyType_Type, PyObjectTemporary( MAKE_TUPLE( dict, bases, name ) ).asObject(), NULL );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    PyTypeObject *type = result->ob_type;
+
+    if (likely( PyType_IsSubtype( type, &PyType_Type ) ))
+    {
+        if ( PyType_HasFeature( type, Py_TPFLAGS_HAVE_CLASS ) && type->tp_init != NULL )
+        {
+            int res = type->tp_init( result, MAKE_TUPLE( dict, bases, name ), NULL );
+
+            if (unlikely( res < 0 ))
+            {
+                Py_DECREF( result );
+                throw _PythonException();
+            }
+        }
+    }
+
+    int res = PyObject_SetAttr( result, _python_str_plain___module__, module_name );
+
+    if ( res == -1 )
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+
 static PyObject *empty_code = PyBuffer_FromMemory( NULL, 0 );
 
 static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line )

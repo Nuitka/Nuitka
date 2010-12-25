@@ -224,6 +224,12 @@ class CPythonNode:
     def isBuiltinOrd( self ):
         return self.kind == "EXPRESSION_BUILTIN_ORD"
 
+    def isBuiltinType1( self ):
+        return self.kind == "EXPRESSION_BUILTIN_TYPE1"
+
+    def isBuiltinType3( self ):
+        return self.kind == "EXPRESSION_BUILTIN_TYPE3"
+
     def isOperation( self ):
         return self.kind in ( "EXPRESSION_BINARY_OPERATION", "EXPRESSION_UNARY_OPERATION", "EXPRESSION_MULTIARG_OPERATION" )
 
@@ -706,7 +712,7 @@ class CPythonPackage( CPythonNamedNode ):
         return None
 
 
-class CPythonClass( CPythonNamedNode, CPythonClosureTaker, CPythonNamedCode ):
+class CPythonClass( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureTaker, CPythonNamedCode ):
     def __init__( self, provider, variable, name, doc, bases, decorators, source_ref ):
         CPythonNamedNode.__init__( self, name = name, kind = "STATEMENT_CLASS_DEF", source_ref = source_ref )
         CPythonClosureTaker.__init__( self, provider )
@@ -714,35 +720,31 @@ class CPythonClass( CPythonNamedNode, CPythonClosureTaker, CPythonNamedCode ):
 
         self.target_variable = variable
 
-        self.decorators = tuple( decorators )
-        self.bases = tuple( bases )
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "decorators" : tuple( decorators ),
+                "bases"      : tuple( bases ),
+                "body"       : None
+            }
+        )
+
         self.doc = doc
 
-        self.body = None
         self.variables = {}
-
         self.locals_dict = False
 
     def getTargetVariable( self ):
         return self.target_variable
 
-    def getVisitableNodes( self ):
-        return ( self.body, ) + self.bases + self.decorators
-
     def getSameScopeNodes( self ):
-        return self.bases + self.decorators
+        return self.getBaseClasses() + self.getDecorators()
 
-    def getBaseClasses( self ):
-        return self.bases
+    getBaseClasses = CPythonChildrenHaving.childGetter( "bases" )
+    getDecorators = CPythonChildrenHaving.childGetter( "decorators" )
 
-    def getDecorators( self ):
-        return self.decorators
-
-    def getBody( self ):
-        return self.body
-
-    def setBody( self, body ):
-        self.body = body
+    getBody = CPythonChildrenHaving.childGetter( "body" )
+    setBody = CPythonChildrenHaving.childSetter( "body" )
 
     def getVariableForAssignment( self, variable_name ):
         result = Variables.ClassVariable( owner = self, variable_name = variable_name )
@@ -2087,3 +2089,33 @@ class CPythonExpressionBuiltinCallOrd( CPythonChildrenHaving, CPythonNode ):
         )
 
     getValue = CPythonChildrenHaving.childGetter( "value" )
+
+class CPythonExpressionBuiltinCallType1( CPythonChildrenHaving, CPythonNode ):
+    def __init__( self, value, source_ref ):
+        CPythonNode.__init__( self, kind = "EXPRESSION_BUILTIN_TYPE1", source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "value"     : value,
+            }
+        )
+
+    getValue = CPythonChildrenHaving.childGetter( "value" )
+
+class CPythonExpressionBuiltinCallType3( CPythonChildrenHaving, CPythonNode ):
+    def __init__( self, type_name, bases, type_dict, source_ref ):
+        CPythonNode.__init__( self, kind = "EXPRESSION_BUILTIN_TYPE3", source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "type_name" : type_name,
+                "bases"     : bases,
+                "dict"      : type_dict
+            }
+        )
+
+    getTypeName = CPythonChildrenHaving.childGetter( "type_name" )
+    getBases = CPythonChildrenHaving.childGetter( "bases" )
+    getDict = CPythonChildrenHaving.childGetter( "dict" )
