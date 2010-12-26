@@ -64,8 +64,8 @@
 
 """
 
-This main program translates one module to a C++ source code using Python C/API and
-optionally compiles it to either an executable or an extension module.
+This main program translates one module to a C++ source code using Python C/API
+and optionally compiles it to either an executable or an extension module.
 
 """
 
