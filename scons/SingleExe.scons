@@ -62,9 +62,9 @@ result_file = ARGUMENTS.get( "result_file", source_name )
 # All Nuitka generated C++ is C++0X standard, so make that clear.
 env.Append( CCFLAGS = [ "-std=c++0x" ] )
 
-# Use link time optimizations so that the gcc can help with optimization across files, but
-# unfortunately at this time it seriously slows down the compiled code. This may be
-# because it needs -O3 option to be effective.
+# Use link time optimizations so that the gcc can help with optimization across
+# files, but unfortunately at this time it seriously slows down the compiled
+# code. This may be because it needs -O3 option to be effective.
 
 # env.Append( CCFLAGS = [ "-flto" ] )
 # env.Append( LINKFLAGS = [ "-flto" ] )
@@ -78,8 +78,9 @@ if python_version is None:
 python_debug = getBoolOption( "python_debug", False )
 debug_indicator = "_d" if python_debug else ""
 
-# The python header path is a combination of python version and debug indication, make
-# sure the heades are found by adding it to the C++ include path.
+# The python header path is a combination of python version and debug
+# indication, make sure the heades are found by adding it to the C++ include
+# path.
 python_header_path = "/usr/include/python" + python_version + debug_indicator
 
 
@@ -111,12 +112,14 @@ else:
 def discoverSourceFiles():
     result = []
 
-    # TODO: Some reference to a libnuitka.a should be here instead, but for now it's
-    # simpler like this while Nuitka is not packaged, and the .o is writable there.
-    result.append( os.environ.get( "NUITKA_CPP", "./src/" ) + "/CompiledFunctionType.cpp" )
-    result.append( os.environ.get( "NUITKA_CPP", "./src/" ) + "/CompiledGeneratorType.cpp" )
-    result.append( os.environ.get( "NUITKA_CPP", "./src/" ) + "/CompiledGenexprType.cpp" )
-    result.append( os.environ.get( "NUITKA_CPP", "./src/" ) + "/CompiledCodeHelpers.cpp" )
+    # TODO: Some reference to a libnuitka.a should be here instead, but for now
+    # it's simpler like this while Nuitka is not packaged, and the .o is
+    # writable there.
+    nuitka_src = os.environ.get("NUITKA_CPP", "./src/")
+    result.append( nuitka_src + "/CompiledFunctionType.cpp" )
+    result.append( nuitka_src + "/CompiledGeneratorType.cpp" )
+    result.append( nuitka_src + "/CompiledGenexprType.cpp" )
+    result.append( nuitka_src + "/CompiledCodeHelpers.cpp" )
 
     for filename in os.listdir( source_dir ):
         if filename.endswith( ".cpp" ):
