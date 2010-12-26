@@ -31,7 +31,21 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-OPTIONS='--rcfile=/dev/null --reports=no --persistent=no --method-rgx=[a-z_][a-zA-Z0-9_]{2,40}$ --module-rgx=.* --function-rgx=.* --variable-rgx=.* --argument-rgx=.* --const-rgx=.* --max-line-length=200 --no-docstring-rgx=.*  --max-module-lines=5000 --min-public-methods=0 --max-public-methods=100 --max-args=10'
+OPTIONS='--rcfile=/dev/null
+         --reports=no
+         --persistent=no
+         --method-rgx=[a-z_][a-zA-Z0-9_]{2,40}$
+         --module-rgx=.*
+         --function-rgx=.*
+         --variable-rgx=.*
+         --argument-rgx=.*
+         --const-rgx=.*
+         --max-line-length=200
+         --no-docstring-rgx=.*
+         --max-module-lines=5000
+         --min-public-methods=0
+         --max-public-methods=100
+         --max-args=10'
 
 if [ "$1" != "" ]
 then
