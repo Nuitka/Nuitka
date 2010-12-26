@@ -2060,26 +2060,7 @@ class PyObjectGlobalVariable
 
         PyObject *asObject() const
         {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( *this->module_ptr, *this->var_name );
-
-            if (likely( entry->me_value != NULL ))
-            {
-                assert( entry->me_value->ob_refcnt > 0 );
-
-                return INCREASE_REFCOUNT( entry->me_value );
-            }
-
-            entry = GET_PYDICT_ENTRY( _module_builtin, *this->var_name );
-
-            if (likely( entry->me_value != NULL ))
-            {
-                assert( entry->me_value->ob_refcnt > 0 );
-
-                return INCREASE_REFCOUNT( entry->me_value );
-            }
-
-            PyErr_Format( PyExc_NameError, "global name '%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
-            throw _PythonException();
+            return INCREASE_REFCOUNT( this->asObject0() );
         }
 
         PyObject *asObject( PyObject *dict ) const
