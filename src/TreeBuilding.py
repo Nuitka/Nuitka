@@ -323,8 +323,8 @@ def buildDictionaryNode( provider, node, source_ref ):
     if constant:
         constant_value = dict.fromkeys( [ key.getConstant() for key in keys ], None )
 
-        for count, key in enumerate( keys ):
-            constant_value[ key.getConstant() ] = values[ count ].getConstant()
+        for key, value in zip( keys, values ):
+            constant_value[ key.getConstant() ] = value.getConstant()
 
         return Nodes.CPythonExpressionConstant(
             constant   = constant_value,
