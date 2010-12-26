@@ -46,76 +46,126 @@ is_Python = os.path.basename( sys.argv[0] ) == "Python"
 parser = OptionParser()
 
 parser.add_option(
-    "--exe", action="store_true", dest = "executable", default = is_Python,
+    "--exe",
+    action="store_true",
+    dest = "executable",
+    default = is_Python,
     help = "Create a standalone executable instead of a compiled extension module.",
 )
 parser.add_option(
-    "--deep", action="store_true", dest = "follow_imports", default = False,
+    "--deep",
+    action="store_true",
+    dest = "follow_imports",
+    default = False,
     help = "Descend into imported modules and compile them recursively.",
 )
 
 parser.add_option(
-    "--execute", action="store_true", dest = "immediate_execution", default = is_Python,
-    help = "Immediate execute the created binary or import the freshly compiled module.",
+    "--execute",
+    action="store_true",
+    dest = "immediate_execution",
+    default = is_Python,
+    help = "Execute immediately the created binary. (or import the compiled module)",
 )
 
 parser.add_option(
-    "--trace-execution", action="store_true", dest = "trace_execution", default = False,
-    help = "Debug aid: Traced execution output.",
+    "--trace-execution",
+    action="store_true",
+    dest = "trace_execution",
+    default = False,
+    help = "Debugging: Traced execution output.",
 )
 parser.add_option(
-    "--dump-tree", action="store_true", dest = "dump_tree", default = False,
-    help = "Debug aid: Dump the final result of analysis.",
+    "--dump-tree",
+    action="store_true",
+    dest = "dump_tree",
+    default = False,
+    help = "Debugging: Dump the final result of analysis.",
 )
 parser.add_option(
-    "--g++-only", action="store_true", dest = "cpp_only", default = False,
-    help = "Debug aid: Compile the would be generated source file only. To allow editing and translation with same options for quick debugging changes to the generated source."
+    "--g++-only",
+    action="store_true",
+    dest = "cpp_only",
+    default = False,
+    help = "Debugging: Only compile the would-be generated source file. " \
+           "Allows edition and translation with same options for quick " \
+           "debugging changes to the generated source."
 )
 parser.add_option(
-    "--display-tree", action="store_true", dest = "display_tree", default = False,
-    help = "Debug aid: Display the final result of analysis.",
+    "--display-tree",
+    action="store_true",
+    dest = "display_tree",
+    default = False,
+    help = "Debugging: Display the final result of analysis.",
 )
 
 
 parser.add_option(
-    "--python-version", action="store", dest = "python_version", default = None,
+    "--python-version",
+    action="store",
+    dest = "python_version",
+    default = None,
     help = "Major version of Python to be used, something like 2.6 or 2.7",
 )
 
 parser.add_option(
-    "--python-debug", action="store_true", dest = "python_debug", default = None,
-    help = "Use the debug version or not. Default is use what you are using with Nuitka, likely no debug.",
+    "--python-debug",
+    action="store_true",
+    dest = "python_debug",
+    default = None,
+    help = "Use debug version or not. Default uses what you are using " \
+           "to run Nuitka, most likely a non-debug version.",
 )
 
 parser.add_option(
-    "--code-gen-no-statement-lines", action="store_false", dest = "statement_lines", default = True,
-    help = "Statements shall have their line numbers set. Disable this for less precise exceptions and slightly faster code. Not recommended.",
+    "--code-gen-no-statement-lines",
+    action="store_false",
+    dest = "statement_lines",
+    default = True,
+    help = "Statements shall have their line numbers set. Disable this for " \
+           "less precise exceptions and slightly faster code. Not recommended.",
 )
 
 parser.add_option(
-    "--no-optimization", action="store_true", dest = "no_optimize", default = False,
-    help = "Disable all optimization steps.",
+    "--no-optimization",
+    action="store_true",
+    dest = "no_optimize",
+    default = False,
+    help = "Disable all optimizations.",
 )
 
 parser.add_option(
-    "--output-dir", action="store", dest = "output_dir", default = "",
-    help = "Where to put intermediate and final output files.",
+    "--output-dir",
+    action="store",
+    dest = "output_dir",
+    default = "",
+    help = "Where intermediate and final output files should be put.",
 )
 
 parser.add_option(
-    "--version", action="store_true", dest = "version", default = False,
-    help = "Output only version, then exit.",
+    "--version",
+    action="store_true",
+    dest = "version",
+    default = False,
+    help = "Only output version, then exit.",
 )
 
 
 parser.add_option(
-    "--debug", action="store_true", dest = "debug", default = False,
-    help = "Keep debug info in the resulting object file for better gdb interaction.",
+    "--debug",
+    action="store_true",
+    dest = "debug",
+    default = False,
+    help = "Keep debug info in the resulting object file for better " \
+           "gdb interaction.",
 )
 
 parser.add_option(
-    "--show-scons", action="store_true", dest = "show_scons", default = False,
-    help = "Operate scons in non-quiet mode, showing the commands executed.",
+    "--show-scons",
+    action="store_true",
+    dest = "show_scons",
+    default = False,
+    help = "Operate scons in non-quiet mode, showing the executed commands.",
 )
 
 
