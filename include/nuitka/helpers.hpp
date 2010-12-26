@@ -47,9 +47,15 @@ static PyObject *INCREASE_REFCOUNT( PyObject *object );
 
 extern int _current_line;
 
-// Helper class to be used when "PyObject *" are provided as parameters where they are not
-// consumed, but not needed anymore after the call and and need a release as soon as
-// possible.
+// Wraps a PyObject * you received or acquired from another container to
+// simplify refcount handling when you're not going to use the object
+// beyond the local scope. It will hold a reference to the wrapped object
+// as long as the PyObjectTemporary is alive, and will release the reference
+// when the wrapper is destroyed: this eliminates the need for manual DECREF
+// calls on Python objects before returning from a method call.
+//
+// In effect, wrapping an object inside a PyObjectTemporary is equivalent to
+// a deferred Py_DECREF() call on the wrapped object.
 
 class PyObjectTemporary {
     public:
