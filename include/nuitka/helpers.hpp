@@ -1709,8 +1709,8 @@ class PyObjectLocalDictVariable {
     public:
         explicit PyObjectLocalDictVariable( PyObject *storage, PyObject *var_name, PyObject *object = NULL )
         {
-            this->storage    = storage;
-            this->var_name   = var_name;
+            this->storage    = (PyDictObject *) storage;
+            this->var_name   = (PyStringObject *)var_name;
 
             if ( object != NULL )
             {
@@ -1721,12 +1721,15 @@ class PyObjectLocalDictVariable {
 
         PyObject *asObject() const
         {
-            // TODO: Dictionary quick access code could be used here too.
-            PyObject *result = PyDict_GetItem( this->storage, this->var_name );
+            PyDictEntry *entry = GET_PYDICT_ENTRY( this->storage,
+                                                   this->var_name );
+            PyObject *result = entry->me_value;
 
             if (unlikely( result == NULL ))
             {
-                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
+                PyErr_Format( PyExc_UnboundLocalError,
+                              "local variable '%s' referenced before assignment",
+                              Nuitka_String_AsString( (PyObject *)this->var_name ) );
                 throw _PythonException();
             }
 
@@ -1745,18 +1748,24 @@ class PyObjectLocalDictVariable {
             assert( object );
             assert( object->ob_refcnt > 0 );
 
-            int status = PyDict_SetItem( this->storage, this->var_name, object );
+            int status = PyDict_SetItem( (PyObject *)this->storage,
+                                         (PyObject *)this->var_name,
+                                         object );
             assert( status == 0 );
         }
 
         bool isInitialized() const
         {
-            return PyDict_Contains( this->storage, this->var_name ) == 1;
+            PyDictEntry *entry = GET_PYDICT_ENTRY( this->storage,
+                                                   this->var_name );
+
+            return entry->me_value != NULL;
         }
 
         void del()
         {
-            int status = PyDict_DelItem( this->storage, this->var_name );
+            int status = PyDict_DelItem( (PyObject *)this->storage,
+                                         (PyObject *)this->var_name );
 
             if (unlikely( status == -1 ))
             {
@@ -1768,12 +1777,12 @@ class PyObjectLocalDictVariable {
 
         PyObject *getVariableName() const
         {
-            return this->var_name;
+            return (PyObject *)this->var_name;
         }
 
     private:
-        PyObject *storage;
-        PyObject *var_name;
+        PyDictObject *storage;
+        PyStringObject *var_name;
 };
 
 class PyObjectLocalVariable {
