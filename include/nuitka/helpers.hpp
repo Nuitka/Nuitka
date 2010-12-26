@@ -2304,7 +2304,7 @@ class PythonBuiltin
     public:
         explicit PythonBuiltin( char const *name )
         {
-            this->name = name;
+            this->name = (PyStringObject *)PyString_FromString( name );
             this->value = NULL;
         }
 
@@ -2312,8 +2312,9 @@ class PythonBuiltin
         {
             if ( this->value == NULL )
             {
-                // TODO: Use GET_PYDICT_ENTRY here too.
-                this->value = PyObject_GetAttrString( (PyObject *)_module_builtin, this->name );
+                PyDictEntry *entry = GET_PYDICT_ENTRY( _module_builtin,
+                                                       this->name );
+                this->value = entry->me_value;
             }
 
             assert( this->value != NULL );
@@ -2322,7 +2323,7 @@ class PythonBuiltin
         }
 
     private:
-        char const *name;
+        PyStringObject *name;
         PyObject *value;
 };
 
