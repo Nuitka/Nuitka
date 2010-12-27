@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/bash -e
 #
 #     Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -20,188 +20,71 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-echo "PASS 1: Compiling from compiler running from .py files."
-
 BACKUP_PYTHONPATH=$PYTHONPATH
 
+DIR_LIST=( '' '/nodes' '/templates' '/optimizations' )
+
+echo "PASS 1: Compiling from compiler running from .py files."
 if [ "$1" != "quick" ]
 then
-    rm -f tests/reflected/*.so
-
-    for file in `ls src/*.py`
+    for dir in "${DIR_LIST[@]}"
     do
-        echo "Compiling $file"
+        source_dir="src$dir"
+        target_dir="tests/reflected$dir"
+        mkdir -p $target_dir
+        rm -f $target_dir/*.so
 
-        Nuitka.py $file --output-dir tests/reflected/
+        for file in `ls $source_dir/*.py`
+        do
+            if [ `basename $file` != "__init__.py" ]
+            then
+                echo "Compiling $file"
+                Nuitka.py $file --output-dir $target_dir
+            else
+                cp $file $target_dir
+            fi
+        done
     done
-
-    mkdir -p tests/reflected/nodes
-    rm -f tests/reflected/nodes/*.so
-
-    for file in `ls src/nodes/*.py`
-    do
-        if [ $file != "src/nodes/__init__.py" ]
-        then
-            echo "Compiling $file"
-
-            Nuitka.py $file --output-dir tests/reflected/nodes
-        fi
-    done
-
-    cp src/nodes/__init__.py tests/reflected/nodes/
-
-    mkdir -p tests/reflected/templates
-    rm -f tests/reflected/templates/*.so
-
-    for file in `ls src/templates/*.py`
-    do
-        if [ $file != "src/templates/__init__.py" ]
-        then
-            echo "Compiling $file"
-
-            Nuitka.py $file --output-dir tests/reflected/templates
-        fi
-    done
-
-    cp src/templates/__init__.py tests/reflected/templates/
-
-    mkdir -p tests/reflected/optimizations
-    rm -f tests/reflected/optimizations/*.so
-
-    for file in `ls src/optimizations/*.py`
-    do
-        if [ $file != "src/optimizations/__init__.py" ]
-        then
-            echo "Compiling $file"
-
-            Nuitka.py $file --output-dir tests/reflected/optimizations
-        fi
-    done
-
-    cp src/optimizations/__init__.py tests/reflected/optimizations/
 
     Nuitka.py bin/Nuitka.py --output-dir tests/reflected/ --exe
 else
     echo "Skipped."
 fi
 
+compile() {
+    nuitka=$1
+    for dir in "${DIR_LIST[@]}"
+    do
+        source_dir="src$dir"
+
+        for file in `ls $source_dir/*.py`
+        do
+            if [ `basename $file` != "__init__.py" ]
+            then
+                echo "Compiling $file"
+
+                target="`basename $file .py`.build"
+
+                rm -rf /tmp/$target
+
+                $nuitka $file --output-dir /tmp/
+                diff -sq ./tests/reflected$dir/$target /tmp/$target
+
+                rm -rf /tmp/$target
+            fi
+        done
+    done
+}
+
 echo "PASS 2: Compiling from compiler running from .exe and many .so files."
 
-for file in `ls src/*.py`
-do
-    echo "Compiling $file"
-
-    TARGET="`basename $file .py`.build"
-    rm -rf /tmp/$TARGET
-
-    export PYTHONPATH=tests/reflected
-    ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
-    diff -srq ./tests/reflected/$TARGET /tmp/$TARGET
-
-    rm -rf /tmp/$TARGET
-done
-
-for file in `ls src/nodes/*.py`
-do
-    if [ $file != "src/nodes/__init__.py" ]
-    then
-        echo "Compiling $file"
-
-        TARGET="`basename $file .py`.build"
-        rm -rf /tmp/$TARGET
-
-        export PYTHONPATH=tests/reflected
-        ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
-        diff -srq ./tests/reflected/nodes/$TARGET /tmp/$TARGET
-
-        rm -rf /tmp/$TARGET
-    fi
-done
-
-for file in `ls src/templates/*.py`
-do
-    if [ $file != "src/templates/__init__.py" ]
-    then
-        echo "Compiling $file"
-
-        TARGET="`basename $file .py`.build"
-        rm -rf /tmp/$TARGET
-
-        export PYTHONPATH=tests/reflected
-        ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
-        diff -srq ./tests/reflected/templates/$TARGET /tmp/$TARGET
-
-        rm -rf /tmp/$TARGET
-    fi
-done
-
-for file in `ls src/optimizations/*.py`
-do
-    if [ $file != "src/optimizations/__init__.py" ]
-    then
-        echo "Compiling $file"
-
-        TARGET="`basename $file .py`.build"
-        rm -rf /tmp/$TARGET
-
-        export PYTHONPATH=tests/reflected
-        ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
-        diff -srq ./tests/reflected/optimizations/$TARGET /tmp/$TARGET
-
-        rm -rf /tmp/$TARGET
-    fi
-done
-
+export PYTHONPATH=tests/reflected
+compile ./tests/reflected/Nuitka.exe
 
 echo "PASS 3: Compiling from compiler running from .py files to single .exe."
 
 PYTHONPATH=$BACKUP_PYTHONPATH
-
 Nuitka.py bin/Nuitka.py --output-dir /tmp/ --exe --deep
 
 echo "PASS 4: Compiling the compiler running from single exe"
-
-for file in `ls src/*.py`
-do
-    echo "Compiling $file"
-
-    TARGET="`basename $file .py`.build"
-    rm -rf /tmp/$TARGET
-
-    /tmp/Nuitka.exe $file --output-dir /tmp/
-    diff -srq ./tests/reflected/$TARGET /tmp/$TARGET
-
-    rm -rf /tmp/$TARGET
-done
-
-for file in `ls src/nodes/*.py`
-do
-    if [ $file != "src/nodes/__init__.py" ]
-    then
-        echo "Compiling $file"
-
-        TARGET="`basename $file .py`.build"
-        rm -rf /tmp/$TARGET
-
-        /tmp/Nuitka.exe $file --output-dir /tmp/
-        diff -srq ./tests/reflected/nodes/$TARGET /tmp/$TARGET
-
-        rm -rf /tmp/$TARGET
-    fi
-done
-
-for file in `ls src/templates/*.py`
-do
-    if [ $file != "src/templates/__init__.py" ]
-    then
-        echo "Compiling $file"
-
-        TARGET="`basename $file .py`.build"
-        rm -rf /tmp/$TARGET
-
-        /tmp/Nuitka.exe $file --output-dir /tmp/
-        diff -srq ./tests/reflected/templates/$TARGET /tmp/$TARGET
-
-        rm -rf /tmp/$TARGET
-    fi
-done
+compile /tmp/Nuitka.exe
