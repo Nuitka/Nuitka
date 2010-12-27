@@ -76,13 +76,14 @@ for file in `ls src/*.py`
 do
     echo "Compiling $file"
 
-    rm -f /tmp/`basename $file .py`.c++
+    TARGET="`basename $file .py`.c++"
 
+    rm -f /tmp/$TARGET
     export PYTHONPATH=tests/reflected
     ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
-    diff -sq ./tests/reflected/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
+    diff -sq ./tests/reflected/$TARGET /tmp/$TARGET
 
-    rm -f /tmp/`basename $file .py`.c++
+    rm -f /tmp/$TARGET
 done
 
 for file in `ls src/nodes/*.py`
@@ -91,13 +92,14 @@ do
     then
         echo "Compiling $file"
 
-        rm -f /tmp/`basename $file .py`.c++
+        TARGET="`basename $file .py`.c++"
+        rm -f /tmp/$TARGET
 
         export PYTHONPATH=tests/reflected
         ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
-        diff -sq ./tests/reflected/nodes/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
+        diff -sq ./tests/reflected/nodes/$TARGET /tmp/$TARGET
 
-        rm -f /tmp/`basename $file .py`.c++
+        rm -f /tmp/$TARGET
     fi
 done
 
@@ -107,13 +109,14 @@ do
     then
         echo "Compiling $file"
 
-        rm -f /tmp/`basename $file .py`.c++
+        TARGET="`basename $file .py`.c++"
+        rm -f /tmp/$TARGET
 
         export PYTHONPATH=tests/reflected
         ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
-        diff -sq ./tests/reflected/templates/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
+        diff -sq ./tests/reflected/templates/$TARGET /tmp/$TARGET
 
-        rm -f /tmp/`basename $file .py`.c++
+        rm -f /tmp/$TARGET
     fi
 done
 
@@ -129,12 +132,13 @@ for file in `ls src/*.py`
 do
     echo "Compiling $file"
 
-    rm -f /tmp/`basename $file .py`.c++
+    TARGET="`basename $file .py`.c++"
+    rm -f /tmp/$TARGET
 
     /tmp/Nuitka.exe $file --output-dir /tmp/
-    diff -sq ./tests/reflected/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
+    diff -sq ./tests/reflected/$TARGET /tmp/$TARGET
 
-    rm -f /tmp/`basename $file .py`.c++
+    rm -f /tmp/$TARGET
 done
 
 for file in `ls src/nodes/*.py`
@@ -143,12 +147,13 @@ do
     then
         echo "Compiling $file"
 
-        rm -f /tmp/`basename $file .py`.c++
+        TARGET="`basename $file .py`.c++"
+        rm -f /tmp/$TARGET
 
         /tmp/Nuitka.exe $file --output-dir /tmp/
-        diff -sq ./tests/reflected/nodes/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
+        diff -sq ./tests/reflected/nodes/$TARGET /tmp/$TARGET
 
-        rm -f /tmp/`basename $file .py`.c++
+        rm -f /tmp/$TARGET
     fi
 done
 
@@ -158,11 +163,12 @@ do
     then
         echo "Compiling $file"
 
-        rm -f /tmp/`basename $file .py`.c++
+        TARGET="`basename $file .py`.c++"
+        rm -f /tmp/$TARGET
 
         /tmp/Nuitka.exe $file --output-dir /tmp/
-        diff -sq ./tests/reflected/templates/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
+        diff -sq ./tests/reflected/templates/$TARGET /tmp/$TARGET
 
-        rm -f /tmp/`basename $file .py`.c++
+        rm -f /tmp/$TARGET
     fi
 done
