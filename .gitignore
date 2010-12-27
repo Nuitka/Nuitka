@@ -5,6 +5,7 @@
 *.pyc
 *.swp
 *.swo
+*.os
 *.so
 *.exe
 *.c++
