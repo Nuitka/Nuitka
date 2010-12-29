@@ -107,7 +107,7 @@ class ParameterSpecTuple:
         return Variables.getNames( self.getVariables() )
 
 class ParameterSpec( ParameterSpecTuple ):
-    def __init__( self, normal_args, list_star_arg, dict_star_arg, default_values ):
+    def __init__( self, normal_args, list_star_arg, dict_star_arg, default_count ):
         assert None not in normal_args
 
         self.nest_count = 1
@@ -120,7 +120,7 @@ class ParameterSpec( ParameterSpecTuple ):
         self.list_star_variable = None
         self.dict_star_variable = None
 
-        self.default_values = tuple( default_values )
+        self.default_count = default_count
 
         for count, normal_arg in enumerate( normal_args ):
             if normal_arg in normal_args[ count+1:] or normal_arg in ( list_star_arg, dict_star_arg ):
@@ -149,22 +149,16 @@ class ParameterSpec( ParameterSpecTuple ):
     def isEmpty( self ):
         return len( self.normal_args ) == 0 and self.list_star_arg is None and self.dict_star_arg is None
 
-    def getDefaultExpressions( self ):
-        return self.default_values
-
-    def getDefaultParameters( self ):
-        return zip( self.getDefaultParameterNames(), self.default_values )
-
     def getDefaultParameterVariables( self ):
         result = ParameterSpecTuple.getTopLevelVariables( self )
 
-        return result[ len( self.normal_args ) - len( self.default_values ) : ]
+        return result[ len( self.normal_args ) - self.default_count : ]
 
     def getDefaultParameterNames( self ):
-        return self.normal_args[ len( self.normal_args ) - len( self.default_values ) : ]
+        return self.normal_args[ len( self.normal_args ) - self.default_count : ]
 
     def getDefaultParameterCount( self ):
-        return len( self.default_values )
+        return self.default_count
 
     def hasDefaultParameters( self ):
         return self.getDefaultParameterCount() > 0

@@ -65,9 +65,18 @@
 #define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC
 #endif
 
-static PyObject *_expression_temps[100];
-static PyObject *_eval_globals_tmp;
-static PyObject *_eval_locals_tmp;
+// A way to not give warnings about things that are declared, but might not be used like
+// inline helper functions in headers or static per module variables from headers.
+
+#ifdef __GNUC__
+#define NUITKA_MAY_BE_UNUSED __attribute__((__unused__))
+#else
+#define NUITKA_MAY_BE_UNUSED
+#endif
+
+NUITKA_MAY_BE_UNUSED static PyObject *_expression_temps[100];
+NUITKA_MAY_BE_UNUSED static PyObject *_eval_globals_tmp;
+NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 
 #include "nuitka/helpers.hpp"
 

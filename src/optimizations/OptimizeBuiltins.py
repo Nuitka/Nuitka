@@ -29,47 +29,35 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Module with transformations of the tree.
+""" Replace builtins with alternative implementations more optimized or capable of the task.
 
-Intended for locals/globals/eval replacement tricks, as well as hints being
-applied here.
-
+TODO: Split in two phases, such that must be replaced (locals(), globals() and such that
+are just a good idea to replace (range(), etc)
 """
 
+from optimizations.OptimizeBase import OptimizationVisitorBase
+
 import TreeOperations
-import TreeBuilding
 import Importing
 import Nodes
 
-from logging import warning
+import math
 
-class TreeVisitorFixupNewStaticmethod:
-    """ Delete the staticmethod decorator from __new__ methods if provided.
-
-        CPython made these optional, and applies them to every __new__. Our
-        later code will be confused if it encounters a decorator to what it
-        already automatically decorated.
-    """
-    def __call__( self, node ):
-        if node.isFunctionReference() and node.getName() == "__new__":
-            decorators = node.getDecorators()
-
-            if len( decorators ) == 1 and decorators[0].isVariableReference():
-                if decorators[0].getVariable().getName() == "staticmethod":
-                    # Reset the decorators. This does not attempt to deal with
-                    # multiple of them being present.
-                    node.decorators = ()
-                    assert not node.getDecorators()
-
-
-
-class TreeVisitorReplaceBuiltinCalls:
-    """ Replace problematic builtins with alternative implementations.
-
-    """
-
-    def __init__( self, replacements ):
-        self.replacements = replacements
+class ReplaceBuiltinsVisitor( OptimizationVisitorBase ):
+    def __init__( self ):
+        self.replacements = {
+            "globals"    : self.globals_extractor,
+            "locals"     : self.locals_extractor,
+            "dir"        : self.dir_extractor,
+            "vars"       : self.vars_extractor,
+            "eval"       : self.eval_extractor,
+            "execfile"   : self.execfile_extractor,
+            "__import__" : self.import_extractor,
+            "chr"        : self.chr_extractor,
+            "ord"        : self.ord_extractor,
+            "type"       : self.type_extractor,
+            "range"      : self.range_extractor
+        }
 
     def __call__( self, node ):
         if node.isFunctionCall():
@@ -94,38 +82,21 @@ class TreeVisitorReplaceBuiltinCalls:
 
                             TreeOperations.assignParent( node.parent )
 
+                            if new_node.isConstantReference():
+                                self.signalChange( "new_constant" )
 
 
-def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
-    def _pickLocalsForNode( node ):
-        provider = node.getParentVariableProvider()
-
-        if provider.isModule():
-            return Nodes.CPythonExpressionBuiltinCallGlobals(
-                source_ref = node.getSourceReference()
-            )
-        else:
-            return Nodes.CPythonExpressionBuiltinCallLocals(
-                source_ref = node.getSourceReference()
-            )
-
-    def _pickGlobalsForNode( node ):
-        return Nodes.CPythonExpressionBuiltinCallGlobals(
-            source_ref = node.getSourceReference()
-        )
-
-    def globals_extractor( node ):
+    def globals_extractor( self, node ):
         assert node.isEmptyCall()
 
-        return _pickGlobalsForNode( node )
+        return self._pickGlobalsForNode( node )
 
-    def locals_extractor( node ):
+    def locals_extractor( self, node ):
         assert node.isEmptyCall()
 
-        return _pickLocalsForNode( node )
+        return self._pickLocalsForNode( node )
 
-
-    def dir_extractor( node ):
+    def dir_extractor( self, node ):
         # Only treat the empty dir() call, leave the others alone for now.
         if not node.isEmptyCall():
             return None
@@ -134,7 +105,7 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
             source_ref = node.getSourceReference()
         )
 
-    def vars_extractor( node ):
+    def vars_extractor( self, node ):
         assert node.hasOnlyPositionalArguments()
 
         positional_args = node.getPositionalArguments()
@@ -151,7 +122,7 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
         else:
             assert False
 
-    def eval_extractor( node ):
+    def eval_extractor( self, node ):
         assert node.hasOnlyPositionalArguments()
 
         positional_args = node.getPositionalArguments()
@@ -161,11 +132,10 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
             globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
             locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
             mode         = "eval",
-            future_flags = future_flags,
             source_ref   = node.getSourceReference()
         )
 
-    def execfile_extractor( node ):
+    def execfile_extractor( self, node ):
         assert node.parent.isStatementExpression()
 
         assert node.hasOnlyPositionalArguments()
@@ -198,18 +168,17 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
             source       = source_node,
             globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
             locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
-            future_flags = future_flags,
             source_ref   = source_ref
         )
 
-    def import_extractor( node ):
+    def import_extractor( self, node ):
         if node.isFunctionCall() and node.hasOnlyPositionalArguments():
             positional_args = node.getPositionalArguments()
 
             if len( positional_args ) == 1 and positional_args[0].isConstantReference():
                 module_name = positional_args[0].getConstant()
 
-                if type( module_name ) is str and module_name.find( "." ) == -1:
+                if type( module_name ) is str and "." not in module_name:
                     module_package, module_name, module_filename = Importing.findModule(
                         module_name    = module_name,
                         parent_package = node.getParentModule().getPackage()
@@ -224,7 +193,7 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
         else:
             return None
 
-    def chr_extractor( node ):
+    def chr_extractor( self, node ):
         if node.isFunctionCall() and node.hasOnlyPositionalArguments():
             positional_args = node.getPositionalArguments()
 
@@ -244,7 +213,7 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
                     )
 
 
-    def ord_extractor( node ):
+    def ord_extractor( self, node ):
         if node.isFunctionCall() and node.hasOnlyPositionalArguments():
             positional_args = node.getPositionalArguments()
 
@@ -263,7 +232,7 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
                         source_ref = node.getSourceReference()
                     )
 
-    def type_extractor( node ):
+    def type_extractor( self, node ):
         if node.isFunctionCall() and node.hasOnlyPositionalArguments():
             positional_args = node.getPositionalArguments()
 
@@ -280,57 +249,102 @@ def replaceBuiltinsCallsThatRequireInterpreter( tree, future_flags ):
                     source_ref = node.getSourceReference()
                 )
 
+    def range_extractor( self, node ):
+        if node.isFunctionCall() and node.hasOnlyPositionalArguments():
+            positional_args = node.getPositionalArguments()
 
-    visitor = TreeVisitorReplaceBuiltinCalls(
-        replacements = {
-            "globals"    : globals_extractor,
-            "locals"     : locals_extractor,
-            "dir"        : dir_extractor,
-            "vars"       : vars_extractor,
-            "eval"       : eval_extractor,
-            "execfile"   : execfile_extractor,
-            "__import__" : import_extractor,
-            "chr"        : chr_extractor,
-            "ord"        : ord_extractor,
-            "type"       : type_extractor
-        }
-    )
+            if len( positional_args ) == 1:
+                arg1 = positional_args[0]
 
-    TreeOperations.visitTree( tree, visitor )
+                if arg1.isConstantReference():
+                    constant = arg1.getConstant()
 
-    visitor = TreeVisitorFixupNewStaticmethod()
+                    # Negative values are empty, so don't check against 0.
+                    if type(constant) in (int, long) and constant <= 256:
+                        return Nodes.CPythonExpressionConstant(
+                            constant   = range( constant ),
+                            source_ref = node.getSourceReference()
+                        )
+            elif len( positional_args ) == 2:
+                arg1, arg2 = positional_args
 
-    TreeOperations.visitTree( tree, visitor )
+                if arg1.isConstantReference() and arg2.isConstantReference():
+                    constant1 = arg1.getConstant()
+                    constant2 = arg2.getConstant()
 
-class TreeVisitorOptimizeStaticExec:
-    """ Inline constant execs.
+                    if type(constant1) in (int, long) and type(constant2) in (int, long) and constant2 - constant1 <= 256:
+                        return Nodes.CPythonExpressionConstant(
+                            constant   = range( constant1, constant2 ),
+                            source_ref = node.getSourceReference()
+                        )
+            elif len( positional_args ) == 3:
+                arg1, arg2, arg3 = positional_args
 
-    """
-    def __init__( self, build_node ):
-        self.build_node = build_node
+                if arg1.isConstantReference() and arg2.isConstantReference() and arg3.isConstantReference():
+                    constant1 = arg1.getConstant()
+                    constant2 = arg2.getConstant()
+                    constant3 = arg3.getConstant()
 
-    def __call__( self, node ):
-        if node.isStatementExec() and node.getLocals() is None and node.getGlobals() is None:
-            source = node.getSource()
+                    if type(constant1) in (int, long) and type(constant2) in (int, long) and type(constant3) in (int, long):
+                        if constant3 == 0:
 
-            if source.isConstantReference():
+                            # TODO: Add this node type, for now let the real range builtin
+                            # do it, but that leaves us no chance to know in advance.
+                            return None
+
+                            return Nodes.CPythonExpressionRaiseException(
+                                exception_type = Nodes.CPythonExpressionVariable(
+                                    variable_name = "ValueError",
+                                    source_ref    = node.getSourceReference()
+                                ),
+                                exception_value = Nodes.CPythonExpressionConstant(
+                                    constant   = "range() step argument must not be zero",
+                                    source_ref = node.getSourceReference()
+                                ),
+                                exception_trace = None,
+                                source_ref = node.getSourceReference()
+                            )
+                        else:
+                            if constant1 < constant2:
+                                if constant3 < 0:
+                                    estimate = 0
+                                else:
+                                    estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
+                            else:
+                                if constant3 > 0:
+                                    estimate = 0
+                                else:
+                                    estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
+
+                            estimate = round( estimate )
+
+                            # print constant1, constant2, constant3, range( constant1, constant2, constant3 ), estimate
+
+                            assert len( range( constant1, constant2, constant3 ) ) == estimate, node.getSourceReference()
+
+                            if estimate <= 256:
+                                return Nodes.CPythonExpressionConstant(
+                                    constant   = range( constant1, constant2, constant3 ),
+                                    source_ref = node.getSourceReference()
+                                )
+
+    def _pickLocalsForNode( self, node ):
+        """ Pick a locals default for the given node. """
+
+        provider = node.getParentVariableProvider()
+
+        if provider.isModule():
+            return Nodes.CPythonExpressionBuiltinCallGlobals(
                 source_ref = node.getSourceReference()
+            )
+        else:
+            return Nodes.CPythonExpressionBuiltinCallLocals(
+                source_ref = node.getSourceReference()
+            )
 
-                try:
-                    new_node = self.build_node(
-                        provider    = node.getParentVariableProvider(),
-                        parent      = node.getParent(),
-                        source_code = source.getConstant(),
-                        filename    = source_ref.getFilename(),
-                        line_offset = source_ref.getLineNumber() - 1
-                    )
+    def _pickGlobalsForNode( self, node ):
+        """ Pick a globals default for the given node. """
 
-                    node.replaceWith( new_node )
-                except SyntaxError:
-                    warning( "Syntax error will be raised at runtime for exec at %s" % source_ref.getAsString() )
-
-
-def replaceConstantExecs( tree, build_node ):
-    visitor = TreeVisitorOptimizeStaticExec( build_node )
-
-    TreeOperations.visitTree( tree, visitor )
+        return Nodes.CPythonExpressionBuiltinCallGlobals(
+            source_ref = node.getSourceReference()
+        )

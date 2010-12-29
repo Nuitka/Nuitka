@@ -30,52 +30,42 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-class ExitVisit( BaseException ):
-    pass
 
-class RestartVisit( BaseException ):
-    pass
+from optimizations.OptimizeBase import OptimizationVisitorBase, areConstants
 
-def _visitTree( tree, visitor ):
-    visitor( tree )
+import PythonOperators
+import Nodes
 
-    for visitable in tree.getVisitableNodes():
-        _visitTree( visitable, visitor )
-
-def visitTree( tree, visitor ):
-    try:
-        _visitTree( tree, visitor )
-    except ExitVisit:
-        pass
-    except RestartVisit:
-        visitTree( tree, visitor )
-
-
-def _visitScope( tree, visitor ):
-    visitor( tree )
-
-    for visitable in tree.getSameScopeNodes():
-        _visitScope( visitable, visitor )
-
-def visitScope( tree, visitor ):
-    try:
-        _visitScope( tree, visitor )
-    except ExitVisit:
-        pass
-    except RestartVisit:
-        visitTree( tree, visitor )
-
-
-class _TreeVisitorAssignParent:
+class OptimizeOperationVisitor( OptimizationVisitorBase ):
     def __call__( self, node ):
-        for child in node.getVisitableNodes():
-            if child is None:
-                raise AssertionError( "none child encountered", node, node.source_ref )
+        if node.isOperation():
+            operands = node.getOperands()
 
-            try:
-                child.parent = node
-            except AttributeError:
-                raise AssertionError( "strange child encountered", node, node.source_ref, child )
+            if areConstants( operands ):
+                operator = node.getOperator()
 
-def assignParent( tree ):
-    visitTree( tree, _TreeVisitorAssignParent() )
+                if operator != "Repr":
+                    operands = [ constant.getConstant() for constant in operands ]
+
+                    try:
+                        if len( operands ) == 2:
+                            result = PythonOperators.binary_operator_functions[ operator ]( *operands )
+                        elif len( operands ) == 1:
+                            result = PythonOperators.unary_operator_functions[ operator ]( *operands )
+                        else:
+                            assert False, operands
+                    except AssertionError:
+                        raise
+                    except Exception, e:
+                        # TODO: If not an AssertError, we can create a raise exception
+                        # node that does it.
+                        return
+
+                    new_node = Nodes.CPythonExpressionConstant(
+                        constant   = result,
+                        source_ref = node.getSourceReference()
+                    )
+
+                    node.replaceWith( new_node )
+
+                    self.signalChange( "new_constant" )

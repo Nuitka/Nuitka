@@ -67,14 +67,35 @@ def otherFunction():
     try:
         f, g = 1,
     except Exception, e:
-        print type(e), e
+        print "gave", type(e), e
+
+        try:
+            print f
+        except UnboundLocalError:
+            print "Variable f is untouched"
+
+        try:
+            print g
+        except UnboundLocalError:
+            print "Variable g is untouched"
 
     print "Assignments from too large iterable",
 
     try:
-        d, e = 1, 2, 3
+        d, j = 1, 2, 3
     except Exception, e:
-        print type(e), e
+        print "gave", type(e), e
+
+        try:
+            print d
+        except UnboundLocalError:
+            print "Variable d is untouched"
+
+        try:
+            print j
+        except UnboundLocalError:
+            print "Variable j is untouched"
+
 
 
 def anotherFunction():

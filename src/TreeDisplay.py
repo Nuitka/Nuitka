@@ -29,8 +29,13 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Module with functions to display a node tree.
 
-import sys
+Useful to getting an idea of what the internal representation of Nuitka is about a source
+code.
+"""
+
+import sys, os
 
 try:
     from PyQt4 import QtCore, QtGui, uic
@@ -83,7 +88,7 @@ try:
             self.root_node = root
             self.root_item = NodeTreeModelItem( root )
 
-        def columnCount( self, parent ):
+        def columnCount( self, _parent ):
             return self.root_item.columnCount()
 
         def data( self, index, role ):
@@ -155,8 +160,8 @@ try:
 
     class InspectNodeTreeDialog( QtGui.QDialog ):
         def __init__( self, *args ):
-            QtGui.QWidget.__init__( self, *args )
-            uic.loadUi( "dialogs/InspectPythonTree.ui", self )
+            QtGui.QDialog.__init__( self, *args )
+            uic.loadUi( os.environ.get( "NUITKA_DIALOGS", "./dialogs" ) + "/InspectPythonTree.ui", self )
 
         def setModel( self, model ):
             self.treeview_nodes.setModel( model )
@@ -176,5 +181,3 @@ try:
 
 except ImportError:
     pass
-
-

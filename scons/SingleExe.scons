@@ -62,6 +62,9 @@ result_file = ARGUMENTS.get( "result_file", source_name )
 # All Nuitka generated C++ is C++0X standard, so make that clear.
 env.Append( CCFLAGS = [ "-std=c++0x" ] )
 
+if debug_mode:
+   env.Append( CCFLAGS = [ "-Wall", "-Werror", "-Wno-sequence-point" ] )
+
 # Use link time optimizations so that the gcc can help with optimization across files, but
 # unfortunately at this time it seriously slows down the compiled code. This may be
 # because it needs -O3 option to be effective.

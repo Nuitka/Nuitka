@@ -31,47 +31,92 @@
 #
 """ Python operator tables
 
-These are mostly used to look up the Python C/API from operations or a
-wrapper used.
+These are mostly used to look up the Python C/API from operations or a wrapper used and to
+resolve the operator in the module operator.
 
 """
 
-binary_operators = {
-    "Pow"        : "PyNumber_Power",
-    "Mult"       : "PyNumber_Multiply",
-    "Div"        : "PyNumber_Divide",
-    "FloorDiv"   : "PyNumber_FloorDivide",
-    "TrueDiv"    : "PyNumber_TrueDivide",
-    "Mod"        : "PyNumber_Remainder",
-    "Add"        : "PyNumber_Add",
-    "Sub"        : "PyNumber_Subtract",
-    "LShift"     : "PyNumber_Lshift",
-    "RShift"     : "PyNumber_Rshift",
-    "BitAnd"     : "PyNumber_And",
-    "BitOr"      : "PyNumber_Or",
-    "BitXor"     : "PyNumber_Xor",
+import operator
+
+binary_operator_codes = {
+    "Add"      : "PyNumber_Add",
+    "Sub"      : "PyNumber_Subtract",
+    "Pow"      : "PyNumber_Power",
+    "Mult"     : "PyNumber_Multiply",
+    "Div"      : "PyNumber_Divide",
+    "FloorDiv" : "PyNumber_FloorDivide",
+    "TrueDiv"  : "PyNumber_TrueDivide",
+    "Mod"      : "PyNumber_Remainder",
+    "LShift"   : "PyNumber_Lshift",
+    "RShift"   : "PyNumber_Rshift",
+    "BitAnd"   : "PyNumber_And",
+    "BitOr"    : "PyNumber_Or",
+    "BitXor"   : "PyNumber_Xor",
 }
 
-inplace_operator_opcodes = {
-    "Add"                  : "PyNumber_InPlaceAdd",
-    "Sub"                  : "PyNumber_InPlaceSubtract",
-    "Pow"                  : "PyNumber_InPlacePower",
-    "Mult"                 : "PyNumber_InPlaceMultiply",
-    "Div"                  : "PyNumber_InPlaceDivide",
-    "FloorDiv"             : "PyNumber_InPlaceFloorDivide",
-    "Mod"                  : "PyNumber_InPlaceRemainder",
-    "LShift"               : "PyNumber_InPlaceLshift",
-    "RShift"               : "PyNumber_InPlaceRshift",
-    "BitAnd"               : "PyNumber_InPlaceAnd",
-    "BitOr"                : "PyNumber_InPlaceOr",
-    "BitXor"               : "PyNumber_InPlaceXor",
+binary_operator_functions = {
+    "Add"      : operator.add,
+    "Sub"      : operator.sub,
+    "Pow"      : operator.pow,
+    "Mult"     : operator.mul,
+    "Div"      : operator.div,
+    "FloorDiv" : operator.floordiv,
+    "TrueDiv"  : operator.truediv,
+    "Mod"      : operator.mod,
+    "LShift"   : operator.lshift,
+    "RShift"   : operator.rshift,
+    "BitAnd"   : operator.and_,
+    "BitOr"    : operator.or_,
+    "BitXor"   : operator.xor,
 }
 
-unary_operators = {
-    "UAdd"       : "PyNumber_Positive",
-    "USub"       : "PyNumber_Negative",
-    "Invert"     : "PyNumber_Invert",
-    "Repr"       : "PyObject_Repr",
+inplace_operator_codes = {
+    "Add"      : "PyNumber_InPlaceAdd",
+    "Sub"      : "PyNumber_InPlaceSubtract",
+    "Pow"      : "PyNumber_InPlacePower",
+    "Mult"     : "PyNumber_InPlaceMultiply",
+    "Div"      : "PyNumber_InPlaceDivide",
+    "FloorDiv" : "PyNumber_InPlaceFloorDivide",
+    "TrueDiv"  : "PyNumber_InPlaceTrueDivide",
+    "Mod"      : "PyNumber_InPlaceRemainder",
+    "LShift"   : "PyNumber_InPlaceLshift",
+    "RShift"   : "PyNumber_InPlaceRshift",
+    "BitAnd"   : "PyNumber_InPlaceAnd",
+    "BitOr"    : "PyNumber_InPlaceOr",
+    "BitXor"   : "PyNumber_InPlaceXor",
+}
+
+inplace_operator_functions = {
+    "Add"      : operator.iadd,
+    "Sub"      : operator.isub,
+    "Pow"      : operator.ipow,
+    "Mult"     : operator.imul,
+    "Div"      : operator.idiv,
+    "FloorDiv" : operator.ifloordiv,
+    "TrueDiv"  : operator.itruediv,
+    "Mod"      : operator.imod,
+    "LShift"   : operator.ilshift,
+    "RShift"   : operator.irshift,
+    "BitAnd"   : operator.iand,
+    "BitOr"    : operator.ior,
+    "BitXor"   : operator.ixor,
+}
+
+
+assert inplace_operator_codes.keys() == binary_operator_codes.keys()
+
+unary_operator_codes = {
+    "UAdd"   : "PyNumber_Positive",
+    "USub"   : "PyNumber_Negative",
+    "Invert" : "PyNumber_Invert",
+    "Repr"   : "PyObject_Repr",
+}
+
+unary_operator_functions = {
+    "UAdd"   : operator.pos,
+    "USub"   : operator.neg,
+    "Invert" : operator.invert,
+    "Repr"   : "PyObject_Repr",
 }
 
 normal_comparison_operators = {

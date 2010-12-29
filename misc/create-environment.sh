@@ -39,11 +39,13 @@ fi
 echo "export PYTHONPATH=`pwd`:`pwd`/src"
 echo "export PATH=$PATH:`pwd`/bin"
 echo "export NUITKA_INCLUDE=`pwd`/include"
+echo "export NUITKA_DIALOGS=`pwd`/dialogs"
 echo "export NUITKA_SCONS=`pwd`/scons"
 echo "export NUITKA_CPP=`pwd`/src"
 
 export PYTHONPATH=`pwd`:`pwd`/src
 export PATH=$PATH:`pwd`/bin
 export NUITKA_INCLUDE=`pwd`/include
+export NUITKA_DIALOGS=`pwd`/dialogs
 export NUITKA_SCONS=`pwd`/scons
 export NUITKA_CPP=`pwd`/src

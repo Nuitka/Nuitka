@@ -65,6 +65,21 @@ then
 
     cp src/templates/__init__.py tests/reflected/templates/
 
+    mkdir -p tests/reflected/optimizations
+    rm -f tests/reflected/optimizations/*.so
+
+    for file in `ls src/optimizations/*.py`
+    do
+        if [ $file != "src/optimizations/__init__.py" ]
+        then
+            echo "Compiling $file"
+
+            Nuitka.py $file --output-dir tests/reflected/optimizations
+        fi
+    done
+
+    cp src/optimizations/__init__.py tests/reflected/optimizations/
+
     Nuitka.py bin/Nuitka.py --output-dir tests/reflected/ --exe
 else
     echo "Skipped."
@@ -76,13 +91,13 @@ for file in `ls src/*.py`
 do
     echo "Compiling $file"
 
-    rm -f /tmp/`basename $file .py`.c++
+    rm -rf /tmp/`basename $file .py`.build
 
     export PYTHONPATH=tests/reflected
     ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
-    diff -sq ./tests/reflected/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
+    diff -srq ./tests/reflected/`basename $file .py`.build /tmp/`basename $file .py`.build
 
-    rm -f /tmp/`basename $file .py`.c++
+    rm -rf /tmp/`basename $file .py`.build
 done
 
 for file in `ls src/nodes/*.py`
@@ -91,13 +106,13 @@ do
     then
         echo "Compiling $file"
 
-        rm -f /tmp/`basename $file .py`.c++
+        rm -rf /tmp/`basename $file .py`.build
 
         export PYTHONPATH=tests/reflected
         ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
-        diff -sq ./tests/reflected/nodes/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
+        diff -srq ./tests/reflected/nodes/`basename $file .py`.build /tmp/`basename $file .py`.build
 
-        rm -f /tmp/`basename $file .py`.c++
+        rm -rf /tmp/`basename $file .py`.build
     fi
 done
 
@@ -107,15 +122,32 @@ do
     then
         echo "Compiling $file"
 
-        rm -f /tmp/`basename $file .py`.c++
+        rm -rf /tmp/`basename $file .py`.build
 
         export PYTHONPATH=tests/reflected
         ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
-        diff -sq ./tests/reflected/templates/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
+        diff -srq ./tests/reflected/templates/`basename $file .py`.build /tmp/`basename $file .py`.build
 
-        rm -f /tmp/`basename $file .py`.c++
+        rm -rf /tmp/`basename $file .py`.build
     fi
 done
+
+for file in `ls src/optimizations/*.py`
+do
+    if [ $file != "src/optimizations/__init__.py" ]
+    then
+        echo "Compiling $file"
+
+        rm -rf /tmp/`basename $file .py`.build
+
+        export PYTHONPATH=tests/reflected
+        ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
+        diff -srq ./tests/reflected/optimizations/`basename $file .py`.build /tmp/`basename $file .py`.build
+
+        rm -rf /tmp/`basename $file .py`.build
+    fi
+done
+
 
 echo "PASS 3: Compiling from compiler running from .py files to single .exe."
 
@@ -129,12 +161,12 @@ for file in `ls src/*.py`
 do
     echo "Compiling $file"
 
-    rm -f /tmp/`basename $file .py`.c++
+    rm -rf /tmp/`basename $file .py`.build
 
     /tmp/Nuitka.exe $file --output-dir /tmp/
-    diff -sq ./tests/reflected/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
+    diff -srq ./tests/reflected/`basename $file .py`.build /tmp/`basename $file .py`.build
 
-    rm -f /tmp/`basename $file .py`.c++
+    rm -rf /tmp/`basename $file .py`.build
 done
 
 for file in `ls src/nodes/*.py`
@@ -143,12 +175,12 @@ do
     then
         echo "Compiling $file"
 
-        rm -f /tmp/`basename $file .py`.c++
+        rm -rf /tmp/`basename $file .py`.build
 
         /tmp/Nuitka.exe $file --output-dir /tmp/
-        diff -sq ./tests/reflected/nodes/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
+        diff -srq ./tests/reflected/nodes/`basename $file .py`.build /tmp/`basename $file .py`.build
 
-        rm -f /tmp/`basename $file .py`.c++
+        rm -rf /tmp/`basename $file .py`.build
     fi
 done
 
@@ -158,11 +190,11 @@ do
     then
         echo "Compiling $file"
 
-        rm -f /tmp/`basename $file .py`.c++
+        rm -rf /tmp/`basename $file .py`.build
 
         /tmp/Nuitka.exe $file --output-dir /tmp/
-        diff -sq ./tests/reflected/templates/`basename $file .py`.c++ /tmp/`basename $file .py`.c++
+        diff -srq ./tests/reflected/templates/`basename $file .py`.build /tmp/`basename $file .py`.build
 
-        rm -f /tmp/`basename $file .py`.c++
+        rm -rf /tmp/`basename $file .py`.build
     fi
 done

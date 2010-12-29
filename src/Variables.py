@@ -53,6 +53,7 @@ class Variable:
     def addReference( self, reference ):
         self.references.append( reference )
 
+    # pylint: disable=R0201
     def isLocalVariable( self ):
         return False
 
@@ -73,6 +74,7 @@ class Variable:
 
     def isModuleVariable( self ):
         return False
+    # pylint: enable=R0201
 
     def _checkShared( self, variable ):
         for reference in variable.references:

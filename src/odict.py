@@ -1,17 +1,14 @@
-# -*- coding: utf-8 -*-
-
-# This module is only an abstraction and OrderedDict as present in 2.7 and 3.1
-# but not in 2.6, there it is using the odict.py as mentioned in the PEP-0372
+# This module is only an abstraction of OrderedDict as present in 2.7 and 3.1 but not in
+# 2.6, there it is using the odict.py as mentioned in the PEP-0372
 #
-# This can be removed safely after the transition, not that the documentation
-# was removed, as it's not interesting really, being redundent to Python 2.7
-# documentation.
+# This can be removed safely after the transition, note that the documentation was
+# removed, as it's not interesting really, being redundent to Python 2.7 documentation.
 
 #    :copyright: (c) 2008 by Armin Ronacher and PEP 273 authors.
 #    :license: modified BSD license.
 
-# Kay Hayen did some changes for Nuitka, and put everything he added under the
-# same modified BSD license.
+# Kay Hayen did some changes for Nuitka, and put everything he added under the same
+# modified BSD license.
 
 try:
     from collections import OrderedDict

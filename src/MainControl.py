@@ -41,6 +41,7 @@ from __future__ import print_function
 import CodeGeneration
 import TreeOperations
 import TreeBuilding
+import Optimization
 import TreeDisplay
 import Generator
 import Contexts
@@ -48,16 +49,21 @@ import Options
 
 import sys, os
 
-from logging import warning
-
 def createNodeTree( filename ):
     """ Create a node tree.
 
-    Turn that source code into a node tree structure. If recursion into imported
-    modules is available, more trees will be available too.
+    Turn that source code into a node tree structure. If recursion into imported modules
+    is available, more trees will be available too.
 
     """
-    return TreeBuilding.buildModuleTree( filename )
+
+    # First build the tree, applying only required stuff.
+    result = TreeBuilding.buildModuleTree( filename )
+
+    # Then optimize the tree.
+    result = Optimization.optimizeTree( result )
+
+    return result
 
 def dumpTree( tree ):
     print( "Analysis -> Tree Result" )
@@ -93,7 +99,7 @@ class _OverflowCheckVisitor:
 
     def __call__( self, node ):
         if node.isStatementImportFrom():
-            for local_name, variable in node.getImports():
+            for local_name, _variable in node.getImports():
                 if local_name == "*":
                     self.result = True
                     raise TreeOperations.ExitVisit
@@ -117,6 +123,7 @@ def checkOverflowNeed( node ):
 
     return visitor.getResult()
 
+# TODO: Integrate this with optimizations.
 class _PrepareCodeGenerationVisitor:
     def __call__( self, node ):
         if node.isFunctionReference() or node.isClassReference():
@@ -180,7 +187,7 @@ def makeSourceDirectory( main_module ):
 
     global_context = Contexts.PythonGlobalContext()
 
-    other_modules = TreeBuilding.getOtherModules()
+    other_modules = Optimization.getOtherModules()
 
     if main_module in other_modules:
         other_modules.remove( main_module )
@@ -270,7 +277,12 @@ def runScons( name, quiet ):
         "python_debug"   : asBoolStr( Options.options.python_debug if Options.options.python_debug is not None else hasattr( sys, "getobjects" ) )
     }
 
-    scons_command = "scons" + (" --quiet" if quiet else "") + " -f " + os.environ[ "NUITKA_SCONS" ] + "/SingleExe.scons " + " ".join( "%s=%s" % (key,value) for key, value in options.items() )
+    scons_command = """scons %(quiet)s -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
+        "quiet"      : " --quiet " if quiet else " ",
+        "scons_file" : os.environ[ "NUITKA_SCONS" ] + "/SingleExe.scons",
+        "job_limit"  : Options.getJobLimit(),
+        "options"    : " ".join( "%s=%s" % ( key, value ) for key, value in options.items() )
+    }
 
     if Options.isShowScons():
         print( "Scons command:", scons_command )

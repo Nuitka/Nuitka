@@ -41,8 +41,6 @@ make a code block out of it. But it doesn't contain any target language syntax.
 
 from __future__ import print_function
 
-
-import TreeOperations
 import Generator
 import Contexts
 import Options
@@ -97,16 +95,15 @@ def generateConditionCode( condition, context, generator, inverted = False, allo
 
         return generator.getTrueExpressionCode()
     elif condition.isConstantReference():
-        if condition.getConstant():
-            if inverted:
-                return generator.getFalseExpressionCode()
-            else:
-                return generator.getTrueExpressionCode()
+        value = condition.getConstant()
+
+        if inverted:
+            value = not value
+
+        if value:
+            return generator.getTrueExpressionCode()
         else:
-            if inverted:
-                return generator.getTrueExpressionCode()
-            else:
-                return generator.getFalseExpressionCode()
+            return generator.getFalseExpressionCode()
     elif condition.isExpressionComparison():
         result = generator.getComparisonExpressionBoolCode(
             comparators = condition.getComparators(),
@@ -133,13 +130,36 @@ def generateConditionCode( condition, context, generator, inverted = False, allo
             condition = condition_identifier
         )
 
-def generateContractionCode( contraction, context, generator ):
-    loop_var_assigns = contraction.getLoopVariableAssignments()
-    body             = contraction.getBody()
+def _generatorContractionBodyCode( contraction, context, generator ):
+    contraction_body = contraction.getBody()
 
+    # Dictionary contractions produce a tuple always.
+    if contraction.isDictContraction():
+        return (
+            generateExpressionCode(
+                context    = context,
+                generator  = generator,
+                expression = contraction_body.getKey()
+            ),
+            generateExpressionCode(
+                context    = context,
+                generator  = generator,
+                expression = contraction_body.getValue()
+            )
+        )
+    else:
+        return generateExpressionCode(
+            context    = context,
+            generator  = generator,
+            expression = contraction_body
+        )
+
+
+
+def generateContractionCode( contraction, context, generator ):
     loop_var_codes = []
 
-    for count, loop_var_assign in enumerate( loop_var_assigns ):
+    for count, loop_var_assign in enumerate( contraction.getLoopVariableAssignments() ):
         loop_var_code = generateAssignmentCode(
             targets   = [ loop_var_assign ],
             value     = generator.getContractionIterValueIdentifier( index = count + 1, context = context ),
@@ -149,25 +169,11 @@ def generateContractionCode( contraction, context, generator ):
 
         loop_var_codes.append( loop_var_code )
 
-    if not contraction.isDictContraction():
-        contraction_code = generateExpressionCode(
-            context    = context,
-            generator  = generator,
-            expression = body
-        )
-    else:
-        contraction_code = (
-            generateExpressionCode(
-                context    = context,
-                generator  = generator,
-                expression = body.getKey()
-            ),
-            generateExpressionCode(
-                context    = context,
-                generator  = generator,
-                expression = body.getValue()
-            )
-        )
+    contraction_code = _generatorContractionBodyCode(
+        contraction = contraction,
+        context     = context,
+        generator   = generator
+    )
 
     iterateds = contraction.getIterateds()
 
@@ -183,10 +189,9 @@ def generateContractionCode( contraction, context, generator ):
         generator   = generator
     )
 
-    conditions = contraction.getConditions()
     contraction_condition_identifiers = []
 
-    for condition in conditions:
+    for condition in contraction.getConditions():
         contraction_condition_identifier = generateConditionCode(
             condition  = condition,
             allow_none = True,
@@ -208,14 +213,12 @@ def generateContractionCode( contraction, context, generator ):
         contraction_iterateds  = sub_iterated_identifiers
     )
 
-    code = generator.getContractionCallCode(
+    return generator.getContractionCallCode(
         contraction            = contraction,
         contraction_identifier = contraction_identifier,
         contraction_iterated   = iterated_identifier,
         context                = context.getParent()
     )
-
-    return code
 
 def generateListContractionCode( contraction, context, generator ):
     # Have a separate context to create list contraction code.
@@ -326,7 +329,7 @@ def generateLambdaCode( lambda_expression, context, generator ):
 
     default_value_identifiers = []
 
-    for _default_parameter_name, default_parameter_value in lambda_expression.getParameters().getDefaultParameters():
+    for _default_parameter_name, default_parameter_value in lambda_expression.getDefaultParameters():
         default_value_identifiers.append(
             generateExpressionCode(
                 expression = default_parameter_value,
@@ -376,7 +379,7 @@ def generateFunctionCode( function, context, generator ):
 
     default_value_identifiers = []
 
-    for _default_parameter_name, default_parameter_value in function.getParameters().getDefaultParameters():
+    for _default_parameter_name, default_parameter_value in function.getDefaultParameters():
         default_value_identifiers.append(
             generateExpressionCode(
                 expression = default_parameter_value,
@@ -629,12 +632,15 @@ def generateFunctionCallCode( function, context, generator ):
     )
 
 
-def generateExpressionsCode( expressions, context, generator ):
+def generateExpressionsCode( expressions, context, generator, allow_none = False ):
     assert type( expressions ) in ( tuple, list )
 
-    return [ generateExpressionCode( expression = expression, context = context, generator = generator ) for expression in expressions ]
+    return [ generateExpressionCode( expression = expression, context = context, generator = generator, allow_none = allow_none ) for expression in expressions ]
 
 def generateExpressionCode( expression, context, generator, allow_none = False ):
+    # This is a dispatching function with a branch per expression node type.
+    # pylint: disable=R0912
+
     if expression is None and allow_none:
         return None
 
@@ -672,7 +678,7 @@ def generateExpressionCode( expression, context, generator, allow_none = False )
         )
     elif expression.isOperation():
         identifier = generateOperationCode(
-            operator  = expression.getOperation(),
+            operator  = expression.getOperator(),
             operands  = expression.getOperands(),
             context   = context,
             generator = generator
@@ -883,27 +889,27 @@ def generateExpressionCode( expression, context, generator, allow_none = False )
                 context    = context
             )
     elif expression.isBuiltinImport():
-        return generator.getBuiltinImportCode(
+        identifier = generator.getBuiltinImportCode(
             module_name = expression.getModuleName(),
             context     = context
         )
     elif expression.isBuiltinChr():
-        return generator.getBuiltinChrCode(
+        identifier = generator.getBuiltinChrCode(
             value   = makeExpressionCode( expression.getValue() ),
             context = context
         )
     elif expression.isBuiltinOrd():
-        return generator.getBuiltinOrdCode(
+        identifier = generator.getBuiltinOrdCode(
             value   = makeExpressionCode( expression.getValue() ),
             context = context
         )
     elif expression.isBuiltinType1():
-        return generator.getBuiltinType1Code(
+        identifier = generator.getBuiltinType1Code(
             value   = makeExpressionCode( expression.getValue() ),
             context = context
         )
     elif expression.isBuiltinType3():
-        return generator.getBuiltinType3Code(
+        identifier = generator.getBuiltinType3Code(
             name_identifier  = makeExpressionCode( expression.getTypeName() ),
             bases_identifier = makeExpressionCode( expression.getBases() ),
             dict_identifier  = makeExpressionCode( expression.getDict() ),
@@ -919,6 +925,9 @@ def generateExpressionCode( expression, context, generator, allow_none = False )
 
 
 def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
+    # This is a dispatching function with a branch per assignment node type.
+    # pylint: disable=R0912
+
     if len( targets ) == 1 and not targets[0].isAssignToTuple():
         assign_source = value
         code = ""
@@ -1030,9 +1039,7 @@ def generateAssignmentCode( targets, value, context, generator, recursion = 1 ):
     assert code.endswith( "\n" ), code
 
     if brace:
-        # TODO: Making a block out of it, means this should be a in Generator, using it's
-        # private functionality even
-        code = "{\n%s}\n" % Generator._indentedCode( code.split("\n"), 4 )
+        code = generator.getBlockCode( code )
 
     if recursion == 1:
         code = code.rstrip()
@@ -1129,7 +1136,7 @@ def generateEvalCode( eval_expression, context, generator ):
         globals_identifier = globals_identifier,
         locals_identifier  = locals_identifier,
         mode               = eval_expression.getMode(),
-        future_flags       = generator.getFutureFlagsCode( *eval_expression.getFutureFlags() ),
+        future_flags       = generator.getFutureFlagsCode( eval_expression.getSourceReference().getFutureSpec() ),
         provider           = eval_expression.getParentVariableProvider(),
         context            = context
 
@@ -1170,8 +1177,125 @@ def generateExecCode( exec_def, context, generator ):
         ),
         globals_identifier = globals_identifier,
         locals_identifier  = locals_identifier,
-        future_flags       = generator.getFutureFlagsCode( *exec_def.getFutureFlags() )
+        future_flags       = generator.getFutureFlagsCode( exec_def.getSourceReference().getFutureSpec() )
     )
+
+def generateTryExceptCode( statement, context, generator ):
+    exception_identifiers = generateExpressionsCode(
+        expressions = statement.getExceptionCatchers(),
+        allow_none  = True,
+        generator   = generator,
+        context     = context
+    )
+
+    exception_assignments = []
+
+    for assign in statement.getExceptionAssigns():
+        if assign is not None:
+            exception_assignments.append(
+                generateAssignmentCode(
+                    targets   = [ assign ],
+                    value     = generator.getCurrentExceptionObjectCode(),
+                    context   = context,
+                    generator = generator
+                )
+            )
+        else:
+            exception_assignments.append( None )
+
+    catcher_codes = []
+
+    for catched in statement.getExceptionCatchBranches():
+        catcher_codes.append(
+            generateStatementSequenceCode(
+                generator          = generator,
+                context            = context,
+                statement_sequence = catched
+            )
+        )
+
+    no_raise = statement.getBlockNoRaise()
+
+    if no_raise is not None:
+        else_code = generateStatementSequenceCode(
+            generator          = generator,
+            context            = context,
+            statement_sequence = no_raise
+        )
+    else:
+        else_code = None
+
+    return generator.getTryExceptCode(
+        context               = context,
+        code_tried            = generateStatementSequenceCode(
+            generator          = generator,
+            context            = context,
+            statement_sequence = statement.getBlockTry()
+        ),
+        exception_identifiers = exception_identifiers,
+        exception_assignments = exception_assignments,
+        catcher_codes         = catcher_codes,
+        else_code             = else_code
+    )
+
+def generateRaiseCode( statement, context, generator ):
+    parameters = statement.getExceptionParameters()
+
+    if len( parameters ) == 0:
+        return generator.getReRaiseExceptionCode(
+            context = context
+        )
+    elif len( parameters ) == 1:
+        return generator.getRaiseExceptionCode(
+            context                    = context,
+            exception_type_identifier  = generateExpressionCode(
+                expression = parameters[0],
+                generator  = generator,
+                context    = context
+            ),
+            exception_value_identifier = None,
+            exception_tb_identifier    = None,
+            exception_tb_maker         = generator.getTracebackMakingIdentifier( context, statement.getSourceReference().getLineNumber() )
+        )
+    elif len( parameters ) == 2:
+        return generator.getRaiseExceptionCode(
+            context              = context,
+            exception_type_identifier = generateExpressionCode(
+                expression = parameters[0],
+                generator  = generator,
+                context    = context
+            ),
+            exception_value_identifier = generateExpressionCode(
+                expression = parameters[1],
+                generator  = generator,
+                context    = context
+            ),
+            exception_tb_identifier    = None,
+            exception_tb_maker         = generator.getTracebackMakingIdentifier( context, statement.getSourceReference().getLineNumber() )
+        )
+    elif len( parameters ) == 3:
+        return generator.getRaiseExceptionCode(
+            context                    = context,
+            exception_type_identifier  = generateExpressionCode(
+                expression = parameters[0],
+                generator  = generator,
+                context    = context
+            ),
+            exception_value_identifier = generateExpressionCode(
+                expression = parameters[1],
+                generator  = generator,
+                context    = context
+            ),
+            exception_tb_identifier    = generateExpressionCode(
+                expression = parameters[2],
+                generator  = generator,
+                context    = context
+            ),
+            exception_tb_maker         = None
+        )
+    else:
+        assert False, parameters
+
 
 def generateStatementCode( statement, context, generator ):
     try:
@@ -1181,21 +1305,12 @@ def generateStatementCode( statement, context, generator ):
         raise
 
 def _generateStatementCode( statement, context, generator ):
+    # This is a dispatching function with a branch per statement node type.
+    # pylint: disable=R0912
+
     if not statement.isStatement():
-
-        # A statement sequence may turn up due to
-        if statement.isStatementsSequence() and statement.isReplacedStatement():
-            codes = generateStatementSequenceCode(
-                statement_sequence = statement,
-                generator          = generator,
-                context            = context
-            )
-
-            return "\n".join( codes )
-
         statement.dump()
         assert False
-
 
     def makeExpressionCode( expression, allow_none = False ):
         if allow_none and expression is None:
@@ -1352,7 +1467,6 @@ def _generateStatementCode( statement, context, generator ):
             body_codes              = body_codes,
             context                 = context
         )
-
     elif statement.isStatementForLoop():
         iter_name, iter_value, iter_object = generator.getForLoopNames( context = context )
 
@@ -1471,112 +1585,18 @@ def _generateStatementCode( statement, context, generator ):
             )
         )
     elif statement.isStatementTryExcept():
-        exception_identifiers = []
-
-        for catcher in statement.getExceptionCatchers():
-            if catcher is not None:
-                exception_identifiers.append(
-                    makeExpressionCode(
-                        expression = catcher
-                    )
-                )
-            else:
-                exception_identifiers.append( None )
-
-        exception_assignments = []
-
-        for assign in statement.getExceptionAssigns():
-            if assign is not None:
-                exception_assignments.append(
-                    generateAssignmentCode(
-                        targets   = [ assign ],
-                        value     = generator.getCurrentExceptionObjectCode(),
-                        context   = context,
-                        generator = generator
-                    )
-                )
-            else:
-                exception_assignments.append( None )
-
-        catcher_codes = []
-
-        for catched in statement.getExceptionCatchBranches():
-            catcher_codes.append(
-                generateStatementSequenceCode(
-                    generator          = generator,
-                    context            = context,
-                    statement_sequence = catched
-                )
-            )
-
-        no_raise = statement.getBlockNoRaise()
-
-        if no_raise is not None:
-            else_code = generateStatementSequenceCode(
-                generator          = generator,
-                context            = context,
-                statement_sequence = no_raise
-            )
-        else:
-            else_code = None
-
-        code = generator.getTryExceptCode(
-            context               = context,
-            code_tried            = generateStatementSequenceCode(
-                generator          = generator,
-                context            = context,
-                statement_sequence = statement.getBlockTry()
-            ),
-            exception_identifiers = exception_identifiers,
-            exception_assignments = exception_assignments,
-            catcher_codes         = catcher_codes,
-            else_code             = else_code
+        code = generateTryExceptCode(
+            statement = statement,
+            context   = context,
+            generator = generator
         )
     elif statement.isStatementRaiseException():
-        parameters = statement.getExceptionParameters()
+        code = generateRaiseCode(
+            statement = statement,
+            context   = context,
+            generator = generator
+        )
 
-        if len( parameters ) == 0:
-            code = generator.getReRaiseExceptionCode(
-                context = context
-            )
-        elif len( parameters ) == 1:
-            code = generator.getRaiseExceptionCode(
-                context                    = context,
-                exception_type_identifier  = makeExpressionCode(
-                    expression = parameters[0]
-                ),
-                exception_value_identifier = None,
-                exception_tb_identifier    = None,
-                exception_tb_maker         = generator.getTracebackMakingIdentifier( context, statement.getSourceReference().getLineNumber() )
-            )
-        elif len( parameters ) == 2:
-            code = generator.getRaiseExceptionCode(
-                context              = context,
-                exception_type_identifier = makeExpressionCode(
-                    expression = parameters[0]
-                ),
-                exception_value_identifier = makeExpressionCode(
-                    expression = parameters[1]
-                ),
-                exception_tb_identifier    = None,
-                exception_tb_maker         = generator.getTracebackMakingIdentifier( context, statement.getSourceReference().getLineNumber() )
-            )
-        elif len( parameters ) == 3:
-            code = generator.getRaiseExceptionCode(
-                context                    = context,
-                exception_type_identifier  = makeExpressionCode(
-                    expression = parameters[0]
-                ),
-                exception_value_identifier = makeExpressionCode(
-                    expression = parameters[1]
-                ),
-                exception_tb_identifier    = makeExpressionCode(
-                    expression = parameters[2]
-                ),
-                exception_tb_maker         = None
-            )
-        else:
-            assert False, parameters
     elif statement.isStatementAssert():
         code = generator.getAssertCode(
             context              = context,
@@ -1596,9 +1616,9 @@ def _generateStatementCode( statement, context, generator ):
             context      = context
         )
     elif statement.isStatementDeclareGlobal():
-        return ""
+        code = ""
     elif statement.isStatementPass():
-        return ""
+        code = ""
     elif statement.isClassReference():
         code = generateClassCode(
             class_def = statement,
@@ -1608,10 +1628,7 @@ def _generateStatementCode( statement, context, generator ):
     else:
         assert False, statement.__class__
 
-    if Options.shallHaveStatementLines():
-        code = generator.getCurrentLineCode( statement.getSourceReference() ) + code
-
-    assert code == code.lstrip()
+    assert code == code.strip(), ( statement, "'%s'" % code )
 
     return code
 
@@ -1621,6 +1638,8 @@ def generateStatementSequenceCode( statement_sequence, context, generator ):
     statements = statement_sequence.getStatements()
 
     codes = []
+
+    last_ref = None
 
     for statement in statements:
         if Options.shallTraceExecution():
@@ -1636,6 +1655,12 @@ def generateStatementSequenceCode( statement_sequence, context, generator ):
         # no code.
         if code == "":
             continue
+
+        source_ref = statement.getSourceReference()
+
+        if Options.shallHaveStatementLines() and source_ref != last_ref:
+            code = generator.getCurrentLineCode( source_ref ) + code
+            last_ref = source_ref
 
         statement_codes = code.split( "\n" )
 

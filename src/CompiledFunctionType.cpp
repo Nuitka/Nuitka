@@ -147,9 +147,10 @@ static int Nuitka_Function_set_dict( Nuitka_FunctionObject *object, PyObject *va
     if ( PyDict_Check(value) )
     {
         PyObject *old = object->m_dict;
-
         object->m_dict = INCREASE_REFCOUNT( value );
-        Py_DECREF( object->m_dict );
+        Py_XDECREF( old );
+
+        return 0;
     }
     else
     {

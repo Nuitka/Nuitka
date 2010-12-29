@@ -147,3 +147,14 @@ def functionExecNones2():
     print "Exec with None as normal args did update locals:", f
 
 functionExecNones2()
+
+print "Exec with a future division definition and one without:"
+
+exec """
+from __future__ import division
+print "3/2 is with future division", 3/2
+"""
+
+exec """
+print "3/2 is without future division", 3/2
+"""

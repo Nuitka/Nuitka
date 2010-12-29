@@ -29,13 +29,32 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Module like __future__ for things that are no more in CPython3, but provide compatible fallbacks.
 
+This is required to run the same code easily with both CPython2 and CPython3.
+"""
+
+# pylint: disable=W0622
+
+# Work around for CPython 3.1 renaming long to int.
 try:
     long = long
 except NameError:
     long = int
 
+# Work around for CPython 3.1 renaming unicode to str.
 try:
     unicode = unicode
 except NameError:
     unicode = str
+
+# Work around for CPython 3.1 removal of cpickle.
+try:
+    import cPickle as cpickle
+except ImportError:
+    import pickle as cpickle
+
+# For PyLint to be happy.
+assert long
+assert unicode
+assert cpickle

@@ -29,41 +29,11 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Specification record for import.
 
-This is used to carry the set of properties determined for an import.
-"""
 
-class ImportSpec:
-    def __init__( self, module_package, module_name, import_name, variable, module_filename ):
-        import Nodes
-        assert module_package is None or isinstance( module_package, Nodes.CPythonPackage )
+from optimizations.OptimizeBase import OptimizationVisitorBase
 
-        self.module_package  = module_package
-        self.module_name     = module_name
-        self.import_name     = import_name
-        self.variable        = variable
-        self.module_filename = module_filename
-
-        assert "." not in module_name
-
-    def getModuleName( self ):
-        return self.module_name
-
-    def getImportName( self ):
-        return self.import_name
-
-    def getFilename( self ):
-        return self.module_filename
-
-    def getPackage( self ):
-        return self.module_package
-
-    def getFullName( self ):
-        if self.module_package:
-            return self.module_package.getName() + "." + self.module_name
-        else:
-            return self.module_name
-
-    def getVariable( self ):
-        return self.variable
+class VariableClosureLookupVisitor( OptimizationVisitorBase ):
+    def __call__( self, node ):
+        if node.isVariableReference() and node.getVariable() is None:
+            node.setVariable( node.getParentVariableProvider().getVariableForReference( node.getVariableName() ) )

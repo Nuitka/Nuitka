@@ -20,7 +20,6 @@
 #
 
 def tryContinueFinallyTest():
-
     for x in range(10):
         try:
             if x % 2 == 1:

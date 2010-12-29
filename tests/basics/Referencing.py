@@ -327,7 +327,29 @@ def simpleFunction43():
 
    a.b = 1
 
+def simpleFunction44():
+   def nested_args_function( (a,b), c ):
+      return a, b, c
 
+   nested_args_function( ( 1, 2 ), 3 )
+
+def simpleFunction45():
+   def nested_args_function( (a,b), c ):
+      return a, b, c
+
+   try:
+      nested_args_function( ( 1, ), 3 )
+   except ValueError:
+      pass
+
+def simpleFunction46():
+   def nested_args_function( (a,b), c ):
+      return a, b, c
+
+   try:
+      nested_args_function( ( 1, 2, 3 ), 3 )
+   except ValueError:
+      pass
 
 x = 17
 
@@ -410,3 +432,6 @@ checkReferenceCount( simpleFunction40 )
 checkReferenceCount( simpleFunction41 )
 checkReferenceCount( simpleFunction42 )
 checkReferenceCount( simpleFunction43 )
+checkReferenceCount( simpleFunction44 )
+checkReferenceCount( simpleFunction45 )
+checkReferenceCount( simpleFunction46 )

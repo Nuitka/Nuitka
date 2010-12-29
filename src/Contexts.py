@@ -29,18 +29,17 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Code generation contexts.
 
-from __past__ import long, unicode
+"""
 
-# Work around for CPython 3.1 removal of cpickle.
-try:
-    import cPickle as cpickle
-except ImportError:
-    import pickle as cpickle
+# pylint: disable=W0622
+from __past__ import long, unicode, cpickle
+# pylint: enable=W0622
 
-import pickle, re, hashlib
+import pickle, re, math
 
-from Identifiers import namifyConstant, ExceptionCannotNamify, digest, Identifier, ConstantIdentifier, LocalVariableIdentifier, ClosureVariableIdentifier
+from Identifiers import namifyConstant, Identifier, ConstantIdentifier, LocalVariableIdentifier, ClosureVariableIdentifier
 
 import CodeTemplates
 
@@ -54,7 +53,7 @@ class Constant:
 
         try:
             self.hash = hash( constant )
-        except:
+        except TypeError:
             self.hash = 55
 
     def getConstant( self ):
@@ -66,9 +65,7 @@ class Constant:
     def __eq__( self, other ):
         assert isinstance( other, self.__class__ )
 
-        return type( self.constant ) is type( other.constant ) and self.constant == other.constant and repr( self.constant ) == repr( other.constant )
-
-        assert False
+        return type( self.constant ) is type( other.constant ) and _compareConstants( self.constant, other.constant ) and repr( self.constant ) == repr( other.constant )
 
 class PythonContextBase:
     def __init__( self ):
@@ -112,8 +109,8 @@ class PythonContextBase:
         return False
 
     def getTempObjectVariable( self ):
-        # TODO: Make sure these are actually indepedent in generated code between different
-        # contexts
+        # TODO: Make sure these are actually indepedent in generated code between
+        # different contexts
 
         result = Identifier( "_expression_temps[%d] " % self.temp_counter, 0 )
 
@@ -152,6 +149,99 @@ class PythonChildContextBase( PythonContextBase ):
         return self.parent.getModuleName()
 
 
+def _compareConstants( a, b ):
+    if a is None and b is None:
+        return True
+
+    if type( a ) is not type( b ):
+        return False
+
+    if type( a ) in ( str, bool, complex, unicode, int, long ):
+        return a == b
+
+    if type( a ) in ( tuple, list ):
+        if len( a ) != len( b ):
+            return False
+
+        for ea, eb in zip( a, b ):
+            if not _compareConstants( ea, eb ):
+                return False
+        else:
+            return True
+
+
+    if type( a ) is dict:
+        if not _compareConstants( set( a.keys() ), set( b.keys() ) ):
+            return False
+
+        for key_a, value_a in a.iteritems():
+            if not _compareConstants( value_a, b[ key_a ] ):
+                return False
+        else:
+            return True
+
+    if type( a ) is float:
+        if a == b:
+            return True
+        else:
+            return math.isnan( a )
+
+    if type( a ) in ( frozenset, set ):
+        if len( a ) != len( b ):
+            return False
+
+        for ea in a:
+            if ea not in b and not math.isnan( ea ):
+                return False
+        else:
+            return True
+
+    assert False, type( a )
+
+
+def _getConstantHandle( constant ):
+    constant_type = type( constant )
+
+    if constant_type in ( int, long, str, unicode, float, bool, complex, tuple, list, dict, frozenset ):
+        return "_python_" + namifyConstant( constant )
+    elif constant is Ellipsis:
+        return "Py_Ellipsis"
+    else:
+        raise Exception( "Unknown type for constant handle", type( constant ), constant  )
+
+def _pickRawDelimiter( value ):
+    delimiter = "raw"
+
+    while delimiter in value:
+        delimiter = "_" + delimiter + "_"
+
+    return delimiter
+
+def _encodeString( value ):
+    delimiter = _pickRawDelimiter( value )
+
+    start = 'R"' + delimiter + "("
+    end = ")" + delimiter + '"'
+
+    result = start + value + end
+
+    # Replace \n, \r and \0 in the raw strings. The \0 gives a silly warning from
+    # gcc (bug reported) and \n and \r even lead to wrong strings. Somehow the
+    # parser of the C++ doesn't yet play nice with these.
+
+    def decide( match ):
+        if match.group(0) == "\n":
+            return end + r' "\n" ' + start
+        elif match.group(0) == "\r":
+            return end + r' "\r" ' + start
+        else:
+            return end + r' "\0" ' + start
+
+    result = re.sub( "\n|\r|\0", decide, result )
+
+    return result
+
+
 class PythonGlobalContext:
     def __init__( self ):
         self.constants = {}
@@ -178,22 +268,9 @@ class PythonGlobalContext:
             key = ( type( constant ), repr( constant ), Constant( constant ) )
 
             if key not in self.constants:
-                self.constants[ key ] = self._getConstantHandle( constant )
+                self.constants[ key ] = _getConstantHandle( constant )
 
             return ConstantIdentifier( self.constants[ key ] )
-
-    def _getConstantHandle( self, constant ):
-        constant_type = type( constant )
-
-        if constant_type in ( int, long, str, unicode, float, bool, complex, tuple, list, dict, frozenset ):
-            return "_python_" + namifyConstant( constant )
-        elif constant is Ellipsis:
-            return "Py_Ellipsis"
-        else:
-            raise Exception( "Unknown type for constant handle", type( constant ), constant  )
-
-    def getPreludeCode( self ):
-        return CodeTemplates.global_prelude
 
     def getConstantCode( self ):
         return CodeTemplates.constant_reading % {
@@ -213,38 +290,6 @@ class PythonGlobalContext:
             statements.append( declaration )
 
         return "\n".join( statements )
-
-    def _pickRawDelimiter( self, value ):
-        delimiter = "raw"
-
-        while value.find( delimiter ) != -1:
-            delimiter = "_" + delimiter + "_"
-
-        return delimiter
-
-    def _encodeString( self, value ):
-        delimiter = self._pickRawDelimiter( value )
-
-        start = 'R"' + delimiter + "("
-        end = ")" + delimiter + '"'
-
-        result = start + value + end
-
-        # Replace \n, \r and \0 in the raw strings. The \0 gives a silly warning from
-        # gcc (bug reported) and \n and \r even lead to wrong strings. Somehow the
-        # parser of the C++ doesn't yet play nice with these.
-
-        def decide( match ):
-            if match.group(0) == "\n":
-                return end + r' "\n" ' + start
-            elif match.group(0) == "\r":
-                return end + r' "\r" ' + start
-            else:
-                return end + r' "\0" ' + start
-
-        result = re.sub( "\n|\r|" + chr(0), decide, result )
-
-        return result
 
     def getConstantInitializations( self ):
         statements = []
@@ -270,14 +315,14 @@ class PythonGlobalContext:
                 # Check that the constant is restored correctly.
                 restored = cpickle.loads( saved )
 
-                assert restored == constant_value, ( repr( constant_value ), "!=", repr( restored ) )
+                assert _compareConstants( restored, constant_value ), ( repr( constant_value ), "!=", repr( restored ) )
 
                 if str is unicode:
                     saved = saved.decode( "utf_8" )
 
-                statements.append( """%s = _unstreamConstant( %s, %d );""" % ( constant_identifier, self._encodeString( saved ), len( saved ) ) )
+                statements.append( """%s = _unstreamConstant( %s, %d );""" % ( constant_identifier, _encodeString( saved ), len( saved ) ) )
             elif constant_type == str:
-                encoded = self._encodeString( constant_value )
+                encoded = _encodeString( constant_value )
 
                 # statements.append( """puts( "%s" );""" % constant_identifier )
                 statements.append( """%s = PyString_FromStringAndSize( %s, %d );""" % ( constant_identifier, encoded, len(constant_value) ) )
@@ -374,11 +419,14 @@ class PythonModuleContext( PythonContextBase ):
     def getModuleCodeName( self ):
         return self.getCodeName()
 
+    # There cannot ne local variable in modules no need to consider the name.
+    # pylint: disable=W0613
     def hasLocalVariable( self, var_name ):
         return False
 
     def hasClosureVariable( self, var_name ):
         return False
+    # pylint: enable=W0613
 
     def canHaveLocalVariables( self ):
         return False

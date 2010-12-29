@@ -58,7 +58,7 @@ static void _context_common_%(function_identifier)s_destructor( void *context_vo
 
     if ( _python_context->ref_count == 0 )
     {
-        %(function_context_free)s
+%(function_context_free)s
         delete _python_context;
     }
 }
@@ -103,7 +103,7 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
         CHECK_EXCEPTION( generator );
         traceback = false;
 
-        struct _context_generator_%(function_identifier)s_t *_python_context = (_context_generator_%(function_identifier)s_t *)generator->m_context;
+%(context_access)s
 
         // Local variable inits
 %(function_var_inits)s
@@ -137,8 +137,7 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 """
 
 genfunc_yield_terminator = """\
-throw ReturnException();
-"""
+throw ReturnException();"""
 
 genfunc_function_template = """
 static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_object_decl)s )
@@ -176,8 +175,7 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_object_
 
 static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObject *kw )
 {
-    struct _context_common_%(function_identifier)s_t *_python_context = (struct _context_common_%(function_identifier)s_t *)self;
-
+%(context_access_arg_parsing)s
 %(parameter_parsing_code)s
 
     return impl_%(function_identifier)s( self%(parameter_object_list)s );
@@ -188,4 +186,19 @@ error_exit:;
     return NULL;
 
 }
+"""
+
+generator_context_access_template = """
+// The context of the generator.
+struct _context_common_%(function_identifier)s_t *_python_context = (struct _context_common_%(function_identifier)s_t *)self;
+"""
+
+generator_context_unused_template = """\
+// No context is used.
+"""
+
+# TODO: The NUITKA_MAY_BE_UNUSED is because Nuitka doesn't yet detect the case of unused
+# parameters (which are stored in the context for generators to share) reliably.
+generator_context_access_template2 = """
+NUITKA_MAY_BE_UNUSED struct _context_generator_%(function_identifier)s_t *_python_context = (_context_generator_%(function_identifier)s_t *)generator->m_context;
 """

@@ -29,6 +29,7 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Code templates one stop access. """
 
 from templates.CodeTemplatesMain import *
 
@@ -45,6 +46,9 @@ from templates.CodeTemplatesImporting import *
 from templates.CodeTemplatesClass import *
 from templates.CodeTemplatesLoops import *
 
+# We have some very long lines in here that should not be shorter though.
+# pylint: disable=C0301
+
 global_copyright = """
 // Generated code for Python source for module '%(name)s'
 
@@ -53,12 +57,7 @@ global_copyright = """
 // under the same license unless you don't distribute this source or its binary.
 """
 
-# Template for the global stuff that must be had, compiling one or multple modules.
-global_prelude = """\
-#include "nuitka/prelude.hpp"
-"""
-
-try_finally_template = """
+try_finally_template = """\
 _PythonExceptionKeeper _caught_%(try_count)d;
 bool _continue_%(try_count)d = false;
 bool _break_%(try_count)d = false;
@@ -84,6 +83,7 @@ catch ( ReturnException &e )
     _return_%(try_count)d = true;
 }
 
+// Final code:
 %(final_code)s
 
 _caught_%(try_count)d.rethrow();
@@ -99,10 +99,9 @@ if ( _break_%(try_count)d )
 if ( _return_%(try_count)d )
 {
     throw ReturnException();
-}
-"""
+}"""
 
-try_except_template = """
+try_except_template = """\
 try
 {
 %(tried_code)s
@@ -118,10 +117,9 @@ catch ( _PythonException &_exception )
     _exception.toExceptionHandler();
 
 %(exception_code)s
-}
-"""
+}"""
 
-try_except_else_template = """
+try_except_else_template = """\
 bool _caught_%(except_count)d = false;
 try
 {
@@ -143,8 +141,7 @@ catch ( _PythonException &_exception )
 if ( _caught_%(except_count)d == false )
 {
 %(else_code)s
-}
-"""
+}"""
 
 exec_local_template = """\
 {
@@ -173,8 +170,7 @@ exec_local_template = """\
     {
 %(store_locals_code)s
     }
-}
-"""
+}"""
 
 exec_global_template = """\
 {
@@ -190,8 +186,7 @@ exec_global_template = """\
 
     PyObject *result = EVAL_CODE( code.asObject(), globals.asObject(), locals.asObject() );
     Py_DECREF( result );
-}
-"""
+}"""
 
 eval_local_template = """\
 EVAL_CODE( PyObjectTemporary( COMPILE_CODE(  %(source_identifier)s, %(filename_identifier)s, %(mode_identifier)s, %(future_flags)s ) ).asObject(), ( _eval_globals_tmp = %(globals_identifier)s ) == Py_None ? %(make_globals_identifier)s : _eval_globals_tmp, ( _eval_locals_tmp = %(locals_identifier)s ) == Py_None ? ( _eval_globals_tmp = %(globals_identifier)s ) == Py_None ?  %(make_locals_identifier)s : _eval_globals_tmp : _eval_locals_tmp )"""
@@ -259,5 +254,4 @@ with_template = """\
     {
         PyObjectTemporary exit_result( CALL_FUNCTION( NULL, %(triple_none_tuple)s, %(manager)s_exit.asObject() ) );
     }
-}
-"""
+}"""

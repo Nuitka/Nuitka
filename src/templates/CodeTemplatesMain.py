@@ -39,7 +39,7 @@ main_program = """\
 static struct _inittab _module_inittab[] =
 {
 %(module_inittab)s
-    NULL, NULL
+    { NULL, NULL }
 };
 
 bool FIND_EMBEDDED_MODULE( char const *name )
@@ -263,7 +263,7 @@ static PyObject *_unstreamConstant( char const *buffer, int size )
 
 PyModuleObject *_module_builtin = NULL;
 
-static int _initConstants()
+static void _initConstants( void )
 {
     if ( _sentinel_value == NULL )
     {

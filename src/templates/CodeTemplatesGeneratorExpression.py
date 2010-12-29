@@ -36,14 +36,14 @@ genexpr_context_body_template = """
 struct _context_%(function_identifier)s_t
 {
     // The generator expression can access a read-only closure of the creator.
-    %(function_context_decl)s
+%(function_context_decl)s
 };
 
 static void _context_%(function_identifier)s_destructor( void *context_voidptr )
 {
     _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)context_voidptr;
 
-    %(function_context_release)s
+%(function_context_release)s
 
     delete _python_context;
 }
@@ -63,14 +63,14 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 }
 """
 
-genexpr_iterator_value_assignment = """
+genexpr_iterator_value_assignment = """\
 case %(iterator_index)d:
 %(assignment_code)s
 condition = %(condition_code)s;
    break;
 """
 
-genexpr_iterator_making = """
+genexpr_iterator_making = """\
 case %(iterator_index)d:
    generator->iterators[ %(iterator_index)d ] = MAKE_ITERATOR( %(iterated_code)s );
    break;
@@ -95,10 +95,15 @@ static PyObject *%(function_identifier)s( Nuitka_GenexprObject *generator )
             {
                 switch( generator->iterator_level )
                 {
-                   case 0:
-                       assert( false );
-                       break;
-                   %(iterator_making)s
+                    case 0:
+                        assert( false );
+                        break;
+%(iterator_making)s
+#ifndef __NUITKA_NO_ASSERT__
+                    default:
+                        assert( false );
+                        break;
+#endif
                 }
             }
 
@@ -120,7 +125,12 @@ static PyObject *%(function_identifier)s( Nuitka_GenexprObject *generator )
 
                 switch( generator->iterator_level )
                 {
-                    %(iterator_value_assign)s
+%(iterator_value_assign)s
+#ifndef __NUITKA_NO_ASSERT__
+                    default:
+                        assert( false );
+                        break;
+#endif
                 }
 
                 // plug condition here, just don't increase if it mismatches

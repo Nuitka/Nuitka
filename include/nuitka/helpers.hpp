@@ -47,6 +47,15 @@ static PyObject *INCREASE_REFCOUNT( PyObject *object );
 
 extern int _current_line;
 
+// Wraps a PyObject * you received or acquired from another container to simplify refcount
+// handling when you're not going to use the object beyond the local scope. It will hold a
+// reference to the wrapped object as long as the PyObjectTemporary is alive, and will
+// release the reference when the wrapper is destroyed: this eliminates the need for
+// manual DECREF calls on Python objects before returning from a method call.
+//
+// In effect, wrapping an object inside a PyObjectTemporary is equivalent to a deferred
+// Py_DECREF() call on the wrapped object.
+
 // Helper class to be used when "PyObject *" are provided as parameters where they are not
 // consumed, but not needed anymore after the call and and need a release as soon as
 // possible.
@@ -217,7 +226,9 @@ class _PythonException
         {
             PyErr_Restore( this->exception_type, this->exception_value, this->exception_tb );
 
+#ifndef __NUITKA_NO_ASSERT__
             PyThreadState *thread_state = PyThreadState_GET();
+#endif
 
             assert( this->exception_type == thread_state->curexc_type );
             assert( thread_state->curexc_type );
@@ -270,7 +281,7 @@ class _PythonException
             return this->exception_tb;
         }
 
-        inline PyObject *setTraceback( PyTracebackObject *traceback )
+        inline void setTraceback( PyTracebackObject *traceback )
         {
             assert( traceback );
             assert( traceback->ob_refcnt > 0 );
@@ -363,7 +374,7 @@ class BreakException
 };
 
 // Helper functions for reference count handling in the fly.
-static PyObject *INCREASE_REFCOUNT( PyObject *object )
+NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
 {
     assert( object->ob_refcnt > 0 );
 
@@ -372,7 +383,7 @@ static PyObject *INCREASE_REFCOUNT( PyObject *object )
     return object;
 }
 
-static PyObject *DECREASE_REFCOUNT( PyObject *object )
+NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 {
     assert( object->ob_refcnt > 0 );
 
@@ -383,7 +394,7 @@ static PyObject *DECREASE_REFCOUNT( PyObject *object )
 
 #include "printing.hpp"
 
-static void RAISE_EXCEPTION( PyObject *exception, PyTracebackObject *traceback )
+NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception, PyTracebackObject *traceback )
 {
     if ( PyExceptionClass_Check( exception ) )
     {
@@ -404,7 +415,7 @@ static void RAISE_EXCEPTION( PyObject *exception, PyTracebackObject *traceback )
     }
 }
 
-static void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyTracebackObject *traceback )
+NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyTracebackObject *traceback )
 {
     // TODO: Check traceback
 
@@ -416,12 +427,12 @@ static void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyTraceb
     throw _PythonException( exception_type, value, traceback );
 }
 
-static inline void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyObject *traceback )
+NUITKA_MAY_BE_UNUSED static inline void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyObject *traceback )
 {
     RAISE_EXCEPTION( exception_type, value, (PyTracebackObject *)traceback );
 }
 
-static void RERAISE_EXCEPTION( void )
+NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( void )
 {
     PyThreadState *tstate = PyThreadState_GET();
 
@@ -438,7 +449,7 @@ static void RERAISE_EXCEPTION( void )
 }
 
 
-static bool CHECK_IF_TRUE( PyObject *object )
+NUITKA_MAY_BE_UNUSED static bool CHECK_IF_TRUE( PyObject *object )
 {
     assert( object != NULL );
     assert( object->ob_refcnt > 0 );
@@ -453,7 +464,7 @@ static bool CHECK_IF_TRUE( PyObject *object )
     return status == 1;
 }
 
-static bool CHECK_IF_FALSE( PyObject *object )
+NUITKA_MAY_BE_UNUSED static bool CHECK_IF_FALSE( PyObject *object )
 {
     assert( object != NULL );
     assert( object->ob_refcnt > 0 );
@@ -468,12 +479,12 @@ static bool CHECK_IF_FALSE( PyObject *object )
     return status == 1;
 }
 
-static PyObject *BOOL_FROM( bool value )
+NUITKA_MAY_BE_UNUSED static PyObject *BOOL_FROM( bool value )
 {
     return value ? _python_bool_True : _python_bool_False;
 }
 
-static PyObject *UNARY_NOT( PyObject *object )
+NUITKA_MAY_BE_UNUSED static PyObject *UNARY_NOT( PyObject *object )
 {
     int result = PyObject_Not( object );
 
@@ -487,7 +498,7 @@ static PyObject *UNARY_NOT( PyObject *object )
 
 typedef PyObject *(binary_api)( PyObject *, PyObject * );
 
-static PyObject *BINARY_OPERATION( binary_api api, PyObject *operand1, PyObject *operand2 )
+NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION( binary_api api, PyObject *operand1, PyObject *operand2 )
 {
     int line = _current_line;
     PyObject *result = api( operand1, operand2 );
@@ -503,7 +514,7 @@ static PyObject *BINARY_OPERATION( binary_api api, PyObject *operand1, PyObject 
 
 typedef PyObject *(unary_api)( PyObject * );
 
-static PyObject *UNARY_OPERATION( unary_api api, PyObject *operand )
+NUITKA_MAY_BE_UNUSED static PyObject *UNARY_OPERATION( unary_api api, PyObject *operand )
 {
     PyObject *result = api( operand );
 
@@ -515,7 +526,7 @@ static PyObject *UNARY_OPERATION( unary_api api, PyObject *operand )
     return result;
 }
 
-static PyObject *POWER_OPERATION( PyObject *operand1, PyObject *operand2 )
+NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION( PyObject *operand1, PyObject *operand2 )
 {
     PyObject *result = PyNumber_Power( operand1, operand2, Py_None );
 
@@ -527,7 +538,7 @@ static PyObject *POWER_OPERATION( PyObject *operand1, PyObject *operand2 )
     return result;
 }
 
-static PyObject *POWER_OPERATION_INPLACE( PyObject *operand1, PyObject *operand2 )
+NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION_INPLACE( PyObject *operand1, PyObject *operand2 )
 {
     PyObject *result = PyNumber_InPlacePower( operand1, operand2, Py_None );
 
@@ -539,7 +550,7 @@ static PyObject *POWER_OPERATION_INPLACE( PyObject *operand1, PyObject *operand2
     return result;
 }
 
-static PyObject *RICH_COMPARE( int opid, PyObject *operand2, PyObject *operand1 )
+NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE( int opid, PyObject *operand2, PyObject *operand1 )
 {
     int line = _current_line;
     PyObject *result = PyObject_RichCompare( operand1, operand2, opid );
@@ -553,7 +564,7 @@ static PyObject *RICH_COMPARE( int opid, PyObject *operand2, PyObject *operand1 
     return result;
 }
 
-static bool RICH_COMPARE_BOOL( int opid, PyObject *operand2, PyObject *operand1 )
+NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL( int opid, PyObject *operand2, PyObject *operand1 )
 {
     int line = _current_line;
     int result = PyObject_RichCompareBool( operand1, operand2, opid );
@@ -568,7 +579,7 @@ static bool RICH_COMPARE_BOOL( int opid, PyObject *operand2, PyObject *operand1 
 }
 
 
-static PyObject *SEQUENCE_CONTAINS( PyObject *sequence, PyObject *element )
+NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONTAINS( PyObject *sequence, PyObject *element )
 {
     int result = PySequence_Contains( sequence, element );
 
@@ -580,7 +591,7 @@ static PyObject *SEQUENCE_CONTAINS( PyObject *sequence, PyObject *element )
     return BOOL_FROM( result == 1 );
 }
 
-static PyObject *SEQUENCE_CONTAINS_NOT( PyObject *sequence, PyObject *element )
+NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONTAINS_NOT( PyObject *sequence, PyObject *element )
 {
     int result = PySequence_Contains( sequence, element );
 
@@ -592,7 +603,7 @@ static PyObject *SEQUENCE_CONTAINS_NOT( PyObject *sequence, PyObject *element )
     return BOOL_FROM( result == 0 );
 }
 
-static bool SEQUENCE_CONTAINS_BOOL( PyObject *sequence, PyObject *element )
+NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_BOOL( PyObject *sequence, PyObject *element )
 {
     int result = PySequence_Contains( sequence, element );
 
@@ -604,7 +615,7 @@ static bool SEQUENCE_CONTAINS_BOOL( PyObject *sequence, PyObject *element )
     return result == 1;
 }
 
-static bool SEQUENCE_CONTAINS_NOT_BOOL( PyObject *sequence, PyObject *element )
+NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_NOT_BOOL( PyObject *sequence, PyObject *element )
 {
     int result = PySequence_Contains( sequence, element );
 
@@ -617,7 +628,7 @@ static bool SEQUENCE_CONTAINS_NOT_BOOL( PyObject *sequence, PyObject *element )
 }
 
 // Helper functions to debug the compiler operation.
-static void PRINT_REFCOUNT( PyObject *object )
+NUITKA_MAY_BE_UNUSED static void PRINT_REFCOUNT( PyObject *object )
 {
    PyObject *stdout = PySys_GetObject((char *)"stdout");
 
@@ -637,7 +648,7 @@ static void PRINT_REFCOUNT( PyObject *object )
 
 }
 
-static PyObject *CALL_FUNCTION( PyObject *named_args, PyObject *positional_args, PyObject *function_object )
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *named_args, PyObject *positional_args, PyObject *function_object )
 {
     assert( function_object != NULL );
     assert( function_object->ob_refcnt > 0 );
@@ -730,7 +741,7 @@ static const char *GET_CALLABLE_DESC( PyObject *object )
 }
 
 
-static PyObject *CALL_FUNCTION_STAR_DICT( PyObject *dict_star_arg, PyObject *named_args, PyObject *positional_args, PyObject *function_object )
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_DICT( PyObject *dict_star_arg, PyObject *named_args, PyObject *positional_args, PyObject *function_object )
 {
     if (unlikely( PyMapping_Check( dict_star_arg ) == 0 ))
     {
@@ -787,7 +798,7 @@ static PyObject *CALL_FUNCTION_STAR_DICT( PyObject *dict_star_arg, PyObject *nam
     return CALL_FUNCTION( result.asObject(), positional_args, function_object );
 }
 
-static PyObject *MERGE_STAR_LIST_ARGS( PyObject *list_star_arg, PyObject *positional_args, PyObject *function_object )
+NUITKA_MAY_BE_UNUSED static PyObject *MERGE_STAR_LIST_ARGS( PyObject *list_star_arg, PyObject *positional_args, PyObject *function_object )
 {
     PyObject *list_star_arg_tuple;
 
@@ -835,17 +846,17 @@ static PyObject *MERGE_STAR_LIST_ARGS( PyObject *list_star_arg, PyObject *positi
     return result;
 }
 
-static PyObject *CALL_FUNCTION_STAR_LIST( PyObject *list_star_arg, PyObject *named_args, PyObject *positional_args, PyObject *function_object )
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_LIST( PyObject *list_star_arg, PyObject *named_args, PyObject *positional_args, PyObject *function_object )
 {
     return CALL_FUNCTION( named_args, PyObjectTemporary( MERGE_STAR_LIST_ARGS( list_star_arg, positional_args, function_object ) ).asObject(), function_object );
 }
 
-static PyObject *CALL_FUNCTION_STAR_BOTH( PyObject *dict_star_arg, PyObject *list_star_arg, PyObject *named_args, PyObject *positional_args, PyObject *function_object )
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_BOTH( PyObject *dict_star_arg, PyObject *list_star_arg, PyObject *named_args, PyObject *positional_args, PyObject *function_object )
 {
     return CALL_FUNCTION_STAR_DICT( dict_star_arg, named_args, PyObjectTemporary( MERGE_STAR_LIST_ARGS( list_star_arg, positional_args, function_object ) ).asObject(), function_object );
 }
 
-static PyObject *TO_TUPLE( PyObject *seq_obj )
+NUITKA_MAY_BE_UNUSED static PyObject *TO_TUPLE( PyObject *seq_obj )
 {
     PyObject *result = PySequence_Tuple( seq_obj );
 
@@ -949,7 +960,7 @@ static PyObject *MAKE_DICT( P...eles )
     return result;
 }
 
-static void DICT_SET_ITEM( PyObject *dict, PyObject *key, PyObject *value )
+NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, PyObject *value )
 {
     int status = PyDict_SetItem( dict, key, value );
 
@@ -1027,7 +1038,7 @@ static PyObject *MAKE_SET( P...eles )
     return result;
 }
 
-static PyObject *MAKE_STATIC_METHOD( PyObject *method )
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_STATIC_METHOD( PyObject *method )
 {
     PyObject *attempt = PyStaticMethod_New( method );
 
@@ -1043,7 +1054,7 @@ static PyObject *MAKE_STATIC_METHOD( PyObject *method )
     }
 }
 
-static PyObject *SEQUENCE_ELEMENT( PyObject *sequence, Py_ssize_t element )
+NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_ELEMENT( PyObject *sequence, Py_ssize_t element )
 {
     PyObject *result = PySequence_GetItem( sequence, element );
 
@@ -1055,7 +1066,7 @@ static PyObject *SEQUENCE_ELEMENT( PyObject *sequence, Py_ssize_t element )
     return result;
 }
 
-static PyObject *MAKE_ITERATOR( PyObject *iterated )
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
 {
     PyObject *result = PyObject_GetIter( iterated );
 
@@ -1070,7 +1081,7 @@ static PyObject *MAKE_ITERATOR( PyObject *iterated )
 // Return the next item of an iterator. Avoiding any exception for end of iteration,
 // callers must deal with NULL return as end of iteration, but will know it wasn't an
 // Python exception, that will show as a thrown exception.
-static PyObject *ITERATOR_NEXT( PyObject *iterator )
+NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 {
     assert( iterator != NULL );
     assert( iterator->ob_refcnt > 0 );
@@ -1094,7 +1105,7 @@ static PyObject *ITERATOR_NEXT( PyObject *iterator )
     return result;
 }
 
-static inline PyObject *UNPACK_NEXT( PyObject *iterator, int seq_size_so_far )
+NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, int seq_size_so_far )
 {
     assert( iterator != NULL );
     assert( iterator->ob_refcnt > 0 );
@@ -1123,7 +1134,7 @@ static inline PyObject *UNPACK_NEXT( PyObject *iterator, int seq_size_so_far )
     return result;
 }
 
-static inline void UNPACK_ITERATOR_CHECK( PyObject *iterator )
+NUITKA_MAY_BE_UNUSED static inline void UNPACK_ITERATOR_CHECK( PyObject *iterator )
 {
     PyObject *attempt = PyIter_Next( iterator );
 
@@ -1144,7 +1155,7 @@ static inline void UNPACK_ITERATOR_CHECK( PyObject *iterator )
 }
 
 
-static PyObject *SELECT_IF_TRUE( PyObject *object )
+NUITKA_MAY_BE_UNUSED static PyObject *SELECT_IF_TRUE( PyObject *object )
 {
     assert( object != NULL );
     assert( object->ob_refcnt > 0 );
@@ -1161,7 +1172,7 @@ static PyObject *SELECT_IF_TRUE( PyObject *object )
     }
 }
 
-static PyObject *SELECT_IF_FALSE( PyObject *object )
+NUITKA_MAY_BE_UNUSED static PyObject *SELECT_IF_FALSE( PyObject *object )
 {
     assert( object != NULL );
     assert( object->ob_refcnt > 0 );
@@ -1178,7 +1189,7 @@ static PyObject *SELECT_IF_FALSE( PyObject *object )
     }
 }
 
-static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObject *subscript )
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObject *subscript )
 {
     assert( source );
     assert( source->ob_refcnt > 0 );
@@ -1195,7 +1206,7 @@ static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObject *subscript )
     return result;
 }
 
-static bool HAS_KEY( PyObject *source, PyObject *key )
+NUITKA_MAY_BE_UNUSED static bool HAS_KEY( PyObject *source, PyObject *key )
 {
     assert( source );
     assert( source->ob_refcnt > 0 );
@@ -1205,7 +1216,7 @@ static bool HAS_KEY( PyObject *source, PyObject *key )
     return PyMapping_HasKey( source, key ) != 0;
 }
 
-static PyObject *LOOKUP_VARS( PyObject *source )
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 {
     assert( source );
     assert( source->ob_refcnt > 0 );
@@ -1221,7 +1232,7 @@ static PyObject *LOOKUP_VARS( PyObject *source )
 }
 
 
-static void SET_SUBSCRIPT( PyObject *target, PyObject *subscript, PyObject *value )
+NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT( PyObject *target, PyObject *subscript, PyObject *value )
 {
     assert( target );
     assert( target->ob_refcnt > 0 );
@@ -1238,7 +1249,7 @@ static void SET_SUBSCRIPT( PyObject *target, PyObject *subscript, PyObject *valu
     }
 }
 
-static void DEL_SUBSCRIPT( PyObject *target, PyObject *subscript )
+NUITKA_MAY_BE_UNUSED static void DEL_SUBSCRIPT( PyObject *target, PyObject *subscript )
 {
     assert( target );
     assert( target->ob_refcnt > 0 );
@@ -1254,7 +1265,7 @@ static void DEL_SUBSCRIPT( PyObject *target, PyObject *subscript )
 }
 
 
-static PyObject *LOOKUP_SLICE( PyObject *source, Py_ssize_t lower, Py_ssize_t upper )
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SLICE( PyObject *source, Py_ssize_t lower, Py_ssize_t upper )
 {
     assert( source );
     assert( source->ob_refcnt > 0 );
@@ -1269,7 +1280,7 @@ static PyObject *LOOKUP_SLICE( PyObject *source, Py_ssize_t lower, Py_ssize_t up
     return result;
 }
 
-static void SET_SLICE( PyObject *target, Py_ssize_t lower, Py_ssize_t upper, PyObject *value )
+NUITKA_MAY_BE_UNUSED static void SET_SLICE( PyObject *target, Py_ssize_t lower, Py_ssize_t upper, PyObject *value )
 {
     assert( target );
     assert( target->ob_refcnt > 0 );
@@ -1286,7 +1297,7 @@ static void SET_SLICE( PyObject *target, Py_ssize_t lower, Py_ssize_t upper, PyO
 
 static Py_ssize_t CONVERT_TO_INDEX( PyObject *value );
 
-static void DEL_SLICE( PyObject *target, PyObject *lower, PyObject *upper )
+NUITKA_MAY_BE_UNUSED static void DEL_SLICE( PyObject *target, PyObject *lower, PyObject *upper )
 {
     assert( target );
     assert( target->ob_refcnt > 0 );
@@ -1320,7 +1331,7 @@ static void DEL_SLICE( PyObject *target, PyObject *lower, PyObject *upper )
     }
 }
 
-static PyObject *MAKE_SLICEOBJ( PyObject *start, PyObject *stop, PyObject *step )
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ( PyObject *start, PyObject *stop, PyObject *step )
 {
     assert( start );
     assert( start->ob_refcnt > 0 );
@@ -1339,7 +1350,7 @@ static PyObject *MAKE_SLICEOBJ( PyObject *start, PyObject *stop, PyObject *step 
     return result;
 }
 
-static Py_ssize_t CONVERT_TO_INDEX( PyObject *value )
+NUITKA_MAY_BE_UNUSED static Py_ssize_t CONVERT_TO_INDEX( PyObject *value )
 {
     assert( value );
     assert( value->ob_refcnt > 0 );
@@ -1370,7 +1381,7 @@ static Py_ssize_t CONVERT_TO_INDEX( PyObject *value )
 }
 
 #if PY_MAJOR_VERSION < 3
-static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *klass, PyObject *attr_name )
+NUITKA_MAY_BE_UNUSED static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *klass, PyObject *attr_name )
 {
     PyObject *result = GET_PYDICT_ENTRY( (PyDictObject *)klass->cl_dict, (PyStringObject *)attr_name )->me_value;
 
@@ -1394,7 +1405,7 @@ static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *klass, PyObject *attr_n
 #endif
 
 #if PY_MAJOR_VERSION < 3
-static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 {
     assert( PyInstance_Check( source ) );
     assert( PyString_Check( attr_name ) );
@@ -1481,7 +1492,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 }
 #endif
 
-static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObject *attr_name )
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObject *attr_name )
 {
     assert( source );
     assert( source->ob_refcnt > 0 );
@@ -1511,7 +1522,7 @@ static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObject *attr_name )
     }
 }
 
-static void SET_ATTRIBUTE( PyObject *target, PyObject *attr_name, PyObject *value )
+NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *target, PyObject *attr_name, PyObject *value )
 {
     assert( target );
     assert( target->ob_refcnt > 0 );
@@ -1589,7 +1600,7 @@ static void SET_ATTRIBUTE( PyObject *target, PyObject *attr_name, PyObject *valu
     }
 }
 
-static void DEL_ATTRIBUTE( PyObject *target, PyObject *attr_name )
+NUITKA_MAY_BE_UNUSED static void DEL_ATTRIBUTE( PyObject *target, PyObject *attr_name )
 {
     assert( target );
     assert( target->ob_refcnt > 0 );
@@ -1604,7 +1615,7 @@ static void DEL_ATTRIBUTE( PyObject *target, PyObject *attr_name )
     }
 }
 
-static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject *attr_name )
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject *attr_name )
 {
 #if PY_MAJOR_VERSION < 3
     if ( PyInstance_Check( source ) )
@@ -1646,7 +1657,7 @@ static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject *attr_name )
 // Necessary to abstract the with statement lookup difference between pre-Python2.7 and
 // others. Since Python 2.7 the code does no full attribute lookup anymore, but instead
 // treats enter and exit as specials.
-static inline PyObject *LOOKUP_WITH_ENTER( PyObject *source )
+NUITKA_MAY_BE_UNUSED static inline PyObject *LOOKUP_WITH_ENTER( PyObject *source )
 {
 #if PY_MAJOR_VERSION < 3 && PY_MINOR_VERSION < 7
     return LOOKUP_ATTRIBUTE( source, _python_str_plain___enter__ );
@@ -1655,7 +1666,7 @@ static inline PyObject *LOOKUP_WITH_ENTER( PyObject *source )
 #endif
 }
 
-static inline PyObject *LOOKUP_WITH_EXIT( PyObject *source )
+NUITKA_MAY_BE_UNUSED static inline PyObject *LOOKUP_WITH_EXIT( PyObject *source )
 {
 #if PY_MAJOR_VERSION < 3 && PY_MINOR_VERSION < 7
     return LOOKUP_ATTRIBUTE( source, _python_str_plain___exit__ );
@@ -1664,7 +1675,7 @@ static inline PyObject *LOOKUP_WITH_EXIT( PyObject *source )
 #endif
 }
 
-static void APPEND_TO_LIST( PyObject *list, PyObject *item )
+NUITKA_MAY_BE_UNUSED static void APPEND_TO_LIST( PyObject *list, PyObject *item )
 {
     int status = PyList_Append( list, item );
 
@@ -1674,7 +1685,7 @@ static void APPEND_TO_LIST( PyObject *list, PyObject *item )
     }
 }
 
-static void ADD_TO_SET( PyObject *set, PyObject *item )
+NUITKA_MAY_BE_UNUSED static void ADD_TO_SET( PyObject *set, PyObject *item )
 {
     int status = PySet_Add( set, item );
 
@@ -1686,7 +1697,7 @@ static void ADD_TO_SET( PyObject *set, PyObject *item )
 
 
 
-static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject *seq2 )
+NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject *seq2 )
 {
     PyObject *result = PySequence_Concat( seq1, seq2 );
 
@@ -1703,24 +1714,28 @@ class PyObjectLocalDictVariable {
     public:
         explicit PyObjectLocalDictVariable( PyObject *storage, PyObject *var_name, PyObject *object = NULL )
         {
-            this->storage    = storage;
-            this->var_name   = var_name;
+            this->storage    = (PyDictObject *) storage;
+            this->var_name   = (PyStringObject *)var_name;
 
             if ( object != NULL )
             {
-                int status = PyDict_SetItem( this->storage, this->var_name, object );
+#ifndef __NUITKA_NO_ASSERT__
+                int status =
+#endif
+                    PyDict_SetItem( storage, var_name, object );
+
                 assert( status == 0 );
             }
         }
 
         PyObject *asObject() const
         {
-            // TODO: Dictionary quick access code could be used here too.
-            PyObject *result = PyDict_GetItem( this->storage, this->var_name );
+            PyDictEntry *entry = GET_PYDICT_ENTRY( this->storage, this->var_name );
+            PyObject *result = entry->me_value;
 
             if (unlikely( result == NULL ))
             {
-                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
+                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( (PyObject *)this->var_name ) );
                 throw _PythonException();
             }
 
@@ -1739,18 +1754,26 @@ class PyObjectLocalDictVariable {
             assert( object );
             assert( object->ob_refcnt > 0 );
 
-            int status = PyDict_SetItem( this->storage, this->var_name, object );
+#ifndef __NUITKA_NO_ASSERT__
+            int status =
+#endif
+                PyDict_SetItem( (PyObject *)this->storage, (PyObject *)this->var_name, object );
+
             assert( status == 0 );
         }
 
         bool isInitialized() const
         {
-            return PyDict_Contains( this->storage, this->var_name ) == 1;
+            PyDictEntry *entry = GET_PYDICT_ENTRY( this->storage,
+                                                   this->var_name );
+
+            return entry->me_value != NULL;
         }
 
         void del()
         {
-            int status = PyDict_DelItem( this->storage, this->var_name );
+            int status = PyDict_DelItem( (PyObject *)this->storage,
+                                         (PyObject *)this->var_name );
 
             if (unlikely( status == -1 ))
             {
@@ -1762,12 +1785,12 @@ class PyObjectLocalDictVariable {
 
         PyObject *getVariableName() const
         {
-            return this->var_name;
+            return (PyObject *)this->var_name;
         }
 
     private:
-        PyObject *storage;
-        PyObject *var_name;
+        PyDictObject *storage;
+        PyStringObject *var_name;
 };
 
 class PyObjectLocalVariable {
@@ -2060,26 +2083,7 @@ class PyObjectGlobalVariable
 
         PyObject *asObject() const
         {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( *this->module_ptr, *this->var_name );
-
-            if (likely( entry->me_value != NULL ))
-            {
-                assert( entry->me_value->ob_refcnt > 0 );
-
-                return INCREASE_REFCOUNT( entry->me_value );
-            }
-
-            entry = GET_PYDICT_ENTRY( _module_builtin, *this->var_name );
-
-            if (likely( entry->me_value != NULL ))
-            {
-                assert( entry->me_value->ob_refcnt > 0 );
-
-                return INCREASE_REFCOUNT( entry->me_value );
-            }
-
-            PyErr_Format( PyExc_NameError, "global name '%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
-            throw _PythonException();
+            return INCREASE_REFCOUNT( this->asObject0() );
         }
 
         PyObject *asObject( PyObject *dict ) const
@@ -2164,7 +2168,7 @@ class PyObjectGlobalVariable
        PyStringObject **var_name;
 };
 
-static PyObject *MAKE_LOCALS_DICT( void )
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LOCALS_DICT( void )
 {
     return MAKE_DICT();
 }
@@ -2209,7 +2213,7 @@ static PyObject *MAKE_LOCALS_DICT( P...variables )
     return result;
 }
 
-static PyObject *MAKE_LOCALS_DIR( void )
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LOCALS_DIR( void )
 {
     return MAKE_LIST();
 }
@@ -2254,7 +2258,7 @@ static PyObject *MAKE_LOCALS_DIR( P...variables )
     return result;
 }
 
-static PyObject *TUPLE_COPY( PyObject *tuple )
+NUITKA_MAY_BE_UNUSED static PyObject *TUPLE_COPY( PyObject *tuple )
 {
     assert( tuple != NULL );
     assert( tuple->ob_refcnt > 0 );
@@ -2278,7 +2282,7 @@ static PyObject *TUPLE_COPY( PyObject *tuple )
     return result;
 }
 
-static PyObject *LIST_COPY( PyObject *list )
+NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 {
     assert( list != NULL );
     assert( list->ob_refcnt > 0 );
@@ -2308,7 +2312,7 @@ class PythonBuiltin
     public:
         explicit PythonBuiltin( char const *name )
         {
-            this->name = name;
+            this->name = (PyStringObject *)PyString_FromString( name );
             this->value = NULL;
         }
 
@@ -2316,8 +2320,8 @@ class PythonBuiltin
         {
             if ( this->value == NULL )
             {
-                // TODO: Use GET_PYDICT_ENTRY here too.
-                this->value = PyObject_GetAttrString( (PyObject *)_module_builtin, this->name );
+                PyDictEntry *entry = GET_PYDICT_ENTRY( _module_builtin, this->name );
+                this->value = entry->me_value;
             }
 
             assert( this->value != NULL );
@@ -2326,7 +2330,7 @@ class PythonBuiltin
         }
 
     private:
-        char const *name;
+        PyStringObject *name;
         PyObject *value;
 };
 
@@ -2346,7 +2350,7 @@ extern PyObject *BUILTIN_TYPE1( PyObject *arg );
 // For quicker type() functionality if 3 arguments are given (to build a new type).
 extern PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict );
 
-static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
+NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {
     if ( PyDict_Check( globals ) == 0 )
     {
@@ -2387,7 +2391,7 @@ static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals 
 // Create a frame for the given code location.
 PyObject *MAKE_FRAME( PyObject *module, PyObject *filename, PyObject *function_name, int line );
 
-static PyTracebackObject *MAKE_TRACEBACK( PyObject *frame, int line )
+NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyObject *frame, int line )
 {
     PyTracebackObject *result = PyObject_GC_New( PyTracebackObject, &PyTraceBack_Type );
 
@@ -2402,7 +2406,7 @@ static PyTracebackObject *MAKE_TRACEBACK( PyObject *frame, int line )
     return result;
 }
 
-static void ADD_TRACEBACK( PyObject *module, PyObject *filename, PyObject *function_name, int line )
+NUITKA_MAY_BE_UNUSED static void ADD_TRACEBACK( PyObject *module, PyObject *filename, PyObject *function_name, int line )
 {
     // TODO: The frame object really might deserve a longer life that this, it is
     // relatively expensive to create.

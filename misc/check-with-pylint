@@ -39,8 +39,12 @@ then
 else
     for file in `find src -name \*.py`
     do
-        echo $file
-        pylint $OPTIONS $file
-        #   pychecker $file
+        if [ "$file" != "src/oset.py" -a "$file" != "src/odict.py" ]
+        then
+            echo $file
+            pylint $OPTIONS $file
+
+            #   pychecker $file
+        fi
     done
 fi

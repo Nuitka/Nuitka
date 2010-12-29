@@ -29,41 +29,31 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Specification record for import.
 
-This is used to carry the set of properties determined for an import.
-"""
+import TreeOperations
 
-class ImportSpec:
-    def __init__( self, module_package, module_name, import_name, variable, module_filename ):
-        import Nodes
-        assert module_package is None or isinstance( module_package, Nodes.CPythonPackage )
+from logging import warning, debug, info
 
-        self.module_package  = module_package
-        self.module_name     = module_name
-        self.import_name     = import_name
-        self.variable        = variable
-        self.module_filename = module_filename
+class OptimizationVisitorBase:
+    on_signal = None
 
-        assert "." not in module_name
+    def signalChange( self, tags ):
+        if self.on_signal is not None:
+            self.on_signal( tags )
 
-    def getModuleName( self ):
-        return self.module_name
+    def execute( self, tree, on_signal = None ):
+        debug( "Applying optimization '%s' to '%s'." % ( self, tree ) )
 
-    def getImportName( self ):
-        return self.import_name
+        self.on_signal = on_signal
 
-    def getFilename( self ):
-        return self.module_filename
+        TreeOperations.visitTree(
+            tree    = tree,
+            visitor = self
+        )
 
-    def getPackage( self ):
-        return self.module_package
-
-    def getFullName( self ):
-        if self.module_package:
-            return self.module_package.getName() + "." + self.module_name
-        else:
-            return self.module_name
-
-    def getVariable( self ):
-        return self.variable
+def areConstants( expressions ):
+    for expression in expressions:
+        if not expression.isConstantReference():
+            return False
+    else:
+        return True

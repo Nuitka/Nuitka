@@ -29,41 +29,25 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Specification record for import.
+""" Delete the staticmethod decorator from __new__ methods if provided.
 
-This is used to carry the set of properties determined for an import.
+CPython made these optional, and applies them to every __new__. Our later code will be
+confused if it encounters a decorator to what it already automatically decorated.
+
+TODO: Consider turning this into something adding it for improved consistency.
 """
 
-class ImportSpec:
-    def __init__( self, module_package, module_name, import_name, variable, module_filename ):
-        import Nodes
-        assert module_package is None or isinstance( module_package, Nodes.CPythonPackage )
+from optimizations.OptimizeBase import OptimizationVisitorBase
 
-        self.module_package  = module_package
-        self.module_name     = module_name
-        self.import_name     = import_name
-        self.variable        = variable
-        self.module_filename = module_filename
+class FixupNewStaticMethodVisitor( OptimizationVisitorBase ):
+    def __call__( self, node ):
+        if node.isFunctionReference() and node.getName() == "__new__":
+            decorators = node.getDecorators()
 
-        assert "." not in module_name
+            if len( decorators ) == 1 and decorators[0].isVariableReference():
+                if decorators[0].getVariable().getName() == "staticmethod":
+                    # Reset the decorators. This does not attempt to deal with
+                    # multiple of them being present.
+                    node.setDecorators( () )
 
-    def getModuleName( self ):
-        return self.module_name
-
-    def getImportName( self ):
-        return self.import_name
-
-    def getFilename( self ):
-        return self.module_filename
-
-    def getPackage( self ):
-        return self.module_package
-
-    def getFullName( self ):
-        if self.module_package:
-            return self.module_package.getName() + "." + self.module_name
-        else:
-            return self.module_name
-
-    def getVariable( self ):
-        return self.variable
+                    assert not node.getDecorators()

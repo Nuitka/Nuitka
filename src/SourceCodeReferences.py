@@ -29,28 +29,36 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Source code reference record.
+
+All the information to lookup line and file of a code location, together with the future
+flags in use there.
+"""
 
 class SourceCodeReference:
     @classmethod
-    def fromFilenameAndLine( cls, filename, line ):
+    def fromFilenameAndLine( cls, filename, line, future_spec ):
         result = cls()
 
         result.filename = filename
         result.line = line
+        result.future_spec = future_spec
 
         return result
 
     def __init__( self ):
         self.line = None
         self.filename = None
+        self.future_spec = None
 
     def __repr__( self ):
         return "<SourceCodeReference to %s:%s>" % ( self.filename, self.line )
 
     def atLineNumber( self, line ):
         return SourceCodeReference.fromFilenameAndLine(
-            filename = self.filename,
-            line = line
+            filename    = self.filename,
+            line        = line,
+            future_spec = self.future_spec
         )
 
     def getLineNumber( self ):
@@ -59,8 +67,21 @@ class SourceCodeReference:
     def getFilename( self ):
         return self.filename
 
+    def getFutureSpec( self ):
+        return self.future_spec
+
     def getAsString( self ):
         return "%s:%s" % ( self.filename, self.line )
 
-def fromFilename( filename ):
-    return SourceCodeReference.fromFilenameAndLine( filename, 1 )
+    def getExecReference( self ):
+        result = SourceCodeReference()
+
+        result.line = self.line
+        result.filename = self.filename
+
+        result.future_spec = self.future_spec.clone()
+
+        return result
+
+def fromFilename( filename, future_spec ):
+    return SourceCodeReference.fromFilenameAndLine( filename, 1, future_spec )

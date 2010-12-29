@@ -36,12 +36,10 @@ assertion_without_arg = """\
 if ( %(condition)s )
 {
     traceback = true; RAISE_EXCEPTION( INCREASE_REFCOUNT( PyExc_AssertionError ), %(tb_maker)s );
-}
-"""
+}"""
 
 assertion_with_arg = """\
 if ( %(condition)s )
 {
     traceback = true; RAISE_EXCEPTION( INCREASE_REFCOUNT( PyExc_AssertionError ), %(failure_arg)s, %(tb_maker)s );
-}
-"""
+}"""

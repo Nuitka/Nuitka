@@ -70,3 +70,12 @@ new_class = type( "Name", (object, ), {} )
 print new_class, new_class()
 
 print "None has type", type(None)
+
+print "Constant ranges", range( 2 ), range( 1, 6 ), range( 3, 0, -1 ), range( 3, 8, 2 ), range(5, -5, -3)
+print "Border cases", range(0), range(-1), range( -1, 1 )
+
+try:
+    print "Range with 0 step gives:",
+    print range( 3, 8, 0 )
+except ValueError, e:
+    print e

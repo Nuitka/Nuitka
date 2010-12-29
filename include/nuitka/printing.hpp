@@ -36,87 +36,15 @@
 
 #if PY_MAJOR_VERSION < 3
 
-static void PRINT_ITEM_TO( PyObject *file, PyObject *object )
-{
-    PyObject *str = PyObject_Str( object );
-    PyObject *print;
-    bool softspace;
+extern void PRINT_ITEM_TO( PyObject *file, PyObject *object );
 
-    if ( str == NULL )
-    {
-        PyErr_Clear();
+extern void PRINT_NEW_LINE_TO( PyObject *file );
+extern void PRINT_NEW_LINE( void );
 
-        print = object;
-        softspace = false;
-    }
-    else
-    {
-        char *buffer;
-        Py_ssize_t length;
-
-        int status = PyString_AsStringAndSize( str, &buffer, &length );
-        assert( status != -1 );
-
-        softspace = length > 0 && buffer[length - 1 ] == '\t';
-
-        print = str;
-    }
-
-    // Check for soft space indicator, need to hold a reference to the file
-    // or else __getattr__ may release "file" in the mean time.
-    if ( PyFile_SoftSpace( file, !softspace ) )
-    {
-        if (unlikely( PyFile_WriteString( " ", file ) == -1 ))
-        {
-            Py_DECREF( file );
-            Py_DECREF( str );
-            throw _PythonException();
-        }
-    }
-
-    if ( unlikely( PyFile_WriteObject( print, file, Py_PRINT_RAW ) == -1 ))
-    {
-        Py_XDECREF( str );
-        throw _PythonException();
-    }
-
-    Py_XDECREF( str );
-
-    if ( softspace )
-    {
-        PyFile_SoftSpace( file, !softspace );
-    }
-}
-
-static void PRINT_NEW_LINE_TO( PyObject *file )
-{
-    if (unlikely( PyFile_WriteString( "\n", file ) == -1))
-    {
-        throw _PythonException();
-    }
-
-    PyFile_SoftSpace( file, 0 );
-}
-
-#endif
-
-static PyObject *GET_STDOUT()
-{
-    PyObject *stdout = PySys_GetObject( (char *)"stdout" );
-
-    if (unlikely( stdout == NULL ))
-    {
-        PyErr_Format( PyExc_RuntimeError, "lost sys.stdout" );
-        throw _PythonException();
-    }
-
-    return stdout;
-}
-
-#if PY_MAJOR_VERSION < 3
+extern PyObject *GET_STDOUT();
 
 template<typename... P>
-static void PRINT_ITEMS( bool new_line, PyObject *file, P...eles )
+extern void PRINT_ITEMS( bool new_line, PyObject *file, P...eles )
 {
     int size = sizeof...(eles);
 
@@ -128,6 +56,7 @@ static void PRINT_ITEMS( bool new_line, PyObject *file, P...eles )
     // Need to hold a reference for the case that the printing somehow removes
     // the last reference to "file" while printing.
     Py_INCREF( file );
+    PyObjectTemporary file_reference( file );
 
     PyObject *elements[] = {eles...};
 
@@ -140,16 +69,6 @@ static void PRINT_ITEMS( bool new_line, PyObject *file, P...eles )
     {
         PRINT_NEW_LINE_TO( file );
     }
-
-    // TODO: Use of PyObjectTemporary should be possible, this won't be
-    // exception safe otherwise
-    Py_DECREF( file );
-}
-
-
-static void PRINT_NEW_LINE( void )
-{
-    PRINT_NEW_LINE_TO( GET_STDOUT() );
 }
 
 #endif

@@ -42,8 +42,7 @@ import_from_template = """\
 %(module_imports)s
 
     Py_DECREF( _module_temp );
-}
-"""
+}"""
 
 import_item_code = """\
 // Template import_item_code

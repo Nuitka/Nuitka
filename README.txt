@@ -26,19 +26,19 @@ tasks and issue tracking in Nuitka.
 
    Remember, this project is not yet complete. Although most of the CPython test suite
    works, there is still more polish needed, to make it do enough optimizations to be
-   worth while. Try it out. Subscribe to its mailing list or contact me via email with
-   your questions.
+   worth while. Try it out.
+
+   Subscribe to its mailing list:
+   http://kayhayen24x7.homelinux.org/blog/nuitka-a-python-compiler/nuitka-mailinglist/
+
+   Or contact me via email with your questions:
+   kayhayen@gmx.de
 
 ** Word of Warning
 
    Consider this a beta release quality, do not use it for anything important, but
    feedback is very welcome. Esp. if you find that anything doesn't work, because the
    project is now at the stage that it should.
-
-   A known problem is that --deep mode can create C++ source code that is virtually
-   impossible to compile because g++ won't manage to complete the process. I will make
-   changes that enable paralell compilation of smaller chunks. But right now it is not
-   done.
 
 * Unsupported functionality
 
@@ -466,7 +466,7 @@ I consider that:
 for i in xrange(1000):
    something(i)
 
-could translate xrange(1000) into an object of a special class that does the integer
+could translate xrange(1000) or into an object of a special class that does the integer
 looping more efficiently.
 
 ** Quicker function calls

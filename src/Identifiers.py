@@ -31,7 +31,9 @@
 #
 
 from __future__ import print_function
+# pylint: disable=W0622
 from __past__ import long, unicode
+# pylint: enable=W0622
 
 import hashlib, re
 
@@ -244,7 +246,12 @@ def namifyConstant( constant ):
     elif type( constant ) == float:
         return "float_%s" % repr( constant ).replace( ".", "_" ).replace( "-", "_minus_" ).replace( "+", "" )
     elif type( constant ) == complex:
-        return "complex_%s" % str( constant ).replace( "+", "p" ).replace( "-", "m" ).replace(".","_")
+        value = str( constant ).replace( "+", "p" ).replace( "-", "m" ).replace(".","_")
+
+        if value.startswith( "(" ) and value.endswith( ")" ):
+            value = value[1:-1]
+
+        return "complex_%s" % value
     elif type( constant ) == dict:
         if constant == {}:
             return "dict_empty"

@@ -145,7 +145,7 @@ PyObject *ORD( PyObject *value )
         }
         else
         {
-            PyErr_Format( PyExc_TypeError, "ord() expected a character, but string of length %d found", size );
+            PyErr_Format( PyExc_TypeError, "ord() expected a character, but string of length %zd found", size );
             throw _PythonException();
         }
     }
@@ -159,7 +159,7 @@ PyObject *ORD( PyObject *value )
         }
         else
         {
-            PyErr_Format( PyExc_TypeError, "ord() expected a character, but byte array of length %d found", size );
+            PyErr_Format( PyExc_TypeError, "ord() expected a character, but byte array of length %zd found", size );
             throw _PythonException();
         }
     }
@@ -173,7 +173,7 @@ PyObject *ORD( PyObject *value )
         }
         else
         {
-            PyErr_Format( PyExc_TypeError, "ord() expected a character, but unicode string of length %d found", size );
+            PyErr_Format( PyExc_TypeError, "ord() expected a character, but unicode string of length %zd found", size );
             throw _PythonException();
         }
     }
@@ -227,6 +227,41 @@ PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases,
     return result;
 }
 
+PyObject *BUILTIN_RANGE( long low, long high, long step )
+{
+    assert( step != 0 );
+
+    PyObject *result = MAKE_LIST();
+
+    if ( step > 0 )
+    {
+        for( long value = low; value < high; value += step )
+        {
+            int res = PyList_Append( result, PyInt_FromLong( value ) );
+            assert( res == 0 );
+        }
+    }
+    else
+    {
+        for( long value = low; value > high; value += step )
+        {
+            int res = PyList_Append( result, PyInt_FromLong( value ) );
+            assert( res == 0 );
+        }
+    }
+
+    return result;
+}
+
+PyObject *BUILTIN_RANGE( long low, long high )
+{
+    return BUILTIN_RANGE( low, high, 1 );
+}
+
+PyObject *BUILTIN_RANGE( long boundary )
+{
+    return BUILTIN_RANGE( 0, boundary );
+}
 
 static PyObject *empty_code = PyBuffer_FromMemory( NULL, 0 );
 
@@ -377,3 +412,96 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name
         throw _PythonException();
     }
 }
+
+// Helper functions for print. Need to play nice with Python softspace behaviour.
+
+#if PY_MAJOR_VERSION < 3
+
+void PRINT_ITEM_TO( PyObject *file, PyObject *object )
+{
+    PyObject *str = PyObject_Str( object );
+    PyObject *print;
+    bool softspace;
+
+    if ( str == NULL )
+    {
+        PyErr_Clear();
+
+        print = object;
+        softspace = false;
+    }
+    else
+    {
+        char *buffer;
+        Py_ssize_t length;
+
+#ifndef __NUITKA_NO_ASSERT__
+        int status =
+#endif
+            PyString_AsStringAndSize( str, &buffer, &length );
+        assert( status != -1 );
+
+        softspace = length > 0 && buffer[length - 1 ] == '\t';
+
+        print = str;
+    }
+
+    // Check for soft space indicator, need to hold a reference to the file
+    // or else __getattr__ may release "file" in the mean time.
+    if ( PyFile_SoftSpace( file, !softspace ) )
+    {
+        if (unlikely( PyFile_WriteString( " ", file ) == -1 ))
+        {
+            Py_DECREF( file );
+            Py_DECREF( str );
+            throw _PythonException();
+        }
+    }
+
+    if ( unlikely( PyFile_WriteObject( print, file, Py_PRINT_RAW ) == -1 ))
+    {
+        Py_XDECREF( str );
+        throw _PythonException();
+    }
+
+    Py_XDECREF( str );
+
+    if ( softspace )
+    {
+        PyFile_SoftSpace( file, !softspace );
+    }
+}
+
+void PRINT_NEW_LINE_TO( PyObject *file )
+{
+    if (unlikely( PyFile_WriteString( "\n", file ) == -1))
+    {
+        throw _PythonException();
+    }
+
+    PyFile_SoftSpace( file, 0 );
+}
+
+#endif
+
+PyObject *GET_STDOUT()
+{
+    PyObject *stdout = PySys_GetObject( (char *)"stdout" );
+
+    if (unlikely( stdout == NULL ))
+    {
+        PyErr_Format( PyExc_RuntimeError, "lost sys.stdout" );
+        throw _PythonException();
+    }
+
+    return stdout;
+}
+
+#if PY_MAJOR_VERSION < 3
+
+void PRINT_NEW_LINE( void )
+{
+    PRINT_NEW_LINE_TO( GET_STDOUT() );
+}
+
+#endif

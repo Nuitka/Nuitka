@@ -202,8 +202,7 @@ while ( %(condition)s )
 if (%(indicator_name)s == false)
 {
 %(loop_else_codes)s
-}
-"""
+}"""
 
 _template_while_loop_break_continue_catching_no_else = """\
 while ( %(condition)s )
@@ -231,8 +230,7 @@ while ( %(condition)s )
 if (%(indicator_name)s == false)
 {
 %(loop_else_codes)s
-}
-"""
+}"""
 
 _template_while_loop_break_continue_direct_no_else = """\
 while ( %(condition)s )

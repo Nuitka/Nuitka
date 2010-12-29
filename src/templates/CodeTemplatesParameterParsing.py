@@ -30,17 +30,23 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-parse_argument_template_take_counts = """
+parse_argument_template_take_counts1 = """\
 Py_ssize_t args_size = PyTuple_GET_SIZE( args );
 Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
-int args_usable_count = args_size < %(top_level_parameter_count)d ? args_size : %(top_level_parameter_count)d;
+"""
+
+parse_argument_template_take_counts2 = """\
 int kw_args_used = 0;
+"""
+
+parse_argument_template_take_counts3 = """\
+int args_usable_count;
 """
 
 parse_argument_template_refuse_parameters = """
 if (unlikely( args_size + kw_size > 0 ))
 {
-    PyErr_Format( PyExc_TypeError, "%(function_name)s() takes no arguments (%%zd given)", args_size+kw_size );
+    PyErr_Format( PyExc_TypeError, "%(function_name)s() takes no arguments (%%zd given)", args_size + kw_size );
     goto error_exit;
 }
 """
@@ -51,17 +57,17 @@ if (unlikely( args_size + kw_size < %(required_parameter_count)d ))
 {
     if ( %(top_level_parameter_count)d == 1 )
     {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least 1 argument (%%zd given)", args_size+kw_size );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least 1 argument (%%zd given)", args_size + kw_size );
     }
     else
     {
         if ( kw_size > 0 )
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d non-keyword arguments (%%zd given)", %(top_level_parameter_count)d, args_size+kw_size );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d non-keyword arguments (%%zd given)", %(top_level_parameter_count)d, args_size + kw_size );
         }
         else
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_size+kw_size );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_size + kw_size );
         }
     }
 
@@ -90,17 +96,17 @@ if (unlikely( args_size + kw_size < %(required_parameter_count)d ))
 {
     if ( %(top_level_parameter_count)d == 1 )
     {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%zd given)", args_size+kw_size );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%zd given)", args_size + kw_size );
     }
     else
     {
         if ( kw_size > 0 )
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d non-keyword arguments (%%zd given)", %(top_level_parameter_count)d, args_size+kw_size );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d non-keyword arguments (%%zd given)", %(top_level_parameter_count)d, args_size + kw_size );
         }
         else
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_size+kw_size );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_size + kw_size );
         }
     }
 
@@ -108,10 +114,23 @@ if (unlikely( args_size + kw_size < %(required_parameter_count)d ))
 }
 """
 
+parse_argument_usable_count = """
+// Copy normal parameter values given as part of the args list to the respective variables:
+args_usable_count = args_size < %(top_level_parameter_count)d ? args_size : %(top_level_parameter_count)d;
+
+"""
+
 parse_argument_template2 = """\
 if (likely( %(parameter_position)d < args_usable_count ))
 {
     _python_par_%(parameter_name)s = INCREASE_REFCOUNT( PyTuple_GET_ITEM( args, %(parameter_position)d ) );
+}
+"""
+
+parse_argument_template2a = """\
+if (likely( %(parameter_position)d < args_usable_count ))
+{
+    _python_par_%(parameter_name)s = PyTuple_GET_ITEM( args, %(parameter_position)d );
 }
 """
 
@@ -244,9 +263,6 @@ parse_argument_template_nested_argument_unpack = """
         PyErr_Format( PyExc_ValueError, "too many values to unpack" );
         goto error_exit;
     }
-
-    Py_XDECREF( _python_iter_%(parameter_name)s );
-    _python_iter_%(parameter_name)s = NULL;
 }
 """
 

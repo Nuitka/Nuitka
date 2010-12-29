@@ -37,54 +37,22 @@ later stages of the compiler.
 """
 
 from __future__ import print_function
+# pylint: disable=W0622
 from __past__ import long, unicode
+# pylint: enable=W0622
 
 import SourceCodeReferences
-import TreeTransforming
-import PythonOperators
 import TreeOperations
 import Importing
-import Options
-
 import Nodes
 
 from nodes.ParameterSpec import ParameterSpec
+from nodes.FutureSpec import FutureSpec
 from nodes.ImportSpec import ImportSpec
 
-import ast, imp, sys
+import ast, os
 
 from logging import warning
-
-def getPythonVersion():
-    big, major, minor = sys.version_info[0:3]
-
-    return big * 100 + major * 10 + minor
-
-_future_stack = []
-
-_future_division = None
-_unicode_literals = None
-_absolute_import = None
-_future_print = None
-
-def initFuture():
-    global _future_division, _unicode_literals, _absolute_import, _future_print
-
-    _future_division   = getPythonVersion() >= 300
-    _unicode_literals  = getPythonVersion() >= 300
-    _absolute_import   = getPythonVersion() >= 270
-    _future_print      = getPythonVersion() >= 300
-
-def pushFuture():
-    _future_stack.append( ( _future_division, _unicode_literals, _absolute_import, _future_print ) )
-
-def popFuture():
-    global _future_division, _unicode_literals, _absolute_import, _future_print
-
-    _future_division, _unicode_literals, _absolute_import, _future_print = _future_stack.pop()
-
-def getFuture():
-    return _future_division, _unicode_literals, _absolute_import, _future_print
 
 def dump( node ):
     print( ast.dump( node ) )
@@ -92,9 +60,11 @@ def dump( node ):
 def getKind( node ):
     return node.__class__.__name__.split( "." )[-1]
 
+# pylint: disable=W0603
 _delayed_works = []
 
 def pushDelayedWork( delayed_work ):
+    # pylint: disable=W0602
     global _delayed_works
 
     _delayed_works.append( delayed_work )
@@ -102,14 +72,6 @@ def pushDelayedWork( delayed_work ):
 def buildStatementsNode( provider, nodes, source_ref ):
     return Nodes.CPythonStatementSequence(
         statements  = buildNodeList( provider, nodes, source_ref ),
-        replacement = False,
-        source_ref  = source_ref
-    )
-
-def buildReplacementStatementsNode( provider, nodes, source_ref ):
-    return Nodes.CPythonStatementSequence(
-        statements  = buildNodeList( provider, nodes, source_ref ),
-        replacement = True,
         source_ref  = source_ref
     )
 
@@ -150,7 +112,7 @@ def buildClassNode( provider, node, source_ref ):
     return result
 
 
-def buildParameterSpec( provider, node, source_ref ):
+def buildParameterSpec( node ):
     kind = getKind( node )
 
     assert kind in ( "FunctionDef", "Lambda" ), "unsupported for kind " + kind
@@ -172,26 +134,26 @@ def buildParameterSpec( provider, node, source_ref ):
     kwargs = node.args.kwarg
     varargs = node.args.vararg
 
-    default_values = buildNodeList( provider, node.args.defaults, source_ref )
-
     return ParameterSpec(
         normal_args    = argnames,
         list_star_arg  = varargs,
         dict_star_arg  = kwargs,
-        default_values = default_values
+        default_count  = len( node.args.defaults )
     )
 
 def buildFunctionNode( provider, node, source_ref ):
     assert getKind( node ) == "FunctionDef"
 
-    body, function_doc = extractDocFromBody( node )
+    function_body, function_doc = extractDocFromBody( node )
 
     decorators = buildDecoratorNodes( provider, node.decorator_list, source_ref )
+    defaults = buildNodeList( provider, node.args.defaults, source_ref )
 
     result = Nodes.CPythonFunction(
         provider   = TransitiveProvider( provider ),
         variable   = provider.getVariableForAssignment( node.name ),
-        parameters = buildParameterSpec( provider, node, source_ref ),
+        parameters = buildParameterSpec( node ),
+        defaults   = defaults,
         name       = node.name,
         doc        = function_doc,
         decorators = decorators,
@@ -201,7 +163,7 @@ def buildFunctionNode( provider, node, source_ref ):
     def delayedWork():
         body = buildStatementsNode(
             provider   = result,
-            nodes      = node.body,
+            nodes      = function_body,
             source_ref = source_ref,
         )
 
@@ -215,9 +177,12 @@ def isSameListContent( a, b ):
     return list( sorted( a ) ) == list( sorted( b ) )
 
 def buildLambdaNode( provider, node, source_ref ):
+    defaults = buildNodeList( provider, node.args.defaults, source_ref )
+
     result = Nodes.CPythonExpressionLambda(
         provider   = provider,
-        parameters = buildParameterSpec( provider, node, source_ref ),
+        parameters = buildParameterSpec( node ),
+        defaults   = defaults,
         source_ref = source_ref,
     )
 
@@ -229,7 +194,6 @@ def buildLambdaNode( provider, node, source_ref ):
         )
 
         result.setBody( body )
-
 
     pushDelayedWork( delayedWork )
 
@@ -321,10 +285,12 @@ def buildDictionaryNode( provider, node, source_ref ):
         constant = constant and value_node.isConstantReference() and not value_node.isMutable()
 
     if constant:
+        # Create the dictionary in its full size, so that no growing occurs and the
+        # constant becomes as similar as possible before being marshalled.
         constant_value = dict.fromkeys( [ key.getConstant() for key in keys ], None )
 
-        for count, key in enumerate( keys ):
-            constant_value[ key.getConstant() ] = values[ count ].getConstant()
+        for key, value in zip( keys, values ):
+            constant_value[ key.getConstant() ] = value.getConstant()
 
         return Nodes.CPythonExpressionConstant(
             constant   = constant_value,
@@ -794,8 +760,6 @@ def buildSubscriptNode( provider, node, source_ref ):
     else:
         assert False, kind
 
-from Importing import _isWhiteListedNotExistingModule
-
 def _buildImportModulesNode( provider, parent_package, import_names, source_ref ):
     import_specs = []
 
@@ -853,17 +817,13 @@ def buildImportFromNode( provider, node, source_ref ):
             object_name, local_name = import_desc.name, import_desc.asname
 
             if object_name == "unicode_literals":
-                global _unicode_literals
-                _unicode_literals = True
+                source_ref.getFutureSpec().enableUnicodeLiterals()
             elif object_name == "absolute_import":
-                global _absolute_import
-                _absolute_import = True
+                source_ref.getFutureSpec().enableAbsoluteImport()
             elif object_name == "division":
-                global _future_division
-                _future_division = True
+                source_ref.getFutureSpec().enableFutureDivision()
             elif object_name == "print_function":
-                global _future_print
-                _future_print = True
+                source_ref.getFutureSpec().enableFuturePrint()
             elif object_name in ( "nested_scopes", "generators", "with_statement" ):
                 pass
             else:
@@ -948,7 +908,6 @@ def buildExecNode( provider, node, source_ref ):
         source       = buildNode( provider, body, source_ref ),
         globals_arg  = globals_node,
         locals_arg   = locals_node,
-        future_flags = getFuture(),
         source_ref   = source_ref
     )
 
@@ -1029,10 +988,8 @@ class TransitiveProvider:
 
 _sources = {}
 
-def buildStringNode( provider, node, source_ref ):
+def buildStringNode( node, source_ref ):
     assert type( node.s ) in ( str, unicode )
-
-    value = node.s
 
     return Nodes.CPythonExpressionConstant(
         constant   = node.s,
@@ -1190,24 +1147,24 @@ def buildNode( provider, node, source_ref ):
         elif kind == "BinOp":
             operator = getKind( node.op )
 
-            if operator == "Div" and _future_division:
+            if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
                 operator = "TrueDiv"
 
             result = Nodes.CPythonExpressionBinaryOperation(
-                operator   = PythonOperators.binary_operators[ operator ],
+                operator   = operator,
                 left       = buildNode( provider, node.left, source_ref ),
                 right      = buildNode( provider, node.right, source_ref ),
                 source_ref = source_ref
             )
         elif kind in "UnaryOp":
             result = Nodes.CPythonExpressionUnaryOperation(
-                operator   = PythonOperators.unary_operators[ getKind( node.op ) ],
+                operator   = getKind( node.op ),
                 operand    = buildNode( provider, node.operand, source_ref ),
                 source_ref = source_ref
             )
         elif kind == "Repr":
             result = Nodes.CPythonExpressionUnaryOperation(
-                operator   = PythonOperators.unary_operators[ "Repr" ],
+                operator   = "Repr",
                 operand    = buildNode( provider, node.value, source_ref ),
                 source_ref = source_ref
             )
@@ -1317,7 +1274,6 @@ def buildNode( provider, node, source_ref ):
                     result.setVariable( provider.getVariableForReference( node.id ) )
         elif kind == "Str":
             result = buildStringNode(
-                provider   = provider,
                 node       = node,
                 source_ref = source_ref
             )
@@ -1364,54 +1320,6 @@ def buildNode( provider, node, source_ref ):
         warning( "Problem at '%s' with %s." % ( source_ref, ast.dump( node ) ) )
         raise
 
-class ModuleRecursionVisitor:
-    imported_modules = {}
-
-    def __init__( self, module, module_filename, stdlib ):
-        if module_filename not in self.imported_modules:
-            self.imported_modules[ os.path.relpath( module_filename ) ] = module
-
-        self.stdlib = stdlib
-
-    def _consider( self, module_filename, module_package ):
-        assert module_package is None or isinstance( module_package, Nodes.CPythonPackage )
-
-        if module_filename.endswith( ".py" ):
-            if self.stdlib or not module_filename.startswith( "/usr/lib/python" ):
-                if os.path.relpath( module_filename ) not in self.imported_modules:
-                    print( "Recurse to", module_filename )
-
-                    imported_module = buildModuleTree(
-                        filename = module_filename,
-                        package  = module_package
-                    )
-
-                    self.imported_modules[ os.path.relpath( module_filename ) ] = imported_module
-
-    def __call__( self, node ):
-        if node.isStatementImport() or node.isStatementImportFrom():
-            for module_filename, module_package in zip( node.getModuleFilenames(), node.getModulePackages() ):
-                self._consider(
-                    module_filename = module_filename,
-                    module_package  = module_package
-                )
-        elif node.isBuiltinImport():
-           self._consider(
-                module_filename = node.getModuleFilename(),
-                module_package  = node.getModulePackage()
-            )
-
-
-class VariableClosureLookupVisitor:
-    def __call__( self, node ):
-        if node.isVariableReference() and node.getVariable() is None:
-            node.setVariable( node.getParentVariableProvider().getVariableForReference( node.getVariableName() ) )
-
-def getOtherModules():
-    return ModuleRecursionVisitor.imported_modules.values()
-
-import os
-
 def extractDocFromBody( node ):
     # Work around ast.get_docstring breakage.
     if len( node.body ) > 0 and getKind( node.body[0] ) == "Expr" and getKind( node.body[0].value ) == "Str":
@@ -1420,36 +1328,29 @@ def extractDocFromBody( node ):
         return node.body, None
 
 
-def buildParseTree( provider, source_code, filename, line_offset, replacement ):
+def buildParseTree( provider, source_code, source_ref, replacement ):
     # Workaround: ast.parse cannot cope with some situations where a file is not terminated
     # by a new line.
     if not source_code.endswith( "\n" ):
         source_code = source_code + "\n"
 
-    body = ast.parse( source_code, filename )
+    body = ast.parse( source_code, source_ref.getFilename() )
     assert getKind( body ) == "Module"
+
+    line_offset = source_ref.getLineNumber() - 1
 
     if line_offset > 0:
         for created_node in ast.walk( body ):
             if hasattr( created_node, "lineno" ):
                 created_node.lineno += line_offset
 
-    source_ref = SourceCodeReferences.fromFilename( filename )
-
     body, doc = extractDocFromBody( body )
 
-    if not replacement:
-        result = buildStatementsNode(
-            provider   = provider,
-            nodes      = body,
-            source_ref = source_ref
-        )
-    else:
-        result = buildReplacementStatementsNode(
-            provider   = provider,
-            nodes      = body,
-            source_ref = source_ref
-        )
+    result = buildStatementsNode(
+        provider   = provider,
+        nodes      = body,
+        source_ref = source_ref
+    )
 
     if not replacement:
         provider.setBody( result )
@@ -1462,83 +1363,43 @@ def buildParseTree( provider, source_code, filename, line_offset, replacement ):
 
     return result
 
-def buildReplacementTree( provider, parent, source_code, filename, line_offset ):
-    pushFuture()
+def buildReplacementTree( provider, parent, source_code, source_ref ):
+    result = buildParseTree(
+        provider    = provider,
+        source_code = source_code,
+        source_ref  = source_ref,
+        replacement = True
+    )
 
-    result = buildParseTree( provider, source_code, filename, line_offset, replacement = True )
-
-    TreeOperations.assignParent( result )
     result.parent = parent
 
-    applyImmediateTransformations( result )
-
-    popFuture()
+    TreeOperations.assignParent( result )
 
     return result
-
-def applyImmediateTransformations( tree ):
-    # Some things that the compiler can or should always do:
-
-    # 1. Look at the imports and recurse into them
-    if Options.shallFollowImports():
-        parent_module = tree.getParentModule()
-
-        TreeOperations.visitTree(
-            tree    = tree,
-            visitor = ModuleRecursionVisitor( parent_module, parent_module.getFilename(), Options.shallFollowStandardLibrary() )
-        )
-
-    # 2. Replace exec with string constant as parameters with the code inlined
-    # instead. This is an optimization that is easy to do and useful for large parts of
-    # the CPython test suite that exec constant strings.
-    if Options.shallOptimizeStringExec():
-        TreeTransforming.replaceConstantExecs( tree, buildReplacementTree )
-
-    # 3. Now that the tree is complete, make a second pass and find the referenced
-    # variable for every name lookup done. Afterwards no more getVariableForAssignment
-    # should be called.
-    TreeOperations.visitTree( tree, VariableClosureLookupVisitor() )
-
-    # 4. Replace calls to locals, globals or eval with our own variants, because these
-    # will refuse to work (exe case) or give incorrect results (module case).
-    TreeTransforming.replaceBuiltinsCallsThatRequireInterpreter( tree, getFuture() )
-
-    # 5. Look at the imports and recurse into them again, because new ones may have surfaced
-    if Options.shallFollowImports():
-        parent_module = tree.getParentModule()
-
-        TreeOperations.visitTree(
-            tree    = tree,
-            visitor = ModuleRecursionVisitor( parent_module, parent_module.getFilename(), Options.shallFollowStandardLibrary() )
-        )
-
 
 def buildModuleTree( filename, package = None ):
     assert package is None or isinstance( package, Nodes.CPythonPackage )
 
-    initFuture()
-
+    # pylint: disable=W0602
     global _delayed_works
     _delayed_works = []
+
+    source_ref = SourceCodeReferences.fromFilename( filename, FutureSpec() )
 
     result = Nodes.CPythonModule(
         name       = os.path.basename( filename ).replace( ".py", "" ),
         package    = package,
         filename   = os.path.relpath( filename ),
-        source_ref = SourceCodeReferences.fromFilename( filename )
+        source_ref = source_ref
     )
 
     buildParseTree(
         provider    = result,
         source_code = open( filename ).read(),
-        filename    = filename,
-        line_offset = 0,
-        replacement = False
+        source_ref  = source_ref,
+        replacement = False,
     )
 
-
     TreeOperations.assignParent( result )
-
-    applyImmediateTransformations( result )
 
     return result

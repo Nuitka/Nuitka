@@ -29,6 +29,8 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Function related templates. """
+
 function_decl_template = """\
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s );
 """
@@ -57,7 +59,8 @@ function_context_access_template = """
 """
 
 function_context_unused_template = """\
-    // The function uses no context."""
+    // No context is used.
+"""
 
 make_function_with_context_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
@@ -92,8 +95,7 @@ function_body_template = """
 
 static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_object_decl)s )
 {
-%(context_access_template)s
-
+%(context_access_function_impl)s
     bool traceback = false;
 
     try
@@ -121,8 +123,7 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_object_
 
 static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObject *kw )
 {
-%(context_access_template)s
-
+%(context_access_arg_parsing)s
 %(parameter_parsing_code)s
 
     return impl_%(function_identifier)s( self%(parameter_object_list)s );

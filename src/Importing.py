@@ -29,20 +29,24 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" The virtue of importing modules and packages.
 
+Unfortunately there is nothing in CPython that is easily accessible and gives us this
+functionality, so we implement the module search process on our own.
+
+"""
 
 import SourceCodeReferences
 import Options
 import Nodes
+
+from nodes.FutureSpec import FutureSpec
 
 import sys, os, imp
 
 from logging import warning
 
 def findModule( module_name, parent_package ):
-    module_topname = module_name.split(".")[0]
-    module_basename =  module_name.split(".")[-1]
-
     parent_package_name = parent_package.getName() if parent_package is not None else None
 
     if Options.shallFollowImports():
@@ -52,14 +56,14 @@ def findModule( module_name, parent_package ):
             if not _isWhiteListedNotExistingModule( module_name ):
                 warning( "Warning, cannot find " + module_name )
 
-            if module_name.find( "." ) != -1:
+            if "." in module_name:
                 module_package_name = module_name[ : module_name.rfind( "." ) ]
             else:
                 module_package_name = None
 
             module_filename = None
     else:
-        if module_name.find( "." ) != -1:
+        if "." in module_name:
             module_package_name = module_name[ : module_name.rfind( "." ) ]
         else:
             module_package_name = None
@@ -72,7 +76,7 @@ def findModule( module_name, parent_package ):
         module_package = Nodes.CPythonPackage(
             name           = module_package_name,
             parent_package = None, # TODO: Have a registry of it, find it
-            source_ref     = SourceCodeReferences.SourceCodeReference.fromFilenameAndLine( "unknown.py", 1 )
+            source_ref     = SourceCodeReferences.fromFilename( "unknown.py", FutureSpec() )
         )
 
     return module_package, module_name, module_filename
@@ -108,7 +112,7 @@ def _findModule( module_name, parent_package ):
         parent_package = "os"
         module_name = os.path.basename( os.path.__file__ ).replace( ".pyc", "" )
 
-    if module_name.find( "." ) != -1:
+    if "." in module_name:
         package_part = module_name[ : module_name.rfind( "." ) ]
         module_name = module_name[ module_name.rfind( "." ) + 1 : ]
 

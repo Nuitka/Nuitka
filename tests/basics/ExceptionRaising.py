@@ -185,10 +185,8 @@ print "*" * 20
 
 checkDerivedCatch()
 
-
-
-def checkNonCatch():
-    print "Testing if the else branch is executed"
+def checkNonCatch1():
+    print "Testing if the else branch is executed in the optimizable case"
     try:
         0
     except TypeError:
@@ -197,5 +195,16 @@ def checkNonCatch():
         print "Executed else branch correctly"
 
 
+def checkNonCatch2():
+
+    try:
+        print "Testing if the else branch is executed in the non-optimizable case"
+    except TypeError:
+        print "Should not catch"
+    else:
+        print "Executed else branch correctly"
+
+
 print "*" * 20
-checkNonCatch()
+checkNonCatch1()
+checkNonCatch2()

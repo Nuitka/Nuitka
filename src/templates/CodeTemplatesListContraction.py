@@ -29,6 +29,9 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Templates for generating code for contractions. """
+
+
 contraction_decl_template = """\
 static PyObject *%(contraction_identifier)s( %(contraction_parameters)s );
 """
@@ -38,18 +41,8 @@ contraction_loop_iterated = """\
 
     while ( PyObject *_python_contraction_iter_value_%(iter_count)d = ITERATOR_NEXT( iterator_%(iter_count)d.asObject() ) )
     {
-        // TODO: Use PyObjectTemporary instead of try/catch here.
-        try
-        {
-            %(loop_var_assignment_code)s
-
-            Py_DECREF( _python_contraction_iter_value_%(iter_count)d );
-        }
-        catch(...)
-        {
-            Py_DECREF( _python_contraction_iter_value_%(iter_count)d );
-            throw;
-        }
+        PyObjectTemporary _python_contraction_temp_iter_value%(iter_count)d( _python_contraction_iter_value_%(iter_count)d );
+        %(loop_var_assignment_code)s
 
         if ( %(contraction_condition)s )
         {
@@ -92,12 +85,12 @@ static PyObject *%(contraction_identifier)s( %(contraction_parameters)s )
 
 # Note: List contractions have no local variables, they share everything with the outside world.
 list_contration_var_decl = """\
-PyObject *_python_contraction_result = MAKE_LIST();""";
+PyObject *_python_contraction_result = MAKE_LIST();"""
 
 dict_contration_var_decl = """\
 PyObject *_python_contraction_result = MAKE_DICT();
-%(local_var_decl)s""";
+%(local_var_decl)s"""
 
 set_contration_var_decl = """\
 PyObject *_python_contraction_result = MAKE_SET();
-%(local_var_decl)s""";
+%(local_var_decl)s"""

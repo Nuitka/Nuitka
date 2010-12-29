@@ -476,3 +476,8 @@ from UserDict import UserDict
 
 print "Function that has keyword argument matching the list star arg name",
 print doubleStarArgs( 1, **UserDict( a = 2 ) )
+
+def generatorFunctionUnusedArg( a ):
+    yield 1
+
+generatorFunctionUnusedArg( 3 )
