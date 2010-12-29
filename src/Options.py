@@ -34,7 +34,7 @@
 from __future__ import print_function
 
 version_string = """\
-Nuitka V0.3.5pre1
+Nuitka V0.3.5pre2
 Copyright (C) 2010 Kay Hayen."""
 
 from optparse import OptionParser
@@ -56,25 +56,24 @@ parser.add_option(
 
 parser.add_option(
     "--execute", action="store_true", dest = "immediate_execution", default = is_Python,
-    help = "Execute immediately the created binary (or import the compiled module).",
+    help = "Immediate execute the created binary or import the freshly compiled module.",
 )
 
 parser.add_option(
     "--trace-execution", action="store_true", dest = "trace_execution", default = False,
-    help = "Debugging: Traced execution output.",
+    help = "Debug aid: Traced execution output.",
 )
 parser.add_option(
     "--dump-tree", action="store_true", dest = "dump_tree", default = False,
-    help = "Debugging: Dump the final result of analysis.",
+    help = "Debug aid: Dump the final result of analysis.",
 )
 parser.add_option(
     "--g++-only", action="store_true", dest = "cpp_only", default = False,
-    help = "Debugging: Only compile the would-be generated source file. Allows edition and translation with same options for quick debugging changes to the generated source."
-
+    help = "Debug aid: Compile the would be generated source file only. To allow editing and translation with same options for quick debugging changes to the generated source."
 )
 parser.add_option(
     "--display-tree", action="store_true", dest = "display_tree", default = False,
-    help = "Debugging: Display the final result of analysis.",
+    help = "Debug aid: Display the final result of analysis.",
 )
 
 
@@ -85,7 +84,7 @@ parser.add_option(
 
 parser.add_option(
     "--python-debug", action="store_true", dest = "python_debug", default = None,
-    help = "Use debug version of CPython or not. Default uses what you are using with Nuitka, most likely a non-debug version.",
+    help = "Use the debug version or not. Default is use what you are using with Nuitka, likely no debug.",
 )
 
 parser.add_option(
@@ -95,17 +94,17 @@ parser.add_option(
 
 parser.add_option(
     "--no-optimization", action="store_true", dest = "no_optimize", default = False,
-    help = "Disable all optimizations.",
+    help = "Disable all optimization steps.",
 )
 
 parser.add_option(
     "--output-dir", action="store", dest = "output_dir", default = "",
-    help = "Where intermediate and final output files should be put.",
+    help = "Where to put intermediate and final output files.",
 )
 
 parser.add_option(
     "--version", action="store_true", dest = "version", default = False,
-    help = "Only output version, then exit.",
+    help = "Output only version, then exit.",
 )
 
 
@@ -116,7 +115,7 @@ parser.add_option(
 
 parser.add_option(
     "--show-scons", action="store_true", dest = "show_scons", default = False,
-    help = "Operate scons in non-quiet mode, showing the executed commands.",
+    help = "Operate scons in non-quiet mode, showing the commands executed.",
 )
 
 import multiprocessing

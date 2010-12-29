@@ -47,15 +47,6 @@ static PyObject *INCREASE_REFCOUNT( PyObject *object );
 
 extern int _current_line;
 
-// Wraps a PyObject * you received or acquired from another container to simplify refcount
-// handling when you're not going to use the object beyond the local scope. It will hold a
-// reference to the wrapped object as long as the PyObjectTemporary is alive, and will
-// release the reference when the wrapper is destroyed: this eliminates the need for
-// manual DECREF calls on Python objects before returning from a method call.
-//
-// In effect, wrapping an object inside a PyObjectTemporary is equivalent to a deferred
-// Py_DECREF() call on the wrapped object.
-
 // Helper class to be used when "PyObject *" are provided as parameters where they are not
 // consumed, but not needed anymore after the call and and need a release as soon as
 // possible.
@@ -1714,8 +1705,8 @@ class PyObjectLocalDictVariable {
     public:
         explicit PyObjectLocalDictVariable( PyObject *storage, PyObject *var_name, PyObject *object = NULL )
         {
-            this->storage    = (PyDictObject *) storage;
-            this->var_name   = (PyStringObject *)var_name;
+            this->storage    = storage;
+            this->var_name   = var_name;
 
             if ( object != NULL )
             {
@@ -1730,12 +1721,12 @@ class PyObjectLocalDictVariable {
 
         PyObject *asObject() const
         {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( this->storage, this->var_name );
-            PyObject *result = entry->me_value;
+            // TODO: Dictionary quick access code could be used here too.
+            PyObject *result = PyDict_GetItem( this->storage, this->var_name );
 
             if (unlikely( result == NULL ))
             {
-                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( (PyObject *)this->var_name ) );
+                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
                 throw _PythonException();
             }
 
@@ -1764,16 +1755,12 @@ class PyObjectLocalDictVariable {
 
         bool isInitialized() const
         {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( this->storage,
-                                                   this->var_name );
-
-            return entry->me_value != NULL;
+            return PyDict_Contains( this->storage, this->var_name ) == 1;
         }
 
         void del()
         {
-            int status = PyDict_DelItem( (PyObject *)this->storage,
-                                         (PyObject *)this->var_name );
+            int status = PyDict_DelItem( this->storage, this->var_name );
 
             if (unlikely( status == -1 ))
             {
@@ -1785,12 +1772,12 @@ class PyObjectLocalDictVariable {
 
         PyObject *getVariableName() const
         {
-            return (PyObject *)this->var_name;
+            return this->var_name;
         }
 
     private:
-        PyDictObject *storage;
-        PyStringObject *var_name;
+        PyObject *storage;
+        PyObject *var_name;
 };
 
 class PyObjectLocalVariable {
@@ -2083,7 +2070,26 @@ class PyObjectGlobalVariable
 
         PyObject *asObject() const
         {
-            return INCREASE_REFCOUNT( this->asObject0() );
+            PyDictEntry *entry = GET_PYDICT_ENTRY( *this->module_ptr, *this->var_name );
+
+            if (likely( entry->me_value != NULL ))
+            {
+                assert( entry->me_value->ob_refcnt > 0 );
+
+                return INCREASE_REFCOUNT( entry->me_value );
+            }
+
+            entry = GET_PYDICT_ENTRY( _module_builtin, *this->var_name );
+
+            if (likely( entry->me_value != NULL ))
+            {
+                assert( entry->me_value->ob_refcnt > 0 );
+
+                return INCREASE_REFCOUNT( entry->me_value );
+            }
+
+            PyErr_Format( PyExc_NameError, "global name '%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
+            throw _PythonException();
         }
 
         PyObject *asObject( PyObject *dict ) const
@@ -2312,7 +2318,7 @@ class PythonBuiltin
     public:
         explicit PythonBuiltin( char const *name )
         {
-            this->name = (PyStringObject *)PyString_FromString( name );
+            this->name = name;
             this->value = NULL;
         }
 
@@ -2320,8 +2326,8 @@ class PythonBuiltin
         {
             if ( this->value == NULL )
             {
-                PyDictEntry *entry = GET_PYDICT_ENTRY( _module_builtin, this->name );
-                this->value = entry->me_value;
+                // TODO: Use GET_PYDICT_ENTRY here too.
+                this->value = PyObject_GetAttrString( (PyObject *)_module_builtin, this->name );
             }
 
             assert( this->value != NULL );
@@ -2330,7 +2336,7 @@ class PythonBuiltin
         }
 
     private:
-        PyStringObject *name;
+        char const *name;
         PyObject *value;
 };
 

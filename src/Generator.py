@@ -1063,7 +1063,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
         package_var_names.add( "__file__" )
         package_var_names.add( "__doc__" )
 
-        if "." in package_name:
+        if package_name.find( "." ) != -1:
             package_var_names.add( "__package__" )
 
         package_globals = "\n".join( [ """static PyObjectGlobalVariable _mvar_%s_%s( &_package_%s, &%s );""" % ( package_identifier, var_name, package_identifier, context.getConstantHandle( constant = var_name ).getCode() ) for var_name in sorted( package_var_names ) ] )
@@ -1091,7 +1091,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
         module_var_names.add( "__file__" )
         module_var_names.add( "__doc__" )
 
-        if "." in module_name:
+        if module_name.find( "." ) != -1:
             module_var_names.add( "__package__" )
 
         module_identifier = self.getModuleIdentifier( module_name )
@@ -1101,7 +1101,7 @@ class PythonModuleGenerator( PythonGeneratorBase ):
         # Make sure that _python_str_angle_module is available to the template
         context.getConstantHandle( constant = "<module>" )
 
-        if "." not in module_name:
+        if module_name.find( "." ) == -1:
             package_name = None
 
             module_inits = CodeTemplates.module_plain_init_template % {

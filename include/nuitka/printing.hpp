@@ -56,7 +56,6 @@ extern void PRINT_ITEMS( bool new_line, PyObject *file, P...eles )
     // Need to hold a reference for the case that the printing somehow removes
     // the last reference to "file" while printing.
     Py_INCREF( file );
-    PyObjectTemporary file_reference( file );
 
     PyObject *elements[] = {eles...};
 
@@ -69,6 +68,10 @@ extern void PRINT_ITEMS( bool new_line, PyObject *file, P...eles )
     {
         PRINT_NEW_LINE_TO( file );
     }
+
+    // TODO: Use of PyObjectTemporary should be possible, this won't be
+    // exception safe otherwise
+    Py_DECREF( file );
 }
 
 #endif

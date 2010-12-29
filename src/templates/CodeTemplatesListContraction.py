@@ -41,8 +41,18 @@ contraction_loop_iterated = """\
 
     while ( PyObject *_python_contraction_iter_value_%(iter_count)d = ITERATOR_NEXT( iterator_%(iter_count)d.asObject() ) )
     {
-        PyObjectTemporary _python_contraction_temp_iter_value%(iter_count)d( _python_contraction_iter_value_%(iter_count)d );
-        %(loop_var_assignment_code)s
+        // TODO: Use PyObjectTemporary instead of try/catch here.
+        try
+        {
+            %(loop_var_assignment_code)s
+
+            Py_DECREF( _python_contraction_iter_value_%(iter_count)d );
+        }
+        catch(...)
+        {
+            Py_DECREF( _python_contraction_iter_value_%(iter_count)d );
+            throw;
+        }
 
         if ( %(contraction_condition)s )
         {
