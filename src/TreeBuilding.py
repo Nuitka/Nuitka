@@ -285,10 +285,12 @@ def buildDictionaryNode( provider, node, source_ref ):
         constant = constant and value_node.isConstantReference() and not value_node.isMutable()
 
     if constant:
+        # Create the dictionary in its full size, so that no growing occurs and the
+        # constant becomes as similar as possible before being marshalled.
         constant_value = dict.fromkeys( [ key.getConstant() for key in keys ], None )
 
-        for count, key in enumerate( keys ):
-            constant_value[ key.getConstant() ] = values[ count ].getConstant()
+        for key, value in zip( keys, values ):
+            constant_value[ key.getConstant() ] = value.getConstant()
 
         return Nodes.CPythonExpressionConstant(
             constant   = constant_value,

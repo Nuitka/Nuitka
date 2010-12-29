@@ -91,13 +91,14 @@ for file in `ls src/*.py`
 do
     echo "Compiling $file"
 
-    rm -rf /tmp/`basename $file .py`.build
+    TARGET="`basename $file .py`.build"
+    rm -rf /tmp/$TARGET
 
     export PYTHONPATH=tests/reflected
     ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
-    diff -srq ./tests/reflected/`basename $file .py`.build /tmp/`basename $file .py`.build
+    diff -srq ./tests/reflected/$TARGET /tmp/$TARGET
 
-    rm -rf /tmp/`basename $file .py`.build
+    rm -rf /tmp/$TARGET
 done
 
 for file in `ls src/nodes/*.py`
@@ -106,13 +107,14 @@ do
     then
         echo "Compiling $file"
 
-        rm -rf /tmp/`basename $file .py`.build
+        TARGET="`basename $file .py`.build"
+        rm -rf /tmp/$TARGET
 
         export PYTHONPATH=tests/reflected
         ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
-        diff -srq ./tests/reflected/nodes/`basename $file .py`.build /tmp/`basename $file .py`.build
+        diff -srq ./tests/reflected/nodes/$TARGET /tmp/$TARGET
 
-        rm -rf /tmp/`basename $file .py`.build
+        rm -rf /tmp/$TARGET
     fi
 done
 
@@ -122,13 +124,14 @@ do
     then
         echo "Compiling $file"
 
-        rm -rf /tmp/`basename $file .py`.build
+        TARGET="`basename $file .py`.build"
+        rm -rf /tmp/$TARGET
 
         export PYTHONPATH=tests/reflected
         ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
-        diff -srq ./tests/reflected/templates/`basename $file .py`.build /tmp/`basename $file .py`.build
+        diff -srq ./tests/reflected/templates/$TARGET /tmp/$TARGET
 
-        rm -rf /tmp/`basename $file .py`.build
+        rm -rf /tmp/$TARGET
     fi
 done
 
@@ -138,13 +141,14 @@ do
     then
         echo "Compiling $file"
 
-        rm -rf /tmp/`basename $file .py`.build
+        TARGET="`basename $file .py`.build"
+        rm -rf /tmp/$TARGET
 
         export PYTHONPATH=tests/reflected
         ./tests/reflected/Nuitka.exe $file --output-dir /tmp/
-        diff -srq ./tests/reflected/optimizations/`basename $file .py`.build /tmp/`basename $file .py`.build
+        diff -srq ./tests/reflected/optimizations/$TARGET /tmp/$TARGET
 
-        rm -rf /tmp/`basename $file .py`.build
+        rm -rf /tmp/$TARGET
     fi
 done
 
@@ -161,12 +165,13 @@ for file in `ls src/*.py`
 do
     echo "Compiling $file"
 
-    rm -rf /tmp/`basename $file .py`.build
+    TARGET="`basename $file .py`.build"
+    rm -rf /tmp/$TARGET
 
     /tmp/Nuitka.exe $file --output-dir /tmp/
-    diff -srq ./tests/reflected/`basename $file .py`.build /tmp/`basename $file .py`.build
+    diff -srq ./tests/reflected/$TARGET /tmp/$TARGET
 
-    rm -rf /tmp/`basename $file .py`.build
+    rm -rf /tmp/$TARGET
 done
 
 for file in `ls src/nodes/*.py`
@@ -175,12 +180,13 @@ do
     then
         echo "Compiling $file"
 
-        rm -rf /tmp/`basename $file .py`.build
+        TARGET="`basename $file .py`.build"
+        rm -rf /tmp/$TARGET
 
         /tmp/Nuitka.exe $file --output-dir /tmp/
-        diff -srq ./tests/reflected/nodes/`basename $file .py`.build /tmp/`basename $file .py`.build
+        diff -srq ./tests/reflected/nodes/$TARGET /tmp/$TARGET
 
-        rm -rf /tmp/`basename $file .py`.build
+        rm -rf /tmp/$TARGET
     fi
 done
 
@@ -190,11 +196,12 @@ do
     then
         echo "Compiling $file"
 
-        rm -rf /tmp/`basename $file .py`.build
+        TARGET="`basename $file .py`.build"
+        rm -rf /tmp/$TARGET
 
         /tmp/Nuitka.exe $file --output-dir /tmp/
-        diff -srq ./tests/reflected/templates/`basename $file .py`.build /tmp/`basename $file .py`.build
+        diff -srq ./tests/reflected/templates/$TARGET /tmp/$TARGET
 
-        rm -rf /tmp/`basename $file .py`.build
+        rm -rf /tmp/$TARGET
     fi
 done

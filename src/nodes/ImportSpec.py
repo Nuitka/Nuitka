@@ -45,7 +45,7 @@ class ImportSpec:
         self.variable        = variable
         self.module_filename = module_filename
 
-        assert module_name.find( "." ) == -1
+        assert "." not in module_name
 
     def getModuleName( self ):
         return self.module_name

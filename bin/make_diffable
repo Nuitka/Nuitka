@@ -53,8 +53,14 @@ for line in sys.stdin:
     line = global_name_error_re.sub( r"\1\2\3", line )
     line = module_repr_re.sub( r"\1xxxxx\2", line )
 
-    line = line.replace( "must be a mapping, not compiled_function", "must be a mapping, not function" )
-    line = line.replace( "must be a sequence, not compiled_function", "must be a sequence, not function" )
+    line = line.replace(
+        "must be a mapping, not compiled_function",
+        "must be a mapping, not function"
+    )
+    line = line.replace(
+        "must be a sequence, not compiled_function",
+        "must be a sequence, not function"
+    )
 
     if ran_re.match( line ):
         print ran_re.match( line ).group(1) + " x.xxxs"

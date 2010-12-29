@@ -37,7 +37,8 @@ Nuitka.py --exe --output-dir=/tmp/ $MODULE
 
 OUTPUT="/tmp/`basename $MODULE .py`.exe"
 LOGFILE="/tmp/`basename $MODULE .py`.log"
+VALGRIND_OPTIONS="-q --tool=callgrind --callgrind-out-file=$LOGFILE --zero-before=init__main__"
 
 ls -l $OUTPUT
 
-valgrind -q --tool=callgrind --callgrind-out-file=$LOGFILE --zero-before=init__main__ $OUTPUT
+valgrind $VALGRIND_OPTIONS $OUTPUT

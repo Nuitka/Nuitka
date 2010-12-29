@@ -56,14 +56,14 @@ def findModule( module_name, parent_package ):
             if not _isWhiteListedNotExistingModule( module_name ):
                 warning( "Warning, cannot find " + module_name )
 
-            if module_name.find( "." ) != -1:
+            if "." in module_name:
                 module_package_name = module_name[ : module_name.rfind( "." ) ]
             else:
                 module_package_name = None
 
             module_filename = None
     else:
-        if module_name.find( "." ) != -1:
+        if "." in module_name:
             module_package_name = module_name[ : module_name.rfind( "." ) ]
         else:
             module_package_name = None
@@ -112,7 +112,7 @@ def _findModule( module_name, parent_package ):
         parent_package = "os"
         module_name = os.path.basename( os.path.__file__ ).replace( ".pyc", "" )
 
-    if module_name.find( "." ) != -1:
+    if "." in module_name:
         package_part = module_name[ : module_name.rfind( "." ) ]
         module_name = module_name[ module_name.rfind( "." ) + 1 : ]
 

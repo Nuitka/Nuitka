@@ -212,7 +212,7 @@ def _getConstantHandle( constant ):
 def _pickRawDelimiter( value ):
     delimiter = "raw"
 
-    while value.find( delimiter ) != -1:
+    while delimiter in value:
         delimiter = "_" + delimiter + "_"
 
     return delimiter
@@ -237,7 +237,7 @@ def _encodeString( value ):
         else:
             return end + r' "\0" ' + start
 
-    result = re.sub( "\n|\r|" + chr(0), decide, result )
+    result = re.sub( "\n|\r|\0", decide, result )
 
     return result
 

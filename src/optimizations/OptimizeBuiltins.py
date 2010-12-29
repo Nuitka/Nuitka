@@ -178,7 +178,7 @@ class ReplaceBuiltinsVisitor( OptimizationVisitorBase ):
             if len( positional_args ) == 1 and positional_args[0].isConstantReference():
                 module_name = positional_args[0].getConstant()
 
-                if type( module_name ) is str and module_name.find( "." ) == -1:
+                if type( module_name ) is str and "." not in module_name:
                     module_package, module_name, module_filename = Importing.findModule(
                         module_name    = module_name,
                         parent_package = node.getParentModule().getPackage()

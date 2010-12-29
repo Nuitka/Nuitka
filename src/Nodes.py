@@ -462,7 +462,7 @@ class CPythonNamedCode:
 class CPythonNamedNode( CPythonNode ):
     def __init__( self, name, source_ref ):
         assert name is not None
-        assert name.find( " " ) == -1
+        assert " " not in name
 
         CPythonNode.__init__( self, source_ref = source_ref )
 
