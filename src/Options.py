@@ -169,11 +169,22 @@ parser.add_option(
     help    = "Operate scons in non-quiet mode, showing the executed commands."
 )
 
-import multiprocessing
+cpu_count = 0
+try:
+    # Try to get the number of logical processors
+    for line in open('/proc/cpuinfo'):
+        if line.startswith('cpu cores'):
+            cpu_count += int(line.split(':')[-1].strip())
+except:
+    pass
+if not cpu_count:
+    import multiprocessing
+    cpu_count = multiprocessing.cpu_count()
 
 parser.add_option(
-    "-j", "--jobs", action="store", dest = "jobs", default = multiprocessing.cpu_count(),
-    help = "Specifiy the allowed number of jobs, defaults to system CPU count",
+    "-j", "--jobs", action="store", dest = "jobs", default = cpu_count,
+    help = """\
+Specify the allowed number of jobs. Defaults to system CPU count (%d)""" % cpu_count,
 )
 
 
