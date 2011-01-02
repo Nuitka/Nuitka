@@ -32,7 +32,7 @@
 
 
 module_inittab_entry = """\
-(char *)"%(module_name)s", init%(module_identifier)s,"""
+{ (char *)"%(module_name)s", init%(module_identifier)s },"""
 
 main_program = """\
 // Our own inittab for lookup of "frozen" modules, i.e. the ones included in this binary.
@@ -93,45 +93,6 @@ int main( int argc, char *argv[] )
         PyErr_Print();
     }
 }
-"""
-
-package_header_template = """\
-#include "nuitka/prelude.hpp"
-
-extern PyObject *_package_%(package_identifier)s;
-
-extern void init%(package_identifier)s(void);
-"""
-
-package_body_template = """\
-#include "nuitka/prelude.hpp"
-
-// The _package_%(package_identifier)s is a Python object pointer of module type.
-
-PyObject *_package_%(package_identifier)s = NULL;
-
-// The package level variables.
-%(package_globals)s
-
-void init%(package_identifier)s(void)
-{
-    if ( _package_%(package_identifier)s == NULL )
-    {
-        _package_%(package_identifier)s = Py_InitModule4(
-            "%(package_name)s",      // Module Name
-            NULL,                    // No methods
-            NULL,                    // No __doc__ is set
-            NULL,                    // No self for packages, we don't use it.
-            PYTHON_API_VERSION
-        );
-
-        assert( _package_%(package_identifier)s );
-    }
-
-    // Initialize the standard module attributes.
-%(package_inits)s
-}
-
 """
 
 module_header_template = """\
@@ -198,6 +159,21 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
     // Initialize the standard module attributes.
 %(module_inits)s
 
+    // For deep importing of a module we need to have __builtins__ we need to set it
+    // ourselves in the same way than CPython does.
+
+    PyObject *module_dict = PyModule_GetDict( _module_%(module_identifier)s );
+
+    if ( PyDict_GetItemString( module_dict, "__builtins__") == NULL )
+    {
+#ifndef __NUITKA_NO_ASSERT__
+        int res =
+#endif
+            PyDict_SetItemString( module_dict, "__builtins__", PyEval_GetBuiltins() );
+
+        assert( res == 0 );
+    }
+
     // Module code
     bool traceback = false;
 
@@ -228,7 +204,7 @@ module_package_init_template = """\
 
     init%(package_identifier)s();
 
-    SET_ATTRIBUTE( _package_%(package_identifier)s, %(module_name)s, _module_%(module_identifier)s );"""
+    SET_ATTRIBUTE( _module_%(package_identifier)s, %(module_name)s, _module_%(module_identifier)s );"""
 
 package_init_template = """\
     _mvar_%(package_identifier)s___file__.assign0( %(filename_identifier)s );"""
@@ -239,29 +215,13 @@ constant_reading = """
 // The current line of code execution.
 int _current_line;
 
-// We unstream some constant objects using the "cPickle" module function "loads"
-static PyObject *_module_cPickle = NULL;
-static PyObject *_module_cPickle_function_loads = NULL;
-
 // Sentinel PyObject to be used for all our call iterator endings. It will become
 // a PyCObject pointing to NULL. TODO: Hopefully that is unique enough.
 PyObject *_sentinel_value = NULL;
 
-%(const_declarations)s
-
-static PyObject *_unstreamConstant( char const *buffer, int size )
-{
-    PyObject *temp = PyString_FromStringAndSize( buffer, size );
-
-    PyObject *result = PyObject_CallFunctionObjArgs( _module_cPickle_function_loads, temp, NULL );
-    assert( result );
-
-    Py_DECREF( temp );
-
-    return result;
-}
-
 PyModuleObject *_module_builtin = NULL;
+
+%(const_declarations)s
 
 static void _initConstants( void )
 {
@@ -273,15 +233,7 @@ static void _initConstants( void )
         _module_builtin = (PyModuleObject *)PyImport_ImportModule( "__builtin__" );
         assert( _module_builtin );
 
-#if PY_MAJOR_VERSION < 3
-        _module_cPickle = PyImport_ImportModule( "cPickle" );
-#else
-        _module_cPickle = PyImport_ImportModule( "pickle" );
-#endif
-        assert( _module_cPickle );
-
-        _module_cPickle_function_loads = PyObject_GetAttrString( _module_cPickle, "loads" );
-        assert( _module_cPickle_function_loads );
+        UNSTREAM_INIT();
 
         %(const_init)s
     }

@@ -31,25 +31,22 @@
 #
 """ Optimization step that expands the tree by imported modules.
 
-
 Normally imports are relatively static, but Nuitka also attempts to cover the uses of
 __import__ and other import techniques, that allow dynamic values. If other optimizations
 make it possible to predict these, the compiler can go deeper that what it normally could.
 
-So this is called repeatedly mayhaps, each time a constant is added. TODO: Therefore it
-registers an observer to nodes of interest, checking if they become constant at a later
-stage.
+So this is called repeatedly mayhaps, each time a constant is added.
 """
 
 from __future__ import print_function
 
-import os
-
 from optimizations.OptimizeBase import OptimizationVisitorBase
 
 import TreeBuilding
+import Importing
 import Options
 import Nodes
+import Utils
 
 class ModuleRecursionVisitor( OptimizationVisitorBase ):
     imported_modules = {}
@@ -58,12 +55,14 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
         self.stdlib = Options.shallFollowStandardLibrary()
 
     def _consider( self, module_filename, module_package ):
-        assert module_package is None or isinstance( module_package, Nodes.CPythonPackage )
+        assert module_package is None or type( module_package ) is str
 
         if module_filename.endswith( ".py" ):
             if self.stdlib or not module_filename.startswith( "/usr/lib/python" ):
-                if os.path.relpath( module_filename ) not in self.imported_modules:
-                    print( "Recurse to", module_filename )
+                module_relpath = Utils.relpath( module_filename )
+
+                if module_relpath not in self.imported_modules:
+                    print( "Recurse to import", module_relpath )
 
                     self.signalChange( "new_code" )
 
@@ -72,14 +71,37 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
                         package  = module_package
                     )
 
-                    self.imported_modules[ os.path.relpath( module_filename ) ] = imported_module
+                    self.imported_modules[ module_relpath ] = imported_module
 
     def __call__( self, node ):
         if node.isModule():
             module_filename = node.getFilename()
 
             if module_filename not in self.imported_modules:
-                self.imported_modules[ os.path.relpath( module_filename ) ] = node
+                self.imported_modules[ Utils.relpath( module_filename ) ] = node
+
+            module_package = node.getPackage()
+
+            if module_package is not None:
+                package_package, _package_package, package_filename = Importing.findModule(
+                    module_name    = module_package,
+                    parent_package = None
+                )
+
+                package_relpath = Utils.relpath( package_filename )
+
+                if package_relpath not in self.imported_modules:
+                    print ("Recurse to import", module_package)
+
+                    self.signalChange( "new_code" )
+
+                    imported_module = TreeBuilding.buildModuleTree(
+                        filename = package_relpath,
+                        package  = package_package
+                    )
+
+                    self.imported_modules[ package_relpath ] = imported_module
+
         elif node.isStatementImport() or node.isStatementImportFrom():
             for module_filename, module_package in zip( node.getModuleFilenames(), node.getModulePackages() ):
                 self._consider(

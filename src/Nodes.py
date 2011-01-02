@@ -41,7 +41,6 @@ from __past__ import long, unicode
 import Variables
 
 from odict import OrderedDict
-
 from NoneType import NoneType
 
 class CPythonNodeCheck( type ):
@@ -80,15 +79,21 @@ class CPythonNode:
             return "<Node %s %s>" % ( self.getDescription(), detail )
 
     def getDescription( self ):
-        """ Description of the node, intented for use in __repr__ and graphical display."""
-        return "%s at %s" % ( self.kind, self.source_ref )
+        """ Description of the node, intented for use in __repr__ and graphical display.
+
+        """
+        return "%s at %s" % ( self.kind, self.source_ref.getAsString() )
 
     def getDetail( self ):
-        """ Description of the node, intented for use in __repr__ and graphical display."""
+        """ Details of the node, intented for use in __repr__ and graphical display.
+
+        """
         return ""
 
     def getParent( self ):
-        """ Parent of the node. Every node except for modules have to have a parent."""
+        """ Parent of the node. Every node except modules have to have a parent.
+
+        """
 
         if self.parent is None and not self.isModule():
             assert False, ( self,  self.source_ref )
@@ -121,7 +126,8 @@ class CPythonNode:
         return parent
 
     def isParentVariableProvider( self ):
-        return self.isModule() or self.isFunctionReference() or self.isClassReference() or self.isExpressionGenerator() or self.isExpressionLambda()
+        return self.isModule() or self.isFunctionReference() or self.isClassReference() or \
+               self.isExpressionGenerator() or self.isExpressionLambda()
 
     def getParentVariableProvider( self ):
         previous = self
@@ -172,7 +178,10 @@ class CPythonNode:
         print( "    " * level, "*" * 10 )
 
     def isModule( self ):
-        return self.kind == "MODULE"
+        return self.kind in ( "MODULE", "PACKAGE" )
+
+    def isPackage( self ):
+        return self.kind == "PACKAGE"
 
     def isExpression( self ):
         return self.kind.startswith( "EXPRESSION_" )
@@ -216,6 +225,9 @@ class CPythonNode:
     def isConstantReference( self ):
         return self.kind == "EXPRESSION_CONSTANT_REF"
 
+    def isBuiltin( self ):
+        return self.kind.startswith( "EXPRESSION_BUILTIN_" )
+
     def isBuiltinImport( self ):
         return self.kind == "EXPRESSION_BUILTIN_IMPORT"
 
@@ -248,6 +260,12 @@ class CPythonNode:
 
     def isBuiltinType3( self ):
         return self.kind == "EXPRESSION_BUILTIN_TYPE3"
+
+    def isBuiltinRange( self ):
+        return self.kind == "EXPRESSION_BUILTIN_RANGE"
+
+    def isBuiltinLen( self ):
+        return self.kind == "EXPRESSION_BUILTIN_LEN"
 
     def isOperation( self ):
         return self.kind in ( "EXPRESSION_BINARY_OPERATION", "EXPRESSION_UNARY_OPERATION", "EXPRESSION_MULTIARG_OPERATION" )
@@ -514,7 +532,7 @@ class CPythonChildrenHaving:
         for key, value in self.named_children.items():
             if value is None:
                 pass
-            elif type( value ) == tuple:
+            elif type( value ) is tuple:
                 result += list( value )
             elif isinstance( value, CPythonNode ):
                 result.append( value )
@@ -529,7 +547,7 @@ class CPythonChildrenHaving:
         for key, value in self.named_children.items():
             if value is None or key == "body":
                 pass
-            elif type( value ) == tuple:
+            elif type( value ) is tuple:
                 result += list( value )
             elif isinstance( value, CPythonNode ):
                 result.append( value )
@@ -662,13 +680,16 @@ class MarkExceptionBreakContinueIndicator:
 class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGiver ):
     """ Module
 
-        The module is a possible root of a tree.
+        The module is the only possible root of a tree. When there are many modules
+        they form a forrest.
     """
 
     kind = "MODULE"
 
-    def __init__( self, name, package, filename, source_ref ):
-        assert package is None or isinstance( package, CPythonPackage )
+    def __init__( self, name, package, source_ref ):
+        assert type(name) is str, type(name)
+        assert "." not in name
+        assert package is None or type( package ) is str
 
         CPythonNamedNode.__init__( self, name = name, source_ref = source_ref )
         CPythonClosureGiver.__init__( self, "module" )
@@ -679,7 +700,6 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
             }
         )
 
-        self.filename = filename
         self.package = package
         self.doc = None
 
@@ -694,14 +714,14 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
         self.doc = doc
 
     def getFilename( self ):
-        return self.filename
+        return self.source_ref.getFilename()
 
     def getPackage( self ):
         return self.package
 
     def getFullName( self ):
         if self.package:
-            return self.package.getName() + "." + self.getName()
+            return self.package + "." + self.getName()
         else:
             return self.getName()
 
@@ -717,22 +737,16 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
     def isEarlyClosure( self ):
         return True
 
-class CPythonPackage( CPythonNamedNode ):
+class CPythonPackage( CPythonModule ):
     kind = "PACKAGE"
 
-    def __init__( self, name, parent_package, source_ref ):
-        assert type(name) is str, type(name)
-        assert type(parent_package) in (type(None), CPythonPackage )
-
-        CPythonNamedNode.__init__( self, name = name, source_ref = source_ref )
-
-    def getFilename( self ):
-        return self.source_ref.getFilename()
-
-    def getDoc( self ):
-        # TODO: Check if packages can have it.
-        return None
-
+    def __init__( self, name, package, source_ref ):
+        CPythonModule.__init__(
+            self,
+            name       = name,
+            package    = package,
+            source_ref = source_ref
+        )
 
 class CPythonClass( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureTaker, CPythonNamedCode ):
     kind = "STATEMENT_CLASS_DEF"
@@ -947,7 +961,14 @@ class CPythonStatementAssignment( CPythonChildrenHaving, CPythonNode ):
         )
 
     def getDetail( self ):
-        return "to %s" % ( self.getTargets(), )
+        targets = self.getTargets()
+
+        targets = [ target.getDetail() for target in targets ]
+
+        if len( targets ) == 1:
+            targets = targets[0]
+
+        return "%s from %s" % ( targets, self.getSource() )
 
     getTargets = CPythonChildrenHaving.childGetter( "targets" )
     getSource = CPythonChildrenHaving.childGetter( "source" )
@@ -1017,6 +1038,15 @@ class CPythonExpressionConstant( CPythonNode ):
 
     def isMutable( self ):
         return self._isMutable( self.constant )
+
+    def isNumberConstant( self ):
+        return type( self.constant ) in ( int, long, float, bool )
+
+    def isIterableConstant( self ):
+        return type( self.constant) in ( str, unicode, list, tuple, set, frozenset, dict )
+
+    def isBoolConstant( self ):
+        return type( self.constant ) is bool
 
 class CPythonParameterHaving:
     def __init__( self, parameters ):
@@ -2181,7 +2211,7 @@ class CPythonExpressionBuiltinCallVars( CPythonChildrenHaving, CPythonNode ):
 class CPythonExpressionBuiltinCallEval( CPythonChildrenHaving, CPythonNode ):
     kind = "EXPRESSION_BUILTIN_EVAL"
 
-    def __init__( self, source, globals_arg, locals_arg, mode, source_ref ):
+    def __init__( self, source, globals_arg, locals_arg, source_ref ):
         CPythonNode.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
@@ -2193,14 +2223,12 @@ class CPythonExpressionBuiltinCallEval( CPythonChildrenHaving, CPythonNode ):
             }
         )
 
-        self.mode = mode
-
     getSource = CPythonChildrenHaving.childGetter( "source" )
     getGlobals = CPythonChildrenHaving.childGetter( "globals" )
     getLocals = CPythonChildrenHaving.childGetter( "locals" )
 
     def getMode( self ):
-        return self.mode
+        return "eval"
 
 class CPythonExpressionBuiltinCallOpen( CPythonChildrenHaving, CPythonNode ):
     kind = "EXPRESSION_BUILTIN_OPEN"
@@ -2285,8 +2313,36 @@ class CPythonExpressionBuiltinCallType3( CPythonChildrenHaving, CPythonNode ):
     getBases = CPythonChildrenHaving.childGetter( "bases" )
     getDict = CPythonChildrenHaving.childGetter( "dict" )
 
-class CPythonExpressionBuiltinCallRange( CPythonNode ):
+class CPythonExpressionBuiltinCallRange( CPythonChildrenHaving, CPythonNode ):
     kind = "EXPRESSION_BUILTIN_RANGE"
 
-    def __init__( self, source_ref ):
+    def __init__( self, low, high, step, source_ref ):
         CPythonNode.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "low"  : low,
+                "high" : high,
+                "step" : step
+            }
+        )
+
+    getLow  = CPythonChildrenHaving.childGetter( "low" )
+    getHigh = CPythonChildrenHaving.childGetter( "high" )
+    getStep = CPythonChildrenHaving.childGetter( "step" )
+
+class CPythonExpressionBuiltinCallLen( CPythonChildrenHaving, CPythonNode ):
+    kind = "EXPRESSION_BUILTIN_LEN"
+
+    def __init__( self, value, source_ref ):
+        CPythonNode.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "value"     : value,
+            }
+        )
+
+    getValue = CPythonChildrenHaving.childGetter( "value" )

@@ -43,47 +43,69 @@ import Nodes
 
 import math
 
-class ReplaceBuiltinsVisitor( OptimizationVisitorBase ):
-    def __init__( self ):
-        self.replacements = {
-            "globals"    : self.globals_extractor,
-            "locals"     : self.locals_extractor,
-            "dir"        : self.dir_extractor,
-            "vars"       : self.vars_extractor,
-            "eval"       : self.eval_extractor,
-            "execfile"   : self.execfile_extractor,
-            "__import__" : self.import_extractor,
-            "chr"        : self.chr_extractor,
-            "ord"        : self.ord_extractor,
-            "type"       : self.type_extractor,
-            "range"      : self.range_extractor
-        }
+_builtin_names = [ str( x ) for x in __builtins__.keys() ]
+assert "int" in _builtin_names, __builtins__.keys()
+
+class OptimizationDispatchingVisitorBase( OptimizationVisitorBase ):
+
+    def __init__( self, dispatch_dict ):
+        self.dispatch_dict = dispatch_dict
 
     def __call__( self, node ):
-        if node.isFunctionCall():
+        key = self.getKey( node )
+
+        if key in self.dispatch_dict:
+            new_node = self.dispatch_dict[ key ]( node )
+
+            if new_node is not None:
+                node.replaceWith( new_node = new_node )
+
+                if new_node.isStatement() and node.parent.isStatementExpression():
+                    node.parent.replaceWith( new_node )
+
+                TreeOperations.assignParent( node.parent )
+
+                # TODO: Normally the constant should only be produced by the later step
+                if new_node.isConstantReference():
+                    self.signalChange( "new_constant" )
+                elif new_node.isBuiltin():
+                    self.signalChange( "new_builtin" )
+
+
+
+
+class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
+    def __init__( self ):
+        OptimizationDispatchingVisitorBase.__init__(
+            self,
+            dispatch_dict = {
+                "globals"    : self.globals_extractor,
+                "locals"     : self.locals_extractor,
+                "dir"        : self.dir_extractor,
+                "vars"       : self.vars_extractor,
+                "eval"       : self.eval_extractor,
+                "execfile"   : self.execfile_extractor,
+                "__import__" : self.import_extractor,
+                "chr"        : self.chr_extractor,
+                "ord"        : self.ord_extractor,
+                "type"       : self.type_extractor,
+                "range"      : self.range_extractor,
+# TODO: There is a case of len overload in the CPython test suite that we do not yet
+# discover, because we have no test for write to module level variable yet, which is
+# a potential breaker for every builtin replacement.
+#                "len"        : self.len_extractor,
+            }
+        )
+
+    def getKey( self, node ):
+        if node.isFunctionCall() and node.hasOnlyPositionalArguments():
             called = node.getCalledExpression()
 
             if called.isVariableReference():
                 variable = called.getVariable()
 
                 if variable.isModuleVariable():
-                    var_name = variable.getName()
-
-                    if var_name in self.replacements:
-                        replacement_extractor = self.replacements[ var_name ]
-
-                        new_node = replacement_extractor( node )
-
-                        if new_node is not None:
-                            node.replaceWith( new_node = new_node )
-
-                            if new_node.isStatement() and node.parent.isStatementExpression():
-                                node.parent.replaceWith( new_node )
-
-                            TreeOperations.assignParent( node.parent )
-
-                            if new_node.isConstantReference():
-                                self.signalChange( "new_constant" )
+                    return variable.getName()
 
 
     def globals_extractor( self, node ):
@@ -106,8 +128,6 @@ class ReplaceBuiltinsVisitor( OptimizationVisitorBase ):
         )
 
     def vars_extractor( self, node ):
-        assert node.hasOnlyPositionalArguments()
-
         positional_args = node.getPositionalArguments()
 
         if len( positional_args ) == 0:
@@ -123,22 +143,18 @@ class ReplaceBuiltinsVisitor( OptimizationVisitorBase ):
             assert False
 
     def eval_extractor( self, node ):
-        assert node.hasOnlyPositionalArguments()
-
         positional_args = node.getPositionalArguments()
 
         return Nodes.CPythonExpressionBuiltinCallEval(
             source       = positional_args[0],
             globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
             locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
-            mode         = "eval",
             source_ref   = node.getSourceReference()
         )
 
     def execfile_extractor( self, node ):
         assert node.parent.isStatementExpression()
 
-        assert node.hasOnlyPositionalArguments()
         positional_args = node.getPositionalArguments()
 
         source_ref = node.getSourceReference()
@@ -172,161 +188,82 @@ class ReplaceBuiltinsVisitor( OptimizationVisitorBase ):
         )
 
     def import_extractor( self, node ):
-        if node.isFunctionCall() and node.hasOnlyPositionalArguments():
-            positional_args = node.getPositionalArguments()
+        positional_args = node.getPositionalArguments()
 
-            if len( positional_args ) == 1 and positional_args[0].isConstantReference():
-                module_name = positional_args[0].getConstant()
+        if len( positional_args ) == 1 and positional_args[0].isConstantReference():
+            module_name = positional_args[0].getConstant()
 
-                if type( module_name ) is str and "." not in module_name:
-                    module_package, module_name, module_filename = Importing.findModule(
-                        module_name    = module_name,
-                        parent_package = node.getParentModule().getPackage()
-                    )
+            if type( module_name ) is str and "." not in module_name:
+                module_package, module_name, module_filename = Importing.findModule(
+                    module_name    = module_name,
+                    parent_package = node.getParentModule().getPackage()
+                )
 
-                    return Nodes.CPythonExpressionImport(
-                        module_package  = module_package,
-                        module_name     = module_name,
-                        module_filename = module_filename,
-                        source_ref      = node.getSourceReference()
-                    )
-        else:
-            return None
+                return Nodes.CPythonExpressionImport(
+                    module_package  = module_package,
+                    module_name     = module_name,
+                    module_filename = module_filename,
+                    source_ref      = node.getSourceReference()
+                )
 
     def chr_extractor( self, node ):
-        if node.isFunctionCall() and node.hasOnlyPositionalArguments():
-            positional_args = node.getPositionalArguments()
+        positional_args = node.getPositionalArguments()
 
-            if len( positional_args ) == 1:
-                if positional_args[0].isConstantReference():
-                    try:
-                        return Nodes.CPythonExpressionConstant(
-                            constant   = chr( positional_args[0] ),
-                            source_ref = node.getSourceReference()
-                        )
-                    except:
-                        return None
-                else:
-                    return Nodes.CPythonExpressionBuiltinCallChr(
-                        value      = positional_args[0],
-                        source_ref = node.getSourceReference()
-                    )
+        if len( positional_args ) == 1:
+            return Nodes.CPythonExpressionBuiltinCallChr(
+                value      = positional_args[0],
+                source_ref = node.getSourceReference()
+            )
 
 
     def ord_extractor( self, node ):
-        if node.isFunctionCall() and node.hasOnlyPositionalArguments():
-            positional_args = node.getPositionalArguments()
+        positional_args = node.getPositionalArguments()
 
-            if len( positional_args ) == 1:
-                if positional_args[0].isConstantReference():
-                    try:
-                        return Nodes.CPythonExpressionConstant(
-                            constant   = ord( positional_args[0] ),
-                            source_ref = node.getSourceReference()
-                        )
-                    except:
-                        return None
-                else:
-                    return Nodes.CPythonExpressionBuiltinCallOrd(
-                        value      = positional_args[0],
-                        source_ref = node.getSourceReference()
-                    )
+        if len( positional_args ) == 1:
+            return Nodes.CPythonExpressionBuiltinCallOrd(
+                value      = positional_args[0],
+                source_ref = node.getSourceReference()
+            )
 
     def type_extractor( self, node ):
-        if node.isFunctionCall() and node.hasOnlyPositionalArguments():
-            positional_args = node.getPositionalArguments()
+        positional_args = node.getPositionalArguments()
 
-            if len( positional_args ) == 1:
-                return Nodes.CPythonExpressionBuiltinCallType1(
-                    value = positional_args[0],
-                    source_ref = node.getSourceReference()
-                )
-            elif len( positional_args ) == 3:
-                return Nodes.CPythonExpressionBuiltinCallType3(
-                    type_name = positional_args[0],
-                    bases     = positional_args[1],
-                    type_dict = positional_args[2],
-                    source_ref = node.getSourceReference()
-                )
+        if len( positional_args ) == 1:
+            return Nodes.CPythonExpressionBuiltinCallType1(
+                value      = positional_args[0],
+                source_ref = node.getSourceReference()
+            )
+        elif len( positional_args ) == 3:
+            return Nodes.CPythonExpressionBuiltinCallType3(
+                type_name  = positional_args[0],
+                bases      = positional_args[1],
+                type_dict  = positional_args[2],
+                source_ref = node.getSourceReference()
+            )
 
     def range_extractor( self, node ):
-        if node.isFunctionCall() and node.hasOnlyPositionalArguments():
-            positional_args = node.getPositionalArguments()
+        positional_args = node.getPositionalArguments()
 
-            if len( positional_args ) == 1:
-                arg1 = positional_args[0]
+        if len( positional_args ) >= 1 and len( positional_args ) <= 3:
+            low = positional_args[0]
+            high = positional_args[1] if len( positional_args ) > 1 else None
+            step = positional_args[2] if len( positional_args ) > 2 else None
 
-                if arg1.isConstantReference():
-                    constant = arg1.getConstant()
+            return Nodes.CPythonExpressionBuiltinCallRange(
+                low        = low,
+                high       = high,
+                step       = step,
+                source_ref = node.getSourceReference()
+            )
 
-                    # Negative values are empty, so don't check against 0.
-                    if type(constant) in (int, long) and constant <= 256:
-                        return Nodes.CPythonExpressionConstant(
-                            constant   = range( constant ),
-                            source_ref = node.getSourceReference()
-                        )
-            elif len( positional_args ) == 2:
-                arg1, arg2 = positional_args
+    def len_extractor( self, node ):
+        positional_args = node.getPositionalArguments()
 
-                if arg1.isConstantReference() and arg2.isConstantReference():
-                    constant1 = arg1.getConstant()
-                    constant2 = arg2.getConstant()
-
-                    if type(constant1) in (int, long) and type(constant2) in (int, long) and constant2 - constant1 <= 256:
-                        return Nodes.CPythonExpressionConstant(
-                            constant   = range( constant1, constant2 ),
-                            source_ref = node.getSourceReference()
-                        )
-            elif len( positional_args ) == 3:
-                arg1, arg2, arg3 = positional_args
-
-                if arg1.isConstantReference() and arg2.isConstantReference() and arg3.isConstantReference():
-                    constant1 = arg1.getConstant()
-                    constant2 = arg2.getConstant()
-                    constant3 = arg3.getConstant()
-
-                    if type(constant1) in (int, long) and type(constant2) in (int, long) and type(constant3) in (int, long):
-                        if constant3 == 0:
-
-                            # TODO: Add this node type, for now let the real range builtin
-                            # do it, but that leaves us no chance to know in advance.
-                            return None
-
-                            return Nodes.CPythonExpressionRaiseException(
-                                exception_type = Nodes.CPythonExpressionVariable(
-                                    variable_name = "ValueError",
-                                    source_ref    = node.getSourceReference()
-                                ),
-                                exception_value = Nodes.CPythonExpressionConstant(
-                                    constant   = "range() step argument must not be zero",
-                                    source_ref = node.getSourceReference()
-                                ),
-                                exception_trace = None,
-                                source_ref = node.getSourceReference()
-                            )
-                        else:
-                            if constant1 < constant2:
-                                if constant3 < 0:
-                                    estimate = 0
-                                else:
-                                    estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
-                            else:
-                                if constant3 > 0:
-                                    estimate = 0
-                                else:
-                                    estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
-
-                            estimate = round( estimate )
-
-                            # print constant1, constant2, constant3, range( constant1, constant2, constant3 ), estimate
-
-                            assert len( range( constant1, constant2, constant3 ) ) == estimate, node.getSourceReference()
-
-                            if estimate <= 256:
-                                return Nodes.CPythonExpressionConstant(
-                                    constant   = range( constant1, constant2, constant3 ),
-                                    source_ref = node.getSourceReference()
-                                )
+        if len( positional_args ) == 1:
+            return Nodes.CPythonExpressionBuiltinCallLen(
+                value      = positional_args[0],
+                source_ref = node.getSourceReference()
+            )
 
     def _pickLocalsForNode( self, node ):
         """ Pick a locals default for the given node. """
@@ -348,3 +285,169 @@ class ReplaceBuiltinsVisitor( OptimizationVisitorBase ):
         return Nodes.CPythonExpressionBuiltinCallGlobals(
             source_ref = node.getSourceReference()
         )
+
+
+class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
+    def __init__( self ):
+        OptimizationDispatchingVisitorBase.__init__(
+            self,
+            dispatch_dict = {
+#                "globals"    : self.globals_extractor,
+#                "locals"     : self.locals_extractor,
+#                "dir"        : self.dir_extractor,
+#                "vars"       : self.vars_extractor,
+                "chr"        : self.chr_extractor,
+                "ord"        : self.ord_extractor,
+                "type1"      : self.type1_extractor,
+                "range"      : self.range_extractor
+            }
+        )
+
+    def getKey( self, node ):
+        if node.isBuiltin():
+            return node.kind.replace( "EXPRESSION_BUILTIN_", "" ).lower()
+
+
+    def chr_extractor( self, node ):
+        value = node.getValue()
+
+        if value.isConstantReference():
+            value = value.getConstant()
+
+            try:
+                return Nodes.CPythonExpressionConstant(
+                    constant   = chr( value ),
+                    source_ref = node.getSourceReference()
+                )
+            except:
+                pass
+
+    def ord_extractor( self, node ):
+        value = node.getValue()
+
+        if value.isConstantReference():
+            value = value.getConstant()
+
+            try:
+                return Nodes.CPythonExpressionConstant(
+                    constant   = ord( value ),
+                    source_ref = node.getSourceReference()
+                )
+            except:
+                pass
+
+
+    def type1_extractor( self, node ):
+        value = node.getValue()
+
+        if value.isConstantReference():
+            value = value.getConstant()
+
+            if value is not None:
+                type_name = value.__class__.__name__
+
+                assert (type_name in _builtin_names), (type_name, _builtin_names)
+
+                result = Nodes.CPythonExpressionVariable(
+                    variable_name = type_name,
+                    source_ref    = node.getSourceReference()
+                )
+
+                result.setVariable(
+                    variable = node.getParentModule().getVariableForReference(
+                        variable_name = type_name
+                    )
+                )
+
+                return result
+
+
+    def range_extractor( self, node ):
+        low  = node.getLow()
+        high = node.getHigh()
+        step = node.getStep()
+
+        def isRangePredictable( node ):
+            if node.isConstantReference():
+                return node.isNumberConstant()
+            else:
+                return False
+
+        if high is None and step is None:
+            if isRangePredictable( low ):
+                constant = low.getConstant()
+
+                # Negative values are empty, so don't check against 0.
+                if constant <= 256:
+                    if type( constant ) is float:
+                        constant = int( constant )
+
+                    return Nodes.CPythonExpressionConstant(
+                        constant   = range( constant ),
+                        source_ref = node.getSourceReference()
+                    )
+        elif step is None:
+            if isRangePredictable( low ) and isRangePredictable( high ):
+                constant1 = low.getConstant()
+                constant2 = high.getConstant()
+
+                if constant2 - constant1 <= 256:
+                    return Nodes.CPythonExpressionConstant(
+                        constant   = range( constant1, constant2 ),
+                        source_ref = node.getSourceReference()
+                    )
+        else:
+            if isRangePredictable( low ) and isRangePredictable( high ) and isRangePredictable( step ):
+                constant1 = low.getConstant()
+                constant2 = high.getConstant()
+                constant3 = step.getConstant()
+
+                if constant3 == 0:
+
+                    # TODO: Add this node type, for now let the real range builtin
+                    # do it, but that leaves us no chance to know in advance.
+                    return None
+
+                    return Nodes.CPythonExpressionRaiseException(
+                        exception_type = Nodes.CPythonExpressionVariable(
+                            variable_name = "ValueError",
+                            source_ref    = node.getSourceReference()
+                        ),
+                        exception_value = Nodes.CPythonExpressionConstant(
+                            constant   = "range() step argument must not be zero",
+                            source_ref = node.getSourceReference()
+                        ),
+                        exception_trace = None,
+                        source_ref = node.getSourceReference()
+                    )
+
+                if constant1 < constant2:
+                    if constant3 < 0:
+                        estimate = 0
+                    else:
+                        estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
+                else:
+                    if constant3 > 0:
+                        estimate = 0
+                    else:
+                        estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
+
+                estimate = round( estimate )
+
+                assert len( range( constant1, constant2, constant3 ) ) == estimate, node.getSourceReference()
+
+                if estimate <= 256:
+                    return Nodes.CPythonExpressionConstant(
+                        constant   = range( constant1, constant2, constant3 ),
+                        source_ref = node.getSourceReference()
+                    )
+
+
+    def len_extractor( self, node ):
+        value = node.getValue()
+
+        if value.isConstantReference() and value.isIterableConstant():
+            return Nodes.CPythonExpressionConstant(
+                constant   = len( value.getConstant() ),
+                source_ref = node.getSourceReference()
+            )

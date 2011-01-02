@@ -181,6 +181,8 @@ _module_variables = {}
 
 class ModuleVariable( Variable ):
     def __init__( self, module, variable_name ):
+        assert type( variable_name ) is str
+
         Variable.__init__( self, owner = module, variable_name = variable_name )
         self.module = module
 

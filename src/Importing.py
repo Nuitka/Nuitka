@@ -47,11 +47,12 @@ import sys, os, imp
 from logging import warning
 
 def findModule( module_name, parent_package ):
-    parent_package_name = parent_package.getName() if parent_package is not None else None
-
     if Options.shallFollowImports():
         try:
-            module_filename, module_package_name = _findModule( module_name, parent_package_name )
+            module_filename, module_package_name = _findModule(
+                module_name    = module_name,
+                parent_package = parent_package
+            )
         except ImportError:
             if not _isWhiteListedNotExistingModule( module_name ):
                 warning( "Warning, cannot find " + module_name )
@@ -70,16 +71,7 @@ def findModule( module_name, parent_package ):
 
         module_filename = None
 
-    if module_package_name is None:
-        module_package = None
-    else:
-        module_package = Nodes.CPythonPackage(
-            name           = module_package_name,
-            parent_package = None, # TODO: Have a registry of it, find it
-            source_ref     = SourceCodeReferences.fromFilename( "unknown.py", FutureSpec() )
-        )
-
-    return module_package, module_name, module_filename
+    return module_package_name, module_name, module_filename
 
 _debug_module_finding = False
 
@@ -92,14 +84,14 @@ def _findModuleInPath( module_name, package_name ):
         try:
             _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
 
-            return module_filename
+            return module_filename, package_name
         except ImportError:
             pass
 
     ext_path = sys.path + ["."]
     _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
 
-    return module_filename
+    return module_filename, None
 
 def _findModule( module_name, parent_package ):
     if _debug_module_finding:
@@ -116,13 +108,26 @@ def _findModule( module_name, parent_package ):
         package_part = module_name[ : module_name.rfind( "." ) ]
         module_name = module_name[ module_name.rfind( "." ) + 1 : ]
 
+        # Relative import
         if parent_package is not None:
-            return _findModule( package_part, parent_package + "." + package_part )
-        else:
-            return _findModule( module_name, package_part )
-    else:
-        return _findModuleInPath( module_name, parent_package ), parent_package
+            try:
+                return _findModule(
+                    module_name    = module_name,
+                    parent_package = parent_package + "." + package_part
+                )
+            except ImportError:
+                pass
 
+        # Absolute import
+        return _findModule(
+            module_name = module_name,
+            parent_package = package_part
+        )
+    else:
+        return _findModuleInPath(
+            module_name = module_name,
+            package_name = parent_package
+        )
 
 def _isWhiteListedNotExistingModule( module_name ):
-    return module_name in ( "mac", "nt", "os2", "_emx_link", "riscos", "ce", "riscospath", "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256", "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle", "marshal", "imp", "sys", "itertools", "cStringIO", "time", "zlib", "thread", "math", "errno", "operator" )
+    return module_name in ( "mac", "nt", "os2", "_emx_link", "riscos", "ce", "riscospath", "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256", "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle", "marshal", "imp", "sys", "itertools", "cStringIO", "time", "zlib", "thread", "math", "errno", "operator", "signal" )

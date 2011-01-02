@@ -42,7 +42,6 @@ import CodeGeneration
 import TreeOperations
 import TreeBuilding
 import Optimization
-import TreeDisplay
 import Generator
 import Contexts
 import Options
@@ -78,6 +77,9 @@ def dumpTree( tree ):
 
 
 def displayTree( tree ):
+    # Import only locally so the Qt4 dependency doesn't normally come into play.
+    import TreeDisplay
+
     TreeDisplay.displayTreeInspector( tree )
 
 def _couldBeNone( node ):
@@ -152,16 +154,11 @@ def _prepareCodeGeneration( tree ):
     TreeOperations.visitTree( tree, visitor )
 
 def makeModuleSource( tree ):
-    generator_module = Generator.PythonModuleGenerator(
-        module_name = tree.getName(),
-    )
-
     _prepareCodeGeneration( tree )
 
     source_code = CodeGeneration.generateModuleCode(
         module         = tree,
         module_name    = tree.getName(),
-        generator      = generator_module,
         global_context = Contexts.PythonGlobalContext(),
         stand_alone    = True
     )
@@ -181,10 +178,6 @@ def makeSourceDirectory( main_module ):
     else:
         os.mkdir( source_dir )
 
-    generator = Generator.PythonModuleGenerator(
-        module_name = main_module.getName() if Options.shallMakeModule() else "__main__"
-    )
-
     global_context = Contexts.PythonGlobalContext()
 
     other_modules = Optimization.getOtherModules()
@@ -194,40 +187,25 @@ def makeSourceDirectory( main_module ):
 
     declarations = ""
 
-    packages_done = set()
-
     for other_module in sorted( other_modules, key = lambda x : x.getName() ):
         _prepareCodeGeneration( other_module )
 
-        package = other_module.getPackage()
-
-        if package is not None:
-            package_name = package.getName()
-
-            if package_name not in packages_done:
-                package_header, package_body = CodeGeneration.generatePackageCode(
-                    package        = package,
-                    generator      = generator,
-                    global_context = global_context,
-                )
-
-                declarations += package_header
-                writeSourceCode( source_dir + package_name + ".cpp", package_body )
-
-                packages_done.add( package_name )
-
     for other_module in sorted( other_modules, key = lambda x : x.getName() ):
         other_module_code = CodeGeneration.generateModuleCode(
-            generator      = generator,
             global_context = global_context,
             module         = other_module,
             module_name    = other_module.getFullName(),
             stand_alone    = False
         )
 
-        writeSourceCode( source_dir + other_module.getFullName() + ".cpp", other_module_code )
+        declarations += Generator.getModuleDeclarationCode(
+            other_module.getFullName()
+        )
 
-        declarations += generator.getModuleDeclarationCode( other_module.getFullName() )
+        writeSourceCode(
+            cpp_filename = source_dir + other_module.getFullName() + ".cpp",
+            source_code  = other_module_code
+        )
 
     declarations += global_context.getConstantDeclarations( for_header = True )
 
@@ -242,17 +220,18 @@ def makeSourceDirectory( main_module ):
 
     _prepareCodeGeneration( main_module )
 
+    main_module_name = main_module.getName() if Options.shallMakeModule() else "__main__"
+
     # Create code for the main module.
     source_code = CodeGeneration.generateModuleCode(
-        generator      = generator,
         module         = main_module,
-        module_name    = generator.getName(),
+        module_name    = main_module_name,
         global_context = global_context,
         stand_alone    = True
     )
 
     if not Options.shallMakeModule():
-        source_code = generator.getMainCode(
+        source_code = Generator.getMainCode(
             codes         = source_code,
             other_modules = other_modules
         )

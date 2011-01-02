@@ -133,11 +133,7 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 
     swapcontext( &generator->m_yielder_context, &generator->m_caller_context );
 }
-
 """
-
-genfunc_yield_terminator = """\
-throw ReturnException();"""
 
 genfunc_function_template = """
 static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_object_decl)s )

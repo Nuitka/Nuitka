@@ -33,7 +33,7 @@ do
 
     cd $dir_name
 
-    NUITKA_EXTRA_OPTIONS=--deep compare_with_cpython.sh *Main.py
+    NUITKA_EXTRA_OPTIONS="$NUITKA_EXTRA_OPTIONS --deep" compare_with_cpython.sh *Main.py silent
     EXIT_CODE=$?
 
     cd - 2>/dev/null

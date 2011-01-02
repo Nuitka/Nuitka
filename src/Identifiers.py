@@ -303,3 +303,18 @@ def namifyConstant( constant ):
                 return "list_" + hashlib.md5( repr( constant ) ).hexdigest()
     else:
         raise ExceptionCannotNamify( constant )
+
+
+def getCodeTemporaryRefs( identifiers ):
+    """ Helper to create temporary reference code of many identifiers at once.
+
+    """
+
+    return [ identifier.getCodeTemporaryRef() for identifier in identifiers ]
+
+def getCodeExportRefs( identifiers ):
+    """ Helper to create export reference code of many identifiers at once.
+
+    """
+
+    return [ identifier.getCodeExportRef() for identifier in identifiers ]

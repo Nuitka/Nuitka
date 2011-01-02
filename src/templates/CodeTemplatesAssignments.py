@@ -43,3 +43,44 @@ template_inplace_var_assignment = """\
 
     Py_DECREF( result );
 }"""
+
+template_inplace_subscript_assignment = """\
+{
+    PyObjectTemporary subscribed( %(subscribed_identifier)s );
+    PyObjectTemporary subscript( %(subscript_identifier)s );
+    PyObjectTemporary value( LOOKUP_SUBSCRIPT( subscribed.asObject(), subscript.asObject() ) );
+
+    PyObject *result = %(operation_identifier)s;
+
+    if ( result != value.asObject() )
+    {
+        SET_SUBSCRIPT( subscribed.asObject(), subscript.asObject(), result );
+    }
+
+    Py_DECREF( result );
+}"""
+
+template_inplace_attribute_assignment = """\
+{
+    PyObjectTemporary target( %(target_identifier)s );
+    PyObject *attribute = %(attribute_identifier)s;
+    PyObjectTemporary value( LOOKUP_ATTRIBUTE ( target.asObject(), attribute ) );
+
+    PyObject *result = %(operation_identifier)s;
+
+    if ( result != value.asObject() )
+    {
+        SET_ATTRIBUTE( target.asObject(), attribute, result );
+    }
+
+    Py_DECREF( result );
+}"""
+
+template_inplace_slice_assignment = """\
+{
+    PyObjectTemporary target( %(target_identifier)s );
+    PyObjectTemporary value( LOOKUP_SLICE( target.asObject(), %(lower)s, %(upper)s ) );
+    PyObjectTemporary updated( %(operation_identifier)s );
+
+    SET_SLICE( target.asObject(), %(lower)s, %(upper)s, updated.asObject() );
+}"""

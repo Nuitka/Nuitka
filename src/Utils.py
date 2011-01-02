@@ -30,23 +30,17 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-import_from_template = """\
-{
-    PyObjectTemporary module_temp(
-        IMPORT_MODULE( %(module_name)s, %(module_name)s, %(import_list)s )
-    );
 
-%(module_imports)s
-}"""
+import os
 
-import_item_code = """\
-// Template import_item_code
-try
-{
-    %(lookup_code)s
-}
-catch( _PythonException &_exception )
-{
-    _exception.setType( PyExc_ImportError );
-    throw _exception;
-}"""
+def relpath( path ):
+    return os.path.relpath( path )
+
+def basename( path ):
+    return os.path.basename( path )
+
+def isFile( path ):
+    return os.path.isfile( path )
+
+def isDir( path ):
+    return os.path.isdir( path )

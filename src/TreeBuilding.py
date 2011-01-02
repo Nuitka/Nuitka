@@ -45,12 +45,13 @@ import SourceCodeReferences
 import TreeOperations
 import Importing
 import Nodes
+import Utils
 
 from nodes.ParameterSpec import ParameterSpec
 from nodes.FutureSpec import FutureSpec
 from nodes.ImportSpec import ImportSpec
 
-import ast, os
+import ast
 
 from logging import warning
 
@@ -774,12 +775,14 @@ def _buildImportModulesNode( provider, parent_package, import_names, source_ref 
             parent_package = parent_package
         )
 
-        variable = provider.getVariableForAssignment( local_name if local_name is not None else module_topname )
+        variable = provider.getVariableForAssignment(
+            local_name if local_name is not None else module_topname
+        )
 
         if local_name is not None:
             import_name = module_name
-        elif parent_package is not None and module_package is not None and module_package.getName().startswith( parent_package.getName() ) and not module_name.startswith( module_package.getName() ):
-            import_name = module_package.getName() + "." + module_topname
+        elif parent_package is not None and module_package is not None and module_package.startswith( parent_package ) and not module_name.startswith( module_package ):
+            import_name = module_package + "." + module_topname
         else:
             import_name = module_topname
 
@@ -833,7 +836,11 @@ def buildImportFromNode( provider, node, source_ref ):
             return _buildImportModulesNode(
                 provider       = provider,
                 parent_package = None,
-                import_names   = [ ( parent_package.getName() + "." +  import_desc.name, import_desc.asname ) for import_desc in node.names ],
+                import_names   = [
+                    ( parent_package + "." +  import_desc.name, import_desc.asname )
+                    for import_desc
+                    in node.names
+                ],
                 source_ref     = source_ref
             )
         else:
@@ -850,11 +857,13 @@ def buildImportFromNode( provider, node, source_ref ):
         object_name, local_name = import_desc.name, import_desc.asname
 
         if object_name == "*":
-            local_variable = None
+            variable = None
         else:
-            local_variable = provider.getVariableForAssignment( local_name if local_name is not None else object_name )
+            variable = provider.getVariableForAssignment(
+                variable_name = local_name if local_name is not None else object_name
+            )
 
-        imports.append( ( object_name, local_variable ) )
+        imports.append( ( object_name, variable ) )
 
     module_package, module_name, module_filename = Importing.findModule(
         module_name    = module_name,
@@ -1378,24 +1387,44 @@ def buildReplacementTree( provider, parent, source_code, source_ref ):
     return result
 
 def buildModuleTree( filename, package = None ):
-    assert package is None or isinstance( package, Nodes.CPythonPackage )
+    assert package is None or type( package ) is str
 
     # pylint: disable=W0602
     global _delayed_works
     _delayed_works = []
 
-    source_ref = SourceCodeReferences.fromFilename( filename, FutureSpec() )
+    if Utils.isFile( filename ):
+        source_filename = filename
 
-    result = Nodes.CPythonModule(
-        name       = os.path.basename( filename ).replace( ".py", "" ),
-        package    = package,
-        filename   = os.path.relpath( filename ),
-        source_ref = source_ref
-    )
+        source_ref = SourceCodeReferences.fromFilename(
+            filename    = Utils.relpath( filename ),
+            future_spec = FutureSpec()
+        )
+
+        result = Nodes.CPythonModule(
+            name       = Utils.basename( filename ).replace( ".py", "" ),
+            package    = package,
+            source_ref = source_ref
+        )
+    elif Utils.isDir( filename ) and Utils.isFile( filename + "/__init__.py" ):
+        source_filename = filename + "/__init__.py"
+
+        source_ref = SourceCodeReferences.fromFilename(
+            filename    = Utils.relpath( filename ),
+            future_spec = FutureSpec()
+        )
+
+        result = Nodes.CPythonPackage(
+            name       = Utils.basename( filename ),
+            package    = package,
+            source_ref = source_ref
+        )
+    else:
+        assert False, filename
 
     buildParseTree(
         provider    = result,
-        source_code = open( filename ).read(),
+        source_code = open( source_filename ).read(),
         source_ref  = source_ref,
         replacement = False,
     )
@@ -1403,3 +1432,6 @@ def buildModuleTree( filename, package = None ):
     TreeOperations.assignParent( result )
 
     return result
+
+def buildPackageTree():
+    pass

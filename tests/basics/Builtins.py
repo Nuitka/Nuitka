@@ -74,6 +74,9 @@ print "None has type", type(None)
 print "Constant ranges", range( 2 ), range( 1, 6 ), range( 3, 0, -1 ), range( 3, 8, 2 ), range(5, -5, -3)
 print "Border cases", range(0), range(-1), range( -1, 1 )
 
+print "Corner case large negative value", range(-2**100)
+print "Corner case with large start/end values in small range", range(2**100,2**100+2)
+
 try:
     print "Range with 0 step gives:",
     print range( 3, 8, 0 )

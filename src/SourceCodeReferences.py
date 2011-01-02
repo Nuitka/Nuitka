@@ -55,6 +55,8 @@ class SourceCodeReference:
         return "<SourceCodeReference to %s:%s>" % ( self.filename, self.line )
 
     def atLineNumber( self, line ):
+        assert int( line ) == line
+
         return SourceCodeReference.fromFilenameAndLine(
             filename    = self.filename,
             line        = line,
@@ -80,6 +82,19 @@ class SourceCodeReference:
         result.filename = self.filename
 
         result.future_spec = self.future_spec.clone()
+
+        return result
+
+    def __cmp__( self, other ):
+        if other is None:
+            return -1
+
+        assert isinstance( other, SourceCodeReference ), other
+
+        result = cmp( self.filename, other.filename)
+
+        if result == 0:
+            result = cmp( self.line, other.line )
 
         return result
 

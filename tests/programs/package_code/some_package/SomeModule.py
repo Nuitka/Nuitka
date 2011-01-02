@@ -18,12 +18,4 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Some module documentation.
-
-With newline and stuff."""
-
-import os
-
-print "doc:", __doc__
-print "filename:", os.path.basename( __file__ )
-print "builtins:", __builtins__
+print "Thanks for importing SomeModule"

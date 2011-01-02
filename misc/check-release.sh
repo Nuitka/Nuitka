@@ -1,3 +1,4 @@
+#!/bin/bash -e
 #
 #     Copyright 2010, Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -30,23 +31,35 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-import_from_template = """\
+execute_tests()
 {
-    PyObjectTemporary module_temp(
-        IMPORT_MODULE( %(module_name)s, %(module_name)s, %(import_list)s )
-    );
+    echo "Executing test case called $1 with Python $2 and flags '$3'."
 
-%(module_imports)s
-}"""
+    export PYTHON=$2
 
-import_item_code = """\
-// Template import_item_code
-try
-{
-    %(lookup_code)s
+    export TMP_DIR=/tmp/$1
+    mkdir -p $TMP_DIR
+
+    export NUITKA_EXTRA_OPTIONS="$3 --output-dir=$TMP_DIR"
+
+    echo "Running the basic tests in debug mode with $PYTHON:"
+     ./tests/basics/run_all.sh search
+
+    echo "Running the program tests in debug mode with $PYTHON:"
+    ./tests/programs/run_all.sh search
+
+    echo "Running the reflection test (compiling itself) in debug mode with $PYTHON:"
+    ./tests/reflected/compile_itself.sh search
+
+    echo "Running the CPython 2.6 tests in debug mode with $PYTHON:"
+    ./tests/CPython/run_all.sh search
+
+    echo "Running the CPython 2.7 tests in debug mode with $PYTHON:"
+    ./tests/CPython27/run_all.sh search
 }
-catch( _PythonException &_exception )
-{
-    _exception.setType( PyExc_ImportError );
-    throw _exception;
-}"""
+
+execute_tests "python2.6-debug" "python2.6" "--debug"
+execute_tests "python2.6-nodebug" "python2.6" ""
+
+execute_tests "python2.7-debug" "python2.7" "--debug"
+execute_tests "python2.7-nodebug" "python2.7" ""

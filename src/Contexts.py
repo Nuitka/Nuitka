@@ -43,8 +43,6 @@ from Identifiers import namifyConstant, Identifier, ConstantIdentifier, LocalVar
 
 import CodeTemplates
 
-
-
 from logging import warning
 
 class Constant:
@@ -320,7 +318,7 @@ class PythonGlobalContext:
                 if str is unicode:
                     saved = saved.decode( "utf_8" )
 
-                statements.append( """%s = _unstreamConstant( %s, %d );""" % ( constant_identifier, _encodeString( saved ), len( saved ) ) )
+                statements.append( """%s = UNSTREAM_CONSTANT( %s, %d );""" % ( constant_identifier, _encodeString( saved ), len( saved ) ) )
             elif constant_type == str:
                 encoded = _encodeString( constant_value )
 
@@ -371,6 +369,12 @@ class PythonModuleContext( PythonContextBase ):
         self.lambda_count = 0
 
         self.global_var_names = set()
+
+    def __repr__( self ):
+        return "<PythonModuleContext instance for module %s>" % self.filename
+
+    def getParent( self ):
+        return None
 
     def getConstantHandle( self, constant ):
         return self.global_context.getConstantHandle( constant )
@@ -516,7 +520,6 @@ class PythonFunctionContext( PythonChildContextBase ):
     def getTracebackFilename( self ):
         # TODO: Memoize would do wonders for these things mayhaps.
         return self.function.getParentModule().getFilename()
-
 
 
 class PythonContractionBase( PythonChildContextBase ):

@@ -71,46 +71,48 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
         source = source_code;
     }
 
-    PyObject *future_flags = PyInt_FromLong( flags );
+    PyObjectTemporary future_flags( PyInt_FromLong( flags ) );
 
-    PyObject *result = PyObject_CallFunctionObjArgs(
-        _python_builtin_compile.asObject(),
-        source,
-        file_name,
+    return _python_builtin_compile.call(
+        _python_bool_True,       // dont_inherit
+        future_flags.asObject(), // flags
         mode,
-        future_flags,      // flags
-        _python_bool_True, // dont_inherit
-        NULL
+        file_name,
+        source
     );
-
-    Py_DECREF( future_flags );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
 }
 
 static PythonBuiltin _python_builtin_open( "open" );
 
 PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
 {
-    PyObject *result = PyObject_CallFunctionObjArgs(
-        _python_builtin_open.asObject(),
-        file_name,
-        mode,
-        buffering,
-        NULL
-    );
-
-    if (unlikely( result == NULL ))
+    if ( file_name == NULL )
     {
-        throw _PythonException();
-    }
+        return _python_builtin_open.call();
 
-    return result;
+    }
+    else if ( mode == NULL )
+    {
+        return _python_builtin_open.call(
+           file_name
+        );
+
+    }
+    else if ( buffering == NULL )
+    {
+        return _python_builtin_open.call(
+           mode,
+           file_name
+        );
+    }
+    else
+    {
+        return _python_builtin_open.call(
+           buffering,
+           mode,
+           file_name
+        );
+    }
 }
 
 PyObject *CHR( PyObject *value )
@@ -237,7 +239,10 @@ PyObject *BUILTIN_RANGE( long low, long high, long step )
     {
         for( long value = low; value < high; value += step )
         {
-            int res = PyList_Append( result, PyInt_FromLong( value ) );
+            // TODO: Could and should create the list pre-sized and not append.
+            PyObjectTemporary number( PyInt_FromLong( value ) );
+
+            int res = PyList_Append( result, number.asObject() );
             assert( res == 0 );
         }
     }
@@ -245,7 +250,10 @@ PyObject *BUILTIN_RANGE( long low, long high, long step )
     {
         for( long value = low; value > high; value += step )
         {
-            int res = PyList_Append( result, PyInt_FromLong( value ) );
+            // TODO: Could and should create the list pre-sized and not append.
+            PyObjectTemporary number( PyInt_FromLong( value ) );
+
+            int res = PyList_Append( result, number.asObject() );
             assert( res == 0 );
         }
     }
@@ -261,6 +269,144 @@ PyObject *BUILTIN_RANGE( long low, long high )
 PyObject *BUILTIN_RANGE( long boundary )
 {
     return BUILTIN_RANGE( 0, boundary );
+}
+
+static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
+{
+    if (likely( PyInt_Check( value ) || PyLong_Check( value )) )
+    {
+        return INCREASE_REFCOUNT( value );
+    }
+
+    PyTypeObject *type = value->ob_type;
+    PyNumberMethods *tp_as_number = type->tp_as_number;
+
+    // Everything that casts to int is allowed.
+    if ( tp_as_number == NULL || tp_as_number->nb_int == NULL )
+    {
+        PyErr_Format( PyExc_TypeError, "range() integer %s argument expected, got %s.", name, type->tp_name );
+        throw _PythonException();
+    }
+
+    PyObject *result = tp_as_number->nb_int( value );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+static PythonBuiltin _python_builtin_range( "range" );
+
+PyObject *BUILTIN_RANGE( PyObject *boundary )
+{
+    PyObjectTemporary boundary_temp( TO_RANGE_ARG( boundary, "start" ) );
+
+    long start = PyInt_AsLong( boundary_temp.asObject() );
+
+    if ( start == -1 && PyErr_Occurred() )
+    {
+        PyErr_Clear();
+
+        return _python_builtin_range.call( boundary_temp.asObject() );
+    }
+
+    return BUILTIN_RANGE( start );
+}
+
+PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high )
+{
+    PyObjectTemporary low_temp( TO_RANGE_ARG( low, "start" ) );
+    PyObjectTemporary high_temp( TO_RANGE_ARG( high, "end" ) );
+
+    bool fallback = false;
+
+    long start = PyInt_AsLong( low_temp.asObject() );
+
+    if (unlikely( start == -1 && PyErr_Occurred() ))
+    {
+        PyErr_Clear();
+        fallback = true;
+    }
+
+    long end = PyInt_AsLong( high_temp.asObject() );
+
+    if (unlikely( end == -1 && PyErr_Occurred() ))
+    {
+        PyErr_Clear();
+        fallback = true;
+    }
+
+    if ( fallback )
+    {
+        return _python_builtin_range.call( high_temp.asObject(), low_temp.asObject() );
+    }
+    else
+    {
+        return BUILTIN_RANGE( start, end );
+    }
+}
+
+PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step )
+{
+    PyObjectTemporary low_temp( TO_RANGE_ARG( low, "start" ) );
+    PyObjectTemporary high_temp( TO_RANGE_ARG( high, "end" ) );
+    PyObjectTemporary step_temp( TO_RANGE_ARG( step, "step" ) );
+
+    bool fallback = false;
+
+    long start = PyInt_AsLong( low_temp.asObject() );
+
+    if (unlikely( start == -1 && PyErr_Occurred() ))
+    {
+        PyErr_Clear();
+        fallback = true;
+    }
+
+    long end = PyInt_AsLong( high_temp.asObject() );
+
+    if (unlikely( end == -1 && PyErr_Occurred() ))
+    {
+        PyErr_Clear();
+        fallback = true;
+    }
+
+    long step_long = PyInt_AsLong( step_temp.asObject() );
+
+    if (unlikely( step_long == -1 && PyErr_Occurred() ))
+    {
+        PyErr_Clear();
+        fallback = true;
+    }
+
+    if ( fallback )
+    {
+        return _python_builtin_range.call( step_temp.asObject(), high_temp.asObject(), low_temp.asObject() );
+    }
+    else
+    {
+        if (unlikely( step_long == 0 ))
+        {
+            PyErr_Format( PyExc_ValueError, "range() step argument must not be zero" );
+            throw _PythonException();
+        }
+
+        return BUILTIN_RANGE( start, end, step_long );
+    }
+}
+
+PyObject *BUILTIN_LEN( PyObject *value )
+{
+    Py_ssize_t res = PyObject_Size( value );
+
+    if (unlikely( res < 0 && PyErr_Occurred() ))
+    {
+        throw _PythonException();
+    }
+
+    return PyInt_FromSsize_t( res );
 }
 
 static PyObject *empty_code = PyBuffer_FromMemory( NULL, 0 );
@@ -327,7 +473,7 @@ PyObject *MAKE_FRAME( PyObject *module, PyObject *filename, PyObject *function_n
 extern bool FIND_EMBEDDED_MODULE( char const *name );
 #endif
 
-PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name )
+PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject *import_items )
 {
 
 #ifdef _NUITKA_EXE
@@ -343,7 +489,7 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name )
 #endif
 
     int line = _current_line;
-    PyObject *result = PyImport_ImportModuleEx( PyString_AsString( module_name ), NULL, NULL, NULL );
+    PyObject *result = PyImport_ImportModuleEx( PyString_AsString( module_name ), NULL, NULL, import_items );
     _current_line = line;
 
     if (unlikely( result == NULL ))
@@ -360,7 +506,7 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name )
 
 void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name )
 {
-    PyObject *module = IMPORT_MODULE( module_name, module_name );
+    PyObject *module = IMPORT_MODULE( module_name, module_name, NULL );
 
     // IMPORT_MODULE would raise exception already
     assert( module != NULL );
@@ -505,3 +651,35 @@ void PRINT_NEW_LINE( void )
 }
 
 #endif
+
+// We unstream some constant objects using the "cPickle" module function "loads"
+static PyObject *_module_cPickle = NULL;
+static PyObject *_module_cPickle_function_loads = NULL;
+
+void UNSTREAM_INIT( void )
+{
+#if PY_MAJOR_VERSION < 3
+        _module_cPickle = PyImport_ImportModule( "cPickle" );
+#else
+        _module_cPickle = PyImport_ImportModule( "pickle" );
+#endif
+        assert( _module_cPickle );
+
+        _module_cPickle_function_loads = PyObject_GetAttrString( _module_cPickle, "loads" );
+        assert( _module_cPickle_function_loads );
+}
+
+PyObject *UNSTREAM_CONSTANT( char const *buffer, int size )
+{
+    PyObjectTemporary temp_str( PyString_FromStringAndSize( buffer, size ) );
+
+    PyObject *result = PyObject_CallFunctionObjArgs(
+        _module_cPickle_function_loads,
+        temp_str.asObject(),
+        NULL
+    );
+
+    assert( result );
+
+    return result;
+}

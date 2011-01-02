@@ -37,7 +37,7 @@ This is used to carry the set of properties determined for an import.
 class ImportSpec:
     def __init__( self, module_package, module_name, import_name, variable, module_filename ):
         import Nodes
-        assert module_package is None or isinstance( module_package, Nodes.CPythonPackage )
+        assert module_package is None or type( module_package ) is str
 
         self.module_package  = module_package
         self.module_name     = module_name
@@ -61,7 +61,7 @@ class ImportSpec:
 
     def getFullName( self ):
         if self.module_package:
-            return self.module_package.getName() + "." + self.module_name
+            return self.module_package + "." + self.module_name
         else:
             return self.module_name
 

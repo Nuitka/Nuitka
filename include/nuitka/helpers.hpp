@@ -853,6 +853,20 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_BOTH( PyObject *dict_st
     return CALL_FUNCTION_STAR_DICT( dict_star_arg, named_args, PyObjectTemporary( MERGE_STAR_LIST_ARGS( list_star_arg, positional_args, function_object ) ).asObject(), function_object );
 }
 
+NUITKA_MAY_BE_UNUSED static long TO_LONG( PyObject *value )
+{
+    long result = PyInt_AsLong( value );
+
+    if (unlikely( result == -1 && PyErr_Occurred() ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+
+
 NUITKA_MAY_BE_UNUSED static PyObject *TO_TUPLE( PyObject *seq_obj )
 {
     PyObject *result = PySequence_Tuple( seq_obj );
@@ -2317,7 +2331,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
     return result;
 }
 
-
 class PythonBuiltin
 {
     public:
@@ -2343,7 +2356,15 @@ class PythonBuiltin
             return this->value;
         }
 
+        template<typename... P>
+        PyObject *call( P...eles )
+        {
+            return CALL_FUNCTION( NULL, MAKE_TUPLE( eles... ), this->asObject() );
+        }
+
     private:
+        PythonBuiltin( PythonBuiltin const &  ) = delete;
+
         PyStringObject *name;
         PyObject *value;
 };
@@ -2351,6 +2372,7 @@ class PythonBuiltin
 // Compile source code given, pretending the file name was given.
 extern PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags );
 
+// For quicker builtin open() functionality.
 extern PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering );
 
 // For quicker builtin chr() functionality.
@@ -2363,6 +2385,14 @@ extern PyObject *BUILTIN_TYPE1( PyObject *arg );
 
 // For quicker type() functionality if 3 arguments are given (to build a new type).
 extern PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict );
+
+// For quicker builtin range() functionality.
+extern PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step );
+extern PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high );
+extern PyObject *BUILTIN_RANGE( PyObject *boundary );
+
+// For quicker builtin len() functionality.
+extern PyObject *BUILTIN_LEN( PyObject *boundary );
 
 NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {
@@ -2383,7 +2413,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
         throw _PythonException();
     }
 
-    // Set the __builtin__ in globals, it is expected to be present.
+    // Set the __builtins__ in globals, it is expected to be present.
     if ( PyDict_GetItemString( globals, (char *)"__builtins__" ) == NULL )
     {
         if ( PyDict_SetItemString( globals, (char *)"__builtins__", (PyObject *)_module_builtin ) == -1 )
@@ -2432,8 +2462,12 @@ NUITKA_MAY_BE_UNUSED static void ADD_TRACEBACK( PyObject *module, PyObject *file
     Py_DECREF( frame );
 }
 
-PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name );
+extern PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject *import_list );
 
-void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name );
+extern void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name );
+
+// For the constant loading:
+extern void UNSTREAM_INIT( void );
+extern PyObject *UNSTREAM_CONSTANT( char const *buffer, int size );
 
 #endif

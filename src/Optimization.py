@@ -39,7 +39,7 @@ e.g. a new constant determined could make another optimization feasible.
 from optimizations.OptimizeModuleRecursion import ModuleRecursionVisitor
 from optimizations.OptimizeConstantExec import OptimizeExecVisitor
 from optimizations.OptimizeVariableClosure import VariableClosureLookupVisitor
-from optimizations.OptimizeBuiltins import ReplaceBuiltinsVisitor
+from optimizations.OptimizeBuiltins import ReplaceBuiltinsVisitor, PrecomputeBuiltinsVisitor
 from optimizations.OptimizeStaticMethodFixup import FixupNewStaticMethodVisitor
 from optimizations.OptimizeConstantOperations import OptimizeOperationVisitor
 from optimizations.OptimizeUnpacking import ReplaceUnpackingVisitor
@@ -49,7 +49,7 @@ import Options
 
 from oset import OrderedSet
 
-from logging import debug
+from logging import debug, info
 
 class Tags( set ):
     def onSignal( self, signal ):
@@ -84,6 +84,10 @@ def optimizeTree( tree ):
         if tags.check( "new_code" ) or tags.check( "new_constant" ):
             optimizations_queue.add( ReplaceBuiltinsVisitor )
 
+        if tags.check( "new_builtin" ) or tags.check( "new_constant" ):
+            optimizations_queue.add( PrecomputeBuiltinsVisitor )
+
+        if tags.check( "new_code" ) or tags.check( "new_constant" ):
             optimizations_queue.add( OptimizeOperationVisitor )
 
         if tags.check( "new_code" ):
