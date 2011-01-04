@@ -176,7 +176,7 @@ def makeSourceDirectory( main_module ):
     if os.path.exists( source_dir ):
         os.system( "rm -f '" + source_dir + "'/*.cpp '" + source_dir + "'/*.hpp" )
     else:
-        os.mkdir( source_dir )
+        os.makedirs( source_dir )
 
     global_context = Contexts.PythonGlobalContext()
 
