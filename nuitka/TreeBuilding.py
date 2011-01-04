@@ -1042,20 +1042,44 @@ _quick_names = {
     "False" : False
 }
 
+_fastpath = {
+    "Assign"       : buildAssignNode,
+    "Delete"       : buildDeleteNode,
+    "Lambda"       : buildLambdaNode,
+    "GeneratorExp" : buildGeneratorExpressionNode,
+    "If"           : buildConditionNode,
+    "While"        : buildWhileLoopNode,
+    "For"          : buildForLoopNode,
+    "Compare"      : buildComparisonNode,
+    "ListComp"     : buildListContractionNode,
+    "DictComp"     : buildDictContractionNode,
+    "SetComp"      : buildSetContractionNode,
+    "Dict"         : buildDictionaryNode,
+    "Set"          : buildSetNode,
+    "Tuple"        : buildSequenceCreationNode,
+    "List"         : buildSequenceCreationNode,
+    "Global"       : buildGlobalDeclarationNode,
+    "TryExcept"    : buildTryExceptionNode,
+    "TryFinally"   : buildTryFinallyNode,
+    "Raise"        : buildRaiseNode,
+    "Import"       : buildImportModulesNode,
+    "ImportFrom"   : buildImportFromNode,
+    "Assert"       : buildAssertNode,
+    "Exec"         : buildExecNode,
+    "With"         : buildWithNode,
+    "FunctionDef"  : buildFunctionNode,
+    "ClassDef"     : buildClassNode,
+    "Print"        : buildPrintNode,
+    "Call"         : buildFunctionCallNode,
+}
 def buildNode( provider, node, source_ref ):
     try:
         kind = getKind( node )
 
         source_ref = source_ref.atLineNumber( node.lineno )
 
-        if kind == "Assign":
-            result = buildAssignNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "Delete":
-            result = buildDeleteNode(
+        if kind in _fastpath:
+            result = _fastpath[kind](
                 provider   = provider,
                 node       = node,
                 source_ref = source_ref
@@ -1078,12 +1102,6 @@ def buildNode( provider, node, source_ref ):
                 attribute  = node.attr,
                 source_ref = source_ref
             )
-        elif kind == "Lambda":
-            result = buildLambdaNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
         elif kind == "Return":
             result = Nodes.CPythonStatementReturn(
                 expression = buildNode( provider, node.value, source_ref ) if node.value is not None else None,
@@ -1096,60 +1114,12 @@ def buildNode( provider, node, source_ref ):
                 expression = buildNode( provider, node.value, source_ref ) if node.value is not None else None,
                 source_ref = source_ref
             )
-        elif kind == "While":
-            result = buildWhileLoopNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "For":
-            result = buildForLoopNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
         elif kind == "Continue":
             result = Nodes.CPythonStatementContinueLoop(
                 source_ref = source_ref
             )
         elif kind == "Break":
             result = Nodes.CPythonStatementBreakLoop(
-                source_ref = source_ref
-            )
-        elif kind == "ListComp":
-            result = buildListContractionNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "GeneratorExp":
-            result = buildGeneratorExpressionNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "SetComp":
-            result = buildSetContractionNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "DictComp":
-            result = buildDictContractionNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "Dict":
-            result = buildDictionaryNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "Set":
-            result = buildSetNode(
-                provider   = provider,
-                node       = node,
                 source_ref = source_ref
             )
         elif kind == "Expr":
@@ -1194,12 +1164,6 @@ def buildNode( provider, node, source_ref ):
                 expression = buildNode( provider, node.value, source_ref ),
                 source_ref = source_ref
             )
-        elif kind == "Global":
-            result = buildGlobalDeclarationNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
         elif kind == "IfExp":
             result = Nodes.CPythonExpressionConditional(
                 condition      = buildNode( provider, node.test, source_ref ),
@@ -1207,74 +1171,8 @@ def buildNode( provider, node, source_ref ):
                 no_expression  = buildNode( provider, node.orelse, source_ref ),
                 source_ref     = source_ref
             )
-        elif kind == "If":
-            result = buildConditionNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "TryExcept":
-            result = buildTryExceptionNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "TryFinally":
-            result = buildTryFinallyNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
         elif kind == "Pass":
             result = Nodes.CPythonStatementPass(
-                source_ref = source_ref
-            )
-        elif kind == "Import":
-            result = buildImportModulesNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind ==  "ImportFrom":
-            result = buildImportFromNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "Raise":
-            result = buildRaiseNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "Assert":
-            result = buildAssertNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "Exec":
-            result = buildExecNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "With":
-            result = buildWithNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "FunctionDef":
-            result = buildFunctionNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "ClassDef":
-            result = buildClassNode(
-                provider   = provider,
-                node       = node,
                 source_ref = source_ref
             )
         elif kind == "Name":
@@ -1301,30 +1199,6 @@ def buildNode( provider, node, source_ref ):
 
             result = Nodes.CPythonExpressionConstant(
                 constant   = node.n,
-                source_ref = source_ref
-            )
-        elif kind in ( "List", "Tuple" ):
-            result = buildSequenceCreationNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "Print":
-            result = buildPrintNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "Call":
-            result = buildFunctionCallNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "Compare":
-            result = buildComparisonNode(
-                provider   = provider,
-                node       = node,
                 source_ref = source_ref
             )
         else:
