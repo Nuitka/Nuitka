@@ -121,7 +121,7 @@ class CPythonNode:
             else:
                 parent = parent.getParent()
 
-        assert parent.__class__ == CPythonModule, parent.__class__
+        assert isinstance(parent, CPythonModule), parent.__class__
 
         return parent
 
