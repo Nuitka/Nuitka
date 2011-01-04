@@ -335,11 +335,21 @@ def buildAssignTarget( provider, node, source_ref ):
 
     if type( node ) is str:
         # Python >= 3.1 only
-        return Nodes.CPythonAssignTargetVariable( variable = provider.getVariableForAssignment( variable_name = node ), source_ref = source_ref )
+        return Nodes.CPythonAssignTargetVariable(
+            variable = provider.getVariableForAssignment( variable_name = node ),
+            source_ref = source_ref
+        )
     elif kind == "Name":
-        return Nodes.CPythonAssignTargetVariable( variable = provider.getVariableForAssignment( variable_name = node.id ), source_ref = source_ref )
+        return Nodes.CPythonAssignTargetVariable(
+            variable = provider.getVariableForAssignment( variable_name = node.id ),
+            source_ref = source_ref
+        )
     elif kind == "Attribute":
-        return Nodes.CPythonAssignAttribute( expression = buildNode( provider, node.value, source_ref ), attribute = node.attr, source_ref = source_ref )
+        return Nodes.CPythonAssignAttribute(
+            expression = buildNode( provider, node.value, source_ref ),
+            attribute = node.attr,
+            source_ref = source_ref
+        )
     elif kind in ( "Tuple", "List" ):
         elements = []
 
