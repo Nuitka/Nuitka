@@ -1072,6 +1072,7 @@ _fastpath = {
     "Print"        : buildPrintNode,
     "Call"         : buildFunctionCallNode,
     "Subscript"    : buildSubscriptNode,
+    "BoolOp"       : buildBoolOpNode,
 }
 def buildNode( provider, node, source_ref ):
     try:
@@ -1116,7 +1117,7 @@ def buildNode( provider, node, source_ref ):
                 expression = buildNode( provider, node.value, source_ref ),
                 source_ref = source_ref
             )
-        elif kind == "BoolOp" or ( kind == "UnaryOp" and getKind( node.op ) == "Not" ):
+        elif kind == "UnaryOp" and getKind( node.op ) == "Not":
             result = buildBoolOpNode(
                 provider   = provider,
                 node       = node,
