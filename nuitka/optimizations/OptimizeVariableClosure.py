@@ -31,41 +31,9 @@
 #
 
 
-from optimizations.OptimizeBase import OptimizationVisitorBase, areConstants
+from OptimizeBase import OptimizationVisitorBase
 
-import PythonOperators
-import Nodes
-
-class OptimizeOperationVisitor( OptimizationVisitorBase ):
+class VariableClosureLookupVisitor( OptimizationVisitorBase ):
     def __call__( self, node ):
-        if node.isOperation():
-            operands = node.getOperands()
-
-            if areConstants( operands ):
-                operator = node.getOperator()
-
-                if operator != "Repr":
-                    operands = [ constant.getConstant() for constant in operands ]
-
-                    try:
-                        if len( operands ) == 2:
-                            result = PythonOperators.binary_operator_functions[ operator ]( *operands )
-                        elif len( operands ) == 1:
-                            result = PythonOperators.unary_operator_functions[ operator ]( *operands )
-                        else:
-                            assert False, operands
-                    except AssertionError:
-                        raise
-                    except Exception, e:
-                        # TODO: If not an AssertError, we can create a raise exception
-                        # node that does it.
-                        return
-
-                    new_node = Nodes.CPythonExpressionConstant(
-                        constant   = result,
-                        source_ref = node.getSourceReference()
-                    )
-
-                    node.replaceWith( new_node )
-
-                    self.signalChange( "new_constant" )
+        if node.isVariableReference() and node.getVariable() is None:
+            node.setVariable( node.getParentVariableProvider().getVariableForReference( node.getVariableName() ) )

@@ -29,44 +29,31 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Merge nested statement sequences into one.
 
-This undoes the effect of inlined exec or statements replaced with statement sequences.
-"""
+from nuitka import TreeOperations
 
-from optimizations.OptimizeBase import OptimizationVisitorBase
+from logging import warning, debug, info
 
-import TreeOperations
-import Nodes
+class OptimizationVisitorBase:
+    on_signal = None
 
+    def signalChange( self, tags ):
+        if self.on_signal is not None:
+            self.on_signal( tags )
 
-class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
-    def __call__( self, node ):
-        if node.isStatementsSequence():
-            parent = node.getParent()
+    def execute( self, tree, on_signal = None ):
+        debug( "Applying optimization '%s' to '%s'." % ( self, tree ) )
 
-            if parent.isStatementsSequence():
-                statements = parent.getStatements()
+        self.on_signal = on_signal
 
-                statements = statements[ : statements.index( node ) ] + node.getStatements() + statements[ statements.index( node ) + 1 : ]
+        TreeOperations.visitTree(
+            tree    = tree,
+            visitor = self
+        )
 
-                new_node = Nodes.CPythonStatementSequence(
-                    statements = statements,
-                    source_ref = parent.getSourceReference()
-                )
-
-                parent.replaceWith( new_node )
-
-                TreeOperations.assignParent( new_node )
-
-                raise TreeOperations.RestartVisit
-        elif node.isStatementExpression():
-            if node.getExpression().isConstantReference():
-
-                new_node = Nodes.CPythonStatementPass(
-                    source_ref = node.getSourceReference()
-                )
-
-                node.replaceWith( new_node )
-
-                TreeOperations.assignParent( new_node )
+def areConstants( expressions ):
+    for expression in expressions:
+        if not expression.isConstantReference():
+            return False
+    else:
+        return True

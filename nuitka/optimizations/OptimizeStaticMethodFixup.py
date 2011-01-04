@@ -29,31 +29,25 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Delete the staticmethod decorator from __new__ methods if provided.
 
-import TreeOperations
+CPython made these optional, and applies them to every __new__. Our later code will be
+confused if it encounters a decorator to what it already automatically decorated.
 
-from logging import warning, debug, info
+TODO: Consider turning this into something adding it for improved consistency.
+"""
 
-class OptimizationVisitorBase:
-    on_signal = None
+from OptimizeBase import OptimizationVisitorBase
 
-    def signalChange( self, tags ):
-        if self.on_signal is not None:
-            self.on_signal( tags )
+class FixupNewStaticMethodVisitor( OptimizationVisitorBase ):
+    def __call__( self, node ):
+        if node.isFunctionReference() and node.getName() == "__new__":
+            decorators = node.getDecorators()
 
-    def execute( self, tree, on_signal = None ):
-        debug( "Applying optimization '%s' to '%s'." % ( self, tree ) )
+            if len( decorators ) == 1 and decorators[0].isVariableReference():
+                if decorators[0].getVariable().getName() == "staticmethod":
+                    # Reset the decorators. This does not attempt to deal with
+                    # multiple of them being present.
+                    node.setDecorators( () )
 
-        self.on_signal = on_signal
-
-        TreeOperations.visitTree(
-            tree    = tree,
-            visitor = self
-        )
-
-def areConstants( expressions ):
-    for expression in expressions:
-        if not expression.isConstantReference():
-            return False
-    else:
-        return True
+                    assert not node.getDecorators()

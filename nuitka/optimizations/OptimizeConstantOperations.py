@@ -29,25 +29,42 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Delete the staticmethod decorator from __new__ methods if provided.
 
-CPython made these optional, and applies them to every __new__. Our later code will be
-confused if it encounters a decorator to what it already automatically decorated.
 
-TODO: Consider turning this into something adding it for improved consistency.
-"""
+from OptimizeBase import OptimizationVisitorBase, areConstants
 
-from optimizations.OptimizeBase import OptimizationVisitorBase
+from nuitka import PythonOperators, Nodes
 
-class FixupNewStaticMethodVisitor( OptimizationVisitorBase ):
+class OptimizeOperationVisitor( OptimizationVisitorBase ):
     def __call__( self, node ):
-        if node.isFunctionReference() and node.getName() == "__new__":
-            decorators = node.getDecorators()
+        if node.isOperation():
+            operands = node.getOperands()
 
-            if len( decorators ) == 1 and decorators[0].isVariableReference():
-                if decorators[0].getVariable().getName() == "staticmethod":
-                    # Reset the decorators. This does not attempt to deal with
-                    # multiple of them being present.
-                    node.setDecorators( () )
+            if areConstants( operands ):
+                operator = node.getOperator()
 
-                    assert not node.getDecorators()
+                if operator != "Repr":
+                    operands = [ constant.getConstant() for constant in operands ]
+
+                    try:
+                        if len( operands ) == 2:
+                            result = PythonOperators.binary_operator_functions[ operator ]( *operands )
+                        elif len( operands ) == 1:
+                            result = PythonOperators.unary_operator_functions[ operator ]( *operands )
+                        else:
+                            assert False, operands
+                    except AssertionError:
+                        raise
+                    except Exception, e:
+                        # TODO: If not an AssertError, we can create a raise exception
+                        # node that does it.
+                        return
+
+                    new_node = Nodes.CPythonExpressionConstant(
+                        constant   = result,
+                        source_ref = node.getSourceReference()
+                    )
+
+                    node.replaceWith( new_node )
+
+                    self.signalChange( "new_constant" )

@@ -40,13 +40,9 @@ So this is called repeatedly mayhaps, each time a constant is added.
 
 from __future__ import print_function
 
-from optimizations.OptimizeBase import OptimizationVisitorBase
+from OptimizeBase import OptimizationVisitorBase
 
-import TreeBuilding
-import Importing
-import Options
-import Nodes
-import Utils
+from nuitka import TreeBuilding, Importing, Options, Utils
 
 class ModuleRecursionVisitor( OptimizationVisitorBase ):
     imported_modules = {}

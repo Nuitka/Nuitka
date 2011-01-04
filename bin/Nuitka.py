@@ -69,8 +69,7 @@ optionally compiles it to either an executable or an extension module.
 
 """
 
-import MainControl
-import Options
+from nuitka import MainControl, Options
 
 import sys
 

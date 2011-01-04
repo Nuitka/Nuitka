@@ -43,7 +43,7 @@ flexible.
 
 """
 
-import Variables
+from nuitka import Variables
 
 class ParameterSpecTuple:
     def __init__( self, normal_args, nest_count = 1 ):

@@ -29,7 +29,7 @@ if [ "$1" != "quick" ]
 then
     for dir in "${DIR_LIST[@]}"
     do
-        source_dir="src$dir"
+        source_dir="nuitka$dir"
         target_dir="tests/reflected$dir"
         mkdir -p $target_dir
         rm -f $target_dir/*.so
@@ -55,7 +55,7 @@ compile() {
     nuitka=$1
     for dir in "${DIR_LIST[@]}"
     do
-        source_dir="src$dir"
+        source_dir="nuitka$dir"
 
         for file in `ls $source_dir/*.py`
         do

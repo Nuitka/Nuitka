@@ -31,9 +31,9 @@
 #
 """ Replace useless unpacking with multiple assignments where possible."""
 
-from optimizations.OptimizeBase import OptimizationVisitorBase
+from OptimizeBase import OptimizationVisitorBase
 
-import Nodes
+from nuitka import Nodes
 
 class ReplaceUnpackingVisitor( OptimizationVisitorBase ):
     def __call__( self, node ):

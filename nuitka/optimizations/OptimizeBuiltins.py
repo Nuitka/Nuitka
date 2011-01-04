@@ -35,11 +35,9 @@ TODO: Split in two phases, such that must be replaced (locals(), globals() and s
 are just a good idea to replace (range(), etc)
 """
 
-from optimizations.OptimizeBase import OptimizationVisitorBase
+from OptimizeBase import OptimizationVisitorBase
 
-import TreeOperations
-import Importing
-import Nodes
+from nuitka import TreeOperations, Importing, Nodes
 
 import math
 

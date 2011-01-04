@@ -36,14 +36,14 @@ then
     cd `dirname $0`/..
 fi
 
-echo "export PYTHONPATH=`pwd`:`pwd`/src"
+echo "export PYTHONPATH=`pwd`"
 echo "export PATH=$PATH:`pwd`/bin"
 echo "export NUITKA_INCLUDE=`pwd`/include"
 echo "export NUITKA_DIALOGS=`pwd`/dialogs"
 echo "export NUITKA_SCONS=`pwd`/scons"
 echo "export NUITKA_CPP=`pwd`/src"
 
-export PYTHONPATH=`pwd`:`pwd`/src
+export PYTHONPATH=`pwd`
 export PATH=$PATH:`pwd`/bin
 export NUITKA_INCLUDE=`pwd`/include
 export NUITKA_DIALOGS=`pwd`/dialogs

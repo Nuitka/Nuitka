@@ -29,41 +29,43 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Specification record for import.
+""" Merge nested statement sequences into one.
 
-This is used to carry the set of properties determined for an import.
+This undoes the effect of inlined exec or statements replaced with statement sequences.
 """
 
-class ImportSpec:
-    def __init__( self, module_package, module_name, import_name, variable, module_filename ):
-        import Nodes
-        assert module_package is None or type( module_package ) is str
+from OptimizeBase import OptimizationVisitorBase
 
-        self.module_package  = module_package
-        self.module_name     = module_name
-        self.import_name     = import_name
-        self.variable        = variable
-        self.module_filename = module_filename
+from nuitka import TreeOperations, Nodes
 
-        assert "." not in module_name
 
-    def getModuleName( self ):
-        return self.module_name
+class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
+    def __call__( self, node ):
+        if node.isStatementsSequence():
+            parent = node.getParent()
 
-    def getImportName( self ):
-        return self.import_name
+            if parent.isStatementsSequence():
+                statements = parent.getStatements()
 
-    def getFilename( self ):
-        return self.module_filename
+                statements = statements[ : statements.index( node ) ] + node.getStatements() + statements[ statements.index( node ) + 1 : ]
 
-    def getPackage( self ):
-        return self.module_package
+                new_node = Nodes.CPythonStatementSequence(
+                    statements = statements,
+                    source_ref = parent.getSourceReference()
+                )
 
-    def getFullName( self ):
-        if self.module_package:
-            return self.module_package + "." + self.module_name
-        else:
-            return self.module_name
+                parent.replaceWith( new_node )
 
-    def getVariable( self ):
-        return self.variable
+                TreeOperations.assignParent( new_node )
+
+                raise TreeOperations.RestartVisit
+        elif node.isStatementExpression():
+            if node.getExpression().isConstantReference():
+
+                new_node = Nodes.CPythonStatementPass(
+                    source_ref = node.getSourceReference()
+                )
+
+                node.replaceWith( new_node )
+
+                TreeOperations.assignParent( new_node )

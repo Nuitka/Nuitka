@@ -42,9 +42,9 @@ When it strikes, it tags with "reset", because it requires a restart of all step
 
 """
 
-from optimizations.OptimizeBase import OptimizationVisitorBase, warning
+from OptimizeBase import OptimizationVisitorBase, warning
 
-import TreeBuilding
+from nuitka import TreeBuilding
 
 class OptimizeExecVisitor( OptimizationVisitorBase ):
     """ Inline constant execs.
