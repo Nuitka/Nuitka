@@ -1117,12 +1117,19 @@ def buildNode( provider, node, source_ref ):
                 expression = buildNode( provider, node.value, source_ref ),
                 source_ref = source_ref
             )
-        elif kind == "UnaryOp" and getKind( node.op ) == "Not":
-            result = buildBoolOpNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
+        elif kind == "UnaryOp":
+            if getKind( node.op ) == "Not":
+                result = buildBoolOpNode(
+                    provider   = provider,
+                    node       = node,
+                    source_ref = source_ref
+                )
+            else:
+                result = Nodes.CPythonExpressionUnaryOperation(
+                    operator   = getKind( node.op ),
+                    operand    = buildNode( provider, node.operand, source_ref ),
+                    source_ref = source_ref
+                )
         elif kind == "BinOp":
             operator = getKind( node.op )
 
@@ -1133,12 +1140,6 @@ def buildNode( provider, node, source_ref ):
                 operator   = operator,
                 left       = buildNode( provider, node.left, source_ref ),
                 right      = buildNode( provider, node.right, source_ref ),
-                source_ref = source_ref
-            )
-        elif kind == "UnaryOp":
-            result = Nodes.CPythonExpressionUnaryOperation(
-                operator   = getKind( node.op ),
-                operand    = buildNode( provider, node.operand, source_ref ),
                 source_ref = source_ref
             )
         elif kind == "Repr":
