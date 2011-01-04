@@ -436,15 +436,6 @@ def buildDeleteNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-def buildDelNode( provider, node, source_ref ):
-    target = buildAssignTarget( provider, node, source_ref )
-
-    return Nodes.CPythonStatementAssignment(
-        targets    = ( target, ),
-        expression = None,
-        source_ref = source_ref
-    )
-
 def buildQuals( provider, result, quals, source_ref ):
     assert len( quals ) >= 1
 
@@ -719,6 +710,15 @@ def _buildExtSliceNode( provider, node, source_ref ):
     )
 
 def buildSubscriptNode( provider, node, source_ref ):
+    if getKind( node.ctx ) == "Del":
+        target = buildAssignTarget( provider, node, source_ref )
+
+        return Nodes.CPythonStatementAssignment(
+            targets    = ( target, ),
+            expression = None,
+            source_ref = source_ref
+        )
+
     assert getKind( node.ctx ) == "Load", source_ref
 
     kind = getKind( node.slice )
@@ -1071,6 +1071,7 @@ _fastpath = {
     "ClassDef"     : buildClassNode,
     "Print"        : buildPrintNode,
     "Call"         : buildFunctionCallNode,
+    "Subscript"    : buildSubscriptNode,
 }
 def buildNode( provider, node, source_ref ):
     try:
@@ -1080,18 +1081,6 @@ def buildNode( provider, node, source_ref ):
 
         if kind in _fastpath:
             result = _fastpath[kind](
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "Subscript" and getKind( node.ctx ) == "Del":
-            result = buildDelNode(
-                provider   = provider,
-                node       = node,
-                source_ref = source_ref
-            )
-        elif kind == "Subscript":
-            result = buildSubscriptNode(
                 provider   = provider,
                 node       = node,
                 source_ref = source_ref
