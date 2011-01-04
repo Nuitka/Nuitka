@@ -192,7 +192,7 @@ class ModuleVariable( Variable ):
         _module_variables[ key ] = self
 
     def __repr__( self ):
-        return "<ModuleVariable '%s' of '%s'>" % ( self.variable_name, self.owner.getName() )
+        return "<ModuleVariable '%s' of '%s'>" % ( self.variable_name, self.getModuleName() )
 
     def _getKey( self ):
         return self.getModuleName(), self.getName()
@@ -201,7 +201,7 @@ class ModuleVariable( Variable ):
         return True
 
     def getModuleName( self ):
-        return self.module.getName()
+        return self.module.getFullName()
 
     def _checkShared( self, variable ):
         assert False, variable
