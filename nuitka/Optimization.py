@@ -38,7 +38,7 @@ e.g. a new constant determined could make another optimization feasible.
 
 from optimizations.OptimizeModuleRecursion import ModuleRecursionVisitor
 from optimizations.OptimizeConstantExec import OptimizeExecVisitor
-from optimizations.OptimizeVariableClosure import VariableClosureLookupVisitor
+from optimizations.OptimizeVariableClosure import VariableClosureLookupVisitor, ModuleVariableConstantVisitor
 from optimizations.OptimizeBuiltins import ReplaceBuiltinsVisitor, PrecomputeBuiltinsVisitor
 from optimizations.OptimizeStaticMethodFixup import FixupNewStaticMethodVisitor
 from optimizations.OptimizeConstantOperations import OptimizeOperationVisitor
@@ -76,6 +76,9 @@ def optimizeTree( tree ):
             if Options.shallOptimizeStringExec():
                 optimizations_queue.add( OptimizeExecVisitor )
 
+        if tags.check( "new_code" ):
+            optimizations_queue.add( VariableClosureLookupVisitor )
+
         # TODO: Split the __import__ one out.
         if tags.check( "new_code" ) or tags.check( "new_constant" ):
             if Options.shallFollowImports():
@@ -90,29 +93,33 @@ def optimizeTree( tree ):
         if tags.check( "new_code" ) or tags.check( "new_constant" ):
             optimizations_queue.add( OptimizeOperationVisitor )
 
-        if tags.check( "new_code" ):
-            optimizations_queue.add( VariableClosureLookupVisitor )
-
         if tags.check( "new_code" ) or tags.check( "new_constant" ):
             optimizations_queue.add( ReplaceUnpackingVisitor )
 
         if tags.check( "new_code" ) or tags.check( "new_statements" ):
             optimizations_queue.add( StatementSequencesCleanupVisitor )
 
+        if tags.check( "new_code" ) or tags.check( "new_variable" ):
+            optimizations_queue.add( ModuleVariableConstantVisitor )
+
         tags.clear()
 
     refreshOptimizationsFromTags( optimizations_queue, tags )
 
-    while optimizations_queue:
-        next_optimization = optimizations_queue.pop()
+    trees = [ tree ] + getOtherModules()
 
-        for module in [ tree ] + getOtherModules():
+    while optimizations_queue:
+        next_optimization = iter( optimizations_queue ).next()
+        optimizations_queue.discard( next_optimization )
+
+        for module in trees:
             debug( "Applying to '%s' optimization '%s':" % ( module, next_optimization ) )
 
             next_optimization().execute( module, on_signal = tags.onSignal )
 
         if not optimizations_queue:
             refreshOptimizationsFromTags( optimizations_queue, tags )
+            trees = [ tree ] + getOtherModules()
 
     return tree
 

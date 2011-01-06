@@ -56,8 +56,10 @@ def createNodeTree( filename ):
 
     """
 
-    # First build the tree, applying only required stuff.
-    result = TreeBuilding.buildModuleTree( filename )
+    # First build the raw node tree from the source code.
+    result = TreeBuilding.buildModuleTree(
+        filename = filename
+    )
 
     # Then optimize the tree.
     result = Optimization.optimizeTree( result )
@@ -100,18 +102,19 @@ class _OverflowCheckVisitor:
         self.is_class = checked_node.getParent().isClassReference()
 
     def __call__( self, node ):
-        if node.isStatementImportFrom():
-            for local_name, _variable in node.getImports():
-                if local_name == "*":
-                    self.result = True
-                    raise TreeOperations.ExitVisit
+        if node.isStatementImportStarExternal():
+            self.result = True
+
+            raise TreeOperations.ExitVisit
 
         if node.isStatementExec() and _couldBeNone( node.getGlobals() ):
             self.result = True
+
             raise TreeOperations.ExitVisit
 
         if self.is_class and node.isBuiltinLocals():
             self.result = True
+
             raise TreeOperations.ExitVisit
 
     def getResult( self ):

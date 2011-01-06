@@ -109,6 +109,9 @@ class ModuleVariableIdentifier:
     def getCodeDropRef( self ):
         return self.getCodeTemporaryRef()
 
+    def getCode( self ):
+        return "_mvar_%s_%s" % ( self.module_code_name, self.var_name )
+
 
 class LocalVariableIdentifier:
     def __init__( self, var_name, from_context = False ):

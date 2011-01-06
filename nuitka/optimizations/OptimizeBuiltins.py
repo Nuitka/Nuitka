@@ -121,7 +121,7 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         if not node.isEmptyCall():
             return None
 
-        return Nodes.CPythonExpressionBuiltinCallDir(
+        return Nodes.CPythonExpressionBuiltinDir(
             source_ref = node.getSourceReference()
         )
 
@@ -129,11 +129,11 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         positional_args = node.getPositionalArguments()
 
         if len( positional_args ) == 0:
-            return Nodes.CPythonExpressionBuiltinCallLocals(
+            return Nodes.CPythonExpressionBuiltinLocals(
                 source_ref = node.getSourceReference()
             )
         elif len( positional_args ) == 1:
-            return Nodes.CPythonExpressionBuiltinCallVars(
+            return Nodes.CPythonExpressionBuiltinVars(
                 source     = positional_args[ 0 ],
                 source_ref = node.getSourceReference()
             )
@@ -143,7 +143,7 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
     def eval_extractor( self, node ):
         positional_args = node.getPositionalArguments()
 
-        return Nodes.CPythonExpressionBuiltinCallEval(
+        return Nodes.CPythonExpressionBuiltinEval(
             source       = positional_args[0],
             globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
             locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
@@ -159,11 +159,11 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
 
         source_node = Nodes.CPythonExpressionFunctionCall(
             called_expression = Nodes.CPythonExpressionAttributeLookup(
-                expression = Nodes.CPythonExpressionBuiltinCallOpen(
+                expression = Nodes.CPythonExpressionBuiltinOpen(
                     filename   = positional_args[0],
-                    mode       = Nodes.CPythonExpressionConstant(
-                        constant   = "rU",
-                        source_ref = source_ref
+                    mode       = Nodes.makeConstantReplacementNode(
+                        constant = "rU",
+                        node     = node
                     ),
                     buffering  = None,
                     source_ref = source_ref
@@ -192,15 +192,13 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
             module_name = positional_args[0].getConstant()
 
             if type( module_name ) is str and "." not in module_name:
-                module_package, module_name, module_filename = Importing.findModule(
+                _module_package, module_name, _module_filename = Importing.findModule(
                     module_name    = module_name,
                     parent_package = node.getParentModule().getPackage()
                 )
 
-                return Nodes.CPythonExpressionImport(
-                    module_package  = module_package,
+                return Nodes.CPythonExpressionBuiltinImport(
                     module_name     = module_name,
-                    module_filename = module_filename,
                     source_ref      = node.getSourceReference()
                 )
 
@@ -208,7 +206,7 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         positional_args = node.getPositionalArguments()
 
         if len( positional_args ) == 1:
-            return Nodes.CPythonExpressionBuiltinCallChr(
+            return Nodes.CPythonExpressionBuiltinChr(
                 value      = positional_args[0],
                 source_ref = node.getSourceReference()
             )
@@ -218,7 +216,7 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         positional_args = node.getPositionalArguments()
 
         if len( positional_args ) == 1:
-            return Nodes.CPythonExpressionBuiltinCallOrd(
+            return Nodes.CPythonExpressionBuiltinOrd(
                 value      = positional_args[0],
                 source_ref = node.getSourceReference()
             )
@@ -227,12 +225,12 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         positional_args = node.getPositionalArguments()
 
         if len( positional_args ) == 1:
-            return Nodes.CPythonExpressionBuiltinCallType1(
+            return Nodes.CPythonExpressionBuiltinType1(
                 value      = positional_args[0],
                 source_ref = node.getSourceReference()
             )
         elif len( positional_args ) == 3:
-            return Nodes.CPythonExpressionBuiltinCallType3(
+            return Nodes.CPythonExpressionBuiltinType3(
                 type_name  = positional_args[0],
                 bases      = positional_args[1],
                 type_dict  = positional_args[2],
@@ -247,7 +245,7 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
             high = positional_args[1] if len( positional_args ) > 1 else None
             step = positional_args[2] if len( positional_args ) > 2 else None
 
-            return Nodes.CPythonExpressionBuiltinCallRange(
+            return Nodes.CPythonExpressionBuiltinRange(
                 low        = low,
                 high       = high,
                 step       = step,
@@ -258,7 +256,7 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         positional_args = node.getPositionalArguments()
 
         if len( positional_args ) == 1:
-            return Nodes.CPythonExpressionBuiltinCallLen(
+            return Nodes.CPythonExpressionBuiltinLen(
                 value      = positional_args[0],
                 source_ref = node.getSourceReference()
             )
@@ -269,18 +267,18 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         provider = node.getParentVariableProvider()
 
         if provider.isModule():
-            return Nodes.CPythonExpressionBuiltinCallGlobals(
+            return Nodes.CPythonExpressionBuiltinGlobals(
                 source_ref = node.getSourceReference()
             )
         else:
-            return Nodes.CPythonExpressionBuiltinCallLocals(
+            return Nodes.CPythonExpressionBuiltinLocals(
                 source_ref = node.getSourceReference()
             )
 
     def _pickGlobalsForNode( self, node ):
         """ Pick a globals default for the given node. """
 
-        return Nodes.CPythonExpressionBuiltinCallGlobals(
+        return Nodes.CPythonExpressionBuiltinGlobals(
             source_ref = node.getSourceReference()
         )
 
@@ -313,9 +311,9 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
             value = value.getConstant()
 
             try:
-                return Nodes.CPythonExpressionConstant(
-                    constant   = chr( value ),
-                    source_ref = node.getSourceReference()
+                return Nodes.makeConstantReplacementNode(
+                    constant = chr( value ),
+                    node     = node
                 )
             except:
                 pass
@@ -327,9 +325,9 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
             value = value.getConstant()
 
             try:
-                return Nodes.CPythonExpressionConstant(
-                    constant   = ord( value ),
-                    source_ref = node.getSourceReference()
+                return Nodes.makeConstantReplacementNode(
+                    constant = ord( value ),
+                    node     = node
                 )
             except:
                 pass
@@ -346,7 +344,7 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
 
                 assert (type_name in _builtin_names), (type_name, _builtin_names)
 
-                result = Nodes.CPythonExpressionVariable(
+                result = Nodes.CPythonExpressionVariableRef(
                     variable_name = type_name,
                     source_ref    = node.getSourceReference()
                 )
@@ -356,6 +354,8 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                         variable_name = type_name
                     )
                 )
+
+                self.signalChange( "new_variable" )
 
                 return result
 
@@ -380,9 +380,9 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                     if type( constant ) is float:
                         constant = int( constant )
 
-                    return Nodes.CPythonExpressionConstant(
-                        constant   = range( constant ),
-                        source_ref = node.getSourceReference()
+                    return Nodes.makeConstantReplacementNode(
+                        constant = range( constant ),
+                        node     = node
                     )
         elif step is None:
             if isRangePredictable( low ) and isRangePredictable( high ):
@@ -390,9 +390,9 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                 constant2 = high.getConstant()
 
                 if constant2 - constant1 <= 256:
-                    return Nodes.CPythonExpressionConstant(
-                        constant   = range( constant1, constant2 ),
-                        source_ref = node.getSourceReference()
+                    return Nodes.makeConstantReplacementNode(
+                        constant = range( constant1, constant2 ),
+                        node     = node
                     )
         else:
             if isRangePredictable( low ) and isRangePredictable( high ) and isRangePredictable( step ):
@@ -411,9 +411,9 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                             variable_name = "ValueError",
                             source_ref    = node.getSourceReference()
                         ),
-                        exception_value = Nodes.CPythonExpressionConstant(
-                            constant   = "range() step argument must not be zero",
-                            source_ref = node.getSourceReference()
+                        exception_value = Nodes.makeConstantReplacementNode(
+                            constant = "range() step argument must not be zero",
+                            node     = node
                         ),
                         exception_trace = None,
                         source_ref = node.getSourceReference()
@@ -435,9 +435,9 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                 assert len( range( constant1, constant2, constant3 ) ) == estimate, node.getSourceReference()
 
                 if estimate <= 256:
-                    return Nodes.CPythonExpressionConstant(
-                        constant   = range( constant1, constant2, constant3 ),
-                        source_ref = node.getSourceReference()
+                    return Nodes.makeConstantReplacementNode(
+                        constant = range( constant1, constant2, constant3 ),
+                        node     = node
                     )
 
 
@@ -445,7 +445,7 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         value = node.getValue()
 
         if value.isConstantReference() and value.isIterableConstant():
-            return Nodes.CPythonExpressionConstant(
-                constant   = len( value.getConstant() ),
-                source_ref = node.getSourceReference()
+            return Nodes.makeConstantReplacementNode(
+                constant = len( value.getConstant() ),
+                node     = node
             )

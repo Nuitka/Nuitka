@@ -469,27 +469,82 @@ PyObject *MAKE_FRAME( PyObject *module, PyObject *filename, PyObject *function_n
     return (PyObject *)result;
 }
 
-#ifdef _NUITKA_EXE
-extern bool FIND_EMBEDDED_MODULE( char const *name );
-#endif
-
-PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject *import_items )
+PyObject *RELATIVE_MODULE_NAME( PyObject *module_name, PyObjectGlobalVariable const * package_var )
 {
+    assert( package_var );
+
+    if ( package_var->isInitialized( false ) )
+    {
+        PyObject *package = package_var->asObject();
+
+        if ( PyString_Check( package ))
+        {
+            return PyString_FromFormat(
+                "%s.%s",
+                PyString_AsString( package ),
+                PyString_AsString( module_name )
+            );
+        }
+    }
+
+    return NULL;
+}
 
 #ifdef _NUITKA_EXE
-    // First try our own package resistent form of frozen modules if we have them
-    // embedded. And avoid recursion here too, in case of cyclic dependencies.
-    if ( !HAS_KEY( PySys_GetObject( (char *)"modules" ), module_name ) )
+extern bool *FIND_EMBEDDED_MODULE( PyObject *module_name );
+
+PyObject *IMPORT_EMBEDDED_MODULE( PyObject *module_name, PyObject *import_name )
+{
+    if ( HAS_KEY( PySys_GetObject( (char *)"modules" ), module_name ) )
     {
-        if ( FIND_EMBEDDED_MODULE( PyString_AsString( module_name ) ) )
+        return LOOKUP_SUBSCRIPT( PySys_GetObject( (char *)"modules" ), import_name );
+    }
+    else
+    {
+        if ( FIND_EMBEDDED_MODULE( module_name ) )
         {
             return LOOKUP_SUBSCRIPT( PySys_GetObject( (char *)"modules" ), import_name );
         }
     }
+
+    PyErr_Format( PyExc_RuntimeError, "couldn't find embedded module '%s'", PyString_AsString( module_name ) );
+    throw _PythonException();
+}
 #endif
 
+PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObjectGlobalVariable const * package_var, PyObject *import_items )
+{
     int line = _current_line;
-    PyObject *result = PyImport_ImportModuleEx( PyString_AsString( module_name ), NULL, NULL, import_items );
+
+    char *module_name_str = PyString_AsString( module_name );
+
+    PyObject *result = PyImport_ImportModuleLevel(
+        module_name_str,
+        NULL,
+        NULL,
+        import_items,
+        0
+    );
+
+    if ( result == NULL && package_var != NULL && PyErr_ExceptionMatches( PyExc_ImportError ) )
+    {
+        PyObject *module_name2 = RELATIVE_MODULE_NAME( module_name, package_var );
+        PyObject *import_name2 = RELATIVE_MODULE_NAME( import_name, package_var );
+
+        if ( module_name2 != NULL )
+        {
+            // printf( "Fallback to import of %s\n", PyString_AsString( module_name2 ) );
+            PyErr_Clear();
+
+            return IMPORT_MODULE(
+                PyObjectTemporary( module_name2 ).asObject(),
+                PyObjectTemporary( import_name2 ).asObject(),
+                NULL,
+                import_items
+            );
+        }
+    }
+
     _current_line = line;
 
     if (unlikely( result == NULL ))
@@ -504,9 +559,14 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject 
     return LOOKUP_SUBSCRIPT( PySys_GetObject( (char *)"modules" ), import_name );
 }
 
-void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name )
+void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name, PyObjectGlobalVariable const * package_var )
 {
-    PyObject *module = IMPORT_MODULE( module_name, module_name, NULL );
+    PyObject *module = IMPORT_MODULE(
+        module_name,
+        module_name,
+        package_var,
+        NULL
+    );
 
     // IMPORT_MODULE would raise exception already
     assert( module != NULL );

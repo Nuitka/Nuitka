@@ -110,7 +110,17 @@ def anotherFunction():
     print sorted( d.iteritems() )
 
 
+def swapVariables():
+    print "Strange swap form:"
+    a = 1
+    b = 2
+
+    a, b, a = b, a, b
+
+    print a, b
+
 someFunction()
 varargsFunction(1,2,3,4)
 otherFunction()
 anotherFunction()
+swapVariables()

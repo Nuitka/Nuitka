@@ -60,9 +60,9 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
                         # node that does it.
                         return
 
-                    new_node = Nodes.CPythonExpressionConstant(
-                        constant   = result,
-                        source_ref = node.getSourceReference()
+                    new_node = Nodes.makeConstantReplacementNode(
+                        constant = result,
+                        node     = node
                     )
 
                     node.replaceWith( new_node )

@@ -194,96 +194,114 @@ def getSetCreationCode( values ):
         1
     )
 
-def getImportModuleCode( context, module_name, import_name, variable ):
-    return getAssignmentCode(
-        context    = context,
-        variable   = variable,
-        identifier = Identifier(
-            code = "IMPORT_MODULE( %s, %s, NULL )" % (
-                getConstantCode(
-                    constant = module_name,
-                    context = context
-                ),
-                getConstantCode(
-                    constant = import_name,
-                    context = context
-                )
-            ),
-            ref_count = 1
-        )
+def getPackageVariableCode( context ):
+    package_var_identifier = ModuleVariableIdentifier(
+        var_name         = "__package__",
+        module_code_name = context.getModuleCodeName()
     )
 
-def getImportModulesCode( context, import_specs ):
-    code = ""
+    return package_var_identifier.getCode()
 
-    for import_spec in import_specs:
-        code += getImportModuleCode(
-            context     = context,
-            module_name = import_spec.getFullName(),
-            import_name = import_spec.getImportName(),
-            variable    = import_spec.getVariable()
-        )
-
-    return code
-
-def getImportFromCode( context, module_name, imports ):
-    module_imports = []
-    object_names = []
-
-    # Do we have the "from x import *" case.
-    star_import = False
-
-    for object_name, local_var in imports:
-        if object_name == "*":
-            assert len( imports ) == 1
-
-            star_import = True
-        else:
-            object_names.append( object_name )
-
-            object_identifier = context.getConstantHandle(
-                constant = object_name
-            )
-
-            lookup_code = getAssignmentCode(
-                context    = context,
-                variable   = local_var,
-                identifier = Identifier(
-                    "LOOKUP_ATTRIBUTE( module_temp.asObject(), %(object_name)s )" % {
-                        "object_name" : object_identifier.getCodeTemporaryRef(),
-                    },
-                    1
-                )
-            )
-
-            import_code = CodeTemplates.import_item_code % {
-                "lookup_code" : lookup_code
-            }
-
-            module_imports += import_code.split( "\n" )
-
-    if not star_import:
-        return CodeTemplates.import_from_template % {
-            "module_name"    : getConstantCode(
-                context  = context,
-                constant = module_name
+def getImportModuleCode( context, module_name, import_name ):
+    return Identifier(
+        "IMPORT_MODULE( %s, %s, &%s, NULL )" % (
+            getConstantCode(
+                constant = module_name,
+                context  = context
             ),
-            "module_imports" : _indented( module_imports ),
-            "import_list"    : getConstantCode(
-                context  = context,
-                constant = tuple( object_names )
+            getConstantCode(
+                constant = import_name,
+                context  = context
+            ),
+            getPackageVariableCode(
+                context = context
+            )
+        ),
+        1
+    )
+
+def getImportEmbeddedCode( context, module_name, import_name ):
+    return Identifier(
+        "IMPORT_EMBEDDED_MODULE( %s, %s )" % (
+            getConstantCode(
+                constant = module_name,
+                context  = context
+            ),
+            getConstantCode(
+                constant = import_name,
+                context  = context
+            )
+        ),
+        1
+    )
+
+
+def getImportFromModuleTempIdentifier():
+    return Identifier( "module_temp.asObject()", 0 )
+
+def getImportFromCode( context, module_name, lookup_code, import_list, embedded ):
+    if embedded:
+        module_lookup = CodeTemplates.import_from_embedded_lookup % {
+            "module_name" : getConstantCode(
+                constant = module_name,
+                context  = context
             )
         }
     else:
-        if not context.hasLocalsDict():
-            return "IMPORT_MODULE_STAR( %s, true, %s );" % (
-                getModuleAccessCode( context = context ),
-                getConstantCode( constant = module_name, context = context )
+        module_lookup = CodeTemplates.import_from_external_lookup % {
+            "module_name" : getConstantCode(
+                constant = module_name,
+                context  = context
+            ),
+            "package_var" : getPackageVariableCode(
+                context = context
+            ),
+            "import_list" : getConstantCode(
+                context  = context,
+                constant = tuple( import_list )
             )
-        else:
-            return "IMPORT_MODULE_STAR( locals_dict.asObject(), false, %s );" % (
-                getConstantCode( constant = module_name, context = context )
+        }
+
+    module_embedded = ""
+
+    for module_name in embedded:
+        module_embedded += "Py_DECREF( IMPORT_EMBEDDED_MODULE( %s ) );" % (
+            getConstantCode(
+                constant = module_name,
+                context  = context
             )
+        )
+
+    return CodeTemplates.import_from_template % {
+        "module_lookup"   : _indented( module_lookup, 2 ),
+        "module_embedded" : module_embedded,
+        "lookup_code"     : _indented( lookup_code, 2 ),
+    }
+
+
+def getImportFromStarCode( context, module_name ):
+    if not context.hasLocalsDict():
+        return "IMPORT_MODULE_STAR( %s, true, %s, &%s );" % (
+            getModuleAccessCode( context = context ),
+            getConstantCode(
+                constant = module_name,
+                context  = context
+            ),
+            getPackageVariableCode(
+                context = context
+            )
+        )
+    else:
+        return "IMPORT_MODULE_STAR( locals_dict.asObject(), false, %s, &%s );" % (
+            getConstantCode(
+                constant = module_name,
+                context  = context
+            ),
+            getPackageVariableCode(
+                context = context
+            )
+        )
+
 
 def getMaxIndexCode():
     return Identifier( "PY_SSIZE_T_MAX", 0 )
@@ -893,14 +911,24 @@ def getWhileLoopCode( context, condition, loop_body_codes, loop_else_codes, need
 def getAssignmentCode( context, variable, identifier ):
     assert isinstance( variable, Variables.Variable ), variable
 
-    if variable.getOwner().isModule():
+    if variable.isModuleVariable():
         var_name = variable.getName()
 
         context.addGlobalVariableNameUsage( var_name )
 
-        return "_mvar_%s_%s.assign( %s );" % ( context.getModuleCodeName(), var_name, identifier.getCodeExportRef() )
+        return "_mvar_%s_%s.assign( %s );" % (
+            context.getModuleCodeName(),
+            var_name,
+            identifier.getCodeExportRef()
+        )
     else:
-        return "%s = %s;" % ( getVariableCode( variable = variable, context = context ), identifier.getCodeExportRef() )
+        return "%s = %s;" % (
+            getVariableCode(
+                variable = variable,
+                context  = context
+            ),
+            identifier.getCodeExportRef()
+        )
 
 def getVariableDelCode( context, variable ):
     assert isinstance( variable, Variables.Variable ), variable
@@ -1311,20 +1339,6 @@ def getBuiltinOpenCode( filename, mode, buffering ):
         1
     )
 
-def getBuiltinImportCode( context, module_name ):
-    module_name_identifier = getConstantCode(
-        constant = module_name,
-        context  = context
-    )
-
-    return Identifier(
-        "IMPORT_MODULE( %s, %s, NULL )" % (
-            module_name_identifier,
-            module_name_identifier
-        ),
-        1
-    )
-
 def getBuiltinLenCode( identifier ):
     return Identifier( "BUILTIN_LEN( %s )" % identifier.getCodeTemporaryRef(), 1 )
 
@@ -1405,51 +1419,7 @@ def getModuleIdentifier( module_name ):
 def getPackageIdentifier( module_name ):
     return module_name.replace( ".", "__" )
 
-def getPackageCode( context, package_name, doc_identifier, filename_identifier ):
-    package_identifier = getPackageIdentifier( package_name )
-
-    header = CodeTemplates.package_header_template % {
-        "package_identifier" : package_identifier,
-    }
-
-    package_identifier = getPackageIdentifier( package_name )
-
-    package_var_names = context.getGlobalVariableNames()
-
-    # These ones are used in the init code to set these variables to their values
-    # after module creation.
-    package_var_names.add( "__file__" )
-    package_var_names.add( "__doc__" )
-
-    if "." in package_name:
-        package_var_names.add( "__package__" )
-
-    package_globals = "\n".join(
-        [
-            "static PyObjectGlobalVariable _mvar_%s_%s( &_package_%s, &%s );" % (
-                package_identifier,
-                var_name,
-                package_identifier,
-                getConstantCode( constant = var_name, context = context )
-            )
-            for var_name in
-            sorted( package_var_names )
-         ]
-    )
-
-    body = CodeTemplates.package_body_template % {
-        "package_name"       : package_name,
-        "package_identifier" : package_identifier,
-        "package_globals"    : package_globals,
-        "package_inits"      : CodeTemplates.package_init_template % {
-            "package_identifier"  : package_identifier,
-            "filename_identifier" : filename_identifier.getCode(),
-        }
-    }
-
-    return header, body
-
-def getModuleCode( context, stand_alone, module_name, codes, doc_identifier, filename_identifier ):
+def getModuleCode( context, stand_alone, module_name, package_name, codes, doc_identifier, filename_identifier ):
     functions_decl = getFunctionsDecl( context = context )
     functions_code = getFunctionsCode( context = context )
 
@@ -1459,9 +1429,7 @@ def getModuleCode( context, stand_alone, module_name, codes, doc_identifier, fil
     # after module creation.
     module_var_names.add( "__file__" )
     module_var_names.add( "__doc__" )
-
-    if "." in module_name:
-        module_var_names.add( "__package__" )
+    module_var_names.add( "__package__" )
 
     module_identifier = getModuleIdentifier( module_name )
 
@@ -1481,17 +1449,13 @@ def getModuleCode( context, stand_alone, module_name, codes, doc_identifier, fil
     # Make sure that _python_str_angle_module is available to the template
     context.getConstantHandle( constant = "<module>" )
 
-    if "." not in module_name:
-        package_name = None
-
+    if package_name is None:
         module_inits = CodeTemplates.module_plain_init_template % {
             "module_identifier"   : module_identifier,
             "filename_identifier" : filename_identifier.getCode(),
             "doc_identifier"      : doc_identifier.getCode(),
         }
     else:
-        package_name = module_name[:module_name.rfind( "." )]
-
         module_inits = CodeTemplates.module_package_init_template % {
             "module_identifier"       : module_identifier,
             "module_name"             : getConstantCode(

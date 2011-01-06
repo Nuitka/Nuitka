@@ -2174,7 +2174,7 @@ class PyObjectGlobalVariable
             }
         }
 
-        bool isInitialized() const
+        bool isInitialized( bool allow_builtins = true ) const
         {
             PyDictEntry *entry = GET_PYDICT_ENTRY( *this->module_ptr, *this->var_name );
 
@@ -2183,9 +2183,16 @@ class PyObjectGlobalVariable
                 return true;
             }
 
-            entry = GET_PYDICT_ENTRY( _module_builtin, *this->var_name );
+            if ( allow_builtins )
+            {
+                entry = GET_PYDICT_ENTRY( _module_builtin, *this->var_name );
 
-            return entry->me_value != NULL;
+                return entry->me_value != NULL;
+            }
+            else
+            {
+                return false;
+            }
         }
 
     private:
@@ -2462,9 +2469,15 @@ NUITKA_MAY_BE_UNUSED static void ADD_TRACEBACK( PyObject *module, PyObject *file
     Py_DECREF( frame );
 }
 
-extern PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject *import_list );
+extern PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObjectGlobalVariable const * package_var, PyObject *import_items );
 
-extern void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name );
+extern void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name, PyObjectGlobalVariable const *package_var );
+
+#ifdef _NUITKA_EXE
+// For the --deep mode, we need to use these variants, esp. if the modules are in packages.
+extern PyObject *IMPORT_EMBEDDED_MODULE( PyObject *module_name, PyObject *import_name );
+#endif
+
 
 // For the constant loading:
 extern void UNSTREAM_INIT( void );

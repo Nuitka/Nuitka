@@ -61,16 +61,16 @@ class ReplaceUnpackingVisitor( OptimizationVisitorBase ):
                                 statements.append(
                                     Nodes.CPythonStatementAssignment(
                                         targets    = ( element, ),
-                                        expression = Nodes.CPythonExpressionConstant(
-                                            constant   = value,
-                                            source_ref = node.getSourceReference()
+                                        expression = Nodes.makeConstantReplacementNode(
+                                            constant = value,
+                                            node     = node
                                         ),
                                         source_ref = node.getSourceReference()
                                     )
                                 )
 
                             node.replaceWith(
-                                Nodes.CPythonStatementSequence(
+                                Nodes.CPythonStatementsSequence(
                                     statements = statements,
                                     source_ref = node.getSourceReference()
                                 )

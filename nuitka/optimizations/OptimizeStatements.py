@@ -49,7 +49,7 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
 
                 statements = statements[ : statements.index( node ) ] + node.getStatements() + statements[ statements.index( node ) + 1 : ]
 
-                new_node = Nodes.CPythonStatementSequence(
+                new_node = Nodes.CPythonStatementsSequence(
                     statements = statements,
                     source_ref = parent.getSourceReference()
                 )

@@ -20,42 +20,47 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
+cd `dirname $0`
+
 BACKUP_PYTHONPATH=$PYTHONPATH
 
-DIR_LIST=( '' '/nodes' '/templates' '/optimizations' )
+PACKAGE_LIST=(
+    'nuitka'
+    'nuitka/nodes'
+    'nuitka/templates'
+    'nuitka/optimizations'
+)
 
 echo "PASS 1: Compiling from compiler running from .py files."
-if [ "$1" != "quick" ]
-then
-    for dir in "${DIR_LIST[@]}"
+
+for package in "${PACKAGE_LIST[@]}"
+do
+    source_dir="../../$package"
+    target_dir="$package"
+    mkdir -p $target_dir
+
+    rm -f $target_dir/*.so
+
+    for file in `ls $source_dir/*.py`
     do
-        source_dir="nuitka$dir"
-        target_dir="tests/reflected$dir"
-        mkdir -p $target_dir
-        rm -f $target_dir/*.so
-
-        for file in `ls $source_dir/*.py`
-        do
-            if [ `basename $file` != "__init__.py" ]
-            then
-                echo "Compiling $file"
-                Nuitka.py $file --output-dir $target_dir
-            else
-                cp $file $target_dir
-            fi
-        done
+        if [ `basename $file` != "__init__.py" ]
+        then
+            echo "Compiling $file"
+            Nuitka.py $file --output-dir $target_dir $NUITKA_EXTRA_OPTIONS
+        else
+            cp $file $target_dir
+        fi
     done
+done
 
-    Nuitka.py bin/Nuitka.py --output-dir tests/reflected/ --exe
-else
-    echo "Skipped."
-fi
+Nuitka.py ../../bin/Nuitka.py --output-dir . --exe $NUITKA_EXTRA_OPTIONS
 
 compile() {
     nuitka=$1
-    for dir in "${DIR_LIST[@]}"
+
+    for package in "${PACKAGE_LIST[@]}"
     do
-        source_dir="nuitka$dir"
+        source_dir="../../$package"
 
         for file in `ls $source_dir/*.py`
         do
@@ -67,8 +72,8 @@ compile() {
 
                 rm -rf /tmp/$target
 
-                $nuitka $file --output-dir /tmp/
-                diff -sq ./tests/reflected$dir/$target /tmp/$target
+                $nuitka $file --output-dir /tmp/ $NUITKA_EXTRA_OPTIONS
+                diff -rq $package/$target /tmp/$target
 
                 rm -rf /tmp/$target
             fi
@@ -78,13 +83,20 @@ compile() {
 
 echo "PASS 2: Compiling from compiler running from .exe and many .so files."
 
-export PYTHONPATH=tests/reflected
-compile ./tests/reflected/Nuitka.exe
+export PYTHONPATH=.
+compile ./Nuitka.exe
+
+# Remove the .so compiler again, so it cannot confuse the later steps.
+PYTHONPATH=$BACKUP_PYTHONPATH
+find nuitka -name \*.so -exec rm {} \;
+rm Nuitka.exe
 
 echo "PASS 3: Compiling from compiler running from .py files to single .exe."
-
-PYTHONPATH=$BACKUP_PYTHONPATH
-Nuitka.py bin/Nuitka.py --output-dir /tmp/ --exe --deep
+rm -rf /tmp/Nuitka.exe /tmp/Nuitka.build
+Nuitka.py ../../bin/Nuitka.py --output-dir /tmp/ --exe --deep
 
 echo "PASS 4: Compiling the compiler running from single exe"
+# Set PYTHONPATH to local again, because nothings here right now and the single exe
+# compiler shouldn't be allowed to import the .py files.
+PYTHONPATH=.
 compile /tmp/Nuitka.exe

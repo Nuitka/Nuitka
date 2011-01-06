@@ -33,7 +33,37 @@
 
 from OptimizeBase import OptimizationVisitorBase
 
+from nuitka import TreeOperations
+
 class VariableClosureLookupVisitor( OptimizationVisitorBase ):
     def __call__( self, node ):
         if node.isVariableReference() and node.getVariable() is None:
-            node.setVariable( node.getParentVariableProvider().getVariableForReference( node.getVariableName() ) )
+            node.setVariable(
+                node.getParentVariableProvider().getVariableForReference(
+                    variable_name = node.getVariableName()
+                )
+            )
+
+
+class ModuleVariableWriteCheck:
+    def __init__( self, variable_name ):
+        self.variable_name = variable_name
+        self.result = False
+
+    def __call__( self, node ):
+        if node.isAssignToVariable() or node.isAssignToTuple() or node.isListContraction():
+            for variable in node.getTargetVariables():
+                if variable.isModuleVariableReference():
+                    if variable.getReferenced().getName() == self.variable_name:
+                        self.result = True
+                        raise TreeOperations.ExitVisit
+
+    def getResult( self ):
+        return self.result
+
+class ModuleVariableConstantVisitor( OptimizationVisitorBase ):
+    def __call__( self, node ):
+        # This is a cheap way to only visit the module.
+        if node.isModule():
+            # TODO: Check the modules variables
+            raise TreeOperations.ExitVisit

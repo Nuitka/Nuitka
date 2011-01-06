@@ -32,3 +32,4 @@
 #
 
 find . -name \*.build -exec echo rm -rf {} \;
+find . -name \*.exe -exec echo rm {} \;

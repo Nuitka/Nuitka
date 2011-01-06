@@ -154,8 +154,11 @@ def _compareConstants( a, b ):
     if type( a ) is not type( b ):
         return False
 
-    if type( a ) in ( str, bool, complex, unicode, int, long ):
+    if type( a ) in ( str, bool, unicode, int, long ):
         return a == b
+
+    if type( a ) is complex:
+        return _compareConstants( a.imag, b.imag ) and _compareConstants( a.real, b.real )
 
     if type( a ) in ( tuple, list ):
         if len( a ) != len( b ):

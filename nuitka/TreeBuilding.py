@@ -49,7 +49,6 @@ import Utils
 
 from nodes.ParameterSpec import ParameterSpec
 from nodes.FutureSpec import FutureSpec
-from nodes.ImportSpec import ImportSpec
 
 import ast
 
@@ -70,8 +69,11 @@ def pushDelayedWork( delayed_work ):
 
     _delayed_works.append( delayed_work )
 
-def buildStatementsNode( provider, nodes, source_ref ):
-    return Nodes.CPythonStatementSequence(
+def buildStatementsNode( provider, nodes, source_ref, allow_none = False ):
+    if nodes is None and allow_none:
+        return None
+
+    return Nodes.CPythonStatementsSequence(
         statements  = buildNodeList( provider, nodes, source_ref ),
         source_ref  = source_ref
     )
@@ -88,7 +90,7 @@ def buildClassNode( provider, node, source_ref ):
 
     bases = buildNodeList( provider, node.bases, source_ref )
 
-    result = Nodes.CPythonClass(
+    result = Nodes.CPythonStatementClassDef(
         provider       = TransitiveProvider( provider ),
         variable       = provider.getVariableForAssignment( node.name ),
         name           = node.name,
@@ -150,7 +152,7 @@ def buildFunctionNode( provider, node, source_ref ):
     decorators = buildDecoratorNodes( provider, node.decorator_list, source_ref )
     defaults = buildNodeList( provider, node.args.defaults, source_ref )
 
-    result = Nodes.CPythonFunction(
+    result = Nodes.CPythonStatementFunctionDef(
         provider   = TransitiveProvider( provider ),
         variable   = provider.getVariableForAssignment( node.name ),
         parameters = buildParameterSpec( node ),
@@ -180,7 +182,7 @@ def isSameListContent( a, b ):
 def buildLambdaNode( provider, node, source_ref ):
     defaults = buildNodeList( provider, node.args.defaults, source_ref )
 
-    result = Nodes.CPythonExpressionLambda(
+    result = Nodes.CPythonExpressionLambdaDef(
         provider   = provider,
         parameters = buildParameterSpec( node ),
         defaults   = defaults,
@@ -205,7 +207,7 @@ def buildForLoopNode( provider, node, source_ref ):
         source     = buildNode( provider, node.iter, source_ref ),
         target     = buildAssignTarget( provider, node.target, source_ref ),
         body       = buildStatementsNode( provider, node.body, source_ref ),
-        no_break   = buildStatementsNode( provider, node.orelse, source_ref ) if node.orelse else None,
+        no_break   = buildStatementsNode( provider, node.orelse, source_ref, True ),
         source_ref = source_ref
     )
 
@@ -213,7 +215,7 @@ def buildWhileLoopNode( provider, node, source_ref ):
     return Nodes.CPythonStatementWhileLoop(
         condition  = buildNode( provider, node.test, source_ref ),
         body       = buildStatementsNode( provider, node.body, source_ref ),
-        no_enter   = buildStatementsNode( provider, node.orelse, source_ref ) if node.orelse is not None else None,
+        no_enter   = buildStatementsNode( provider, node.orelse, source_ref, True ),
         source_ref = source_ref
     )
 
@@ -229,8 +231,8 @@ def buildFunctionCallNode( provider, node, source_ref ):
     return Nodes.CPythonExpressionFunctionCall(
         called_expression = buildNode( provider, node.func, source_ref ),
         positional_args   = positional_args,
-        list_star_arg     = buildNode( provider, node.starargs, source_ref ) if node.starargs is not None else None,
-        dict_star_arg     = buildNode( provider, node.kwargs, source_ref ) if node.kwargs is not None else None,
+        list_star_arg     = buildNode( provider, node.starargs, source_ref, True ),
+        dict_star_arg     = buildNode( provider, node.kwargs, source_ref, True ),
         named_args        = named_args,
         source_ref        = source_ref,
     )
@@ -239,7 +241,6 @@ def buildSequenceCreationNode( provider, node, source_ref ):
     elements = buildNodeList( provider, node.elts, source_ref )
 
     for element in elements:
-        # TODO: The handling of mutable should be solved already.
         if not element.isConstantReference() or element.isMutable():
             constant = False
             break
@@ -248,15 +249,16 @@ def buildSequenceCreationNode( provider, node, source_ref ):
 
     sequence_kind = getKind( node ).upper()
 
+    # TODO: This should happen in optimization instead.
     if constant:
         const_type = tuple if sequence_kind == "TUPLE" else list
 
-        return Nodes.CPythonExpressionConstant(
+        return Nodes.CPythonExpressionConstantRef(
             constant   = const_type( element.getConstant() for element in elements ),
             source_ref = source_ref
         )
     else:
-        return Nodes.CPythonExpressionSequenceCreation(
+        return Nodes.CPythonExpressionMakeSequence(
             sequence_kind = sequence_kind,
             elements      = elements,
             source_ref    = source_ref
@@ -285,6 +287,7 @@ def buildDictionaryNode( provider, node, source_ref ):
         constant = constant and key_node.isConstantReference()
         constant = constant and value_node.isConstantReference() and not value_node.isMutable()
 
+    # TODO: Again, this is for optimization to do.
     if constant:
         # Create the dictionary in its full size, so that no growing occurs and the
         # constant becomes as similar as possible before being marshalled.
@@ -293,12 +296,12 @@ def buildDictionaryNode( provider, node, source_ref ):
         for key, value in zip( keys, values ):
             constant_value[ key.getConstant() ] = value.getConstant()
 
-        return Nodes.CPythonExpressionConstant(
+        return Nodes.CPythonExpressionConstantRef(
             constant   = constant_value,
             source_ref = source_ref
         )
     else:
-        return Nodes.CPythonExpressionDictionaryCreation(
+        return Nodes.CPythonExpressionMakeDict(
             keys       = keys,
             values     = values,
             source_ref = source_ref
@@ -314,20 +317,24 @@ def buildSetNode( provider, node, source_ref ):
             constant = False
             break
 
+    # TODO: Again, this is for optimization to do.
     if constant:
         constant_value = frozenset( value.getConstant() for value in values )
 
-        return Nodes.CPythonExpressionConstant(
+        return Nodes.CPythonExpressionConstantRef(
             constant   = constant_value,
             source_ref = source_ref
         )
     else:
-        return Nodes.CPythonExpressionSetCreation(
+        return Nodes.CPythonExpressionMakeSet(
             values     = values,
             source_ref = source_ref
         )
 
-def buildAssignTarget( provider, node, source_ref ):
+def buildAssignTarget( provider, node, source_ref, allow_none = False ):
+    if node is None and allow_none:
+        return None
+
     if hasattr( node, "ctx" ):
         assert getKind( node.ctx ) in ( "Store", "Del" )
 
@@ -336,18 +343,22 @@ def buildAssignTarget( provider, node, source_ref ):
     if type( node ) is str:
         # Python >= 3.1 only
         return Nodes.CPythonAssignTargetVariable(
-            variable = provider.getVariableForAssignment( variable_name = node ),
+            variable   = provider.getVariableForAssignment(
+                variable_name = node
+            ),
             source_ref = source_ref
         )
     elif kind == "Name":
         return Nodes.CPythonAssignTargetVariable(
-            variable = provider.getVariableForAssignment( variable_name = node.id ),
+            variable   = provider.getVariableForAssignment(
+                variable_name = node.id
+            ),
             source_ref = source_ref
         )
     elif kind == "Attribute":
-        return Nodes.CPythonAssignAttribute(
+        return Nodes.CPythonAssignTargetAttribute(
             expression = buildNode( provider, node.value, source_ref ),
-            attribute = node.attr,
+            attribute  = node.attr,
             source_ref = source_ref
         )
     elif kind in ( "Tuple", "List" ):
@@ -356,24 +367,27 @@ def buildAssignTarget( provider, node, source_ref ):
         for element in node.elts:
             elements.append( buildAssignTarget( provider, element, source_ref ) )
 
-        return Nodes.CPythonAssignTuple( elements = elements, source_ref = source_ref )
+        return Nodes.CPythonAssignTargetTuple(
+            elements   = elements,
+            source_ref = source_ref
+        )
     elif kind == "Subscript":
         slice_kind = getKind( node.slice )
 
         if slice_kind == "Index":
-            return Nodes.CPythonAssignSubscript(
+            return Nodes.CPythonAssignTargetSubscript(
                 expression = buildNode( provider, node.value, source_ref ),
                 subscript  = buildNode( provider, node.slice.value, source_ref ),
                 source_ref = source_ref
             )
         elif slice_kind == "Slice":
-            lower = buildNode( provider, node.slice.lower, source_ref ) if node.slice.lower is not None else None
-            upper = buildNode( provider, node.slice.upper, source_ref ) if node.slice.upper is not None else None
+            lower = buildNode( provider, node.slice.lower, source_ref, True )
+            upper = buildNode( provider, node.slice.upper, source_ref, True )
 
             if node.slice.step is not None:
-                step = buildNode( provider, node.slice.step,  source_ref )
+                step = buildNode( provider, node.slice.step, source_ref )
 
-                return Nodes.CPythonAssignSubscript(
+                return Nodes.CPythonAssignTargetSubscript(
                     expression = buildNode( provider, node.value, source_ref ),
                     subscript  = Nodes.CPythonExpressionSliceObject(
                         lower      = lower,
@@ -384,22 +398,22 @@ def buildAssignTarget( provider, node, source_ref ):
                     source_ref = source_ref
                 )
             else:
-                return Nodes.CPythonAssignSlice(
+                return Nodes.CPythonAssignTargetSlice(
                     expression = buildNode( provider, node.value, source_ref ),
                     lower      = lower,
                     upper      = upper,
                     source_ref = source_ref
                 )
         elif slice_kind == "ExtSlice":
-            return Nodes.CPythonAssignSubscript(
+            return Nodes.CPythonAssignTargetSubscript(
                 expression = buildNode( provider, node.value, source_ref ),
                 subscript  = _buildExtSliceNode( provider, node, source_ref ),
                 source_ref = source_ref
             )
         elif slice_kind == "Ellipsis":
-            return Nodes.CPythonAssignSubscript(
+            return Nodes.CPythonAssignTargetSubscript(
                 expression = buildNode( provider, node.value, source_ref ),
-                subscript  = Nodes.CPythonExpressionConstant(
+                subscript  = Nodes.CPythonExpressionConstantRef(
                     constant   = Ellipsis,
                     source_ref = source_ref
                 ),
@@ -451,14 +465,24 @@ def buildQuals( provider, result, quals, source_ref ):
         targets.append( target )
 
         if qual.ifs:
-            conditions = [ buildNode( provider = result, node = condition, source_ref = source_ref ) for condition in qual.ifs ]
+            conditions = [
+                buildNode( provider = result, node = condition, source_ref = source_ref )
+                for condition in
+                qual.ifs
+            ]
 
             if len( conditions ) == 1:
                 condition = conditions[ 0 ]
             else:
-                condition = Nodes.CPythonExpressionAND( expressions = conditions, source_ref = source_ref )
+                condition = Nodes.CPythonExpressionBoolAnd(
+                    expressions = conditions,
+                    source_ref  = source_ref
+                )
         else:
-            condition = Nodes.CPythonExpressionConstant( constant = True, source_ref = source_ref )
+            condition = Nodes.CPythonExpressionConstantRef(
+                constant   = True,
+                source_ref = source_ref
+            )
 
         # Different for list contractions and generator expressions
         source = qual.iter
@@ -468,7 +492,9 @@ def buildQuals( provider, result, quals, source_ref ):
         else:
             source_provider = result
 
-        qual_sources.append( buildNode( provider = source_provider, node = source, source_ref = source_ref ) )
+        qual_sources.append(
+            buildNode( provider = source_provider, node = source, source_ref = source_ref )
+        )
         qual_conditions.append( condition )
 
     result.setTargets( targets )
@@ -569,7 +595,7 @@ def buildDictContractionNode( provider, node, source_ref ):
 def buildGeneratorExpressionNode( provider, node, source_ref ):
     assert getKind( node ) == "GeneratorExp"
 
-    result = Nodes.CPythonGeneratorExpression(
+    result = Nodes.CPythonExpressionGenerator(
         provider   = provider,
         source_ref = source_ref
     )
@@ -604,7 +630,7 @@ def buildComparisonNode( provider, node, source_ref ):
         comparison.append( getKind( comparator ) )
         comparison.append( buildNode( provider, operand, source_ref ) )
 
-    return Nodes.CPythonComparison(
+    return Nodes.CPythonExpressionComparison(
         comparison = comparison,
         source_ref = source_ref
     )
@@ -633,17 +659,22 @@ def buildTryExceptionNode( provider, node, source_ref ):
     for handler in node.handlers:
         exception_expression, exception_assign, exception_block = handler.type, handler.name, handler.body
 
-        catchers.append( buildNode( provider, exception_expression, source_ref ) if exception_expression is not None else None )
-        assigns.append( buildAssignTarget( provider, exception_assign, source_ref ) if exception_assign is not None else None )
-
-        catcheds.append( buildStatementsNode( provider, exception_block, source_ref ) )
+        catchers.append(
+            buildNode( provider, exception_expression, source_ref, True )
+        )
+        assigns.append(
+            buildAssignTarget( provider, exception_assign, source_ref, True )
+        )
+        catcheds.append(
+            buildStatementsNode( provider, exception_block, source_ref )
+        )
 
     return Nodes.CPythonStatementTryExcept(
         tried      = buildStatementsNode( provider, node.body, source_ref ),
         catchers   = catchers,
         assigns    = assigns,
         catcheds   = catcheds,
-        no_raise   = buildStatementsNode( provider, node.orelse, source_ref ) if node.orelse else None,
+        no_raise   = buildStatementsNode( provider, node.orelse, source_ref, True ),
         source_ref = source_ref
     )
 
@@ -656,16 +687,16 @@ def buildTryFinallyNode( provider, node, source_ref ):
 
 def buildRaiseNode( provider, node, source_ref ):
     return Nodes.CPythonStatementRaiseException(
-        exception_type  = buildNode( provider, node.type, source_ref ) if node.type is not None else None,
-        exception_value = buildNode( provider, node.inst, source_ref ) if node.inst is not None else None,
-        exception_trace = buildNode( provider, node.tback, source_ref ) if node.tback is not None else None,
+        exception_type  = buildNode( provider, node.type, source_ref, True ),
+        exception_value = buildNode( provider, node.inst, source_ref, True ),
+        exception_trace = buildNode( provider, node.tback, source_ref, True ),
         source_ref      = source_ref
     )
 
 def buildAssertNode( provider, node, source_ref ):
     return Nodes.CPythonStatementAssert(
         expression = buildNode( provider, node.test, source_ref ),
-        failure    = buildNode( provider, node.msg, source_ref ) if node.msg is not None else None,
+        failure    = buildNode( provider, node.msg, source_ref, True ),
         source_ref = source_ref
     )
 
@@ -677,9 +708,9 @@ def _buildExtSliceNode( provider, node, source_ref ):
         dim_kind = getKind( dim )
 
         if dim_kind == "Slice":
-            lower = buildNode( provider, dim.lower, source_ref ) if dim.lower is not None else None
-            upper = buildNode( provider, dim.upper, source_ref ) if dim.upper is not None else None
-            step = buildNode( provider, dim.step,  source_ref ) if dim.step is not None else None
+            lower = buildNode( provider, dim.lower, source_ref, True )
+            upper = buildNode( provider, dim.upper, source_ref, True )
+            step = buildNode( provider, dim.step, source_ref, True )
 
             element = Nodes.CPythonExpressionSliceObject(
                 lower      = lower,
@@ -688,7 +719,7 @@ def _buildExtSliceNode( provider, node, source_ref ):
                 source_ref = source_ref
             )
         elif dim_kind == "Ellipsis":
-            element = Nodes.CPythonExpressionConstant(
+            element = Nodes.CPythonExpressionConstantRef(
                 constant   = Ellipsis,
                 source_ref = source_ref
             )
@@ -703,7 +734,7 @@ def _buildExtSliceNode( provider, node, source_ref ):
 
         elements.append( element )
 
-    return Nodes.CPythonExpressionSequenceCreation(
+    return Nodes.CPythonExpressionMakeSequence(
         sequence_kind = "TUPLE",
         elements      = elements,
         source_ref    = source_ref
@@ -730,8 +761,8 @@ def buildSubscriptNode( provider, node, source_ref ):
             source_ref = source_ref
         )
     elif kind == "Slice":
-        lower = buildNode( provider, node.slice.lower, source_ref ) if node.slice.lower is not None else None
-        upper = buildNode( provider, node.slice.upper, source_ref ) if node.slice.upper is not None else None
+        lower = buildNode( provider, node.slice.lower, source_ref, True )
+        upper = buildNode( provider, node.slice.upper, source_ref, True )
 
         if node.slice.step is not None:
             step = buildNode( provider, node.slice.step,  source_ref )
@@ -747,7 +778,7 @@ def buildSubscriptNode( provider, node, source_ref ):
                 source_ref = source_ref
             )
         else:
-            return Nodes.CPythonExpressionSlice(
+            return Nodes.CPythonExpressionSliceLookup(
                 expression = buildNode( provider, node.value, source_ref ),
                 lower      = lower,
                 upper      = upper,
@@ -762,7 +793,7 @@ def buildSubscriptNode( provider, node, source_ref ):
     elif kind == "Ellipsis":
         return Nodes.CPythonExpressionSubscriptionLookup(
             expression = buildNode( provider, node.value, source_ref ),
-            subscript  = Nodes.CPythonExpressionConstant(
+            subscript  = Nodes.CPythonExpressionConstantRef(
                     constant   = Ellipsis,
                     source_ref = source_ref
             ),
@@ -771,51 +802,45 @@ def buildSubscriptNode( provider, node, source_ref ):
     else:
         assert False, kind
 
-def _buildImportModulesNode( provider, parent_package, import_names, source_ref ):
-    import_specs = []
+def _buildImportModulesNode( provider, import_names, source_ref ):
+    import_nodes = []
 
     for import_desc in import_names:
         module_name, local_name = import_desc
 
         module_topname = module_name.split(".")[0]
-        module_basename =  module_name.split(".")[-1]
 
-        module_package, module_name, module_filename = Importing.findModule(
-            module_name    = module_name,
-            parent_package = parent_package
-        )
-
+        # If a name was given, use the one provided, otherwise the import gives the top
+        # level package name given for assignment of the imported module.
         variable = provider.getVariableForAssignment(
             local_name if local_name is not None else module_topname
         )
 
-        if local_name is not None:
-            import_name = module_name
-        elif parent_package is not None and module_package is not None and module_package.startswith( parent_package ) and not module_name.startswith( module_package ):
-            import_name = module_package + "." + module_topname
-        else:
-            import_name = module_topname
-
-        import_spec = ImportSpec(
-            module_package  = module_package,
-            module_name     = module_basename,
-            import_name     = import_name,
-            variable        = variable,
-            module_filename = module_filename,
+        import_nodes.append(
+            Nodes.CPythonStatementImportExternal(
+                target      = Nodes.CPythonAssignTargetVariable(
+                    variable   = variable,
+                    source_ref = source_ref
+                ),
+                module_name = module_name,
+                import_name = module_name if local_name else module_topname,
+                source_ref  = source_ref
+            )
         )
 
-        import_specs.append( import_spec )
-
-    return Nodes.CPythonStatementImportModules(
-        import_specs = import_specs,
-        source_ref   = source_ref
+    return Nodes.CPythonStatementsSequence(
+        statements  = import_nodes,
+        source_ref  = source_ref
     )
 
 def buildImportModulesNode( provider, node, source_ref ):
     return _buildImportModulesNode(
         provider       = provider,
-        parent_package = provider.getParentModule().getPackage(),
-        import_names   = [ ( import_desc.name, import_desc.asname ) for import_desc in node.names ],
+        import_names   = [
+            ( import_desc.name, import_desc.asname )
+            for import_desc in
+            node.names
+        ],
         source_ref     = source_ref
     )
 
@@ -842,56 +867,59 @@ def buildImportFromNode( provider, node, source_ref ):
             else:
                 warning( "Ignoring unkown future directive '%s'" % object_name )
     elif module_name == "":
-        if parent_package is not None:
-            return _buildImportModulesNode(
-                provider       = provider,
-                parent_package = None,
-                import_names   = [
-                    ( parent_package + "." +  import_desc.name, import_desc.asname )
-                    for import_desc
-                    in node.names
-                ],
-                source_ref     = source_ref
-            )
-        else:
-            return _buildImportModulesNode(
-                provider       = provider,
-                parent_package = None,
-                import_names   = [ ( import_desc.name, import_desc.asname ) for import_desc in node.names ],
-                source_ref     = source_ref
-            )
+        return _buildImportModulesNode(
+            provider       = provider,
+            import_names   = [
+                ( import_desc.name, import_desc.asname )
+                for import_desc in
+                node.names
+            ],
+            source_ref     = source_ref
+        )
 
+    targets = []
     imports = []
 
     for import_desc in node.names:
         object_name, local_name = import_desc.name, import_desc.asname
 
         if object_name == "*":
-            variable = None
+            target = None
         else:
-            variable = provider.getVariableForAssignment(
-                variable_name = local_name if local_name is not None else object_name
+            target = Nodes.CPythonAssignTargetVariable(
+                variable   = provider.getVariableForAssignment(
+                    variable_name = local_name if local_name is not None else object_name
+                ),
+                source_ref = source_ref
             )
 
-        imports.append( ( object_name, variable ) )
 
-    module_package, module_name, module_filename = Importing.findModule(
+        targets.append( target )
+        imports.append( object_name )
+
+    _module_package, module_name, module_filename = Importing.findModule(
         module_name    = module_name,
         parent_package = parent_package
     )
 
-    return Nodes.CPythonStatementImportFrom(
-        provider        = provider,
-        module_name     = module_name,
-        module_package  = module_package,
-        module_filename = module_filename,
-        imports         = imports,
-        source_ref      = source_ref
-    )
+    if None in targets:
+        return Nodes.CPythonStatementImportStarExternal(
+            provider        = provider,
+            module_name     = module_name,
+            module_filename = module_filename,
+            source_ref      = source_ref
+        )
+    else:
+        return Nodes.CPythonStatementImportFromExternal(
+            targets         = targets,
+            module_name     = module_name,
+            imports         = imports,
+            source_ref      = source_ref
+        )
 
 def buildPrintNode( provider, node, source_ref ):
     values = buildNodeList( provider, node.values, source_ref )
-    dest = buildNode( provider, node.dest, source_ref ) if node.dest is not None else None
+    dest = buildNode( provider, node.dest, source_ref, True )
 
     return Nodes.CPythonStatementPrint(
         newline    = node.nl,
@@ -914,8 +942,8 @@ def buildExecNode( provider, node, source_ref ):
         if len( parts ) > 2:
             exec_locals = parts[2]
 
-    globals_node = buildNode( provider, exec_globals, source_ref ) if exec_globals is not None else None
-    locals_node = buildNode( provider, exec_locals, source_ref ) if exec_locals is not None else None
+    globals_node = buildNode( provider, exec_globals, source_ref, True )
+    locals_node = buildNode( provider, exec_locals, source_ref, True )
 
     if locals_node is not None and locals_node.isConstantReference() and locals_node.getConstant() is None:
         locals_node = None
@@ -933,14 +961,18 @@ def buildExecNode( provider, node, source_ref ):
 def buildWithNode( provider, node, source_ref ):
     return Nodes.CPythonStatementWith(
         source     = buildNode( provider, node.context_expr, source_ref ),
-        target     = buildAssignTarget( provider, node.optional_vars, source_ref ) if node.optional_vars else None,
+        target     = buildAssignTarget( provider, node.optional_vars, source_ref, True ),
         body       = buildStatementsNode( provider, node.body, source_ref ),
         source_ref = source_ref
     )
 
 def buildNodeList( provider, nodes, source_ref ):
     if nodes is not None:
-        return [ buildNode( provider, node, source_ref.atLineNumber( node.lineno ) ) for node in nodes ]
+        return [
+            buildNode( provider, node, source_ref.atLineNumber( node.lineno ) )
+            for node in
+            nodes
+        ]
     else:
         return []
 
@@ -960,7 +992,7 @@ def buildGlobalDeclarationNode( provider, node, source_ref ):
     for variable_name in node.names:
         provider.getModuleClosureVariable( variable_name = variable_name )
 
-    return Nodes.CPythonDeclareGlobal(
+    return Nodes.CPythonStatementDeclareGlobal(
         variables  = node.names,
         source_ref = source_ref
     )
@@ -1003,14 +1035,16 @@ class TransitiveProvider:
         return self.effective_provider.getParentModule()
 
     def createProvidedVariable( self, variable_name ):
-        return self.effective_provider.createProvidedVariable( variable_name = variable_name )
+        return self.effective_provider.createProvidedVariable(
+            variable_name = variable_name
+        )
 
 _sources = {}
 
 def buildStringNode( node, source_ref ):
     assert type( node.s ) in ( str, unicode )
 
-    return Nodes.CPythonExpressionConstant(
+    return Nodes.CPythonExpressionConstantRef(
         constant   = node.s,
         source_ref = source_ref
     )
@@ -1019,17 +1053,17 @@ def buildBoolOpNode( provider, node, source_ref ):
     bool_op = getKind( node.op )
 
     if bool_op == "Or":
-        return Nodes.CPythonExpressionOR(
+        return Nodes.CPythonExpressionBoolOr(
             expressions = buildNodeList( provider, node.values, source_ref ),
             source_ref  = source_ref
         )
     elif bool_op == "And":
-        return Nodes.CPythonExpressionAND(
+        return Nodes.CPythonExpressionBoolAnd(
             expressions = buildNodeList( provider, node.values, source_ref ),
             source_ref  = source_ref
         )
     elif bool_op == "Not":
-        return Nodes.CPythonExpressionNOT(
+        return Nodes.CPythonExpressionBoolNot(
             expression = buildNode( provider, node.operand, source_ref ),
             source_ref = source_ref
         )
@@ -1074,7 +1108,11 @@ _fastpath = {
     "Subscript"    : buildSubscriptNode,
     "BoolOp"       : buildBoolOpNode,
 }
-def buildNode( provider, node, source_ref ):
+
+def buildNode( provider, node, source_ref, allow_none = False ):
+    if node is None and allow_none:
+        return None
+
     try:
         kind = getKind( node )
 
@@ -1094,14 +1132,14 @@ def buildNode( provider, node, source_ref ):
             )
         elif kind == "Return":
             result = Nodes.CPythonStatementReturn(
-                expression = buildNode( provider, node.value, source_ref ) if node.value is not None else None,
+                expression = buildNode( provider, node.value, source_ref, True ),
                 source_ref = source_ref
             )
         elif kind == "Yield":
             provider.markAsGenerator()
 
             result = Nodes.CPythonExpressionYield(
-                expression = buildNode( provider, node.value, source_ref ) if node.value is not None else None,
+                expression = buildNode( provider, node.value, source_ref, True ),
                 source_ref = source_ref
             )
         elif kind == "Continue":
@@ -1168,12 +1206,12 @@ def buildNode( provider, node, source_ref ):
             )
         elif kind == "Name":
             if node.id in _quick_names:
-                result = Nodes.CPythonExpressionConstant(
+                result = Nodes.CPythonExpressionConstantRef(
                     constant   = _quick_names[ node.id ],
                     source_ref = source_ref
                 )
             else:
-                result = Nodes.CPythonExpressionVariable(
+                result = Nodes.CPythonExpressionVariableRef(
                     variable_name = node.id,
                     source_ref    = source_ref
                 )
@@ -1188,7 +1226,7 @@ def buildNode( provider, node, source_ref ):
         elif kind == "Num":
             assert type( node.n ) in ( int, long, float, complex ), type( node.n )
 
-            result = Nodes.CPythonExpressionConstant(
+            result = Nodes.CPythonExpressionConstantRef(
                 constant   = node.n,
                 source_ref = source_ref
             )
@@ -1307,6 +1345,3 @@ def buildModuleTree( filename, package = None ):
     TreeOperations.assignParent( result )
 
     return result
-
-def buildPackageTree():
-    pass

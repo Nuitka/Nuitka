@@ -161,7 +161,7 @@ def generateContractionCode( contraction, context ):
 
     for count, loop_var_assign in enumerate( contraction.getLoopVariableAssignments() ):
         loop_var_code = generateAssignmentCode(
-            targets   = [ loop_var_assign ],
+            targets   = loop_var_assign,
             value     = Generator.getContractionIterValueIdentifier(
                 index   = count + 1,
                 context = context
@@ -385,10 +385,10 @@ def generateFunctionCode( function, context ):
         context        = context
     )
 
-    return Generator.getAssignmentCode(
-        variable   = function.getTargetVariable(),
-        identifier = function_creation_identifier,
-        context    = context
+    return generateAssignmentCode(
+        targets = function.getTarget(),
+        value   = function_creation_identifier,
+        context = context
     )
 
 def generateClassBodyCode( class_def, context ):
@@ -442,12 +442,11 @@ def generateClassCode( class_def, context ):
         class_codes   = class_codes,
     )
 
-    return Generator.getAssignmentCode(
-        variable   = class_def.getTargetVariable(),
-        identifier = class_creation_identifier,
-        context    = context
+    return generateAssignmentCode(
+        targets = class_def.getTarget(),
+        value   = class_creation_identifier,
+        context = context
     )
-
 
 def generateOperationCode( operator, operands, context ):
     return Generator.getOperationCode(
@@ -562,8 +561,16 @@ def generateFunctionCallCode( function, context ):
 
     named_arguments = function.getNamedArguments()
 
+    # TODO: This should be moved to optimization stage.
     kw_identifier = generateDictionaryCreationCode(
-        keys      = [ Nodes.CPythonExpressionConstant( named_arg_desc[0], source_ref = function.getSourceReference() ) for named_arg_desc in named_arguments ],
+        keys      = [
+            Nodes.CPythonExpressionConstantRef(
+                constant   = named_arg_desc[0],
+                source_ref = function.getSourceReference()
+            )
+            for named_arg_desc in
+            named_arguments
+        ],
         values    = [ named_arg_desc[1] for named_arg_desc in named_arguments ],
         context   = context
     )
@@ -833,9 +840,9 @@ def generateExpressionCode( expression, context, allow_none = False ):
                 )
             )
     elif expression.isBuiltinImport():
-        identifier = Generator.getBuiltinImportCode(
-            module_name = expression.getModuleName(),
-            context     = context
+        identifier = generateImportBuiltinCode(
+            expression = expression,
+            context    = context
         )
     elif expression.isBuiltinChr():
         identifier = Generator.getBuiltinChrCode(
@@ -872,6 +879,9 @@ def generateExpressionCode( expression, context, allow_none = False ):
 def generateAssignmentCode( targets, value, context, recursion = 1 ):
     # This is a dispatching function with a branch per assignment node type.
     # pylint: disable=R0912
+
+    if type( targets ) not in ( tuple, list ) and targets.isAssignToSomething():
+        targets = [ targets ]
 
     if len( targets ) == 1 and not targets[0].isAssignToTuple():
         assign_source = value
@@ -963,7 +973,7 @@ def generateAssignmentCode( targets, value, context, recursion = 1 ):
 
             for count, element in enumerate( elements ):
                 code += generateAssignmentCode(
-                    targets   = [ element ],
+                    targets   = element,
                     value     = lvalue_identifiers[ count ],
                     context   = context,
                     recursion = recursion + 1
@@ -1126,7 +1136,7 @@ def generateTryExceptCode( statement, context ):
         if assign is not None:
             exception_assignments.append(
                 generateAssignmentCode(
-                    targets   = [ assign ],
+                    targets   = assign,
                     value     = Generator.getCurrentExceptionObjectCode(),
                     context   = context
                 )
@@ -1219,6 +1229,96 @@ def generateRaiseCode( statement, context ):
     else:
         assert False, parameters
 
+
+def generateImportBuiltinCode( expression, context ):
+    return Generator.getImportModuleCode(
+        context     = context,
+        module_name = expression.getModuleName(),
+        import_name = expression.getImportName()
+    )
+
+def generateImportExternalCode( statement, context ):
+    return generateAssignmentCode(
+        targets = statement.getTarget(),
+        value   = generateImportBuiltinCode(
+            expression = statement,
+            context    = context
+        ),
+        context = context
+    )
+
+def generateImportEmbeddedCode( statement, context ):
+    return generateAssignmentCode(
+        targets = statement.getTarget(),
+        value   = Generator.getImportEmbeddedCode(
+            module_name = statement.getModuleName(),
+            import_name = statement.getImportName(),
+            context     = context
+        ),
+        context = context
+    )
+
+def generateImportStarCode( statement, context ):
+    return Generator.getImportFromStarCode(
+        module_name = statement.getModuleName(),
+        context     = context
+    )
+
+
+def _generateImportFromLookupCode( statement, context ):
+    module_temp = Generator.getImportFromModuleTempIdentifier()
+
+    lookup_code = ""
+
+    for object_name, target in zip( statement.getImports(), statement.getTargets() ):
+        assert object_name != "*"
+
+        lookup_code += generateAssignmentCode(
+            targets = target,
+            value   = Generator.getAttributeLookupCode(
+                source    = module_temp,
+                attribute =  context.getConstantHandle(
+                    constant = object_name
+                )
+            ),
+            context = context
+        )
+
+    return lookup_code
+
+
+def generateImportFromExternalCode( statement, context ):
+    lookup_code = _generateImportFromLookupCode(
+        statement = statement,
+        context   = context
+    )
+
+    return Generator.getImportFromCode(
+        module_name    = statement.getModuleName(),
+        lookup_code    = lookup_code,
+        import_list    = statement.getImports(),
+        embedded       = (),
+        context        = context,
+    )
+
+
+def generateImportFromEmbeddedCode( statement, context ):
+    lookup_code = _generateImportFromLookupCode(
+        statement = statement,
+        context   = context
+    )
+
+    return Generator.getImportFromCode(
+        module_name    = statement.getModuleName(),
+        lookup_code    = lookup_code,
+        import_list    = statement.getImports(),
+        embedded       = [
+            sub_module.getFullName()
+            for sub_module in
+            statement.getSubModules()
+        ],
+        context        = context,
+    )
 
 def generateStatementCode( statement, context ):
     try:
@@ -1367,7 +1467,7 @@ def _generateStatementCode( statement, context ):
 
         if statement.getTarget() is not None:
             assign_codes = generateAssignmentCode(
-                targets    = [ statement.getTarget() ],
+                targets    = statement.getTarget(),
                 value      = with_value_identifier,
                 context    = context
             )
@@ -1390,7 +1490,7 @@ def _generateStatementCode( statement, context ):
         )
 
         assignment_code = generateAssignmentCode(
-            targets   = [ statement.getLoopVariableAssignment() ],
+            targets   = statement.getLoopVariableAssignment(),
             value     = iter_object,
             context   = context
         )
@@ -1462,19 +1562,37 @@ def _generateStatementCode( statement, context ):
             branches_codes = branches_codes
         )
     elif statement.isStatementContinue():
-        code = Generator.getLoopContinueCode( statement.needsExceptionBreakContinue() )
-    elif statement.isStatementBreak():
-        code = Generator.getLoopBreakCode( statement.needsExceptionBreakContinue() )
-    elif statement.isStatementImportModule():
-        code = Generator.getImportModulesCode(
-            context      = context,
-            import_specs = statement.getImports()
+        code = Generator.getLoopContinueCode(
+            needs_exceptions = statement.needsExceptionBreakContinue()
         )
-    elif statement.isStatementImportFrom():
-        code = Generator.getImportFromCode(
-            module_name = statement.getModuleName(),
-            imports     = statement.getImports(),
-            context     = context,
+    elif statement.isStatementBreak():
+        code = Generator.getLoopBreakCode(
+            needs_exceptions = statement.needsExceptionBreakContinue()
+        )
+    elif statement.isStatementImportExternal():
+        return generateImportExternalCode(
+            statement = statement,
+            context   = context
+        )
+    elif statement.isStatementImportEmbedded():
+        return generateImportEmbeddedCode(
+            statement = statement,
+            context   = context
+        )
+    elif statement.isStatementImportFromExternal():
+        return generateImportFromExternalCode(
+            statement = statement,
+            context   = context
+        )
+    elif statement.isStatementImportFromEmbedded():
+        return generateImportFromEmbeddedCode(
+            statement = statement,
+            context   = context
+        )
+    elif statement.isStatementImportStarExternal():
+        return generateImportStarCode(
+            statement = statement,
+            context   = context
         )
     elif statement.isStatementTryFinally():
         code = Generator.getTryFinallyCode(
@@ -1589,9 +1707,14 @@ def generateModuleCode( module, module_name, global_context, stand_alone ):
 
     return Generator.getModuleCode(
         module_name         = module_name,
+        package_name        = module.getPackage(),
         stand_alone         = stand_alone,
-        doc_identifier      = context.getConstantHandle( constant = module.getDoc() ),
-        filename_identifier = context.getConstantHandle( constant = module.getFilename() ),
+        doc_identifier      = context.getConstantHandle(
+            constant = module.getDoc()
+        ),
+        filename_identifier = context.getConstantHandle(
+            constant = module.getFilename()
+        ),
         codes               = codes,
         context             = context,
     )

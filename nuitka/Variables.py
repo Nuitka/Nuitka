@@ -53,11 +53,14 @@ class Variable:
     def addReference( self, reference ):
         self.references.append( reference )
 
+    def getReferences( self ):
+        return self.references
+
+    def getReferenced( self ):
+        return None
+
     # pylint: disable=R0201
     def isLocalVariable( self ):
-        return False
-
-    def isLocalLoopVariable( self ):
         return False
 
     def isClassVariable( self ):
@@ -70,6 +73,9 @@ class Variable:
         return False
 
     def isClosureReference( self ):
+        return False
+
+    def isModuleVariableReference( self ):
         return False
 
     def isModuleVariable( self ):
@@ -103,30 +109,120 @@ class Variable:
 
         return self._checkShared( variable )
 
+    ReferenceClass = None
 
-class ParameterVariable( Variable ):
-    def __init__( self, owner, parameter_name ):
-        Variable.__init__( self, owner, variable_name = parameter_name )
+    def makeReference( self, owner ):
+        assert self.ReferenceClass, self.__class__
+
+        return self.ReferenceClass(
+            owner    = owner,
+            variable = self
+        )
+
+
+class VariableReferenceBase( Variable ):
+    def __init__( self, owner, variable ):
+        Variable.__init__(
+            self,
+            owner         = owner,
+            variable_name = variable.getName()
+        )
+
+        self.ReferenceClass = variable.ReferenceClass
+
+        variable.addReference( self )
+        self.variable = variable
 
     def __repr__( self ):
-        return "<ParameterVariable %s>" % self.getName()
+        return "<%s to %s>" % ( self.__class__.__name__, self.variable )
+
+    def getReferenced( self ):
+        return self.variable
+
+    # Compare like the referenced variable.
+    def __cmp__( self, other ):
+        return cmp( self.getReferenced(), other.getReferenced() )
+
+    def __hash__( self ):
+        return hash( self.getReferenced() )
+
+class ClosureVariableReference( VariableReferenceBase ):
+    def __init__( self, owner, variable ):
+        assert not variable.isModuleVariable()
+
+        VariableReferenceBase.__init__(
+            self,
+            owner    = owner,
+            variable = variable
+        )
+
+    def isClosureReference( self ):
+        return True
+
+class ModuleVariableReference( VariableReferenceBase ):
+    def __init__( self, owner, variable ):
+
+        # Module variable access are direct pass-through, so de-reference them if
+        # possible.
+        if variable.isModuleVariableReference():
+            variable = variable.getReferenced()
+
+        assert variable.isModuleVariable()
+
+        VariableReferenceBase.__init__(
+            self,
+            owner    = owner,
+            variable = variable
+        )
+
+
+    def isModuleVariableReference( self ):
+        return True
+
+    def isModuleVariable( self ):
+        return True
+
+
+class LocalVariable( Variable ):
+    ReferenceClass = ClosureVariableReference
+
+    def __init__( self, owner, variable_name ):
+        Variable.__init__(
+            self,
+            owner         = owner,
+            variable_name = variable_name
+        )
+
+    def __repr__( self ):
+        return "<%s '%s' of '%s'>" % (
+            self.__class__.__name__,
+            self.variable_name,
+            self.owner.getName()
+        )
 
     def isLocalVariable( self ):
         return True
+
+class ParameterVariable( LocalVariable ):
+    def __init__( self, owner, parameter_name ):
+        LocalVariable.__init__(
+            self,
+            owner         = owner,
+            variable_name = parameter_name
+        )
 
     def isParameterVariable( self ):
         return True
 
-class NestedParameterVariable( Variable ):
+class NestedParameterVariable( ParameterVariable ):
     def __init__( self, owner, parameter_name, parameter_spec ):
-        Variable.__init__( self, owner, variable_name = parameter_name )
+        ParameterVariable.__init__(
+            self,
+            owner          = owner,
+            parameter_name = parameter_name
+        )
+
         self.parameter_spec = parameter_spec
-
-    def __repr__( self ):
-        return "<NestedParameterVariable %s>" % self.getName()
-
-    def isLocalVariable( self ):
-        return True
 
     def isNestedParameterVariable( self ):
         return True
@@ -144,42 +240,36 @@ class NestedParameterVariable( Variable ):
         return self.parameter_spec.getParameterNames()
 
 def makeParameterVariables( owner, parameter_names ):
-    return [ ParameterVariable( owner = owner, parameter_name = parameter_name ) for parameter_name in parameter_names ]
+    return [
+        ParameterVariable( owner = owner, parameter_name = parameter_name )
+        for parameter_name in
+        parameter_names
+    ]
 
 class ClassVariable( Variable ):
+    ReferenceClass = ClosureVariableReference
+
     def __init__( self, owner, variable_name ):
-        Variable.__init__( self, owner = owner, variable_name = variable_name )
+        Variable.__init__(
+            self,
+            owner         = owner,
+            variable_name = variable_name
+        )
 
     def __repr__( self ):
-        return "<ClassVariable '%s' of '%s'>" % ( self.variable_name, self.owner.getName() )
+        return "<ClassVariable '%s' of '%s'>" % (
+            self.variable_name,
+            self.owner.getName()
+        )
 
     def isClassVariable( self ):
-        return True
-
-
-class LocalVariable( Variable ):
-    def __init__( self, owner, variable_name ):
-        Variable.__init__( self, owner = owner, variable_name = variable_name )
-
-    def __repr__( self ):
-        return "<LocalVariable '%s' of '%s'>" % ( self.variable_name, self.owner.getName() )
-
-    def isLocalVariable( self ):
-        return True
-
-class LocalLoopVariable( LocalVariable ):
-    def __init__( self, owner, variable_name ):
-        LocalVariable.__init__( self, owner = owner, variable_name = variable_name )
-
-    def __repr__( self ):
-        return "<LocalLoopVariable '%s' of '%s'>" % ( self.variable_name, self.owner.getName() )
-
-    def isLocalLoopVariable( self ):
         return True
 
 _module_variables = {}
 
 class ModuleVariable( Variable ):
+    ReferenceClass = ModuleVariableReference
+
     def __init__( self, module, variable_name ):
         assert type( variable_name ) is str
 
@@ -192,7 +282,10 @@ class ModuleVariable( Variable ):
         _module_variables[ key ] = self
 
     def __repr__( self ):
-        return "<ModuleVariable '%s' of '%s'>" % ( self.variable_name, self.getModuleName() )
+        return "<ModuleVariable '%s' of '%s'>" % (
+            self.variable_name,
+            self.getModuleName()
+        )
 
     def _getKey( self ):
         return self.getModuleName(), self.getName()
@@ -200,33 +293,14 @@ class ModuleVariable( Variable ):
     def isModuleVariable( self ):
         return True
 
+    def getModule( self ):
+        return self.module
+
     def getModuleName( self ):
         return self.module.getFullName()
 
     def _checkShared( self, variable ):
         assert False, variable
-
-class ClosureVariableReference( Variable ):
-    def __init__( self, owner, variable ):
-        Variable.__init__( self, owner = owner, variable_name = variable.getName() )
-
-        variable.addReference( self )
-        self.variable = variable
-
-    def getReferenced( self ):
-        return self.variable
-
-    def isClosureReference( self ):
-        return True
-
-    def __repr__( self ):
-        return "<ClosureVariableReference to %s>" % self.variable
-
-    def __cmp__( self, other ):
-        return cmp( self.getReferenced(), other.getReferenced() )
-
-    def __hash__( self ):
-        return hash( self.getReferenced() )
 
 def getNames( variables ):
     return [ variable.getName() for variable in variables ]

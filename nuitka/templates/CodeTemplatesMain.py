@@ -42,8 +42,10 @@ static struct _inittab _module_inittab[] =
     { NULL, NULL }
 };
 
-bool FIND_EMBEDDED_MODULE( char const *name )
+bool FIND_EMBEDDED_MODULE( PyObject *module_name )
 {
+    char *name = PyString_AsString( module_name );
+
     struct _inittab *current = _module_inittab;
 
     while ( current->name != NULL )
@@ -125,8 +127,24 @@ PyObject *_module_%(module_identifier)s;
 // The exported interface to CPython. On import of the module, this function gets
 // called. It has have that exact function name.
 
+#ifdef _NUITKA_EXE
+static bool init_done = false;
+#endif
+
 NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 {
+#ifdef _NUITKA_EXE
+    // Packages can be imported recursively in deep executables.
+    if (init_done)
+    {
+        return;
+    }
+    else
+    {
+        init_done = true;
+    }
+#endif
+
 #ifdef _NUITKA_MODULE
     // In case of a stand alone extension module, need to call initialization the init here
     // because that's how we are going to get called here.
@@ -141,6 +159,11 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 #endif
 
     // puts( "in init%(module_identifier)s" );
+
+#ifdef _NUITKA_MODULE
+    // Remember it here, Py_InitModule4 will clear it.
+    char const *qualified_name = _Py_PackageContext;
+#endif
 
     // Create the module object first. There are no methods initially, all are added
     // dynamically in actual code only.  Also no __doc__ is initially set, as it could not
@@ -195,16 +218,37 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 
 module_plain_init_template = """\
     _mvar_%(module_identifier)s___doc__.assign0( %(doc_identifier)s );
-    _mvar_%(module_identifier)s___file__.assign0( %(filename_identifier)s );"""
+    _mvar_%(module_identifier)s___file__.assign0( %(filename_identifier)s );
+
+#ifdef _NUITKA_MODULE
+    // Set the package attribute from what the import mechanism provided. The package
+    // variable should be set for the module code already.
+    if ( qualified_name )
+    {
+        _mvar_%(module_identifier)s___package__.assign0(
+            PyString_FromStringAndSize(
+               qualified_name,
+               strrchr( qualified_name, '.' ) -  qualified_name
+            )
+        );
+    }
+#endif"""
 
 module_package_init_template = """\
     _mvar_%(module_identifier)s___doc__.assign0( %(doc_identifier)s );
     _mvar_%(module_identifier)s___file__.assign0( %(filename_identifier)s );
     _mvar_%(module_identifier)s___package__.assign0( %(package_name_identifier)s );
 
+#ifdef _NUITKA_EXE
     init%(package_identifier)s();
 
-    SET_ATTRIBUTE( _module_%(package_identifier)s, %(module_name)s, _module_%(module_identifier)s );"""
+    SET_ATTRIBUTE(
+        _module_%(package_identifier)s,
+        %(module_name)s,
+        _module_%(module_identifier)s
+    );
+#endif
+"""
 
 package_init_template = """\
     _mvar_%(package_identifier)s___file__.assign0( %(filename_identifier)s );"""

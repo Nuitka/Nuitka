@@ -42,19 +42,16 @@ execute_tests()
 
     export NUITKA_EXTRA_OPTIONS="$3 --output-dir=$TMP_DIR"
 
-    echo "Running the basic tests in debug mode with $PYTHON:"
-     ./tests/basics/run_all.sh search
+    echo "Running the basic tests with options '$3' with $PYTHON:"
+    ./tests/basics/run_all.sh search
 
-    echo "Running the program tests in debug mode with $PYTHON:"
+    echo "Running the program tests with options '$3' with $PYTHON:"
     ./tests/programs/run_all.sh search
 
-    echo "Running the reflection test (compiling itself) in debug mode with $PYTHON:"
-    ./tests/reflected/compile_itself.sh search
-
-    echo "Running the CPython 2.6 tests in debug mode with $PYTHON:"
+    echo "Running the CPython 2.6 tests with options '$3' with $PYTHON:"
     ./tests/CPython/run_all.sh search
 
-    echo "Running the CPython 2.7 tests in debug mode with $PYTHON:"
+    echo "Running the CPython 2.7 tests with options '$3' with $PYTHON:"
     ./tests/CPython27/run_all.sh search
 }
 
@@ -63,3 +60,6 @@ execute_tests "python2.6-nodebug" "python2.6" ""
 
 execute_tests "python2.7-debug" "python2.7" "--debug"
 execute_tests "python2.7-nodebug" "python2.7" ""
+
+echo "Running the reflection test in debug mode with $PYTHON:"
+./tests/reflected/compile_itself.sh search

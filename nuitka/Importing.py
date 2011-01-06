@@ -46,7 +46,7 @@ import sys, os, imp
 
 from logging import warning
 
-def findModule( module_name, parent_package ):
+def findModule( module_name, parent_package, warn = True ):
     if Options.shallFollowImports():
         try:
             module_filename, module_package_name = _findModule(
@@ -54,7 +54,7 @@ def findModule( module_name, parent_package ):
                 parent_package = parent_package
             )
         except ImportError:
-            if not _isWhiteListedNotExistingModule( module_name ):
+            if warn and not _isWhiteListedNotExistingModule( module_name ):
                 warning( "Warning, cannot find " + module_name )
 
             if "." in module_name:
