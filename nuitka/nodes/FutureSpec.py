@@ -36,12 +36,7 @@ that location. Can be different inside a module due to e.g. the inlining of exec
 statements with their own future imports, or inlining of code from other modules.
 """
 
-import sys
-
-def getPythonVersion():
-    big, major, minor = sys.version_info[0:3]
-
-    return big * 100 + major * 10 + minor
+from nuitka.Utils import getPythonVersion
 
 class FutureSpec:
     def __init__( self ):

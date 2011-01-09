@@ -216,9 +216,12 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 }
 """
 
-module_plain_init_template = """\
+module_init_no_package_template = """\
     _mvar_%(module_identifier)s___doc__.assign0( %(doc_identifier)s );
     _mvar_%(module_identifier)s___file__.assign0( %(filename_identifier)s );
+#if %(is_package)d
+    _mvar_%(module_identifier)s___path__.assign0( %(path_identifier)s );
+#endif
 
 #ifdef _NUITKA_MODULE
     // Set the package attribute from what the import mechanism provided. The package
@@ -234,12 +237,14 @@ module_plain_init_template = """\
     }
 #endif"""
 
-module_package_init_template = """\
+module_init_in_package_template = """\
     _mvar_%(module_identifier)s___doc__.assign0( %(doc_identifier)s );
     _mvar_%(module_identifier)s___file__.assign0( %(filename_identifier)s );
+#if %(is_package)d
+    _mvar_%(module_identifier)s___path__.assign0( %(path_identifier)s );
+#endif
     _mvar_%(module_identifier)s___package__.assign0( %(package_name_identifier)s );
 
-#ifdef _NUITKA_EXE
     init%(package_identifier)s();
 
     SET_ATTRIBUTE(
@@ -247,11 +252,7 @@ module_package_init_template = """\
         %(module_name)s,
         _module_%(module_identifier)s
     );
-#endif
 """
-
-package_init_template = """\
-    _mvar_%(package_identifier)s___file__.assign0( %(filename_identifier)s );"""
 
 constant_reading = """
 #include "nuitka/prelude.hpp"

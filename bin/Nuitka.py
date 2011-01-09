@@ -73,6 +73,11 @@ from nuitka import MainControl, Options
 
 import sys
 
+positional_args = Options.getPositionalArgs()
+
+if len( positional_args ) == 0:
+    sys.exit( "Error, need arg with python module or main program." )
+
 # Turn that source code into a node tree structure.
 tree = MainControl.createNodeTree(
     filename = Options.getPositionalArgs()[0]
@@ -86,11 +91,13 @@ if not Options.shallOnlyExecGcc():
         MainControl.displayTree( tree )
 
     # Now build the target language code for the whole tree.
-    source_code = MainControl.makeSourceDirectory( tree )
+    MainControl.makeSourceDirectory(
+        main_module = tree
+    )
 
 # Run the Scons to build things.
 result, options = MainControl.runScons(
-    name  = tree.getName(),
+    tree  = tree,
     quiet = not Options.isShowScons()
 )
 

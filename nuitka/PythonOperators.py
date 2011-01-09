@@ -36,6 +36,8 @@ resolve the operator in the module operator.
 
 """
 
+from .Utils import getPythonVersion
+
 import operator
 
 binary_operator_codes = {
@@ -53,6 +55,9 @@ binary_operator_codes = {
     "BitOr"    : "PyNumber_Or",
     "BitXor"   : "PyNumber_Xor",
 }
+
+if getPythonVersion() >= 300:
+    operator.div = operator.truediv
 
 binary_operator_functions = {
     "Add"      : operator.add,
@@ -85,6 +90,9 @@ inplace_operator_codes = {
     "BitOr"    : "PyNumber_InPlaceOr",
     "BitXor"   : "PyNumber_InPlaceXor",
 }
+
+if getPythonVersion() >= 300:
+    operator.idiv = operator.itruediv
 
 inplace_operator_functions = {
     "Add"      : operator.iadd,
@@ -124,7 +132,16 @@ normal_comparison_operators = {
     "NotIn" : "SEQUENCE_CONTAINS_NOT"
 }
 
-rich_comparison_operators = {
+rich_comparison_functions = {
+    "Lt"    : operator.lt,
+    "LtE"   : operator.le,
+    "Eq"    : operator.eq,
+    "NotEq" : operator.ne,
+    "Gt"    : operator.gt,
+    "GtE"   : operator.ge
+}
+
+rich_comparison_codes = {
     "Lt"    : "Py_LT",
     "LtE"   : "Py_LE",
     "Eq"    : "Py_EQ",

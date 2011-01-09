@@ -36,20 +36,20 @@ can emit tags that can cause the re-execution of other optimization visitors, be
 e.g. a new constant determined could make another optimization feasible.
 """
 
-from optimizations.OptimizeModuleRecursion import ModuleRecursionVisitor
-from optimizations.OptimizeConstantExec import OptimizeExecVisitor
-from optimizations.OptimizeVariableClosure import VariableClosureLookupVisitor, ModuleVariableConstantVisitor
-from optimizations.OptimizeBuiltins import ReplaceBuiltinsVisitor, PrecomputeBuiltinsVisitor
-from optimizations.OptimizeStaticMethodFixup import FixupNewStaticMethodVisitor
-from optimizations.OptimizeConstantOperations import OptimizeOperationVisitor
-from optimizations.OptimizeUnpacking import ReplaceUnpackingVisitor
-from optimizations.OptimizeStatements import StatementSequencesCleanupVisitor
+from .optimizations.OptimizeModuleRecursion import ModuleRecursionVisitor
+from .optimizations.OptimizeConstantExec import OptimizeExecVisitor
+from .optimizations.OptimizeVariableClosure import VariableClosureLookupVisitor, ModuleVariableUsageAnalysisVisitor, ModuleVariableReadOnlyVisitor
+from .optimizations.OptimizeBuiltins import ReplaceBuiltinsVisitor, PrecomputeBuiltinsVisitor
+from .optimizations.OptimizeStaticMethodFixup import FixupNewStaticMethodVisitor
+from .optimizations.OptimizeConstantOperations import OptimizeOperationVisitor
+from .optimizations.OptimizeUnpacking import ReplaceUnpackingVisitor
+from .optimizations.OptimizeStatements import StatementSequencesCleanupVisitor
 
-import Options
+from . import Options
 
-from oset import OrderedSet
+from .oset import OrderedSet
 
-from logging import debug, info
+from logging import debug
 
 class Tags( set ):
     def onSignal( self, signal ):
@@ -100,7 +100,10 @@ def optimizeTree( tree ):
             optimizations_queue.add( StatementSequencesCleanupVisitor )
 
         if tags.check( "new_code" ) or tags.check( "new_variable" ):
-            optimizations_queue.add( ModuleVariableConstantVisitor )
+            optimizations_queue.add( ModuleVariableUsageAnalysisVisitor )
+
+        if tags.check( "new_code" ) or tags.check( "read_only_mvar" ):
+            optimizations_queue.add( ModuleVariableReadOnlyVisitor )
 
         tags.clear()
 

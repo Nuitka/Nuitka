@@ -37,13 +37,13 @@ from logging import warning, debug, info
 class OptimizationVisitorBase:
     on_signal = None
 
-    def signalChange( self, tags ):
+    def signalChange( self, tags, source_ref, message ):
+        debug( "%s : %s : %s" % ( source_ref.getAsString(), tags, message ) )
+
         if self.on_signal is not None:
             self.on_signal( tags )
 
     def execute( self, tree, on_signal = None ):
-        debug( "Applying optimization '%s' to '%s'." % ( self, tree ) )
-
         self.on_signal = on_signal
 
         TreeOperations.visitTree(

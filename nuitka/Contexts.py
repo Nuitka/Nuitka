@@ -34,14 +34,16 @@
 """
 
 # pylint: disable=W0622
-from __past__ import long, unicode, cpickle
+from .__past__ import long, unicode, cpickle
 # pylint: enable=W0622
 
-import pickle, re, math
+import pickle, math
 
-from Identifiers import namifyConstant, Identifier, ConstantIdentifier, LocalVariableIdentifier, ClosureVariableIdentifier
+from .Identifiers import namifyConstant, Identifier, ConstantIdentifier, LocalVariableIdentifier, ClosureVariableIdentifier
+from .CppRawStrings import encodeString
 
-import CodeTemplates
+# TODO: Shouldn't be here, the related code like belongs to Generator instead.
+from . import CodeTemplates
 
 from logging import warning
 
@@ -148,17 +150,22 @@ class PythonChildContextBase( PythonContextBase ):
 
 
 def _compareConstants( a, b ):
-    if a is None and b is None:
-        return True
-
+    # Supposed fast path for comparison.
     if type( a ) is not type( b ):
         return False
 
-    if type( a ) in ( str, bool, unicode, int, long ):
-        return a == b
+    # The NaN values of float and complex may let this fail, even if the constants are
+    # built in the same way.
+    if a == b:
+        return True
 
+    # Now it's either not the same, or it is a container that contains NaN or it is a
+    # complex or float that is NaN.
     if type( a ) is complex:
         return _compareConstants( a.imag, b.imag ) and _compareConstants( a.real, b.real )
+
+    if type( a ) is float:
+        return math.isnan( a ) and math.isnan( b )
 
     if type( a ) in ( tuple, list ):
         if len( a ) != len( b ):
@@ -170,34 +177,33 @@ def _compareConstants( a, b ):
         else:
             return True
 
-
     if type( a ) is dict:
-        if not _compareConstants( set( a.keys() ), set( b.keys() ) ):
-            return False
-
-        for key_a, value_a in a.iteritems():
-            if not _compareConstants( value_a, b[ key_a ] ):
+        for ea1, ea2 in a.iteritems():
+            for eb1, eb2 in b.iteritems():
+                if _compareConstants( ea1, eb1 ) and _compareConstants( ea2, eb2 ):
+                    break
+            else:
                 return False
         else:
             return True
-
-    if type( a ) is float:
-        if a == b:
-            return True
-        else:
-            return math.isnan( a )
 
     if type( a ) in ( frozenset, set ):
         if len( a ) != len( b ):
             return False
 
         for ea in a:
-            if ea not in b and not math.isnan( ea ):
-                return False
+            if ea not in b:
+                # Due to NaN values, we need to compare each set element with all the
+                # other set to be really sure.
+                for eb in b:
+                    if _compareConstants( ea, eb ):
+                        break
+                else:
+                    return False
         else:
             return True
 
-    assert False, type( a )
+    return False
 
 
 def _getConstantHandle( constant ):
@@ -209,39 +215,6 @@ def _getConstantHandle( constant ):
         return "Py_Ellipsis"
     else:
         raise Exception( "Unknown type for constant handle", type( constant ), constant  )
-
-def _pickRawDelimiter( value ):
-    delimiter = "raw"
-
-    while delimiter in value:
-        delimiter = "_" + delimiter + "_"
-
-    return delimiter
-
-def _encodeString( value ):
-    delimiter = _pickRawDelimiter( value )
-
-    start = 'R"' + delimiter + "("
-    end = ")" + delimiter + '"'
-
-    result = start + value + end
-
-    # Replace \n, \r and \0 in the raw strings. The \0 gives a silly warning from
-    # gcc (bug reported) and \n and \r even lead to wrong strings. Somehow the
-    # parser of the C++ doesn't yet play nice with these.
-
-    def decide( match ):
-        if match.group(0) == "\n":
-            return end + r' "\n" ' + start
-        elif match.group(0) == "\r":
-            return end + r' "\r" ' + start
-        else:
-            return end + r' "\0" ' + start
-
-    result = re.sub( "\n|\r|\0", decide, result )
-
-    return result
-
 
 class PythonGlobalContext:
     def __init__( self ):
@@ -299,16 +272,31 @@ class PythonGlobalContext:
             constant_type, _constant_repr, constant_value = constant_desc
             constant_value = constant_value.getConstant()
 
+            # Use shortest code for ints, except when they are big, then fall fallback to
+            # pickling.
             if constant_type == int and abs( constant_value ) < 2**31:
-                # Will fallback to cPickle if they are bigger than PyInt allows.
-                statements.append( "%s = PyInt_FromLong( %s );" % ( constant_identifier, constant_value ) )
-            elif constant_type in ( tuple, list, bool, float, complex, unicode, int, long, dict, frozenset, set ):
+
+                statements.append(
+                    "%s = PyInt_FromLong( %s );" % (
+                        constant_identifier,
+                        constant_value )
+                    )
+
+                continue
+
+            # Note: The "str" should not be necessary, but I had an apparent g++ bug that
+            # prevented it from working correctly, where UNSTREAM_STRING would return NULL
+            # even when it asserts against that.
+            if constant_type in ( str, tuple, list, bool, float, complex, unicode, int, long, dict, frozenset, set ):
                 # Note: The marshal module cannot persist all unicode strings and
                 # therefore cannot be used.  The cPickle fails to gives reproducible
                 # results for some tuples, which needs clarification. In the mean time we
                 # are using pickle.
                 try:
-                    saved = pickle.dumps( constant_value, protocol = 0 if constant_type is unicode else 0 )
+                    saved = pickle.dumps(
+                        constant_value,
+                        protocol = 0 if constant_type is unicode else 0
+                    )
                 except TypeError:
                     warning( "Problem with persisting constant '%r'." % constant_value )
                     raise
@@ -321,13 +309,19 @@ class PythonGlobalContext:
                 if str is unicode:
                     saved = saved.decode( "utf_8" )
 
-                statements.append( """%s = UNSTREAM_CONSTANT( %s, %d );""" % ( constant_identifier, _encodeString( saved ), len( saved ) ) )
-            elif constant_type == str:
-                encoded = _encodeString( constant_value )
-
-                # statements.append( """puts( "%s" );""" % constant_identifier )
-                statements.append( """%s = PyString_FromStringAndSize( %s, %d );""" % ( constant_identifier, encoded, len(constant_value) ) )
-                statements.append( """assert( PyString_Size( %s ) == %d );""" % ( constant_identifier, len(constant_value) ) )
+                statements.append( "%s = UNSTREAM_CONSTANT( %s, %d );" % (
+                    constant_identifier,
+                    encodeString( saved ),
+                    len( saved ) )
+                )
+            elif constant_type is str:
+                statements.append(
+                    "%s = UNSTREAM_STRING( %s, %d );" % (
+                        constant_identifier,
+                        encodeString( constant_value ),
+                        len(constant_value)
+                    )
+                )
             elif constant_value is None:
                 pass
             else:

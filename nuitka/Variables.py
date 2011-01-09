@@ -44,6 +44,8 @@ class Variable:
 
         self.references = []
 
+        self.read_only_indicator = None
+
     def getName( self ):
         return self.variable_name
 
@@ -58,6 +60,14 @@ class Variable:
 
     def getReferenced( self ):
         return None
+
+    def getReadOnlyIndicator( self ):
+        return self.read_only_indicator
+
+    def setReadOnlyIndicator( self, value ):
+        assert value in (True, False)
+
+        self.read_only_indicator = value
 
     # pylint: disable=R0201
     def isLocalVariable( self ):

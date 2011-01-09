@@ -25,8 +25,8 @@ tasks and issue tracking in Nuitka.
 ** Where to go next
 
    Remember, this project is not yet complete. Although most of the CPython test suite
-   works, there is still more polish needed, to make it do enough optimizations to be
-   worth while. Try it out.
+   works perfectly, there is still more polish needed, to make it do enough optimizations
+   to be worth while. Try it out.
 
    Subscribe to its mailing list:
    http://kayhayen24x7.homelinux.org/blog/nuitka-a-python-compiler/nuitka-mailinglist/
@@ -36,9 +36,9 @@ tasks and issue tracking in Nuitka.
 
 ** Word of Warning
 
-   Consider this a beta release quality, do not use it for anything important, but
-   feedback is very welcome. Esp. if you find that anything doesn't work, because the
-   project is now at the stage that it should.
+   Consider this a beta release quality, do not use it for anything important, but your
+   feedback and patches are very welcome. Esp. if you find that anything doesn't work,
+   because the project is now at the stage that this should not happen.
 
 * Unsupported functionality
 
@@ -75,21 +75,6 @@ tasks and issue tracking in Nuitka.
     This is not currently supported in Nuitka, "only" generator functions are. It can be and
     will be, but it's a strange corner case to start with.
 
-
-** Deep Mode (Everything into one exe)
-
-*** Packages __init__.py code is ignored
-
-    For packages no init code is currently run. This will change in the future, but
-    describes a limitation that currently exists. Normally __init__.py shouldn't do too
-    relevant things.
-
-*** relative import "from . import x" is partially supported only
-
-    Relative imports of this form work perfectly in --deep mode, because only then the package
-    of the importing module is known. Currently there is no way to tell the compiler what the
-    package the compiled module is when compiling in stand alone mode. This may change in the
-    future.
 
 * CPython Test changes:
 

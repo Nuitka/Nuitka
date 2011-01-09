@@ -36,11 +36,7 @@ functionality, so we implement the module search process on our own.
 
 """
 
-import SourceCodeReferences
-import Options
-import Nodes
-
-from nodes.FutureSpec import FutureSpec
+from . import Options
 
 import sys, os, imp
 

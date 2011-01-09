@@ -35,9 +35,11 @@ TODO: Split in two phases, such that must be replaced (locals(), globals() and s
 are just a good idea to replace (range(), etc)
 """
 
-from OptimizeBase import OptimizationVisitorBase
+from .OptimizeBase import OptimizationVisitorBase
 
 from nuitka import TreeOperations, Importing, Nodes
+
+from nuitka.Utils import getPythonVersion
 
 import math
 
@@ -63,11 +65,18 @@ class OptimizationDispatchingVisitorBase( OptimizationVisitorBase ):
 
                 TreeOperations.assignParent( node.parent )
 
-                # TODO: Normally the constant should only be produced by the later step
                 if new_node.isConstantReference():
-                    self.signalChange( "new_constant" )
+                    self.signalChange(
+                        "new_constant",
+                        node.getSourceReference(),
+                        message = "Replaced %s with constant result." % node.kind
+                    )
                 elif new_node.isBuiltin():
-                    self.signalChange( "new_builtin" )
+                    self.signalChange(
+                        "new_builtin",
+                        node.getSourceReference(),
+                        message = "Replaced call to builtin %s with builtin call." % new_node.kind
+                    )
 
 
 
@@ -355,7 +364,11 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                     )
                 )
 
-                self.signalChange( "new_variable" )
+                self.signalChange(
+                    "new_variable",
+                    node.getSourceReference(),
+                    message = "Replaced predictable type lookup with result '%s'." % type_name
+                )
 
                 return result
 
@@ -375,10 +388,16 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
             if isRangePredictable( low ):
                 constant = low.getConstant()
 
+                if type( constant ) is float:
+                    if getPythonVersion() < 270:
+                        constant = int( constant )
+                    else:
+                        # TODO: Add this node type, for now let the real range builtin do
+                        # it, but that leaves the optimizer no chance to know in advance.
+                        return None
+
                 # Negative values are empty, so don't check against 0.
                 if constant <= 256:
-                    if type( constant ) is float:
-                        constant = int( constant )
 
                     return Nodes.makeConstantReplacementNode(
                         constant = range( constant ),
@@ -388,6 +407,21 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
             if isRangePredictable( low ) and isRangePredictable( high ):
                 constant1 = low.getConstant()
                 constant2 = high.getConstant()
+
+                if type( constant1 ) is float:
+                    if getPythonVersion() < 270:
+                        constant1 = int( constant1 )
+                    else:
+                        # TODO: Add this node type, for now let the real range builtin do
+                        # it, but that leaves the optimizer no chance to know in advance.
+                        return None
+                if type( constant2 ) is float:
+                    if getPythonVersion() < 270:
+                        constant2 = int( constant2 )
+                    else:
+                        # TODO: Add this node type, for now let the real range builtin do
+                        # it, but that leaves the optimizer no chance to know in advance.
+                        return None
 
                 if constant2 - constant1 <= 256:
                     return Nodes.makeConstantReplacementNode(
@@ -400,10 +434,32 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                 constant2 = high.getConstant()
                 constant3 = step.getConstant()
 
-                if constant3 == 0:
+                if type( constant1 ) is float:
+                    if getPythonVersion() < 270:
+                        constant1 = int( constant1 )
+                    else:
+                        # TODO: Add this node type, for now let the real range builtin do
+                        # it, but that leaves the optimizer no chance to know in advance.
+                        return None
+                if type( constant2 ) is float:
+                    if getPythonVersion() < 270:
+                        constant2 = int( constant2 )
+                    else:
+                        # TODO: Add this node type, for now let the real range builtin do
+                        # it, but that leaves the optimizer no chance to know in advance.
+                        return None
+                if type( constant3 ) is float:
+                    if getPythonVersion() < 270:
+                        constant3 = int( constant3 )
+                    else:
+                        # TODO: Add this node type, for now let the real range builtin do
+                        # it, but that leaves the optimizer no chance to know in advance.
+                        return None
 
+                if constant3 == 0:
                     # TODO: Add this node type, for now let the real range builtin
-                    # do it, but that leaves us no chance to know in advance.
+                    # do it, but that leaves the optimizer no chance to know in
+                    # advance.
                     return None
 
                     return Nodes.CPythonExpressionRaiseException(

@@ -31,16 +31,44 @@
 #
 
 
-import os
+import sys, os
+
+def getPythonVersion():
+    big, major, minor = sys.version_info[0:3]
+
+    return big * 100 + major * 10 + minor
 
 def relpath( path ):
     return os.path.relpath( path )
 
+def abspath( path ):
+    return os.path.abspath( path )
+
 def basename( path ):
     return os.path.basename( path )
+
+def dirname( path ):
+    return os.path.dirname( path )
 
 def isFile( path ):
     return os.path.isfile( path )
 
 def isDir( path ):
     return os.path.isdir( path )
+
+def getCoreCount():
+    cpu_count = 0
+
+    try:
+        # Try to get the number of logical processors
+        for line in open('/proc/cpuinfo'):
+            if line.startswith('cpu cores'):
+                cpu_count += int(line.split(':')[-1].strip())
+    except:
+        pass
+
+    if not cpu_count:
+        import multiprocessing
+        cpu_count = multiprocessing.cpu_count()
+
+    return cpu_count

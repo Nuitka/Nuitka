@@ -82,3 +82,9 @@ try:
     print range( 3, 8, 0 )
 except ValueError, e:
     print e
+
+try:
+    print "Range with float:",
+    print range(1.0)
+except TypeError, e:
+    print "Gives exception:", e

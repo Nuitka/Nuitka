@@ -31,22 +31,22 @@
 #
 """ Code templates one stop access. """
 
-from templates.CodeTemplatesMain import *
+from .templates.CodeTemplatesMain import *
 
-from templates.CodeTemplatesFunction import *
-from templates.CodeTemplatesGeneratorExpression import *
-from templates.CodeTemplatesGeneratorFunction import *
-from templates.CodeTemplatesListContraction import *
+from .templates.CodeTemplatesFunction import *
+from .templates.CodeTemplatesGeneratorExpression import *
+from .templates.CodeTemplatesGeneratorFunction import *
+from .templates.CodeTemplatesListContraction import *
 
-from templates.CodeTemplatesParameterParsing import *
+from .templates.CodeTemplatesParameterParsing import *
 
-from templates.CodeTemplatesAssignments import *
-from templates.CodeTemplatesExceptions import *
-from templates.CodeTemplatesImporting import *
-from templates.CodeTemplatesClass import *
-from templates.CodeTemplatesLoops import *
+from .templates.CodeTemplatesAssignments import *
+from .templates.CodeTemplatesExceptions import *
+from .templates.CodeTemplatesImporting import *
+from .templates.CodeTemplatesClass import *
+from .templates.CodeTemplatesLoops import *
 
-from templates.CodeTemplatesExecEval import *
+from .templates.CodeTemplatesExecEval import *
 
 # We have some very long lines in here that should not be shorter though.
 # pylint: disable=C0301

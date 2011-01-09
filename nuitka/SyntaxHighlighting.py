@@ -33,8 +33,6 @@
 
 # Inspired/copied from by http://diotavelli.net/PyQtWiki/Python%20syntax%20highlighting
 
-import sys
-
 from PyQt4.QtCore import QRegExp
 from PyQt4.QtGui import QColor, QTextCharFormat, QFont, QSyntaxHighlighter
 
@@ -68,8 +66,8 @@ STYLES = {
 }
 
 
-class PythonHighlighter (QSyntaxHighlighter):
-    """Syntax highlighter for the Python language.
+class PythonHighlighter( QSyntaxHighlighter ):
+    """ Syntax highlighter for the Python language.
     """
     # Python keywords
     keywords = [
@@ -99,7 +97,7 @@ class PythonHighlighter (QSyntaxHighlighter):
         '\{', '\}', '\(', '\)', '\[', '\]',
     ]
     def __init__( self, document ):
-        QSyntaxHighlighter.__init__(self, document)
+        QSyntaxHighlighter.__init__( self, document )
 
         # Multi-line strings (expression, flag, style)
         # FIXME: The triple-quotes in these two lines will mess up the
@@ -150,14 +148,14 @@ class PythonHighlighter (QSyntaxHighlighter):
         """Apply syntax highlighting to the given block of text.
         """
         # Do other syntax formatting
-        for expression, nth, format in self.rules:
+        for expression, nth, display_format in self.rules:
             index = expression.indexIn(text, 0)
 
             while index >= 0:
                 # We actually want the index of the nth match
                 index = expression.pos(nth)
                 length = expression.cap(nth).length()
-                self.setFormat(index, length, format)
+                self.setFormat(index, length, display_format)
                 index = expression.indexIn(text, index + length)
 
         self.setCurrentBlockState(0)
@@ -207,3 +205,6 @@ class PythonHighlighter (QSyntaxHighlighter):
             return True
         else:
             return False
+
+def addPythonHighlighter( document ):
+    PythonHighlighter( document )

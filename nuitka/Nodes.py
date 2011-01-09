@@ -35,13 +35,12 @@
 
 from __future__ import print_function
 # pylint: disable=W0622
-from __past__ import long, unicode
+from .__past__ import long, unicode
 # pylint: enable=W0622
 
-import Variables
-
-from odict import OrderedDict
-from NoneType import NoneType
+from . import Variables
+from .odict import OrderedDict
+from .NoneType import NoneType
 
 class CPythonNodeCheck( type ):
     kinds = set()
@@ -709,7 +708,7 @@ class MarkExceptionBreakContinueIndicator:
     def needsExceptionBreakContinue( self ):
         return self.break_continue_exception
 
-class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGiver ):
+class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureTaker, CPythonClosureGiver ):
     """ Module
 
         The module is the only possible root of a tree. When there are many modules
@@ -724,11 +723,12 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
         assert package is None or type( package ) is str
 
         CPythonNamedNode.__init__( self, name = name, source_ref = source_ref )
-        CPythonClosureGiver.__init__( self, "module" )
+        CPythonClosureGiver.__init__( self, code_prefix = "module" )
+        CPythonClosureTaker.__init__( self, provider = self )
         CPythonChildrenHaving.__init__(
             self,
             names = {
-                "frame" : None
+                "body" : None
             }
         )
 
@@ -737,8 +737,8 @@ class CPythonModule( CPythonChildrenHaving, CPythonNamedNode, CPythonClosureGive
 
         self.variables = set()
 
-    setBody = CPythonChildrenHaving.childSetter( "frame" )
-    getStatementSequence = CPythonChildrenHaving.childGetter( "frame" )
+    getBody = CPythonChildrenHaving.childGetter( "body" )
+    setBody = CPythonChildrenHaving.childSetter( "body" )
 
     def getVariables( self ):
         return self.variables
@@ -982,10 +982,7 @@ class CPythonAssignTargetTuple( CPythonNode ):
         CPythonNode.__init__( self, source_ref = source_ref )
 
     def getTargetVariables( self ):
-        return [ element.getTargetVariable() for element in self.elements ]
-
-    def getTargetVariableNames( self ):
-        return [ element.getTargetVariableName() for element in self.elements ]
+        return sum( [ element.getTargetVariables() for element in self.elements ], () )
 
     def getVisitableNodes( self ):
         return self.elements
@@ -1131,6 +1128,7 @@ class CPythonExpressionLambdaDef( CPythonChildrenHaving, CPythonNode, CPythonPar
         self.is_generator = False
 
     getLambdaExpression = CPythonChildrenHaving.childGetter( "body" )
+    getBody = getLambdaExpression
     setBody = CPythonChildrenHaving.childSetter( "body" )
 
     getDefaultExpressions = CPythonChildrenHaving.childGetter( "defaults" )
@@ -1277,10 +1275,11 @@ class CPythonStatementFunctionDef( CPythonChildrenHaving, CPythonNamedNode, CPyt
         if self.hasTakenVariable( variable_name ):
             result = self.getClosureVariable( variable_name )
 
+            # TODO: While we cannot handle global in exec, refuse it.
             if not result.isModuleVariable():
                 raise SyntaxError
 
-            assert result.isModuleVariableReference()
+            assert result.isModuleVariable() or self.source_ref.isExecReference()
 
             return result
         else:
@@ -1322,7 +1321,7 @@ class CPythonExpressionVariableRef( CPythonNode ):
         return self.variable_name
 
     def setVariable( self, variable ):
-        assert isinstance( variable, Variables.Variable )
+        assert isinstance( variable, Variables.Variable ), repr( variable )
 
         self.variable = variable
 
@@ -2013,23 +2012,23 @@ class CPythonStatementConditional( CPythonChildrenHaving, CPythonNode ):
     getBranches = CPythonChildrenHaving.childGetter( "branches" )
 
 
-class CPythonStatementTryFinally( CPythonNode ):
+class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNode ):
     kind = "STATEMENT_TRY_FINALLY"
 
     def __init__( self, tried, final, source_ref ):
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "tried" : tried,
+                "final" : final
+            }
+        )
+
+
         CPythonNode.__init__( self, source_ref = source_ref )
 
-        self.tried = tried
-        self.final = final
-
-    def getVisitableNodes( self ):
-        return ( self.tried, self.final )
-
-    def getBlockTry( self ):
-        return self.tried
-
-    def getBlockFinal( self ):
-        return self.final
+    getBlockTry = CPythonChildrenHaving.childGetter( "tried" )
+    getBlockFinal = CPythonChildrenHaving.childGetter( "final" )
 
 
 class CPythonStatementTryExcept( CPythonNode ):
@@ -2107,6 +2106,8 @@ class CPythonStatementRaiseException( CPythonNode ):
         self.exception_value = exception_value
         self.exception_trace = exception_trace
 
+        self.reraise_local = False
+
     def getExceptionParameters( self ):
         if self.exception_trace is not None:
             return self.exception_type, self.exception_value, self.exception_trace
@@ -2116,6 +2117,17 @@ class CPythonStatementRaiseException( CPythonNode ):
             return self.exception_type,
         else:
             return ()
+
+    def isReraiseException( self ):
+        return self.getExceptionParameters() == ()
+
+    def isReraiseExceptionLocal( self ):
+        assert self.isReraiseException()
+
+        return self.reraise_local
+
+    def markAsReraiseLocal( self ):
+        self.reraise_local = True
 
     def getVisitableNodes( self ):
         return self.getExceptionParameters()
@@ -2281,12 +2293,20 @@ class CPythonStatementImportFromEmbedded( CPythonChildrenHaving, CPythonNode ):
 class CPythonStatementImportStarExternal( CPythonNode ):
     kind = "STATEMENT_IMPORT_STAR_EXTERNAL"
 
-    def __init__( self, provider, module_name, module_filename, source_ref ):
+    def __init__( self, module_name, source_ref ):
         CPythonNode.__init__( self, source_ref = source_ref )
 
-        self.provider = provider
+        self.module_name = module_name
 
-        self.module_filename = module_filename
+    def getModuleName( self ):
+        return self.module_name
+
+class CPythonStatementImportStarEmbedded( CPythonNode ):
+    kind = "STATEMENT_IMPORT_STAR_EMBEDDED"
+
+    def __init__( self, module_name, source_ref ):
+        CPythonNode.__init__( self, source_ref = source_ref )
+
         self.module_name = module_name
 
     def getModuleName( self ):

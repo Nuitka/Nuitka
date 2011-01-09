@@ -38,13 +38,16 @@ C/API, to compile it to either an executable or an extension module.
 
 from __future__ import print_function
 
-import CodeGeneration
-import TreeOperations
-import TreeBuilding
-import Optimization
-import Generator
-import Contexts
-import Options
+from . import (
+    CodeGeneration,
+    TreeOperations,
+    TreeBuilding,
+    Optimization,
+    Generator,
+    Contexts,
+    Options,
+    Utils
+)
 
 import sys, os
 
@@ -52,13 +55,15 @@ def createNodeTree( filename ):
     """ Create a node tree.
 
     Turn that source code into a node tree structure. If recursion into imported modules
-    is available, more trees will be available too.
+    is available, more trees will be available during optimization.
 
     """
 
     # First build the raw node tree from the source code.
     result = TreeBuilding.buildModuleTree(
-        filename = filename
+        filename = filename,
+        package  = None,
+        is_main  = not Options.shallMakeModule()
     )
 
     # Then optimize the tree.
@@ -151,6 +156,23 @@ class _PrepareCodeGenerationVisitor:
                 search.markAsExceptionBreakContinue()
                 node.markAsExceptionBreakContinue()
 
+        if node.isStatementRaiseException() and node.isReraiseException():
+            search = node.getParent()
+
+            crossed_except = False
+
+            while not search.isParentVariableProvider():
+                if search.isStatementsSequence():
+                    if search.getParent().isStatementTryExcept():
+                        if search in search.getParent().getExceptionCatchBranches():
+                            crossed_except = True
+                            break
+
+                search = search.getParent()
+
+            if crossed_except:
+                node.markAsReraiseLocal()
+
 def _prepareCodeGeneration( tree ):
     visitor = _PrepareCodeGenerationVisitor()
 
@@ -171,7 +193,9 @@ def makeModuleSource( tree ):
 def makeSourceDirectory( main_module ):
     assert main_module.isModule()
 
-    source_dir = Options.getOutputPath( main_module.getName() + ".build" )
+    name = Utils.basename( main_module.getFilename() ).replace( ".py", "" )
+
+    source_dir = Options.getOutputPath( name + ".build" )
 
     if not source_dir.endswith( "/" ):
         source_dir += "/"
@@ -223,7 +247,7 @@ def makeSourceDirectory( main_module ):
 
     _prepareCodeGeneration( main_module )
 
-    main_module_name = main_module.getName() if Options.shallMakeModule() else "__main__"
+    main_module_name = main_module.getName()
 
     # Create code for the main module.
     source_code = CodeGeneration.generateModuleCode(
@@ -241,7 +265,9 @@ def makeSourceDirectory( main_module ):
 
     writeSourceCode( source_dir + "__main__.cpp", source_code )
 
-def runScons( name, quiet ):
+def runScons( tree, quiet ):
+    name = Utils.basename( tree.getFilename() ).replace( ".py", "" )
+
     def asBoolStr( value ):
         return "true" if value else "false"
 
@@ -275,7 +301,9 @@ def writeSourceCode( cpp_filename, source_code ):
     open( cpp_filename, "w" ).write( source_code )
 
 def executeMain( output_filename, tree ):
-    os.execl( output_filename, tree.getName() + ".exe", *Options.getMainArgs() )
+    name = Utils.basename( tree.getFilename() ).replace( ".py", ".exe" )
+
+    os.execl( output_filename, name, *Options.getMainArgs() )
 
 def executeModule( tree ):
     __import__( tree.getName() )

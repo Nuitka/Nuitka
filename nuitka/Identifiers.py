@@ -32,7 +32,7 @@
 
 from __future__ import print_function
 # pylint: disable=W0622
-from __past__ import long, unicode
+from .__past__ import long, unicode
 # pylint: enable=W0622
 
 import hashlib, re

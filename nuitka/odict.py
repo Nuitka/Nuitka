@@ -1,8 +1,10 @@
-# This module is only an abstraction of OrderedDict as present in 2.7 and 3.1 but not in
-# 2.6, there it is using the odict.py as mentioned in the PEP-0372
-#
-# This can be removed safely after the transition, note that the documentation was
-# removed, as it's not interesting really, being redundent to Python 2.7 documentation.
+""" This module is only an abstraction of OrderedDict as present in 2.7 and 3.1.
+
+It is not in 2.6, for this version we are using the odict.py as mentioned in the PEP-0372
+
+This can be removed safely after the transition, note that the documentation was removed,
+as it's not interesting really, being redundent to Python 2.7 documentation.
+"""
 
 #    :copyright: (c) 2008 by Armin Ronacher and PEP 273 authors.
 #    :license: modified BSD license.
@@ -20,7 +22,7 @@ except ImportError:
     missing = object()
 
 
-    class odict(dict):
+    class OrderedDict(dict):
         def __init__(self, *args, **kwargs):
             dict.__init__(self)
             self._keys = []
@@ -57,7 +59,7 @@ except ImportError:
             return reversed(self._keys)
 
         def __eq__(self, other):
-            if isinstance(other, odict):
+            if isinstance(other, OrderedDict):
                 if not dict.__eq__(self, other):
                     return False
                 return self.items() == other.items()
@@ -67,7 +69,7 @@ except ImportError:
             return not self.__eq__(other)
 
         def __cmp__(self, other):
-            if isinstance(other, odict):
+            if isinstance(other, OrderedDict):
                 return cmp(self.items(), other.items())
             elif isinstance(other, dict):
                 return dict.__cmp__(self, other)
@@ -148,10 +150,7 @@ except ImportError:
             self._keys.sort(*args, **kwargs)
 
         def __repr__(self):
-            return 'odict.odict(%r)' % self.items()
+            return 'OrderedDict(%r)' % self.items()
 
         __copy__ = copy
         __iter__ = iterkeys
-
-
-    OrderedDict = odict

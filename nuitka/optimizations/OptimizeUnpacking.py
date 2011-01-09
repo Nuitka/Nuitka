@@ -31,7 +31,7 @@
 #
 """ Replace useless unpacking with multiple assignments where possible."""
 
-from OptimizeBase import OptimizationVisitorBase
+from .OptimizeBase import OptimizationVisitorBase
 
 from nuitka import Nodes
 
@@ -76,7 +76,11 @@ class ReplaceUnpackingVisitor( OptimizationVisitorBase ):
                                 )
                             )
 
-                            self.signalChange( "new_statements" )
+                            self.signalChange(
+                                "new_statements",
+                                node.getSourceReference(),
+                                "Removed useless unpacking assignments."
+                            )
                         else:
                             # TODO: Raise the exception instead.
                             pass

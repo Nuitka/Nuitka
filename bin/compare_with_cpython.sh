@@ -41,18 +41,18 @@ fi
 
 echo "Comparing $MODULE using $PYTHON ..."
 
-NUITKA_CMD="$PYTHON `which Nuitka.py` $NUITKA_EXTRA_OPTIONS --exe --execute $1"
+NUITKA_CMD="$PYTHON `which Nuitka.py` $NUITKA_EXTRA_OPTIONS --exe --execute $MODULE"
 
 if [ "$MODE" = "silent" ]
 then
-    $PYTHON $1 | make_diffable >/tmp/cpython.out.$$
+    $PYTHON $MODULE | make_diffable >/tmp/cpython.out.$$
 
     $NUITKA_CMD | make_diffable >/tmp/nuitka.out.$$
 else
     echo "*******************************************************"
     echo "CPython:"
     echo "*******************************************************"
-    $PYTHON $1 | make_diffable | tee /tmp/cpython.out.$$
+    $PYTHON $MODULE | make_diffable | tee /tmp/cpython.out.$$
 
     echo "*******************************************************"
     echo "Nuitka:"
@@ -64,4 +64,6 @@ else
     echo "*******************************************************"
 fi
 
-exec diff -us /tmp/cpython.out.$$ /tmp/nuitka.out.$$
+diff -us /tmp/cpython.out.$$ /tmp/nuitka.out.$$
+
+rm -f /tmp/cpython.out.$$ /tmp/nuitka.out.$$

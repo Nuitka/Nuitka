@@ -25,5 +25,5 @@ With newline and stuff."""
 import os
 
 print "doc:", __doc__
-print "filename:", os.path.basename( __file__ )
+print "filename:", __file__
 print "builtins:", __builtins__

@@ -37,7 +37,7 @@ confused if it encounters a decorator to what it already automatically decorated
 TODO: Consider turning this into something adding it for improved consistency.
 """
 
-from OptimizeBase import OptimizationVisitorBase
+from .OptimizeBase import OptimizationVisitorBase
 
 class FixupNewStaticMethodVisitor( OptimizationVisitorBase ):
     def __call__( self, node ):

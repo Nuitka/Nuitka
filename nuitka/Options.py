@@ -34,12 +34,14 @@
 from __future__ import print_function
 
 version_string = """\
-Nuitka V0.3.5pre4
+Nuitka V0.3.5pre5
 Copyright (C) 2011 Kay Hayen."""
+
+from . import Utils
 
 from optparse import OptionParser
 
-import sys, os
+import sys, os, logging
 
 is_Python = os.path.basename( sys.argv[0] ) == "Python"
 
@@ -169,22 +171,21 @@ parser.add_option(
     help    = "Operate scons in non-quiet mode, showing the executed commands."
 )
 
-cpu_count = 0
-try:
-    # Try to get the number of logical processors
-    for line in open('/proc/cpuinfo'):
-        if line.startswith('cpu cores'):
-            cpu_count += int(line.split(':')[-1].strip())
-except:
-    pass
-if not cpu_count:
-    import multiprocessing
-    cpu_count = multiprocessing.cpu_count()
+parser.add_option(
+    "--verbose",
+    action  = "store_true",
+    dest    = "verbose",
+    default = False,
+    help    = "Output details of actions take, esp. in optimizations."
+)
+
+
+core_count = Utils.getCoreCount()
 
 parser.add_option(
-    "-j", "--jobs", action="store", dest = "jobs", default = cpu_count,
+    "-j", "--jobs", action="store", dest = "jobs", default = core_count,
     help = """\
-Specify the allowed number of jobs. Defaults to system CPU count (%d)""" % cpu_count,
+Specify the allowed number of jobs. Defaults to system CPU count (%d).""" % core_count,
 )
 
 
@@ -209,6 +210,9 @@ options, positional_args = parser.parse_args()
 if options.version:
     print( version_string, file=sys.stderr )
     sys.exit(0)
+
+if options.verbose:
+    logging.getLogger().setLevel( logging.DEBUG )
 
 def shallTraceExecution():
     return options.trace_execution

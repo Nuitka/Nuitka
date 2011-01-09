@@ -61,11 +61,13 @@ if (unlikely( args_size + kw_size < %(required_parameter_count)d ))
     }
     else
     {
+#if PY_MAJOR_VERSION < 3 && PY_MINOR_VERSION < 7
         if ( kw_size > 0 )
         {
             PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d non-keyword arguments (%%zd given)", %(top_level_parameter_count)d, args_size + kw_size );
         }
         else
+#endif
         {
             PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_size + kw_size );
         }
@@ -100,11 +102,13 @@ if (unlikely( args_size + kw_size < %(required_parameter_count)d ))
     }
     else
     {
+#if PY_MAJOR_VERSION < 3 && PY_MINOR_VERSION < 7
         if ( kw_size > 0 )
         {
             PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d non-keyword arguments (%%zd given)", %(top_level_parameter_count)d, args_size + kw_size );
         }
         else
+#endif
         {
             PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_size + kw_size );
         }

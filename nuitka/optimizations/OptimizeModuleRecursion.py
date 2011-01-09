@@ -40,7 +40,7 @@ So this is called repeatedly mayhaps, each time a constant is added.
 
 from __future__ import print_function
 
-from OptimizeBase import OptimizationVisitorBase
+from .OptimizeBase import OptimizationVisitorBase
 
 from nuitka import TreeBuilding, Importing, Options, Nodes, Utils
 
@@ -54,14 +54,19 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
         if module_relpath not in self.imported_modules:
             print( "Recurse to import", module_relpath )
 
-            self.signalChange( "new_code" )
-
             imported_module = TreeBuilding.buildModuleTree(
                 filename = module_filename,
-                package  = module_package
+                package  = module_package,
+                is_main  = False
             )
 
             self.imported_modules[ module_relpath ] = imported_module
+
+            self.signalChange(
+                "new_code",
+                imported_module.getSourceReference(),
+                "Recursed to module."
+            )
 
         return self.imported_modules[ module_relpath ]
 
@@ -69,8 +74,8 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
     def _consider( self, module_filename, module_package ):
         assert module_package is None or type( module_package ) is str
 
-        if module_filename.endswith( ".py" ):
-            if self.stdlib or not module_filename.startswith( "/usr/lib/python" ):
+        if module_filename.endswith( ".py" ) or Utils.isDir( module_filename ):
+            if self.stdlib or not module_filename.startswith( "/usr/lib/" ):
                 module_relpath = Utils.relpath( module_filename )
 
                 return self._recurseTo(
@@ -79,94 +84,136 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
                     module_relpath  = module_relpath
                 )
 
-    def __call__( self, node ):
-        if node.isModule():
-            module_filename = node.getFilename()
 
-            if module_filename not in self.imported_modules:
-                self.imported_modules[ Utils.relpath( module_filename ) ] = node
+    def _handleModule( self, module ):
+        module_filename = module.getFilename()
 
-            module_package = node.getPackage()
+        if module_filename not in self.imported_modules:
+            self.imported_modules[ Utils.relpath( module_filename ) ] = module
 
-            if module_package is not None:
-                package_package, package_module_name, package_filename = Importing.findModule(
-                    module_name    = module_package,
-                    parent_package = None
-                )
+        module_package = module.getPackage()
 
-                self._recurseTo(
-                    module_filename = package_module_name.replace( ".", "/" ),
-                    module_package  = package_package,
-                    module_relpath  = Utils.relpath( package_filename )
-                )
-        elif node.isStatementImportExternal():
-            module_package, module_name, module_filename = Importing.findModule(
-                module_name    = node.getModuleName(),
-                parent_package = node.getParentModule().getPackage()
+        if module_package is not None:
+            package_package, package_module_name, package_filename = Importing.findModule(
+                module_name    = module_package,
+                parent_package = None
             )
 
-            if module_filename is not None:
-                imported_module = self._consider(
-                    module_filename = module_filename,
-                    module_package  = module_package
+            self._recurseTo(
+                module_filename = package_module_name.replace( ".", "/" ),
+                module_package  = package_package,
+                module_relpath  = Utils.relpath( package_filename )
+            )
+
+    def _handleImportExternal( self, node ):
+        module_package, _module_name, module_filename = Importing.findModule(
+            module_name    = node.getModuleName(),
+            parent_package = node.getParentModule().getPackage()
+        )
+
+        if module_filename is not None:
+            imported_module = self._consider(
+                module_filename = module_filename,
+                module_package  = module_package
+            )
+
+            if imported_module is not None:
+                import_cut_len = len( node.getModuleName() ) - len( node.getImportName() )
+
+                import_name = imported_module.getFullName()
+                import_name = import_name[:len(import_name) - import_cut_len ]
+
+                new_node = Nodes.CPythonStatementImportEmbedded(
+                    target      = node.getTarget(),
+                    module_name = imported_module.getFullName(),
+                    import_name = import_name,
+                    module      = imported_module,
+                    source_ref  = node.getSourceReference()
                 )
 
-                if imported_module is not None:
-                    import_cut_len = len( node.getModuleName() ) - len( node.getImportName() )
+                node.replaceWith( new_node )
 
-                    import_name = imported_module.getFullName()
-                    import_name = import_name[:len(import_name) - import_cut_len ]
+    def _handleImportFromExternal( self, node ):
+        module_package, _module_name, module_filename = Importing.findModule(
+            module_name    = node.getModuleName(),
+            parent_package = node.getParentModule().getPackage()
+        )
 
-                    new_node = Nodes.CPythonStatementImportEmbedded(
-                        target      = node.getTarget(),
-                        module_name = imported_module.getFullName(),
-                        import_name = import_name,
-                        module      = imported_module,
-                        source_ref  = node.getSourceReference()
+        if module_filename is not None:
+            imported_module = self._consider(
+                module_filename = module_filename,
+                module_package  = module_package
+            )
+
+            sub_modules = []
+
+            if Utils.isDir( module_filename ):
+                for imported_name in node.getImports():
+                    sub_module_package, _sub_module_name, sub_module_filename = Importing.findModule(
+                        module_name    = node.getModuleName() + "." + imported_name,
+                        parent_package = module_package,
+                        warn           = False
                     )
 
-                    node.replaceWith( new_node )
-        elif node.isStatementImportFromExternal():
-            module_package, module_name, module_filename = Importing.findModule(
-                module_name    = node.getModuleName(),
-                parent_package = node.getParentModule().getPackage()
-            )
-
-            if module_filename is not None:
-                imported_module = self._consider(
-                    module_filename = module_filename,
-                    module_package  = module_package
-                )
-
-                if Utils.isDir( module_filename ):
-                    sub_modules = []
-
-                    for imported_name in node.getImports():
-                        sub_module_package, sub_module_name, sub_module_filename = Importing.findModule(
-                            module_name    = node.getModuleName() + "." + imported_name,
-                            parent_package = module_package,
-                            warn           = False
+                    if sub_module_filename is not None:
+                        sub_module = self._consider(
+                            module_filename = sub_module_filename,
+                            module_package  = sub_module_package,
                         )
 
-                        if sub_module_filename is not None:
-                            sub_module = self._consider(
-                                module_filename = sub_module_filename,
-                                module_package  = sub_module_package,
-                            )
+                        if sub_module is not None:
+                            sub_modules.append( sub_module )
 
-                            if sub_module is not None:
-                                sub_modules.append( sub_module )
 
-                    new_node = Nodes.CPythonStatementImportFromEmbedded(
-                        targets         = node.getTargets(),
-                        module_name     = node.getModuleName(),
-                        sub_modules     = sub_modules,
-                        imports         = node.getImports(),
-                        source_ref      = node.getSourceReference()
-                    )
+            assert imported_module or node.getModuleName() != "nuitka"
 
-                    node.replaceWith( new_node )
+            if imported_module:
+                new_node = Nodes.CPythonStatementImportFromEmbedded(
+                    targets     = node.getTargets(),
+                    module_name = imported_module.getFullName(),
+                    sub_modules = sub_modules,
+                    imports     = node.getImports(),
+                    source_ref  = node.getSourceReference()
+                )
 
+                node.replaceWith( new_node )
+
+    def _handleImportStarExternal( self, node ):
+        module_package, _module_name, module_filename = Importing.findModule(
+            module_name    = node.getModuleName(),
+            parent_package = node.getParentModule().getPackage()
+        )
+
+        if module_filename is not None:
+            imported_module = self._consider(
+                module_filename = module_filename,
+                module_package  = module_package
+            )
+
+            new_node = Nodes.CPythonStatementImportStarEmbedded(
+                module_name = imported_module.getFullName(),
+                source_ref  = node.getSourceReference()
+            )
+
+            node.replaceWith( new_node )
+
+    def __call__( self, node ):
+        if node.isModule():
+            self._handleModule(
+                module = node
+            )
+        elif node.isStatementImportExternal():
+            self._handleImportExternal(
+                node = node
+            )
+        elif node.isStatementImportFromExternal():
+            self._handleImportFromExternal(
+                node = node
+            )
+        elif node.isStatementImportStarExternal():
+            self._handleImportStarExternal(
+                node = node
+            )
         elif node.isBuiltinImport():
             self._consider(
                 module_filename = node.getModuleFilename(),

@@ -42,7 +42,7 @@ When it strikes, it tags with "reset", because it requires a restart of all step
 
 """
 
-from OptimizeBase import OptimizationVisitorBase, warning
+from .OptimizeBase import OptimizationVisitorBase, warning
 
 from nuitka import TreeBuilding
 
@@ -67,6 +67,11 @@ class OptimizeExecVisitor( OptimizationVisitorBase ):
 
                     node.replaceWith( new_node )
 
-                    self.signalChange( "new_code" )
+                    self.signalChange(
+                        "new_code",
+                        source_ref,
+                        "Replaced 'exec' with known constant parameter with inlined code."
+                    )
+
                 except SyntaxError:
                     warning( "Syntax error will be raised at runtime for exec at '%s'." % source_ref.getAsString() )

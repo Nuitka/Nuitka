@@ -282,7 +282,13 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
     PyNumberMethods *tp_as_number = type->tp_as_number;
 
     // Everything that casts to int is allowed.
-    if ( tp_as_number == NULL || tp_as_number->nb_int == NULL )
+    if (
+#if !(PY_MAJOR_VERSION < 3 && PY_MINOR_VERSION < 7)
+        PyFloat_Check( value ) ||
+#endif
+        tp_as_number == NULL ||
+        tp_as_number->nb_int == NULL
+       )
     {
         PyErr_Format( PyExc_TypeError, "range() integer %s argument expected, got %s.", name, type->tp_name );
         throw _PythonException();
@@ -302,7 +308,7 @@ static PythonBuiltin _python_builtin_range( "range" );
 
 PyObject *BUILTIN_RANGE( PyObject *boundary )
 {
-    PyObjectTemporary boundary_temp( TO_RANGE_ARG( boundary, "start" ) );
+    PyObjectTemporary boundary_temp( TO_RANGE_ARG( boundary, "end" ) );
 
     long start = PyInt_AsLong( boundary_temp.asObject() );
 
@@ -559,17 +565,11 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObjectG
     return LOOKUP_SUBSCRIPT( PySys_GetObject( (char *)"modules" ), import_name );
 }
 
-void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name, PyObjectGlobalVariable const * package_var )
+void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name, PyObject *module )
 {
-    PyObject *module = IMPORT_MODULE(
-        module_name,
-        module_name,
-        package_var,
-        NULL
-    );
-
-    // IMPORT_MODULE would raise exception already
+    // Check parameters.
     assert( module != NULL );
+    assert( target != NULL );
 
     PyObject *iter;
     bool all_case;
@@ -719,19 +719,21 @@ static PyObject *_module_cPickle_function_loads = NULL;
 void UNSTREAM_INIT( void )
 {
 #if PY_MAJOR_VERSION < 3
-        _module_cPickle = PyImport_ImportModule( "cPickle" );
+    _module_cPickle = PyImport_ImportModule( "cPickle" );
 #else
-        _module_cPickle = PyImport_ImportModule( "pickle" );
+    _module_cPickle = PyImport_ImportModule( "pickle" );
 #endif
-        assert( _module_cPickle );
+    assert( _module_cPickle );
 
-        _module_cPickle_function_loads = PyObject_GetAttrString( _module_cPickle, "loads" );
-        assert( _module_cPickle_function_loads );
+    _module_cPickle_function_loads = PyObject_GetAttrString( _module_cPickle, "loads" );
+    assert( _module_cPickle_function_loads );
 }
 
-PyObject *UNSTREAM_CONSTANT( char const *buffer, int size )
+PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size )
 {
-    PyObjectTemporary temp_str( PyString_FromStringAndSize( buffer, size ) );
+    PyObjectTemporary temp_str(
+        PyString_FromStringAndSize( buffer, size )
+    );
 
     PyObject *result = PyObject_CallFunctionObjArgs(
         _module_cPickle_function_loads,
@@ -739,7 +741,17 @@ PyObject *UNSTREAM_CONSTANT( char const *buffer, int size )
         NULL
     );
 
-    assert( result );
+    assert( result != NULL );
+
+    return result;
+}
+
+PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size )
+{
+    PyObject *result = PyString_FromStringAndSize( buffer, size );
+
+    assert( result != NULL );
+    assert( PyString_Size( result ) == size );
 
     return result;
 }

@@ -40,7 +40,7 @@ OPTIONS='--rcfile=/dev/null
          --variable-rgx=.*
          --argument-rgx=.*
          --const-rgx=.*
-         --max-line-length=200
+         --max-line-length=120
          --no-docstring-rgx=.*
          --max-module-lines=5000
          --min-public-methods=0
@@ -51,7 +51,7 @@ if [ "$1" != "" ]
 then
     pylint $OPTIONS $1
 else
-    for file in `find src -name \*.py`
+    for file in `find nuitka -name \*.py`
     do
         if [ "$file" != "src/oset.py" -a "$file" != "src/odict.py" ]
         then

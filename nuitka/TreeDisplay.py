@@ -293,7 +293,7 @@ def displayTreeInspector( tree ):
 
     import SyntaxHighlighting
 
-    highlight = SyntaxHighlighting.PythonHighlighter(
+    SyntaxHighlighting.addPythonHighlighter(
         document = dialog.textedit_source.document()
     )
     dialog.loadSource( tree.getFilename() )

@@ -40,6 +40,9 @@ def _visitTree( tree, visitor ):
     visitor( tree )
 
     for visitable in tree.getVisitableNodes():
+        if visitable is None:
+            raise AssertionError( "none child encountered", tree, tree.source_ref )
+
         _visitTree( visitable, visitor )
 
 def visitTree( tree, visitor ):
@@ -55,6 +58,9 @@ def _visitScope( tree, visitor ):
     visitor( tree )
 
     for visitable in tree.getSameScopeNodes():
+        if visitable is None:
+            raise AssertionError( "none child encountered", tree, tree.source_ref )
+
         _visitScope( visitable, visitor )
 
 def visitScope( tree, visitor ):

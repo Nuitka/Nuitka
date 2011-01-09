@@ -47,6 +47,18 @@ static PyObject *INCREASE_REFCOUNT( PyObject *object );
 
 extern int _current_line;
 
+// Helper to check that an object is valid and has reference count better than 0.
+static inline void assertObject( PyObject *value )
+{
+    assert( value != NULL );
+    assert( value->ob_refcnt > 0 );
+}
+
+static inline void assertObject( PyTracebackObject *value )
+{
+    assertObject( (PyObject *)value );
+}
+
 // Wraps a PyObject * you received or acquired from another container to
 // simplify refcount handling when you're not going to use the object
 // beyond the local scope. It will hold a reference to the wrapped object
@@ -61,8 +73,7 @@ class PyObjectTemporary {
     public:
         explicit PyObjectTemporary( PyObject *object )
         {
-            assert( object );
-            assert( object->ob_refcnt > 0 );
+            assertObject( object );
 
             this->object = object;
         }
@@ -71,33 +82,27 @@ class PyObjectTemporary {
 
         ~PyObjectTemporary()
         {
+            assertObject( this->object );
+
             Py_DECREF( this->object );
         }
 
         PyObject *asObject()
         {
-            assert( this->object->ob_refcnt > 0 );
+            assertObject( this->object );
 
             return this->object;
         }
 
         void assign( PyObject *object )
         {
+            assertObject( this->object );
+
             Py_DECREF( this->object );
 
-            assert( object );
-            assert( object->ob_refcnt > 0 );
+            assertObject( object );
 
             this->object = object;
-        }
-
-        void checkSanity( char const *message ) const
-        {
-            if ( this->object->ob_refcnt <= 0 )
-            {
-                puts( message );
-                assert( false );
-            }
         }
 
     private:
@@ -117,8 +122,7 @@ class _PythonException
 
         _PythonException( PyObject *exception )
         {
-            assert( exception );
-            assert( exception->ob_refcnt > 0 );
+            assertObject( exception );
 
             this->line = _current_line;
 
@@ -131,11 +135,8 @@ class _PythonException
 
         _PythonException( PyObject *exception, PyTracebackObject *traceback )
         {
-            assert( exception );
-            assert( exception->ob_refcnt > 0 );
-
-            assert( traceback );
-            assert( traceback->ob_refcnt > 0 );
+            assertObject( exception );
+            assertObject( traceback );
 
             this->line = _current_line;
 
@@ -146,12 +147,9 @@ class _PythonException
 
         _PythonException( PyObject *exception, PyObject *value, PyTracebackObject *traceback )
         {
-            assert( exception );
-            assert( value );
-            assert( traceback );
-            assert( exception->ob_refcnt > 0 );
-            assert( value->ob_refcnt > 0 );
-            assert( traceback->ob_refcnt > 0 );
+            assertObject( exception );
+            assertObject( value );
+            assertObject( traceback );
 
             this->line = _current_line;
 
@@ -497,6 +495,9 @@ typedef PyObject *(binary_api)( PyObject *, PyObject * );
 
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION( binary_api api, PyObject *operand1, PyObject *operand2 )
 {
+    assertObject( operand1 );
+    assertObject( operand2 );
+
     int line = _current_line;
     PyObject *result = api( operand1, operand2 );
     _current_line = line;
@@ -1418,6 +1419,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *kl
 #if PY_MAJOR_VERSION < 3
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 {
+    assertObject( source );
+    assertObject( attr_name );
+
     assert( PyInstance_Check( source ) );
     assert( PyString_Check( attr_name ) );
 
@@ -1505,15 +1509,17 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObjec
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObject *attr_name )
 {
-    assert( source );
-    assert( source->ob_refcnt > 0 );
-    assert( attr_name );
-    assert( attr_name->ob_refcnt > 0 );
+    assertObject( source );
+    assertObject( attr_name );
 
 #if PY_MAJOR_VERSION < 3
     if ( PyInstance_Check( source ) )
     {
-        return LOOKUP_INSTANCE( source, attr_name );
+        PyObject *result = LOOKUP_INSTANCE( source, attr_name );
+
+        assertObject( result );
+
+        return result;
     }
     else
 #endif
@@ -1527,7 +1533,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
             throw _PythonException();
         }
 
-        assert( result->ob_refcnt > 0 );
+        assertObject( result );
 
         return result;
     }
@@ -2471,7 +2477,7 @@ NUITKA_MAY_BE_UNUSED static void ADD_TRACEBACK( PyObject *module, PyObject *file
 
 extern PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObjectGlobalVariable const * package_var, PyObject *import_items );
 
-extern void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name, PyObjectGlobalVariable const *package_var );
+extern void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name, PyObject *module );
 
 #ifdef _NUITKA_EXE
 // For the --deep mode, we need to use these variants, esp. if the modules are in packages.
@@ -2481,6 +2487,7 @@ extern PyObject *IMPORT_EMBEDDED_MODULE( PyObject *module_name, PyObject *import
 
 // For the constant loading:
 extern void UNSTREAM_INIT( void );
-extern PyObject *UNSTREAM_CONSTANT( char const *buffer, int size );
+extern PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size );
+extern PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size );
 
 #endif

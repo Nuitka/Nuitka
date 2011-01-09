@@ -33,24 +33,25 @@
 
 Does all the Python parsing and puts it into a tree structure for use in
 later stages of the compiler.
-
 """
 
 from __future__ import print_function
 # pylint: disable=W0622
-from __past__ import long, unicode
+from .__past__ import long, unicode
 # pylint: enable=W0622
 
-import SourceCodeReferences
-import TreeOperations
-import Importing
-import Nodes
-import Utils
+from . import (
+    SourceCodeReferences,
+    TreeOperations,
+    Importing,
+    Nodes,
+    Utils
+)
 
-from nodes.ParameterSpec import ParameterSpec
-from nodes.FutureSpec import FutureSpec
+from .nodes.ParameterSpec import ParameterSpec
+from .nodes.FutureSpec import FutureSpec
 
-import ast
+import ast, sys
 
 from logging import warning
 
@@ -897,16 +898,14 @@ def buildImportFromNode( provider, node, source_ref ):
         targets.append( target )
         imports.append( object_name )
 
-    _module_package, module_name, module_filename = Importing.findModule(
+    _module_package, module_name, _module_filename = Importing.findModule(
         module_name    = module_name,
         parent_package = parent_package
     )
 
     if None in targets:
         return Nodes.CPythonStatementImportStarExternal(
-            provider        = provider,
             module_name     = module_name,
-            module_filename = module_filename,
             source_ref      = source_ref
         )
     else:
@@ -988,7 +987,7 @@ def buildGlobalDeclarationNode( provider, node, source_ref ):
     except AttributeError:
         pass
 
-    # Make sure the provide has these global variables taken.
+    # Make sure the provider has these global variables taken.
     for variable_name in node.names:
         provider.getModuleClosureVariable( variable_name = variable_name )
 
@@ -1274,9 +1273,11 @@ def buildParseTree( provider, source_code, source_ref, replacement ):
         source_ref = source_ref
     )
 
+    # TODO: The handling of doc strings should be done in an early optimization step that
+    # handles this.
     if not replacement:
+        provider.provider.setDoc( doc )
         provider.setBody( result )
-        provider.setDoc( doc )
 
     while _delayed_works:
         delayed_work = _delayed_works.pop()
@@ -1299,7 +1300,7 @@ def buildReplacementTree( provider, parent, source_code, source_ref ):
 
     return result
 
-def buildModuleTree( filename, package = None ):
+def buildModuleTree( filename, package, is_main ):
     assert package is None or type( package ) is str
 
     # pylint: disable=W0602
@@ -1310,12 +1311,17 @@ def buildModuleTree( filename, package = None ):
         source_filename = filename
 
         source_ref = SourceCodeReferences.fromFilename(
-            filename    = Utils.relpath( filename ),
+            filename    = filename,
             future_spec = FutureSpec()
         )
 
+        if is_main:
+            module_name = "__main__"
+        else:
+            module_name = Utils.basename( filename ).replace( ".py", "" )
+
         result = Nodes.CPythonModule(
-            name       = Utils.basename( filename ).replace( ".py", "" ),
+            name       = module_name,
             package    = package,
             source_ref = source_ref
         )
@@ -1323,7 +1329,7 @@ def buildModuleTree( filename, package = None ):
         source_filename = filename + "/__init__.py"
 
         source_ref = SourceCodeReferences.fromFilename(
-            filename    = Utils.relpath( filename ),
+            filename    = Utils.abspath( filename ) + "/__init__.py",
             future_spec = FutureSpec()
         )
 
@@ -1333,7 +1339,7 @@ def buildModuleTree( filename, package = None ):
             source_ref = source_ref
         )
     else:
-        assert False, filename
+        sys.exit( "Nuitka: can't open file '%s'." % filename )
 
     buildParseTree(
         provider    = result,

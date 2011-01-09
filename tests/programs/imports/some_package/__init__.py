@@ -18,3 +18,5 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+print "*** some_package: Coming from '%s'" % __file__.replace( ".pyc", ".py" )
+print "*** some_package: Path is '%s'" % __path__

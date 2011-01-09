@@ -37,12 +37,13 @@ flags in use there.
 
 class SourceCodeReference:
     @classmethod
-    def fromFilenameAndLine( cls, filename, line, future_spec ):
+    def fromFilenameAndLine( cls, filename, line, future_spec, inside_exec ):
         result = cls()
 
         result.filename = filename
         result.line = line
         result.future_spec = future_spec
+        result.inside_exec = inside_exec
 
         return result
 
@@ -50,6 +51,7 @@ class SourceCodeReference:
         self.line = None
         self.filename = None
         self.future_spec = None
+        self.inside_exec = False
 
     def __repr__( self ):
         return "<SourceCodeReference to %s:%s>" % ( self.filename, self.line )
@@ -60,7 +62,8 @@ class SourceCodeReference:
         return SourceCodeReference.fromFilenameAndLine(
             filename    = self.filename,
             line        = line,
-            future_spec = self.future_spec
+            future_spec = self.future_spec,
+            inside_exec = self.inside_exec
         )
 
     def getLineNumber( self ):
@@ -76,14 +79,15 @@ class SourceCodeReference:
         return "%s:%s" % ( self.filename, self.line )
 
     def getExecReference( self ):
-        result = SourceCodeReference()
+        return SourceCodeReference.fromFilenameAndLine(
+            filename    = self.filename,
+            line        = self.line,
+            future_spec = self.future_spec.clone(),
+            inside_exec = True
+        )
 
-        result.line = self.line
-        result.filename = self.filename
-
-        result.future_spec = self.future_spec.clone()
-
-        return result
+    def isExecReference( self ):
+        return self.inside_exec
 
     def __cmp__( self, other ):
         if other is None:
@@ -99,4 +103,9 @@ class SourceCodeReference:
         return result
 
 def fromFilename( filename, future_spec ):
-    return SourceCodeReference.fromFilenameAndLine( filename, 1, future_spec )
+    return SourceCodeReference.fromFilenameAndLine(
+        filename    = filename,
+        line        = 1,
+        future_spec = future_spec,
+        inside_exec = True
+    )

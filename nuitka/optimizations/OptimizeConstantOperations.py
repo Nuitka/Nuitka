@@ -31,7 +31,7 @@
 #
 
 
-from OptimizeBase import OptimizationVisitorBase, areConstants
+from .OptimizeBase import OptimizationVisitorBase, areConstants
 
 from nuitka import PythonOperators, Nodes
 
@@ -55,7 +55,7 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
                             assert False, operands
                     except AssertionError:
                         raise
-                    except Exception, e:
+                    except Exception as e:
                         # TODO: If not an AssertError, we can create a raise exception
                         # node that does it.
                         return
@@ -67,4 +67,11 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
 
                     node.replaceWith( new_node )
 
-                    self.signalChange( "new_constant" )
+                    self.signalChange(
+                        "new_constant",
+                        node.getSourceReference(),
+                        "Operation with constant args was predicted to a constant value."
+                    )
+        elif node.isExpressionComparison():
+            operands = node.getOperands()
+            comparators = node.getComparators()

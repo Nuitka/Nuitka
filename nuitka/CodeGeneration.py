@@ -41,10 +41,13 @@ make a code block out of it. But it doesn't contain any target language syntax.
 
 from __future__ import print_function
 
-import Generator
-import Contexts
-import Options
-import Nodes
+from . import (
+    Generator,
+    Contexts,
+    Options,
+    Nodes,
+    Utils
+)
 
 def mangleAttributeName( attribute_name, node ):
     if not attribute_name.startswith( "__" ) or attribute_name.endswith( "__" ):
@@ -926,7 +929,9 @@ def generateAssignmentCode( targets, value, context, recursion = 1 ):
                     expression = target.getLookupSource(),
                     context    = context
                 ),
-                attribute  = context.getConstantHandle( constant = attribute_name ),
+                attribute  = context.getConstantHandle(
+                    constant = attribute_name
+                ),
                 identifier = assign_source
             )
 
@@ -960,7 +965,11 @@ def generateAssignmentCode( targets, value, context, recursion = 1 ):
 
             iterator_identifier = Generator.getTupleUnpackIteratorCode( recursion )
 
-            lvalue_identifiers = [ Generator.getTupleUnpackLeftValueCode( recursion, count+1 ) for count in range( len( elements )) ]
+            lvalue_identifiers = [
+                Generator.getTupleUnpackLeftValueCode( recursion, count+1 )
+                for count in
+                range( len( elements ))
+            ]
 
             if not unpacked:
                 code += Generator.getUnpackTupleCode(
@@ -985,7 +994,7 @@ def generateAssignmentCode( targets, value, context, recursion = 1 ):
     assert code.endswith( "\n" ), code
 
     if brace:
-        code = Generator.getBlockCode( code )
+        code = Generator.getBlockCode( code[:-1] )
 
     if recursion == 1:
         code = code.rstrip()
@@ -1180,7 +1189,9 @@ def generateRaiseCode( statement, context ):
     parameters = statement.getExceptionParameters()
 
     if len( parameters ) == 0:
-        return Generator.getReRaiseExceptionCode()
+        return Generator.getReRaiseExceptionCode(
+            local = statement.isReraiseExceptionLocal()
+        )
     elif len( parameters ) == 1:
         return Generator.getRaiseExceptionCode(
             exception_type_identifier  = generateExpressionCode(
@@ -1258,13 +1269,6 @@ def generateImportEmbeddedCode( statement, context ):
         context = context
     )
 
-def generateImportStarCode( statement, context ):
-    return Generator.getImportFromStarCode(
-        module_name = statement.getModuleName(),
-        context     = context
-    )
-
-
 def _generateImportFromLookupCode( statement, context ):
     module_temp = Generator.getImportFromModuleTempIdentifier()
 
@@ -1297,7 +1301,8 @@ def generateImportFromExternalCode( statement, context ):
         module_name    = statement.getModuleName(),
         lookup_code    = lookup_code,
         import_list    = statement.getImports(),
-        embedded       = (),
+        embedded       = False,
+        sub_modules    = (),
         context        = context,
     )
 
@@ -1312,13 +1317,30 @@ def generateImportFromEmbeddedCode( statement, context ):
         module_name    = statement.getModuleName(),
         lookup_code    = lookup_code,
         import_list    = statement.getImports(),
-        embedded       = [
+        embedded       = True,
+        sub_modules    = [
             sub_module.getFullName()
             for sub_module in
             statement.getSubModules()
         ],
         context        = context,
     )
+
+
+def generateImportStarExternalCode( statement, context ):
+    return Generator.getImportFromStarCode(
+        module_name = statement.getModuleName(),
+        embedded    = False,
+        context     = context
+    )
+
+def generateImportStarEmbeddedCode( statement, context ):
+    return Generator.getImportFromStarCode(
+        module_name = statement.getModuleName(),
+        embedded    = True,
+        context     = context
+    )
+
 
 def generateStatementCode( statement, context ):
     try:
@@ -1590,7 +1612,12 @@ def _generateStatementCode( statement, context ):
             context   = context
         )
     elif statement.isStatementImportStarExternal():
-        return generateImportStarCode(
+        return generateImportStarExternalCode(
+            statement = statement,
+            context   = context
+        )
+    elif statement.isStatementImportStarEmbedded():
+        return generateImportStarEmbeddedCode(
             statement = statement,
             context   = context
         )
@@ -1662,7 +1689,12 @@ def generateStatementSequenceCode( statement_sequence, context ):
 
     for statement in statements:
         if Options.shallTraceExecution():
-            codes.append( 'puts( "Execute: %s %s" );' % ( statement.getSourceReference(), statement ) )
+            codes.append(
+                Generator.getStatementTrace(
+                    statement.getSourceReference().getAsString(),
+                    repr( statement )
+                )
+            )
 
         code = generateStatementCode(
             statement = statement,
@@ -1698,12 +1730,19 @@ def generateModuleCode( module, module_name, global_context, stand_alone ):
         global_context = global_context,
     )
 
-    statement_sequence = module.getStatementSequence()
+    statement_sequence = module.getBody()
 
     codes = generateStatementSequenceCode(
         statement_sequence = statement_sequence,
         context            = context
     )
+
+    if module.isPackage():
+        path_identifier = context.getConstantHandle(
+            constant = [ Utils.dirname( module.getFilename() ) ]
+        )
+    else:
+        path_identifier = None
 
     return Generator.getModuleCode(
         module_name         = module_name,
@@ -1715,6 +1754,7 @@ def generateModuleCode( module, module_name, global_context, stand_alone ):
         filename_identifier = context.getConstantHandle(
             constant = module.getFilename()
         ),
+        path_identifier     = path_identifier,
         codes               = codes,
         context             = context,
     )
