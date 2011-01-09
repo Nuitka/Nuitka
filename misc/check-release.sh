@@ -1,10 +1,9 @@
 #!/bin/bash -e
 #
-#     Copyright 2010, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
 #
-#     Part of "Nuitka", an attempt of building an optimizing Python compiler
-#     that is compatible and integrates with CPython, but also works on its
-#     own.
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
 #
 #     If you submit Kay Hayen patches to this software in either form, you
 #     automatically grant him a copyright assignment to the code, or in the
