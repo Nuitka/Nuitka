@@ -30,6 +30,11 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-find . -name \*.build -exec echo rm -rf {} \;
-find . -name \*.exe -exec echo rm {} \;
-find . -name \*.pyc -exec echo rm {} \;
+cd `dirname $0`/..
+
+find nuitka -name \*.py
+find bin -name \*.py
+find src -name \*.cpp
+find include -name \*.hpp
+find misc -name \*.sh
+find bin -name \*.sh

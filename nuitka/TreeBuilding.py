@@ -30,8 +30,8 @@
 #
 """ Build the internal node tree from source code.
 
-Does all the Python parsing and puts it into a tree structure for use in
-later stages of the compiler.
+Does all the Python parsing and puts it into a tree structure for use in later stages of
+the compiler. This may happen recursively when exec statements are inlined.
 """
 
 from __future__ import print_function
@@ -69,6 +69,23 @@ def pushDelayedWork( delayed_work ):
 
     _delayed_works.append( delayed_work )
 
+
+def buildVariableReferenceNode( variable_name, source_ref ):
+    if variable_name in _quick_names:
+        # TODO: This normally belongs to optimization, will be safer against assignments
+        # of the quick names.
+        result = Nodes.CPythonExpressionConstantRef(
+            constant   = _quick_names[ variable_name ],
+            source_ref = source_ref
+        )
+    else:
+        result = Nodes.CPythonExpressionVariableRef(
+            variable_name = variable_name,
+            source_ref    = source_ref
+        )
+
+    return result
+
 def buildStatementsNode( provider, nodes, source_ref, allow_none = False ):
     if nodes is None and allow_none:
         return None
@@ -91,13 +108,13 @@ def buildClassNode( provider, node, source_ref ):
     bases = buildNodeList( provider, node.bases, source_ref )
 
     result = Nodes.CPythonStatementClassDef(
-        provider       = TransitiveProvider( provider ),
-        variable       = provider.getVariableForAssignment( node.name ),
-        name           = node.name,
-        doc            = class_doc,
-        bases          = bases,
-        decorators     = decorators,
-        source_ref     = source_ref
+        provider   = TransitiveProvider( provider ),
+        target     = buildVariableRefAssignTarget( node.name, source_ref ),
+        name       = node.name,
+        doc        = class_doc,
+        bases      = bases,
+        decorators = decorators,
+        source_ref = source_ref
     )
 
     def delayedWork():
@@ -108,7 +125,6 @@ def buildClassNode( provider, node, source_ref ):
         )
 
         result.setBody( body )
-
 
     pushDelayedWork( delayedWork )
 
@@ -154,7 +170,7 @@ def buildFunctionNode( provider, node, source_ref ):
 
     result = Nodes.CPythonStatementFunctionDef(
         provider   = TransitiveProvider( provider ),
-        variable   = provider.getVariableForAssignment( node.name ),
+        target     = buildVariableRefAssignTarget( node.name, source_ref ),
         parameters = buildParameterSpec( node ),
         defaults   = defaults,
         name       = node.name,
@@ -331,6 +347,12 @@ def buildSetNode( provider, node, source_ref ):
             source_ref = source_ref
         )
 
+def buildVariableRefAssignTarget( variable_name, source_ref ):
+    return Nodes.CPythonAssignTargetVariable(
+        variable_ref = buildVariableReferenceNode( variable_name, source_ref ),
+        source_ref   = source_ref
+    )
+
 def buildAssignTarget( provider, node, source_ref, allow_none = False ):
     if node is None and allow_none:
         return None
@@ -341,20 +363,10 @@ def buildAssignTarget( provider, node, source_ref, allow_none = False ):
     kind = getKind( node )
 
     if type( node ) is str:
-        # Python >= 3.1 only
-        return Nodes.CPythonAssignTargetVariable(
-            variable   = provider.getVariableForAssignment(
-                variable_name = node
-            ),
-            source_ref = source_ref
-        )
+        # Python >= 3.x only
+        return buildVariableRefAssignTarget( node, source_ref )
     elif kind == "Name":
-        return Nodes.CPythonAssignTargetVariable(
-            variable   = provider.getVariableForAssignment(
-                variable_name = node.id
-            ),
-            source_ref = source_ref
-        )
+        return buildVariableRefAssignTarget( node.id, source_ref )
     elif kind == "Attribute":
         return Nodes.CPythonAssignTargetAttribute(
             expression = buildNode( provider, node.value, source_ref ),
@@ -450,10 +462,40 @@ def buildDeleteNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-def buildQuals( provider, result, quals, source_ref ):
+def buildTargetsFromQuals( provider, target_owner, quals, source_ref ):
     assert len( quals ) >= 1
 
     targets = []
+
+    for count, qual in enumerate( quals ):
+        assert getKind( qual ) == "comprehension"
+
+        targets.append(
+            buildAssignTarget(
+                provider   = provider,
+                node       = qual.target,
+                source_ref = source_ref
+            )
+        )
+
+    target_owner.setTargets( targets )
+
+def buildSourceFromQuals( provider, contraction_builder, quals, source_ref ):
+    assert len( quals ) >= 1
+
+    qual = quals[ 0 ]
+    assert getKind( qual ) == "comprehension"
+
+    contraction_builder.setSource0(
+        buildNode(
+            provider   = provider,
+            node       = qual.iter,
+            source_ref = source_ref
+        )
+    )
+
+def buildBodyQuals( provider, contraction_body, quals, source_ref ):
+    assert len( quals ) >= 1
 
     qual_conditions = []
     qual_sources = []
@@ -461,12 +503,13 @@ def buildQuals( provider, result, quals, source_ref ):
     for count, qual in enumerate( quals ):
         assert getKind( qual ) == "comprehension"
 
-        target = buildAssignTarget( result, qual.target, source_ref )
-        targets.append( target )
-
         if qual.ifs:
             conditions = [
-                buildNode( provider = result, node = condition, source_ref = source_ref )
+                buildNode(
+                    provider   = contraction_body,
+                    node       = condition,
+                    source_ref = source_ref
+                )
                 for condition in
                 qual.ifs
             ]
@@ -485,141 +528,133 @@ def buildQuals( provider, result, quals, source_ref ):
             )
 
         # Different for list contractions and generator expressions
-        source = qual.iter
+        if count > 0:
+            qual_sources.append(
+                buildNode(
+                    provider   = contraction_body,
+                    node       = qual.iter,
+                    source_ref = source_ref
+                )
+            )
 
-        if count == 0:
-            source_provider = provider
-        else:
-            source_provider = result
-
-        qual_sources.append(
-            buildNode( provider = source_provider, node = source, source_ref = source_ref )
-        )
         qual_conditions.append( condition )
 
-    result.setTargets( targets )
-    result.setSources( qual_sources )
-    result.setConditions( qual_conditions )
+    contraction_body.setSources( qual_sources )
+    contraction_body.setConditions( qual_conditions )
+
+
+def _buildContractionNode( provider, node, builder_class, body_class, list_contraction, source_ref ):
+    assert provider.isParentVariableProvider(), provider
+
+    result = builder_class(
+        source_ref = source_ref
+    )
+
+    buildSourceFromQuals(
+        provider            = provider,
+        contraction_builder = result,
+        quals               = node.generators,
+        source_ref          = source_ref
+    )
+
+    def delayedWork():
+        contraction_body = body_class(
+            provider   = provider,
+            source_ref = source_ref,
+        )
+
+        result.setBody( contraction_body )
+
+        if hasattr( node, "elt" ):
+            contraction_body.setBody(
+                buildNode(
+                    provider   = contraction_body,
+                    node       = node.elt,
+                    source_ref = source_ref
+                )
+            )
+        else:
+            key_node = buildNode(
+                provider   = result,
+                node       = node.key,
+                source_ref = source_ref,
+            )
+
+            value_node = buildNode(
+                provider   = result,
+                node       = node.value,
+                source_ref = source_ref,
+            )
+
+            contraction_body.setBody(
+                Nodes.CPythonExpressionDictContractionKeyValue(
+                    provider   = result,
+                    key        = key_node,
+                    value      = value_node,
+                    source_ref = source_ref
+                )
+            )
+
+
+        buildTargetsFromQuals(
+            provider     = provider if list_contraction else contraction_body,
+            target_owner = contraction_body,
+            quals        = node.generators,
+            source_ref   = source_ref
+        )
+
+        buildBodyQuals(
+            provider         = provider,
+            contraction_body = contraction_body,
+            quals            = node.generators,
+            source_ref       = source_ref
+        )
+
+    pushDelayedWork( delayedWork )
+
+    return result
 
 def buildListContractionNode( provider, node, source_ref ):
-    result = Nodes.CPythonExpressionListContraction(
-        provider   = provider,
-        source_ref = source_ref
+    return _buildContractionNode(
+        provider         = provider,
+        node             = node,
+        builder_class    = Nodes.CPythonExpressionListContractionBuilder,
+        body_class       = Nodes.CPythonExpressionListContractionBody,
+        list_contraction = True,
+        source_ref       = source_ref
     )
-
-    buildQuals(
-        provider   = provider,
-        result     = result,
-        quals      = node.generators,
-        source_ref = source_ref
-    )
-
-    def delayedWork():
-        body = buildNode(
-            provider   = result,
-            node       = node.elt,
-            source_ref = source_ref,
-        )
-
-        result.setBody( body )
-
-    pushDelayedWork( delayedWork )
-
-    return result
 
 def buildSetContractionNode( provider, node, source_ref ):
-    result = Nodes.CPythonExpressionSetContraction(
-        provider   = provider,
-        source_ref = source_ref
+    return _buildContractionNode(
+        provider         = provider,
+        node             = node,
+        builder_class    = Nodes.CPythonExpressionSetContractionBuilder,
+        body_class       = Nodes.CPythonExpressionSetContractionBody,
+        list_contraction = False,
+        source_ref       = source_ref
     )
-
-    buildQuals(
-        provider   = provider,
-        result     = result,
-        quals      = node.generators,
-        source_ref = source_ref
-    )
-
-    def delayedWork():
-        body = buildNode(
-            provider   = result,
-            node       = node.elt,
-            source_ref = source_ref,
-        )
-
-        result.setBody( body )
-
-    pushDelayedWork( delayedWork )
-
-    return result
 
 def buildDictContractionNode( provider, node, source_ref ):
-    result = Nodes.CPythonExpressionDictContraction(
-        provider   = provider,
-        source_ref = source_ref
+    return _buildContractionNode(
+        provider         = provider,
+        node             = node,
+        builder_class    = Nodes.CPythonExpressionDictContractionBuilder,
+        body_class       = Nodes.CPythonExpressionDictContractionBody,
+        list_contraction = False,
+        source_ref       = source_ref
     )
-
-    buildQuals(
-        provider   = provider,
-        result     = result,
-        quals      = node.generators,
-        source_ref = source_ref
-    )
-
-    def delayedWork():
-        key_node = buildNode(
-            provider   = result,
-            node       = node.key,
-            source_ref = source_ref,
-        )
-
-        value_node = buildNode(
-            provider   = result,
-            node       = node.value,
-            source_ref = source_ref,
-        )
-
-        result.setBody(
-            Nodes.CPythonExpressionDictContractionKeyValue(
-                provider   = result,
-                key        = key_node,
-                value      = value_node,
-                source_ref = source_ref
-            )
-        )
-
-    pushDelayedWork( delayedWork )
-
-    return result
 
 def buildGeneratorExpressionNode( provider, node, source_ref ):
     assert getKind( node ) == "GeneratorExp"
 
-    result = Nodes.CPythonExpressionGenerator(
-        provider   = provider,
-        source_ref = source_ref
+    return _buildContractionNode(
+        provider         = provider,
+        node             = node,
+        builder_class    = Nodes.CPythonExpressionGeneratorBuilder,
+        body_class       = Nodes.CPythonExpressionGeneratorBody,
+        list_contraction = False,
+        source_ref       = source_ref
     )
-
-    buildQuals(
-        provider      = provider,
-        result        = result,
-        quals         = node.generators,
-        source_ref    = source_ref
-    )
-
-    def delayedWork():
-        body = buildNode(
-            provider   = result,
-            node       = node.elt,
-            source_ref = source_ref,
-        )
-
-        result.setBody( body )
-
-
-    pushDelayedWork( delayedWork )
-
-    return result
 
 def buildComparisonNode( provider, node, source_ref ):
     comparison = [ buildNode( provider, node.left, source_ref ) ]
@@ -636,18 +671,10 @@ def buildComparisonNode( provider, node, source_ref ):
     )
 
 def buildConditionNode( provider, node, source_ref ):
-    conditions = []
-    branches = []
-
-    conditions.append( buildNode( provider, node.test, source_ref ) )
-    branches.append( buildStatementsNode( provider, node.body, source_ref ) )
-
-    if node.orelse is not None:
-        branches.append( buildStatementsNode( provider, node.orelse, source_ref ) )
-
     return Nodes.CPythonStatementConditional(
-        conditions = conditions,
-        branches   = branches,
+        condition  = buildNode( provider, node.test, source_ref ),
+        yes_branch = buildStatementsNode( provider, node.body, source_ref ),
+        no_branch  = buildStatementsNode( provider, node.orelse, source_ref ),
         source_ref = source_ref
     )
 
@@ -802,7 +829,7 @@ def buildSubscriptNode( provider, node, source_ref ):
     else:
         assert False, kind
 
-def _buildImportModulesNode( provider, import_names, source_ref ):
+def _buildImportModulesNode( import_names, source_ref ):
     import_nodes = []
 
     for import_desc in import_names:
@@ -812,16 +839,14 @@ def _buildImportModulesNode( provider, import_names, source_ref ):
 
         # If a name was given, use the one provided, otherwise the import gives the top
         # level package name given for assignment of the imported module.
-        variable = provider.getVariableForAssignment(
-            local_name if local_name is not None else module_topname
+        target = buildVariableRefAssignTarget(
+            variable_name = local_name if local_name is not None else module_topname,
+            source_ref    = source_ref
         )
 
         import_nodes.append(
             Nodes.CPythonStatementImportExternal(
-                target      = Nodes.CPythonAssignTargetVariable(
-                    variable   = variable,
-                    source_ref = source_ref
-                ),
+                target      = target,
                 module_name = module_name,
                 import_name = module_name if local_name else module_topname,
                 source_ref  = source_ref
@@ -835,7 +860,6 @@ def _buildImportModulesNode( provider, import_names, source_ref ):
 
 def buildImportModulesNode( provider, node, source_ref ):
     return _buildImportModulesNode(
-        provider       = provider,
         import_names   = [
             ( import_desc.name, import_desc.asname )
             for import_desc in
@@ -849,7 +873,7 @@ def buildImportFromNode( provider, node, source_ref ):
     module_name = node.module if node.module is not None else ""
 
     if module_name == "__future__":
-        assert provider.isModule()
+        assert provider.isModule() or source_ref.isExecReference()
 
         for import_desc in node.names:
             object_name, local_name = import_desc.name, import_desc.asname
@@ -868,7 +892,6 @@ def buildImportFromNode( provider, node, source_ref ):
                 warning( "Ignoring unkown future directive '%s'" % object_name )
     elif module_name == "":
         return _buildImportModulesNode(
-            provider       = provider,
             import_names   = [
                 ( import_desc.name, import_desc.asname )
                 for import_desc in
@@ -886,13 +909,10 @@ def buildImportFromNode( provider, node, source_ref ):
         if object_name == "*":
             target = None
         else:
-            target = Nodes.CPythonAssignTargetVariable(
-                variable   = provider.getVariableForAssignment(
-                    variable_name = local_name if local_name is not None else object_name
-                ),
+            target = buildVariableRefAssignTarget(
+                variable_name = local_name if local_name is not None else object_name,
                 source_ref = source_ref
             )
-
 
         targets.append( target )
         imports.append( object_name )
@@ -950,10 +970,10 @@ def buildExecNode( provider, node, source_ref ):
         globals_node = None
 
     return Nodes.CPythonStatementExec(
-        source       = buildNode( provider, body, source_ref ),
-        globals_arg  = globals_node,
-        locals_arg   = locals_node,
-        source_ref   = source_ref
+        source_code = buildNode( provider, body, source_ref ),
+        globals_arg = globals_node,
+        locals_arg  = locals_node,
+        source_ref  = source_ref
     )
 
 def buildWithNode( provider, node, source_ref ):
@@ -986,19 +1006,19 @@ def buildGlobalDeclarationNode( provider, node, source_ref ):
     except AttributeError:
         pass
 
-    # Make sure the provider has these global variables taken.
-    for variable_name in node.names:
-        provider.getModuleClosureVariable( variable_name = variable_name )
-
     return Nodes.CPythonStatementDeclareGlobal(
-        variables  = node.names,
-        source_ref = source_ref
+        variable_names = node.names,
+        source_ref     = source_ref
     )
 
 class TransitiveProvider:
     def __init__( self, provider ):
-        if provider.isClassReference():
-            self.effective_provider  = TransitiveProvider( provider.provider )
+        if provider.isClassReference() or provider.isStatementExecInline():
+            if provider.__class__ == TransitiveProvider:
+                self.effective_provider  = TransitiveProvider( provider.effective_provider )
+            else:
+                self.effective_provider  = TransitiveProvider( provider.provider )
+
             self.transient = True
         else:
             self.effective_provider = provider
@@ -1006,16 +1026,27 @@ class TransitiveProvider:
 
         self.original_provider = provider
 
+    def __repr__( self ):
+        if self.transient:
+            return "<TransitiveProvider dispatching between %s and %s>" % ( self.effective_provider, self.original_provider )
+        else:
+            return "<TransitiveProvider forwarding to %s>" % self.original_provider
+
     def getName( self ):
         return self.original_provider.getName()
 
     def getFilename( self ):
         return self.original_provider.getFilename()
 
+    def getSourceReference( self ):
+        return self.original_provider.getSourceReference()
+
     def getVariableForAssignment( self, variable_name ):
         return self.original_provider.getVariableForAssignment( variable_name )
 
     def getVariableForReference( self, variable_name ):
+        # print(  "REF", variable_name, self.transient )
+
         if self.transient:
             result = self.original_provider.getClosureVariable( variable_name )
         else:
@@ -1024,10 +1055,18 @@ class TransitiveProvider:
         return result
 
     def isClassReference( self ):
-        return self.effective_provider.isClassReference()
+        return self.original_provider.isClassReference()
 
     def isModule( self ):
-        return self.effective_provider.isModule()
+        return self.original_provider.isModule()
+
+    def isStatementExecInline( self ):
+        return self.original_provider.isStatementExecInline()
+
+    def isEarlyClosure( self ):
+        # print( "isEarlyClosure", self )
+
+        return self.original_provider.isEarlyClosure()
 
     def getParentModule( self ):
         return self.effective_provider.getParentModule()
@@ -1036,6 +1075,9 @@ class TransitiveProvider:
         return self.effective_provider.createProvidedVariable(
             variable_name = variable_name
         )
+
+    def getParent( self ):
+        return self.original_provider.getParent()
 
 _sources = {}
 
@@ -1073,6 +1115,8 @@ _quick_names = {
     "True"  : True,
     "False" : False
 }
+
+
 
 _fastpath = {
     "Assign"       : buildAssignNode,
@@ -1203,19 +1247,10 @@ def buildNode( provider, node, source_ref, allow_none = False ):
                 source_ref = source_ref
             )
         elif kind == "Name":
-            if node.id in _quick_names:
-                result = Nodes.CPythonExpressionConstantRef(
-                    constant   = _quick_names[ node.id ],
-                    source_ref = source_ref
-                )
-            else:
-                result = Nodes.CPythonExpressionVariableRef(
-                    variable_name = node.id,
-                    source_ref    = source_ref
-                )
-
-                if provider.isEarlyClosure():
-                    result.setVariable( provider.getVariableForReference( node.id ) )
+            result = buildVariableReferenceNode(
+                node.id,
+                source_ref
+            )
         elif kind == "Str":
             result = buildStringNode(
                 node       = node,
@@ -1275,7 +1310,7 @@ def buildParseTree( provider, source_code, source_ref, replacement ):
     # TODO: The handling of doc strings should be done in an early optimization step that
     # handles this.
     if not replacement:
-        provider.provider.setDoc( doc )
+        provider.setDoc( doc )
         provider.setBody( result )
 
     while _delayed_works:
@@ -1285,15 +1320,13 @@ def buildParseTree( provider, source_code, source_ref, replacement ):
 
     return result
 
-def buildReplacementTree( provider, parent, source_code, source_ref ):
+def buildReplacementTree( provider, source_code, source_ref ):
     result = buildParseTree(
         provider    = provider,
         source_code = source_code,
         source_ref  = source_ref,
         replacement = True
     )
-
-    result.parent = parent
 
     TreeOperations.assignParent( result )
 

@@ -46,7 +46,6 @@ _builtin_names = [ str( x ) for x in __builtins__.keys() ]
 assert "int" in _builtin_names, __builtins__.keys()
 
 class OptimizationDispatchingVisitorBase( OptimizationVisitorBase ):
-
     def __init__( self, dispatch_dict ):
         self.dispatch_dict = dispatch_dict
 
@@ -110,6 +109,8 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
             if called.isVariableReference():
                 variable = called.getVariable()
 
+                assert variable is not None, node
+
                 if variable.isModuleVariable():
                     return variable.getName()
 
@@ -152,7 +153,7 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         positional_args = node.getPositionalArguments()
 
         return Nodes.CPythonExpressionBuiltinEval(
-            source       = positional_args[0],
+            source_code  = positional_args[0],
             globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
             locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
             source_ref   = node.getSourceReference()
@@ -187,7 +188,7 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         )
 
         return Nodes.CPythonStatementExec(
-            source       = source_node,
+            source_code  = source_node,
             globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
             locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
             source_ref   = source_ref

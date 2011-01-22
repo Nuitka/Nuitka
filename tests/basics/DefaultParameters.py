@@ -27,8 +27,8 @@ def defaultValueTest2( no_default, some_default_constant = module_level*2 ):
     local_var = no_default = "1"
     return local_var, some_default_constant
 
-def defaultValueTest3( no_default, funced_defaulted = defaultValueTest1(module_level)):
-    return [ funced_defaulted for i in range(8) ]
+def defaultValueTest3( no_default, func_defaulted = defaultValueTest1(module_level)):
+    return [ func_defaulted for i in range(8) ]
 
 ##def defaultValueTest4( no_default, funced_defaulted = lambda x: x**2):
 ##    c = 1

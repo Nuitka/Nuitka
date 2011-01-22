@@ -34,14 +34,112 @@ from .OptimizeBase import OptimizationVisitorBase
 
 from nuitka import TreeOperations, Nodes
 
-class VariableClosureLookupVisitor( OptimizationVisitorBase ):
+class VariableClosureLookupVisitorPhase1( OptimizationVisitorBase ):
+    """ Variable closure phase 1: Find global statements and follow them.
+
+        Global statements outside an inlined exec statement need to be treated differently
+        than inside. They affect the upper level at least, or potentially all levels below
+        the exec.
+    """
+
+    def __call__( self, node ):
+        if node.isStatementDeclareGlobal():
+            provider = node.getParentVariableProvider()
+
+            inside_exec = node.getSourceReference().isExecReference()
+
+            if inside_exec:
+                assert False
+            else:
+                module = provider.getParentModule()
+
+                for variable_name in node.getVariableNames():
+                    module_variable = module.getVariableForAssignment(
+                        variable_name = variable_name
+                    )
+
+                    closure_variable = provider._addClosureVariable(
+                        variable         = module_variable,
+                        global_statement = True
+                    )
+
+                    if isinstance( provider, Nodes.CPythonClosureGiver ):
+                        provider.registerProvidedVariable(
+                            variable = closure_variable
+                        )
+
+
+            # Remove the global statement, so we don't repeat this ever, the effect of
+            # above is permanent.
+            node.replaceWith(
+                new_node = Nodes.CPythonStatementPass(
+                    source_ref = node.getSourceReference()
+                )
+            )
+
+
+class VariableClosureLookupVisitorPhase2( OptimizationVisitorBase ):
+    """ Variable closure phase 2: Find assignments and early closure references.
+
+        In class context, a reference to a variable must be obeyed immediately, so
+        that"variable = variable" takes first "variable" as a closure and then adds
+        a new local"variable" to override it from there on. For the not early closure
+        case of a function, this will not be done and only assigments shall add local
+        variables, and references be ignored until phase 3.
+
+    """
+
+    def __call__( self, node ):
+        if node.isAssignToVariable():
+            variable_ref = node.getTargetVariableRef()
+
+            if variable_ref.getVariable() is None:
+                provider = node.getParentVariableProvider()
+
+                variable_ref.setVariable(
+                    provider.getVariableForAssignment(
+                        variable_name = variable_ref.getVariableName()
+                    )
+                )
+        elif node.isVariableReference():
+            if node.getVariable() is None:
+                if not node.getParent().isAssignToVariable():
+                    provider = node.getParentVariableProvider()
+
+                    if provider.isEarlyClosure():
+                        node.setVariable(
+                            provider.getVariableForReference(
+                                variable_name = node.getVariableName()
+                            )
+                        )
+
+class VariableClosureLookupVisitorPhase3( OptimizationVisitorBase ):
     def __call__( self, node ):
         if node.isVariableReference() and node.getVariable() is None:
+            provider = node.getParentVariableProvider()
+
+            # print "Late reference", node.getVariableName(), "for", provider, "caused at", node, "of", node.getParent()
+
             node.setVariable(
-                node.getParentVariableProvider().getVariableForReference(
+                provider.getVariableForReference(
                     variable_name = node.getVariableName()
                 )
             )
+
+        # List contractions need to take the assign target as a closure variable. This is
+        # also a wart, which is required.
+        if node.isListContractionBody():
+            for target in node.getTargets():
+                for sub_target in target.getAssignTargetVariableNodes():
+                    node.getClosureVariable(
+                        variable_name = sub_target.getTargetVariableRef().getVariableName()
+                    )
+
+VariableClosureLookupVisitors = (
+    VariableClosureLookupVisitorPhase1,
+    VariableClosureLookupVisitorPhase2,
+    VariableClosureLookupVisitorPhase3
+)
 
 
 class ModuleVariableWriteCheck:
@@ -50,12 +148,13 @@ class ModuleVariableWriteCheck:
         self.result = False
 
     def __call__( self, node ):
-        if node.isAssignToVariable() or node.isListContraction():
-            for variable in node.getTargetVariables():
-                if variable.isModuleVariableReference():
-                    if variable.getReferenced().getName() == self.variable_name:
-                        self.result = True
-                        raise TreeOperations.ExitVisit
+        if node.isAssignToVariable():
+            variable = node.getTargetVariableRef().getVariable()
+
+            if variable.isModuleVariableReference():
+                if variable.getReferenced().getName() == self.variable_name:
+                    self.result = True
+                    raise TreeOperations.ExitVisit
 
     def getResult( self ):
         return self.result
@@ -78,9 +177,6 @@ def doesWriteModuleVariable( node, variable_name ):
 
 class ModuleVariableVisitorBase( OptimizationVisitorBase ):
     def __call__( self, node ):
-        # TODO: Temporary only, while it breaks with execs
-        raise TreeOperations.ExitVisit
-
         if node.isModule():
             variables = node.getVariables()
 

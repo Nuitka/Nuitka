@@ -97,10 +97,8 @@ int main( int argc, char *argv[] )
 """
 
 module_header_template = """\
-
 NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void);
 extern PyObject *_module_%(module_identifier)s;
-
 """
 
 module_body_template = """\
@@ -253,37 +251,14 @@ module_init_in_package_template = """\
     );
 """
 
-constant_reading = """
-#include "nuitka/prelude.hpp"
-
-// The current line of code execution.
-int _current_line;
-
-// Sentinel PyObject to be used for all our call iterator endings. It will become
-// a PyCObject pointing to NULL. TODO: Hopefully that is unique enough.
-PyObject *_sentinel_value = NULL;
-
-PyModuleObject *_module_builtin = NULL;
-
-%(const_declarations)s
-
-static void _initConstants( void )
-{
-    if ( _sentinel_value == NULL )
-    {
-        _sentinel_value = PyCObject_FromVoidPtr( NULL, NULL );
-        assert( _sentinel_value );
-
-        _module_builtin = (PyModuleObject *)PyImport_ImportModule( "__builtin__" );
-        assert( _module_builtin );
-
-        UNSTREAM_INIT();
-
-        %(const_init)s
-    }
-}
-"""
-
 module_header = """
 // Generated code for Python source for module '%(name)s'
+"""
+
+template_header_guard = """\
+#ifndef %(header_guard_name)s
+#define %(header_guard_name)s
+
+%(header_body)s
+#endif
 """

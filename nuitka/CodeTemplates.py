@@ -31,6 +31,7 @@
 """ Code templates one stop access. """
 
 from .templates.CodeTemplatesMain import *
+from .templates.CodeTemplatesConstants import *
 
 from .templates.CodeTemplatesFunction import *
 from .templates.CodeTemplatesGeneratorExpression import *
@@ -50,7 +51,7 @@ from .templates.CodeTemplatesExecEval import *
 # We have some very long lines in here that should not be shorter though.
 # pylint: disable=C0301
 
-global_copyright = """
+global_copyright = """\
 // Generated code for Python source for module '%(name)s'
 
 // This code is in part copyright Kay Hayen, license GPLv3. This has the consequence that

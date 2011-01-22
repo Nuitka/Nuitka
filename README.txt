@@ -352,6 +352,11 @@ This is the list of tests modified from what they are in CPython.
 
     Removed, no such module
 
+*** test_doctest:
+
+    Removed, doctest uses inspection and won't find all the tests and produce differences
+    from that.
+
 *** test_docxmlrpc:
 
     Removed, uses inspection and complains about compiled function not being a function.
@@ -382,8 +387,12 @@ This is the list of tests modified from what they are in CPython.
     Removed, refers only to bytecode which compiled functions don't have, so it's out of
     scope.
 
-*** test_profilehooks:
+*** test_pdb:
 
+    Removed, depended on test_doctest which was removed and didn't contain much test at
+    all.
+
+*** test_profilehooks:
     Removed, excessive dependence on func_code.
 
 *** test_runpy:
@@ -434,17 +443,58 @@ This is the list of tests modified from what they are in CPython.
 
 * Optimizations
 
-** Constant Propagations
+** Constant Folding
 
-At the core of optimizations there needs to be a mechanic that attempts to determine run
-time values as constants. A called expression may be constant and then needs no module
-lookup. In the very least, a likely value should be determined, and if true, it could be
-used for quicker result paths.
+The most important form of optimization is the constant folding. This is when an operation
+can be predicted. Examples would be "7+6", "range(3)". Currently Nuitka does these for
+some builtins (but not all yet), and it does it for binary/unary operations and
+comparisons.
+
+Literals are one source of constants, but also most likely other optimization steps like
+constant propagation or function inlining would be. So this one is not be underestimated
+and a very important step of successful optimizations.
+
+** Constant Propagation
+
+At the core of optimizations there is an attempt to determine values of variables at run
+time and predictions of assignments. It determines if their inputs are constants or of
+similar values. An expression, e.g. a module variable access, an expensive operation, may
+be constant across the module of the function scope and then there needs to be module
+lookup.
+
+Consider e.g. the module attribute ("__name__" e.g.)  which maybe is only ever be read, so
+its value could be predicted to a constant string. This can then be used as input to the
+constant folding. Currently there is module variable usage analysis, but only "__name__"
+is currently actually optimized. At this stage it is more a proof of concept in Nuitka and
+will need considerably more work.
+
+** Builtin Call Prediction
+
+For builtin calls like "type", "len", "range" it is often possible to predict the result
+at compile time, esp. for constant inputs the resulting value often can be precomputed by
+Nuitka. It can simply determine the result or the raised exception and replace the builtin
+call with it allowing for more constant folding or code path folding. Right now the static
+exception raising is not implemented yet, but some builtins are already predicted.
+
+** Conditional Statement Prediction
+
+For conditional statements, some branches may not ever be taken, because of the conditions
+being possible to predict. In these cases, the branch not taken and the condition check is
+removed. This can typically predict 'if __name__ == "__main__":... ' style statements, but
+it will also greatly benefit from constant propagations, or enable them because once some
+branches have been removed, other things may become more predictable.
+
+** Unpacking Prediction
+
+When the length of the right hand side of an assignment to a sequence can be predicted,
+the unpacking can be replaced with multiple assigments. This is of course only really safe
+if the left hand side cannot raise an exception while building the assignment targets.
 
 ** Builtin Type Inference
 
-When a construct like "in xrange()" or "in range()" is used, it should be possible to know
-what the iteration does and represent that, so that iterator users can use that instead.
+Future (Not even started): When a construct like "in xrange()" or "in range()" is used, it
+should be possible to know what the iteration does and represent that, so that iterator
+users can use that instead.
 
 I consider that:
 
@@ -456,9 +506,9 @@ looping more efficiently.
 
 ** Quicker function calls
 
-Functions should be restructured so that their parameter parsing and tp_call interface is
-separate from the actual body. This way the call can be optimized. One problem is that the
-evaluation order can differ.
+Future (Not even stated): Functions should be restructured so that their parameter parsing
+and tp_call interface is separate from the actual body. This way the call can be
+optimized. One problem is that the evaluation order can differ.
 
 def f( a, b, c ):
    return a, b, c
@@ -466,6 +516,5 @@ def f( a, b, c ):
 f( c = get1(), b = get2(), c = get3() )
 
 This will evaluate first get1(), then get2() and then get3() and then make the call. In
-C++ whatever way the signature is written, its order is fixed. Therefore it may be
-necessary to use the sequence operator in the call or wrapping calls with different
-parameter order for every possible combination used.
+C++ whatever way the signature is written, its order is fixed. Therefore it would be
+necessary to have a staging of the parameters before making the actual call.

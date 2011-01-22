@@ -29,19 +29,6 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-import_from_external_lookup = """
-IMPORT_MODULE(
-    %(module_name)s,
-    %(module_name)s,
-    &%(package_var)s,
-    %(import_list)s
-)"""
-
-import_from_embedded_lookup = """
-IMPORT_EMBEDDED_MODULE(
-    %(module_name)s
-)"""
-
 import_from_template = """\
 {
     PyObjectTemporary module_temp(

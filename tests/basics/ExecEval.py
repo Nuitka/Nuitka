@@ -105,7 +105,7 @@ functionExecfile()
 def functionExecNones():
     f = 0
 
-    exec ( "f=1", None, None )
+    exec( "f=1", None, None )
 
     print "Exec with None as tuple args did update locals:", f
 
@@ -158,3 +158,59 @@ print "3/2 is with future division", 3/2
 exec """
 print "3/2 is without future division", 3/2
 """
+
+x = 1
+y = 1
+
+def functionGlobalsExecShadow():
+    global x
+    print "Global x outside is", x
+
+    y = 0
+    print "Local y is initially", y
+
+    print "Locals initially", locals()
+    exec """
+x = 2
+print "Exec local x is", x
+"""
+    print "Function global x is", x
+
+    exec """
+print "Re-exec local x", x
+"""
+    print "Locals after exec assigning to local x", locals()
+
+    exec """
+global x
+x = 3
+print "Exec global x is", x
+"""
+    print "Exec level global x is", x
+
+    exec """
+def change_y():
+   global y
+   y = 4
+
+   print "Exec function global y is", y
+
+y = 7
+change_y()
+
+# TODO: The below will not work
+print "Exec local y is", y
+
+"""
+    # print "Local y is afterwards", y
+
+    def print_global_y():
+        global y
+
+        # TODO: The below will not work
+        print "Global y outside", y
+
+    print_global_y()
+    print "Outside y", y
+
+functionGlobalsExecShadow()

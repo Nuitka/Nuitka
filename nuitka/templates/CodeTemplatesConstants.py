@@ -1,4 +1,3 @@
-#!/bin/sh
 #
 #     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -30,13 +29,40 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-VER=`g++ -dumpversion | sed -e 's/\.//g'`
+template_constants_reading = """
+#include "nuitka/prelude.hpp"
 
-if [ $VER -ge 450 ]
-then
-    GCC=g++
-else
-    GCC=g++-4.5
-fi
+// The current line of code execution.
+int _current_line;
 
-exec $GCC $@
+// Sentinel PyObject to be used for all our call iterator endings. It will become
+// a PyCObject pointing to NULL. TODO: Hopefully that is unique enough.
+PyObject *_sentinel_value = NULL;
+
+PyModuleObject *_module_builtin = NULL;
+
+%(constant_declarations)s
+
+void _initConstants( void )
+{
+    if ( _sentinel_value == NULL )
+    {
+        _sentinel_value = PyCObject_FromVoidPtr( NULL, NULL );
+        assert( _sentinel_value );
+
+        _module_builtin = (PyModuleObject *)PyImport_ImportModule( "__builtin__" );
+        assert( _module_builtin );
+
+        UNSTREAM_INIT();
+
+%(constant_inits)s
+    }
+}
+"""
+
+template_constants_declaration = """\
+// Call this to initialize all of the below
+void _initConstants( void );
+
+%(constant_declarations)s
+"""

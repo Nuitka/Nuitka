@@ -32,19 +32,9 @@
 
 """
 
-# pylint: disable=W0622
-from .__past__ import long, unicode, cpickle
-# pylint: enable=W0622
-
-import pickle, math
+import math
 
 from .Identifiers import namifyConstant, Identifier, ConstantIdentifier, LocalVariableIdentifier, ClosureVariableIdentifier
-from .CppRawStrings import encodeString
-
-# TODO: Shouldn't be here, the related code like belongs to Generator instead.
-from . import CodeTemplates
-
-from logging import warning
 
 class Constant:
     def __init__( self, constant ):
@@ -64,7 +54,7 @@ class Constant:
     def __eq__( self, other ):
         assert isinstance( other, self.__class__ )
 
-        return type( self.constant ) is type( other.constant ) and _compareConstants( self.constant, other.constant ) and repr( self.constant ) == repr( other.constant )
+        return compareConstants( self.constant, other.constant )
 
 class PythonContextBase:
     def __init__( self ):
@@ -148,38 +138,43 @@ class PythonChildContextBase( PythonContextBase ):
         return self.parent.getModuleName()
 
 
-def _compareConstants( a, b ):
+def compareConstants( a, b ):
     # Supposed fast path for comparison.
     if type( a ) is not type( b ):
         return False
 
-    # The NaN values of float and complex may let this fail, even if the constants are
-    # built in the same way.
-    if a == b:
-        return True
-
     # Now it's either not the same, or it is a container that contains NaN or it is a
-    # complex or float that is NaN.
+    # complex or float that is NaN, the other cases can use == at the end.
     if type( a ) is complex:
-        return _compareConstants( a.imag, b.imag ) and _compareConstants( a.real, b.real )
+        return compareConstants( a.imag, b.imag ) and compareConstants( a.real, b.real )
 
     if type( a ) is float:
-        return math.isnan( a ) and math.isnan( b )
+        if math.isnan( a ) and math.isnan( b ):
+            return True
+
+        # For float, -0.0 is not 0.0, it has a different sign for a start.
+        if math.copysign( 1.0, a ) != math.copysign( 1.0, b ):
+            return False
+
+        return a == b
 
     if type( a ) in ( tuple, list ):
         if len( a ) != len( b ):
             return False
 
         for ea, eb in zip( a, b ):
-            if not _compareConstants( ea, eb ):
+            if not compareConstants( ea, eb ):
                 return False
         else:
             return True
 
     if type( a ) is dict:
+        if len( a ) != len( b ):
+            return False
+
         for ea1, ea2 in a.iteritems():
             for eb1, eb2 in b.iteritems():
-                if _compareConstants( ea1, eb1 ) and _compareConstants( ea2, eb2 ):
+                if compareConstants( ea1, eb1 ) and compareConstants( ea2, eb2 ):
                     break
             else:
                 return False
@@ -195,42 +190,33 @@ def _compareConstants( a, b ):
                 # Due to NaN values, we need to compare each set element with all the
                 # other set to be really sure.
                 for eb in b:
-                    if _compareConstants( ea, eb ):
+                    if compareConstants( ea, eb ):
                         break
                 else:
                     return False
         else:
             return True
 
-    return False
-
-
-def _getConstantHandle( constant ):
-    constant_type = type( constant )
-
-    if constant_type in ( int, long, str, unicode, float, bool, complex, tuple, list, dict, frozenset ):
-        return "_python_" + namifyConstant( constant )
-    elif constant is Ellipsis:
-        return "Py_Ellipsis"
-    else:
-        raise Exception( "Unknown type for constant handle", type( constant ), constant  )
+    # The NaN values of float and complex may let this fail, even if the constants are
+    # built in the same way.
+    return a == b
 
 class PythonGlobalContext:
     def __init__( self ):
         self.constants = {}
 
-        self.const_tuple_empty  = self.getConstantHandle( () ).getCode()
-        self.const_string_empty = self.getConstantHandle( "" ).getCode()
-        self.const_bool_true    = self.getConstantHandle( True ).getCode()
-        self.const_bool_false   = self.getConstantHandle( False ).getCode()
+        self.getConstantHandle( () )
+        self.getConstantHandle( "" )
+        self.getConstantHandle( True )
+        self.getConstantHandle( False )
 
-        self.module_name__      = self.getConstantHandle( "__module__" ).getCode()
-        self.class__            = self.getConstantHandle( "__class__" ).getCode()
-        self.dict__             = self.getConstantHandle( "__dict__" ).getCode()
-        self.doc__              = self.getConstantHandle( "__doc__" ).getCode()
-        self.file__             = self.getConstantHandle( "__file__" ).getCode()
-        self.enter__            = self.getConstantHandle( "__enter__" ).getCode()
-        self.exit__             = self.getConstantHandle( "__exit__" ).getCode()
+        self.getConstantHandle( "__module__" )
+        self.getConstantHandle( "__class__" )
+        self.getConstantHandle( "__dict__" )
+        self.getConstantHandle( "__doc__" )
+        self.getConstantHandle( "__file__" )
+        self.getConstantHandle( "__enter__" )
+        self.getConstantHandle( "__exit__" )
 
     def getConstantHandle( self, constant ):
         if constant is None:
@@ -238,96 +224,15 @@ class PythonGlobalContext:
         elif constant is Ellipsis:
             return Identifier( "Py_Ellipsis", 0 )
         else:
-            key = ( type( constant ), repr( constant ), Constant( constant ) )
+            key = ( type( constant ), Constant( constant ) )
 
             if key not in self.constants:
-                self.constants[ key ] = _getConstantHandle( constant )
+                self.constants[ key ] = "_python_" + namifyConstant( constant )
 
             return ConstantIdentifier( self.constants[ key ] )
 
-    def getConstantCode( self ):
-        return CodeTemplates.constant_reading % {
-            "const_init"         : self.getConstantInitializations(),
-            "const_declarations" : self.getConstantDeclarations( for_header = False ),
-        }
-
-    def getConstantDeclarations( self, for_header ):
-        statements = []
-
-        for constant_name in sorted( self.constants.values()  ):
-            if for_header:
-                declaration = "extern PyObject *%s;" % constant_name
-            else:
-                declaration = "PyObject *%s;" % constant_name
-
-            statements.append( declaration )
-
-        return "\n".join( statements )
-
-    def getConstantInitializations( self ):
-        statements = []
-
-        for constant_desc, constant_identifier in sorted( self.constants.items(), key = lambda x: x[1] ):
-            constant_type, _constant_repr, constant_value = constant_desc
-            constant_value = constant_value.getConstant()
-
-            # Use shortest code for ints, except when they are big, then fall fallback to
-            # pickling.
-            if constant_type == int and abs( constant_value ) < 2**31:
-
-                statements.append(
-                    "%s = PyInt_FromLong( %s );" % (
-                        constant_identifier,
-                        constant_value )
-                    )
-
-                continue
-
-            # Note: The "str" should not be necessary, but I had an apparent g++ bug that
-            # prevented it from working correctly, where UNSTREAM_STRING would return NULL
-            # even when it asserts against that.
-            if constant_type in ( str, tuple, list, bool, float, complex, unicode, int, long, dict, frozenset, set ):
-                # Note: The marshal module cannot persist all unicode strings and
-                # therefore cannot be used.  The cPickle fails to gives reproducible
-                # results for some tuples, which needs clarification. In the mean time we
-                # are using pickle.
-                try:
-                    saved = pickle.dumps(
-                        constant_value,
-                        protocol = 0 if constant_type is unicode else 0
-                    )
-                except TypeError:
-                    warning( "Problem with persisting constant '%r'." % constant_value )
-                    raise
-
-                # Check that the constant is restored correctly.
-                restored = cpickle.loads( saved )
-
-                assert _compareConstants( restored, constant_value ), ( repr( constant_value ), "!=", repr( restored ) )
-
-                if str is unicode:
-                    saved = saved.decode( "utf_8" )
-
-                statements.append( "%s = UNSTREAM_CONSTANT( %s, %d );" % (
-                    constant_identifier,
-                    encodeString( saved ),
-                    len( saved ) )
-                )
-            elif constant_type is str:
-                statements.append(
-                    "%s = UNSTREAM_STRING( %s, %d );" % (
-                        constant_identifier,
-                        encodeString( constant_value ),
-                        len(constant_value)
-                    )
-                )
-            elif constant_value is None:
-                pass
-            else:
-                assert False, (type(constant_value), constant_value, constant_identifier)
-
-
-        return "\n        ".join( statements )
+    def getConstants( self ):
+        return sorted( self.constants.items(), key = lambda x: x[1] )
 
 class PythonPackageContext( PythonContextBase ):
     def __init__( self, package_name, global_context ):
@@ -519,10 +424,9 @@ class PythonFunctionContext( PythonChildContextBase ):
 
 
 class PythonContractionBase( PythonChildContextBase ):
-    def __init__( self, parent, loop_variables, leak_loop_vars ):
+    def __init__( self, parent, leak_loop_vars ):
         PythonChildContextBase.__init__( self, parent = parent )
 
-        self.loop_variables = tuple( loop_variables )
         self.leak_loop_vars = leak_loop_vars
 
     def isClosureViaContext( self ):
@@ -532,11 +436,10 @@ class PythonContractionBase( PythonChildContextBase ):
         return self.__class__ == PythonGeneratorExpressionContext
 
 class PythonListContractionContext( PythonContractionBase ):
-    def __init__( self, parent, loop_variables ):
+    def __init__( self, parent ):
         PythonContractionBase.__init__(
             self,
             parent         = parent,
-            loop_variables = loop_variables,
             leak_loop_vars = True
         )
 
@@ -547,11 +450,10 @@ class PythonListContractionContext( PythonContractionBase ):
         return self.getClosureHandle( var_name )
 
 class PythonGeneratorExpressionContext( PythonContractionBase ):
-    def __init__( self, parent, loop_variables ):
+    def __init__( self, parent ):
         PythonContractionBase.__init__(
             self,
             parent         = parent,
-            loop_variables = loop_variables,
             leak_loop_vars = False
         )
 
@@ -562,11 +464,10 @@ class PythonGeneratorExpressionContext( PythonContractionBase ):
         return LocalVariableIdentifier( var_name, from_context = True )
 
 class PythonSetContractionContext( PythonContractionBase ):
-    def __init__( self, parent, loop_variables ):
+    def __init__( self, parent ):
         PythonContractionBase.__init__(
             self,
             parent         = parent,
-            loop_variables = loop_variables,
             leak_loop_vars = False
         )
 
@@ -578,11 +479,10 @@ class PythonSetContractionContext( PythonContractionBase ):
 
 
 class PythonDictContractionContext( PythonContractionBase ):
-    def __init__( self, parent, loop_variables ):
+    def __init__( self, parent ):
         PythonContractionBase.__init__(
             self,
             parent         = parent,
-            loop_variables = loop_variables,
             leak_loop_vars = False
         )
 
@@ -653,3 +553,22 @@ class PythonClassContext( PythonChildContextBase ):
 
     def hasLocalsDict( self ):
         return self.class_def.hasLocalsDict()
+
+class PythonExecInlineContext( PythonChildContextBase ):
+    def __init__( self, parent ):
+        PythonChildContextBase.__init__( self, parent = parent )
+
+    def canHaveLocalVariables( self ):
+        return self.parent.canHaveLocalVariables()
+
+    def getClosureHandle( self, var_name ):
+        return self.parent.getLocalHandle( var_name )
+
+    def getLocalHandle( self, var_name ):
+        return LocalVariableIdentifier( var_name )
+
+    def addFunctionCodes( self, function, function_context, function_codes ):
+        self.parent.addFunctionCodes( function, function_context, function_codes )
+
+    def addClassCodes( self, class_def, class_context, class_codes ):
+        self.parent.addClassCodes( class_def, class_context, class_codes )

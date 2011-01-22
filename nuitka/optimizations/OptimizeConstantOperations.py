@@ -45,18 +45,21 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
                 if operator != "Repr":
                     operands = [ constant.getConstant() for constant in operands ]
 
+                    if len( operands ) == 2:
+                        operator_function = PythonOperators.binary_operator_functions[ operator ]
+                    elif len( operands ) == 1:
+                        operator_function = PythonOperators.unary_operator_functions[ operator ]
+                    else:
+                        assert False, operands
+
+                    # Execute the operation and catch an exception. Turn either the result
+                    # or the exception generated into a node. pylint: disable=W0703
                     try:
-                        if len( operands ) == 2:
-                            result = PythonOperators.binary_operator_functions[ operator ]( *operands )
-                        elif len( operands ) == 1:
-                            result = PythonOperators.unary_operator_functions[ operator ]( *operands )
-                        else:
-                            assert False, operands
-                    except AssertionError:
-                        raise
+                        # This is a convinent way to execute no matter what the number of
+                        # operands is. pylint: disable=W0142
+                        result = operator_function( *operands )
                     except Exception as e:
-                        # TODO: If not an AssertError, we can create a raise exception
-                        # node that does it.
+                        # TODO: We can create a raise exception node that does it.
                         return
 
                     new_node = Nodes.makeConstantReplacementNode(
@@ -74,3 +77,71 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
         elif node.isExpressionComparison():
             operands = node.getOperands()
             comparators = node.getComparators()
+
+            if len( comparators ) != 1:
+                return
+
+            for count, comparator in enumerate( comparators ):
+                operand1 = operands[ count ]
+                operand2 = operands[ count + 1 ]
+
+                if areConstants( ( operand1, operand2 ) ):
+                    value1 = operand1.getConstant()
+                    value2 = operand2.getConstant()
+
+                    if comparator in PythonOperators.rich_comparison_functions:
+                        compare_function = PythonOperators.rich_comparison_functions[ comparator ]
+                    elif comparator == "Is":
+                        compare_function = lambda value1, value2: value1 is value2
+                    elif comparator == "IsNot":
+                        compare_function = lambda value1, value2: value1 is not value2
+                    elif comparator == "In":
+                        compare_function = lambda value1, value2: value1 in value2
+                    elif comparator == "NotIn":
+                        compare_function = lambda value1, value2: value1 not in value2
+                    else:
+                        assert False, comparator
+
+                    try:
+                        new_value = compare_function( value1, value2 )
+                    except Exception as e:
+                        # TODO: We can create a raise exception node that does it.
+                        return
+
+                    new_node = Nodes.makeConstantReplacementNode(
+                        constant = new_value,
+                        node     = node
+                    )
+
+                    node.replaceWith( new_node )
+
+                    self.signalChange(
+                        "new_constant",
+                        node.getSourceReference(),
+                        "Comparison with constant args was predicted to a constant value."
+                    )
+        elif node.isStatementConditional():
+            condition = node.getCondition()
+
+            if condition.isConstantReference():
+                if condition.getConstant():
+                    choice = "true"
+
+                    new_node = node.getBranchYes()
+                else:
+                    choice = "false"
+
+                    new_node = node.getBranchNo()
+
+                    if new_node is None:
+                        new_node = Nodes.CPythonStatementPass(
+                            source_ref = node.getSourceReference()
+                        )
+
+                node.replaceWith( new_node )
+
+                self.signalChange(
+                    "new_statements",
+                    node.getSourceReference(),
+                    "Condition for branch was predicted to be always %s." % choice
+                )

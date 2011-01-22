@@ -106,5 +106,5 @@ def fromFilename( filename, future_spec ):
         filename    = filename,
         line        = 1,
         future_spec = future_spec,
-        inside_exec = True
+        inside_exec = False
     )

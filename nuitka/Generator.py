@@ -36,6 +36,10 @@ this one and the templates, and otherwise nothing else.
 
 """
 
+
+from .__past__ import cpickle
+import pickle
+
 from .Identifiers import Identifier, ModuleVariableIdentifier, LocalVariableIdentifier, TempVariableIdentifier, getCodeTemporaryRefs, getCodeExportRefs
 
 from . import (
@@ -43,11 +47,15 @@ from . import (
     CppRawStrings,
     CodeTemplates,
     Variables,
+    # TODO: Constants should have a separate module.
+    Contexts,
     Options
 )
 
+from logging import warning
+
 def _indentedCode( codes, count ):
-    return "\n".join( " " * count + line if line else "" for line in codes )
+    return "\n".join( " " * count + line if (line and not line.startswith( "#" )) else line for line in codes )
 
 def _indented( codes, level = 1 ):
     if type( codes ) == str:
@@ -113,18 +121,19 @@ def getVariableHandle( context, variable ):
             var_name = var_name
         )
 
-        if not context.hasLocalsDict():
+        if variable.isFromGlobalStatement() or not context.hasLocalsDict():
             return ModuleVariableIdentifier(
                 var_name         = var_name,
                 module_code_name = context.getModuleCodeName()
             )
         else:
+            # TODO: Make this an identifier as well.
             return Identifier(
-                "_mvar_%s_%s.asObject( locals_dict.asObject() )" % (
+                "_mvar_%s_%s.asObject0( locals_dict.asObject() )" % (
                     context.getModuleCodeName(),
                     var_name
                 ),
-                1
+                0
             )
     else:
         assert False, variable
@@ -204,9 +213,12 @@ def getPackageVariableCode( context ):
 
     return package_var_identifier.getCode()
 
-def getImportModuleCode( context, module_name, import_name ):
+def getEmptyImportListCode():
+    return Identifier( "NULL", 0 )
+
+def getImportModuleCode( context, module_name, import_name, import_list ):
     return Identifier(
-        "IMPORT_MODULE( %s, %s, &%s, NULL )" % (
+        "IMPORT_MODULE( %s, %s, &%s, %s )" % (
             getConstantCode(
                 constant = module_name,
                 context  = context
@@ -217,7 +229,8 @@ def getImportModuleCode( context, module_name, import_name ):
             ),
             getPackageVariableCode(
                 context = context
-            )
+            ),
+            import_list.getCodeTemporaryRef()
         ),
         1
     )
@@ -248,7 +261,8 @@ def getImportFromStarCode( context, module_name, embedded ):
         module_code = getImportModuleCode(
             context     = context,
             module_name = module_name,
-            import_name = module_name
+            import_name = module_name,
+            import_list = getEmptyImportListCode()
         )
 
     if not context.hasLocalsDict():
@@ -275,26 +289,21 @@ def getImportFromModuleTempIdentifier():
 
 def getImportFromCode( context, module_name, lookup_code, import_list, embedded, sub_modules ):
     if embedded:
-        module_lookup = CodeTemplates.import_from_embedded_lookup % {
-            "module_name" : getConstantCode(
-                constant = module_name,
-                context  = context
-            )
-        }
+        module_lookup = getImportEmbeddedCode(
+            context     = context,
+            module_name = module_name,
+            import_name = module_name
+        )
     else:
-        module_lookup = CodeTemplates.import_from_external_lookup % {
-            "module_name" : getConstantCode(
-                constant = module_name,
-                context  = context
-            ),
-            "package_var" : getPackageVariableCode(
-                context = context
-            ),
-            "import_list" : getConstantCode(
+        module_lookup = getImportModuleCode(
+            context = context,
+            module_name = module_name,
+            import_name = module_name,
+            import_list = getConstantHandle(
                 context  = context,
                 constant = tuple( import_list )
             )
-        }
+        )
 
     module_embedded = [
         getStatementCode(
@@ -309,11 +318,10 @@ def getImportFromCode( context, module_name, lookup_code, import_list, embedded,
     ]
 
     return CodeTemplates.import_from_template % {
-        "module_lookup"   : _indented( module_lookup, 2 ),
+        "module_lookup"   : _indented( module_lookup.getCodeExportRef(), 2 ),
         "module_embedded" : _indented( module_embedded ),
         "lookup_code"     : _indented( lookup_code, 2 ),
     }
-
 
 
 def getMaxIndexCode():
@@ -464,12 +472,9 @@ def getSubscriptLookupCode( subscript, source ):
     )
 
 def getHasKeyCode( source, key ):
-    return Identifier(
-        "HAS_KEY( %s, %s )" % (
-            source.getCodeTemporaryRef(),
-            key.getCodeTemporaryRef()
-        ),
-        0
+    return "HAS_KEY( %s, %s )" % (
+        source.getCodeTemporaryRef(),
+        key.getCodeTemporaryRef()
     )
 
 def getSliceLookupCode( lower, upper, source ):
@@ -495,10 +500,11 @@ def getSliceObjectCode( lower, upper, step ):
 def getStatementCode( identifier ):
     return identifier.getCodeDropRef() + ";"
 
-def getBlockCode( code ):
-    assert code == code.rstrip(), code
+def getBlockCode( codes ):
+    if type( codes ) == str:
+        assert codes == codes.rstrip(), codes
 
-    return "{\n%s\n}\n" % _indented( code )
+    return "{\n%s\n}" % _indented( codes )
 
 def getOperationCode( operator, identifiers ):
     identifier_refs = getCodeTemporaryRefs( identifiers )
@@ -543,24 +549,37 @@ def getPrintCode( newline, identifiers, target_file ):
 
     return "PRINT_ITEMS( %s );" % ( ", ".join( args ) )
 
-def getContractionCallCode( context, contraction, contraction_identifier, contraction_iterated ):
-    args = [ contraction_iterated.getCodeTemporaryRef() ]
 
-    for variable in contraction.getClosureVariables():
+def getClosureVariableProvisionCode( context, closure_variables ):
+    result = []
+
+    for variable in closure_variables:
         if variable.isClosureReference():
-            args.append(
+            result.append(
                 getVariableCode(
                     context  = context,
                     variable = variable.getReferenced()
                 )
             )
 
-    if not contraction.isExpressionGenerator():
-        prefix = ""
-    else:
-        prefix = "MAKE_FUNCTION_"
+    return result
 
-    return Identifier( "%s%s( %s )" % ( prefix, contraction_identifier, ", ".join( args ) ), 1 )
+def getContractionCallCode( context, is_generator, contraction_identifier, contraction_iterated, closure_var_codes ):
+    args = [ contraction_iterated.getCodeTemporaryRef() ] + closure_var_codes
+
+    if is_generator:
+        prefix = "MAKE_FUNCTION_"
+    else:
+        prefix = ""
+
+    return Identifier(
+        "%s%s( %s )" % (
+            prefix,
+            contraction_identifier,
+            ", ".join( args )
+        ),
+        1
+    )
 
 def getLambdaExpressionReferenceCode( context, lambda_expression, default_values ):
     return getFunctionCreationCode(
@@ -988,9 +1007,15 @@ def getVariableDelCode( context, variable ):
 
         context.addGlobalVariableNameUsage( var_name )
 
-        return "_mvar_%s_%s.del();" % ( context.getModuleCodeName(), var_name )
+        return "_mvar_%s_%s.del();" % (
+            context.getModuleCodeName(),
+            var_name
+        )
     else:
-        return "%s.del();" % getVariableCode( variable = variable, context = context )
+        return "%s.del();" % getVariableCode(
+            variable = variable,
+            context  = context
+        )
 
 def getVariableTestCode( context, variable ):
     assert isinstance( variable, Variables.Variable ), variable
@@ -1002,7 +1027,10 @@ def getVariableTestCode( context, variable ):
 
         return "_mvar_%s_%s.isInitialized()" % ( context.getModuleCodeName(), var_name )
     else:
-        return "%s.isInitialized();" % getVariableCode( variable = variable, context = context )
+        return "%s.isInitialized();" % getVariableCode(
+            variable = variable,
+            context = context
+        )
 
 def getSequenceElementCode( sequence, index ):
     return Identifier(
@@ -1221,7 +1249,10 @@ def _getLocalVariableList( context, provider ):
         variables = provider.getVariables()
 
     return [
-        "&%s" % getVariableCode( variable = variable, context = context )
+        "&%s" % getVariableCode(
+            variable = variable,
+            context = context
+        )
         for variable in
         variables
         if not variable.isModuleVariable()
@@ -1320,10 +1351,10 @@ def getStoreLocalsCode( context, source_identifier, provider ):
             # This ought to re-use the condition code stuff.
             code += "if ( %s )\n" % getHasKeyCode(
                 source = source_identifier,
-                key = key_identifier
-            ).getCode()
+                key    = key_identifier
+            )
 
-            code += getBlockCode( _indented( var_assign_code ) )
+            code += getBlockCode( var_assign_code ) + "\n"
 
     return code
 
@@ -1598,13 +1629,13 @@ def getModuleCode( context, stand_alone, module_name, package_name, codes, doc_i
         }
 
     if stand_alone:
-        header = CodeTemplates.global_copyright % { "name" : module_name }
-        constant_init = context.global_context.getConstantCode()
+        header = CodeTemplates.global_copyright % {
+            "name" : module_name
+        }
     else:
         header = CodeTemplates.module_header % {
             "name" : module_name,
         }
-        constant_init = ""
 
     module_code = CodeTemplates.module_body_template % {
         "module_name"           : module_name,
@@ -1617,12 +1648,17 @@ def getModuleCode( context, stand_alone, module_name, package_name, codes, doc_i
         "module_code"           : _indented( codes, 2 ),
     }
 
-    return header + constant_init + module_code
+    return header + module_code
 
 def getModuleDeclarationCode( module_name ):
-    return CodeTemplates.module_header_template % {
+    module_header_code = CodeTemplates.module_header_template % {
         "module_name"       : module_name,
         "module_identifier" : getModuleIdentifier( module_name ),
+    }
+
+    return CodeTemplates.template_header_guard % {
+        "header_guard_name" : "__%s_H__" % getModuleIdentifier( module_name ),
+        "header_body"       : module_header_code
     }
 
 def getMainCode( codes, other_modules ):
@@ -1651,7 +1687,7 @@ def getFunctionsCode( context ):
     for contraction_info in sorted( context.getContractionsCodes(), key = lambda x : x[0].getCodeName() ):
         contraction, contraction_identifier, contraction_context, loop_var_codes, contraction_code, contraction_conditions, contraction_iterateds = contraction_info
 
-        if contraction.isExpressionGenerator():
+        if contraction.isExpressionGeneratorBuilder():
             result += getGeneratorExpressionCode(
                 context              = context,
                 generator            = contraction,
@@ -1705,7 +1741,7 @@ def getFunctionsDecl( context ):
 
     for contraction_info in sorted( context.getContractionsCodes(), key = lambda x : x[0].getCodeName() ):
         contraction, contraction_identifier, _contraction_context, _loop_var_code, _contraction_code, _contraction_conditions, _contraction_iterateds = contraction_info
-        if contraction.isExpressionGenerator():
+        if contraction.isExpressionGeneratorBuilder():
             result += getGeneratorExpressionDecl(
                 generator_expression = contraction,
                 generator_identifier = contraction_identifier
@@ -1764,18 +1800,18 @@ def getContractionCode( contraction, contraction_context, contraction_identifier
         contraction = contraction
     )
 
-    if contraction.isListContraction():
+    if contraction.isListContractionBuilder():
         contraction_decl_template = CodeTemplates.list_contration_var_decl
         contraction_loop = CodeTemplates.list_contraction_loop_production % {
             "contraction_body" : contraction_code.getCodeTemporaryRef(),
         }
-    elif contraction.isSetContraction():
+    elif contraction.isSetContractionBuilder():
         contraction_decl_template = CodeTemplates.set_contration_var_decl
         contraction_loop = CodeTemplates.set_contraction_loop_production % {
             "contraction_body" : contraction_code.getCodeTemporaryRef(),
         }
 
-    elif contraction.isDictContraction():
+    elif contraction.isDictContractionBuilder():
         contraction_decl_template = CodeTemplates.dict_contration_var_decl
         contraction_loop = CodeTemplates.dict_contraction_loop_production % {
             "key_identifier" : contraction_code[0].getCodeTemporaryRef(),
@@ -1789,7 +1825,13 @@ def getContractionCode( contraction, contraction_context, contraction_identifier
 
     for variable in contraction.getProvidedVariables():
         if not variable.isClosureReference() and not variable.isModuleVariable():
-            local_var_decl.append( _getLocalVariableInitCode( contraction_context, variable, in_context = False ) )
+            local_var_decl.append(
+                _getLocalVariableInitCode(
+                    context    = contraction_context,
+                    variable   = variable,
+                    in_context = False
+                )
+            )
 
 
     contraction_var_decl = contraction_decl_template % {
@@ -1905,16 +1947,16 @@ def _getLocalVariableInitCode( context, variable, init_from = None, needs_no_fre
         result += "%s" % context.getConstantHandle( constant = store_name ).getCode()
 
         if init_from is not None:
-            result += ", " + init_from
-
             if context.hasLocalsDict():
-                assert not needs_no_free
+                if needs_no_free:
+                    result += ", INCREASE_REFCOUNT( %s )"  % init_from
+                else:
+                    result += ", %s" % init_from
             else:
+                result += ", %s" % init_from
+
                 if not needs_no_free:
                     result += ", true"
-
-        if needs_no_free:
-            result += ", false"
 
         result += " )"
 
@@ -2193,7 +2235,11 @@ def _getGeneratorFunctionCode( context, function_name, function_identifier, para
 
     for variable in function_parameter_variables:
         function_parameter_decl.append(
-            _getLocalVariableInitCode( context, variable, in_context = True )
+            _getLocalVariableInitCode(
+                context    = context,
+                variable   = variable,
+                in_context = True
+            )
         )
         parameter_context_assign.append(
             "_python_context->python_var_%s = _python_par_%s;" % (
@@ -2214,7 +2260,13 @@ def _getGeneratorFunctionCode( context, function_name, function_identifier, para
     local_var_decl = []
 
     for user_variable in user_variables:
-        local_var_decl.append( _getLocalVariableInitCode( context, user_variable, in_context = True ) )
+        local_var_decl.append(
+            _getLocalVariableInitCode(
+                context    = context,
+                variable   = user_variable,
+                in_context = True
+            )
+        )
         function_var_inits.append(
             "_python_context->python_var_%s.setVariableName( %s );" % (
                 user_variable.getName(),
@@ -2334,10 +2386,10 @@ def _getFunctionCode( context, function_name, function_identifier, parameters, c
 
     function_parameter_decl = [
         _getLocalVariableInitCode(
-            context = context,
-            variable = variable,
+            context    = context,
+            variable   = variable,
             in_context = False,
-            init_from = "_python_par_" + variable.getName()
+            init_from  = "_python_par_" + variable.getName()
         )
         for variable in
         function_parameter_variables
@@ -2382,7 +2434,10 @@ def _getFunctionCode( context, function_name, function_identifier, parameters, c
 
     # User local variable initializations
     local_var_inits = [
-        _getLocalVariableInitCode( context, variable )
+        _getLocalVariableInitCode(
+            context  = context,
+            variable = variable
+        )
         for variable in
         user_variables
     ]
@@ -2752,7 +2807,29 @@ def getClassCode( context, class_def, class_codes ):
     class_var_decl = []
 
     for class_variable in class_variables:
-        class_var_decl.append( _getLocalVariableInitCode( context, class_variable, in_context = False, mangle_name = class_def.getName() ) )
+        if class_variable.getName() == "__module__":
+            init_from = getConstantCode(
+                constant   = class_def.getParentModule().getName(),
+                context    = context,
+            )
+        elif class_variable.getName() == "__doc__":
+            init_from = getConstantCode(
+                constant = class_def.getDoc(),
+                context  = context
+            )
+        else:
+            init_from = None
+
+        class_var_decl.append(
+            _getLocalVariableInitCode(
+                context       = context,
+                variable      = class_variable,
+                init_from     = init_from,
+                needs_no_free = True,
+                in_context    = False,
+                mangle_name   = class_def.getName()
+            )
+        )
 
     class_creation_args, class_dict_args = _getClassCreationArgs(
         class_def = class_def
@@ -2850,3 +2927,106 @@ def getStatementTrace( source_desc, statement_repr ):
         source_desc,
         getRawStringLiteralCode( statement_repr )
     )
+
+
+def _getConstantsDeclarationCode( context, for_header ):
+    statements = []
+
+    for _constant_desc, constant_identifier in context.getConstants():
+        if for_header:
+            declaration = "extern PyObject *%s;" % constant_identifier
+        else:
+            declaration = "PyObject *%s;" % constant_identifier
+
+        statements.append( declaration )
+
+    return "\n".join( statements )
+
+def _getConstantsDefinitionCode( context ):
+    statements = []
+
+    for constant_desc, constant_identifier in context.getConstants():
+        constant_type, constant_value = constant_desc
+        constant_value = constant_value.getConstant()
+
+        # Use shortest code for ints, except when they are big, then fall fallback to
+        # pickling.
+        if constant_type == int and abs( constant_value ) < 2**31:
+            statements.append(
+                "%s = PyInt_FromLong( %s );" % (
+                    constant_identifier,
+                    constant_value
+                )
+            )
+
+            continue
+
+        # Note: The "str" should not be necessary, but I had an apparent g++ bug that
+        # prevented it from working correctly, where UNSTREAM_STRING would return NULL
+        # even when it asserts against that.
+        if constant_type in ( str, tuple, list, bool, float, complex, unicode, int, long, dict, frozenset, set ):
+            # Note: The marshal module cannot persist all unicode strings and
+            # therefore cannot be used.  The cPickle fails to gives reproducible
+            # results for some tuples, which needs clarification. In the mean time we
+            # are using pickle.
+            try:
+                saved = pickle.dumps(
+                    constant_value,
+                    protocol = 0 if constant_type is unicode else 0
+                )
+            except TypeError:
+                warning( "Problem with persisting constant '%r'." % constant_value )
+                raise
+
+            # Check that the constant is restored correctly.
+            restored = cpickle.loads( saved )
+
+            assert Contexts.compareConstants( restored, constant_value )
+
+            if str is unicode:
+                saved = saved.decode( "utf_8" )
+
+            statements.append( "%s = UNSTREAM_CONSTANT( %s, %d );" % (
+                constant_identifier,
+                CppRawStrings.encodeString( saved ),
+                len( saved ) )
+            )
+        elif constant_type is str:
+            statements.append(
+                "%s = UNSTREAM_STRING( %s, %d );" % (
+                    constant_identifier,
+                    CppRawStrings.encodeString( constant_value ),
+                    len(constant_value)
+                )
+            )
+        elif constant_value is None:
+            pass
+        else:
+            assert False, (type(constant_value), constant_value, constant_identifier)
+
+    return "\n        ".join( statements )
+
+
+def getConstantsDeclarationCode( context ):
+    constants_declarations = CodeTemplates.template_constants_declaration % {
+        "constant_declarations" : _getConstantsDeclarationCode(
+            context    = context,
+            for_header = True
+        )
+    }
+
+    return CodeTemplates.template_header_guard % {
+        "header_guard_name" : "__NUITKA_DECLARATIONS_H__",
+        "header_body"       : constants_declarations
+    }
+
+def getConstantsDefinitionCode( context ):
+    return CodeTemplates.template_constants_reading % {
+        "constant_inits"        : _getConstantsDefinitionCode(
+            context    = context
+        ),
+        "constant_declarations" : _getConstantsDeclarationCode(
+            context    = context,
+            for_header = False
+        )
+    }

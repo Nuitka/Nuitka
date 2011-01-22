@@ -139,7 +139,7 @@ def _generatorContractionBodyCode( contraction, context ):
     contraction_body = contraction.getBody()
 
     # Dictionary contractions produce a tuple always.
-    if contraction.isDictContraction():
+    if contraction.isDictContractionBody():
         return (
             generateExpressionCode(
                 context    = context,
@@ -161,7 +161,7 @@ def _generatorContractionBodyCode( contraction, context ):
 def generateContractionCode( contraction, context ):
     loop_var_codes = []
 
-    for count, loop_var_assign in enumerate( contraction.getLoopVariableAssignments() ):
+    for count, loop_var_assign in enumerate( contraction.getTargets() ):
         loop_var_code = generateAssignmentCode(
             targets   = loop_var_assign,
             value     = Generator.getContractionIterValueIdentifier(
@@ -174,19 +174,17 @@ def generateContractionCode( contraction, context ):
         loop_var_codes.append( loop_var_code )
 
     contraction_code = _generatorContractionBodyCode(
-        contraction = contraction,
+        contraction = contraction.getBody(),
         context     = context
     )
 
-    iterateds = contraction.getIterateds()
-
     iterated_identifier = generateExpressionCode(
-        expression = iterateds[0],
+        expression = contraction.getSource0(),
         context    = context.getParent()
     )
 
     sub_iterated_identifiers = generateExpressionsCode(
-        expressions = iterateds[1:],
+        expressions = contraction.getInnerSources(),
         context     = context
     )
 
@@ -199,7 +197,9 @@ def generateContractionCode( contraction, context ):
             context    = context
         )
 
-        contraction_condition_identifiers.append( contraction_condition_identifier )
+        contraction_condition_identifiers.append(
+            contraction_condition_identifier
+        )
 
     contraction_identifier = contraction.getCodeName()
 
@@ -213,18 +213,23 @@ def generateContractionCode( contraction, context ):
         contraction_iterateds  = sub_iterated_identifiers
     )
 
+    parent_context = context.getParent()
+
     return Generator.getContractionCallCode(
-        contraction            = contraction,
         contraction_identifier = contraction_identifier,
+        is_generator           = contraction.isExpressionGeneratorBuilder(),
         contraction_iterated   = iterated_identifier,
-        context                = context.getParent()
+        closure_var_codes      = Generator.getClosureVariableProvisionCode(
+            closure_variables = contraction.getClosureVariables(),
+            context           = parent_context
+        ),
+        context                = parent_context
     )
 
 def generateListContractionCode( contraction, context ):
     # Have a separate context to create list contraction code.
     contraction_context = Contexts.PythonListContractionContext(
-        parent         = context,
-        loop_variables = contraction.getTargetVariables()
+        parent = context
     )
 
     return generateContractionCode(
@@ -235,8 +240,7 @@ def generateListContractionCode( contraction, context ):
 def generateSetContractionCode( contraction, context ):
     # Have a separate context to create list contraction code.
     contraction_context = Contexts.PythonSetContractionContext(
-        parent         = context,
-        loop_variables = contraction.getTargetVariables()
+        parent = context
     )
 
     return generateContractionCode(
@@ -247,8 +251,7 @@ def generateSetContractionCode( contraction, context ):
 def generateDictContractionCode( contraction, context ):
     # Have a separate context to create list contraction code.
     contraction_context = Contexts.PythonDictContractionContext(
-        parent         = context,
-        loop_variables = contraction.getTargetVariables()
+        parent = context
     )
 
     return generateContractionCode(
@@ -259,8 +262,7 @@ def generateDictContractionCode( contraction, context ):
 def generateGeneratorExpressionCode( generator_expression, context ):
     # Have a separate context to create generator expression code.
     generator_context = Contexts.PythonGeneratorExpressionContext(
-        parent         = context,
-        loop_variables = generator_expression.getTargetVariables()
+        parent = context
     )
 
     return generateContractionCode(
@@ -292,7 +294,7 @@ def generateLambdaCode( lambda_expression, context ):
     if not lambda_expression.isGenerator():
         code = Generator.getReturnCode(
             identifier = generateExpressionCode(
-                expression = lambda_expression.getLambdaExpression(),
+                expression = lambda_expression.getBody(),
                 context    = lambda_context
             )
         )
@@ -300,7 +302,7 @@ def generateLambdaCode( lambda_expression, context ):
         code = Generator.getStatementCode(
             identifier = Generator.getYieldCode(
                 identifier = generateExpressionCode(
-                    expression = lambda_expression.getLambdaExpression(),
+                    expression = lambda_expression.getBody(),
                     context    = lambda_context
                 )
             )
@@ -605,7 +607,15 @@ def generateFunctionCallCode( function, context ):
 def generateExpressionsCode( expressions, context, allow_none = False ):
     assert type( expressions ) in ( tuple, list )
 
-    return [ generateExpressionCode( expression = expression, context = context, allow_none = allow_none ) for expression in expressions ]
+    return [
+        generateExpressionCode(
+            expression = expression,
+            context    = context,
+            allow_none = allow_none
+        )
+        for expression in
+        expressions
+    ]
 
 def generateExpressionCode( expression, context, allow_none = False ):
     # This is a dispatching function with a branch per expression node type.
@@ -673,17 +683,17 @@ def generateExpressionCode( expression, context, allow_none = False ):
             function = expression,
             context    = context
         )
-    elif expression.isListContraction():
+    elif expression.isListContractionBuilder():
         identifier = generateListContractionCode(
             contraction = expression,
             context     = context
         )
-    elif expression.isSetContraction():
+    elif expression.isSetContractionBuilder():
         identifier = generateSetContractionCode(
             contraction = expression,
             context     = context
         )
-    elif expression.isDictContraction():
+    elif expression.isDictContractionBuilder():
         identifier = generateDictContractionCode(
             contraction = expression,
             context     = context
@@ -816,7 +826,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
             lambda_expression = expression,
             context           = context
         )
-    elif expression.isExpressionGenerator():
+    elif expression.isExpressionGeneratorBuilder():
         identifier = generateGeneratorExpressionCode(
             generator_expression = expression,
             context              = context
@@ -900,7 +910,7 @@ def generateAssignmentCode( targets, value, context, recursion = 1 ):
 
         brace = True
 
-    unpacked = False
+    iterator_identifier = None
 
     for target in targets:
         if target.isAssignToSubscript():
@@ -953,7 +963,7 @@ def generateAssignmentCode( targets, value, context, recursion = 1 ):
             code += "\n"
         elif target.isAssignToVariable():
             code += Generator.getAssignmentCode(
-                variable   = target.getTargetVariable(),
+                variable   = target.getTargetVariableRef().getVariable(),
                 identifier = assign_source,
                 context    = context
             )
@@ -962,23 +972,25 @@ def generateAssignmentCode( targets, value, context, recursion = 1 ):
         elif target.isAssignToTuple():
             elements = target.getElements()
 
-            iterator_identifier = Generator.getTupleUnpackIteratorCode( recursion )
+            # Unpack if it's the first time.
+            if iterator_identifier is None:
+                iterator_identifier = Generator.getTupleUnpackIteratorCode( recursion )
 
-            lvalue_identifiers = [
-                Generator.getTupleUnpackLeftValueCode( recursion, count+1 )
-                for count in
-                range( len( elements ))
-            ]
+                lvalue_identifiers = [
+                    Generator.getTupleUnpackLeftValueCode( recursion, count+1 )
+                    for count in
+                    range( len( elements ))
+                ]
 
-            if not unpacked:
                 code += Generator.getUnpackTupleCode(
                     assign_source       = assign_source,
                     iterator_identifier = iterator_identifier,
                     lvalue_identifiers  = lvalue_identifiers
                 )
 
-                unpacked = True
 
+            # TODO: If an assigments goes to an increasing/decreasing length of elements
+            # raise an exception. For the time being, just ignore it.
             for count, element in enumerate( elements ):
                 code += generateAssignmentCode(
                     targets   = element,
@@ -987,10 +999,13 @@ def generateAssignmentCode( targets, value, context, recursion = 1 ):
                     recursion = recursion + 1
                 )
 
+            if not code.endswith( "\n" ):
+                code += "\n"
+
         else:
             assert False, (target, target.getSourceReference())
 
-    assert code.endswith( "\n" ), code
+    assert code.endswith( "\n" ), repr( code )
 
     if brace:
         code = Generator.getBlockCode( code[:-1] )
@@ -1030,7 +1045,7 @@ def generateDelCode( targets, context ):
             )
         elif target.isAssignToVariable():
             code += Generator.getVariableDelCode(
-                variable = target.getTargetVariable(),
+                variable = target.getTargetVariableRef().getVariable(),
                 context  = context
             )
         elif target.isAssignToTuple():
@@ -1076,7 +1091,7 @@ def generateEvalCode( eval_expression, context ):
 
     identifier = Generator.getEvalCode(
         exec_code          = generateExpressionCode(
-            expression   = eval_expression.getSource(),
+            expression   = eval_expression.getSourceCode(),
             context      = context
         ),
         globals_identifier = globals_identifier,
@@ -1122,13 +1137,27 @@ def generateExecCode( exec_def, context ):
         provider           = exec_def.getParentVariableProvider(),
         exec_code          = generateExpressionCode(
             context    = context,
-            expression = exec_def.getSource()
+            expression = exec_def.getSourceCode()
         ),
         globals_identifier = globals_identifier,
         locals_identifier  = locals_identifier,
         future_flags       = Generator.getFutureFlagsCode(
             future_spec = exec_def.getSourceReference().getFutureSpec()
         )
+    )
+
+def generateExecCodeInline( exec_def, context ):
+    exec_context = Contexts.PythonExecInlineContext(
+        parent = context
+    )
+
+    codes = generateStatementSequenceCode(
+        statement_sequence = exec_def.getBody(),
+        context            = exec_context
+    )
+
+    return Generator.getBlockCode(
+        codes = codes
     )
 
 def generateTryExceptCode( statement, context ):
@@ -1244,7 +1273,8 @@ def generateImportBuiltinCode( expression, context ):
     return Generator.getImportModuleCode(
         context     = context,
         module_name = expression.getModuleName(),
-        import_name = expression.getImportName()
+        import_name = expression.getImportName(),
+        import_list = Generator.getEmptyImportListCode()
     )
 
 def generateImportExternalCode( statement, context ):
@@ -1384,7 +1414,7 @@ def _generateStatementCode( statement, context ):
 
         if target.isAssignToVariable():
             code = Generator.getInplaceVarAssignmentCode(
-                variable   = target.getTargetVariable(),
+                variable   = target.getTargetVariableRef().getVariable(),
                 operator   = statement.getOperator(),
                 identifier = makeExpressionCode( statement.getExpression() ),
                 context    = context
@@ -1578,8 +1608,15 @@ def _generateStatementCode( statement, context ):
 
             branches_codes.append( branch_codes )
 
+        # TODO: We don't need generator to provide very generic if/elif/else, only
+        # if/else, the node tree contains nothing else.
         code = Generator.getBranchCode(
-            conditions     = [ generateConditionCode( condition = condition, context = context ) for condition in statement.getConditions() ],
+            conditions     = [
+                generateConditionCode(
+                    condition = statement.getCondition(),
+                    context   = context
+                )
+            ],
             branches_codes = branches_codes
         )
     elif statement.isStatementContinue():
@@ -1661,6 +1698,11 @@ def _generateStatementCode( statement, context ):
             exec_def     = statement,
             context      = context
         )
+    elif statement.isStatementExecInline():
+        code = generateExecCodeInline(
+            exec_def     = statement,
+            context      = context
+        )
     elif statement.isStatementDeclareGlobal():
         code = ""
     elif statement.isStatementPass():
@@ -1737,6 +1779,9 @@ def generateModuleCode( module, module_name, global_context, stand_alone ):
     )
 
     if module.isPackage():
+        # TODO: For easier optimization, values for module attributes should be queried
+        # from the module object with their name, like __path__ here.
+
         path_identifier = context.getConstantHandle(
             constant = [ Utils.dirname( module.getFilename() ) ]
         )

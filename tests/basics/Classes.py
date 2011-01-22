@@ -19,6 +19,10 @@
 #     Please leave the whole of this copyright notice intact.
 #
 class SimpleClass:
+    """ The class documentation."""
+
+    print locals()
+
     class_var = 1
 
     def __init__( self, init_parameter ):
@@ -36,6 +40,7 @@ class SimpleClass:
 
 print "Simple class:", SimpleClass
 print "Lives in", SimpleClass.__module__
+print "Documentation", SimpleClass.__doc__
 print "Instantiate simple class:", SimpleClass( 14 )
 print "Call simple class normal method:", SimpleClass( 11 ).normal_method( 1, 2 )
 print "Call simple class static method:", SimpleClass( 11 ).static_method()
@@ -93,6 +98,15 @@ print "Strange class with __new__ and __del__ overloads", strangeClassBehaviour(
 class ClosureLocalizer:
     function = function
 
+    def deco( f ):
+        return f
+
+    @deco
+    def x():
+        pass
+
+print "Class with a name from module level renamed to local", ClosureLocalizer.function
+
 print "Class with decorator"
 
 def classdecorator( cls ):
@@ -112,3 +126,16 @@ class DictUpdating:
     locals().update( { "b" : 2 } )
 
 print DictUpdating.b
+
+def functionThatOffersClosureToPassThroughClass( x ):
+    class Foo:
+        global x
+        x = 1
+
+        def __call__(self, y):
+            return x + y
+
+    return Foo()
+
+print functionThatOffersClosureToPassThroughClass(6)(2),
+print x

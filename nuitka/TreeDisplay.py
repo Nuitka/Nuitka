@@ -34,7 +34,7 @@ Useful to getting an idea of what the internal representation of Nuitka is about
 code.
 """
 
-import SourceCodeReferences
+from . import SourceCodeReferences
 
 from PyQt4 import QtCore, QtGui, uic
 

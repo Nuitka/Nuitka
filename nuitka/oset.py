@@ -30,6 +30,10 @@ class OrderedSet(collections.MutableSet):
             curr = end[PREV]
             curr[NEXT] = end[PREV] = self.map[key] = [key, curr, end]
 
+    def update( self, values ):
+        for value in values:
+            self.add( value )
+
     def discard(self, key):
         if key in self.map:
             key, prev, next = self.map.pop(key)

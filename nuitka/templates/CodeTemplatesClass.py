@@ -118,13 +118,6 @@ static PyObject *MAKE_CLASS_%(class_identifier)s( %(class_creation_args)s )
         throw _PythonException();
     }
 
-    int res = PyObject_SetAttr( result, _python_str_plain___module__, %(module_name)s );
-
-    if ( res == -1 )
-    {
-        throw _PythonException();
-    }
-
     // Apply decorators if any
 %(class_decorator_calls)s\
 

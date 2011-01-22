@@ -46,7 +46,11 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
             if parent.isStatementsSequence():
                 statements = parent.getStatements()
 
-                statements = statements[ : statements.index( node ) ] + node.getStatements() + statements[ statements.index( node ) + 1 : ]
+                # TODO: There should be a list operation that replaces a element or slice
+                # with some new elements.
+                statements = statements[ : statements.index( node ) ] + \
+                             node.getStatements() + \
+                             statements[ statements.index( node ) + 1 : ]
 
                 new_node = Nodes.CPythonStatementsSequence(
                     statements = statements,
@@ -60,7 +64,6 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
                 raise TreeOperations.RestartVisit
         elif node.isStatementExpression():
             if node.getExpression().isConstantReference():
-
                 new_node = Nodes.CPythonStatementPass(
                     source_ref = node.getSourceReference()
                 )

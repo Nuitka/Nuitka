@@ -21,7 +21,7 @@
 
 """ Playing around with constants only. """
 
-for value in (0, 0L, 3L, -4L, 17, "hey", (0, ),(0L, ) ):
+for value in (0, 0L, 3L, -4L, 17, "hey", (0, ),(0L, ), 0.0, -0.0 ):
    print value, repr(value)
 
 print 1 == 0

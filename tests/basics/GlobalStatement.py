@@ -36,9 +36,105 @@ def someFunction2():
 def someFunction3():
     return x
 
+def someNestedGlobalUser1():
+    z = 1
+
+    def setZ():
+        global z
+
+        z = 3
+
+    setZ()
+
+    return z
+
+def someNestedGlobalUser2():
+    z = 1
+
+    exec """
+def setZ():
+    global z
+
+    z = 3
+
+setZ()
+"""
+
+    return z
+
+def someNestedGlobalUser3():
+    exec """
+z = 1
+
+def setZ():
+    global z
+
+    z = 3
+
+setZ()
+"""
+    return z
+
+
+def someNestedGlobalUser4():
+    z = 1
+
+    exec """
+z = 1
+
+def setZ():
+    global z
+
+    z = 3
+
+setZ()
+"""
+    return z
+
+def someNestedGlobalUser5():
+    z = 1
+
+    exec """
+z = 3
+
+"""
+    return z
+
+def someNestedGlobalUser6():
+    exec """
+z = 3
+
+"""
+    return z
+
+
+
 print "Function that shadows a global variable with a local variable"
 print someFunction1()
 print "Function that accesses and changes a global variable declared with a global statement"
 print someFunction2()
 print "Function that uses a global variable"
 print someFunction3()
+print "Functions that uses a global variable in a nested function in various ways:"
+print someNestedGlobalUser1, someNestedGlobalUser1()
+print someNestedGlobalUser2, someNestedGlobalUser2()
+print someNestedGlobalUser3, someNestedGlobalUser3()
+print someNestedGlobalUser4, someNestedGlobalUser4()
+print someNestedGlobalUser5, someNestedGlobalUser5()
+print someNestedGlobalUser6, someNestedGlobalUser6()
+
+
+x = 7
+def f():
+    x = 1
+    def g():
+        global x
+        def i():
+            def h():
+                return x
+            return h()
+        return i()
+    return g()
+
+
+print f()

@@ -64,10 +64,16 @@ class ParameterSpecTuple:
             if type( normal_arg ) == str:
                 normal_variable = Variables.ParameterVariable( self.owner, normal_arg )
             elif type( normal_arg ) == tuple:
-                sub_parameter_spec = ParameterSpecTuple( normal_args = normal_arg, nest_count = self.nest_count + 1 )
+                sub_parameter_spec = ParameterSpecTuple(
+                    normal_args = normal_arg,
+                    nest_count  = self.nest_count + 1
+                )
                 sub_parameter_spec.setOwner( self.owner )
 
-                sub_parameter_name = "Unpackable_%s_%s" % ( self.nest_count, count+1 )
+                sub_parameter_name = "Unpackable_%s_%s" % (
+                    self.nest_count,
+                    count+1
+                )
 
                 normal_variable = Variables.NestedParameterVariable(
                     self.owner,

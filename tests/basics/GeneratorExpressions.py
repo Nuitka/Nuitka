@@ -161,3 +161,11 @@ def genexprThrown():
         print "Exception in generator, disallowed next() afterwards."
 
 genexprThrown()
+
+def nestedExpressions():
+    a = [x for x in range(10)]
+    b = (x for x in (y for y in a))
+
+    print "nested generator expression", list(b)
+
+nestedExpressions()

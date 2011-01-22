@@ -53,10 +53,6 @@ env = Environment(
     SHLIBPREFIX = "",
 )
 
-env[ "CXX" ] = "g++-nuitka"
-
-env[ "BUILD_DIR" ] = source_dir
-
 def getBoolOption( option_name, default ):
     value = ARGUMENTS.get( option_name, "True" if default else "False" )
 
@@ -65,19 +61,51 @@ def getBoolOption( option_name, default ):
 debug_mode = getBoolOption( "debug_mode", False )
 optimize_mode = getBoolOption( "optimize_mode", True )
 module_mode = getBoolOption( "module_mode", False )
+lto_mode = getBoolOption( "lto_mode", False )
+
+if env[ "CXX" ] == "g++":
+    cpp_version = int( env['CCVERSION'].replace( ".", "" ) )
+
+    if cpp_version < 450:
+        env[ "CXX" ] = "g++-4.5"
+        cpp_version = 450
+
+    if lto_mode and cpp_version < 460 and os.path.exists( "/usr/bin/g++-4.6" ):
+        env[ "CXX" ] = "g++-4.6"
+        cpp_version = 460
+
+    # Use link time optimizations so that the gcc can help with optimization across files,
+    # but unfortunately at this time it seriously slows down the compiled code. This may
+    # be because it needs -O3 option to be effective.
+
+    if cpp_version >= 460 and lto_mode:
+        env.Append( CCFLAGS = [ "-flto" ] )
+        env.Append( LINKFLAGS = [ "-flto=%d" % GetOption( "num_jobs" ) ] )
+
+        # The gcc 4.6 is not final, it crashes on lots of outputs.
+        if True:
+            pass
+            # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=noreturn" ] )
+            # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=pure" ] )
+            # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=const" ] )
+            # env.Append( CCFLAGS = [ "-freorder-functions" ] )
+            # env.Append( LINKFLAGS = [ "-freorder-functions" ] )
+            # env.Append( CCFLAGS = [ "-Wnoexcept" ] )
+            # env.Append( CCFLAGS = [ "-fpartial-inlining" ] )
+            # env.Append( LINKFLAGS = [ "-fpartial-inlining" ] )
+            # env.Append( LINKFLAGS = [ "-O" ] )
+
+    if lto_mode and cpp_version < 460:
+        print "Warning, LTO mode specified, but not available."
+
+env[ "BUILD_DIR" ] = source_dir
+
 
 # All Nuitka generated C++ is C++0X standard, so make that clear.
 env.Append( CCFLAGS = [ "-std=c++0x" ] )
 
 if debug_mode:
    env.Append( CCFLAGS = [ "-Wall", "-Werror", "-Wno-sequence-point" ] )
-
-# Use link time optimizations so that the gcc can help with optimization across
-# files, but unfortunately at this time it seriously slows down the compiled
-# code. This may be because it needs -O3 option to be effective.
-
-# env.Append( CCFLAGS = [ "-flto" ] )
-# env.Append( LINKFLAGS = [ "-flto" ] )
 
 # Python version, use the scons one if not given.
 python_version = ARGUMENTS.get( "python_version", None )

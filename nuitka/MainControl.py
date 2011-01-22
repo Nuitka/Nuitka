@@ -132,7 +132,8 @@ def checkOverflowNeed( node ):
 
     return visitor.getResult()
 
-# TODO: Integrate this with optimizations.
+# TODO: Integrate this with optimizations framework. It should become something that is
+# done in a similar way.
 class _PrepareCodeGenerationVisitor:
     def __call__( self, node ):
         if node.isFunctionReference() or node.isClassReference():
@@ -171,6 +172,11 @@ class _PrepareCodeGenerationVisitor:
 
             if crossed_except:
                 node.markAsReraiseLocal()
+
+        if node.isStatementExecInline() and node.provider.isFunctionReference():
+            for variable in node.getProvidedVariables():
+                if variable.isLocalVariable():
+                    node.provider.registerProvidedVariable( variable )
 
 def _prepareCodeGeneration( tree ):
     visitor = _PrepareCodeGenerationVisitor()
@@ -211,10 +217,10 @@ def makeSourceDirectory( main_module ):
     if main_module in other_modules:
         other_modules.remove( main_module )
 
-    declarations = ""
-
     for other_module in sorted( other_modules, key = lambda x : x.getName() ):
         _prepareCodeGeneration( other_module )
+
+    module_hpps = []
 
     for other_module in sorted( other_modules, key = lambda x : x.getName() ):
         other_module_code = CodeGeneration.generateModuleCode(
@@ -224,25 +230,23 @@ def makeSourceDirectory( main_module ):
             stand_alone    = False
         )
 
-        declarations += Generator.getModuleDeclarationCode(
-            other_module.getFullName()
-        )
-
         writeSourceCode(
             cpp_filename = source_dir + other_module.getFullName() + ".cpp",
             source_code  = other_module_code
         )
 
-    declarations += global_context.getConstantDeclarations( for_header = True )
+        module_hpp = source_dir + other_module.getFullName() + ".hpp"
 
-    declarations = """\
-#ifndef __NUITKA_DECLARATIONS_H
-#define __NUITKA_DECLARATIONS_H
-%s
-#endif
-""" % declarations
+        module_hpps.append(
+            module_hpp
+        )
 
-    writeSourceCode( source_dir + "__constants.hpp", declarations )
+        writeSourceCode(
+            cpp_filename = module_hpp,
+            source_code  = Generator.getModuleDeclarationCode(
+                other_module.getFullName()
+            )
+        )
 
     _prepareCodeGeneration( main_module )
 
@@ -262,7 +266,31 @@ def makeSourceDirectory( main_module ):
             other_modules = other_modules
         )
 
-    writeSourceCode( source_dir + "__main__.cpp", source_code )
+    writeSourceCode(
+        cpp_filename = source_dir + "__main__.cpp",
+        source_code  = source_code
+    )
+
+    writeSourceCode(
+        cpp_filename = source_dir + "__constants.cpp",
+        source_code  = Generator.getConstantsDefinitionCode(
+            context = global_context
+        )
+    )
+
+    module_hpp_include = [
+        '#include "%s"\n' % Utils.basename( module_hpp )
+        for module_hpp in
+        module_hpps
+    ]
+
+    writeSourceCode(
+        cpp_filename = source_dir + "__constants.hpp",
+        source_code  = Generator.getConstantsDeclarationCode(
+            context = global_context
+        ) + "\n".join( module_hpp_include )
+    )
+
 
 def runScons( tree, quiet ):
     name = Utils.basename( tree.getFilename() ).replace( ".py", "" )
@@ -281,7 +309,8 @@ def runScons( tree, quiet ):
         "module_mode"    : asBoolStr( Options.shallMakeModule() ),
         "optimize_mode"  : asBoolStr( Options.isOptimize() ),
         "python_version" : Options.options.python_version if Options.options.python_version is not None else "%d.%d" % ( sys.version_info[0], sys.version_info[1] ),
-        "python_debug"   : asBoolStr( Options.options.python_debug if Options.options.python_debug is not None else hasattr( sys, "getobjects" ) )
+        "python_debug"   : asBoolStr( Options.options.python_debug if Options.options.python_debug is not None else hasattr( sys, "getobjects" ) ),
+        "lto_mode"       : asBoolStr( Options.isLto() ),
     }
 
     scons_command = """scons %(quiet)s -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {

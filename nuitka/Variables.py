@@ -102,7 +102,7 @@ class Variable:
             owner = reference.getOwner()
 
             while owner != top_owner:
-                if not owner.isListContraction():
+                if not owner.isListContractionBody():
                     return True
 
                 owner = owner.getParentVariableProvider()
@@ -173,7 +173,7 @@ class ModuleVariableReference( VariableReferenceBase ):
 
         # Module variable access are direct pass-through, so de-reference them if
         # possible.
-        if variable.isModuleVariableReference():
+        while variable.isModuleVariableReference():
             variable = variable.getReferenced()
 
         assert variable.isModuleVariable()
@@ -184,6 +184,13 @@ class ModuleVariableReference( VariableReferenceBase ):
             variable = variable
         )
 
+        self.global_statement = False
+
+    def markFromGlobalStatement( self ):
+        self.global_statement = True
+
+    def isFromGlobalStatement( self ):
+        return self.global_statement
 
     def isModuleVariableReference( self ):
         return True

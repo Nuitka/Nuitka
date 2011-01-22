@@ -43,26 +43,35 @@ When it strikes, it tags with "reset", because it requires a restart of all step
 
 from .OptimizeBase import OptimizationVisitorBase, warning
 
-from nuitka import TreeBuilding
+from nuitka import TreeBuilding, Nodes
 
 class OptimizeExecVisitor( OptimizationVisitorBase ):
     """ Inline constant execs.
 
     """
     def __call__( self, node ):
-        if node.isStatementExec() and node.getLocals() is None and node.getGlobals() is None:
-            source = node.getSource()
+        if node.isStatementExec() and node.getGlobals() is None and node.getLocals() is None:
+            source = node.getSourceCode()
 
             if source.isConstantReference():
                 source_ref = node.getSourceReference().getExecReference()
 
                 try:
-                    new_node = TreeBuilding.buildReplacementTree(
+                    new_node = Nodes.CPythonStatementExecInline(
                         provider    = node.getParentVariableProvider(),
-                        parent      = node.getParent(),
+                        source_ref  = source_ref
+                    )
+                    new_node.parent = node.getParent()
+
+                    body = TreeBuilding.buildReplacementTree(
+                        provider    = new_node,
                         source_code = source.getConstant(),
                         source_ref  = source_ref
                     )
+
+                    body.parent = new_node
+
+                    new_node.setBody( body )
 
                     node.replaceWith( new_node )
 
@@ -71,6 +80,8 @@ class OptimizeExecVisitor( OptimizationVisitorBase ):
                         source_ref,
                         "Replaced 'exec' with known constant parameter with inlined code."
                     )
-
                 except SyntaxError:
-                    warning( "Syntax error will be raised at runtime for exec at '%s'." % source_ref.getAsString() )
+                    warning(
+                        "Syntax error will be raised at runtime for exec at '%s'." %
+                        source_ref.getAsString()
+                    )

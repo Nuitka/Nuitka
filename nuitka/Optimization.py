@@ -37,7 +37,7 @@ e.g. a new constant determined could make another optimization feasible.
 
 from .optimizations.OptimizeModuleRecursion import ModuleRecursionVisitor
 from .optimizations.OptimizeConstantExec import OptimizeExecVisitor
-from .optimizations.OptimizeVariableClosure import VariableClosureLookupVisitor, ModuleVariableUsageAnalysisVisitor, ModuleVariableReadOnlyVisitor
+from .optimizations.OptimizeVariableClosure import VariableClosureLookupVisitors, ModuleVariableUsageAnalysisVisitor, ModuleVariableReadOnlyVisitor
 from .optimizations.OptimizeBuiltins import ReplaceBuiltinsVisitor, PrecomputeBuiltinsVisitor
 from .optimizations.OptimizeStaticMethodFixup import FixupNewStaticMethodVisitor
 from .optimizations.OptimizeConstantOperations import OptimizeOperationVisitor
@@ -69,14 +69,15 @@ def optimizeTree( tree ):
 
     def refreshOptimizationsFromTags( optimizations_queue, tags ):
         if tags.check( "new_code" ):
+            optimizations_queue.update( VariableClosureLookupVisitors )
+
+        if tags.check( "new_code" ):
             optimizations_queue.add( FixupNewStaticMethodVisitor )
 
         if tags.check( "new_code" ) or tags.check( "new_constant" ):
             if Options.shallOptimizeStringExec():
                 optimizations_queue.add( OptimizeExecVisitor )
 
-        if tags.check( "new_code" ):
-            optimizations_queue.add( VariableClosureLookupVisitor )
 
         # TODO: Split the __import__ one out.
         if tags.check( "new_code" ) or tags.check( "new_constant" ):

@@ -2116,7 +2116,7 @@ class PyObjectGlobalVariable
             return INCREASE_REFCOUNT( this->asObject0() );
         }
 
-        PyObject *asObject( PyObject *dict ) const
+        PyObject *asObject0( PyObject *dict ) const
         {
             if ( PyDict_Contains( dict, (PyObject *)*this->var_name ) )
             {
@@ -2124,7 +2124,7 @@ class PyObjectGlobalVariable
             }
             else
             {
-                return this->asObject();
+                return this->asObject0();
             }
         }
 

@@ -33,7 +33,7 @@
 from __future__ import print_function
 
 version_string = """\
-Nuitka V0.3.5pre5
+Nuitka V0.3.5
 Copyright (C) 2011 Kay Hayen."""
 
 from . import Utils
@@ -163,11 +163,11 @@ Keep debug info in the resulting object file for better gdb interaction."""
 )
 
 parser.add_option(
-    "--show-scons",
+    "--lto",
     action  = "store_true",
-    dest    = "show_scons",
+    dest    = "lto",
     default = False,
-    help    = "Operate scons in non-quiet mode, showing the executed commands."
+    help    = "Use link time optimizations if available and usable (g++ 4.6 and higher)."
 )
 
 parser.add_option(
@@ -176,6 +176,14 @@ parser.add_option(
     dest    = "verbose",
     default = False,
     help    = "Output details of actions take, esp. in optimizations."
+)
+
+parser.add_option(
+    "--show-scons",
+    action  = "store_true",
+    dest    = "show_scons",
+    default = False,
+    help    = "Operate scons in non-quiet mode, showing the executed commands."
 )
 
 
@@ -259,10 +267,14 @@ def getMainArgs():
     return extra_args
 
 def shallOptimizeStringExec():
-    return True
+    # TODO: Temporary, while refactoring.
+    return False
 
 def isShowScons():
     return options.show_scons
 
 def getJobLimit():
     return options.jobs
+
+def isLto():
+    return options.lto

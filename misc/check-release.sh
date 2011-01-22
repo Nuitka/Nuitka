@@ -47,8 +47,18 @@ execute_tests()
     echo "Running the program tests with options '$3' with $PYTHON:"
     ./tests/programs/run_all.sh search
 
+    export TMP_DIR=/tmp/$1/26
+    mkdir -p $TMP_DIR
+
+    export NUITKA_EXTRA_OPTIONS="$3 --output-dir=$TMP_DIR"
+
     echo "Running the CPython 2.6 tests with options '$3' with $PYTHON:"
     ./tests/CPython/run_all.sh search
+
+    export TMP_DIR=/tmp/$1/27
+    mkdir -p $TMP_DIR
+
+    export NUITKA_EXTRA_OPTIONS="$3 --output-dir=$TMP_DIR"
 
     echo "Running the CPython 2.7 tests with options '$3' with $PYTHON:"
     ./tests/CPython27/run_all.sh search
