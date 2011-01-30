@@ -37,7 +37,8 @@ exec constant strings.
 It avoids non-compiled code and might be useful to make lazy people's usage of exec with
 dynamic string built from constants to generate code on the fly performant as well.
 
-When it strikes, it tags with "reset", because it requires a restart of all steps.
+When it strikes, it tags with "new_code", because the fresh code requires a restart of all
+steps.
 
 """
 

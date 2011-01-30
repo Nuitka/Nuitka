@@ -28,31 +28,4 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-
-from nuitka import TreeOperations
-
-from logging import warning, debug, info
-
-class OptimizationVisitorBase:
-    on_signal = None
-
-    def signalChange( self, tags, source_ref, message ):
-        debug( "%s : %s : %s" % ( source_ref.getAsString(), tags, message ) )
-
-        if self.on_signal is not None:
-            self.on_signal( tags )
-
-    def execute( self, tree, on_signal = None ):
-        self.on_signal = on_signal
-
-        TreeOperations.visitTree(
-            tree    = tree,
-            visitor = self
-        )
-
-def areConstants( expressions ):
-    for expression in expressions:
-        if not expression.isConstantReference():
-            return False
-    else:
-        return True
+""" Dummy file to make this directory a package. """

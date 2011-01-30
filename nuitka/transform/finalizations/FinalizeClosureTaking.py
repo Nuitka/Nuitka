@@ -1,4 +1,3 @@
-#!/bin/sh
 #
 #     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -30,12 +29,30 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-cd `dirname $0`/..
+class FinalizeClosureTaking:
+    def __call__( self, node ):
+        assert node.isClosureVariableTaker()
 
-find nuitka -name \*.py
-find bin -name \*.py
-find src -name \*.cpp
-find include -name \*.hpp
-find misc -name \*.sh
-find bin -name \*.sh
-find scons -name \*.scons
+        # print node, node.provider
+
+        for variable in node.getClosureVariables():
+            referenced = variable.getReferenced()
+            referenced_owner = referenced.getOwner()
+
+            assert not referenced.isModuleVariable()
+
+            current = node.getParent()
+
+            # print referenced
+
+            while current is not referenced_owner:
+                if current.isClosureVariableTaker():
+                    for current_variable in current.getClosureVariables():
+                        if current_variable.getReferenced() is referenced:
+                            break
+                    else:
+                        # print "ADD", current, referenced
+                        current._addClosureVariable( referenced )
+
+
+                current = current.getParent()

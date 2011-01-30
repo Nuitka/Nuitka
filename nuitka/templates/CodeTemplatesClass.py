@@ -51,8 +51,6 @@ static PyObject *%(class_identifier)s( %(class_dict_args)s )
 %(class_body)s
 
 %(class_dict_creation)s
-
-        return result;
     }
     catch ( _PythonException &_exception )
     {

@@ -1,4 +1,3 @@
-#!/bin/sh
 #
 #     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -30,12 +29,25 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-cd `dirname $0`/..
+from nuitka.transform import TreeOperations
 
-find nuitka -name \*.py
-find bin -name \*.py
-find src -name \*.cpp
-find include -name \*.hpp
-find misc -name \*.sh
-find bin -name \*.sh
-find scons -name \*.scons
+class VariableSearch:
+    def __init__( self, search_for ):
+        self.search_for = search_for
+        self.found = []
+
+    def __call__( self, node ):
+        if node.isVariableReference():
+            if node.getVariable() is self.search_for:
+                self.found.append( node )
+
+    def getResult( self ):
+        return self.found
+
+
+def getVariableUsages( node, variable ):
+    visitor = VariableSearch( variable )
+
+    TreeOperations.visitScope( node, visitor )
+
+    return visitor.getResult()

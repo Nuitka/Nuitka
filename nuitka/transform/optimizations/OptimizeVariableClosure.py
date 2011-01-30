@@ -32,7 +32,43 @@
 
 from .OptimizeBase import OptimizationVisitorBase
 
-from nuitka import TreeOperations, Nodes
+from nuitka import Nodes
+
+from .. import TreeOperations
+from nuitka.nodes.UsageCheck import getVariableUsages
+
+def _globalizeSingle( module, variable_names, provider ):
+    for variable_name in variable_names:
+        module_variable = module.getVariableForAssignment(
+            variable_name = variable_name
+        )
+
+        closure_variable = provider._addClosureVariable(
+            variable         = module_variable,
+            global_statement = True
+        )
+
+        if isinstance( provider, Nodes.CPythonClosureGiver ):
+            provider.registerProvidedVariable(
+                variable = closure_variable
+            )
+
+
+def _globalizeScope( module, variable_names, exec_inline_node ):
+    def visitorGlobalizeScope( node ):
+        if node.isParentVariableProvider():
+            _globalizeSingle(
+                module         = module,
+                variable_names = variable_names,
+                provider       = node
+            )
+
+
+    TreeOperations.visitTree(
+        tree    = exec_inline_node,
+        visitor = visitorGlobalizeScope
+    )
+
 
 class VariableClosureLookupVisitorPhase1( OptimizationVisitorBase ):
     """ Variable closure phase 1: Find global statements and follow them.
@@ -42,38 +78,34 @@ class VariableClosureLookupVisitorPhase1( OptimizationVisitorBase ):
         the exec.
     """
 
+    visit_type = "scopes"
+
     def __call__( self, node ):
         if node.isStatementDeclareGlobal():
-            provider = node.getParentVariableProvider()
+            source_ref = node.getSourceReference()
 
-            inside_exec = node.getSourceReference().isExecReference()
+            if source_ref.isExecReference():
+                # Inside an exec, visit everything that provides and register the global
+                # module variable with it.
 
-            if inside_exec:
-                assert False
+                _globalizeScope(
+                    module           = node.getParentModule(),
+                    variable_names   = node.getVariableNames(),
+                    exec_inline_node = node.getParentExecInline()
+                )
             else:
-                module = provider.getParentModule()
-
-                for variable_name in node.getVariableNames():
-                    module_variable = module.getVariableForAssignment(
-                        variable_name = variable_name
-                    )
-
-                    closure_variable = provider._addClosureVariable(
-                        variable         = module_variable,
-                        global_statement = True
-                    )
-
-                    if isinstance( provider, Nodes.CPythonClosureGiver ):
-                        provider.registerProvidedVariable(
-                            variable = closure_variable
-                        )
+                _globalizeSingle(
+                    module         = node.getParentModule(),
+                    variable_names = node.getVariableNames(),
+                    provider       = node.getParentVariableProvider()
+                )
 
 
             # Remove the global statement, so we don't repeat this ever, the effect of
             # above is permanent.
             node.replaceWith(
                 new_node = Nodes.CPythonStatementPass(
-                    source_ref = node.getSourceReference()
+                    source_ref = source_ref
                 )
             )
 
@@ -82,12 +114,14 @@ class VariableClosureLookupVisitorPhase2( OptimizationVisitorBase ):
     """ Variable closure phase 2: Find assignments and early closure references.
 
         In class context, a reference to a variable must be obeyed immediately, so
-        that"variable = variable" takes first "variable" as a closure and then adds
-        a new local"variable" to override it from there on. For the not early closure
+        that "variable = variable" takes first "variable" as a closure and then adds
+        a new local "variable" to override it from there on. For the not early closure
         case of a function, this will not be done and only assigments shall add local
         variables, and references be ignored until phase 3.
 
     """
+
+    visit_type = "scopes"
 
     def __call__( self, node ):
         if node.isAssignToVariable():
@@ -114,6 +148,8 @@ class VariableClosureLookupVisitorPhase2( OptimizationVisitorBase ):
                         )
 
 class VariableClosureLookupVisitorPhase3( OptimizationVisitorBase ):
+    visit_type = "scopes"
+
     def __call__( self, node ):
         if node.isVariableReference() and node.getVariable() is None:
             provider = node.getParentVariableProvider()
@@ -126,20 +162,99 @@ class VariableClosureLookupVisitorPhase3( OptimizationVisitorBase ):
                 )
             )
 
-        # List contractions need to take the assign target as a closure variable. This is
-        # also a wart, which is required.
-        if node.isListContractionBody():
-            for target in node.getTargets():
-                for sub_target in target.getAssignTargetVariableNodes():
-                    node.getClosureVariable(
-                        variable_name = sub_target.getTargetVariableRef().getVariableName()
-                    )
-
 VariableClosureLookupVisitors = (
     VariableClosureLookupVisitorPhase1,
     VariableClosureLookupVisitorPhase2,
     VariableClosureLookupVisitorPhase3
 )
+
+class MaybeLocalVariableReductionVisitor( OptimizationVisitorBase ):
+    def __call__( self, node ):
+        if node.isFunctionBody():
+            self._consider( node )
+
+    def _consider( self, function ):
+        for variable in function.getVariables():
+            if variable.isMaybeLocalVariable():
+                if function.hasStaticLocals():
+                    self._cleanup( function )
+
+                break
+
+    def _cleanup( self, function ):
+        #if function.getName() == "test_max":
+        # print "Cleanup needed", function
+        module = function.getParentModule()
+
+        for variable in function.getVariables():
+            if variable.isMaybeLocalVariable():
+                usages = getVariableUsages(
+                    node     = function,
+                    variable = variable
+                )
+
+                for usage in usages:
+                    if usage.getParent().isAssignToVariable():
+                        has_assignment = True
+                        break
+                else:
+                    has_assignment = False
+
+                if has_assignment:
+                    assert False
+                else:
+                    new_variable = module.getProvidedVariable(
+                        variable_name = variable.getName()
+                    )
+
+                    self._replace(
+                        node         = function,
+                        old_variable = variable,
+                        new_variable = new_variable
+                    )
+
+    def _replace( self, node, old_variable, new_variable ):
+        # print "REPLACE", node, old_variable, new_variable
+
+        assert new_variable.isModuleVariable()
+
+        for reference in old_variable.getReferences():
+            self._replace(
+                node         = reference.getOwner(),
+                old_variable = reference,
+                new_variable = new_variable
+            )
+
+        usages = getVariableUsages(
+            node     = node,
+            variable = old_variable
+        )
+
+        # print "USAGES", usages
+
+        new_variable = new_variable.makeReference( node )
+
+        for usage in usages:
+            usage.setVariable(
+                variable = new_variable,
+                replace  = True
+            )
+
+        if hasattr( node, "providing" ):
+            assert node.providing[ old_variable.getName() ] is old_variable
+            node.providing[ old_variable.getName() ] = new_variable
+
+        if hasattr( node, "closure" ) and old_variable.isClosureReference():
+            node.closure.remove( old_variable )
+
+        if hasattr( node, "taken" ):
+            if old_variable in node.taken:
+                node.taken.remove( old_variable )
+                node.taken.add( new_variable )
+
+        # print "Replaced in", node,":"
+        # print old_variable, "->", new_variable
+
 
 
 class ModuleVariableWriteCheck:

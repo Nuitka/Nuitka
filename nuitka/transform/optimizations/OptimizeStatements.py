@@ -34,8 +34,9 @@ This undoes the effect of inlined exec or statements replaced with statement seq
 """
 
 from .OptimizeBase import OptimizationVisitorBase
+from .. import TreeOperations
 
-from nuitka import TreeOperations, Nodes
+from nuitka import Nodes
 
 
 class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):

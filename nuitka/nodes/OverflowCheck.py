@@ -1,4 +1,3 @@
-#!/bin/bash -e
 #
 #     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -30,50 +29,52 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-execute_tests()
-{
-    echo "Executing test case called $1 with Python $2 and flags '$3'."
+from nuitka.transform import TreeOperations
 
-    export PYTHON=$2
+# TODO: Find a place for this. Potentially as an attribute of nodes themselves.
+def _couldBeNone( node ):
+    if node is None:
+        return True
+    elif node.isDictionaryCreation():
+        return False
+    elif node.isBuiltinGlobals() or node.isBuiltinLocals() or \
+           node.isBuiltinDir() or node.isBuiltinVars():
+        return False
+    else:
+        # assert False, node
+        return True
 
-    export TMP_DIR=/tmp/$1
-    mkdir -p $TMP_DIR
 
-    export NUITKA_EXTRA_OPTIONS="$3 --output-dir=$TMP_DIR"
+class OverflowCheckVisitor:
+    def __init__( self, checked_node ):
+        self.result = False
 
-    echo "Running the basic tests with options '$3' with $PYTHON:"
-    ./tests/basics/run_all.sh search
+        self.is_class = checked_node.getParent().isClassBody()
 
-    echo "Running the program tests with options '$3' with $PYTHON:"
-    ./tests/programs/run_all.sh search
+    def __call__( self, node ):
+        def declareOverflow():
+            self.result = True
+            raise TreeOperations.ExitVisit
 
-    export TMP_DIR=/tmp/$1/26
-    mkdir -p $TMP_DIR
+        if node.isStatementImportStarExternal():
+            declareOverflow()
 
-    export NUITKA_EXTRA_OPTIONS="$3 --output-dir=$TMP_DIR"
+        if node.isStatementExec() and _couldBeNone( node.getGlobals() ):
+            declareOverflow()
 
-    echo "Running the CPython 2.6 tests with options '$3' with $PYTHON:"
-    ./tests/CPython/run_all.sh search
+        if node.isStatementExecInline():
+            declareOverflow()
 
-    # Running the Python 2.7 test suite with CPython 2.6 gives little insight, because
-    # "importlib" will not be there and that's it.
-    if [ "$PYTHON" != "python2.6" ]
-    then
-        export TMP_DIR=/tmp/$1/27
-        mkdir -p $TMP_DIR
+        if self.is_class and node.isBuiltinLocals():
+            declareOverflow()
 
-        export NUITKA_EXTRA_OPTIONS="$3 --output-dir=$TMP_DIR"
+    def getResult( self ):
+        return self.result
 
-        echo "Running the CPython 2.7 tests with options '$3' with $PYTHON:"
-        ./tests/CPython27/run_all.sh search
-    fi
-}
 
-execute_tests "python2.6-debug" "python2.6" "--debug"
-execute_tests "python2.7-debug" "python2.7" "--debug"
+def check( node ):
+    visitor = OverflowCheckVisitor( node )
 
-execute_tests "python2.6-nodebug" "python2.6" ""
-execute_tests "python2.7-nodebug" "python2.7" ""
+    TreeOperations.visitScope( node, visitor )
 
-echo "Running the reflection test in debug mode with $PYTHON:"
-./tests/reflected/compile_itself.sh search
+    return visitor.getResult()

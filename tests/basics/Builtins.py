@@ -19,10 +19,27 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-def someFunctionUsingLocals():
+def someFunctionWritingLocals():
     x = 1
     r = locals()
 
+    # This is without effect on r. It doesn't mention y at all
+    y = 2
+
+    # This adds z to the locals, but only that.
+    r[ "z" ] = 3
+    del x
+
+    try:
+        z
+    except Exception, e:
+        print "Accessing z writing to locals gives Exception", e
+
+    return r, y
+
+def someFunctionWritingLocalsContainingExec():
+    x = 1
+    r = locals()
 
     # This is without effect on r. It doesn't mention y at all
     y = 2
@@ -30,17 +47,25 @@ def someFunctionUsingLocals():
     # This adds z to the locals, but only that.
     r[ "z" ] = 3
 
+    try:
+        z
+    except Exception, e:
+        print "Accessing z writing to locals gives Exception", e
+
     return r, y
 
-print "Testing locals()"
-print someFunctionUsingLocals()
+    exec ""
+
+print "Testing locals():"
+print someFunctionWritingLocals()
+print someFunctionWritingLocalsContainingExec()
 
 module_locals = locals()
 
 import os
 module_locals[ "__file__" ] = os.path.basename( module_locals[ "__file__" ] )
 
-print "Use on the module level", module_locals
+print "Use of locals on the module level", module_locals
 
 def someFunctionUsingGlobals():
     g = globals()

@@ -1,4 +1,3 @@
-#!/bin/sh
 #
 #     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -29,13 +28,4 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-
-cd `dirname $0`/..
-
-find nuitka -name \*.py
-find bin -name \*.py
-find src -name \*.cpp
-find include -name \*.hpp
-find misc -name \*.sh
-find bin -name \*.sh
-find scons -name \*.scons
+""" Dummy file to make this directory a package. """

@@ -125,7 +125,10 @@ class DictUpdating:
 
     locals().update( { "b" : 2 } )
 
-print DictUpdating.b
+    for f in range(6):
+        locals()[ "test_%s" % f ] = f
+
+print DictUpdating.b, DictUpdating.test_4
 
 def functionThatOffersClosureToPassThroughClass( x ):
     class Foo:
@@ -139,3 +142,9 @@ def functionThatOffersClosureToPassThroughClass( x ):
 
 print functionThatOffersClosureToPassThroughClass(6)(2),
 print x
+
+class NameCollisionClosure:
+    def x( self ):
+        return x
+
+print NameCollisionClosure, NameCollisionClosure().x()

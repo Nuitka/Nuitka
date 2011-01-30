@@ -214,3 +214,34 @@ print "Exec local y is", y
     print "Outside y", y
 
 functionGlobalsExecShadow()
+
+def functionWithClosureProvidedByExec():
+
+    code = "ValueError = TypeError"
+
+    exec code in None, None
+
+    def func( ):
+        print "Closure from exec not used", ValueError
+
+    func()
+
+functionWithClosureProvidedByExec()
+
+x = 2
+
+def functionWithExecAffectingClosure():
+
+    x = 4
+
+    code = "d=3"
+    space = locals()
+
+    exec code in space
+
+    def closureMaker():
+        return x
+
+    return d, closureMaker()
+
+print "Closure in a function with exec to not none", functionWithExecAffectingClosure()

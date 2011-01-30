@@ -33,7 +33,7 @@
 from __future__ import print_function
 
 version_string = """\
-Nuitka V0.3.5
+Nuitka V0.3.6pre1
 Copyright (C) 2011 Kay Hayen."""
 
 from . import Utils
@@ -267,7 +267,6 @@ def getMainArgs():
     return extra_args
 
 def shallOptimizeStringExec():
-    # TODO: Temporary, while refactoring.
     return False
 
 def isShowScons():

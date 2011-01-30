@@ -28,7 +28,9 @@ PACKAGE_LIST=(
     'nuitka'
     'nuitka/nodes'
     'nuitka/templates'
-    'nuitka/optimizations'
+    'nuitka/transform'
+    'nuitka/transform/optimizations'
+    'nuitka/transform/finalizations'
 )
 
 echo "PASS 1: Compiling from compiler running from .py files."
@@ -100,3 +102,6 @@ echo "PASS 4: Compiling the compiler running from single exe"
 # compiler shouldn't be allowed to import the .py files.
 PYTHONPATH=.
 compile /tmp/Nuitka.exe
+
+# Cleanup compilation results
+rm -rf nuitka Nuitka.build

@@ -39,14 +39,15 @@ from __future__ import print_function
 
 from . import (
     CodeGeneration,
-    TreeOperations,
     TreeBuilding,
-    Optimization,
     Generator,
     Contexts,
     Options,
     Utils
 )
+
+from .transform.optimizations import Optimization
+from .transform.finalizations import Finalization
 
 import sys, os
 
@@ -83,105 +84,14 @@ def dumpTree( tree ):
 
 
 def displayTree( tree ):
-    # Import only locally so the Qt4 dependency doesn't normally come into play.
-    import TreeDisplay
+    # Import only locally so the Qt4 dependency doesn't normally come into play when it's
+    # not strictly needed.
+    from . import TreeDisplay
 
     TreeDisplay.displayTreeInspector( tree )
 
-def _couldBeNone( node ):
-    if node is None:
-        return True
-    elif node.isDictionaryCreation():
-        return False
-    elif node.isBuiltinGlobals() or node.isBuiltinLocals() or node.isBuiltinDir() or node.isBuiltinVars():
-        return False
-    else:
-        # assert False, node
-        return True
-
-class _OverflowCheckVisitor:
-    def __init__( self, checked_node ):
-        self.result = False
-
-        self.is_class = checked_node.getParent().isClassReference()
-
-    def __call__( self, node ):
-        if node.isStatementImportStarExternal():
-            self.result = True
-
-            raise TreeOperations.ExitVisit
-
-        if node.isStatementExec() and _couldBeNone( node.getGlobals() ):
-            self.result = True
-
-            raise TreeOperations.ExitVisit
-
-        if self.is_class and node.isBuiltinLocals():
-            self.result = True
-
-            raise TreeOperations.ExitVisit
-
-    def getResult( self ):
-        return self.result
-
-
-def checkOverflowNeed( node ):
-    visitor = _OverflowCheckVisitor( node )
-
-    TreeOperations.visitScope( node, visitor )
-
-    return visitor.getResult()
-
-# TODO: Integrate this with optimizations framework. It should become something that is
-# done in a similar way.
-class _PrepareCodeGenerationVisitor:
-    def __call__( self, node ):
-        if node.isFunctionReference() or node.isClassReference():
-            if checkOverflowNeed( node.getBody() ):
-                node.markAsLocalsDict()
-
-        if node.isStatementBreak() or node.isStatementContinue():
-            search = node.getParent()
-
-            crossed_try = False
-
-            while not search.isStatementForLoop() and not search.isStatementWhileLoop():
-                last_search = search
-                search = search.getParent()
-
-                if search.isStatementTryFinally() and last_search == search.getBlockTry():
-                    crossed_try = True
-
-            if crossed_try:
-                search.markAsExceptionBreakContinue()
-                node.markAsExceptionBreakContinue()
-
-        if node.isStatementRaiseException() and node.isReraiseException():
-            search = node.getParent()
-
-            crossed_except = False
-
-            while not search.isParentVariableProvider():
-                if search.isStatementsSequence():
-                    if search.getParent().isStatementTryExcept():
-                        if search in search.getParent().getExceptionCatchBranches():
-                            crossed_except = True
-                            break
-
-                search = search.getParent()
-
-            if crossed_except:
-                node.markAsReraiseLocal()
-
-        if node.isStatementExecInline() and node.provider.isFunctionReference():
-            for variable in node.getProvidedVariables():
-                if variable.isLocalVariable():
-                    node.provider.registerProvidedVariable( variable )
-
 def _prepareCodeGeneration( tree ):
-    visitor = _PrepareCodeGenerationVisitor()
-
-    TreeOperations.visitTree( tree, visitor )
+    Finalization.prepareCodeGeneration( tree )
 
 def makeModuleSource( tree ):
     _prepareCodeGeneration( tree )

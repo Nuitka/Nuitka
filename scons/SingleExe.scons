@@ -79,21 +79,28 @@ if env[ "CXX" ] == "g++":
     # be because it needs -O3 option to be effective.
 
     if cpp_version >= 460 and lto_mode:
+        # The gcc 4.6 is not final, so LTO may not be better yet.
         env.Append( CCFLAGS = [ "-flto" ] )
         env.Append( LINKFLAGS = [ "-flto=%d" % GetOption( "num_jobs" ) ] )
 
-        # The gcc 4.6 is not final, it crashes on lots of outputs.
         if True:
-            pass
             # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=noreturn" ] )
             # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=pure" ] )
             # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=const" ] )
-            # env.Append( CCFLAGS = [ "-freorder-functions" ] )
-            # env.Append( LINKFLAGS = [ "-freorder-functions" ] )
             # env.Append( CCFLAGS = [ "-Wnoexcept" ] )
-            # env.Append( CCFLAGS = [ "-fpartial-inlining" ] )
-            # env.Append( LINKFLAGS = [ "-fpartial-inlining" ] )
-            # env.Append( LINKFLAGS = [ "-O" ] )
+
+
+            if debug_mode:
+                env.Append( LINKFLAGS = [ "-O2" ] )
+
+            if optimize_mode:
+                env.Append( LINKFLAGS = [
+                    "-O3",
+                    "-fpartial-inlining",
+                    "-freorder-functions",
+                ]
+            )
+
 
     if lto_mode and cpp_version < 460:
         print "Warning, LTO mode specified, but not available."

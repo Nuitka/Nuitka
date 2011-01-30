@@ -1725,104 +1725,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject 
     return result;
 }
 
-
-class PyObjectLocalDictVariable {
-    public:
-        explicit PyObjectLocalDictVariable( PyObject *storage, PyObject *var_name, PyObject *object = NULL )
-        {
-            this->storage    = (PyDictObject *) storage;
-            this->var_name   = (PyStringObject *)var_name;
-
-            if ( object != NULL )
-            {
-#ifndef __NUITKA_NO_ASSERT__
-                int status =
-#endif
-                    PyDict_SetItem( storage, var_name, object );
-
-                assert( status == 0 );
-            }
-        }
-
-        PyObject *asObject() const
-        {
-            PyDictEntry *entry = GET_PYDICT_ENTRY(
-                this->storage,
-                this->var_name
-            );
-            PyObject *result = entry->me_value;
-
-            if (unlikely( result == NULL ))
-            {
-                PyErr_Format(
-                    PyExc_UnboundLocalError,
-                    "local variable '%s' referenced before assignment",
-                    Nuitka_String_AsString( (PyObject *)this->var_name )
-                );
-                throw _PythonException();
-            }
-
-            assert( result->ob_refcnt > 0 );
-
-            return result;
-        }
-
-        PyObject *asObject1() const
-        {
-            return INCREASE_REFCOUNT( this->asObject() );
-        }
-
-        void operator=( PyObject *object )
-        {
-            assert( object );
-            assert( object->ob_refcnt > 0 );
-
-#ifndef __NUITKA_NO_ASSERT__
-            int status =
-#endif
-                PyDict_SetItem(
-                    (PyObject *)this->storage,
-                    (PyObject *)this->var_name,
-                    object
-                );
-            assert( status == 0 );
-        }
-
-        bool isInitialized() const
-        {
-            PyDictEntry *entry = GET_PYDICT_ENTRY(
-                this->storage,
-                this->var_name
-            );
-
-            return entry->me_value != NULL;
-        }
-
-        void del()
-        {
-            int status = PyDict_DelItem(
-                (PyObject *)this->storage,
-                (PyObject *)this->var_name
-            );
-
-            if (unlikely( status == -1 ))
-            {
-                // TODO: Probably an error should be raised?
-                PyErr_Clear();
-            }
-        }
-
-
-        PyObject *getVariableName() const
-        {
-            return (PyObject *)this->var_name;
-        }
-
-    private:
-        PyDictObject *storage;
-        PyStringObject *var_name;
-};
-
 class PyObjectLocalVariable {
     public:
         explicit PyObjectLocalVariable( PyObject *var_name, PyObject *object = NULL, bool free_value = false )
@@ -2215,7 +2117,11 @@ static void FILL_LOCALS_DICT( PyObject *dict, T variable )
 {
     if ( variable->isInitialized() )
     {
-        int status = PyDict_SetItem( dict, variable->getVariableName(), variable->asObject() );
+        int status = PyDict_SetItem(
+            dict,
+            variable->getVariableName(),
+            variable->asObject()
+        );
 
         if (unlikely( status == -1 ))
         {
@@ -2229,7 +2135,11 @@ static void FILL_LOCALS_DICT( PyObject *dict, T variable, P... variables )
 {
     if ( variable->isInitialized() )
     {
-        int status = PyDict_SetItem( dict, variable->getVariableName(), variable->asObject() );
+        int status = PyDict_SetItem(
+            dict,
+            variable->getVariableName(),
+            variable->asObject()
+        );
 
         if (unlikely( status == -1 ))
         {
@@ -2249,6 +2159,20 @@ static PyObject *MAKE_LOCALS_DICT( P...variables )
 
     return result;
 }
+
+NUITKA_MAY_BE_UNUSED static PyObject *UPDATED_LOCALS_DICT( PyObject *locals_dict )
+{
+    return INCREASE_REFCOUNT( locals_dict );
+}
+
+template<typename... P>
+static PyObject *UPDATED_LOCALS_DICT( PyObject *locals_dict, P...variables )
+{
+    FILL_LOCALS_DICT( locals_dict, variables... );
+
+    return INCREASE_REFCOUNT( locals_dict );
+}
+
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LOCALS_DIR( void )
 {

@@ -75,6 +75,9 @@ class Variable:
     def isClassVariable( self ):
         return False
 
+    def isMaybeLocalVariable( self ):
+        return False
+
     def isParameterVariable( self ):
         return False
 
@@ -121,12 +124,16 @@ class Variable:
     ReferenceClass = None
 
     def makeReference( self, owner ):
-        assert self.ReferenceClass, self.__class__
+        assert self.ReferenceClass, self
 
-        return self.ReferenceClass(
-            owner    = owner,
-            variable = self
-        )
+        for reference in self.references:
+            if reference.getOwner() is owner:
+                return reference
+        else:
+            return self.ReferenceClass(
+                owner    = owner,
+                variable = self
+            )
 
 
 class VariableReferenceBase( Variable ):
@@ -167,6 +174,22 @@ class ClosureVariableReference( VariableReferenceBase ):
 
     def isClosureReference( self ):
         return True
+
+    def getProviderVariable( self ):
+        current = self.getOwner().getParent()
+
+        while not current.isClosureVariableTaker():
+            current = current.getParent()
+
+        if current is self.getReferenced().getOwner():
+            return self.getReferenced()
+        else:
+            for variable in current.getClosureVariables():
+                if variable.getName() == self.getName():
+                    return variable
+            else:
+                assert False
+
 
 class ModuleVariableReference( VariableReferenceBase ):
     def __init__( self, owner, variable ):
@@ -218,6 +241,27 @@ class LocalVariable( Variable ):
 
     def isLocalVariable( self ):
         return True
+
+class MaybeLocalVariable( Variable ):
+    ReferenceClass = ClosureVariableReference
+
+    def __init__( self, owner, variable_name ):
+        Variable.__init__(
+            self,
+            owner         = owner,
+            variable_name = variable_name
+        )
+
+    def __repr__( self ):
+        return "<%s '%s' of '%s' maybe a global reference>" % (
+            self.__class__.__name__,
+            self.variable_name,
+            self.owner.getName()
+        )
+
+    def isMaybeLocalVariable( self ):
+        return True
+
 
 class ParameterVariable( LocalVariable ):
     def __init__( self, owner, parameter_name ):

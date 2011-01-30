@@ -37,7 +37,7 @@ def deepExec():
 
         print "Locals now", locals()
 
-        print "Closure was taken", for_closure
+        # print "Closure was taken", for_closure
         print "Globals still work", starImporterFunction
         print "Added local from code", f
 

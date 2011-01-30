@@ -28,25 +28,28 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Delete the staticmethod decorator from __new__ methods if provided.
 
-CPython made these optional, and applies them to every __new__. Our later code will be
-confused if it encounters a decorator to what it already automatically decorated.
+from .FinalizeMarkups import FinalizeMarkups
+from .FinalizeClosureTaking import FinalizeClosureTaking
 
-TODO: Consider turning this into something adding it for improved consistency.
-"""
 
-from .OptimizeBase import OptimizationVisitorBase
+from .. import TreeOperations
 
-class FixupNewStaticMethodVisitor( OptimizationVisitorBase ):
-    def __call__( self, node ):
-        if node.isFunctionReference() and node.getName() == "__new__":
-            decorators = node.getDecorators()
+from nuitka import Nodes
 
-            if len( decorators ) == 1 and decorators[0].isVariableReference():
-                if decorators[0].getVariable().getName() == "staticmethod":
-                    # Reset the decorators. This does not attempt to deal with
-                    # multiple of them being present.
-                    node.setDecorators( () )
+taking_kinds = (
+    "EXPRESSION_FUNCTION_BODY",
+    "EXPRESSION_LAMBDA_BODY",
+    "EXPRESSION_CLASS_BODY",
+    "EXPRESSION_LIST_CONTRACTION_BODY",
+    "EXPRESSION_DICT_CONTRACTION_BODY",
+    "EXPRESSION_SET_CONTRACTION_BODY",
+    "EXPRESSION_GENERATOR_BODY",
+)
 
-                    assert not node.getDecorators()
+def prepareCodeGeneration( tree ):
+    visitor = FinalizeMarkups()
+    TreeOperations.visitTree( tree, visitor )
+
+    visitor = FinalizeClosureTaking()
+    TreeOperations.visitKinds( tree, taking_kinds, visitor )

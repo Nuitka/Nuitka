@@ -35,8 +35,9 @@ are just a good idea to replace (range(), etc)
 """
 
 from .OptimizeBase import OptimizationVisitorBase
+from .. import TreeOperations
 
-from nuitka import TreeOperations, Importing, Nodes
+from nuitka import Importing, Nodes
 
 from nuitka.Utils import getPythonVersion
 
@@ -76,8 +77,12 @@ class OptimizationDispatchingVisitorBase( OptimizationVisitorBase ):
                         message = "Replaced call to builtin %s with builtin call." % new_node.kind
                     )
 
+                self.onNodeWasReplaced(
+                    old_node = node
+                )
 
-
+    def onNodeWasReplaced( self, old_node ):
+        pass
 
 class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
     def __init__( self ):
@@ -111,9 +116,26 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
 
                 assert variable is not None, node
 
-                if variable.isModuleVariable():
+                if variable.isModuleVariable() or variable.isMaybeLocalVariable():
                     return variable.getName()
 
+    def onNodeWasReplaced( self, old_node ):
+        assert old_node.isFunctionCall and old_node.hasOnlyPositionalArguments()
+        called = old_node.getCalledExpression()
+
+        assert called.isVariableReference()
+        variable = called.getVariable()
+
+        owner = variable.getOwner()
+
+        owner.reconsiderVariable( variable )
+
+        if owner.isFunctionBody():
+            self.signalChange(
+                "var_usage",
+                owner.getSourceReference(),
+                message = "Reduced variable usage of function %s." % owner
+            )
 
     def globals_extractor( self, node ):
         assert node.isEmptyCall()

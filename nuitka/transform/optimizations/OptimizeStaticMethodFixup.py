@@ -1,4 +1,3 @@
-#!/bin/sh
 #
 #     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -29,13 +28,25 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Delete the staticmethod decorator from __new__ methods if provided.
 
-cd `dirname $0`/..
+CPython made these optional, and applies them to every __new__. Our later code will be
+confused if it encounters a decorator to what it already automatically decorated.
 
-find nuitka -name \*.py
-find bin -name \*.py
-find src -name \*.cpp
-find include -name \*.hpp
-find misc -name \*.sh
-find bin -name \*.sh
-find scons -name \*.scons
+TODO: Consider turning this into something adding it for improved consistency.
+"""
+
+from .OptimizeBase import OptimizationVisitorBase
+
+class FixupNewStaticMethodVisitor( OptimizationVisitorBase ):
+    def __call__( self, node ):
+        if node.isFunctionBuilder() and node.getFunctionName() == "__new__":
+            decorators = node.getDecorators()
+
+            if len( decorators ) == 1 and decorators[0].isVariableReference():
+                if decorators[0].getVariable().getName() == "staticmethod":
+                    # Reset the decorators. This does not attempt to deal with
+                    # multiple of them being present.
+                    node.setDecorators( () )
+
+                    assert not node.getDecorators()

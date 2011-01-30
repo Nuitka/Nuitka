@@ -35,18 +35,18 @@ can emit tags that can cause the re-execution of other optimization visitors, be
 e.g. a new constant determined could make another optimization feasible.
 """
 
-from .optimizations.OptimizeModuleRecursion import ModuleRecursionVisitor
-from .optimizations.OptimizeConstantExec import OptimizeExecVisitor
-from .optimizations.OptimizeVariableClosure import VariableClosureLookupVisitors, ModuleVariableUsageAnalysisVisitor, ModuleVariableReadOnlyVisitor
-from .optimizations.OptimizeBuiltins import ReplaceBuiltinsVisitor, PrecomputeBuiltinsVisitor
-from .optimizations.OptimizeStaticMethodFixup import FixupNewStaticMethodVisitor
-from .optimizations.OptimizeConstantOperations import OptimizeOperationVisitor
-from .optimizations.OptimizeUnpacking import ReplaceUnpackingVisitor
-from .optimizations.OptimizeStatements import StatementSequencesCleanupVisitor
+from .OptimizeModuleRecursion import ModuleRecursionVisitor
+from .OptimizeConstantExec import OptimizeExecVisitor
+from .OptimizeVariableClosure import VariableClosureLookupVisitors, ModuleVariableUsageAnalysisVisitor, ModuleVariableReadOnlyVisitor, MaybeLocalVariableReductionVisitor
+from .OptimizeBuiltins import ReplaceBuiltinsVisitor, PrecomputeBuiltinsVisitor
+from .OptimizeStaticMethodFixup import FixupNewStaticMethodVisitor
+from .OptimizeConstantOperations import OptimizeOperationVisitor
+from .OptimizeUnpacking import ReplaceUnpackingVisitor
+from .OptimizeStatements import StatementSequencesCleanupVisitor
 
-from . import Options
+from nuitka import Options
 
-from .oset import OrderedSet
+from nuitka.oset import OrderedSet
 
 from logging import debug
 
@@ -74,11 +74,6 @@ def optimizeTree( tree ):
         if tags.check( "new_code" ):
             optimizations_queue.add( FixupNewStaticMethodVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "new_constant" ):
-            if Options.shallOptimizeStringExec():
-                optimizations_queue.add( OptimizeExecVisitor )
-
-
         # TODO: Split the __import__ one out.
         if tags.check( "new_code" ) or tags.check( "new_constant" ):
             if Options.shallFollowImports():
@@ -104,6 +99,13 @@ def optimizeTree( tree ):
 
         if tags.check( "new_code" ) or tags.check( "read_only_mvar" ):
             optimizations_queue.add( ModuleVariableReadOnlyVisitor )
+
+        if tags.check( "var_usage" ):
+            optimizations_queue.add( MaybeLocalVariableReductionVisitor )
+
+        if tags.check( "new_code" ) or tags.check( "new_constant" ):
+            if Options.shallOptimizeStringExec():
+                optimizations_queue.add( OptimizeExecVisitor )
 
         tags.clear()
 

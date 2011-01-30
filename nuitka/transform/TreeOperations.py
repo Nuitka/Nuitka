@@ -71,6 +71,21 @@ def visitScope( tree, visitor ):
         visitTree( tree, visitor )
 
 
+def visitKinds( tree, kinds, visitor ):
+    def visitMatchingKinds( node ):
+        if node.kind in kinds:
+            visitor( node )
+
+    _visitTree( tree, visitMatchingKinds )
+
+def visitScopes( tree, visitor ):
+    def visitEverything( node ):
+        if node.isClosureVariableTaker():
+            visitScope( node, visitor )
+
+    _visitTree( tree, visitEverything )
+
+
 class _TreeVisitorAssignParent:
     def __call__( self, node ):
         for child in node.getVisitableNodes():

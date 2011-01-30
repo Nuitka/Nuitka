@@ -60,12 +60,12 @@ def mangleAttributeName( attribute_name, node ):
         if node is None:
             break
 
-        if node.isClassReference():
+        if node.isClassBody():
             if seen_function:
                 return "_" + node.getName() + attribute_name
             else:
                 return attribute_name
-        elif node.isFunctionReference():
+        elif node.isFunctionBody():
             seen_function = True
 
     return attribute_name
@@ -156,8 +156,6 @@ def _generatorContractionBodyCode( contraction, context ):
             expression = contraction_body
         )
 
-
-
 def generateContractionCode( contraction, context ):
     loop_var_codes = []
 
@@ -213,17 +211,14 @@ def generateContractionCode( contraction, context ):
         contraction_iterateds  = sub_iterated_identifiers
     )
 
-    parent_context = context.getParent()
-
     return Generator.getContractionCallCode(
         contraction_identifier = contraction_identifier,
         is_generator           = contraction.isExpressionGeneratorBuilder(),
         contraction_iterated   = iterated_identifier,
         closure_var_codes      = Generator.getClosureVariableProvisionCode(
             closure_variables = contraction.getClosureVariables(),
-            context           = parent_context
-        ),
-        context                = parent_context
+            context           = context.getParent()
+        )
     )
 
 def generateListContractionCode( contraction, context ):
@@ -284,17 +279,18 @@ def generateGeneratorExpressionBodyCode( generator_expression, context ):
     return context, codes
 
 def generateLambdaCode( lambda_expression, context ):
-    assert lambda_expression.isExpressionLambda()
+    assert lambda_expression.isExpressionLambdaBuilder()
 
     lambda_context = Contexts.PythonLambdaExpressionContext(
         parent          = context,
-        parameter_names = lambda_expression.getParameters().getParameterNames()
+        parameter_names = lambda_expression.getBody().getParameters().getParameterNames()
     )
 
-    if not lambda_expression.isGenerator():
+    # TODO: Have a generateLambdaBodyCode function
+    if not lambda_expression.getBody().isGenerator():
         code = Generator.getReturnCode(
             identifier = generateExpressionCode(
-                expression = lambda_expression.getBody(),
+                expression = lambda_expression.getBody().getBody(),
                 context    = lambda_context
             )
         )
@@ -302,7 +298,7 @@ def generateLambdaCode( lambda_expression, context ):
         code = Generator.getStatementCode(
             identifier = Generator.getYieldCode(
                 identifier = generateExpressionCode(
-                    expression = lambda_expression.getBody(),
+                    expression = lambda_expression.getBody().getBody(),
                     context    = lambda_context
                 )
             )
@@ -310,7 +306,10 @@ def generateLambdaCode( lambda_expression, context ):
 
     # TODO: This ought to be done a bit prettier in a function for every user.
     if Options.shallHaveStatementLines():
-        codes = [ Generator.getCurrentLineCode( lambda_expression.getSourceReference() ), code ]
+        codes = [
+            Generator.getCurrentLineCode( lambda_expression.getSourceReference() ),
+            code
+        ]
     else:
         codes = [ code ]
 
@@ -322,7 +321,8 @@ def generateLambdaCode( lambda_expression, context ):
 
     default_value_identifiers = []
 
-    for _default_parameter_name, default_parameter_value in lambda_expression.getDefaultParameters():
+    # TODO: There is a generateExpressionsCode is there?
+    for default_parameter_value in lambda_expression.getDefaultExpressions():
         default_value_identifiers.append(
             generateExpressionCode(
                 expression = default_parameter_value,
@@ -354,10 +354,10 @@ def generateFunctionBodyCode( function, context ):
     return context, codes
 
 def generateFunctionCode( function, context ):
-    assert function.isFunctionReference()
+    assert function.isFunctionBuilder()
 
     function_context, function_codes = generateFunctionBodyCode(
-        function  = function,
+        function  = function.getBody(),
         context   = context
     )
 
@@ -395,22 +395,22 @@ def generateFunctionCode( function, context ):
         context = context
     )
 
-def generateClassBodyCode( class_def, context ):
+def generateClassBodyCode( class_body, context ):
     context = Contexts.PythonClassContext(
         parent    = context,
-        class_def = class_def
+        class_def = class_body
     )
 
     codes = generateStatementSequenceCode(
         context            = context,
-        statement_sequence = class_def.getBody()
+        statement_sequence = class_body.getBody()
     )
 
     return context, codes
 
 
 def generateClassCode( class_def, context ):
-    assert class_def.isClassReference()
+    assert class_def.isClassBuilder()
 
     bases_identifier = generateSequenceCreationCode(
         sequence_kind = "tuple",
@@ -419,8 +419,8 @@ def generateClassCode( class_def, context ):
     )
 
     class_context, class_codes = generateClassBodyCode(
-        class_def = class_def,
-        context   = context
+        class_body = class_def.getBody(),
+        context    = context
     )
 
     dict_identifier = Generator.getClassDictCreationCode(
@@ -601,6 +601,33 @@ def generateFunctionCallCode( function, context ):
         argument_dictionary  = kw_identifier,
         star_list_identifier = star_list_identifier,
         star_dict_identifier = star_dict_identifier,
+    )
+
+def _decideLocalsMode( provider ):
+    if provider.isClassBody():
+        mode = "updated"
+    elif provider.isFunctionBody() and provider.isExecContaining():
+        mode = "updated"
+    else:
+        mode = "copy"
+
+    return mode
+
+def generateBuiltinLocalsCode( locals_node, context ):
+    provider = locals_node.getParentVariableProvider()
+
+    return Generator.getLoadLocalsCode(
+        context  = context,
+        provider = provider,
+        mode     = _decideLocalsMode( provider )
+    )
+
+def generateBuiltinDirCode( dir_node, context ):
+    provider = dir_node.getParentVariableProvider()
+
+    return Generator.getLoadDirCode(
+        context  = context,
+        provider = provider
     )
 
 
@@ -787,15 +814,14 @@ def generateExpressionCode( expression, context, allow_none = False ):
             context = context
         )
     elif expression.isBuiltinLocals():
-        identifier = Generator.getLoadLocalsCode(
-            context  = context,
-            provider = expression.getParentVariableProvider(),
-            direct   = expression.getParentVariableProvider().isClassReference()
+        identifier = generateBuiltinLocalsCode(
+            locals_node = expression,
+            context     = context
         )
     elif expression.isBuiltinDir():
-        identifier = Generator.getLoadDirCode(
-            context  = context,
-            provider = expression.getParentVariableProvider()
+        identifier = generateBuiltinDirCode(
+            dir_node = expression,
+            context  = context
         )
     elif expression.isBuiltinVars():
         identifier = Generator.getLoadVarsCode(
@@ -821,7 +847,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
                 allow_none = True
             )
         )
-    elif expression.isExpressionLambda():
+    elif expression.isExpressionLambdaBuilder():
         identifier = generateLambdaCode(
             lambda_expression = expression,
             context           = context
@@ -1461,9 +1487,14 @@ def _generateStatementCode( statement, context ):
             )
         else:
             assert False, ( "not supported for inplace assignment", target, target.getSourceReference() )
-    elif statement.isFunctionReference():
+    elif statement.isFunctionBuilder():
         code = generateFunctionCode(
             function  = statement,
+            context   = context
+        )
+    elif statement.isClassBuilder():
+        code = generateClassCode(
+            class_def = statement,
             context   = context
         )
     elif statement.isStatementExpression():
@@ -1707,11 +1738,6 @@ def _generateStatementCode( statement, context ):
         code = ""
     elif statement.isStatementPass():
         code = ""
-    elif statement.isClassReference():
-        code = generateClassCode(
-            class_def = statement,
-            context   = context
-        )
     else:
         assert False, statement.__class__
 

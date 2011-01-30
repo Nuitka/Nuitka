@@ -1,4 +1,3 @@
-#!/bin/sh
 #
 #     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -30,12 +29,50 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-cd `dirname $0`/..
+from .. import TreeOperations
 
-find nuitka -name \*.py
-find bin -name \*.py
-find src -name \*.cpp
-find include -name \*.hpp
-find misc -name \*.sh
-find bin -name \*.sh
-find scons -name \*.scons
+from logging import warning, debug, info
+
+class OptimizationVisitorBase:
+    on_signal = None
+
+    visit_type = "tree"
+
+    # Override this with the kind of nodes to be visited
+    visit_kinds = None
+
+    def signalChange( self, tags, source_ref, message ):
+        debug( "%s : %s : %s" % ( source_ref.getAsString(), tags, message ) )
+
+        if self.on_signal is not None:
+            self.on_signal( tags )
+
+    def execute( self, tree, on_signal = None ):
+        self.on_signal = on_signal
+
+        if self.visit_type == "tree":
+            TreeOperations.visitTree(
+                tree    = tree,
+                visitor = self
+            )
+        elif self.visit_type == "kinds":
+            TreeOperations.visitTree(
+                tree    = tree,
+                visitor = self,
+                kinds   = self.visit_kinds
+            )
+        elif self.visit_type == "scopes":
+            TreeOperations.visitScopes(
+                tree    = tree,
+                visitor = self
+            )
+        else:
+            assert False
+
+
+def areConstants( expressions ):
+    for expression in expressions:
+        if not expression.isConstantReference():
+            return False
+    else:
+        return True
