@@ -69,6 +69,9 @@ class FutureSpec:
     def enableAbsoluteImport( self ):
         self._absolute_import = True
 
+    def isAbsoluteImport( self ):
+        return self._absolute_import
+
     def asFlags( self ):
         result = []
 

@@ -28,7 +28,12 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Utility module.
 
+Here the small things for file/dir names, Python version, CPU counting, etc. that
+fit nowhere else and don't deserve their own names.
+
+"""
 
 import sys, os
 
@@ -58,11 +63,12 @@ def isDir( path ):
 def getCoreCount():
     cpu_count = 0
 
+    # Try to sum up the CPU cores, if the kernel shows them, pylint: disable=W0702
     try:
         # Try to get the number of logical processors
-        for line in open('/proc/cpuinfo'):
-            if line.startswith('cpu cores'):
-                cpu_count += int(line.split(':')[-1].strip())
+        for line in open( '/proc/cpuinfo' ):
+            if line.startswith( 'cpu cores' ):
+                cpu_count += int( line.split(':')[-1].strip() )
     except:
         pass
 

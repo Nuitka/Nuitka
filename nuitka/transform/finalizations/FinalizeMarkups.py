@@ -28,7 +28,17 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Finalize the markups
 
+Set flags on functions and classes to indicate if a locals dict is really needed.
+
+Set a flag on loops if they really need to catch Continue and Break exceptions or
+if it can be more simple code.
+
+Set a flag on re-raises of exceptions if they can be simple throws or if they are
+in another context.
+
+"""
 from nuitka.nodes import OverflowCheck
 
 class FinalizeMarkups:

@@ -40,6 +40,9 @@ from PyQt4 import QtCore, QtGui, uic
 
 import sys, os
 
+# The API requires a signature, sometimes we don't use it, pylint: disable=R0201
+# Also using private stuff from classes, probably ok, pylint: disable=W0212
+
 class NodeTreeModelItem:
     def __init__( self, node, parent = None ):
         self.parent_treeitem = parent
@@ -47,8 +50,8 @@ class NodeTreeModelItem:
 
         self.children = None
 
-    def appendChild( self, item ):
-        raise NotImplementedError
+    def appendChild( self, _item ):
+        assert False
 
     def _children( self ):
         if self.children is None:
@@ -199,6 +202,11 @@ class InspectNodeTreeDialog( QtGui.QDialog ):
 
         self.treeview_nodes.setSelectionMode( self.treeview_nodes.SingleSelection )
 
+        self.displayed = None
+        self.source_code = None
+        self.model = None
+        self.moving = None
+
     def setModel( self, model ):
         self.treeview_nodes.setModel( model )
         self.treeview_nodes.expandAll()
@@ -219,7 +227,7 @@ class InspectNodeTreeDialog( QtGui.QDialog ):
 
         self.textedit_source.moveCursor( 1, 0 )
 
-        for i in range( 1, source_ref.getLineNumber()  ):
+        for _i in range( 1, source_ref.getLineNumber()  ):
             self.textedit_source.moveCursor( 12, 0 )
 
         self.textedit_source.setFocus()
@@ -290,7 +298,7 @@ def displayTreeInspector( tree ):
     dialog.setModel( model )
     dialog.model = model
 
-    import SyntaxHighlighting
+    import nuitka.SyntaxHighlighting as SyntaxHighlighting
 
     SyntaxHighlighting.addPythonHighlighter(
         document = dialog.textedit_source.document()

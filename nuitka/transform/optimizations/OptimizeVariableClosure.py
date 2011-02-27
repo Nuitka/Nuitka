@@ -28,13 +28,16 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Variable closure taking.
 
+Run away, don't read it, quick. Heavily underdocumented rules are implemented here.
 
-from .OptimizeBase import OptimizationVisitorBase
+"""
+
+from .OptimizeBase import OptimizationVisitorBase, TreeOperations
 
 from nuitka import Nodes
 
-from .. import TreeOperations
 from nuitka.nodes.UsageCheck import getVariableUsages
 
 def _globalizeSingle( module, variable_names, provider ):
@@ -43,7 +46,7 @@ def _globalizeSingle( module, variable_names, provider ):
             variable_name = variable_name
         )
 
-        closure_variable = provider._addClosureVariable(
+        closure_variable = provider.addClosureVariable(
             variable         = module_variable,
             global_statement = True
         )
@@ -298,11 +301,12 @@ class ModuleVariableVisitorBase( OptimizationVisitorBase ):
             for variable in sorted( variables, key = lambda x : x.getName() ):
                 self.onModuleVariable( variable )
 
-            # This is a cheap way to only visit the module. TODO: Hide
-            # this away in a base class.
+            # This is a cheap way to only visit the module. TODO: Hide this away in a base
+            # class.
             raise TreeOperations.ExitVisit
 
     def onModuleVariable( self, variable ):
+        # Abstract method, pylint: disable=R0201,W0613
         assert False
 
 

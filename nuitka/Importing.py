@@ -41,7 +41,15 @@ import sys, os, imp
 
 from logging import warning
 
-def findModule( module_name, parent_package, warn = True ):
+def findModule( module_name, parent_package, level, warn = True ):
+    assert level < 2 or parent_package, (module_name, parent_package, level)
+
+    if level > 1:
+        parent_package = ".".join( parent_package.split(".")[ : -level+1 ] )
+
+        if parent_package == "":
+            parent_package = None
+
     if Options.shallFollowImports():
         try:
             module_filename, module_package_name = _findModule(
@@ -50,7 +58,8 @@ def findModule( module_name, parent_package, warn = True ):
             )
         except ImportError:
             if warn and not _isWhiteListedNotExistingModule( module_name ):
-                warning( "Warning, cannot find " + module_name )
+                warning( "Warning, cannot find '%s' in '%s' on level %d" % ( module_name, parent_package, level ) )
+                assert False
 
             if "." in module_name:
                 module_package_name = module_name[ : module_name.rfind( "." ) ]
@@ -76,6 +85,7 @@ def _findModuleInPath( module_name, package_name ):
 
     if package_name is not None:
         ext_path = [ element + os.path.sep + package_name.replace( ".", os.path.sep ) for element in sys.path + ["."] ]
+
         try:
             _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
 
@@ -115,12 +125,12 @@ def _findModule( module_name, parent_package ):
 
         # Absolute import
         return _findModule(
-            module_name = module_name,
+            module_name    = module_name,
             parent_package = package_part
         )
     else:
         return _findModuleInPath(
-            module_name = module_name,
+            module_name  = module_name,
             package_name = parent_package
         )
 

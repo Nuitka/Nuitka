@@ -211,6 +211,16 @@ def runScons( tree, quiet ):
     result_file = Options.getOutputPath( name )
     source_dir = Options.getOutputPath( name + ".build" )
 
+    if Options.options.python_version is not None:
+        python_version = Options.options.python_version
+    else:
+        python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
+
+    if Options.options.python_debug is not None:
+        python_debug = Options.options.python_debug
+    else:
+        python_debug = hasattr( sys, "getobjects" )
+
     options = {
         "name"           : name,
         "result_file"    : result_file,
@@ -218,8 +228,8 @@ def runScons( tree, quiet ):
         "debug_mode"     : asBoolStr( Options.isDebug() ),
         "module_mode"    : asBoolStr( Options.shallMakeModule() ),
         "optimize_mode"  : asBoolStr( Options.isOptimize() ),
-        "python_version" : Options.options.python_version if Options.options.python_version is not None else "%d.%d" % ( sys.version_info[0], sys.version_info[1] ),
-        "python_debug"   : asBoolStr( Options.options.python_debug if Options.options.python_debug is not None else hasattr( sys, "getobjects" ) ),
+        "python_version" : python_version,
+        "python_debug"   : asBoolStr( python_debug ),
         "lto_mode"       : asBoolStr( Options.isLto() ),
     }
 

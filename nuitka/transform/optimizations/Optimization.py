@@ -37,7 +37,12 @@ e.g. a new constant determined could make another optimization feasible.
 
 from .OptimizeModuleRecursion import ModuleRecursionVisitor
 from .OptimizeConstantExec import OptimizeExecVisitor
-from .OptimizeVariableClosure import VariableClosureLookupVisitors, ModuleVariableUsageAnalysisVisitor, ModuleVariableReadOnlyVisitor, MaybeLocalVariableReductionVisitor
+from .OptimizeVariableClosure import (
+    VariableClosureLookupVisitors,
+    ModuleVariableUsageAnalysisVisitor,
+    ModuleVariableReadOnlyVisitor,
+    MaybeLocalVariableReductionVisitor
+)
 from .OptimizeBuiltins import ReplaceBuiltinsVisitor, PrecomputeBuiltinsVisitor
 from .OptimizeStaticMethodFixup import FixupNewStaticMethodVisitor
 from .OptimizeConstantOperations import OptimizeOperationVisitor
@@ -62,6 +67,9 @@ class Tags( set ):
         return tag in self
 
 def optimizeTree( tree ):
+    # pylint: disable=R0912
+    # Lots of conditions to take.
+
     optimizations_queue = OrderedSet()
     tags = Tags()
 

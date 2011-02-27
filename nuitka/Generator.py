@@ -40,15 +40,20 @@ this one and the templates, and otherwise nothing else.
 from .__past__ import cpickle
 import pickle
 
-from .Identifiers import Identifier, ModuleVariableIdentifier, LocalVariableIdentifier, TempVariableIdentifier, getCodeTemporaryRefs, getCodeExportRefs
+from .Identifiers import (
+    Identifier,
+    ModuleVariableIdentifier,
+    TempVariableIdentifier,
+    getCodeTemporaryRefs,
+    getCodeExportRefs
+)
 
 from . import (
     PythonOperators,
     CppRawStrings,
     CodeTemplates,
     Variables,
-    # TODO: Constants should have a separate module.
-    Contexts,
+    Constants,
     Options
 )
 
@@ -213,9 +218,9 @@ def getPackageVariableCode( context ):
 def getEmptyImportListCode():
     return Identifier( "NULL", 0 )
 
-def getImportModuleCode( context, module_name, import_name, import_list ):
+def getImportModuleCode( context, module_name, import_name, import_list, level ):
     return Identifier(
-        "IMPORT_MODULE( %s, %s, &%s, %s )" % (
+        "IMPORT_MODULE( %s, %s, &%s, %s, %d )" % (
             getConstantCode(
                 constant = module_name,
                 context  = context
@@ -227,7 +232,8 @@ def getImportModuleCode( context, module_name, import_name, import_list ):
             getPackageVariableCode(
                 context = context
             ),
-            import_list.getCodeTemporaryRef()
+            import_list.getCodeTemporaryRef(),
+            level
         ),
         1
     )
@@ -247,21 +253,7 @@ def getImportEmbeddedCode( context, module_name, import_name ):
         1
     )
 
-def getImportFromStarCode( context, module_name, embedded ):
-    if embedded:
-        module_code = getImportEmbeddedCode(
-            context     = context,
-            module_name = module_name,
-            import_name = module_name
-        )
-    else:
-        module_code = getImportModuleCode(
-            context     = context,
-            module_name = module_name,
-            import_name = module_name,
-            import_list = getEmptyImportListCode()
-        )
-
+def _getImportFromStarCode( context, module_name, module_code ):
     if not context.hasLocalsDict():
         return "IMPORT_MODULE_STAR( %s, true, %s, %s );" % (
             getModuleAccessCode( context = context ),
@@ -280,27 +272,40 @@ def getImportFromStarCode( context, module_name, embedded ):
             module_code.getCodeTemporaryRef()
         )
 
+def getImportFromStarCode( context, module_name, level ):
+    module_code = getImportModuleCode(
+        context     = context,
+        module_name = module_name,
+        import_name = module_name,
+        import_list = getEmptyImportListCode(),
+        level       = level
+    )
+
+    return _getImportFromStarCode(
+        context     = context,
+        module_name = module_name,
+        module_code = module_code
+    )
+
+
+def getImportFromStarEmbeddedCode( context, module_name ):
+    module_code = getImportEmbeddedCode(
+        context     = context,
+        module_name = module_name,
+        import_name = module_name
+    )
+
+    return _getImportFromStarCode(
+        context     = context,
+        module_name = module_name,
+        module_code = module_code
+    )
+
 
 def getImportFromModuleTempIdentifier():
     return Identifier( "module_temp.asObject()", 0 )
 
-def getImportFromCode( context, module_name, lookup_code, import_list, embedded, sub_modules ):
-    if embedded:
-        module_lookup = getImportEmbeddedCode(
-            context     = context,
-            module_name = module_name,
-            import_name = module_name
-        )
-    else:
-        module_lookup = getImportModuleCode(
-            context = context,
-            module_name = module_name,
-            import_name = module_name,
-            import_list = getConstantHandle(
-                context  = context,
-                constant = tuple( import_list )
-            )
-        )
+def _getImportFromCode( context, module_name, module_lookup, lookup_code, sub_modules ):
 
     module_embedded = [
         getStatementCode(
@@ -319,6 +324,42 @@ def getImportFromCode( context, module_name, lookup_code, import_list, embedded,
         "module_embedded" : _indented( module_embedded ),
         "lookup_code"     : _indented( lookup_code, 2 ),
     }
+
+
+def getImportFromCode( context, module_name, lookup_code, import_list, sub_modules, level ):
+    module_lookup = getImportModuleCode(
+        context = context,
+        module_name = module_name,
+        import_name = module_name,
+        import_list = getConstantHandle(
+            context  = context,
+            constant = tuple( import_list )
+        ),
+        level       = level
+    )
+
+    return _getImportFromCode(
+        context       = context,
+        module_name   = module_name,
+        module_lookup = module_lookup,
+        lookup_code   = lookup_code,
+        sub_modules   = sub_modules
+    )
+
+def getImportFromEmbeddedCode( context, module_name, lookup_code, sub_modules ):
+    module_lookup = getImportEmbeddedCode(
+        context     = context,
+        module_name = module_name,
+        import_name = module_name
+    )
+
+    return _getImportFromCode(
+        context       = context,
+        module_name   = module_name,
+        module_lookup = module_lookup,
+        lookup_code   = lookup_code,
+        sub_modules   = sub_modules
+    )
 
 
 def getMaxIndexCode():
@@ -632,25 +673,18 @@ def getFunctionCreationCode( context, function, decorators, default_values ):
         1
     )
 
-def getBranchCode( conditions, branches_codes ):
-    result = ""
-
-    keyword = "if"
-
-    for condition, branch_codes in zip( conditions, branches_codes ):
-        if condition is not None:
-            result += "%s ( %s )\n" % ( keyword, condition.getCode() )
-            result += getBlockCode( _indented( branch_codes ) )
-
-            keyword = "else if"
-
-    if len( conditions ) == len( branches_codes ) - 1 and branches_codes[-1]:
-        result += "else\n"
-        result += getBlockCode( _indented( branches_codes[-1] ) )
-
-    result = result.rstrip()
-
-    return result
+def getBranchCode( condition, branches_codes ):
+    if len( branches_codes ) == 1:
+        return CodeTemplates.template_branch_one % {
+            "condition"   : condition.getCode(),
+            "branch_code" : _indented( branches_codes[ 0 ] )
+        }
+    else:
+        return CodeTemplates.template_branch_two % {
+            "condition"       : condition.getCode(),
+            "branch_yes_code" : _indented( branches_codes[ 0 ] ),
+            "branch_no_code"  : _indented( branches_codes[ 1 ] )
+        }
 
 def getLoopContinueCode( needs_exceptions ):
     if needs_exceptions:
@@ -1234,7 +1268,7 @@ def getTryExceptCode( context, code_tried, exception_identifiers, exception_assi
     for exception_identifier, exception_assignment, handler_code in zip( exception_identifiers, exception_assignments, catcher_codes ):
         if exception_identifier is not None:
             exception_code.append(
-                "%s (_exception.matches(%s))" % (
+                "%s ( _exception.matches(%s) )" % (
                     cond_keyword,
                     exception_identifier.getCodeTemporaryRef()
                 )
@@ -1299,6 +1333,18 @@ def getReRaiseExceptionCode( local ):
         return "throw;"
     else:
         return "traceback = true; RERAISE_EXCEPTION();"
+
+def getRaiseExceptionExpressionCode( exception_type_identifier, exception_value_identifier, exception_tb_maker ):
+    # TODO: Use an adaptive identifier that takes no reference ever here for this, as it's
+    # not going to need taking one ever.
+    return Identifier(
+        "THROW_EXCEPTION( %s, %s, %s, &traceback )" % (
+            exception_type_identifier.getCodeExportRef(),
+            exception_value_identifier.getCodeExportRef(),
+            exception_tb_maker.getCodeExportRef()
+        ),
+        0
+    )
 
 def getAssertCode( condition_identifier, failure_identifier, exception_tb_maker ):
     if failure_identifier is None:
@@ -1708,6 +1754,7 @@ def getModuleCode( context, stand_alone, module_name, package_name, codes, doc_i
 
     # Make sure that _python_str_angle_module is available to the template
     context.getConstantHandle( constant = "<module>" )
+    context.getConstantHandle( constant = "." )
 
     if package_name is None:
         module_inits = CodeTemplates.module_init_no_package_template % {
@@ -2346,6 +2393,7 @@ def _getGeneratorFunctionCode( context, function_name, function_identifier, para
                 in_context = True
             )
         )
+
         parameter_context_assign.append(
             "_python_context->python_var_%s.setVariableName( %s );" % (
                 variable.getName(),
@@ -2409,7 +2457,10 @@ def _getGeneratorFunctionCode( context, function_name, function_identifier, para
         decorators = decorators
     )
 
-    function_doc = getConstantHandle( context = context, constant = function_doc ).getCode()
+    function_doc = getConstantCode(
+        context = context,
+        constant = function_doc
+    )
 
     result = CodeTemplates.genfunc_context_body_template % {
         "function_identifier"            : function_identifier,
@@ -2934,35 +2985,14 @@ def getClassCode( context, class_def, class_codes ):
         class_def = class_def
     )
 
-    auto_static = ( "__new__", )
-
     if context.hasLocalsDict():
         class_locals = CodeTemplates.function_dict_setup.split("\n") + class_var_decl
     else:
         class_locals = class_var_decl
 
-    class_dict_creation = ""
-
-    for class_variable in class_variables:
-        class_key = class_variable.getName()
-
-        if class_key in auto_static:
-            var_identifier = LocalVariableIdentifier( class_variable.getName() )
-            class_dict_creation += '%s = MAKE_STATIC_METHOD( %s );\n' % (
-                var_identifier.getCode(),
-                var_identifier.getCodeObject()
-            )
-
-
     class_body = class_def.getBody()
 
-    local_list = _getLocalVariableList(
-        context  = context,
-        provider = class_body
-    )
-
-
-    class_dict_creation += getReturnCode(
+    class_dict_creation = getReturnCode(
         identifier = getLoadLocalsCode(
             provider = class_body,
             context  = context,
@@ -3088,7 +3118,7 @@ def _getConstantsDefinitionCode( context ):
             # Check that the constant is restored correctly.
             restored = cpickle.loads( saved )
 
-            assert Contexts.compareConstants( restored, constant_value )
+            assert Constants.compareConstants( restored, constant_value )
 
             if str is unicode:
                 saved = saved.decode( "utf_8" )

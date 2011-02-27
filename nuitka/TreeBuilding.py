@@ -41,7 +41,6 @@ from .__past__ import long, unicode
 
 from . import (
     SourceCodeReferences,
-    Importing,
     Nodes,
     Utils
 )
@@ -394,6 +393,69 @@ def buildVariableRefAssignTarget( variable_name, source_ref ):
         source_ref   = source_ref
     )
 
+def buildAttributeAssignTarget( provider, attribute, value, source_ref ):
+    assert type( attribute ) is str
+
+    return Nodes.CPythonAssignTargetAttribute(
+        expression = buildNode( provider, value, source_ref ),
+        attribute  = attribute,
+        source_ref = source_ref
+    )
+
+def buildSubscriptAssignTarget( provider, node, source_ref ):
+    slice_kind = getKind( node.slice )
+
+    if slice_kind == "Index":
+        result = Nodes.CPythonAssignTargetSubscript(
+            expression = buildNode( provider, node.value, source_ref ),
+            subscript  = buildNode( provider, node.slice.value, source_ref ),
+            source_ref = source_ref
+        )
+    elif slice_kind == "Slice":
+        lower = buildNode( provider, node.slice.lower, source_ref, True )
+        upper = buildNode( provider, node.slice.upper, source_ref, True )
+
+        if node.slice.step is not None:
+            step = buildNode( provider, node.slice.step, source_ref )
+
+            result = Nodes.CPythonAssignTargetSubscript(
+                expression = buildNode( provider, node.value, source_ref ),
+                subscript  = Nodes.CPythonExpressionSliceObject(
+                    lower      = lower,
+                    upper      = upper,
+                    step       = step,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            )
+        else:
+            result = Nodes.CPythonAssignTargetSlice(
+                expression = buildNode( provider, node.value, source_ref ),
+                lower      = lower,
+                upper      = upper,
+                source_ref = source_ref
+            )
+    elif slice_kind == "ExtSlice":
+        result = Nodes.CPythonAssignTargetSubscript(
+            expression = buildNode( provider, node.value, source_ref ),
+            subscript  = _buildExtSliceNode( provider, node, source_ref ),
+            source_ref = source_ref
+        )
+    elif slice_kind == "Ellipsis":
+        result = Nodes.CPythonAssignTargetSubscript(
+            expression = buildNode( provider, node.value, source_ref ),
+            subscript  = Nodes.CPythonExpressionConstantRef(
+                constant   = Ellipsis,
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        )
+    else:
+        assert False, node.slice
+
+    return result
+
+
 def buildAssignTarget( provider, node, source_ref, allow_none = False ):
     if node is None and allow_none:
         return None
@@ -405,77 +467,41 @@ def buildAssignTarget( provider, node, source_ref, allow_none = False ):
 
     if type( node ) is str:
         # Python >= 3.x only
-        return buildVariableRefAssignTarget( node, source_ref )
+        result = buildVariableRefAssignTarget(
+            variable_name = node,
+            source_ref    = source_ref
+        )
     elif kind == "Name":
-        return buildVariableRefAssignTarget( node.id, source_ref )
+        result = buildVariableRefAssignTarget(
+            variable_name = node.id,
+            source_ref    = source_ref
+        )
     elif kind == "Attribute":
-        return Nodes.CPythonAssignTargetAttribute(
-            expression = buildNode( provider, node.value, source_ref ),
+        result = buildAttributeAssignTarget(
+            provider   = provider,
+            value      = node.value,
             attribute  = node.attr,
             source_ref = source_ref
         )
     elif kind in ( "Tuple", "List" ):
-        elements = []
-
-        for element in node.elts:
-            elements.append( buildAssignTarget( provider, element, source_ref ) )
-
-        return Nodes.CPythonAssignTargetTuple(
-            elements   = elements,
+        result = Nodes.CPythonAssignTargetTuple(
+            elements   = buildAssignTargets( provider, node.elts, source_ref ),
             source_ref = source_ref
         )
     elif kind == "Subscript":
-        slice_kind = getKind( node.slice )
-
-        if slice_kind == "Index":
-            return Nodes.CPythonAssignTargetSubscript(
-                expression = buildNode( provider, node.value, source_ref ),
-                subscript  = buildNode( provider, node.slice.value, source_ref ),
-                source_ref = source_ref
-            )
-        elif slice_kind == "Slice":
-            lower = buildNode( provider, node.slice.lower, source_ref, True )
-            upper = buildNode( provider, node.slice.upper, source_ref, True )
-
-            if node.slice.step is not None:
-                step = buildNode( provider, node.slice.step, source_ref )
-
-                return Nodes.CPythonAssignTargetSubscript(
-                    expression = buildNode( provider, node.value, source_ref ),
-                    subscript  = Nodes.CPythonExpressionSliceObject(
-                        lower      = lower,
-                        upper      = upper,
-                        step       = step,
-                        source_ref = source_ref
-                    ),
-                    source_ref = source_ref
-                )
-            else:
-                return Nodes.CPythonAssignTargetSlice(
-                    expression = buildNode( provider, node.value, source_ref ),
-                    lower      = lower,
-                    upper      = upper,
-                    source_ref = source_ref
-                )
-        elif slice_kind == "ExtSlice":
-            return Nodes.CPythonAssignTargetSubscript(
-                expression = buildNode( provider, node.value, source_ref ),
-                subscript  = _buildExtSliceNode( provider, node, source_ref ),
-                source_ref = source_ref
-            )
-        elif slice_kind == "Ellipsis":
-            return Nodes.CPythonAssignTargetSubscript(
-                expression = buildNode( provider, node.value, source_ref ),
-                subscript  = Nodes.CPythonExpressionConstantRef(
-                    constant   = Ellipsis,
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref
-            )
-        else:
-            assert False, node.slice
+        result = buildSubscriptAssignTarget(
+            provider   = provider,
+            node       = node,
+            source_ref = source_ref
+        )
     else:
         assert False, ( source_ref, ast.dump( node ) )
+
+
+    return result
+
+def buildAssignTargets( provider, nodes, source_ref, allow_none = False ):
+    return [ buildAssignTarget( provider, node, source_ref, allow_none ) for node in nodes ]
 
 def buildAssignNode( provider, node, source_ref ):
     assert len( node.targets ) >= 1, source_ref
@@ -484,9 +510,8 @@ def buildAssignNode( provider, node, source_ref ):
     # before the left hand side exists.
     expression = buildNode( provider, node.value, source_ref )
 
-    targets = []
-    for target_node in node.targets:
-        targets.append( buildAssignTarget( provider, target_node, source_ref ) )
+    # Only now the left hand side, so the right hand side is first.
+    targets = buildAssignTargets( provider, node.targets, source_ref )
 
     return Nodes.CPythonStatementAssignment(
         targets    = targets,
@@ -495,10 +520,8 @@ def buildAssignNode( provider, node, source_ref ):
     )
 
 def buildDeleteNode( provider, node, source_ref ):
-    targets = [ buildAssignTarget( provider, target, source_ref ) for target in node.targets ]
-
     return Nodes.CPythonStatementAssignment(
-        targets    = targets,
+        targets    = buildAssignTargets( provider, node.targets, source_ref ),
         expression = None,
         source_ref = source_ref
     )
@@ -508,7 +531,7 @@ def buildTargetsFromQuals( provider, target_owner, quals, source_ref ):
 
     targets = []
 
-    for count, qual in enumerate( quals ):
+    for qual in quals:
         assert getKind( qual ) == "comprehension"
 
         targets.append(
@@ -887,6 +910,7 @@ def _buildImportModulesNode( import_names, source_ref ):
                 target      = target,
                 module_name = module_name,
                 import_name = module_name if local_name else module_topname,
+                level       = -1,
                 source_ref  = source_ref
             )
         )
@@ -906,8 +930,22 @@ def buildImportModulesNode( node, source_ref ):
         source_ref     = source_ref
     )
 
+def enableFutureFeature( object_name, future_spec ):
+    if object_name == "unicode_literals":
+        future_spec.enableUnicodeLiterals()
+    elif object_name == "absolute_import":
+        future_spec.enableAbsoluteImport()
+    elif object_name == "division":
+        future_spec.enableFutureDivision()
+    elif object_name == "print_function":
+        future_spec.enableFuturePrint()
+    elif object_name in ( "nested_scopes", "generators", "with_statement" ):
+        pass
+    else:
+        warning( "Ignoring unkown future directive '%s'" % object_name )
+
+
 def buildImportFromNode( provider, node, source_ref ):
-    parent_package = provider.getParentModule().getPackage()
     module_name = node.module if node.module is not None else ""
     level = node.level
 
@@ -915,20 +953,12 @@ def buildImportFromNode( provider, node, source_ref ):
         assert provider.isModule() or source_ref.isExecReference()
 
         for import_desc in node.names:
-            object_name, local_name = import_desc.name, import_desc.asname
+            object_name, _local_name = import_desc.name, import_desc.asname
 
-            if object_name == "unicode_literals":
-                source_ref.getFutureSpec().enableUnicodeLiterals()
-            elif object_name == "absolute_import":
-                source_ref.getFutureSpec().enableAbsoluteImport()
-            elif object_name == "division":
-                source_ref.getFutureSpec().enableFutureDivision()
-            elif object_name == "print_function":
-                source_ref.getFutureSpec().enableFuturePrint()
-            elif object_name in ( "nested_scopes", "generators", "with_statement" ):
-                pass
-            else:
-                warning( "Ignoring unkown future directive '%s'" % object_name )
+            enableFutureFeature(
+                object_name = object_name,
+                future_spec = source_ref.getFutureSpec()
+            )
     elif module_name == "" and level == 1:
         return _buildImportModulesNode(
             import_names   = [
@@ -956,24 +986,19 @@ def buildImportFromNode( provider, node, source_ref ):
         targets.append( target )
         imports.append( object_name )
 
-    assert level < 2
-
-    _module_package, module_name, _module_filename = Importing.findModule(
-        module_name    = module_name,
-        parent_package = parent_package
-    )
-
     if None in targets:
         return Nodes.CPythonStatementImportStarExternal(
-            module_name     = module_name,
-            source_ref      = source_ref
+            module_name = module_name,
+            level       = level,
+            source_ref  = source_ref
         )
     else:
         return Nodes.CPythonStatementImportFromExternal(
-            targets         = targets,
-            module_name     = module_name,
-            imports         = imports,
-            source_ref      = source_ref
+            targets     = targets,
+            module_name = module_name,
+            level       = level,
+            imports     = imports,
+            source_ref  = source_ref
         )
 
 def buildPrintNode( provider, node, source_ref ):
@@ -1007,8 +1032,9 @@ def buildExecNode( provider, node, source_ref ):
     if locals_node is not None and locals_node.isConstantReference() and locals_node.getConstant() is None:
         locals_node = None
 
-    if locals_node is None and globals_node is not None and globals_node.isConstantReference() and globals_node.getConstant() is None:
-        globals_node = None
+    if locals_node is None and globals_node is not None:
+        if globals_node.isConstantReference() and globals_node.getConstant() is None:
+            globals_node = None
 
     if provider.isFunctionBody():
         provider.markAsExecContaining()

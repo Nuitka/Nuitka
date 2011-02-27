@@ -39,9 +39,10 @@ from .__past__ import long, unicode
 
 from . import Variables
 from .odict import OrderedDict
-from .NoneType import NoneType
 from .nodes import OverflowCheck
 from .nodes import UsageCheck
+
+from .Constants import isMutable
 
 class CPythonNodeCheck( type ):
     kinds = set()
@@ -61,6 +62,8 @@ class CPythonNodeCheck( type ):
 
         type.__init__( mcs, name, bases, dictionary )
 
+# For every node type, there is a test, and then some more members, pylint: disable=R0904
+
 class CPythonNode:
     __metaclass__ = CPythonNodeCheck
 
@@ -75,10 +78,10 @@ class CPythonNode:
         self.source_ref = source_ref
 
     def __repr__( self ):
+        # This is to avoid crashes, because of bugs in detail. pylint: disable=W0702
         try:
             detail = self.getDetail()
         except:
-            # TODO: Teach pylint that this is wanted.
             detail = "detail raises exception"
 
         if detail == "":
@@ -132,6 +135,18 @@ class CPythonNode:
 
         return parent
 
+    def getParentClass( self ):
+        """ Return the parent that is a class body.
+
+        """
+
+        parent = self.getParent()
+
+        while parent is not None and not parent.isClassBody():
+            parent = parent.getParent()
+
+        return parent
+
     def getParentModule( self ):
         """ Return the parent that is module.
 
@@ -140,6 +155,7 @@ class CPythonNode:
 
         while not parent.isModule():
             if hasattr( parent, "provider" ):
+                # After we checked, we can use it, will be much faster, pylint: disable=E1101
                 parent = parent.provider
             else:
                 parent = parent.getParent()
@@ -371,6 +387,9 @@ class CPythonNode:
     def isStatementRaiseException( self ):
         return self.kind == "STATEMENT_RAISE_EXCEPTION"
 
+    def isExpressionRaiseException( self ):
+        return self.kind == "EXPRESSION_RAISE_EXCEPTION"
+
     def isStatementAssert( self ):
         return self.kind == "STATEMENT_ASSERT"
 
@@ -478,12 +497,6 @@ class CPythonNode:
                 result = current._getNiceName() + "__" + result
 
         return result
-
-    def getLevel( self ):
-        if self.parent is None:
-            return 1
-        else:
-            return self.parent.getLevel() + 1
 
     def replaceWith( self, new_node ):
         self.parent.replaceChild( old_node = self, new_node = new_node )
@@ -644,6 +657,7 @@ class CPythonClosureGiver( CPythonNamedCode ):
         return self.providing[ variable_name ]
 
     def createProvidedVariable( self, variable_name ):
+        # Virtual method, pylint: disable=R0201,W0613
         assert type( variable_name ) is str
 
         return None
@@ -661,6 +675,7 @@ class CPythonClosureGiver( CPythonNamedCode ):
         return self.providing.values()
 
     def hasLocalsDict( self ):
+        # Abstract method, pylint: disable=R0201,W0613
         return False
 
     def reconsiderVariable( self, variable ):
@@ -724,9 +739,9 @@ class CPythonClosureTaker:
                 variable_name = variable_name
             )
 
-        return self._addClosureVariable( result )
+        return self.addClosureVariable( result )
 
-    def _addClosureVariable( self, variable, global_statement = False ):
+    def addClosureVariable( self, variable, global_statement = False ):
         variable = variable.makeReference( self )
 
         if variable.isModuleVariable() and global_statement:
@@ -1207,32 +1222,8 @@ class CPythonExpressionConstantRef( CPythonNode ):
     def getConstant( self ):
         return self.constant
 
-    def _isMutable( self, constant ):
-        constant_type = type( constant )
-
-        if constant_type in ( str, unicode, complex, int, long, bool, float, NoneType ):
-            return False
-        elif constant_type in ( dict, list ):
-            return True
-        elif constant_type is tuple:
-            for value in constant:
-                if self._isMutable( value ):
-                    return False
-            else:
-                return True
-        elif constant is Ellipsis:
-            # Note: Workaround for Ellipsis not being handled by the pickle module,
-            # pretend it would be mutable, then it doesn't get pickled as part of lists or
-            # tuples. This is a loss of efficiency, but usage of Ellipsis will be very
-            # limited normally anyway.
-            return True
-
-            return False
-        else:
-            assert False, constant_type
-
     def isMutable( self ):
-        return self._isMutable( self.constant )
+        return isMutable( self.constant )
 
     def isNumberConstant( self ):
         return type( self.constant ) in ( int, long, float, bool )
@@ -1307,9 +1298,6 @@ class CPythonExpressionLambdaBody( CPythonChildrenHaving, CPythonNode, CPythonPa
     getBody = CPythonChildrenHaving.childGetter( "body" )
     setBody = CPythonChildrenHaving.childSetter( "body" )
 
-    def getDefaultParameters( self ):
-        return zip( self.parameters.getDefaultParameterNames(), self.getDefaultExpressions() )
-
     def isGenerator( self ):
         return self.is_generator
 
@@ -1363,12 +1351,6 @@ class CPythonStatementFunctionBuilder( CPythonChildrenHaving, CPythonNode ):
                 "decorators" : tuple( decorators ),
                 "defaults"   : tuple( defaults )
             }
-        )
-
-    def getDefaultParameters( self ):
-        return zip(
-            self.getBody().parameters.getDefaultParameterNames(),
-            self.getDefaultExpressions()
         )
 
     def getFunctionName( self ):
@@ -2420,6 +2402,33 @@ class CPythonStatementRaiseException( CPythonNode ):
     def getVisitableNodes( self ):
         return self.getExceptionParameters()
 
+class CPythonExpressionRaiseException( CPythonNode ):
+    kind = "EXPRESSION_RAISE_EXCEPTION"
+
+    def __init__( self, exception_type, exception_value, source_ref ):
+        CPythonNode.__init__( self, source_ref = source_ref )
+
+        self.exception_type = exception_type
+        self.exception_value = exception_value
+
+    def getExceptionParameters( self ):
+        if self.exception_value is not None:
+            return self.exception_type, self.exception_value
+        elif self.exception_type is not None:
+            return self.exception_type,
+        else:
+            return ()
+
+    def getExceptionType( self ):
+        return self.exception_type
+
+    def getExceptionValue( self ):
+        return self.exception_value
+
+    def getVisitableNodes( self ):
+        return self.getExceptionParameters()
+
+
 class CPythonStatementContinueLoop( CPythonNode, MarkExceptionBreakContinueIndicator ):
     kind = "STATEMENT_CONTINUE_LOOP"
 
@@ -2454,6 +2463,8 @@ class CPythonExpressionBuiltinImport( CPythonNode ):
     def getImportName( self ):
         return self.module_name.split(".")[0]
 
+    def getLevel( self ):
+        return 0 if self.source_ref.getFutureSpec().isAbsoluteImport() else 1
 
 class CPythonStatementImportEmbedded( CPythonChildrenHaving, CPythonNode ):
     kind = "STATEMENT_IMPORT_EMBEDDED"
@@ -2488,7 +2499,7 @@ class CPythonStatementImportEmbedded( CPythonChildrenHaving, CPythonNode ):
 class CPythonStatementImportExternal( CPythonChildrenHaving, CPythonNode ):
     kind = "STATEMENT_IMPORT_EXTERNAL"
 
-    def __init__( self, target, module_name, import_name, source_ref ):
+    def __init__( self, target, module_name, import_name, level, source_ref ):
         CPythonChildrenHaving.__init__(
             self,
             names = {
@@ -2500,6 +2511,7 @@ class CPythonStatementImportExternal( CPythonChildrenHaving, CPythonNode ):
 
         self.module_name = module_name
         self.import_name = import_name
+        self.level = level
 
     def getModuleName( self ):
         return self.module_name
@@ -2507,13 +2519,16 @@ class CPythonStatementImportExternal( CPythonChildrenHaving, CPythonNode ):
     def getImportName( self ):
         return self.import_name
 
+    def getLevel( self ):
+        return self.level
+
     getTarget = CPythonChildrenHaving.childGetter( "target" )
 
 
 class CPythonStatementImportFromExternal( CPythonChildrenHaving, CPythonNode ):
     kind = "STATEMENT_IMPORT_FROM_EXTERNAL"
 
-    def __init__( self, targets, module_name, imports, source_ref ):
+    def __init__( self, targets, module_name, imports, level, source_ref ):
         CPythonChildrenHaving.__init__(
             self,
             names = {
@@ -2524,6 +2539,7 @@ class CPythonStatementImportFromExternal( CPythonChildrenHaving, CPythonNode ):
         CPythonNode.__init__( self, source_ref = source_ref )
 
         self.module_name = module_name
+        self.level = level
 
         self.imports = tuple( imports )
 
@@ -2535,6 +2551,9 @@ class CPythonStatementImportFromExternal( CPythonChildrenHaving, CPythonNode ):
 
     def getModuleName( self ):
         return self.module_name
+
+    def getLevel( self ):
+        return self.level
 
     getTargets = CPythonChildrenHaving.childGetter( "targets" )
 
@@ -2575,13 +2594,17 @@ class CPythonStatementImportFromEmbedded( CPythonChildrenHaving, CPythonNode ):
 class CPythonStatementImportStarExternal( CPythonNode ):
     kind = "STATEMENT_IMPORT_STAR_EXTERNAL"
 
-    def __init__( self, module_name, source_ref ):
+    def __init__( self, module_name, level, source_ref ):
         CPythonNode.__init__( self, source_ref = source_ref )
 
         self.module_name = module_name
+        self.level = level
 
     def getModuleName( self ):
         return self.module_name
+
+    def getLevel( self ):
+        return self.level
 
 class CPythonStatementImportStarEmbedded( CPythonNode ):
     kind = "STATEMENT_IMPORT_STAR_EMBEDDED"

@@ -30,6 +30,9 @@
 #
 """ Code templates one stop access. """
 
+# Wildcard imports are here to centralize the templates for access through one module
+# name, this one, they are not used here though. pylint: disable=W0401,W0614
+
 from .templates.CodeTemplatesMain import *
 from .templates.CodeTemplatesConstants import *
 
@@ -151,8 +154,9 @@ with_template = """\
 
     PyObjectTemporary %(manager)s( %(source)s );
 
-    // TODO: The exit lookup is not used at this time, but the lookup is required for
-    // compatability.
+    // Note: The exit lookup is not used at this time, but the lookup is required for
+    // compatability, because CPython looks up __exit__ and __enter__ in that order
+    // at the beginning of a with statement bytecode.
     PyObjectTemporary %(manager)s_exit( LOOKUP_WITH_EXIT( %(manager)s.asObject() ) );
     PyObjectTemporary %(manager)s_enter( LOOKUP_WITH_ENTER( %(manager)s.asObject() ) );
 
@@ -172,11 +176,19 @@ with_template = """\
     }
     catch ( _PythonException &_exception )
     {
+        if ( traceback == true )
+        {
+           _caught_%(with_count)d.save( _exception );
+        }
+
         _exception.toPython();
         ADD_TRACEBACK( %(module_identifier)s, %(filename_identifier)s, %(name_identifier)s, _exception.getLine() );
         _exception._importFromPython();
 
-        _caught_%(with_count)d.save( _exception );
+        if ( traceback == false )
+        {
+           _caught_%(with_count)d.save( _exception );
+        }
 
         PyObject *exception_type  = _exception.getType();
         PyObject *exception_value = _exception.getObject();
@@ -204,4 +216,20 @@ with_template = """\
     {
         PyObjectTemporary exit_result( CALL_FUNCTION( NULL, %(triple_none_tuple)s, %(manager)s_exit.asObject() ) );
     }
+}"""
+
+template_branch_one = """\
+if ( %(condition)s )
+{
+%(branch_code)s
+}"""
+
+template_branch_two = """\
+if ( %(condition)s )
+{
+%(branch_yes_code)s
+}
+else
+{
+%(branch_no_code)s
 }"""

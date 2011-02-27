@@ -388,6 +388,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 
 #include "printing.hpp"
 
+// TODO: Annotate exception raisers that they don't return.
 NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception, PyTracebackObject *traceback )
 {
     if ( PyExceptionClass_Check( exception ) )
@@ -411,8 +412,6 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception, PyTraceba
 
 NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyTracebackObject *traceback )
 {
-    // TODO: Check traceback
-
     if ( PyExceptionClass_Check( exception_type ) )
     {
        PyErr_NormalizeException( &exception_type, &value, (PyObject **)&traceback );
@@ -423,6 +422,9 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception_type, PyOb
 
 NUITKA_MAY_BE_UNUSED static inline void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyObject *traceback )
 {
+    // Check traceback
+    assert( PyTraceBack_Check( traceback ) );
+
     RAISE_EXCEPTION( exception_type, value, (PyTracebackObject *)traceback );
 }
 
@@ -440,6 +442,14 @@ NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( void )
     Py_XINCREF( tb );
 
     RAISE_EXCEPTION( type, value, tb );
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *THROW_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *traceback, bool *traceback_flag )
+{
+    *traceback_flag = true;
+
+    RAISE_EXCEPTION( exception_type, exception_value, traceback );
+    return NULL;
 }
 
 
@@ -2398,7 +2408,7 @@ NUITKA_MAY_BE_UNUSED static void ADD_TRACEBACK( PyObject *module, PyObject *file
     Py_DECREF( frame );
 }
 
-extern PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObjectGlobalVariable const * package_var, PyObject *import_items );
+extern PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObjectGlobalVariable const *package_var, PyObject *import_items, int level );
 
 extern void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name, PyObject *module );
 

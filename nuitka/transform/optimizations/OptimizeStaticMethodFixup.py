@@ -30,23 +30,33 @@
 #
 """ Delete the staticmethod decorator from __new__ methods if provided.
 
-CPython made these optional, and applies them to every __new__. Our later code will be
-confused if it encounters a decorator to what it already automatically decorated.
-
-TODO: Consider turning this into something adding it for improved consistency.
+CPython made these optional, and applies them to every __new__. We better add
+them early, so our analysis will see it for improved consistency. This is better
+then adding it during code generation only.
 """
 
 from .OptimizeBase import OptimizationVisitorBase
 
+from nuitka import Nodes
+
 class FixupNewStaticMethodVisitor( OptimizationVisitorBase ):
     def __call__( self, node ):
-        if node.isFunctionBuilder() and node.getFunctionName() == "__new__":
+        if node.isFunctionBuilder() and node.getFunctionName() == "__new__" and node.getParentClass() is not None:
             decorators = node.getDecorators()
 
-            if len( decorators ) == 1 and decorators[0].isVariableReference():
-                if decorators[0].getVariable().getName() == "staticmethod":
-                    # Reset the decorators. This does not attempt to deal with
-                    # multiple of them being present.
-                    node.setDecorators( () )
+            if len( decorators ) == 0:
+                new_node = Nodes.CPythonExpressionVariableRef(
+                    variable_name = "staticmethod",
+                    source_ref    = node.getSourceReference()
+                )
 
-                    assert not node.getDecorators()
+                node.setDecorators(
+                    ( new_node, )
+                )
+                new_node.parent = node
+
+                self.signalChange(
+                    "new_code",
+                    node.getSourceReference(),
+                    "Added missing staticmethod decoration to __new__ method"
+                )

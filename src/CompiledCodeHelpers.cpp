@@ -474,27 +474,6 @@ PyObject *MAKE_FRAME( PyObject *module, PyObject *filename, PyObject *function_n
     return (PyObject *)result;
 }
 
-PyObject *RELATIVE_MODULE_NAME( PyObject *module_name, PyObjectGlobalVariable const * package_var )
-{
-    assert( package_var );
-
-    if ( package_var->isInitialized( false ) )
-    {
-        PyObject *package = package_var->asObject();
-
-        if ( PyString_Check( package ))
-        {
-            return PyString_FromFormat(
-                "%s.%s",
-                PyString_AsString( package ),
-                PyString_AsString( module_name )
-            );
-        }
-    }
-
-    return NULL;
-}
-
 #ifdef _NUITKA_EXE
 extern bool *FIND_EMBEDDED_MODULE( PyObject *module_name );
 
@@ -517,51 +496,114 @@ PyObject *IMPORT_EMBEDDED_MODULE( PyObject *module_name, PyObject *import_name )
 }
 #endif
 
-PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObjectGlobalVariable const * package_var, PyObject *import_items )
+PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObjectGlobalVariable const *package_var, PyObject *import_items, int level )
 {
-    int line = _current_line;
-
     char *module_name_str = PyString_AsString( module_name );
 
-    PyObject *result = PyImport_ImportModuleLevel(
+    // Create a globals dict if necessary with the package string.
+    PyObject *globals_dict = NULL;
+    PyObject *package = NULL;
+
+    if ( package_var->isInitialized( false ) && package_var->asObject() != Py_None )
+    {
+        package = package_var->asObject();
+        assert( PyString_Check( package ));
+
+        globals_dict = MAKE_DICT( _python_str_plain___package__, package );
+    }
+
+    int line = _current_line;
+
+    // printf( "Importing %s as level %d\n", module_name_str, level );
+
+    PyObject *import_result = PyImport_ImportModuleLevel(
         module_name_str,
-        NULL,
+        globals_dict,
         NULL,
         import_items,
-        0
+        level
     );
 
-    if ( result == NULL && package_var != NULL && PyErr_ExceptionMatches( PyExc_ImportError ) )
-    {
-        PyObject *module_name2 = RELATIVE_MODULE_NAME( module_name, package_var );
-        PyObject *import_name2 = RELATIVE_MODULE_NAME( import_name, package_var );
-
-        if ( module_name2 != NULL )
-        {
-            // printf( "Fallback to import of %s\n", PyString_AsString( module_name2 ) );
-            PyErr_Clear();
-
-            return IMPORT_MODULE(
-                PyObjectTemporary( module_name2 ).asObject(),
-                PyObjectTemporary( import_name2 ).asObject(),
-                NULL,
-                import_items
-            );
-        }
-    }
+    Py_XDECREF( globals_dict );
 
     _current_line = line;
 
-    if (unlikely( result == NULL ))
+    if (unlikely( import_result == NULL ))
     {
+        // printf( "FAIL Importing %s as level %d\n", module_name_str, level );
+
         throw _PythonException();
     }
 
+    // printf( "PASS Importing %s as level %d\n", module_name_str, level );
+
     // Release the reference returned from the import, we don't trust it, because it
     // doesn't work well with packages. Look up in sys.modules instead.
-    Py_DECREF( result );
+    Py_DECREF( import_result );
 
-    return LOOKUP_SUBSCRIPT( PySys_GetObject( (char *)"modules" ), import_name );
+    PyObject *sys_modules = PySys_GetObject( (char *)"modules" );
+
+    PyObject *result;
+
+
+    if ( level == 0 )
+    {
+        // Absolute import was requested, try only that.
+        result = LOOKUP_SUBSCRIPT( sys_modules, import_name );
+    }
+    else if ( abs( level ) == 1 && HAS_KEY( sys_modules, import_name ))
+    {
+        // Absolute and relative import were both allowed, absolute works, so take that
+        // first.
+        result = LOOKUP_SUBSCRIPT( sys_modules, import_name );
+    }
+    else
+    {
+        // TODO: If we are here, and package is NULL, we lost and should raise
+        // import error.
+        assert( package );
+
+        // Now that absolute import failed, try relative import to current package.
+        level = abs(level);
+
+        PyObjectTemporary package_temp( package );
+
+        while( level > 1 )
+        {
+            PyObject *partition = PyObject_CallMethod( package_temp.asObject(), (char *)"rpartition", (char *)"O", _python_str_dot );
+
+            if ( partition == NULL )
+            {
+                throw _PythonException();
+            }
+
+            package_temp.assign( SEQUENCE_ELEMENT( partition, 0 ) );
+            Py_DECREF( partition );
+
+            level -= 1;
+        }
+
+        package = package_temp.asObject();
+
+        if ( PyString_Size( import_name ) > 0 )
+        {
+            PyObjectTemporary full_name(
+                PyString_FromFormat(
+                    "%s.%s",
+                    PyString_AsString( package ),
+                    PyString_AsString( import_name )
+                )
+            );
+
+            result = LOOKUP_SUBSCRIPT( sys_modules, full_name.asObject() );
+        }
+        else
+        {
+            result = LOOKUP_SUBSCRIPT( sys_modules, package );
+        }
+    }
+
+    return result;
 }
 
 void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name, PyObject *module )

@@ -34,8 +34,10 @@ TODO: Split in two phases, such that must be replaced (locals(), globals() and s
 are just a good idea to replace (range(), etc)
 """
 
-from .OptimizeBase import OptimizationVisitorBase
-from .. import TreeOperations
+from .OptimizeBase import (
+    OptimizationDispatchingVisitorBase,
+    getConstantComputationReplacementNode
+)
 
 from nuitka import Importing, Nodes
 
@@ -46,45 +48,14 @@ import math
 _builtin_names = [ str( x ) for x in __builtins__.keys() ]
 assert "int" in _builtin_names, __builtins__.keys()
 
-class OptimizationDispatchingVisitorBase( OptimizationVisitorBase ):
-    def __init__( self, dispatch_dict ):
-        self.dispatch_dict = dispatch_dict
-
-    def __call__( self, node ):
-        key = self.getKey( node )
-
-        if key in self.dispatch_dict:
-            new_node = self.dispatch_dict[ key ]( node )
-
-            if new_node is not None:
-                node.replaceWith( new_node = new_node )
-
-                if new_node.isStatement() and node.parent.isStatementExpression():
-                    node.parent.replaceWith( new_node )
-
-                TreeOperations.assignParent( node.parent )
-
-                if new_node.isConstantReference():
-                    self.signalChange(
-                        "new_constant",
-                        node.getSourceReference(),
-                        message = "Replaced %s with constant result." % node.kind
-                    )
-                elif new_node.isBuiltin():
-                    self.signalChange(
-                        "new_builtin",
-                        node.getSourceReference(),
-                        message = "Replaced call to builtin %s with builtin call." % new_node.kind
-                    )
-
-                self.onNodeWasReplaced(
-                    old_node = node
-                )
-
-    def onNodeWasReplaced( self, old_node ):
-        pass
-
 class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
+    """ Replace calls to builtin names by builtin nodes if possible or necessary.
+
+    """
+
+    # Many methods of this class could be functions, but we want it scoped on the class
+    # level anyway. pylint: disable=R0201
+
     def __init__( self ):
         OptimizationDispatchingVisitorBase.__init__(
             self,
@@ -221,16 +192,18 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
 
         if len( positional_args ) == 1 and positional_args[0].isConstantReference():
             module_name = positional_args[0].getConstant()
+            source_ref = node.getSourceReference()
 
             if type( module_name ) is str and "." not in module_name:
                 _module_package, module_name, _module_filename = Importing.findModule(
                     module_name    = module_name,
-                    parent_package = node.getParentModule().getPackage()
+                    parent_package = node.getParentModule().getPackage(),
+                    level          = 0 if source_ref.getFutureSpec().isAbsoluteImport() else 1
                 )
 
                 return Nodes.CPythonExpressionBuiltinImport(
-                    module_name     = module_name,
-                    source_ref      = node.getSourceReference()
+                    module_name = module_name,
+                    source_ref  = source_ref
                 )
 
     def chr_extractor( self, node ):
@@ -315,6 +288,10 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
 
 
 class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
+    """ Precompute builtins with constant arguments if possible. """
+    # Many methods of this class could be functions, but we want it scoped on the class
+    # level anyway. pylint: disable=R0201
+
     def __init__( self ):
         OptimizationDispatchingVisitorBase.__init__(
             self,
@@ -334,20 +311,16 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         if node.isBuiltin():
             return node.kind.replace( "EXPRESSION_BUILTIN_", "" ).lower()
 
-
     def chr_extractor( self, node ):
         value = node.getValue()
 
         if value.isConstantReference():
             value = value.getConstant()
 
-            try:
-                return Nodes.makeConstantReplacementNode(
-                    constant = chr( value ),
-                    node     = node
-                )
-            except:
-                pass
+            return getConstantComputationReplacementNode(
+                expression  = node,
+                computation = lambda : chr( value )
+            )
 
     def ord_extractor( self, node ):
         value = node.getValue()
@@ -355,14 +328,10 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         if value.isConstantReference():
             value = value.getConstant()
 
-            try:
-                return Nodes.makeConstantReplacementNode(
-                    constant = ord( value ),
-                    node     = node
-                )
-            except:
-                pass
-
+            return getConstantComputationReplacementNode(
+                expression  = node,
+                computation = lambda : ord( value )
+            )
 
     def type1_extractor( self, node ):
         value = node.getValue()
@@ -396,6 +365,8 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
 
 
     def range_extractor( self, node ):
+        # Quite a lot of checks to do. pylint: disable=R0912
+
         low  = node.getLow()
         high = node.getHigh()
         step = node.getStep()
@@ -410,45 +381,30 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
             if isRangePredictable( low ):
                 constant = low.getConstant()
 
-                if type( constant ) is float:
-                    if getPythonVersion() < 270:
-                        constant = int( constant )
-                    else:
-                        # TODO: Add this node type, for now let the real range builtin do
-                        # it, but that leaves the optimizer no chance to know in advance.
-                        return None
+                # Avoid warnings before Python 2.7, in Python 2.7 it's an exception.
+                if type( constant ) is float and getPythonVersion() < 270:
+                    constant = int( constant )
 
                 # Negative values are empty, so don't check against 0.
                 if constant <= 256:
-
-                    return Nodes.makeConstantReplacementNode(
-                        constant = range( constant ),
-                        node     = node
+                    return getConstantComputationReplacementNode(
+                        expression = node,
+                        computation = lambda : range( constant )
                     )
         elif step is None:
             if isRangePredictable( low ) and isRangePredictable( high ):
                 constant1 = low.getConstant()
                 constant2 = high.getConstant()
 
-                if type( constant1 ) is float:
-                    if getPythonVersion() < 270:
-                        constant1 = int( constant1 )
-                    else:
-                        # TODO: Add this node type, for now let the real range builtin do
-                        # it, but that leaves the optimizer no chance to know in advance.
-                        return None
-                if type( constant2 ) is float:
-                    if getPythonVersion() < 270:
-                        constant2 = int( constant2 )
-                    else:
-                        # TODO: Add this node type, for now let the real range builtin do
-                        # it, but that leaves the optimizer no chance to know in advance.
-                        return None
+                if type( constant1 ) is float and getPythonVersion() < 270:
+                    constant1 = int( constant1 )
+                if type( constant2 ) is float and getPythonVersion() < 270:
+                    constant2 = int( constant2 )
 
                 if constant2 - constant1 <= 256:
-                    return Nodes.makeConstantReplacementNode(
-                        constant = range( constant1, constant2 ),
-                        node     = node
+                    return getConstantComputationReplacementNode(
+                        expression = node,
+                        computation = lambda : range( constant1, constant2 )
                     )
         else:
             if isRangePredictable( low ) and isRangePredictable( high ) and isRangePredictable( step ):
@@ -456,74 +412,45 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                 constant2 = high.getConstant()
                 constant3 = step.getConstant()
 
-                if type( constant1 ) is float:
-                    if getPythonVersion() < 270:
-                        constant1 = int( constant1 )
-                    else:
-                        # TODO: Add this node type, for now let the real range builtin do
-                        # it, but that leaves the optimizer no chance to know in advance.
-                        return None
-                if type( constant2 ) is float:
-                    if getPythonVersion() < 270:
-                        constant2 = int( constant2 )
-                    else:
-                        # TODO: Add this node type, for now let the real range builtin do
-                        # it, but that leaves the optimizer no chance to know in advance.
-                        return None
-                if type( constant3 ) is float:
-                    if getPythonVersion() < 270:
-                        constant3 = int( constant3 )
-                    else:
-                        # TODO: Add this node type, for now let the real range builtin do
-                        # it, but that leaves the optimizer no chance to know in advance.
-                        return None
+                if type( constant1 ) is float and getPythonVersion() < 270:
+                    constant1 = int( constant1 )
+                if type( constant2 ) is float and getPythonVersion() < 270:
+                    constant2 = int( constant2 )
+                if type( constant3 ) is float and getPythonVersion() < 270:
+                    constant3 = int( constant3 )
 
-                if constant3 == 0:
-                    # TODO: Add this node type, for now let the real range builtin
-                    # do it, but that leaves the optimizer no chance to know in
-                    # advance.
-                    return None
-
-                    return Nodes.CPythonExpressionRaiseException(
-                        exception_type = Nodes.CPythonExpressionVariable(
-                            variable_name = "ValueError",
-                            source_ref    = node.getSourceReference()
-                        ),
-                        exception_value = Nodes.makeConstantReplacementNode(
-                            constant = "range() step argument must not be zero",
-                            node     = node
-                        ),
-                        exception_trace = None,
-                        source_ref = node.getSourceReference()
-                    )
-
-                if constant1 < constant2:
-                    if constant3 < 0:
-                        estimate = 0
+                try:
+                    if constant1 < constant2:
+                        if constant3 < 0:
+                            estimate = 0
+                        else:
+                            estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
                     else:
-                        estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
-                else:
-                    if constant3 > 0:
-                        estimate = 0
-                    else:
-                        estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
+                        if constant3 > 0:
+                            estimate = 0
+                        else:
+                            estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
+                except (ValueError, TypeError, ZeroDivisionError):
+                    estimate = -1
 
                 estimate = round( estimate )
 
-                assert len( range( constant1, constant2, constant3 ) ) == estimate, node.getSourceReference()
-
                 if estimate <= 256:
-                    return Nodes.makeConstantReplacementNode(
-                        constant = range( constant1, constant2, constant3 ),
-                        node     = node
-                    )
+                    try:
+                        assert len( range( constant1, constant2, constant3 ) ) == estimate, node.getSourceReference()
+                    except (ValueError, TypeError, ZeroDivisionError):
+                        pass
 
+                    return getConstantComputationReplacementNode(
+                        expression = node,
+                        computation = lambda : range( constant1, constant2, constant3 )
+                    )
 
     def len_extractor( self, node ):
         value = node.getValue()
 
         if value.isConstantReference() and value.isIterableConstant():
-            return Nodes.makeConstantReplacementNode(
-                constant = len( value.getConstant() ),
-                node     = node
+            return getConstantComputationReplacementNode(
+                expression  = node,
+                computation = lambda : len( value.getConstant() )
             )

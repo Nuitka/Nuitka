@@ -30,7 +30,21 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
+# Disabled globally:
+#
+# W0232: Class has no __init__ method
+# Who cares, I am using overrides that don't need to change object init a lot
+# and I rarely ever made a mistake with forgetting to call __init__ of the
+# parent.
+#
+# I0011: Locally disabling W....
+# Strange one anyway, I want to locally disable stuff. And that just makes it
+# a different warning. Amazing. Luckily I can decide to ignore that globally
+# then.
+
 OPTIONS='--rcfile=/dev/null
+         --include-ids=y
+         --disable=I0011,W0232
          --reports=no
          --persistent=no
          --method-rgx=[a-z_][a-zA-Z0-9_]{2,40}$

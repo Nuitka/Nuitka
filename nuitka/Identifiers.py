@@ -28,15 +28,17 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Identifiers hold code references.
+
+These are generally the means to effectively hide the reference count. The best part
+is where getCheapRefCount tries to not allocate references not needed.
+"""
 
 from __future__ import print_function
-# pylint: disable=W0622
-from .__past__ import long, unicode
-# pylint: enable=W0622
 
-import hashlib, re
 
-from logging import warning
+# The method signatures do not always require usage of self, sometimes can be decided
+# based on class. pylint: disable=R0201
 
 class Identifier:
     def __init__( self, code, ref_count ):
@@ -182,129 +184,6 @@ class ClosureVariableIdentifier( Identifier ):
 
     def getCodeDropRef( self ):
         return "DECREASE_REFCOUNT( %s )" % self.getCodeObject()
-
-class ExceptionCannotNamify( Exception ):
-    pass
-
-def digest( value ):
-    if str is not unicode:
-        return hashlib.md5( value ).hexdigest()
-    else:
-        return hashlib.md5( value.encode( "utf_8" ) ).hexdigest()
-
-_re_str_needs_no_digest = re.compile( r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.S )
-
-def _namifyString( string ):
-    if string == "":
-        return "empty"
-    elif _re_str_needs_no_digest.match( string ) and "\n" not in string:
-        # Some strings can be left intact for source code readability.
-        return "plain_" + string
-    elif len( string ) > 2 and string[0] == "<" and string[-1] == ">" and _re_str_needs_no_digest.match( string[1:-1] ) and "\n" not in string:
-        return "angle_" + string[1:-1]
-    else:
-        # Others are better digested to not cause compiler trouble
-        return "digest_" + digest( string )
-
-
-
-def isAscii( string ):
-    try:
-        _unused = str( string )
-
-        return True
-    except UnicodeEncodeError:
-        return False
-
-def namifyConstant( constant ):
-    if type( constant ) == int:
-        if constant == 0:
-            return "int_0"
-        elif constant > 0:
-            return "int_pos_%d" % constant
-        else:
-            return "int_neg_%d" % abs( constant )
-    elif type( constant ) == long:
-        if constant == 0:
-            return "long_0"
-        elif constant > 0:
-            return "long_pos_%d" % constant
-        else:
-            return "long_neg_%d" % abs( constant )
-    elif type( constant ) == bool:
-        return "bool_%s" % constant
-    elif constant is None:
-        return "none"
-    elif constant is Ellipsis:
-        return "ellipsis"
-    elif type( constant ) == str:
-        return "str_" + _namifyString( constant )
-    elif type( constant ) == unicode:
-        if isAscii( constant ):
-            return "unicode_" + _namifyString( str( constant ) )
-        else:
-            # Others are better digested to not cause compiler trouble
-            return "unicode_digest_" + digest( repr( constant ) )
-    elif type( constant ) == float:
-        return "float_%s" % repr( constant ).replace( ".", "_" ).replace( "-", "_minus_" ).replace( "+", "" )
-    elif type( constant ) == complex:
-        value = str( constant ).replace( "+", "p" ).replace( "-", "m" ).replace(".","_")
-
-        if value.startswith( "(" ) and value.endswith( ")" ):
-            value = value[1:-1]
-
-        return "complex_%s" % value
-    elif type( constant ) == dict:
-        if constant == {}:
-            return "dict_empty"
-        else:
-            return "dict_" + digest( repr( constant ) )
-    elif type( constant ) == set:
-        if constant == set():
-            return "set_empty"
-        else:
-            return "set_" + digest( repr( constant ) )
-    elif type( constant ) == frozenset:
-        if constant == frozenset():
-            return "frozenset_empty"
-        else:
-            return "frozenset_" + digest( repr( constant ) )
-    elif type( constant ) == tuple:
-        if constant == ():
-            return "tuple_empty"
-        else:
-            result = "tuple_"
-
-            try:
-                parts = []
-
-                for value in constant:
-                    parts.append( namifyConstant( value ) )
-
-                return result + "_".join( parts )
-            except ExceptionCannotNamify:
-                warning( "Couldn't namify '%r'" % value )
-
-                return "tuple_" + hashlib.md5( repr( constant ) ).hexdigest()
-    elif type( constant ) == list:
-        if constant == []:
-            return "list_empty"
-        else:
-            result = "list_"
-
-            try:
-                parts = []
-
-                for value in constant:
-                    parts.append( namifyConstant( value ) )
-
-                return result + "_".join( parts )
-            except ExceptionCannotNamify:
-                warning( "Couldn't namify '%r'" % value )
-
-                return "list_" + hashlib.md5( repr( constant ) ).hexdigest()
-    else:
-        raise ExceptionCannotNamify( constant )
 
 
 def getCodeTemporaryRefs( identifiers ):

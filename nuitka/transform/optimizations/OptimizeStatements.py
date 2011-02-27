@@ -33,8 +33,7 @@
 This undoes the effect of inlined exec or statements replaced with statement sequences.
 """
 
-from .OptimizeBase import OptimizationVisitorBase
-from .. import TreeOperations
+from .OptimizeBase import OptimizationVisitorBase, TreeOperations
 
 from nuitka import Nodes
 
@@ -45,13 +44,10 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
             parent = node.getParent()
 
             if parent.isStatementsSequence():
-                statements = parent.getStatements()
+                statements = list( parent.getStatements() )
 
-                # TODO: There should be a list operation that replaces a element or slice
-                # with some new elements.
-                statements = statements[ : statements.index( node ) ] + \
-                             node.getStatements() + \
-                             statements[ statements.index( node ) + 1 : ]
+                offset = statements.index( node )
+                statements[ offset : offset + 1 ] = node.getStatements()
 
                 new_node = Nodes.CPythonStatementsSequence(
                     statements = statements,

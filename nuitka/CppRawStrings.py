@@ -28,7 +28,13 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" C++ raw strings.
 
+This contains the code to create raw string literals for C++ to represent the given values
+and little more. Because this is hard to get right with the white space problems that C++
+has here, we have a paranoid debug mode that compiles a test program to verify the correctness
+of each literal. That's not fast of course.
+"""
 import re
 
 def _pickRawDelimiter( value ):

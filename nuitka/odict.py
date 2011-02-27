@@ -4,13 +4,16 @@ It is not in 2.6, for this version we are using the odict.py as mentioned in the
 
 This can be removed safely after the transition, note that the documentation was removed,
 as it's not interesting really, being redundent to Python 2.7 documentation.
+
+    :copyright: (c) 2008 by Armin Ronacher and PEP 273 authors.
+    :license: modified BSD license.
+
+Kay Hayen did some changes for Nuitka, and put everything he added under the same
+modified BSD license.
+
 """
 
-#    :copyright: (c) 2008 by Armin Ronacher and PEP 273 authors.
-#    :license: modified BSD license.
-
-# Kay Hayen did some changes for Nuitka, and put everything he added under the same
-# modified BSD license.
+# pylint: disable=E0611,W0141
 
 try:
     from collections import OrderedDict

@@ -28,14 +28,18 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Finalizations. Last steps directly before code creation is called.
 
+Here the final tasks are executed. Things normally volatile during optimizations can
+be computed here, so the code generation can be quick and doesn't have to check it
+many times.
+
+"""
 from .FinalizeMarkups import FinalizeMarkups
 from .FinalizeClosureTaking import FinalizeClosureTaking
 
-
+# Bug of pylint, it's there but it reports it wrongly, pylint: disable=E0611
 from .. import TreeOperations
-
-from nuitka import Nodes
 
 taking_kinds = (
     "EXPRESSION_FUNCTION_BODY",

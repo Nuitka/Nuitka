@@ -28,9 +28,10 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Syntax highlighting for Python.
 
-
-# Inspired/copied from by http://diotavelli.net/PyQtWiki/Python%20syntax%20highlighting
+Inspired/copied from by http://diotavelli.net/PyQtWiki/Python%20syntax%20highlighting
+"""
 
 from PyQt4.QtCore import QRegExp
 from PyQt4.QtGui import QColor, QTextCharFormat, QFont, QSyntaxHighlighter
@@ -99,7 +100,7 @@ class PythonHighlighter( QSyntaxHighlighter ):
         QSyntaxHighlighter.__init__( self, document )
 
         # Multi-line strings (expression, flag, style)
-        # FIXME: The triple-quotes in these two lines will mess up the
+        # The triple-quotes in these two lines will mess up the
         # syntax highlighting from this point onward
         self.tri_single = (QRegExp("'''"), 1, STYLES['string2'])
         self.tri_double = (QRegExp('"""'), 2, STYLES['string2'])

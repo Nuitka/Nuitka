@@ -1,9 +1,14 @@
 
-# This module is only an abstraction of OrderedSet as present in 2.7 and 3.1 but not in
-# 2.6. It was taken from http://code.activestate.com/recipes/576694/
+""" This module is only an abstraction of OrderedSet as present in 2.7 and 3.1 but not in
+2.6. It was taken from http://code.activestate.com/recipes/576694/
 
-# Kay Hayen did some changes for Nuitka, and put everything he added under the same
-# modified BSD license.
+
+
+Kay Hayen did some changes for Nuitka, and put everything he added under the same
+modified BSD license. These are not improvements.
+"""
+
+# pylint: disable=W0622,W0221
 
 import collections
 
@@ -13,8 +18,8 @@ class OrderedSet(collections.MutableSet):
 
     def __init__(self, iterable=None):
         self.end = end = []
-        end += [None, end, end]         # sentinel node for doubly linked list
-        self.map = {}                   # key --> [key, prev, next]
+        end += [None, end, end]
+        self.map = {}
         if iterable is not None:
             self |= iterable
 
@@ -72,4 +77,4 @@ class OrderedSet(collections.MutableSet):
         return set(self) == set(other)
 
     def __del__(self):
-        self.clear()                    # remove circular references
+        self.clear()

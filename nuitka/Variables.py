@@ -58,6 +58,7 @@ class Variable:
         return self.references
 
     def getReferenced( self ):
+        # Abstract method, pylint: disable=R0201,W0613
         return None
 
     def getReadOnlyIndicator( self ):
@@ -121,16 +122,17 @@ class Variable:
 
         return self._checkShared( variable )
 
-    ReferenceClass = None
+    reference_class = None
 
     def makeReference( self, owner ):
-        assert self.ReferenceClass, self
+        assert self.reference_class, self
 
         for reference in self.references:
             if reference.getOwner() is owner:
                 return reference
         else:
-            return self.ReferenceClass(
+            # The reference_class will be overloaded with something callable, pylint: disable=E1102
+            return self.reference_class(
                 owner    = owner,
                 variable = self
             )
@@ -144,7 +146,7 @@ class VariableReferenceBase( Variable ):
             variable_name = variable.getName()
         )
 
-        self.ReferenceClass = variable.ReferenceClass
+        self.reference_class = variable.reference_class
 
         variable.addReference( self )
         self.variable = variable
@@ -223,7 +225,7 @@ class ModuleVariableReference( VariableReferenceBase ):
 
 
 class LocalVariable( Variable ):
-    ReferenceClass = ClosureVariableReference
+    reference_class = ClosureVariableReference
 
     def __init__( self, owner, variable_name ):
         Variable.__init__(
@@ -243,7 +245,7 @@ class LocalVariable( Variable ):
         return True
 
 class MaybeLocalVariable( Variable ):
-    ReferenceClass = ClosureVariableReference
+    reference_class = ClosureVariableReference
 
     def __init__( self, owner, variable_name ):
         Variable.__init__(
@@ -307,7 +309,7 @@ def makeParameterVariables( owner, parameter_names ):
     ]
 
 class ClassVariable( Variable ):
-    ReferenceClass = ClosureVariableReference
+    reference_class = ClosureVariableReference
 
     def __init__( self, owner, variable_name ):
         Variable.__init__(
@@ -328,7 +330,7 @@ class ClassVariable( Variable ):
 _module_variables = {}
 
 class ModuleVariable( Variable ):
-    ReferenceClass = ModuleVariableReference
+    reference_class = ModuleVariableReference
 
     def __init__( self, module, variable_name ):
         assert type( variable_name ) is str

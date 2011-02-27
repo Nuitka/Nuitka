@@ -32,29 +32,18 @@
 
 """
 
-import math
+from .Identifiers import (
+    Identifier,
+    ConstantIdentifier,
+    LocalVariableIdentifier,
+    ClosureVariableIdentifier
+)
 
-from .Identifiers import namifyConstant, Identifier, ConstantIdentifier, LocalVariableIdentifier, ClosureVariableIdentifier
+from .Namify import namifyConstant
 
-class Constant:
-    def __init__( self, constant ):
-        self.constant = constant
+from .Constants import HashableConstant
 
-        try:
-            self.hash = hash( constant )
-        except TypeError:
-            self.hash = 55
-
-    def getConstant( self ):
-        return self.constant
-
-    def __hash__( self ):
-        return self.hash
-
-    def __eq__( self, other ):
-        assert isinstance( other, self.__class__ )
-
-        return compareConstants( self.constant, other.constant )
+# Many methods won't use self, but it's the interface. pylint: disable=R0201
 
 class PythonContextBase:
     def __init__( self ):
@@ -136,7 +125,15 @@ class PythonChildContextBase( PythonContextBase ):
         return self.parent.getConstantHandle( constant )
 
     def addContractionCodes( self, contraction, contraction_identifier, contraction_context, contraction_code, loop_var_codes, contraction_conditions, contraction_iterateds ):
-        return self.parent.addContractionCodes( contraction, contraction_identifier, contraction_context, contraction_code, loop_var_codes, contraction_conditions, contraction_iterateds )
+        return self.parent.addContractionCodes(
+            contraction            = contraction,
+            contraction_identifier = contraction_identifier,
+            contraction_context    = contraction_context,
+            contraction_code       = contraction_code,
+            loop_var_codes         = loop_var_codes,
+            contraction_conditions = contraction_conditions,
+            contraction_iterateds  = contraction_iterateds
+        )
 
     def addLambdaCodes( self, lambda_def, lambda_code, lambda_context ):
         self.parent.addLambdaCodes( lambda_def, lambda_code, lambda_context )
@@ -150,69 +147,6 @@ class PythonChildContextBase( PythonContextBase ):
     def getModuleName( self ):
         return self.parent.getModuleName()
 
-
-def compareConstants( a, b ):
-    # Supposed fast path for comparison.
-    if type( a ) is not type( b ):
-        return False
-
-    # Now it's either not the same, or it is a container that contains NaN or it is a
-    # complex or float that is NaN, the other cases can use == at the end.
-    if type( a ) is complex:
-        return compareConstants( a.imag, b.imag ) and compareConstants( a.real, b.real )
-
-    if type( a ) is float:
-        if math.isnan( a ) and math.isnan( b ):
-            return True
-
-        # For float, -0.0 is not 0.0, it has a different sign for a start.
-        if math.copysign( 1.0, a ) != math.copysign( 1.0, b ):
-            return False
-
-        return a == b
-
-    if type( a ) in ( tuple, list ):
-        if len( a ) != len( b ):
-            return False
-
-        for ea, eb in zip( a, b ):
-            if not compareConstants( ea, eb ):
-                return False
-        else:
-            return True
-
-    if type( a ) is dict:
-        if len( a ) != len( b ):
-            return False
-
-        for ea1, ea2 in a.iteritems():
-            for eb1, eb2 in b.iteritems():
-                if compareConstants( ea1, eb1 ) and compareConstants( ea2, eb2 ):
-                    break
-            else:
-                return False
-        else:
-            return True
-
-    if type( a ) in ( frozenset, set ):
-        if len( a ) != len( b ):
-            return False
-
-        for ea in a:
-            if ea not in b:
-                # Due to NaN values, we need to compare each set element with all the
-                # other set to be really sure.
-                for eb in b:
-                    if compareConstants( ea, eb ):
-                        break
-                else:
-                    return False
-        else:
-            return True
-
-    # The NaN values of float and complex may let this fail, even if the constants are
-    # built in the same way.
-    return a == b
 
 class PythonGlobalContext:
     def __init__( self ):
@@ -237,7 +171,7 @@ class PythonGlobalContext:
         elif constant is Ellipsis:
             return Identifier( "Py_Ellipsis", 0 )
         else:
-            key = ( type( constant ), Constant( constant ) )
+            key = ( type( constant ), HashableConstant( constant ) )
 
             if key not in self.constants:
                 self.constants[ key ] = "_python_" + namifyConstant( constant )
@@ -305,7 +239,9 @@ class PythonModuleContext( PythonContextBase ):
         self.lambda_codes.append( ( lambda_def, lambda_code, lambda_context ) )
 
     def addContractionCodes( self, contraction, contraction_identifier, contraction_context, contraction_code, loop_var_codes, contraction_conditions, contraction_iterateds ):
-        self.contraction_codes.append( ( contraction, contraction_identifier, contraction_context, loop_var_codes, contraction_code, contraction_conditions, contraction_iterateds ) )
+        self.contraction_codes.append(
+            ( contraction, contraction_identifier, contraction_context, loop_var_codes, contraction_code, contraction_conditions, contraction_iterateds )
+        )
 
     def getContractionsCodes( self ):
         return self.contraction_codes
@@ -437,10 +373,10 @@ class PythonFunctionContext( PythonChildContextBase ):
 
 
 class PythonContractionBase( PythonChildContextBase ):
-    def __init__( self, parent, leak_loop_vars ):
+    def __init__( self, parent, contraction ):
         PythonChildContextBase.__init__( self, parent = parent )
 
-        self.leak_loop_vars = leak_loop_vars
+        self.contraction = contraction
 
     def isClosureViaContext( self ):
         return False
@@ -448,12 +384,18 @@ class PythonContractionBase( PythonChildContextBase ):
     def isGeneratorExpression( self ):
         return self.__class__ == PythonGeneratorExpressionContext
 
+    def getTracebackFilename( self ):
+        return self.contraction.getParentModule().getFilename()
+
+    def getTracebackName( self ):
+        return self.contraction.getName()
+
 class PythonListContractionContext( PythonContractionBase ):
-    def __init__( self, parent ):
+    def __init__( self, parent, contraction ):
         PythonContractionBase.__init__(
             self,
-            parent         = parent,
-            leak_loop_vars = True
+            parent      = parent,
+            contraction = contraction
         )
 
     def getClosureHandle( self, var_name ):
@@ -463,11 +405,11 @@ class PythonListContractionContext( PythonContractionBase ):
         return self.getClosureHandle( var_name )
 
 class PythonGeneratorExpressionContext( PythonContractionBase ):
-    def __init__( self, parent ):
+    def __init__( self, parent, contraction ):
         PythonContractionBase.__init__(
             self,
-            parent         = parent,
-            leak_loop_vars = False
+            parent      = parent,
+            contraction = contraction
         )
 
     def getClosureHandle( self, var_name ):
@@ -477,11 +419,11 @@ class PythonGeneratorExpressionContext( PythonContractionBase ):
         return LocalVariableIdentifier( var_name, from_context = True )
 
 class PythonSetContractionContext( PythonContractionBase ):
-    def __init__( self, parent ):
+    def __init__( self, parent, contraction ):
         PythonContractionBase.__init__(
             self,
-            parent         = parent,
-            leak_loop_vars = False
+            parent      = parent,
+            contraction = contraction
         )
 
     def getClosureHandle( self, var_name ):
@@ -492,11 +434,11 @@ class PythonSetContractionContext( PythonContractionBase ):
 
 
 class PythonDictContractionContext( PythonContractionBase ):
-    def __init__( self, parent ):
+    def __init__( self, parent, contraction ):
         PythonContractionBase.__init__(
             self,
-            parent         = parent,
-            leak_loop_vars = False
+            parent      = parent,
+            contraction = contraction
         )
 
     def getClosureHandle( self, var_name ):
@@ -507,14 +449,11 @@ class PythonDictContractionContext( PythonContractionBase ):
 
 
 class PythonLambdaExpressionContext( PythonChildContextBase ):
-    def __init__( self, parent, parameter_names ):
+    def __init__( self, parent, lambda_def ):
         PythonChildContextBase.__init__( self, parent = parent )
 
-        self.parameter_names = parameter_names
-
-        # Make sure the parameter names are available as constants
-        for parameter_name in parameter_names:
-            self.getConstantHandle( constant = parameter_name )
+        self.lambda_def = lambda_def
+        self.parameter_names = lambda_def.getBody().getParameters().getParameterNames()
 
     def getClosureHandle( self, var_name ):
         return ClosureVariableIdentifier( var_name, from_context = "_python_context->" )
@@ -527,6 +466,13 @@ class PythonLambdaExpressionContext( PythonChildContextBase ):
 
     def getDefaultHandle( self, var_name ):
         return Identifier( "_python_context->default_value_" + var_name, 0 )
+
+    def getTracebackFilename( self ):
+        return self.lambda_def.getParentModule().getFilename()
+
+    def getTracebackName( self ):
+        return self.lambda_def.getBody().getName()
+
 
 class PythonClassContext( PythonChildContextBase ):
     def __init__( self, parent, class_def ):

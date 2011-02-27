@@ -28,6 +28,14 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Operations on the tree.
+
+This is mostly for the different kinds of visits that the node tree can have. You
+can visit a scope, a tree (module), every scope of a tree (module) and the whole
+forest of modules.
+
+"""
+
 
 class ExitVisit( BaseException ):
     pass

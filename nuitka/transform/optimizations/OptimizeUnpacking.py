@@ -30,7 +30,7 @@
 #
 """ Replace useless unpacking with multiple assignments where possible."""
 
-from .OptimizeBase import OptimizationVisitorBase
+from .OptimizeBase import OptimizationVisitorBase, makeRaiseExceptionReplacementStatement
 
 from nuitka import Nodes
 
@@ -52,11 +52,12 @@ class ReplaceUnpackingVisitor( OptimizationVisitorBase ):
                             return
 
                         unpacked = list( unpackable )
+                        elements = target.getElements()
 
-                        if len( unpacked ) == len( target.getElements() ):
+                        if len( unpacked ) == len( elements ):
                             statements = []
 
-                            for value, element in zip( unpacked, target.getElements() ):
+                            for value, element in zip( unpacked, elements ):
                                 statements.append(
                                     Nodes.CPythonStatementAssignment(
                                         targets    = ( element, ),
@@ -81,5 +82,34 @@ class ReplaceUnpackingVisitor( OptimizationVisitorBase ):
                                 "Removed useless unpacking assignments."
                             )
                         else:
-                            # TODO: Raise the exception instead.
-                            pass
+                            if len( unpacked ) > len( elements ):
+                                node.replaceWith(
+                                    makeRaiseExceptionReplacementStatement(
+                                        statement       = node,
+                                        exception_type  = "ValueError",
+                                        exception_value = "too many values to unpack",
+                                    )
+                                )
+                            elif len( unpacked ) == 1:
+                                node.replaceWith(
+                                    makeRaiseExceptionReplacementStatement(
+                                        statement       = node,
+                                        exception_type  = "ValueError",
+                                        exception_value = "need more than 1 value to unpack",
+                                    )
+                                )
+                            else:
+                                node.replaceWith(
+                                    makeRaiseExceptionReplacementStatement(
+                                        statement       = node,
+                                        exception_type  = "ValueError",
+                                        exception_value = "need more than %s values to unpack" % len( unpacked ),
+                                    )
+                                )
+
+
+                            self.signalChange(
+                                "new_code",
+                                node.getSourceReference(),
+                                "Removed bound to fail unpacking assignments."
+                            )
