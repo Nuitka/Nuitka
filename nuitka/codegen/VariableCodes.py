@@ -28,43 +28,50 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Merge nested statement sequences into one.
+""" Low level variable code generation.
 
-This undoes the effect of inlined exec or statements replaced with statement sequences.
 """
 
-from .OptimizeBase import OptimizationVisitorBase, TreeOperations
+from nuitka import Variables
 
-from nuitka import Nodes
+from .Identifiers import ModuleVariableIdentifier
 
+def getVariableHandle( context, variable ):
+    assert isinstance( variable, Variables.Variable ), variable
 
-class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
-    def __call__( self, node ):
-        if node.isStatementsSequence():
-            parent = node.getParent()
+    var_name = variable.getName()
 
-            if parent.isStatementsSequence():
-                statements = list( parent.getStatements() )
+    if variable.isLocalVariable() or variable.isClassVariable():
+        return context.getLocalHandle(
+            var_name = var_name
+        )
+    elif variable.isClosureReference():
+        return context.getClosureHandle(
+            var_name = var_name
+        )
+    elif variable.isMaybeLocalVariable():
+        context.addGlobalVariableNameUsage( var_name )
 
-                offset = statements.index( node )
-                statements[ offset : offset + 1 ] = node.getStatements()
+        return context.getMaybeLocalHandle(
+            var_name = var_name
+        )
+    elif variable.isModuleVariable():
+        context.addGlobalVariableNameUsage(
+            var_name = var_name
+        )
 
-                new_node = Nodes.CPythonStatementsSequence(
-                    statements = statements,
-                    source_ref = parent.getSourceReference()
-                )
+        return ModuleVariableIdentifier(
+            var_name         = var_name,
+            module_code_name = context.getModuleCodeName()
+        )
 
-                parent.replaceWith( new_node )
+    else:
+        assert False, variable
 
-                TreeOperations.assignParent( new_node )
+def getVariableCode( context, variable ):
+    var_identifier = getVariableHandle(
+        context  = context,
+        variable = variable
+    )
 
-                raise TreeOperations.RestartVisit
-        elif node.isStatementExpressionOnly():
-            if node.getExpression().isExpressionConstantRef():
-                new_node = Nodes.CPythonStatementPass(
-                    source_ref = node.getSourceReference()
-                )
-
-                node.replaceWith( new_node )
-
-                TreeOperations.assignParent( new_node )
+    return var_identifier.getCode()

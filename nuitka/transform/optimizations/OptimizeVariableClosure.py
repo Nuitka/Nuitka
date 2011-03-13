@@ -51,7 +51,7 @@ def _globalizeSingle( module, variable_names, provider ):
             global_statement = True
         )
 
-        if isinstance( provider, Nodes.CPythonClosureGiver ):
+        if isinstance( provider, Nodes.CPythonClosureGiverNodeBase ):
             provider.registerProvidedVariable(
                 variable = closure_variable
             )
@@ -127,7 +127,7 @@ class VariableClosureLookupVisitorPhase2( OptimizationVisitorBase ):
     visit_type = "scopes"
 
     def __call__( self, node ):
-        if node.isAssignToVariable():
+        if node.isAssignTargetVariable():
             variable_ref = node.getTargetVariableRef()
 
             if variable_ref.getVariable() is None:
@@ -138,9 +138,9 @@ class VariableClosureLookupVisitorPhase2( OptimizationVisitorBase ):
                         variable_name = variable_ref.getVariableName()
                     )
                 )
-        elif node.isVariableReference():
+        elif node.isExpressionVariableRef():
             if node.getVariable() is None:
-                if not node.getParent().isAssignToVariable():
+                if not node.getParent().isAssignTargetVariable():
                     provider = node.getParentVariableProvider()
 
                     if provider.isEarlyClosure():
@@ -154,7 +154,7 @@ class VariableClosureLookupVisitorPhase3( OptimizationVisitorBase ):
     visit_type = "scopes"
 
     def __call__( self, node ):
-        if node.isVariableReference() and node.getVariable() is None:
+        if node.isExpressionVariableRef() and node.getVariable() is None:
             provider = node.getParentVariableProvider()
 
             # print "Late reference", node.getVariableName(), "for", provider, "caused at", node, "of", node.getParent()
@@ -173,7 +173,7 @@ VariableClosureLookupVisitors = (
 
 class MaybeLocalVariableReductionVisitor( OptimizationVisitorBase ):
     def __call__( self, node ):
-        if node.isFunctionBody():
+        if node.isExpressionFunctionBody():
             self._consider( node )
 
     def _consider( self, function ):
@@ -197,7 +197,7 @@ class MaybeLocalVariableReductionVisitor( OptimizationVisitorBase ):
                 )
 
                 for usage in usages:
-                    if usage.getParent().isAssignToVariable():
+                    if usage.getParent().isAssignTargetVariable():
                         has_assignment = True
                         break
                 else:
@@ -266,7 +266,7 @@ class ModuleVariableWriteCheck:
         self.result = False
 
     def __call__( self, node ):
-        if node.isAssignToVariable():
+        if node.isAssignTargetVariable():
             variable = node.getTargetVariableRef().getVariable()
 
             if variable.isModuleVariableReference():
@@ -348,7 +348,7 @@ class ModuleVariableReadReplacement:
         self.result = 0
 
     def __call__( self, node ):
-        if node.isVariableReference() and node.getVariableName() == self.variable_name:
+        if node.isExpressionVariableRef() and node.getVariableName() == self.variable_name:
             node.replaceWith(
                 self.make_node( node )
             )

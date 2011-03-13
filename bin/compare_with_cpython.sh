@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/bash -e
 #
 #     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -45,18 +45,22 @@ NUITKA_CMD="$PYTHON `which Nuitka.py` $NUITKA_EXTRA_OPTIONS --exe --execute $MOD
 if [ "$MODE" = "silent" ]
 then
     $PYTHON $MODULE | make_diffable >/tmp/cpython.out.$$
+    PYTHON_EXIT=${PIPESTATUS[0]}
 
     $NUITKA_CMD | make_diffable >/tmp/nuitka.out.$$
+    NUITKA_EXIT=${PIPESTATUS[0]}
 else
     echo "*******************************************************"
     echo "CPython:"
     echo "*******************************************************"
     $PYTHON $MODULE | make_diffable | tee /tmp/cpython.out.$$
+    PYTHON_EXIT=${PIPESTATUS[0]}
 
     echo "*******************************************************"
     echo "Nuitka:"
     echo "*******************************************************"
     $NUITKA_CMD | make_diffable | tee /tmp/nuitka.out.$$
+    NUITKA_EXIT=${PIPESTATUS[0]}
 
     echo "*******************************************************"
     echo "Diff:"
@@ -64,5 +68,12 @@ else
 fi
 
 diff -us /tmp/cpython.out.$$ /tmp/nuitka.out.$$
-
 rm -f /tmp/cpython.out.$$ /tmp/nuitka.out.$$
+
+if [ "$NUITKA_EXIT" != "$PYTHON_EXIT" ]
+then
+    echo "Exit codes are different Nuitka=$NUITKA_EXIT CPython=$PYTHON_EXIT"
+    exit 1
+else
+    exit 0
+fi

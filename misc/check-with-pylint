@@ -62,14 +62,14 @@ OPTIONS='--rcfile=/dev/null
 
 if [ "$1" != "" ]
 then
-    pylint $OPTIONS $1
+    pylint $OPTIONS $PYLINT_EXTRA_OPTIONS $1
 else
     for file in `find nuitka -name \*.py`
     do
         if [ "$file" != "src/oset.py" -a "$file" != "src/odict.py" ]
         then
             echo $file
-            pylint $OPTIONS $file
+            pylint $OPTIONS $PYLINT_EXTRA_OPTIONS $file
 
             #   pychecker $file
         fi

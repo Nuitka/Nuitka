@@ -54,7 +54,7 @@ class OptimizeExecVisitor( OptimizationVisitorBase ):
         if node.isStatementExec() and node.getGlobals() is None and node.getLocals() is None:
             source = node.getSourceCode()
 
-            if source.isConstantReference():
+            if source.isExpressionConstantRef():
                 source_ref = node.getSourceReference().getExecReference()
 
                 try:

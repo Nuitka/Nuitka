@@ -79,10 +79,10 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         )
 
     def getKey( self, node ):
-        if node.isFunctionCall() and node.hasOnlyPositionalArguments():
+        if node.isExpressionFunctionCall() and node.hasOnlyPositionalArguments():
             called = node.getCalledExpression()
 
-            if called.isVariableReference():
+            if called.isExpressionVariableRef():
                 variable = called.getVariable()
 
                 assert variable is not None, node
@@ -91,17 +91,17 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                     return variable.getName()
 
     def onNodeWasReplaced( self, old_node ):
-        assert old_node.isFunctionCall and old_node.hasOnlyPositionalArguments()
+        assert old_node.isExpressionFunctionCall and old_node.hasOnlyPositionalArguments()
         called = old_node.getCalledExpression()
 
-        assert called.isVariableReference()
+        assert called.isExpressionVariableRef()
         variable = called.getVariable()
 
         owner = variable.getOwner()
 
         owner.reconsiderVariable( variable )
 
-        if owner.isFunctionBody():
+        if owner.isExpressionFunctionBody():
             self.signalChange(
                 "var_usage",
                 owner.getSourceReference(),
@@ -153,7 +153,7 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         )
 
     def execfile_extractor( self, node ):
-        assert node.parent.isStatementExpression()
+        assert node.parent.isStatementExpressionOnly()
 
         positional_args = node.getPositionalArguments()
 
@@ -190,7 +190,7 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
     def import_extractor( self, node ):
         positional_args = node.getPositionalArguments()
 
-        if len( positional_args ) == 1 and positional_args[0].isConstantReference():
+        if len( positional_args ) == 1 and positional_args[0].isExpressionConstantRef():
             module_name = positional_args[0].getConstant()
             source_ref = node.getSourceReference()
 
@@ -308,13 +308,13 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         )
 
     def getKey( self, node ):
-        if node.isBuiltin():
+        if node.isExpressionBuiltin():
             return node.kind.replace( "EXPRESSION_BUILTIN_", "" ).lower()
 
     def chr_extractor( self, node ):
         value = node.getValue()
 
-        if value.isConstantReference():
+        if value.isExpressionConstantRef():
             value = value.getConstant()
 
             return getConstantComputationReplacementNode(
@@ -325,7 +325,7 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
     def ord_extractor( self, node ):
         value = node.getValue()
 
-        if value.isConstantReference():
+        if value.isExpressionConstantRef():
             value = value.getConstant()
 
             return getConstantComputationReplacementNode(
@@ -336,7 +336,7 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
     def type1_extractor( self, node ):
         value = node.getValue()
 
-        if value.isConstantReference():
+        if value.isExpressionConstantRef():
             value = value.getConstant()
 
             if value is not None:
@@ -372,7 +372,7 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         step = node.getStep()
 
         def isRangePredictable( node ):
-            if node.isConstantReference():
+            if node.isExpressionConstantRef():
                 return node.isNumberConstant()
             else:
                 return False
@@ -449,7 +449,7 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
     def len_extractor( self, node ):
         value = node.getValue()
 
-        if value.isConstantReference() and value.isIterableConstant():
+        if value.isExpressionConstantRef() and value.isIterableConstant():
             return getConstantComputationReplacementNode(
                 expression  = node,
                 computation = lambda : len( value.getConstant() )

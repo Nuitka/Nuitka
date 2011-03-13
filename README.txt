@@ -408,6 +408,10 @@ This is the list of tests modified from what they are in CPython.
 
     Removed, out of scope.
 
+*** test_threading_local.py:
+
+    Removed, out of scope (although it most of the time works the same way).
+
 *** test_timeout:
 
     Removed, wants network

@@ -48,3 +48,5 @@ def argChanger( a ):
 print argChanger( ( {}, [] ) )
 
 print ( {}, [] )
+
+print set(['foo'])

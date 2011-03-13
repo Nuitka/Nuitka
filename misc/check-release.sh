@@ -67,6 +67,8 @@ execute_tests()
         echo "Running the CPython 2.7 tests with options '$3' with $PYTHON:"
         ./tests/CPython27/run_all.sh search
     fi
+
+    unset NUITKA_EXTRA_OPTIONS
 }
 
 execute_tests "python2.6-debug" "python2.6" "--debug"

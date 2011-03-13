@@ -27,7 +27,8 @@ BACKUP_PYTHONPATH=$PYTHONPATH
 PACKAGE_LIST=(
     'nuitka'
     'nuitka/nodes'
-    'nuitka/templates'
+    'nuitka/codegen'
+    'nuitka/codegen/templates'
     'nuitka/transform'
     'nuitka/transform/optimizations'
     'nuitka/transform/finalizations'

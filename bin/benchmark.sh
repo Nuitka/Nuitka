@@ -32,7 +32,7 @@
 
 MODULE=$1
 
-Nuitka.py --exe --output-dir=/tmp/ $MODULE
+Nuitka.py --exe --output-dir=/tmp/ $@
 
 OUTPUT="/tmp/`basename $MODULE .py`.exe"
 LOGFILE="/tmp/`basename $MODULE .py`.log"
@@ -41,3 +41,4 @@ VALGRIND_OPTIONS="-q --tool=callgrind --callgrind-out-file=$LOGFILE --zero-befor
 ls -l $OUTPUT
 
 valgrind $VALGRIND_OPTIONS $OUTPUT
+kcachegrind 2>/dev/null 1>/dev/null $LOGFILE &

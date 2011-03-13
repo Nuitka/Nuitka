@@ -39,26 +39,17 @@ function_context_body_template = """
 // It is allocated at the time the function object is created.
 struct _context_%(function_identifier)s_t {
     // The function can access a read-only closure of the creator.
-    %(function_context_decl)s
+%(context_decl)s
 };
 
 static void _context_%(function_identifier)s_destructor( void *context_voidptr )
 {
     _context_%(function_identifier)s_t *_python_context = (_context_%(function_identifier)s_t *)context_voidptr;
 
-%(function_context_free)s
+%(context_free)s
 
     delete _python_context;
 }
-"""
-
-function_context_access_template = """
-    // The context of the function.
-    struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)self;
-"""
-
-function_context_unused_template = """\
-    // No context is used.
 """
 
 make_function_with_context_template = """
@@ -67,9 +58,17 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
     struct _context_%(function_identifier)s_t *_python_context = new _context_%(function_identifier)s_t;
 
     // Copy the parameter default values and closure values over.
-    %(function_context_copy)s
+    %(context_copy)s
 
-    PyObject *result = Nuitka_Function_New( %(function_identifier)s, %(function_name_obj)s, %(module)s, %(function_doc)s, _python_context, _context_%(function_identifier)s_destructor );
+    PyObject *result = Nuitka_Function_New(
+        %(fparse_function_identifier)s,
+        %(mparse_function_identifier)s,
+        %(function_name_obj)s,
+        %(module)s,
+        %(function_doc)s,
+        _python_context,
+        _context_%(function_identifier)s_destructor
+    );
 
     // Apply decorators if any
 %(function_decorator_calls)s
@@ -81,7 +80,13 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 make_function_without_context_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
-    PyObject *result = Nuitka_Function_New( %(function_identifier)s, %(function_name_obj)s, %(module)s, %(function_doc)s );
+    PyObject *result = Nuitka_Function_New(
+        %(fparse_function_identifier)s,
+        %(mparse_function_identifier)s,
+        %(function_name_obj)s,
+        %(module)s,
+        %(function_doc)s
+    );
 
     // Apply decorators if any
 %(function_decorator_calls)s
@@ -92,7 +97,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 
 function_body_template = """
 
-static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_object_decl)s )
+static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects_decl)s )
 {
 %(context_access_function_impl)s
     bool traceback = false;
@@ -120,19 +125,7 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_object_
     }
 }
 
-static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObject *kw )
-{
-%(context_access_arg_parsing)s
-%(parameter_parsing_code)s
-
-    return impl_%(function_identifier)s( self%(parameter_object_list)s );
-
-error_exit:;
-
-%(parameter_release_code)s
-    return NULL;
-
-}
+%(parameter_entry_point_code)s
 """
 
 function_dict_setup = """\

@@ -28,43 +28,16 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Merge nested statement sequences into one.
+""" Low level constant code generation.
 
-This undoes the effect of inlined exec or statements replaced with statement sequences.
 """
 
-from .OptimizeBase import OptimizationVisitorBase, TreeOperations
+def getConstantHandle( context, constant ):
+    return context.getConstantHandle( constant )
 
-from nuitka import Nodes
+def getConstantCode( context, constant ):
+    constant_identifier = context.getConstantHandle(
+        constant = constant
+    )
 
-
-class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
-    def __call__( self, node ):
-        if node.isStatementsSequence():
-            parent = node.getParent()
-
-            if parent.isStatementsSequence():
-                statements = list( parent.getStatements() )
-
-                offset = statements.index( node )
-                statements[ offset : offset + 1 ] = node.getStatements()
-
-                new_node = Nodes.CPythonStatementsSequence(
-                    statements = statements,
-                    source_ref = parent.getSourceReference()
-                )
-
-                parent.replaceWith( new_node )
-
-                TreeOperations.assignParent( new_node )
-
-                raise TreeOperations.RestartVisit
-        elif node.isStatementExpressionOnly():
-            if node.getExpression().isExpressionConstantRef():
-                new_node = Nodes.CPythonStatementPass(
-                    source_ref = node.getSourceReference()
-                )
-
-                node.replaceWith( new_node )
-
-                TreeOperations.assignParent( new_node )
+    return constant_identifier.getCode()

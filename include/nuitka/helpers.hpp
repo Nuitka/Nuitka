@@ -452,52 +452,68 @@ NUITKA_MAY_BE_UNUSED static PyObject *THROW_EXCEPTION( PyObject *exception_type,
     return NULL;
 }
 
-
 NUITKA_MAY_BE_UNUSED static bool CHECK_IF_TRUE( PyObject *object )
 {
     assert( object != NULL );
     assert( object->ob_refcnt > 0 );
 
-    int status = PyObject_IsTrue( object );
-
-    if (unlikely( status == -1 ))
+    if ( object == Py_True )
     {
-        throw _PythonException();
+        return true;
     }
+    else if ( object == Py_False || object == Py_None )
+    {
+        return false;
+    }
+    else
+    {
+        Py_ssize_t result;
 
-    return status == 1;
+        if ( object->ob_type->tp_as_number != NULL && object->ob_type->tp_as_number->nb_nonzero != NULL )
+        {
+            result = (*object->ob_type->tp_as_number->nb_nonzero)( object );
+        }
+        else if ( object->ob_type->tp_as_mapping != NULL && object->ob_type->tp_as_mapping->mp_length != NULL )
+        {
+            result = (*object->ob_type->tp_as_mapping->mp_length)( object );
+        }
+        else if ( object->ob_type->tp_as_sequence != NULL && object->ob_type->tp_as_sequence->sq_length != NULL )
+        {
+            result = (*object->ob_type->tp_as_sequence->sq_length)( object );
+        }
+        else
+        {
+            return true;
+        }
+
+        if ( result > 0 )
+        {
+            return true;
+        }
+        else if ( result == 0 )
+        {
+            return false;
+        }
+        else
+        {
+            throw _PythonException();
+        }
+    }
 }
 
 NUITKA_MAY_BE_UNUSED static bool CHECK_IF_FALSE( PyObject *object )
 {
-    assert( object != NULL );
-    assert( object->ob_refcnt > 0 );
-
-    int status = PyObject_Not( object );
-
-    if (unlikely( status == -1 ))
-    {
-        throw _PythonException();
-    }
-
-    return status == 1;
+    return CHECK_IF_TRUE( object ) == false;
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *BOOL_FROM( bool value )
 {
-    return value ? _python_bool_True : _python_bool_False;
+    return value ? Py_True : Py_False;
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *UNARY_NOT( PyObject *object )
 {
-    int result = PyObject_Not( object );
-
-    if (unlikely( result == -1 ))
-    {
-        throw _PythonException();
-    }
-
-    return BOOL_FROM( result == 1 );
+    return BOOL_FROM( CHECK_IF_FALSE( object ) );
 }
 
 typedef PyObject *(binary_api)( PyObject *, PyObject * );
@@ -573,18 +589,49 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE( int opid, PyObject *operand2
 
 NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL( int opid, PyObject *operand2, PyObject *operand1 )
 {
+    // Quick path for avoidable checks.
+    if ( operand1 == operand2 )
+    {
+        if ( opid == Py_EQ )
+        {
+            return true;
+        }
+        else if ( opid == Py_NE )
+        {
+            return false;
+        }
+    }
+
     int line = _current_line;
-    int result = PyObject_RichCompareBool( operand1, operand2, opid );
+    PyObject *rich_result = PyObject_RichCompare( operand1, operand2, opid );
     _current_line = line;
 
-    if (unlikely( result == -1 ))
+    if (unlikely( rich_result == NULL ))
     {
         throw _PythonException();
     }
 
-    return result == 1;
-}
+    bool result;
 
+    // Doing the quick tests on the outside spares the function call, with
+    // "partial inline" this should become unneeded.
+    if ( rich_result == Py_True )
+    {
+        result = true;
+    }
+    else if ( rich_result == Py_False || rich_result == Py_None )
+    {
+        result = false;
+    }
+    else
+    {
+        result = CHECK_IF_TRUE( rich_result );
+    }
+
+    Py_DECREF( rich_result );
+
+    return result;
+}
 
 NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONTAINS( PyObject *sequence, PyObject *element )
 {
@@ -667,7 +714,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *named_args, PyObj
     PyObject *result = PyObject_Call( function_object, positional_args, named_args );
     _current_line = line;
 
-    if (unlikely (result == NULL))
+    if (unlikely( result == NULL ))
     {
         throw _PythonException();
     }
@@ -725,7 +772,7 @@ static char const *GET_CALLABLE_NAME( PyObject *object )
     }
 }
 
-static const char *GET_CALLABLE_DESC( PyObject *object )
+static char const *GET_CALLABLE_DESC( PyObject *object )
 {
     if ( Nuitka_Function_Check( object ) || Nuitka_Generator_Check( object ) || PyMethod_Check( object ) || PyFunction_Check( object ) || PyCFunction_Check( object ) )
     {
@@ -881,7 +928,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_TUPLE( PyObject *seq_obj )
 {
     PyObject *result = PySequence_Tuple( seq_obj );
 
-    if (unlikely (result == NULL))
+    if (unlikely( result == NULL ))
     {
         throw _PythonException();
     }
@@ -935,12 +982,12 @@ static PyObject *MAKE_LIST( P...eles )
 
     PyObject *result = PyList_New( size );
 
-    if (unlikely (result == NULL))
+    if (unlikely( result == NULL ))
     {
         throw _PythonException();
     }
 
-    for (Py_ssize_t i = 0; i < size; i++ )
+    for ( Py_ssize_t i = 0; i < size; i++ )
     {
         assert( elements[ i ] != NULL );
         assert( elements[ i ]->ob_refcnt > 0 );
@@ -963,7 +1010,7 @@ static PyObject *MAKE_DICT( P...eles )
 
     PyObject *result = PyDict_New();
 
-    if (unlikely (result == NULL))
+    if (unlikely( result == NULL ))
     {
         throw _PythonException();
     }
@@ -1735,6 +1782,80 @@ NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject 
     return result;
 }
 
+class PyObjectLocalParameterVariable
+{
+    public:
+        explicit PyObjectLocalParameterVariable( PyObject *var_name, PyObject *object )
+        {
+            this->var_name = var_name;
+            this->object = object;
+        }
+
+        ~PyObjectLocalParameterVariable()
+        {
+            Py_XDECREF( this->object );
+        }
+
+        void operator=( PyObject *object )
+        {
+            assert( object );
+            assert( object->ob_refcnt > 0 );
+
+            PyObject *old_object = this->object;
+
+            this->object = object;
+
+            // Free old value if any available and owned.
+            Py_XDECREF( old_object );
+        }
+
+        PyObject *asObject() const
+        {
+            if ( this->object == NULL )
+            {
+                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
+                throw _PythonException();
+            }
+
+            assert( this->object );
+            assert( this->object->ob_refcnt > 0 );
+
+            return this->object;
+        }
+
+        PyObject *asObject1() const
+        {
+            return INCREASE_REFCOUNT( this->asObject() );
+        }
+
+        bool isInitialized() const
+        {
+            return this->object != NULL;
+        }
+
+        void del()
+        {
+            if ( this->object == NULL )
+            {
+                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
+                throw _PythonException();
+            }
+
+            Py_DECREF( this->object );
+            this->object = NULL;
+        }
+
+        PyObject *getVariableName() const
+        {
+            return this->var_name;
+        }
+
+    private:
+
+        PyObject *var_name;
+        PyObject *object;
+};
+
 class PyObjectLocalVariable {
     public:
         explicit PyObjectLocalVariable( PyObject *var_name, PyObject *object = NULL, bool free_value = false )
@@ -2113,8 +2234,8 @@ class PyObjectGlobalVariable
         }
 
     private:
-       PyModuleObject **module_ptr;
-       PyStringObject **var_name;
+        PyModuleObject **module_ptr;
+        PyStringObject **var_name;
 };
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LOCALS_DICT( void )

@@ -42,10 +42,10 @@ class ReplaceUnpackingVisitor( OptimizationVisitorBase ):
             if len( targets ) == 1:
                 target = targets[0]
 
-                if target.isAssignToTuple():
+                if target.isAssignTargetTuple():
                     source = node.getSource()
 
-                    if source.isConstantReference():
+                    if source.isExpressionConstantRef():
                         try:
                             unpackable = iter( source.getConstant() )
                         except TypeError:

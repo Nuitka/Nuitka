@@ -57,7 +57,7 @@ static void _context_common_%(function_identifier)s_destructor( void *context_vo
 
     if ( _python_context->ref_count == 0 )
     {
-%(function_context_free)s
+%(context_free)s
         delete _python_context;
     }
 }
@@ -79,9 +79,17 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
     _python_context->ref_count = 1;
 
     // Copy the parameter default values and closure values over.
-%(function_context_copy)s
+%(context_copy)s
 
-    PyObject *result = Nuitka_Function_New( %(function_identifier)s, %(function_name_obj)s, %(module)s, %(function_doc)s, _python_context, _context_common_%(function_identifier)s_destructor );
+    PyObject *result = Nuitka_Function_New(
+        %(fparse_function_identifier)s,
+        %(mparse_function_identifier)s,
+        %(function_name_obj)s,
+        %(module)s,
+        %(function_doc)s,
+        _python_context,
+        _context_common_%(function_identifier)s_destructor
+    );
 
     // Apply decorators if any
 %(function_decorator_calls)s
@@ -135,7 +143,7 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 """
 
 genfunc_function_template = """
-static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_object_decl)s )
+static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects_decl)s )
 {
     struct _context_common_%(function_identifier)s_t *_python_common_context = (struct _context_common_%(function_identifier)s_t *)self;
 
@@ -146,7 +154,12 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_object_
         _python_context->common_context = _python_common_context;
         _python_common_context->ref_count += 1;
 
-        PyObject *result = Nuitka_Generator_New( %(function_identifier)s_context, %(function_name_obj)s, _python_context, _context_generator_%(function_identifier)s_destructor );
+        PyObject *result = Nuitka_Generator_New(
+            %(function_identifier)s_context,
+            %(function_name_obj)s,
+            _python_context,
+            _context_generator_%(function_identifier)s_destructor
+        );
 
         if ( result == NULL )
         {
@@ -168,19 +181,7 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_object_
     }
 }
 
-static PyObject *%(function_identifier)s( PyObject *self, PyObject *args, PyObject *kw )
-{
-%(context_access_arg_parsing)s
-%(parameter_parsing_code)s
-
-    return impl_%(function_identifier)s( self%(parameter_object_list)s );
-
-error_exit:;
-
-%(parameter_release_code)s
-    return NULL;
-
-}
+%(parameter_entry_point_code)s
 """
 
 generator_context_access_template = """

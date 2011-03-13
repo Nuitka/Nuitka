@@ -37,7 +37,7 @@ from logging import warning
 import hashlib, re
 
 # pylint: disable=W0622
-from .__past__ import long, unicode
+from nuitka.__past__ import long, unicode
 # pylint: enable=W0622
 
 class ExceptionCannotNamify( Exception ):
@@ -60,10 +60,12 @@ def namifyConstant( constant ):
             return "long_pos_%d" % constant
         else:
             return "long_neg_%d" % abs( constant )
-    elif type( constant ) == bool:
-        return "bool_%s" % constant
     elif constant is None:
         return "none"
+    elif constant is True:
+        return "true"
+    elif constant is False:
+        return "false"
     elif constant is Ellipsis:
         return "ellipsis"
     elif type( constant ) == str:

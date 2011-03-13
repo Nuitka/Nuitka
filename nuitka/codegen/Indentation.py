@@ -28,43 +28,17 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Merge nested statement sequences into one.
+""" Indentation of code.
 
-This undoes the effect of inlined exec or statements replaced with statement sequences.
+Language independent, the amount of the spaces is not configurable, as it needs to
+be the same as in templates.
+
 """
+def _indentedCode( codes, count ):
+    return "\n".join( " " * count + line if (line and not line.startswith( "#" )) else line for line in codes )
 
-from .OptimizeBase import OptimizationVisitorBase, TreeOperations
+def indented( codes, level = 1 ):
+    if type( codes ) == str:
+        codes = codes.split( "\n" )
 
-from nuitka import Nodes
-
-
-class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
-    def __call__( self, node ):
-        if node.isStatementsSequence():
-            parent = node.getParent()
-
-            if parent.isStatementsSequence():
-                statements = list( parent.getStatements() )
-
-                offset = statements.index( node )
-                statements[ offset : offset + 1 ] = node.getStatements()
-
-                new_node = Nodes.CPythonStatementsSequence(
-                    statements = statements,
-                    source_ref = parent.getSourceReference()
-                )
-
-                parent.replaceWith( new_node )
-
-                TreeOperations.assignParent( new_node )
-
-                raise TreeOperations.RestartVisit
-        elif node.isStatementExpressionOnly():
-            if node.getExpression().isExpressionConstantRef():
-                new_node = Nodes.CPythonStatementPass(
-                    source_ref = node.getSourceReference()
-                )
-
-                node.replaceWith( new_node )
-
-                TreeOperations.assignParent( new_node )
+    return _indentedCode( codes, level * 4 )

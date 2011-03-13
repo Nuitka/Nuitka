@@ -35,7 +35,7 @@ genexpr_context_body_template = """
 struct _context_%(function_identifier)s_t
 {
     // The generator expression can access a read-only closure of the creator.
-%(function_context_decl)s
+%(context_decl)s
 };
 
 static void _context_%(function_identifier)s_destructor( void *context_voidptr )
@@ -54,7 +54,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
     struct _context_%(function_identifier)s_t *_python_context = new _context_%(function_identifier)s_t;
 
     // Copy the closure values over.
-    %(function_context_copy)s
+    %(context_copy)s
 
     PyObject *result = Nuitka_Genexpr_New( %(function_identifier)s, %(function_name_obj)s, iterated, %(iterator_count)d, _python_context, _context_%(function_identifier)s_destructor );
 

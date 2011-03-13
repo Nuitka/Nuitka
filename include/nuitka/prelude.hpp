@@ -87,4 +87,6 @@ extern PyObject *_sentinel_value;
 #include "nuitka/compiled_generator.hpp"
 #include "nuitka/compiled_genexpr.hpp"
 
+#include "nuitka/compiled_method.hpp"
+
 #endif

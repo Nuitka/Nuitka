@@ -73,7 +73,7 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
     PyObjectTemporary future_flags( PyInt_FromLong( flags ) );
 
     return _python_builtin_compile.call(
-        _python_bool_True,       // dont_inherit
+        Py_True,                 // dont_inherit
         future_flags.asObject(), // flags
         mode,
         file_name,
@@ -228,33 +228,41 @@ PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases,
     return result;
 }
 
+Py_ssize_t ESTIMATE_RANGE( long low, long high, long step )
+{
+    if ( low >= high )
+    {
+        return 0;
+    }
+    else
+    {
+        return ( high - low - 1 ) / step + 1;
+    }
+}
+
 PyObject *BUILTIN_RANGE( long low, long high, long step )
 {
     assert( step != 0 );
 
-    PyObject *result = MAKE_LIST();
+    Py_ssize_t size;
 
     if ( step > 0 )
     {
-        for( long value = low; value < high; value += step )
-        {
-            // TODO: Could and should create the list pre-sized and not append.
-            PyObjectTemporary number( PyInt_FromLong( value ) );
-
-            int res = PyList_Append( result, number.asObject() );
-            assert( res == 0 );
-        }
+        size = ESTIMATE_RANGE( low, high, step );
     }
     else
     {
-        for( long value = low; value > high; value += step )
-        {
-            // TODO: Could and should create the list pre-sized and not append.
-            PyObjectTemporary number( PyInt_FromLong( value ) );
+        size = ESTIMATE_RANGE( high, low, -step );
+    }
 
-            int res = PyList_Append( result, number.asObject() );
-            assert( res == 0 );
-        }
+    PyObject *result = PyList_New( size );
+
+    long current = low;
+
+    for( int i = 0; i < size; i++ )
+    {
+        PyList_SET_ITEM( result, i, PyInt_FromLong( current ) );
+        current += step;
     }
 
     return result;

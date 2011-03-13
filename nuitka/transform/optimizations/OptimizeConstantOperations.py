@@ -161,7 +161,7 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
         elif node.isStatementConditional():
             condition = node.getCondition()
 
-            if condition.isConstantReference():
+            if condition.isExpressionConstantRef():
                 if condition.getConstant():
                     choice = "true"
 

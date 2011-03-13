@@ -98,18 +98,18 @@ class OptimizationDispatchingVisitorBase( OptimizationVisitorBase ):
             if new_node is not None:
                 node.replaceWith( new_node = new_node )
 
-                if new_node.isStatement() and node.parent.isStatementExpression():
+                if new_node.isStatement() and node.parent.isStatementExpressionOnly():
                     node.parent.replaceWith( new_node )
 
                 TreeOperations.assignParent( node.parent )
 
-                if new_node.isConstantReference():
+                if new_node.isExpressionConstantRef():
                     self.signalChange(
                         "new_constant",
                         node.getSourceReference(),
                         message = "Replaced %s with constant result." % node.kind
                     )
-                elif new_node.isBuiltin():
+                elif new_node.isExpressionBuiltin():
                     self.signalChange(
                         "new_builtin",
                         node.getSourceReference(),
@@ -142,7 +142,7 @@ def areConstants( expressions ):
     """
 
     for expression in expressions:
-        if not expression.isConstantReference():
+        if not expression.isExpressionConstantRef():
             return False
     else:
         return True

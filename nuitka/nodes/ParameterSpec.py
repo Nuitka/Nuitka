@@ -148,8 +148,15 @@ class ParameterSpec( ParameterSpecTuple ):
     def setOwner( self, owner ):
         ParameterSpecTuple.setOwner( self, owner )
 
-        self.list_star_variable = Variables.ParameterVariable( owner, self.list_star_arg ) if self.list_star_arg else None
-        self.dict_star_variable = Variables.ParameterVariable( owner, self.dict_star_arg ) if self.dict_star_arg else None
+        if self.list_star_arg:
+            self.list_star_variable = Variables.ParameterVariable( owner, self.list_star_arg )
+        else:
+            self.list_star_variable = None
+
+        if self.dict_star_arg:
+            self.dict_star_variable = Variables.ParameterVariable( owner, self.dict_star_arg )
+        else:
+            self.dict_star_variable = None
 
     def isEmpty( self ):
         return len( self.normal_args ) == 0 and self.list_star_arg is None and self.dict_star_arg is None

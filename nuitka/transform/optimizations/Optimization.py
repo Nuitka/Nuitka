@@ -67,8 +67,7 @@ class Tags( set ):
         return tag in self
 
 def optimizeTree( tree ):
-    # pylint: disable=R0912
-    # Lots of conditions to take.
+    # Lots of conditions to take, pylint: disable=R0912
 
     optimizations_queue = OrderedSet()
     tags = Tags()

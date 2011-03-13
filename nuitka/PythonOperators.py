@@ -30,30 +30,14 @@
 #
 """ Python operator tables
 
-These are mostly used to look up the Python C/API from operations or a wrapper used and to
-resolve the operator in the module operator.
+These are mostly used to resolve the operator in the module operator and to know the list
+of operations allowed.
 
 """
 
 from .Utils import getPythonVersion
 
 import operator
-
-binary_operator_codes = {
-    "Add"      : "PyNumber_Add",
-    "Sub"      : "PyNumber_Subtract",
-    "Pow"      : "PyNumber_Power",
-    "Mult"     : "PyNumber_Multiply",
-    "Div"      : "PyNumber_Divide",
-    "FloorDiv" : "PyNumber_FloorDivide",
-    "TrueDiv"  : "PyNumber_TrueDivide",
-    "Mod"      : "PyNumber_Remainder",
-    "LShift"   : "PyNumber_Lshift",
-    "RShift"   : "PyNumber_Rshift",
-    "BitAnd"   : "PyNumber_And",
-    "BitOr"    : "PyNumber_Or",
-    "BitXor"   : "PyNumber_Xor",
-}
 
 if getPythonVersion() >= 300:
     operator.div = operator.truediv
@@ -72,22 +56,6 @@ binary_operator_functions = {
     "BitAnd"   : operator.and_,
     "BitOr"    : operator.or_,
     "BitXor"   : operator.xor,
-}
-
-inplace_operator_codes = {
-    "Add"      : "PyNumber_InPlaceAdd",
-    "Sub"      : "PyNumber_InPlaceSubtract",
-    "Pow"      : "PyNumber_InPlacePower",
-    "Mult"     : "PyNumber_InPlaceMultiply",
-    "Div"      : "PyNumber_InPlaceDivide",
-    "FloorDiv" : "PyNumber_InPlaceFloorDivide",
-    "TrueDiv"  : "PyNumber_InPlaceTrueDivide",
-    "Mod"      : "PyNumber_InPlaceRemainder",
-    "LShift"   : "PyNumber_InPlaceLshift",
-    "RShift"   : "PyNumber_InPlaceRshift",
-    "BitAnd"   : "PyNumber_InPlaceAnd",
-    "BitOr"    : "PyNumber_InPlaceOr",
-    "BitXor"   : "PyNumber_InPlaceXor",
 }
 
 if getPythonVersion() >= 300:
@@ -110,15 +78,6 @@ inplace_operator_functions = {
 }
 
 
-assert inplace_operator_codes.keys() == binary_operator_codes.keys()
-
-unary_operator_codes = {
-    "UAdd"   : "PyNumber_Positive",
-    "USub"   : "PyNumber_Negative",
-    "Invert" : "PyNumber_Invert",
-    "Repr"   : "PyObject_Repr",
-}
-
 unary_operator_functions = {
     "UAdd"   : operator.pos,
     "USub"   : operator.neg,
@@ -126,10 +85,6 @@ unary_operator_functions = {
     "Repr"   : "PyObject_Repr",
 }
 
-normal_comparison_operators = {
-    "In"    : "SEQUENCE_CONTAINS",
-    "NotIn" : "SEQUENCE_CONTAINS_NOT"
-}
 
 rich_comparison_functions = {
     "Lt"    : operator.lt,
@@ -138,13 +93,4 @@ rich_comparison_functions = {
     "NotEq" : operator.ne,
     "Gt"    : operator.gt,
     "GtE"   : operator.ge
-}
-
-rich_comparison_codes = {
-    "Lt"    : "Py_LT",
-    "LtE"   : "Py_LE",
-    "Eq"    : "Py_EQ",
-    "NotEq" : "Py_NE",
-    "Gt"    : "Py_GT",
-    "GtE"   : "Py_GE"
 }

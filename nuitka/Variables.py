@@ -106,7 +106,7 @@ class Variable:
             owner = reference.getOwner()
 
             while owner != top_owner:
-                if not owner.isListContractionBody():
+                if not owner.isExpressionListContractionBody():
                     return True
 
                 owner = owner.getParentVariableProvider()

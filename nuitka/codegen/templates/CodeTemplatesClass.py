@@ -107,7 +107,7 @@ static PyObject *MAKE_CLASS_%(class_identifier)s( %(class_creation_args)s )
         }
     }
 
-    PyObject *result = PyObject_CallFunctionObjArgs( metaclass, %(class_name)s, bases, dict, NULL );
+    PyObject *result = PyObject_CallFunctionObjArgs( metaclass, %(name_identifier)s, bases, dict, NULL );
 
     Py_DECREF( metaclass );
 

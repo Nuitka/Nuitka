@@ -222,7 +222,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
             self._handleImportStarExternal(
                 node = node
             )
-        elif node.isBuiltinImport():
+        elif node.isExpressionBuiltinImport():
             self._consider(
                 module_filename = node.getModuleFilename(),
                 module_package  = node.getModulePackage()

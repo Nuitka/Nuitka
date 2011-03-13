@@ -43,11 +43,11 @@ from nuitka.nodes import OverflowCheck
 
 class FinalizeMarkups:
     def __call__( self, node ):
-        if node.isFunctionBody() or node.isClassBody():
+        if node.isExpressionFunctionBody() or node.isExpressionClassBody():
             if OverflowCheck.check( node.getBody() ):
                 node.markAsLocalsDict()
 
-        if node.isStatementBreak() or node.isStatementContinue():
+        if node.isStatementBreakLoop() or node.isStatementContinueLoop():
             search = node.getParent()
 
             crossed_try = False

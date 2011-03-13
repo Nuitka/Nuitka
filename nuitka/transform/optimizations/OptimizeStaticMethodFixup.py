@@ -41,7 +41,10 @@ from nuitka import Nodes
 
 class FixupNewStaticMethodVisitor( OptimizationVisitorBase ):
     def __call__( self, node ):
-        if node.isFunctionBuilder() and node.getFunctionName() == "__new__" and node.getParentClass() is not None:
+        if node.isStatementFunctionBuilder() and \
+           node.getFunctionName() == "__new__" and \
+           node.getParentClass() is not None:
+
             decorators = node.getDecorators()
 
             if len( decorators ) == 0:

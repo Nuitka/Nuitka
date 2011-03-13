@@ -35,10 +35,10 @@ from nuitka.transform import TreeOperations
 def _couldBeNone( node ):
     if node is None:
         return True
-    elif node.isDictionaryCreation():
+    elif node.isExpressionMakeDict():
         return False
-    elif node.isBuiltinGlobals() or node.isBuiltinLocals() or \
-           node.isBuiltinDir() or node.isBuiltinVars():
+    elif node.isExpressionBuiltinGlobals() or node.isExpressionBuiltinLocals() or \
+           node.isExpressionBuiltinDir() or node.isExpressionBuiltinVars():
         return False
     else:
         # assert False, node
@@ -49,7 +49,7 @@ class OverflowCheckVisitor:
     def __init__( self, checked_node ):
         self.result = False
 
-        self.is_class = checked_node.getParent().isClassBody()
+        self.is_class = checked_node.getParent().isExpressionClassBody()
 
     def __call__( self, node ):
         def declareOverflow():
@@ -65,7 +65,7 @@ class OverflowCheckVisitor:
         if node.isStatementExecInline():
             declareOverflow()
 
-        if self.is_class and node.isBuiltinLocals():
+        if self.is_class and node.isExpressionBuiltinLocals():
             declareOverflow()
 
     def getResult( self ):

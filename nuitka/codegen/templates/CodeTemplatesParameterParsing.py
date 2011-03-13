@@ -29,10 +29,44 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-parse_argument_template_take_counts1 = """\
-Py_ssize_t args_size = PyTuple_GET_SIZE( args );
-Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
+
+template_parameter_function_entry_point = """\
+static PyObject *%(parse_function_identifier)s( PyObject *self, PyObject *args, PyObject *kw )
+{
+%(context_access)s
+    Py_ssize_t args_size = PyTuple_GET_SIZE( args );
+    Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
+    Py_ssize_t args_given = args_size;
+%(parameter_parsing_code)s
+
+    return %(impl_function_identifier)s( self%(parameter_objects_list)s );
+
+error_exit:;
+
+%(parameter_release_code)s
+    return NULL;
+}
 """
+
+template_parameter_method_entry_point = """\
+static PyObject *%(parse_function_identifier)s( PyObject *self, PyObject *_python_par_self, PyObject *args, PyObject *kw )
+{
+    Py_INCREF( _python_par_self );
+%(context_access)s
+    Py_ssize_t args_size = PyTuple_GET_SIZE( args );
+    Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
+    Py_ssize_t args_given = args_size + 1; // Count the self parameter already given as well.
+%(parameter_parsing_code)s
+
+    return %(impl_function_identifier)s( self%(parameter_objects_list)s );
+
+error_exit:;
+
+%(parameter_release_code)s
+    return NULL;
+}
+"""
+
 
 parse_argument_template_take_counts2 = """\
 int kw_args_used = 0;
@@ -42,33 +76,44 @@ parse_argument_template_take_counts3 = """\
 int args_usable_count;
 """
 
-parse_argument_template_refuse_parameters = """
-if (unlikely( args_size + kw_size > 0 ))
+
+function_context_access_template = """
+    // The context of the function.
+    struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)self;
+"""
+
+function_context_unused_template = """\
+    // No context is used.
+"""
+
+
+template_parameter_function_refuses = """
+if (unlikely( args_given + kw_size > 0 ))
 {
-    PyErr_Format( PyExc_TypeError, "%(function_name)s() takes no arguments (%%zd given)", args_size + kw_size );
+    PyErr_Format( PyExc_TypeError, "%(function_name)s() takes no arguments (%%zd given)", args_given + kw_size );
     goto error_exit;
 }
 """
 
 parse_argument_template_check_counts_with_list_star_arg = """
 // Check if too little arguments were given.
-if (unlikely( args_size + kw_size < %(required_parameter_count)d ))
+if (unlikely( args_given + kw_size < %(required_parameter_count)d ))
 {
     if ( %(top_level_parameter_count)d == 1 )
     {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least 1 argument (%%zd given)", args_size + kw_size );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least 1 argument (%%zd given)", args_given + kw_size );
     }
     else
     {
 #if PY_MAJOR_VERSION < 3 && PY_MINOR_VERSION < 7
         if ( kw_size > 0 )
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d non-keyword arguments (%%zd given)", %(top_level_parameter_count)d, args_size + kw_size );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d non-keyword arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_size );
         }
         else
 #endif
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_size + kw_size );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_size );
         }
     }
 
@@ -78,38 +123,38 @@ if (unlikely( args_size + kw_size < %(required_parameter_count)d ))
 
 parse_argument_template_check_counts_without_list_star_arg = """
 // Check if too many arguments were given in case of non star args
-if (unlikely( args_size > %(top_level_parameter_count)d ))
+if (unlikely( args_given > %(top_level_parameter_count)d ))
 {
     if ( %(top_level_parameter_count)d == 1 )
     {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%zd given)", args_size );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%zd given)", args_given );
     }
     else
     {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_size );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_given );
     }
 
     goto error_exit;
 }
 
 // Check if too little arguments were given.
-if (unlikely( args_size + kw_size < %(required_parameter_count)d ))
+if (unlikely( args_given + kw_size < %(required_parameter_count)d ))
 {
     if ( %(top_level_parameter_count)d == 1 )
     {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%zd given)", args_size + kw_size );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%zd given)", args_given + kw_size );
     }
     else
     {
 #if PY_MAJOR_VERSION < 3 && PY_MINOR_VERSION < 7
         if ( kw_size > 0 )
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d non-keyword arguments (%%zd given)", %(top_level_parameter_count)d, args_size + kw_size );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d non-keyword arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_size );
         }
         else
 #endif
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_size + kw_size );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_size );
         }
     }
 
@@ -119,29 +164,29 @@ if (unlikely( args_size + kw_size < %(required_parameter_count)d ))
 
 parse_argument_usable_count = """
 // Copy normal parameter values given as part of the args list to the respective variables:
-args_usable_count = args_size < %(top_level_parameter_count)d ? args_size : %(top_level_parameter_count)d;
+args_usable_count = args_given < %(top_level_parameter_count)d ? args_given : %(top_level_parameter_count)d;
 
 """
 
 parse_argument_template2 = """\
 if (likely( %(parameter_position)d < args_usable_count ))
 {
-    _python_par_%(parameter_name)s = INCREASE_REFCOUNT( PyTuple_GET_ITEM( args, %(parameter_position)d ) );
+    _python_par_%(parameter_name)s = INCREASE_REFCOUNT( PyTuple_GET_ITEM( args, %(parameter_args_index)d ) );
 }
 """
 
 parse_argument_template2a = """\
 if (likely( %(parameter_position)d < args_usable_count ))
 {
-    _python_par_%(parameter_name)s = PyTuple_GET_ITEM( args, %(parameter_position)d );
+    _python_par_%(parameter_name)s = PyTuple_GET_ITEM( args, %(parameter_args_index)d );
 }
 """
 
 parse_argument_template_copy_list_star_args = """
 // Copy left over argument values to the star list parameter given.
-if ( args_size > %(top_level_parameter_count)d )
+if ( args_given > %(top_level_parameter_count)d )
 {
-    _python_par_%(list_star_parameter_name)s = PyTuple_GetSlice( args, %(top_level_parameter_count)d, args_size );
+    _python_par_%(list_star_parameter_name)s = PyTuple_GetSlice( args, %(top_level_max_index)d, args_size );
 }
 else
 {

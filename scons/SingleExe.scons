@@ -28,7 +28,11 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-
+# The Nuitka scons file. If you have Scons knowledge, please feel free and contribute
+# improvements, to do it the proper way.
+#
+# This file is used to build an executable or shared library. Nuitka needs no build
+# process for itself, although it can be compiled using the same method.
 
 import os, sys
 
@@ -49,7 +53,8 @@ env = Environment(
     # We want the outside environment to be passed through.
     ENV = os.environ,
 
-    # The shared libraries should not be named "lib..."
+    # The shared libraries should not be named "lib...", because CPython requires the
+    # filename "module_name.so" to load it.
     SHLIBPREFIX = "",
 )
 
@@ -74,6 +79,12 @@ if env[ "CXX" ] == "g++":
         env[ "CXX" ] = "g++-4.6"
         cpp_version = 460
 
+    if cpp_version >= 460:
+        pass
+
+        # TODO: Decide if it gives any gain:
+        # env.Append( CCFLAGS = [ "-fpartial-inlining" ] )
+
     # Use link time optimizations so that the gcc can help with optimization across files,
     # but unfortunately at this time it seriously slows down the compiled code. This may
     # be because it needs -O3 option to be effective.
@@ -83,30 +94,28 @@ if env[ "CXX" ] == "g++":
         env.Append( CCFLAGS = [ "-flto" ] )
         env.Append( LINKFLAGS = [ "-flto=%d" % GetOption( "num_jobs" ) ] )
 
-        if True:
-            # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=noreturn" ] )
-            # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=pure" ] )
-            # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=const" ] )
-            # env.Append( CCFLAGS = [ "-Wnoexcept" ] )
+        # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=noreturn" ] )
+        # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=pure" ] )
+        # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=const" ] )
+        # env.Append( CCFLAGS = [ "-Wnoexcept" ] )
 
 
-            if debug_mode:
-                env.Append( LINKFLAGS = [ "-O2" ] )
+        if debug_mode:
+            env.Append( LINKFLAGS = [ "-O2" ] )
 
-            if optimize_mode:
-                env.Append( LINKFLAGS = [
-                    "-O3",
-                    "-fpartial-inlining",
-                    "-freorder-functions",
-                ]
-            )
+        if optimize_mode:
+            env.Append( LINKFLAGS = [
+                "-O3",
+                "-fpartial-inlining",
+                "-freorder-functions",
+            ]
+        )
 
 
     if lto_mode and cpp_version < 460:
-        print "Warning, LTO mode specified, but not available."
+        print >> sys.stderr, "Warning, LTO mode specified, but not available."
 
 env[ "BUILD_DIR" ] = source_dir
-
 
 # All Nuitka generated C++ is C++0X standard, so make that clear.
 env.Append( CCFLAGS = [ "-std=c++0x" ] )
@@ -159,13 +168,13 @@ def discoverSourceFiles():
 
     result.append( static_src + "/CompiledFunctionType.cpp" )
     result.append( static_src + "/CompiledGeneratorType.cpp" )
+    result.append( static_src + "/CompiledMethodType.cpp" )
     result.append( static_src + "/CompiledGenexprType.cpp" )
     result.append( static_src + "/CompiledCodeHelpers.cpp" )
 
     for filename in os.listdir( source_dir ):
         if filename.endswith( ".cpp" ):
             result.append( source_dir + "/" + filename )
-
 
     return result
 

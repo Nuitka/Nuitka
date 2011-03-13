@@ -32,7 +32,6 @@
 #define __NUITKA_COMPILED_FUNCTION_H__
 
 #include "Python.h"
-#include "methodobject.h"
 #include "frameobject.h"
 
 // Compiled function type.
@@ -40,11 +39,17 @@
 // The backbone of the integration into CPython. Try to behave as well as normal functions
 // and builtin functions, or even better.
 
+// Cleanup function to be called when the function object is released.
 typedef void (*releaser)( void * );
+
+// Method argument parsing function.
+typedef PyObject *(*method_arg_parser)( PyObject *, PyObject *, PyObject *, PyObject *);
+typedef PyObject *(*function_arg_parser)(PyObject *, PyObject *, PyObject * );
+
+typedef PyObject *(*argless_code)(PyObject *);
 
 // The Nuitka_FunctionObject is the storage associated with a compiled function instance
 // of which there can be many for each code.
-
 typedef struct {
     PyObject_HEAD
 
@@ -59,6 +64,8 @@ typedef struct {
     void *m_code;
     bool m_has_args;
 
+    method_arg_parser m_method_arg_parser;
+
     PyObject *m_dict;
     PyObject *m_weakrefs;
 
@@ -67,13 +74,15 @@ typedef struct {
 
 extern PyTypeObject Nuitka_Function_Type;
 
-extern PyObject *Nuitka_Function_New( PyCFunctionWithKeywords code, PyObject *name, PyObject *module, PyObject *doc );
+
+// Make a function without context.
+extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyObject *module, PyObject *doc );
 
 // Make a function with context.
-extern PyObject *Nuitka_Function_New( PyCFunctionWithKeywords code, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup );
+extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup );
 
 // Make a function that is only a yielder, no args.
-extern PyObject *Nuitka_Function_New( PyNoArgsFunction code, PyObject *name, PyObject *module, PyObject *doc, void * );
+extern PyObject *Nuitka_Function_New( argless_code code, PyObject *name, PyObject *module, PyObject *doc, void * );
 
 static inline bool Nuitka_Function_Check( PyObject *object )
 {

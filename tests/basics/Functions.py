@@ -481,3 +481,12 @@ def generatorFunctionUnusedArg( a ):
     yield 1
 
 generatorFunctionUnusedArg( 3 )
+
+def closureHavingGenerator( arg ):
+    def gen( x = 1 ):
+        yield arg
+
+    return gen()
+
+print "Function generator that has a closure and default argument",
+print list( closureHavingGenerator(3) )

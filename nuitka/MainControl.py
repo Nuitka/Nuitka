@@ -38,13 +38,12 @@ C/API, to compile it to either an executable or an extension module.
 from __future__ import print_function
 
 from . import (
-    CodeGeneration,
     TreeBuilding,
-    Generator,
-    Contexts,
     Options,
     Utils
 )
+
+from .codegen import CodeGeneration
 
 from .transform.optimizations import Optimization
 from .transform.finalizations import Finalization
@@ -99,7 +98,7 @@ def makeModuleSource( tree ):
     source_code = CodeGeneration.generateModuleCode(
         module         = tree,
         module_name    = tree.getName(),
-        global_context = Contexts.PythonGlobalContext(),
+        global_context = CodeGeneration.makeGlobalContext(),
         stand_alone    = True
     )
 
@@ -120,19 +119,19 @@ def makeSourceDirectory( main_module ):
     else:
         os.makedirs( source_dir )
 
-    global_context = Contexts.PythonGlobalContext()
+    global_context = CodeGeneration.makeGlobalContext()
 
     other_modules = Optimization.getOtherModules()
 
     if main_module in other_modules:
         other_modules.remove( main_module )
 
-    for other_module in sorted( other_modules, key = lambda x : x.getName() ):
+    for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
         _prepareCodeGeneration( other_module )
 
     module_hpps = []
 
-    for other_module in sorted( other_modules, key = lambda x : x.getName() ):
+    for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
         other_module_code = CodeGeneration.generateModuleCode(
             global_context = global_context,
             module         = other_module,
@@ -153,8 +152,8 @@ def makeSourceDirectory( main_module ):
 
         writeSourceCode(
             cpp_filename = module_hpp,
-            source_code  = Generator.getModuleDeclarationCode(
-                other_module.getFullName()
+            source_code  = CodeGeneration.generateModuleDeclarationCode(
+                module_name = other_module.getFullName()
             )
         )
 
@@ -171,7 +170,7 @@ def makeSourceDirectory( main_module ):
     )
 
     if not Options.shallMakeModule():
-        source_code = Generator.getMainCode(
+        source_code = CodeGeneration.generateMainCode(
             codes         = source_code,
             other_modules = other_modules
         )
@@ -183,7 +182,7 @@ def makeSourceDirectory( main_module ):
 
     writeSourceCode(
         cpp_filename = source_dir + "__constants.cpp",
-        source_code  = Generator.getConstantsDefinitionCode(
+        source_code  = CodeGeneration.generateConstantsDefinitionCode(
             context = global_context
         )
     )
@@ -196,7 +195,7 @@ def makeSourceDirectory( main_module ):
 
     writeSourceCode(
         cpp_filename = source_dir + "__constants.hpp",
-        source_code  = Generator.getConstantsDeclarationCode(
+        source_code  = CodeGeneration.generateConstantsDeclarationCode(
             context = global_context
         ) + "\n".join( module_hpp_include )
     )

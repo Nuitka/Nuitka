@@ -28,6 +28,9 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Templates for the constants handling.
+
+"""
 
 template_constants_reading = """
 #include "nuitka/prelude.hpp"

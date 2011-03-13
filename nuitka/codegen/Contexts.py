@@ -41,7 +41,7 @@ from .Identifiers import (
 
 from .Namify import namifyConstant
 
-from .Constants import HashableConstant
+from ..Constants import HashableConstant
 
 # Many methods won't use self, but it's the interface. pylint: disable=R0201
 
@@ -124,19 +124,17 @@ class PythonChildContextBase( PythonContextBase ):
     def getConstantHandle( self, constant ):
         return self.parent.getConstantHandle( constant )
 
-    def addContractionCodes( self, contraction, contraction_identifier, contraction_context, contraction_code, loop_var_codes, contraction_conditions, contraction_iterateds ):
-        return self.parent.addContractionCodes(
-            contraction            = contraction,
-            contraction_identifier = contraction_identifier,
-            contraction_context    = contraction_context,
-            contraction_code       = contraction_code,
-            loop_var_codes         = loop_var_codes,
-            contraction_conditions = contraction_conditions,
-            contraction_iterateds  = contraction_iterateds
-        )
+    def addFunctionCodes( self, code_name, function_decl, function_code ):
+        self.parent.addFunctionCodes( code_name, function_decl, function_code )
 
-    def addLambdaCodes( self, lambda_def, lambda_code, lambda_context ):
-        self.parent.addLambdaCodes( lambda_def, lambda_code, lambda_context )
+    def addContractionCodes( self, code_name, contraction_decl, contraction_code ):
+        self.parent.addContractionCodes( code_name, contraction_decl, contraction_code )
+
+    def addClassCodes( self, code_name, class_decl, class_code ):
+        self.parent.addClassCodes( code_name, class_decl, class_code )
+
+    def addLambdaCodes( self, code_name, lambda_decl, lambda_code ):
+        self.parent.addLambdaCodes( code_name, lambda_decl, lambda_code )
 
     def addGlobalVariableNameUsage( self, var_name ):
         self.parent.addGlobalVariableNameUsage( var_name )
@@ -168,6 +166,10 @@ class PythonGlobalContext:
     def getConstantHandle( self, constant ):
         if constant is None:
             return Identifier( "Py_None", 0 )
+        elif constant is True:
+            return Identifier( "Py_True", 0 )
+        elif constant is False:
+            return Identifier( "Py_False", 0 )
         elif constant is Ellipsis:
             return Identifier( "Py_Ellipsis", 0 )
         else:
@@ -210,9 +212,9 @@ class PythonModuleContext( PythonContextBase ):
         self.functions = {}
 
         self.class_codes = {}
-        self.function_codes = []
-        self.lambda_codes = []
-        self.contraction_codes = []
+        self.function_codes = {}
+        self.contraction_codes = {}
+        self.lambda_codes = {}
 
         self.lambda_count = 0
 
@@ -227,30 +229,34 @@ class PythonModuleContext( PythonContextBase ):
     def getConstantHandle( self, constant ):
         return self.global_context.getConstantHandle( constant )
 
-    def addFunctionCodes( self, function, function_context, function_codes ):
-        self.function_codes.append( ( function, function_context, function_codes ) )
+    def addFunctionCodes( self, code_name, function_decl, function_code ):
+        assert code_name not in self.function_codes
 
-    def addClassCodes( self, class_def, class_context, class_codes ):
-        assert class_def not in self.class_codes
-
-        self.class_codes[ class_def ] = ( class_context, class_codes )
-
-    def addLambdaCodes( self, lambda_def, lambda_code, lambda_context ):
-        self.lambda_codes.append( ( lambda_def, lambda_code, lambda_context ) )
-
-    def addContractionCodes( self, contraction, contraction_identifier, contraction_context, contraction_code, loop_var_codes, contraction_conditions, contraction_iterateds ):
-        self.contraction_codes.append(
-            ( contraction, contraction_identifier, contraction_context, loop_var_codes, contraction_code, contraction_conditions, contraction_iterateds )
-        )
-
-    def getContractionsCodes( self ):
-        return self.contraction_codes
+        self.function_codes[ code_name ] = ( function_decl, function_code )
 
     def getFunctionsCodes( self ):
         return self.function_codes
 
+    def addContractionCodes( self, code_name, contraction_decl, contraction_code ):
+        assert code_name not in self.contraction_codes
+
+        self.contraction_codes[ code_name ] = ( contraction_decl, contraction_code )
+
+    def getContractionsCodes( self ):
+        return self.contraction_codes
+
+    def addClassCodes( self, code_name, class_decl, class_code ):
+        assert code_name not in self.class_codes
+
+        self.class_codes[ code_name ] = ( class_decl, class_code )
+
     def getClassesCodes( self ):
         return self.class_codes
+
+    def addLambdaCodes( self, code_name, lambda_decl, lambda_code ):
+        assert code_name not in self.lambda_codes
+
+        self.lambda_codes[ code_name ] = ( lambda_decl, lambda_code )
 
     def getLambdasCodes( self ):
         return self.lambda_codes
@@ -354,12 +360,6 @@ class PythonFunctionContext( PythonChildContextBase ):
         self.lambda_count += 1
 
         return "_python_lambda_%d_%s" % ( self.lambda_count, self.function.getFullName() )
-
-    def addFunctionCodes( self, function, function_context, function_codes ):
-        self.parent.addFunctionCodes( function, function_context, function_codes )
-
-    def addClassCodes( self, class_def, class_context, class_codes ):
-        self.parent.addClassCodes( class_def, class_context, class_codes )
 
     def getCodeName( self ):
         return self.function.getCodeName()
@@ -492,12 +492,6 @@ class PythonClassContext( PythonChildContextBase ):
     def getClosureHandle( self, var_name ):
         return ClosureVariableIdentifier( var_name, from_context = "" )
 
-    def addFunctionCodes( self, function, function_context, function_codes ):
-        self.parent.addFunctionCodes( function, function_context, function_codes )
-
-    def addClassCodes( self, class_def, class_context, class_codes ):
-        self.parent.addClassCodes( class_def, class_context, class_codes )
-
     def isClosureViaContext( self ):
         return False
 
@@ -525,12 +519,6 @@ class PythonExecInlineContext( PythonChildContextBase ):
 
     def getLocalHandle( self, var_name ):
         return self.parent.getLocalHandle( var_name )
-
-    def addFunctionCodes( self, function, function_context, function_codes ):
-        self.parent.addFunctionCodes( function, function_context, function_codes )
-
-    def addClassCodes( self, class_def, class_context, class_codes ):
-        self.parent.addClassCodes( class_def, class_context, class_codes )
 
     def hasLocalsDict( self ):
         return self.parent.hasLocalsDict()

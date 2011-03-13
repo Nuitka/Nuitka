@@ -37,7 +37,7 @@ class VariableSearch:
         self.found = []
 
     def __call__( self, node ):
-        if node.isVariableReference():
+        if node.isExpressionVariableRef():
             if node.getVariable() is self.search_for:
                 self.found.append( node )
 

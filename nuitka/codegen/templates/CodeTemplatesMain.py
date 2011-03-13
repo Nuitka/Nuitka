@@ -85,6 +85,7 @@ int main( int argc, char *argv[] )
     // Initialize the compiled types of Nuitka.
     PyType_Ready( &Nuitka_Generator_Type );
     PyType_Ready( &Nuitka_Function_Type );
+    PyType_Ready( &Nuitka_Method_Type );
     PyType_Ready( &Nuitka_Genexpr_Type );
 
     init__main__();
@@ -92,6 +93,11 @@ int main( int argc, char *argv[] )
     if ( PyErr_Occurred() )
     {
         PyErr_Print();
+        return 1;
+    }
+    else
+    {
+        return 0;
     }
 }
 """

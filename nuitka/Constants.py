@@ -35,6 +35,10 @@ This contains means to compare, classify and test constants.
 
 import math
 
+# pylint: disable=W0622
+from .__past__ import long, unicode
+# pylint: enable=W0622
+
 NoneType = type( None )
 
 def compareConstants( a, b ):
@@ -121,6 +125,12 @@ def isMutable( constant ):
         return True
     else:
         assert False, constant_type
+
+def isIterableConstant( constant ):
+    return type( constant) in ( str, unicode, list, tuple, set, frozenset, dict )
+
+def isNumberConstant( constant ):
+    return type( constant ) in ( int, long, float, bool )
 
 class HashableConstant:
     def __init__( self, constant ):

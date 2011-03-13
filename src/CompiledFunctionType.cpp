@@ -31,16 +31,28 @@
 
 #include "nuitka/prelude.hpp"
 
+#include "nuitka/compiled_method.hpp"
+
 // tp_descr_get slot, bind a function to an object.
 static PyObject *Nuitka_Function_descr_get( PyObject *function, PyObject *object, PyObject *klass )
 {
+#ifdef OLD
     return PyMethod_New( function, object == Py_None ? NULL : object, klass );
+#else
+    assert( Nuitka_Function_Check( function ) );
+
+    return Nuitka_Method_New(
+        (Nuitka_FunctionObject *)function,
+        object == Py_None ? NULL : object,
+        klass
+    );
+#endif
 }
 
  // tp_repr slot, decide how a function shall be output
-static PyObject *Nuitka_Function_repr( Nuitka_FunctionObject *object )
+static PyObject *Nuitka_Function_tp_repr( Nuitka_FunctionObject *function )
 {
-    return PyString_FromFormat( "<compiled function %s at %p>", PyString_AsString( object->m_name ), object );
+    return PyString_FromFormat( "<compiled function %s at %p>", PyString_AsString( function->m_name ), function );
 }
 
 static PyObject *Nuitka_Function_tp_call( Nuitka_FunctionObject *function, PyObject *args, PyObject *kw )
@@ -245,7 +257,7 @@ PyTypeObject Nuitka_Function_Type =
     0,                                              // tp_getattr
     0,                                              // tp_setattr
     (cmpfunc)Nuitka_Function_tp_compare,            // tp_compare
-    (reprfunc)Nuitka_Function_repr,                 // tp_repr
+    (reprfunc)Nuitka_Function_tp_repr,              // tp_repr
     0,                                              // tp_as_number
     0,                                              // tp_as_sequence
     0,                                              // tp_as_mapping
@@ -255,7 +267,7 @@ PyTypeObject Nuitka_Function_Type =
     PyObject_GenericGetAttr,                        // tp_getattro
     0,                                              // tp_setattro
     0,                                              // tp_as_buffer
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,        // tp_flags
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_HAVE_WEAKREFS, // tp_flags
     0,                                              // tp_doc
     (traverseproc)Nuitka_Function_tp_traverse,      // tp_traverse
     0,                                              // tp_clear
@@ -284,7 +296,7 @@ PyTypeObject Nuitka_Function_Type =
     0,                                              // tp_del
 };
 
-static inline PyObject *make_kfunction( void *code, PyObject *name, PyObject *module, PyObject *doc, bool has_args, void *context, releaser cleanup )
+static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, PyObject *name, PyObject *module, PyObject *doc, bool has_args, void *context, releaser cleanup )
 {
     Nuitka_FunctionObject *result = PyObject_GC_New( Nuitka_FunctionObject, &Nuitka_Function_Type );
 
@@ -296,6 +308,7 @@ static inline PyObject *make_kfunction( void *code, PyObject *name, PyObject *mo
 
     result->m_code = code;
     result->m_has_args = has_args;
+    result->m_method_arg_parser = mparse;
 
     result->m_name = INCREASE_REFCOUNT( name );
 
@@ -304,8 +317,8 @@ static inline PyObject *make_kfunction( void *code, PyObject *name, PyObject *mo
 
     result->m_module = module;
     result->m_doc    = doc;
-    result->m_dict   = NULL;
 
+    result->m_dict   = NULL;
     result->m_weakrefs = NULL;
 
     static long Nuitka_Function_counter = 0;
@@ -316,19 +329,19 @@ static inline PyObject *make_kfunction( void *code, PyObject *name, PyObject *mo
 }
 
 // Make a function without context.
-PyObject *Nuitka_Function_New( PyCFunctionWithKeywords code, PyObject *name, PyObject *module, PyObject *doc )
+PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyObject *module, PyObject *doc )
 {
-    return make_kfunction( (void *)code, name, module, doc, true, NULL, NULL );
+    return make_kfunction( (void *)fparse, mparse, name, module, doc, true, NULL, NULL );
 }
 
 // Make a function with context.
-PyObject *Nuitka_Function_New( PyCFunctionWithKeywords code, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup )
 {
-    return make_kfunction( (void *)code, name, module, doc, true, context, cleanup );
+    return make_kfunction( (void *)fparse, mparse, name, module, doc, true, context, cleanup );
 }
 
 // Make a function that is only a yielder, no args.
-PyObject *Nuitka_Function_New( PyNoArgsFunction code, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+PyObject *Nuitka_Function_New( argless_code code, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup )
 {
-    return make_kfunction( (void *)code, name, module, doc, false, context, cleanup );
+    return make_kfunction( (void *)code, NULL, name, module, doc, false, context, cleanup );
 }
