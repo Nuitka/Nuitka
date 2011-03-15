@@ -58,314 +58,9 @@ static inline void assertObject( PyTracebackObject *value )
     assertObject( (PyObject *)value );
 }
 
-// Wraps a PyObject * you received or acquired from another container to
-// simplify refcount handling when you're not going to use the object
-// beyond the local scope. It will hold a reference to the wrapped object
-// as long as the PyObjectTemporary is alive, and will release the reference
-// when the wrapper is destroyed: this eliminates the need for manual DECREF
-// calls on Python objects before returning from a method call.
-//
-// In effect, wrapping an object inside a PyObjectTemporary is equivalent to
-// a deferred Py_DECREF() call on the wrapped object.
+#include "nuitka/variables_temporary.hpp"
 
-class PyObjectTemporary {
-    public:
-        explicit PyObjectTemporary( PyObject *object )
-        {
-            assertObject( object );
-
-            this->object = object;
-        }
-
-        PyObjectTemporary( const PyObjectTemporary &object ) = delete;
-
-        ~PyObjectTemporary()
-        {
-            assertObject( this->object );
-
-            Py_DECREF( this->object );
-        }
-
-        PyObject *asObject()
-        {
-            assertObject( this->object );
-
-            return this->object;
-        }
-
-        void assign( PyObject *object )
-        {
-            assertObject( this->object );
-
-            Py_DECREF( this->object );
-
-            assertObject( object );
-
-            this->object = object;
-        }
-
-    private:
-
-        PyObject *object;
-};
-
-class _PythonException
-{
-    public:
-        _PythonException()
-        {
-            this->line = _current_line;
-
-            this->_importFromPython();
-        }
-
-        _PythonException( PyObject *exception )
-        {
-            assertObject( exception );
-
-            this->line = _current_line;
-
-            Py_INCREF( exception );
-
-            this->exception_type = exception;
-            this->exception_value = NULL;
-            this->exception_tb = NULL;
-        }
-
-        _PythonException( PyObject *exception, PyTracebackObject *traceback )
-        {
-            assertObject( exception );
-            assertObject( traceback );
-
-            this->line = _current_line;
-
-            this->exception_type = exception;
-            this->exception_value = NULL;
-            this->exception_tb = (PyObject *)traceback;
-        }
-
-        _PythonException( PyObject *exception, PyObject *value, PyTracebackObject *traceback )
-        {
-            assertObject( exception );
-            assertObject( value );
-            assertObject( traceback );
-
-            this->line = _current_line;
-
-            this->exception_type = exception;
-            this->exception_value = value;
-            this->exception_tb = (PyObject *)traceback;
-        }
-
-        _PythonException( const _PythonException &other )
-        {
-            this->line            = other.line;
-
-            this->exception_type  = other.exception_type;
-            this->exception_value = other.exception_value;
-            this->exception_tb    = other.exception_tb;
-
-            Py_XINCREF( this->exception_type );
-            Py_XINCREF( this->exception_value );
-            Py_XINCREF( this->exception_tb );
-        }
-
-        void operator=( const _PythonException &other )
-        {
-            Py_XINCREF( other.exception_type );
-            Py_XINCREF( other.exception_value );
-            Py_XINCREF( other.exception_tb );
-
-            Py_XDECREF( this->exception_type );
-            Py_XDECREF( this->exception_value );
-            Py_XDECREF( this->exception_tb );
-
-            this->line            = other.line;
-
-            this->exception_type  = other.exception_type;
-            this->exception_value = other.exception_value;
-            this->exception_tb    = other.exception_tb;
-
-        }
-
-        ~_PythonException()
-        {
-            Py_XDECREF( this->exception_type );
-            Py_XDECREF( this->exception_value );
-            Py_XDECREF( this->exception_tb );
-        }
-
-        inline void _importFromPython()
-        {
-            PyErr_Fetch( &this->exception_type, &this->exception_value, &this->exception_tb );
-            assert( this->exception_type );
-        }
-
-        inline int getLine() const
-        {
-            return this->line;
-        }
-
-        inline void normalize()
-        {
-            PyErr_NormalizeException( &this->exception_type, &this->exception_value, &this->exception_tb );
-        }
-
-        inline bool matches( PyObject *exception ) const
-        {
-            return PyErr_GivenExceptionMatches( this->exception_type, exception ) || PyErr_GivenExceptionMatches( this->exception_value, exception );;
-        }
-
-        inline void toPython()
-        {
-            PyErr_Restore( this->exception_type, this->exception_value, this->exception_tb );
-
-#ifndef __NUITKA_NO_ASSERT__
-            PyThreadState *thread_state = PyThreadState_GET();
-#endif
-
-            assert( this->exception_type == thread_state->curexc_type );
-            assert( thread_state->curexc_type );
-
-            this->exception_type  = NULL;
-            this->exception_value = NULL;
-            this->exception_tb    = NULL;
-        }
-
-        inline void toExceptionHandler()
-        {
-            this->normalize();
-
-            // Restore only sets the current exception to the interpreter.
-            PyThreadState *thread_state = PyThreadState_GET();
-
-            PyObject *old_type  = thread_state->exc_type;
-            PyObject *old_value = thread_state->exc_value;
-            PyObject *old_tb    = thread_state->exc_traceback;
-
-            thread_state->exc_type = this->exception_type;
-            thread_state->exc_value = this->exception_value;
-            thread_state->exc_traceback = this->exception_tb;
-
-            Py_INCREF(  thread_state->exc_type );
-            Py_XINCREF( thread_state->exc_value );
-            Py_XINCREF(  thread_state->exc_traceback );
-
-            Py_XDECREF( old_type );
-            Py_XDECREF( old_value );
-            Py_XDECREF( old_tb );
-
-            PySys_SetObject( (char *)"exc_type", thread_state->exc_type );
-            PySys_SetObject( (char *)"exc_value", thread_state->exc_value );
-            PySys_SetObject( (char *)"exc_traceback", thread_state->exc_traceback );
-        }
-
-        inline PyObject *getType()
-        {
-            if ( this->exception_value == NULL )
-            {
-                PyErr_NormalizeException( &this->exception_type, &this->exception_value, &this->exception_tb );
-            }
-
-            return this->exception_type;
-        }
-
-        inline PyObject *getTraceback() const
-        {
-            return this->exception_tb;
-        }
-
-        inline void setTraceback( PyTracebackObject *traceback )
-        {
-            assert( traceback );
-            assert( traceback->ob_refcnt > 0 );
-
-            // printf( "setTraceback %d\n", traceback->ob_refcnt );
-
-            // Py_INCREF( traceback );
-            this->exception_tb = (PyObject *)traceback;
-        }
-
-        inline bool hasTraceback() const
-        {
-            return this->exception_tb != NULL;
-        }
-
-        void setType( PyObject *exception_type )
-        {
-            Py_XDECREF( this->exception_type );
-            this->exception_type = exception_type;
-        }
-
-        inline PyObject *getObject()
-        {
-            PyErr_NormalizeException( &this->exception_type, &this->exception_value, &this->exception_tb );
-
-            return this->exception_value;
-        }
-
-        void dump() const
-        {
-            PRINT_ITEMS( true, NULL, this->exception_type );
-        }
-
-    private:
-
-        PyObject *exception_type, *exception_value, *exception_tb;
-        int line;
-};
-
-class _PythonExceptionKeeper
-{
-    public:
-        _PythonExceptionKeeper()
-        {
-            saved = NULL;
-        }
-
-        ~_PythonExceptionKeeper()
-        {
-            if ( this->saved )
-            {
-                delete this->saved;
-            }
-        }
-
-        void save( const _PythonException &e )
-        {
-            this->saved = new _PythonException( e );
-        }
-
-        void rethrow()
-        {
-            if ( this->saved )
-            {
-                throw *this->saved;
-            }
-        }
-
-        bool isEmpty() const
-        {
-            return this->saved == NULL;
-        }
-
-    private:
-        bool empty;
-
-        _PythonException *saved;
-};
-
-class ReturnException
-{
-};
-
-class ContinueException
-{
-};
-
-class BreakException
-{
-};
+#include "nuitka/exceptions.hpp"
 
 // Helper functions for reference count handling in the fly.
 NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
@@ -525,6 +220,40 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION( binary_api api, PyObject
 
     int line = _current_line;
     PyObject *result = api( operand1, operand2 );
+    _current_line = line;
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD( PyObject *operand1, PyObject *operand2 )
+{
+    assertObject( operand1 );
+    assertObject( operand2 );
+
+    int line = _current_line;
+    PyObject *result = PyNumber_Add( operand1, operand2 );
+    _current_line = line;
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_MUL( PyObject *operand1, PyObject *operand2 )
+{
+    assertObject( operand1 );
+    assertObject( operand2 );
+
+    int line = _current_line;
+    PyObject *result = PyNumber_Multiply( operand1, operand2 );
     _current_line = line;
 
     if (unlikely( result == NULL ))
@@ -1155,19 +884,27 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
     assert( iterator->ob_refcnt > 0 );
 
     int line = _current_line;
-    PyObject *result = PyIter_Next( iterator );
+    PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
     _current_line = line;
 
     if (unlikely( result == NULL ))
     {
-        if ( PyErr_Occurred() != NULL )
+        if ( PyErr_Occurred() )
         {
-            throw _PythonException();
+            if ( PyErr_ExceptionMatches( PyExc_StopIteration ))
+            {
+                PyErr_Clear();
+                return NULL;
+            }
+            else
+            {
+                throw _PythonException();
+            }
         }
     }
     else
     {
-        assert( result->ob_refcnt > 0 );
+        assertObject( result );
     }
 
     return result;
@@ -1782,461 +1519,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject 
     return result;
 }
 
-class PyObjectLocalParameterVariable
-{
-    public:
-        explicit PyObjectLocalParameterVariable( PyObject *var_name, PyObject *object )
-        {
-            this->var_name = var_name;
-            this->object = object;
-        }
-
-        ~PyObjectLocalParameterVariable()
-        {
-            Py_XDECREF( this->object );
-        }
-
-        void operator=( PyObject *object )
-        {
-            assert( object );
-            assert( object->ob_refcnt > 0 );
-
-            PyObject *old_object = this->object;
-
-            this->object = object;
-
-            // Free old value if any available and owned.
-            Py_XDECREF( old_object );
-        }
-
-        PyObject *asObject() const
-        {
-            if ( this->object == NULL )
-            {
-                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
-                throw _PythonException();
-            }
-
-            assert( this->object );
-            assert( this->object->ob_refcnt > 0 );
-
-            return this->object;
-        }
-
-        PyObject *asObject1() const
-        {
-            return INCREASE_REFCOUNT( this->asObject() );
-        }
-
-        bool isInitialized() const
-        {
-            return this->object != NULL;
-        }
-
-        void del()
-        {
-            if ( this->object == NULL )
-            {
-                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
-                throw _PythonException();
-            }
-
-            Py_DECREF( this->object );
-            this->object = NULL;
-        }
-
-        PyObject *getVariableName() const
-        {
-            return this->var_name;
-        }
-
-    private:
-
-        PyObject *var_name;
-        PyObject *object;
-};
-
-class PyObjectLocalVariable {
-    public:
-        explicit PyObjectLocalVariable( PyObject *var_name, PyObject *object = NULL, bool free_value = false )
-        {
-            this->var_name   = var_name;
-            this->object     = object;
-            this->free_value = free_value;
-        }
-
-        explicit PyObjectLocalVariable()
-        {
-            this->var_name   = NULL;
-            this->object     = NULL;
-            this->free_value = false;
-        }
-
-        ~PyObjectLocalVariable()
-        {
-            if ( this->free_value )
-            {
-                Py_DECREF( this->object );
-            }
-        }
-
-        void setVariableName( PyObject *var_name )
-        {
-            assert( var_name );
-            assert( var_name->ob_refcnt > 0 );
-
-            assert( this->var_name == NULL);
-
-            this->var_name = var_name;
-        }
-
-        void operator=( PyObject *object )
-        {
-            assert( object );
-            assert( object->ob_refcnt > 0 );
-
-            if ( this->free_value )
-            {
-                PyObject *old_object = this->object;
-
-                this->object = object;
-
-                // Free old value if any available and owned.
-                Py_DECREF( old_object );
-            }
-            else
-            {
-                this->object = object;
-                this->free_value = true;
-            }
-        }
-
-        PyObject *asObject() const
-        {
-            if ( this->object == NULL && this->var_name != NULL )
-            {
-                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
-                throw _PythonException();
-            }
-
-            assert( this->object );
-            assert( this->object->ob_refcnt > 0 );
-
-            return this->object;
-        }
-
-        PyObject *asObject1() const
-        {
-            return INCREASE_REFCOUNT( this->asObject() );
-        }
-
-        bool isInitialized() const
-        {
-            return this->object != NULL;
-        }
-
-        void del()
-        {
-            if ( this->object == NULL )
-            {
-                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
-                throw _PythonException();
-            }
-
-            if ( this->free_value )
-            {
-                Py_DECREF( this->object );
-            }
-
-            this->object = NULL;
-            this->free_value = false;
-        }
-
-        PyObject *getVariableName() const
-        {
-            return this->var_name;
-        }
-
-    private:
-
-        PyObject *var_name;
-        PyObject *object;
-        bool free_value;
-};
-
-class PyObjectSharedStorage
-{
-    public:
-        explicit PyObjectSharedStorage( PyObject *var_name, PyObject *object, bool free_value )
-        {
-            assert( object == NULL || object->ob_refcnt > 0 );
-
-            this->var_name   = var_name;
-            this->object     = object;
-            this->free_value = free_value;
-            this->ref_count  = 1;
-        }
-
-        ~PyObjectSharedStorage()
-        {
-            if ( this->free_value )
-            {
-                Py_DECREF( this->object );
-            }
-        }
-
-        void operator=( PyObject *object )
-        {
-            assert( object );
-            assert( object->ob_refcnt > 0 );
-
-            if ( this->free_value )
-            {
-                PyObject *old_object = this->object;
-
-                this->object = object;
-
-                // Free old value if any available and owned.
-                Py_DECREF( old_object );
-            }
-            else
-            {
-                this->object = object;
-                this->free_value = true;
-            }
-        }
-
-        inline PyObject *getVarName() const
-        {
-            return this->var_name;
-        }
-
-        PyObject *var_name;
-        PyObject *object;
-        bool free_value;
-        int ref_count;
-};
-
-class PyObjectSharedLocalVariable
-{
-    public:
-        explicit PyObjectSharedLocalVariable( PyObject *var_name, PyObject *object = NULL, bool free_value = false )
-        {
-            this->storage = new PyObjectSharedStorage( var_name, object, free_value );
-        }
-
-        explicit PyObjectSharedLocalVariable()
-        {
-            this->storage = NULL;
-        }
-
-        ~PyObjectSharedLocalVariable()
-        {
-            if ( this->storage )
-            {
-                assert( this->storage->ref_count > 0 );
-                this->storage->ref_count -= 1;
-
-                if (this->storage->ref_count == 0)
-                {
-                    delete this->storage;
-                }
-            }
-        }
-
-        void setVariableName( PyObject *var_name )
-        {
-            assert( this->storage == NULL );
-
-            this->storage = new PyObjectSharedStorage( var_name, NULL, false );
-        }
-
-        void shareWith( const PyObjectSharedLocalVariable &other )
-        {
-            assert( this->storage == NULL );
-            assert( other.storage != NULL );
-
-            this->storage = other.storage;
-            this->storage->ref_count += 1;
-        }
-
-        void operator=( PyObject *object )
-        {
-            this->storage->operator=( object );
-        }
-
-        PyObject *asObject() const
-        {
-            assert( this->storage );
-
-            if ( this->storage->object == NULL )
-            {
-                PyErr_Format( PyExc_UnboundLocalError, "free variable '%s' referenced before assignment in enclosing scope", Nuitka_String_AsString( this->storage->getVarName() ) );
-                throw _PythonException();
-
-            }
-
-            if ( (this->storage->object)->ob_refcnt == 0 )
-            {
-                PyErr_Format( PyExc_UnboundLocalError, "free variable '%s' referenced after its finalization in enclosing scope", Nuitka_String_AsString( this->storage->getVarName() ) );
-                throw _PythonException();
-            }
-
-            return this->storage->object;
-        }
-
-        PyObject *asObject1() const
-        {
-            return INCREASE_REFCOUNT( this->asObject() );
-        }
-
-        bool isInitialized() const
-        {
-            return this->storage->object != NULL;
-        }
-
-        PyObject *getVariableName() const
-        {
-            return this->storage->var_name;
-        }
-
-    private:
-        PyObjectSharedLocalVariable( PyObjectSharedLocalVariable & );
-
-        PyObjectSharedStorage *storage;
-};
-
-extern PyModuleObject *_module_builtin;
-
-class PyObjectGlobalVariable
-{
-    public:
-        explicit PyObjectGlobalVariable( PyObject **module_ptr, PyObject **var_name )
-        {
-            assert( module_ptr );
-            assert( var_name );
-
-            this->module_ptr = (PyModuleObject **)module_ptr;
-            this->var_name   = (PyStringObject **)var_name;
-        }
-
-        PyObject *asObject0() const
-        {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( *this->module_ptr, *this->var_name );
-
-            if (likely( entry->me_value != NULL ))
-            {
-                assert( entry->me_value->ob_refcnt > 0 );
-
-                return entry->me_value;
-            }
-
-            entry = GET_PYDICT_ENTRY( _module_builtin, *this->var_name );
-
-            if (likely( entry->me_value != NULL ))
-            {
-                assert( entry->me_value->ob_refcnt > 0 );
-
-                return entry->me_value;
-            }
-
-            PyErr_Format( PyExc_NameError, "global name '%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
-            throw _PythonException();
-        }
-
-        PyObject *asObject() const
-        {
-            return INCREASE_REFCOUNT( this->asObject0() );
-        }
-
-        PyObject *asObject0( PyObject *dict ) const
-        {
-            if ( PyDict_Contains( dict, (PyObject *)*this->var_name ) )
-            {
-                return PyDict_GetItem( dict, (PyObject *)*this->var_name );
-            }
-            else
-            {
-                return this->asObject0();
-            }
-        }
-
-        void assign( PyObject *value ) const
-        {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( *this->module_ptr, *this->var_name );
-
-            // Values are more likely set than not set, in that case speculatively try the
-            // quickest access method.
-            if (likely( entry->me_value != NULL ))
-            {
-                PyObject *old = entry->me_value;
-                entry->me_value = value;
-
-                Py_DECREF( old );
-            }
-            else
-            {
-                DICT_SET_ITEM( (*this->module_ptr)->md_dict, (PyObject *)*this->var_name, value );
-
-                Py_DECREF( value );
-            }
-        }
-
-        void assign0( PyObject *value ) const
-        {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( *this->module_ptr, *this->var_name );
-
-            // Values are more likely set than not set, in that case speculatively try the
-            // quickest access method.
-            if (likely( entry->me_value != NULL ))
-            {
-                PyObject *old = entry->me_value;
-                entry->me_value = INCREASE_REFCOUNT( value );
-
-                Py_DECREF( old );
-            }
-            else
-            {
-                DICT_SET_ITEM( (*this->module_ptr)->md_dict, (PyObject *)*this->var_name, value );
-            }
-        }
-
-        void del() const
-        {
-            int status = PyDict_DelItem( (*this->module_ptr)->md_dict, (PyObject *)*this->var_name );
-
-            if (unlikely( status == -1 ))
-            {
-                PyErr_Format( PyExc_NameError, "name '%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
-                throw _PythonException();
-            }
-        }
-
-        bool isInitialized( bool allow_builtins = true ) const
-        {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( *this->module_ptr, *this->var_name );
-
-            if (likely( entry->me_value != NULL ))
-            {
-                return true;
-            }
-
-            if ( allow_builtins )
-            {
-                entry = GET_PYDICT_ENTRY( _module_builtin, *this->var_name );
-
-                return entry->me_value != NULL;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-    private:
-        PyModuleObject **module_ptr;
-        PyStringObject **var_name;
-};
+#include "nuitka/builtins.hpp"
+
+#include "nuitka/variables_parameters.hpp"
+#include "nuitka/variables_locals.hpp"
+#include "nuitka/variables_shared.hpp"
+#include "nuitka/variables_globals.hpp"
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LOCALS_DICT( void )
 {
@@ -2398,43 +1686,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
     return result;
 }
 
-class PythonBuiltin
-{
-    public:
-        explicit PythonBuiltin( char const *name )
-        {
-            this->name = (PyStringObject *)PyString_FromString( name );
-            this->value = NULL;
-        }
-
-        PyObject *asObject()
-        {
-            if ( this->value == NULL )
-            {
-                PyDictEntry *entry = GET_PYDICT_ENTRY(
-                    _module_builtin,
-                    this->name
-                );
-                this->value = entry->me_value;
-            }
-
-            assert( this->value != NULL );
-
-            return this->value;
-        }
-
-        template<typename... P>
-        PyObject *call( P...eles )
-        {
-            return CALL_FUNCTION( NULL, MAKE_TUPLE( eles... ), this->asObject() );
-        }
-
-    private:
-        PythonBuiltin( PythonBuiltin const &  ) = delete;
-
-        PyStringObject *name;
-        PyObject *value;
-};
 
 // Compile source code given, pretending the file name was given.
 extern PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags );

@@ -28,7 +28,7 @@ try:
 except NameError, e:
     print "Raised expected exception:", e
 
-def someFunction():
+def someFunction( b, c ):
    b = 1
 
    del b
@@ -38,4 +38,4 @@ def someFunction():
    except UnboundLocalError, e:
        print "Raised expected exception:", e
 
-someFunction()
+someFunction( 3, 4 )

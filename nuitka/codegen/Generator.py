@@ -505,6 +505,22 @@ def getOperationCode( operator, identifiers ):
             ),
             1
         )
+    elif operator == "Add":
+        return Identifier(
+            "BINARY_OPERATION_ADD( %s, %s )" % (
+                identifier_refs[0],
+                identifier_refs[1]
+            ),
+            1
+        )
+    elif operator == "Mul":
+        return Identifier(
+            "BINARY_OPERATION_MUL( %s, %s )" % (
+                identifier_refs[0],
+                identifier_refs[1]
+            ),
+            1
+        )
     elif len( identifiers ) == 2:
         return Identifier(
             "BINARY_OPERATION( %s, %s, %s )" % (
@@ -1929,7 +1945,10 @@ def _getLocalVariableInitCode( context, variable, init_from = None, needs_no_fre
     if shared:
         result = "PyObjectSharedLocalVariable"
     elif init_from is not None and not needs_no_free:
-        result = "PyObjectLocalParameterVariable"
+        if variable.getHasDelIndicator():
+            result = "PyObjectLocalParameterVariableWithDel"
+        else:
+            result = "PyObjectLocalParameterVariableNoDel"
     else:
         result = "PyObjectLocalVariable"
 
@@ -2414,7 +2433,10 @@ def _getClosureVariableDecl( variable ):
     if variable.getReferenced().isShared():
         kind = "PyObjectSharedLocalVariable"
     elif variable.getReferenced().isParameterVariable():
-        kind = "PyObjectLocalParameterVariable"
+        if variable.getReferenced().getHasDelIndicator():
+            kind = "PyObjectLocalParameterVariableWithDel"
+        else:
+            kind = "PyObjectLocalParameterVariableNoDel"
     else:
         kind = "PyObjectLocalVariable"
 

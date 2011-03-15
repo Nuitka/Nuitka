@@ -79,3 +79,13 @@ class FinalizeMarkups:
 
             if crossed_except:
                 node.markAsReraiseLocal()
+
+
+        if node.isAssignTargetVariable():
+            parent = node
+
+            while not parent.isStatement():
+                parent = parent.getParent()
+
+            if parent.isStatementAssignment() and parent.getSource() is None:
+                node.getTargetVariableRef().getVariable().setHasDelIndicator()

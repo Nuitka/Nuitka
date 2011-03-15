@@ -147,7 +147,7 @@ static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *a
     }
     else
     {
-        if ( method->m_function->m_method_arg_parser == NULL )
+        if (unlikely( method->m_function->m_method_arg_parser == NULL ))
         {
             // This injects the extra argument, and is not normally used.
             PyObject *new_args = PyTuple_New( arg_count + 1 );
@@ -200,7 +200,7 @@ static PyObject *Nuitka_Method_tp_descr_get( Nuitka_MethodObject *method, PyObje
         // Quick subclass test, bound methods remain the same if the class is a sub class
         int result = PyObject_IsSubclass( klass, method->m_class );
 
-        if ( result < 0 )
+        if (unlikely( result < 0 ))
         {
             return NULL;
         }
@@ -320,6 +320,11 @@ static long Nuitka_Method_tp_hash( Nuitka_MethodObject *method )
     return method->m_function->m_counter;
 }
 
+// Cache for method object, try to avoid malloc overhead.
+static Nuitka_MethodObject *method_cache_head = NULL;
+static int method_cache_size = 0;
+static const int max_method_cache_size = 4096;
+
 static void Nuitka_Method_tp_dealloc( Nuitka_MethodObject *method )
 {
     _PyObject_GC_UNTRACK( method );
@@ -334,7 +339,15 @@ static void Nuitka_Method_tp_dealloc( Nuitka_MethodObject *method )
 
     Py_DECREF( (PyObject *)method->m_function );
 
-    PyObject_GC_Del( method );
+    if (likely( method_cache_size < max_method_cache_size ))
+    {
+        method->m_object = (PyObject *)method_cache_head;
+        method_cache_head = method;
+        method_cache_size += 1;
+    }
+    else {
+        PyObject_GC_Del( method );
+    }
 }
 
 static PyObject *Nuitka_Method_tp_new( PyTypeObject* type, PyObject* args, PyObject *kw )
@@ -375,6 +388,7 @@ static PyObject *Nuitka_Method_tp_new( PyTypeObject* type, PyObject* args, PyObj
     return Nuitka_Method_New( (Nuitka_FunctionObject *)func, self, klass );
 }
 
+static const long tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_HAVE_WEAKREFS;
 
 PyTypeObject Nuitka_Method_Type =
 {
@@ -382,47 +396,59 @@ PyTypeObject Nuitka_Method_Type =
     "compiled_method",
     sizeof(Nuitka_MethodObject),
     0,
-    (destructor)Nuitka_Method_tp_dealloc,       /* tp_dealloc */
-    0,                                          /* tp_print */
-    0,                                          /* tp_getattr */
-    0,                                          /* tp_setattr */
-    (cmpfunc)Nuitka_Method_tp_compare,          /* tp_compare */
-    (reprfunc)Nuitka_Method_tp_repr,            /* tp_repr */
-    0,                                          /* tp_as_number */
-    0,                                          /* tp_as_sequence */
-    0,                                          /* tp_as_mapping */
-    (hashfunc)Nuitka_Method_tp_hash,            /* tp_hash */
-    (ternaryfunc)Nuitka_Method_tp_call,         /* tp_call */
-    0,                                          /* tp_str */
-    (getattrofunc)Nuitka_Method_tp_getattro,    /* tp_getattro */
-    PyObject_GenericSetAttr,                    /* tp_setattro */
-    0,                                          /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_HAVE_WEAKREFS, /* tp_flags */
-    0,                                                                  /* tp_doc */
-    (traverseproc)Nuitka_Method_tp_traverse,                            /* tp_traverse */
-    0,                                                                  /* tp_clear */
-    0,                                                                  /* tp_richcompare */
-    offsetof( Nuitka_MethodObject, m_weakrefs ),                        /* tp_weaklistoffset */
-    0,                                          /* tp_iter */
-    0,                                          /* tp_iternext */
-    0,                                          /* tp_methods */
-    Nuitka_Method_members,                      /* tp_members */
-    Nuitka_Method_getsets,                      /* tp_getset */
-    0,                                          /* tp_base */
-    0,                                          /* tp_dict */
-    (descrgetfunc)Nuitka_Method_tp_descr_get,   /* tp_descr_get */
-    0,                                          /* tp_descr_set */
-    0,                                          /* tp_dictoffset */
-    0,                                          /* tp_init */
-    0,                                          /* tp_alloc */
-    Nuitka_Method_tp_new                        /* tp_new */
+    (destructor)Nuitka_Method_tp_dealloc,        // tp_dealloc
+    0,                                           // tp_print
+    0,                                           // tp_getattr
+    0,                                           // tp_setattr
+    (cmpfunc)Nuitka_Method_tp_compare,           // tp_compare
+    (reprfunc)Nuitka_Method_tp_repr,             // tp_repr
+    0,                                           // tp_as_number
+    0,                                           // tp_as_sequence
+    0,                                           // tp_as_mapping
+    (hashfunc)Nuitka_Method_tp_hash,             // tp_hash
+    (ternaryfunc)Nuitka_Method_tp_call,          // tp_call
+    0,                                           // tp_str
+    (getattrofunc)Nuitka_Method_tp_getattro,     // tp_getattro
+    PyObject_GenericSetAttr,                     // tp_setattro
+    0,                                           // tp_as_buffer
+    tp_flags,                                    // tp_flags
+    0,                                           // tp_doc
+    (traverseproc)Nuitka_Method_tp_traverse,     // tp_traverse
+    0,                                           // tp_clear
+    0,                                           // tp_richcompare
+    offsetof( Nuitka_MethodObject, m_weakrefs ), // tp_weaklistoffset
+    0,                                           // tp_iter
+    0,                                           // tp_iternext
+    0,                                           // tp_methods
+    Nuitka_Method_members,                       // tp_members
+    Nuitka_Method_getsets,                       // tp_getset
+    0,                                           // tp_base
+    0,                                           // tp_dict
+    (descrgetfunc)Nuitka_Method_tp_descr_get,    // tp_descr_get
+    0,                                           // tp_descr_set
+    0,                                           // tp_dictoffset
+    0,                                           // tp_init
+    0,                                           // tp_alloc
+    Nuitka_Method_tp_new                         // tp_new
 };
 
 PyObject *Nuitka_Method_New( Nuitka_FunctionObject *function, PyObject *object, PyObject *klass )
 {
-    Nuitka_MethodObject *result = PyObject_GC_New( Nuitka_MethodObject, &Nuitka_Method_Type );
+    Nuitka_MethodObject *result = method_cache_head;
 
-    if ( result == NULL )
+    if ( result != NULL )
+    {
+        method_cache_head = (Nuitka_MethodObject *)method_cache_head->m_object;
+        method_cache_size -= 1;
+
+        PyObject_INIT( result, &Nuitka_Method_Type );
+    }
+    else
+    {
+        result = PyObject_GC_New( Nuitka_MethodObject, &Nuitka_Method_Type );
+    }
+
+    if (unlikely( result == NULL ))
     {
         PyErr_Format( PyExc_RuntimeError, "cannot create method %s", PyString_AsString( function->m_name ) );
         throw _PythonException();
