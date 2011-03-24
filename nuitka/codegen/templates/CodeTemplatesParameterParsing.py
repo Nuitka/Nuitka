@@ -127,11 +127,11 @@ if (unlikely( args_given > %(top_level_parameter_count)d ))
 {
     if ( %(top_level_parameter_count)d == 1 )
     {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%zd given)", args_given );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%zd given)", args_given + kw_size );
     }
     else
     {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_given );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_size );
     }
 
     goto error_exit;
@@ -263,7 +263,7 @@ if ( kw_size > 0 )
 parse_argument_template_copy_default_value = """\
 if ( _python_par_%(parameter_name)s == NULL )
 {
-    _python_par_%(parameter_name)s = INCREASE_REFCOUNT( %(default_identifier)s );
+    _python_par_%(parameter_name)s = %(default_identifier)s;
 }
 """
 

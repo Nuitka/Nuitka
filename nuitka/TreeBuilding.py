@@ -266,7 +266,12 @@ def buildForLoopNode( provider, node, source_ref ):
         source     = buildNode( provider, node.iter, source_ref ),
         target     = buildAssignTarget( provider, node.target, source_ref ),
         body       = buildStatementsNode( provider, node.body, source_ref ),
-        no_break   = buildStatementsNode( provider, node.orelse, source_ref, True ),
+        no_break   = buildStatementsNode(
+            provider   = provider,
+            nodes      = node.orelse if node.orelse else None,
+            source_ref = source_ref,
+            allow_none = True
+        ),
         source_ref = source_ref
     )
 
@@ -274,7 +279,12 @@ def buildWhileLoopNode( provider, node, source_ref ):
     return Nodes.CPythonStatementWhileLoop(
         condition  = buildNode( provider, node.test, source_ref ),
         body       = buildStatementsNode( provider, node.body, source_ref ),
-        no_enter   = buildStatementsNode( provider, node.orelse, source_ref, True ),
+        no_enter   = buildStatementsNode(
+            provider   = provider,
+            nodes      = node.orelse if node.orelse else None,
+            source_ref = source_ref,
+            allow_none = True
+        ),
         source_ref = source_ref
     )
 
@@ -741,7 +751,12 @@ def buildConditionNode( provider, node, source_ref ):
     return Nodes.CPythonStatementConditional(
         condition  = buildNode( provider, node.test, source_ref ),
         yes_branch = buildStatementsNode( provider, node.body, source_ref ),
-        no_branch  = buildStatementsNode( provider, node.orelse, source_ref ),
+        no_branch  = buildStatementsNode(
+            provider   = provider,
+            nodes      = node.orelse if node.orelse else None,
+            source_ref = source_ref,
+            allow_none = True
+        ),
         source_ref = source_ref
     )
 

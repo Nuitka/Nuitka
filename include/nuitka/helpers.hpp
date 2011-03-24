@@ -302,65 +302,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION_INPLACE( PyObject *operand
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE( int opid, PyObject *operand2, PyObject *operand1 )
-{
-    int line = _current_line;
-    PyObject *result = PyObject_RichCompare( operand1, operand2, opid );
-    _current_line = line;
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL( int opid, PyObject *operand2, PyObject *operand1 )
-{
-    // Quick path for avoidable checks.
-    if ( operand1 == operand2 )
-    {
-        if ( opid == Py_EQ )
-        {
-            return true;
-        }
-        else if ( opid == Py_NE )
-        {
-            return false;
-        }
-    }
-
-    int line = _current_line;
-    PyObject *rich_result = PyObject_RichCompare( operand1, operand2, opid );
-    _current_line = line;
-
-    if (unlikely( rich_result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    bool result;
-
-    // Doing the quick tests on the outside spares the function call, with
-    // "partial inline" this should become unneeded.
-    if ( rich_result == Py_True )
-    {
-        result = true;
-    }
-    else if ( rich_result == Py_False || rich_result == Py_None )
-    {
-        result = false;
-    }
-    else
-    {
-        result = CHECK_IF_TRUE( rich_result );
-    }
-
-    Py_DECREF( rich_result );
-
-    return result;
-}
+#include "nuitka/helper/richcomparisons.hpp"
 
 NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONTAINS( PyObject *sequence, PyObject *element )
 {
@@ -413,9 +355,9 @@ NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_NOT_BOOL( PyObject *sequence,
 // Helper functions to debug the compiler operation.
 NUITKA_MAY_BE_UNUSED static void PRINT_REFCOUNT( PyObject *object )
 {
-   PyObject *stdout = PySys_GetObject((char *)"stdout");
+   PyObject *sys_stdout = PySys_GetObject((char *)"stdout");
 
-   if (unlikely( stdout == NULL ))
+   if (unlikely( sys_stdout == NULL ))
    {
       PyErr_Format( PyExc_RuntimeError, "problem with stdout" );
       throw _PythonException();
@@ -424,11 +366,10 @@ NUITKA_MAY_BE_UNUSED static void PRINT_REFCOUNT( PyObject *object )
    char buffer[1024];
    sprintf( buffer, " refcnt %zd ", object->ob_refcnt );
 
-   if (unlikely( PyFile_WriteString(buffer, stdout) == -1 ))
+   if (unlikely( PyFile_WriteString( buffer, sys_stdout ) == -1 ))
    {
       throw _PythonException();
    }
-
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *named_args, PyObject *positional_args, PyObject *function_object )
@@ -1286,7 +1227,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObjec
 
             PyObjectTemporary args( MAKE_TUPLE( attr_name, source ) );
 
-            PyObject *result = PyObject_Call( source_instance->in_class->cl_getattr, args.asObject(), NULL );
+            PyObject *result = PyObject_Call(
+                source_instance->in_class->cl_getattr,
+                args.asObject(),
+                NULL
+            );
 
             if (unlikely( result == NULL ))
             {
@@ -1794,5 +1739,13 @@ extern PyObject *IMPORT_EMBEDDED_MODULE( PyObject *module_name, PyObject *import
 extern void UNSTREAM_INIT( void );
 extern PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size );
 extern PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size );
+
+// Due to ABI issues, it seems that on Windows the symbols used by _PyObject_GC_TRACK are
+// exported and we need to use a function that does it instead.
+#if defined (__WIN32__)
+#define Nuitka_GC_Track PyObject_GC_Track
+#else
+#define Nuitka_GC_Track _PyObject_GC_TRACK
+#endif
 
 #endif

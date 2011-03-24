@@ -58,7 +58,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
     struct _context_%(function_identifier)s_t *_python_context = new _context_%(function_identifier)s_t;
 
     // Copy the parameter default values and closure values over.
-    %(context_copy)s
+%(context_copy)s
 
     PyObject *result = Nuitka_Function_New(
         %(fparse_function_identifier)s,

@@ -169,3 +169,16 @@ def nestedExpressions():
     print "nested generator expression", list(b)
 
 nestedExpressions()
+
+def lambdaGenerators():
+    a = 1
+
+    x = lambda : (yield a)
+
+    print "Simple lambda generator", x, x(), list( x() )
+
+    y = lambda : ((yield 1),(yield 2))
+
+    print "Complex lambda generator", y, y(), list( y() )
+
+lambdaGenerators()

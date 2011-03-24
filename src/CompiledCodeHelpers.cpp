@@ -741,15 +741,15 @@ void PRINT_NEW_LINE_TO( PyObject *file )
 
 PyObject *GET_STDOUT()
 {
-    PyObject *stdout = PySys_GetObject( (char *)"stdout" );
+    PyObject *result = PySys_GetObject( (char *)"stdout" );
 
-    if (unlikely( stdout == NULL ))
+    if (unlikely( result == NULL ))
     {
         PyErr_Format( PyExc_RuntimeError, "lost sys.stdout" );
         throw _PythonException();
     }
 
-    return stdout;
+    return result;
 }
 
 #if PY_MAJOR_VERSION < 3

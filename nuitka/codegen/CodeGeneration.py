@@ -211,20 +211,22 @@ def generateContractionCode( contraction, context ):
     else:
         line_number_code = ""
 
+
     if contraction.isExpressionGeneratorBuilder():
         assert len( contraction.getTargets() ) == len( sub_iterated_identifiers ) + 1
 
         contraction_decl = Generator.getFunctionDecl(
             function_identifier = contraction_identifier,
             decorator_count     = 0,
-            parameters          = None,
+            default_identifiers = (),
             closure_variables   = contraction.getClosureVariables(),
             is_generator        = True
         )
 
         contraction_code = Generator.getGeneratorExpressionCode(
             context              = context,
-            generator_name       = contraction.getBody().getFullName(),
+            # TODO: Re-enable this with compat options
+            generator_name       = "genexpr", # contraction.getBody().getFullName(),
             generator_filename   = contraction.getParentModule().getFilename(),
             generator_identifier = contraction_identifier,
             generator_code       = contraction_code,
@@ -346,7 +348,8 @@ def generateLambdaBodyCode( lambda_body, context ):
                 identifier = generateExpressionCode(
                     expression = lambda_body.getBody(),
                     context    = context
-                )
+                ),
+                for_return = True
             )
         )
     else:
@@ -367,6 +370,45 @@ def generateLambdaBodyCode( lambda_body, context ):
 
     return codes
 
+def _generateDefaultIdentifiers( parameters, default_expressions, sub_context, context ):
+    default_access_identifiers = []
+    default_value_identifiers = []
+
+    assert len( default_expressions ) == len( parameters.getDefaultParameterVariables() )
+
+    for default_parameter_value, variable in zip( default_expressions, parameters.getDefaultParameterVariables() ):
+        if default_parameter_value.isExpressionConstantRef() and not default_parameter_value.isMutable():
+            default_access_identifiers.append(
+                generateExpressionCode(
+                    expression = default_parameter_value,
+                    context    = sub_context
+                )
+            )
+        else:
+            default_value_identifiers.append(
+                generateExpressionCode(
+                    expression = default_parameter_value,
+                    context    = context
+                )
+            )
+
+            import Identifiers
+
+            if variable.isNestedParameterVariable():
+                default_access_identifier = Identifiers.DefaultValueIdentifier(
+                    var_name = "__".join( variable.getParameterNames() ),
+                    nested   = True
+                )
+            else:
+                default_access_identifier = Identifiers.DefaultValueIdentifier(
+                    var_name = variable.getName(),
+                    nested   = False
+                )
+
+            default_access_identifiers.append( default_access_identifier )
+
+    return default_access_identifiers, default_value_identifiers
+
 def generateLambdaCode( lambda_expression, context ):
     assert lambda_expression.isExpressionLambdaBuilder()
 
@@ -380,10 +422,19 @@ def generateLambdaCode( lambda_expression, context ):
         context     = lambda_context
     )
 
+    parameters = lambda_expression.getParameters()
+
+    default_access_identifiers, default_value_identifiers = _generateDefaultIdentifiers(
+        parameters          = parameters,
+        default_expressions = lambda_expression.getDefaultExpressions(),
+        sub_context         = lambda_context,
+        context             = context
+    )
+
     lambda_decl = Generator.getFunctionDecl(
         function_identifier = lambda_expression.getCodeName(),
         decorator_count     = 0,
-        parameters          = lambda_expression.getParameters(),
+        default_identifiers = default_access_identifiers,
         closure_variables   = lambda_expression.getClosureVariables(),
         is_generator        = False
     )
@@ -393,10 +444,12 @@ def generateLambdaCode( lambda_expression, context ):
             context              = lambda_context,
             function_name        = "<lambda>",
             function_identifier  = lambda_expression.getCodeName(),
-            parameters           = lambda_expression.getParameters(),
+            parameters           = parameters,
             user_variables       = lambda_expression.getBody().getUserLocalVariables(),
             decorator_count      = 0, # Lambda expressions can't be decorated.
             closure_variables    = lambda_expression.getClosureVariables(),
+            default_access_identifiers = default_access_identifiers,
+            default_value_identifiers  = default_value_identifiers,
             function_codes       = codes,
             function_filename    = lambda_expression.getParentModule().getFilename(),
             function_doc         = None # Lambda expressions don't have doc strings
@@ -406,10 +459,12 @@ def generateLambdaCode( lambda_expression, context ):
             context              = lambda_context,
             function_name        = "<lambda>",
             function_identifier  = lambda_expression.getCodeName(),
-            parameters           = lambda_expression.getParameters(),
+            parameters           = parameters,
             user_variables       = lambda_expression.getBody().getUserLocalVariables(),
             decorator_count      = 0, # Lambda expressions can't be decorated.
             closure_variables    = lambda_expression.getClosureVariables(),
+            default_access_identifiers = default_access_identifiers,
+            default_value_identifiers  = default_value_identifiers,
             function_codes       = codes,
             function_filename    = lambda_expression.getParentModule().getFilename(),
             function_doc         = None # Lambda expressions don't have doc strings
@@ -423,11 +478,8 @@ def generateLambdaCode( lambda_expression, context ):
 
     return Generator.getFunctionCreationCode(
         function_identifier = lambda_expression.getCodeName(),
-        default_values = generateExpressionsCode(
-            expressions = lambda_expression.getDefaultExpressions(),
-            context     = context
-        ),
         decorators          = (),
+        default_identifiers = default_value_identifiers,
         closure_variables   = lambda_expression.getClosureVariables(),
         context             = context
     )
@@ -455,15 +507,26 @@ def generateFunctionCode( function, context ):
         context   = context
     )
 
+    parameters = function.getParameters()
+
+    default_access_identifiers, default_value_identifiers = _generateDefaultIdentifiers(
+        parameters          = parameters,
+        default_expressions = function.getDefaultExpressions(),
+        sub_context         = function_context,
+        context             = context
+    )
+
     if function.isGenerator():
         function_code = Generator.getGeneratorFunctionCode(
             context              = function_context,
             function_name        = function.getFunctionName(),
             function_identifier  = function.getCodeName(),
-            parameters           = function.getParameters(),
+            parameters           = parameters,
             closure_variables    = function.getClosureVariables(),
             user_variables       = function.getBody().getUserLocalVariables(),
             decorator_count      = len( function.getDecorators() ),
+            default_access_identifiers = default_access_identifiers,
+            default_value_identifiers  = default_value_identifiers,
             function_filename    = function.getParentModule().getFilename(),
             function_codes       = function_codes,
             function_doc         = function.getBody().getDoc()
@@ -473,20 +536,21 @@ def generateFunctionCode( function, context ):
             context              = function_context,
             function_name        = function.getFunctionName(),
             function_identifier  = function.getCodeName(),
-            parameters           = function.getParameters(),
+            parameters           = parameters,
             closure_variables    = function.getClosureVariables(),
             user_variables       = function.getBody().getUserLocalVariables(),
             decorator_count      = len( function.getDecorators() ),
+            default_access_identifiers = default_access_identifiers,
+            default_value_identifiers  = default_value_identifiers,
             function_filename    = function.getParentModule().getFilename(),
             function_codes       = function_codes,
             function_doc         = function.getBody().getDoc()
         )
 
-
     function_decl = Generator.getFunctionDecl(
         function_identifier = function.getCodeName(),
         decorator_count     = len( function.getDecorators() ),
-        parameters          = function.getParameters(),
+        default_identifiers = default_access_identifiers,
         closure_variables   = function.getClosureVariables(),
         is_generator        = False
     )
@@ -497,16 +561,6 @@ def generateFunctionCode( function, context ):
         function_code = function_code
     )
 
-    default_value_identifiers = []
-
-    for default_parameter_value in function.getDefaultExpressions():
-        default_value_identifiers.append(
-            generateExpressionCode(
-                expression = default_parameter_value,
-                context    = context
-            )
-        )
-
     decorators = generateExpressionsCode(
         expressions = function.getDecorators(),
         context     = context
@@ -515,7 +569,7 @@ def generateFunctionCode( function, context ):
     function_creation_identifier = Generator.getFunctionCreationCode(
         function_identifier = function.getCodeName(),
         decorators          = decorators,
-        default_values      = default_value_identifiers,
+        default_identifiers = default_value_identifiers,
         closure_variables   = function.getClosureVariables(),
         context             = context
     )
@@ -1072,6 +1126,12 @@ def generateExpressionCode( expression, context, allow_none = False ):
 
     return identifier
 
+def _isComplexAssignmentTarget( targets ):
+    if type( targets ) not in ( tuple, list ) and targets.isAssignTargetSomething():
+        targets = [ targets ]
+
+    return len( targets ) > 1 or targets[0].isAssignTargetTuple()
+
 
 def generateAssignmentCode( targets, value, context, recursion = 1 ):
     # This is a dispatching function with a branch per assignment node type.
@@ -1080,18 +1140,26 @@ def generateAssignmentCode( targets, value, context, recursion = 1 ):
     if type( targets ) not in ( tuple, list ) and targets.isAssignTargetSomething():
         targets = [ targets ]
 
-    if len( targets ) == 1 and not targets[0].isAssignTargetTuple():
+    if not _isComplexAssignmentTarget( targets ):
         assign_source = value
         code = ""
 
         brace = False
     else:
         if value.getCheapRefCount() == 1:
-            code = "PyObjectTemporary _python_rvalue_%d( %s );\n" % ( recursion, value.getCodeExportRef() )
-            assign_source = Generator.Identifier( "_python_rvalue_%d.asObject()" % recursion, 0 )
+            assign_source = Generator.TempVariableIdentifier( "rvalue_%d" % recursion )
+
+            code = "PyObjectTemporary %s( %s );\n" % (
+                assign_source.getCode(),
+                value.getCodeExportRef()
+            )
         else:
-            code = "PyObject *_python_rvalue_%d = %s;\n" % ( recursion, value.getCodeTemporaryRef() )
             assign_source = Generator.Identifier( "_python_rvalue_%d" % recursion, 0 )
+            code = "PyObject *%s = %s;\n" % (
+                assign_source.getCode(),
+                value.getCodeTemporaryRef()
+            )
+
 
         brace = True
 
@@ -1162,7 +1230,13 @@ def generateAssignmentCode( targets, value, context, recursion = 1 ):
                 iterator_identifier = Generator.getTupleUnpackIteratorCode( recursion )
 
                 lvalue_identifiers = [
-                    Generator.getTupleUnpackLeftValueCode( recursion, count+1 )
+                    Generator.getTupleUnpackLeftValueCode(
+                        recursion  = recursion,
+                        count      = count+1,
+                        # TODO: Should check for tuple assignments, this is a bit
+                        # too easy
+                        single_use = len( targets ) == 1
+                    )
                     for count in
                     range( len( elements ))
                 ]
@@ -1170,7 +1244,7 @@ def generateAssignmentCode( targets, value, context, recursion = 1 ):
                 code += Generator.getUnpackTupleCode(
                     assign_source       = assign_source,
                     iterator_identifier = iterator_identifier,
-                    lvalue_identifiers  = lvalue_identifiers
+                    lvalue_identifiers  = lvalue_identifiers,
                 )
 
 
@@ -1633,37 +1707,36 @@ def generatePrintCode( statement, target_file, context ):
     )
 
 def generateBranchCode( statement, context ):
-    branches_codes = []
-
-    for branch in statement.getBranches():
-        branch_codes = generateStatementSequenceCode(
-            statement_sequence = branch,
-            context            = context
-        )
-
-        branches_codes.append( branch_codes )
-
     return Generator.getBranchCode(
         condition      = generateConditionCode(
             condition = statement.getCondition(),
             context   = context
         ),
-        branches_codes = branches_codes
+        yes_codes = generateStatementSequenceCode(
+            statement_sequence = statement.getBranchYes(),
+            allow_none         = True,
+            context            = context
+        ),
+        no_codes = generateStatementSequenceCode(
+            statement_sequence = statement.getBranchNo(),
+            allow_none         = True,
+            context            = context
+        )
     )
 
 def generateWhileLoopCode( statement, context ):
     loop_body_codes = generateStatementSequenceCode(
         statement_sequence = statement.getLoopBody(),
+        allow_none         = True,
         context            = context
     )
 
-    if statement.getNoEnter() is not None:
-        loop_else_codes = generateStatementSequenceCode(
-            statement_sequence = statement.getNoEnter(),
-            context            = context
-        )
-    else:
-        loop_else_codes = []
+
+    loop_else_codes = generateStatementSequenceCode(
+        statement_sequence = statement.getNoEnter(),
+        allow_none         = True,
+        context            = context
+    )
 
     return Generator.getWhileLoopCode(
         condition        = generateConditionCode(
@@ -1676,6 +1749,23 @@ def generateWhileLoopCode( statement, context ):
         needs_exceptions = statement.needsExceptionBreakContinue(),
     )
 
+def mayRaise( targets ):
+    if type( targets ) not in ( tuple, list ) and targets.isAssignTargetSomething():
+        targets = [ targets ]
+
+    # TODO: Identify more things that cannot raise. Slices, etc. could be annotated
+    # in finalization if their lookup could fail at all.
+
+    for target in targets:
+        if target.isAssignTargetVariable():
+            pass
+        else:
+            break
+    else:
+        return False
+
+    return True
+
 def generateForLoopCode( statement, context ):
 
     iter_name, iter_value, iter_object = Generator.getForLoopNames( context = context )
@@ -1687,24 +1777,38 @@ def generateForLoopCode( statement, context ):
         )
     )
 
-    assignment_code = generateAssignmentCode(
-        targets   = statement.getLoopVariableAssignment(),
-        value     = iter_object,
-        context   = context
+    targets = statement.getLoopVariableAssignment()
+
+    if _isComplexAssignmentTarget( targets ) or mayRaise( targets ):
+        iter_identifier = Generator.TempVariableIdentifier( iter_object )
+
+        assignment_code = "PyObjectTemporary %s( %s );\n" % (
+            iter_identifier.getCode(),
+            iter_value
+        )
+    else:
+        iter_identifier = Generator.Identifier( iter_value, 1 )
+
+        assignment_code = ""
+
+    assignment_code += generateAssignmentCode(
+        targets = targets,
+        value   = iter_identifier,
+        context = context
     )
 
     loop_body_codes = generateStatementSequenceCode(
         statement_sequence = statement.getBody(),
+        allow_none         = True,
         context            = context
     )
 
-    if statement.getNoBreak() is not None:
-        loop_else_codes = generateStatementSequenceCode(
-            statement_sequence = statement.getNoBreak(),
-            context            = context
-        )
-    else:
-        loop_else_codes = []
+
+    loop_else_codes = generateStatementSequenceCode(
+        statement_sequence = statement.getNoBreak(),
+        allow_none         = True,
+        context            = context
+    )
 
     if Options.shallHaveStatementLines():
         line_number_code = Generator.getCurrentLineCode(
@@ -1718,7 +1822,7 @@ def generateForLoopCode( statement, context ):
         iterator         = iterator,
         iter_name        = iter_name,
         iter_value       = iter_value,
-        iter_object      = iter_object,
+        iter_object      = iter_identifier,
         loop_var_code    = assignment_code,
         loop_body_codes  = loop_body_codes,
         loop_else_codes  = loop_else_codes,
@@ -1962,7 +2066,10 @@ def _generateStatementCode( statement, context ):
 
     return code
 
-def generateStatementSequenceCode( statement_sequence, context ):
+def generateStatementSequenceCode( statement_sequence, context, allow_none = False ):
+    if allow_none and statement_sequence is None:
+        return None
+
     assert statement_sequence.isStatementsSequence(), statement_sequence
 
     statements = statement_sequence.getStatements()

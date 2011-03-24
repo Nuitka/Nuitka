@@ -131,3 +131,19 @@ def branchingFunction( a, b, c ):
         print "Predictable branch taken"
 
 branchingFunction(1,0,3)
+
+x = 3
+
+def optimizationVictim():
+
+    if x:
+        pass
+    else:
+        pass
+
+    if x:
+        pass
+        pass
+
+
+optimizationVictim()

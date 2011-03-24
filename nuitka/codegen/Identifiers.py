@@ -160,6 +160,30 @@ class TempVariableIdentifier( Identifier ):
     def getCodeObject( self ):
         return "%s.asObject()" % self.getCode()
 
+    def getClass( self ):
+        return "PyObjectTemporary"
+
+class HolderVariableIdentifier( Identifier ):
+    def __init__( self, tempvar_name ):
+        self.tempvar_name = tempvar_name
+
+        Identifier.__init__( self, "_python_holder_" + tempvar_name, 0 )
+
+    def __repr__( self ):
+        return "<HolderVariableIdentifier %s >" % self.tempvar_name
+
+    def getRefCount( self ):
+        return 1
+
+    def getCheapRefCount( self ):
+        return 1
+
+    def getCodeObject( self ):
+        return "%s.asObject()" % self.getCode()
+
+    def getClass( self ):
+        return "PyObjectTempHolder"
+
 
 class ClosureVariableIdentifier( Identifier ):
     def __init__( self, var_name, from_context ):
@@ -184,6 +208,25 @@ class ClosureVariableIdentifier( Identifier ):
 
     def getCodeDropRef( self ):
         return "DECREASE_REFCOUNT( %s )" % self.getCodeObject()
+
+
+class DefaultValueIdentifier( Identifier ):
+    def __init__( self, var_name, nested ):
+        if nested:
+            Identifier.__init__(
+                self,
+                code      = "_python_context->default_values_" + var_name,
+                ref_count = 0
+            )
+        else:
+            Identifier.__init__(
+                self,
+                code      = "_python_context->default_value_" + var_name,
+                ref_count = 0
+            )
+
+    def getCheapRefCount( self ):
+        return 0
 
 
 def getCodeTemporaryRefs( identifiers ):

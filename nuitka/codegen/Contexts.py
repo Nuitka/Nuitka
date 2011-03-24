@@ -347,9 +347,6 @@ class PythonFunctionContext( PythonChildContextBase ):
         else:
             return ClosureVariableIdentifier( var_name, from_context = "_python_context->common_context->" )
 
-    def getDefaultHandle( self, var_name ):
-        return Identifier( "_python_context->default_value_" + var_name, 0 )
-
     def getLambdaExpressionCodeHandle( self, lambda_expression ):
         return self.parent.getLambdaExpressionCodeHandle( lambda_expression = lambda_expression )
 
@@ -456,16 +453,17 @@ class PythonLambdaExpressionContext( PythonChildContextBase ):
         self.parameter_names = lambda_def.getBody().getParameters().getParameterNames()
 
     def getClosureHandle( self, var_name ):
-        return ClosureVariableIdentifier( var_name, from_context = "_python_context->" )
+        if not self.lambda_def.isGenerator():
+            return ClosureVariableIdentifier( var_name, from_context = "_python_context->" )
+        else:
+            return ClosureVariableIdentifier( var_name, from_context = "_python_context->common_context->" )
+
 
     def hasLocalVariable( self, var_name ):
         return var_name in self.parameter_names
 
     def getLocalHandle( self, var_name ):
         return LocalVariableIdentifier( var_name )
-
-    def getDefaultHandle( self, var_name ):
-        return Identifier( "_python_context->default_value_" + var_name, 0 )
 
     def getTracebackFilename( self ):
         return self.lambda_def.getParentModule().getFilename()

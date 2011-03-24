@@ -43,14 +43,15 @@ from .Indentation import indented
 
 def _getDefaultParameterCodeName( variable ):
     if variable.isNestedParameterVariable():
-        return "default_values_%s" % "_".join( variable.getParameterNames() )
+        return "default_values_%s" % "__".join( variable.getParameterNames() )
     else:
         return "default_value_%s" % variable.getName()
 
-def getDefaultParameterDeclarations( parameters ):
+def getDefaultParameterDeclarations( default_identifiers ):
     return [
-        "PyObject *%s" % _getDefaultParameterCodeName( defaulted_variable )
-        for defaulted_variable in parameters.getDefaultParameterVariables()
+        "PyObject *%s" % default_identifier.getCode().split( "->" )[1]
+        for default_identifier in default_identifiers
+        if "->" in default_identifier.getCode()
     ]
 
 def getParameterEntryPointIdentifier( function_identifier, is_method ):
@@ -59,31 +60,36 @@ def getParameterEntryPointIdentifier( function_identifier, is_method ):
     else:
         return "_fparse_" + function_identifier
 
-def getParameterContextCode( parameters ):
+def getParameterContextCode( default_access_identifiers ):
     context_decl = []
     context_copy = []
     context_free = []
 
-    for defaulted_variable in parameters.getDefaultParameterVariables():
-        default_par_code_name = _getDefaultParameterCodeName( defaulted_variable )
+    for default_access_identifier in default_access_identifiers:
+        default_par_code = default_access_identifier.getCode()
 
-        context_decl.append(
-            "PyObject *%s;" % default_par_code_name
-        )
-        context_copy.append(
-            "_python_context->%s = %s;" % (
-                default_par_code_name,
-                default_par_code_name
+        if "->" in default_par_code:
+            default_par_code_name = default_par_code.split("->")[1]
+
+            context_decl.append(
+                "PyObject *%s;" % default_par_code_name
             )
-        )
-        context_free.append(
-            "Py_DECREF( _python_context->%s );" % default_par_code_name
-        )
+            context_copy.append(
+                "_python_context->%s = %s;" % (
+                    default_par_code_name,
+                    default_par_code_name
+                )
+            )
+            context_free.append(
+                "Py_DECREF( _python_context->%s );" % default_par_code_name
+            )
+
+    # print default_access_identifiers, context_decl, context_copy, context_free
 
     return context_decl, context_copy, context_free
 
 
-def _getParameterParsingCode( context, parameters, function_name, is_method ):
+def _getParameterParsingCode( context, parameters, function_name, default_identifiers, is_method ):
     parameter_parsing_code = "".join(
         [
             "PyObject *_python_par_" + variable.getName() + " = NULL;\n"
@@ -197,25 +203,25 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
     if parameters.hasDefaultParameters():
         parameter_parsing_code += "// Assign values not given to defaults\n"
 
-        for variable in parameters.getDefaultParameterVariables():
+        for count, variable in enumerate( parameters.getDefaultParameterVariables() ):
             if not variable.isNestedParameterVariable():
                 parameter_parsing_code += CodeTemplates.parse_argument_template_copy_default_value % {
                     "parameter_name"     : variable.getName(),
-                    "default_identifier" : context.getDefaultHandle( variable.getName() ).getCode()
+                    "default_identifier" : default_identifiers[ count ].getCodeExportRef()
                 }
 
 
-    def unPackNestedParameterVariables( variables, recursion ):
+    def unPackNestedParameterVariables( variables, default_identifiers, recursion ):
         result = ""
 
-        for variable in variables:
+        for count, variable in enumerate( variables ):
             if variable.isNestedParameterVariable():
-                if recursion == 1 and variable in parameters.getDefaultParameterVariables():
+                if recursion == 1 and count < len( default_identifiers ):
                     assign_source = Identifier(
-                        "_python_par_%s ? _python_par_%s : _python_context->%s" % (
+                        "_python_par_%s ? _python_par_%s : %s" % (
                             variable.getName(),
                             variable.getName(),
-                            _getDefaultParameterCodeName( variable )
+                            default_identifiers[ count ].getCode()
                         ),
                         0
                     )
@@ -246,23 +252,23 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
         for variable in variables:
             if variable.isNestedParameterVariable():
                 result += unPackNestedParameterVariables(
-                    variables = variable.getTopLevelVariables(),
-                    recursion = recursion + 1
+                    variables           = variable.getTopLevelVariables(),
+                    default_identifiers = (),
+                    recursion           = recursion + 1
                 )
 
         return result
 
     parameter_parsing_code += unPackNestedParameterVariables(
-        variables = top_level_parameters,
-        recursion = 1
+        variables           = top_level_parameters,
+        default_identifiers = default_identifiers,
+        recursion           = 1
     )
 
     return indented( parameter_parsing_code )
 
-def getParameterParsingCode( context, function_identifier, function_name, parameters, context_access_template ):
-
-
-    if parameters.getDefaultParameterCount():
+def getParameterParsingCode( context, function_identifier, function_name, parameters, default_identifiers, context_access_template ):
+    if getDefaultParameterDeclarations( default_identifiers ):
         context_access = context_access_template % {
             "function_identifier" : function_identifier
         }
@@ -302,10 +308,11 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
 
     parameter_entry_point_code = CodeTemplates.template_parameter_function_entry_point % {
         "parameter_parsing_code" : _getParameterParsingCode(
-            context       = context,
-            function_name = function_name,
-            parameters    = parameters,
-            is_method     = False
+            context             = context,
+            function_name       = function_name,
+            parameters          = parameters,
+            default_identifiers = default_identifiers,
+            is_method           = False
         ),
         "parse_function_identifier" : getParameterEntryPointIdentifier( function_identifier, False ),
         "impl_function_identifier"  : "impl_" + function_identifier,
@@ -319,10 +326,11 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
 
         parameter_entry_point_code += CodeTemplates.template_parameter_method_entry_point % {
             "parameter_parsing_code" : _getParameterParsingCode(
-                context       = context,
-                function_name = function_name,
-                parameters    = parameters,
-                is_method     = True
+                context             = context,
+                function_name       = function_name,
+                parameters          = parameters,
+                default_identifiers = default_identifiers,
+                is_method           = True
             ),
             "parse_function_identifier" : mparse_identifier,
             "impl_function_identifier"  : "impl_" + function_identifier,

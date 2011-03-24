@@ -171,10 +171,10 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
 
                     new_node = node.getBranchNo()
 
-                    if new_node is None:
-                        new_node = Nodes.CPythonStatementPass(
-                            source_ref = node.getSourceReference()
-                        )
+                if new_node is None:
+                    new_node = Nodes.CPythonStatementPass(
+                        source_ref = node.getSourceReference()
+                    )
 
                 node.replaceWith( new_node )
 

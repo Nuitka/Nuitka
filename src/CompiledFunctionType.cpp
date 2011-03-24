@@ -324,7 +324,7 @@ static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, Py
     static long Nuitka_Function_counter = 0;
     result->m_counter = Nuitka_Function_counter++;
 
-    _PyObject_GC_TRACK( result );
+    Nuitka_GC_Track( result );
     return (PyObject *)result;
 }
 

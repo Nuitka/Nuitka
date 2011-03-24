@@ -76,12 +76,12 @@ unary_operator_codes = {
 }
 
 rich_comparison_codes = {
-    "Lt"    : "Py_LT",
-    "LtE"   : "Py_LE",
-    "Eq"    : "Py_EQ",
-    "NotEq" : "Py_NE",
-    "Gt"    : "Py_GT",
-    "GtE"   : "Py_GE"
+    "Lt"    : "LT",
+    "LtE"   : "LE",
+    "Eq"    : "EQ",
+    "NotEq" : "NE",
+    "Gt"    : "GT",
+    "GtE"   : "GE"
 }
 
 normal_comparison_codes = {

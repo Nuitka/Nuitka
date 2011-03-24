@@ -68,3 +68,39 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
                 node.replaceWith( new_node )
 
                 TreeOperations.assignParent( new_node )
+
+        elif node.isStatementPass():
+            parent = node.getParent()
+
+            statements = parent.getStatements()
+
+            if len( statements ) == 1:
+                owner = parent.getParent()
+
+                if owner.isStatementConditional():
+                    parent.replaceWith( None )
+                elif owner.isStatementForLoop():
+                    parent.replaceWith( None )
+                elif owner.isStatementWhileLoop():
+                    parent.replaceWith( None )
+                else:
+                    # It's a pass in something else, TODO: Consider a warning to
+                    # discover if it would be useful.
+                    pass
+
+            else:
+                statements = list( statements )
+                offset = statements.index( node )
+
+                del statements[ offset ]
+
+                new_node = Nodes.CPythonStatementsSequence(
+                    statements = statements,
+                    source_ref = parent.getSourceReference()
+                )
+
+                parent.replaceWith( new_node )
+
+                TreeOperations.assignParent( new_node )
+
+                raise TreeOperations.RestartVisit

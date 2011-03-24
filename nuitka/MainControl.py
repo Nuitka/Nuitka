@@ -232,6 +232,9 @@ def runScons( tree, quiet ):
         "lto_mode"       : asBoolStr( Options.isLto() ),
     }
 
+    if Options.options.windows_target:
+        options[ "win_target" ] = "true"
+
     scons_command = """scons %(quiet)s -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
         "quiet"      : " --quiet " if quiet else " ",
         "scons_file" : os.environ[ "NUITKA_SCONS" ] + "/SingleExe.scons",

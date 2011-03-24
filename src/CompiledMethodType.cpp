@@ -465,6 +465,6 @@ PyObject *Nuitka_Method_New( Nuitka_FunctionObject *function, PyObject *object, 
     result->m_dict   = NULL;
     result->m_weakrefs = NULL;
 
-    _PyObject_GC_TRACK( result );
+    Nuitka_GC_Track( result );
     return (PyObject *)result;
 }

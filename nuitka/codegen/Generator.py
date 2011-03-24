@@ -43,6 +43,7 @@ import pickle
 from .Identifiers import (
     Identifier,
     ModuleVariableIdentifier,
+    HolderVariableIdentifier,
     TempVariableIdentifier,
     getCodeTemporaryRefs,
     getCodeExportRefs
@@ -103,11 +104,17 @@ def getReturnCode( identifier ):
     else:
         return "return;"
 
-def getYieldCode( identifier ):
-    return Identifier(
-        "YIELD_VALUE( generator, %s )" % identifier.getCodeExportRef(),
-        0
-    )
+def getYieldCode( identifier, for_return = False ):
+    if not for_return:
+        return Identifier(
+            "YIELD_VALUE( generator, %s )" % identifier.getCodeExportRef(),
+            0
+        )
+    else:
+        return Identifier(
+            "YIELD_RETURN( generator, %s )" % identifier.getCodeExportRef(),
+            0
+        )
 
 def getYieldTerminatorCode():
     return "throw ReturnException();"
@@ -427,7 +434,8 @@ def getUnpackTupleCode( assign_source, iterator_identifier, lvalue_identifiers )
     )
 
     for count, lvalue_identifier in enumerate( lvalue_identifiers ):
-        result += "PyObjectTemporary %s( %s );\n" % (
+        result += "%s %s( %s );\n" % (
+            lvalue_identifier.getClass(),
             lvalue_identifier.getCode(),
             getUnpackNextCode(
                 iterator      = iterator_identifier,
@@ -595,10 +603,10 @@ def getConditionalExpressionCode( condition, codes_no, codes_yes ):
     else:
         return Identifier( "( %s ? %s : %s )" % ( condition.getCode(), codes_yes.getCodeExportRef(), codes_no.getCodeExportRef() ), 1 )
 
-def getFunctionCreationCode( context, function_identifier, decorators, default_values, closure_variables ):
-    args = [ identifier.getCodeTemporaryRef() for identifier in decorators ]
+def getFunctionCreationCode( context, function_identifier, decorators, default_identifiers, closure_variables ):
+    args = getCodeTemporaryRefs( decorators )
 
-    args += [ identifier.getCodeExportRef() for identifier in default_values ]
+    args += getCodeExportRefs( default_identifiers )
 
     args += getClosureVariableProvisionCode(
         context           = context,
@@ -613,17 +621,22 @@ def getFunctionCreationCode( context, function_identifier, decorators, default_v
         1
     )
 
-def getBranchCode( condition, branches_codes ):
-    if len( branches_codes ) == 1:
+def getBranchCode( condition, yes_codes, no_codes ):
+    # TODO: Make this true
+    # assert yes_codes
+
+    if no_codes is None:
         return CodeTemplates.template_branch_one % {
             "condition"   : condition.getCode(),
-            "branch_code" : indented( branches_codes[ 0 ] )
+            "branch_code" : indented( yes_codes if yes_codes is not None else "" )
         }
     else:
+        assert no_codes, no_codes
+
         return CodeTemplates.template_branch_two % {
             "condition"       : condition.getCode(),
-            "branch_yes_code" : indented( branches_codes[ 0 ] ),
-            "branch_no_code"  : indented( branches_codes[ 1 ] )
+            "branch_yes_code" : indented( yes_codes if yes_codes is not None else "" ),
+            "branch_no_code"  : indented( no_codes )
         }
 
 def getLoopContinueCode( needs_exceptions ):
@@ -666,7 +679,7 @@ def getComparisonExpressionCode( context, comparators, operands ):
             )
         elif comparator in OperatorCodes.rich_comparison_codes:
             comparison = Identifier(
-                "RICH_COMPARE( %s, %s, %s )" % (
+                "RICH_COMPARE_%s( %s, %s )" % (
                     OperatorCodes.rich_comparison_codes[ comparator ],
                     right.getCodeTemporaryRef(),
                     left.getCodeTemporaryRef()
@@ -709,7 +722,7 @@ def getComparisonExpressionCode( context, comparators, operands ):
             if comparator in OperatorCodes.normal_comparison_codes:
                 assert False, comparator
             elif comparator in OperatorCodes.rich_comparison_codes:
-                chunk = "RICH_COMPARE_BOOL( %s, %s, %s )" % (
+                chunk = "RICH_COMPARE_BOOL_%s( %s, %s )" % (
                     OperatorCodes.rich_comparison_codes[ comparator ],
                     right_tmp,
                     left_tmp.getCodeTemporaryRef()
@@ -767,7 +780,7 @@ def getComparisonExpressionBoolCode( context, comparators, operands ):
             )
         elif comparator in OperatorCodes.rich_comparison_codes:
             comparison = Identifier(
-                "RICH_COMPARE_BOOL( %s, %s, %s )" % (
+                "RICH_COMPARE_BOOL_%s( %s, %s )" % (
                     OperatorCodes.rich_comparison_codes[ comparator ],
                     right.getCodeTemporaryRef(),
                     left.getCodeTemporaryRef()
@@ -812,7 +825,7 @@ def getComparisonExpressionBoolCode( context, comparators, operands ):
             if comparator in OperatorCodes.normal_comparison_codes:
                 assert False, comparator
             elif comparator in OperatorCodes.rich_comparison_codes:
-                chunk = "RICH_COMPARE_BOOL( %s, %s, %s )" % (
+                chunk = "RICH_COMPARE_BOOL_%s( %s, %s )" % (
                     OperatorCodes.rich_comparison_codes[ comparator ],
                     right_tmp,
                     left_tmp.getCodeTemporaryRef()
@@ -983,14 +996,22 @@ def getForLoopNames( context ):
     return (
         "_python_for_loop_iterator_%d" % for_count,
         "_python_for_loop_itervalue_%d" % for_count,
-        TempVariableIdentifier( "itertemp_%d" % for_count )
+        "itertemp_%d" % for_count
     )
 
 def getForLoopCode( context, line_number_code, iterator, iter_name, iter_value, iter_object, loop_var_code, loop_body_codes, loop_else_codes, needs_exceptions ):
+
+    loop_body_codes = loop_body_codes if loop_body_codes is not None else ""
+    loop_else_codes = loop_else_codes if loop_else_codes is not None else ""
+
+    # TODO: Make this true
+    # assert loop_else_codes or loop_body_codes
+
     for_loop_template = CodeTemplates.getForLoopTemplate(
         needs_exceptions = needs_exceptions,
         has_else_codes   = loop_else_codes
     )
+
 
     indicator_name = "_python_for_loop_indicator_%d" % context.allocateForLoopNumber()
 
@@ -1016,8 +1037,8 @@ def getWhileLoopCode( context, condition, loop_body_codes, loop_else_codes, need
 
     return while_loop_template % {
         "condition"       : condition.getCode(),
-        "loop_body_codes" : indented( loop_body_codes ),
-        "loop_else_codes" : indented( loop_else_codes ),
+        "loop_body_codes" : indented( loop_body_codes if loop_body_codes is not None else "" ),
+        "loop_else_codes" : indented( loop_else_codes if loop_else_codes is not None else "" ),
         "indicator_name"  : indicator_name
     }
 
@@ -1902,7 +1923,7 @@ def getContractionIterValueIdentifier( context, index ):
     else:
         return Identifier( "_python_genexpr_iter_value", 0 )
 
-def _getFunctionCreationArgs( decorator_count, parameters, closure_variables, is_generator ):
+def _getFunctionCreationArgs( decorator_count, default_identifiers, closure_variables, is_generator ):
     if decorator_count:
         result = [
             "PyObject *decorator_%d" % ( d + 1 )
@@ -1915,24 +1936,24 @@ def _getFunctionCreationArgs( decorator_count, parameters, closure_variables, is
     if is_generator:
         result += [ "PyObject *iterator" ]
 
-    if parameters is not None:
-        result += ParameterParsing.getDefaultParameterDeclarations(
-            parameters = parameters
-        )
+
+    result += ParameterParsing.getDefaultParameterDeclarations(
+        default_identifiers = default_identifiers
+    )
 
     for closure_variable in closure_variables:
         result.append( "PyObjectSharedLocalVariable &python_closure_%s" % closure_variable.getName() )
 
     return ", ".join( result )
 
-def getFunctionDecl( function_identifier, decorator_count, parameters, closure_variables, is_generator ):
+def getFunctionDecl( function_identifier, decorator_count, default_identifiers, closure_variables, is_generator ):
     return CodeTemplates.function_decl_template % {
         "function_identifier"    : function_identifier,
         "function_creation_args" : _getFunctionCreationArgs(
-            decorator_count   = decorator_count,
-            parameters        = parameters,
-            closure_variables = closure_variables,
-            is_generator      = is_generator
+            decorator_count     = decorator_count,
+            default_identifiers = default_identifiers,
+            closure_variables   = closure_variables,
+            is_generator        = is_generator
         )
     }
 
@@ -2020,16 +2041,19 @@ def _getDecoratorsCallCode( decorator_count ):
     return decorator_calls
 
 
-def getGeneratorFunctionCode( context, function_name, function_identifier, parameters, closure_variables, user_variables, decorator_count, function_codes, function_filename, function_doc ):
+def getGeneratorFunctionCode( context, function_name, function_identifier, parameters, closure_variables, user_variables, decorator_count, default_access_identifiers, default_value_identifiers, function_codes, function_filename, function_doc ):
     function_parameter_variables, parameter_entry_point_code, parameter_objects_decl, mparse_identifier = ParameterParsing.getParameterParsingCode(
         function_identifier     = function_identifier,
         function_name           = function_name,
         parameters              = parameters,
+        default_identifiers     = default_access_identifiers,
         context_access_template = CodeTemplates.generator_context_access_template,
         context                 = context,
     )
 
-    context_decl, context_copy, context_free = ParameterParsing.getParameterContextCode( parameters )
+    context_decl, context_copy, context_free = ParameterParsing.getParameterContextCode(
+        default_access_identifiers = default_access_identifiers
+    )
 
     function_parameter_decl = [
         _getLocalVariableInitCode(
@@ -2097,11 +2121,11 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
             )
         )
 
-    function_creation_args = _getFunctionCreationArgs(
-        decorator_count   = decorator_count,
-        parameters        = parameters,
-        closure_variables = closure_variables,
-        is_generator      = False
+    function_creation_args  = _getFunctionCreationArgs(
+        decorator_count     = decorator_count,
+        default_identifiers = default_access_identifiers,
+        closure_variables   = closure_variables,
+        is_generator        = False
     )
 
     function_decorator_calls = _getDecoratorsCallCode(
@@ -2178,17 +2202,18 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 
     return result
 
-def getFunctionCode( context, function_name, function_identifier, parameters, closure_variables, user_variables, decorator_count, function_codes, function_filename, function_doc ):
+def getFunctionCode( context, function_name, function_identifier, parameters, closure_variables, user_variables, decorator_count, default_access_identifiers, default_value_identifiers, function_codes, function_filename, function_doc ):
     function_parameter_variables, parameter_entry_point_code, parameter_objects_decl, mparse_identifier = ParameterParsing.getParameterParsingCode(
         function_identifier     = function_identifier,
         function_name           = function_name,
         parameters              = parameters,
+        default_identifiers     = default_access_identifiers,
         context_access_template = CodeTemplates.function_context_access_template,
         context                 = context,
     )
 
     context_decl, context_copy, context_free = ParameterParsing.getParameterContextCode(
-        parameters = parameters
+        default_access_identifiers = default_access_identifiers
     )
 
     function_parameter_decl = [
@@ -2214,10 +2239,10 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         )
 
     function_creation_args = _getFunctionCreationArgs(
-        decorator_count   = decorator_count,
-        parameters        = parameters,
-        closure_variables = closure_variables,
-        is_generator      = False
+        decorator_count     = decorator_count,
+        closure_variables   = closure_variables,
+        default_identifiers = default_access_identifiers,
+        is_generator        = False
     )
 
     # User local variable initializations
@@ -2287,7 +2312,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         result += CodeTemplates.make_function_with_context_template % {
             "function_name"              : function_name,
             "function_name_obj"          : getConstantCode(
-                context = context,
+                context  = context,
                 constant = function_name
             ),
             "function_identifier"        : function_identifier,
@@ -2421,8 +2446,11 @@ def getCurrentExceptionObjectCode():
 def getTupleUnpackIteratorCode( recursion ):
     return TempVariableIdentifier( "tuple_iterator_%d" % recursion )
 
-def getTupleUnpackLeftValueCode( recursion, count ):
-    return TempVariableIdentifier( "tuple_lvalue_%d_%d" % ( recursion, count ) )
+def getTupleUnpackLeftValueCode( recursion, count, single_use ):
+    if single_use:
+        return HolderVariableIdentifier( "tuple_lvalue_%d_%d" % ( recursion, count ) )
+    else:
+        return TempVariableIdentifier( "tuple_lvalue_%d_%d" % ( recursion, count ) )
 
 def _getClosureVariableDecl( variable ):
     owner = variable.getOwner()

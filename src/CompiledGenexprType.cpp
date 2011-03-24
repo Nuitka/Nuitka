@@ -264,6 +264,6 @@ PyObject *Nuitka_Genexpr_New( producer code, PyObject *name, PyObject *iterated,
         result->iterators[ i ] = NULL;
     }
 
-    _PyObject_GC_TRACK( result );
+    Nuitka_GC_Track( result );
     return (PyObject *)result;
 }

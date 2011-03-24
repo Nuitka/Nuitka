@@ -56,7 +56,7 @@ class PyObjectTemporary {
             Py_DECREF( this->object );
         }
 
-        PyObject *asObject()
+        PyObject *asObject() const
         {
             assertObject( this->object );
 
@@ -76,6 +76,35 @@ class PyObjectTemporary {
 
     private:
         PyObjectTemporary( const PyObjectTemporary &object ) = delete;
+
+        PyObject *object;
+};
+
+class PyObjectTempHolder {
+    public:
+        explicit PyObjectTempHolder( PyObject *object )
+        {
+            assertObject( object );
+
+            this->object = object;
+        }
+
+        ~PyObjectTempHolder()
+        {
+            Py_XDECREF( this->object );
+        }
+
+        PyObject *asObject()
+        {
+            assertObject( this->object );
+
+            PyObject *result = this->object;
+            this->object = NULL;
+            return result;
+        }
+
+    private:
+        PyObjectTempHolder( const PyObjectTempHolder &object ) = delete;
 
         PyObject *object;
 };

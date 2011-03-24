@@ -445,6 +445,38 @@ This is the list of tests modified from what they are in CPython.
     Removed, does not run with CPython
 
 
+* Shedskin Example changes:
+
+This section is building up only. The Shed Skin example programs are very valueable,
+because they show how programs that allow type inference can be improved, and generally
+although Nuitka and Shed Skin are different beasts, it's very interesting to look at what
+Shed Skin is good at and potentially benefit from it in decisions for Nuitka.
+
+** Modified examples:
+
+This is the list of examples modified from the original tarball, most often to make them
+complete in less time, so it's more feasible to consider them in valgrind.
+
+*** ant.py
+
+Changed numCities from 200 to 100, so it runs faster. It took 30 seconds before and I
+consider 10 seconds or below a must.
+
+The speedup compared to CPython is currently insufficient. The code is bound by floating
+point speed of the CPython objects that have a lot of overhead, because of checks and the
+handling of exceptions. Without recognizing the types of variables and treating floating
+point objects in a special way, there is no chance to be competetive on this example.
+
+I got the idea though, that a "local only" float object makes sense, potentially also for
+temporary variables. Avoiding the malloc per new value would give the most benefit of all
+things I assume.
+
+** Deleted examples:
+
+*** ac_encode.py
+
+Too fast running to be useful.
+
 * Optimizations
 
 ** Constant Folding
@@ -458,41 +490,88 @@ Literals are one source of constants, but also most likely other optimization st
 constant propagation or function inlining would be. So this one is not be underestimated
 and a very important step of successful optimizations.
 
+The folding of constants is considered implemented, but it may not be entirely complete
+yet. Please report it as a bug when you find an operation in Nuitka that has only
+constants are input and is not folded.
+
 ** Constant Propagation
 
 At the core of optimizations there is an attempt to determine values of variables at run
 time and predictions of assignments. It determines if their inputs are constants or of
 similar values. An expression, e.g. a module variable access, an expensive operation, may
-be constant across the module of the function scope and then there needs to be module
-lookup.
+be constant across the module of the function scope and then there needs to be none, or no
+repeated module variable lookup.
 
-Consider e.g. the module attribute ("__name__" e.g.)  which maybe is only ever be read, so
-its value could be predicted to a constant string. This can then be used as input to the
-constant folding. Currently there is module variable usage analysis, but only "__name__"
-is currently actually optimized. At this stage it is more a proof of concept in Nuitka and
-will need considerably more work.
+Consider e.g. the module attribute "__name__" which likely is only ever be read, so its
+value could be predicted to a constant string known at compile time. This can then be used
+as input to the constant folding. Currently there is module variable usage analysis, but
+only "__name__" is currently actually optimized.
+
+At this stage it is more a proof of concept in Nuitka and will need considerably more
+work, so that the whole node tree contains only one form of assignments. Until then we
+cannot implement this fully.
 
 ** Builtin Call Prediction
 
 For builtin calls like "type", "len", "range" it is often possible to predict the result
 at compile time, esp. for constant inputs the resulting value often can be precomputed by
 Nuitka. It can simply determine the result or the raised exception and replace the builtin
-call with it allowing for more constant folding or code path folding. Right now the static
-exception raising is not implemented yet, but some builtins are already predicted.
+call with it allowing for more constant folding or code path folding.
+
+The builtin call prediction is considered implemented, but may not cover all the builtins
+there are yet. Sometimes builtins are not predicted when the result is big. A range() call
+e.g. may give too big values to include the result in the binary.
 
 ** Conditional Statement Prediction
 
 For conditional statements, some branches may not ever be taken, because of the conditions
 being possible to predict. In these cases, the branch not taken and the condition check is
-removed. This can typically predict 'if __name__ == "__main__":... ' style statements, but
-it will also greatly benefit from constant propagations, or enable them because once some
-branches have been removed, other things may become more predictable.
+removed.
+
+This can typically predict code like this:
+
+if __name__ == "__main__":
+   do_something_nether_done_as_module()
+
+It will also greatly benefit from constant propagations, or enable them because once some
+branches have been removed, other things may become more predictable, so this is critical.
+
+With some code branches removed, access patterns may be more friendly. Imagine e.g. that a
+function is only called in a removed branch. It may be possible to remove it entirely, and
+that may have other consequences too.
+
+** Empty branch removal
+
+For loops and conditional statements that contain only code without effect, it should be
+possible to remove the whole construct:
+
+for i in range(1000):
+    pass
+
+The loop could be removed, at maximum it should be considered an assignment of variable
+"i" to 999 and no more.
+
+Another example:
+
+if side_effect_free:
+   pass
+
+The condition should be removed in this case, as its evaluation is not needed. It may be
+difficult to predict that side_effect_free has no side effects, but this might be
+possible.
+
+This is not implemented yet.
 
 ** Unpacking Prediction
 
 When the length of the right hand side of an assignment to a sequence can be predicted,
-the unpacking can be replaced with multiple assigments. This is of course only really safe
-if the left hand side cannot raise an exception while building the assignment targets.
+the unpacking can be replaced with multiple assigments.
+
+This is of course only really safe if the left hand side cannot raise an exception while
+building the assignment targets.
+
+We do this now, but only for constants, because we currently have no ability to predict if
+an expression can raise an exception or not.
 
 ** Builtin Type Inference
 
@@ -506,13 +585,14 @@ for i in xrange(1000):
    something(i)
 
 could translate xrange(1000) or into an object of a special class that does the integer
-looping more efficiently.
+looping more efficiently. In case "i" is only assigned from there, this could be a nice
+case for a dedicated class.
 
 ** Quicker function calls
 
-Future (Not even stated): Functions should be restructured so that their parameter parsing
-and tp_call interface is separate from the actual body. This way the call can be
-optimized. One problem is that the evaluation order can differ.
+Functions are structured so that their parameter parsing and tp_call interface is separate
+from the actual function code. This way the call can be optimized. One problem is that the
+evaluation order can differ.
 
 def f( a, b, c ):
    return a, b, c
@@ -522,3 +602,10 @@ f( c = get1(), b = get2(), c = get3() )
 This will evaluate first get1(), then get2() and then get3() and then make the call. In
 C++ whatever way the signature is written, its order is fixed. Therefore it would be
 necessary to have a staging of the parameters before making the actual call.
+
+To solve this, every call with keywords could have its own function in between to allow
+it. This is subject to the same compiler/platform dependent parameter order problem, we
+have seen before.
+
+We could also consider kw-only and args-only entry points to parsing, and call them from
+the compiled function tp_call interface. Parsing needs to do less checks in these cases.

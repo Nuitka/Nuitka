@@ -332,6 +332,6 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, void *context
 
     result->m_exception_type = NULL;
 
-    _PyObject_GC_TRACK( result );
+    Nuitka_GC_Track( result );
     return (PyObject *)result;
 }

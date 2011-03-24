@@ -429,7 +429,8 @@ class CPythonChildrenHaving:
         else:
             assert False, ( "didn't find child", old_node, "in", self )
 
-        new_node.parent = old_node.parent
+        if new_node is not None:
+            new_node.parent = old_node.parent
 
 class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
     """ Mixin for nodes that provide variables for closure takers. """
@@ -1866,14 +1867,38 @@ class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExcep
     getLoopVariableAssignment = CPythonChildrenHaving.childGetter( "target" )
     getBody = CPythonChildrenHaving.childGetter( "body" )
     getNoBreak = CPythonChildrenHaving.childGetter( "else" )
+    setNoBreak = CPythonChildrenHaving.childSetter( "else" )
 
     def getVisitableNodes( self ):
-        return (
-            self.getIterated(),
-            self.getLoopVariableAssignment(),
-            self.getBody(),
-            self.getNoBreak()
-        )
+        no_break = self.getNoBreak()
+        body = self.getBody()
+
+        if no_break is not None:
+            if body is not None:
+                return (
+                    self.getIterated(),
+                    self.getLoopVariableAssignment(),
+                    body,
+                    no_break
+                )
+            else:
+                return (
+                    self.getIterated(),
+                    self.getLoopVariableAssignment(),
+                    no_break
+                )
+        else:
+            if body is not None:
+                return (
+                    self.getIterated(),
+                    self.getLoopVariableAssignment(),
+                    body
+                )
+            else:
+                return (
+                    self.getIterated(),
+                    self.getLoopVariableAssignment()
+                )
 
 
 class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExceptionBreakContinueIndicator ):
@@ -1896,6 +1921,35 @@ class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExc
     getLoopBody = CPythonChildrenHaving.childGetter( "frame" )
     getCondition = CPythonChildrenHaving.childGetter( "condition" )
     getNoEnter = CPythonChildrenHaving.childGetter( "else" )
+    setNoEnter = CPythonChildrenHaving.childSetter( "else" )
+
+    def getVisitableNodes( self ):
+        no_enter = self.getNoEnter()
+        body = self.getLoopBody()
+
+        if no_enter is not None:
+            if body is not None:
+                return (
+                    self.getCondition(),
+                    body,
+                    no_enter
+                )
+            else:
+                return (
+                    self.getCondition(),
+                    no_enter
+                )
+        else:
+            if body is not None:
+                return (
+                    self.getCondition(),
+                    body
+                )
+            else:
+                return (
+                    self.getCondition(),
+                )
+
 
 
 class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
@@ -2131,14 +2185,35 @@ class CPythonStatementConditional( CPythonChildrenHaving, CPythonNodeBase ):
     getCondition = CPythonChildrenHaving.childGetter( "condition" )
     getBranchYes = CPythonChildrenHaving.childGetter( "yes_branch" )
     getBranchNo = CPythonChildrenHaving.childGetter( "no_branch" )
+    setBranchNo = CPythonChildrenHaving.childSetter( "no_branch" )
 
-    def getBranches( self ):
+    def getVisitableNodes( self ):
         no_branch = self.getBranchNo()
+        yes_branch = self.getBranchYes()
 
-        if no_branch:
-            return ( self.getBranchYes(), no_branch )
+        if no_branch is not None:
+            if yes_branch is not None:
+                return (
+                    self.getCondition(),
+                    yes_branch,
+                    no_branch
+                )
+            else:
+                return (
+                    self.getCondition(),
+                    no_branch
+                )
         else:
-            return ( self.getBranchYes(), )
+            if yes_branch is not None:
+                return (
+                    self.getCondition(),
+                    yes_branch
+                )
+            else:
+                return (
+                    self.getCondition(),
+                )
+
 
 class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_TRY_FINALLY"

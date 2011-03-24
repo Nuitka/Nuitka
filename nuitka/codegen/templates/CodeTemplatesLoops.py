@@ -47,9 +47,8 @@ _template_for_loop_break_continue_direct_else = """\
             break;
         }
 
+        // Assign from iterator returned value to for loop variables
         {
-            PyObjectTemporary %(loop_object_identifier)s( %(loop_value_identifier)s );
-
 %(loop_var_assignment_code)s
         }
 
@@ -77,9 +76,8 @@ _template_for_loop_break_continue_direct_no_else = """\
             break;
         }
 
+        // Assign from iterator returned value to for loop variables
         {
-            PyObjectTemporary %(loop_object_identifier)s( %(loop_value_identifier)s );
-
 %(loop_var_assignment_code)s
         }
 
@@ -107,9 +105,8 @@ _template_for_loop_break_continue_catching_else = """\
                 break;
             }
 
+            // Assign from iterator returned value to for loop variables
             {
-                PyObjectTemporary %(loop_object_identifier)s( %(loop_value_identifier)s );
-
 %(loop_var_assignment_code)s
             }
 
@@ -147,14 +144,13 @@ _template_for_loop_break_continue_catching_no_else = """\
                 break;
             }
 
+            // Assign from iterator returned value to for loop variables
             {
-                PyObjectTemporary %(loop_object_identifier)s( %(loop_value_identifier)s );
-
 %(loop_var_assignment_code)s
             }
 
 %(body)s
-                     }
+        }
         catch( ContinueException &e )
         { /* Nothing to do */
         }
