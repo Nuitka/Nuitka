@@ -327,7 +327,7 @@ static const int max_method_cache_size = 4096;
 
 static void Nuitka_Method_tp_dealloc( Nuitka_MethodObject *method )
 {
-    _PyObject_GC_UNTRACK( method );
+    Nuitka_GC_UnTrack( method );
 
     if ( method->m_weakrefs != NULL )
     {

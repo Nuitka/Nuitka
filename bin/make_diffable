@@ -33,7 +33,7 @@
 import sys, re
 
 ran_re = re.compile( r"^(Ran \d+ tests? in )\d+\.\d+s$" )
-instance_re = re.compile( r"at 0x[0-9a-f]+" )
+instance_re = re.compile( r"at 0x[0-9a-fA-F]+" )
 compiled_function_re = re.compile( r"\<compiled function" )
 compiled_genexpr_re = re.compile( r"\<compiled generator object \<(.*?)\>" )
 compiled_generator_re = re.compile( r"\<compiled generator object (.*?) at" )

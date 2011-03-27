@@ -33,6 +33,9 @@
 
 #include "nuitka/compiled_method.hpp"
 
+// Needed for offsetof
+#include <stddef.h>
+
 // tp_descr_get slot, bind a function to an object.
 static PyObject *Nuitka_Function_descr_get( PyObject *function, PyObject *object, PyObject *klass )
 {
@@ -228,7 +231,7 @@ static PyGetSetDef Nuitka_Function_getset[] =
 
 static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
 {
-    _PyObject_GC_UNTRACK( function );
+    Nuitka_GC_UnTrack( function );
 
     if ( function->m_weakrefs != NULL )
     {

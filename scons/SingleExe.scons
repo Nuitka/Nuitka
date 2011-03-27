@@ -49,18 +49,6 @@ VariantDir( static_src, nuitka_src, 0 )
 
 result_file = ARGUMENTS.get( "result_file", source_name )
 
-env = Environment(
-    # We want the outside environment to be passed through.
-    ENV = os.environ,
-
-    # The MingW compiler tool should be supported.
-    tools = [ "mingw" ],
-
-    # The shared libraries should not be named "lib...", because CPython requires the
-    # filename "module_name.so" to load it.
-    SHLIBPREFIX = "",
-)
-
 def getBoolOption( option_name, default ):
     value = ARGUMENTS.get( option_name, "True" if default else "False" )
 
@@ -71,6 +59,20 @@ optimize_mode = getBoolOption( "optimize_mode", True )
 module_mode = getBoolOption( "module_mode", False )
 lto_mode = getBoolOption( "lto_mode", False )
 win_target = getBoolOption( "win_target", "win" in sys.platform )
+
+env = Environment(
+    # We want the outside environment to be passed through.
+    ENV = os.environ,
+
+
+    # The shared libraries should not be named "lib...", because CPython requires the
+    # filename "module_name.so" to load it.
+    SHLIBPREFIX = "",
+)
+
+# The MingW compiler tool should be supported.
+if win_target:
+    env.Tool( "mingw" )
 
 # To support cross-compiling under Linux to windows target.
 if win_target and "linux2" in sys.platform:
@@ -139,7 +141,6 @@ python_version = ARGUMENTS.get( "python_version", None )
 if python_version is None:
     python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
 
-
 # Python debug version or not.
 python_debug = getBoolOption( "python_debug", False )
 debug_indicator = "_d" if python_debug else ""
@@ -164,10 +165,7 @@ if win_target:
 
     env.Append( LIBPATH = [ python_home + "/libs" ] )
 
-    if "linux2" in sys.platform:
-        env.Append( LIBPATH = [ os.path.expanduser( "~/.wine/drive_c/windows/system32/" ), ] )
-
-    env.Append( LINKFLAGS = "-Wl,--enable-auto-import" )
+    env.Append( LINKFLAGS = [ "-Wl,--enable-auto-import" ] )
 
     python_header_path = python_home + "/include"
 
@@ -186,7 +184,14 @@ if win_target:
     env.Append( CPPPATH = [ static_src + "/win32_ucontext_src" ] )
 
 if debug_mode:
-    env.Append( CCFLAGS = [ "-g", "-O2" ] )
+    # On crosscompile, use debug format that wine understands, so we get good tracebacks
+    # from it.
+    if win_target and "linux2" in sys.platform:
+        env.Append( CCFLAGS = [ "-gstabs" ] )
+    else:
+        env.Append( CCFLAGS = [ "-g" ] )
+
+    env.Append( CCFLAGS = [ "-O2" ] )
 
 if optimize_mode:
     env.Append( CCFLAGS = [ "-O3" ] )
@@ -195,8 +200,7 @@ if optimize_mode:
         env.Append( CPPDEFINES = [ "__NUITKA_NO_ASSERT__" ] )
 
 if module_mode:
-    env.Append( CCFLAGS = [ "-shared", "-fPIC" ] )
-
+    env.Append( CCFLAGS = [ "-shared" ] )
 
 if module_mode:
     env.Append( CPPDEFINES = [ "_NUITKA_MODULE" ] )
@@ -223,7 +227,15 @@ def discoverSourceFiles():
     return result
 
 if module_mode:
-    target = env.SharedLibrary( result_file + ".so", discoverSourceFiles() )
+    if win_target:
+        module_suffix = ".dll"
+
+        # The scons doesn't like .dll yet.
+        module_suffix = ".so"
+    else:
+        module_suffix = ".so"
+
+    target = env.SharedLibrary( result_file + module_suffix, discoverSourceFiles() )
 else:
     target = env.Program( result_file + ".exe", discoverSourceFiles() )
 

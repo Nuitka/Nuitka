@@ -48,7 +48,7 @@ static long Nuitka_Genexpr_tp_traverse( PyObject *function, visitproc visit, voi
 static void Nuitka_Genexpr_tp_dealloc( Nuitka_GenexprObject *generator )
 {
     // Now it is safe to release references and memory for it.
-    _PyObject_GC_UNTRACK( generator );
+    Nuitka_GC_UnTrack( generator );
 
     if ( generator->m_weakrefs != NULL )
     {

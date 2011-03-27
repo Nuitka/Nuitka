@@ -33,7 +33,7 @@
 from __future__ import print_function
 
 version_string = """\
-Nuitka V0.3.8pre1
+Nuitka V0.3.8pre2
 Copyright (C) 2011 Kay Hayen."""
 
 from . import Utils
@@ -281,7 +281,7 @@ def isShowScons():
     return options.show_scons
 
 def getJobLimit():
-    return options.jobs
+    return int( options.jobs )
 
 def isLto():
     return options.lto

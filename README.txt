@@ -471,6 +471,11 @@ I got the idea though, that a "local only" float object makes sense, potentially
 temporary variables. Avoiding the malloc per new value would give the most benefit of all
 things I assume.
 
+*** pylife.py
+
+Changed iteration from 20 to 7 and initial population to only 800 to reduce the run time
+of the test. Takes 1 second now only, before it was 16s.
+
 ** Deleted examples:
 
 *** ac_encode.py

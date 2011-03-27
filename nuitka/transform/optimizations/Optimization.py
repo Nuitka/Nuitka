@@ -125,7 +125,7 @@ def optimizeTree( tree ):
         optimizations_queue.discard( next_optimization )
 
         for module in trees:
-            debug( "Applying to '%s' optimization '%s':" % ( module, next_optimization ) )
+            # debug( "Applying to '%s' optimization '%s':" % ( module, next_optimization ) )
 
             next_optimization().execute( module, on_signal = tags.onSignal )
 

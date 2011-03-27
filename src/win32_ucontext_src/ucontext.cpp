@@ -15,82 +15,86 @@
  *      Lesser General Public License for more details.
  *
  *      You should have received a copy of the GNU Lesser General Public
- *      License along with QueueUserAPCEx in the file COPYING.LIB;
+ *      License in the same directory in the file COPYING.LIB;
  *      if not, write to the Free Software Foundation, Inc.,
  *      59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  */
 
 #include "ucontext.h"
 
-int getcontext(ucontext_t *ucp)
+int getcontext( ucontext_t *ucp )
 {
-	int ret;
+    int ret;
 
-	/* Retrieve the full machine context */
-	ucp->uc_mcontext.ContextFlags = CONTEXT_FULL;
-	ret = GetThreadContext(GetCurrentThread(), &ucp->uc_mcontext);
+    /* Retrieve the full machine context */
+    ucp->uc_mcontext.ContextFlags = CONTEXT_FULL;
+    ret = GetThreadContext(GetCurrentThread(), &ucp->uc_mcontext);
 
-	return (ret == 0) ? -1: 0;
+    return (ret == 0) ? -1: 0;
 }
 
-int setcontext(const ucontext_t *ucp)
+int setcontext( const ucontext_t *ucp )
 {
-	int ret;
-	
-	/* Restore the full machine context (already set) */
-	ret = SetThreadContext(GetCurrentThread(), &ucp->uc_mcontext);
+    int ret;
 
-	return (ret == 0) ? -1: 0;
+    /* Restore the full machine context (already set) */
+    ret = SetThreadContext(GetCurrentThread(), &ucp->uc_mcontext);
+
+    return (ret == 0) ? -1: 0;
 }
 
-int makecontext(ucontext_t *ucp, void (*func)(), int argc, ...)
+int makecontext( ucontext_t *ucp, void (*func)(), int argc, ...)
 {
-	int i;
+    int i;
     va_list ap;
-	char *sp;
+    char *sp;
 
-	/* Stack grows down */
-	sp = (char *) (size_t) ucp->uc_stack.ss_sp + ucp->uc_stack.ss_size;	
+    /* Stack grows down */
+    sp = (char *) (size_t) ucp->uc_stack.ss_sp + ucp->uc_stack.ss_size;
 
-	/* Reserve stack space for the arguments (maximum possible: argc*(8 bytes per argument)) */
-	sp -= argc*8;
+    /* Reserve stack space for the arguments (maximum possible: argc*(8 bytes per argument)) */
+    sp -= argc*8;
 
-	if ( sp < (char *)ucp->uc_stack.ss_sp) {
-		/* errno = ENOMEM;*/
-		return -1;
-	}
+    if ( sp < (char *)ucp->uc_stack.ss_sp) {
+        /* errno = ENOMEM;*/
+        return -1;
+    }
 
-	/* Set the instruction and the stack pointer */
-	ucp->uc_mcontext.Eip = (unsigned long) func;
-	ucp->uc_mcontext.Esp = (unsigned long) sp - 4;
+    /* Set the instruction and the stack pointer */
+    ucp->uc_mcontext.Eip = (unsigned long) func;
+    ucp->uc_mcontext.Esp = (unsigned long) sp - 4;
 
-	/* Save/Restore the full machine context */
-	ucp->uc_mcontext.ContextFlags = CONTEXT_FULL;
+    /* Save/Restore the full machine context */
+    ucp->uc_mcontext.ContextFlags = CONTEXT_FULL;
 
-	/* Copy the arguments */
-	va_start (ap, argc);
-	for (i=0; i<argc; i++) {
-		memcpy(sp, ap, 8);
-		ap +=8;
-		sp += 8;
-	}
-	va_end(ap);
+    /* Copy the arguments */
+    va_start (ap, argc);
 
-	return 0;
+    for (i=0; i<argc; i++)
+    {
+        memcpy(sp, ap, 8);
+        ap += 8;
+        sp += 8;
+    }
+
+    va_end(ap);
+
+    return 0;
 }
 
-int swapcontext(ucontext_t *oucp, const ucontext_t *ucp)
+int swapcontext( ucontext_t *oucp, const ucontext_t *ucp )
 {
-	int ret;
+    int ret;
 
-	if ((oucp == NULL) || (ucp == NULL)) {
-		/*errno = EINVAL;*/
-		return -1;
-	}
+    if ((oucp == NULL) || (ucp == NULL)) {
+        /*errno = EINVAL;*/
+        return -1;
+    }
 
-	ret = getcontext(oucp);
-	if (ret == 0) {
-		ret = setcontext(ucp);
-	}
-	return ret;
+    ret = getcontext(oucp);
+    if (ret == 0) {
+        ret = setcontext(ucp);
+    }
+
+    return ret;
 }

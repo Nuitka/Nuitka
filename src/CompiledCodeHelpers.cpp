@@ -146,7 +146,7 @@ PyObject *ORD( PyObject *value )
         }
         else
         {
-            PyErr_Format( PyExc_TypeError, "ord() expected a character, but string of length %zd found", size );
+            PyErr_Format( PyExc_TypeError, "ord() expected a character, but string of length %" PY_FORMAT_SIZE_T "d found", size );
             throw _PythonException();
         }
     }
@@ -160,7 +160,7 @@ PyObject *ORD( PyObject *value )
         }
         else
         {
-            PyErr_Format( PyExc_TypeError, "ord() expected a character, but byte array of length %zd found", size );
+            PyErr_Format( PyExc_TypeError, "ord() expected a character, but byte array of length %" PY_FORMAT_SIZE_T "d found", size );
             throw _PythonException();
         }
     }
@@ -174,7 +174,7 @@ PyObject *ORD( PyObject *value )
         }
         else
         {
-            PyErr_Format( PyExc_TypeError, "ord() expected a character, but unicode string of length %zd found", size );
+            PyErr_Format( PyExc_TypeError, "ord() expected a character, but unicode string of length %" PY_FORMAT_SIZE_T "d found", size );
             throw _PythonException();
         }
     }

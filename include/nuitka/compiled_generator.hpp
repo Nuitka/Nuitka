@@ -102,6 +102,8 @@ static inline void CHECK_EXCEPTION( Nuitka_GeneratorObject *generator )
 {
     if ( generator->m_exception_type )
     {
+        assertObject( generator->m_exception_type );
+
         Py_INCREF( generator->m_exception_type );
         Py_XINCREF( generator->m_exception_value );
         Py_XINCREF( generator->m_exception_tb );
@@ -115,6 +117,8 @@ static inline void CHECK_EXCEPTION( Nuitka_GeneratorObject *generator )
 
 static inline PyObject *YIELD_VALUE( Nuitka_GeneratorObject *generator, PyObject *value )
 {
+    assertObject( value );
+
     generator->m_yielded = value;
 
     swapcontext( &generator->m_yielder_context, &generator->m_caller_context );

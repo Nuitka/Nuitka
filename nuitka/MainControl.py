@@ -116,6 +116,13 @@ def makeSourceDirectory( main_module ):
 
     if os.path.exists( source_dir ):
         os.system( "rm -f '" + source_dir + "'/*.cpp '" + source_dir + "'/*.hpp" )
+
+        if Options.shallMakeModule():
+            os.system( "rm -f '" + source_dir + "'/*.o" )
+            os.system( "rm -f '" + source_dir + "'/static/*.o" )
+        else:
+            os.system( "rm -f '" + source_dir + "'/*.os" )
+            os.system( "rm -f '" + source_dir + "'/static/*.os" )
     else:
         os.makedirs( source_dir )
 
@@ -253,7 +260,12 @@ def writeSourceCode( cpp_filename, source_code ):
 def executeMain( output_filename, tree ):
     name = Utils.basename( tree.getFilename() ).replace( ".py", ".exe" )
 
-    os.execl( output_filename, name, *Options.getMainArgs() )
+    if not Options.options.windows_target or "win" in sys.platform:
+        os.execl( output_filename, name, *Options.getMainArgs() )
+    else:
+        args = [ output_filename, ] + Options.getMainArgs()
+
+        os.execl( "/usr/bin/wine", name, *args )
 
 def executeModule( tree ):
     __import__( tree.getName() )

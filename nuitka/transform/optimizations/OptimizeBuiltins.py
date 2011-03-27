@@ -105,7 +105,7 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
             self.signalChange(
                 "var_usage",
                 owner.getSourceReference(),
-                message = "Reduced variable usage of function %s." % owner
+                message = "Reduced variable '%s' usage of function %s." % ( variable.getName(), owner )
             )
 
     def globals_extractor( self, node ):

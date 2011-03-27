@@ -70,6 +70,18 @@ extern void PRINT_ITEMS( bool new_line, PyObject *file, P...eles )
     }
 }
 
+// Helper functions to debug the compiler operation.
+NUITKA_MAY_BE_UNUSED static void PRINT_REFCOUNT( PyObject *object )
+{
+   char buffer[ 1024 ];
+   sprintf( buffer, " refcnt %" PY_FORMAT_SIZE_T "d ", object->ob_refcnt );
+
+   if (unlikely( PyFile_WriteString( buffer, GET_STDOUT() ) == -1 ))
+   {
+      throw _PythonException();
+   }
+}
+
 #endif
 
 #endif

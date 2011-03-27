@@ -159,7 +159,7 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
     free( generator->m_yielder_context.uc_stack.ss_sp );
 
     // Now it is safe to release references and memory for it.
-    _PyObject_GC_UNTRACK( generator );
+    Nuitka_GC_UnTrack( generator );
 
     if ( generator->m_weakrefs != NULL )
     {
@@ -331,6 +331,7 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, void *context
     result->m_yielder_context.uc_link = NULL;
 
     result->m_exception_type = NULL;
+    result->m_yielded = NULL;
 
     Nuitka_GC_Track( result );
     return (PyObject *)result;

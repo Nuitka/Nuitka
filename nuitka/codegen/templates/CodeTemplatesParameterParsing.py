@@ -87,33 +87,33 @@ function_context_unused_template = """\
 """
 
 
-template_parameter_function_refuses = """
+template_parameter_function_refuses = r"""
 if (unlikely( args_given + kw_size > 0 ))
 {
-    PyErr_Format( PyExc_TypeError, "%(function_name)s() takes no arguments (%%zd given)", args_given + kw_size );
+    PyErr_Format( PyExc_TypeError, "%(function_name)s() takes no arguments (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_size );
     goto error_exit;
 }
 """
 
-parse_argument_template_check_counts_with_list_star_arg = """
+parse_argument_template_check_counts_with_list_star_arg = r"""
 // Check if too little arguments were given.
 if (unlikely( args_given + kw_size < %(required_parameter_count)d ))
 {
     if ( %(top_level_parameter_count)d == 1 )
     {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least 1 argument (%%zd given)", args_given + kw_size );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least 1 argument (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_size );
     }
     else
     {
 #if PY_MAJOR_VERSION < 3 && PY_MINOR_VERSION < 7
         if ( kw_size > 0 )
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d non-keyword arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_size );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d non-keyword arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_size );
         }
         else
 #endif
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_size );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_size );
         }
     }
 
@@ -121,17 +121,17 @@ if (unlikely( args_given + kw_size < %(required_parameter_count)d ))
 }
 """
 
-parse_argument_template_check_counts_without_list_star_arg = """
+parse_argument_template_check_counts_without_list_star_arg = r"""
 // Check if too many arguments were given in case of non star args
 if (unlikely( args_given > %(top_level_parameter_count)d ))
 {
     if ( %(top_level_parameter_count)d == 1 )
     {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%zd given)", args_given + kw_size );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_size );
     }
     else
     {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_size );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_size );
     }
 
     goto error_exit;
@@ -142,19 +142,19 @@ if (unlikely( args_given + kw_size < %(required_parameter_count)d ))
 {
     if ( %(top_level_parameter_count)d == 1 )
     {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%zd given)", args_given + kw_size );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_size );
     }
     else
     {
 #if PY_MAJOR_VERSION < 3 && PY_MINOR_VERSION < 7
         if ( kw_size > 0 )
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d non-keyword arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_size );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d non-keyword arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_size );
         }
         else
 #endif
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%zd given)", %(top_level_parameter_count)d, args_given + kw_size );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_size );
         }
     }
 
@@ -162,7 +162,7 @@ if (unlikely( args_given + kw_size < %(required_parameter_count)d ))
 }
 """
 
-parse_argument_usable_count = """
+parse_argument_usable_count = r"""
 // Copy normal parameter values given as part of the args list to the respective variables:
 args_usable_count = args_given < %(top_level_parameter_count)d ? args_given : %(top_level_parameter_count)d;
 

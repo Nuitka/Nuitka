@@ -147,6 +147,8 @@ def _namifyString( string ):
     elif _re_str_needs_no_digest.match( string ) and "\n" not in string:
         # Some strings can be left intact for source code readability.
         return "plain_" + string
+    elif len( string ) == 1:
+        return "chr_%d" % ord( string )
     elif len( string ) > 2 and string[0] == "<" and string[-1] == ">" and \
            _re_str_needs_no_digest.match( string[1:-1] ) and "\n" not in string:
         return "angle_" + string[1:-1]

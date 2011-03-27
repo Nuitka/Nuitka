@@ -67,7 +67,7 @@ else
     echo "*******************************************************"
 fi
 
-diff -us /tmp/cpython.out.$$ /tmp/nuitka.out.$$
+diff -us /tmp/cpython.out.$$ /tmp/nuitka.out.$$ --strip-trailing-cr
 rm -f /tmp/cpython.out.$$ /tmp/nuitka.out.$$
 
 if [ "$NUITKA_EXIT" != "$PYTHON_EXIT" ]

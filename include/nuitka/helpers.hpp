@@ -352,26 +352,6 @@ NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_NOT_BOOL( PyObject *sequence,
     return result == 0;
 }
 
-// Helper functions to debug the compiler operation.
-NUITKA_MAY_BE_UNUSED static void PRINT_REFCOUNT( PyObject *object )
-{
-   PyObject *sys_stdout = PySys_GetObject((char *)"stdout");
-
-   if (unlikely( sys_stdout == NULL ))
-   {
-      PyErr_Format( PyExc_RuntimeError, "problem with stdout" );
-      throw _PythonException();
-   }
-
-   char buffer[1024];
-   sprintf( buffer, " refcnt %zd ", object->ob_refcnt );
-
-   if (unlikely( PyFile_WriteString( buffer, sys_stdout ) == -1 ))
-   {
-      throw _PythonException();
-   }
-}
-
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *named_args, PyObject *positional_args, PyObject *function_object )
 {
     assert( function_object != NULL );
@@ -1744,8 +1724,10 @@ extern PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size );
 // exported and we need to use a function that does it instead.
 #if defined (__WIN32__)
 #define Nuitka_GC_Track PyObject_GC_Track
+#define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #else
 #define Nuitka_GC_Track _PyObject_GC_TRACK
+#define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
 #endif
 
 #endif
