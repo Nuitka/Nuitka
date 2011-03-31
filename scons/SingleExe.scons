@@ -60,19 +60,22 @@ module_mode = getBoolOption( "module_mode", False )
 lto_mode = getBoolOption( "lto_mode", False )
 win_target = getBoolOption( "win_target", "win" in sys.platform )
 
+# The MingW compiler tool should be supported.
+if win_target:
+    compiler_tools = [ "mingw" ]
+else:
+    compiler_tools = None
+
 env = Environment(
     # We want the outside environment to be passed through.
     ENV = os.environ,
 
+    tools = compiler_tools,
 
     # The shared libraries should not be named "lib...", because CPython requires the
     # filename "module_name.so" to load it.
     SHLIBPREFIX = "",
 )
-
-# The MingW compiler tool should be supported.
-if win_target:
-    env.Tool( "mingw" )
 
 # To support cross-compiling under Linux to windows target.
 if win_target and "linux2" in sys.platform:
