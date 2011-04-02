@@ -231,14 +231,13 @@ def discoverSourceFiles():
 
 if module_mode:
     if win_target:
-        module_suffix = ".dll"
-
-        # The scons doesn't like .dll yet.
-        module_suffix = ".so"
+        module_suffix = ".pyd"
     else:
         module_suffix = ".so"
 
-    target = env.SharedLibrary( result_file + module_suffix, discoverSourceFiles() )
+    env['SHLIBSUFFIX'] = module_suffix
+
+    target = env.SharedLibrary( result_file , discoverSourceFiles() )
 else:
     target = env.Program( result_file + ".exe", discoverSourceFiles() )
 

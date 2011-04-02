@@ -1673,7 +1673,7 @@ extern PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size );
 extern PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size );
 
 // Due to ABI issues, it seems that on Windows the symbols used by _PyObject_GC_TRACK are
-// exported and we need to use a function that does it instead.
+// not exported and we need to use a function that does it instead.
 #if defined (__WIN32__)
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
