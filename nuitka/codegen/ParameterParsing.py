@@ -103,7 +103,7 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
     if top_level_parameters and parameters.getDictStarArgVariable() is None:
         parameter_parsing_code += CodeTemplates.parse_argument_template_take_counts2
 
-    if top_level_parameters:
+    if top_level_parameters and (not is_method or len( top_level_parameters ) > 1):
         parameter_parsing_code += CodeTemplates.parse_argument_template_take_counts3
 
     if parameters.isEmpty():
@@ -137,7 +137,7 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
             "required_parameter_count"  : required_parameter_count,
         }
 
-    if top_level_parameters:
+    if top_level_parameters and (not is_method or len( top_level_parameters ) > 1):
         parameter_parsing_code += CodeTemplates.parse_argument_usable_count % {
             "top_level_parameter_count" : len( top_level_parameters ),
         }
@@ -166,7 +166,7 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
         }
 
     if top_level_parameters:
-        parameter_parsing_code += "// Copy given dictionary values to the the respective variables\n"
+        parameter_parsing_code += "// Copy given dictionary values to the the respective variables:\n"
 
     if parameters.getDictStarArgVariable() is not None:
         parameter_parsing_code += CodeTemplates.parse_argument_template_dict_star_copy % {

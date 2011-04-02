@@ -31,7 +31,11 @@
 #ifndef __NUITKA_HELPERS_H__
 #define __NUITKA_HELPERS_H__
 
-#include "__constants.hpp"
+extern PyObject *_python_tuple_empty;
+extern PyObject *_python_str_plain___dict__;
+extern PyObject *_python_str_plain___class__;
+extern PyObject *_python_str_plain___enter__;
+extern PyObject *_python_str_plain___exit__;
 
 // From CPython, to allow us quick access to the dictionary of an module, the structure is
 // normally private, but we need it for quick access to the module dictionary.
@@ -82,70 +86,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 }
 
 #include "printing.hpp"
-
-// TODO: Annotate exception raisers that they don't return.
-NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception, PyTracebackObject *traceback )
-{
-    if ( PyExceptionClass_Check( exception ) )
-    {
-        throw _PythonException( exception, traceback );
-    }
-    else if ( PyExceptionInstance_Check( exception ) )
-    {
-        throw _PythonException( INCREASE_REFCOUNT( PyExceptionInstance_Class( exception ) ), exception, traceback );
-    }
-    else
-    {
-        PyErr_Format( PyExc_TypeError, "exceptions must be old-style classes or derived from BaseException, not %s", exception->ob_type->tp_name );
-
-         _PythonException to_throw;
-         to_throw.setTraceback( traceback );
-
-         throw to_throw;
-    }
-}
-
-NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyTracebackObject *traceback )
-{
-    if ( PyExceptionClass_Check( exception_type ) )
-    {
-       PyErr_NormalizeException( &exception_type, &value, (PyObject **)&traceback );
-    }
-
-    throw _PythonException( exception_type, value, traceback );
-}
-
-NUITKA_MAY_BE_UNUSED static inline void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyObject *traceback )
-{
-    // Check traceback
-    assert( PyTraceBack_Check( traceback ) );
-
-    RAISE_EXCEPTION( exception_type, value, (PyTracebackObject *)traceback );
-}
-
-NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( void )
-{
-    PyThreadState *tstate = PyThreadState_GET();
-
-    PyObject *type = tstate->exc_type != NULL ? tstate->exc_type : Py_None;
-    PyObject *value = tstate->exc_value;
-    PyObject *tb = tstate->exc_traceback;
-
-    // TODO: Clarify if these are necessary.
-    Py_XINCREF( type );
-    Py_XINCREF( value );
-    Py_XINCREF( tb );
-
-    RAISE_EXCEPTION( type, value, tb );
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *THROW_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *traceback, bool *traceback_flag )
-{
-    *traceback_flag = true;
-
-    RAISE_EXCEPTION( exception_type, exception_value, traceback );
-    return NULL;
-}
 
 NUITKA_MAY_BE_UNUSED static bool CHECK_IF_TRUE( PyObject *object )
 {
@@ -590,37 +530,36 @@ template<typename... P>
 static PyObject *MAKE_TUPLE( P...eles )
 {
     int size = sizeof...(eles);
+    assert( size > 0 );
 
-    if ( size > 0 )
+    PyObject *elements[] = {eles...};
+
+    for ( Py_ssize_t i = 0; i < size; i++ )
     {
-        PyObject *elements[] = {eles...};
-
-        for ( Py_ssize_t i = 0; i < size; i++ )
-        {
-            assert( elements[ i ] != NULL );
-            assert( elements[ i ]->ob_refcnt > 0 );
-        }
-
-        PyObject *result = PyTuple_New( size );
-
-        if (unlikely( result == NULL ))
-        {
-            throw _PythonException();
-        }
-
-        for ( Py_ssize_t i = 0; i < size; i++ )
-        {
-            PyTuple_SET_ITEM( result, i, INCREASE_REFCOUNT( elements[ size - 1 - i ] ));
-        }
-
-        assert( result->ob_refcnt == 1 );
-
-        return result;
+        assert( elements[ i ] != NULL );
+        assert( elements[ i ]->ob_refcnt > 0 );
     }
-    else
+
+    PyObject *result = PyTuple_New( size );
+
+    if (unlikely( result == NULL ))
     {
-        return INCREASE_REFCOUNT( _python_tuple_empty );
+        throw _PythonException();
     }
+
+    for ( Py_ssize_t i = 0; i < size; i++ )
+    {
+        PyTuple_SET_ITEM( result, i, INCREASE_REFCOUNT( elements[ size - 1 - i ] ));
+    }
+
+    assert( result->ob_refcnt == 1 );
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static inline PyObject *MAKE_TUPLE()
+{
+    return INCREASE_REFCOUNT( _python_tuple_empty );
 }
 
 template<typename... P>
@@ -629,6 +568,7 @@ static PyObject *MAKE_LIST( P...eles )
     PyObject *elements[] = {eles...};
 
     int size = sizeof...(eles);
+    assert( size > 0 );
 
     PyObject *result = PyList_New( size );
 
@@ -646,6 +586,18 @@ static PyObject *MAKE_LIST( P...eles )
     }
 
     assert( result->ob_refcnt == 1 );
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static inline PyObject *MAKE_LIST()
+{
+    PyObject *result = PyList_New( 0 );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
 
     return result;
 }

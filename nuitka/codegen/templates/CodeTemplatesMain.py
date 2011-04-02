@@ -103,12 +103,147 @@ int main( int argc, char *argv[] )
 """
 
 module_header_template = """\
+
+#include <nuitka/helpers.hpp>
+
 NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void);
+
 extern PyObject *_module_%(module_identifier)s;
+
+class PyObjectGlobalVariable_%(module_identifier)s
+{
+    public:
+        explicit PyObjectGlobalVariable_%(module_identifier)s( PyObject **dummy, PyObject **var_name )
+        {
+            assert( var_name );
+
+            this->var_name   = (PyStringObject **)var_name;
+        }
+
+        PyObject *asObject0() const
+        {
+            PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
+
+            if (likely( entry->me_value != NULL ))
+            {
+                assert( entry->me_value->ob_refcnt > 0 );
+
+                return entry->me_value;
+            }
+
+            entry = GET_PYDICT_ENTRY( _module_builtin, *this->var_name );
+
+            if (likely( entry->me_value != NULL ))
+            {
+                assert( entry->me_value->ob_refcnt > 0 );
+
+                return entry->me_value;
+            }
+
+            PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
+            throw _PythonException();
+        }
+
+        PyObject *asObject() const
+        {
+            return INCREASE_REFCOUNT( this->asObject0() );
+        }
+
+        PyObject *asObject0( PyObject *dict ) const
+        {
+            if ( PyDict_Contains( dict, (PyObject *)*this->var_name ) )
+            {
+                return PyDict_GetItem( dict, (PyObject *)*this->var_name );
+            }
+            else
+            {
+                return this->asObject0();
+            }
+        }
+
+        void assign( PyObject *value ) const
+        {
+            PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
+
+            // Values are more likely set than not set, in that case speculatively try the
+            // quickest access method.
+            if (likely( entry->me_value != NULL ))
+            {
+                PyObject *old = entry->me_value;
+                entry->me_value = value;
+
+                Py_DECREF( old );
+            }
+            else
+            {
+                DICT_SET_ITEM( ((PyModuleObject *)_module_%(module_identifier)s)->md_dict, (PyObject *)*this->var_name, value );
+
+                Py_DECREF( value );
+            }
+        }
+
+        void assign0( PyObject *value ) const
+        {
+            PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
+
+            // Values are more likely set than not set, in that case speculatively try the
+            // quickest access method.
+            if (likely( entry->me_value != NULL ))
+            {
+                PyObject *old = entry->me_value;
+                entry->me_value = INCREASE_REFCOUNT( value );
+
+                Py_DECREF( old );
+            }
+            else
+            {
+                DICT_SET_ITEM( ((PyModuleObject *)_module_%(module_identifier)s)->md_dict, (PyObject *)*this->var_name, value );
+            }
+        }
+
+        void del() const
+        {
+            int status = PyDict_DelItem( ((PyModuleObject *)_module_%(module_identifier)s)->md_dict, (PyObject *)*this->var_name );
+
+            if (unlikely( status == -1 ))
+            {
+                PyErr_Format( PyExc_NameError, "name '%%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
+                throw _PythonException();
+            }
+        }
+
+        bool isInitialized( bool allow_builtins = true ) const
+        {
+            PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
+
+            if (likely( entry->me_value != NULL ))
+            {
+                return true;
+            }
+
+            if ( allow_builtins )
+            {
+                entry = GET_PYDICT_ENTRY( _module_builtin, *this->var_name );
+
+                return entry->me_value != NULL;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+    private:
+        PyStringObject **var_name;
+};
+
 """
 
 module_body_template = """\
 #include "nuitka/prelude.hpp"
+
+#include "__modules.hpp"
+#include "__constants.hpp"
 
 // The _module_%(module_identifier)s is a Python object pointer of module type.
 

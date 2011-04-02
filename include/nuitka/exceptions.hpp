@@ -289,4 +289,65 @@ class BreakException
 {
 };
 
+NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception, PyTracebackObject *traceback )
+{
+    if ( PyExceptionClass_Check( exception ) )
+    {
+        throw _PythonException( exception, traceback );
+    }
+    else if ( PyExceptionInstance_Check( exception ) )
+    {
+        throw _PythonException( INCREASE_REFCOUNT( PyExceptionInstance_Class( exception ) ), exception, traceback );
+    }
+    else
+    {
+        PyErr_Format( PyExc_TypeError, "exceptions must be old-style classes or derived from BaseException, not %s", exception->ob_type->tp_name );
+
+        _PythonException to_throw;
+        to_throw.setTraceback( traceback );
+
+        throw to_throw;
+    }
+}
+
+NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyTracebackObject *traceback )
+{
+    if ( PyExceptionClass_Check( exception_type ) )
+    {
+        PyErr_NormalizeException( &exception_type, &value, (PyObject **)&traceback );
+    }
+
+    throw _PythonException( exception_type, value, traceback );
+}
+
+NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static inline void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyObject *traceback )
+{
+    // Check traceback
+    assert( PyTraceBack_Check( traceback ) );
+
+    RAISE_EXCEPTION( exception_type, value, (PyTracebackObject *)traceback );
+}
+
+NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( void )
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyObject *type = tstate->exc_type != NULL ? tstate->exc_type : Py_None;
+    PyObject *value = tstate->exc_value;
+    PyObject *tb = tstate->exc_traceback;
+
+    Py_XINCREF( type );
+    Py_XINCREF( value );
+    Py_XINCREF( tb );
+
+    RAISE_EXCEPTION( type, value, tb );
+}
+
+NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static PyObject *THROW_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *traceback, bool *traceback_flag )
+{
+    *traceback_flag = true;
+
+    RAISE_EXCEPTION( exception_type, exception_value, traceback );
+}
+
 #endif

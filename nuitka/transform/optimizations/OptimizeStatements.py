@@ -28,9 +28,11 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Merge nested statement sequences into one.
+""" Merge nested statement sequences into one and removes useless try/finally/except
 
-This undoes the effect of inlined exec or statements replaced with statement sequences.
+This undoes the effect of inlined exec or statements replaced with statement sequences and
+also removes useless try/except or try/finally statements.
+
 """
 
 from .OptimizeBase import OptimizationVisitorBase, TreeOperations
@@ -83,11 +85,14 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
                     parent.replaceWith( None )
                 elif owner.isStatementWhileLoop():
                     parent.replaceWith( None )
+                elif owner.isStatementTryExcept():
+                    parent.replaceWith( None )
+                elif owner.isStatementTryFinally():
+                    parent.replaceWith( None )
                 else:
                     # It's a pass in something else, TODO: Consider a warning to
                     # discover if it would be useful.
                     pass
-
             else:
                 statements = list( statements )
                 offset = statements.index( node )
@@ -104,3 +109,44 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
                 TreeOperations.assignParent( new_node )
 
                 raise TreeOperations.RestartVisit
+        elif node.isStatementTryExcept():
+            if node.getBlockTry() is None:
+                new_node = node.getBlockNoRaise()
+
+                if new_node is None:
+                    new_node = Nodes.CPythonStatementPass(
+                        source_ref = node.getSourceReference()
+                    )
+
+                node.replaceWith( new_node )
+
+                TreeOperations.assignParent( new_node )
+
+                self.signalChange(
+                    "new_statements",
+                    node.getSourceReference(),
+                    "Try/except was predicted to never raise, removing exception handling and guard."
+                )
+        elif node.isStatementTryFinally():
+            if node.getBlockTry() is None:
+                new_node = node.getBlockFinal()
+
+                if new_node is None:
+                    new_node = Nodes.CPythonStatementPass(
+                        source_ref = node.getSourceReference()
+                    )
+
+                node.replaceWith( new_node )
+
+                TreeOperations.assignParent( new_node )
+
+                self.signalChange(
+                    "new_statements",
+                    node.getSourceReference(),
+                    "Try/finally was predicted to never raise, removing 'final' nature of the block."
+                )
+            elif node.getBlockFinal() is None:
+                new_node = node.getBlockTry()
+
+
+                node.replaceWith( new_node )

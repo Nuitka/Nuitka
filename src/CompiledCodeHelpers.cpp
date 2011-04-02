@@ -31,6 +31,8 @@
 
 #include "nuitka/prelude.hpp"
 
+#include "__constants.hpp"
+
 static PythonBuiltin _python_builtin_compile( "compile" );
 
 PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags )

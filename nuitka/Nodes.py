@@ -2251,7 +2251,10 @@ class CPythonStatementTryExcept( CPythonNodeBase ):
         self.no_raise = no_raise
 
     def getVisitableNodes( self ):
-        result = [ self.tried ]
+        if self.tried is not None:
+            result = [ self.tried ]
+        else:
+            result = []
 
         for catcher, assign, catched in zip( self.catchers, self.assigns, self.catcheds ):
             if catcher is not None:
@@ -2260,7 +2263,8 @@ class CPythonStatementTryExcept( CPythonNodeBase ):
             if assign is not None:
                 result.append( assign )
 
-            result.append( catched )
+            if catched is not None:
+                result.append( catched )
 
         if self.no_raise is not None:
             result.append( self.no_raise )
@@ -2281,7 +2285,8 @@ class CPythonStatementTryExcept( CPythonNodeBase ):
         else:
             assert False, ( "didn't find child", old_node, "in", self )
 
-        new_node.parent = old_node.parent
+        if new_node is not None:
+            new_node.parent = old_node.parent
 
     def getBlockTry( self ):
         return self.tried

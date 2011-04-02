@@ -59,7 +59,6 @@ def findModule( module_name, parent_package, level, warn = True ):
         except ImportError:
             if warn and not _isWhiteListedNotExistingModule( module_name ):
                 warning( "Warning, cannot find '%s' in '%s' on level %d" % ( module_name, parent_package, level ) )
-                assert False
 
             if "." in module_name:
                 module_package_name = module_name[ : module_name.rfind( "." ) ]
@@ -135,4 +134,4 @@ def _findModule( module_name, parent_package ):
         )
 
 def _isWhiteListedNotExistingModule( module_name ):
-    return module_name in ( "mac", "nt", "os2", "_emx_link", "riscos", "ce", "riscospath", "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256", "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle", "marshal", "imp", "sys", "itertools", "cStringIO", "time", "zlib", "thread", "math", "errno", "operator", "signal" )
+    return module_name in ( "mac", "nt", "os2", "_emx_link", "riscos", "ce", "riscospath", "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256", "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle", "marshal", "imp", "sys", "itertools", "cStringIO", "time", "zlib", "thread", "math", "errno", "operator", "signal", "gc", "exceptions", "win32process", "unicodedata" )

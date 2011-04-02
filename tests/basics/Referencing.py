@@ -351,6 +351,26 @@ def simpleFunction46():
    except ValueError:
       pass
 
+def simpleFunction47():
+   def reraisy():
+      def raisingFunction():
+         raise ValueError(3)
+
+      def reraiser():
+         raise
+
+      try:
+         raisingFunction()
+      except:
+         reraiser()
+
+
+   try:
+      reraisy()
+   except:
+      pass
+
+
 x = 17
 
 def checkReferenceCount( checked_function, warmup = False ):
@@ -435,3 +455,4 @@ checkReferenceCount( simpleFunction43 )
 checkReferenceCount( simpleFunction44 )
 checkReferenceCount( simpleFunction45 )
 checkReferenceCount( simpleFunction46 )
+checkReferenceCount( simpleFunction47 )

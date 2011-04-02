@@ -123,6 +123,44 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
             )
 
         return result
+    elif condition.isExpressionBoolAND():
+        parts = []
+
+        for expression in condition.getExpressions():
+            parts.append(
+                generateConditionCode(
+                    condition = expression,
+                    context   = context
+                )
+            )
+
+        result = Generator.getConditionAndCode( parts )
+
+        if inverted:
+            result = Generator.getConditionNotBoolCode(
+                condition = result
+            )
+
+        return result
+    elif condition.isExpressionBoolOR():
+        parts = []
+
+        for expression in condition.getExpressions():
+            parts.append(
+                generateConditionCode(
+                    condition = expression,
+                    context   = context
+                )
+            )
+
+        result = Generator.getConditionOrCode( parts )
+
+        if inverted:
+            result = Generator.getConditionNotBoolCode(
+                condition = result
+            )
+
+        return result
     else:
         condition_identifier = generateExpressionCode(
             context    = context,
@@ -1215,7 +1253,7 @@ def generateAssignmentCode( targets, value, context, recursion = 1 ):
 
             code += "\n"
         elif target.isAssignTargetVariable():
-            code += Generator.getAssignmentCode(
+            code += Generator.getVariableAssignmentCode(
                 variable   = target.getTargetVariableRef().getVariable(),
                 identifier = assign_source,
                 context    = context
@@ -1513,24 +1551,22 @@ def generateTryExceptCode( statement, context ):
         catcher_codes.append(
             generateStatementSequenceCode(
                 statement_sequence = catched,
+                allow_none         = True,
                 context            = context
             )
         )
 
-    no_raise = statement.getBlockNoRaise()
-
-    if no_raise is not None:
-        else_code = generateStatementSequenceCode(
-            statement_sequence = no_raise,
-            context            = context
-        )
-    else:
-        else_code = None
+    else_code = generateStatementSequenceCode(
+        statement_sequence = statement.getBlockNoRaise(),
+        allow_none         = True,
+        context            = context
+    )
 
     return Generator.getTryExceptCode(
         context               = context,
         code_tried            = generateStatementSequenceCode(
             statement_sequence = statement.getBlockTry(),
+            allow_none         = True,
             context            = context,
         ),
         exception_identifiers = exception_identifiers,

@@ -871,6 +871,18 @@ def getConditionNotBoolCode( condition ):
         0
     )
 
+def getConditionAndCode( identifiers ):
+    return Identifier(
+        "( %s )" % " && ".join( [ identifier.getCode() for identifier in identifiers ] ),
+        0
+    )
+
+def getConditionOrCode( identifiers ):
+    return Identifier(
+        "( %s )" % " || ".join( [ identifier.getCode() for identifier in identifiers ] ),
+        0
+    )
+
 def getConditionCheckTrueCode( condition ):
     return Identifier(
         "CHECK_IF_TRUE( %s )" % condition.getCodeTemporaryRef(),
@@ -1042,7 +1054,7 @@ def getWhileLoopCode( context, condition, loop_body_codes, loop_else_codes, need
         "indicator_name"  : indicator_name
     }
 
-def getAssignmentCode( context, variable, identifier ):
+def getVariableAssignmentCode( context, variable, identifier ):
     assert isinstance( variable, Variables.Variable ), variable
 
     if variable.isModuleVariable():
@@ -1173,7 +1185,7 @@ def getInplaceVarAssignmentCode( context, variable, operator, identifier ):
             operand1 = value_identifier,
             operand2 = identifier
         ).getCode(),
-        "assignment_code" : getAssignmentCode(
+        "assignment_code" : getVariableAssignmentCode(
             variable   = variable,
             context    = context,
             identifier = result_identifier
@@ -1252,7 +1264,7 @@ def getTryExceptCode( context, code_tried, exception_identifiers, exception_assi
         if exception_assignment is not None:
             exception_code.append( indented( exception_assignment, 1 ) )
 
-        exception_code += indented( handler_code, 1 ).split("\n")
+        exception_code += indented( handler_code or "", 1 ).split("\n")
         exception_code.append( "}" )
 
         cond_keyword = "else if"
@@ -1263,7 +1275,7 @@ def getTryExceptCode( context, code_tried, exception_identifiers, exception_assi
 
     if else_code is not None:
         return CodeTemplates.try_except_else_template % {
-            "tried_code"     : indented( code_tried ),
+            "tried_code"     : indented( code_tried or "" ),
             "exception_code" : indented( exception_code ),
             "else_code"      : indented( else_code ),
             "tb_making"      : tb_making,
@@ -1271,7 +1283,7 @@ def getTryExceptCode( context, code_tried, exception_identifiers, exception_assi
         }
     else:
         return CodeTemplates.try_except_template % {
-            "tried_code"     : indented( code_tried ),
+            "tried_code"     : indented( code_tried or "" ),
             "exception_code" : indented( exception_code ),
             "tb_making"      : tb_making,
         }
@@ -1445,7 +1457,7 @@ def getStoreLocalsCode( context, source_identifier, provider ):
                 constant = variable.getName()
             )
 
-            var_assign_code = getAssignmentCode(
+            var_assign_code = getVariableAssignmentCode(
                 context    = context,
                 variable   = variable,
                 identifier = getSubscriptLookupCode(
@@ -1709,7 +1721,8 @@ def getModuleCode( context, stand_alone, module_name, package_name, codes, doc_i
 
     module_globals = "\n".join(
         [
-            "static PyObjectGlobalVariable _mvar_%s_%s( &_module_%s, &%s );" % (
+            "static %s _mvar_%s_%s( &_module_%s, &%s );" % (
+                "PyObjectGlobalVariable" if var_name == "__package__" else ( "PyObjectGlobalVariable_%s" % module_identifier ),
                 module_identifier,
                 var_name,
                 module_identifier,
@@ -1919,9 +1932,9 @@ def getContractionCode( context, contraction_identifier, contraction_kind, loop_
 
 def getContractionIterValueIdentifier( context, index ):
     if not context.isGeneratorExpression():
-        return Identifier( "_python_contraction_iter_value_%d" % index, 0 )
+        return Identifier( "_python_contraction_iter_value_%d" % index, 1 )
     else:
-        return Identifier( "_python_genexpr_iter_value", 0 )
+        return Identifier( "_python_genexpr_iter_value", 1 )
 
 def _getFunctionCreationArgs( decorator_count, default_identifiers, closure_variables, is_generator ):
     if decorator_count:

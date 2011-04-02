@@ -93,10 +93,11 @@ if env[ "CXX" ] == "g++":
         cpp_version = 460
 
     if cpp_version >= 460:
-        pass
-
         # TODO: Decide if it gives any gain:
-        # env.Append( CCFLAGS = [ "-fpartial-inlining" ] )
+        env.Append( CCFLAGS = [ "-fpartial-inlining" ] )
+
+        if debug_mode:
+            env.Append( CCFLAGS = [ "-Wunused-but-set-variable" ] )
 
     # Use link time optimizations so that the gcc can help with optimization across files,
     # but unfortunately at this time it seriously slows down the compiled code. This may
@@ -111,7 +112,6 @@ if env[ "CXX" ] == "g++":
         # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=pure" ] )
         # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=const" ] )
         # env.Append( CCFLAGS = [ "-Wnoexcept" ] )
-
 
         if debug_mode:
             env.Append( LINKFLAGS = [ "-O2" ] )

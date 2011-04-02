@@ -139,6 +139,9 @@ def makeSourceDirectory( main_module ):
     module_hpps = []
 
     for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
+        cpp_filename = source_dir + other_module.getFullName() + ".cpp"
+        hpp_filename = source_dir + other_module.getFullName() + ".hpp"
+
         other_module_code = CodeGeneration.generateModuleCode(
             global_context = global_context,
             module         = other_module,
@@ -146,19 +149,15 @@ def makeSourceDirectory( main_module ):
             stand_alone    = False
         )
 
+        module_hpps.append( other_module.getFullName() + ".hpp" )
+
         writeSourceCode(
-            cpp_filename = source_dir + other_module.getFullName() + ".cpp",
+            cpp_filename = cpp_filename,
             source_code  = other_module_code
         )
 
-        module_hpp = source_dir + other_module.getFullName() + ".hpp"
-
-        module_hpps.append(
-            module_hpp
-        )
-
         writeSourceCode(
-            cpp_filename = module_hpp,
+            cpp_filename = hpp_filename,
             source_code  = CodeGeneration.generateModuleDeclarationCode(
                 module_name = other_module.getFullName()
             )
@@ -167,6 +166,9 @@ def makeSourceDirectory( main_module ):
     _prepareCodeGeneration( main_module )
 
     main_module_name = main_module.getName()
+
+    cpp_filename = source_dir + "__main__.cpp"
+    hpp_filename = source_dir + "__main__.hpp"
 
     # Create code for the main module.
     source_code = CodeGeneration.generateModuleCode(
@@ -183,9 +185,18 @@ def makeSourceDirectory( main_module ):
         )
 
     writeSourceCode(
-        cpp_filename = source_dir + "__main__.cpp",
+        cpp_filename = cpp_filename,
         source_code  = source_code
     )
+
+    writeSourceCode(
+        cpp_filename = hpp_filename,
+        source_code  = CodeGeneration.generateModuleDeclarationCode(
+            module_name = main_module_name
+        )
+    )
+
+    module_hpps.append( "__main__.hpp" )
 
     writeSourceCode(
         cpp_filename = source_dir + "__constants.cpp",
@@ -204,7 +215,12 @@ def makeSourceDirectory( main_module ):
         cpp_filename = source_dir + "__constants.hpp",
         source_code  = CodeGeneration.generateConstantsDeclarationCode(
             context = global_context
-        ) + "\n".join( module_hpp_include )
+        )
+    )
+
+    writeSourceCode(
+        cpp_filename = source_dir + "__modules.hpp",
+        source_code  = "".join( module_hpp_include )
     )
 
 

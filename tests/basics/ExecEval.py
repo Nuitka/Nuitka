@@ -19,6 +19,8 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
+import tempfile
+
 print "eval 3+3=", eval("3+3")
 print "eval  3+3=", eval(" 3+3")
 
@@ -70,22 +72,24 @@ def functionExec2():
 
 print "exec in function without and with locals() provided:", functionExec1(), functionExec2()
 
-f = open( "/tmp/execfile.py", "wb" )
+tmp_filename = tempfile.gettempdir() + "/execfile.py"
+
+f = open( tmp_filename, "wb" )
 f.write( "e=7\nf=8\n" )
 f.close()
 
-execfile( "/tmp/execfile.py" )
+execfile( tmp_filename )
 
 print "execfile with defaults f,g=", e, f
 
 global_vars = { 'e' : '0', 'f' : 0 }
 local_vars = dict( global_vars )
 
-execfile( "/tmp/execfile.py", global_vars )
+execfile( tmp_filename, global_vars )
 
 print "execfile with globals dict:", global_vars.keys()
 
-execfile( "/tmp/execfile.py", global_vars, local_vars )
+execfile( tmp_filename, global_vars, local_vars )
 
 print "execfile with globals and locals dict:", local_vars
 
@@ -96,7 +100,7 @@ def functionExecfile():
     global_vars = { 'e' : '0', 'f' : 0 }
     local_vars = dict( global_vars )
 
-    execfile( "/tmp/execfile.py", global_vars, local_vars )
+    execfile( tmp_filename, global_vars, local_vars )
 
     print "execfile with globals and locals dict in a function:", global_vars.keys(), local_vars, e, f
 

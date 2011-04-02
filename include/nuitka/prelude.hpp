@@ -72,6 +72,12 @@
 #define NUITKA_MAY_BE_UNUSED
 #endif
 
+#ifdef __GNUC__
+#define NUITKA_NO_RETURN __attribute__((__noreturn__))
+#else
+#define NUITKA_NO_RETURN
+#endif
+
 NUITKA_MAY_BE_UNUSED static PyObject *_expression_temps[100];
 NUITKA_MAY_BE_UNUSED static PyObject *_eval_globals_tmp;
 NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
