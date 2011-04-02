@@ -3,6 +3,7 @@
 *.e4q
 *.e4s
 *.pyc
+*.pyo
 *.swp
 *.swo
 *.o
