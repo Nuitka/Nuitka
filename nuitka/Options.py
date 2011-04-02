@@ -33,7 +33,7 @@
 from __future__ import print_function
 
 version_string = """\
-Nuitka V0.3.8pre3
+Nuitka V0.3.8
 Copyright (C) 2011 Kay Hayen."""
 
 from . import Utils
