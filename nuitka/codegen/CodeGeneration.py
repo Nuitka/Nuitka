@@ -47,8 +47,7 @@ from . import (
 
 from nuitka import (
     Options,
-    Nodes,
-    Utils
+    Nodes
 )
 
 def mangleAttributeName( attribute_name, node ):

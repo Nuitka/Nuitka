@@ -70,6 +70,7 @@ env = Environment(
     # We want the outside environment to be passed through.
     ENV = os.environ,
 
+    # Extra tools configuration for scons.
     tools = compiler_tools,
 
     # The shared libraries should not be named "lib...", because CPython requires the
@@ -77,26 +78,57 @@ env = Environment(
     SHLIBPREFIX = "",
 )
 
-# To support cross-compiling under Linux to windows target.
+# To support cross-compiling under Linux to windows target, a cross compiler linked or
+# installed to /opt/mingw will win over a system installed one.
 if win_target and "linux2" in sys.platform:
     if os.path.exists( "/opt/mingw/usr/bin/i686-pc-mingw32-g++" ):
         env[ "CXX" ] = "/opt/mingw/usr/bin/i686-pc-mingw32-g++"
+        env[ "RC" ] = "/opt/mingw/usr/bin/i686-pc-mingw32-windres"
     else:
         env[ "CXX" ] = "i586-mingw32msvc-g++"
+        env[ "RC" ] = "i586-mingw32msvc-windres"
 
-if env[ "CXX" ] == "g++":
-    cpp_version = int( env['CCVERSION'].replace( ".", "" ) )
+    # Update CXXVERSION in env, after we changed it.
+    import SCons, subprocess, re
+
+    pipe = SCons.Action._subproc(
+        env, [env[ "CXX" ], '--version'],
+        stdin = 'devnull',
+        stderr = 'devnull',
+        stdout = subprocess.PIPE
+    )
+
+    line = pipe.stdout.readline()
+
+    match = re.search(r'[0-9]+(\.[0-9]+)+', line)
+    assert match, line
+
+    env[ "CXXVERSION" ] = match.group(0)
+
+env[ "BUILD_DIR" ] = source_dir
+
+# All Nuitka generated C++ is C++0X standard, so make that clear.
+env.Append( CCFLAGS = [ "-std=c++0x" ] )
+
+if debug_mode:
+   env.Append( CCFLAGS = [ "-Wall", "-Werror", "-Wno-sequence-point" ] )
+
+if "g++" in env[ "CXX" ]:
+    cpp_version = int( env[ "CXXVERSION" ].replace( ".", "" ) )
 
     if cpp_version < 450:
-        env[ "CXX" ] = "g++-4.5"
-        cpp_version = 450
+        if os.path.exists( "/usr/bin/g++-4.5" ) and not win_target:
+            env[ "CXX" ] = "g++-4.5"
+            cpp_version = 450
+        else:
+            sys.exit( "The g++ compiler %s (version %s) doesn't have the sufficient version (>= 4.5)." % ( env[ "CXX" ], env[ "CXXVERSION" ] ) )
 
-    if lto_mode and cpp_version < 460 and os.path.exists( "/usr/bin/g++-4.6" ):
+    if lto_mode and cpp_version < 460 and os.path.exists( "/usr/bin/g++-4.6" ) and not win_target:
         env[ "CXX" ] = "g++-4.6"
         cpp_version = 460
 
     if cpp_version >= 460:
-        # TODO: Decide if it gives any gain:
+        # TODO: Decide if it gives any actual gain:
         env.Append( CCFLAGS = [ "-fpartial-inlining" ] )
 
         if debug_mode:
@@ -127,17 +159,8 @@ if env[ "CXX" ] == "g++":
             ]
         )
 
-
     if lto_mode and cpp_version < 460:
         print >> sys.stderr, "Warning, LTO mode specified, but not available."
-
-env[ "BUILD_DIR" ] = source_dir
-
-# All Nuitka generated C++ is C++0X standard, so make that clear.
-env.Append( CCFLAGS = [ "-std=c++0x" ] )
-
-if debug_mode:
-   env.Append( CCFLAGS = [ "-Wall", "-Werror", "-Wno-sequence-point" ] )
 
 # Python version, use the scons one if not given.
 python_version = ARGUMENTS.get( "python_version", None )
@@ -210,7 +233,6 @@ if module_mode:
 else:
     env.Append( CPPDEFINES = [ "_NUITKA_EXE" ] )
 
-
 def discoverSourceFiles():
     result = []
 
@@ -227,7 +249,62 @@ def discoverSourceFiles():
         if filename.endswith( ".cpp" ):
             result.append( source_dir + "/" + filename )
 
+    # Add the resource file for the manifest to be included in the executable.
+    if win_target and not module_mode:
+        result.append( env.RES( source_dir + "/" + source_name + ".exe.rc" ) )
+
     return result
+
+# Prepare the use of a custom specs file for windows targets. We change the used specs for
+# linking to avoid the use of the wrong (for CPython) run time library.
+if win_target:
+    import commands
+
+    spec_filename = source_dir + "/Nuitka.spec"
+
+    spec_contents = commands.getoutput( env[ "CXX" ] + " -dumpspecs" )
+    spec_contents = spec_contents.replace( "-lmsvcrt", "-lmsvcr90" )
+    spec_contents = spec_contents.replace( "-lmoldname ", "-lmoldname90 " )
+
+    spec_file = open( spec_filename, "w" )
+    spec_file.write( spec_contents )
+    spec_file.close()
+
+    env[ "CXX" ] = env[ "CXX" ] + " -specs " + spec_filename
+
+    manifest_file = open( source_dir + "/" + source_name + ".exe.manifest", "w" )
+    manifest_file.write( r"""\
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="asInvoker" uiAccess="false"></requestedExecutionLevel>
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+  <dependency>
+    <dependentAssembly>
+      <assemblyIdentity
+         type="win32"
+         name="Microsoft.VC90.CRT"
+         version="9.0.21022.8"
+         processorArchitecture="x86"
+         publicKeyToken="1fc8b3b9a1e18e3b">
+      </assemblyIdentity>
+    </dependentAssembly>
+  </dependency>
+</assembly>
+"""
+    )
+    manifest_file.close()
+
+    rc_file = open( source_dir + "/" + source_name + ".exe.rc", "w" )
+    rc_file.write( r"""\
+#include "winuser.h"
+1 RT_MANIFEST %s
+""" % ( source_name + ".exe.manifest" )
+    )
+    rc_file.close()
 
 if module_mode:
     if win_target:
@@ -235,7 +312,7 @@ if module_mode:
     else:
         module_suffix = ".so"
 
-    env['SHLIBSUFFIX'] = module_suffix
+    env[ "SHLIBSUFFIX" ] = module_suffix
 
     target = env.SharedLibrary( result_file , discoverSourceFiles() )
 else:

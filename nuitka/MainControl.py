@@ -152,12 +152,12 @@ def makeSourceDirectory( main_module ):
         module_hpps.append( other_module.getFullName() + ".hpp" )
 
         writeSourceCode(
-            cpp_filename = cpp_filename,
+            filename     = cpp_filename,
             source_code  = other_module_code
         )
 
         writeSourceCode(
-            cpp_filename = hpp_filename,
+            filename     = hpp_filename,
             source_code  = CodeGeneration.generateModuleDeclarationCode(
                 module_name = other_module.getFullName()
             )
@@ -185,13 +185,13 @@ def makeSourceDirectory( main_module ):
         )
 
     writeSourceCode(
-        cpp_filename = cpp_filename,
-        source_code  = source_code
+        filename    = cpp_filename,
+        source_code = source_code
     )
 
     writeSourceCode(
-        cpp_filename = hpp_filename,
-        source_code  = CodeGeneration.generateModuleDeclarationCode(
+        filename    = hpp_filename,
+        source_code = CodeGeneration.generateModuleDeclarationCode(
             module_name = main_module_name
         )
     )
@@ -199,8 +199,8 @@ def makeSourceDirectory( main_module ):
     module_hpps.append( "__main__.hpp" )
 
     writeSourceCode(
-        cpp_filename = source_dir + "__constants.cpp",
-        source_code  = CodeGeneration.generateConstantsDefinitionCode(
+        filename    = source_dir + "__constants.cpp",
+        source_code = CodeGeneration.generateConstantsDefinitionCode(
             context = global_context
         )
     )
@@ -212,17 +212,16 @@ def makeSourceDirectory( main_module ):
     ]
 
     writeSourceCode(
-        cpp_filename = source_dir + "__constants.hpp",
-        source_code  = CodeGeneration.generateConstantsDeclarationCode(
+        filename    = source_dir + "__constants.hpp",
+        source_code = CodeGeneration.generateConstantsDeclarationCode(
             context = global_context
         )
     )
 
     writeSourceCode(
-        cpp_filename = source_dir + "__modules.hpp",
-        source_code  = "".join( module_hpp_include )
+        filename    = source_dir + "__modules.hpp",
+        source_code = "".join( module_hpp_include )
     )
-
 
 def runScons( tree, quiet ):
     name = Utils.basename( tree.getFilename() ).replace( ".py", "" )
@@ -255,7 +254,7 @@ def runScons( tree, quiet ):
         "lto_mode"       : asBoolStr( Options.isLto() ),
     }
 
-    if Options.options.windows_target:
+    if Options.isWindowsTarget():
         options[ "win_target" ] = "true"
 
     scons_command = """scons %(quiet)s -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
@@ -270,13 +269,13 @@ def runScons( tree, quiet ):
 
     return 0 == os.system( scons_command ), options
 
-def writeSourceCode( cpp_filename, source_code ):
-    open( cpp_filename, "w" ).write( source_code )
+def writeSourceCode( filename, source_code ):
+    open( filename, "w" ).write( source_code )
 
 def executeMain( output_filename, tree ):
     name = Utils.basename( tree.getFilename() ).replace( ".py", ".exe" )
 
-    if not Options.options.windows_target or "win" in sys.platform:
+    if not Options.isWindowsTarget() or "win" in sys.platform:
         os.execl( output_filename, name, *Options.getMainArgs() )
     else:
         args = [ output_filename, ] + Options.getMainArgs()

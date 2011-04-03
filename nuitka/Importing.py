@@ -102,11 +102,14 @@ def _findModule( module_name, parent_package ):
         print( "_findModule: Enter", module_name, "in", parent_package )
 
     # The os.path is strangely hacked into the os module, dispatching per platform, we
-    # either cannot look into it, or we require to be on the target platform. Non-Linux is
-    # unusually enough, but common, cross platform compile, lets give up on that.
+    # either cannot look into it, or we require that we resolve it here correctly.
     if module_name == "os.path" and parent_package is None:
         parent_package = "os"
-        module_name = os.path.basename( os.path.__file__ ).replace( ".pyc", "" )
+
+        if not Options.isWindowsTarget():
+            module_name = os.path.basename( os.path.__file__ ).replace( ".pyc", "" )
+        else:
+            module_name = "ntpath"
 
     if "." in module_name:
         package_part = module_name[ : module_name.rfind( "." ) ]

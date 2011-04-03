@@ -31,5 +31,4 @@
 #
 
 find . -name \*.build -exec echo rm -rf {} \;
-find . -name \*.exe -exec echo rm {} \;
-find . -name \*.pyc -exec echo rm {} \;
+find . -regex '.*\.\(exe\|pyc\|so\)$' -exec echo rm {} \;

@@ -90,6 +90,8 @@ def getParameterContextCode( default_access_identifiers ):
 
 
 def _getParameterParsingCode( context, parameters, function_name, default_identifiers, is_method ):
+    # There is really no way this could be any less complex, pylint: disable=R0912
+
     parameter_parsing_code = "".join(
         [
             "PyObject *_python_par_" + variable.getName() + " = NULL;\n"
@@ -159,10 +161,15 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
             }
 
     if parameters.getListStarArgVariable() is not None:
+        if not is_method:
+            max_index = len( top_level_parameters )
+        else:
+            max_index = len( top_level_parameters ) - 1
+
         parameter_parsing_code += CodeTemplates.parse_argument_template_copy_list_star_args % {
             "list_star_parameter_name"  : parameters.getListStarArgName(),
             "top_level_parameter_count" : len( top_level_parameters ),
-            "top_level_max_index"       : len( top_level_parameters ) if not is_method else len( top_level_parameters ) - 1
+            "top_level_max_index"       : max_index
         }
 
     if top_level_parameters:

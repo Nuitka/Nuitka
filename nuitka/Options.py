@@ -33,7 +33,7 @@
 from __future__ import print_function
 
 version_string = """\
-Nuitka V0.3.8
+Nuitka V0.3.9pre1
 Copyright (C) 2011 Kay Hayen."""
 
 from . import Utils
@@ -285,3 +285,6 @@ def getJobLimit():
 
 def isLto():
     return options.lto
+
+def isWindowsTarget():
+    return options.windows_target
