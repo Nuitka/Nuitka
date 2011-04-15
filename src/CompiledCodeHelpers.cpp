@@ -424,6 +424,7 @@ PyObject *BUILTIN_LEN( PyObject *value )
     return PyInt_FromSsize_t( res );
 }
 
+// TODO: Move this to global init, so it's not pre-main code that may not be run.
 static PyObject *empty_code = PyBuffer_FromMemory( NULL, 0 );
 
 static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line )
@@ -440,17 +441,46 @@ static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, 
     // printf( "MAKE_CODEOBJ code object %d\n", empty_code->ob_refcnt );
 
     PyCodeObject *result = PyCode_New (
-        0, 0, 0, 0, // argcount, locals, stacksize, flags
-        empty_code, //
-        _python_tuple_empty,
-        _python_tuple_empty,
-        _python_tuple_empty,
-        _python_tuple_empty,
-        _python_tuple_empty,
-        filename,
-        function_name,
-        line,
-        _python_str_empty
+        0, 0, 0, 0,          // argcount, locals, stacksize, flags
+        empty_code,          // code
+        _python_tuple_empty, // consts (we are not going to be compatible)
+        _python_tuple_empty, // names (we are not going to be compatible)
+        _python_tuple_empty, // varnames (we are not going to be compatible)
+        _python_tuple_empty, // freevars (we are not going to be compatible)
+        _python_tuple_empty, // cellvars (we are not going to be compatible)
+        filename,            // filename
+        function_name,       // name
+        line,                // firstlineno (offset of the code object)
+        _python_str_empty    // lnotab (table to translate code object)
+    );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int first_line, PyObject *lnotab )
+{
+    assert( PyString_Check( filename ) );
+    assert( PyString_Check( function_name ) );
+
+    assert( empty_code );
+
+    PyCodeObject *result = PyCode_New (
+        0, 0, 0, 0,          // argcount, locals, stacksize, flags
+        empty_code,          // code
+        _python_tuple_empty, // consts (we are not going to be compatible)
+        _python_tuple_empty, // names (we are not going to be compatible)
+        _python_tuple_empty, // varnames (we are not going to be compatible)
+        _python_tuple_empty, // freevars (we are not going to be compatible)
+        _python_tuple_empty, // cellvars (we are not going to be compatible)
+        filename,            // filename
+        function_name,       // name
+        first_line,          // firstlineno (offset of the code object)
+        lnotab               // lnotab (table to translate code object)
     );
 
     if (unlikely( result == NULL ))
@@ -466,10 +496,10 @@ PyObject *MAKE_FRAME( PyObject *module, PyObject *filename, PyObject *function_n
     PyCodeObject *code = MAKE_CODEOBJ( filename, function_name, line );
 
     PyFrameObject *result = PyFrame_New(
-        PyThreadState_GET(),
-        code,
-        ((PyModuleObject *)module)->md_dict,
-        NULL // No locals yet
+        PyThreadState_GET(),                 // thread state
+        code,                                // code
+        ((PyModuleObject *)module)->md_dict, // globals (module dict)
+        NULL                                 // locals (we are not going to be compatible (yet?))
     );
 
     Py_DECREF( code );
@@ -479,10 +509,27 @@ PyObject *MAKE_FRAME( PyObject *module, PyObject *filename, PyObject *function_n
         throw _PythonException();
     }
 
-    result->f_lineno = line;
+    return (PyObject *)result;
+}
+
+// TODO: Clarify if module is worth any trouble at all.
+PyObject *MAKE_FRAME( PyCodeObject *code, PyObject *module, int offset )
+{
+    PyFrameObject *result = PyFrame_New(
+        PyThreadState_GET(),                 // thread state
+        code,                                // code
+        ((PyModuleObject *)module)->md_dict, // globals (module dict)
+        NULL                                 // locals (we are not going to be compatible (yet?))
+    );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
 
     return (PyObject *)result;
 }
+
 
 #ifdef _NUITKA_EXE
 extern bool *FIND_EMBEDDED_MODULE( PyObject *module_name );

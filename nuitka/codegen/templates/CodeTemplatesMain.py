@@ -276,7 +276,7 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 {
 #ifdef _NUITKA_EXE
     // Packages can be imported recursively in deep executables.
-    if (init_done)
+    if ( init_done )
     {
         return;
     }

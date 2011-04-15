@@ -7,9 +7,20 @@ tasks and issue tracking in Nuitka.
 
 ** Requirements
 
-   You need to use the GNU g++ compiler of at least version 4.5 available or else the
-   compilation will fail. This is due to uses of C++0x and at least 4.5 because of the use
-   of so called "raw string" literals in Nuitka, which are new in that version of g++.
+   C++ Compiler: You need a compiler with support for C++0x
+
+   Currently this means, you need to use the GNU g++ compiler of at least version 4.5 or
+   else the compilation will fail. This is due to uses of C++0x "raw string" literals
+   only supported from that version on.
+
+   On Windows the MinGW g++ compiler of at least version 4.5, the VC++ compiler is not
+   currently supported.
+
+   Scons: You need to install scons, because it is used to build the C++ sources to
+   binaries.
+
+   Python: You need at least CPython 2.6 to execute Nuitka, and because the created
+   executables will link against the CPython shared library at run time.
 
 ** Environment
 
@@ -19,14 +30,14 @@ tasks and issue tracking in Nuitka.
 
 ** Command Line
 
-   Then look at "Nuitka.py --help" and a shortcut "Python" which always sets "--exe" and
-   "--execute" options, so it is somewhat similar to "python".
+   Then look at "Nuitka.py --help" and a shortcut "Python --help" which always sets
+   "--exe" and "--execute" options, so it is somewhat similar to "python".
 
 ** Where to go next
 
-   Remember, this project is not yet complete. Although most of the CPython test suite
-   works perfectly, there is still more polish needed, to make it do enough optimizations
-   to be worth while. Try it out.
+   Remember, this project is not completed yet. Although the CPython test suite works near
+   perfect, there is still more work needed, to make it do enough optimizations to be
+   worth while. Try it out.
 
    Subscribe to its mailing list:
    http://kayhayen24x7.homelinux.org/blog/nuitka-a-python-compiler/nuitka-mailinglist/
@@ -37,8 +48,10 @@ tasks and issue tracking in Nuitka.
 ** Word of Warning
 
    Consider this a beta release quality, do not use it for anything important, but your
-   feedback and patches are very welcome. Esp. if you find that anything doesn't work,
-   because the project is now at the stage that this should not happen.
+   feedback and patches are very welcome.
+
+   Especially report it if you find that anything doesn't work, because the project is now
+   at the stage that this should not happen.
 
 * Unsupported functionality
 
@@ -614,3 +627,58 @@ have seen before.
 
 We could also consider kw-only and args-only entry points to parsing, and call them from
 the compiled function tp_call interface. Parsing needs to do less checks in these cases.
+
+* Credits
+
+** Contributors to Nuitka
+
+Thanks go to these individuals for their much valued contributions to Nuitka. The order is
+sorted by time.
+
+Li Xuan Ji: Contributed patches for general portability issue and enhancements to the
+environment variable settings.
+
+Nicolas Dumazet: Found and fixed refcounting issues, import work, improved some of the
+English and generally made improvements all over the place.
+
+Khalid Abu Bakr: Submitted patches for his work to support MinGW and Windows, debugged the
+issues, and helped me to get cross compile with MinGW from Linux to Windows. This was
+quite a feat.
+
+** Projects used by Nuitka
+
+*** The CPython project http://www.python.org/
+
+Thanks for giving us CPython, which is the base of Nuitka.
+
+*** The gcc project http://gcc.gnu.org/
+
+Thanks for not only the best compiler, but also thanks for supporting C++0x which has made
+the generation of code much easier. Currently no other compiler is usable for Nuitka than
+yours.
+
+*** The scons project http://www.scons.org/
+
+Thanks for tackling the difficult points and providing a Python environment for make the
+build results. This is such a perfect fit to Nuitka and a dependency that will likely
+remain.
+
+*** The valgrind project http://valgrind.org/
+
+Luckily we can use Valgrind to determine if something is an actual improvement without the
+noise. And it's also helpful to determine what's actually happening when comparing.
+
+*** The MinGW project http://www.mingw.org/
+
+Thanks for porting the best compiler to Windows. This allows portability of Nuitka with
+very little effort.
+
+*** The mingw-cross-env project http://mingw-cross-env.nongnu.org
+
+Thanks for enabling us to easily setup a cross compiler for my Debian that will produce
+working Windows binaries.
+
+*** The wine project http://www.winehq.org/
+
+Thanks for enabling us to run the cross compiled binaries without have to maintain a
+windows installation at all.

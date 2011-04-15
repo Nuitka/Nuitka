@@ -59,6 +59,7 @@ from . import (
     CppRawStrings,
     CodeTemplates,
     OperatorCodes,
+    CodeObjects
 )
 
 from nuitka import (
@@ -2745,3 +2746,19 @@ def getConstantsDefinitionCode( context ):
             for_header = False
         )
     }
+
+def getByteCodeObjectTemp( context ):
+    return "_python_bytecode_" + context.getCodeName()
+
+def getBytecodeObjectAccessCode( name_identifier, filename_identifier, line_numbers, context ):
+    first_line, lntotab = CodeObjects.createCodeObjectLineNumberTable(
+        line_numbers = line_numbers
+    )
+
+    return Identifier(
+        "%(bytecode_temp)s ? %(bytecode_temp)s : ( %(bytecode_temp)s = MAKE_CODEOBJ( %(filename)s, %(name)s, %(line)d" % {
+            "bytecode_temp" : getByteCodeObjectTemp( context ),
+            "filename"      : filename_identifier.getCodeTemporaryRef(),
+            "name"          : name_identifier.getCodeTemporaryRef()
+        }
+    )

@@ -52,6 +52,9 @@ for line in sys.stdin:
     line = global_name_error_re.sub( r"\1\2\3", line )
     line = module_repr_re.sub( r"\1xxxxx\2", line )
 
+    # Windows has a different os.path, update according to it.
+    line = line.replace( "ntpath", "posixpath" )
+
     line = line.replace(
         "must be a mapping, not compiled_function",
         "must be a mapping, not function"

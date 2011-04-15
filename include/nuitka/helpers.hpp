@@ -1627,8 +1627,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
     return result;
 }
 
+// Create a code object for the given code location.
+extern PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int first_line, PyObject *lnotab );
+
 // Create a frame for the given code location.
-PyObject *MAKE_FRAME( PyObject *module, PyObject *filename, PyObject *function_name, int line );
+extern PyObject *MAKE_FRAME( PyObject *module, PyObject *filename, PyObject *function_name, int line );
 
 NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyObject *frame, int line )
 {
