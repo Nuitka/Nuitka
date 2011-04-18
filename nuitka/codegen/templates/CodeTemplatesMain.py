@@ -28,7 +28,9 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Main module code templates
 
+"""
 
 module_inittab_entry = """\
 { (char *)"%(module_name)s", init%(module_identifier)s },"""
@@ -268,6 +270,15 @@ PyObject *_module_%(module_identifier)s;
 // The exported interface to CPython. On import of the module, this function gets
 // called. It has have that exact function name.
 
+// Frame object of the module.
+PyObject *frame_%(module_identifier)s;
+
+// Frame object of the module.
+static inline PyObject *frameobj_%(module_identifier)s( void )
+{
+   return frame_%(module_identifier)s;
+}
+
 #ifdef _NUITKA_EXE
 static bool init_done = false;
 #endif
@@ -320,6 +331,8 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 
     assert( _module_%(module_identifier)s );
 
+    frame_%(module_identifier)s = MAKE_FRAME( %(filename_identifier)s, %(module_name_obj)s, _module_%(module_identifier)s );
+
     // Initialize the standard module attributes.
 %(module_inits)s
 
@@ -347,12 +360,12 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
     }
     catch ( _PythonException &_exception )
     {
-        _exception.toPython();
-
         if ( traceback == false )
         {
-            ADD_TRACEBACK( _module_%(module_identifier)s, %(filename_identifier)s, _python_str_angle_module, _exception.getLine() );
+            _exception.addTraceback( frameobj_%(module_identifier)s() );
         }
+
+        _exception.toPython();
     }
 }
 """

@@ -35,7 +35,7 @@ and little more. Because this is hard to get right with the white space problems
 has here, we have a paranoid debug mode that compiles a test program to verify the correctness
 of each literal. That's not fast of course.
 """
-import re
+import commands, os, re
 
 def _pickRawDelimiter( value ):
     delimiter = "raw"
@@ -90,8 +90,7 @@ int main( int argc, char *argv[] )
 
         source_file.close()
 
-        import commands, os
-        os.system( "g++-4.5 -std=c++0x /tmp/raw_test.cpp -o /tmp/raw_test" )
+        os.system( "g++ -std=c++0x /tmp/raw_test.cpp -o /tmp/raw_test" )
 
         check = commands.getoutput( "/tmp/raw_test" )
 

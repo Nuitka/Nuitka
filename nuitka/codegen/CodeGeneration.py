@@ -429,20 +429,9 @@ def _generateDefaultIdentifiers( parameters, default_expressions, sub_context, c
                 )
             )
 
-            import Identifiers
-
-            if variable.isNestedParameterVariable():
-                default_access_identifier = Identifiers.DefaultValueIdentifier(
-                    var_name = "__".join( variable.getParameterNames() ),
-                    nested   = True
-                )
-            else:
-                default_access_identifier = Identifiers.DefaultValueIdentifier(
-                    var_name = variable.getName(),
-                    nested   = False
-                )
-
-            default_access_identifiers.append( default_access_identifier )
+            default_access_identifiers.append(
+                Generator.getDefaultValueAccess( variable )
+            )
 
     return default_access_identifiers, default_value_identifiers
 
@@ -478,33 +467,31 @@ def generateLambdaCode( lambda_expression, context ):
 
     if lambda_expression.isGenerator():
         lambda_code = Generator.getGeneratorFunctionCode(
-            context              = lambda_context,
-            function_name        = "<lambda>",
-            function_identifier  = lambda_expression.getCodeName(),
-            parameters           = parameters,
-            user_variables       = lambda_expression.getBody().getUserLocalVariables(),
-            decorator_count      = 0, # Lambda expressions can't be decorated.
-            closure_variables    = lambda_expression.getClosureVariables(),
+            context                    = lambda_context,
+            function_name              = "<lambda>",
+            function_identifier        = lambda_expression.getCodeName(),
+            parameters                 = parameters,
+            user_variables             = lambda_expression.getBody().getUserLocalVariables(),
+            decorator_count            = 0, # Lambda expressions can't be decorated.
+            closure_variables          = lambda_expression.getClosureVariables(),
             default_access_identifiers = default_access_identifiers,
-            default_value_identifiers  = default_value_identifiers,
-            function_codes       = codes,
-            function_filename    = lambda_expression.getParentModule().getFilename(),
-            function_doc         = None # Lambda expressions don't have doc strings
+            function_codes             = codes,
+            function_filename          = lambda_expression.getParentModule().getFilename(),
+            function_doc               = None # Lambda expressions don't have doc strings
         )
     else:
         lambda_code = Generator.getFunctionCode(
-            context              = lambda_context,
-            function_name        = "<lambda>",
-            function_identifier  = lambda_expression.getCodeName(),
-            parameters           = parameters,
-            user_variables       = lambda_expression.getBody().getUserLocalVariables(),
-            decorator_count      = 0, # Lambda expressions can't be decorated.
-            closure_variables    = lambda_expression.getClosureVariables(),
+            context                    = lambda_context,
+            function_name              = "<lambda>",
+            function_identifier        = lambda_expression.getCodeName(),
+            parameters                 = parameters,
+            user_variables             = lambda_expression.getBody().getUserLocalVariables(),
+            decorator_count            = 0, # Lambda expressions can't be decorated.
+            closure_variables          = lambda_expression.getClosureVariables(),
             default_access_identifiers = default_access_identifiers,
-            default_value_identifiers  = default_value_identifiers,
-            function_codes       = codes,
-            function_filename    = lambda_expression.getParentModule().getFilename(),
-            function_doc         = None # Lambda expressions don't have doc strings
+            function_codes             = codes,
+            function_filename          = lambda_expression.getParentModule().getFilename(),
+            function_doc               = None # Lambda expressions don't have doc strings
         )
 
     context.addLambdaCodes(
@@ -555,33 +542,31 @@ def generateFunctionCode( function, context ):
 
     if function.isGenerator():
         function_code = Generator.getGeneratorFunctionCode(
-            context              = function_context,
-            function_name        = function.getFunctionName(),
-            function_identifier  = function.getCodeName(),
-            parameters           = parameters,
-            closure_variables    = function.getClosureVariables(),
-            user_variables       = function.getBody().getUserLocalVariables(),
-            decorator_count      = len( function.getDecorators() ),
+            context                    = function_context,
+            function_name              = function.getFunctionName(),
+            function_identifier        = function.getCodeName(),
+            parameters                 = parameters,
+            closure_variables          = function.getClosureVariables(),
+            user_variables             = function.getBody().getUserLocalVariables(),
+            decorator_count            = len( function.getDecorators() ),
             default_access_identifiers = default_access_identifiers,
-            default_value_identifiers  = default_value_identifiers,
-            function_filename    = function.getParentModule().getFilename(),
-            function_codes       = function_codes,
-            function_doc         = function.getBody().getDoc()
+            function_filename          = function.getParentModule().getFilename(),
+            function_codes             = function_codes,
+            function_doc               = function.getBody().getDoc()
         )
     else:
         function_code = Generator.getFunctionCode(
-            context              = function_context,
-            function_name        = function.getFunctionName(),
-            function_identifier  = function.getCodeName(),
-            parameters           = parameters,
-            closure_variables    = function.getClosureVariables(),
-            user_variables       = function.getBody().getUserLocalVariables(),
-            decorator_count      = len( function.getDecorators() ),
+            context                    = function_context,
+            function_name              = function.getFunctionName(),
+            function_identifier        = function.getCodeName(),
+            parameters                 = parameters,
+            closure_variables          = function.getClosureVariables(),
+            user_variables             = function.getBody().getUserLocalVariables(),
+            decorator_count            = len( function.getDecorators() ),
             default_access_identifiers = default_access_identifiers,
-            default_value_identifiers  = default_value_identifiers,
-            function_filename    = function.getParentModule().getFilename(),
-            function_codes       = function_codes,
-            function_doc         = function.getBody().getDoc()
+            function_filename          = function.getParentModule().getFilename(),
+            function_codes             = function_codes,
+            function_doc               = function.getBody().getDoc()
         )
 
     function_decl = Generator.getFunctionDecl(

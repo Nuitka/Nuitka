@@ -28,6 +28,10 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Generator function (with yield) related templates.
+
+"""
+
 genfunc_context_body_template = """
 
 // This structure is for attachment as self of the generator function %(function_identifier)s and
@@ -100,6 +104,18 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 """
 
 genfunc_yielder_template = """
+static PyObject *frameobj_%(function_identifier)s( void )
+{
+   static PyObject *frameobj = NULL;
+
+   if ( frameobj == NULL )
+   {
+      frameobj = MAKE_FRAME( %(filename_identifier)s, %(function_name_obj)s, %(module_identifier)s );
+   }
+
+   return frameobj;
+}
+
 static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
     bool traceback;
@@ -128,12 +144,12 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
     }
     catch ( _PythonException &_exception )
     {
-        _exception.toPython();
-
         if ( traceback == false )
         {
-           ADD_TRACEBACK( %(module_identifier)s, %(filename_identifier)s, %(name_identifier)s, _exception.getLine() );
+           _exception.addTraceback( frameobj_%(function_identifier)s() );
         }
+
+        _exception.toPython();
 
         generator->m_yielded = NULL;
     }

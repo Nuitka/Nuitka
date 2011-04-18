@@ -28,6 +28,10 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Generator expressions code templates
+
+"""
+
 genexpr_context_body_template = """
 
 // This structure is for attachment as self of %(function_identifier)s. It is allocated at
@@ -56,7 +60,13 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
     // Copy the closure values over if any.
 %(context_copy)s
 
-    PyObject *result = Nuitka_Genexpr_New( %(function_identifier)s, %(function_name_obj)s, iterated, %(iterator_count)d, _python_context, _context_%(function_identifier)s_destructor );
+    PyObject *result = Nuitka_Genexpr_New(
+        %(function_identifier)s,
+        %(function_name_obj)s,
+        iterated, %(iterator_count)d,
+        _python_context,
+        _context_%(function_identifier)s_destructor
+    );
 
     return result;
 }
@@ -76,6 +86,18 @@ case %(iterator_index)d:
 """
 
 genexpr_function_template = """
+static PyObject *frameobj_%(function_identifier)s( void )
+{
+   static PyObject *frameobj = NULL;
+
+   if ( frameobj == NULL )
+   {
+      frameobj = MAKE_FRAME( %(filename_identifier)s, %(name_identifier)s, %(module)s );
+   }
+
+   return frameobj;
+}
+
 // The function that is iterated over during generator expression execution. It is
 // supposed to yield the next value as a return value.
 
@@ -154,8 +176,8 @@ static PyObject *%(function_identifier)s( Nuitka_GenexprObject *generator )
     }
     catch ( _PythonException &_exception )
     {
+        _exception.addTraceback( frameobj_%(function_identifier)s() );
         _exception.toPython();
-        ADD_TRACEBACK( %(module)s, %(filename_identifier)s, %(name_identifier)s, _exception.getLine() );
 
         return NULL;
     }

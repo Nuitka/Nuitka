@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 #     Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -19,26 +18,26 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-print "Hello World from Module main Code"
 
-def printHelloWorld():
-    print "Hello World from Function main Code"
 
-print printHelloWorld
 
-printHelloWorld()
+def someFunction():
+    def someRaiser():
+        raise ValueError
 
-def printHelloWorld2( arg ):
-    print arg
+    try:
+        someRaiser()
+        a = 0
+    finally:
+        a = 1
 
-print printHelloWorld2
+    return a
 
-printHelloWorld2( "Hello World from Function positional argument" )
-printHelloWorld2( arg = "Hello World from Function keyword argument" )
+def catcher():
+    for i in range(1000):
+        try:
+            someFunction()
+        except ValueError:
+            pass
 
-def printHelloWorld3( arg = "Hello World from Function default argument" ):
-    print arg
-
-print printHelloWorld3
-
-printHelloWorld3()
+catcher()

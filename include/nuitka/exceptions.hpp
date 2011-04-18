@@ -31,6 +31,21 @@
 #ifndef __NUITKA_EXCEPTIONS_H__
 #define __NUITKA_EXCEPTIONS_H__
 
+NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyObject *frame, int line )
+{
+    PyTracebackObject *result = PyObject_GC_New( PyTracebackObject, &PyTraceBack_Type );
+
+    result->tb_next = NULL;
+    result->tb_frame = (PyFrameObject *)INCREASE_REFCOUNT( frame );
+
+    result->tb_lasti = 0;
+    result->tb_lineno = line;
+
+    PyObject_GC_Track( result );
+
+    return result;
+}
+
 class _PythonException
 {
     public:
@@ -120,7 +135,8 @@ class _PythonException
         inline void _importFromPython()
         {
             PyErr_Fetch( &this->exception_type, &this->exception_value, &this->exception_tb );
-            assert( this->exception_type );
+
+            assertObject( this->exception_type );
         }
 
         inline int getLine() const
@@ -171,7 +187,7 @@ class _PythonException
 
             Py_INCREF(  thread_state->exc_type );
             Py_XINCREF( thread_state->exc_value );
-            Py_XINCREF(  thread_state->exc_traceback );
+            Py_XINCREF( thread_state->exc_traceback );
 
             Py_XDECREF( old_type );
             Py_XDECREF( old_value );
@@ -195,6 +211,14 @@ class _PythonException
         inline PyObject *getTraceback() const
         {
             return this->exception_tb;
+        }
+
+        inline void addTraceback( PyObject *frame )
+        {
+            PyTracebackObject *traceback_new = MAKE_TRACEBACK( frame, this->line );
+
+            traceback_new->tb_next = (PyTracebackObject *)this->exception_tb;
+            this->exception_tb = (PyObject *)traceback_new;
         }
 
         inline void setTraceback( PyTracebackObject *traceback )
@@ -232,6 +256,18 @@ class _PythonException
         }
 
     private:
+        friend class _PythonExceptionKeeper;
+
+        // For the restore of saved ones.
+        _PythonException( int line, PyObject *exception, PyObject *value, PyObject *traceback )
+        {
+            this->line = line;
+
+            this->exception_type = exception;
+            this->exception_value = value;
+            this->exception_tb = traceback;
+        }
+
 
         PyObject *exception_type, *exception_value, *exception_tb;
         int line;
@@ -242,39 +278,62 @@ class _PythonExceptionKeeper
     public:
         _PythonExceptionKeeper()
         {
-            saved = NULL;
+            this->keeping = false;
+
+#ifndef __NUITKA_NO_ASSERT__
+            this->exception_type = NULL;
+            this->exception_value = NULL;
+            this->exception_tb = NULL;
+#endif
         }
 
         ~_PythonExceptionKeeper()
         {
-            if ( this->saved )
+            if ( this->keeping )
             {
-                delete this->saved;
+                Py_XDECREF( this->exception_type );
+                Py_XDECREF( this->exception_value );
+                Py_XDECREF( this->exception_tb );
             }
         }
 
         void save( const _PythonException &e )
         {
-            this->saved = new _PythonException( e );
+            this->line            = e.line;
+
+            this->exception_type  = e.exception_type;
+            this->exception_value = e.exception_value;
+            this->exception_tb    = e.exception_tb;
+
+            Py_XINCREF( this->exception_type );
+            Py_XINCREF( this->exception_value );
+            Py_XINCREF( this->exception_tb );
+
+            this->keeping = true;
         }
 
         void rethrow()
         {
-            if ( this->saved )
+            if ( this->keeping )
             {
-                throw *this->saved;
+                Py_XINCREF( this->exception_type );
+                Py_XINCREF( this->exception_value );
+                Py_XINCREF( this->exception_tb );
+
+                throw _PythonException( line, this->exception_type, this->exception_value, this->exception_tb );
             }
         }
 
         bool isEmpty() const
         {
-            return this->saved == NULL;
+            return !this->keeping;
         }
 
     private:
-        bool empty;
+        bool keeping;
 
-        _PythonException *saved;
+        PyObject *exception_type, *exception_value, *exception_tb;
+        int line;
 };
 
 class ReturnException

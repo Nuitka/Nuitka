@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #     Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -18,7 +19,6 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-# -*- coding: utf-8 -*-
 
 # All of these 3 should be identical with correct software behaviour.
 

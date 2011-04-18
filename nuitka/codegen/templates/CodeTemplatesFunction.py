@@ -28,7 +28,9 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Function related templates. """
+""" Normal function (no yield) related templates.
+
+"""
 
 function_decl_template = """\
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s );
@@ -96,6 +98,17 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 """
 
 function_body_template = """
+static PyObject *frameobj_%(function_identifier)s( void )
+{
+   static PyObject *frameobj = NULL;
+
+   if ( frameobj == NULL )
+   {
+      frameobj = MAKE_FRAME( %(filename_identifier)s, %(function_name_obj)s, %(module_identifier)s );
+   }
+
+   return frameobj;
+}
 
 static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects_decl)s )
 {
@@ -114,13 +127,12 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects
     }
     catch ( _PythonException &_exception )
     {
-        _exception.toPython();
-
         if ( traceback == false )
         {
-            ADD_TRACEBACK( %(module_identifier)s, %(filename_identifier)s, %(name_identifier)s, _exception.getLine() );
+            _exception.addTraceback( frameobj_%(function_identifier)s() );
         }
 
+        _exception.toPython();
         return NULL;
     }
 }

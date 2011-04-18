@@ -427,18 +427,12 @@ PyObject *BUILTIN_LEN( PyObject *value )
 // TODO: Move this to global init, so it's not pre-main code that may not be run.
 static PyObject *empty_code = PyBuffer_FromMemory( NULL, 0 );
 
-static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line )
+static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name )
 {
-    // TODO: Potentially it is possible to create a line2no table that will allow to use
-    // only one code object per function, this could then be cached and presumably be much
-    // faster, because it could be reused.
-
     assert( PyString_Check( filename ) );
     assert( PyString_Check( function_name ) );
 
     assert( empty_code );
-
-    // printf( "MAKE_CODEOBJ code object %d\n", empty_code->ob_refcnt );
 
     PyCodeObject *result = PyCode_New (
         0, 0, 0, 0,          // argcount, locals, stacksize, flags
@@ -450,7 +444,7 @@ static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, 
         _python_tuple_empty, // cellvars (we are not going to be compatible)
         filename,            // filename
         function_name,       // name
-        line,                // firstlineno (offset of the code object)
+        0,                   // firstlineno (offset of the code object)
         _python_str_empty    // lnotab (table to translate code object)
     );
 
@@ -462,58 +456,7 @@ static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, 
     return result;
 }
 
-PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int first_line, PyObject *lnotab )
-{
-    assert( PyString_Check( filename ) );
-    assert( PyString_Check( function_name ) );
-
-    assert( empty_code );
-
-    PyCodeObject *result = PyCode_New (
-        0, 0, 0, 0,          // argcount, locals, stacksize, flags
-        empty_code,          // code
-        _python_tuple_empty, // consts (we are not going to be compatible)
-        _python_tuple_empty, // names (we are not going to be compatible)
-        _python_tuple_empty, // varnames (we are not going to be compatible)
-        _python_tuple_empty, // freevars (we are not going to be compatible)
-        _python_tuple_empty, // cellvars (we are not going to be compatible)
-        filename,            // filename
-        function_name,       // name
-        first_line,          // firstlineno (offset of the code object)
-        lnotab               // lnotab (table to translate code object)
-    );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
-PyObject *MAKE_FRAME( PyObject *module, PyObject *filename, PyObject *function_name, int line )
-{
-    PyCodeObject *code = MAKE_CODEOBJ( filename, function_name, line );
-
-    PyFrameObject *result = PyFrame_New(
-        PyThreadState_GET(),                 // thread state
-        code,                                // code
-        ((PyModuleObject *)module)->md_dict, // globals (module dict)
-        NULL                                 // locals (we are not going to be compatible (yet?))
-    );
-
-    Py_DECREF( code );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return (PyObject *)result;
-}
-
-// TODO: Clarify if module is worth any trouble at all.
-PyObject *MAKE_FRAME( PyCodeObject *code, PyObject *module, int offset )
+static PyObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
 {
     PyFrameObject *result = PyFrame_New(
         PyThreadState_GET(),                 // thread state
@@ -530,6 +473,10 @@ PyObject *MAKE_FRAME( PyCodeObject *code, PyObject *module, int offset )
     return (PyObject *)result;
 }
 
+PyObject *MAKE_FRAME( PyObject *filename, PyObject *function_name, PyObject *module )
+{
+    return MAKE_FRAME( MAKE_CODEOBJ( filename, function_name ), module );
+}
 
 #ifdef _NUITKA_EXE
 extern bool *FIND_EMBEDDED_MODULE( PyObject *module_name );

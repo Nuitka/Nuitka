@@ -536,8 +536,7 @@ static PyObject *MAKE_TUPLE( P...eles )
 
     for ( Py_ssize_t i = 0; i < size; i++ )
     {
-        assert( elements[ i ] != NULL );
-        assert( elements[ i ]->ob_refcnt > 0 );
+        assertObject( elements[ i ] );
     }
 
     PyObject *result = PyTuple_New( size );
@@ -1627,38 +1626,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
     return result;
 }
 
-// Create a code object for the given code location.
-extern PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int first_line, PyObject *lnotab );
-
-// Create a frame for the given code location.
-extern PyObject *MAKE_FRAME( PyObject *module, PyObject *filename, PyObject *function_name, int line );
-
-NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyObject *frame, int line )
-{
-    PyTracebackObject *result = PyObject_GC_New( PyTracebackObject, &PyTraceBack_Type );
-
-    result->tb_next = NULL;
-    result->tb_frame = (PyFrameObject *)INCREASE_REFCOUNT( frame );
-
-    result->tb_lasti = 0;
-    result->tb_lineno = line;
-
-    PyObject_GC_Track( result );
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static void ADD_TRACEBACK( PyObject *module, PyObject *filename, PyObject *function_name, int line )
-{
-    // TODO: The frame object really might deserve a longer life that this, it is
-    // relatively expensive to create.
-    PyFrameObject *frame = (PyFrameObject *)MAKE_FRAME( module, filename, function_name, line );
-
-    // Inlining PyTraceBack_Here may be faster
-    PyTraceBack_Here( frame );
-
-    Py_DECREF( frame );
-}
+// Create a frame object for the given filename, function name and module object.
+extern PyObject *MAKE_FRAME( PyObject *filename, PyObject *function_name, PyObject *module );
 
 extern PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObjectGlobalVariable const *package_var, PyObject *import_items, int level );
 

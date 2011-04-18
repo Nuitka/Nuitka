@@ -1,3 +1,4 @@
+# -*- python -*-
 #
 #     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -28,7 +29,6 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-# -*- python -*-
 
 # The Nuitka scons file. If you have Scons knowledge, please feel free and contribute
 # improvements, to do it the proper way.

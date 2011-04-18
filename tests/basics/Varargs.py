@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #     Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -18,7 +19,6 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-# -*- coding: utf-8 -*-
 
 def plain_list_dict_args_function( plain, *arg_list, **arg_dict ):
     print plain, arg_list, arg_dict

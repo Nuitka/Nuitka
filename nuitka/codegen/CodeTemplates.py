@@ -39,7 +39,7 @@ from .templates.CodeTemplatesConstants import *
 from .templates.CodeTemplatesFunction import *
 from .templates.CodeTemplatesGeneratorExpression import *
 from .templates.CodeTemplatesGeneratorFunction import *
-from .templates.CodeTemplatesListContraction import *
+from .templates.CodeTemplatesContraction import *
 
 from .templates.CodeTemplatesParameterParsing import *
 
@@ -48,6 +48,7 @@ from .templates.CodeTemplatesExceptions import *
 from .templates.CodeTemplatesImporting import *
 from .templates.CodeTemplatesClass import *
 from .templates.CodeTemplatesLoops import *
+from .templates.CodeTemplatesWith import *
 
 from .templates.CodeTemplatesExecEval import *
 
@@ -148,75 +149,6 @@ if ( _caught_%(except_count)d == false )
 %(else_code)s
 }"""
 
-with_template = """\
-{
-    _PythonExceptionKeeper _caught_%(with_count)d;
-
-    PyObjectTemporary %(manager)s( %(source)s );
-
-    // Note: The exit lookup is not used at this time, but the lookup is required for
-    // compatability, because CPython looks up __exit__ and __enter__ in that order
-    // at the beginning of a with statement bytecode.
-    PyObjectTemporary %(manager)s_exit( LOOKUP_WITH_EXIT( %(manager)s.asObject() ) );
-    PyObjectTemporary %(manager)s_enter( LOOKUP_WITH_ENTER( %(manager)s.asObject() ) );
-
-    PyObject *_enter_result = PyObject_Call( %(manager)s_enter.asObject(), _python_tuple_empty, _python_dict_empty );
-
-    if (unlikely( _enter_result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    PyObjectTemporary %(value)s( _enter_result );
-
-    try
-    {
-%(assign)s
-%(body)s
-    }
-    catch ( _PythonException &_exception )
-    {
-        if ( traceback == true )
-        {
-           _caught_%(with_count)d.save( _exception );
-        }
-
-        _exception.toPython();
-        ADD_TRACEBACK( %(module_identifier)s, %(filename_identifier)s, %(name_identifier)s, _exception.getLine() );
-        _exception._importFromPython();
-
-        if ( traceback == false )
-        {
-           _caught_%(with_count)d.save( _exception );
-        }
-
-        PyObject *exception_type  = _exception.getType();
-        PyObject *exception_value = _exception.getObject();
-        PyObject *exception_tb    = _exception.getTraceback();
-
-        assert( exception_type != NULL );
-        assert( exception_value != NULL );
-        assert( exception_tb != NULL );
-
-        PyObjectTemporary exit_result( CALL_FUNCTION( NULL, PyObjectTemporary( MAKE_TUPLE( INCREASE_REFCOUNT( exception_tb ), INCREASE_REFCOUNT( exception_value ), INCREASE_REFCOUNT( exception_type ) ) ).asObject(), %(manager)s_exit.asObject() ) );
-
-        if ( CHECK_IF_TRUE( exit_result.asObject() ) )
-        {
-            traceback = false;
-            PyErr_Clear();
-        }
-        else
-        {
-            traceback = true;
-            _caught_%(with_count)d.rethrow();
-        }
-    }
-
-    if ( _caught_%(with_count)d.isEmpty() )
-    {
-        PyObjectTemporary exit_result( CALL_FUNCTION( NULL, %(triple_none_tuple)s, %(manager)s_exit.asObject() ) );
-    }
-}"""
 
 template_branch_one = """\
 if ( %(condition)s )

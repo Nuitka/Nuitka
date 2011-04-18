@@ -307,7 +307,6 @@ class PythonModuleContext( PythonContextBase ):
         return self.filename
 
 
-
 class PythonFunctionContext( PythonChildContextBase ):
     def __init__( self, parent, function ):
         PythonChildContextBase.__init__( self, parent = parent )
@@ -368,6 +367,8 @@ class PythonFunctionContext( PythonChildContextBase ):
         # TODO: Memoize would do wonders for these things mayhaps.
         return self.function.getParentModule().getFilename()
 
+    def getFrameObjectIdentifier( self ):
+        return Identifier( "frameobj_%s()" % self.getCodeName(), 1 )
 
 class PythonContractionBase( PythonChildContextBase ):
     def __init__( self, parent, contraction ):
@@ -471,6 +472,8 @@ class PythonLambdaExpressionContext( PythonChildContextBase ):
     def getTracebackName( self ):
         return self.lambda_def.getBody().getName()
 
+    def getCodeName( self ):
+        return self.lambda_def.getCodeName()
 
 class PythonClassContext( PythonChildContextBase ):
     def __init__( self, parent, class_def ):

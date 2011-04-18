@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 #     Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -19,26 +18,26 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-print "Hello World from Module main Code"
 
-def printHelloWorld():
-    print "Hello World from Function main Code"
 
-print printHelloWorld
+def function():
+    class BlockExceptions(object):
+        def __enter__(self):
+            pass
+        def __exit__(self, exc, val, tb):
+            return True
 
-printHelloWorld()
+    error = ValueError
+    be = BlockExceptions()
 
-def printHelloWorld2( arg ):
-    print arg
+    for i in xrange(1000):
+        with be: raise error
+        with be: raise error
+        with be: raise error,"something"
+        with be: raise error,"something"
+        with be: raise error,"something"
+        with be: raise error("something")
+        with be: raise error("something")
+        with be: raise error("something")
 
-print printHelloWorld2
-
-printHelloWorld2( "Hello World from Function positional argument" )
-printHelloWorld2( arg = "Hello World from Function keyword argument" )
-
-def printHelloWorld3( arg = "Hello World from Function default argument" ):
-    print arg
-
-print printHelloWorld3
-
-printHelloWorld3()
+function()

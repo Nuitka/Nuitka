@@ -37,6 +37,17 @@ static PyObject *MAKE_CLASS_%(class_identifier)s( %(class_creation_args)s );
 """
 
 class_dict_template = """
+static PyObject *frameobj_%(class_identifier)s( void )
+{
+   static PyObject *frameobj = NULL;
+
+   if ( frameobj == NULL )
+   {
+      frameobj = MAKE_FRAME( %(filename_identifier)s, %(name_identifier)s, %(module_identifier)s );
+   }
+
+   return frameobj;
+}
 
 static PyObject *%(class_identifier)s( %(class_dict_args)s )
 {
@@ -56,9 +67,8 @@ static PyObject *%(class_identifier)s( %(class_dict_args)s )
     {
         if ( traceback == false )
         {
-            _exception.toPython();
-            ADD_TRACEBACK( %(module_identifier)s, %(filename_identifier)s, %(name_identifier)s, _exception.getLine() );
-            throw _PythonException();
+            _exception.addTraceback( frameobj_%(class_identifier)s() );
+            throw _exception;
         }
         else
         {

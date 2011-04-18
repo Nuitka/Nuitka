@@ -28,8 +28,9 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Templates for generating code for contractions. """
+""" Templates for generating code for contractions.
 
+"""
 
 contraction_decl_template = """\
 static PyObject *%(contraction_identifier)s( %(contraction_parameters)s );
