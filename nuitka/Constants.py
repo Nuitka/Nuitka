@@ -114,9 +114,9 @@ def isMutable( constant ):
     elif constant_type is tuple:
         for value in constant:
             if isMutable( value ):
-                return False
+                return True
         else:
-            return True
+            return False
     elif constant is Ellipsis:
         # Note: Workaround for Ellipsis not being handled by the pickle module,
         # pretend it would be mutable, then it doesn't get pickled as part of lists or
