@@ -613,8 +613,8 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObjectG
 void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name, PyObject *module )
 {
     // Check parameters.
-    assert( module != NULL );
-    assert( target != NULL );
+    assertObject( module );
+    assertObject( target );
 
     PyObject *iter;
     bool all_case;
@@ -632,7 +632,7 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name
         all_case = false;
     }
 
-    while ( PyObject *item = PyIter_Next( iter ) )
+    while ( PyObject *item = ITERATOR_NEXT( iter ) )
     {
         assert( PyString_Check( item ) );
 
@@ -656,11 +656,6 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name
         }
 
         Py_DECREF( item );
-    }
-
-    if ( PyErr_Occurred() )
-    {
-        throw _PythonException();
     }
 }
 

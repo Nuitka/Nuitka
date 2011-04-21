@@ -284,7 +284,7 @@ if ( kw_args_used != kw_size )
 }
 """
 
-parse_argument_template_nested_argument_unpack = """
+parse_argument_template_nested_argument_unpack = """\
 // Unpack from _python_par_%(parameter_name)s
 {
     PyObject *_python_iter_%(parameter_name)s = PyObject_GetIter( %(unpack_source_identifier)s );
@@ -293,43 +293,23 @@ parse_argument_template_nested_argument_unpack = """
     {
         goto error_exit;
     }
-
 %(unpack_code)s
-
-    PyObject *attempt = PyIter_Next( _python_iter_%(parameter_name)s );
+    // Check that the unpack was complete.
+    if (unlikely( UNPACK_PARAMETER_ITERATOR_CHECK( _python_iter_%(parameter_name)s ) == false ))
+    {
+       Py_DECREF( _python_iter_%(parameter_name)s );
+       goto error_exit;
+    }
     Py_DECREF( _python_iter_%(parameter_name)s );
-
-    // Check if the sequence was too long maybe.
-    if (likely( attempt == NULL ))
-    {
-        PyErr_Clear();
-    }
-    else
-    {
-        Py_DECREF( attempt );
-
-        PyErr_Format( PyExc_ValueError, "too many values to unpack" );
-        goto error_exit;
-    }
-}
-"""
+}"""
 
 parse_argument_template_nested_argument_assign = """
-    _python_par_%(parameter_name)s = PyIter_Next( _python_iter_%(iter_name)s );
+    // Unpack to _python_par_%(parameter_name)s
+    _python_par_%(parameter_name)s = UNPACK_PARAMETER_NEXT( _python_iter_%(iter_name)s, %(unpack_count)d );
 
-    if (unlikely (_python_par_%(parameter_name)s == NULL))
+    if (unlikely (_python_par_%(parameter_name)s == NULL ))
     {
         Py_DECREF( _python_iter_%(iter_name)s );
-
-        if ( %(unpack_count)d == 1 )
-        {
-            PyErr_Format( PyExc_ValueError, "need more than 1 value to unpack" );
-        }
-        else
-        {
-            PyErr_Format( PyExc_ValueError, "need more than %%d values to unpack", %(unpack_count)d+1 );
-        }
-
         goto error_exit;
     }
 """

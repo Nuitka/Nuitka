@@ -71,29 +71,47 @@ from logging import warning
 
 def getConstantAccess( context, constant ):
     if type( constant ) is dict:
-        return Identifier(
-            "PyDict_Copy( %s )" % getConstantCode(
-                constant = constant,
-                context = context
-            ),
-            1
-        )
+        if constant:
+            return Identifier(
+                "PyDict_Copy( %s )" % getConstantCode(
+                    constant = constant,
+                    context = context
+                ),
+                1
+            )
+        else:
+            return Identifier(
+                "PyDict_New()",
+                1
+            )
     elif type( constant ) is set:
-        return Identifier(
-            "PySet_New( %s )" % getConstantCode(
-                constant = constant,
-                context = context
-            ),
-            1
-        )
+        if constant:
+            return Identifier(
+                "PySet_New( %s )" % getConstantCode(
+                    constant = constant,
+                    context = context
+                ),
+                1
+            )
+        else:
+            return Identifier(
+                "PySet_New( NULL )",
+                1
+            )
     elif type( constant ) is list:
-        return Identifier(
-            "LIST_COPY( %s )" % getConstantCode(
-                constant = constant,
-                context = context
-            ),
-            1
-        )
+        if constant:
+            return Identifier(
+                "LIST_COPY( %s )" % getConstantCode(
+                    constant = constant,
+                    context = context
+                ),
+                1
+            )
+        else:
+            return Identifier(
+                "PyList_New( 0 )",
+                1
+            )
     else:
         return context.getConstantHandle(
             constant = constant
@@ -323,6 +341,9 @@ def getMaxIndexCode():
 
 def getMinIndexCode():
     return Identifier( "0", 0 )
+
+def getIndexValueCode( number ):
+    return Identifier( "%s" % number, 0 )
 
 def getIndexCode( identifier ):
     return Identifier(
@@ -1665,6 +1686,27 @@ def getBuiltinType3Code( context, name_identifier, bases_identifier, dict_identi
             name_identifier.getCodeTemporaryRef(),
             bases_identifier.getCodeTemporaryRef(),
             dict_identifier.getCodeTemporaryRef()
+        ),
+        1
+    )
+
+def getBuiltinTupleCode( identifier ):
+    return Identifier(
+        "TO_TUPLE( %s )" % identifier.getCodeTemporaryRef(),
+        1
+    )
+
+def getBuiltinListCode( identifier ):
+    return Identifier(
+        "TO_LIST( %s )" % identifier.getCodeTemporaryRef(),
+        1
+    )
+
+def getBuiltinDictCode( seq_identifier, dict_identifier ):
+    return Identifier(
+        "TO_DICT( %s, %s )" % (
+            seq_identifier.getCodeTemporaryRef() if seq_identifier is not None else "NULL",
+            dict_identifier.getCodeTemporaryRef() if dict_identifier is not None else "NULL"
         ),
         1
     )

@@ -46,6 +46,7 @@ from . import (
 )
 
 from nuitka import (
+    Constants,
     Options,
     Nodes
 )
@@ -750,8 +751,21 @@ def _areConstants( expressions ):
         return True
 
 def generateSliceRangeIdentifier( lower, upper, context ):
+    def isSmallNumberConstant( node ):
+        value = node.getConstant()
+
+        if Constants.isNumberConstant( value ):
+            return abs(int(value)) < 2**63-1
+        else:
+            return False
+
+
     if lower is None:
         lower = Generator.getMinIndexCode()
+    elif lower.isExpressionConstantRef() and isSmallNumberConstant( lower ):
+        lower = Generator.getIndexValueCode(
+            int( lower.getConstant() )
+        )
     else:
         lower = Generator.getIndexCode(
             identifier = generateExpressionCode(
@@ -762,6 +776,10 @@ def generateSliceRangeIdentifier( lower, upper, context ):
 
     if upper is None:
         upper = Generator.getMaxIndexCode()
+    elif upper.isExpressionConstantRef() and isSmallNumberConstant( upper ):
+        upper = Generator.getIndexValueCode(
+            int( upper.getConstant() )
+        )
     else:
         upper = Generator.getIndexCode(
             identifier = generateExpressionCode(
@@ -782,6 +800,24 @@ def generateSliceAccessIdentifiers( sliced, lower, upper, context ):
 
     return sliced, lower, upper
 
+def generateFunctionCallNamedArgumentsCode( callable, context ):
+    named_arguments = callable.getNamedArguments()
+
+    kw_identifier = generateDictionaryCreationCode(
+        keys      = [
+            Nodes.CPythonExpressionConstantRef(
+                constant   = named_arg_desc[0],
+                source_ref = callable.getSourceReference()
+            )
+            for named_arg_desc in
+            named_arguments
+        ],
+        values    = [ named_arg_desc[1] for named_arg_desc in named_arguments ],
+        context   = context
+    )
+
+    return kw_identifier
+
 def generateFunctionCallCode( function, context ):
     function_identifier = generateExpressionCode(
         expression = function.getCalledExpression(),
@@ -794,20 +830,9 @@ def generateFunctionCallCode( function, context ):
         context       = context
     )
 
-    named_arguments = function.getNamedArguments()
-
-    # TODO: This should be moved to optimization stage.
-    kw_identifier = generateDictionaryCreationCode(
-        keys      = [
-            Nodes.CPythonExpressionConstantRef(
-                constant   = named_arg_desc[0],
-                source_ref = function.getSourceReference()
-            )
-            for named_arg_desc in
-            named_arguments
-        ],
-        values    = [ named_arg_desc[1] for named_arg_desc in named_arguments ],
-        context   = context
+    kw_identifier = generateFunctionCallNamedArgumentsCode(
+        callable = function,
+        context  = context
     )
 
     star_list_identifier = generateExpressionCode(
@@ -1125,6 +1150,25 @@ def generateExpressionCode( expression, context, allow_none = False ):
             bases_identifier = makeExpressionCode( expression.getBases() ),
             dict_identifier  = makeExpressionCode( expression.getDict() ),
             context          = context
+        )
+    elif expression.isExpressionBuiltinTuple():
+        identifier = Generator.getBuiltinTupleCode(
+            identifier = makeExpressionCode( expression.getValue() )
+        )
+    elif expression.isExpressionBuiltinList():
+        identifier = Generator.getBuiltinListCode(
+            identifier = makeExpressionCode( expression.getValue() )
+        )
+    elif expression.isExpressionBuiltinDict():
+        identifier = Generator.getBuiltinDictCode(
+            seq_identifier  = makeExpressionCode(
+                expression.getPositionalArgument(),
+                allow_none = True
+            ),
+            dict_identifier = generateFunctionCallNamedArgumentsCode(
+                callable = expression,
+                context  = context
+            )
         )
     elif expression.isExpressionRaiseException():
         identifier = Generator.getRaiseExceptionExpressionCode(

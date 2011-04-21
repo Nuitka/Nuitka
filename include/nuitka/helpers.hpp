@@ -512,7 +512,54 @@ NUITKA_MAY_BE_UNUSED static long TO_LONG( PyObject *value )
     return result;
 }
 
+NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict_obj )
+{
+    PyObject *result = PyDict_New();
 
+    if ( seq_obj != NULL )
+    {
+        int res;
+
+        if ( PyObject_HasAttrString( seq_obj, "keys" ) )
+        {
+            res = PyDict_Merge( result, seq_obj, 1 );
+        }
+        else
+        {
+            res = PyDict_MergeFromSeq2( result, seq_obj, 1 );
+        }
+
+        if ( res == -1 )
+        {
+            throw _PythonException();
+        }
+    }
+
+    if ( dict_obj != NULL )
+    {
+        int res = PyDict_Merge( result, dict_obj, 1 );
+
+        if ( res == -1 )
+        {
+            throw _PythonException();
+        }
+
+    }
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *TO_LIST( PyObject *seq_obj )
+{
+    PyObject *result = PySequence_List( seq_obj );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_TUPLE( PyObject *seq_obj )
 {
@@ -735,16 +782,60 @@ NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_ELEMENT( PyObject *sequence, Py_s
     return result;
 }
 
+// Stolen from CPython implementation, so we can access it.
+typedef struct {
+    PyObject_HEAD
+    long      it_index;
+    PyObject *it_seq;
+} seqiterobject;
+
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
 {
-    PyObject *result = PyObject_GetIter( iterated );
+    getiterfunc tp_iter = NULL;
 
-    if (unlikely( result == NULL ))
+    if ( PyType_HasFeature( iterated->ob_type, Py_TPFLAGS_HAVE_ITER ))
     {
-        throw _PythonException();
+        tp_iter = iterated->ob_type->tp_iter;
     }
 
-    return result;
+    if ( tp_iter )
+    {
+        PyObject *result = (*iterated->ob_type->tp_iter)( iterated );
+
+        if (likely( result != NULL ))
+        {
+            if (unlikely( !PyIter_Check( result )) )
+            {
+                PyErr_Format( PyExc_TypeError, "iter() returned non-iterator of type '%s'", result->ob_type->tp_name);
+
+                Py_DECREF( result );
+                throw _PythonException();
+            }
+
+            return result;
+        }
+        else
+        {
+            throw _PythonException();
+        }
+    }
+    else if ( PySequence_Check( iterated ) )
+    {
+        seqiterobject *result = PyObject_GC_New( seqiterobject, &PySeqIter_Type );
+        assert( result );
+
+        result->it_index = 0;
+        result->it_seq = INCREASE_REFCOUNT( iterated );
+
+        _PyObject_GC_TRACK( result );
+
+        return (PyObject *)result;
+    }
+    else
+    {
+        PyErr_Format( PyExc_TypeError, "'%s' object is not iterable", iterated->ob_type->tp_name );
+        throw _PythonException();
+    }
 }
 
 // Return the next item of an iterator. Avoiding any exception for end of iteration,
@@ -766,7 +857,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
             if ( PyErr_ExceptionMatches( PyExc_StopIteration ))
             {
                 PyErr_Clear();
-                return NULL;
             }
             else
             {
@@ -784,14 +874,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 
 NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, int seq_size_so_far )
 {
-    assert( iterator != NULL );
-    assert( iterator->ob_refcnt > 0 );
+    assertObject( iterator );
+    assert( PyIter_Check( iterator ) );
 
-    PyObject *result = PyIter_Next( iterator );
+    PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
 
     if (unlikely( result == NULL ))
     {
-        if ( !PyErr_Occurred() )
+        if (unlikely( !PyErr_Occurred() ))
         {
             if ( seq_size_so_far == 1 )
             {
@@ -811,15 +901,54 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, in
     return result;
 }
 
+NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_PARAMETER_NEXT( PyObject *iterator, int seq_size_so_far )
+{
+    assertObject( iterator );
+    assert( PyIter_Check( iterator ) );
+
+    PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
+
+    if (unlikely( result == NULL ))
+    {
+        if (unlikely( !PyErr_Occurred() ))
+        {
+            if ( seq_size_so_far == 1 )
+            {
+                PyErr_Format( PyExc_ValueError, "need more than 1 value to unpack" );
+            }
+            else
+            {
+                PyErr_Format( PyExc_ValueError, "need more than %d values to unpack", seq_size_so_far );
+            }
+        }
+
+        return NULL;
+    }
+
+    assertObject( result );
+
+    return result;
+}
+
 NUITKA_MAY_BE_UNUSED static inline void UNPACK_ITERATOR_CHECK( PyObject *iterator )
 {
-    PyObject *attempt = PyIter_Next( iterator );
+    assertObject( iterator );
+    assert( PyIter_Check( iterator ) );
+
+    PyObject *attempt = (*iterator->ob_type->tp_iternext)( iterator );
 
     if (likely( attempt == NULL ))
     {
-        if (unlikely( PyErr_Occurred() ))
+        if ( PyErr_Occurred() )
         {
-            throw _PythonException();
+            if (likely( PyErr_ExceptionMatches( PyExc_StopIteration ) ))
+            {
+                PyErr_Clear();
+            }
+            else
+            {
+                throw _PythonException();
+            }
         }
     }
     else
@@ -831,6 +960,37 @@ NUITKA_MAY_BE_UNUSED static inline void UNPACK_ITERATOR_CHECK( PyObject *iterato
     }
 }
 
+NUITKA_MAY_BE_UNUSED static inline bool UNPACK_PARAMETER_ITERATOR_CHECK( PyObject *iterator )
+{
+    assertObject( iterator );
+    assert( PyIter_Check( iterator ) );
+
+    PyObject *attempt = (*iterator->ob_type->tp_iternext)( iterator );
+
+    if (likely( attempt == NULL ))
+    {
+        if ( PyErr_Occurred() )
+        {
+            if (likely( PyErr_ExceptionMatches( PyExc_StopIteration ) ))
+            {
+                PyErr_Clear();
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    else
+    {
+        Py_DECREF( attempt );
+
+        PyErr_Format( PyExc_ValueError, "too many values to unpack" );
+        return false;
+    }
+}
 
 NUITKA_MAY_BE_UNUSED static PyObject *SELECT_IF_TRUE( PyObject *object )
 {

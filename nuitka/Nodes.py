@@ -2817,8 +2817,70 @@ class CPythonExpressionBuiltinLen( CPythonChildrenHaving, CPythonNodeBase ):
         CPythonChildrenHaving.__init__(
             self,
             names = {
-                "value"     : value,
+                "value" : value,
             }
         )
 
     getValue = CPythonChildrenHaving.childGetter( "value" )
+
+
+class CPythonExpressionBuiltinTuple( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_BUILTIN_TUPLE"
+
+    def __init__( self, value, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "value" : value,
+            }
+        )
+
+    getValue = CPythonChildrenHaving.childGetter( "value" )
+
+class CPythonExpressionBuiltinList( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_BUILTIN_LIST"
+
+    def __init__( self, value, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "value" : value,
+            }
+        )
+
+    getValue = CPythonChildrenHaving.childGetter( "value" )
+
+class CPythonExpressionBuiltinDict( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_BUILTIN_DICT"
+
+    def __init__( self, pos_arg, named_args, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        self.named_argument_names = []
+        named_argument_values = []
+
+        for named_arg_desc in named_args:
+            named_arg_name, named_arg_value = named_arg_desc
+
+            assert type( named_arg_name ) == str
+            assert named_arg_value.isExpression()
+
+            self.named_argument_names.append( named_arg_name )
+            named_argument_values.append( named_arg_value )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "pos_arg"    : pos_arg,
+                "named_args" : tuple( named_argument_values )
+            }
+        )
+
+    getPositionalArgument = CPythonChildrenHaving.childGetter( "pos_arg" )
+
+    def getNamedArguments( self ):
+        return zip( self.named_argument_names, self.getChild( "named_args" ) )

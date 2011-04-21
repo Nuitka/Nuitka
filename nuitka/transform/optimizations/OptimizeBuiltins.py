@@ -71,6 +71,10 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                 "ord"        : self.ord_extractor,
                 "type"       : self.type_extractor,
                 "range"      : self.range_extractor,
+                "tuple"      : self.tuple_extractor,
+                "list"       : self.list_extractor,
+                "dict"       : self.dict_extractor
+
 # TODO: There is a case of len overload in the CPython test suite that we do not yet
 # discover, because we have no test for write to module level variable yet, which is
 # a potential breaker for every builtin replacement.
@@ -79,7 +83,7 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         )
 
     def getKey( self, node ):
-        if node.isExpressionFunctionCall() and node.hasOnlyPositionalArguments():
+        if node.isExpressionFunctionCall():
             called = node.getCalledExpression()
 
             if called.isExpressionVariableRef():
@@ -88,10 +92,13 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                 assert variable is not None, node
 
                 if variable.isModuleVariable() or variable.isMaybeLocalVariable():
-                    return variable.getName()
+                    if node.hasOnlyPositionalArguments() or variable.getName() == "dict":
+
+                        return variable.getName()
 
     def onNodeWasReplaced( self, old_node ):
-        assert old_node.isExpressionFunctionCall and old_node.hasOnlyPositionalArguments()
+        assert old_node.isExpressionFunctionCall
+
         called = old_node.getCalledExpression()
 
         assert called.isExpressionVariableRef()
@@ -264,6 +271,67 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                 value      = positional_args[0],
                 source_ref = node.getSourceReference()
             )
+
+    def tuple_extractor( self, node ):
+        positional_args = node.getPositionalArguments()
+
+        positional_args_count = len( positional_args )
+
+        if positional_args_count == 1:
+            return Nodes.CPythonExpressionBuiltinTuple(
+                value      = positional_args[0],
+                source_ref = node.getSourceReference()
+            )
+        elif positional_args_count == 0:
+            return Nodes.makeConstantReplacementNode(
+                node     = node,
+                constant = ()
+            )
+
+    def list_extractor( self, node ):
+        positional_args = node.getPositionalArguments()
+
+        positional_args_count = len( positional_args )
+
+        if positional_args_count == 1:
+            return Nodes.CPythonExpressionBuiltinList(
+                value      = positional_args[0],
+                source_ref = node.getSourceReference()
+            )
+        elif positional_args_count == 0:
+            return Nodes.makeConstantReplacementNode(
+                node     = node,
+                constant = []
+            )
+
+    def dict_extractor( self, node ):
+        positional_args = node.getPositionalArguments()
+
+        # TODO: These could be handled too.
+        if node.getStarListArg() is not None or node.getStarDictArg() is not None:
+            return
+
+        if len( positional_args ) <= 1:
+            if positional_args:
+                return Nodes.CPythonExpressionBuiltinDict(
+                    pos_arg    = positional_args[0],
+                    named_args = node.getNamedArguments(),
+                    source_ref = node.getSourceReference()
+                )
+            else:
+                named_args = node.getNamedArguments()
+
+                if named_args:
+                    return Nodes.CPythonExpressionBuiltinDict(
+                        pos_arg    = None,
+                        named_args = named_args,
+                        source_ref = node.getSourceReference()
+                    )
+                else:
+                    return Nodes.makeConstantReplacementNode(
+                        node     = node,
+                        constant = {}
+                    )
 
     def _pickLocalsForNode( self, node ):
         """ Pick a locals default for the given node. """

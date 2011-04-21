@@ -113,3 +113,8 @@ try:
     print range(1.0)
 except TypeError, e:
     print "Gives exception:", e
+
+print "List from iterable", list( "abc" ), list()
+print "Tuple from iterable", tuple( "cda" ), tuple()
+print "Dictionary from iterable and keywords", dict( ( "ab", ( 1, 2 ) ), f = 1, g = 1 )
+print "More dictionaries", {'two': 2, 'one': 1}, {}, dict()

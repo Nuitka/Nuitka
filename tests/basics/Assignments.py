@@ -119,8 +119,23 @@ def swapVariables():
 
     print a, b
 
+def interuptedUnpack():
+    a = 1
+    b = 2
+
+    try:
+        c, d = a,
+    except ValueError, e:
+        print "ValueError", e
+
+        try:
+            print c
+        except UnboundLocalError, e:
+            print "UnboundLocalError", e
+
 someFunction()
 varargsFunction(1,2,3,4)
 otherFunction()
 anotherFunction()
 swapVariables()
+interuptedUnpack()
