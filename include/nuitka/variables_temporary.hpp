@@ -40,7 +40,8 @@
 // In effect, wrapping an object inside a PyObjectTemporary is equivalent to a deferred
 // Py_DECREF() call on the wrapped object.
 
-class PyObjectTemporary {
+class PyObjectTemporary
+{
     public:
         explicit PyObjectTemporary( PyObject *object )
         {
@@ -80,7 +81,8 @@ class PyObjectTemporary {
         PyObject *object;
 };
 
-class PyObjectTempHolder {
+class PyObjectTempHolder
+{
     public:
         explicit PyObjectTempHolder( PyObject *object )
         {
@@ -108,5 +110,42 @@ class PyObjectTempHolder {
 
         PyObject *object;
 };
+
+#if 0
+
+class PyObjectTempHolders
+{
+    public:
+        explicit PyObjectTempHolders( PyObject **objects, int size )
+        {
+            this->objects = objects;
+        }
+
+        ~PyObjectTempHolders()
+        {
+            for int( i = 0; i < this->size, i++ )
+            {
+                Py_XDECREF( this->objects[ i ] );
+            }
+        }
+
+        PyObject *asObject( int element  )
+        {
+            assertObject( this->object );
+
+            PyObject *result = this->objects[ element ];
+            this->objects[ element ] = NULL;
+            return result;
+        }
+
+    private:
+        PyObjectTempHolders( const PyObjectTempHolders &object ) = delete;
+
+        PyObject **objects;
+        int size;
+
+};
+
+#endif
 
 #endif

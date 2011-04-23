@@ -128,11 +128,12 @@ if win_target and "linux2" in sys.platform:
 
 env[ "BUILD_DIR" ] = source_dir
 
-
-
 if "g++" in env[ "CXX" ]:
     # All Nuitka generated C++ is C++0X standard, so make that clear.
     env.Append( CCFLAGS = [ "-std=c++0x" ] )
+
+    # Don't export anything by default, should create smaller executables.
+    env.Append( CCFLAGS = [ "-fvisibility=hidden", "-fvisibility-inlines-hidden" ] )
 
     # Allow g++ to point out all kinds of inconsistency to us by raising an error. As to
     # sequence points, we are abusing it, so we have to allow it.

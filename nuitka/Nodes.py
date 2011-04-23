@@ -42,6 +42,7 @@ from . import (
 from .odict import OrderedDict
 from .nodes import OverflowCheck
 from .nodes import UsageCheck
+from .nodes import CallSpec
 
 from .Constants import isMutable, isIterableConstant, isNumberConstant
 
@@ -1493,6 +1494,9 @@ class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNodeBase ):
     getStarListArg = CPythonChildrenHaving.childGetter( "list_star_arg" )
     getStarDictArg = CPythonChildrenHaving.childGetter( "dict_star_arg" )
 
+    def getNamedArgumentNames( self ):
+        return self.named_argument_names
+
     def getNamedArguments( self ):
         return zip( self.named_argument_names, self.getChild( "named_args" ) )
 
@@ -1502,6 +1506,41 @@ class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNodeBase ):
 
     def hasOnlyPositionalArguments( self ):
         return not self.getNamedArguments() and not self.getStarListArg() and not self.getStarDictArg()
+
+    def hasOnlyConstantArguments( self ):
+        for positional_arg in self.getPositionalArguments():
+            if not positional_arg.isExpressionConstantRef():
+                return False
+
+        for named_arg in self.getChild( "named_args" ):
+            if not named_arg.isExpressionConstantRef():
+                return False
+
+        list_star_arg = self.getStarListArg()
+
+        if list_star_arg is not None and not list_star_arg.isExpressionConstantRef():
+            return False
+
+        dict_star_arg = self.getStarDictArg()
+
+        if dict_star_arg is not None and not dict_star_arg.isExpressionConstantRef():
+            return False
+
+        return True
+
+    def getCallSpec( self ):
+        positional_args = self.getPositionalArguments()
+        named_args = self.getNamedArguments()
+        list_star_arg = self.getStarListArg()
+        dict_star_arg = self.getStarDictArg()
+
+        return CallSpec.CallSpec(
+            positional_args = self.getPositionalArguments(),
+            named_args = self.getNamedArguments(),
+            list_star_arg = self.getStarListArg(),
+            dict_star_arg = self.getStarDictArg()
+        )
+
 
 class CPythonExpressionBinaryOperation( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_BINARY_OPERATION"
@@ -2886,3 +2925,98 @@ class CPythonExpressionBuiltinDict( CPythonChildrenHaving, CPythonNodeBase ):
 
     def getNamedArguments( self ):
         return zip( self.named_argument_names, self.getChild( "named_args" ) )
+
+class CPythonExpressionBuiltinInt( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_BUILTIN_INT"
+
+    def __init__( self, value, base, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "value" : value,
+                "base"  : base
+            }
+        )
+
+    getValue = CPythonChildrenHaving.childGetter( "value" )
+    getBase = CPythonChildrenHaving.childGetter( "base" )
+
+class CPythonExpressionBuiltinLong( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_BUILTIN_LONG"
+
+    def __init__( self, value, base, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "value" : value,
+                "base"  : base
+            }
+        )
+
+    getValue = CPythonChildrenHaving.childGetter( "value" )
+    getBase = CPythonChildrenHaving.childGetter( "base" )
+
+class CPythonExpressionBuiltinFloat( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_BUILTIN_FLOAT"
+
+    def __init__( self, value, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "value" : value,
+            }
+        )
+
+    getValue = CPythonChildrenHaving.childGetter( "value" )
+
+
+class CPythonExpressionBuiltinBool( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_BUILTIN_BOOL"
+
+    def __init__( self, value, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "value" : value,
+            }
+        )
+
+    getValue = CPythonChildrenHaving.childGetter( "value" )
+
+class CPythonExpressionBuiltinStr( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_BUILTIN_STR"
+
+    def __init__( self, value, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "value" : value,
+            }
+        )
+
+    getValue = CPythonChildrenHaving.childGetter( "value" )
+
+class CPythonExpressionBuiltinUnicode( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_BUILTIN_UNICODE"
+
+    def __init__( self, value, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            names = {
+                "value" : value,
+            }
+        )
+
+    getValue = CPythonChildrenHaving.childGetter( "value" )

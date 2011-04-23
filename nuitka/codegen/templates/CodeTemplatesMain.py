@@ -309,6 +309,7 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
     // Initialize the compiled types of Nuitka.
     PyType_Ready( &Nuitka_Generator_Type );
     PyType_Ready( &Nuitka_Function_Type );
+    PyType_Ready( &Nuitka_Method_Type );
     PyType_Ready( &Nuitka_Genexpr_Type );
 #endif
 
@@ -331,7 +332,7 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
         PYTHON_API_VERSION
     );
 
-    assert( _module_%(module_identifier)s );
+    assertObject( _module_%(module_identifier)s );
 
     frame_%(module_identifier)s = MAKE_FRAME( %(filename_identifier)s, %(module_name_obj)s, _module_%(module_identifier)s );
 

@@ -38,12 +38,19 @@ class PythonBuiltin
     public:
         explicit PythonBuiltin( char const *name )
         {
-            this->name = (PyStringObject *)PyString_FromString( name );
+            this->sname = name;
+
+            this->name = NULL;
             this->value = NULL;
         }
 
         PyObject *asObject()
         {
+            if ( this->name == NULL )
+            {
+                this->name = (PyStringObject *)PyString_FromString( this->sname );
+            }
+
             if ( this->value == NULL )
             {
                 PyDictEntry *entry = GET_PYDICT_ENTRY(
@@ -61,12 +68,18 @@ class PythonBuiltin
         template<typename... P>
         PyObject *call( P...eles )
         {
-            return CALL_FUNCTION( NULL, MAKE_TUPLE( eles... ), this->asObject() );
+            return CALL_FUNCTION(
+                NULL,
+                PyObjectTemporary( MAKE_TUPLE( eles... ) ).asObject(),
+                this->asObject()
+            );
         }
 
     private:
 
         PythonBuiltin( PythonBuiltin const &  ) = delete;
+
+        char const *sname;
 
         PyStringObject *name;
         PyObject *value;

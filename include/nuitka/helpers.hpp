@@ -31,11 +31,11 @@
 #ifndef __NUITKA_HELPERS_H__
 #define __NUITKA_HELPERS_H__
 
-extern "C" PyObject *_python_tuple_empty;
-extern "C" PyObject *_python_str_plain___dict__;
-extern "C" PyObject *_python_str_plain___class__;
-extern "C" PyObject *_python_str_plain___enter__;
-extern "C" PyObject *_python_str_plain___exit__;
+extern PyObject *_python_tuple_empty;
+extern PyObject *_python_str_plain___dict__;
+extern PyObject *_python_str_plain___class__;
+extern PyObject *_python_str_plain___enter__;
+extern PyObject *_python_str_plain___exit__;
 
 // From CPython, to allow us quick access to the dictionary of an module, the structure is
 // normally private, but we need it for quick access to the module dictionary.
@@ -79,7 +79,7 @@ static inline void assertObject( PyTracebackObject *value )
 // Helper functions for reference count handling in the fly.
 NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
 {
-    assert( object->ob_refcnt > 0 );
+    assertObject( object );
 
     Py_INCREF( object );
 
@@ -88,7 +88,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
 
 NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 {
-    assert( object->ob_refcnt > 0 );
+    assertObject( object );
 
     Py_DECREF( object );
 
@@ -302,26 +302,6 @@ NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_NOT_BOOL( PyObject *sequence,
     return result == 0;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *named_args, PyObject *positional_args, PyObject *function_object )
-{
-    assert( function_object != NULL );
-    assert( function_object->ob_refcnt > 0 );
-    assert( positional_args != NULL );
-    assert( positional_args->ob_refcnt > 0 );
-    assert( named_args == NULL || named_args->ob_refcnt > 0 );
-
-    int line = _current_line;
-    PyObject *result = PyObject_Call( function_object, positional_args, named_args );
-    _current_line = line;
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
 static inline bool Nuitka_Function_Check( PyObject *object );
 static inline PyObject *Nuitka_Function_GetName( PyObject *object );
 
@@ -372,145 +352,9 @@ static char const *GET_CALLABLE_NAME( PyObject *object )
     }
 }
 
-static char const *GET_CALLABLE_DESC( PyObject *object )
-{
-    if ( Nuitka_Function_Check( object ) || Nuitka_Generator_Check( object ) || PyMethod_Check( object ) || PyFunction_Check( object ) || PyCFunction_Check( object ) )
-    {
-        return "()";
-    }
-#if PY_MAJOR_VERSION < 3
-    else if ( PyClass_Check( object ) )
-    {
-        return " constructor";
-    }
-    else if ( PyInstance_Check( object ))
-    {
-        return " instance";
-    }
-#endif
-    else
-    {
-        return " object";
-    }
-}
+#include "nuitka/calling.hpp"
 
-
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_DICT( PyObject *dict_star_arg, PyObject *named_args, PyObject *positional_args, PyObject *function_object )
-{
-    if (unlikely( PyMapping_Check( dict_star_arg ) == 0 ))
-    {
-        PyErr_Format( PyExc_TypeError, "%s%s argument after ** must be a mapping, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), dict_star_arg->ob_type->tp_name );
-        throw _PythonException();
-    }
-
-    PyObjectTemporary result( PyDict_Copy( named_args ) );
-
-    int status = PyDict_Merge( result.asObject(), dict_star_arg, 1 );
-
-    if (unlikely( status == -1 ))
-    {
-        throw _PythonException();
-    }
-
-    if (unlikely( PyMapping_Size( dict_star_arg ) + PyDict_Size( named_args ) != PyDict_Size( result.asObject() )))
-    {
-        PyObject *key, *value;
-        Py_ssize_t pos = 0;
-
-        while ( PyDict_Next( named_args, &pos, &key, &value ) )
-        {
-            if ( PyMapping_HasKey( dict_star_arg, key ))
-            {
-                PyErr_Format( PyExc_TypeError, "%s%s got multiple values for keyword argument '%s'", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), Nuitka_String_AsString( key ) );
-                throw _PythonException();
-            }
-        }
-
-        PyErr_Format( PyExc_RuntimeError, "%s%s got multiple values for keyword argument", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ) );
-        throw _PythonException();
-    }
-
-    // TODO: This is likely only useful for a paranoid mode and can be done faster for a
-    // dict by checking if a member has a specific value, because of a optimization
-
-    PyObject *key, *value;
-    Py_ssize_t pos = 0;
-
-    while ( PyDict_Next( result.asObject(), &pos, &key, &value ) )
-    {
-#if PY_MAJOR_VERSION < 3
-        if (unlikely( PyString_Check( key ) == 0 && PyUnicode_Check( key ) == 0 ))
-#else
-        if (unlikely( PyUnicode_Check( key ) == 0 ))
-#endif
-        {
-            PyErr_Format( PyExc_TypeError, "%s%s keywords must be strings", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ) );
-            throw _PythonException();
-        }
-    }
-
-    return CALL_FUNCTION( result.asObject(), positional_args, function_object );
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *MERGE_STAR_LIST_ARGS( PyObject *list_star_arg, PyObject *positional_args, PyObject *function_object )
-{
-    PyObject *list_star_arg_tuple;
-
-    if ( PyTuple_Check( list_star_arg ) == 0 )
-    {
-        list_star_arg_tuple = PySequence_Tuple( list_star_arg );
-
-        if (unlikely( list_star_arg_tuple == NULL ))
-        {
-            if ( PyErr_ExceptionMatches( PyExc_TypeError ) )
-            {
-                PyErr_Format( PyExc_TypeError, "%s%s argument after * must be a sequence, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), list_star_arg->ob_type->tp_name );
-            }
-
-            throw _PythonException();
-        }
-    }
-    else
-    {
-        list_star_arg_tuple = list_star_arg;
-    }
-
-    // TODO: This is actually only a TUPLE_CONCAT from here on.
-
-    int positional_args_size = PyTuple_Size( positional_args );
-    int list_star_arg_size = PyTuple_Size( list_star_arg_tuple );
-
-    PyObject *result = PyTuple_New( positional_args_size  + list_star_arg_size );
-
-    for ( int i = 0; i < positional_args_size; i++ )
-    {
-        PyTuple_SET_ITEM( result, i, INCREASE_REFCOUNT( PyTuple_GET_ITEM( positional_args, i ) ) );
-    }
-
-    for ( int i = 0; i < list_star_arg_size; i++ )
-    {
-        PyTuple_SET_ITEM( result, positional_args_size + i, INCREASE_REFCOUNT( PyTuple_GET_ITEM( list_star_arg_tuple, i ) ) );
-    }
-
-    if ( list_star_arg_tuple != list_star_arg )
-    {
-        Py_DECREF( list_star_arg_tuple );
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_LIST( PyObject *list_star_arg, PyObject *named_args, PyObject *positional_args, PyObject *function_object )
-{
-    return CALL_FUNCTION( named_args, PyObjectTemporary( MERGE_STAR_LIST_ARGS( list_star_arg, positional_args, function_object ) ).asObject(), function_object );
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_BOTH( PyObject *dict_star_arg, PyObject *list_star_arg, PyObject *named_args, PyObject *positional_args, PyObject *function_object )
-{
-    return CALL_FUNCTION_STAR_DICT( dict_star_arg, named_args, PyObjectTemporary( MERGE_STAR_LIST_ARGS( list_star_arg, positional_args, function_object ) ).asObject(), function_object );
-}
-
-NUITKA_MAY_BE_UNUSED static long TO_LONG( PyObject *value )
+NUITKA_MAY_BE_UNUSED static long FROM_LONG( PyObject *value )
 {
     long result = PyInt_AsLong( value );
 
@@ -521,6 +365,134 @@ NUITKA_MAY_BE_UNUSED static long TO_LONG( PyObject *value )
 
     return result;
 }
+
+NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT( PyObject *value )
+{
+    PyObject *result;
+
+    if ( PyString_CheckExact( value ) )
+    {
+        result = PyFloat_FromString( value, NULL );
+    }
+    else
+    {
+        result = PyNumber_Float( value );
+    }
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *TO_INT( PyObject *value )
+{
+    PyObject *result = PyNumber_Int( value );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *TO_INT( PyObject *value, PyObject *base )
+{
+    int base_int = PyInt_AsLong( base );
+
+    if ( base_int == -1 && PyErr_Occurred() )
+    {
+        throw _PythonException();
+    }
+
+    char *value_str = PyString_AsString( value );
+
+    if ( value_str == NULL )
+    {
+        throw _PythonException();
+    }
+
+    PyObject *result = PyInt_FromString( value_str, NULL, base_int );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG( PyObject *value )
+{
+    PyObject *result = PyNumber_Long( value );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG( PyObject *value, PyObject *base )
+{
+    int base_int = PyInt_AsLong( base );
+
+    if ( base_int == -1 && PyErr_Occurred() )
+    {
+        throw _PythonException();
+    }
+
+    char *value_str = PyString_AsString( value );
+
+    if ( value_str == NULL )
+    {
+        throw _PythonException();
+    }
+
+    PyObject *result = PyLong_FromString( value_str, NULL, base_int );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *TO_BOOL( PyObject *value )
+{
+    return BOOL_FROM( CHECK_IF_TRUE( value ) );
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *TO_STR( PyObject *value )
+{
+    PyObject *result = PyObject_Str( value );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE( PyObject *value )
+{
+    PyObject *result = PyObject_Unicode( value );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict_obj )
 {
@@ -1252,7 +1224,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *kl
 #endif
 
 #if PY_MAJOR_VERSION < 3
-NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
+static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 {
     assertObject( source );
     assertObject( attr_name );
@@ -1282,10 +1254,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObjec
             return INCREASE_REFCOUNT( result );
         }
 
+        int line = _current_line;
+
         // Next see if a class has it
         result = FIND_ATTRIBUTE_IN_CLASS( source_instance->in_class, attr_name );
-
-        int line = _current_line;
 
         if ( result )
         {
@@ -1297,8 +1269,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObjec
 
                 if (unlikely( result == NULL ))
                 {
+                    _current_line = line;
                     throw _PythonException();
                 }
+
+                assertObject( result );
 
                 return result;
             }
@@ -1324,21 +1299,20 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObjec
         }
         else
         {
-            PyErr_Clear();
-
-            PyObjectTemporary args( MAKE_TUPLE( attr_name, source ) );
-
             PyObject *result = PyObject_Call(
                 source_instance->in_class->cl_getattr,
-                args.asObject(),
+                PyObjectTemporary( MAKE_TUPLE( attr_name, source ) ).asObject(),
                 NULL
             );
 
+            _current_line = line;
+
             if (unlikely( result == NULL ))
             {
-                _current_line = line;
                 throw _PythonException();
             }
+
+            assertObject( result );
 
             return result;
         }
@@ -1348,6 +1322,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObjec
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObject *attr_name )
 {
+    // printf( "look at %zd %s\n", attr_name->ob_refcnt, PyString_AS_STRING( attr_name ) );
+
     assertObject( source );
     assertObject( attr_name );
 
@@ -1363,94 +1339,168 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
     else
 #endif
     {
-        int line = _current_line;
-        PyObject *result = PyObject_GetAttr( source, attr_name );
-        _current_line = line;
+        PyTypeObject *type = Py_TYPE( source );
 
-        if (unlikely( result == NULL ))
+        if ( type->tp_getattro != NULL )
         {
+            int line = _current_line;
+            PyObject *result = (*type->tp_getattro)( source, attr_name );
+            _current_line = line;
+
+            if (unlikely( result == NULL ))
+            {
+                throw _PythonException();
+            }
+
+            assertObject( result );
+            return result;
+        }
+        else if ( type->tp_getattr != NULL )
+        {
+            int line = _current_line;
+            PyObject *result = (*type->tp_getattr)( source, PyString_AS_STRING( attr_name) );
+            _current_line = line;
+
+            if (unlikely( result == NULL ))
+            {
+                throw _PythonException();
+            }
+
+            assertObject( result );
+            return result;
+        }
+        else
+        {
+            PyErr_Format( PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name, PyString_AS_STRING( attr_name ) );
             throw _PythonException();
         }
-
-        assertObject( result );
-
-        return result;
     }
 }
 
+#if PY_MAJOR_VERSION < 3
+static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value )
+{
+    assertObject( target );
+    assertObject( attr_name );
+    assertObject( value );
+
+    assert( PyInstance_Check( target ) );
+    assert( PyString_Check( attr_name ) );
+
+
+    PyInstanceObject *target_instance = (PyInstanceObject *)target;
+
+    // TODO: The special cases should get their own SET_ATTRIBUTE variant on the code
+    // generation level as SET_ATTRIBUTE is called with constants only.
+    if (unlikely( attr_name == _python_str_plain___dict__ ))
+    {
+        if (unlikely( !PyDict_Check( value ) ))
+        {
+            PyErr_SetString( PyExc_TypeError, "__dict__ must be set to a dictionary" );
+            throw _PythonException();
+        }
+
+        PyObjectTemporary old_dict( target_instance->in_dict );
+
+        target_instance->in_dict = INCREASE_REFCOUNT( value );
+    }
+    else if (unlikely( attr_name == _python_str_plain___class__ ))
+    {
+        if (unlikely( !PyClass_Check( value ) ))
+        {
+            PyErr_SetString( PyExc_TypeError, "__class__ must be set to a class" );
+            throw _PythonException();
+        }
+
+        PyObjectTemporary old_class( (PyObject *)target_instance->in_class );
+
+        target_instance->in_class = (PyClassObject *)INCREASE_REFCOUNT( value );
+    }
+    else
+    {
+        if ( target_instance->in_class->cl_setattr != NULL )
+        {
+            PyObject *result = PyObject_Call(
+                target_instance->in_class->cl_setattr,
+                PyObjectTemporary( MAKE_TUPLE( value, attr_name, target ) ).asObject(),
+                NULL
+            );
+
+            if (unlikely( result == NULL ))
+            {
+                throw _PythonException();
+            }
+
+            Py_DECREF( result );
+        }
+        else
+        {
+            int status = PyDict_SetItem( target_instance->in_dict, attr_name, value );
+
+            if (unlikely( status == -1 ))
+            {
+                throw _PythonException();
+            }
+        }
+    }
+}
+#endif
+
 NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *target, PyObject *attr_name, PyObject *value )
 {
-    assert( target );
-    assert( target->ob_refcnt > 0 );
-    assert( attr_name );
-    assert( attr_name->ob_refcnt > 0 );
-    assert( value );
-    assert( value->ob_refcnt > 0 );
+    assertObject( target );
+    assertObject( attr_name );
+    assertObject( value );
 
 #if PY_MAJOR_VERSION < 3
     if ( PyInstance_Check( target ) )
     {
-        PyInstanceObject *target_instance = (PyInstanceObject *)target;
-
-        // TODO: The special cases should get their own SET_ATTRIBUTE variant on the code
-        // generation level as SET_ATTRIBUTE is called with constants only.
-        if (unlikely( attr_name == _python_str_plain___dict__ ))
-        {
-            if (unlikely( !PyDict_Check( value ) ))
-            {
-                PyErr_SetString( PyExc_TypeError, "__dict__ must be set to a dictionary" );
-                throw _PythonException();
-            }
-
-            PyObjectTemporary old_dict( target_instance->in_dict );
-
-            target_instance->in_dict = INCREASE_REFCOUNT( value );
-        }
-        else if (unlikely( attr_name == _python_str_plain___class__ ))
-        {
-            if (unlikely( !PyClass_Check( value ) ))
-            {
-                PyErr_SetString( PyExc_TypeError, "__class__ must be set to a class" );
-                throw _PythonException();
-            }
-
-            PyObjectTemporary old_class( (PyObject *)target_instance->in_class );
-
-            target_instance->in_class = (PyClassObject *)INCREASE_REFCOUNT( value );
-        }
-        else
-        {
-            if ( target_instance->in_class->cl_setattr != NULL )
-            {
-                PyObjectTemporary args( MAKE_TUPLE( value, attr_name, target ) );
-
-                PyObject *result = PyObject_Call( target_instance->in_class->cl_setattr, args.asObject(), NULL );
-
-                if (unlikely( result == NULL ))
-                {
-                    throw _PythonException();
-                }
-
-                Py_DECREF( result );
-            }
-            else
-            {
-                int status = PyDict_SetItem( target_instance->in_dict, attr_name, value );
-
-                if (unlikely( status == -1 ))
-                {
-                    throw _PythonException();
-                }
-            }
-        }
+        SET_INSTANCE( target, attr_name, value );
     }
     else
 #endif
     {
-        int status = PyObject_SetAttr( target, attr_name, value );
+        PyTypeObject *type = Py_TYPE( target );
 
-        if (unlikely( status == -1 ))
+        if ( type->tp_setattro != NULL )
         {
+            int status = (*type->tp_setattro)( target, attr_name, value );
+
+            if (unlikely( status == -1 ))
+            {
+                throw _PythonException();
+            }
+        }
+        else if ( type->tp_setattr != NULL )
+        {
+            int status = (*type->tp_setattr)( target, PyString_AS_STRING( attr_name ), value );
+
+            if (unlikely( status == -1 ))
+            {
+                throw _PythonException();
+            }
+        }
+        else if ( type->tp_getattr == NULL && type->tp_getattro == NULL )
+        {
+            PyErr_Format(
+                PyExc_TypeError,
+                "'%s' object has no attributes (assign to %s)",
+                type->tp_name,
+                PyString_AS_STRING( attr_name )
+            );
+
+            throw _PythonException();
+        }
+        else
+        {
+            PyErr_Format(
+                PyExc_TypeError,
+                "'%s' object has only read-only attributes (assign to %s)",
+                type->tp_name,
+
+                PyString_AS_STRING( attr_name )
+            );
+
             throw _PythonException();
         }
     }
@@ -1806,5 +1856,6 @@ extern void UNSTREAM_INIT( void );
 extern PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size );
 extern PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern );
 
+extern void enhancePythonTypes( void );
 
 #endif

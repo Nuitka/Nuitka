@@ -42,6 +42,15 @@ flexible.
 
 """
 
+class TooManyArguments( Exception ):
+    def __init__( self, real_exception ):
+        Exception.__init__( self )
+
+        self.real_exception = real_exception
+
+    def getRealException( self ):
+        return self.real_exception
+
 from nuitka import Variables
 
 class ParameterSpecTuple:
@@ -209,3 +218,45 @@ class ParameterSpec( ParameterSpecTuple ):
 
     def getDictStarArgVariable( self ):
         return self.dict_star_variable
+
+    def matchCallSpec( self, name, call_spec ):
+        call_positional = call_spec.getPositionalArgs()
+
+        result = [ None ] * len( self.normal_args )
+
+        for count, value in enumerate( call_positional ):
+            if count >= len( result ):
+                break
+
+            result[ count ] = value
+
+        for named_arg_name, named_arg_value in call_spec.getNamedArgs():
+            if named_arg_name in self.normal_args:
+                result[ self.normal_args.index( named_arg_name ) ] = named_arg_value
+            elif self.dict_star_arg:
+                result_dict[ named_arg_name ] = named_arg_value
+            else:
+                raise TooManyArguments(
+                    TypeError(
+                        "'%s' is an invalid keyword argument for this function" % (
+                            named_arg_name,
+                        )
+                    )
+                )
+
+
+        if len( call_positional ) > len( self.normal_args ):
+            if self.list_star_arg:
+                result.append( call_positional[ len( self.normal_args ) : ] )
+            else:
+                raise TooManyArguments(
+                    TypeError(
+                        "%s() takes at most %d arguments (%d given)" % (
+                            name,
+                            len( self.normal_args ),
+                            len( call_positional )
+                        )
+                    )
+                )
+
+        return result

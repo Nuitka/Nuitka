@@ -515,6 +515,8 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject 
 
     if ( package != NULL )
     {
+        assertObject( package );
+
         assert( PyString_Check( package ));
 
         globals_dict = MAKE_DICT( _python_str_plain___package__, package );
@@ -549,6 +551,9 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject 
     // doesn't work well with packages. Look up in sys.modules instead.
     Py_DECREF( import_result );
 
+    // But it should not become released.
+    assertObject( import_result );
+
     PyObject *sys_modules = PySys_GetObject( (char *)"modules" );
 
     PyObject *result;
@@ -574,11 +579,16 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject 
         // Now that absolute import failed, try relative import to current package.
         level = abs( level );
 
-        PyObjectTemporary package_temp( package );
+        PyObjectTemporary package_temp( INCREASE_REFCOUNT( package ) );
 
         while( level > 1 )
         {
-            PyObject *partition = PyObject_CallMethod( package_temp.asObject(), (char *)"rpartition", (char *)"O", _python_str_dot );
+            PyObject *partition = PyObject_CallMethod(
+                package_temp.asObject(),
+                (char *)"rpartition",
+                (char *)"O",
+                _python_str_dot
+            );
 
             if ( partition == NULL )
             {
@@ -610,6 +620,8 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject 
             result = LOOKUP_SUBSCRIPT( sys_modules, package );
         }
     }
+
+    assertObject( result );
 
     return result;
 }
@@ -777,17 +789,14 @@ void UNSTREAM_INIT( void )
 
 PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size )
 {
-    PyObjectTemporary temp_str(
-        PyString_FromStringAndSize( buffer, size )
-    );
-
-    PyObject *result = PyObject_CallFunctionObjArgs(
+    PyObject *result = PyObject_CallFunction(
         _module_cPickle_function_loads,
-        temp_str.asObject(),
-        NULL
+        (char *)"(s#)",
+        buffer,
+        size
     );
 
-    assert( result != NULL );
+    assertObject( result );
 
     return result;
 }
@@ -1028,10 +1037,4 @@ void enhancePythonTypes( void )
     // that.
     PyClass_Type.tp_setattro = (setattrofunc)nuitka_class_setattr;
     PyClass_Type.tp_getattro = (getattrofunc)nuitka_class_getattr;
-}
-
-
-extern "C" __attribute__((visibility( "protected" ))) int PyEval_GetRestricted( void )
-{
-    return 0;
 }

@@ -1170,6 +1170,38 @@ def generateExpressionCode( expression, context, allow_none = False ):
                 context  = context
             )
         )
+    elif expression.isExpressionBuiltinStr():
+        identifier = Generator.getBuiltinStrCode(
+            identifier = makeExpressionCode( expression.getValue() )
+        )
+    elif expression.isExpressionBuiltinUnicode():
+        identifier = Generator.getBuiltinUnicodeCode(
+            identifier = makeExpressionCode( expression.getValue() )
+        )
+    elif expression.isExpressionBuiltinFloat():
+        identifier = Generator.getBuiltinFloatCode(
+            identifier = makeExpressionCode( expression.getValue() )
+        )
+    elif expression.isExpressionBuiltinBool():
+        identifier = Generator.getBuiltinBoolCode(
+            identifier = makeExpressionCode( expression.getValue() )
+        )
+    elif expression.isExpressionBuiltinInt():
+        assert expression.getValue() is not None or expression.getBase() is not None
+
+        identifier = Generator.getBuiltinIntCode(
+            identifier = makeExpressionCode( expression.getValue(), allow_none = True ),
+            base       = makeExpressionCode( expression.getBase(), allow_none = True ),
+            context    = context
+        )
+    elif expression.isExpressionBuiltinLong():
+        assert expression.getValue() is not None or expression.getBase() is not None
+
+        identifier = Generator.getBuiltinLongCode(
+            identifier = makeExpressionCode( expression.getValue(), allow_none = True ),
+            base       = makeExpressionCode( expression.getBase(), allow_none = True ),
+            context    = context
+        )
     elif expression.isExpressionRaiseException():
         identifier = Generator.getRaiseExceptionExpressionCode(
             exception_type_identifier  = makeExpressionCode(

@@ -378,27 +378,58 @@ def _getFunctionCallListStarArgsCode( function_identifier, argument_tuple, argum
     )
 
 def _getFunctionCallDictStarArgsCode( function_identifier, argument_tuple, argument_dictionary, star_dict_identifier ):
-    return Identifier(
-        "CALL_FUNCTION_STAR_DICT( %(star_dict_arg)s, %(named_args)s, %(pos_args)s, %(function)s )" % {
-            "function"      : function_identifier.getCodeTemporaryRef(),
-            "pos_args"      : argument_tuple.getCodeTemporaryRef(),
-            "named_args"    : argument_dictionary.getCodeTemporaryRef(),
-            "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
-        },
-        1
-    )
+    if argument_dictionary.getCode() == "_python_dict_empty":
+        return Identifier(
+            "CALL_FUNCTION_STAR_DICT( %(star_dict_arg)s, %(pos_args)s, %(function)s )" % {
+                "function"      : function_identifier.getCodeTemporaryRef(),
+                "pos_args"      : argument_tuple.getCodeTemporaryRef(),
+                "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
+            },
+            1
+        )
+    else:
+        return Identifier(
+            "CALL_FUNCTION_STAR_DICT( %(star_dict_arg)s, %(named_args)s, %(pos_args)s, %(function)s )" % {
+                "function"      : function_identifier.getCodeTemporaryRef(),
+                "pos_args"      : argument_tuple.getCodeTemporaryRef(),
+                "named_args"    : argument_dictionary.getCodeTemporaryRef(),
+                "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
+            },
+            1
+        )
 
 def _getFunctionCallBothStarArgsCode( function_identifier, argument_tuple, argument_dictionary, star_list_identifier, star_dict_identifier ):
-    return Identifier(
-        "CALL_FUNCTION_STAR_BOTH( %(star_dict_arg)s, %(star_list_arg)s, %(named_args)s, %(pos_args)s, %(function)s )" % {
-            "function"      : function_identifier.getCodeTemporaryRef(),
-            "pos_args"      : argument_tuple.getCodeTemporaryRef(),
-            "named_args"    : argument_dictionary.getCodeTemporaryRef(),
-            "star_list_arg" : star_list_identifier.getCodeTemporaryRef(),
-            "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
-        },
-        1
-    )
+    if argument_dictionary.getCode() == "_python_dict_empty":
+        if argument_tuple.getCode() == "_python_tuple_empty":
+            return Identifier(
+                "CALL_FUNCTION_STAR_ONLY( %(star_dict_arg)s, %(star_list_arg)s, %(function)s )" % {
+                    "function"      : function_identifier.getCodeTemporaryRef(),
+                    "star_list_arg" : star_list_identifier.getCodeTemporaryRef(),
+                    "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
+                },
+                1
+            )
+        else:
+            return Identifier(
+                "CALL_FUNCTION_STAR_BOTH( %(star_dict_arg)s, %(star_list_arg)s, %(pos_args)s, %(function)s )" % {
+                    "function"      : function_identifier.getCodeTemporaryRef(),
+                    "pos_args"      : argument_tuple.getCodeTemporaryRef(),
+                    "star_list_arg" : star_list_identifier.getCodeTemporaryRef(),
+                    "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
+                },
+                1
+            )
+    else:
+        return Identifier(
+            "CALL_FUNCTION_STAR_BOTH( %(star_dict_arg)s, %(star_list_arg)s, %(named_args)s, %(pos_args)s, %(function)s )" % {
+                "function"      : function_identifier.getCodeTemporaryRef(),
+                "pos_args"      : argument_tuple.getCodeTemporaryRef(),
+                "named_args"    : argument_dictionary.getCodeTemporaryRef(),
+                "star_list_arg" : star_list_identifier.getCodeTemporaryRef(),
+                "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
+            },
+            1
+        )
 
 
 def getFunctionCallCode( function_identifier, argument_tuple, argument_dictionary, star_list_identifier, star_dict_identifier ):
@@ -1708,12 +1739,74 @@ def getBuiltinListCode( identifier ):
     )
 
 def getBuiltinDictCode( seq_identifier, dict_identifier ):
+    if dict_identifier.getCode() == "_python_dict_empty":
+        dict_identifier = None
+
     return Identifier(
         "TO_DICT( %s, %s )" % (
             seq_identifier.getCodeTemporaryRef() if seq_identifier is not None else "NULL",
             dict_identifier.getCodeTemporaryRef() if dict_identifier is not None else "NULL"
         ),
         1
+    )
+
+def getBuiltinFloatCode( identifier ):
+    return Identifier(
+        "TO_FLOAT( %s )" % identifier.getCodeTemporaryRef(),
+        1
+    )
+
+def getBuiltinLongCode( context, identifier, base ):
+    if identifier is None:
+        identifier = getConstantHandle( context = context, constant = "0" )
+
+    if base is None:
+        return Identifier(
+            "TO_LONG( %s )" % identifier.getCodeTemporaryRef(),
+            1
+        )
+    else:
+        return Identifier(
+            "TO_LONG( %s, %s )" % (
+                identifier.getCodeTemporaryRef(),
+                base.getCodeTemporaryRef()
+            ),
+            1
+        )
+def getBuiltinIntCode( context, identifier, base ):
+    if identifier is None:
+        identifier = getConstantHandle( context = context, constant = "0" )
+
+    if base is None:
+        return Identifier(
+            "TO_INT( %s )" % identifier.getCodeTemporaryRef(),
+            1
+        )
+    else:
+        return Identifier(
+            "TO_INT( %s, %s )" % (
+                identifier.getCodeTemporaryRef(),
+                base.getCodeTemporaryRef()
+            ),
+            1
+        )
+
+def getBuiltinStrCode( identifier ):
+    return Identifier(
+        "TO_STR( %s )" % identifier.getCodeTemporaryRef(),
+        1
+    )
+
+def getBuiltinUnicodeCode( identifier ):
+    return Identifier(
+        "TO_UNICODE( %s )" % identifier.getCodeTemporaryRef(),
+        1
+    )
+
+def getBuiltinBoolCode( identifier ):
+    return Identifier(
+        "TO_BOOL( %s )" % identifier.getCodeTemporaryRef(),
+        0
     )
 
 def getModuleAccessCode( context ):
@@ -2694,7 +2787,7 @@ def _getConstantsDeclarationCode( context, for_header ):
 
     for _constant_desc, constant_identifier in context.getConstants():
         if for_header:
-            declaration = 'extern "C" PyObject *%s;' % constant_identifier
+            declaration = 'extern PyObject *%s;' % constant_identifier
         else:
             declaration = 'PyObject *%s = NULL;' % constant_identifier
 
