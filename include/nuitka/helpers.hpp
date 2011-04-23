@@ -62,6 +62,16 @@ static inline void assertObject( PyTracebackObject *value )
     assertObject( (PyObject *)value );
 }
 
+// Due to ABI issues, it seems that on Windows the symbols used by _PyObject_GC_TRACK are
+// not exported and we need to use a function that does it instead.
+#if defined (__WIN32__)
+#define Nuitka_GC_Track PyObject_GC_Track
+#define Nuitka_GC_UnTrack PyObject_GC_UnTrack
+#else
+#define Nuitka_GC_Track _PyObject_GC_TRACK
+#define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
+#endif
+
 #include "nuitka/variables_temporary.hpp"
 
 #include "nuitka/exceptions.hpp"
@@ -827,7 +837,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
         result->it_index = 0;
         result->it_seq = INCREASE_REFCOUNT( iterated );
 
-        _PyObject_GC_TRACK( result );
+        Nuitka_GC_Track( result );
 
         return (PyObject *)result;
     }
@@ -1804,14 +1814,5 @@ extern void UNSTREAM_INIT( void );
 extern PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size );
 extern PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size );
 
-// Due to ABI issues, it seems that on Windows the symbols used by _PyObject_GC_TRACK are
-// not exported and we need to use a function that does it instead.
-#if defined (__WIN32__)
-#define Nuitka_GC_Track PyObject_GC_Track
-#define Nuitka_GC_UnTrack PyObject_GC_UnTrack
-#else
-#define Nuitka_GC_Track _PyObject_GC_TRACK
-#define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
-#endif
 
 #endif

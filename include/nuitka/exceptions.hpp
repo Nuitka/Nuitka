@@ -41,7 +41,7 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyObject *frame, 
     result->tb_lasti = 0;
     result->tb_lineno = line;
 
-    PyObject_GC_Track( result );
+    Nuitka_GC_Track( result );
 
     return result;
 }
