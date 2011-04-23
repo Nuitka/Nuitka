@@ -70,10 +70,12 @@ def encodeString( value ):
             return end + r' "\r" ' + start
         elif match.group(0) == "\0":
             return end + r' "\0" ' + start
+        elif match.group(0) == "??":
+            return end + r' "??" ' + start
         else:
             return end + r' "\\" ' + start
 
-    result = re.sub( "\n|\r|\0|\\\\", decide, result )
+    result = re.sub( "\n|\r|\0|\\\\|\\?\\?", decide, result )
 
     # If paranoid mode is enabled, the C++ raw literals are verified by putting them
     # through a compile and checking if a test program outputs the same value.
