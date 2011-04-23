@@ -189,6 +189,38 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_LE( PyObject *operand2, PyObj
     return result;
 }
 
+NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ_PARAMETERS( PyObject *operand2, PyObject *operand1 )
+{
+    // TODO: Clarify if there is a point in preserving the current line just yet.
+    int line = _current_line;
+    PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_EQ );
+    _current_line = line;
+
+    // String comparisons cannot fail they say.
+    assertObject( rich_result );
+
+    bool result;
+
+    // Doing the quick tests on the outside spares the function call, with
+    // "partial inline" this should become unneeded.
+    if ( rich_result == Py_True )
+    {
+        result = true;
+    }
+    else if ( rich_result == Py_False || rich_result == Py_None )
+    {
+        result = false;
+    }
+    else
+    {
+        result = CHECK_IF_TRUE( rich_result );
+    }
+
+    Py_DECREF( rich_result );
+
+    return result;
+}
+
 NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ( PyObject *operand2, PyObject *operand1 )
 {
     // Quick path for avoidable checks.
