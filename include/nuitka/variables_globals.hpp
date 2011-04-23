@@ -33,6 +33,7 @@
 
 extern PyModuleObject *_module_builtin;
 
+#if 0
 class PyObjectGlobalVariable
 {
     public:
@@ -162,5 +163,7 @@ class PyObjectGlobalVariable
         PyModuleObject **module_ptr;
         PyStringObject **var_name;
 };
+
+#endif
 
 #endif

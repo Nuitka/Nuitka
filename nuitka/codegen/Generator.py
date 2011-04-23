@@ -187,14 +187,19 @@ def getPackageVariableCode( context ):
         module_code_name = context.getModuleCodeName()
     )
 
-    return package_var_identifier.getCode()
+    package_var_code = package_var_identifier.getCode()
+
+    return "( %s.isInitialized( false ) ? %s : NULL )" % (
+        package_var_identifier.getCode(),
+        package_var_identifier.getCodeTemporaryRef()
+    )
 
 def getEmptyImportListCode():
     return Identifier( "NULL", 0 )
 
 def getImportModuleCode( context, module_name, import_name, import_list, level ):
     return Identifier(
-        "IMPORT_MODULE( %s, %s, &%s, %s, %d )" % (
+        "IMPORT_MODULE( %s, %s, %s, %s, %d )" % (
             getConstantCode(
                 constant = module_name,
                 context  = context
@@ -1752,7 +1757,7 @@ def getModuleCode( context, stand_alone, module_name, package_name, codes, doc_i
     module_globals = "\n".join(
         [
             "static %s _mvar_%s_%s( &_module_%s, &%s );" % (
-                "PyObjectGlobalVariable" if var_name == "__package__" else ( "PyObjectGlobalVariable_%s" % module_identifier ),
+                "PyObjectGlobalVariable_%s" % module_identifier,
                 module_identifier,
                 var_name,
                 module_identifier,

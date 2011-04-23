@@ -500,17 +500,21 @@ PyObject *IMPORT_EMBEDDED_MODULE( PyObject *module_name, PyObject *import_name )
 }
 #endif
 
-PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObjectGlobalVariable const *package_var, PyObject *import_items, int level )
+PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject *package, PyObject *import_items, int level )
 {
-    char *module_name_str = PyString_AsString( module_name );
+    assert( PyString_Check( module_name ) );
+
+    // None doesn't count here.
+    if ( package == Py_None )
+    {
+        package = NULL;
+    }
 
     // Create a globals dict if necessary with the package string.
     PyObject *globals_dict = NULL;
-    PyObject *package = NULL;
 
-    if ( package_var->isInitialized( false ) && package_var->asObject() != Py_None )
+    if ( package != NULL )
     {
-        package = package_var->asObject();
         assert( PyString_Check( package ));
 
         globals_dict = MAKE_DICT( _python_str_plain___package__, package );
@@ -518,7 +522,7 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObjectG
 
     int line = _current_line;
 
-    // printf( "Importing %s as level %d\n", module_name_str, level );
+    char *module_name_str = PyString_AS_STRING( module_name );
 
     PyObject *import_result = PyImport_ImportModuleLevel(
         module_name_str,
@@ -565,10 +569,10 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObjectG
     {
         // TODO: If we are here, and package is NULL, we lost and should raise
         // import error.
-        assert( package );
+        assertObject( package );
 
         // Now that absolute import failed, try relative import to current package.
-        level = abs(level);
+        level = abs( level );
 
         PyObjectTemporary package_temp( package );
 
@@ -665,6 +669,8 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name
 
 void PRINT_ITEM_TO( PyObject *file, PyObject *object )
 {
+    assertObject( object );
+
     PyObject *str = PyObject_Str( object );
     PyObject *print;
     bool softspace;

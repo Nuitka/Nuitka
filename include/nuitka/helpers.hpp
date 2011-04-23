@@ -1799,15 +1799,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
 // Create a frame object for the given filename, function name and module object.
 extern PyObject *MAKE_FRAME( PyObject *filename, PyObject *function_name, PyObject *module );
 
-extern PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObjectGlobalVariable const *package_var, PyObject *import_items, int level );
-
-extern void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name, PyObject *module );
-
-#ifdef _NUITKA_EXE
-// For the --deep mode, we need to use these variants, esp. if the modules are in packages.
-extern PyObject *IMPORT_EMBEDDED_MODULE( PyObject *module_name, PyObject *import_name );
-#endif
-
+#include "nuitka/importing.hpp"
 
 // For the constant loading:
 extern void UNSTREAM_INIT( void );
