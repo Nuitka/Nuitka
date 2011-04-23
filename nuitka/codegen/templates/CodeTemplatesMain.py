@@ -90,6 +90,8 @@ int main( int argc, char *argv[] )
     PyType_Ready( &Nuitka_Method_Type );
     PyType_Ready( &Nuitka_Genexpr_Type );
 
+    enhancePythonTypes();
+
 #if defined (__WIN32__)
     PySys_SetObject( (char *)"executable", PyString_FromString( "python.exe" ) );
 #endif

@@ -810,3 +810,228 @@ PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
 
     return result;
 }
+
+static void set_slot( PyObject **slot, PyObject *value )
+{
+    PyObject *temp = *slot;
+    Py_XINCREF( value );
+    *slot = value;
+    Py_XDECREF( temp );
+}
+
+static void set_attr_slots( PyClassObject *klass )
+{
+    static PyObject *getattrstr = NULL, *setattrstr = NULL, *delattrstr = NULL;
+
+    if ( getattrstr == NULL )
+    {
+        getattrstr = PyString_InternFromString("__getattr__");
+        setattrstr = PyString_InternFromString("__setattr__");
+        delattrstr = PyString_InternFromString("__delattr__");
+    }
+
+
+    set_slot( &klass->cl_getattr, FIND_ATTRIBUTE_IN_CLASS( klass, getattrstr ) );
+    set_slot( &klass->cl_setattr, FIND_ATTRIBUTE_IN_CLASS( klass, setattrstr ) );
+    set_slot( &klass->cl_delattr, FIND_ATTRIBUTE_IN_CLASS( klass, delattrstr ) );
+}
+
+static bool set_dict( PyClassObject *klass, PyObject *value )
+{
+    if ( value == NULL || !PyDict_Check( value ) )
+    {
+        PyErr_SetString( PyExc_TypeError, (char *)"__dict__ must be a dictionary object" );
+        return false;
+    }
+    else
+    {
+        set_slot( &klass->cl_dict, value );
+        set_attr_slots( klass );
+
+        return true;
+    }
+}
+
+static bool set_bases( PyClassObject *klass, PyObject *value )
+{
+    if ( value == NULL || !PyTuple_Check( value ) )
+    {
+        PyErr_SetString( PyExc_TypeError, (char *)"__bases__ must be a tuple object" );
+        return false;
+    }
+    else
+    {
+        Py_ssize_t n = PyTuple_Size( value );
+
+        for ( Py_ssize_t i = 0; i < n; i++ )
+        {
+            PyObject *base = PyTuple_GET_ITEM( value, i );
+
+            if (unlikely( !PyClass_Check( base ) ))
+            {
+                PyErr_SetString( PyExc_TypeError, (char *)"__bases__ items must be classes" );
+                return false;
+            }
+
+            if (unlikely( PyClass_IsSubclass( base, (PyObject *)klass) ))
+            {
+                PyErr_SetString( PyExc_TypeError, (char *)"a __bases__ item causes an inheritance cycle" );
+                return false;
+            }
+        }
+
+        set_slot( &klass->cl_bases, value );
+        set_attr_slots( klass );
+
+        return true;
+    }
+}
+
+static bool set_name( PyClassObject *klass, PyObject *value )
+{
+    if ( value == NULL || !PyDict_Check( value ) )
+    {
+        PyErr_SetString( PyExc_TypeError, (char *)"__name__ must be a string object" );
+        return false;
+    }
+
+    if ( strlen( PyString_AS_STRING( value )) != (size_t)PyString_GET_SIZE( value ) )
+    {
+        PyErr_SetString( PyExc_TypeError, (char *)"__name__ must not contain null bytes" );
+        return false;
+    }
+
+    set_slot( &klass->cl_name, value );
+    return true;
+}
+
+static int nuitka_class_setattr( PyClassObject *klass, PyObject *attr_name, PyObject *value )
+{
+    char *sattr_name = PyString_AsString( attr_name );
+
+    if ( sattr_name[0] == '_' && sattr_name[1] == '_' )
+    {
+        Py_ssize_t n = PyString_Size( attr_name );
+
+        if ( sattr_name[ n-2 ] == '_' && sattr_name[ n-1 ] == '_' )
+        {
+            if ( strcmp( sattr_name, "__dict__" ) == 0 )
+            {
+                if ( set_dict( klass, value ) == false )
+                {
+                    return -1;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+            else if ( strcmp( sattr_name, "__bases__" ) == 0 )
+            {
+                if ( set_bases( klass, value ) == false )
+                {
+                    return -1;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+            else if ( strcmp( sattr_name, "__name__" ) == 0 )
+            {
+                if ( set_name( klass, value ) == false )
+                {
+                    return -1;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+            else if ( strcmp( sattr_name, "__getattr__" ) == 0 )
+            {
+                set_slot( &klass->cl_getattr, value );
+            }
+            else if ( strcmp(sattr_name, "__setattr__" ) == 0 )
+            {
+                set_slot( &klass->cl_setattr, value );
+            }
+            else if ( strcmp(sattr_name, "__delattr__" ) == 0 )
+            {
+                set_slot( &klass->cl_delattr, value );
+            }
+        }
+    }
+
+    if ( value == NULL )
+    {
+        int status = PyDict_DelItem( klass->cl_dict, attr_name );
+
+        if ( status < 0 )
+        {
+            PyErr_Format( PyExc_AttributeError, "class %s has no attribute '%s'", PyString_AS_STRING( klass->cl_name ), sattr_name );
+        }
+
+        return status;
+    }
+    else
+    {
+        return PyDict_SetItem( klass->cl_dict, attr_name, value );
+    }
+}
+
+static PyObject *nuitka_class_getattr( PyClassObject *klass, PyObject *attr_name )
+{
+    char *sattr_name = PyString_AsString( attr_name );
+
+    if ( sattr_name[0] == '_' && sattr_name[1] == '_' )
+    {
+        if ( strcmp( sattr_name, "__dict__" ) == 0 )
+        {
+            return INCREASE_REFCOUNT( klass->cl_dict );
+        }
+        else if ( strcmp(sattr_name, "__bases__" ) == 0 )
+        {
+            return INCREASE_REFCOUNT( klass->cl_bases );
+        }
+        else if ( strcmp(sattr_name, "__name__" ) == 0 )
+        {
+            return klass->cl_name ? INCREASE_REFCOUNT( klass->cl_name ) : INCREASE_REFCOUNT( Py_None );
+        }
+    }
+
+    PyObject *value = FIND_ATTRIBUTE_IN_CLASS( klass, attr_name );
+
+    if (unlikely( value == NULL ))
+    {
+        PyErr_Format( PyExc_AttributeError, "class %s has no attribute '%s'", PyString_AS_STRING( klass->cl_name ), sattr_name );
+        return NULL;
+    }
+
+    PyTypeObject *type = Py_TYPE( value );
+
+    descrgetfunc tp_descr_get = PyType_HasFeature( type, Py_TPFLAGS_HAVE_CLASS ) ? type->tp_descr_get : NULL;
+
+    if ( tp_descr_get == NULL )
+    {
+        return INCREASE_REFCOUNT( value );
+    }
+    else
+    {
+        return tp_descr_get( value, (PyObject *)NULL, (PyObject *)klass );
+    }
+}
+
+void enhancePythonTypes( void )
+{
+    // Our own variant won't call PyEval_GetRestricted, saving quite some cycles not doing
+    // that.
+    PyClass_Type.tp_setattro = (setattrofunc)nuitka_class_setattr;
+    PyClass_Type.tp_getattro = (getattrofunc)nuitka_class_getattr;
+}
+
+
+extern "C" __attribute__((visibility( "protected" ))) int PyEval_GetRestricted( void )
+{
+    return 0;
+}
