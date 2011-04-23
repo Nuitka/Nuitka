@@ -67,11 +67,6 @@ error_exit:;
 }
 """
 
-
-parse_argument_template_take_counts2 = """\
-int kw_args_used = 0;
-"""
-
 parse_argument_template_take_counts3 = """\
 int args_usable_count;
 """
@@ -168,14 +163,20 @@ args_usable_count = args_given < %(top_level_parameter_count)d ? args_given : %(
 
 """
 
-parse_argument_template2 = """\
+argparse_template_plain_argument = """\
 if (likely( %(parameter_position)d < args_usable_count ))
 {
+     if (unlikely( _python_par_%(parameter_name)s != NULL ))
+     {
+         PyErr_Format( PyExc_TypeError, "%(function_name)s() got multiple values for keyword argument '%(parameter_name)s'" );
+         goto error_exit;
+     }
+
     _python_par_%(parameter_name)s = INCREASE_REFCOUNT( PyTuple_GET_ITEM( args, %(parameter_args_index)d ) );
 }
 """
 
-parse_argument_template2a = """\
+argparse_template_nested_argument = """\
 if (likely( %(parameter_position)d < args_usable_count ))
 {
     _python_par_%(parameter_name)s = PyTuple_GET_ITEM( args, %(parameter_args_index)d );
@@ -247,16 +248,78 @@ if ( kw_size > 0 )
 
     if ( kw_arg_value != NULL )
     {
-        if (unlikely( _python_par_%(parameter_name)s ))
+        _python_par_%(parameter_name)s = INCREASE_REFCOUNT( kw_arg_value );
+    }
+}
+"""
+
+argparse_template_assign_from_dict_parameters = """
+if ( kw_size > 0 )
+{
+    Py_ssize_t ppos = 0;
+    PyObject *key, *value;
+
+    while( PyDict_Next( kw, &ppos, &key, &value ) )
+    {
+        if (unlikely( !PyString_Check( key ) && !PyUnicode_Check( key ) ))
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() got multiple values for keyword argument '%(parameter_name)s'" );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() keywords must be strings" );
             goto error_exit;
         }
 
-        _python_par_%(parameter_name)s = INCREASE_REFCOUNT( kw_arg_value );
+        NUITKA_MAY_BE_UNUSED bool found = false;
 
-        kw_args_used += 1;
+        Py_INCREF( key );
+        Py_INCREF( value );
+
+        // Quick path, could be our value.
+%(parameter_quick_path)s
+        // Slow path, compare against all parameter names.
+%(parameter_slow_path)s
+
+        Py_DECREF( key );
+
+        if ( found == false )
+        {
+           Py_DECREF( value );
+
+           PyErr_Format( PyExc_TypeError, "%(function_name)s() got an unexpected keyword argument '%%s'", PyString_Check( key ) ? PyString_AsString( key ) : "<non-string>" );
+           goto error_exit;
+        }
     }
+}
+"""
+
+argparse_template_assign_from_dict_parameter_quick_path = """\
+if ( found == false && %(parameter_name_object)s == key )
+{
+%(parameter_assign_from_kw)s
+    found = true;
+}
+"""
+
+argparse_template_assign_from_dict_parameter_slow_path = """\
+if ( found == false && RICH_COMPARE_BOOL_EQ_PARAMETERS( %(parameter_name_object)s, key ) )
+{
+%(parameter_assign_from_kw)s
+    found = true;
+}
+"""
+
+argparse_template_assign_from_dict_finding = """\
+if (unlikely( _python_par_%(parameter_name)s ))
+{
+    PyErr_Format( PyExc_TypeError, "%(function_name)s() got multiple values for keyword argument '%(parameter_name)s'" );
+    goto error_exit;
+}
+
+_python_par_%(parameter_name)s = value;
+"""
+
+argparse_template_check_parameter = """\
+if (unlikely( _python_par_%(parameter_name)s == NULL ))
+{
+
 }
 """
 
@@ -264,23 +327,6 @@ parse_argument_template_copy_default_value = """\
 if ( _python_par_%(parameter_name)s == NULL )
 {
     _python_par_%(parameter_name)s = %(default_identifier)s;
-}
-"""
-
-parse_argument_template_check_dict_parameter_unused_without_star_dict = """
-if ( kw_args_used != kw_size )
-{
-    Py_ssize_t ppos = 0;
-    PyObject *key, *value;
-
-    while( PyDict_Next( kw, &ppos, &key, &value ) )
-    {
-        if (unlikely( PySequence_Contains( %(parameter_names_tuple)s, key ) == 0 ))
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() got an unexpected keyword argument '%%s'", PyString_Check( key ) ? PyString_AsString( key ) : "<non-string>" );
-            goto error_exit;
-        }
-    }
 }
 """
 

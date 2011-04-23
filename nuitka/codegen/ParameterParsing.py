@@ -102,30 +102,69 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
 
     top_level_parameters = parameters.getTopLevelVariables()
 
-    if top_level_parameters and parameters.getDictStarArgVariable() is None:
-        parameter_parsing_code += CodeTemplates.parse_argument_template_take_counts2
-
     if top_level_parameters and (not is_method or len( top_level_parameters ) > 1):
         parameter_parsing_code += CodeTemplates.parse_argument_template_take_counts3
+
+    if top_level_parameters:
+        parameter_parsing_code += "// Copy given dictionary values to the the respective variables:\n"
+
+    if parameters.getDictStarArgVariable() is not None:
+        parameter_parsing_code += CodeTemplates.parse_argument_template_dict_star_copy % {
+            "dict_star_parameter_name" : parameters.getDictStarArgName(),
+        }
+
+        for variable in top_level_parameters:
+            if not variable.isNestedParameterVariable():
+                parameter_parsing_code += CodeTemplates.parse_argument_template_check_dict_parameter_with_star_dict % {
+                    "function_name"            : function_name,
+                    "parameter_name"           : variable.getName(),
+                    "parameter_name_object"    : getConstantCode(
+                        constant = variable.getName(),
+                        context  = context
+                    ),
+                    "dict_star_parameter_name" : parameters.getDictStarArgName(),
+                }
+    elif not parameters.isEmpty():
+        quick_path_code = ""
+        slow_path_code = ""
+
+        for variable in top_level_parameters:
+            # Only named ones can be assigned from the dict.
+            if variable.isNestedParameterVariable():
+                continue
+
+            parameter_name_object = getConstantCode(
+                constant = variable.getName(),
+                context  = context
+            )
+
+            parameter_assign_from_kw = CodeTemplates.argparse_template_assign_from_dict_finding % {
+                "parameter_name"        : variable.getName(),
+                "function_name"         : function_name,
+            }
+
+            quick_path_code += CodeTemplates.argparse_template_assign_from_dict_parameter_quick_path % {
+                "parameter_name_object"    : parameter_name_object,
+                "parameter_assign_from_kw" : indented( parameter_assign_from_kw )
+            }
+
+            slow_path_code += CodeTemplates.argparse_template_assign_from_dict_parameter_slow_path % {
+                "parameter_name_object"    : parameter_name_object,
+                "parameter_assign_from_kw" : indented( parameter_assign_from_kw )
+            }
+
+        parameter_parsing_code += CodeTemplates.argparse_template_assign_from_dict_parameters % {
+            "function_name"         : function_name,
+            "parameter_quick_path"  : indented( quick_path_code, 2 ),
+            "parameter_slow_path"   : indented( slow_path_code, 2 )
+        }
+
 
     if parameters.isEmpty():
         parameter_parsing_code += CodeTemplates.template_parameter_function_refuses % {
             "function_name" : function_name,
         }
     else:
-        if top_level_parameters and parameters.getDictStarArgVariable() is None:
-            parameter_parsing_code += CodeTemplates.parse_argument_template_check_dict_parameter_unused_without_star_dict % {
-                "function_name"         : function_name,
-                "parameter_names_tuple" : getConstantCode(
-                    context  = context,
-                    constant = tuple(
-                        variable.getName()
-                        for variable in
-                        parameters.getVariables()
-                    )
-                )
-            }
-
         if parameters.getListStarArgVariable() is None:
             check_template = CodeTemplates.parse_argument_template_check_counts_without_list_star_arg
         else:
@@ -148,13 +187,13 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
             if is_method and count == 0:
                 continue
 
-            # TODO: These templates really have no sensible names at all.
             if variable.isNestedParameterVariable():
-                parse_argument_template2 = CodeTemplates.parse_argument_template2a
+                parse_argument_template2 = CodeTemplates.argparse_template_nested_argument
             else:
-                parse_argument_template2 = CodeTemplates.parse_argument_template2
+                parse_argument_template2 = CodeTemplates.argparse_template_plain_argument
 
             parameter_parsing_code += parse_argument_template2 % {
+                "function_name"        : function_name,
                 "parameter_name"       : variable.getName(),
                 "parameter_position"   : count,
                 "parameter_args_index" : count if not is_method else count-1
@@ -171,41 +210,6 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
             "top_level_parameter_count" : len( top_level_parameters ),
             "top_level_max_index"       : max_index
         }
-
-    if top_level_parameters:
-        parameter_parsing_code += "// Copy given dictionary values to the the respective variables:\n"
-
-    if parameters.getDictStarArgVariable() is not None:
-        parameter_parsing_code += CodeTemplates.parse_argument_template_dict_star_copy % {
-            "dict_star_parameter_name" : parameters.getDictStarArgName(),
-        }
-
-        for variable in top_level_parameters:
-            if not variable.isNestedParameterVariable():
-                parameter_parsing_code += CodeTemplates.parse_argument_template_check_dict_parameter_with_star_dict % {
-                    "function_name"            : function_name,
-                    "parameter_name"           : variable.getName(),
-                    "parameter_name_object"    : getConstantCode(
-                        constant = variable.getName(),
-                        context  = context
-                    ),
-                    "dict_star_parameter_name" : parameters.getDictStarArgName(),
-                }
-    else:
-        for variable in top_level_parameters:
-            if not variable.isNestedParameterVariable():
-                parameter_parsing_code += CodeTemplates.parse_argument_template_check_dict_parameter_without_star_dict % {
-                    "function_name"         : function_name,
-                    "parameter_name"        : variable.getName(),
-                    "parameter_identifier"  : getVariableCode(
-                        variable = variable,
-                        context = context
-                    ),
-                    "parameter_name_object" : getConstantCode(
-                        constant = variable.getName(),
-                        context  = context
-                    )
-                }
 
     if parameters.hasDefaultParameters():
         parameter_parsing_code += "// Assign values not given to defaults\n"

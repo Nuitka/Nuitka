@@ -1461,7 +1461,7 @@ class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNodeBase ):
         for positional_arg in positional_args:
             assert positional_arg.isExpression()
 
-        self.named_argument_names = []
+        named_argument_names = []
         named_argument_values = []
 
         for named_arg_desc in named_args:
@@ -1470,8 +1470,10 @@ class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNodeBase ):
             assert type( named_arg_name ) == str
             assert named_arg_value.isExpression()
 
-            self.named_argument_names.append( named_arg_name )
+            named_argument_names.append( named_arg_name )
             named_argument_values.append( named_arg_value )
+
+        self.named_argument_names = tuple( named_argument_names )
 
         CPythonChildrenHaving.__init__(
             self,
