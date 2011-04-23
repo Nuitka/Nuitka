@@ -792,12 +792,21 @@ PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size )
     return result;
 }
 
-PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size )
+PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
 {
     PyObject *result = PyString_FromStringAndSize( buffer, size );
+    assert( !PyErr_Occurred() );
 
-    assert( result != NULL );
+    assertObject( result );
     assert( PyString_Size( result ) == size );
+
+    if ( intern )
+    {
+        PyString_InternInPlace( &result );
+
+        assertObject( result );
+        assert( PyString_Size( result ) == size );
+    }
 
     return result;
 }

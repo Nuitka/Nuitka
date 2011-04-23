@@ -31,11 +31,11 @@
 #ifndef __NUITKA_HELPERS_H__
 #define __NUITKA_HELPERS_H__
 
-extern PyObject *_python_tuple_empty;
-extern PyObject *_python_str_plain___dict__;
-extern PyObject *_python_str_plain___class__;
-extern PyObject *_python_str_plain___enter__;
-extern PyObject *_python_str_plain___exit__;
+extern "C" PyObject *_python_tuple_empty;
+extern "C" PyObject *_python_str_plain___dict__;
+extern "C" PyObject *_python_str_plain___class__;
+extern "C" PyObject *_python_str_plain___enter__;
+extern "C" PyObject *_python_str_plain___exit__;
 
 // From CPython, to allow us quick access to the dictionary of an module, the structure is
 // normally private, but we need it for quick access to the module dictionary.
@@ -1804,7 +1804,7 @@ extern PyObject *MAKE_FRAME( PyObject *filename, PyObject *function_name, PyObje
 // For the constant loading:
 extern void UNSTREAM_INIT( void );
 extern PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size );
-extern PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size );
+extern PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern );
 
 
 #endif

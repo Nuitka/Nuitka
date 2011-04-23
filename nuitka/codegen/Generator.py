@@ -2694,13 +2694,22 @@ def _getConstantsDeclarationCode( context, for_header ):
 
     for _constant_desc, constant_identifier in context.getConstants():
         if for_header:
-            declaration = "extern PyObject *%s;" % constant_identifier
+            declaration = 'extern "C" PyObject *%s;' % constant_identifier
         else:
-            declaration = "PyObject *%s;" % constant_identifier
+            declaration = 'PyObject *%s = NULL;' % constant_identifier
 
         statements.append( declaration )
 
     return "\n".join( statements )
+
+import re
+
+_match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
+
+def _isAttributeName( value ):
+
+
+    return _match_attribute_names.match( value )
 
 def _getConstantsDefinitionCode( context ):
     statements = []
@@ -2721,10 +2730,7 @@ def _getConstantsDefinitionCode( context ):
 
             continue
 
-        # Note: The "str" should not be necessary, but I had an apparent g++ bug that
-        # prevented it from working correctly, where UNSTREAM_STRING would return NULL
-        # even when it asserts against that.
-        if constant_type in ( str, tuple, list, float, complex, unicode, int, long, dict, frozenset, set ):
+        if constant_type in ( tuple, list, float, complex, unicode, int, long, dict, frozenset, set ):
             # Note: The marshal module cannot persist all unicode strings and
             # therefore cannot be used.  The cPickle fails to gives reproducible
             # results for some tuples, which needs clarification. In the mean time we
@@ -2753,10 +2759,12 @@ def _getConstantsDefinitionCode( context ):
             )
         elif constant_type is str:
             statements.append(
-                "%s = UNSTREAM_STRING( %s, %d );" % (
+                '%s = UNSTREAM_STRING( %s, %d, %d );assert( %s );' % (
                     constant_identifier,
                     CppRawStrings.encodeString( constant_value ),
-                    len(constant_value)
+                    len(constant_value),
+                    1 if _isAttributeName( constant_value ) else 0,
+                    constant_identifier
                 )
             )
         elif constant_value in ( None, True, False ):
@@ -2764,7 +2772,7 @@ def _getConstantsDefinitionCode( context ):
         else:
             assert False, (type(constant_value), constant_value, constant_identifier)
 
-    return "\n        ".join( statements )
+    return indented( statements )
 
 
 def getConstantsDeclarationCode( context ):
