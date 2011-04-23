@@ -247,6 +247,7 @@ def runScons( tree, quiet ):
         "result_file"    : result_file,
         "source_dir"     : source_dir,
         "debug_mode"     : asBoolStr( Options.isDebug() ),
+        "unstriped_mode" : asBoolStr( Options.isUnstriped() ),
         "module_mode"    : asBoolStr( Options.shallMakeModule() ),
         "optimize_mode"  : asBoolStr( Options.isOptimize() ),
         "python_version" : python_version,

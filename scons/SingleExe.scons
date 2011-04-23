@@ -79,6 +79,8 @@ lto_mode = getBoolOption( "lto_mode", False )
 # Windows target mode: Cross compile for Windows or compiling on windows.
 win_target = getBoolOption( "win_target", "win" in sys.platform )
 
+unstriped_mode = getBoolOption( "unstriped_mode", False )
+
 # The MingW compiler tool should be supported if targeting windows.
 if win_target:
     compiler_tools = [ "mingw" ]
@@ -237,21 +239,22 @@ env.Append( CPPPATH = [ source_dir, nuitka_include ] )
 if win_target:
     env.Append( CPPPATH = [ static_src + "/win32_ucontext_src" ] )
 
-if debug_mode:
+if debug_mode or unstriped_mode:
     # On crosscompile, use debug format that wine understands, so we get good tracebacks
     # from it.
     if win_target and "linux2" in sys.platform:
         env.Append( CCFLAGS = [ "-gstabs" ] )
     else:
-        env.Append( CCFLAGS = [ "-g" ] )
+        env.Append( CCFLAGS = [ "-g", "-feliminate-unused-debug-types" ] )
 
+# When debugging, optimize less than when optimizing, when not remove the assertions.
+if debug_mode:
     env.Append( CCFLAGS = [ "-O2" ] )
+else:
+    env.Append( CPPDEFINES = [ "__NUITKA_NO_ASSERT__" ] )
 
 if optimize_mode:
     env.Append( CCFLAGS = [ "-O3" ] )
-
-    if not debug_mode:
-        env.Append( CPPDEFINES = [ "__NUITKA_NO_ASSERT__" ] )
 
 if module_mode:
     env.Append( CCFLAGS = [ "-shared" ] )

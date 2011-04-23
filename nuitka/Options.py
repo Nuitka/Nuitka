@@ -167,6 +167,15 @@ parser.add_option(
     dest    = "debug",
     default = False,
     help    = """\
+Executing all self checks possible to find errors in Nuitka, do not use for production."""
+)
+
+parser.add_option(
+    "--unstriped",
+    action  = "store_true",
+    dest    = "unstriped",
+    default = False,
+    help    = """\
 Keep debug info in the resulting object file for better gdb interaction."""
 )
 
@@ -261,6 +270,9 @@ def isDebug():
 
 def isOptimize():
     return not options.no_optimize
+
+def isUnstriped():
+    return options.unstriped
 
 def getOutputPath( path ):
     if options.output_dir:
