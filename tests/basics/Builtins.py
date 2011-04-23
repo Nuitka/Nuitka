@@ -117,4 +117,35 @@ except TypeError, e:
 print "List from iterable", list( "abc" ), list()
 print "Tuple from iterable", tuple( "cda" ), tuple()
 print "Dictionary from iterable and keywords", dict( ( "ab", ( 1, 2 ) ), f = 1, g = 1 )
-print "More dictionaries", {'two': 2, 'one': 1}, {}, dict()
+print "More constant dictionaries", {'two': 2, 'one': 1}, {}, dict()
+g = {'two': 2, 'one': 1}
+print "Variable dictionary", dict( g )
+print "Found during optimization", dict( dict( {'le': 2, 'la': 1} ), fu = 3 ), dict( named = dict( {'le': 2, 'la': 1} ) )
+
+print "Floats from constants", float( "3.0" ), float( x = 9.0 ), float()
+print "Found during optimization", float( float( "3.2" ) ), float( x = float( 11.0 ) )
+
+print "Strs from constants", str( "3.3" ), str( object = 9.1 ), str()
+print "Found during optimization", str( float( "3.3" ) ), str( object = float( 12.0 ) )
+
+print "Bools from constants", bool( "3.3" ), bool( x = 9.1 ), bool(0), bool()
+print "Found during optimization", bool( float( "3.3" ) ), bool( x = float( 0.0 ) )
+
+print "Ints from constants", int( "3" ), int( x = "9" ), int( "f", 16 ), int( x = "e", base = 16 ), int( base = 2 ), int( "0101", base = 2 ), int(0), int()
+print "Found during optimization", int( int( "3" ) ), int( x = int( 0.0 ) )
+
+try:
+    int( 1,2,3 )
+except Exception, e:
+    print "Too many args gave", repr(e)
+
+try:
+    int( y = 1 )
+except Exception, e:
+    print "Wrong arg", repr(e)
+
+f = 3
+print "Unoptimized call of int", int( "0" * f, base = 16 )
+
+d = { "x" : "12", "base" : 8 }
+print "Dict call of int", int( **d )

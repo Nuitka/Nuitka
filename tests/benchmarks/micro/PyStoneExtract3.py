@@ -22,7 +22,7 @@
 # differences between CPython and Nuitka performance. It was under PSF 2 license. It's not
 # very useful anymore, but it is under that license still.
 
-LOOPS = 5000000
+LOOPS = 50000
 
 class Record:
 

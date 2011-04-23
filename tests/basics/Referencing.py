@@ -380,6 +380,11 @@ def simpleFunction48():
    with BlockExceptions():
       raise ValueError()
 
+template = "lala %s lala"
+
+def simpleFunction49():
+   return template % "dodo"
+
 x = 17
 
 def checkReferenceCount( checked_function, warmup = False ):
@@ -466,3 +471,4 @@ checkReferenceCount( simpleFunction45, warmup = True )
 checkReferenceCount( simpleFunction46, warmup = True )
 checkReferenceCount( simpleFunction47, warmup = True )
 checkReferenceCount( simpleFunction48, warmup = True )
+checkReferenceCount( simpleFunction49 )

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 #     Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -20,18 +19,29 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-# All of these should be identical with correct software behaviour.
 
-print "Output with newline."
-print "Output", "with", "newline."
-print "Output ", "with ", "newline."
-print "Output ",
-print "with ",
-print "newline."
-print "Output\twith tab"
-print "Output\t",
-print "with tab"
+def someFunction( rounds ):
+    class c:
+        pass
 
-# These ones gave errors with previos literal bugs:
-print "changed 2"
-print "foo%sbar%sfred%sbob?????"
+    # do calls
+    for i in xrange(rounds):
+        c.a = 2
+        c.b = 3
+        c.c = 4
+
+        x = c.a
+        x = c.b
+        x = c.c
+
+        c.a = 2
+        c.b = 3
+        c.c = 4
+
+        x = c.a
+        x = c.b
+        x = c.c
+
+
+
+someFunction( 100000 );

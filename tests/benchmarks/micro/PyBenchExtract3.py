@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 #     Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -20,18 +19,40 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-# All of these should be identical with correct software behaviour.
 
-print "Output with newline."
-print "Output", "with", "newline."
-print "Output ", "with ", "newline."
-print "Output ",
-print "with ",
-print "newline."
-print "Output\twith tab"
-print "Output\t",
-print "with tab"
+def someFunction( rounds ):
+    # define functions
+    def f(a,b,c,d=1,e=2,f=3):
+        return f
 
-# These ones gave errors with previos literal bugs:
-print "changed 2"
-print "foo%sbar%sfred%sbob?????"
+    args = 1,2
+    kwargs = dict(c=3,d=4,e=5)
+
+    # do calls
+    for i in xrange(rounds):
+        f(a=i,b=i,c=i)
+        f(f=i,e=i,d=i,c=2,b=i,a=3)
+        f(1,b=i,**kwargs)
+        f(*args,**kwargs)
+
+        f(a=i,b=i,c=i)
+        f(f=i,e=i,d=i,c=2,b=i,a=3)
+        f(1,b=i,**kwargs)
+        f(*args,**kwargs)
+
+        f(a=i,b=i,c=i)
+        f(f=i,e=i,d=i,c=2,b=i,a=3)
+        f(1,b=i,**kwargs)
+        f(*args,**kwargs)
+
+        f(a=i,b=i,c=i)
+        f(f=i,e=i,d=i,c=2,b=i,a=3)
+        f(1,b=i,**kwargs)
+        f(*args,**kwargs)
+
+        f(a=i,b=i,c=i)
+        f(f=i,e=i,d=i,c=2,b=i,a=3)
+        f(1,b=i,**kwargs)
+        f(*args,**kwargs)
+
+someFunction( 10000 );
