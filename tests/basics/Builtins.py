@@ -149,3 +149,28 @@ print "Unoptimized call of int", int( "0" * f, base = 16 )
 
 d = { "x" : "12", "base" : 8 }
 print "Dict call of int", int( **d )
+
+try:
+    print ord()
+except Exception, e:
+    print "Disallowed without args", repr(e)
+
+try:
+    print ord( s = 1 )
+except Exception, e:
+    print "Disallowed keyword args", repr(e)
+
+try:
+    print ord( 1, 2 )
+except Exception, e:
+    print "Too many plain args", repr(e)
+
+try:
+    print ord( 1, s = 2 )
+except Exception, e:
+    print "Too many args, some keywords", repr(e)
+
+try:
+    print str( "1", offer = 2 )
+except Exception, e:
+    print "Too many args, some keywords", repr(e)

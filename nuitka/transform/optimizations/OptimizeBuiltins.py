@@ -54,6 +54,7 @@ from nuitka.nodes.ParameterSpec import ParameterSpec, TooManyArguments
 class BuiltinParameterSpec( ParameterSpec ):
     def __init__( self, name, arg_names, default_count ):
         self.name = name
+        self.builtin = __builtins__[ name ]
 
         ParameterSpec.__init__(
             self,
@@ -66,8 +67,52 @@ class BuiltinParameterSpec( ParameterSpec ):
     def getName( self ):
         return self.name
 
+    def simulateCall( self, given_values ):
+        # Using star dict call for simulation, pylint: disable=W0142
+
+        arg_dict = {}
+
+        for arg_name, given_value in zip( self.normal_args, given_values ):
+            if given_value is not None:
+                arg_dict[ arg_name ] = given_value.getConstant()
+
+
+        return self.builtin( **arg_dict )
+
+class BuiltinParameterSpecNoKeywords( BuiltinParameterSpec ):
+
+    def allowsKeywords( self ):
+        return False
+
+    def simulateCall( self, given_values ):
+        # Using star list call for simulation, pylint: disable=W0142
+
+        arg_list = []
+        refuse_more = False
+
+        for given_value in given_values:
+            if given_value is not None:
+                if not refuse_more:
+                    arg_list.append( given_value.getConstant() )
+                else:
+                    assert False
+            else:
+                refuse_more = True
+
+        return self.builtin( *arg_list )
+
+
 builtin_int_spec = BuiltinParameterSpec( "int", ( "x", "base" ), 2 )
 builtin_long_spec = BuiltinParameterSpec( "long", ( "x", "base" ), 2 )
+builtin_bool_spec = BuiltinParameterSpec( "bool", ( "x", ), 1 )
+builtin_float_spec = BuiltinParameterSpec( "float", ( "x", ), 1 )
+builtin_str_spec = BuiltinParameterSpec( "str", ( "object", ), 1 )
+builtin_len_spec = BuiltinParameterSpec( "len", ( "object", ), 0 )
+builtin_tuple_spec = BuiltinParameterSpecNoKeywords( "tuple", ( "iterable", ), 1 )
+builtin_list_spec = BuiltinParameterSpecNoKeywords( "list", ( "iterable", ), 1 )
+builtin_chr_spec = BuiltinParameterSpecNoKeywords( "chr", ( "i", ), 1 )
+builtin_ord_spec = BuiltinParameterSpecNoKeywords( "ord", ( "c", ), 1 )
+builtin_range_spec = BuiltinParameterSpecNoKeywords( "range", ( "start", "stop", "step" ), 2 )
 
 class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
     """ Replace calls to builtin names by builtin nodes if possible or necessary.
@@ -143,16 +188,6 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                 owner.getSourceReference(),
                 message = "Reduced variable '%s' usage of function %s." % ( variable.getName(), owner )
             )
-
-    def globals_extractor( self, node ):
-        assert node.isEmptyCall()
-
-        return self._pickGlobalsForNode( node )
-
-    def locals_extractor( self, node ):
-        assert node.isEmptyCall()
-
-        return self._pickLocalsForNode( node )
 
     def dir_extractor( self, node ):
         # Only treat the empty dir() call, leave the others alone for now.
@@ -241,26 +276,6 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                     module_name = module_name,
                     source_ref  = source_ref
                 )
-
-    def chr_extractor( self, node ):
-        positional_args = node.getPositionalArguments()
-
-        if len( positional_args ) == 1:
-            return Nodes.CPythonExpressionBuiltinChr(
-                value      = positional_args[0],
-                source_ref = node.getSourceReference()
-            )
-
-
-    def ord_extractor( self, node ):
-        positional_args = node.getPositionalArguments()
-
-        if len( positional_args ) == 1:
-            return Nodes.CPythonExpressionBuiltinOrd(
-                value      = positional_args[0],
-                source_ref = node.getSourceReference()
-            )
-
     def type_extractor( self, node ):
         positional_args = node.getPositionalArguments()
 
@@ -275,62 +290,6 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                 bases      = positional_args[1],
                 type_dict  = positional_args[2],
                 source_ref = node.getSourceReference()
-            )
-
-    def range_extractor( self, node ):
-        positional_args = node.getPositionalArguments()
-
-        if len( positional_args ) >= 1 and len( positional_args ) <= 3:
-            low = positional_args[0]
-            high = positional_args[1] if len( positional_args ) > 1 else None
-            step = positional_args[2] if len( positional_args ) > 2 else None
-
-            return Nodes.CPythonExpressionBuiltinRange(
-                low        = low,
-                high       = high,
-                step       = step,
-                source_ref = node.getSourceReference()
-            )
-
-    def len_extractor( self, node ):
-        positional_args = node.getPositionalArguments()
-
-        if len( positional_args ) == 1:
-            return Nodes.CPythonExpressionBuiltinLen(
-                value      = positional_args[0],
-                source_ref = node.getSourceReference()
-            )
-
-    def tuple_extractor( self, node ):
-        positional_args = node.getPositionalArguments()
-
-        positional_args_count = len( positional_args )
-
-        if positional_args_count == 1:
-            return Nodes.CPythonExpressionBuiltinTuple(
-                value      = positional_args[0],
-                source_ref = node.getSourceReference()
-            )
-        elif positional_args_count == 0:
-            return Nodes.makeConstantReplacementNode(
-                node     = node,
-                constant = ()
-            )
-
-    def list_extractor( self, node ):
-        positional_args = node.getPositionalArguments()
-
-        positional_args_count = len( positional_args )
-
-        if positional_args_count == 1:
-            return Nodes.CPythonExpressionBuiltinList(
-                value      = positional_args[0],
-                source_ref = node.getSourceReference()
-            )
-        elif positional_args_count == 0:
-            return Nodes.makeConstantReplacementNode(
-                node     = node,
-                constant = []
             )
 
     def dict_extractor( self, node ):
@@ -362,57 +321,22 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                         constant = {}
                     )
 
-    def _extractSingleArgBuiltin( self, node, arg_name, builtin_class, default ):
-        positional_args = node.getPositionalArguments()
-
-        # TODO: These could be handled too.
-        if node.getStarListArg() is not None or node.getStarDictArg() is not None:
-            return
-
-        # TODO: These could be handled too
-        arg_names = node.getNamedArgumentNames()
-
-        if len( arg_names ) > 1 or ( len( arg_names ) == 1 and arg_names[0] != arg_name ):
-            return
-
-        named_arguments = node.getNamedArguments()
-
-        if len( positional_args ) == 0:
-            if not named_arguments:
-                return Nodes.makeConstantReplacementNode(
-                    node     = node,
-                    constant = default
-                )
-            else:
-                return builtin_class(
-                    value      = named_arguments[0][1],
-                    source_ref = node.getSourceReference()
-                )
-        elif len( positional_args ) == 1:
-            if not named_arguments:
-                return builtin_class(
-                    value      = positional_args[0],
-                    source_ref = node.getSourceReference()
-                )
-
-    def _extractBuiltinArgs( self, node, builtin_spec, builtin_class, default ):
+    def _extractBuiltinArgs( self, node, builtin_spec, builtin_class ):
         # TODO: These could be handled too.
         if node.getStarListArg() is not None or node.getStarDictArg() is not None:
             return
 
         try:
-            args = builtin_spec.matchCallSpec( builtin_spec.getName(), node.getCallSpec() )
+            args = builtin_spec.matchCallSpec(
+                name      = builtin_spec.getName(),
+                call_spec = node.getCallSpec()
+            )
 
-            if not args:
-                return Nodes.makeConstantReplacementNode(
-                    node     = node,
-                    constant = default
-                )
-            else:
-                return builtin_class(
-                    *args,
-                    source_ref = node.getSourceReference()
-                )
+            # Using list reference for passing the arguments without names, pylint: disable=W0142
+            return builtin_class(
+                *args,
+                source_ref = node.getSourceReference()
+            )
         except TooManyArguments, e:
             return Nodes.CPythonExpressionFunctionCall(
                 called_expression = makeRaiseExceptionReplacementExpressionFromInstance(
@@ -426,45 +350,81 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                 source_ref        = node.getSourceReference()
             )
 
+    def chr_extractor( self, node ):
+        return self._extractBuiltinArgs(
+            node          = node,
+            builtin_class = Nodes.CPythonExpressionBuiltinChr,
+            builtin_spec  = builtin_chr_spec
+        )
+
+    def ord_extractor( self, node ):
+        return self._extractBuiltinArgs(
+            node          = node,
+            builtin_class = Nodes.CPythonExpressionBuiltinOrd,
+            builtin_spec  = builtin_ord_spec
+        )
+
+    def range_extractor( self, node ):
+        return self._extractBuiltinArgs(
+            node          = node,
+            builtin_class = Nodes.CPythonExpressionBuiltinRange,
+            builtin_spec  = builtin_range_spec
+        )
+
+    def len_extractor( self, node ):
+        return self._extractBuiltinArgs(
+            node          = node,
+            builtin_class = Nodes.CPythonExpressionBuiltinLen,
+            builtin_spec  = builtin_len_spec
+        )
+
+    def tuple_extractor( self, node ):
+        return self._extractBuiltinArgs(
+            node          = node,
+            builtin_class = Nodes.CPythonExpressionBuiltinTuple,
+            builtin_spec  = builtin_tuple_spec
+        )
+
+    def list_extractor( self, node ):
+        return self._extractBuiltinArgs(
+            node          = node,
+            builtin_class = Nodes.CPythonExpressionBuiltinList,
+            builtin_spec  = builtin_list_spec
+        )
 
     def float_extractor( self, node ):
-        return self._extractSingleArgBuiltin(
+        return self._extractBuiltinArgs(
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinFloat,
-            arg_name      = "x",
-            default       = 0.0
+            builtin_spec  = builtin_float_spec
         )
 
     def str_extractor( self, node ):
-        return self._extractSingleArgBuiltin(
+        return self._extractBuiltinArgs(
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinStr,
-            arg_name      = "object",
-            default       = ""
+            builtin_spec  = builtin_str_spec
         )
 
     def bool_extractor( self, node ):
-        return self._extractSingleArgBuiltin(
+        return self._extractBuiltinArgs(
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinBool,
-            arg_name      = "x",
-            default       = False
+            builtin_spec  = builtin_bool_spec
         )
 
     def int_extractor( self, node ):
         return self._extractBuiltinArgs(
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinInt,
-            builtin_spec  = builtin_int_spec,
-            default       = False
+            builtin_spec  = builtin_int_spec
         )
 
     def long_extractor( self, node ):
         return self._extractBuiltinArgs(
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinLong,
-            builtin_spec  = builtin_long_spec,
-            default       = False
+            builtin_spec  = builtin_long_spec
         )
 
     def _pickLocalsForNode( self, node ):
@@ -488,6 +448,15 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
             source_ref = node.getSourceReference()
         )
 
+    def globals_extractor( self, node ):
+        assert node.isEmptyCall()
+
+        return self._pickGlobalsForNode( node )
+
+    def locals_extractor( self, node ):
+        assert node.isEmptyCall()
+
+        return self._pickLocalsForNode( node )
 
 class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
     """ Precompute builtins with constant arguments if possible. """
@@ -521,28 +490,6 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
     def getKey( self, node ):
         if node.isExpressionBuiltin():
             return node.kind.replace( "EXPRESSION_BUILTIN_", "" ).lower()
-
-    def chr_extractor( self, node ):
-        value = node.getValue()
-
-        if value.isExpressionConstantRef():
-            value = value.getConstant()
-
-            return getConstantComputationReplacementNode(
-                expression  = node,
-                computation = lambda : chr( value )
-            )
-
-    def ord_extractor( self, node ):
-        value = node.getValue()
-
-        if value.isExpressionConstantRef():
-            value = value.getConstant()
-
-            return getConstantComputationReplacementNode(
-                expression  = node,
-                computation = lambda : ord( value )
-            )
 
     def type1_extractor( self, node ):
         value = node.getValue()
@@ -657,34 +604,6 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                         computation = lambda : range( constant1, constant2, constant3 )
                     )
 
-    def len_extractor( self, node ):
-        value = node.getValue()
-
-        if value.isExpressionConstantRef():
-            return getConstantComputationReplacementNode(
-                expression  = node,
-                computation = lambda : len( value.getConstant() )
-            )
-
-    def tuple_extractor( self, node ):
-        value = node.getValue()
-
-        if value.isExpressionConstantRef():
-            return getConstantComputationReplacementNode(
-                expression  = node,
-                computation = lambda : tuple( value.getConstant() )
-            )
-
-    def list_extractor( self, node ):
-        value = node.getValue()
-
-        if value.isExpressionConstantRef():
-            return getConstantComputationReplacementNode(
-                expression  = node,
-                computation = lambda : list( value.getConstant() )
-            )
-
-
     def dict_extractor( self, node ):
         pos_arg = node.getPositionalArgument()
 
@@ -717,88 +636,85 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                         computation = lambda : dict( pos_arg.getConstant(), **arg_dict )
                     )
 
-    def float_extractor( self, node ):
-        value = node.getValue()
 
-        if value.isExpressionConstantRef():
+    def _extractConstantBuiltinCall( self, node, builtin_spec, given_values ):
+        for value in given_values:
+            if value is not None and not value.isExpressionConstantRef():
+                break
+        else:
             return getConstantComputationReplacementNode(
                 expression  = node,
-                computation = lambda : float( value.getConstant() )
+                computation = lambda : builtin_spec.simulateCall( given_values )
             )
+
+    def chr_extractor( self, node ):
+        return self._extractConstantBuiltinCall(
+            node         = node,
+            builtin_spec = builtin_chr_spec,
+            given_values = ( node.getValue(), )
+        )
+
+    def ord_extractor( self, node ):
+        return self._extractConstantBuiltinCall(
+            node         = node,
+            builtin_spec = builtin_ord_spec,
+            given_values = ( node.getValue(), )
+        )
+
+    def len_extractor( self, node ):
+        return self._extractConstantBuiltinCall(
+            node         = node,
+            builtin_spec = builtin_len_spec,
+            given_values = ( node.getValue(), )
+        )
+
+    def tuple_extractor( self, node ):
+        return self._extractConstantBuiltinCall(
+            node         = node,
+            builtin_spec = builtin_tuple_spec,
+            given_values = ( node.getValue(), )
+        )
+
+    def list_extractor( self, node ):
+        return self._extractConstantBuiltinCall(
+            node         = node,
+            builtin_spec = builtin_list_spec,
+            given_values = ( node.getValue(), )
+        )
+
+    def float_extractor( self, node ):
+        return self._extractConstantBuiltinCall(
+            node         = node,
+            builtin_spec = builtin_float_spec,
+            given_values = ( node.getValue(), )
+        )
 
     def str_extractor( self, node ):
-        value = node.getValue()
+        return self._extractConstantBuiltinCall(
+            node         = node,
+            builtin_spec = builtin_str_spec,
+            given_values = ( node.getValue(), )
+        )
 
-        if value.isExpressionConstantRef():
-            return getConstantComputationReplacementNode(
-                expression  = node,
-                computation = lambda : str( value.getConstant() )
-            )
 
     def bool_extractor( self, node ):
-        value = node.getValue()
-
-        if value.isExpressionConstantRef():
-            return getConstantComputationReplacementNode(
-                expression  = node,
-                computation = lambda : bool( value.getConstant() )
-            )
-
+        return self._extractConstantBuiltinCall(
+            node         = node,
+            builtin_spec = builtin_bool_spec,
+            given_values = ( node.getValue(), )
+        )
 
     def int_extractor( self, node ):
-        value = node.getValue()
+        return self._extractConstantBuiltinCall(
+            node         = node,
+            builtin_spec = builtin_int_spec,
+            given_values = ( node.getValue(), node.getBase() )
+        )
 
-        if value is None or value.isExpressionConstantRef():
-            base = node.getBase()
-
-            if base is None:
-                if value is None:
-                    return Nodes.makeConstantReplacementNode(
-                        node     = node,
-                        constant = 0
-                    )
-                else:
-                    return getConstantComputationReplacementNode(
-                        expression  = node,
-                        computation = lambda : int( value.getConstant() )
-                    )
-            elif base.isExpressionConstantRef():
-                if value is None:
-                    return getConstantComputationReplacementNode(
-                        expression  = node,
-                        computation = lambda : int( base = base.getConstant() )
-                    )
-                else:
-                    return getConstantComputationReplacementNode(
-                        expression  = node,
-                        computation = lambda : int( value.getConstant(), base.getConstant() )
-                    )
 
     def long_extractor( self, node ):
-        value = node.getValue()
-
-        if value is None or value.isExpressionConstantRef():
-            base = node.getBase()
-
-            if base is None:
-                if value is None:
-                    return Nodes.makeConstantReplacementNode(
-                        node     = node,
-                        constant = 0
-                    )
-                else:
-                    return getConstantComputationReplacementNode(
-                        expression  = node,
-                        computation = lambda : long( value.getConstant() )
-                    )
-            elif base.isExpressionConstantRef():
-                if value is None:
-                    return getConstantComputationReplacementNode(
-                        expression  = node,
-                        computation = lambda : long( base = base.getConstant() )
-                    )
-                else:
-                    return getConstantComputationReplacementNode(
-                        expression  = node,
-                        computation = lambda : long( value.getConstant(), base.getConstant() )
-                    )
+        return self._extractConstantBuiltinCall(
+            node         = node,
+            builtin_spec = builtin_long_spec,
+            given_values = ( node.getValue(), node.getBase() )
+        )

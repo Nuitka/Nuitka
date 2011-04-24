@@ -219,6 +219,9 @@ class ParameterSpec( ParameterSpecTuple ):
     def getDictStarArgVariable( self ):
         return self.dict_star_variable
 
+    def allowsKeywords( self ):
+        return True
+
     def matchCallSpec( self, name, call_spec ):
         call_positional = call_spec.getPositionalArgs()
 
@@ -230,7 +233,88 @@ class ParameterSpec( ParameterSpecTuple ):
 
             result[ count ] = value
 
-        for named_arg_name, named_arg_value in call_spec.getNamedArgs():
+        named_arguments = call_spec.getNamedArgs()
+
+        if named_arguments and not self.allowsKeywords():
+            raise TooManyArguments(
+                TypeError(
+                    "'%s' takes no keyword arguments" % name
+                )
+            )
+
+
+        if len( named_arguments ):
+            if len( call_positional ) + len( named_arguments ) > len( self.normal_args ):
+                if not self.list_star_arg and not self.dict_star_arg:
+                    if len( self.normal_args ) == 1:
+                        raise TooManyArguments(
+                            TypeError(
+                                "%s() takes at most 1 argument (%d given)" % (
+                                    name,
+                                    len( call_positional ) + len( named_arguments )
+                                )
+                            )
+                        )
+                    else:
+                        if self.default_count == 0:
+                            raise TooManyArguments(
+                                TypeError(
+                                    "%s() takes exactly %s arguments (%d given)" % (
+                                        name,
+                                        len( self.normal_args ),
+                                        len( call_positional ) + len( named_arguments )
+                                    )
+                                )
+                            )
+                        else:
+                            raise TooManyArguments(
+                                TypeError(
+                                    "%s() takes at most %s arguments (%d given)" % (
+                                        name,
+                                        len( self.normal_args ),
+                                        len( call_positional ) + len( named_arguments )
+                                    )
+                                )
+                            )
+
+
+        if len( call_positional ) > len( self.normal_args ):
+            if self.list_star_arg:
+                result.append( call_positional[ len( self.normal_args ) : ] )
+            else:
+                if len( self.normal_args ) == 1:
+                    raise TooManyArguments(
+                        TypeError(
+                            "%s() takes exactly one argument (%d given)" % (
+                                name,
+                                len( call_positional )
+                            )
+                        )
+                    )
+                else:
+                    if self.default_count == 0:
+                        raise TooManyArguments(
+                            TypeError(
+                                "%s() takes exactly %s arguments (%d given)" % (
+                                    name,
+                                    len( self.normal_args ),
+                                    len( call_positional )
+                                )
+                            )
+                        )
+                    else:
+                        raise TooManyArguments(
+                            TypeError(
+                                "%s() takes at most %s arguments (%d given)" % (
+                                    name,
+                                    len( self.normal_args ),
+                                    len( call_positional )
+                                )
+                            )
+                        )
+
+
+        for named_arg_name, named_arg_value in named_arguments:
             if named_arg_name in self.normal_args:
                 result[ self.normal_args.index( named_arg_name ) ] = named_arg_value
             elif self.dict_star_arg:
@@ -244,19 +328,5 @@ class ParameterSpec( ParameterSpecTuple ):
                     )
                 )
 
-
-        if len( call_positional ) > len( self.normal_args ):
-            if self.list_star_arg:
-                result.append( call_positional[ len( self.normal_args ) : ] )
-            else:
-                raise TooManyArguments(
-                    TypeError(
-                        "%s() takes at most %d arguments (%d given)" % (
-                            name,
-                            len( self.normal_args ),
-                            len( call_positional )
-                        )
-                    )
-                )
 
         return result
