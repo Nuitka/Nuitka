@@ -78,15 +78,23 @@ class Identifier:
     def __repr__( self ):
         return "<Identifier %s (%d)>" % ( self.code, self.ref_count )
 
+    def isConstantIdentifier( self ):
+        return self.__class__ is ConstantIdentifier
+
 class ConstantIdentifier( Identifier ):
-    def __init__( self, constant_code ):
+    def __init__( self, constant_code, constant_value ):
         Identifier.__init__( self, constant_code, 0 )
+
+        self.constant_value = constant_value
 
     def __repr__( self ):
         return "<ConstantIdentifier %s>" % self.code
 
     def getCheapRefCount( self ):
         return 0
+
+    def getConstant( self ):
+        return self.constant_value
 
 class ModuleVariableIdentifier:
     def __init__( self, var_name, module_code_name ):
@@ -120,6 +128,9 @@ class LocalVariableIdentifier:
 
         self.from_context = from_context
         self.var_name = var_name
+
+    def isConstantIdentifier( self ):
+        return False
 
     def __repr__( self ):
         return "<LocalVariableIdentifier %s>" % self.var_name

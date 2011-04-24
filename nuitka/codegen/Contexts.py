@@ -178,7 +178,7 @@ class PythonGlobalContext:
             if key not in self.constants:
                 self.constants[ key ] = "_python_" + namifyConstant( constant )
 
-            return ConstantIdentifier( self.constants[ key ] )
+            return ConstantIdentifier( self.constants[ key ], constant )
 
     def getConstants( self ):
         return sorted( self.constants.items(), key = lambda x: x[1] )

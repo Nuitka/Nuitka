@@ -738,6 +738,8 @@ static PyObject *MAKE_SET( P...eles )
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_STATIC_METHOD( PyObject *method )
 {
+    assertObject( method );
+
     PyObject *attempt = PyStaticMethod_New( method );
 
     if ( attempt )
@@ -754,6 +756,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_STATIC_METHOD( PyObject *method )
 
 NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_ELEMENT( PyObject *sequence, Py_ssize_t element )
 {
+    assertObject( sequence );
+
     PyObject *result = PySequence_GetItem( sequence, element );
 
     if (unlikely( result == NULL ))
@@ -825,8 +829,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
 // Python exception, that will show as a thrown exception.
 NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 {
-    assert( iterator != NULL );
-    assert( iterator->ob_refcnt > 0 );
+    assertObject( iterator );
 
     int line = _current_line;
     PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
@@ -976,8 +979,7 @@ NUITKA_MAY_BE_UNUSED static inline bool UNPACK_PARAMETER_ITERATOR_CHECK( PyObjec
 
 NUITKA_MAY_BE_UNUSED static PyObject *SELECT_IF_TRUE( PyObject *object )
 {
-    assert( object != NULL );
-    assert( object->ob_refcnt > 0 );
+    assertObject( object );
 
     if ( CHECK_IF_TRUE( object ) )
     {
@@ -993,8 +995,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_IF_TRUE( PyObject *object )
 
 NUITKA_MAY_BE_UNUSED static PyObject *SELECT_IF_FALSE( PyObject *object )
 {
-    assert( object != NULL );
-    assert( object->ob_refcnt > 0 );
+    assertObject( object );
 
     if ( CHECK_IF_FALSE( object ) )
     {
@@ -1008,37 +1009,18 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_IF_FALSE( PyObject *object )
     }
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObject *subscript )
-{
-    assert( source );
-    assert( source->ob_refcnt > 0 );
-    assert( subscript );
-    assert( subscript->ob_refcnt > 0 );
-
-    PyObject *result = PyObject_GetItem( source, subscript );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
 
 NUITKA_MAY_BE_UNUSED static bool HAS_KEY( PyObject *source, PyObject *key )
 {
-    assert( source );
-    assert( source->ob_refcnt > 0 );
-    assert( key );
-    assert( key->ob_refcnt > 0 );
+    assertObject( source );
+    assertObject( key );
 
     return PyMapping_HasKey( source, key ) != 0;
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 {
-    assert( source );
-    assert( source->ob_refcnt > 0 );
+    assertObject( source );
 
     PyObject *result = PyObject_GetAttr( source, _python_str_plain___dict__ );
 
@@ -1050,15 +1032,58 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
     return result;
 }
 
+static Py_ssize_t CONVERT_TO_INDEX( PyObject *value );
+
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObject *subscript )
+{
+    assertObject( source );
+    assertObject( subscript );
+
+    PyTypeObject *type = Py_TYPE( source );
+    PyMappingMethods *mapping = type->tp_as_mapping;
+
+    PyObject *result;
+
+    if ( mapping != NULL && mapping->mp_subscript != NULL )
+    {
+        result = mapping->mp_subscript( source, subscript );
+    }
+    else if ( type->tp_as_sequence != NULL )
+    {
+        if ( PyIndex_Check( subscript ) )
+        {
+            result = PySequence_GetItem( source, CONVERT_TO_INDEX( subscript ) );
+        }
+        else if ( type->tp_as_sequence->sq_item )
+        {
+            PyErr_Format( PyExc_TypeError, "sequence index must be integer, not '%s'", subscript->ob_type->tp_name );
+            throw _PythonException();
+        }
+        else
+        {
+            return PyErr_Format( PyExc_TypeError, "'%s' object is unsubscriptable", source->ob_type->tp_name );
+            throw _PythonException();
+        }
+    }
+    else
+    {
+        return PyErr_Format( PyExc_TypeError, "'%s' object is unsubscriptable", source->ob_type->tp_name );
+        throw _PythonException();
+    }
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
 
 NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT( PyObject *target, PyObject *subscript, PyObject *value )
 {
-    assert( target );
-    assert( target->ob_refcnt > 0 );
-    assert( subscript );
-    assert( subscript->ob_refcnt > 0 );
-    assert( value );
-    assert( value->ob_refcnt > 0 );
+    assertObject( target );
+    assertObject( subscript );
+    assertObject( value );
 
     int status = PyObject_SetItem( target, subscript, value );
 
@@ -1070,10 +1095,8 @@ NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT( PyObject *target, PyObject *subs
 
 NUITKA_MAY_BE_UNUSED static void DEL_SUBSCRIPT( PyObject *target, PyObject *subscript )
 {
-    assert( target );
-    assert( target->ob_refcnt > 0 );
-    assert( subscript );
-    assert( subscript->ob_refcnt > 0 );
+    assertObject( target );
+    assertObject( subscript );
 
     int status = PyObject_DelItem( target, subscript );
 
@@ -1086,8 +1109,7 @@ NUITKA_MAY_BE_UNUSED static void DEL_SUBSCRIPT( PyObject *target, PyObject *subs
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SLICE( PyObject *source, Py_ssize_t lower, Py_ssize_t upper )
 {
-    assert( source );
-    assert( source->ob_refcnt > 0 );
+    assertObject( source );
 
     PyObject *result = PySequence_GetSlice( source, lower, upper);
 
@@ -1101,10 +1123,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SLICE( PyObject *source, Py_ssize_t
 
 NUITKA_MAY_BE_UNUSED static void SET_SLICE( PyObject *target, Py_ssize_t lower, Py_ssize_t upper, PyObject *value )
 {
-    assert( target );
-    assert( target->ob_refcnt > 0 );
-    assert( value );
-    assert( value->ob_refcnt > 0 );
+    assertObject( target );
+    assertObject( value );
 
     int status = PySequence_SetSlice( target, lower, upper, value );
 
@@ -1114,12 +1134,9 @@ NUITKA_MAY_BE_UNUSED static void SET_SLICE( PyObject *target, Py_ssize_t lower, 
     }
 }
 
-static Py_ssize_t CONVERT_TO_INDEX( PyObject *value );
-
 NUITKA_MAY_BE_UNUSED static void DEL_SLICE( PyObject *target, PyObject *lower, PyObject *upper )
 {
-    assert( target );
-    assert( target->ob_refcnt > 0 );
+    assertObject( target );
 
     if ( target->ob_type->tp_as_sequence && target->ob_type->tp_as_sequence->sq_ass_slice )
     {
@@ -1171,8 +1188,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ( PyObject *start, PyObject *
 
 NUITKA_MAY_BE_UNUSED static Py_ssize_t CONVERT_TO_INDEX( PyObject *value )
 {
-    assert( value );
-    assert( value->ob_refcnt > 0 );
+    assertObject( value );
 
 #if PY_MAJOR_VERSION < 3
     if ( PyInt_Check( value ) )

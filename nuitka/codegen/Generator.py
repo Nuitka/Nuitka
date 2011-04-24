@@ -2789,7 +2789,7 @@ def _getConstantsDeclarationCode( context, for_header ):
         if for_header:
             declaration = 'extern PyObject *%s;' % constant_identifier
         else:
-            declaration = 'PyObject *%s = NULL;' % constant_identifier
+            declaration = 'PyObject *%s;' % constant_identifier
 
         statements.append( declaration )
 
@@ -2800,9 +2800,36 @@ import re
 _match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
 
 def _isAttributeName( value ):
-
-
     return _match_attribute_names.match( value )
+
+
+def _getUnstreamCode( constant_value, constant_type, constant_identifier ):
+    # Note: The marshal module cannot persist all unicode strings and
+    # therefore cannot be used.  The cPickle fails to gives reproducible
+    # results for some tuples, which needs clarification. In the mean time we
+    # are using pickle.
+    try:
+        saved = pickle.dumps(
+            constant_value,
+            protocol = 0 if constant_type is unicode else 0
+        )
+    except TypeError:
+        warning( "Problem with persisting constant '%r'." % constant_value )
+        raise
+
+    # Check that the constant is restored correctly.
+    restored = cpickle.loads( saved )
+
+    assert Constants.compareConstants( restored, constant_value )
+
+    if str is unicode:
+        saved = saved.decode( "utf_8" )
+
+    return "%s = UNSTREAM_CONSTANT( %s, %d );" % (
+        constant_identifier,
+        CppRawStrings.encodeString( saved ),
+        len( saved )
+    )
 
 def _getConstantsDefinitionCode( context ):
     statements = []
@@ -2811,9 +2838,9 @@ def _getConstantsDefinitionCode( context ):
         constant_type, constant_value = constant_desc
         constant_value = constant_value.getConstant()
 
-        # Use shortest code for ints, except when they are big, then fall fallback to
-        # pickling.
-        if constant_type == int and abs( constant_value ) < 2**31:
+        # Use shortest code for ints and longs, except when they are big, then fall
+        # fallback to pickling.
+        if constant_type is int and abs( constant_value ) < 2**31:
             statements.append(
                 "%s = PyInt_FromLong( %s );" % (
                     constant_identifier,
@@ -2823,32 +2850,41 @@ def _getConstantsDefinitionCode( context ):
 
             continue
 
-        if constant_type in ( tuple, list, float, complex, unicode, int, long, dict, frozenset, set ):
-            # Note: The marshal module cannot persist all unicode strings and
-            # therefore cannot be used.  The cPickle fails to gives reproducible
-            # results for some tuples, which needs clarification. In the mean time we
-            # are using pickle.
-            try:
-                saved = pickle.dumps(
-                    constant_value,
-                    protocol = 0 if constant_type is unicode else 0
+        # Use shortest code for ints and longs, except when they are big, then fall
+        # fallback to pickling.
+        if constant_type is long and abs( constant_value ) < 2**31:
+            statements.append(
+                "%s = PyLong_FromLong( %s );" % (
+                    constant_identifier,
+                    constant_value
                 )
-            except TypeError:
-                warning( "Problem with persisting constant '%r'." % constant_value )
-                raise
+            )
 
-            # Check that the constant is restored correctly.
-            restored = cpickle.loads( saved )
+            continue
 
-            assert Constants.compareConstants( restored, constant_value )
+        if constant_type is dict and constant_value == {}:
+            statements.append(
+                "%s = PyDict_New();" % constant_identifier
+            )
 
-            if str is unicode:
-                saved = saved.decode( "utf_8" )
+        if constant_type is tuple and constant_value == ():
+            statements.append(
+                "%s = PyTuple_New( 0 );" % constant_identifier
+            )
 
-            statements.append( "%s = UNSTREAM_CONSTANT( %s, %d );" % (
-                constant_identifier,
-                CppRawStrings.encodeString( saved ),
-                len( saved ) )
+        if constant_type is list and constant_value == []:
+            statements.append(
+                "%s = PyList_New( 0 );" % constant_identifier
+            )
+
+        if constant_type is set and constant_value == set():
+            statements.append(
+                "%s = PySet_New( NULL );" % constant_identifier
+            )
+
+        if constant_type in ( tuple, list, float, complex, unicode, int, long, dict, frozenset, set ):
+            statements.append(
+                _getUnstreamCode( constant_value, constant_type, constant_identifier )
             )
         elif constant_type is str:
             statements.append(
