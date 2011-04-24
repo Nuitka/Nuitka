@@ -638,7 +638,7 @@ class Benchmark:
              min_overhead) = test.stat()
             total_min_time = total_min_time + min_time
             total_avg_time = total_avg_time + avg_time
-            print '%30s:  %5.0fms  %5.0fms  %6.2fus  %7.3fms' % \
+            print '%30s:  %5.01fms  %5.01fms  %6.2fus  %7.3fms' % \
                   (name,
                    min_time * MILLI_SECONDS,
                    avg_time * MILLI_SECONDS,
@@ -646,7 +646,7 @@ class Benchmark:
                    min_overhead *MILLI_SECONDS)
         print '-' * LINE
         print ('Totals:                        '
-               ' %6.0fms %6.0fms' %
+               ' %6.01fms %6.01fms' %
                (total_min_time * MILLI_SECONDS,
                 total_avg_time * MILLI_SECONDS,
                 ))
@@ -740,7 +740,7 @@ class Benchmark:
                     display_it = True
 
             if display_it or not regression_only:
-                print '%30s: %5.0fms %5.0fms %7s %5.0fms %5.0fms %7s' % \
+                print '%30s: %5.01fms %5.01fms %7s %5.01fms %5.01fms %7s' % \
                       (name,
                        min_time * MILLI_SECONDS,
                        other_min_time * MILLI_SECONDS * compare_to.warp / self.warp,
@@ -768,7 +768,7 @@ class Benchmark:
                 avg_diff = 'n/a'
 
         print ('Totals:                       '
-               '  %5.0fms %5.0fms %7s %5.0fms %5.0fms %7s' %
+               '  %5.01fms %5.01fms %7s %5.01fms %5.01fms %7s' %
                (total_min_time * MILLI_SECONDS,
                 (other_total_min_time * compare_to.warp/self.warp
                  * MILLI_SECONDS),
