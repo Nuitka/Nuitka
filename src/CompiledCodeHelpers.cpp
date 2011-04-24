@@ -116,6 +116,16 @@ PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
     }
 }
 
+PyObject *CHR( unsigned char c )
+{
+    // TODO: A switch statement might be faster, because no object needs to be created at
+    // all, this is how CPython does it.
+    char s[1];
+    s[0] = (char)c;
+
+    return PyString_FromStringAndSize( s, 1 );
+}
+
 PyObject *CHR( PyObject *value )
 {
     long x = PyInt_AsLong( value );

@@ -71,3 +71,8 @@ d[1,2,3] = 4
 L = list(d)
 L.sort()
 print L
+
+s = "Some information"
+ss = s[-1]
+
+print "Constant subscript of string", ss

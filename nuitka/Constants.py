@@ -132,6 +132,9 @@ def isIterableConstant( constant ):
 def isNumberConstant( constant ):
     return type( constant ) in ( int, long, float, bool )
 
+def isIndexConstant( constant ):
+    return type( constant ) in ( int, long, bool )
+
 class HashableConstant:
     def __init__( self, constant ):
         self.constant = constant

@@ -101,6 +101,9 @@ class ModuleVariableIdentifier:
         self.var_name = var_name
         self.module_code_name = module_code_name
 
+    def isConstantIdentifier( self ):
+        return False
+
     def __repr__( self ):
         return "<ModuleVariableIdentifier %s>" % self.var_name
 
@@ -120,7 +123,6 @@ class ModuleVariableIdentifier:
 
     def getCode( self ):
         return "_mvar_%s_%s" % ( self.module_code_name, self.var_name )
-
 
 class LocalVariableIdentifier:
     def __init__( self, var_name, from_context = False ):

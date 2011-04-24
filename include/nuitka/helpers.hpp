@@ -1032,6 +1032,94 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
     return result;
 }
 
+extern PyObject *CHR( unsigned char c );
+
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObject *const_subscript, Py_ssize_t int_subscript )
+{
+    assertObject( source );
+    assertObject( const_subscript );
+
+    PyTypeObject *type = Py_TYPE( source );
+    PyMappingMethods *m = type->tp_as_mapping;
+
+    PyObject *result;
+
+    if ( m && m->mp_subscript )
+    {
+        if ( PyList_CheckExact( source ) )
+        {
+            Py_ssize_t list_size = PyList_GET_SIZE( source );
+
+            if ( int_subscript < 0 )
+            {
+                if ( -int_subscript > list_size )
+                {
+                    PyErr_Format( PyExc_IndexError, "list index out of range" );
+                    throw _PythonException();
+                }
+
+                int_subscript += list_size;
+            }
+            else
+            {
+                if ( int_subscript >= list_size )
+                {
+                    PyErr_Format( PyExc_IndexError, "list index out of range" );
+                    throw _PythonException();
+                }
+            }
+
+            return INCREASE_REFCOUNT( ((PyListObject *)source)->ob_item[ int_subscript ] );
+        }
+        else if ( PyString_CheckExact( source ) )
+        {
+            Py_ssize_t string_size = PyString_GET_SIZE( source );
+
+            if ( int_subscript < 0 )
+            {
+                if ( -int_subscript > string_size )
+                {
+                    PyErr_Format( PyExc_IndexError, "string index out of range" );
+                    throw _PythonException();
+                }
+
+                int_subscript += string_size;
+            }
+            else
+            {
+                if ( int_subscript >= string_size )
+                {
+                    PyErr_Format( PyExc_IndexError, "string index out of range" );
+                    throw _PythonException();
+                }
+            }
+
+            unsigned char c = ((PyStringObject *)source)->ob_sval[ int_subscript ];
+            return CHR( c );
+        }
+        else
+        {
+            result = m->mp_subscript( source, const_subscript );
+        }
+    }
+    else if ( type->tp_as_sequence )
+    {
+        result = PySequence_GetItem( source, int_subscript );
+    }
+    else
+    {
+        return PyErr_Format( PyExc_TypeError, "'%s' object is unsubscriptable", source->ob_type->tp_name );
+        throw _PythonException();
+    }
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
 static Py_ssize_t CONVERT_TO_INDEX( PyObject *value );
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObject *subscript )

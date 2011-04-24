@@ -515,6 +515,22 @@ def getAttributeLookupCode( attribute, source ):
     )
 
 def getSubscriptLookupCode( subscript, source ):
+    if subscript.isConstantIdentifier():
+        constant = subscript.getConstant()
+
+        if Constants.isIndexConstant( constant ):
+            constant_value = int( constant )
+
+            if abs( constant_value ) < 2**31:
+                return Identifier(
+                    "LOOKUP_SUBSCRIPT( %s, %s, %s )" % (
+                        source.getCodeTemporaryRef(),
+                        subscript.getCodeTemporaryRef(),
+                        "%d" % constant
+                    ),
+                    1
+                )
+
     return Identifier(
         "LOOKUP_SUBSCRIPT( %s, %s )" % (
             source.getCodeTemporaryRef(),
