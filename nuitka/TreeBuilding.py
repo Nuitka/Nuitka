@@ -409,13 +409,13 @@ def buildVariableRefAssignTarget( variable_name, source_ref ):
         source_ref   = source_ref
     )
 
-def buildAttributeAssignTarget( provider, attribute, value, source_ref ):
-    assert type( attribute ) is str
+def buildAttributeAssignTarget( provider, attribute_name, value, source_ref ):
+    assert type( attribute_name ) is str
 
     return Nodes.CPythonAssignTargetAttribute(
-        expression = buildNode( provider, value, source_ref ),
-        attribute  = attribute,
-        source_ref = source_ref
+        expression      = buildNode( provider, value, source_ref ),
+        attribute_name  = attribute_name,
+        source_ref      = source_ref
     )
 
 def buildSubscriptAssignTarget( provider, node, source_ref ):
@@ -494,10 +494,10 @@ def buildAssignTarget( provider, node, source_ref, allow_none = False ):
         )
     elif kind == "Attribute":
         result = buildAttributeAssignTarget(
-            provider   = provider,
-            value      = node.value,
-            attribute  = node.attr,
-            source_ref = source_ref
+            provider       = provider,
+            value          = node.value,
+            attribute_name = node.attr,
+            source_ref     = source_ref
         )
     elif kind in ( "Tuple", "List" ):
         result = Nodes.CPythonAssignTargetTuple(
@@ -1144,9 +1144,9 @@ def buildBoolOpNode( provider, node, source_ref ):
 
 def buildAttributeNode( provider, node, source_ref ):
     return Nodes.CPythonExpressionAttributeLookup(
-        expression = buildNode( provider, node.value, source_ref ),
-        attribute  = node.attr,
-        source_ref = source_ref
+        expression     = buildNode( provider, node.value, source_ref ),
+        attribute_name = node.attr,
+        source_ref     = source_ref
     )
 
 def buildReturnNode( provider, node, source_ref ):

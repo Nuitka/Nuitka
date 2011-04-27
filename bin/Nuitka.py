@@ -81,32 +81,33 @@ tree = MainControl.createNodeTree(
     filename = Options.getPositionalArgs()[0]
 )
 
-if not Options.shallOnlyExecGcc():
-    if Options.shallDumpBuiltTree():
-        MainControl.dumpTree( tree )
+if Options.shallDumpBuiltTree():
+    MainControl.dumpTree( tree )
+elif Options.shallDumpBuiltTreeXML():
+    MainControl.dumpTreeXML( tree )
+elif Options.shallDisplayBuiltTree():
+    MainControl.displayTree( tree )
+else:
+    if not Options.shallOnlyExecGcc():
+        # Now build the target language code for the whole tree.
+        MainControl.makeSourceDirectory(
+            main_module = tree
+        )
 
-    if Options.shallDisplayBuiltTree():
-        MainControl.displayTree( tree )
-
-    # Now build the target language code for the whole tree.
-    MainControl.makeSourceDirectory(
-        main_module = tree
+    # Run the Scons to build things.
+    result, options = MainControl.runScons(
+        tree  = tree,
+        quiet = not Options.isShowScons()
     )
 
-# Run the Scons to build things.
-result, options = MainControl.runScons(
-    tree  = tree,
-    quiet = not Options.isShowScons()
-)
-
-# Exit if compilation failed.
-if not result:
-    sys.exit( 1 )
+    # Exit if compilation failed.
+    if not result:
+        sys.exit( 1 )
 
 
-# Execute the module immediately if option was given.
-if Options.shallExecuteImmediately():
-    if Options.shallMakeModule():
-        MainControl.executeModule( tree )
-    else:
-        MainControl.executeMain( options[ "result_file" ] + ".exe", tree )
+    # Execute the module immediately if option was given.
+    if Options.shallExecuteImmediately():
+        if Options.shallMakeModule():
+            MainControl.executeModule( tree )
+        else:
+            MainControl.executeMain( options[ "result_file" ] + ".exe", tree )

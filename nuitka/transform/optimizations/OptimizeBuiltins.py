@@ -231,8 +231,8 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         source_ref = node.getSourceReference()
 
         source_node = Nodes.CPythonExpressionFunctionCall(
-            called_expression = Nodes.CPythonExpressionAttributeLookup(
-                expression = Nodes.CPythonExpressionBuiltinOpen(
+            called_expression  = Nodes.CPythonExpressionAttributeLookup(
+                expression     = Nodes.CPythonExpressionBuiltinOpen(
                     filename   = positional_args[0],
                     mode       = Nodes.makeConstantReplacementNode(
                         constant = "rU",
@@ -241,8 +241,8 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                     buffering  = None,
                     source_ref = source_ref
                 ),
-                attribute = "read",
-                source_ref = source_ref
+                attribute_name = "read",
+                source_ref     = source_ref
             ),
             positional_args = (),
             named_args = (),

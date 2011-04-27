@@ -19,15 +19,12 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-import sys
-print sys.maxunicode
-
 print u"gfcrk"
 print repr( u"g\xfcrk" )
 
 print r"""\x00"""
 
-print "\ttest\r\n"
+print "\ttest\n"
 
 print """
 something

@@ -39,6 +39,7 @@ from __future__ import print_function
 
 from . import (
     TreeBuilding,
+    TreeXML,
     Options,
     Utils
 )
@@ -81,6 +82,9 @@ def dumpTree( tree ):
     print( "*" * 80 )
     print( "*" * 80 )
 
+def dumpTreeXML( tree ):
+    xml_root = tree.asXml()
+    TreeXML.dump( xml_root )
 
 def displayTree( tree ):
     # Import only locally so the Qt4 dependency doesn't normally come into play when it's

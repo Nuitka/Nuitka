@@ -28,6 +28,9 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Class building and defining related templates.
+
+"""
 
 class_decl_template = """
 static PyObject *%(class_identifier)s( %(class_dict_args)s );

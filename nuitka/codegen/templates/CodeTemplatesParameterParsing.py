@@ -28,6 +28,9 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Parameter parsing related templates.
+
+"""
 
 
 template_parameter_function_entry_point = """\

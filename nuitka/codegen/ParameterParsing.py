@@ -35,10 +35,7 @@
 from . import CodeTemplates
 
 from .ConstantCodes import getConstantCode
-from .VariableCodes import getVariableCode
-
 from .Identifiers import Identifier
-
 from .Indentation import indented
 
 def _getDefaultParameterCodeName( variable ):
@@ -90,7 +87,7 @@ def getParameterContextCode( default_access_identifiers ):
 
 
 def _getParameterParsingCode( context, parameters, function_name, default_identifiers, is_method ):
-    # There is really no way this could be any less complex, pylint: disable=R0912
+    # There is really no way this could be any less complex, pylint: disable=R0912,R0914
 
     parameter_parsing_code = "".join(
         [
@@ -278,7 +275,8 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
 
     return indented( parameter_parsing_code )
 
-def getParameterParsingCode( context, function_identifier, function_name, parameters, default_identifiers, context_access_template ):
+def getParameterParsingCode( context, function_identifier, function_name, parameters, \
+                             default_identifiers, context_access_template ):
     if getDefaultParameterDeclarations( default_identifiers ):
         context_access = context_access_template % {
             "function_identifier" : function_identifier

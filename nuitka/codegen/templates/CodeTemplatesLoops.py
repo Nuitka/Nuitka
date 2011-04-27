@@ -28,6 +28,9 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" For and while loop related templates.
+
+"""
 
 
 _template_for_loop_break_continue_direct_else = """\

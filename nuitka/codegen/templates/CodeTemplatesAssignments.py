@@ -28,6 +28,9 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Assignments - inplace primarily - related templates.
+
+"""
 
 
 template_inplace_var_assignment = """\

@@ -133,9 +133,17 @@ def interuptedUnpack():
         except UnboundLocalError, e:
             print "UnboundLocalError", e
 
+def optimizeableTargets():
+    a = [ 1, 2 ]
+
+    a[ int(1) ] = 3
+
+    print a
+
 someFunction()
 varargsFunction(1,2,3,4)
 otherFunction()
 anotherFunction()
 swapVariables()
 interuptedUnpack()
+optimizeableTargets()

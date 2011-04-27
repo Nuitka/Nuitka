@@ -156,8 +156,6 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
                 comparators = comparators,
                 operands    = operands
             )
-
-
         elif node.isStatementConditional():
             condition = node.getCondition()
 
@@ -183,3 +181,41 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
                     node.getSourceReference(),
                     "Condition for branch was predicted to be always %s." % choice
                 )
+
+        # TODO: Move this to a separate optimization step.
+        elif node.isExpressionFunctionCall():
+            star_list_arg = node.getStarListArg()
+
+            if star_list_arg is not None:
+                if star_list_arg.isExpressionMakeSequence():
+                    positional_args = node.getPositionalArguments()
+
+                    node.setPositionalArguments( positional_args + star_list_arg.getElements() )
+                    node.setStarListArg( None )
+                elif star_list_arg.isExpressionConstantRef():
+                    if star_list_arg.isIterableConstant():
+                        positional_args = node.getPositionalArguments()
+
+                        constant_nodes = []
+
+                        for constant in star_list_arg.getConstant():
+                            constant_nodes.append(
+                                Nodes.makeConstantReplacementNode(
+                                    constant = constant,
+                                    node     = star_list_arg
+                                )
+                            )
+
+                        node.setPositionalArguments( positional_args + tuple( constant_nodes ) )
+                        node.setStarListArg( None )
+
+
+            star_dict_arg = node.getStarDictArg()
+
+            if star_dict_arg is not None:
+                if star_dict_arg.isExpressionMakeDict():
+                    # TODO: Need to cleanup the named argument mess before it is possible.
+                    pass
+                elif star_dict_arg.isExpressionConstantRef():
+                    # TODO: Need to cleanup the named argument mess before it is possible.
+                    pass

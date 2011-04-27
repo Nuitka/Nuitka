@@ -160,7 +160,7 @@ class VariableReferenceBase( Variable ):
         self.variable = variable
 
     def __repr__( self ):
-        return "<%s to %s>" % ( self.__class__.__name__, self.variable )
+        return "<%s to %s>" % ( self.__class__.__name__, str( self.variable )[1:-1] )
 
     def getReferenced( self ):
         return self.variable

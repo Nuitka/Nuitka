@@ -847,10 +847,6 @@ def generateFunctionCallCode( function, context ):
         context    = context
     )
 
-    # TODO: Try to predict and remove empty star_list_identifier and star_dict_identifier
-    # so that the overhead associated can be eliminated. This probably should happen early
-    # on.
-
     return Generator.getFunctionCallCode(
         function_identifier  = function_identifier,
         argument_tuple       = positional_args_identifier,

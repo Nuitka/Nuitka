@@ -33,7 +33,7 @@
 from __future__ import print_function
 
 version_string = """\
-Nuitka V0.3.10pre1
+Nuitka V0.3.10pre2
 Copyright (C) 2011 Kay Hayen."""
 
 from . import Utils
@@ -83,6 +83,16 @@ parser.add_option(
     default = False,
     help    = "Debugging: Dump the final result of analysis."
 )
+
+parser.add_option(
+    "--dump-xml",
+    action  = "store_true",
+    dest    = "dump_xml",
+    default = False,
+    help    = "Debugging: Dump the final result of analysis."
+)
+
+
 parser.add_option(
     "--g++-only",
     action  = "store_true",
@@ -246,6 +256,9 @@ def shallExecuteImmediately():
 
 def shallDumpBuiltTree():
     return options.dump_tree
+
+def shallDumpBuiltTreeXML():
+    return options.dump_xml
 
 def shallDisplayBuiltTree():
     return options.display_tree

@@ -174,3 +174,10 @@ try:
     print str( "1", offer = 2 )
 except Exception, e:
     print "Too many args, some keywords", repr(e)
+
+# TODO: This is calls, not really builtins.
+a = 2
+
+print "Can optimize the star list argness away", int(*(a,)),
+print "Can optimize the empty star list arg away", int(*tuple()),
+print "Can optimize the empty star dict arg away", long(**dict())
