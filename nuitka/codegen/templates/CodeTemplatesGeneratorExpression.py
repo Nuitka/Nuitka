@@ -107,7 +107,7 @@ static PyObject *%(function_identifier)s( Nuitka_GenexprObject *generator )
     struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)generator->m_context;
 
     %(line_number_code)s
-
+%(expression_temp_decl)s
     try
     {
         while ( generator->iterator_level != -1 && generator->iterator_level < %(iterator_count)d )

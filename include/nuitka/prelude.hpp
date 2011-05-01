@@ -78,7 +78,6 @@
 #define NUITKA_NO_RETURN
 #endif
 
-NUITKA_MAY_BE_UNUSED static PyObject *_expression_temps[100];
 NUITKA_MAY_BE_UNUSED static PyObject *_eval_globals_tmp;
 NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 

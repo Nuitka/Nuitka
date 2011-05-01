@@ -1907,6 +1907,13 @@ def getModuleCode( context, stand_alone, module_name, package_name, codes, doc_i
             "package_identifier"      : getPackageIdentifier( package_name )
         }
 
+    local_expression_temp_inits = _getLocalExpressionTempsInitCode(
+        context = context
+    )
+
+    if local_expression_temp_inits:
+        local_expression_temp_inits += "\n"
+
     if stand_alone:
         header = CodeTemplates.global_copyright % {
             "name" : module_name
@@ -1929,6 +1936,7 @@ def getModuleCode( context, stand_alone, module_name, package_name, codes, doc_i
         "module_inits"          : module_inits,
         "filename_identifier"   : filename_identifier.getCode(),
         "module_code"           : indented( codes, 2 ),
+        "expression_temp_decl"  : local_expression_temp_inits
     }
 
     return header + module_code
@@ -2056,13 +2064,12 @@ def getContractionCode( context, contraction_identifier, contraction_kind, loop_
                 )
             )
 
-    contraction_var_decl = contraction_decl_template % {
-        "local_var_decl" : indented( local_var_decl )
-    }
 
     contraction_iterateds.insert( 0, Identifier( "iterated", 0 ) )
 
-    for count, ( contraction_condition, contraction_iterated, loop_var_code ) in enumerate ( reversed( list( zip( contraction_conditions, contraction_iterateds, loop_var_codes ) ) ) ):
+    for count, ( contraction_condition, contraction_iterated, loop_var_code ) in enumerate (
+        reversed( list( zip( contraction_conditions, contraction_iterateds, loop_var_codes ) ) )
+    ):
         contraction_loop = CodeTemplates.contraction_loop_iterated % {
             "contraction_loop"         : contraction_loop,
             "iter_count"               : len( loop_var_codes ) - count,
@@ -2071,11 +2078,23 @@ def getContractionCode( context, contraction_identifier, contraction_kind, loop_
             "contraction_condition"    : contraction_condition.getCode()
         }
 
+    contraction_var_decl = contraction_decl_template % {
+        "local_var_decl" : indented( local_var_decl )
+    }
+
+    local_expression_temp_inits = _getLocalExpressionTempsInitCode(
+        context = context
+    )
+
+    if local_expression_temp_inits:
+        local_expression_temp_inits += "\n"
+
     return CodeTemplates.contraction_code_template % {
         "contraction_identifier" : contraction_identifier,
         "contraction_parameters" : ", ".join( contraction_parameters ),
         "contraction_body"       : contraction_loop,
-        "contraction_var_decl"   : indented( contraction_var_decl.split( "\n" ) )
+        "contraction_var_decl"   : indented( contraction_var_decl ),
+        "contraction_temp_decl"  : indented( local_expression_temp_inits )
     }
 
 def getContractionIterValueIdentifier( context, index ):
@@ -2266,6 +2285,16 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
             )
         )
 
+    local_expression_temp_inits = _getLocalExpressionTempsInitCode(
+        context = context
+    )
+
+    if local_expression_temp_inits:
+        local_expression_temp_inits = [ local_expression_temp_inits ]
+    else:
+        local_expression_temp_inits = []
+
+
     for closure_variable in closure_variables:
         context_decl.append(
             _getLocalVariableInitCode(
@@ -2322,7 +2351,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         "function_name_obj"   : function_name_obj,
         "function_identifier" : function_identifier,
         "function_body"       : indented( function_codes, 2 ),
-        "function_var_inits"  : indented( function_var_inits, 2 ),
+        "function_var_inits"  : indented( function_var_inits + local_expression_temp_inits, 2 ),
         "context_access"      : indented( context_access_instance, 2 ),
         "module_identifier"   : getModuleAccessCode( context = context ),
         "name_identifier"     : getConstantCode(
@@ -2419,6 +2448,15 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         user_variables
     ]
 
+    local_expression_temp_inits = _getLocalExpressionTempsInitCode(
+        context = context
+    )
+
+    if local_expression_temp_inits:
+        local_expression_temp_inits = [ local_expression_temp_inits ]
+    else:
+        local_expression_temp_inits = []
+
     function_decorator_calls = _getDecoratorsCallCode(
         decorator_count = decorator_count
     )
@@ -2428,11 +2466,10 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         constant = function_doc
     )
 
-    if context.hasLocalsDict():
-        function_locals = CodeTemplates.function_dict_setup.split("\n") + function_parameter_decl + local_var_inits
-    else:
-        function_locals = function_parameter_decl + local_var_inits
+    function_locals = function_parameter_decl + local_var_inits + local_expression_temp_inits
 
+    if context.hasLocalsDict():
+        function_locals = CodeTemplates.function_dict_setup.split("\n") + function_locals
 
     result = ""
 
@@ -2569,6 +2606,13 @@ def getGeneratorExpressionCode( context, generator_identifier, generator_name, g
         constant = generator_name
     )
 
+    local_expression_temp_inits = _getLocalExpressionTempsInitCode(
+        context = context
+    )
+
+    if local_expression_temp_inits:
+        local_expression_temp_inits += "\n"
+
     result += CodeTemplates.genexpr_function_template % {
         "function_name"              : function_name,
         "function_identifier"        : generator_identifier,
@@ -2589,6 +2633,7 @@ def getGeneratorExpressionCode( context, generator_identifier, generator_name, g
             constant = generator_filename
         ),
         "line_number_code"           : line_number_code,
+        "expression_temp_decl"       : local_expression_temp_inits
     }
 
     result += CodeTemplates.make_genexpr_with_context_template % {
@@ -2724,15 +2769,24 @@ def getClassCode( context, class_def, class_name, class_filename, class_identifi
             )
         )
 
+    local_expression_temp_inits = _getLocalExpressionTempsInitCode(
+        context = context
+    )
+
+    if local_expression_temp_inits:
+        local_expression_temp_inits = [ local_expression_temp_inits ]
+    else:
+        local_expression_temp_inits = []
+
+    if context.hasLocalsDict():
+        class_locals = CodeTemplates.function_dict_setup.split("\n") + class_var_decl + local_expression_temp_inits
+    else:
+        class_locals = class_var_decl + local_expression_temp_inits
+
     class_creation_args, class_dict_args = _getClassCreationArgs(
         closure_variables = closure_variables,
         decorator_count   = decorator_count
     )
-
-    if context.hasLocalsDict():
-        class_locals = CodeTemplates.function_dict_setup.split("\n") + class_var_decl
-    else:
-        class_locals = class_var_decl
 
     class_dict_creation = getReturnCode(
         identifier = getLoadLocalsCode(

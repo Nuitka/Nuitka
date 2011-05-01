@@ -87,14 +87,14 @@ class PythonContextBase:
         return False
 
     def getTempObjectVariable( self ):
-        # TODO: Make sure these are actually indepedent in generated code between
-        # different contexts
-
         result = Identifier( "_expression_temps[%d] " % self.temp_counter, 0 )
 
         self.temp_counter += 1
 
         return result
+
+    def getTempObjectCounter( self ):
+        return self.temp_counter
 
     def hasLocalsDict( self ):
         return False

@@ -269,6 +269,8 @@ PyObject *_module_%(module_identifier)s;
 // The module function definitions.
 %(module_functions_code)s
 
+%(expression_temp_decl)s
+
 // The exported interface to CPython. On import of the module, this function gets
 // called. It has have that exact function name.
 

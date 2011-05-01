@@ -75,9 +75,8 @@ contraction_code_template = """\
 static PyObject *%(contraction_identifier)s( %(contraction_parameters)s )
 {
 %(contraction_var_decl)s
-
+%(contraction_temp_decl)s
 %(contraction_body)s
-
     return _python_contraction_result;
 }
 """
