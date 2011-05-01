@@ -383,7 +383,10 @@ def simpleFunction48():
 template = "lala %s lala"
 
 def simpleFunction49():
-   return template % "dodo"
+   c = 3
+   d = 4
+
+   a = x, y = b,e = (c,d)
 
 x = 17
 

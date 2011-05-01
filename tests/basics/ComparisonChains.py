@@ -62,3 +62,39 @@ def function_torture_is():
                 print x, y, z, ":", x is y is z, x is not y is not z
 
 function_torture_is()
+
+print "Check if lambda can have expression chains:"
+
+def function_lambda_with_chain():
+
+    a = ( 1, 2, 3 )
+
+    x = lambda x : x[0] < x[1] < x[2]
+
+    print x(a)
+
+function_lambda_with_chain()
+
+def generator_function_with_chain():
+    x = ( 1, 2, 3 )
+
+    yield x[0] < x[1] < x[2]
+
+print list( generator_function_with_chain() )
+
+def contraction_with_chain():
+    return [ x[0] < x[1] < x[2] for x in [ ( 1, 2, 3 ) ] ]
+
+print contraction_with_chain()
+
+def genexpr_with_chain():
+    return ( x[0] < x[1] < x[2] for x in [ ( 1, 2, 3 ) ] )
+
+print list( genexpr_with_chain() )
+
+class class_with_chain:
+    x = ( 1, 2, 3 )
+    print x[0] < x[1] < x[2]
+
+x = ( 1, 2, 3 )
+print x[0] < x[1] < x[2]

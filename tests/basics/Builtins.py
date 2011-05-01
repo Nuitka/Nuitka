@@ -181,3 +181,6 @@ a = 2
 print "Can optimize the star list argness away", int(*(a,)),
 print "Can optimize the empty star list arg away", int(*tuple()),
 print "Can optimize the empty star dict arg away", long(**dict())
+
+print "Dict building with keyword arguments", dict(), dict( a = f )
+print "Dictionary entirely from constant args", dict(q='Guido', w='van', e='Rossum', r='invented', t='Python', y='')
