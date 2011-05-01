@@ -99,19 +99,6 @@ class PythonContextBase:
     def hasLocalsDict( self ):
         return False
 
-    def getMaybeLocalHandle( self, var_name ):
-        assert self.hasLocalsDict(), ( self, var_name )
-
-        # TODO: Make this an identifier class as well.
-        return Identifier(
-            "_mvar_%s_%s.asObject0( locals_dict.asObject() )" % (
-                self.getModuleCodeName(),
-                var_name
-            ),
-            0
-        )
-
-
 class PythonChildContextBase( PythonContextBase ):
     def __init__( self, parent ):
         PythonContextBase.__init__( self )

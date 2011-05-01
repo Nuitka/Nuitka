@@ -28,53 +28,25 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Low level variable code generation.
+
+""" Call related templates.
 
 """
 
-from nuitka import Variables
+call_pos_star_dict = """\
+CALL_FUNCTION_STAR_ONLY( %(star_dict_arg)s, %(pos_args)s, %(function)s )"""
 
-from .Identifiers import ModuleVariableIdentifier, MaybeModuleVariableIdentifier
+call_star_list_star_dict = """\
+CALL_FUNCTION_STAR_ONLY( %(star_dict_arg)s, %(star_list_arg)s, %(function)s )"""
 
-def getVariableHandle( context, variable ):
-    assert isinstance( variable, Variables.Variable ), variable
+call_pos_named_star_list = """\
+CALL_FUNCTION_STAR_LIST( %(star_list_arg)s, %(named_args)s, %(pos_args)s, %(function)s )"""
 
-    var_name = variable.getName()
+call_pos_named_star_dict = """\
+CALL_FUNCTION_STAR_DICT( %(star_dict_arg)s, %(named_args)s, %(pos_args)s, %(function)s )"""
 
-    if variable.isLocalVariable() or variable.isClassVariable():
-        return context.getLocalHandle(
-            var_name = var_name
-        )
-    elif variable.isClosureReference():
-        return context.getClosureHandle(
-            var_name = var_name
-        )
-    elif variable.isMaybeLocalVariable():
-        context.addGlobalVariableNameUsage( var_name )
+call_pos_star_list_star_dict = """\
+CALL_FUNCTION_STAR_BOTH( %(star_dict_arg)s, %(star_list_arg)s, %(pos_args)s, %(function)s )"""
 
-        assert context.hasLocalsDict()
-
-        return MaybeModuleVariableIdentifier(
-            var_name         = var_name,
-            module_code_name = context.getModuleCodeName()
-        )
-    elif variable.isModuleVariable():
-        context.addGlobalVariableNameUsage(
-            var_name = var_name
-        )
-
-        return ModuleVariableIdentifier(
-            var_name         = var_name,
-            module_code_name = context.getModuleCodeName()
-        )
-
-    else:
-        assert False, variable
-
-def getVariableCode( context, variable ):
-    var_identifier = getVariableHandle(
-        context  = context,
-        variable = variable
-    )
-
-    return var_identifier.getCode()
+call_pos_named_list_star_star_dict = """
+CALL_FUNCTION_STAR_BOTH( %(star_dict_arg)s, %(star_list_arg)s, %(named_args)s, %(pos_args)s, %(function)s )"""

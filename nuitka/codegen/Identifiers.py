@@ -124,6 +124,17 @@ class ModuleVariableIdentifier:
     def getCode( self ):
         return "_mvar_%s_%s" % ( self.module_code_name, self.var_name )
 
+class MaybeModuleVariableIdentifier( Identifier ):
+    def __init__( self, var_name, module_code_name ):
+        Identifier.__init__(
+            self,
+            "_mvar_%s_%s.asObject0( locals_dict.asObject() )" % (
+                module_code_name,
+                var_name
+            ),
+            0
+        )
+
 class LocalVariableIdentifier:
     def __init__( self, var_name, from_context = False ):
         assert type( var_name ) == str
