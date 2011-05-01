@@ -137,4 +137,10 @@ def _findModule( module_name, parent_package ):
         )
 
 def _isWhiteListedNotExistingModule( module_name ):
-    return module_name in ( "mac", "nt", "os2", "_emx_link", "riscos", "ce", "riscospath", "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256", "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle", "marshal", "imp", "sys", "itertools", "cStringIO", "time", "zlib", "thread", "math", "errno", "operator", "signal", "gc", "exceptions", "win32process", "unicodedata" )
+    return module_name in (
+        "mac", "nt", "os2", "_emx_link", "riscos", "ce", "riscospath", "riscosenviron",
+        "Carbon.File", "org.python.core", "_sha", "_sha256", "_sha512", "_md5",
+        "_subprocess", "msvcrt", "cPickle", "marshal", "imp", "sys", "itertools",
+        "cStringIO", "time", "zlib", "thread", "math", "errno", "operator", "signal",
+        "gc", "exceptions", "win32process", "unicodedata"
+    )

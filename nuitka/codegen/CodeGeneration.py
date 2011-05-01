@@ -93,10 +93,13 @@ def generateSequenceCreationCode( sequence_kind, elements, context ):
         )
 
 def generateConditionCode( condition, context, inverted = False, allow_none = False ):
+    # The complexity is needed to avoid unnecessary complex generated C++, so
+    # e.g. inverted is typically a branch inside every optimizable case. pylint: disable=R0912
+
     if condition is None and allow_none:
         assert not inverted
 
-        return Generator.getTrueExpressionCode()
+        result = Generator.getTrueExpressionCode()
     elif condition.isExpressionConstantRef():
         value = condition.getConstant()
 
@@ -104,9 +107,9 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
             value = not value
 
         if value:
-            return Generator.getTrueExpressionCode()
+            result = Generator.getTrueExpressionCode()
         else:
-            return Generator.getFalseExpressionCode()
+            result = Generator.getFalseExpressionCode()
     elif condition.isExpressionComparison():
         result = Generator.getComparisonExpressionBoolCode(
             comparators = condition.getComparators(),
@@ -121,8 +124,6 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
             result = Generator.getConditionNotBoolCode(
                 condition = result
             )
-
-        return result
     elif condition.isExpressionBoolAND():
         parts = []
 
@@ -140,8 +141,6 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
             result = Generator.getConditionNotBoolCode(
                 condition = result
             )
-
-        return result
     elif condition.isExpressionBoolOR():
         parts = []
 
@@ -159,8 +158,6 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
             result = Generator.getConditionNotBoolCode(
                 condition = result
             )
-
-        return result
     else:
         condition_identifier = generateExpressionCode(
             context    = context,
@@ -168,13 +165,15 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
         )
 
         if inverted:
-            return Generator.getConditionCheckFalseCode(
+            result = Generator.getConditionCheckFalseCode(
                 condition = condition_identifier
             )
         else:
-            return Generator.getConditionCheckTrueCode(
+            result = Generator.getConditionCheckTrueCode(
                 condition = condition_identifier
             )
+
+    return result
 
 def _generatorContractionBodyCode( contraction, context ):
     contraction_body = contraction.getBody()
@@ -198,6 +197,8 @@ def _generatorContractionBodyCode( contraction, context ):
         )
 
 def generateContractionCode( contraction, context ):
+    # Contractions have many details, pylint: disable=R0914
+
     loop_var_codes = []
 
     for count, loop_var_assign in enumerate( contraction.getTargets() ):
@@ -263,8 +264,7 @@ def generateContractionCode( contraction, context ):
 
         contraction_code = Generator.getGeneratorExpressionCode(
             context              = context,
-            # TODO: Re-enable this with compat options
-            generator_name       = "genexpr", # contraction.getBody().getFullName(),
+            generator_name       = "genexpr" if Options.isFullCompat() else contraction.getBody().getFullName(),
             generator_filename   = contraction.getParentModule().getFilename(),
             generator_identifier = contraction_identifier,
             generator_code       = contraction_code,

@@ -42,6 +42,8 @@ from .__past__ import long, unicode
 NoneType = type( None )
 
 def compareConstants( a, b ):
+    # Many many cases to deal with, pylint: disable=R0911,R0912
+
     # Supposed fast path for comparison.
     if type( a ) is not type( b ):
         return False

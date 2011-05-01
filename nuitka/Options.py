@@ -313,3 +313,6 @@ def isLto():
 
 def isWindowsTarget():
     return options.windows_target
+
+def isFullCompat():
+    return True

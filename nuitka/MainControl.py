@@ -283,9 +283,7 @@ def executeMain( output_filename, tree ):
     if not Options.isWindowsTarget() or "win" in sys.platform:
         os.execl( output_filename, name, *Options.getMainArgs() )
     else:
-        args = [ output_filename, ] + Options.getMainArgs()
-
-        os.execl( "/usr/bin/wine", name, *args )
+        os.execl( "/usr/bin/wine", name, output_filename, *Options.getMainArgs() )
 
 def executeModule( tree ):
     __import__( tree.getName() )

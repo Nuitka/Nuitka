@@ -170,33 +170,18 @@ class PythonGlobalContext:
     def getConstants( self ):
         return sorted( self.constants.items(), key = lambda x: x[1] )
 
-class PythonPackageContext( PythonContextBase ):
-    def __init__( self, package_name, global_context ):
-        PythonContextBase.__init__( self )
-
-        self.package_name = package_name
-
-        self.global_context = global_context
-
-        self.global_var_names = set()
-
-    def getConstantHandle( self, constant ):
-        return self.global_context.getConstantHandle( constant )
-
-    def getGlobalVariableNames( self ):
-        return self.global_var_names
-
-
 class PythonModuleContext( PythonContextBase ):
     def __init__( self, module_name, code_name, filename, global_context ):
         PythonContextBase.__init__( self )
+
+        # Plent of attributes, because it's storing so many different things.
+        # pylint: disable=R0902
 
         self.name = module_name
         self.code_name = code_name
         self.filename = filename
 
         self.global_context = global_context
-        self.functions = {}
 
         self.class_codes = {}
         self.function_codes = {}
@@ -350,8 +335,8 @@ class PythonFunctionContext( PythonChildContextBase ):
     def getTracebackName( self ):
         return self.function.getName()
 
+    # TODO: Memoize would do wonders for these things mayhaps.
     def getTracebackFilename( self ):
-        # TODO: Memoize would do wonders for these things mayhaps.
         return self.function.getParentModule().getFilename()
 
     def getFrameObjectIdentifier( self ):

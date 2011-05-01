@@ -323,7 +323,10 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
             default_identifiers = default_identifiers,
             is_method           = False
         ),
-        "parse_function_identifier" : getParameterEntryPointIdentifier( function_identifier, False ),
+        "parse_function_identifier" : getParameterEntryPointIdentifier(
+            function_identifier = function_identifier,
+            is_method           = False
+        ),
         "impl_function_identifier"  : "impl_" + function_identifier,
         "context_access"         : context_access,
         "parameter_objects_list" : parameter_objects_list,
@@ -331,7 +334,10 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
     }
 
     if function_parameter_variables and function_parameter_variables[0].getName() == "self":
-        mparse_identifier = getParameterEntryPointIdentifier( function_identifier, True )
+        mparse_identifier = getParameterEntryPointIdentifier(
+            function_identifier = function_identifier,
+            is_method           = True
+        )
 
         parameter_entry_point_code += CodeTemplates.template_parameter_method_entry_point % {
             "parameter_parsing_code" : _getParameterParsingCode(
