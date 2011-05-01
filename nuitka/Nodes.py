@@ -43,7 +43,6 @@ from . import (
 from .odict import OrderedDict
 from .nodes import OverflowCheck
 from .nodes import UsageCheck
-from .nodes import CallSpec
 
 from .Constants import isMutable, isIterableConstant, isNumberConstant
 
@@ -1518,9 +1517,9 @@ class CPythonStatementAssert( CPythonChildrenHaving, CPythonNodeBase ):
 class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_FUNCTION_CALL"
 
-    named_children = ( "called", "positional_args", "named_args", "list_star_arg", "dict_star_arg" )
+    named_children = ( "called", "positional_args", "pairs", "list_star_arg", "dict_star_arg" )
 
-    def __init__( self, called_expression, positional_args, list_star_arg, dict_star_arg, named_args, source_ref ):
+    def __init__( self, called_expression, positional_args, pairs, list_star_arg, dict_star_arg, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         assert called_expression.isExpression()
@@ -1528,26 +1527,17 @@ class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNodeBase ):
         for positional_arg in positional_args:
             assert positional_arg.isExpression()
 
-        named_argument_names = []
-        named_argument_values = []
+        assert type( pairs ) in ( list, tuple ), pairs
 
-        for named_arg_desc in named_args:
-            named_arg_name, named_arg_value = named_arg_desc
-
-            assert type( named_arg_name ) == str
-            assert named_arg_value.isExpression()
-
-            named_argument_names.append( named_arg_name )
-            named_argument_values.append( named_arg_value )
-
-        self.named_argument_names = tuple( named_argument_names )
+        for pair in pairs:
+            assert pair.isExpressionKeyValuePair()
 
         CPythonChildrenHaving.__init__(
             self,
             values = {
                 "called"          : called_expression,
                 "positional_args" : tuple( positional_args ),
-                "named_args"      : tuple( named_argument_values ),
+                "pairs"           : tuple( pairs ),
                 "list_star_arg"   : list_star_arg,
                 "dict_star_arg"   : dict_star_arg
            }
@@ -1558,31 +1548,31 @@ class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNodeBase ):
     getCalledExpression = CPythonChildrenHaving.childGetter( "called" )
     getPositionalArguments = CPythonChildrenHaving.childGetter( "positional_args" )
     setPositionalArguments = CPythonChildrenHaving.childSetter( "positional_args" )
+    getNamedArgumentPairs = CPythonChildrenHaving.childGetter( "pairs" )
+    setNamedArgumentPairs = CPythonChildrenHaving.childSetter( "pairs" )
     getStarListArg = CPythonChildrenHaving.childGetter( "list_star_arg" )
     setStarListArg = CPythonChildrenHaving.childSetter( "list_star_arg" )
     getStarDictArg = CPythonChildrenHaving.childGetter( "dict_star_arg" )
     setStarDictArg = CPythonChildrenHaving.childSetter( "dict_star_arg" )
 
-    def getNamedArgumentNames( self ):
-        return self.named_argument_names
-
-    def getNamedArguments( self ):
-        return zip( self.named_argument_names, self.getChild( "named_args" ) )
-
     def isEmptyCall( self ):
-        return not self.getPositionalArguments() and not self.getChild( "named_args" ) and \
+        return not self.getPositionalArguments() and not self.getNamedArgumentPairs() and \
                not self.getStarListArg() and not self.getStarDictArg()
 
     def hasOnlyPositionalArguments( self ):
-        return not self.getNamedArguments() and not self.getStarListArg() and not self.getStarDictArg()
+        return not self.getNamedArgumentPairs() and not self.getStarListArg() and \
+               not self.getStarDictArg()
 
     def hasOnlyConstantArguments( self ):
         for positional_arg in self.getPositionalArguments():
             if not positional_arg.isExpressionConstantRef():
                 return False
 
-        for named_arg in self.getChild( "named_args" ):
-            if not named_arg.isExpressionConstantRef():
+        for pair in self.getNamedArgumentPairs():
+            if not pair.getKey().isExpressionConstantRef():
+                return False
+
+            if not pair.getValue().isExpressionConstantRef():
                 return False
 
         list_star_arg = self.getStarListArg()
@@ -1596,15 +1586,6 @@ class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNodeBase ):
             return False
 
         return True
-
-    def getCallSpec( self ):
-        return CallSpec.CallSpec(
-            positional_args = self.getPositionalArguments(),
-            named_args      = self.getNamedArguments(),
-            list_star_arg   = self.getStarListArg(),
-            dict_star_arg   = self.getStarDictArg()
-        )
-
 
 class CPythonExpressionBinaryOperation( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_BINARY_OPERATION"
@@ -1855,8 +1836,8 @@ class CPythonExpressionDictContractionBody( CPythonExpressionContractionBodyBase
             variable_name = variable_name
         )
 
-class CPythonExpressionDictContractionKeyValue( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "EXPRESSION_DICT_CONTRACTION_KEY_VALUE"
+class CPythonExpressionKeyValuePair( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_KEY_VALUE_PAIR"
 
     named_children = ( "key", "value" )
 
@@ -1905,22 +1886,19 @@ class CPythonExpressionMakeSequence( CPythonChildrenHaving, CPythonNodeBase ):
 class CPythonExpressionMakeDict( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_MAKE_DICT"
 
-    # TODO: Not correct, should be using value pairs!
-    named_children = ( "values", "keys" )
+    named_children = ( "pairs", )
 
-    def __init__( self, keys, values, source_ref ):
+    def __init__( self, pairs, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
             values = {
-                "keys" : tuple( keys ),
-                "values" : tuple( values )
+                "pairs" : tuple( pairs ),
             }
         )
 
-    getKeys = CPythonChildrenHaving.childGetter( "keys" )
-    getValues = CPythonChildrenHaving.childGetter( "values" )
+    getPairs = CPythonChildrenHaving.childGetter( "pairs" )
 
 class CPythonExpressionMakeSet( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_MAKE_SET"
@@ -2901,35 +2879,48 @@ class CPythonExpressionBuiltinRange( CPythonChildrenHaving, CPythonNodeBase ):
 class CPythonExpressionBuiltinDict( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_BUILTIN_DICT"
 
-    named_children = ( "pos_arg", "named_args" )
+    named_children = ( "pos_arg", "pairs" )
 
-    def __init__( self, pos_arg, named_args, source_ref ):
+    def __init__( self, pos_arg, pairs, source_ref ):
+        assert type( pos_arg ) not in ( tuple, list ), source_ref
+        assert type( pairs ) in ( tuple, list ), source_ref
+
         CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        self.named_argument_names = []
-        named_argument_values = []
-
-        for named_arg_desc in named_args:
-            named_arg_name, named_arg_value = named_arg_desc
-
-            assert type( named_arg_name ) == str
-            assert named_arg_value.isExpression()
-
-            self.named_argument_names.append( named_arg_name )
-            named_argument_values.append( named_arg_value )
 
         CPythonChildrenHaving.__init__(
             self,
             values = {
-                "pos_arg"    : pos_arg,
-                "named_args" : tuple( named_argument_values )
+                "pos_arg" : pos_arg,
+                "pairs"   : tuple(
+                    CPythonExpressionKeyValuePair(
+                        CPythonExpressionConstantRef( key, source_ref ),
+                        value,
+                        value.getSourceReference()
+                    )
+                    for key, value in
+                    pairs
+                )
             }
         )
 
     getPositionalArgument = CPythonChildrenHaving.childGetter( "pos_arg" )
+    getNamedArgumentPairs = CPythonChildrenHaving.childGetter( "pairs" )
 
-    def getNamedArguments( self ):
-        return zip( self.named_argument_names, self.getChild( "named_args" ) )
+    def hasOnlyConstantArguments( self ):
+        pos_arg = self.getPositionalArgument()
+
+        if pos_arg is not None and not pos_arg.isExpressionConstantRef():
+            return False
+
+        for arg_pair in self.getNamedArgumentPairs():
+            if not arg_pair.getKey().isExpressionConstantRef():
+                return False
+            if not arg_pair.getValue().isExpressionConstantRef():
+                return False
+
+        return True
+
+
 
 class CPythonExpressionBuiltinInt( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_BUILTIN_INT"

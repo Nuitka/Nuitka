@@ -292,17 +292,26 @@ def buildWhileLoopNode( provider, node, source_ref ):
 def buildFunctionCallNode( provider, node, source_ref ):
     positional_args = buildNodeList( provider, node.args, source_ref )
 
-    named_args = []
-
-    for keyword in node.keywords:
-        named_args.append( ( keyword.arg, buildNode( provider, keyword.value, source_ref ) ) )
+    # TODO: Clarify if the source_ref could be better
+    pairs = [
+        Nodes.CPythonExpressionKeyValuePair(
+            key        = _buildConstantReferenceNode(
+                constant   = keyword.arg,
+                source_ref = source_ref
+            ),
+            value      = buildNode( provider, keyword.value, source_ref ),
+            source_ref = source_ref
+        )
+        for keyword in
+        node.keywords
+    ]
 
     return Nodes.CPythonExpressionFunctionCall(
         called_expression = buildNode( provider, node.func, source_ref ),
         positional_args   = positional_args,
+        pairs             = pairs,
         list_star_arg     = buildNode( provider, node.starargs, source_ref, True ),
         dict_star_arg     = buildNode( provider, node.kwargs, source_ref, True ),
-        named_args        = named_args,
         source_ref        = source_ref,
     )
 
@@ -371,8 +380,11 @@ def buildDictionaryNode( provider, node, source_ref ):
         )
     else:
         return Nodes.CPythonExpressionMakeDict(
-            keys       = keys,
-            values     = values,
+            pairs      = [
+                Nodes.CPythonExpressionKeyValuePair( key, value, key.getSourceReference() )
+                for key, value in
+                zip( keys, values )
+            ],
             source_ref = source_ref
         )
 
@@ -667,7 +679,7 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
             )
 
             contraction_body.setBody(
-                Nodes.CPythonExpressionDictContractionKeyValue(
+                Nodes.CPythonExpressionKeyValuePair(
                     key        = key_node,
                     value      = value_node,
                     source_ref = source_ref

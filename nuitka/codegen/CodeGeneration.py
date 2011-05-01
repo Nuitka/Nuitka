@@ -47,8 +47,7 @@ from . import (
 
 from nuitka import (
     Constants,
-    Options,
-    Nodes
+    Options
 )
 
 def mangleAttributeName( attribute_name, node ):
@@ -703,7 +702,14 @@ def generateComparisonExpressionCode( comparison_expression, context ):
         context     = context
     )
 
-def generateDictionaryCreationCode( keys, values, context ):
+def generateDictionaryCreationCode( pairs, context ):
+    keys = []
+    values = []
+
+    for pair in pairs:
+        keys.append( pair.getKey() )
+        values.append( pair.getValue() )
+
     if _areConstants( keys ) and _areConstants( values ):
         constant = {}
 
@@ -800,20 +806,10 @@ def generateSliceAccessIdentifiers( sliced, lower, upper, context ):
 
     return sliced, lower, upper
 
-def generateFunctionCallNamedArgumentsCode( callable, context ):
-    named_arguments = callable.getNamedArguments()
-
+def generateFunctionCallNamedArgumentsCode( pairs, context ):
     kw_identifier = generateDictionaryCreationCode(
-        keys      = [
-            Nodes.CPythonExpressionConstantRef(
-                constant   = named_arg_desc[0],
-                source_ref = callable.getSourceReference()
-            )
-            for named_arg_desc in
-            named_arguments
-        ],
-        values    = [ named_arg_desc[1] for named_arg_desc in named_arguments ],
-        context   = context
+        pairs      = pairs,
+        context    = context
     )
 
     return kw_identifier
@@ -831,8 +827,8 @@ def generateFunctionCallCode( function, context ):
     )
 
     kw_identifier = generateFunctionCallNamedArgumentsCode(
-        callable = function,
-        context  = context
+        pairs   = function.getNamedArgumentPairs(),
+        context = context
     )
 
     star_list_identifier = generateExpressionCode(
@@ -948,9 +944,8 @@ def generateExpressionCode( expression, context, allow_none = False ):
         )
     elif expression.isExpressionMakeDict():
         identifier = generateDictionaryCreationCode(
-            keys      = expression.getKeys(),
-            values    = expression.getValues(),
-            context   = context
+            pairs   = expression.getPairs(),
+            context = context
         )
     elif expression.isExpressionMakeSet():
         identifier = generateSetCreationCode(
@@ -1156,13 +1151,15 @@ def generateExpressionCode( expression, context, allow_none = False ):
             identifier = makeExpressionCode( expression.getValue() )
         )
     elif expression.isExpressionBuiltinDict():
+        assert not expression.hasOnlyConstantArguments()
+
         identifier = Generator.getBuiltinDictCode(
             seq_identifier  = makeExpressionCode(
                 expression.getPositionalArgument(),
                 allow_none = True
             ),
             dict_identifier = generateFunctionCallNamedArgumentsCode(
-                callable = expression,
+                pairs    = expression.getNamedArgumentPairs(),
                 context  = context
             )
         )

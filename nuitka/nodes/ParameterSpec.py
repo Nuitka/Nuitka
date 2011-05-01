@@ -223,35 +223,45 @@ class ParameterSpec( ParameterSpecTuple ):
         return True
 
     def matchCallSpec( self, name, call_spec ):
-        call_positional = call_spec.getPositionalArgs()
-
         result = [ None ] * len( self.normal_args )
 
-        for count, value in enumerate( call_positional ):
-            if count >= len( result ):
-                break
+        if self.list_star_arg:
+            result.append( [] )
+            list_star_arg_offset = len( result ) - 1
 
-            result[ count ] = value
+        if self.dict_star_arg:
+            result.append( [] )
 
-        named_arguments = call_spec.getNamedArgs()
+        # Refuse named arguments if not allowed
+        pairs = call_spec.getNamedArgumentPairs()
 
-        if named_arguments and not self.allowsKeywords():
+        if pairs and not self.allowsKeywords():
             raise TooManyArguments(
                 TypeError(
                     "'%s' takes no keyword arguments" % name
                 )
             )
 
+        # Assign the positional arguments.
+        call_positional = call_spec.getPositionalArguments()
 
-        if len( named_arguments ):
-            if len( call_positional ) + len( named_arguments ) > len( self.normal_args ):
+        for count, value in enumerate( call_positional ):
+            if count >= len( self.normal_args ):
+                break
+
+            result[ count ] = value
+
+
+        # Check counts and give error messages matching keyword parsing.
+        if len( pairs ):
+            if len( call_positional ) + len( pairs ) > len( self.normal_args ):
                 if not self.list_star_arg and not self.dict_star_arg:
                     if len( self.normal_args ) == 1:
                         raise TooManyArguments(
                             TypeError(
                                 "%s() takes at most 1 argument (%d given)" % (
                                     name,
-                                    len( call_positional ) + len( named_arguments )
+                                    len( call_positional ) + len( pairs )
                                 )
                             )
                         )
@@ -262,7 +272,7 @@ class ParameterSpec( ParameterSpecTuple ):
                                     "%s() takes exactly %s arguments (%d given)" % (
                                         name,
                                         len( self.normal_args ),
-                                        len( call_positional ) + len( named_arguments )
+                                        len( call_positional ) + len( pairs )
                                     )
                                 )
                             )
@@ -272,15 +282,16 @@ class ParameterSpec( ParameterSpecTuple ):
                                     "%s() takes at most %s arguments (%d given)" % (
                                         name,
                                         len( self.normal_args ),
-                                        len( call_positional ) + len( named_arguments )
+                                        len( call_positional ) + len( pairs )
                                     )
                                 )
                             )
 
 
+        # Check counts and give error messages for non-keyword parsing.
         if len( call_positional ) > len( self.normal_args ):
             if self.list_star_arg:
-                result.append( call_positional[ len( self.normal_args ) : ] )
+                result[ list_star_arg_offset ] = call_positional[ len( self.normal_args ) : ]
             else:
                 if len( self.normal_args ) == 1:
                     raise TooManyArguments(
@@ -314,11 +325,17 @@ class ParameterSpec( ParameterSpecTuple ):
                         )
 
 
-        for named_arg_name, named_arg_value in named_arguments:
+        # Go over the named arguments and assign them.
+        for pair in pairs:
+            named_arg_name = pair.getKey().getConstant()
+            named_arg_value = pair.getValue()
+
             if named_arg_name in self.normal_args:
                 result[ self.normal_args.index( named_arg_name ) ] = named_arg_value
             elif self.dict_star_arg:
-                result_dict[ named_arg_name ] = named_arg_value
+                result[ -1 ].append(
+                    ( named_arg_name, named_arg_value )
+                )
             else:
                 raise TooManyArguments(
                     TypeError(
