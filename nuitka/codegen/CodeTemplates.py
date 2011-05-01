@@ -46,6 +46,7 @@ from .templates.CodeTemplatesParameterParsing import *
 from .templates.CodeTemplatesAssignments import *
 from .templates.CodeTemplatesExceptions import *
 from .templates.CodeTemplatesImporting import *
+from .templates.CodeTemplatesCalls import *
 from .templates.CodeTemplatesClass import *
 from .templates.CodeTemplatesLoops import *
 from .templates.CodeTemplatesWith import *

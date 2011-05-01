@@ -55,12 +55,19 @@ from .Indentation import indented
 from .ConstantCodes import getConstantHandle, getConstantCode
 from .VariableCodes import getVariableHandle, getVariableCode
 
+from .ParameterParsing import (
+    getParameterEntryPointIdentifier,
+    getDefaultParameterDeclarations,
+    getParameterParsingCode,
+    getParameterContextCode,
+)
+
 from . import (
-    ParameterParsing,
     CppRawStrings,
     CodeTemplates,
     OperatorCodes
 )
+
 
 from nuitka import (
     Variables,
@@ -70,6 +77,9 @@ from nuitka import (
 from logging import warning
 
 def getConstantAccess( context, constant ):
+    # Many cases, because for each type, we may copy or optimize by creating empty.
+    # pylint: disable=R0911
+
     if type( constant ) is dict:
         if constant:
             return Identifier(
@@ -186,8 +196,6 @@ def getPackageVariableCode( context ):
         var_name         = "__package__",
         module_code_name = context.getModuleCodeName()
     )
-
-    package_var_code = package_var_identifier.getCode()
 
     return "( %s.isInitialized( false ) ? %s : NULL )" % (
         package_var_identifier.getCode(),
@@ -368,7 +376,7 @@ def _getFunctionCallNoStarArgsCode( function_identifier, argument_tuple, argumen
 
 def _getFunctionCallListStarArgsCode( function_identifier, argument_tuple, argument_dictionary, star_list_identifier ):
     return Identifier(
-        "CALL_FUNCTION_STAR_LIST( %(star_list_arg)s, %(named_args)s, %(pos_args)s, %(function)s )" % {
+        CodeTemplates.call_pos_named_star_list % {
             "function"   : function_identifier.getCodeTemporaryRef(),
             "pos_args"   : argument_tuple.getCodeTemporaryRef(),
             "named_args" : argument_dictionary.getCodeTemporaryRef(),
@@ -380,7 +388,7 @@ def _getFunctionCallListStarArgsCode( function_identifier, argument_tuple, argum
 def _getFunctionCallDictStarArgsCode( function_identifier, argument_tuple, argument_dictionary, star_dict_identifier ):
     if argument_dictionary.getCode() == "_python_dict_empty":
         return Identifier(
-            "CALL_FUNCTION_STAR_DICT( %(star_dict_arg)s, %(pos_args)s, %(function)s )" % {
+            CodeTemplates.call_pos_star_dict % {
                 "function"      : function_identifier.getCodeTemporaryRef(),
                 "pos_args"      : argument_tuple.getCodeTemporaryRef(),
                 "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
@@ -389,7 +397,7 @@ def _getFunctionCallDictStarArgsCode( function_identifier, argument_tuple, argum
         )
     else:
         return Identifier(
-            "CALL_FUNCTION_STAR_DICT( %(star_dict_arg)s, %(named_args)s, %(pos_args)s, %(function)s )" % {
+            CodeTemplates.call_pos_named_star_dict % {
                 "function"      : function_identifier.getCodeTemporaryRef(),
                 "pos_args"      : argument_tuple.getCodeTemporaryRef(),
                 "named_args"    : argument_dictionary.getCodeTemporaryRef(),
@@ -398,11 +406,12 @@ def _getFunctionCallDictStarArgsCode( function_identifier, argument_tuple, argum
             1
         )
 
-def _getFunctionCallBothStarArgsCode( function_identifier, argument_tuple, argument_dictionary, star_list_identifier, star_dict_identifier ):
+def _getFunctionCallBothStarArgsCode( function_identifier, argument_tuple, argument_dictionary, \
+                                      star_list_identifier, star_dict_identifier ):
     if argument_dictionary.getCode() == "_python_dict_empty":
         if argument_tuple.getCode() == "_python_tuple_empty":
             return Identifier(
-                "CALL_FUNCTION_STAR_ONLY( %(star_dict_arg)s, %(star_list_arg)s, %(function)s )" % {
+                CodeTemplates.call_star_list_star_dict % {
                     "function"      : function_identifier.getCodeTemporaryRef(),
                     "star_list_arg" : star_list_identifier.getCodeTemporaryRef(),
                     "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
@@ -411,7 +420,7 @@ def _getFunctionCallBothStarArgsCode( function_identifier, argument_tuple, argum
             )
         else:
             return Identifier(
-                "CALL_FUNCTION_STAR_BOTH( %(star_dict_arg)s, %(star_list_arg)s, %(pos_args)s, %(function)s )" % {
+                CodeTemplates.call_pos_star_list_star_dict % {
                     "function"      : function_identifier.getCodeTemporaryRef(),
                     "pos_args"      : argument_tuple.getCodeTemporaryRef(),
                     "star_list_arg" : star_list_identifier.getCodeTemporaryRef(),
@@ -421,7 +430,7 @@ def _getFunctionCallBothStarArgsCode( function_identifier, argument_tuple, argum
             )
     else:
         return Identifier(
-            "CALL_FUNCTION_STAR_BOTH( %(star_dict_arg)s, %(star_list_arg)s, %(named_args)s, %(pos_args)s, %(function)s )" % {
+            CodeTemplates.call_pos_named_list_star_star_dict % {
                 "function"      : function_identifier.getCodeTemporaryRef(),
                 "pos_args"      : argument_tuple.getCodeTemporaryRef(),
                 "named_args"    : argument_dictionary.getCodeTemporaryRef(),
@@ -432,12 +441,8 @@ def _getFunctionCallBothStarArgsCode( function_identifier, argument_tuple, argum
         )
 
 
-def getFunctionCallCode( function_identifier, argument_tuple, argument_dictionary, star_list_identifier, star_dict_identifier ):
-    if False and star_dict_identifier is not None and argument_dictionary.getCode() == "_python_dict_empty":
-        # TODO: Should check for Dict and probably make a copy from the potential
-        # mapping it is, otherwise this optimization is not valid.
-        argument_dictionary  = star_dict_identifier
-        star_dict_identifier = None
+def getFunctionCallCode( function_identifier, argument_tuple, argument_dictionary, \
+                         star_list_identifier, star_dict_identifier ):
 
     if star_dict_identifier is None:
         if argument_dictionary.getCode() == "_python_dict_empty":
@@ -671,11 +676,32 @@ def getContractionCallCode( is_generator, contraction_identifier, contraction_it
 def getConditionalExpressionCode( condition, codes_no, codes_yes ):
     if codes_yes.getCheapRefCount() == codes_no.getCheapRefCount():
         if codes_yes.getCheapRefCount == 0:
-            return Identifier( "( %s ? %s : %s )" % ( condition.getCode(), codes_yes.getCodeTemporaryRef(), codes_no.getCodeTemporaryRef() ), 0 )
+            return Identifier(
+                "( %s ? %s : %s )" % (
+                    condition.getCode(),
+                    codes_yes.getCodeTemporaryRef(),
+                    codes_no.getCodeTemporaryRef()
+                ),
+                0
+            )
         else:
-            return Identifier( "( %s ? %s : %s )" % ( condition.getCode(), codes_yes.getCodeExportRef(), codes_no.getCodeExportRef() ), 1 )
+            return Identifier(
+                "( %s ? %s : %s )" % (
+                    condition.getCode(),
+                    codes_yes.getCodeExportRef(),
+                    codes_no.getCodeExportRef()
+                ),
+                1
+            )
     else:
-        return Identifier( "( %s ? %s : %s )" % ( condition.getCode(), codes_yes.getCodeExportRef(), codes_no.getCodeExportRef() ), 1 )
+        return Identifier(
+            "( %s ? %s : %s )" % (
+                condition.getCode(),
+                codes_yes.getCodeExportRef(),
+                codes_no.getCodeExportRef()
+            ),
+            1
+        )
 
 def getFunctionCreationCode( context, function_identifier, decorators, default_identifiers, closure_variables ):
     args = getCodeTemporaryRefs( decorators )
@@ -726,7 +752,8 @@ def getLoopBreakCode( needs_exceptions ):
         return "break;"
 
 def getComparisonExpressionCode( context, comparators, operands ):
-    # assert len( comparators ) == 1
+    # There is an awful lot of cases, and it's not helped by the need to generate more
+    # complex code in the case of comparison chains. pylint: disable=R0912
 
     if len( comparators ) == 1:
         comparator = comparators[0]
@@ -827,7 +854,8 @@ def getComparisonExpressionCode( context, comparators, operands ):
     return comparison
 
 def getComparisonExpressionBoolCode( context, comparators, operands ):
-    # assert len( comparators ) == 1
+    # There is an awful lot of cases, and it's not helped by the need to generate more
+    # complex code in the case of comparison chains. pylint: disable=R0912
 
     if len( comparators ) == 1:
         comparator = comparators[0]
@@ -891,7 +919,7 @@ def getComparisonExpressionBoolCode( context, comparators, operands ):
             if count < len( comparators ) - 1:
                 temp_storage_var = context.getTempObjectVariable()
 
-                right_tmp = "(%s = %s)" % (
+                right_tmp = "( %s = %s )" % (
                     temp_storage_var.getCode(),
                     right_tmp
                 )
@@ -1088,7 +1116,8 @@ def getForLoopNames( context ):
         "itertemp_%d" % for_count
     )
 
-def getForLoopCode( context, line_number_code, iterator, iter_name, iter_value, iter_object, loop_var_code, loop_body_codes, loop_else_codes, needs_exceptions ):
+def getForLoopCode( context, line_number_code, iterator, iter_name, iter_value, iter_object, \
+                    loop_var_code, loop_body_codes, loop_else_codes, needs_exceptions ):
 
     loop_body_codes = loop_body_codes if loop_body_codes is not None else ""
     loop_else_codes = loop_else_codes if loop_else_codes is not None else ""
@@ -1317,12 +1346,15 @@ def getTryFinallyCode( context, code_tried, code_final ):
         "final_code" : indented( code_final, 0 )
     }
 
-def getTryExceptCode( context, code_tried, exception_identifiers, exception_assignments, catcher_codes, else_code ):
+def getTryExceptCode( context, code_tried, exception_identifiers, exception_assignments, \
+                      catcher_codes, else_code ):
     exception_code = []
 
     cond_keyword = "if"
 
-    for exception_identifier, exception_assignment, handler_code in zip( exception_identifiers, exception_assignments, catcher_codes ):
+    for exception_identifier, exception_assignment, handler_code in zip(
+        exception_identifiers, exception_assignments, catcher_codes
+    ):
         if exception_identifier is not None:
             exception_code.append(
                 "%s ( _exception.matches(%s) )" % (
@@ -1366,7 +1398,8 @@ def getTryExceptCode( context, code_tried, exception_identifiers, exception_assi
         }
 
 
-def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier, exception_tb_identifier, exception_tb_maker ):
+def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier, \
+                           exception_tb_identifier, exception_tb_maker ):
     if exception_value_identifier is None and exception_tb_identifier is None:
         return "traceback = true; RAISE_EXCEPTION( %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
@@ -1392,8 +1425,9 @@ def getReRaiseExceptionCode( local ):
         return "traceback = true; RERAISE_EXCEPTION();"
 
 def getRaiseExceptionExpressionCode( exception_type_identifier, exception_value_identifier, exception_tb_maker ):
-    # TODO: Use an adaptive identifier that takes no reference ever here for this, as it's
-    # not going to need taking one ever.
+    # TODO: Check out if the NUITKA_NO_RETURN avoids any temporary refcount to ever be
+    # created or else avoid it with special identifier class that uses code for reference
+    # counts 0 and both.
     return Identifier(
         "THROW_EXCEPTION( %s, %s, %s, &traceback )" % (
             exception_type_identifier.getCodeExportRef(),
@@ -1758,13 +1792,18 @@ def getBuiltinDictCode( seq_identifier, dict_identifier ):
     if dict_identifier.getCode() == "_python_dict_empty":
         dict_identifier = None
 
-    return Identifier(
-        "TO_DICT( %s, %s )" % (
-            seq_identifier.getCodeTemporaryRef() if seq_identifier is not None else "NULL",
-            dict_identifier.getCodeTemporaryRef() if dict_identifier is not None else "NULL"
-        ),
-        1
-    )
+    assert seq_identifier is not None or dict_identifier is not None
+
+    if seq_identifier is not None:
+        return Identifier(
+            "TO_DICT( %s, %s )" % (
+                seq_identifier.getCodeTemporaryRef(),
+                dict_identifier.getCodeTemporaryRef() if dict_identifier is not None else "NULL"
+            ),
+            1
+        )
+    else:
+        return dict_identifier
 
 def getBuiltinFloatCode( identifier ):
     return Identifier(
@@ -1846,7 +1885,11 @@ def getModuleIdentifier( module_name ):
 def getPackageIdentifier( module_name ):
     return module_name.replace( ".", "__" )
 
-def getModuleCode( context, stand_alone, module_name, package_name, codes, doc_identifier, path_identifier, filename_identifier ):
+def getModuleCode( context, stand_alone, module_name, package_name, codes, doc_identifier, \
+                   path_identifier, filename_identifier ):
+
+    # For the module code, lots of attributes come together. pylint: disable=R0914
+
     functions_decl = getFunctionsDecl( context = context )
     functions_code = getFunctionsCode( context = context )
 
@@ -2028,7 +2071,9 @@ def getContractionDecl( contraction_identifier, closure_variables ):
        "contraction_parameters" : ", ".join( contraction_parameters )
     }
 
-def getContractionCode( context, contraction_identifier, contraction_kind, loop_var_codes, contraction_code, contraction_conditions, contraction_iterateds, closure_variables, provided_variables ):
+def getContractionCode( context, contraction_identifier, contraction_kind, loop_var_codes, \
+                        contraction_code, contraction_conditions, contraction_iterateds, \
+                        closure_variables, provided_variables ):
     contraction_parameters = _getContractionParameters(
         closure_variables = closure_variables
     )
@@ -2117,7 +2162,7 @@ def _getFunctionCreationArgs( decorator_count, default_identifiers, closure_vari
         result += [ "PyObject *iterator" ]
 
 
-    result += ParameterParsing.getDefaultParameterDeclarations(
+    result += getDefaultParameterDeclarations(
         default_identifiers = default_identifiers
     )
 
@@ -2137,7 +2182,8 @@ def getFunctionDecl( function_identifier, decorator_count, default_identifiers, 
         )
     }
 
-def _getLocalVariableInitCode( context, variable, init_from = None, needs_no_free = False, in_context = False, shared = False, mangle_name = None ):
+def _getLocalVariableInitCode( context, variable, init_from = None, needs_no_free = False, \
+                               in_context = False, shared = False, mangle_name = None ):
     assert not variable.isModuleVariable()
 
     var_name = variable.getName()
@@ -2198,6 +2244,13 @@ def _getLocalVariableInitCode( context, variable, init_from = None, needs_no_fre
 
     return result
 
+def _getLocalExpressionTempsInitCode( context ):
+    count = context.getTempObjectCounter()
+
+    if count:
+        return "PyObject *_expression_temps[ %d ];" % count
+    else:
+        return ""
 
 def _getDecoratorsCallCode( decorator_count ):
     def _getCall( count ):
@@ -2221,8 +2274,11 @@ def _getDecoratorsCallCode( decorator_count ):
     return decorator_calls
 
 
-def getGeneratorFunctionCode( context, function_name, function_identifier, parameters, closure_variables, user_variables, decorator_count, default_access_identifiers, function_codes, function_filename, function_doc ):
-    function_parameter_variables, parameter_entry_point_code, parameter_objects_decl, mparse_identifier = ParameterParsing.getParameterParsingCode(
+def getGeneratorFunctionCode( context, function_name, function_identifier, parameters, \
+                              closure_variables, user_variables, decorator_count, \
+                              default_access_identifiers, function_codes, function_filename, \
+                              function_doc ):
+    parameter_variables, entry_point_code, parameter_objects_decl, mparse_identifier = getParameterParsingCode(
         function_identifier     = function_identifier,
         function_name           = function_name,
         parameters              = parameters,
@@ -2231,7 +2287,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         context                 = context,
     )
 
-    context_decl, context_copy, context_free = ParameterParsing.getParameterContextCode(
+    context_decl, context_copy, context_free = getParameterContextCode(
         default_access_identifiers = default_access_identifiers
     )
 
@@ -2242,13 +2298,12 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
             in_context = True
         )
         for variable in
-        function_parameter_variables
+        parameter_variables
     ]
 
     parameter_context_assign = []
-    function_var_inits = []
 
-    for variable in function_parameter_variables:
+    for variable in parameter_variables:
         parameter_context_assign.append(
             "_python_context->python_var_%s.setVariableName( %s );" % (
                 variable.getName(),
@@ -2265,6 +2320,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
             )
         )
 
+    function_var_inits = []
     local_var_decl = []
 
     for user_variable in user_variables:
@@ -2339,7 +2395,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         "context_free"                   : indented( context_free, 2 ),
     }
 
-    if closure_variables or user_variables or function_parameter_variables:
+    if closure_variables or user_variables or parameter_variables:
         context_access_instance = CodeTemplates.generator_context_access_template2  % {
             "function_identifier" : function_identifier
         }
@@ -2368,10 +2424,13 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         "function_name"              : function_name,
         "function_name_obj"          : function_name_obj,
         "function_identifier"        : function_identifier,
-        "fparse_identifier"          : ParameterParsing.getParameterEntryPointIdentifier( function_identifier, False ),
+        "fparse_identifier"          : getParameterEntryPointIdentifier(
+            function_identifier = function_identifier,
+            is_method           = False
+        ),
         "mparse_identifier"          : mparse_identifier,
         "parameter_context_assign"   : indented( parameter_context_assign, 2 ),
-        "parameter_entry_point_code" : parameter_entry_point_code,
+        "parameter_entry_point_code" : entry_point_code,
         "parameter_objects_decl"     : parameter_objects_decl,
         "context_copy"               : indented( context_copy ),
         "module"                     : getModuleAccessCode( context = context ),
@@ -2384,7 +2443,10 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
             constant = function_name
         ),
         "function_identifier"        : function_identifier,
-        "fparse_function_identifier" : ParameterParsing.getParameterEntryPointIdentifier( function_identifier, False ),
+        "fparse_function_identifier" : getParameterEntryPointIdentifier(
+            function_identifier = function_identifier,
+            is_method           = False
+        ),
         "mparse_function_identifier" : mparse_identifier,
         "function_creation_args"     : function_creation_args,
         "function_decorator_calls"   : indented( function_decorator_calls ),
@@ -2395,8 +2457,10 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 
     return result
 
-def getFunctionCode( context, function_name, function_identifier, parameters, closure_variables, user_variables, decorator_count, default_access_identifiers, function_codes, function_filename, function_doc ):
-    function_parameter_variables, parameter_entry_point_code, parameter_objects_decl, mparse_identifier = ParameterParsing.getParameterParsingCode(
+def getFunctionCode( context, function_name, function_identifier, parameters, closure_variables, \
+                     user_variables, decorator_count, default_access_identifiers, function_codes, \
+                     function_filename, function_doc ):
+    parameter_variables, entry_point_code, parameter_objects_decl, mparse_identifier = getParameterParsingCode(
         function_identifier     = function_identifier,
         function_name           = function_name,
         parameters              = parameters,
@@ -2405,7 +2469,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         context                 = context,
     )
 
-    context_decl, context_copy, context_free = ParameterParsing.getParameterContextCode(
+    context_decl, context_copy, context_free = getParameterContextCode(
         default_access_identifiers = default_access_identifiers
     )
 
@@ -2417,7 +2481,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
             init_from  = "_python_par_" + variable.getName()
         )
         for variable in
-        function_parameter_variables
+        parameter_variables
     ]
 
     for closure_variable in closure_variables:
@@ -2501,7 +2565,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         "function_name_obj"            : function_name_obj,
         "function_identifier"          : function_identifier,
         "context_access_function_impl" : context_access_function_impl,
-        "parameter_entry_point_code"   : parameter_entry_point_code,
+        "parameter_entry_point_code"   : entry_point_code,
         "parameter_objects_decl"       : parameter_objects_decl,
         "function_locals"              : indented( function_locals, 2 ),
         "function_body"                : indented( function_codes, 2 ),
@@ -2521,7 +2585,10 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
             "function_name"              : function_name,
             "function_name_obj"          : function_name_obj,
             "function_identifier"        : function_identifier,
-            "fparse_function_identifier" : ParameterParsing.getParameterEntryPointIdentifier( function_identifier, False ),
+            "fparse_function_identifier" : getParameterEntryPointIdentifier(
+                function_identifier = function_identifier,
+                is_method           = False
+            ),
             "mparse_function_identifier" : mparse_identifier,
             "function_creation_args"     : function_creation_args,
             "function_decorator_calls"   : indented( function_decorator_calls ),
@@ -2534,7 +2601,10 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
             "function_name"              : function_name,
             "function_name_obj"          : function_name_obj,
             "function_identifier"        : function_identifier,
-            "fparse_function_identifier" : ParameterParsing.getParameterEntryPointIdentifier( function_identifier, False ),
+            "fparse_function_identifier" : getParameterEntryPointIdentifier(
+                function_identifier = function_identifier,
+                is_method           = False
+            ),
             "mparse_function_identifier" : mparse_identifier,
             "function_creation_args"     : function_creation_args,
             "function_decorator_calls"   : indented( function_decorator_calls ),
@@ -2544,7 +2614,10 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
 
     return result
 
-def getGeneratorExpressionCode( context, generator_identifier, generator_name, generator_filename, generator_code, generator_conditions, generator_iterateds, line_number_code, loop_var_codes, closure_variables, provided_variables ):
+def getGeneratorExpressionCode( context, generator_identifier, generator_name, generator_filename, \
+                                generator_code, generator_conditions, generator_iterateds, \
+                                line_number_code, loop_var_codes, closure_variables, \
+                                provided_variables ):
     function_name     = "<" + generator_name + ">"
 
     context_decl = []
@@ -2739,7 +2812,9 @@ def getClassDecl( class_identifier, closure_variables, decorator_count ):
         "class_creation_args" : ", ".join( class_creation_args )
     }
 
-def getClassCode( context, class_def, class_name, class_filename, class_identifier, class_variables, closure_variables, decorator_count, module_name, class_doc, class_codes, metaclass_variable ):
+def getClassCode( context, class_def, class_name, class_filename, class_identifier, \
+                  class_variables, closure_variables, decorator_count, module_name, class_doc, \
+                  class_codes, metaclass_variable ):
     assert metaclass_variable.isModuleVariable()
 
     class_var_decl = []

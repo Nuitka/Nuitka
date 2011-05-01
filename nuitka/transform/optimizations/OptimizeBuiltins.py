@@ -44,7 +44,7 @@ from nuitka import Importing, Nodes
 
 from nuitka.Utils import getPythonVersion
 
-import math
+import math, sys
 
 _builtin_names = [ str( x ) for x in __builtins__.keys() ]
 assert "int" in _builtin_names, __builtins__.keys()
@@ -52,17 +52,20 @@ assert "int" in _builtin_names, __builtins__.keys()
 from nuitka.nodes.ParameterSpec import ParameterSpec, TooManyArguments
 
 class BuiltinParameterSpec( ParameterSpec ):
-    def __init__( self, name, arg_names, default_count ):
+    def __init__( self, name, arg_names, default_count, list_star_arg = None, dict_star_arg = None ):
         self.name = name
         self.builtin = __builtins__[ name ]
 
         ParameterSpec.__init__(
             self,
             normal_args    = arg_names,
-            list_star_arg  = None,
-            dict_star_arg  = None,
+            list_star_arg  = list_star_arg,
+            dict_star_arg  = dict_star_arg,
             default_count  = default_count
         )
+
+    def __repr__( self ):
+        return "<BuiltinParameterSpec %s>" % self.name
 
     def getName( self ):
         return self.name
@@ -70,14 +73,41 @@ class BuiltinParameterSpec( ParameterSpec ):
     def simulateCall( self, given_values ):
         # Using star dict call for simulation, pylint: disable=W0142
 
-        arg_dict = {}
+        try:
+            given_normal_args = given_values[ : len( self.normal_args ) ]
 
-        for arg_name, given_value in zip( self.normal_args, given_values ):
-            if given_value is not None:
-                arg_dict[ arg_name ] = given_value.getConstant()
+            if self.list_star_arg:
+                given_list_star_args = given_values[ len( self.normal_args ) ]
+            else:
+                given_list_star_args = None
 
+            if self.dict_star_arg:
+                given_dict_star_args = given_values[ -1 ]
+            else:
+                given_dict_star_args = None
 
-        return self.builtin( **arg_dict )
+            arg_dict = {}
+
+            for arg_name, given_value in zip( self.normal_args, given_normal_args ):
+                assert type( given_value ) not in ( tuple, list ), ( "do not like a tuple %s" % ( given_value, ))
+
+                if given_value is not None:
+                    arg_dict[ arg_name ] = given_value.getConstant()
+
+            if given_dict_star_args:
+                for given_dict_star_arg in given_dict_star_args:
+                    arg_name = given_dict_star_arg.getKey()
+                    arg_value = given_dict_star_arg.getValue()
+
+                    arg_dict[ arg_name.getConstant() ] = arg_value.getConstant()
+
+        except Exception, e:
+            sys.exit( "Fatal problem: %r" % e )
+
+        if given_list_star_args:
+            return self.builtin( *( value.getConstant() for value in given_list_star_args ), **arg_dict )
+        else:
+            return self.builtin( **arg_dict )
 
 class BuiltinParameterSpecNoKeywords( BuiltinParameterSpec ):
 
@@ -87,17 +117,30 @@ class BuiltinParameterSpecNoKeywords( BuiltinParameterSpec ):
     def simulateCall( self, given_values ):
         # Using star list call for simulation, pylint: disable=W0142
 
-        arg_list = []
-        refuse_more = False
-
-        for given_value in given_values:
-            if given_value is not None:
-                if not refuse_more:
-                    arg_list.append( given_value.getConstant() )
-                else:
-                    assert False
+        try:
+            if self.list_star_arg:
+                given_list_star_arg = given_values[ len( self.normal_args ) ]
             else:
-                refuse_more = True
+                given_list_star_arg = None
+
+            arg_list = []
+            refuse_more = False
+
+            for _arg_name, given_value in zip( self.normal_args, given_values ):
+                assert type( given_value ) not in ( tuple, list ), ( "do not like tuple %s" % ( given_value, ))
+
+                if given_value is not None:
+                    if not refuse_more:
+                        arg_list.append( given_value.getConstant() )
+                    else:
+                        assert False
+                else:
+                    refuse_more = True
+
+            if given_list_star_arg is not None:
+                arg_list += [ value.getConstant() for value in given_list_star_arg ]
+        except Exception, e:
+            sys.exit( e )
 
         return self.builtin( *arg_list )
 
@@ -108,6 +151,7 @@ builtin_bool_spec = BuiltinParameterSpec( "bool", ( "x", ), 1 )
 builtin_float_spec = BuiltinParameterSpec( "float", ( "x", ), 1 )
 builtin_str_spec = BuiltinParameterSpec( "str", ( "object", ), 1 )
 builtin_len_spec = BuiltinParameterSpec( "len", ( "object", ), 0 )
+builtin_dict_spec = BuiltinParameterSpec( "dict", (), 2, "list_args", "dict_args" )
 builtin_tuple_spec = BuiltinParameterSpecNoKeywords( "tuple", ( "iterable", ), 1 )
 builtin_list_spec = BuiltinParameterSpecNoKeywords( "list", ( "iterable", ), 1 )
 builtin_chr_spec = BuiltinParameterSpecNoKeywords( "chr", ( "i", ), 1 )
@@ -292,35 +336,6 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                 source_ref = node.getSourceReference()
             )
 
-    def dict_extractor( self, node ):
-        positional_args = node.getPositionalArguments()
-
-        # TODO: These could be handled too.
-        if node.getStarListArg() is not None or node.getStarDictArg() is not None:
-            return
-
-        if len( positional_args ) <= 1:
-            if positional_args:
-                return Nodes.CPythonExpressionBuiltinDict(
-                    pos_arg    = positional_args[0],
-                    named_args = node.getNamedArguments(),
-                    source_ref = node.getSourceReference()
-                )
-            else:
-                named_args = node.getNamedArguments()
-
-                if named_args:
-                    return Nodes.CPythonExpressionBuiltinDict(
-                        pos_arg    = None,
-                        named_args = named_args,
-                        source_ref = node.getSourceReference()
-                    )
-                else:
-                    return Nodes.makeConstantReplacementNode(
-                        node     = node,
-                        constant = {}
-                    )
-
     def _extractBuiltinArgs( self, node, builtin_spec, builtin_class ):
         # TODO: These could be handled too.
         if node.getStarListArg() is not None or node.getStarDictArg() is not None:
@@ -329,7 +344,7 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         try:
             args = builtin_spec.matchCallSpec(
                 name      = builtin_spec.getName(),
-                call_spec = node.getCallSpec()
+                call_spec = node
             )
 
             # Using list reference for passing the arguments without names, pylint: disable=W0142
@@ -346,9 +361,40 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                 positional_args   = node.getPositionalArguments(),
                 list_star_arg     = node.getStarListArg(),
                 dict_star_arg     = node.getStarDictArg(),
-                named_args        = node.getNamedArguments(),
+                pairs             = node.getNamedArgumentPairs(),
                 source_ref        = node.getSourceReference()
             )
+
+    def dict_extractor( self, node ):
+        # The dict is a bit strange in that it accepts a position parameter, or not, but
+        # won't have a default.
+
+        def wrapExpressionBuiltinDictCreation( positional_args, pairs, source_ref ):
+            if len( positional_args ) > 1:
+                return Nodes.CPythonExpressionFunctionCall(
+                    called_expression = makeRaiseExceptionReplacementExpressionFromInstance(
+                        expression     = node,
+                        exception      = TypeError( "dict expected at most 1 arguments, got %d" % len( positional_args ) )
+                    ),
+                    positional_args   = positional_args,
+                    list_star_arg     = None,
+                    dict_star_arg     = None,
+                    pairs             = pairs,
+                    source_ref        = source_ref
+                )
+
+            return Nodes.CPythonExpressionBuiltinDict(
+                pos_arg    = positional_args[0] if positional_args else None,
+                pairs      = pairs,
+                source_ref = node.getSourceReference()
+            )
+
+
+        return self._extractBuiltinArgs(
+            node          = node,
+            builtin_class = wrapExpressionBuiltinDictCreation,
+            builtin_spec  = builtin_dict_spec
+        )
 
     def chr_extractor( self, node ):
         return self._extractBuiltinArgs(
@@ -604,48 +650,46 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                         computation = lambda : range( constant1, constant2, constant3 )
                     )
 
-    def dict_extractor( self, node ):
-        pos_arg = node.getPositionalArgument()
-
-        if pos_arg is None or pos_arg.isExpressionConstantRef():
-            named_arguments = node.getNamedArguments()
-
-            named_argument_names = []
-            named_argument_values = []
-
-            for named_argument_name, named_argument_value in named_arguments:
-                if not named_argument_value.isExpressionConstantRef():
-                    break
-
-                named_argument_names.append( named_argument_name )
-                named_argument_values.append( named_argument_value.getConstant() )
-            else:
-                arg_dict = dict.fromkeys( named_argument_names )
-
-                for named_argument_name, named_argument_value in zip( named_argument_names, named_argument_values ):
-                    arg_dict[ named_argument_name ] = named_argument_value
-
-                if pos_arg is None:
-                    return getConstantComputationReplacementNode(
-                        expression  = node,
-                        computation = lambda : dict( **arg_dict )
-                    )
-                else:
-                    return getConstantComputationReplacementNode(
-                        expression  = node,
-                        computation = lambda : dict( pos_arg.getConstant(), **arg_dict )
-                    )
-
 
     def _extractConstantBuiltinCall( self, node, builtin_spec, given_values ):
+        def isValueListConstant( values ):
+            for sub_value in values:
+                if sub_value.isExpressionKeyValuePair():
+                    if not sub_value.getKey().isExpressionConstantRef():
+                        return False
+                    if not sub_value.getValue().isExpressionConstantRef():
+                        return False
+                elif not sub_value.isExpressionConstantRef():
+                    return False
+
+            return True
+
         for value in given_values:
-            if value is not None and not value.isExpressionConstantRef():
-                break
+            if value:
+                if type( value ) in ( list, tuple ):
+                    if not isValueListConstant( value ):
+                        break
+                elif not value.isExpressionConstantRef():
+                    break
         else:
             return getConstantComputationReplacementNode(
                 expression  = node,
                 computation = lambda : builtin_spec.simulateCall( given_values )
             )
+
+    def dict_extractor( self, node ):
+        pos_arg = node.getPositionalArgument()
+
+        if pos_arg is not None:
+            pos_args = ( pos_arg, )
+        else:
+            pos_args = None
+
+        return self._extractConstantBuiltinCall(
+            node         = node,
+            builtin_spec = builtin_dict_spec,
+            given_values = ( pos_args, node.getNamedArgumentPairs() )
+        )
 
     def chr_extractor( self, node ):
         return self._extractConstantBuiltinCall(
