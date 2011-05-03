@@ -38,6 +38,7 @@ C/API, to compile it to either an executable or an extension module.
 from __future__ import print_function
 
 from . import (
+    SconsInterface,
     TreeBuilding,
     TreeXML,
     Options,
@@ -262,17 +263,7 @@ def runScons( tree, quiet ):
     if Options.isWindowsTarget():
         options[ "win_target" ] = "true"
 
-    scons_command = """scons %(quiet)s -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
-        "quiet"      : " --quiet " if quiet else " ",
-        "scons_file" : os.environ[ "NUITKA_SCONS" ] + "/SingleExe.scons",
-        "job_limit"  : Options.getJobLimit(),
-        "options"    : " ".join( "%s=%s" % ( key, value ) for key, value in options.items() )
-    }
-
-    if Options.isShowScons():
-        print( "Scons command:", scons_command )
-
-    return 0 == os.system( scons_command ), options
+    return SconsInterface.runScons( options, quiet ), options
 
 def writeSourceCode( filename, source_code ):
     open( filename, "w" ).write( source_code )
