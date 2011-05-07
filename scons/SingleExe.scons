@@ -214,7 +214,7 @@ if win_target:
         """
 
         if "win" in sys.platform:
-            return os.path.normpath( os.path.dirname( sys.executable ) + "/.." )
+            return os.path.dirname( sys.executable )
         else:
             return os.path.expanduser( "~/.wine/drive_c/Python" + python_version )
 
@@ -291,7 +291,7 @@ def discoverSourceFiles():
 # linking to avoid the use of the wrong (for CPython) run time library.
 if win_target:
     manifest_file = open( source_dir + "/" + source_name + ".exe.manifest", "w" )
-    manifest_file.write( r"""\
+    manifest_file.write( r"""
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>
