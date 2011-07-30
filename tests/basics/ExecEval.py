@@ -249,3 +249,13 @@ def functionWithExecAffectingClosure():
     return d, closureMaker()
 
 print "Closure in a function with exec to not none", functionWithExecAffectingClosure()
+
+def generatorFunctionWithExec():
+    yield 1
+
+    code = "y = 2"
+    exec code
+
+    yield y
+
+print "Exec in a generator function", tuple( generatorFunctionWithExec() )
