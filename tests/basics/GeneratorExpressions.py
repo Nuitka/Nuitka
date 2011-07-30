@@ -182,3 +182,20 @@ def lambdaGenerators():
     print "Complex lambda generator", y, y(), list( y() )
 
 lambdaGenerators()
+
+def functionGenerators():
+    # Like lambdaGenerators, to show how functions behave differently if at all.
+
+    a = 1
+
+    def x():
+        yield a
+
+    print "Simple function generator", x, x(), list( x() )
+
+    def y():
+        yield((yield 1),(yield 2))
+
+    print "Complex function generator", y, y(), list( y() )
+
+functionGenerators()
