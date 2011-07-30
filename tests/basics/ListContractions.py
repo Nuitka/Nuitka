@@ -70,3 +70,10 @@ def trickyContraction():
    print "result", r
 
 trickyContraction()
+
+def lambdaWithcontraction( x ):
+   l = lambda x : [ z for z in range(x) ]
+   r = l(x)
+   print locals()
+
+lambdaWithcontraction( 3 )
