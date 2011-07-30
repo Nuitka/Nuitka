@@ -76,3 +76,11 @@ s = "Some information"
 ss = s[-1]
 
 print "Constant subscript of string", ss
+
+print "Repr"
+print `L`, `ss`
+
+print `0L`
+
+print repr(L), repr(ss)
+print repr(3L)
