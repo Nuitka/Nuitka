@@ -28,34 +28,27 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Scons interface.
+""" Outputs to the user.
 
-Interaction with scons. Find the binary, and run it with a set of given
-options.
+Printing with intends or plain, mostly a compensation for the print strageness. I want to
+avoid "from __future__ import print_function" in every file out there, which makes adding
+another print rather tedious. This should cover all calls/uses of "print" we have to do,
+and the make it easy to simply to "print for_debug" without much hassle (braces).
 
 """
 
-from . import Options, Tracing
+from __future__ import print_function
 
-import os
+import sys
 
-def getSconsBinaryPath():
-    if os.path.exists( "/usr/bin/scons" ):
-        return "/usr/bin/scons"
-    else:
-        return os.environ[ "NUITKA_SCONS" ] + "/inline_copy/bin/scons"
+def printIndented( level, *what ):
+    print( "    " * level, *what )
 
+def printSeparator( level = 0 ):
+    print( "    " * level, "*" * 10 )
 
-def runScons( options, quiet ):
-    scons_command = """%(binary)s %(quiet)s -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
-        "binary"     : getSconsBinaryPath(),
-        "quiet"      : "--quiet" if quiet else "",
-        "scons_file" : os.environ[ "NUITKA_SCONS" ] + "/SingleExe.scons",
-        "job_limit"  : Options.getJobLimit(),
-        "options"    : " ".join( "%s=%s" % ( key, value ) for key, value in options.items() )
-    }
+def printLine( *what ):
+    print( *what )
 
-    if Options.isShowScons():
-        Tracing.printLine( "Scons command:", scons_command )
-
-    return 0 == os.system( scons_command )
+def printError( message ):
+    print( message, file=sys.stderr )

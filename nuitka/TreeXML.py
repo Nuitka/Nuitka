@@ -29,6 +29,8 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
+from nuitka import Tracing
+
 try:
     import lxml.etree
 except ImportError:
@@ -54,4 +56,4 @@ def makeNodeElement( node ):
     return result
 
 def dump( xml  ):
-    print lxml.etree.tostring( xml, pretty_print = True )
+    Tracing.printLine( toString( xml ) )

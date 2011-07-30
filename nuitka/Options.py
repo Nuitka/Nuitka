@@ -30,8 +30,6 @@
 #
 """ Options module """
 
-from __future__ import print_function
-
 version_string = """\
 Nuitka V0.3.10pre4
 Copyright (C) 2011 Kay Hayen."""
@@ -242,7 +240,7 @@ else:
 options, positional_args = parser.parse_args()
 
 if options.version:
-    print( version_string, file=sys.stderr )
+    Tracing.printError( version_string )
     sys.exit(0)
 
 if options.verbose:

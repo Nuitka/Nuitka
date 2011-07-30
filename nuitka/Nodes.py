@@ -30,12 +30,14 @@
 #
 """ Node classes for the analysis tree.
 
-"""
+These nodes form a tree created by tree building process. Then all analysis
+works on it. Optimizations are frequently transformations of the tree.
 
-from __future__ import print_function
+"""
 
 from . import (
     Variables,
+    Tracing,
     TreeXML,
     Utils
 )
@@ -225,15 +227,20 @@ class CPythonNodeBase:
 
         return result
 
-    def dump( self, level = 0 ):
-        print( "    " * level, self )
+        result = TreeXML.makeNodeElement(
+            node = self
+        )
 
-        print( "    " * level, "*" * 10 )
+        return result
+
+    def dump( self, level = 0 ):
+        Tracing.printIndented( level, self )
+        Tracing.printSeparator( level )
 
         for visitable in self.getVisitableNodes():
             visitable.dump( level + 1 )
 
-        print( "    " * level, "*" * 10 )
+        Tracing.printSeparator( level )
 
     def isModule( self ):
         return self.kind in ( "MODULE", "PACKAGE" )

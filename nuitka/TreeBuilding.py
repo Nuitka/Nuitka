@@ -34,13 +34,13 @@ Does all the Python parsing and puts it into a tree structure for use in later s
 the compiler. This may happen recursively when exec statements are inlined.
 """
 
-from __future__ import print_function
 # pylint: disable=W0622
 from .__past__ import long, unicode
 # pylint: enable=W0622
 
 from . import (
     SourceCodeReferences,
+    Tracing,
     Nodes,
     Utils
 )
@@ -55,7 +55,7 @@ import ast, sys
 from logging import warning
 
 def dump( node ):
-    print( ast.dump( node ) )
+    Tracing.printLine( ast.dump( node ) )
 
 def getKind( node ):
     return node.__class__.__name__.split( "." )[-1]

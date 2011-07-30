@@ -35,11 +35,10 @@ C/API, to compile it to either an executable or an extension module.
 
 """
 
-from __future__ import print_function
-
 from . import (
     SconsInterface,
     TreeBuilding,
+    Tracing,
     TreeXML,
     Options,
     Utils
@@ -73,15 +72,17 @@ def createNodeTree( filename ):
     return result
 
 def dumpTree( tree ):
-    print( "Analysis -> Tree Result" )
+    Tracing.printLine( "Analysis -> Tree Result" )
 
-    print( "*" * 80 )
-    print( "*" * 80 )
-    print("*" * 80)
+    Tracing.printSeparator()
+    Tracing.printSeparator()
+    Tracing.printSeparator()
+
     tree.dump()
-    print( "*" * 80 )
-    print( "*" * 80 )
-    print( "*" * 80 )
+
+    Tracing.printSeparator()
+    Tracing.printSeparator()
+    Tracing.printSeparator()
 
 def dumpTreeXML( tree ):
     xml_root = tree.asXml()

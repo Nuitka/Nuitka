@@ -38,8 +38,6 @@ As such this is the place that knows how to take a condition and two code branch
 make a code block out of it. But it doesn't contain any target language syntax.
 """
 
-from __future__ import print_function
-
 from . import (
     Generator,
     Contexts,
@@ -47,6 +45,7 @@ from . import (
 
 from nuitka import (
     Constants,
+    Tracing,
     Options
 )
 
@@ -909,14 +908,14 @@ def generateExpressionCode( expression, context, allow_none = False ):
         )
 
     if not expression.isExpression():
-        print( "No expression", expression )
+        Tracing.printError( "No expression %r" % expression )
 
         expression.dump()
         assert False, expression
 
     if expression.isExpressionVariableRef():
         if expression.getVariable() is None:
-            print( "Illegal variable reference, not resolved" )
+            Tracing.printError( "Illegal variable reference, not resolved" )
 
             expression.dump()
             assert False, expression.getSourceReference()
@@ -1967,7 +1966,7 @@ def generateStatementCode( statement, context ):
     try:
         return _generateStatementCode( statement, context )
     except:
-        print( "Problem with", statement, "at", statement.getSourceReference() )
+        Tracing.printError( "Problem with %r at %s" % ( statement, statement.getSourceReference() ) )
         raise
 
 def _generateStatementCode( statement, context ):
