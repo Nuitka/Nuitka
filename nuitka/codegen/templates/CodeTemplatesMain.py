@@ -158,9 +158,11 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
         PyObject *asObject0( PyObject *dict ) const
         {
-            if ( PyDict_Contains( dict, (PyObject *)*this->var_name ) )
+            PyObject *result = PyDict_GetItem( dict, (PyObject *)*this->var_name );
+
+            if ( result != NULL )
             {
-                return PyDict_GetItem( dict, (PyObject *)*this->var_name );
+                return result;
             }
             else
             {
