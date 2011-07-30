@@ -115,7 +115,10 @@ except TypeError, e:
     print "Gives exception:", e
 
 print "List from iterable", list( "abc" ), list()
+print "List from sequence", list( sequence = (0, 1, 2) )
 print "Tuple from iterable", tuple( "cda" ), tuple()
+print "Tuple from sequence", tuple( sequence = (0, 1, 2) )
+
 print "Dictionary from iterable and keywords", dict( ( "ab", ( 1, 2 ) ), f = 1, g = 1 )
 print "More constant dictionaries", {'two': 2, 'one': 1}, {}, dict()
 g = {'two': 2, 'one': 1}
