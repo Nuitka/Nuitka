@@ -98,3 +98,21 @@ class class_with_chain:
 
 x = ( 1, 2, 3 )
 print x[0] < x[1] < x[2]
+
+class CustomOps( int ):
+    def __lt__( self, other ):
+        print "<", self, other
+
+        return True
+
+    def __gt__( self, other ):
+        print ">", self, other
+
+        return False
+
+
+print "Custom ops, to enforce chain eval order and short circuit:"
+CustomOps( 7 ) < CustomOps( 8 ) > CustomOps( 6 )
+
+print "Custom ops, do short circuit:"
+CustomOps( 8 ) > CustomOps( 7 ) < CustomOps( 6 )
