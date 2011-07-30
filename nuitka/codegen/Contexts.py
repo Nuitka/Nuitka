@@ -47,8 +47,6 @@ from ..Constants import HashableConstant
 
 class PythonContextBase:
     def __init__( self ):
-        self.variables = set()
-
         self.while_loop_count = 0
         self.for_loop_count = 0
 
@@ -77,9 +75,6 @@ class PythonContextBase:
 
         return self.with_count
 
-    def addVariable( self, var_name ):
-        self.variables.add( var_name )
-
     def isClosureViaContext( self ):
         return True
 
@@ -97,6 +92,9 @@ class PythonContextBase:
         return self.temp_counter
 
     def hasLocalsDict( self ):
+        return False
+
+    def needsFrameExceptionKeeper( self ):
         return False
 
 class PythonChildContextBase( PythonContextBase ):
@@ -119,9 +117,6 @@ class PythonChildContextBase( PythonContextBase ):
 
     def addClassCodes( self, code_name, class_decl, class_code ):
         self.parent.addClassCodes( code_name, class_decl, class_code )
-
-    def addLambdaCodes( self, code_name, lambda_decl, lambda_code ):
-        self.parent.addLambdaCodes( code_name, lambda_decl, lambda_code )
 
     def addGlobalVariableNameUsage( self, var_name ):
         self.parent.addGlobalVariableNameUsage( var_name )
@@ -186,9 +181,6 @@ class PythonModuleContext( PythonContextBase ):
         self.class_codes = {}
         self.function_codes = {}
         self.contraction_codes = {}
-        self.lambda_codes = {}
-
-        self.lambda_count = 0
 
         self.global_var_names = set()
 
@@ -224,24 +216,6 @@ class PythonModuleContext( PythonContextBase ):
 
     def getClassesCodes( self ):
         return self.class_codes
-
-    def addLambdaCodes( self, code_name, lambda_decl, lambda_code ):
-        assert code_name not in self.lambda_codes
-
-        self.lambda_codes[ code_name ] = ( lambda_decl, lambda_code )
-
-    def getLambdasCodes( self ):
-        return self.lambda_codes
-
-    def getGeneratorExpressionCodeHandle( self, generator_def ):
-        generator_name = generator_def.getFullName()
-
-        return "_python_generatorfunction_" + generator_name
-
-    def allocateLambdaIdentifier( self ):
-        self.lambda_count += 1
-
-        return "_python_modulelambda_%d_%s" % ( self.lambda_count, self.getName() )
 
     def getName( self ):
         return self.name
@@ -285,8 +259,6 @@ class PythonFunctionContext( PythonChildContextBase ):
 
         self.function = function
 
-        self.lambda_count = 0
-
         # Make sure the local names are available as constants
         for local_name in function.getLocalVariableNames():
             self.getConstantHandle( constant = local_name )
@@ -318,17 +290,6 @@ class PythonFunctionContext( PythonChildContextBase ):
         else:
             return ClosureVariableIdentifier( var_name, from_context = "_python_context->common_context->" )
 
-    def getLambdaExpressionCodeHandle( self, lambda_expression ):
-        return self.parent.getLambdaExpressionCodeHandle( lambda_expression = lambda_expression )
-
-    def getGeneratorExpressionCodeHandle( self, generator_def ):
-        return self.parent.getGeneratorExpressionCodeHandle( generator_def = generator_def )
-
-    def allocateLambdaIdentifier( self ):
-        self.lambda_count += 1
-
-        return "_python_lambda_%d_%s" % ( self.lambda_count, self.function.getFullName() )
-
     def getCodeName( self ):
         return self.function.getCodeName()
 
@@ -341,6 +302,9 @@ class PythonFunctionContext( PythonChildContextBase ):
 
     def getFrameObjectIdentifier( self ):
         return Identifier( "frameobj_%s()" % self.getCodeName(), 1 )
+
+    def needsFrameExceptionKeeper( self ):
+        return self.function.needsFrameExceptionKeeper()
 
 class PythonContractionBase( PythonChildContextBase ):
     def __init__( self, parent, contraction ):
@@ -417,36 +381,6 @@ class PythonDictContractionContext( PythonContractionBase ):
     def getLocalHandle( self, var_name ):
         return LocalVariableIdentifier( var_name, from_context = False )
 
-
-class PythonLambdaExpressionContext( PythonChildContextBase ):
-    def __init__( self, parent, lambda_def ):
-        PythonChildContextBase.__init__( self, parent = parent )
-
-        self.lambda_def = lambda_def
-        self.parameter_names = lambda_def.getBody().getParameters().getParameterNames()
-
-    def getClosureHandle( self, var_name ):
-        if not self.lambda_def.isGenerator():
-            return ClosureVariableIdentifier( var_name, from_context = "_python_context->" )
-        else:
-            return ClosureVariableIdentifier( var_name, from_context = "_python_context->common_context->" )
-
-
-    def hasLocalVariable( self, var_name ):
-        return var_name in self.parameter_names
-
-    def getLocalHandle( self, var_name ):
-        return LocalVariableIdentifier( var_name )
-
-    def getTracebackFilename( self ):
-        return self.lambda_def.getParentModule().getFilename()
-
-    def getTracebackName( self ):
-        return self.lambda_def.getBody().getName()
-
-    def getCodeName( self ):
-        return self.lambda_def.getCodeName()
-
 class PythonClassContext( PythonChildContextBase ):
     def __init__( self, parent, class_def ):
         PythonChildContextBase.__init__( self, parent = parent )
@@ -479,6 +413,10 @@ class PythonClassContext( PythonChildContextBase ):
 
     def hasLocalsDict( self ):
         return self.class_def.hasLocalsDict()
+
+    def needsFrameExceptionKeeper( self ):
+        return self.class_def.needsFrameExceptionKeeper()
+
 
 class PythonExecInlineContext( PythonChildContextBase ):
     def __init__( self, parent ):

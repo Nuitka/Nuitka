@@ -28,6 +28,9 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Import related templates.
+
+"""
 
 import_from_template = """\
 {

@@ -363,6 +363,9 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 
     try
     {
+        // To restore the initial exception, could be made dependent on actual try/except statement
+        // as it is done for functions/classes already.
+        FrameExceptionKeeper _frame_exception_keeper;
 %(module_code)s
     }
     catch ( _PythonException &_exception )

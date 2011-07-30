@@ -28,7 +28,7 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Control the folow of optimizations applied to node tree.
+""" Control the flow of optimizations applied to node tree.
 
 Uses many optimization supplying visitors imported from the optimizations package, these
 can emit tags that can cause the re-execution of other optimization visitors, because
@@ -43,11 +43,18 @@ from .OptimizeVariableClosure import (
     ModuleVariableReadOnlyVisitor,
     MaybeLocalVariableReductionVisitor
 )
-from .OptimizeBuiltins import ReplaceBuiltinsVisitor, PrecomputeBuiltinsVisitor
+from .OptimizeBuiltins import (
+    ReplaceBuiltinsCriticalVisitor,
+    ReplaceBuiltinsOptionalVisitor,
+    ReplaceBuiltinsExceptionsVisitor,
+    PrecomputeBuiltinsVisitor
+)
 from .OptimizeStaticMethodFixup import FixupNewStaticMethodVisitor
 from .OptimizeConstantOperations import OptimizeOperationVisitor
 from .OptimizeUnpacking import ReplaceUnpackingVisitor
 from .OptimizeStatements import StatementSequencesCleanupVisitor
+from .OptimizeRaises import OptimizeRaisesVisitor
+
 
 from nuitka import Options
 
@@ -57,7 +64,7 @@ from logging import debug
 
 class Tags( set ):
     def onSignal( self, signal ):
-        if type(signal) == str:
+        if type(signal) is str:
             signal = signal.split()
 
         for tag in signal:
@@ -75,7 +82,7 @@ def optimizeTree( tree ):
     tags.add( "new_code" )
 
     def refreshOptimizationsFromTags( optimizations_queue, tags ):
-        if tags.check( "new_code" ):
+        if tags.check( "new_code" ) or tags.check( "new_variable" ):
             optimizations_queue.update( VariableClosureLookupVisitors )
 
         if tags.check( "new_code" ):
@@ -85,12 +92,6 @@ def optimizeTree( tree ):
         if tags.check( "new_code" ) or tags.check( "new_constant" ):
             if Options.shallFollowImports():
                 optimizations_queue.add( ModuleRecursionVisitor )
-
-        if tags.check( "new_code" ) or tags.check( "new_constant" ):
-            optimizations_queue.add( ReplaceBuiltinsVisitor )
-
-        if tags.check( "new_builtin" ) or tags.check( "new_constant" ):
-            optimizations_queue.add( PrecomputeBuiltinsVisitor )
 
         if tags.check( "new_code" ) or tags.check( "new_constant" ):
             optimizations_queue.add( OptimizeOperationVisitor )
@@ -107,12 +108,27 @@ def optimizeTree( tree ):
         if tags.check( "new_code" ) or tags.check( "read_only_mvar" ):
             optimizations_queue.add( ModuleVariableReadOnlyVisitor )
 
+        if tags.check( "new_code" ) or tags.check( "read_only_mvar" ):
+            optimizations_queue.add( ReplaceBuiltinsCriticalVisitor )
+
+        if tags.check( "new_code" ) or tags.check( "read_only_mvar" ):
+            optimizations_queue.add( ReplaceBuiltinsOptionalVisitor )
+
+        if tags.check( "new_code" ) or tags.check( "read_only_mvar" ):
+            optimizations_queue.add( ReplaceBuiltinsExceptionsVisitor )
+
+        if tags.check( "new_builtin" ) or tags.check( "new_constant" ):
+            optimizations_queue.add( PrecomputeBuiltinsVisitor )
+
         if tags.check( "var_usage" ):
             optimizations_queue.add( MaybeLocalVariableReductionVisitor )
 
         if tags.check( "new_code" ) or tags.check( "new_constant" ):
             if Options.shallOptimizeStringExec():
                 optimizations_queue.add( OptimizeExecVisitor )
+
+        if tags.check( "new_code" ) or tags.check( "new_raise" ):
+            optimizations_queue.add( OptimizeRaisesVisitor )
 
         tags.clear()
 

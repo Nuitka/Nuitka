@@ -191,7 +191,6 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_LE( PyObject *operand2, PyObj
 
 NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ_PARAMETERS( PyObject *operand2, PyObject *operand1 )
 {
-    // TODO: Clarify if there is a point in preserving the current line just yet.
     int line = _current_line;
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_EQ );
     _current_line = line;
@@ -223,7 +222,7 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ_PARAMETERS( PyObject *oper
 
 NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ( PyObject *operand2, PyObject *operand1 )
 {
-    // Quick path for avoidable checks.
+    // Quick path for avoidable checks, compatible with CPython.
     if ( operand1 == operand2 )
     {
         return true;

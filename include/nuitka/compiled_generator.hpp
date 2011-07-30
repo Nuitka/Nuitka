@@ -67,7 +67,7 @@ typedef struct {
     void *m_context;
     releaser m_cleanup;
 
-    // TODO: Clarify if weakrefs are supported for generator objects in CPython.
+    // Weakrefs are supported for generator objects in CPython.
     PyObject *m_weakrefs;
 
     int m_running;

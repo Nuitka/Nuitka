@@ -45,8 +45,6 @@ from . import (
     Utils
 )
 
-from nuitka.transform import TreeOperations
-
 from .nodes.ParameterSpec import ParameterSpec
 from .nodes.FutureSpec import FutureSpec
 
@@ -110,9 +108,14 @@ def buildStatementsNode( provider, nodes, source_ref, allow_none = False ):
     if nodes is None and allow_none:
         return None
 
+    statements = buildNodeList( provider, nodes, source_ref )
+
+    if not statements and allow_none:
+        return None
+
     return Nodes.CPythonStatementsSequence(
-        statements  = buildNodeList( provider, nodes, source_ref ),
-        source_ref  = source_ref
+        statements = statements,
+        source_ref = source_ref
     )
 
 def buildDecoratorNodes( provider, nodes, source_ref ):
@@ -241,21 +244,47 @@ def buildLambdaNode( provider, node, source_ref ):
     )
 
     def delayedWork():
-        lambda_body = Nodes.CPythonExpressionLambdaBody(
-            provider   = provider,
+        real_provider = provider
+
+        while real_provider.isExpressionClassBody():
+            real_provider = real_provider.provider
+
+        function_body = Nodes.CPythonExpressionFunctionBody(
+            provider   = real_provider,
+            name       = "lambda",
+            doc        = None,
             parameters = buildParameterSpec( node ),
             source_ref = source_ref
         )
 
-        result.setBody( lambda_body )
+        result.setBody( function_body )
 
         body = buildNode(
-            provider   = lambda_body,
+            provider   = function_body,
             node       = node.body,
             source_ref = source_ref,
         )
 
-        lambda_body.setBody( body )
+        if function_body.isGenerator():
+            body = Nodes.CPythonStatementExpressionOnly(
+                expression = Nodes.CPythonExpressionYield(
+                    expression = body,
+                    source_ref = function_body.getSourceReference()
+                ),
+                source_ref = function_body.getSourceReference()
+            )
+        else:
+            body = Nodes.CPythonStatementReturn(
+                expression = body,
+                source_ref = function_body.getSourceReference()
+            )
+
+        body = Nodes.CPythonStatementsSequence(
+            statements = ( body, ),
+            source_ref = function_body.getSourceReference()
+        )
+
+        function_body.setBody( body )
 
     pushDelayedWork( delayedWork )
 
@@ -773,28 +802,24 @@ def buildConditionNode( provider, node, source_ref ):
     )
 
 def buildTryExceptionNode( provider, node, source_ref ):
-    catchers = []
-    assigns = []
-    catcheds = []
+    handlers = []
 
     for handler in node.handlers:
         exception_expression, exception_assign, exception_block = handler.type, handler.name, handler.body
 
-        catchers.append(
-            buildNode( provider, exception_expression, source_ref, True )
-        )
-        assigns.append(
-            buildAssignTarget( provider, exception_assign, source_ref, True )
-        )
-        catcheds.append(
-            buildStatementsNode( provider, exception_block, source_ref )
+        handlers.append(
+            Nodes.CPythonStatementExceptHandler(
+                exception_type = buildNode( provider, exception_expression, source_ref, True ),
+                target         = buildAssignTarget
+                ( provider, exception_assign, source_ref, True ),
+                body           = buildStatementsNode( provider, exception_block, source_ref ),
+                source_ref     = source_ref
+            )
         )
 
     return Nodes.CPythonStatementTryExcept(
         tried      = buildStatementsNode( provider, node.body, source_ref ),
-        catchers   = catchers,
-        assigns    = assigns,
-        catcheds   = catcheds,
+        handlers   = handlers,
         no_raise   = buildStatementsNode( provider, node.orelse, source_ref, True ),
         source_ref = source_ref
     )
@@ -1209,7 +1234,7 @@ def buildUnaryOpNode( provider, node, source_ref ):
             source_ref = source_ref
         )
     else:
-        return Nodes.CPythonExpressionUnaryOperation(
+        return Nodes.CPythonExpressionOperationUnary(
             operator   = getKind( node.op ),
             operand    = buildNode( provider, node.operand, source_ref ),
             source_ref = source_ref
@@ -1222,7 +1247,7 @@ def buildBinaryOpNode( provider, node, source_ref ):
     if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
         operator = "TrueDiv"
 
-    return Nodes.CPythonExpressionBinaryOperation(
+    return Nodes.CPythonExpressionOperationBinary(
         operator   = operator,
         left       = buildNode( provider, node.left, source_ref ),
         right      = buildNode( provider, node.right, source_ref ),
@@ -1230,7 +1255,7 @@ def buildBinaryOpNode( provider, node, source_ref ):
     )
 
 def buildReprNode( provider, node, source_ref ):
-    return Nodes.CPythonExpressionUnaryOperation(
+    return Nodes.CPythonExpressionOperationUnary(
         operator   = "Repr",
         operand    = buildNode( provider, node.value, source_ref ),
         source_ref = source_ref
@@ -1391,16 +1416,12 @@ def buildParseTree( provider, source_code, source_ref, replacement ):
     return result
 
 def buildReplacementTree( provider, source_code, source_ref ):
-    result = buildParseTree(
+    return buildParseTree(
         provider    = provider,
         source_code = source_code,
         source_ref  = source_ref,
         replacement = True
     )
-
-    TreeOperations.assignParent( result )
-
-    return result
 
 def buildModuleTree( filename, package, is_main ):
     assert package is None or type( package ) is str
@@ -1450,7 +1471,5 @@ def buildModuleTree( filename, package, is_main ):
         source_ref  = source_ref,
         replacement = False,
     )
-
-    TreeOperations.assignParent( result )
 
     return result

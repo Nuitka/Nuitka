@@ -36,7 +36,7 @@ are just a good idea to replace (range(), etc)
 
 from .OptimizeBase import (
     OptimizationDispatchingVisitorBase,
-    getConstantComputationReplacementNode,
+    OptimizationVisitorBase,
     makeRaiseExceptionReplacementExpressionFromInstance
 )
 
@@ -44,12 +44,18 @@ from nuitka import Importing, Nodes
 
 from nuitka.Utils import getPythonVersion
 
+from nuitka.nodes.ParameterSpec import ParameterSpec, TooManyArguments
+
+from nuitka.__past__ import exceptions, builtin_exception_names
+
 import math, sys
 
-_builtin_names = [ str( x ) for x in __builtins__.keys() ]
-assert "int" in _builtin_names, __builtins__.keys()
+_builtin_names = [
+    str( x )
+    for x in __builtins__.keys()
+]
 
-from nuitka.nodes.ParameterSpec import ParameterSpec, TooManyArguments
+assert "int" in _builtin_names, __builtins__.keys()
 
 class BuiltinParameterSpec( ParameterSpec ):
     def __init__( self, name, arg_names, default_count, list_star_arg = None, dict_star_arg = None ):
@@ -101,7 +107,7 @@ class BuiltinParameterSpec( ParameterSpec ):
 
                     arg_dict[ arg_name.getConstant() ] = arg_value.getConstant()
 
-        except Exception, e:
+        except Exception as e:
             sys.exit( "Fatal problem: %r" % e )
 
         if given_list_star_args:
@@ -139,26 +145,58 @@ class BuiltinParameterSpecNoKeywords( BuiltinParameterSpec ):
 
             if given_list_star_arg is not None:
                 arg_list += [ value.getConstant() for value in given_list_star_arg ]
-        except Exception, e:
+        except Exception as e:
             sys.exit( e )
 
         return self.builtin( *arg_list )
 
 
+class BuiltinParameterSpecExceptions( BuiltinParameterSpec ):
+    def allowsKeywords( self ):
+        return False
+
+    def getKeywordRefusalText( self ):
+        return "exceptions.%s does not take keyword arguments" % self.name
+
+    def __init__( self, name, default_count ):
+        BuiltinParameterSpec.__init__(
+            self,
+            name          = name,
+            arg_names     = (),
+            default_count = default_count,
+            list_star_arg = "args"
+        )
+
+    def getCallableName( self ):
+        return "exceptions." + self.getName()
+
 builtin_int_spec = BuiltinParameterSpec( "int", ( "x", "base" ), 2 )
-builtin_long_spec = BuiltinParameterSpec( "long", ( "x", "base" ), 2 )
+
+# This builtin is only available for Python2
+if getPythonVersion() < 300:
+    builtin_long_spec = BuiltinParameterSpec( "long", ( "x", "base" ), 2 )
+
 builtin_bool_spec = BuiltinParameterSpec( "bool", ( "x", ), 1 )
 builtin_float_spec = BuiltinParameterSpec( "float", ( "x", ), 1 )
 builtin_str_spec = BuiltinParameterSpec( "str", ( "object", ), 1 )
-builtin_len_spec = BuiltinParameterSpec( "len", ( "object", ), 0 )
+builtin_len_spec = BuiltinParameterSpecNoKeywords( "len", ( "object", ), 0 )
 builtin_dict_spec = BuiltinParameterSpec( "dict", (), 2, "list_args", "dict_args" )
-builtin_tuple_spec = BuiltinParameterSpecNoKeywords( "tuple", ( "iterable", ), 1 )
-builtin_list_spec = BuiltinParameterSpecNoKeywords( "list", ( "iterable", ), 1 )
+builtin_len_spec = BuiltinParameterSpecNoKeywords( "len", ( "object", ), 0 )
+builtin_tuple_spec = BuiltinParameterSpec( "tuple", ( "sequence", ), 1 )
+builtin_list_spec = BuiltinParameterSpec( "list", ( "sequence", ), 1 )
 builtin_chr_spec = BuiltinParameterSpecNoKeywords( "chr", ( "i", ), 1 )
 builtin_ord_spec = BuiltinParameterSpecNoKeywords( "ord", ( "c", ), 1 )
 builtin_range_spec = BuiltinParameterSpecNoKeywords( "range", ( "start", "stop", "step" ), 2 )
+builtin_repr_spec = BuiltinParameterSpecNoKeywords( "repr", ( "object", ), 1 )
 
-class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
+
+# TODO: The maybe local variable should have a read only indication too, but right
+# now it's not yet done.
+
+def _isReadOnlyModuleVariable( variable ):
+    return ( variable.isModuleVariable() and variable.getReadOnlyIndicator() is True ) or variable.isMaybeLocalVariable()
+
+class ReplaceBuiltinsVisitorBase( OptimizationDispatchingVisitorBase ):
     """ Replace calls to builtin names by builtin nodes if possible or necessary.
 
     """
@@ -166,34 +204,10 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
     # Many methods of this class could be functions, but we want it scoped on the class
     # level anyway. pylint: disable=R0201
 
-    def __init__( self ):
+    def __init__( self, dispatch_dict ):
         OptimizationDispatchingVisitorBase.__init__(
             self,
-            dispatch_dict = {
-                "globals"    : self.globals_extractor,
-                "locals"     : self.locals_extractor,
-                "dir"        : self.dir_extractor,
-                "vars"       : self.vars_extractor,
-                "eval"       : self.eval_extractor,
-                "execfile"   : self.execfile_extractor,
-                "__import__" : self.import_extractor,
-                "chr"        : self.chr_extractor,
-                "ord"        : self.ord_extractor,
-                "type"       : self.type_extractor,
-                "range"      : self.range_extractor,
-                "tuple"      : self.tuple_extractor,
-                "list"       : self.list_extractor,
-                "dict"       : self.dict_extractor,
-                "float"      : self.float_extractor,
-                "str"        : self.str_extractor,
-                "bool"       : self.bool_extractor,
-                "int"        : self.int_extractor,
-                "long"       : self.long_extractor,
-# TODO: There is a case of len overload in the CPython test suite that we do not yet
-# discover, because we have no test for write to module level variable yet, which is
-# a potential breaker for every builtin replacement.
-#                "len"        : self.len_extractor,
-            }
+            dispatch_dict = dispatch_dict
         )
 
     def getKey( self, node ):
@@ -205,67 +219,102 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
 
                 assert variable is not None, node
 
-                if variable.isModuleVariable() or variable.isMaybeLocalVariable():
-                    if variable.getName() in ( "dict", "float", "int", "long", "str", "unicode", "bool" ):
-                        return variable.getName()
+                if _isReadOnlyModuleVariable( variable ):
+                    return variable.getName()
 
-                    else:
-                        if node.hasOnlyPositionalArguments():
-                            return variable.getName()
+    def __call__( self, node ):
+        new_node = OptimizationDispatchingVisitorBase.__call__( self, node )
 
+        if new_node is not None:
 
-    def onNodeWasReplaced( self, old_node ):
-        assert old_node.isExpressionFunctionCall
+            # The exec statement must be treated differently.
+            if new_node.isStatementExec():
+                assert node.parent.isStatementExpressionOnly()
 
-        called = old_node.getCalledExpression()
+                node.parent.replaceWith( new_node = new_node )
+            else:
+                node.replaceWith( new_node = new_node )
 
-        assert called.isExpressionVariableRef()
-        variable = called.getVariable()
+            if new_node.isExpressionBuiltin() or new_node.isStatementExec():
+                self.signalChange(
+                    "new_builtin",
+                    node.getSourceReference(),
+                    message = "Replaced call to builtin %s with builtin call." % new_node.kind
+                )
+            elif new_node.isExpressionFunctionCall():
+                self.signalChange(
+                    "new_raise new_variable",
+                    node.getSourceReference(),
+                    message = "Replaced call to builtin %s with exception raising call." % new_node.kind
+                )
+            elif new_node.isExpressionOperationUnary():
+                self.signalChange(
+                    "new_expression",
+                    node.getSourceReference(),
+                    message = "Replaced call to builtin %s with exception raising call." % new_node.kind
+                )
+            else:
+                assert False
 
-        owner = variable.getOwner()
+            assert node.isExpressionFunctionCall
 
-        owner.reconsiderVariable( variable )
+            called = node.getCalledExpression()
+            assert called.isExpressionVariableRef()
 
-        if owner.isExpressionFunctionBody():
-            self.signalChange(
-                "var_usage",
-                owner.getSourceReference(),
-                message = "Reduced variable '%s' usage of function %s." % ( variable.getName(), owner )
+            variable = called.getVariable()
+
+            owner = variable.getOwner()
+            owner.reconsiderVariable( variable )
+
+            if owner.isExpressionFunctionBody():
+                self.signalChange(
+                    "var_usage",
+                    owner.getSourceReference(),
+                    message = "Reduced variable '%s' usage of function %s." % ( variable.getName(), owner )
+                )
+
+    def _extractBuiltinArgs( self, node, builtin_spec, builtin_class ):
+        # TODO: These could be handled too.
+        if node.getStarListArg() is not None or node.getStarDictArg() is not None:
+            return
+
+        try:
+            args = builtin_spec.matchCallSpec(
+                name      = builtin_spec.getName(),
+                call_spec = node
             )
 
-    def dir_extractor( self, node ):
-        # Only treat the empty dir() call, leave the others alone for now.
-        if not node.isEmptyCall():
-            return None
-
-        return Nodes.CPythonExpressionBuiltinDir(
-            source_ref = node.getSourceReference()
-        )
-
-    def vars_extractor( self, node ):
-        positional_args = node.getPositionalArguments()
-
-        if len( positional_args ) == 0:
-            return Nodes.CPythonExpressionBuiltinLocals(
+            # Using list reference for passing the arguments without names, pylint: disable=W0142
+            return builtin_class(
+                *args,
                 source_ref = node.getSourceReference()
             )
-        elif len( positional_args ) == 1:
-            return Nodes.CPythonExpressionBuiltinVars(
-                source     = positional_args[ 0 ],
-                source_ref = node.getSourceReference()
+        except TooManyArguments as e:
+            return Nodes.CPythonExpressionFunctionCall(
+                called_expression = makeRaiseExceptionReplacementExpressionFromInstance(
+                    expression     = node,
+                    exception      = e.getRealException()
+                ),
+                positional_args   = node.getPositionalArguments(),
+                list_star_arg     = node.getStarListArg(),
+                dict_star_arg     = node.getStarDictArg(),
+                pairs             = node.getNamedArgumentPairs(),
+                source_ref        = node.getSourceReference()
             )
-        else:
-            assert False
 
-    def eval_extractor( self, node ):
-        positional_args = node.getPositionalArguments()
 
-        return Nodes.CPythonExpressionBuiltinEval(
-            source_code  = positional_args[0],
-            globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
-            locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
-            source_ref   = node.getSourceReference()
+class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
+    def __init__( self ):
+        ReplaceBuiltinsVisitorBase.__init__(
+            self,
+            dispatch_dict = {
+                "globals"    : self.globals_extractor,
+                "locals"     : self.locals_extractor,
+                "eval"       : self.eval_extractor,
+                "execfile"   : self.execfile_extractor,
+            }
         )
+
 
     def execfile_extractor( self, node ):
         assert node.parent.isStatementExpressionOnly()
@@ -301,6 +350,104 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
             locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
             source_ref   = source_ref
         )
+
+    def eval_extractor( self, node ):
+        positional_args = node.getPositionalArguments()
+
+        return Nodes.CPythonExpressionBuiltinEval(
+            source_code  = positional_args[0],
+            globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
+            locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
+            source_ref   = node.getSourceReference()
+        )
+
+    def _pickLocalsForNode( self, node ):
+        """ Pick a locals default for the given node. """
+
+        provider = node.getParentVariableProvider()
+
+        if provider.isModule():
+            return Nodes.CPythonExpressionBuiltinGlobals(
+                source_ref = node.getSourceReference()
+            )
+        else:
+            return Nodes.CPythonExpressionBuiltinLocals(
+                source_ref = node.getSourceReference()
+            )
+
+    def _pickGlobalsForNode( self, node ):
+        """ Pick a globals default for the given node. """
+
+        return Nodes.CPythonExpressionBuiltinGlobals(
+            source_ref = node.getSourceReference()
+        )
+
+    def globals_extractor( self, node ):
+        assert node.isEmptyCall()
+
+        return self._pickGlobalsForNode( node )
+
+    def locals_extractor( self, node ):
+        assert node.isEmptyCall()
+
+        return self._pickLocalsForNode( node )
+
+
+class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
+    def __init__( self ):
+        dispatch_dict = {
+            "dir"        : self.dir_extractor,
+            "vars"       : self.vars_extractor,
+            "__import__" : self.import_extractor,
+            "chr"        : self.chr_extractor,
+            "ord"        : self.ord_extractor,
+            "type"       : self.type_extractor,
+            "range"      : self.range_extractor,
+            "tuple"      : self.tuple_extractor,
+            "list"       : self.list_extractor,
+            "dict"       : self.dict_extractor,
+            "float"      : self.float_extractor,
+            "str"        : self.str_extractor,
+            "bool"       : self.bool_extractor,
+            "int"        : self.int_extractor,
+            "repr"       : self.repr_extractor,
+            "len"        : self.len_extractor,
+        }
+
+        if getPythonVersion() < 300:
+            dispatch_dict[ "long" ] = self.long_extractor
+
+        for builtin_exception_name in builtin_exception_names:
+            dispatch_dict[ builtin_exception_name ] = self.exceptions_extractor
+
+        ReplaceBuiltinsVisitorBase.__init__(
+            self,
+            dispatch_dict = dispatch_dict
+        )
+
+    def dir_extractor( self, node ):
+        # Only treat the empty dir() call, leave the others alone for now.
+        if not node.isEmptyCall():
+            return None
+
+        return Nodes.CPythonExpressionBuiltinDir(
+            source_ref = node.getSourceReference()
+        )
+
+    def vars_extractor( self, node ):
+        positional_args = node.getPositionalArguments()
+
+        if len( positional_args ) == 0:
+            return Nodes.CPythonExpressionBuiltinLocals(
+                source_ref = node.getSourceReference()
+            )
+        elif len( positional_args ) == 1:
+            return Nodes.CPythonExpressionBuiltinVars(
+                source     = positional_args[ 0 ],
+                source_ref = node.getSourceReference()
+            )
+        else:
+            assert False
 
     def import_extractor( self, node ):
         positional_args = node.getPositionalArguments()
@@ -352,7 +499,7 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                 *args,
                 source_ref = node.getSourceReference()
             )
-        except TooManyArguments, e:
+        except TooManyArguments as e:
             return Nodes.CPythonExpressionFunctionCall(
                 called_expression = makeRaiseExceptionReplacementExpressionFromInstance(
                     expression     = node,
@@ -364,6 +511,7 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                 pairs             = node.getNamedArgumentPairs(),
                 source_ref        = node.getSourceReference()
             )
+
 
     def dict_extractor( self, node ):
         # The dict is a bit strange in that it accepts a position parameter, or not, but
@@ -408,6 +556,20 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinOrd,
             builtin_spec  = builtin_ord_spec
+        )
+
+    def repr_extractor( self, node ):
+        def makeReprOperator( operand, source_ref ):
+            return Nodes.CPythonExpressionOperationUnary(
+                operator   = "Repr",
+                operand    = operand,
+                source_ref = source_ref
+            )
+
+        return self._extractBuiltinArgs(
+            node          = node,
+            builtin_class = makeReprOperator,
+            builtin_spec  = builtin_repr_spec
         )
 
     def range_extractor( self, node ):
@@ -473,36 +635,44 @@ class ReplaceBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
             builtin_spec  = builtin_long_spec
         )
 
-    def _pickLocalsForNode( self, node ):
-        """ Pick a locals default for the given node. """
+    def exceptions_extractor( self, node ):
+        exception_name = node.getCalledExpression().getVariable().getName()
 
-        provider = node.getParentVariableProvider()
-
-        if provider.isModule():
-            return Nodes.CPythonExpressionBuiltinGlobals(
-                source_ref = node.getSourceReference()
-            )
-        else:
-            return Nodes.CPythonExpressionBuiltinLocals(
-                source_ref = node.getSourceReference()
+        def createBuiltinMakeException( args, source_ref ):
+            return Nodes.CPythonExpressionBuiltinMakeException(
+                exception_name = exception_name,
+                args           = args,
+                source_ref     = node.getSourceReference()
             )
 
-    def _pickGlobalsForNode( self, node ):
-        """ Pick a globals default for the given node. """
-
-        return Nodes.CPythonExpressionBuiltinGlobals(
-            source_ref = node.getSourceReference()
+        return self._extractBuiltinArgs(
+            node          = node,
+            builtin_class = createBuiltinMakeException,
+            builtin_spec  = BuiltinParameterSpecExceptions( exception_name, 0 )
         )
 
-    def globals_extractor( self, node ):
-        assert node.isEmptyCall()
+class ReplaceBuiltinsExceptionsVisitor( OptimizationVisitorBase ):
+    def __call__( self, node ):
+        if node.isExpressionVariableRef():
+            variable = node.getVariable()
 
-        return self._pickGlobalsForNode( node )
+            if variable is not None:
+                if variable.getName() in builtin_exception_names and _isReadOnlyModuleVariable( variable ):
+                    new_node = Nodes.CPythonExpressionBuiltinExceptionRef(
+                        exception_name = variable.getName(),
+                        source_ref     = node.getSourceReference()
+                    )
 
-    def locals_extractor( self, node ):
-        assert node.isEmptyCall()
+                    node.replaceWith( new_node )
 
-        return self._pickLocalsForNode( node )
+                    self.signalChange(
+                        "new_raise new_variable",
+                        node.getSourceReference(),
+                        message = "Replaced reference to read only module variable with exception %s." % variable.getName()
+                    )
+
+                    assert node.parent is new_node.parent
+
 
 class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
     """ Precompute builtins with constant arguments if possible. """
@@ -510,27 +680,28 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
     # level anyway. pylint: disable=R0201
 
     def __init__( self ):
+        dispatch_dict = {
+            "chr"        : self.chr_extractor,
+            "ord"        : self.ord_extractor,
+            "type1"      : self.type1_extractor,
+            "range"      : self.range_extractor,
+            "len"        : self.len_extractor,
+            "tuple"      : self.tuple_extractor,
+            "list"       : self.list_extractor,
+            "dict"       : self.dict_extractor,
+            "float"      : self.float_extractor,
+            "str"        : self.str_extractor,
+            "bool"       : self.bool_extractor,
+            "int"        : self.int_extractor,
+            "long"       : self.long_extractor
+        }
+
+        if getPythonVersion() < 300:
+            dispatch_dict[ "long" ] = self.long_extractor
+
         OptimizationDispatchingVisitorBase.__init__(
             self,
-            dispatch_dict = {
-#                "globals"    : self.globals_extractor,
-#                "locals"     : self.locals_extractor,
-#                "dir"        : self.dir_extractor,
-#                "vars"       : self.vars_extractor,
-                "chr"        : self.chr_extractor,
-                "ord"        : self.ord_extractor,
-                "type1"      : self.type1_extractor,
-                "range"      : self.range_extractor,
-                "len"        : self.len_extractor,
-                "tuple"      : self.tuple_extractor,
-                "list"       : self.list_extractor,
-                "dict"       : self.dict_extractor,
-                "float"      : self.float_extractor,
-                "str"        : self.str_extractor,
-                "bool"       : self.bool_extractor,
-                "int"        : self.int_extractor,
-                "long"       : self.long_extractor
-            }
+            dispatch_dict = dispatch_dict
         )
 
     def getKey( self, node ):
@@ -591,9 +762,10 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
 
                 # Negative values are empty, so don't check against 0.
                 if constant <= 256:
-                    return getConstantComputationReplacementNode(
-                        expression = node,
-                        computation = lambda : range( constant )
+                    self.replaceWithComputationResult(
+                        node        = node,
+                        computation = lambda : range( constant ),
+                        description = "Range builtin"
                     )
         elif step is None:
             if isRangePredictable( low ) and isRangePredictable( high ):
@@ -606,9 +778,10 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                     constant2 = int( constant2 )
 
                 if constant2 - constant1 <= 256:
-                    return getConstantComputationReplacementNode(
-                        expression = node,
-                        computation = lambda : range( constant1, constant2 )
+                    self.replaceWithComputationResult(
+                        node        = node,
+                        computation = lambda : range( constant1, constant2 ),
+                        description = "Range builtin"
                     )
         else:
             if isRangePredictable( low ) and isRangePredictable( high ) and isRangePredictable( step ):
@@ -645,9 +818,10 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                     except (ValueError, TypeError, ZeroDivisionError):
                         pass
 
-                    return getConstantComputationReplacementNode(
-                        expression = node,
-                        computation = lambda : range( constant1, constant2, constant3 )
+                    self.replaceWithComputationResult(
+                        node        = node,
+                        computation = lambda : range( constant1, constant2, constant3 ),
+                        description = "Range builtin"
                     )
 
 
@@ -672,9 +846,10 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                 elif not value.isExpressionConstantRef():
                     break
         else:
-            return getConstantComputationReplacementNode(
-                expression  = node,
-                computation = lambda : builtin_spec.simulateCall( given_values )
+            self.replaceWithComputationResult(
+                node        = node,
+                computation = lambda : builtin_spec.simulateCall( given_values ),
+                description = "Builtin call %s" % builtin_spec.getName()
             )
 
     def dict_extractor( self, node ):

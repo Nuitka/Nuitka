@@ -39,7 +39,7 @@ So this is called repeatedly mayhaps, each time a constant is added.
 
 from __future__ import print_function
 
-from .OptimizeBase import OptimizationVisitorBase
+from .OptimizeBase import OptimizationVisitorBase, info
 
 from nuitka import TreeBuilding, Importing, Options, Nodes, Utils
 
@@ -51,7 +51,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
 
     def _recurseTo( self, module_filename, module_package, module_relpath ):
         if module_relpath not in self.imported_modules:
-            print( "Recurse to import", module_relpath )
+            info( "Recurse to import", module_relpath )
 
             imported_module = TreeBuilding.buildModuleTree(
                 filename = module_filename,

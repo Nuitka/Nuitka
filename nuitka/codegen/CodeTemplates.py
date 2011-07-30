@@ -108,48 +108,6 @@ if ( _return_%(try_count)d )
     throw ReturnException();
 }"""
 
-try_except_template = """\
-try
-{
-%(tried_code)s
-}
-catch ( _PythonException &_exception )
-{
-    if ( !_exception.hasTraceback() )
-    {
-        _exception.setTraceback( %(tb_making)s );
-        traceback = true;
-    }
-
-    _exception.toExceptionHandler();
-
-%(exception_code)s
-}"""
-
-try_except_else_template = """\
-bool _caught_%(except_count)d = false;
-try
-{
-%(tried_code)s
-}
-catch ( _PythonException &_exception )
-{
-    _caught_%(except_count)d = true;
-
-    if ( !_exception.hasTraceback() )
-    {
-        _exception.setTraceback( %(tb_making)s );
-        traceback = true;
-    }
-    _exception.toExceptionHandler();
-
-%(exception_code)s
-}
-if ( _caught_%(except_count)d == false )
-{
-%(else_code)s
-}"""
-
 
 template_branch_one = """\
 if ( %(condition)s )

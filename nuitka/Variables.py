@@ -66,7 +66,7 @@ class Variable:
         return self.read_only_indicator
 
     def setReadOnlyIndicator( self, value ):
-        assert value in (True, False)
+        assert value in ( True, False )
 
         self.read_only_indicator = value
 
@@ -158,6 +158,11 @@ class VariableReferenceBase( Variable ):
 
         variable.addReference( self )
         self.variable = variable
+
+        del self.read_only_indicator
+
+    def getReadOnlyIndicator( self ):
+        return self.getReferenced().read_only_indicator
 
     def __repr__( self ):
         return "<%s to %s>" % ( self.__class__.__name__, str( self.variable )[1:-1] )

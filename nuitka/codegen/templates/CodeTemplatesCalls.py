@@ -28,16 +28,15 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-
 """ Call related templates.
 
 """
 
 call_pos_star_dict = """\
-CALL_FUNCTION_STAR_ONLY( %(star_dict_arg)s, %(pos_args)s, %(function)s )"""
+CALL_FUNCTION_STAR_BOTH_ONLY( %(star_dict_arg)s, %(pos_args)s, %(function)s )"""
 
 call_star_list_star_dict = """\
-CALL_FUNCTION_STAR_ONLY( %(star_dict_arg)s, %(star_list_arg)s, %(function)s )"""
+CALL_FUNCTION_STAR_BOTH_ONLY( %(star_dict_arg)s, %(star_list_arg)s, %(function)s )"""
 
 call_pos_named_star_list = """\
 CALL_FUNCTION_STAR_LIST( %(star_list_arg)s, %(named_args)s, %(pos_args)s, %(function)s )"""

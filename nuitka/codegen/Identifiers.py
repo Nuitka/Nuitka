@@ -34,9 +34,6 @@ These are generally the means to effectively hide the reference count. The best 
 is where getCheapRefCount tries to not allocate references not needed.
 """
 
-from __future__ import print_function
-
-
 # The method signatures do not always require usage of self, sometimes can be decided
 # based on class. pylint: disable=R0201
 

@@ -28,6 +28,11 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" XML node tree handling
+
+Means to create XML elements from Nuitka tree nodes and to convert the
+XML tree to ASCII or output it.
+"""
 
 from nuitka import Tracing
 
@@ -54,6 +59,9 @@ def makeNodeElement( node ):
 #    result.text = str( node )
 
     return result
+
+def toString( xml ):
+    return lxml.etree.tostring( xml, pretty_print = True )
 
 def dump( xml  ):
     Tracing.printLine( toString( xml ) )

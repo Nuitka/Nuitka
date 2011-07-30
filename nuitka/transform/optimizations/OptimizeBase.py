@@ -85,6 +85,36 @@ class OptimizationVisitorBase:
         else:
             assert False
 
+    def replaceWithComputationResult( self, node, computation, description ):
+        # Try and turn raised exceptions into static raises. pylint: disable=W0703
+
+        try:
+            result = computation()
+        except Exception as e:
+            new_node = makeRaiseExceptionReplacementExpressionFromInstance(
+                expression = node,
+                exception  = e
+            )
+
+            self.signalChange(
+                "new_raise new_variable",
+                node.getSourceReference(),
+                description + " was predicted to raise an exception."
+            )
+        else:
+            new_node =  Nodes.makeConstantReplacementNode(
+                constant = result,
+                node     = node
+            )
+
+            self.signalChange(
+                "new_constant",
+                node.getSourceReference(),
+                description + " was predicted to constant result."
+            )
+
+        node.replaceWith( new_node )
+
 class OptimizationDispatchingVisitorBase( OptimizationVisitorBase ):
     def __init__( self, dispatch_dict ):
         self.dispatch_dict = dispatch_dict
@@ -95,40 +125,8 @@ class OptimizationDispatchingVisitorBase( OptimizationVisitorBase ):
         if key in self.dispatch_dict:
             new_node = self.dispatch_dict[ key ]( node )
 
-            if new_node is not None:
-                node.replaceWith( new_node = new_node )
+            return new_node
 
-                if new_node.isStatement() and node.parent.isStatementExpressionOnly():
-                    node.parent.replaceWith( new_node )
-
-                TreeOperations.assignParent( node.parent )
-
-                if new_node.isExpressionConstantRef():
-                    self.signalChange(
-                        "new_constant",
-                        node.getSourceReference(),
-                        message = "Replaced %s with constant result." % node.kind
-                    )
-                elif new_node.isExpressionBuiltin():
-                    self.signalChange(
-                        "new_builtin",
-                        node.getSourceReference(),
-                        message = "Replaced call to builtin %s with builtin call." % new_node.kind
-                    )
-                elif new_node.isExpressionRaiseException():
-                    self.signalChange(
-                        "new_code",
-                        node.getSourceReference(),
-                        message = "Replaced call to builtin %s with predictable exception raise." % new_node.kind
-                    )
-
-
-                self.onNodeWasReplaced(
-                    old_node = node
-                )
-
-    def onNodeWasReplaced( self, old_node ):
-        pass
 
     def getKey( self, node ):
         # Abstract method, pylint: disable=R0201,W0613
@@ -165,8 +163,6 @@ def makeRaiseExceptionReplacementStatement( statement, exception_type, exception
         source_ref = source_ref
     )
 
-    TreeOperations.assignParent( result )
-
     return result
 
 def makeRaiseExceptionReplacementExpression( expression, exception_type, exception_value ):
@@ -175,7 +171,7 @@ def makeRaiseExceptionReplacementExpression( expression, exception_type, excepti
     assert type( exception_type ) is str
 
     result = Nodes.CPythonExpressionRaiseException(
-        exception_type = Nodes.CPythonExpressionVariableRef(
+        exception_type  = Nodes.CPythonExpressionVariableRef(
             variable_name = exception_type,
             source_ref    = source_ref
         ),
@@ -183,10 +179,9 @@ def makeRaiseExceptionReplacementExpression( expression, exception_type, excepti
             constant = exception_value,
             node     = expression
         ),
-        source_ref = source_ref
+        side_effects    = (),
+        source_ref      = source_ref
     )
-
-    TreeOperations.assignParent( result )
 
     return result
 
@@ -203,19 +198,3 @@ def makeRaiseExceptionReplacementExpressionFromInstance( expression, exception )
         exception_type  = exception.__class__.__name__,
         exception_value = exception.message
     )
-
-def getConstantComputationReplacementNode( expression, computation ):
-    # Try and turn raised exceptions into static raises. pylint: disable=W0703
-
-    try:
-        result = computation()
-    except Exception as e:
-        return makeRaiseExceptionReplacementExpressionFromInstance(
-            expression = expression,
-            exception  = e
-        )
-    else:
-        return Nodes.makeConstantReplacementNode(
-            constant = result,
-            node     = expression
-        )

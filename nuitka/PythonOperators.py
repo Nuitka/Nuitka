@@ -82,7 +82,7 @@ unary_operator_functions = {
     "UAdd"   : operator.pos,
     "USub"   : operator.neg,
     "Invert" : operator.invert,
-    "Repr"   : "PyObject_Repr",
+    "Repr"   : repr,
 }
 
 
@@ -94,3 +94,14 @@ rich_comparison_functions = {
     "Gt"    : operator.gt,
     "GtE"   : operator.ge
 }
+
+other_comparison_functions = {
+    "Is"    : operator.is_,
+    "IsNot" : operator.is_not,
+    "In"    : lambda value1, value2: value1 in value2,
+    "NotIn" : lambda value1, value2: value1 not in value2
+}
+
+
+all_comparison_functions = dict( rich_comparison_functions)
+all_comparison_functions.update( other_comparison_functions )

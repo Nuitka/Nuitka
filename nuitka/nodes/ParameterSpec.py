@@ -206,7 +206,6 @@ class ParameterSpec( ParameterSpecTuple ):
 
         return result
 
-
     def getListStarArgName( self ):
         return self.list_star_arg
 
@@ -221,6 +220,9 @@ class ParameterSpec( ParameterSpecTuple ):
 
     def allowsKeywords( self ):
         return True
+
+    def getKeywordRefusalText( self ):
+        return "%s() takes no keyword arguments" % self.name
 
     def matchCallSpec( self, name, call_spec ):
         result = [ None ] * len( self.normal_args )
@@ -238,7 +240,7 @@ class ParameterSpec( ParameterSpecTuple ):
         if pairs and not self.allowsKeywords():
             raise TooManyArguments(
                 TypeError(
-                    "'%s' takes no keyword arguments" % name
+                    self.getKeywordRefusalText()
                 )
             )
 

@@ -36,6 +36,7 @@ works on it. Optimizations are frequently transformations of the tree.
 """
 
 from . import (
+    PythonOperators,
     Variables,
     Tracing,
     TreeXML,
@@ -47,6 +48,8 @@ from .nodes import OverflowCheck
 from .nodes import UsageCheck
 
 from .Constants import isMutable, isIterableConstant, isNumberConstant
+
+lxml = TreeXML.lxml
 
 class NodeCheckMetaClass( type ):
     kinds = set()
@@ -216,14 +219,36 @@ class CPythonNodeBase:
         return self.source_ref
 
     def asXml( self ):
-        result = TreeXML.makeNodeElement(
-            node = self
+        result = lxml.etree.Element(
+            "node",
+            kind = self.__class__.__name__.replace( "CPython", "" ),
+            line = "%s" % self.getSourceReference().getLineNumber()
         )
 
-        for child in self.getVisitableNodes():
-            result.append(
-                child.asXml()
+        for key, value in self.getDetails().iteritems():
+            value = str( value )
+
+            if value.startswith( "<" ) and value.endswith( ">" ):
+                value = value[1:-1]
+
+            result.set( key, str( value ) )
+
+        for name, children in self.getVisitableNodesNamed():
+            if type( children ) not in ( list, tuple ):
+                children = ( children, )
+
+            role = lxml.etree.Element(
+                "role",
+                name = name
             )
+
+            result.append( role )
+
+            for child in children:
+                if child is not None:
+                    role.append(
+                        child.asXml()
+                    )
 
         return result
 
@@ -255,7 +280,7 @@ class CPythonNodeBase:
         return self.kind.startswith( "EXPRESSION_BUILTIN_" )
 
     def isOperation( self ):
-        return self.kind.startswith( "EXPRESSION_" ) and self.kind.endswith( "_OPERATION" )
+        return self.kind.startswith( "EXPRESSION_OPERATION_" )
 
     def isAssignTargetSomething( self ):
         return self.kind.startswith( "ASSIGN_" )
@@ -268,6 +293,11 @@ class CPythonNodeBase:
 
     def getVisitableNodes( self ):
         # Virtual method, pylint: disable=R0201,W0613
+        return ()
+
+    def getVisitableNodesNamed( self ):
+        assert self.getVisitableNodes.im_class == self.getVisitableNodesNamed.im_class, self.getVisitableNodes.im_class
+
         return ()
 
     def getSameScopeNodes( self ):
@@ -290,6 +320,19 @@ class CPythonNodeBase:
     def getName( self ):
         # Virtual method, pylint: disable=R0201,W0613
         return None
+
+    def mayHaveSideEffects( self ):
+        """ Unless we are told otherwise, everything may have a side effect. """
+        # Virtual method, pylint: disable=R0201,W0613
+
+        return True
+
+    def mayRaiseException( self, exception_type ):
+        """ Unless we are told otherwise, everything may raise everything. """
+        # Virtual method, pylint: disable=R0201,W0613
+
+        return True
+
 
 class CPythonNamedNodeBase( CPythonNodeBase ):
     def __init__( self, name, source_ref ):
@@ -374,8 +417,6 @@ class CPythonCodeNodeBase( CPythonNamedNodeBase ):
 
         return self.uids[ node.kind ]
 
-
-
 class CPythonChildrenHaving:
     named_children = ()
 
@@ -389,14 +430,28 @@ class CPythonChildrenHaving:
         self.child_values = dict.fromkeys( self.named_children )
         self.child_values.update( values )
 
-        for value in values.values():
-            assert type( value ) != list
+        for key, value in values.items():
+            assert type( value ) is not list, key
+
+            if type( value ) is tuple:
+                assert None not in value, key
+
+                for val in value:
+                    val.parent = self
+            elif value is not None:
+                value.parent = self
 
     def setChild( self, name, value ):
         assert name in self.child_values, name
 
-        if type( value ) == list:
+        if type( value ) is list:
             value = tuple( value )
+
+        if type( value ) is tuple:
+            for val in value:
+                val.parent = self
+        elif value is not None:
+            value.parent = self
 
         self.child_values[ name ] = value
 
@@ -436,17 +491,26 @@ class CPythonChildrenHaving:
 
         return tuple( result )
 
+    def getVisitableNodesNamed( self ):
+        result = []
+
+        for name in self.named_children:
+            value = self.child_values[ name ]
+
+            result.append( ( name, value ) )
+
+        return result
 
     def replaceChild( self, old_node, new_node ):
         for key, value in self.child_values.items():
             if value is None:
                 pass
-            elif type( value ) == tuple:
+            elif type( value ) is tuple:
                 if old_node in value:
                     new_value = []
 
                     for val in value:
-                        if val != old_node:
+                        if val is not old_node:
                             new_value.append( val )
                         else:
                             new_value.append( new_node )
@@ -455,7 +519,7 @@ class CPythonChildrenHaving:
 
                     break
             elif isinstance( value, CPythonNodeBase ):
-                if old_node == value:
+                if old_node is value:
                     self.setChild( key, new_node )
 
                     break
@@ -519,7 +583,7 @@ class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
 
         assert variable.getOwner() is self
 
-        if variable.getName() in  self.providing:
+        if variable.getName() in self.providing:
             assert self.providing[ variable.getName() ] is variable, (
                 self.providing[ variable.getName() ], "is not", variable, self
             )
@@ -573,7 +637,7 @@ class CPythonClosureTaker:
         )
         assert result is not None, variable_name
 
-        # There is no maybe with closures. It means, it is global variable in
+        # There is no maybe with closures. It means, it is closure variable in
         # this case.
         if result.isMaybeLocalVariable():
             # This mixin is used with nodes only, but doesn't want to inherit from
@@ -639,7 +703,21 @@ class MarkExceptionBreakContinueIndicator:
     def needsExceptionBreakContinue( self ):
         return self.break_continue_exception
 
-class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureGiverNodeBase ):
+class MarkContainsTryExceptIndicator:
+    """ Mixin for indication that a module, class or function contains a try/except.
+
+    """
+
+    def __init__( self ):
+        self.try_except_containing = False
+
+    def markAsTryExceptContaining( self ):
+        self.try_except_containing = True
+
+    def needsFrameExceptionKeeper( self ):
+        return self.try_except_containing
+
+class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureGiverNodeBase, MarkContainsTryExceptIndicator ):
     """ Module
 
         The module is the only possible root of a tree. When there are many modules
@@ -673,6 +751,8 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureG
             self,
             values = {}
         )
+
+        MarkContainsTryExceptIndicator.__init__( self )
 
         self.package = package
         self.doc = None
@@ -788,7 +868,7 @@ class CPythonStatementClassBuilder( CPythonChildrenHaving, CPythonNodeBase ):
         return self.getBody().getClassVariables()
 
 
-class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CPythonCodeNodeBase ):
+class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CPythonCodeNodeBase, MarkContainsTryExceptIndicator ):
     kind = "EXPRESSION_CLASS_BODY"
 
     early_closure = True
@@ -812,6 +892,8 @@ class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CP
             self,
             values = {}
         )
+
+        MarkContainsTryExceptIndicator.__init__( self )
 
         self.doc = doc
 
@@ -906,6 +988,16 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
 
     getStatements = CPythonChildrenHaving.childGetter( "statements" )
 
+    def trimStatements( self, statement ):
+        assert statement.parent is self
+
+        old_statements = list( self.getStatements() )
+        assert statement in old_statements, ( statement, self )
+
+        new_statements = old_statements[ : old_statements.index( statement ) + 1 ]
+
+        self.setChild( "statements", new_statements )
+
 
 class CPythonAssignTargetVariable( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "ASSIGN_TARGET_VARIABLE"
@@ -926,9 +1018,6 @@ class CPythonAssignTargetVariable( CPythonChildrenHaving, CPythonNodeBase ):
         return "to variable %s" % self.getTargetVariableRef()
 
     getTargetVariableRef = CPythonChildrenHaving.childGetter( "variable_ref" )
-
-    def getAssignTargetVariableNodes( self ):
-        return ( self, )
 
 class CPythonAssignTargetAttribute( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "ASSIGN_TARGET_ATTRIBUTE"
@@ -1018,14 +1107,6 @@ class CPythonAssignTargetTuple( CPythonChildrenHaving, CPythonNodeBase ):
             }
         )
 
-    def getAssignTargetVariableNodes( self ):
-        result = []
-
-        for element in self.elements:
-            result += element.getAssignTargetVariableNodes()
-
-        return tuple( result )
-
     getElements = CPythonChildrenHaving.childGetter( "elements" )
 
 class CPythonStatementAssignment( CPythonChildrenHaving, CPythonNodeBase ):
@@ -1094,7 +1175,7 @@ class CPythonExpressionConstantRef( CPythonNodeBase ):
         self.constant = constant
 
     def getDetails( self ):
-        return { "value" : self.constant }
+        return { "value" : repr( self.constant ) }
 
     def getDetail( self ):
         return repr( self.constant )
@@ -1113,6 +1194,14 @@ class CPythonExpressionConstantRef( CPythonNodeBase ):
 
     def isBoolConstant( self ):
         return type( self.constant ) is bool
+
+    def mayHaveSideEffects( self ):
+        # Constants have no side effects
+        return False
+
+    def mayRaiseException( self, exception_type ):
+        # Constants won't raise anything.
+        return False
 
 def makeConstantReplacementNode( constant, node ):
     return CPythonExpressionConstantRef(
@@ -1152,81 +1241,15 @@ class CPythonExpressionLambdaBuilder( CPythonChildrenHaving, CPythonNodeBase ):
     def isGenerator( self ):
         return self.getBody().isGenerator()
 
-
-class CPythonExpressionLambdaBody( CPythonChildrenHaving, CPythonParameterHavingNodeBase, CPythonClosureTaker ):
-    kind = "EXPRESSION_LAMBDA_BODY"
-
-    named_children = ( "body", )
-
-    early_closure = True
-
-    def __init__( self, provider, parameters, source_ref ):
-        CPythonClosureTaker.__init__(
-            self,
-            provider = provider
-        )
-
-        CPythonParameterHavingNodeBase.__init__(
-            self,
-            name        = "lamda",
-            code_prefix = "lamda",
-            parameters  = parameters,
-            source_ref  = source_ref
-        )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {}
-        )
-
+class MarkGeneratorIndicator:
+    def __init__( self ):
         self.is_generator = False
-
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
 
     def isGenerator( self ):
         return self.is_generator
 
     def markAsGenerator( self ):
         self.is_generator = True
-
-    def getVariables( self ):
-        return self.providing.values()
-
-    def getUserLocalVariables( self ):
-        return [
-            variable
-            for variable in self.providing.values()
-            if variable.isLocalVariable() and not variable.isParameterVariable()
-        ]
-
-    def getVariableForReference( self, variable_name ):
-        if self.hasProvidedVariable( variable_name ):
-            return self.getProvidedVariable( variable_name )
-        else:
-            result = self.getClosureVariable( variable_name )
-
-            # Remember that we need that closure for something.
-            self.registerProvidedVariable( result )
-
-            return result
-
-    def getVariableForAssignment( self, variable_name ):
-        return self.getProvidedVariable( variable_name )
-
-    def getVariableForClosure( self, variable_name ):
-        if self.hasProvidedVariable( variable_name ):
-            return self.getProvidedVariable( variable_name )
-        else:
-            return self.provider.getVariableForClosure( variable_name )
-
-    def createProvidedVariable( self, variable_name ):
-        return Variables.LocalVariable(
-            owner         = self,
-            variable_name = variable_name
-        )
-
-
 
 class CPythonStatementFunctionBuilder( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_FUNCTION_BUILDER"
@@ -1271,7 +1294,7 @@ class CPythonStatementFunctionBuilder( CPythonChildrenHaving, CPythonNodeBase ):
     setBody = CPythonChildrenHaving.childSetter( "body" )
 
 
-class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavingNodeBase, CPythonClosureTaker ):
+class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavingNodeBase, CPythonClosureTaker, MarkContainsTryExceptIndicator, MarkGeneratorIndicator ):
     kind = "EXPRESSION_FUNCTION_BODY"
 
     early_closure = False
@@ -1297,16 +1320,22 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
             values = {}
         )
 
+        MarkContainsTryExceptIndicator.__init__( self )
+
+        MarkGeneratorIndicator.__init__( self )
+
         self.parent = provider
 
-        self.is_generator = False
         self.contains_exec = False
         self.locals_dict = False
 
         self.doc = doc
 
     def getDetails( self ):
-        return { "name" : self.getFunctionName(), "parameters" : self.getParameters() }
+        return {
+            "name"       : self.getFunctionName(),
+            "parameters" : self.getParameters()
+        }
 
     def getDetail( self ):
         return "named %s with %s" % ( self.name, self.parameters )
@@ -1339,9 +1368,6 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     def getVariables( self ):
         return self.providing.values()
 
-    def markAsGenerator( self ):
-        self.is_generator = True
-
     def markAsLocalsDict( self ):
         self.locals_dict = True
 
@@ -1350,9 +1376,6 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
 
     def hasLocalsDict( self ):
         return self.locals_dict
-
-    def isGenerator( self ):
-        return self.is_generator
 
     def isExecContaining( self ):
         return self.contains_exec
@@ -1378,7 +1401,6 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
                     variable_name = variable_name
                 )
             else:
-                # TODO: Allow closures other than modules.
                 result = Variables.MaybeLocalVariable(
                     owner            = self,
                     variable_name    = variable_name
@@ -1594,24 +1616,22 @@ class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNodeBase ):
 
         return True
 
-class CPythonExpressionBinaryOperation( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "EXPRESSION_BINARY_OPERATION"
-
+class CPythonExpressionOperationBase( CPythonChildrenHaving, CPythonNodeBase ):
     named_children = ( "operands", )
 
-    def __init__( self, operator, left, right, source_ref ):
-        assert left.isExpression() and right.isExpression, ( left, right )
-
+    def __init__( self, operator, simulator, operands, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
             values = {
-                "operands" : ( left, right )
+                "operands" : operands
             }
         )
 
         self.operator = operator
+
+        self.simulator = simulator
 
     def getOperator( self ):
         return self.operator
@@ -1619,35 +1639,42 @@ class CPythonExpressionBinaryOperation( CPythonChildrenHaving, CPythonNodeBase )
     def getDetail( self ):
         return self.operator
 
+    def getDetails( self ):
+        return { "operator" : self.operator }
+
+    def getSimulator( self ):
+        return self.simulator
+
     getOperands = CPythonChildrenHaving.childGetter( "operands" )
 
-class CPythonExpressionUnaryOperation( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "EXPRESSION_UNARY_OPERATION"
 
-    named_children = ( "operands", )
+class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
+    kind = "EXPRESSION_OPERATION_BINARY"
+
+    def __init__( self, operator, left, right, source_ref ):
+        assert left.isExpression() and right.isExpression, ( left, right )
+
+        CPythonExpressionOperationBase.__init__(
+            self,
+            operator   = operator,
+            simulator  = PythonOperators.binary_operator_functions[ operator ],
+            operands   = ( left, right ),
+            source_ref = source_ref
+        )
+
+class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
+    kind = "EXPRESSION_OPERATION_UNARY"
 
     def __init__( self, operator, operand, source_ref ):
         assert operand.isExpression(), operand
 
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        CPythonExpressionOperationBase.__init__(
             self,
-            values = {
-                "operands" : ( operand, )
-            }
+            operator   = operator,
+            simulator  = PythonOperators.unary_operator_functions[ operator ],
+            operands   = ( operand, ),
+            source_ref = source_ref
         )
-
-        self.operand = operand
-        self.operator = operator
-
-    def isOperation( self ):
-        return True
-
-    def getOperator( self ):
-        return self.operator
-
-    getOperands = CPythonChildrenHaving.childGetter( "operands" )
 
 class CPythonExpressionContractionBuilderBase( CPythonChildrenHaving, CPythonNodeBase ):
     named_children = ( "source0", "body" )
@@ -1779,7 +1806,7 @@ class CPythonExpressionGeneratorBuilder( CPythonExpressionContractionBuilderBase
         CPythonExpressionContractionBuilderBase.__init__( self, source_ref )
 
 
-class CPythonExpressionGeneratorBody( CPythonExpressionContractionBodyBase ):
+class CPythonExpressionGeneratorBody( CPythonExpressionContractionBodyBase, MarkGeneratorIndicator ):
     kind = "EXPRESSION_GENERATOR_BODY"
 
     def __init__( self, provider, source_ref ):
@@ -1789,6 +1816,8 @@ class CPythonExpressionGeneratorBody( CPythonExpressionContractionBodyBase ):
             provider    = provider,
             source_ref  = source_ref
         )
+
+        MarkGeneratorIndicator.__init__( self )
 
     def createProvidedVariable( self, variable_name ):
         return Variables.LocalVariable(
@@ -2141,6 +2170,12 @@ class CPythonExpressionComparison( CPythonChildrenHaving, CPythonNodeBase ):
     def getComparators( self ):
         return self.comparators
 
+    def getDetails( self ):
+        return { "comparators" : self.comparators }
+
+    def getSimulator( self, count ):
+        return PythonOperators.all_comparison_functions[ self.comparators[ count ] ]
+
 
 class CPythonStatementDeclareGlobal( CPythonNodeBase ):
     kind = "STATEMENT_DECLARE_GLOBAL"
@@ -2277,100 +2312,81 @@ class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
     getBlockFinal = CPythonChildrenHaving.childGetter( "final" )
 
 
-class CPythonStatementTryExcept( CPythonNodeBase ):
-    kind = "STATEMENT_TRY_EXCEPT"
+class CPythonStatementExceptHandler( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "STATEMENT_EXCEPT_HANDLER"
 
-    def __init__( self, tried, no_raise, catchers, assigns, catcheds, source_ref ):
+    named_children = ( "exception_type", "target", "body" )
+
+    def __init__( self, exception_type, target, body, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
-        self.tried = tried
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "exception_type" : exception_type,
+                "target"         : target,
+                "body"           : body,
+            }
+        )
 
-        self.catchers = catchers[:]
-        self.assigns = assigns[:]
-        self.catcheds = catcheds[:]
-
-        assert len( self.catchers ) == len( self.assigns ) == len( self.catcheds )
-
-        self.no_raise = no_raise
-
-    def getVisitableNodes( self ):
-        if self.tried is not None:
-            result = [ self.tried ]
-        else:
-            result = []
-
-        for catcher, assign, catched in zip( self.catchers, self.assigns, self.catcheds ):
-            if catcher is not None:
-                result.append( catcher )
-
-            if assign is not None:
-                result.append( assign )
-
-            if catched is not None:
-                result.append( catched )
-
-        if self.no_raise is not None:
-            result.append( self.no_raise )
-
-        return result
-
-    def replaceChild( self, old_node, new_node ):
-        if old_node is self.tried:
-            self.tried = new_node
-        elif old_node is self.no_raise:
-            self.no_raise = new_node
-        elif old_node in self.catchers:
-            self.catchers[ self.catchers.index( old_node ) ] = new_node
-        elif old_node in self.catcheds:
-            self.catcheds[ self.catcheds.index( old_node ) ] = new_node
-        elif old_node in self.assigns:
-            self.assigns[ self.assigns.index( old_node ) ] = new_node
-        else:
-            assert False, ( "didn't find child", old_node, "in", self )
-
-        if new_node is not None:
-            new_node.parent = old_node.parent
-
-    def getBlockTry( self ):
-        return self.tried
-
-    def getBlockNoRaise( self ):
-        return self.no_raise
-
-    def getExceptionAssigns( self ):
-        return self.assigns
-
-    def getExceptionCatchers( self ):
-        return self.catchers
-
-    def getExceptionCatchBranches( self ):
-        return self.catcheds
+    getExceptionType   = CPythonChildrenHaving.childGetter( "exception_type" )
+    getExceptionTarget = CPythonChildrenHaving.childGetter( "target" )
+    getExceptionBranch = CPythonChildrenHaving.childGetter( "body" )
 
 
-class CPythonStatementRaiseException( CPythonNodeBase ):
+class CPythonStatementTryExcept( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "STATEMENT_TRY_EXCEPT"
+
+    named_children = ( "tried", "handlers", "no_raise" )
+
+    def __init__( self, tried, no_raise, handlers, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "tried"    : tried,
+                "handlers" : tuple( handlers ),
+                "no_raise" : no_raise
+            }
+        )
+
+    getBlockTry = CPythonChildrenHaving.childGetter( "tried" )
+    getBlockNoRaise = CPythonChildrenHaving.childGetter( "no_raise" )
+    getExceptionHandlers = CPythonChildrenHaving.childGetter( "handlers" )
+
+
+class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_RAISE_EXCEPTION"
+
+    named_children = ( "exception_type", "exception_value", "exception_trace" )
 
     def __init__( self, exception_type, exception_value, exception_trace, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
-        self.exception_type = exception_type
-        self.exception_value = exception_value
-        self.exception_trace = exception_trace
+        if exception_type is None:
+            assert exception_value is None
+
+        if exception_value is None:
+            assert exception_trace is None
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "exception_type"  : exception_type,
+                "exception_value" : exception_value,
+                "exception_trace" : exception_trace,
+            }
+        )
 
         self.reraise_local = False
 
-    def getExceptionParameters( self ):
-        if self.exception_trace is not None:
-            return self.exception_type, self.exception_value, self.exception_trace
-        elif self.exception_value is not None:
-            return self.exception_type, self.exception_value
-        elif self.exception_type is not None:
-            return self.exception_type,
-        else:
-            return ()
+    getExceptionType = CPythonChildrenHaving.childGetter( "exception_type" )
+    getExceptionValue = CPythonChildrenHaving.childGetter( "exception_value" )
+    getExceptionTrace = CPythonChildrenHaving.childGetter( "exception_trace" )
 
     def isReraiseException( self ):
-        return self.getExceptionParameters() == ()
+        return self.getExceptionType() is None
 
     def isReraiseExceptionLocal( self ):
         assert self.isReraiseException()
@@ -2380,35 +2396,30 @@ class CPythonStatementRaiseException( CPythonNodeBase ):
     def markAsReraiseLocal( self ):
         self.reraise_local = True
 
-    def getVisitableNodes( self ):
-        return self.getExceptionParameters()
-
-class CPythonExpressionRaiseException( CPythonNodeBase ):
+class CPythonExpressionRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_RAISE_EXCEPTION"
 
-    def __init__( self, exception_type, exception_value, source_ref ):
+    named_children = ( "side_effects", "exception_type", "exception_value" )
+
+    def __init__( self, exception_type, exception_value, side_effects, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
-        self.exception_type = exception_type
-        self.exception_value = exception_value
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "exception_type"  : exception_type,
+                "exception_value" : exception_value,
+                "side_effects"    : tuple( side_effects )
+            }
+        )
 
-    def getExceptionParameters( self ):
-        if self.exception_value is not None:
-            return self.exception_type, self.exception_value
-        elif self.exception_type is not None:
-            return self.exception_type,
-        else:
-            return ()
+    getExceptionType = CPythonChildrenHaving.childGetter( "exception_type" )
+    getExceptionValue = CPythonChildrenHaving.childGetter( "exception_value" )
 
-    def getExceptionType( self ):
-        return self.exception_type
+    getSideEffects = CPythonChildrenHaving.childGetter( "side_effects" )
 
-    def getExceptionValue( self ):
-        return self.exception_value
-
-    def getVisitableNodes( self ):
-        return self.getExceptionParameters()
-
+    def addSideEffects( self, side_effects ):
+        self.setChild( "side_effects", tuple( side_effects ) + self.getSideEffects() )
 
 class CPythonStatementContinueLoop( CPythonNodeBase, MarkExceptionBreakContinueIndicator ):
     kind = "STATEMENT_CONTINUE_LOOP"
@@ -2985,3 +2996,46 @@ class CPythonExpressionBuiltinUnicode( CPythonChildrenHaving, CPythonNodeBase ):
         )
 
     getValue = CPythonChildrenHaving.childGetter( "value" )
+
+class CPythonExpressionBuiltinMakeException( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION"
+
+    named_children = ( "args", )
+
+    def __init__( self, exception_name, args, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "args" : tuple( args ),
+            }
+        )
+
+        self.exception_name = exception_name
+
+    def getDetails( self ):
+        return { "exception_name" : self.exception_name }
+
+    def getExceptionName( self ):
+        return self.exception_name
+
+    getArgs = CPythonChildrenHaving.childGetter( "args" )
+
+class CPythonExpressionBuiltinExceptionRef( CPythonNodeBase ):
+    kind = "EXPRESSION_BUILTIN_EXCEPTION_REF"
+
+    def __init__( self, exception_name, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        self.exception_name = exception_name
+
+    def getDetails( self ):
+        return { "exception_name" : self.exception_name }
+
+    def getExceptionName( self ):
+        return self.exception_name
+
+    def mayHaveSideEffects( self ):
+        # Referencing the exception has no side effect
+        return False

@@ -37,12 +37,13 @@ exec_local_template = """\
     PyObjectTemporary globals( %(globals_identifier)s );
     PyObjectTemporary locals( %(locals_identifier)s );
 
-    bool own_locals = true;
+    bool own_locals;
 
     if ( locals.asObject() == Py_None && globals.asObject() == Py_None )
     {
         globals.assign( %(make_globals_identifier)s );
         locals.assign( %(make_locals_identifier)s );
+
         own_locals = true;
     }
     else

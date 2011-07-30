@@ -35,25 +35,58 @@ This is required to run the same code easily with both CPython2 and CPython3.
 
 # pylint: disable=W0622
 
-# Work around for CPython 3.1 renaming long to int.
+# Work around for CPython 3.x renaming long to int.
 try:
     long = long
 except NameError:
     long = int
 
-# Work around for CPython 3.1 renaming unicode to str.
+# Work around for CPython 3.x renaming unicode to str.
 try:
     unicode = unicode
 except NameError:
     unicode = str
 
-# Work around for CPython 3.1 removal of cpickle.
+# Work around for CPython 3.x removal of cpickle.
 try:
     import cPickle as cpickle
 except ImportError:
+    # False alarm, no double import at all, pylint: disable=W0404
     import pickle as cpickle
+
+# Work around for CPython 3.x removal of commands
+try:
+    import commands
+except ImportError:
+    import subprocess as commands
+
+try:
+    import exceptions
+
+    builtin_exception_names = [
+        str( x ) for x in dir( exceptions )
+        if x.endswith( "Error" )
+    ]
+
+except ImportError:
+    exceptions = {}
+
+    import sys
+
+    for x in dir( sys.modules[ "builtins" ] ):
+        if str( x ).endswith( "Error" ):
+            exceptions[ str( x ) ] = x
+
+    builtin_exception_names = [
+        key for key, value in exceptions.items()
+        if key.endswith( "Error" )
+    ]
+
+assert "ValueError" in builtin_exception_names
 
 # For PyLint to be happy.
 assert long
 assert unicode
 assert cpickle
+assert commands
+assert exceptions

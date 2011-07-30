@@ -303,7 +303,7 @@ static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, Py
 {
     Nuitka_FunctionObject *result = PyObject_GC_New( Nuitka_FunctionObject, &Nuitka_Function_Type );
 
-    if ( result == NULL )
+    if (unlikely( result == NULL ))
     {
         PyErr_Format( PyExc_RuntimeError, "cannot create function %s", PyString_AsString( name ) );
         throw _PythonException();

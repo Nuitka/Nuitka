@@ -74,14 +74,19 @@ static inline void assertObject( PyTracebackObject *value )
 
 #include "nuitka/variables_temporary.hpp"
 
-#include "nuitka/exceptions.hpp"
-
 // Helper functions for reference count handling in the fly.
 NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
 {
     assertObject( object );
 
     Py_INCREF( object );
+
+    return object;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT_X( PyObject *object )
+{
+    Py_XINCREF( object );
 
     return object;
 }
@@ -94,6 +99,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 
     return object;
 }
+
+#include "nuitka/exceptions.hpp"
+
 
 #include "printing.hpp"
 
@@ -1462,7 +1470,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
         else if ( type->tp_getattr != NULL )
         {
             int line = _current_line;
-            PyObject *result = (*type->tp_getattr)( source, PyString_AS_STRING( attr_name) );
+            PyObject *result = (*type->tp_getattr)( source, PyString_AS_STRING( attr_name ) );
             _current_line = line;
 
             if (unlikely( result == NULL ))
@@ -1724,7 +1732,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject 
 #include "nuitka/variables_parameters.hpp"
 #include "nuitka/variables_locals.hpp"
 #include "nuitka/variables_shared.hpp"
-#include "nuitka/variables_globals.hpp"
+
+extern PyModuleObject *_module_builtin;
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LOCALS_DICT( void )
 {

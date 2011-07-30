@@ -309,7 +309,7 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, void *context
 {
     Nuitka_GeneratorObject *result = PyObject_GC_New( Nuitka_GeneratorObject, &Nuitka_Generator_Type );
 
-    if ( result == NULL )
+    if (unlikely( result == NULL ))
     {
         PyErr_Format( PyExc_RuntimeError, "cannot create genexpr %s", PyString_AsString( name ) );
         throw _PythonException();

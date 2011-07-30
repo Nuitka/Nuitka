@@ -92,18 +92,3 @@ def visitScopes( tree, visitor ):
             visitScope( node, visitor )
 
     _visitTree( tree, visitEverything )
-
-
-class _TreeVisitorAssignParent:
-    def __call__( self, node ):
-        for child in node.getVisitableNodes():
-            if child is None:
-                raise AssertionError( "none child encountered", node, node.source_ref )
-
-            try:
-                child.parent = node
-            except AttributeError:
-                raise AssertionError( "strange child encountered", node, node.source_ref, child )
-
-def assignParent( tree ):
-    visitTree( tree, _TreeVisitorAssignParent() )

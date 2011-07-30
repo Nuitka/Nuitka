@@ -235,7 +235,7 @@ PyObject *Nuitka_Genexpr_New( producer code, PyObject *name, PyObject *iterated,
 {
     Nuitka_GenexprObject *result = PyObject_GC_New( Nuitka_GenexprObject, &Nuitka_Genexpr_Type );
 
-    if ( result == NULL )
+    if (unlikely( result == NULL ))
     {
         PyErr_Format( PyExc_RuntimeError, "cannot create genexpr %s", PyString_AsString( name ) );
         throw _PythonException();

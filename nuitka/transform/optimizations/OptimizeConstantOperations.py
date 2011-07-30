@@ -40,103 +40,42 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
     def _optimizeConstantOperandsOperation( self, node, operands ):
         operator = node.getOperator()
 
-        if operator != "Repr":
-            operands = [ constant.getConstant() for constant in operands ]
+        operands = [ constant.getConstant() for constant in operands ]
 
-            if len( operands ) == 2:
-                operator_function = PythonOperators.binary_operator_functions[ operator ]
-            elif len( operands ) == 1:
-                operator_function = PythonOperators.unary_operator_functions[ operator ]
-            else:
-                assert False, operands
+        def simulate():
+            # This is a convinent way to execute no matter what the number of
+            # operands is. pylint: disable=W0142
+            return node.getSimulator()( *operands )
 
-            # Execute the operation and catch an exception. Turn either the result or the
-            # exception generated into a node. pylint: disable=W0703
-            try:
-                # This is a convinent way to execute no matter what the number of
-                # operands is. pylint: disable=W0142
-                result = operator_function( *operands )
-            except Exception as e:
-                new_node = makeRaiseExceptionReplacementExpressionFromInstance(
-                    expression = node,
-                    exception  = e,
-                )
+        self.replaceWithComputationResult(
+            node        = node,
+            computation = simulate,
+            description = "Operation with constant args"
+        )
 
-                self.signalChange(
-                    "new_code",
-                    node.getSourceReference(),
-                    "Operation with constant args was predicted to raise an exception."
-                )
-            else:
-                new_node = Nodes.makeConstantReplacementNode(
-                    constant = result,
-                    node     = node,
-                )
+    def _optimizeConstantOperandsComparison( self, node ):
+        comparators = node.getComparators()
 
-                self.signalChange(
-                    "new_constant",
-                    node.getSourceReference(),
-                    "Operation with constant args was predicted to constant result."
-                )
-
-            node.replaceWith( new_node )
-
-
-    def _optimizeConstantOperandsComparison( self, node, comparators, operands ):
         # TODO: Handle cases with multiple comparators too.
         if len( comparators ) != 1:
             return
 
-        for count, comparator in enumerate( comparators ):
-            operand1 = operands[ count ]
-            operand2 = operands[ count + 1 ]
+        operand1, operand2 = node.getOperands()
 
-            if areConstants( ( operand1, operand2 ) ):
-                value1 = operand1.getConstant()
-                value2 = operand2.getConstant()
+        if areConstants( ( operand1, operand2 ) ):
+            value1 = operand1.getConstant()
+            value2 = operand2.getConstant()
 
-                if comparator in PythonOperators.rich_comparison_functions:
-                    compare_function = PythonOperators.rich_comparison_functions[ comparator ]
-                elif comparator == "Is":
-                    compare_function = lambda value1, value2: value1 is value2
-                elif comparator == "IsNot":
-                    compare_function = lambda value1, value2: value1 is not value2
-                elif comparator == "In":
-                    compare_function = lambda value1, value2: value1 in value2
-                elif comparator == "NotIn":
-                    compare_function = lambda value1, value2: value1 not in value2
-                else:
-                    assert False, comparator
+            simulator = node.getSimulator( 0 )
 
-                # Execute the operation and catch an exception. Turn either the result or
-                # the exception generated into a node. pylint: disable=W0703
-                try:
-                    new_value = compare_function( value1, value2 )
-                except Exception as e:
-                    new_node = makeRaiseExceptionReplacementExpressionFromInstance(
-                        expression = node,
-                        exception  = e,
-                    )
+            def simulate():
+                return simulator( value1, value2 )
 
-                    self.signalChange(
-                        "new_code",
-                        node.getSourceReference(),
-                        "Comparison with constant args was predicted to raise an exception."
-                    )
-                else:
-                    new_node = Nodes.makeConstantReplacementNode(
-                        constant = new_value,
-                        node     = node
-                    )
-
-                    self.signalChange(
-                        "new_constant",
-                        node.getSourceReference(),
-                        "Comparison with constant args was predicted to a constant value."
-                    )
-
-                node.replaceWith( new_node )
-
+            self.replaceWithComputationResult(
+                node        = node,
+                computation = simulate,
+                description = "Comparison with constant args"
+            )
 
     def __call__( self, node ):
         if node.isOperation():
@@ -148,13 +87,8 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
                     operands = operands
                 )
         elif node.isExpressionComparison():
-            operands = node.getOperands()
-            comparators = node.getComparators()
-
             self._optimizeConstantOperandsComparison(
-                node        = node,
-                comparators = comparators,
-                operands    = operands
+                node        = node
             )
         elif node.isStatementConditional():
             condition = node.getCondition()

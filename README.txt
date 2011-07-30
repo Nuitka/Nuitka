@@ -14,10 +14,7 @@ tasks and issue tracking in Nuitka.
    only supported from that version on.
 
    On Windows the MinGW g++ compiler of at least version 4.5, the VC++ compiler is not
-   currently supported.
-
-   Scons: You need to install scons, because it is used to build the C++ sources to
-   binaries.
+   currently supported, because it is too weak in its C++0x support.
 
    Python: You need at least CPython 2.6 to execute Nuitka, and because the created
    executables will link against the CPython shared library at run time.
@@ -62,12 +59,6 @@ tasks and issue tracking in Nuitka.
     Cannot not exist for native compiled functions. There is no bytecode with Nuitka's
     compiled function objects, so there is no way to provide bytecode.
 
-*** sys.exc_info() does not stack
-
-    It works mostly as expected, but doesn't stack, exceptions when handling exceptions
-    are not preserved to this function, which they are with CPython, where each frame has
-    its own current exception.
-
 *** threading can block it seems
 
     The generated code never lets the CPython run time switch threads, so its chances to do
@@ -77,9 +68,11 @@ tasks and issue tracking in Nuitka.
 *** Start of function call vs. end of function call in traceback output
 
     In CPython the traceback points to the end of the function call, whereas Nuitka has it
-    point to the first line of the function call. This is due to the use of the ast.parse
-    over bytecode it seems and not easy to overcome. It would require parsing the source
-    on our own and search for the end of the function call.
+    point to the first line of the function call. This is due to the use of the "ast.parse"
+    over bytecode it seems and not easy to overcome. It would require parsing the Python
+    source on our own and search for the end of the function call. Maybe someone will do
+    it someday. I personally prefer the start of the function call, because it shows the
+    function called.
 
 *** Yield in generator expressions is not supported
 
@@ -417,6 +410,10 @@ This is the list of tests modified from what they are in CPython.
 
     Removed, out of scope
 
+*** test_sundry:
+
+    Removed, out of scope
+
 *** test_threading.py:
 
     Removed, out of scope.
@@ -505,11 +502,12 @@ some builtins (but not all yet), and it does it for binary/unary operations and
 comparisons.
 
 Literals are one source of constants, but also most likely other optimization steps like
-constant propagation or function inlining would be. So this one is not be underestimated
-and a very important step of successful optimizations.
+constant propagation or function inlining would be. So this one should not be underestimated
+and a very important step of successful optimizations. Every option to produce a constant
+may implact the generated code quality a lot.
 
-The folding of constants is considered implemented, but it may not be entirely complete
-yet. Please report it as a bug when you find an operation in Nuitka that has only
+Status: The folding of constants is considered implemented, but it may not be entirely
+complete yet. Please report it as a bug when you find an operation in Nuitka that has only
 constants are input and is not folded.
 
 ** Constant Propagation
@@ -522,12 +520,14 @@ repeated module variable lookup.
 
 Consider e.g. the module attribute "__name__" which likely is only ever be read, so its
 value could be predicted to a constant string known at compile time. This can then be used
-as input to the constant folding. Currently there is module variable usage analysis, but
-only "__name__" is currently actually optimized.
+as input to the constant folding.
 
-At this stage it is more a proof of concept in Nuitka and will need considerably more
-work, so that the whole node tree contains only one form of assignments. Until then we
-cannot implement this fully.
+Currently there is module variable usage analysis, but only "__name__" is currently actually
+optimized. Also builtin exception name references are optimized if they are uses as module
+level read only variables.
+
+Status: At this stage it is more a proof of concept in Nuitka and will need considerably
+more work, before it can be applied to local variables and their values.
 
 ** Builtin Call Prediction
 
@@ -539,6 +539,9 @@ call with it allowing for more constant folding or code path folding.
 The builtin call prediction is considered implemented, but may not cover all the builtins
 there are yet. Sometimes builtins are not predicted when the result is big. A range() call
 e.g. may give too big values to include the result in the binary.
+
+Status: This is considered mostly implemented. Please file bugs for builtins that are
+predictable but are not computed by Nuitka at compile time.
 
 ** Conditional Statement Prediction
 
@@ -557,6 +560,80 @@ branches have been removed, other things may become more predictable, so this is
 With some code branches removed, access patterns may be more friendly. Imagine e.g. that a
 function is only called in a removed branch. It may be possible to remove it entirely, and
 that may have other consequences too.
+
+Status: This is considered implemented, but for the most benefit, more constants needs to
+be determined at compile time.
+
+** Exception propagation
+
+For exceptions that are determined at compile time, there is an expression that will simply do
+raise the exception. These can be propagated, collecting potentially "side effects", i.e. parts
+of expressions that must still be executed.
+
+Consider the following code:
+
+print side_effect_having() + 1 / 0
+print something_else()
+
+The 1 / 0 can be predicted to raise a "ZeroDivisionError" exception, which will be propagated
+through the "+" operation. The call to "side_effect_having" will have to be retained, but the
+print statement, can be turned into an explicit raise. The statement sequence can be aborted
+and as such the "something_else" call needs no code generation or consideration anymore.
+
+Status: The propagation of exceptions is implemented on a very basic level. It works, but
+exceptions will not propagate through many different expression and statement types. As work
+progresses or examples arise, these will be extended.
+
+** Exception Scope Reduction
+
+Consider the following code:
+
+try:
+    b = 8
+    print range( 3, b, 0 )
+    print "Will not be executed"
+except ValueError, e:
+    print e
+
+The try block is bigger than it needs to be. The statement "b = 8" cannot cause a ValueError
+to be raised. As such it can be moved to outside the try without any risk.
+
+b = 8
+try:
+    print range( 3, b, 0 )
+    print "Will not be executed"
+except ValueError, e:
+    print e
+
+Status: Not yet done yet. The infrastructure is in place, but until exception block inlining
+works perfectly, there is not much of a point.
+
+** Exception Block Inlining
+
+With the exception propagation it is then possible to transform this code:
+
+try:
+    b = 8
+    print range( 3, b, 0 )
+    print "Will not be executed"
+except ValueError, e:
+    print e
+
+try:
+    raise ValueError, "range() step argument must not be zero"
+except ValueError, e:
+    print e
+
+Which then can be reduced by avoiding the raise and catch of the exception, making
+it:
+
+e = ValueError( "range() step argument must not be zero" )
+print e
+
+Status: For this to work, the builtin or user defined exception types from the raise
+must be matched against the catching ones. This works partially, but to simulate the
+effects of a raise statement and the normalization at compile time is something new
+and not yet done correctly, so this is currently disabled.
 
 ** Empty branch removal
 
@@ -578,7 +655,7 @@ The condition should be removed in this case, as its evaluation is not needed. I
 difficult to predict that side_effect_free has no side effects, but this might be
 possible.
 
-This is not implemented yet.
+Status: This is not implemented yet.
 
 ** Unpacking Prediction
 
@@ -591,42 +668,46 @@ building the assignment targets.
 We do this now, but only for constants, because we currently have no ability to predict if
 an expression can raise an exception or not.
 
+Status: Not really implemented, and should use mayHaveSideEffect() to be actually good at
+things.
+
 ** Builtin Type Inference
 
-Future (Not even started): When a construct like "in xrange()" or "in range()" is used, it
-should be possible to know what the iteration does and represent that, so that iterator
-users can use that instead.
+When a construct like "in xrange()" or "in range()" is used, it is possible to know what
+the iteration does and represent that, so that iterator users can use that instead.
 
 I consider that:
 
 for i in xrange(1000):
    something(i)
 
-could translate xrange(1000) or into an object of a special class that does the integer
+could translate "xrange(1000)" into an object of a special class that does the integer
 looping more efficiently. In case "i" is only assigned from there, this could be a nice
 case for a dedicated class.
 
+Status: Future work, not even started.
+
 ** Quicker function calls
 
-Functions are structured so that their parameter parsing and tp_call interface is separate
-from the actual function code. This way the call can be optimized. One problem is that the
-evaluation order can differ.
+Functions are structured so that their parameter parsing and "tp_call" interface is separate
+from the actual function code. This way the call can be optimized away. One problem is that
+the evaluation order can differ.
 
 def f( a, b, c ):
    return a, b, c
 
-f( c = get1(), b = get2(), c = get3() )
+f( c = get1(), b = get2(), a = get3() )
 
 This will evaluate first get1(), then get2() and then get3() and then make the call. In
 C++ whatever way the signature is written, its order is fixed. Therefore it would be
-necessary to have a staging of the parameters before making the actual call.
+necessary to have a staging of the parameters before making the actual call, to avoid
+an re-ordering of the calls to get1(), get2() and get3().
 
 To solve this, every call with keywords could have its own function in between to allow
 it. This is subject to the same compiler/platform dependent parameter order problem, we
 have seen before.
 
-We could also consider kw-only and args-only entry points to parsing, and call them from
-the compiled function tp_call interface. Parsing needs to do less checks in these cases.
+Status: Not even started.
 
 * Credits
 
@@ -653,13 +734,13 @@ Thanks for giving us CPython, which is the base of Nuitka.
 
 *** The gcc project http://gcc.gnu.org/
 
-Thanks for not only the best compiler, but also thanks for supporting C++0x which has made
-the generation of code much easier. Currently no other compiler is usable for Nuitka than
-yours.
+Thanks for not only the best compiler suite, but also thanks for supporting C++0x which
+has made the generation of code much easier. Currently no other compiler is usable for
+Nuitka than yours.
 
 *** The scons project http://www.scons.org/
 
-Thanks for tackling the difficult points and providing a Python environment for make the
+Thanks for tackling the difficult points and providing a Python environment to make the
 build results. This is such a perfect fit to Nuitka and a dependency that will likely
 remain.
 
@@ -671,7 +752,7 @@ noise. And it's also helpful to determine what's actually happening when compari
 *** The MinGW project http://www.mingw.org/
 
 Thanks for porting the best compiler to Windows. This allows portability of Nuitka with
-very little effort.
+relatively little effort.
 
 *** The mingw-cross-env project http://mingw-cross-env.nongnu.org
 

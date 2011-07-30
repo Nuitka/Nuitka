@@ -70,10 +70,9 @@ class FinalizeMarkups:
 
             while not search.isParentVariableProvider():
                 if search.isStatementsSequence():
-                    if search.getParent().isStatementTryExcept():
-                        if search in search.getParent().getExceptionCatchBranches():
-                            crossed_except = True
-                            break
+                    if search.getParent().isStatementExceptHandler():
+                        crossed_except = True
+                        break
 
                 search = search.getParent()
 
@@ -82,6 +81,7 @@ class FinalizeMarkups:
 
 
         if node.isAssignTargetVariable():
+            # TODO: Looks like a getParentStatement is missing.
             parent = node
 
             while not parent.isStatement():
@@ -89,3 +89,8 @@ class FinalizeMarkups:
 
             if parent.isStatementAssignment() and parent.getSource() is None:
                 node.getTargetVariableRef().getVariable().setHasDelIndicator()
+
+        if node.isStatementTryExcept():
+            parent = node.getParentVariableProvider()
+
+            parent.markAsTryExceptContaining()

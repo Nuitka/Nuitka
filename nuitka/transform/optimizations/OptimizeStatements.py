@@ -58,8 +58,6 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
 
                 parent.replaceWith( new_node )
 
-                TreeOperations.assignParent( new_node )
-
                 raise TreeOperations.RestartVisit
         elif node.isStatementExpressionOnly():
             if node.getExpression().isExpressionConstantRef():
@@ -68,9 +66,6 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
                 )
 
                 node.replaceWith( new_node )
-
-                TreeOperations.assignParent( new_node )
-
         elif node.isStatementPass():
             parent = node.getParent()
 
@@ -106,8 +101,6 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
 
                 parent.replaceWith( new_node )
 
-                TreeOperations.assignParent( new_node )
-
                 raise TreeOperations.RestartVisit
         elif node.isStatementTryExcept():
             if node.getBlockTry() is None:
@@ -119,8 +112,6 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
                     )
 
                 node.replaceWith( new_node )
-
-                TreeOperations.assignParent( new_node )
 
                 self.signalChange(
                     "new_statements",
@@ -137,8 +128,6 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
                     )
 
                 node.replaceWith( new_node )
-
-                TreeOperations.assignParent( new_node )
 
                 self.signalChange(
                     "new_statements",

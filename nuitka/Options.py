@@ -31,7 +31,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.3.10pre4
+Nuitka V0.3.10pre5
 Copyright (C) 2011 Kay Hayen."""
 
 from . import Utils
@@ -40,6 +40,8 @@ from optparse import OptionParser
 
 import sys, os, logging
 
+# Indicator if we were called as "Python" in which case we assume some other
+# defaults and work a bit different with parameters.
 is_Python = os.path.basename( sys.argv[0] ) == "Python"
 
 parser = OptionParser()

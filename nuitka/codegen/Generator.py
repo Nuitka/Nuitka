@@ -28,7 +28,7 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Generators for Python C/API.
+""" Generator for C++ and Python C/API.
 
 This is the actual C++ code generator. It has methods and should be the only place to know
 what C++ is like. Ideally it would be possible to replace the target language by changing
@@ -133,7 +133,7 @@ def getReturnCode( identifier ):
     else:
         return "return;"
 
-def getYieldCode( identifier, for_return = False ):
+def getYieldCode( identifier, for_return ):
     if not for_return:
         return Identifier(
             "YIELD_VALUE( generator, %s )" % identifier.getCodeExportRef(),
@@ -656,10 +656,10 @@ def getClosureVariableProvisionCode( context, closure_variables ):
 
     return result
 
-def getContractionCallCode( is_generator, contraction_identifier, contraction_iterated, closure_var_codes ):
+def getContractionCallCode( is_genexpr, contraction_identifier, contraction_iterated, closure_var_codes ):
     args = [ contraction_iterated.getCodeTemporaryRef() ] + closure_var_codes
 
-    if is_generator:
+    if is_genexpr:
         prefix = "MAKE_FUNCTION_"
     else:
         prefix = ""
@@ -1181,6 +1181,10 @@ def getVariableAssignmentCode( context, variable, identifier ):
                 identifier.getCodeExportRef()
             )
     elif variable.isMaybeLocalVariable():
+        # TODO: This branch ought to be impossible to take, as an assignment to an overflow
+        # variable would make it a local one.
+        assert False, variable
+
         return "SET_SUBSCRIPT( locals_dict.asObject(), %s, %s );" % (
             getConstantCode(
                 context  = context,
@@ -1346,38 +1350,39 @@ def getTryFinallyCode( context, code_tried, code_final ):
         "final_code" : indented( code_final, 0 )
     }
 
-def getTryExceptCode( context, code_tried, exception_identifiers, exception_assignments, \
-                      catcher_codes, else_code ):
+def getTryExceptHandlerCode( exception_identifier, exception_assignment, handler_code, \
+                             first_handler ):
     exception_code = []
 
-    cond_keyword = "if"
+    cond_keyword = "if" if first_handler else "else if"
 
-    for exception_identifier, exception_assignment, handler_code in zip(
-        exception_identifiers, exception_assignments, catcher_codes
-    ):
-        if exception_identifier is not None:
-            exception_code.append(
-                "%s ( _exception.matches(%s) )" % (
-                    cond_keyword,
-                    exception_identifier.getCodeTemporaryRef()
-                )
+    if exception_identifier is not None:
+        exception_code.append(
+            "%s ( _exception.matches(%s) )" % (
+                cond_keyword,
+                exception_identifier.getCodeTemporaryRef()
             )
-        else:
-            exception_code.append(
-                "%s (true)" % cond_keyword
-            )
+        )
+    else:
+        exception_code.append(
+            "%s (true)" % cond_keyword
+        )
 
-        exception_code.append( "{" )
-        exception_code.append( "    traceback = false;" )
+    exception_code.append( "{" )
+    exception_code.append( "    traceback = false;" )
 
-        if exception_assignment is not None:
-            exception_code.append( indented( exception_assignment, 1 ) )
+    if exception_assignment is not None:
+        exception_code.append(
+            indented( exception_assignment, 1 )
+        )
 
-        exception_code += indented( handler_code or "", 1 ).split("\n")
-        exception_code.append( "}" )
+    exception_code += indented( handler_code or "", 1 ).split("\n")
+    exception_code.append( "}" )
 
-        cond_keyword = "else if"
+    return exception_code
 
+def getTryExceptCode( context, code_tried, handler_codes, else_code ):
+    exception_code = handler_codes
     exception_code += [ "else", "{", "    throw;", "}" ]
 
     tb_making = getTracebackMakingIdentifier( context, "_exception.getLine()" )
@@ -1401,18 +1406,18 @@ def getTryExceptCode( context, code_tried, exception_identifiers, exception_assi
 def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier, \
                            exception_tb_identifier, exception_tb_maker ):
     if exception_value_identifier is None and exception_tb_identifier is None:
-        return "traceback = true; RAISE_EXCEPTION( %s, %s );" % (
+        return "RAISE_EXCEPTION( &traceback, %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
         )
     elif exception_tb_identifier is None:
-        return "traceback = true; RAISE_EXCEPTION( %s, %s, %s );" % (
+        return "RAISE_EXCEPTION( &traceback, %s, %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
         )
     else:
-        return "traceback = true; RAISE_EXCEPTION( %s, %s, %s );" % (
+        return "RAISE_EXCEPTION( &traceback, %s, %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
             exception_tb_identifier.getCodeExportRef()
@@ -1424,11 +1429,13 @@ def getReRaiseExceptionCode( local ):
     else:
         return "traceback = true; RERAISE_EXCEPTION();"
 
-def getRaiseExceptionExpressionCode( exception_type_identifier, exception_value_identifier, exception_tb_maker ):
+def getRaiseExceptionExpressionCode( side_effects, exception_type_identifier, \
+                                     exception_value_identifier, exception_tb_maker ):
     # TODO: Check out if the NUITKA_NO_RETURN avoids any temporary refcount to ever be
     # created or else avoid it with special identifier class that uses code for reference
     # counts 0 and both.
-    return Identifier(
+
+    result = Identifier(
         "THROW_EXCEPTION( %s, %s, %s, &traceback )" % (
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
@@ -1436,6 +1443,17 @@ def getRaiseExceptionExpressionCode( exception_type_identifier, exception_value_
         ),
         0
     )
+
+    if side_effects:
+        result = Identifier(
+            "( %s, %s )" % (
+                ", ".join( side_effect.getCodeTemporaryRef() for side_effect in side_effects ),
+                result.getCodeTemporaryRef()
+            ),
+            0
+        )
+
+    return result
 
 def getAssertCode( condition_identifier, failure_identifier, exception_tb_maker ):
     if failure_identifier is None:
@@ -1449,6 +1467,25 @@ def getAssertCode( condition_identifier, failure_identifier, exception_tb_maker 
             "failure_arg" : failure_identifier.getCodeExportRef(),
             "tb_maker"    : exception_tb_maker.getCodeExportRef()
         }
+
+
+def getExceptionRefCode( exception_type ):
+    return Identifier(
+        "PyExc_%s" % exception_type,
+        0
+    )
+
+def getMakeExceptionCode( exception_type, exception_args ):
+    return Identifier(
+        "CALL_FUNCTION_STAR_LIST_ONLY( %s, PyExc_%s )" % (
+            getSequenceCreationCode(
+                "tuple",
+                exception_args
+            ).getCodeTemporaryRef(),
+            exception_type,
+        ),
+        1
+    )
 
 def _getLocalVariableList( context, provider ):
     if provider.isExpressionFunctionBody():
@@ -1562,9 +1599,9 @@ def getStoreLocalsCode( context, source_identifier, provider ):
     code = ""
 
     for variable in provider.getVariables():
-        if not variable.isModuleVariable():
+        if not variable.isModuleVariable() and not variable.isMaybeLocalVariable():
             key_identifier = getConstantHandle(
-                context = context,
+                context  = context,
                 constant = variable.getName()
             )
 
@@ -2025,9 +2062,6 @@ def getFunctionsCode( context ):
     for _code_name, ( _class_decl, class_code ) in sorted( context.getClassesCodes().iteritems() ):
         result += class_code
 
-    for _code_name, ( _lambda_decl, lambda_code ) in sorted( context.getLambdasCodes().iteritems() ):
-        result += lambda_code
-
     return result
 
 def getFunctionsDecl( context ):
@@ -2041,9 +2075,6 @@ def getFunctionsDecl( context ):
 
     for _code_name, ( class_decl, _class_code ) in sorted( context.getClassesCodes().iteritems() ):
         result += class_decl
-
-    for _code_name, ( lambda_decl, _lambda_code ) in sorted( context.getLambdasCodes().iteritems() ):
-        result += lambda_decl
 
     return result
 
@@ -2109,7 +2140,6 @@ def getContractionCode( context, contraction_identifier, contraction_kind, loop_
                 )
             )
 
-
     contraction_iterateds.insert( 0, Identifier( "iterated", 0 ) )
 
     for count, ( contraction_condition, contraction_iterated, loop_var_code ) in enumerate (
@@ -2131,15 +2161,12 @@ def getContractionCode( context, contraction_identifier, contraction_kind, loop_
         context = context
     )
 
-    if local_expression_temp_inits:
-        local_expression_temp_inits += "\n"
-
     return CodeTemplates.contraction_code_template % {
         "contraction_identifier" : contraction_identifier,
         "contraction_parameters" : ", ".join( contraction_parameters ),
         "contraction_body"       : contraction_loop,
         "contraction_var_decl"   : indented( contraction_var_decl ),
-        "contraction_temp_decl"  : indented( local_expression_temp_inits )
+        "contraction_temp_decl"  : indented( local_expression_temp_inits + "\n" if local_expression_temp_inits else "" )
     }
 
 def getContractionIterValueIdentifier( context, index ):
@@ -2148,7 +2175,7 @@ def getContractionIterValueIdentifier( context, index ):
     else:
         return Identifier( "_python_genexpr_iter_value", 1 )
 
-def _getFunctionCreationArgs( decorator_count, default_identifiers, closure_variables, is_generator ):
+def _getFunctionCreationArgs( decorator_count, default_identifiers, closure_variables, is_genexpr ):
     if decorator_count:
         result = [
             "PyObject *decorator_%d" % ( d + 1 )
@@ -2158,7 +2185,7 @@ def _getFunctionCreationArgs( decorator_count, default_identifiers, closure_vari
     else:
         result = []
 
-    if is_generator:
+    if is_genexpr:
         result += [ "PyObject *iterator" ]
 
 
@@ -2171,14 +2198,14 @@ def _getFunctionCreationArgs( decorator_count, default_identifiers, closure_vari
 
     return ", ".join( result )
 
-def getFunctionDecl( function_identifier, decorator_count, default_identifiers, closure_variables, is_generator ):
+def getFunctionDecl( function_identifier, decorator_count, default_identifiers, closure_variables, is_genexpr ):
     return CodeTemplates.function_decl_template % {
         "function_identifier"    : function_identifier,
         "function_creation_args" : _getFunctionCreationArgs(
             decorator_count     = decorator_count,
             default_identifiers = default_identifiers,
             closure_variables   = closure_variables,
-            is_generator        = is_generator
+            is_genexpr          = is_genexpr
         )
     }
 
@@ -2350,7 +2377,6 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
     else:
         local_expression_temp_inits = []
 
-
     for closure_variable in closure_variables:
         context_decl.append(
             _getLocalVariableInitCode(
@@ -2371,7 +2397,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         decorator_count     = decorator_count,
         default_identifiers = default_access_identifiers,
         closure_variables   = closure_variables,
-        is_generator        = False
+        is_genexpr          = False
     )
 
     function_decorator_calls = _getDecoratorsCallCode(
@@ -2402,12 +2428,20 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
     else:
         context_access_instance = ""
 
+    function_locals = function_var_inits + local_expression_temp_inits
+
+    if context.hasLocalsDict():
+        function_locals = CodeTemplates.function_dict_setup.split("\n") + function_locals
+
+    if context.needsFrameExceptionKeeper():
+        function_locals = CodeTemplates.frame_exceptionkeeper_setup.split("\n") + function_locals
+
     result += CodeTemplates.genfunc_yielder_template % {
         "function_name"       : function_name,
         "function_name_obj"   : function_name_obj,
         "function_identifier" : function_identifier,
         "function_body"       : indented( function_codes, 2 ),
-        "function_var_inits"  : indented( function_var_inits + local_expression_temp_inits, 2 ),
+        "function_var_inits"  : indented( function_locals, 2 ),
         "context_access"      : indented( context_access_instance, 2 ),
         "module_identifier"   : getModuleAccessCode( context = context ),
         "name_identifier"     : getConstantCode(
@@ -2499,7 +2533,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         decorator_count     = decorator_count,
         closure_variables   = closure_variables,
         default_identifiers = default_access_identifiers,
-        is_generator        = False
+        is_genexpr          = False
     )
 
     # User local variable initializations
@@ -2530,10 +2564,14 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         constant = function_doc
     )
 
+
     function_locals = function_parameter_decl + local_var_inits + local_expression_temp_inits
 
     if context.hasLocalsDict():
         function_locals = CodeTemplates.function_dict_setup.split("\n") + function_locals
+
+    if context.needsFrameExceptionKeeper():
+        function_locals = CodeTemplates.frame_exceptionkeeper_setup.split("\n") + function_locals
 
     result = ""
 
@@ -2857,6 +2895,9 @@ def getClassCode( context, class_def, class_name, class_filename, class_identifi
         class_locals = CodeTemplates.function_dict_setup.split("\n") + class_var_decl + local_expression_temp_inits
     else:
         class_locals = class_var_decl + local_expression_temp_inits
+
+    if context.needsFrameExceptionKeeper():
+        class_locals = CodeTemplates.frame_exceptionkeeper_setup.split("\n") + class_locals
 
     class_creation_args, class_dict_args = _getClassCreationArgs(
         closure_variables = closure_variables,

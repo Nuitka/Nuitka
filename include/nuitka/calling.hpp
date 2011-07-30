@@ -244,6 +244,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_LIST( PyObject *list_st
     return CALL_FUNCTION( named_args, PyObjectTemporary( MERGE_STAR_LIST_ARGS( list_star_arg, positional_args, function_object ) ).asObject(), function_object );
 }
 
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_LIST_ONLY( PyObject *list_star_arg, PyObject *function_object )
+{
+    return CALL_FUNCTION( NULL, list_star_arg, function_object );
+}
+
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_BOTH( PyObject *dict_star_arg, PyObject *list_star_arg, PyObject *named_args, PyObject *positional_args, PyObject *function_object )
 {
     return CALL_FUNCTION_STAR_DICT( dict_star_arg, named_args, PyObjectTemporary( MERGE_STAR_LIST_ARGS( list_star_arg, positional_args, function_object ) ).asObject(), function_object );
@@ -254,7 +259,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_BOTH( PyObject *dict_st
     return CALL_FUNCTION_STAR_DICT( dict_star_arg, PyObjectTemporary( MERGE_STAR_LIST_ARGS( list_star_arg, positional_args, function_object ) ).asObject(), function_object );
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_ONLY( PyObject *dict_star_arg, PyObject *list_star_arg, PyObject *function_object )
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_BOTH_ONLY( PyObject *dict_star_arg, PyObject *list_star_arg, PyObject *function_object )
 {
     if (unlikely( PyTuple_Check( list_star_arg ) == 0 ))
     {

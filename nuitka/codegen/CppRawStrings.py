@@ -35,7 +35,9 @@ and little more. Because this is hard to get right with the white space problems
 has here, we have a paranoid debug mode that compiles a test program to verify the correctness
 of each literal. That's not fast of course.
 """
-import commands, os, re
+import os, re
+
+from nuitka.__past__ import commands
 
 def _pickRawDelimiter( value ):
     delimiter = "raw"
