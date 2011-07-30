@@ -29,18 +29,24 @@ starImporterFunction()
 def deepExec():
     for_closure = 3
 
-    def execFunction():
-        code = "f=2"
+    def deeper():
+        for_closure_as_well = 4
 
-        # Can fool it to nest
-        exec code in None, None
+        def execFunction():
+            code = "f=2"
 
-        print "Locals now", locals()
+            # Can fool it to nest
+            exec code in None, None
 
-        # print "Closure was taken", for_closure
-        print "Globals still work", starImporterFunction
-        print "Added local from code", f
+            print "Locals now", locals()
 
-    execFunction()
+            # print "Closure one level up was taken", for_closure_as_well
+            # print "Closure two levels up was taken", for_closure
+            print "Globals still work", starImporterFunction
+            print "Added local from code", f
+
+        execFunction()
+
+    deeper()
 
 deepExec()
