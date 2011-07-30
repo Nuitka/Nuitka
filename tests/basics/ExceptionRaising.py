@@ -41,10 +41,10 @@ except Exception, f:
 
 def raiseExceptionAndReraise():
     try:
-       x = 0
-       y = x / x
+        x = 0
+        y = x / x
     except:
-      raise
+        raise
 
 print "*" * 20
 
@@ -148,16 +148,24 @@ def checkExcInfoScope():
 
     print "Exc_info remains visible after exception handler"
 
+    def subFunction():
+        assert sys.exc_info()[0] is not None
+        assert sys.exc_info()[1] is not None
+        assert sys.exc_info()[2] is not None
+
+    subFunction()
+
 print "*" * 20
 
 sys.exc_clear()
 
 checkExcInfoScope()
 
-# TODO: This should not have to be commented out
-# assert sys.exc_info()[0] is None
-# assert sys.exc_info()[1] is None
-# assert sys.exc_info()[2] is None
+# Check that the sys.exc_info is cleared again, after being set inside the
+# function checkExcInfoScope, it should now be clear again.
+assert sys.exc_info()[0] is None
+assert sys.exc_info()[1] is None
+assert sys.exc_info()[2] is None
 
 def checkDerivedCatch():
     class A:
@@ -208,3 +216,29 @@ def checkNonCatch2():
 print "*" * 20
 checkNonCatch1()
 checkNonCatch2()
+
+print "*" * 20
+def checkRaisingRaise():
+    print "Checking raise that has exception arg that raises an error itself."
+
+    try:
+        raise 1/0
+
+    except Exception, e:
+        print "Had exception", e
+
+    try:
+        raise TypeError, 1/0
+
+    except Exception, e:
+        print "Had exception", e
+
+
+    try:
+        raise TypeError, 7, 1/0
+
+    except Exception, e:
+        print "Had exception", e
+
+
+checkRaisingRaise()
