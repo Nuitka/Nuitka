@@ -73,6 +73,9 @@ def getCoreCount():
         pass
 
     if not cpu_count:
+        # false alarm, no re-import, just a function level import to avoid it unless it is
+        # absolutely necessary, pylint: disable=W0404
+
         import multiprocessing
         cpu_count = multiprocessing.cpu_count()
 

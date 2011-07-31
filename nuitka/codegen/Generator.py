@@ -722,8 +722,7 @@ def getFunctionCreationCode( context, function_identifier, decorators, default_i
     )
 
 def getBranchCode( condition, yes_codes, no_codes ):
-    # TODO: Make this true
-    # assert yes_codes
+    assert yes_codes or no_codes
 
     if no_codes is None:
         return CodeTemplates.template_branch_one % {

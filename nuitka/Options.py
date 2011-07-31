@@ -31,10 +31,10 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.3.10pre5
+Nuitka V0.3.10
 Copyright (C) 2011 Kay Hayen."""
 
-from . import Utils
+from . import Utils, Tracing
 
 from optparse import OptionParser
 

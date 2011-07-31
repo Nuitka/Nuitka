@@ -30,8 +30,6 @@
 #
 """ Replace builtins with alternative implementations more optimized or capable of the task.
 
-TODO: Split in two phases, such that must be replaced (locals(), globals() and such that
-are just a good idea to replace (range(), etc)
 """
 
 from .OptimizeBase import (
@@ -46,7 +44,7 @@ from nuitka.Utils import getPythonVersion
 
 from nuitka.nodes.ParameterSpec import ParameterSpec, TooManyArguments
 
-from nuitka.__past__ import exceptions, builtin_exception_names
+from nuitka.__past__ import builtin_exception_names
 
 import math, sys
 
@@ -194,7 +192,8 @@ builtin_repr_spec = BuiltinParameterSpecNoKeywords( "repr", ( "object", ), 1 )
 # now it's not yet done.
 
 def _isReadOnlyModuleVariable( variable ):
-    return ( variable.isModuleVariable() and variable.getReadOnlyIndicator() is True ) or variable.isMaybeLocalVariable()
+    return ( variable.isModuleVariable() and variable.getReadOnlyIndicator() is True ) or \
+           variable.isMaybeLocalVariable()
 
 class ReplaceBuiltinsVisitorBase( OptimizationDispatchingVisitorBase ):
     """ Replace calls to builtin names by builtin nodes if possible or necessary.
@@ -304,6 +303,9 @@ class ReplaceBuiltinsVisitorBase( OptimizationDispatchingVisitorBase ):
 
 
 class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
+    # Many methods of this class could be functions, but we want it scoped on the class
+    # level anyway. pylint: disable=R0201
+
     def __init__( self ):
         ReplaceBuiltinsVisitorBase.__init__(
             self,
@@ -361,7 +363,8 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
             source_ref   = node.getSourceReference()
         )
 
-    def _pickLocalsForNode( self, node ):
+    @staticmethod
+    def _pickLocalsForNode( node ):
         """ Pick a locals default for the given node. """
 
         provider = node.getParentVariableProvider()
@@ -375,7 +378,8 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
                 source_ref = node.getSourceReference()
             )
 
-    def _pickGlobalsForNode( self, node ):
+    @staticmethod
+    def _pickGlobalsForNode( node ):
         """ Pick a globals default for the given node. """
 
         return Nodes.CPythonExpressionBuiltinGlobals(
@@ -394,6 +398,9 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
 
 
 class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
+    # Many methods of this class could be functions, but we want it scoped on the class
+    # level anyway. pylint: disable=R0201
+
     def __init__( self ):
         dispatch_dict = {
             "dir"        : self.dir_extractor,
@@ -522,7 +529,9 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
                 return Nodes.CPythonExpressionFunctionCall(
                     called_expression = makeRaiseExceptionReplacementExpressionFromInstance(
                         expression     = node,
-                        exception      = TypeError( "dict expected at most 1 arguments, got %d" % len( positional_args ) )
+                        exception      = TypeError(
+                            "dict expected at most 1 arguments, got %d" % len( positional_args )
+                        )
                     ),
                     positional_args   = positional_args,
                     list_star_arg     = None,
@@ -642,7 +651,7 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
             return Nodes.CPythonExpressionBuiltinMakeException(
                 exception_name = exception_name,
                 args           = args,
-                source_ref     = node.getSourceReference()
+                source_ref     = source_ref
             )
 
         return self._extractBuiltinArgs(
@@ -668,7 +677,9 @@ class ReplaceBuiltinsExceptionsVisitor( OptimizationVisitorBase ):
                     self.signalChange(
                         "new_raise new_variable",
                         node.getSourceReference(),
-                        message = "Replaced reference to read only module variable with exception %s." % variable.getName()
+                        message = "Replaced access to read only module variable with exception %s." % (
+                           variable.getName()
+                        )
                     )
 
                     assert node.parent is new_node.parent

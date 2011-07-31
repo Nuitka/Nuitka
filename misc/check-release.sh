@@ -71,6 +71,8 @@ execute_tests()
     unset NUITKA_EXTRA_OPTIONS
 }
 
+python3.2 bin/Nuitka.py --version 2>/dev/null
+
 execute_tests "python2.6-debug" "python2.6" "--debug"
 execute_tests "python2.7-debug" "python2.7" "--debug"
 
@@ -79,3 +81,5 @@ execute_tests "python2.7-nodebug" "python2.7" ""
 
 echo "Running the reflection test in debug mode with $PYTHON:"
 ./tests/reflected/compile_itself.sh search
+
+echo "OK."

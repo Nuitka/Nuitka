@@ -58,7 +58,8 @@ OPTIONS='--rcfile=/dev/null
          --max-module-lines=5000
          --min-public-methods=0
          --max-public-methods=100
-         --max-args=10'
+         --max-args=10
+         --max-parents=9'
 
 if [ "$1" != "" ]
 then
@@ -66,7 +67,7 @@ then
 else
     for file in `find nuitka -name \*.py`
     do
-        if [ "$file" != "src/oset.py" -a "$file" != "src/odict.py" ]
+        if [ "$file" != "src/oset.py" -a "$file" != "src/odict.py" -a "$file" != "nuitka/SyntaxHighlighting.py" -a "$file" != "nuitka/TreeDisplay.py" ]
         then
             echo $file
             pylint $OPTIONS $PYLINT_EXTRA_OPTIONS $file

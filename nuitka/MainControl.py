@@ -90,7 +90,7 @@ def dumpTreeXML( tree ):
 
 def displayTree( tree ):
     # Import only locally so the Qt4 dependency doesn't normally come into play when it's
-    # not strictly needed.
+    # not strictly needed, pylint: disable=W0404
     from . import TreeDisplay
 
     TreeDisplay.displayTreeInspector( tree )

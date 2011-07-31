@@ -28,6 +28,9 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Propagate exception raising upwards, maintaining side effects, and removing useless try constructs.
+
+"""
 
 from .OptimizeBase import OptimizationVisitorBase
 
@@ -160,7 +163,7 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
             new_children.append( child )
 
             if child.isExpressionRaiseException():
-                 break
+                break
         else:
             assert False
 
@@ -197,15 +200,17 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
         if catched_exception is None:
             return True
 
-        if catched_exception.isExpressionBuiltinExceptionRef() and raised_exception.isExpressionBuiltinExceptionRef():
-            # TODO: Could check run time objects from builtins for subclass relationship
-            if catched_exception.getExceptionName() == raised_exception.getExceptionName():
-                return True
+        # TODO: Why can raised_exception be None at all?
+        if raised_exception is not None:
+            if catched_exception.isExpressionBuiltinExceptionRef() and raised_exception.isExpressionBuiltinExceptionRef():
+                # TODO: Could check run time objects from builtins for subclass relationship
+                if catched_exception.getExceptionName() == raised_exception.getExceptionName():
+                    return True
 
-        if catched_exception.isExpressionBuiltinExceptionRef() and raised_exception.isExpressionBuiltinMakeException():
-            # TODO: Could check run time objects from builtins for subclass relationship
-            if catched_exception.getExceptionName() == raised_exception.getExceptionName():
-                return True
+            if catched_exception.isExpressionBuiltinExceptionRef() and raised_exception.isExpressionBuiltinMakeException():
+                # TODO: Could check run time objects from builtins for subclass relationship
+                if catched_exception.getExceptionName() == raised_exception.getExceptionName():
+                    return True
 
 
 

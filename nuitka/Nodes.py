@@ -252,12 +252,6 @@ class CPythonNodeBase:
 
         return result
 
-        result = TreeXML.makeNodeElement(
-            node = self
-        )
-
-        return result
-
     def dump( self, level = 0 ):
         Tracing.printIndented( level, self )
         Tracing.printSeparator( level )
@@ -717,7 +711,8 @@ class MarkContainsTryExceptIndicator:
     def needsFrameExceptionKeeper( self ):
         return self.try_except_containing
 
-class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureGiverNodeBase, MarkContainsTryExceptIndicator ):
+class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureGiverNodeBase, \
+                     MarkContainsTryExceptIndicator ):
     """ Module
 
         The module is the only possible root of a tree. When there are many modules
@@ -868,7 +863,8 @@ class CPythonStatementClassBuilder( CPythonChildrenHaving, CPythonNodeBase ):
         return self.getBody().getClassVariables()
 
 
-class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CPythonCodeNodeBase, MarkContainsTryExceptIndicator ):
+class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CPythonCodeNodeBase, \
+                                  MarkContainsTryExceptIndicator ):
     kind = "EXPRESSION_CLASS_BODY"
 
     early_closure = True
@@ -997,6 +993,14 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
         new_statements = old_statements[ : old_statements.index( statement ) + 1 ]
 
         self.setChild( "statements", new_statements )
+
+    def mayHaveSideEffects( self ):
+        # Statement sequences have a side effect if one of the statements does.
+        for statement in self.getStatements():
+            if statement.mayHaveSideEffects():
+                return True
+        else:
+            return False
 
 
 class CPythonAssignTargetVariable( CPythonChildrenHaving, CPythonNodeBase ):
@@ -1294,7 +1298,9 @@ class CPythonStatementFunctionBuilder( CPythonChildrenHaving, CPythonNodeBase ):
     setBody = CPythonChildrenHaving.childSetter( "body" )
 
 
-class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavingNodeBase, CPythonClosureTaker, MarkContainsTryExceptIndicator, MarkGeneratorIndicator ):
+class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavingNodeBase, \
+                                     CPythonClosureTaker, MarkContainsTryExceptIndicator, \
+                                     MarkGeneratorIndicator ):
     kind = "EXPRESSION_FUNCTION_BODY"
 
     early_closure = False
@@ -1998,6 +2004,7 @@ class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExcep
     getIterated = CPythonChildrenHaving.childGetter( "iterated" )
     getLoopVariableAssignment = CPythonChildrenHaving.childGetter( "target" )
     getBody = CPythonChildrenHaving.childGetter( "body" )
+    setBody = CPythonChildrenHaving.childSetter( "body" )
     getNoBreak = CPythonChildrenHaving.childGetter( "else" )
     setNoBreak = CPythonChildrenHaving.childSetter( "else" )
 
@@ -2289,6 +2296,7 @@ class CPythonStatementConditional( CPythonChildrenHaving, CPythonNodeBase ):
 
     getCondition = CPythonChildrenHaving.childGetter( "condition" )
     getBranchYes = CPythonChildrenHaving.childGetter( "yes_branch" )
+    setBranchYes = CPythonChildrenHaving.childSetter( "yes_branch" )
     getBranchNo = CPythonChildrenHaving.childGetter( "no_branch" )
     setBranchNo = CPythonChildrenHaving.childSetter( "no_branch" )
 
@@ -2440,6 +2448,9 @@ class CPythonStatementPass( CPythonNodeBase ):
 
     def __init__( self, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+    def mayHaveSideEffects( self ):
+        return False
 
 class CPythonExpressionBuiltinImport( CPythonNodeBase ):
     kind = "EXPRESSION_BUILTIN_IMPORT"

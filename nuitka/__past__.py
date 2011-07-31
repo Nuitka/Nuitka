@@ -58,6 +58,9 @@ except ImportError:
 try:
     import commands
 except ImportError:
+    # false alarm, no re-import, just another try if the above fails, which it will
+    # on Python3 pylint: disable=W0404
+
     import subprocess as commands
 
 try:
