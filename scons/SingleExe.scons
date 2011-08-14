@@ -226,6 +226,9 @@ if win_target:
 
     python_header_path = python_home + "/include"
 
+    # Might be required for native current MinGW to not have a link time issue.
+    # -D__MSVCRT_VERSION__=0x0800 -DWINVER=0x0800
+
 else:
     # The python header path is a combination of python version and debug indication, make
     # sure the heades are found by adding it to the C++ include path.
