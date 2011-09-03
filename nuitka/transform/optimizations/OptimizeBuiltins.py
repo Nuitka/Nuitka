@@ -75,7 +75,8 @@ class BuiltinParameterSpec( ParameterSpec ):
         return self.name
 
     def simulateCall( self, given_values ):
-        # Using star dict call for simulation, pylint: disable=W0142
+        # Using star dict call for simulation and catch any exception as really fatal,
+        # pylint: disable=W0142,W0703
 
         try:
             given_normal_args = given_values[ : len( self.normal_args ) ]
@@ -119,7 +120,8 @@ class BuiltinParameterSpecNoKeywords( BuiltinParameterSpec ):
         return False
 
     def simulateCall( self, given_values ):
-        # Using star list call for simulation, pylint: disable=W0142
+        # Using star dict call for simulation and catch any exception as really fatal,
+        # pylint: disable=W0142,W0703
 
         try:
             if self.list_star_arg:

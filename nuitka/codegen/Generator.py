@@ -73,6 +73,7 @@ from nuitka import (
     Constants
 )
 
+import re
 
 def getConstantAccess( context, constant ):
     # Many cases, because for each type, we may copy or optimize by creating empty.
@@ -83,7 +84,7 @@ def getConstantAccess( context, constant ):
             return Identifier(
                 "PyDict_Copy( %s )" % getConstantCode(
                     constant = constant,
-                    context = context
+                    context  = context
                 ),
                 1
             )
@@ -2985,13 +2986,12 @@ def _getConstantsDeclarationCode( context, for_header ):
 
     return "\n".join( statements )
 
-import re
-
+# TODO: The determation of this should already happen in TreeBuilding or in a helper not
+# during code generation.
 _match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
 
 def _isAttributeName( value ):
     return _match_attribute_names.match( value )
-
 
 def _getUnstreamCode( constant_value, constant_type, constant_identifier ):
     saved = getStreamedConstant(

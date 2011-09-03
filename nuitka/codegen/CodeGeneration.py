@@ -2019,7 +2019,6 @@ def _generateStatementCode( statement, context ):
             ),
             context     = context
         )
-
     elif statement.isStatementReturn():
         code = generateReturnCode(
             statement = statement,
