@@ -37,9 +37,6 @@ this one and the templates, and otherwise nothing else.
 """
 
 
-from nuitka.__past__ import cpickle
-import pickle
-
 from .Identifiers import (
     Identifier,
     ModuleVariableIdentifier,
@@ -51,6 +48,8 @@ from .Identifiers import (
 )
 
 from .Indentation import indented
+
+from .Pickling import getStreamedConstant
 
 from .ConstantCodes import getConstantHandle, getConstantCode
 from .VariableCodes import getVariableHandle, getVariableCode
@@ -74,7 +73,6 @@ from nuitka import (
     Constants
 )
 
-from logging import warning
 
 def getConstantAccess( context, constant ):
     # Many cases, because for each type, we may copy or optimize by creating empty.
@@ -2996,23 +2994,10 @@ def _isAttributeName( value ):
 
 
 def _getUnstreamCode( constant_value, constant_type, constant_identifier ):
-    # Note: The marshal module cannot persist all unicode strings and
-    # therefore cannot be used.  The cPickle fails to gives reproducible
-    # results for some tuples, which needs clarification. In the mean time we
-    # are using pickle.
-    try:
-        saved = pickle.dumps(
-            constant_value,
-            protocol = 0 if constant_type is unicode else 0
-        )
-    except TypeError:
-        warning( "Problem with persisting constant '%r'." % constant_value )
-        raise
-
-    # Check that the constant is restored correctly.
-    restored = cpickle.loads( saved )
-
-    assert Constants.compareConstants( restored, constant_value )
+    saved = getStreamedConstant(
+        constant_value = constant_value,
+        constant_type  = constant_type
+    )
 
     if str is unicode:
         saved = saved.decode( "utf_8" )
