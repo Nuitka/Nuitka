@@ -629,15 +629,22 @@ def getOperationCode( operator, identifiers ):
         assert False, (operator, identifiers)
 
 def getPrintCode( newline, identifiers, target_file ):
-    args = [
-        "true" if newline else "false",
-        target_file.getCodeTemporaryRef() if target_file is not None else "NULL"
-    ]
+    print_elements_code = ""
 
-    args += getCodeTemporaryRefs( identifiers )
+    for identifier in identifiers:
+        print_elements_code += CodeTemplates.template_print_value % {
+            "print_value" : identifier.getCodeTemporaryRef()
+        }
+
+    if newline:
+        print_elements_code += CodeTemplates.template_print_newline
+
+    return CodeTemplates.template_print_statement % {
+        "target_file"         : target_file.getCodeExportRef() if target_file is not None else "NULL",
+        "print_elements_code" : print_elements_code
+    }
 
     return "PRINT_ITEMS( %s );" % ( ", ".join( args ) )
-
 
 def getClosureVariableProvisionCode( context, closure_variables ):
     result = []

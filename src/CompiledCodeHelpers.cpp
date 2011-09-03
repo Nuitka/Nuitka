@@ -691,6 +691,13 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name
 
 void PRINT_ITEM_TO( PyObject *file, PyObject *object )
 {
+    if ( file == NULL || file == Py_None )
+    {
+        file = GET_STDOUT();
+    }
+
+    assertObject( file );
+
     assertObject( object );
 
     PyObject *str = PyObject_Str( object );

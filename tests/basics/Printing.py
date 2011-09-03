@@ -35,3 +35,11 @@ print "with tab"
 # These ones gave errors with previos literal bugs:
 print "changed 2"
 print "foo%sbar%sfred%sbob?????"
+
+a = "partial print"
+# b doesn't exist
+
+try:
+    print a, b
+except Exception, e:
+    print "then occured", e
