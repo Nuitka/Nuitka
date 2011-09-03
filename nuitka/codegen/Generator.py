@@ -70,7 +70,8 @@ from . import (
 
 from nuitka import (
     Variables,
-    Constants
+    Constants,
+    Options
 )
 
 import re
@@ -1999,14 +2000,10 @@ def getModuleCode( context, stand_alone, module_name, package_name, codes, doc_i
     if local_expression_temp_inits:
         local_expression_temp_inits += "\n"
 
-    if stand_alone:
-        header = CodeTemplates.global_copyright % {
-            "name" : module_name
-        }
-    else:
-        header = CodeTemplates.module_header % {
-            "name" : module_name,
-        }
+    header = CodeTemplates.global_copyright % {
+        "name"    : module_name,
+        "version" : Options.getVersion()
+    }
 
     module_code = CodeTemplates.module_body_template % {
         "module_name"           : module_name,

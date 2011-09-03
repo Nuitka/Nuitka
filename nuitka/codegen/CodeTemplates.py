@@ -57,14 +57,6 @@ from .templates.CodeTemplatesExecEval import *
 # We have some very long lines in here that should not be shorter though.
 # pylint: disable=C0301
 
-global_copyright = """\
-// Generated code for Python source for module '%(name)s'
-
-// This code is in part copyright Kay Hayen, license GPLv3. This has the consequence that
-// your must either obtain a commercial license or also publish your original source code
-// under the same license unless you don't distribute this source or its binary.
-"""
-
 try_finally_template = """\
 _PythonExceptionKeeper _caught_%(try_count)d;
 bool _continue_%(try_count)d = false;

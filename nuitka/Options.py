@@ -316,3 +316,6 @@ def isWindowsTarget():
 
 def isFullCompat():
     return True
+
+def getVersion():
+    return version_string.split()[1][1:]
