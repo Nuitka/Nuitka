@@ -206,7 +206,6 @@ PyObject *BUILTIN_TYPE1( PyObject *arg )
 
 PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict )
 {
-
     PyObject *result = PyType_Type.tp_new( &PyType_Type, PyObjectTemporary( MAKE_TUPLE( dict, bases, name ) ).asObject(), NULL );
 
     if (unlikely( result == NULL ))
