@@ -79,6 +79,10 @@ lto_mode = getBoolOption( "lto_mode", False )
 # Windows target mode: Cross compile for Windows or compiling on windows.
 win_target = getBoolOption( "win_target", "win" in sys.platform )
 
+# ARM target mode: Compile for ARM which has bad ucontext status, we need
+# to provide our own implementation.
+arm_target = getBoolOption( "arm_target", "arm" in os.uname()[4] )
+
 unstriped_mode = getBoolOption( "unstriped_mode", False )
 
 # The MingW compiler tool should be supported if targeting windows.
@@ -243,6 +247,9 @@ env.Append( CPPPATH = [ source_dir, nuitka_include ] )
 if win_target:
     env.Append( CPPPATH = [ static_src + "/win32_ucontext_src" ] )
 
+if arm_target:
+    env.Append( CPPPATH = [ static_src + "/arm_ucontext_src" ] )
+
 if debug_mode or unstriped_mode:
     # On crosscompile, use debug format that wine understands, so we get good tracebacks
     # from it.
@@ -279,6 +286,10 @@ def discoverSourceFiles():
 
     if win_target:
         result.append( static_src + "/win32_ucontext_src/ucontext.cpp" )
+
+    if arm_target:
+        result.append( static_src + "/arm_ucontext_src/ucontext.cpp" )
+        result.append( static_src + "/arm_ucontext_src/getcontext.asm" )
 
     for filename in os.listdir( source_dir ):
         if filename.endswith( ".cpp" ):
@@ -335,7 +346,7 @@ if module_mode:
 
     env[ "SHLIBSUFFIX" ] = module_suffix
 
-    target = env.SharedLibrary( result_file , discoverSourceFiles() )
+    target = env.SharedLibrary( result_file, discoverSourceFiles() )
 else:
     target = env.Program( result_file + ".exe", discoverSourceFiles() )
 
