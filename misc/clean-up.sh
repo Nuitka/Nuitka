@@ -32,3 +32,4 @@
 
 find . -name \*.build -exec echo rm -rf {} \;
 find . -regex '.*\.\(exe\|pyc\|so\)$' -exec echo rm {} \;
+find . -name __pycache__ -exec echo rm -rf {} \;
