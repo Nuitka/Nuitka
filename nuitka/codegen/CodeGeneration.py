@@ -87,7 +87,8 @@ def generateSequenceCreationCode( sequence_kind, elements, context ):
 
         return Generator.getSequenceCreationCode(
             sequence_kind       = sequence_kind,
-            element_identifiers = identifiers
+            element_identifiers = identifiers,
+            context             = context
         )
 
 def generateConditionCode( condition, context, inverted = False, allow_none = False ):
@@ -253,6 +254,7 @@ def generateContractionCode( contraction, context ):
         assert len( contraction.getTargets() ) == len( sub_iterated_identifiers ) + 1
 
         contraction_decl = Generator.getFunctionDecl(
+            context             = context,
             function_identifier = contraction_identifier,
             decorator_count     = 0,
             default_identifiers = (),
@@ -284,6 +286,7 @@ def generateContractionCode( contraction, context ):
             assert False
 
         contraction_decl = Generator.getContractionDecl(
+            context                = context,
             contraction_identifier = contraction_identifier,
             closure_variables      = contraction.getClosureVariables()
         )
@@ -307,6 +310,7 @@ def generateContractionCode( contraction, context ):
     )
 
     return Generator.getContractionCallCode(
+        context                = context,
         contraction_identifier = contraction_identifier,
         is_genexpr             = contraction.isExpressionGeneratorBuilder(),
         contraction_iterated   = iterated_identifier,
@@ -423,6 +427,7 @@ def generateLambdaCode( lambda_expression, context ):
     )
 
     lambda_decl = Generator.getFunctionDecl(
+        context             = context,
         function_identifier = lambda_expression.getCodeName(),
         decorator_count     = 0,
         default_identifiers = default_access_identifiers,
@@ -535,6 +540,7 @@ def generateFunctionCode( function, context ):
         )
 
     function_decl = Generator.getFunctionDecl(
+        context             = context,
         function_identifier = function.getCodeName(),
         decorator_count     = len( function.getDecorators() ),
         default_identifiers = default_access_identifiers,
@@ -697,6 +703,7 @@ def generateDictionaryCreationCode( pairs, context ):
         )
 
         return Generator.getDictionaryCreationCode(
+            context = context,
             keys    = key_identifiers,
             values  = value_identifiers,
         )
@@ -1193,7 +1200,8 @@ def generateExpressionCode( expression, context, allow_none = False ):
             exception_args = generateExpressionsCode(
                 expressions = expression.getArgs(),
                 context     = context
-            )
+            ),
+            context        = context
         )
     elif expression.isExpressionBuiltinExceptionRef():
         identifier = Generator.getExceptionRefCode(

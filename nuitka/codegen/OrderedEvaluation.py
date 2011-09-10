@@ -28,64 +28,17 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Templates for the constants handling.
-
-"""
-
-template_constants_reading = """
-#include "nuitka/prelude.hpp"
-
-// The current line of code execution.
-int _current_line;
-
-// Sentinel PyObject to be used for all our call iterator endings. It will become
-// a PyCObject pointing to NULL. TODO: Hopefully that is unique enough.
-PyObject *_sentinel_value = NULL;
-
-PyModuleObject *_module_builtin = NULL;
-
-%(constant_declarations)s
-
-static void __initConstants( void )
-{
-    UNSTREAM_INIT();
-
-%(constant_inits)s
-}
-
-void _initConstants( void )
-{
-    if ( _sentinel_value == NULL )
-    {
-        _sentinel_value = PyCObject_FromVoidPtr( NULL, NULL );
-        assert( _sentinel_value );
-
-        _module_builtin = (PyModuleObject *)PyImport_ImportModule( "__builtin__" );
-        assert( _module_builtin );
 
 
-        __initConstants();
-    }
-}
-"""
+def getEvalOrderedCode( context, args ):
+    args_length = len( args )
 
-template_constants_declaration = """\
-// Call this to initialize all of the below
-void _initConstants( void );
+    if args_length > 1:
+        context.addEvalOrderUse( args_length )
 
-%(constant_declarations)s
-
-#include "nuitka/eval_order.hpp"
-
-#if NUITKA_REVERSED_ARGS == 0
-%(noreverse_macros)s
-#else
-%(reverse_macros)s
-#endif
-"""
-
-template_reverse_macro = """\
-#define EVAL_ORDERED_%(count)d( %(args)s ) %(expanded)s"""
-
-template_noreverse_macro = """\
-#define EVAL_ORDERED_%(count)d( %(args)s ) %(args)s"""
+        return "EVAL_ORDERED_%d( %s )" % (
+            args_length,
+            ", ".join( args )
+        )
+    else:
+        return ", ".join( args )

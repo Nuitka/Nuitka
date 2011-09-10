@@ -119,7 +119,7 @@ def buildStatementsNode( provider, nodes, source_ref, allow_none = False ):
     )
 
 def buildDecoratorNodes( provider, nodes, source_ref ):
-    return buildNodeList( provider, reversed( nodes ), source_ref )
+    return buildNodeList( provider, nodes, source_ref )
 
 def buildClassNode( provider, node, source_ref ):
     assert getKind( node ) == "ClassDef"

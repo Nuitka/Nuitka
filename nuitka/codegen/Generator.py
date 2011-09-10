@@ -43,6 +43,7 @@ from .Identifiers import (
     HolderVariableIdentifier,
     TempVariableIdentifier,
     DefaultValueIdentifier,
+    CallIdentifier,
     getCodeTemporaryRefs,
     getCodeExportRefs
 )
@@ -60,6 +61,8 @@ from .ParameterParsing import (
     getParameterParsingCode,
     getParameterContextCode,
 )
+
+from .OrderedEvaluation import getEvalOrderedCode
 
 from . import (
     CppRawStrings,
@@ -148,7 +151,7 @@ def getYieldCode( identifier, for_return ):
 def getYieldTerminatorCode():
     return "throw ReturnException();"
 
-def getSequenceCreationCode( sequence_kind, element_identifiers ):
+def getSequenceCreationCode( context, sequence_kind, element_identifiers ):
     assert sequence_kind in ( "tuple", "list" )
 
     # Disallow building the empty tuple with this assertion, we want users to not let
@@ -160,27 +163,28 @@ def getSequenceCreationCode( sequence_kind, element_identifiers ):
     else:
         arg_codes = getCodeExportRefs( element_identifiers )
 
-    return Identifier(
-        "MAKE_%(sequence_kind)s( %(args)s )" % {
-            "sequence_kind" : sequence_kind.upper(),
-            "args"          : ", ".join( reversed( arg_codes ) )
-        },
-        1
+    return CallIdentifier(
+        context = context,
+        called  = "MAKE_%s" % sequence_kind.upper(),
+        args    = arg_codes
     )
 
-def getDictionaryCreationCode( keys, values ):
+def getDictionaryCreationCode( context, keys, values ):
     key_codes = getCodeTemporaryRefs( keys )
     value_codes = getCodeTemporaryRefs( values )
 
     arg_codes = []
 
+    # Strange as it is, CPython evalutes the key/value pairs strictly in order, but for
+    # each pair, the value first.
     for key_code, value_code in zip( key_codes, value_codes ):
         arg_codes.append( value_code )
         arg_codes.append( key_code )
 
-    return Identifier(
-        "MAKE_DICT( %s )" % ( ", ".join( reversed( arg_codes ) ) ),
-        1
+    return CallIdentifier(
+        context = context,
+        called  = "MAKE_DICT",
+        args    = arg_codes
     )
 
 def getSetCreationCode( values ):
@@ -663,21 +667,16 @@ def getClosureVariableProvisionCode( context, closure_variables ):
 
     return result
 
-def getContractionCallCode( is_genexpr, contraction_identifier, contraction_iterated, closure_var_codes ):
+def getContractionCallCode( context, is_genexpr, contraction_identifier, contraction_iterated, closure_var_codes ):
     args = [ contraction_iterated.getCodeTemporaryRef() ] + closure_var_codes
 
-    if is_genexpr:
-        prefix = "MAKE_FUNCTION_"
-    else:
-        prefix = ""
-
-    return Identifier(
-        "%s%s( %s )" % (
-            prefix,
-            contraction_identifier,
-            ", ".join( args )
+    return CallIdentifier(
+        context = context,
+        called  = "%s%s" % (
+            "MAKE_FUNCTION_" if is_genexpr else "",
+            contraction_identifier
         ),
-        1
+        args    = args
     )
 
 def getConditionalExpressionCode( condition, codes_no, codes_yes ):
@@ -720,12 +719,10 @@ def getFunctionCreationCode( context, function_identifier, decorators, default_i
         closure_variables = closure_variables
     )
 
-    return Identifier(
-        "MAKE_FUNCTION_%s( %s )" % (
-            function_identifier,
-            ", ".join( args )
-        ),
-        1
+    return CallIdentifier(
+        context = context,
+        called  = "MAKE_FUNCTION_%s" % function_identifier,
+        args    = args
     )
 
 def getBranchCode( condition, yes_codes, no_codes ):
@@ -1481,12 +1478,13 @@ def getExceptionRefCode( exception_type ):
         0
     )
 
-def getMakeExceptionCode( exception_type, exception_args ):
+def getMakeExceptionCode( context, exception_type, exception_args ):
     return Identifier(
         "CALL_FUNCTION_STAR_LIST_ONLY( %s, PyExc_%s )" % (
             getSequenceCreationCode(
-                "tuple",
-                exception_args
+                sequence_kind       = "tuple",
+                element_identifiers = exception_args,
+                context             = context,
             ).getCodeTemporaryRef(),
             exception_type,
         ),
@@ -2080,7 +2078,7 @@ def getFunctionsDecl( context ):
 
     return result
 
-def _getContractionParameters( closure_variables ):
+def _getContractionParameters( context, closure_variables ):
     contraction_parameters = [ "PyObject *iterated" ]
 
     for variable in closure_variables:
@@ -2092,24 +2090,24 @@ def _getContractionParameters( closure_variables ):
             )
         )
 
-    return contraction_parameters
-
-def getContractionDecl( contraction_identifier, closure_variables ):
-    contraction_parameters = _getContractionParameters(
-        closure_variables = closure_variables
+    return getEvalOrderedCode(
+        context = context,
+        args    = contraction_parameters
     )
 
+
+def getContractionDecl( context, contraction_identifier, closure_variables ):
     return CodeTemplates.contraction_decl_template % {
        "contraction_identifier" : contraction_identifier,
-       "contraction_parameters" : ", ".join( contraction_parameters )
+       "contraction_parameters" : _getContractionParameters(
+            context           = context,
+            closure_variables = closure_variables
+        )
     }
 
 def getContractionCode( context, contraction_identifier, contraction_kind, loop_var_codes, \
                         contraction_code, contraction_conditions, contraction_iterateds, \
                         closure_variables, provided_variables ):
-    contraction_parameters = _getContractionParameters(
-        closure_variables = closure_variables
-    )
 
     if contraction_kind == "list":
         contraction_decl_template = CodeTemplates.list_contration_var_decl
@@ -2165,7 +2163,10 @@ def getContractionCode( context, contraction_identifier, contraction_kind, loop_
 
     return CodeTemplates.contraction_code_template % {
         "contraction_identifier" : contraction_identifier,
-        "contraction_parameters" : ", ".join( contraction_parameters ),
+        "contraction_parameters" : _getContractionParameters(
+            context           = context,
+            closure_variables = closure_variables
+        ),
         "contraction_body"       : contraction_loop,
         "contraction_var_decl"   : indented( contraction_var_decl ),
         "contraction_temp_decl"  : indented( local_expression_temp_inits + "\n" if local_expression_temp_inits else "" )
@@ -2177,7 +2178,7 @@ def getContractionIterValueIdentifier( context, index ):
     else:
         return Identifier( "_python_genexpr_iter_value", 1 )
 
-def _getFunctionCreationArgs( decorator_count, default_identifiers, closure_variables, is_genexpr ):
+def _getFunctionCreationArgs( context, decorator_count, default_identifiers, closure_variables, is_genexpr ):
     if decorator_count:
         result = [
             "PyObject *decorator_%d" % ( d + 1 )
@@ -2198,12 +2199,16 @@ def _getFunctionCreationArgs( decorator_count, default_identifiers, closure_vari
     for closure_variable in closure_variables:
         result.append( "PyObjectSharedLocalVariable &python_closure_%s" % closure_variable.getName() )
 
-    return ", ".join( result )
+    return getEvalOrderedCode(
+        context = context,
+        args    = result
+    )
 
-def getFunctionDecl( function_identifier, decorator_count, default_identifiers, closure_variables, is_genexpr ):
+def getFunctionDecl( context, function_identifier, decorator_count, default_identifiers, closure_variables, is_genexpr ):
     return CodeTemplates.function_decl_template % {
         "function_identifier"    : function_identifier,
         "function_creation_args" : _getFunctionCreationArgs(
+            context             = context,
             decorator_count     = decorator_count,
             default_identifiers = default_identifiers,
             closure_variables   = closure_variables,
@@ -2281,13 +2286,14 @@ def _getLocalExpressionTempsInitCode( context ):
     else:
         return ""
 
-def _getDecoratorsCallCode( decorator_count ):
+def _getDecoratorsCallCode( context, decorator_count ):
     def _getCall( count ):
         return getFunctionCallCode(
             function_identifier  = Identifier( "decorator_%d" % count, 0 ),
             argument_tuple       = getSequenceCreationCode(
                 sequence_kind       = "tuple",
                 element_identifiers = [ Identifier( "result", 1 ) ],
+                context             = context
             ),
             argument_dictionary  = Identifier( "NULL", 0 ),
             star_dict_identifier = None,
@@ -2297,7 +2303,7 @@ def _getDecoratorsCallCode( decorator_count ):
     decorator_calls = [
         "result = %s;" % _getCall( count + 1 ).getCode()
         for count in
-        range( decorator_count )
+        reversed( range( decorator_count ) )
     ]
 
     return decorator_calls
@@ -2396,6 +2402,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         )
 
     function_creation_args  = _getFunctionCreationArgs(
+        context             = context,
         decorator_count     = decorator_count,
         default_identifiers = default_access_identifiers,
         closure_variables   = closure_variables,
@@ -2403,6 +2410,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
     )
 
     function_decorator_calls = _getDecoratorsCallCode(
+        context         = context,
         decorator_count = decorator_count
     )
 
@@ -2532,6 +2540,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         )
 
     function_creation_args = _getFunctionCreationArgs(
+        context             = context,
         decorator_count     = decorator_count,
         closure_variables   = closure_variables,
         default_identifiers = default_access_identifiers,
@@ -2558,6 +2567,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         local_expression_temp_inits = []
 
     function_decorator_calls = _getDecoratorsCallCode(
+        context         = context,
         decorator_count = decorator_count
     )
 
@@ -2753,7 +2763,10 @@ def getGeneratorExpressionCode( context, generator_identifier, generator_name, g
         "function_name"              : generator_name,
         "function_name_obj"          : function_name_obj,
         "function_identifier"        : generator_identifier,
-        "function_creation_args"     : ", ".join( function_creation_args ),
+        "function_creation_args"     : getEvalOrderedCode(
+            context = context,
+            args    = function_creation_args
+        ),
         "context_copy"               : indented( context_copy ),
         "function_doc"               : "Py_None",
         "iterator_count"             : len( generator_iterateds ) + 1,
@@ -2915,6 +2928,7 @@ def getClassCode( context, class_def, class_name, class_filename, class_identifi
     )
 
     class_decorator_calls = _getDecoratorsCallCode(
+        context         = context,
         decorator_count = decorator_count
     )
 
@@ -3079,11 +3093,40 @@ def _getConstantsDefinitionCode( context ):
 
 
 def getConstantsDeclarationCode( context ):
+    reverse_macros = []
+    noreverse_macros = []
+
+    for value in sorted( context.getEvalOrdersUsed() ):
+        assert type( value ) is int
+
+        reverse_macros.append(
+            CodeTemplates.template_reverse_macro % {
+                "count"    : value,
+                "args"     : ", ".join(
+                    "arg%s" % (d+1) for d in range( value )
+                ),
+                "expanded" : ", ".join(
+                    "arg%s" % (d+1) for d in reversed( range( value ) )
+                )
+            }
+        )
+
+        noreverse_macros.append(
+            CodeTemplates.template_noreverse_macro % {
+                "count"    : value,
+                "args"     : ", ".join(
+                    "arg%s" % (d+1) for d in range( value )
+                )
+            }
+        )
+
     constants_declarations = CodeTemplates.template_constants_declaration % {
         "constant_declarations" : _getConstantsDeclarationCode(
             context    = context,
             for_header = True
-        )
+        ),
+        "reverse_macros" : "\n".join( reverse_macros ),
+        "noreverse_macros" : "\n".join( noreverse_macros )
     }
 
     return CodeTemplates.template_header_guard % {

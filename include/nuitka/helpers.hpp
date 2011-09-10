@@ -31,6 +31,11 @@
 #ifndef __NUITKA_HELPERS_H__
 #define __NUITKA_HELPERS_H__
 
+#include "nuitka/eval_order.hpp"
+
+// TODO: Don't really need that, need EVAL_ORDERED_x only.
+#include "__constants.hpp"
+
 extern PyObject *_python_tuple_empty;
 extern PyObject *_python_str_plain___dict__;
 extern PyObject *_python_str_plain___class__;
@@ -571,11 +576,6 @@ static PyObject *MAKE_TUPLE( P...eles )
 
     PyObject *elements[] = {eles...};
 
-    for ( Py_ssize_t i = 0; i < size; i++ )
-    {
-        assertObject( elements[ i ] );
-    }
-
     PyObject *result = PyTuple_New( size );
 
     if (unlikely( result == NULL ))
@@ -585,7 +585,19 @@ static PyObject *MAKE_TUPLE( P...eles )
 
     for ( Py_ssize_t i = 0; i < size; i++ )
     {
-        PyTuple_SET_ITEM( result, i, INCREASE_REFCOUNT( elements[ size - 1 - i ] ));
+        assertObject( elements[ i ] );
+
+        PyTuple_SET_ITEM(
+            result,
+            i,
+            INCREASE_REFCOUNT(
+#if NUITKA_REVERSED_ARGS == 1
+            elements[ size - 1 - i ]
+#else
+            elements[ i ]
+#endif
+            )
+        );
     }
 
     assert( result->ob_refcnt == 1 );
@@ -615,10 +627,17 @@ static PyObject *MAKE_LIST( P...eles )
 
     for ( Py_ssize_t i = 0; i < size; i++ )
     {
-        assert( elements[ i ] != NULL );
-        assert( elements[ i ]->ob_refcnt > 0 );
+        assertObject( elements[ i ] );
 
-        PyList_SET_ITEM( result, i, elements[ size - 1 - i ] );
+        PyList_SET_ITEM(
+            result,
+            i,
+#if NUITKA_REVERSED_ARGS == 1
+            elements[ size - 1 - i ]
+#else
+            elements[ i ]
+#endif
+        );
     }
 
     assert( result->ob_refcnt == 1 );
@@ -655,7 +674,16 @@ static PyObject *MAKE_DICT( P...eles )
 
     for( int i = 0; i < size; i += 2 )
     {
-        int status = PyDict_SetItem( result, elements[i], elements[i+1] );
+        int status = PyDict_SetItem(
+            result,
+#if NUITKA_REVERSED_ARGS == 1
+            elements[i],
+            elements[i+1]
+#else
+            elements[i+1],
+            elements[i]
+#endif
+        );
 
         if (unlikely( status == -1 ))
         {
@@ -1413,7 +1441,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
         {
             PyObject *result = PyObject_Call(
                 source_instance->in_class->cl_getattr,
-                PyObjectTemporary( MAKE_TUPLE( attr_name, source ) ).asObject(),
+                PyObjectTemporary( MAKE_TUPLE( EVAL_ORDERED_2( source, attr_name ) ) ).asObject(),
                 NULL
             );
 
@@ -1534,7 +1562,7 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
         {
             PyObject *result = PyObject_Call(
                 target_instance->in_class->cl_setattr,
-                PyObjectTemporary( MAKE_TUPLE( value, attr_name, target ) ).asObject(),
+                PyObjectTemporary( MAKE_TUPLE( EVAL_ORDERED_3( target, attr_name, value ) ) ).asObject(),
                 NULL
             );
 

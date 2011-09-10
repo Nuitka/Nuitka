@@ -75,11 +75,13 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
     PyObjectTemporary future_flags( PyInt_FromLong( flags ) );
 
     return _python_builtin_compile.call(
-        Py_True,                 // dont_inherit
-        future_flags.asObject(), // flags
-        mode,
-        file_name,
-        source
+        EVAL_ORDERED_5(
+            source,
+            file_name,
+            mode,
+            future_flags.asObject(), // flags
+            Py_True                  // dont_inherit
+        )
     );
 }
 
@@ -95,23 +97,27 @@ PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
     else if ( mode == NULL )
     {
         return _python_builtin_open.call(
-           file_name
+            file_name
         );
 
     }
     else if ( buffering == NULL )
     {
         return _python_builtin_open.call(
-           mode,
-           file_name
+            EVAL_ORDERED_2(
+               file_name,
+               mode
+            )
         );
     }
     else
     {
         return _python_builtin_open.call(
-           buffering,
-           mode,
-           file_name
+            EVAL_ORDERED_3(
+                file_name,
+                mode,
+                buffering
+            )
         );
     }
 }
@@ -206,7 +212,11 @@ PyObject *BUILTIN_TYPE1( PyObject *arg )
 
 PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict )
 {
-    PyObject *result = PyType_Type.tp_new( &PyType_Type, PyObjectTemporary( MAKE_TUPLE( dict, bases, name ) ).asObject(), NULL );
+    PyObject *result = PyType_Type.tp_new(
+        &PyType_Type,
+        PyObjectTemporary( MAKE_TUPLE( EVAL_ORDERED_3( name, bases, dict ) ) ).asObject(),
+        NULL
+    );
 
     if (unlikely( result == NULL ))
     {
@@ -219,7 +229,7 @@ PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases,
     {
         if ( PyType_HasFeature( type, Py_TPFLAGS_HAVE_CLASS ) && type->tp_init != NULL )
         {
-            int res = type->tp_init( result, MAKE_TUPLE( dict, bases, name ), NULL );
+            int res = type->tp_init( result, MAKE_TUPLE( EVAL_ORDERED_3( name, bases, dict ) ), NULL );
 
             if (unlikely( res < 0 ))
             {
@@ -365,7 +375,12 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high )
 
     if ( fallback )
     {
-        return _python_builtin_range.call( high_temp.asObject(), low_temp.asObject() );
+        return _python_builtin_range.call(
+            EVAL_ORDERED_2(
+                low_temp.asObject(),
+                high_temp.asObject()
+            )
+        );
     }
     else
     {
@@ -407,7 +422,13 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step )
 
     if ( fallback )
     {
-        return _python_builtin_range.call( step_temp.asObject(), high_temp.asObject(), low_temp.asObject() );
+        return _python_builtin_range.call(
+            EVAL_ORDERED_3(
+                low_temp.asObject(),
+                high_temp.asObject(),
+                step_temp.asObject()
+            )
+       );
     }
     else
     {
@@ -528,7 +549,7 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject 
 
         assert( PyString_Check( package ));
 
-        globals_dict = MAKE_DICT( _python_str_plain___package__, package );
+        globals_dict = MAKE_DICT( EVAL_ORDERED_2( package, _python_str_plain___package__ ) );
     }
 
     int line = _current_line;
