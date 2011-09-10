@@ -106,3 +106,5 @@ compile /tmp/Nuitka.exe
 
 # Cleanup compilation results
 rm -rf nuitka Nuitka.build
+
+echo "OK."
