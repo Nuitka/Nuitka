@@ -140,40 +140,6 @@ def optimizeableTargets():
 
     print a
 
-def dictOrderCheck():
-    def key1():
-        print "key1 called"
-
-        return 1
-    def key2():
-        print "key2 called"
-
-        return 2
-    def value1():
-        print "value1 called"
-
-        return 11
-    def value2():
-        print "value2 called"
-
-        return 22
-
-    print "Checking order of calls in dictionary creation from callables:"
-
-    print { key1() : value1(), key2() : value2() }
-
-def listOrderCheck():
-    def value1():
-        print "value1 called"
-
-        return 11
-    def value2():
-        print "value2 called"
-
-        return 22
-
-    print [ value1(), value2() ]
-
 someFunction()
 varargsFunction(1,2,3,4)
 otherFunction()
@@ -181,5 +147,3 @@ anotherFunction()
 swapVariables()
 interuptedUnpack()
 optimizeableTargets()
-dictOrderCheck()
-listOrderCheck()
