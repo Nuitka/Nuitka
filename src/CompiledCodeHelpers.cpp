@@ -698,7 +698,7 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name
         }
         else
         {
-            SET_SUBSCRIPT( target, item, LOOKUP_ATTRIBUTE( module, item ) );
+            SET_SUBSCRIPT( LOOKUP_ATTRIBUTE( module, item ), target, item );
         }
 
         Py_DECREF( item );

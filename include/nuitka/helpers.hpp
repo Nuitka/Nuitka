@@ -1070,7 +1070,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 
 extern PyObject *CHR( unsigned char c );
 
-NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObject *const_subscript, Py_ssize_t int_subscript )
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, PyObject *const_subscript, Py_ssize_t int_subscript )
 {
     assertObject( source );
     assertObject( const_subscript );
@@ -1158,7 +1158,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObje
 
 static Py_ssize_t CONVERT_TO_INDEX( PyObject *value );
 
-NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObject *subscript )
+#define LOOKUP_SUBSCRIPT( source, subscript ) _LOOKUP_SUBSCRIPT( EVAL_ORDERED_2( source, subscript ) )
+
+NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_SUBSCRIPT( EVAL_ORDERED_2( PyObject *source, PyObject *subscript ) )
 {
     assertObject( source );
     assertObject( subscript );
@@ -1203,11 +1205,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObje
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT( PyObject *target, PyObject *subscript, PyObject *value )
+#define SET_SUBSCRIPT( value, target, subscript ) _SET_SUBSCRIPT( EVAL_ORDERED_3( value, target, subscript ) )
+
+NUITKA_MAY_BE_UNUSED static void _SET_SUBSCRIPT( EVAL_ORDERED_3( PyObject *value, PyObject *target, PyObject *subscript ) )
 {
+    assertObject( value );
     assertObject( target );
     assertObject( subscript );
-    assertObject( value );
 
     int status = PyObject_SetItem( target, subscript, value );
 
@@ -1217,7 +1221,9 @@ NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT( PyObject *target, PyObject *subs
     }
 }
 
-NUITKA_MAY_BE_UNUSED static void DEL_SUBSCRIPT( PyObject *target, PyObject *subscript )
+#define DEL_SUBSCRIPT( target, subscript ) _DEL_SUBSCRIPT( EVAL_ORDERED_2( target, subscript ) )
+
+NUITKA_MAY_BE_UNUSED static void _DEL_SUBSCRIPT( EVAL_ORDERED_2( PyObject *target, PyObject *subscript ) )
 {
     assertObject( target );
     assertObject( subscript );

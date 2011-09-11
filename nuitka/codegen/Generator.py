@@ -613,7 +613,7 @@ def getSubscriptLookupCode( subscript, source ):
 
             if abs( constant_value ) < 2**31:
                 return Identifier(
-                    "LOOKUP_SUBSCRIPT( %s, %s, %s )" % (
+                    "LOOKUP_SUBSCRIPT_CONST( %s, %s, %s )" % (
                         source.getCodeTemporaryRef(),
                         subscript.getCodeTemporaryRef(),
                         "%d" % constant
@@ -1267,13 +1267,14 @@ def getVariableAssignmentCode( context, variable, identifier ):
         # variable would make it a local one.
         assert False, variable
 
-        return "SET_SUBSCRIPT( locals_dict.asObject(), %s, %s );" % (
-            getConstantCode(
+        return getSubscriptAssignmentCode(
+            subscribed = Identifier( "locals_dict.asObject()", 0 ),
+            subscript  = getConstantCode(
                 context  = context,
                 constant = variable.getName(),
 
             ),
-            identifier.getCodeExportRef()
+            identifier = identifier
         )
     else:
         return "%s = %s;" % (
@@ -1331,9 +1332,9 @@ def getSequenceElementCode( sequence, index ):
 
 def getSubscriptAssignmentCode( subscribed, subscript, identifier ):
     return "SET_SUBSCRIPT( %s, %s, %s );" % (
+        identifier.getCodeTemporaryRef(),
         subscribed.getCodeTemporaryRef(),
-        subscript.getCodeTemporaryRef(),
-        identifier.getCodeTemporaryRef()
+        subscript.getCodeTemporaryRef()
     )
 
 def getSubscriptDelCode( subscribed, subscript ):
