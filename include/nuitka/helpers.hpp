@@ -1291,14 +1291,13 @@ NUITKA_MAY_BE_UNUSED static void DEL_SLICE( PyObject *target, PyObject *lower, P
     }
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ( PyObject *start, PyObject *stop, PyObject *step )
+#define MAKE_SLICEOBJ( start, stop, step ) _MAKE_SLICEOBJ( EVAL_ORDERED_3( start, stop, step ) )
+
+NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_SLICEOBJ( EVAL_ORDERED_3( PyObject *start, PyObject *stop, PyObject *step ) )
 {
-    assert( start );
-    assert( start->ob_refcnt > 0 );
-    assert( stop );
-    assert( stop->ob_refcnt > 0 );
-    assert( step );
-    assert( step->ob_refcnt > 0 );
+    assertObject( start );
+    assertObject( stop );
+    assertObject( step );
 
     PyObject *result = PySlice_New( start, stop, step );
 
