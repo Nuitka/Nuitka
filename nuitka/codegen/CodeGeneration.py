@@ -779,12 +779,13 @@ def generateSliceAccessIdentifiers( sliced, lower, upper, context ):
     return sliced, lower, upper
 
 def generateFunctionCallNamedArgumentsCode( pairs, context ):
-    kw_identifier = generateDictionaryCreationCode(
-        pairs      = pairs,
-        context    = context
-    )
-
-    return kw_identifier
+    if pairs:
+        return generateDictionaryCreationCode(
+            pairs      = pairs,
+            context    = context
+        )
+    else:
+        return None
 
 def generateFunctionCallCode( function, context ):
     function_identifier = generateExpressionCode(
@@ -792,11 +793,14 @@ def generateFunctionCallCode( function, context ):
         context    = context
     )
 
-    positional_args_identifier = generateSequenceCreationCode(
-        sequence_kind = "tuple",
-        elements      = function.getPositionalArguments(),
-        context       = context
-    )
+    if function.getPositionalArguments():
+        positional_args_identifier = generateSequenceCreationCode(
+            sequence_kind = "tuple",
+            elements      = function.getPositionalArguments(),
+            context       = context
+        )
+    else:
+        positional_args_identifier = None
 
     kw_identifier = generateFunctionCallNamedArgumentsCode(
         pairs   = function.getNamedArgumentPairs(),

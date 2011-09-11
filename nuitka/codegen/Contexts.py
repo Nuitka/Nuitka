@@ -136,6 +136,7 @@ class PythonGlobalContext:
         self.constants = {}
 
         self.getConstantHandle( () )
+        self.getConstantHandle( {} )
         self.getConstantHandle( "" )
         self.getConstantHandle( True )
         self.getConstantHandle( False )
