@@ -31,9 +31,17 @@
 #ifndef __NUITKA_CALLING_H__
 #define __NUITKA_CALLING_H__
 
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *named_args, PyObject *positional_args, PyObject *function_object )
+#include "__reverses.hpp"
+
+// We do the reversal for function calls completely ourselves and here, so we don't have
+// to do it in generated code. For each CALL_FUNCTION variant there is a define that
+// includes a use of EVAL_ORDERED_x and a _CALL_FUNCTION implementation that does the
+// actual work.
+
+#define CALL_FUNCTION( function_object, positional_args, named_args ) _CALL_FUNCTION( EVAL_ORDERED_3( function_object, positional_args, named_args ) )
+
+NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION( EVAL_ORDERED_3( PyObject *function_object, PyObject *positional_args, PyObject *named_args ) )
 {
-    assertObject( function_object );
     assertObject( function_object );
     assertObject( positional_args );
     assert( named_args == NULL || named_args->ob_refcnt > 0 );
@@ -105,7 +113,9 @@ static inline void CHECK_NON_STRINGS_DICT_ARG( PyObject *dict, PyObject *functio
 
 }
 
-static PyObject *CALL_FUNCTION_STAR_DICT( PyObject *dict_star_arg, PyObject *positional_args, PyObject *function_object )
+#define CALL_FUNCTION_STAR_DICT( function_object, positional_args, dict_star_arg ) _CALL_FUNCTION_STAR_DICT( EVAL_ORDERED_3( function_object, positional_args, dict_star_arg ) )
+
+static PyObject *_CALL_FUNCTION_STAR_DICT( EVAL_ORDERED_3( PyObject *function_object, PyObject *positional_args, PyObject *dict_star_arg ) )
 {
     if (unlikely( PyMapping_Check( dict_star_arg ) == 0 ))
     {
@@ -117,7 +127,11 @@ static PyObject *CALL_FUNCTION_STAR_DICT( PyObject *dict_star_arg, PyObject *pos
     {
         CHECK_NON_STRINGS_DICT_ARG( dict_star_arg, function_object );
 
-        return CALL_FUNCTION( dict_star_arg, positional_args, function_object );
+        return CALL_FUNCTION(
+            function_object,
+            positional_args,
+            dict_star_arg
+        );
     }
 
     PyObjectTemporary merged_dict( PyDict_New() );
@@ -131,11 +145,16 @@ static PyObject *CALL_FUNCTION_STAR_DICT( PyObject *dict_star_arg, PyObject *pos
 
     CHECK_NON_STRINGS_DICT_ARG( merged_dict.asObject(), function_object );
 
-    return CALL_FUNCTION( merged_dict.asObject(), positional_args, function_object );
+    return CALL_FUNCTION(
+        function_object,
+        positional_args,
+        merged_dict.asObject()
+    );
 }
 
+#define CALL_FUNCTION_STAR_DICT2( function_object, positional_args, named_args, dict_star_arg ) _CALL_FUNCTION_STAR_DICT2( EVAL_ORDERED_4( function_object, positional_args, named_args, dict_star_arg ) )
 
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_DICT( PyObject *dict_star_arg, PyObject *named_args, PyObject *positional_args, PyObject *function_object )
+NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_STAR_DICT2( EVAL_ORDERED_4( PyObject *function_object, PyObject *positional_args, PyObject *named_args, PyObject *dict_star_arg ) )
 {
     if (unlikely( PyMapping_Check( dict_star_arg ) == 0 ))
     {
@@ -172,7 +191,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_DICT( PyObject *dict_st
 
     CHECK_NON_STRINGS_DICT_ARG( result.asObject(), function_object );
 
-    return CALL_FUNCTION( result.asObject(), positional_args, function_object );
+    return CALL_FUNCTION(
+        function_object,
+        positional_args,
+        result.asObject()
+    );
 }
 
 static PyObject *MERGE_STAR_LIST_ARGS( PyObject *list_star_arg, PyObject *positional_args, PyObject *function_object )
@@ -239,24 +262,64 @@ static PyObject *MERGE_STAR_LIST_ARGS( PyObject *list_star_arg, PyObject *positi
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_LIST( PyObject *list_star_arg, PyObject *named_args, PyObject *positional_args, PyObject *function_object )
+#define CALL_FUNCTION_STAR_LIST( function_object, positional_args, named_args, list_star_arg ) _CALL_FUNCTION_STAR_LIST( EVAL_ORDERED_4( function_object, positional_args, named_args, list_star_arg ) )
+
+NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_STAR_LIST( EVAL_ORDERED_4( PyObject *function_object, PyObject *positional_args, PyObject *named_args, PyObject *list_star_arg ) )
 {
-    return CALL_FUNCTION( named_args, PyObjectTemporary( MERGE_STAR_LIST_ARGS( list_star_arg, positional_args, function_object ) ).asObject(), function_object );
+    return CALL_FUNCTION(
+        function_object,
+        PyObjectTemporary( MERGE_STAR_LIST_ARGS( list_star_arg, positional_args, function_object ) ).asObject(),
+        named_args
+    );
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_LIST_ONLY( PyObject *list_star_arg, PyObject *function_object )
+#define CALL_FUNCTION_STAR_LIST_ONLY( function_object, list_star_arg ) _CALL_FUNCTION_STAR_LIST_ONLY( EVAL_ORDERED_2( function_object, list_star_arg ) )
+
+NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_STAR_LIST_ONLY( EVAL_ORDERED_2( PyObject *function_object, PyObject *list_star_arg ) )
 {
-    return CALL_FUNCTION( NULL, list_star_arg, function_object );
+    // The list star arg could just as well have been an argument tuple, so
+    // this can is easy.
+
+    return CALL_FUNCTION(
+        function_object,
+        list_star_arg,
+        NULL
+    );
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_BOTH( PyObject *dict_star_arg, PyObject *list_star_arg, PyObject *named_args, PyObject *positional_args, PyObject *function_object )
+#define CALL_FUNCTION_STAR_BOTH2( function_object, positional_args, named_args, list_star_arg, dict_star_arg ) _CALL_FUNCTION_STAR_BOTH2( EVAL_ORDERED_5( function_object, positional_args, named_args, list_star_arg, dict_star_arg ) )
+
+NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_STAR_BOTH2( EVAL_ORDERED_5( PyObject *function_object, PyObject *positional_args, PyObject *named_args, PyObject *list_star_arg, PyObject *dict_star_arg ) )
 {
-    return CALL_FUNCTION_STAR_DICT( dict_star_arg, named_args, PyObjectTemporary( MERGE_STAR_LIST_ARGS( list_star_arg, positional_args, function_object ) ).asObject(), function_object );
+    return CALL_FUNCTION_STAR_DICT2(
+        function_object,
+        PyObjectTemporary(
+            MERGE_STAR_LIST_ARGS(
+                list_star_arg,
+                positional_args,
+                function_object
+            )
+        ).asObject(),
+        named_args,
+        dict_star_arg
+     );
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_BOTH( PyObject *dict_star_arg, PyObject *list_star_arg, PyObject *positional_args, PyObject *function_object )
+#define CALL_FUNCTION_STAR_BOTH( function_object, positional_args, list_star_arg, dict_star_arg ) _CALL_FUNCTION_STAR_BOTH( EVAL_ORDERED_4( function_object, positional_args, list_star_arg, dict_star_arg ) )
+
+NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_STAR_BOTH( EVAL_ORDERED_4( PyObject *function_object, PyObject *positional_args, PyObject *list_star_arg, PyObject *dict_star_arg ) )
 {
-    return CALL_FUNCTION_STAR_DICT( dict_star_arg, PyObjectTemporary( MERGE_STAR_LIST_ARGS( list_star_arg, positional_args, function_object ) ).asObject(), function_object );
+    return CALL_FUNCTION_STAR_DICT(
+        function_object,
+        PyObjectTemporary(
+            MERGE_STAR_LIST_ARGS(
+                list_star_arg,
+                positional_args,
+                function_object
+            )
+        ).asObject(),
+        dict_star_arg
+     );
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_BOTH_ONLY( PyObject *dict_star_arg, PyObject *list_star_arg, PyObject *function_object )
@@ -275,14 +338,20 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_STAR_BOTH_ONLY( PyObject *di
             throw _PythonException();
         }
 
-        return CALL_FUNCTION_STAR_DICT( dict_star_arg, PyObjectTemporary( list_star_arg_tuple ).asObject(), function_object );
+        return CALL_FUNCTION_STAR_DICT(
+            function_object,
+            PyObjectTemporary( list_star_arg_tuple ).asObject(),
+            dict_star_arg
+        );
     }
     else
     {
-        return CALL_FUNCTION_STAR_DICT( dict_star_arg, list_star_arg, function_object );
+        return CALL_FUNCTION_STAR_DICT(
+            function_object,
+            list_star_arg,
+            dict_star_arg
+        );
     }
-
 }
-
 
 #endif

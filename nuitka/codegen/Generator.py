@@ -370,7 +370,7 @@ def getIndexCode( identifier ):
 
 def _getFunctionCallNoStarArgsCode( function_identifier, argument_tuple, argument_dictionary ):
     return Identifier(
-        "CALL_FUNCTION( %(named_args)s, %(pos_args)s, %(function)s )" % {
+        "CALL_FUNCTION( %(function)s, %(pos_args)s, %(named_args)s )" % {
             "function"   : function_identifier.getCodeTemporaryRef(),
             "pos_args"   : argument_tuple.getCodeTemporaryRef(),
             "named_args" : argument_dictionary.getCodeTemporaryRef()
@@ -1480,13 +1480,13 @@ def getExceptionRefCode( exception_type ):
 
 def getMakeExceptionCode( context, exception_type, exception_args ):
     return Identifier(
-        "CALL_FUNCTION_STAR_LIST_ONLY( %s, PyExc_%s )" % (
+        "CALL_FUNCTION_STAR_LIST_ONLY( PyExc_%s, %s )" % (
+            exception_type,
             getSequenceCreationCode(
                 sequence_kind       = "tuple",
                 element_identifiers = exception_args,
                 context             = context,
-            ).getCodeTemporaryRef(),
-            exception_type,
+            ).getCodeTemporaryRef()
         ),
         1
     )
@@ -3091,8 +3091,7 @@ def _getConstantsDefinitionCode( context ):
 
     return indented( statements )
 
-
-def getConstantsDeclarationCode( context ):
+def getReversionMacrosCode( context ):
     reverse_macros = []
     noreverse_macros = []
 
@@ -3120,13 +3119,23 @@ def getConstantsDeclarationCode( context ):
             }
         )
 
+    reverse_macros_declaration = CodeTemplates.template_reverse_macros_declaration % {
+        "reverse_macros" : "\n".join( reverse_macros ),
+        "noreverse_macros" : "\n".join( noreverse_macros )
+    }
+
+    return CodeTemplates.template_header_guard % {
+        "header_guard_name" : "__NUITKA_REVERSES_H__",
+        "header_body"       : reverse_macros_declaration
+    }
+
+
+def getConstantsDeclarationCode( context ):
     constants_declarations = CodeTemplates.template_constants_declaration % {
         "constant_declarations" : _getConstantsDeclarationCode(
             context    = context,
             for_header = True
         ),
-        "reverse_macros" : "\n".join( reverse_macros ),
-        "noreverse_macros" : "\n".join( noreverse_macros )
     }
 
     return CodeTemplates.template_header_guard % {

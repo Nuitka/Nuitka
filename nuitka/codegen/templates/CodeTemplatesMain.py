@@ -262,6 +262,7 @@ module_body_template = """\
 
 #include "__modules.hpp"
 #include "__constants.hpp"
+#include "__reverses.hpp"
 
 // The _module_%(module_identifier)s is a Python object pointer of module type.
 

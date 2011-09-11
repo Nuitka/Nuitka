@@ -69,9 +69,9 @@ class PythonBuiltin
         PyObject *call( P...eles )
         {
             return CALL_FUNCTION(
-                NULL,
+                this->asObject(),
                 PyObjectTemporary( MAKE_TUPLE( eles... ) ).asObject(),
-                this->asObject()
+                NULL
             );
         }
 

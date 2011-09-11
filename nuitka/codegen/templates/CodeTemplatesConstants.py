@@ -74,14 +74,6 @@ template_constants_declaration = """\
 void _initConstants( void );
 
 %(constant_declarations)s
-
-#include "nuitka/eval_order.hpp"
-
-#if NUITKA_REVERSED_ARGS == 0
-%(noreverse_macros)s
-#else
-%(reverse_macros)s
-#endif
 """
 
 template_reverse_macro = """\

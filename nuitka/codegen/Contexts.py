@@ -148,16 +148,7 @@ class PythonGlobalContext:
         self.getConstantHandle( "__enter__" )
         self.getConstantHandle( "__exit__" )
 
-        self.eval_orders_used = set()
-
-        # MAKE_DICT call with 2 args in CompiledCodeHelpers.
-        self.addEvalOrderUse( 2 )
-
-        # MAKE_TUPLE call with 3 args in CompiledCodeHelpers.
-        self.addEvalOrderUse( 3 )
-
-        # builtin.call with 5 args in CompiledCodeHelpers.
-        self.addEvalOrderUse( 5 )
+        self.eval_orders_used = set( range( 2, 6 ) )
 
 
     def getConstantHandle( self, constant ):

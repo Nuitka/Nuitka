@@ -33,8 +33,8 @@
 
 #include "nuitka/eval_order.hpp"
 
-// TODO: Don't really need that, need EVAL_ORDERED_x only.
-#include "__constants.hpp"
+// For the EVAL_ORDER macros.
+#include "__reverses.hpp"
 
 extern PyObject *_python_tuple_empty;
 extern PyObject *_python_str_plain___dict__;

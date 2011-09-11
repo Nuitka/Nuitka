@@ -2255,5 +2255,11 @@ def generateConstantsDefinitionCode( context ):
         context = context
     )
 
+def generateReversionMacrosCode( context ):
+    return Generator.getReversionMacrosCode(
+        context = context
+    )
+
+
 def makeGlobalContext():
     return Contexts.PythonGlobalContext()
