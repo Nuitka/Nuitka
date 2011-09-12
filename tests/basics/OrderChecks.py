@@ -98,7 +98,26 @@ def subscriptOrderCheck():
     del lvalue()[ subscript() ]
     print d
 
+def compareOrderCheck():
+    def lvalue():
+        print "lvalue",
+
+        return 1
+
+    def rvalue():
+        print "rvalue",
+
+        return 2
+
+    print "==", lvalue() == rvalue()
+    print "<=", lvalue() <= rvalue()
+    print ">=", lvalue() >= rvalue()
+    print "!=", lvalue() != rvalue()
+    print ">", lvalue() > rvalue()
+    print "<", lvalue() < rvalue()
+
 dictOrderCheck()
 listOrderCheck()
 sliceOrderCheck()
 subscriptOrderCheck()
+compareOrderCheck()
