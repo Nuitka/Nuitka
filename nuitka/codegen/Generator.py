@@ -864,8 +864,8 @@ def getComparisonExpressionCode( context, comparators, operands ):
             comparison = Identifier(
                 "RICH_COMPARE_%s( %s, %s )" % (
                     OperatorCodes.rich_comparison_codes[ comparator ],
-                    right.getCodeTemporaryRef(),
-                    left.getCodeTemporaryRef()
+                    left.getCodeTemporaryRef(),
+                    right.getCodeTemporaryRef()
                 ),
                 1
             )
@@ -907,8 +907,8 @@ def getComparisonExpressionCode( context, comparators, operands ):
             elif comparator in OperatorCodes.rich_comparison_codes:
                 chunk = "RICH_COMPARE_BOOL_%s( %s, %s )" % (
                     OperatorCodes.rich_comparison_codes[ comparator ],
-                    right_tmp,
-                    left_tmp.getCodeTemporaryRef()
+                    left_tmp.getCodeTemporaryRef(),
+                    right_tmp
                 )
             elif comparator == "Is":
                 chunk = "( %s == %s )" % (
@@ -966,8 +966,8 @@ def getComparisonExpressionBoolCode( context, comparators, operands ):
             comparison = Identifier(
                 "RICH_COMPARE_BOOL_%s( %s, %s )" % (
                     OperatorCodes.rich_comparison_codes[ comparator ],
-                    right.getCodeTemporaryRef(),
-                    left.getCodeTemporaryRef()
+                    left.getCodeTemporaryRef(),
+                    right.getCodeTemporaryRef()
                 ),
                 0
             )
@@ -1011,8 +1011,8 @@ def getComparisonExpressionBoolCode( context, comparators, operands ):
             elif comparator in OperatorCodes.rich_comparison_codes:
                 chunk = "RICH_COMPARE_BOOL_%s( %s, %s )" % (
                     OperatorCodes.rich_comparison_codes[ comparator ],
-                    right_tmp,
-                    left_tmp.getCodeTemporaryRef()
+                    left_tmp.getCodeTemporaryRef(),
+                    right_tmp
                 )
             elif comparator == "Is":
                 chunk = "( %s == %s )" % (

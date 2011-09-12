@@ -31,8 +31,9 @@
 #ifndef __NUITKA_HELPER_RICHCOMPARISONS_H__
 #define __NUITKA_HELPER_RICHCOMPARISONS_H__
 
+#define RICH_COMPARE_LT( operand1, operand2 ) _RICH_COMPARE_LT( EVAL_ORDERED_2( operand1, operand2 ) )
 
-NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_LT( PyObject *operand2, PyObject *operand1 )
+NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_LT( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
     int line = _current_line;
     PyObject *result = PyObject_RichCompare( operand1, operand2, Py_LT );
@@ -46,7 +47,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_LT( PyObject *operand2, PyObj
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_LE( PyObject *operand2, PyObject *operand1 )
+#define RICH_COMPARE_LE( operand1, operand2 ) _RICH_COMPARE_LE( EVAL_ORDERED_2( operand1, operand2 ) )
+
+NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_LE( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
     int line = _current_line;
     PyObject *result = PyObject_RichCompare( operand1, operand2, Py_LE );
@@ -60,7 +63,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_LE( PyObject *operand2, PyObj
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_EQ( PyObject *operand2, PyObject *operand1 )
+#define RICH_COMPARE_EQ( operand1, operand2 ) _RICH_COMPARE_EQ( EVAL_ORDERED_2( operand1, operand2 ) )
+
+NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_EQ( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
     int line = _current_line;
     PyObject *result = PyObject_RichCompare( operand1, operand2, Py_EQ );
@@ -74,7 +79,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_EQ( PyObject *operand2, PyObj
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_NE( PyObject *operand2, PyObject *operand1 )
+#define RICH_COMPARE_NE( operand1, operand2 ) _RICH_COMPARE_NE( EVAL_ORDERED_2( operand1, operand2 ) )
+
+NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_NE( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
     int line = _current_line;
     PyObject *result = PyObject_RichCompare( operand1, operand2, Py_NE );
@@ -88,7 +95,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_NE( PyObject *operand2, PyObj
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_GT( PyObject *operand2, PyObject *operand1 )
+#define RICH_COMPARE_GT( operand1, operand2 ) _RICH_COMPARE_GT( EVAL_ORDERED_2( operand1, operand2 ) )
+
+NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_GT( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
     int line = _current_line;
     PyObject *result = PyObject_RichCompare( operand1, operand2, Py_GT );
@@ -102,8 +111,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_GT( PyObject *operand2, PyObj
     return result;
 }
 
+#define RICH_COMPARE_GE( operand1, operand2 ) _RICH_COMPARE_GE( EVAL_ORDERED_2( operand1, operand2 ) )
 
-NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_GE( PyObject *operand2, PyObject *operand1 )
+NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_GE( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
     int line = _current_line;
     PyObject *result = PyObject_RichCompare( operand1, operand2, Py_GE );
@@ -117,7 +127,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_GE( PyObject *operand2, PyObj
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_LT( PyObject *operand2, PyObject *operand1 )
+#define RICH_COMPARE_BOOL_LT( operand1, operand2 ) _RICH_COMPARE_BOOL_LT( EVAL_ORDERED_2( operand1, operand2 ) )
+
+NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_LT( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
     int line = _current_line;
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_LT );
@@ -150,7 +162,9 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_LT( PyObject *operand2, PyObj
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_LE( PyObject *operand2, PyObject *operand1 )
+#define RICH_COMPARE_BOOL_LE( operand1, operand2 ) _RICH_COMPARE_BOOL_LE( EVAL_ORDERED_2( operand1, operand2 ) )
+
+NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_LE( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
     // Quick path for avoidable checks.
     if ( operand1 == operand2 )
@@ -189,7 +203,7 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_LE( PyObject *operand2, PyObj
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ_PARAMETERS( PyObject *operand2, PyObject *operand1 )
+NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ_PARAMETERS( PyObject *operand1, PyObject *operand2 )
 {
     int line = _current_line;
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_EQ );
@@ -220,7 +234,9 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ_PARAMETERS( PyObject *oper
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ( PyObject *operand2, PyObject *operand1 )
+#define RICH_COMPARE_BOOL_EQ( operand1, operand2 ) _RICH_COMPARE_BOOL_EQ( EVAL_ORDERED_2( operand1, operand2 ) )
+
+NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_EQ( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
     // Quick path for avoidable checks, compatible with CPython.
     if ( operand1 == operand2 )
@@ -259,7 +275,9 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ( PyObject *operand2, PyObj
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_NE( PyObject *operand2, PyObject *operand1 )
+#define RICH_COMPARE_BOOL_NE( operand1, operand2 ) _RICH_COMPARE_BOOL_NE( EVAL_ORDERED_2( operand1, operand2 ) )
+
+NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_NE( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
     // Quick path for avoidable checks.
     if ( operand1 == operand2 )
@@ -298,7 +316,9 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_NE( PyObject *operand2, PyObj
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_GT( PyObject *operand2, PyObject *operand1 )
+#define RICH_COMPARE_BOOL_GT( operand1, operand2 ) _RICH_COMPARE_BOOL_GT( EVAL_ORDERED_2( operand1, operand2 ) )
+
+NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_GT( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
     int line = _current_line;
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_GT );
@@ -331,7 +351,9 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_GT( PyObject *operand2, PyObj
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_GE( PyObject *operand2, PyObject *operand1 )
+#define RICH_COMPARE_BOOL_GE( operand1, operand2 ) _RICH_COMPARE_BOOL_GE( EVAL_ORDERED_2( operand1, operand2 ) )
+
+NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_GE( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
     // Quick path for avoidable checks.
     if ( operand1 == operand2 )
