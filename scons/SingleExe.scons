@@ -105,7 +105,7 @@ env = Environment(
 
 # To support cross-compiling under Linux to windows target, a cross compiler linked or
 # installed to /opt/mingw will win over a system installed one.
-if win_target and "linux2" in sys.platform:
+if win_target and "linux" in sys.platform:
     if os.path.exists( "/opt/mingw/usr/bin/i686-pc-mingw32-g++" ):
         env[ "CXX" ] = "/opt/mingw/usr/bin/i686-pc-mingw32-g++"
         env[ "RC" ] = "/opt/mingw/usr/bin/i686-pc-mingw32-windres"
@@ -253,7 +253,7 @@ if arm_target:
 if debug_mode or unstriped_mode:
     # On crosscompile, use debug format that wine understands, so we get good tracebacks
     # from it.
-    if win_target and "linux2" in sys.platform:
+    if win_target and "linux" in sys.platform:
         env.Append( CCFLAGS = [ "-gstabs" ] )
     else:
         env.Append( CCFLAGS = [ "-g", "-feliminate-unused-debug-types" ] )
