@@ -1143,8 +1143,8 @@ def getSliceAssignmentCode( target, lower, upper, identifier  ):
 def getSliceDelCode( target, lower, upper ):
     return "DEL_SLICE( %s, %s, %s );" % (
         target.getCodeTemporaryRef(),
-        lower.getCodeTemporaryRef() if lower is not None else "Py_None",
-        upper.getCodeTemporaryRef() if upper is not None else "Py_None"
+        lower.getCodeTemporaryRef(),
+        upper.getCodeTemporaryRef()
     )
 
 def getWithNames( context ):

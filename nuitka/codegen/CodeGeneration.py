@@ -1410,10 +1410,17 @@ def generateDelCode( targets, context ):
                 )
 
         elif target.isAssignTargetSlice():
+            target_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
+                sliced    = target.getLookupSource(),
+                lower     = target.getLower(),
+                upper     = target.getUpper(),
+                context   = context
+            )
+
             code += Generator.getSliceDelCode(
-                target     = makeExpressionCode( target.getLookupSource() ),
-                upper      = makeExpressionCode( target.getUpper(), allow_none = True ),
-                lower      = makeExpressionCode( target.getLower(), allow_none = True )
+                target     = target_identifier,
+                lower      = lower_identifier,
+                upper      = upper_identifier
             )
         else:
             assert False, target
