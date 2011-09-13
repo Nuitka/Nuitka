@@ -53,24 +53,40 @@ def listOrderCheck():
     print [ value1(), value2() ]
 
 def sliceOrderCheck():
-    a = [ 1, 2, 3, 4 ]
+    d = range(10)
+
+    def lvalue():
+        print "lvalue",
+
+        return d
+
+    def rvalue():
+        print "rvalue",
+
+        return range(2)
 
     def low():
-        print "low"
+        print "low",
 
         return 0
 
     def high():
-        print "high"
+        print "high",
 
         return 4
 
     def step():
-        print "step"
+        print "step",
 
         return 2
 
-    print a[ low() : high() : step() ]
+    print lvalue()[ low() : high() : step() ]
+
+    lvalue()[ low() : high() : step() ] = rvalue()
+    print d
+
+    del lvalue()[ low() : high() : step() ]
+    print d
 
 def subscriptOrderCheck():
     d={}
@@ -118,6 +134,6 @@ def compareOrderCheck():
 
 dictOrderCheck()
 listOrderCheck()
-sliceOrderCheck()
 subscriptOrderCheck()
 compareOrderCheck()
+sliceOrderCheck()
