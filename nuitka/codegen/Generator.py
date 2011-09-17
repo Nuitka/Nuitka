@@ -43,6 +43,7 @@ from .Identifiers import (
     HolderVariableIdentifier,
     TempVariableIdentifier,
     DefaultValueIdentifier,
+    ReversedCallIdentifier,
     CallIdentifier,
     getCodeTemporaryRefs,
     getCodeExportRefs
@@ -51,6 +52,8 @@ from .Identifiers import (
 from .Indentation import indented
 
 from .Pickling import getStreamedConstant
+
+from .OrderedEvaluation import getEvalOrderedCode
 
 from .ConstantCodes import getConstantHandle, getConstantCode
 from .VariableCodes import getVariableHandle, getVariableCode
@@ -62,14 +65,11 @@ from .ParameterParsing import (
     getParameterContextCode,
 )
 
-from .OrderedEvaluation import getEvalOrderedCode
-
 from . import (
     CppRawStrings,
     CodeTemplates,
     OperatorCodes
 )
-
 
 from nuitka import (
     Variables,
@@ -163,7 +163,7 @@ def getSequenceCreationCode( context, sequence_kind, element_identifiers ):
     else:
         arg_codes = getCodeExportRefs( element_identifiers )
 
-    return CallIdentifier(
+    return ReversedCallIdentifier(
         context = context,
         called  = "MAKE_%s" % sequence_kind.upper(),
         args    = arg_codes
@@ -181,7 +181,7 @@ def getDictionaryCreationCode( context, keys, values ):
         arg_codes.append( value_code )
         arg_codes.append( key_code )
 
-    return CallIdentifier(
+    return ReversedCallIdentifier(
         context = context,
         called  = "MAKE_DICT",
         args    = arg_codes
@@ -746,11 +746,10 @@ def getClosureVariableProvisionCode( context, closure_variables ):
 
     return result
 
-def getContractionCallCode( context, is_genexpr, contraction_identifier, contraction_iterated, closure_var_codes ):
+def getContractionCallCode( is_genexpr, contraction_identifier, contraction_iterated, closure_var_codes ):
     args = [ contraction_iterated.getCodeTemporaryRef() ] + closure_var_codes
 
     return CallIdentifier(
-        context = context,
         called  = "%s%s" % (
             "MAKE_FUNCTION_" if is_genexpr else "",
             contraction_identifier
@@ -799,7 +798,6 @@ def getFunctionCreationCode( context, function_identifier, decorators, default_i
     )
 
     return CallIdentifier(
-        context = context,
         called  = "MAKE_FUNCTION_%s" % function_identifier,
         args    = args
     )
@@ -2155,7 +2153,7 @@ def getFunctionsDecl( context ):
 
     return result
 
-def _getContractionParameters( context, closure_variables ):
+def _getContractionParameters( closure_variables ):
     contraction_parameters = [ "PyObject *iterated" ]
 
     for variable in closure_variables:
@@ -2167,17 +2165,25 @@ def _getContractionParameters( context, closure_variables ):
             )
         )
 
-    return getEvalOrderedCode(
-        context = context,
-        args    = contraction_parameters
-    )
+    return contraction_parameters
 
 def getContractionDecl( context, contraction_identifier, closure_variables ):
-    return CodeTemplates.contraction_decl_template % {
-       "contraction_identifier" : contraction_identifier,
-       "contraction_parameters" : _getContractionParameters(
-            context           = context,
-            closure_variables = closure_variables
+    contraction_creation_arg_spec = _getContractionParameters(
+        closure_variables = closure_variables
+    )
+
+    contraction_creation_arg_names = _extractArgNames( contraction_creation_arg_spec )
+
+    return CodeTemplates.template_contraction_declaration % {
+       "contraction_identifier"             : contraction_identifier,
+       "contraction_creation_arg_spec"      : getEvalOrderedCode(
+            context = context,
+            args    = contraction_creation_arg_spec
+        ),
+        "contraction_creation_arg_names"    : ", ".join( contraction_creation_arg_names ),
+        "contraction_creation_arg_reversal" : getEvalOrderedCode(
+            context = context,
+            args    = contraction_creation_arg_names
         )
     }
 
@@ -2237,11 +2243,15 @@ def getContractionCode( context, contraction_identifier, contraction_kind, loop_
         context = context
     )
 
+    contraction_creation_arg_spec = _getContractionParameters(
+        closure_variables = closure_variables
+    )
+
     return CodeTemplates.contraction_code_template % {
         "contraction_identifier" : contraction_identifier,
-        "contraction_parameters" : _getContractionParameters(
-            context           = context,
-            closure_variables = closure_variables
+        "contraction_parameters" : getEvalOrderedCode(
+            args    = contraction_creation_arg_spec,
+            context = context
         ),
         "contraction_body"       : contraction_loop,
         "contraction_var_decl"   : indented( contraction_var_decl ),
@@ -2254,7 +2264,7 @@ def getContractionIterValueIdentifier( context, index ):
     else:
         return Identifier( "_python_genexpr_iter_value", 1 )
 
-def _getFunctionCreationArgs( context, decorator_count, default_identifiers, closure_variables, is_genexpr ):
+def _getFunctionCreationArgs( decorator_count, default_identifiers, closure_variables, is_genexpr ):
     if decorator_count:
         result = [
             "PyObject *decorator_%d" % ( d + 1 )
@@ -2275,20 +2285,46 @@ def _getFunctionCreationArgs( context, decorator_count, default_identifiers, clo
     for closure_variable in closure_variables:
         result.append( "PyObjectSharedLocalVariable &python_closure_%s" % closure_variable.getName() )
 
-    return getEvalOrderedCode(
-        context = context,
-        args    = result
-    )
+    return result
+
+def _extractArgNames( args ):
+    def extractArgName( value ):
+        value = value.strip()
+
+        if " " in value:
+            value = value.split()[-1]
+        value = value.split("*")[-1]
+        value = value.split("&")[-1]
+
+        return value
+
+    return [
+        extractArgName( part.strip() )
+        for part in
+        args
+    ]
+
 
 def getFunctionDecl( context, function_identifier, decorator_count, default_identifiers, closure_variables, is_genexpr ):
-    return CodeTemplates.function_decl_template % {
-        "function_identifier"    : function_identifier,
-        "function_creation_args" : _getFunctionCreationArgs(
-            context             = context,
-            decorator_count     = decorator_count,
-            default_identifiers = default_identifiers,
-            closure_variables   = closure_variables,
-            is_genexpr          = is_genexpr
+    function_creation_arg_spec = _getFunctionCreationArgs(
+        decorator_count     = decorator_count,
+        default_identifiers = default_identifiers,
+        closure_variables   = closure_variables,
+        is_genexpr          = is_genexpr
+    )
+
+    function_creation_arg_names = _extractArgNames( function_creation_arg_spec )
+
+    return CodeTemplates.template_function_declaration % {
+        "function_identifier"            : function_identifier,
+        "function_creation_arg_spec"     : getEvalOrderedCode(
+            context = context,
+            args    = function_creation_arg_spec
+        ),
+        "function_creation_arg_names"    : ", ".join( function_creation_arg_names ),
+        "function_creation_arg_reversal" : getEvalOrderedCode(
+            context = context,
+            args    = function_creation_arg_names
         )
     }
 
@@ -2478,7 +2514,6 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         )
 
     function_creation_args  = _getFunctionCreationArgs(
-        context             = context,
         decorator_count     = decorator_count,
         default_identifiers = default_access_identifiers,
         closure_variables   = closure_variables,
@@ -2568,7 +2603,10 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
             is_method           = False
         ),
         "mparse_function_identifier" : mparse_identifier,
-        "function_creation_args"     : function_creation_args,
+        "function_creation_args"     : getEvalOrderedCode(
+            context = context,
+            args    = function_creation_args
+        ),
         "function_decorator_calls"   : indented( function_decorator_calls ),
         "context_copy"               : indented( context_copy ),
         "function_doc"               : function_doc,
@@ -2616,7 +2654,6 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         )
 
     function_creation_args = _getFunctionCreationArgs(
-        context             = context,
         decorator_count     = decorator_count,
         closure_variables   = closure_variables,
         default_identifiers = default_access_identifiers,
@@ -2716,7 +2753,10 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                 is_method           = False
             ),
             "mparse_function_identifier" : mparse_identifier,
-            "function_creation_args"     : function_creation_args,
+            "function_creation_args"     : getEvalOrderedCode(
+                context = context,
+                args    = function_creation_args
+            ),
             "function_decorator_calls"   : indented( function_decorator_calls ),
             "context_copy"               : indented( context_copy ),
             "function_doc"               : function_doc,
@@ -2732,7 +2772,10 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                 is_method           = False
             ),
             "mparse_function_identifier" : mparse_identifier,
-            "function_creation_args"     : function_creation_args,
+            "function_creation_args"     : getEvalOrderedCode(
+                context = context,
+                args    = function_creation_args
+            ),
             "function_decorator_calls"   : indented( function_decorator_calls ),
             "function_doc"               : function_doc,
             "module"                     : getModuleAccessCode( context = context ),
@@ -2839,10 +2882,7 @@ def getGeneratorExpressionCode( context, generator_identifier, generator_name, g
         "function_name"              : generator_name,
         "function_name_obj"          : function_name_obj,
         "function_identifier"        : generator_identifier,
-        "function_creation_args"     : getEvalOrderedCode(
-            context = context,
-            args    = function_creation_args
-        ),
+        "function_creation_args"     : ", ".join( function_creation_args ),
         "context_copy"               : indented( context_copy ),
         "function_doc"               : "Py_None",
         "iterator_count"             : len( generator_iterateds ) + 1,

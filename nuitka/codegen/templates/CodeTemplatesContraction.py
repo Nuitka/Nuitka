@@ -32,8 +32,10 @@
 
 """
 
-contraction_decl_template = """\
-static PyObject *%(contraction_identifier)s( %(contraction_parameters)s );
+template_contraction_declaration = """\
+#define %(contraction_identifier)s( %(contraction_creation_arg_names)s ) _%(contraction_identifier)s( %(contraction_creation_arg_reversal)s )
+
+static PyObject *_%(contraction_identifier)s( %(contraction_creation_arg_spec)s );
 """
 
 contraction_loop_iterated = """\
@@ -72,7 +74,7 @@ dict_contraction_loop_production = """\
 
 
 contraction_code_template = """\
-static PyObject *%(contraction_identifier)s( %(contraction_parameters)s )
+static PyObject *_%(contraction_identifier)s( %(contraction_parameters)s )
 {
 %(contraction_var_decl)s
 %(contraction_temp_decl)s

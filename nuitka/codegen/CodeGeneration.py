@@ -254,12 +254,12 @@ def generateContractionCode( contraction, context ):
         assert len( contraction.getTargets() ) == len( sub_iterated_identifiers ) + 1
 
         contraction_decl = Generator.getFunctionDecl(
-            context             = context,
             function_identifier = contraction_identifier,
             decorator_count     = 0,
             default_identifiers = (),
             closure_variables   = contraction.getClosureVariables(),
-            is_genexpr          = True
+            is_genexpr          = True,
+            context             = context
         )
 
         contraction_code = Generator.getGeneratorExpressionCode(
@@ -286,9 +286,9 @@ def generateContractionCode( contraction, context ):
             assert False
 
         contraction_decl = Generator.getContractionDecl(
-            context                = context,
             contraction_identifier = contraction_identifier,
-            closure_variables      = contraction.getClosureVariables()
+            closure_variables      = contraction.getClosureVariables(),
+            context                = context
         )
 
         contraction_code = Generator.getContractionCode(
@@ -310,7 +310,6 @@ def generateContractionCode( contraction, context ):
     )
 
     return Generator.getContractionCallCode(
-        context                = context,
         contraction_identifier = contraction_identifier,
         is_genexpr             = contraction.isExpressionGeneratorBuilder(),
         contraction_iterated   = iterated_identifier,
@@ -427,12 +426,12 @@ def generateLambdaCode( lambda_expression, context ):
     )
 
     lambda_decl = Generator.getFunctionDecl(
-        context             = context,
         function_identifier = lambda_expression.getCodeName(),
         decorator_count     = 0,
         default_identifiers = default_access_identifiers,
         closure_variables   = lambda_expression.getClosureVariables(),
-        is_genexpr          = False
+        is_genexpr          = False,
+        context             = context
     )
 
     if lambda_expression.isGenerator():
@@ -540,12 +539,13 @@ def generateFunctionCode( function, context ):
         )
 
     function_decl = Generator.getFunctionDecl(
-        context             = context,
         function_identifier = function.getCodeName(),
         decorator_count     = len( function.getDecorators() ),
         default_identifiers = default_access_identifiers,
         closure_variables   = function.getClosureVariables(),
-        is_genexpr          = False
+        is_genexpr          = False,
+        context             = context
+
     )
 
     context.addFunctionCodes(

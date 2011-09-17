@@ -252,6 +252,17 @@ class DefaultValueIdentifier( Identifier ):
         return 0
 
 class CallIdentifier( Identifier ):
+    def __init__( self, called, args ):
+        Identifier.__init__(
+            self,
+            code      = "%s( %s )" % (
+                called,
+                ", ".join( args )
+            ),
+            ref_count = 1
+        )
+
+class ReversedCallIdentifier( Identifier ):
     def __init__( self, context, called, args ):
         Identifier.__init__(
             self,
