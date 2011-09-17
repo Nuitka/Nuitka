@@ -132,8 +132,34 @@ def compareOrderCheck():
     print ">", lvalue() > rvalue()
     print "<", lvalue() < rvalue()
 
+def generatorOrderCheck():
+    def default1():
+        print "default1",
+
+        return 1
+
+    def default2():
+        print "default2",
+
+        return 2
+
+    def default3():
+        print "default3",
+
+        return 3
+
+    def generator( a = default1(), b = default2(), c = default3() ):
+        yield a
+        yield b
+        yield c
+
+    print list( generator() )
+
+
+
 dictOrderCheck()
 listOrderCheck()
 subscriptOrderCheck()
 compareOrderCheck()
 sliceOrderCheck()
+generatorOrderCheck()
