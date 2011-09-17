@@ -70,8 +70,10 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
             generator->m_yielder_context.uc_stack.ss_size = 1024*1024;
             generator->m_yielder_context.uc_stack.ss_sp = malloc( generator->m_yielder_context.uc_stack.ss_size );
 
-            getcontext( &generator->m_yielder_context );
-            makecontext( &generator->m_yielder_context, (void (*)())generator->m_code, 1, generator );
+            int res = getcontext( &generator->m_yielder_context );
+            assert( res == 0 );
+
+            makecontext( &generator->m_yielder_context, (void (*)())generator->m_code, 1, (unsigned long)generator );
         }
 
         generator->m_yielded = value;

@@ -28,61 +28,36 @@
 //
 //     Please leave the whole of this copyright notice intact.
 //
-#ifndef __NUITKA_BUILTINS_H__
-#define __NUITKA_BUILTINS_H__
+#ifndef __NUITKA_HELPER_INDEXES_H__
+#define __NUITKA_HELPER_INDEXES_H__
 
-extern PyModuleObject *_module_builtin;
-
-class PythonBuiltin
+NUITKA_MAY_BE_UNUSED static Py_ssize_t CONVERT_TO_INDEX( PyObject *value )
 {
-    public:
-        explicit PythonBuiltin( char const *name )
-        {
-            this->sname = name;
+    assertObject( value );
 
-            this->name = NULL;
-            this->value = NULL;
+#if PY_MAJOR_VERSION < 3
+    if ( PyInt_Check( value ) )
+    {
+        return PyInt_AS_LONG( value );
+    }
+    else
+#endif
+    if ( PyIndex_Check( value ) )
+    {
+        Py_ssize_t result = PyNumber_AsSsize_t( value, NULL );
+
+        if (unlikely( result == -1 && PyErr_Occurred() ))
+        {
+            throw _PythonException();
         }
 
-        PyObject *asObject()
-        {
-            if ( this->name == NULL )
-            {
-                this->name = (PyStringObject *)PyString_FromString( this->sname );
-            }
-
-            if ( this->value == NULL )
-            {
-                PyDictEntry *entry = GET_PYDICT_ENTRY(
-                    _module_builtin,
-                    this->name
-                );
-                this->value = entry->me_value;
-            }
-
-            assert( this->value != NULL );
-
-            return this->value;
-        }
-
-        template<typename... P>
-        PyObject *call( P...eles )
-        {
-            return CALL_FUNCTION(
-                this->asObject(),
-                PyObjectTemporary( MAKE_TUPLE( eles... ) ).asObject(),
-                NULL
-            );
-        }
-
-    private:
-
-        PythonBuiltin( PythonBuiltin const &  ) = delete;
-
-        char const *sname;
-
-        PyStringObject *name;
-        PyObject *value;
-};
+        return result;
+    }
+    else
+    {
+        PyErr_Format( PyExc_TypeError, "slice indices must be integers or None or have an __index__ method" );
+        throw _PythonException();
+    }
+}
 
 #endif

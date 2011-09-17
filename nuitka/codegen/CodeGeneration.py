@@ -87,7 +87,8 @@ def generateSequenceCreationCode( sequence_kind, elements, context ):
 
         return Generator.getSequenceCreationCode(
             sequence_kind       = sequence_kind,
-            element_identifiers = identifiers
+            element_identifiers = identifiers,
+            context             = context
         )
 
 def generateConditionCode( condition, context, inverted = False, allow_none = False ):
@@ -257,7 +258,8 @@ def generateContractionCode( contraction, context ):
             decorator_count     = 0,
             default_identifiers = (),
             closure_variables   = contraction.getClosureVariables(),
-            is_genexpr          = True
+            is_genexpr          = True,
+            context             = context
         )
 
         contraction_code = Generator.getGeneratorExpressionCode(
@@ -285,7 +287,8 @@ def generateContractionCode( contraction, context ):
 
         contraction_decl = Generator.getContractionDecl(
             contraction_identifier = contraction_identifier,
-            closure_variables      = contraction.getClosureVariables()
+            closure_variables      = contraction.getClosureVariables(),
+            context                = context
         )
 
         contraction_code = Generator.getContractionCode(
@@ -427,7 +430,8 @@ def generateLambdaCode( lambda_expression, context ):
         decorator_count     = 0,
         default_identifiers = default_access_identifiers,
         closure_variables   = lambda_expression.getClosureVariables(),
-        is_genexpr          = False
+        is_genexpr          = False,
+        context             = context
     )
 
     if lambda_expression.isGenerator():
@@ -539,7 +543,9 @@ def generateFunctionCode( function, context ):
         decorator_count     = len( function.getDecorators() ),
         default_identifiers = default_access_identifiers,
         closure_variables   = function.getClosureVariables(),
-        is_genexpr          = False
+        is_genexpr          = False,
+        context             = context
+
     )
 
     context.addFunctionCodes(
@@ -697,6 +703,7 @@ def generateDictionaryCreationCode( pairs, context ):
         )
 
         return Generator.getDictionaryCreationCode(
+            context = context,
             keys    = key_identifiers,
             values  = value_identifiers,
         )
@@ -772,12 +779,13 @@ def generateSliceAccessIdentifiers( sliced, lower, upper, context ):
     return sliced, lower, upper
 
 def generateFunctionCallNamedArgumentsCode( pairs, context ):
-    kw_identifier = generateDictionaryCreationCode(
-        pairs      = pairs,
-        context    = context
-    )
-
-    return kw_identifier
+    if pairs:
+        return generateDictionaryCreationCode(
+            pairs      = pairs,
+            context    = context
+        )
+    else:
+        return None
 
 def generateFunctionCallCode( function, context ):
     function_identifier = generateExpressionCode(
@@ -785,11 +793,14 @@ def generateFunctionCallCode( function, context ):
         context    = context
     )
 
-    positional_args_identifier = generateSequenceCreationCode(
-        sequence_kind = "tuple",
-        elements      = function.getPositionalArguments(),
-        context       = context
-    )
+    if function.getPositionalArguments():
+        positional_args_identifier = generateSequenceCreationCode(
+            sequence_kind = "tuple",
+            elements      = function.getPositionalArguments(),
+            context       = context
+        )
+    else:
+        positional_args_identifier = None
 
     kw_identifier = generateFunctionCallNamedArgumentsCode(
         pairs   = function.getNamedArgumentPairs(),
@@ -1193,7 +1204,8 @@ def generateExpressionCode( expression, context, allow_none = False ):
             exception_args = generateExpressionsCode(
                 expressions = expression.getArgs(),
                 context     = context
-            )
+            ),
+            context        = context
         )
     elif expression.isExpressionBuiltinExceptionRef():
         identifier = Generator.getExceptionRefCode(
@@ -1398,10 +1410,17 @@ def generateDelCode( targets, context ):
                 )
 
         elif target.isAssignTargetSlice():
+            target_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
+                sliced    = target.getLookupSource(),
+                lower     = target.getLower(),
+                upper     = target.getUpper(),
+                context   = context
+            )
+
             code += Generator.getSliceDelCode(
-                target     = makeExpressionCode( target.getLookupSource() ),
-                upper      = makeExpressionCode( target.getUpper(), allow_none = True ),
-                lower      = makeExpressionCode( target.getLower(), allow_none = True )
+                target     = target_identifier,
+                lower      = lower_identifier,
+                upper      = upper_identifier
             )
         else:
             assert False, target
@@ -2019,7 +2038,6 @@ def _generateStatementCode( statement, context ):
             ),
             context     = context
         )
-
     elif statement.isStatementReturn():
         code = generateReturnCode(
             statement = statement,
@@ -2247,6 +2265,12 @@ def generateConstantsDefinitionCode( context ):
     return Generator.getConstantsDefinitionCode(
         context = context
     )
+
+def generateReversionMacrosCode( context ):
+    return Generator.getReversionMacrosCode(
+        context = context
+    )
+
 
 def makeGlobalContext():
     return Contexts.PythonGlobalContext()

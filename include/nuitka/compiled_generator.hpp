@@ -52,7 +52,7 @@ enum class Generator_Status {
 
 // *** Nuitka_Generator type begin
 
-#include <ucontext.h>
+#include "ucontext.h"
 
 // The Nuitka_GeneratorObject is the storage associated with a compiled generator object
 // instance of which there can be many for each code.

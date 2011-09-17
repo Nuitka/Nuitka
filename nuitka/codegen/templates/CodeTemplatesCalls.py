@@ -32,20 +32,48 @@
 
 """
 
-call_pos_star_dict = """\
-CALL_FUNCTION_STAR_BOTH_ONLY( %(star_dict_arg)s, %(pos_args)s, %(function)s )"""
+template_call_star_dict = """\
+CALL_FUNCTION_WITH_STAR_DICT( %(function)s, %(star_dict_arg)s )"""
 
-call_star_list_star_dict = """\
-CALL_FUNCTION_STAR_BOTH_ONLY( %(star_dict_arg)s, %(star_list_arg)s, %(function)s )"""
+template_call_star_list = """\
+CALL_FUNCTION_WITH_STAR_LIST( %(function)s, %(star_list_arg)s )"""
 
-call_pos_named_star_list = """\
-CALL_FUNCTION_STAR_LIST( %(star_list_arg)s, %(named_args)s, %(pos_args)s, %(function)s )"""
+template_call_star_list_star_dict = """\
+CALL_FUNCTION_WITH_STAR_LIST_STAR_DICT( %(function)s, %(star_list_arg)s, %(star_dict_arg)s )"""
 
-call_pos_named_star_dict = """\
-CALL_FUNCTION_STAR_DICT( %(star_dict_arg)s, %(named_args)s, %(pos_args)s, %(function)s )"""
+template_call_pos_star_dict = """\
+CALL_FUNCTION_WITH_POSARGS_STAR_DICT( %(function)s, %(pos_args)s, %(star_dict_arg)s )"""
 
-call_pos_star_list_star_dict = """\
-CALL_FUNCTION_STAR_BOTH( %(star_dict_arg)s, %(star_list_arg)s, %(pos_args)s, %(function)s )"""
+template_call_pos_star_list = """\
+CALL_FUNCTION_WITH_POSARGS_STAR_LIST( %(function)s, %(pos_args)s, %(star_list_arg)s )"""
 
-call_pos_named_list_star_star_dict = """
-CALL_FUNCTION_STAR_BOTH( %(star_dict_arg)s, %(star_list_arg)s, %(named_args)s, %(pos_args)s, %(function)s )"""
+template_call_pos_star_list_star_dict = """\
+CALL_FUNCTION_WITH_POSARGS_STAR_LIST_STAR_DICT( %(function)s, %(pos_args)s, %(star_list_arg)s, %(star_dict_arg)s )"""
+
+template_call_pos_named_star_list = """\
+CALL_FUNCTION_WITH_POSARGS_KEYARGS_STAR_LIST( %(function)s, %(pos_args)s, %(named_args)s, %(star_list_arg)s )"""
+
+template_call_pos_named_star_dict = """\
+CALL_FUNCTION_WITH_POSARGS_KEYARGS_STAR_DICT( %(function)s, %(pos_args)s, %(named_args)s, %(star_dict_arg)s )"""
+
+template_call_pos_named_star_list_star_dict = """\
+CALL_FUNCTION_WITH_POSARGS_KEYARGS_STAR_LIST_STAR_DICT( %(function)s, %(pos_args)s, %(named_args)s, %(star_list_arg)s, %(star_dict_arg)s )"""
+
+template_call_named_star_list = """\
+CALL_FUNCTION_WITH_KEYARGS_STAR_LIST( %(function)s, %(named_args)s, %(star_list_arg)s )"""
+
+template_call_named_star_dict = """\
+CALL_FUNCTION_WITH_KEYARGS_STAR_DICT( %(function)s, %(named_args)s, %(star_dict_arg)s )"""
+
+template_call_named_star_list_star_dict = """\
+CALL_FUNCTION_WITH_KEYARGS_STAR_LIST_STAR_DICT( %(function)s, %(named_args)s, %(star_list_arg)s, %(star_dict_arg)s )"""
+
+template_reverse_macros_declaration = """\
+#include "nuitka/eval_order.hpp"
+
+#if NUITKA_REVERSED_ARGS == 0
+%(noreverse_macros)s
+#else
+%(reverse_macros)s
+#endif
+"""

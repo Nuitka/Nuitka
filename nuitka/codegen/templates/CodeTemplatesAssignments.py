@@ -56,7 +56,7 @@ template_inplace_subscript_assignment = """\
 
     if ( result != value.asObject() )
     {
-        SET_SUBSCRIPT( subscribed.asObject(), subscript.asObject(), result );
+        SET_SUBSCRIPT( result, subscribed.asObject(), subscript.asObject() );
     }
 
     Py_DECREF( result );

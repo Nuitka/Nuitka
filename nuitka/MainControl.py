@@ -225,6 +225,13 @@ def makeSourceDirectory( main_module ):
     )
 
     writeSourceCode(
+        filename    = source_dir + "__reverses.hpp",
+        source_code = CodeGeneration.generateReversionMacrosCode(
+            context = global_context
+        )
+    )
+
+    writeSourceCode(
         filename    = source_dir + "__modules.hpp",
         source_code = "".join( module_hpp_include )
     )

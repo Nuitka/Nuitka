@@ -64,4 +64,4 @@ def toString( xml ):
     return lxml.etree.tostring( xml, pretty_print = True )
 
 def dump( xml  ):
-    Tracing.printLine( toString( xml ) )
+    Tracing.printLine( toString( xml ).rstrip() )

@@ -42,34 +42,6 @@ extern void PRINT_NEW_LINE( void );
 
 extern PyObject *GET_STDOUT();
 
-template<typename... P>
-extern void PRINT_ITEMS( bool new_line, PyObject *file, P...eles )
-{
-    int size = sizeof...(eles);
-
-    if ( file == NULL || file == Py_None )
-    {
-        file = GET_STDOUT();
-    }
-
-    // Need to hold a reference for the case that the printing somehow removes
-    // the last reference to "file" while printing.
-    Py_INCREF( file );
-    PyObjectTemporary file_reference( file );
-
-    PyObject *elements[] = {eles...};
-
-    for( int i = 0; i < size; i++ )
-    {
-        PRINT_ITEM_TO( file, elements[ i ] );
-    }
-
-    if ( new_line )
-    {
-        PRINT_NEW_LINE_TO( file );
-    }
-}
-
 // Helper functions to debug the compiler operation.
 NUITKA_MAY_BE_UNUSED static void PRINT_REFCOUNT( PyObject *object )
 {

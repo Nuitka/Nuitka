@@ -384,6 +384,19 @@ def getKeywordArg2():
 getFunction()( getPlainArg1(), getPlainArg2(), k = getKeywordArg1(), a = getKeywordArg2() )
 print
 
+def getListStarArg():
+    print "getListStarArg",
+    return [1]
+
+def getDictStarArg():
+    print "getDictStarArg",
+    return { "k" : 9 }
+
+print "Same with star args"
+
+getFunction()( getPlainArg1(), a = getKeywordArg1(), *getListStarArg(), **getDictStarArg() )
+print
+
 print "Dictionary creation order:"
 
 d = {

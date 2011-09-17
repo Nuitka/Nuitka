@@ -103,6 +103,9 @@ class PythonChildContextBase( PythonContextBase ):
 
         self.parent = parent
 
+    def addEvalOrderUse( self, value ):
+        self.parent.addEvalOrderUse( value )
+
     def getParent( self ):
         return self.parent
 
@@ -133,6 +136,7 @@ class PythonGlobalContext:
         self.constants = {}
 
         self.getConstantHandle( () )
+        self.getConstantHandle( {} )
         self.getConstantHandle( "" )
         self.getConstantHandle( True )
         self.getConstantHandle( False )
@@ -144,6 +148,9 @@ class PythonGlobalContext:
         self.getConstantHandle( "__file__" )
         self.getConstantHandle( "__enter__" )
         self.getConstantHandle( "__exit__" )
+
+        self.eval_orders_used = set( range( 2, 6 ) )
+
 
     def getConstantHandle( self, constant ):
         if constant is None:
@@ -164,6 +171,14 @@ class PythonGlobalContext:
 
     def getConstants( self ):
         return sorted( self.constants.items(), key = lambda x: x[1] )
+
+    def addEvalOrderUse( self, value ):
+        assert type( value ) is int
+
+        self.eval_orders_used.add( value )
+
+    def getEvalOrdersUsed( self ):
+        return self.eval_orders_used
 
 class PythonModuleContext( PythonContextBase ):
     def __init__( self, module_name, code_name, filename, global_context ):
@@ -252,6 +267,8 @@ class PythonModuleContext( PythonContextBase ):
     def getTracebackFilename( self ):
         return self.filename
 
+    def addEvalOrderUse( self, value ):
+        self.global_context.addEvalOrderUse( value )
 
 class PythonFunctionContext( PythonChildContextBase ):
     def __init__( self, parent, function ):

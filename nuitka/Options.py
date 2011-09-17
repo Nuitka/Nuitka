@@ -31,7 +31,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.3.10a
+Nuitka V0.3.11
 Copyright (C) 2011 Kay Hayen."""
 
 from . import Utils, Tracing
@@ -316,3 +316,6 @@ def isWindowsTarget():
 
 def isFullCompat():
     return True
+
+def getVersion():
+    return version_string.split()[1][1:]

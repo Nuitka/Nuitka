@@ -28,60 +28,17 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Module like __future__ for things that are no more in CPython3, but provide compatible fallbacks.
 
-This is required to run the same code easily with both CPython2 and CPython3.
-"""
 
-# pylint: disable=W0622
+def getEvalOrderedCode( context, args ):
+    args_length = len( args )
 
-# Work around for CPython 3.x renaming long to int.
-try:
-    long = long
-except NameError:
-    long = int
+    if args_length > 1:
+        context.addEvalOrderUse( args_length )
 
-# Work around for CPython 3.x renaming unicode to str.
-try:
-    unicode = unicode
-except NameError:
-    unicode = str
-
-# Work around for CPython 3.x removal of commands
-try:
-    import commands
-except ImportError:
-    # false alarm, no re-import, just another try if the above fails, which it will
-    # on Python3 pylint: disable=W0404
-
-    import subprocess as commands
-
-try:
-    import exceptions
-
-    builtin_exception_names = [
-        str( x ) for x in dir( exceptions )
-        if x.endswith( "Error" )
-    ]
-
-except ImportError:
-    exceptions = {}
-
-    import sys
-
-    for x in dir( sys.modules[ "builtins" ] ):
-        if str( x ).endswith( "Error" ):
-            exceptions[ str( x ) ] = x
-
-    builtin_exception_names = [
-        key for key, value in exceptions.items()
-        if key.endswith( "Error" )
-    ]
-
-assert "ValueError" in builtin_exception_names
-
-# For PyLint to be happy.
-assert long
-assert unicode
-assert commands
-assert exceptions
+        return "EVAL_ORDERED_%d( %s )" % (
+            args_length,
+            ", ".join( args )
+        )
+    else:
+        return ", ".join( args )

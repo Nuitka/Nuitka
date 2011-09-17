@@ -28,60 +28,47 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Module like __future__ for things that are no more in CPython3, but provide compatible fallbacks.
+""" Module to hide the complexity of using pickle.
 
-This is required to run the same code easily with both CPython2 and CPython3.
+It should be simple, but it is not yet. Not all the pickle modules are well behaved.
 """
 
-# pylint: disable=W0622
+from nuitka import Constants
 
-# Work around for CPython 3.x renaming long to int.
+# Work around for CPython 3.x removal of cpickle.
 try:
-    long = long
-except NameError:
-    long = int
-
-# Work around for CPython 3.x renaming unicode to str.
-try:
-    unicode = unicode
-except NameError:
-    unicode = str
-
-# Work around for CPython 3.x removal of commands
-try:
-    import commands
+    import cPickle as cpickle
 except ImportError:
-    # false alarm, no re-import, just another try if the above fails, which it will
-    # on Python3 pylint: disable=W0404
+    # False alarm, no double import at all, pylint: disable=W0404
+    import pickle as cpickle
 
-    import subprocess as commands
+# Need to use the pure Python pickle to workaround seeming bugs of cPickle
+import pickle
 
-try:
-    import exceptions
+from logging import warning
 
-    builtin_exception_names = [
-        str( x ) for x in dir( exceptions )
-        if x.endswith( "Error" )
-    ]
+def getStreamedConstant( constant_value, constant_type ):
 
-except ImportError:
-    exceptions = {}
+    # Note: The marshal module cannot persist all unicode strings and
+    # therefore cannot be used.  The cPickle fails to gives reproducible
+    # results for some tuples, which needs clarification. In the mean time we
+    # are using pickle.
+    try:
+        saved = pickle.dumps(
+            constant_value,
+            protocol = 0 if constant_type is unicode else 0
+        )
+    except TypeError:
+        warning( "Problem with persisting constant '%r'." % constant_value )
+        raise
 
-    import sys
+    # Check that the constant is restored correctly.
+    restored = cpickle.loads( saved )
 
-    for x in dir( sys.modules[ "builtins" ] ):
-        if str( x ).endswith( "Error" ):
-            exceptions[ str( x ) ] = x
+    assert Constants.compareConstants( restored, constant_value )
 
-    builtin_exception_names = [
-        key for key, value in exceptions.items()
-        if key.endswith( "Error" )
-    ]
+    # If we have Python3, we need to make sure, we use UTF8 or else we get into trouble.
+    if str is unicode:
+        saved = saved.decode( "utf_8" )
 
-assert "ValueError" in builtin_exception_names
-
-# For PyLint to be happy.
-assert long
-assert unicode
-assert commands
-assert exceptions
+    return saved

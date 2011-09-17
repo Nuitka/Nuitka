@@ -28,60 +28,26 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Module like __future__ for things that are no more in CPython3, but provide compatible fallbacks.
+""" Code Templates for printing. """
 
-This is required to run the same code easily with both CPython2 and CPython3.
+template_print_statement = """\
+{
+   PyObject *target_file = %(target_file)s;
+
+   if ( target_file == NULL || target_file == Py_None )
+   {
+       target_file = GET_STDOUT();
+       Py_INCREF( target_file );
+   }
+
+   PyObjectTemporary file_reference( target_file );
+
+%(print_elements_code)s}"""
+
+template_print_value = """\
+   PRINT_ITEM_TO( target_file, %(print_value)s );
 """
 
-# pylint: disable=W0622
-
-# Work around for CPython 3.x renaming long to int.
-try:
-    long = long
-except NameError:
-    long = int
-
-# Work around for CPython 3.x renaming unicode to str.
-try:
-    unicode = unicode
-except NameError:
-    unicode = str
-
-# Work around for CPython 3.x removal of commands
-try:
-    import commands
-except ImportError:
-    # false alarm, no re-import, just another try if the above fails, which it will
-    # on Python3 pylint: disable=W0404
-
-    import subprocess as commands
-
-try:
-    import exceptions
-
-    builtin_exception_names = [
-        str( x ) for x in dir( exceptions )
-        if x.endswith( "Error" )
-    ]
-
-except ImportError:
-    exceptions = {}
-
-    import sys
-
-    for x in dir( sys.modules[ "builtins" ] ):
-        if str( x ).endswith( "Error" ):
-            exceptions[ str( x ) ] = x
-
-    builtin_exception_names = [
-        key for key, value in exceptions.items()
-        if key.endswith( "Error" )
-    ]
-
-assert "ValueError" in builtin_exception_names
-
-# For PyLint to be happy.
-assert long
-assert unicode
-assert commands
-assert exceptions
+template_print_newline = """\
+   PRINT_NEW_LINE_TO( target_file );
+"""

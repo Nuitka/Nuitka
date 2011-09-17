@@ -31,6 +31,11 @@
 #ifndef __NUITKA_HELPERS_H__
 #define __NUITKA_HELPERS_H__
 
+#include "nuitka/eval_order.hpp"
+
+// For the EVAL_ORDER macros.
+#include "__reverses.hpp"
+
 extern PyObject *_python_tuple_empty;
 extern PyObject *_python_str_plain___dict__;
 extern PyObject *_python_str_plain___class__;
@@ -571,11 +576,6 @@ static PyObject *MAKE_TUPLE( P...eles )
 
     PyObject *elements[] = {eles...};
 
-    for ( Py_ssize_t i = 0; i < size; i++ )
-    {
-        assertObject( elements[ i ] );
-    }
-
     PyObject *result = PyTuple_New( size );
 
     if (unlikely( result == NULL ))
@@ -585,7 +585,19 @@ static PyObject *MAKE_TUPLE( P...eles )
 
     for ( Py_ssize_t i = 0; i < size; i++ )
     {
-        PyTuple_SET_ITEM( result, i, INCREASE_REFCOUNT( elements[ size - 1 - i ] ));
+        assertObject( elements[ i ] );
+
+        PyTuple_SET_ITEM(
+            result,
+            i,
+            INCREASE_REFCOUNT(
+#if NUITKA_REVERSED_ARGS == 1
+            elements[ size - 1 - i ]
+#else
+            elements[ i ]
+#endif
+            )
+        );
     }
 
     assert( result->ob_refcnt == 1 );
@@ -615,10 +627,17 @@ static PyObject *MAKE_LIST( P...eles )
 
     for ( Py_ssize_t i = 0; i < size; i++ )
     {
-        assert( elements[ i ] != NULL );
-        assert( elements[ i ]->ob_refcnt > 0 );
+        assertObject( elements[ i ] );
 
-        PyList_SET_ITEM( result, i, elements[ size - 1 - i ] );
+        PyList_SET_ITEM(
+            result,
+            i,
+#if NUITKA_REVERSED_ARGS == 1
+            elements[ size - 1 - i ]
+#else
+            elements[ i ]
+#endif
+        );
     }
 
     assert( result->ob_refcnt == 1 );
@@ -655,7 +674,16 @@ static PyObject *MAKE_DICT( P...eles )
 
     for( int i = 0; i < size; i += 2 )
     {
-        int status = PyDict_SetItem( result, elements[i], elements[i+1] );
+        int status = PyDict_SetItem(
+            result,
+#if NUITKA_REVERSED_ARGS == 1
+            elements[i],
+            elements[i+1]
+#else
+            elements[i+1],
+            elements[i]
+#endif
+        );
 
         if (unlikely( status == -1 ))
         {
@@ -1040,276 +1068,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
     return result;
 }
 
-extern PyObject *CHR( unsigned char c );
-
-NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObject *const_subscript, Py_ssize_t int_subscript )
-{
-    assertObject( source );
-    assertObject( const_subscript );
-
-    PyTypeObject *type = Py_TYPE( source );
-    PyMappingMethods *m = type->tp_as_mapping;
-
-    PyObject *result;
-
-    if ( m && m->mp_subscript )
-    {
-        if ( PyList_CheckExact( source ) )
-        {
-            Py_ssize_t list_size = PyList_GET_SIZE( source );
-
-            if ( int_subscript < 0 )
-            {
-                if ( -int_subscript > list_size )
-                {
-                    PyErr_Format( PyExc_IndexError, "list index out of range" );
-                    throw _PythonException();
-                }
-
-                int_subscript += list_size;
-            }
-            else
-            {
-                if ( int_subscript >= list_size )
-                {
-                    PyErr_Format( PyExc_IndexError, "list index out of range" );
-                    throw _PythonException();
-                }
-            }
-
-            return INCREASE_REFCOUNT( ((PyListObject *)source)->ob_item[ int_subscript ] );
-        }
-        else if ( PyString_CheckExact( source ) )
-        {
-            Py_ssize_t string_size = PyString_GET_SIZE( source );
-
-            if ( int_subscript < 0 )
-            {
-                if ( -int_subscript > string_size )
-                {
-                    PyErr_Format( PyExc_IndexError, "string index out of range" );
-                    throw _PythonException();
-                }
-
-                int_subscript += string_size;
-            }
-            else
-            {
-                if ( int_subscript >= string_size )
-                {
-                    PyErr_Format( PyExc_IndexError, "string index out of range" );
-                    throw _PythonException();
-                }
-            }
-
-            unsigned char c = ((PyStringObject *)source)->ob_sval[ int_subscript ];
-            return CHR( c );
-        }
-        else
-        {
-            result = m->mp_subscript( source, const_subscript );
-        }
-    }
-    else if ( type->tp_as_sequence )
-    {
-        result = PySequence_GetItem( source, int_subscript );
-    }
-    else
-    {
-        return PyErr_Format( PyExc_TypeError, "'%s' object is unsubscriptable", source->ob_type->tp_name );
-        throw _PythonException();
-    }
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
-static Py_ssize_t CONVERT_TO_INDEX( PyObject *value );
-
-NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObject *subscript )
-{
-    assertObject( source );
-    assertObject( subscript );
-
-    PyTypeObject *type = Py_TYPE( source );
-    PyMappingMethods *mapping = type->tp_as_mapping;
-
-    PyObject *result;
-
-    if ( mapping != NULL && mapping->mp_subscript != NULL )
-    {
-        result = mapping->mp_subscript( source, subscript );
-    }
-    else if ( type->tp_as_sequence != NULL )
-    {
-        if ( PyIndex_Check( subscript ) )
-        {
-            result = PySequence_GetItem( source, CONVERT_TO_INDEX( subscript ) );
-        }
-        else if ( type->tp_as_sequence->sq_item )
-        {
-            PyErr_Format( PyExc_TypeError, "sequence index must be integer, not '%s'", subscript->ob_type->tp_name );
-            throw _PythonException();
-        }
-        else
-        {
-            return PyErr_Format( PyExc_TypeError, "'%s' object is unsubscriptable", source->ob_type->tp_name );
-            throw _PythonException();
-        }
-    }
-    else
-    {
-        return PyErr_Format( PyExc_TypeError, "'%s' object is unsubscriptable", source->ob_type->tp_name );
-        throw _PythonException();
-    }
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT( PyObject *target, PyObject *subscript, PyObject *value )
-{
-    assertObject( target );
-    assertObject( subscript );
-    assertObject( value );
-
-    int status = PyObject_SetItem( target, subscript, value );
-
-    if (unlikely( status == -1 ))
-    {
-        throw _PythonException();
-    }
-}
-
-NUITKA_MAY_BE_UNUSED static void DEL_SUBSCRIPT( PyObject *target, PyObject *subscript )
-{
-    assertObject( target );
-    assertObject( subscript );
-
-    int status = PyObject_DelItem( target, subscript );
-
-    if (unlikely( status == -1 ))
-    {
-        throw _PythonException();
-    }
-}
-
-
-NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SLICE( PyObject *source, Py_ssize_t lower, Py_ssize_t upper )
-{
-    assertObject( source );
-
-    PyObject *result = PySequence_GetSlice( source, lower, upper);
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static void SET_SLICE( PyObject *target, Py_ssize_t lower, Py_ssize_t upper, PyObject *value )
-{
-    assertObject( target );
-    assertObject( value );
-
-    int status = PySequence_SetSlice( target, lower, upper, value );
-
-    if (unlikely( status == -1 ))
-    {
-        throw _PythonException();
-    }
-}
-
-NUITKA_MAY_BE_UNUSED static void DEL_SLICE( PyObject *target, PyObject *lower, PyObject *upper )
-{
-    assertObject( target );
-
-    if ( target->ob_type->tp_as_sequence && target->ob_type->tp_as_sequence->sq_ass_slice )
-    {
-        int status = PySequence_DelSlice( target, lower != Py_None ? CONVERT_TO_INDEX( lower ) : 0, upper != Py_None ? CONVERT_TO_INDEX( upper ) : PY_SSIZE_T_MAX );
-
-        if (unlikely( status == -1 ))
-        {
-            throw _PythonException();
-        }
-    }
-    else
-    {
-        PyObject *slice = PySlice_New( lower, upper, NULL );
-
-        if (slice == NULL)
-        {
-            throw _PythonException();
-        }
-
-        int status = PyObject_DelItem( target, slice );
-
-        Py_DECREF( slice );
-
-        if (unlikely( status == -1 ))
-        {
-            throw _PythonException();
-        }
-    }
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ( PyObject *start, PyObject *stop, PyObject *step )
-{
-    assert( start );
-    assert( start->ob_refcnt > 0 );
-    assert( stop );
-    assert( stop->ob_refcnt > 0 );
-    assert( step );
-    assert( step->ob_refcnt > 0 );
-
-    PyObject *result = PySlice_New( start, stop, step );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static Py_ssize_t CONVERT_TO_INDEX( PyObject *value )
-{
-    assertObject( value );
-
-#if PY_MAJOR_VERSION < 3
-    if ( PyInt_Check( value ) )
-    {
-        return PyInt_AS_LONG( value );
-    }
-    else
-#endif
-    if ( PyIndex_Check( value ) )
-    {
-        Py_ssize_t result = PyNumber_AsSsize_t( value, NULL );
-
-        if (unlikely( result == -1 && PyErr_Occurred() ))
-        {
-            throw _PythonException();
-        }
-
-        return result;
-    }
-    else
-    {
-        PyErr_Format( PyExc_TypeError, "slice indices must be integers or None or have an __index__ method" );
-        throw _PythonException();
-    }
-}
+#include "nuitka/helper/indexes.hpp"
+#include "nuitka/helper/subscripts.hpp"
+#include "nuitka/helper/slices.hpp"
 
 #if PY_MAJOR_VERSION < 3
 NUITKA_MAY_BE_UNUSED static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *klass, PyObject *attr_name )
@@ -1413,7 +1174,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
         {
             PyObject *result = PyObject_Call(
                 source_instance->in_class->cl_getattr,
-                PyObjectTemporary( MAKE_TUPLE( attr_name, source ) ).asObject(),
+                PyObjectTemporary( MAKE_TUPLE( EVAL_ORDERED_2( source, attr_name ) ) ).asObject(),
                 NULL
             );
 
@@ -1534,7 +1295,7 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
         {
             PyObject *result = PyObject_Call(
                 target_instance->in_class->cl_setattr,
-                PyObjectTemporary( MAKE_TUPLE( value, attr_name, target ) ).asObject(),
+                PyObjectTemporary( MAKE_TUPLE( EVAL_ORDERED_3( target, attr_name, value ) ) ).asObject(),
                 NULL
             );
 

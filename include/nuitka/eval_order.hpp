@@ -28,61 +28,14 @@
 //
 //     Please leave the whole of this copyright notice intact.
 //
-#ifndef __NUITKA_BUILTINS_H__
-#define __NUITKA_BUILTINS_H__
+#ifndef __NUITKA_EVAL_ORDER_H__
+#define __NUITKA_EVAL_ORDER_H__
 
-extern PyModuleObject *_module_builtin;
-
-class PythonBuiltin
-{
-    public:
-        explicit PythonBuiltin( char const *name )
-        {
-            this->sname = name;
-
-            this->name = NULL;
-            this->value = NULL;
-        }
-
-        PyObject *asObject()
-        {
-            if ( this->name == NULL )
-            {
-                this->name = (PyStringObject *)PyString_FromString( this->sname );
-            }
-
-            if ( this->value == NULL )
-            {
-                PyDictEntry *entry = GET_PYDICT_ENTRY(
-                    _module_builtin,
-                    this->name
-                );
-                this->value = entry->me_value;
-            }
-
-            assert( this->value != NULL );
-
-            return this->value;
-        }
-
-        template<typename... P>
-        PyObject *call( P...eles )
-        {
-            return CALL_FUNCTION(
-                this->asObject(),
-                PyObjectTemporary( MAKE_TUPLE( eles... ) ).asObject(),
-                NULL
-            );
-        }
-
-    private:
-
-        PythonBuiltin( PythonBuiltin const &  ) = delete;
-
-        char const *sname;
-
-        PyStringObject *name;
-        PyObject *value;
-};
+// Macros for forcing evaluation order to be as given.
+#ifdef __arm__
+#define NUITKA_REVERSED_ARGS 0
+#else
+#define NUITKA_REVERSED_ARGS 1
+#endif
 
 #endif

@@ -47,6 +47,15 @@ from .odict import OrderedDict
 from .nodes import OverflowCheck
 from .nodes import UsageCheck
 
+from .nodes.IndicatorMixins import (
+    MarkExceptionBreakContinueIndicator,
+    MarkContainsTryExceptIndicator,
+    MarkLocalsDictIndicator,
+    MarkGeneratorIndicator,
+    MarkExecContainingIndicator
+)
+
+
 from .Constants import isMutable, isIterableConstant, isNumberConstant
 
 lxml = TreeXML.lxml
@@ -566,10 +575,6 @@ class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
     def getProvidedVariables( self ):
         return self.providing.values()
 
-    def hasLocalsDict( self ):
-        # Abstract method, pylint: disable=R0201,W0613
-        return False
-
     def reconsiderVariable( self, variable ):
         # TODO: Why doesn't this fit in as well.
         if self.isModule():
@@ -682,34 +687,6 @@ class CPythonClosureTaker:
 
     def isEarlyClosure( self ):
         return self.early_closure
-
-class MarkExceptionBreakContinueIndicator:
-    """ Mixin for indication that a break and continue could be real exceptions.
-
-    """
-
-    def __init__( self ):
-        self.break_continue_exception = False
-
-    def markAsExceptionBreakContinue( self ):
-        self.break_continue_exception = True
-
-    def needsExceptionBreakContinue( self ):
-        return self.break_continue_exception
-
-class MarkContainsTryExceptIndicator:
-    """ Mixin for indication that a module, class or function contains a try/except.
-
-    """
-
-    def __init__( self ):
-        self.try_except_containing = False
-
-    def markAsTryExceptContaining( self ):
-        self.try_except_containing = True
-
-    def needsFrameExceptionKeeper( self ):
-        return self.try_except_containing
 
 class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureGiverNodeBase, \
                      MarkContainsTryExceptIndicator ):
@@ -864,7 +841,7 @@ class CPythonStatementClassBuilder( CPythonChildrenHaving, CPythonNodeBase ):
 
 
 class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CPythonCodeNodeBase, \
-                                  MarkContainsTryExceptIndicator ):
+                                  MarkContainsTryExceptIndicator, MarkLocalsDictIndicator ):
     kind = "EXPRESSION_CLASS_BODY"
 
     early_closure = True
@@ -891,10 +868,11 @@ class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CP
 
         MarkContainsTryExceptIndicator.__init__( self )
 
+        MarkLocalsDictIndicator.__init__( self )
+
         self.doc = doc
 
         self.variables = {}
-        self.locals_dict = False
 
         self._addClassVariable(
             variable_name = "__module__"
@@ -956,12 +934,6 @@ class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CP
         return self.variables.values()
 
     getVariables = getClassVariables
-
-    def hasLocalsDict( self ):
-        return self.locals_dict
-
-    def markAsLocalsDict( self ):
-        self.locals_dict = True
 
 
 class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
@@ -1245,16 +1217,6 @@ class CPythonExpressionLambdaBuilder( CPythonChildrenHaving, CPythonNodeBase ):
     def isGenerator( self ):
         return self.getBody().isGenerator()
 
-class MarkGeneratorIndicator:
-    def __init__( self ):
-        self.is_generator = False
-
-    def isGenerator( self ):
-        return self.is_generator
-
-    def markAsGenerator( self ):
-        self.is_generator = True
-
 class CPythonStatementFunctionBuilder( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_FUNCTION_BUILDER"
 
@@ -1300,7 +1262,8 @@ class CPythonStatementFunctionBuilder( CPythonChildrenHaving, CPythonNodeBase ):
 
 class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavingNodeBase, \
                                      CPythonClosureTaker, MarkContainsTryExceptIndicator, \
-                                     MarkGeneratorIndicator ):
+                                     MarkGeneratorIndicator, MarkLocalsDictIndicator,
+                                     MarkExecContainingIndicator ):
     kind = "EXPRESSION_FUNCTION_BODY"
 
     early_closure = False
@@ -1330,10 +1293,11 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
 
         MarkGeneratorIndicator.__init__( self )
 
-        self.parent = provider
+        MarkLocalsDictIndicator.__init__( self )
 
-        self.contains_exec = False
-        self.locals_dict = False
+        MarkExecContainingIndicator.__init__( self )
+
+        self.parent = provider
 
         self.doc = doc
 
@@ -1373,18 +1337,6 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
 
     def getVariables( self ):
         return self.providing.values()
-
-    def markAsLocalsDict( self ):
-        self.locals_dict = True
-
-    def markAsExecContaining( self ):
-        self.contains_exec = True
-
-    def hasLocalsDict( self ):
-        return self.locals_dict
-
-    def isExecContaining( self ):
-        return self.contains_exec
 
     def getVariableForAssignment( self, variable_name ):
         # print ( "ASS func", self, variable_name )

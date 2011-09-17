@@ -32,6 +32,15 @@
 
 """
 
+global_copyright = """\
+// Generated code for Python source for module '%(name)s'
+// created by Nuitka version %(version)s
+
+// This code is in part copyright Kay Hayen, license GPLv3. This has the consequence that
+// your must either obtain a commercial license or also publish your original source code
+// under the same license unless you don't distribute this source or its binary.
+"""
+
 module_inittab_entry = """\
 { (char *)"%(module_name)s", init%(module_identifier)s },"""
 
@@ -253,6 +262,7 @@ module_body_template = """\
 
 #include "__modules.hpp"
 #include "__constants.hpp"
+#include "__reverses.hpp"
 
 // The _module_%(module_identifier)s is a Python object pointer of module type.
 
@@ -416,10 +426,6 @@ module_init_in_package_template = """\
         %(module_name)s,
         _module_%(module_identifier)s
     );
-"""
-
-module_header = """
-// Generated code for Python source for module '%(name)s'
 """
 
 template_header_guard = """\

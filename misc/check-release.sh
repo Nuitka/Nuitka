@@ -71,7 +71,16 @@ execute_tests()
     unset NUITKA_EXTRA_OPTIONS
 }
 
-python3.2 bin/Nuitka.py --version 2>/dev/null
+command_exists () {
+    type "$1" &> /dev/null ;
+}
+
+if command_exists python3.2
+then
+    python3.2 bin/Nuitka.py --version 2>/dev/null
+else
+    echo "Cannot execute Python 3.2 tests, not installed."
+fi
 
 execute_tests "python2.6-debug" "python2.6" "--debug"
 execute_tests "python2.7-debug" "python2.7" "--debug"
