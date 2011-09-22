@@ -155,7 +155,42 @@ def generatorOrderCheck():
 
     print list( generator() )
 
+def classOrderCheck():
+    print "Checking order of class constructions:"
 
+    class B1:
+        pass
+
+    class B2:
+        pass
+
+    def base1():
+        print "base1",
+
+        return B1
+
+    def base2():
+        print "base2",
+
+        return B2
+
+    def deco1( cls ):
+        print "deco1",
+
+        return cls
+
+    def deco2( cls ):
+        print "deco2",
+
+        return B2
+
+
+    @deco2
+    @deco1
+    class X( base1(), base2() ):
+        print "class body",
+
+    print
 
 dictOrderCheck()
 listOrderCheck()
@@ -163,3 +198,4 @@ subscriptOrderCheck()
 compareOrderCheck()
 sliceOrderCheck()
 generatorOrderCheck()
+classOrderCheck()
