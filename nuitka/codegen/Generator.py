@@ -2924,13 +2924,16 @@ def _getClosureVariableDecl( variable ):
 
     return "%s &_python_closure_%s" % ( kind, variable.getName() )
 
-def getClassCreationCode( code_name, dict_identifier, bases_identifier, decorators ):
+def getClassCreationCode( context, code_name, dict_identifier, bases_identifier, decorators ):
     args = decorators + [ bases_identifier, dict_identifier ]
 
     return Identifier(
         "MAKE_CLASS_%s( %s )" % (
             code_name,
-            ", ".join( getCodeTemporaryRefs( args ) )
+            getEvalOrderedCode(
+                context = context,
+                args    = getCodeTemporaryRefs( args )
+            )
         ),
         1
     )
@@ -2969,7 +2972,7 @@ def _getClassCreationArgs( decorator_count, closure_variables ):
 
     return class_creation_args, class_dict_args
 
-def getClassDecl( class_identifier, closure_variables, decorator_count ):
+def getClassDecl( context, class_identifier, closure_variables, decorator_count ):
     class_creation_args, class_dict_args = _getClassCreationArgs(
         closure_variables = closure_variables,
         decorator_count   = decorator_count
@@ -2978,7 +2981,10 @@ def getClassDecl( class_identifier, closure_variables, decorator_count ):
     return CodeTemplates.class_decl_template % {
         "class_identifier"    : class_identifier,
         "class_dict_args"     : ", ".join( class_dict_args ),
-        "class_creation_args" : ", ".join( class_creation_args )
+        "class_creation_args" : getEvalOrderedCode(
+            context = context,
+            args    = class_creation_args
+        )
     }
 
 def getClassCode( context, class_def, class_name, class_filename, class_identifier, \
@@ -3075,7 +3081,10 @@ def getClassCode( context, class_def, class_name, class_filename, class_identifi
             context  = context
         ),
         "class_dict_args"       : ", ".join( class_dict_args ),
-        "class_creation_args"   : ", ".join( class_creation_args ),
+        "class_creation_args"   : getEvalOrderedCode(
+            context = context,
+            args    = class_creation_args
+        ),
         "class_var_decl"        : indented( class_locals ),
         "class_dict_creation"   : indented( class_dict_creation, 2 ),
         "class_decorator_calls" : indented( class_decorator_calls ),
