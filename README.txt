@@ -1,4 +1,6 @@
 
+.. contents::
+
 Usage
 =====
 
@@ -22,7 +24,7 @@ Requirements
 Environment
 ~~~~~~~~~~~
 
-Set the environment variables like PYTHONPATH to the compiler, and extend PATH with the
+Set the environment variables like "PYTHONPATH" to the compiler, and extend "PATH" with the
 directory containing Nuitka executables.
 
 .. code-block:: sh
@@ -69,8 +71,8 @@ Remember, this project is not completed yet. Although the CPython test suite wor
 perfect, there is still more work needed, to make it do enough optimizations to be
 worth while. Try it out.
 
-Subscribe to its mailing list
------------------------------
+Subscribe to its mailing lists
+------------------------------
 
    http://nuitka.net/blog/nuitka-a-python-compiler/nuitka-mailinglist/
 
@@ -82,11 +84,32 @@ Or contact me via email with your questions
 Word of Warning
 ~~~~~~~~~~~~~~~
 
-   Consider this a beta release quality, do not use it for anything important, but your
-   feedback and patches are very welcome.
+Consider this a beta release quality, do not use it for anything important, but your
+feedback and patches are very welcome.
 
-   Especially report it if you find that anything doesn't work, because the project is now
-   at the stage that this should not happen.
+Especially report it if you find that anything doesn't work, because the project is now at
+the stage that this should not happen.
+
+Join Nuitka
+===========
+
+You are more than welcome to join Nuitka development and help to complete the project in
+all minor and major ways.
+
+
+The development of Nuitka occurs in git. We currently have 2 branches:
+
+- `master <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/master>`_:
+  This branch contains the stable release to which only hotfixes for bugs will be
+  done. It is supposed to work at all times and supported.
+
+- `develop <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/develop>`_:
+  This branch contains the ongoing development. It may at times contain little
+  regressions, but also new features. On this branch the integration work is done, whereas
+  new features might be developed on feature branches.
+
+.. note:: I accept patch files, git formated patch queues, and git pull requests. I will do the integration work. If you base your work on "master", I will do any rebasing required.
+
 
 Unsupported functionality
 =========================
@@ -202,10 +225,10 @@ call with it allowing for more constant folding or code path folding.
 
 .. code-block:: python
 
-   type( "string" ) # predictable result
+   type( "string" ) # predictable result, builtin type str.
    len( [ 1, 2 ] )  # predictable result
    range( 3, 9, 2 ) # predictable result
-   range( 3, 9, 2 ) # predictable exception
+   range( 3, 9, 0 ) # predictable exception, range hates that 0.
 
 The builtin call prediction is considered implemented. We can simply during Nuitka runtime
 emulate the call and use its result or raised exception. But we may not cover all the
@@ -297,8 +320,8 @@ Consider the following code:
     except ValueError, e:
         print e
 
-The try block is bigger than it needs to be. The statement "b = 8" cannot cause a ValueError
-to be raised. As such it can be moved to outside the try without any risk.
+The try block is bigger than it needs to be. The statement "b = 8" cannot cause a
+"ValueError" to be raised. As such it can be moved to outside the try without any risk.
 
 .. code-block:: python
 
@@ -394,7 +417,7 @@ We do this now, but only for constants, because we currently have no ability to 
 an expression can raise an exception or not.
 
 
-Status: Not really implemented, and should use mayHaveSideEffect() to be actually good at things.
+Status: Not really implemented, and should use "mayHaveSideEffect()" to be actually good at things.
 
 Builtin Type Inference
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -450,15 +473,16 @@ Contributors to Nuitka
 Thanks go to these individuals for their much valued contributions to Nuitka. The order is
 sorted by time.
 
-Li Xuan Ji: Contributed patches for general portability issue and enhancements to the
-environment variable settings.
+- Li Xuan Ji: Contributed patches for general portability issue and enhancements to the
+  environment variable settings.
 
-Nicolas Dumazet: Found and fixed refcounting issues, import work, improved some of the
-English and generally made good code improvements all over the place, some of which improved performance.
+- Nicolas Dumazet: Found and fixed reference counting issues, import work, improved some
+  of the English and generally made good code contributions all over the place, code
+  generation TODOs, tree building cleanups, core stuff.
 
-Khalid Abu Bakr: Submitted patches for his work to support MinGW and Windows, debugged the
-issues, and helped me to get cross compile with MinGW from Linux to Windows. This was
-quite a feat.
+- Khalid Abu Bakr: Submitted patches for his work to support MinGW and Windows, debugged
+  the issues, and helped me to get cross compile with MinGW from Linux to Windows. This
+  was quite a difficult stuff.
 
 Projects used by Nuitka
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -512,13 +536,19 @@ CPython Test changes
 Modified tests
 ~~~~~~~~~~~~~~
 
-This is the list of tests modified from what they are in CPython.
+This is the list of tests modified from what they are in CPython. This is currently
+subject to changes as the tests are run from original CPython again, and some of these changes are no longer applicable.
 
-test_cmd_line
+test_cmd_line (UNSEEN PROBLEM)
 -------------
 
     Usability Fix: Removed test that checks for the version parameter output, which
     doesn't match when the CPython binary is not the system python.
+
+test_cmd_line_script
+--------------------
+
+    Removed: Out of scope and outputs lots of random paths.
 
 test_collections
 ----------------
@@ -534,7 +564,7 @@ test_compile
 ------------
 
     Compatibility Fix: Removed test_mangling, because of heavy use of the func_code
-    attribute co_varnames which we don't support yet.
+    attribute "co_varnames" which we don't support yet.
 
     Compatibility Fix: Removed assertion in test_for_distinct_code_objects which checks
     func_code which we don't support yet.
@@ -546,7 +576,7 @@ test_compiler
 -------------
 
     Usability Fix: Removed testCompileLibrary which byte code compiled for a random time
-    producing indetermistic output between runs.
+    producing indeterministic output between runs.
 
 test_complexargs
 ----------------
@@ -947,7 +977,7 @@ Shedskin Example changes
 
 This section is building up only.
 
-The Shed Skin example programs are very valueable, because they show how programs that
+The Shed Skin example programs are very valuable, because they show how programs that
 allow type inference can be improved, and generally although Nuitka and Shed Skin are
 different beasts, it's very interesting to look at what Shed Skin is good at and
 potentially benefit from it in decisions for Nuitka.
@@ -986,3 +1016,22 @@ ac_encode
 ---------
 
 Finishes too fast to be useful.
+
+.. header::
+
+        Nuitka - User Manual
+
+.. footer::
+
+        © Kay Hayen, 2011 | Page ###Page### of ###Total### | Section ###Section###
+
+Updates for this Manual
+=======================
+
+This document is written in REST. That is an ASCII format readable as ASCII, but used to generate a PDF or HTML document.
+
+You will find the current source under:
+http://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=README.txt
+
+And the current PDF under:
+http://nuitka.net/doc/README.pdf
