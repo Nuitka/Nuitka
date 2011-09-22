@@ -616,13 +616,15 @@ def generateClassCode( class_def, context ):
         code_name        = class_def.getCodeName(),
         bases_identifier = bases_identifier,
         dict_identifier  = dict_identifier,
-        decorators       = decorators
+        decorators       = decorators,
+        context          = context
     )
 
     class_decl = Generator.getClassDecl(
         class_identifier  = class_def.getCodeName(),
         closure_variables = class_def.getClosureVariables(),
-        decorator_count   = len( decorators )
+        decorator_count   = len( decorators ),
+        context           = context
     )
 
     class_code = Generator.getClassCode(
