@@ -336,6 +336,7 @@ static void Nuitka_Method_tp_dealloc( Nuitka_MethodObject *method )
 
     Py_XDECREF( method->m_dict );
     Py_XDECREF( method->m_object );
+    Py_XDECREF( method->m_class );
 
     Py_DECREF( (PyObject *)method->m_function );
 
@@ -456,9 +457,8 @@ PyObject *Nuitka_Method_New( Nuitka_FunctionObject *function, PyObject *object, 
 
     result->m_function = (Nuitka_FunctionObject * )INCREASE_REFCOUNT( (PyObject *)function );
 
-    result->m_object = object;
-    Py_XINCREF( object );
-    result->m_class = klass;
+    result->m_object = INCREASE_REFCOUNT_X( object );
+    result->m_class = INCREASE_REFCOUNT_X( klass );
 
     result->m_module = function->m_module;
 
