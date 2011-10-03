@@ -31,7 +31,8 @@
 #ifndef __NUITKA_VARIABLES_LOCALS_H__
 #define __NUITKA_VARIABLES_LOCALS_H__
 
-class PyObjectLocalVariable {
+class PyObjectLocalVariable
+{
     public:
         explicit PyObjectLocalVariable( PyObject *var_name, PyObject *object = NULL, bool free_value = false )
         {
@@ -57,9 +58,7 @@ class PyObjectLocalVariable {
 
         void setVariableName( PyObject *var_name )
         {
-            assert( var_name );
-            assert( var_name->ob_refcnt > 0 );
-
+            assertObject( var_name );
             assert( this->var_name == NULL);
 
             this->var_name = var_name;
@@ -67,8 +66,7 @@ class PyObjectLocalVariable {
 
         void operator=( PyObject *object )
         {
-            assert( object );
-            assert( object->ob_refcnt > 0 );
+            assertObject( object );
 
             if ( this->free_value )
             {
@@ -94,8 +92,7 @@ class PyObjectLocalVariable {
                 throw _PythonException();
             }
 
-            assert( this->object );
-            assert( this->object->ob_refcnt > 0 );
+            assertObject( this->object );
 
             return this->object;
         }

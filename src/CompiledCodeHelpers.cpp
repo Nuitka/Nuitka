@@ -462,7 +462,7 @@ static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name )
     assert( PyString_Check( filename ) );
     assert( PyString_Check( function_name ) );
 
-    assert( empty_code );
+    assertObject( empty_code );
 
     PyCodeObject *result = PyCode_New (
         0, 0, 0, 0,          // argcount, locals, stacksize, flags
