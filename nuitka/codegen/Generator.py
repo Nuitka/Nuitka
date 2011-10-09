@@ -77,7 +77,7 @@ from nuitka import (
     Options
 )
 
-import re
+import re, sys
 
 def getConstantAccess( context, constant ):
     # Many cases, because for each type, we may copy or optimize by creating empty.
@@ -2119,11 +2119,13 @@ def getMainCode( codes, other_module_names ):
         )
 
     main_code = CodeTemplates.main_program % {
-        "module_inittab" : indented( sorted( module_inittab ) )
+        "module_inittab" : indented( sorted( module_inittab ) ),
+        "sys_executable" : '"%s"' % (
+            "python.exe" if Options.isWindowsTarget() else sys.executable
+        )
     }
 
     return codes + main_code
-
 
 def getFunctionsCode( context ):
     result = ""
