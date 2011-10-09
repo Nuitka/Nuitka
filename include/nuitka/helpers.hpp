@@ -1250,6 +1250,21 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
     }
 }
 
+NUITKA_MAY_BE_UNUSED static bool HAS_ATTRIBUTE( PyObject *source, PyObject *attr_name )
+{
+    assertObject( source );
+    assertObject( attr_name );
+
+    int res = PyObject_HasAttr( source, attr_name );
+
+    if (unlikely( res == -1 ))
+    {
+        throw _PythonException();
+    }
+
+    return res == 1;
+}
+
 #if PY_MAJOR_VERSION < 3
 static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value )
 {

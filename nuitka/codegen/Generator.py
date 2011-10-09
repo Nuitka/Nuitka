@@ -297,7 +297,6 @@ def getImportFromModuleTempIdentifier():
     return Identifier( "module_temp.asObject()", 0 )
 
 def _getImportFromCode( context, module_name, module_lookup, lookup_code, sub_module_names ):
-
     module_embedded = [
         getStatementCode(
             getImportEmbeddedCode(
@@ -603,6 +602,16 @@ def getAttributeLookupCode( attribute, source ):
         ),
         1
     )
+
+def getAttributeCheckCode( attribute, source ):
+    return Identifier(
+        "HAS_ATTRIBUTE( %s, %s )" % (
+            source.getCodeTemporaryRef(),
+            attribute.getCodeTemporaryRef()
+        ),
+        0
+    )
+
 
 def getSubscriptLookupCode( subscript, source ):
     if subscript.isConstantIdentifier():
@@ -2127,6 +2136,7 @@ def getMainCode( codes, other_module_names ):
 
     return codes + main_code
 
+
 def getFunctionsCode( context ):
     result = ""
 
@@ -3099,7 +3109,11 @@ def getClassCode( context, class_def, class_name, class_filename, class_identifi
         "metaclass_global_var"  : meta_class_identifier.getCodeTemporaryRef()
     }
 
-
+def getDefineGuardedCode( code, define ):
+    return "#ifdef %(define)s\n%(code)s\n#endif" % {
+        "define" : define,
+        "code"   : code
+    }
 
 def getRawStringLiteralCode( value ):
     return CppRawStrings.encodeString( value )
