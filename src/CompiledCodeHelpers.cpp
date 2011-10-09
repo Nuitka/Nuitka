@@ -311,7 +311,7 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 
     // Everything that casts to int is allowed.
     if (
-#if !(PY_MAJOR_VERSION < 3 && PY_MINOR_VERSION < 7)
+#if PYTHON_VERSION >= 270
         PyFloat_Check( value ) ||
 #endif
         tp_as_number == NULL ||

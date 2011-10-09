@@ -103,7 +103,7 @@ if (unlikely( args_given + kw_size < %(required_parameter_count)d ))
     }
     else
     {
-#if PY_MAJOR_VERSION < 3 && PY_MINOR_VERSION < 7
+#if PYTHON_VERSION < 270
         if ( kw_size > 0 )
         {
             PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d non-keyword arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_size );
@@ -144,7 +144,7 @@ if (unlikely( args_given + kw_size < %(required_parameter_count)d ))
     }
     else
     {
-#if PY_MAJOR_VERSION < 3 && PY_MINOR_VERSION < 7
+#if PYTHON_VERSION < 270
         if ( kw_size > 0 )
         {
             PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d non-keyword arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_size );

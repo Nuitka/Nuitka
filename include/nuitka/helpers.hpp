@@ -321,7 +321,7 @@ static inline PyObject *Nuitka_Function_GetName( PyObject *object );
 static inline bool Nuitka_Generator_Check( PyObject *object );
 static inline PyObject *Nuitka_Generator_GetName( PyObject *object );
 
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
 #define Nuitka_String_AsString PyString_AsString
 #else
 #define Nuitka_String_AsString _PyUnicode_AsString
@@ -345,7 +345,7 @@ static char const *GET_CALLABLE_NAME( PyObject *object )
     {
         return Nuitka_String_AsString( ((PyFunctionObject*)object)->func_name );
     }
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
     else if ( PyInstance_Check( object ) )
     {
         return Nuitka_String_AsString( ((PyInstanceObject*)object)->in_class->cl_name );
@@ -704,7 +704,7 @@ NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, P
     }
 }
 
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
 static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, PyStringObject *key )
 #else
 static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, PyUnicodeObject *key )
@@ -714,7 +714,7 @@ static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, PyUnicodeObject *key )
 
     // Only improvement would be to identify how to ensure that the hash is computed
     // already. Calling hash early on could do that potentially.
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
     long hash = key->ob_shash;
 #else
     long hash = key->hash;
@@ -722,7 +722,7 @@ static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, PyUnicodeObject *key )
 
     if ( hash == -1 )
     {
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
         hash = PyString_Type.tp_hash( (PyObject *)key );
         key->ob_shash = hash;
 #else
@@ -740,7 +740,7 @@ static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, PyUnicodeObject *key )
     return entry;
 }
 
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
 static PyDictEntry *GET_PYDICT_ENTRY( PyModuleObject *module, PyStringObject *key )
 #else
 static PyDictEntry *GET_PYDICT_ENTRY( PyModuleObject *module, PyUnicodeObject *key )
@@ -1072,7 +1072,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 #include "nuitka/helper/subscripts.hpp"
 #include "nuitka/helper/slices.hpp"
 
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
 NUITKA_MAY_BE_UNUSED static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *klass, PyObject *attr_name )
 {
     PyObject *result = GET_PYDICT_ENTRY( (PyDictObject *)klass->cl_dict, (PyStringObject *)attr_name )->me_value;
@@ -1096,7 +1096,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *kl
 }
 #endif
 
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
 static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 {
     assertObject( source );
@@ -1200,7 +1200,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
     assertObject( source );
     assertObject( attr_name );
 
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
     if ( PyInstance_Check( source ) )
     {
         PyObject *result = LOOKUP_INSTANCE( source, attr_name );
@@ -1250,7 +1250,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
     }
 }
 
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
 static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value )
 {
     assertObject( target );
@@ -1325,7 +1325,7 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *target, PyObject *attr
     assertObject( attr_name );
     assertObject( value );
 
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
     if ( PyInstance_Check( target ) )
     {
         SET_INSTANCE( target, attr_name, value );
@@ -1396,7 +1396,7 @@ NUITKA_MAY_BE_UNUSED static void DEL_ATTRIBUTE( PyObject *target, PyObject *attr
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject *attr_name )
 {
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
     if ( PyInstance_Check( source ) )
     {
         return LOOKUP_INSTANCE( source, attr_name );
@@ -1438,7 +1438,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject
 // treats enter and exit as specials.
 NUITKA_MAY_BE_UNUSED static inline PyObject *LOOKUP_WITH_ENTER( PyObject *source )
 {
-#if PY_MAJOR_VERSION < 3 && PY_MINOR_VERSION < 7
+#if PYTHON_VERSION < 270
     return LOOKUP_ATTRIBUTE( source, _python_str_plain___enter__ );
 #else
     return LOOKUP_SPECIAL( source, _python_str_plain___enter__ );
@@ -1447,7 +1447,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *LOOKUP_WITH_ENTER( PyObject *source
 
 NUITKA_MAY_BE_UNUSED static inline PyObject *LOOKUP_WITH_EXIT( PyObject *source )
 {
-#if PY_MAJOR_VERSION < 3 && PY_MINOR_VERSION < 7
+#if PYTHON_VERSION < 270
     return LOOKUP_ATTRIBUTE( source, _python_str_plain___exit__ );
 #else
     return LOOKUP_SPECIAL( source, _python_str_plain___exit__ );
