@@ -1731,16 +1731,42 @@ def generateImportFromLookupCode( statement, context ):
     for object_name, target in zip( statement.getImports(), statement.getTargets() ):
         assert object_name != "*"
 
+        attribute = context.getConstantHandle(
+            constant = object_name
+        )
+
+        lookup_code += Generator.getDefineGuardedCode(
+            define = "_NUITKA_EXE",
+            code   = Generator.getBranchCode(
+                condition = Generator.getAttributeCheckCode(
+                    source    = module_temp,
+                    attribute = attribute
+                ),
+                no_codes = (
+                    Generator.getStatementCode(
+                        Generator.getImportEmbeddedCode(
+                            context     = context,
+                            module_name = statement.getModuleName() + "." + object_name,
+                            import_name = statement.getModuleName() + "." + object_name
+                        )
+                    ),
+                ),
+                yes_codes = ()
+            )
+        )
+
+        lookup_code += "\n"
+
         lookup_code += generateAssignmentCode(
             targets = target,
             value   = Generator.getAttributeLookupCode(
                 source    = module_temp,
-                attribute =  context.getConstantHandle(
-                    constant = object_name
-                )
+                attribute = attribute
             ),
             context = context
         )
+
+        lookup_code += "\n"
 
     return lookup_code
 

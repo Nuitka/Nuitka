@@ -37,7 +37,7 @@ import_from_template = """\
     PyObjectTemporary module_temp(
 %(module_lookup)s
     );
-%(module_embedded)s
+
     try
     {
 %(lookup_code)s
