@@ -37,8 +37,6 @@ make it possible to predict these, the compiler can go deeper that what it norma
 So this is called repeatedly mayhaps, each time a constant is added.
 """
 
-from __future__ import print_function
-
 from .OptimizeBase import OptimizationVisitorBase, info
 
 from nuitka import TreeBuilding, Importing, Options, Nodes, Utils
@@ -58,6 +56,8 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
                 package  = module_package,
                 is_main  = False
             )
+
+            assert not module_relpath.endswith( "/__init__.py" )
 
             self.imported_modules[ module_relpath ] = imported_module
 
@@ -88,7 +88,12 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
         module_filename = module.getFilename()
 
         if module_filename not in self.imported_modules:
-            self.imported_modules[ Utils.relpath( module_filename ) ] = module
+            if module_filename.endswith( "/__init__.py" ):
+                module_relpath = Utils.relpath( module_filename[:-12] )
+            else:
+                module_relpath = Utils.relpath( module_filename )
+
+            self.imported_modules[ Utils.relpath( module_relpath ) ] = module
 
         module_package = module.getPackage()
 
@@ -142,8 +147,6 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
             parent_package = parent_module.getPackage(),
             level          = node.getLevel()
         )
-
-        # print (module_filename,module_package,node.level)
 
         if module_filename is not None:
             imported_module = self._consider(
