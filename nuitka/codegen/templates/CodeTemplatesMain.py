@@ -101,9 +101,10 @@ int main( int argc, char *argv[] )
 
     enhancePythonTypes();
 
-#if defined (__WIN32__)
-    PySys_SetObject( (char *)"executable", PyString_FromString( "python.exe" ) );
-#endif
+    // Set the sys.executable path to the original Python executable on Linux
+    // or to python.exe on Windows.
+    PySys_SetObject( (char *)"executable", PyString_FromString( %(sys_executable)s ) );
+
     init__main__();
 
     if ( PyErr_Occurred() )
