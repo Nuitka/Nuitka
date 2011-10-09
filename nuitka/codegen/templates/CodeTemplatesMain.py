@@ -284,9 +284,6 @@ PyObject *_module_%(module_identifier)s;
 
 %(expression_temp_decl)s
 
-// The exported interface to CPython. On import of the module, this function gets
-// called. It has have that exact function name.
-
 // Frame object of the module.
 PyObject *frame_%(module_identifier)s;
 
@@ -299,6 +296,9 @@ static inline PyObject *frameobj_%(module_identifier)s( void )
 #ifdef _NUITKA_EXE
 static bool init_done = false;
 #endif
+
+// The exported interface to CPython. On import of the module, this function gets
+// called. It has have that exact function name.
 
 NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 {
@@ -354,7 +354,7 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
     // Initialize the standard module attributes.
 %(module_inits)s
 
-    // For deep importing of a module we need to have __builtins__ we need to set it
+    // For deep importing of a module we need to have "__builtins__", so we set it
     // ourselves in the same way than CPython does.
 
     PyObject *module_dict = PyModule_GetDict( _module_%(module_identifier)s );
