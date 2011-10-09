@@ -111,41 +111,4 @@ class PyObjectTempHolder
         PyObject *object;
 };
 
-#if 0
-
-class PyObjectTempHolders
-{
-    public:
-        explicit PyObjectTempHolders( PyObject **objects, int size )
-        {
-            this->objects = objects;
-        }
-
-        ~PyObjectTempHolders()
-        {
-            for int( i = 0; i < this->size, i++ )
-            {
-                Py_XDECREF( this->objects[ i ] );
-            }
-        }
-
-        PyObject *asObject( int element  )
-        {
-            assertObject( this->object );
-
-            PyObject *result = this->objects[ element ];
-            this->objects[ element ] = NULL;
-            return result;
-        }
-
-    private:
-        PyObjectTempHolders( const PyObjectTempHolders &object ) = delete;
-
-        PyObject **objects;
-        int size;
-
-};
-
-#endif
-
 #endif
