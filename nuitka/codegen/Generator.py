@@ -102,7 +102,7 @@ def getConstantAccess( context, constant ):
             return Identifier(
                 "PySet_New( %s )" % getConstantCode(
                     constant = constant,
-                    context = context
+                    context  = context
                 ),
                 1
             )
@@ -116,7 +116,7 @@ def getConstantAccess( context, constant ):
             return Identifier(
                 "LIST_COPY( %s )" % getConstantCode(
                     constant = constant,
-                    context = context
+                    context  = context
                 ),
                 1
             )

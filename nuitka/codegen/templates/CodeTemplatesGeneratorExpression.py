@@ -63,7 +63,8 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
     PyObject *result = Nuitka_Genexpr_New(
         %(function_identifier)s,
         %(function_name_obj)s,
-        iterated, %(iterator_count)d,
+        iterated,
+        %(iterator_count)d,
         _python_context,
         _context_%(function_identifier)s_destructor
     );

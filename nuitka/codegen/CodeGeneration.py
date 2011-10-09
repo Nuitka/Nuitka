@@ -2255,7 +2255,11 @@ def generateModuleDeclarationCode( module_name ):
 def generateMainCode( codes, other_modules ):
     return Generator.getMainCode(
         codes              = codes,
-        other_module_names = [ other_module.getFullName() for other_module in other_modules ]
+        other_module_names = [
+            other_module.getFullName()
+            for other_module in
+            other_modules
+        ]
     )
 
 def generateConstantsDeclarationCode( context ):
