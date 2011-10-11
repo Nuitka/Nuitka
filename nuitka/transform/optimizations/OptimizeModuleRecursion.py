@@ -49,7 +49,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
 
     def _recurseTo( self, module_filename, module_package, module_relpath ):
         if module_relpath not in self.imported_modules:
-            info( "Recurse to import", module_relpath )
+            info( "Recurse to import %s", module_relpath )
 
             imported_module = TreeBuilding.buildModuleTree(
                 filename = module_filename,
