@@ -317,9 +317,6 @@ class PythonFunctionContext( PythonChildContextBase ):
     def getTracebackFilename( self ):
         return self.function.getParentModule().getFilename()
 
-    def getFrameObjectIdentifier( self ):
-        return Identifier( "frameobj_%s()" % self.getCodeName(), 1 )
-
     def needsFrameExceptionKeeper( self ):
         return self.function.needsFrameExceptionKeeper()
 
