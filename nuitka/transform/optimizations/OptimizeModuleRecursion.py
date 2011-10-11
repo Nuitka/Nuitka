@@ -54,7 +54,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
             info( "Recurse to import", module_relpath )
 
             imported_module = TreeBuilding.buildModuleTree(
-                filename = module_filename,
+                filename = module_relpath,
                 package  = module_package,
                 is_main  = False
             )
