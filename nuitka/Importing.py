@@ -56,6 +56,7 @@ def findModule( module_name, parent_package, level, warn = True ):
                 module_name    = module_name,
                 parent_package = parent_package
             )
+
         except ImportError:
             if warn and not _isWhiteListedNotExistingModule( module_name ):
                 warning( "Warning, cannot find '%s' in '%s' on level %d" % ( module_name, parent_package, level ) )
@@ -74,6 +75,9 @@ def findModule( module_name, parent_package, level, warn = True ):
 
         module_filename = None
 
+    if _debug_module_finding:
+        print( "findModule: Enter", module_package_name, module_name, module_filename )
+
     return module_package_name, module_name, module_filename
 
 _debug_module_finding = False
@@ -85,15 +89,31 @@ def _findModuleInPath( module_name, package_name ):
     if package_name is not None:
         ext_path = [ element + os.path.sep + package_name.replace( ".", os.path.sep ) for element in sys.path + ["."] ]
 
+        if _debug_module_finding:
+            print( "_findModuleInPath: Package, using extended path", ext_path )
+
         try:
             _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
+
+            if _debug_module_finding:
+                print( "_findModuleInPath: imp.find_module worked", module_filename, package_name )
 
             return module_filename, package_name
         except ImportError:
             pass
 
+            if _debug_module_finding:
+                print( "_findModuleInPath: imp.find_module failed" )
+
     ext_path = sys.path + ["."]
+
+    if _debug_module_finding:
+        print( "_findModuleInPath: Non-package, using extended path", ext_path )
+
     _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
+
+    if _debug_module_finding:
+        print( "_findModuleInPath: imp.find_module gave", module_filename )
 
     return module_filename, None
 
