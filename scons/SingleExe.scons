@@ -81,7 +81,7 @@ win_target = getBoolOption( "win_target", "win" in sys.platform )
 
 # ARM target mode: Compile for ARM which has bad ucontext status, we need
 # to provide our own implementation.
-arm_target = getBoolOption( "arm_target", "arm" in os.uname()[4] )
+arm_target = getBoolOption( "arm_target", "linux" in sys.platform and "arm" in os.uname()[4] )
 
 unstriped_mode = getBoolOption( "unstriped_mode", False )
 
