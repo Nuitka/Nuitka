@@ -198,12 +198,13 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
                 module_package  = module_package
             )
 
-            new_node = Nodes.CPythonStatementImportStarEmbedded(
-                module_name = imported_module.getFullName(),
-                source_ref  = node.getSourceReference()
-            )
+            if imported_module is not None:
+                new_node = Nodes.CPythonStatementImportStarEmbedded(
+                    module_name = imported_module.getFullName(),
+                    source_ref  = node.getSourceReference()
+                )
 
-            node.replaceWith( new_node )
+                node.replaceWith( new_node )
 
     def __call__( self, node ):
         if node.isModule():
