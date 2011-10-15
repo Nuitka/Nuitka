@@ -31,7 +31,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.3.12pre6
+Nuitka V0.3.12pre7
 Copyright (C) 2011 Kay Hayen."""
 
 from . import Utils, Tracing
