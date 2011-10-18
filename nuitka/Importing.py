@@ -164,5 +164,6 @@ def _isWhiteListedNotExistingModule( module_name ):
         "sys", "itertools", "cStringIO", "time", "zlib", "thread", "math", "errno",
         "operator", "signal", "gc", "exceptions", "win32process", "unicodedata",
         "__builtin__", "fcntl", "_socket", "_ssl", "pwd", "spwd", "_random", "grp",
-        "select", "__main__", "_winreg", "_warnings", "_sre", "_functools", "_hashlib"
+        "select", "__main__", "_winreg", "_warnings", "_sre", "_functools", "_hashlib",
+        "_collections", "_locale",
     )
