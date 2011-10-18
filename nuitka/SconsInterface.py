@@ -43,8 +43,8 @@ def getSconsBinaryPath():
     if os.path.exists( "/usr/bin/scons" ):
         return "/usr/bin/scons"
     else:
-        return os.environ[ "NUITKA_SCONS" ] + "/inline_copy/bin/scons"
-
+        return os.environ[ "NUITKA_SCONS" ] + os.path.sep + "inline_copy" + os.path.sep + \
+               "bin" + os.path.sep + "scons.py"
 
 def runScons( options, quiet ):
     scons_command = """%(binary)s %(quiet)s -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
