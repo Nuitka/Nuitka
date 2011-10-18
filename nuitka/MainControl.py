@@ -104,8 +104,7 @@ def makeModuleSource( tree ):
     source_code = CodeGeneration.generateModuleCode(
         module         = tree,
         module_name    = tree.getName(),
-        global_context = CodeGeneration.makeGlobalContext(),
-        stand_alone    = True
+        global_context = CodeGeneration.makeGlobalContext()
     )
 
     return source_code
@@ -151,8 +150,7 @@ def makeSourceDirectory( main_module ):
         other_module_code = CodeGeneration.generateModuleCode(
             global_context = global_context,
             module         = other_module,
-            module_name    = other_module.getFullName(),
-            stand_alone    = False
+            module_name    = other_module.getFullName()
         )
 
         module_hpps.append( other_module.getFullName() + ".hpp" )
@@ -180,8 +178,7 @@ def makeSourceDirectory( main_module ):
     source_code = CodeGeneration.generateModuleCode(
         module         = main_module,
         module_name    = main_module_name,
-        global_context = global_context,
-        stand_alone    = True
+        global_context = global_context
     )
 
     if not Options.shallMakeModule():

@@ -2010,7 +2010,7 @@ def getModuleIdentifier( module_name ):
 def getPackageIdentifier( module_name ):
     return module_name.replace( ".", "__" )
 
-def getModuleCode( context, stand_alone, module_name, package_name, codes, doc_identifier, \
+def getModuleCode( context, module_name, package_name, codes, doc_identifier, \
                    path_identifier, filename_identifier ):
 
     # For the module code, lots of attributes come together. pylint: disable=R0914

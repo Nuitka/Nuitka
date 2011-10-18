@@ -2234,7 +2234,7 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
 
     return codes
 
-def generateModuleCode( module, module_name, global_context, stand_alone ):
+def generateModuleCode( module, module_name, global_context ):
     assert module.isModule(), module
 
     context = Contexts.PythonModuleContext(
@@ -2261,7 +2261,6 @@ def generateModuleCode( module, module_name, global_context, stand_alone ):
     return Generator.getModuleCode(
         module_name         = module_name,
         package_name        = module.getPackage(),
-        stand_alone         = stand_alone,
         doc_identifier      = context.getConstantHandle(
             constant = module.getDoc()
         ),
