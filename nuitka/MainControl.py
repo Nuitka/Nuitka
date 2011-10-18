@@ -116,20 +116,24 @@ def makeSourceDirectory( main_module ):
 
     source_dir = Options.getOutputPath( name + ".build" )
 
-    if not source_dir.endswith( "/" ):
-        source_dir += "/"
+    if not source_dir.endswith( os.path.sep ):
+        source_dir += os.path.sep
 
     if os.path.exists( source_dir ):
-        os.system( "rm -f '" + source_dir + "'/*.cpp '" + source_dir + "'/*.hpp" )
+        for filename in sorted( os.listdir( source_dir ) ):
+            path = source_dir + os.path.sep + filename
 
-        if Options.shallMakeModule():
-            os.system( "rm -f '" + source_dir + "'/*.o" )
-            os.system( "rm -f '" + source_dir + "'/static/*.o" )
-        else:
-            os.system( "rm -f '" + source_dir + "'/*.os" )
-            os.system( "rm -f '" + source_dir + "'/static/*.os" )
+            if filename.endswith( ".cpp" ) or filename.endswith( ".hpp" ) or filename.endswith( ".o" ) or filename.endswith( ".os" ):
+                os.unlink( path )
     else:
         os.makedirs( source_dir )
+
+    if os.path.exists( source_dir + os.path.sep + "static" ):
+        for filename in sorted( os.listdir( source_dir ) ):
+            path = source_dir + os.path.sep + "static" + os.path.sep + filename
+
+            if filename.endswith( ".o" ) or filename.endswith( ".os" ):
+                os.unlink( path )
 
     global_context = CodeGeneration.makeGlobalContext()
 
