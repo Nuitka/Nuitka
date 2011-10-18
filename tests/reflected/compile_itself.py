@@ -187,7 +187,7 @@ def executePASS2():
 
     os.environ[ "PYTHONPATH_BAK" ] = os.environ[ "PYTHONPATH" ]
     os.environ[ "PYTHONPATH" ] = "."
-    compileAndCompareWith( "./Nuitka.exe" )
+    compileAndCompareWith( "." + os.path.sep + "Nuitka.exe" )
 
     print "OK."
 
