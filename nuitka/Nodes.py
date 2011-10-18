@@ -2034,6 +2034,35 @@ class CPythonExpressionAttributeLookup( CPythonChildrenHaving, CPythonNodeBase )
 
     getLookupSource = CPythonChildrenHaving.childGetter( "expression" )
 
+class CPythonExpressionImportName( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_IMPORT_NAME"
+
+    named_children = ( "module", )
+
+    def __init__( self, module, import_name, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "module" : module
+            }
+        )
+
+        self.import_name = import_name
+
+    def getImportName( self ):
+        return self.import_name
+
+    def getDetails( self ):
+        return { "import_name" : self.getImportName() }
+
+    def getDetail( self ):
+        return "import %s from %s" % ( self.getImportName(), self.getModule() )
+
+    getModule = CPythonChildrenHaving.childGetter( "module" )
+
+
 class CPythonExpressionSubscriptLookup( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_SUBSCRIPT_LOOKUP"
 
@@ -2421,53 +2450,19 @@ class CPythonExpressionBuiltinImport( CPythonNodeBase ):
     def getLevel( self ):
         return 0 if self.source_ref.getFutureSpec().isAbsoluteImport() else 1
 
-class CPythonStatementImportEmbedded( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "STATEMENT_IMPORT_EMBEDDED"
+    def getImportList( self ):
+        return None
 
-    named_children = ( "target", "module" )
+class CPythonExpressionImportModule( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_IMPORT_MODULE"
 
-    def __init__( self, target, module_name, import_name, module, source_ref ):
+    named_children = ( "module", )
+
+    def __init__( self, module_name, import_name, import_list, level, source_ref ):
         CPythonChildrenHaving.__init__(
             self,
             values = {
-                "target" : target,
-                "module" : module
-            }
-        )
-
-        self.module_name = module_name
-        self.import_name = import_name
-
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-    def getDetails( self ):
-        return { "import_name" : self.import_name, "module_name" : self.module_name }
-
-    def getModuleName( self ):
-        return self.module_name
-
-    def getImportName( self ):
-        return self.import_name
-
-    # TODO: visitForest should see the module.
-    def getVisitableNodes( self ):
-        return ( self.getTarget(), )
-
-    getTarget = CPythonChildrenHaving.childGetter( "target" )
-    getModule = CPythonChildrenHaving.childGetter( "module" )
-
-class CPythonStatementImportExternal( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "STATEMENT_IMPORT_EXTERNAL"
-
-    named_children = ( "target", )
-
-    def __init__( self, target, module_name, import_name, level, source_ref ):
-        assert target is not None
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "target" : target,
+                "module" : None
             }
         )
 
@@ -2475,7 +2470,10 @@ class CPythonStatementImportExternal( CPythonChildrenHaving, CPythonNodeBase ):
 
         self.module_name = module_name
         self.import_name = import_name
+        self.import_list = import_list
         self.level = level
+
+        self.attempted_recurse = False
 
     def getDetails( self ):
         return {
@@ -2490,108 +2488,44 @@ class CPythonStatementImportExternal( CPythonChildrenHaving, CPythonNodeBase ):
     def getImportName( self ):
         return self.import_name
 
-    def getLevel( self ):
-        return self.level
+    def setImportName( self, import_name ):
+        self.import_name = import_name
 
-    getTarget = CPythonChildrenHaving.childGetter( "target" )
-
-
-class CPythonStatementImportFromExternal( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "STATEMENT_IMPORT_FROM_EXTERNAL"
-
-    named_children = ( "targets", )
-
-    def __init__( self, targets, module_name, imports, level, source_ref ):
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "targets" : tuple( targets ),
-            }
-        )
-
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        self.module_name = module_name
-        self.level = level
-
-        self.imports = tuple( imports )
-
-    def getDetail( self ):
-        return ";".join( self.getImports() )
-
-    def getImports( self ):
-        return self.imports
-
-    def getModuleName( self ):
-        return self.module_name
+    def getImportList( self ):
+        return self.import_list
 
     def getLevel( self ):
         return self.level
 
-    getTargets = CPythonChildrenHaving.childGetter( "targets" )
-
-class CPythonStatementImportFromEmbedded( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "STATEMENT_IMPORT_FROM_EMBEDDED"
-
-    named_children = ( "targets", "sub_modules" )
-
-    def __init__( self, targets, module_name, sub_modules, imports, source_ref ):
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "targets"     : tuple( targets ),
-                "sub_modules" : tuple( sub_modules )
-            }
-        )
-
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        self.module_name = module_name
-
-        self.imports = tuple( imports )
-
-    def getDetail( self ):
-        return ";".join( self.getImports() )
-
-    def getImports( self ):
-        return self.imports
-
-    def getModuleName( self ):
-        return self.module_name
-
-    # TODO: visitForest should see the module.
+    # TODO: visitForest should see the module if any.
     def getVisitableNodes( self ):
-        return self.getTargets()
+        return ()
 
-    getTargets = CPythonChildrenHaving.childGetter( "targets" )
-    getSubModules = CPythonChildrenHaving.childGetter( "sub_modules" )
+    def hasAttemptedRecurse( self ):
+        return self.attempted_recurse
 
-class CPythonStatementImportStarExternal( CPythonNodeBase ):
-    kind = "STATEMENT_IMPORT_STAR_EXTERNAL"
+    def setAttemptedRecurse( self ):
+        self.attempted_recurse = True
 
-    def __init__( self, module_name, level, source_ref ):
+    getModule = CPythonChildrenHaving.childGetter( "module" )
+    setModule = CPythonChildrenHaving.childSetter( "module" )
+
+class CPythonStatementImportStar( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "STATEMENT_IMPORT_STAR"
+
+    named_children = ( "module", )
+
+    def __init__( self, module_import, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
-        self.module_name = module_name
-        self.level = level
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "module" : module_import
+            }
+        )
 
-    def getModuleName( self ):
-        return self.module_name
-
-    def getLevel( self ):
-        return self.level
-
-class CPythonStatementImportStarEmbedded( CPythonNodeBase ):
-    kind = "STATEMENT_IMPORT_STAR_EMBEDDED"
-
-    def __init__( self, module_name, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        self.module_name = module_name
-
-    def getModuleName( self ):
-        return self.module_name
-
+    getModule = CPythonChildrenHaving.childGetter( "module" )
 
 def _convertNoneConstantToNone( value ):
     if value is not None and value.isExpressionConstantRef() and value.getConstant() is None:

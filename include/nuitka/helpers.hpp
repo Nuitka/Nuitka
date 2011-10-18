@@ -1068,6 +1068,27 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
     return result;
 }
 
+NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *import_name )
+{
+    assertObject( module );
+    assertObject( import_name );
+
+    PyObject *result = PyObject_GetAttr( module, import_name );
+
+    if (unlikely( result == NULL ))
+    {
+        if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
+        {
+            PyErr_Format( PyExc_ImportError, "cannot import name %s", PyString_AsString( import_name ));
+        }
+
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+
 #include "nuitka/helper/indexes.hpp"
 #include "nuitka/helper/subscripts.hpp"
 #include "nuitka/helper/slices.hpp"

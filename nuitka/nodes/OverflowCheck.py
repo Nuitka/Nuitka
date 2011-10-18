@@ -56,7 +56,7 @@ class OverflowCheckVisitor:
             self.result = True
             raise TreeOperations.ExitVisit
 
-        if node.isStatementImportStarExternal():
+        if node.isStatementImportStar():
             declareOverflow()
 
         if node.isStatementExec() and _couldBeNone( node.getGlobals() ):

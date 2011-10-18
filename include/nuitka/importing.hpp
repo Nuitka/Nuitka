@@ -33,12 +33,6 @@
 
 extern PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject *package, PyObject *import_items, int level );
 
-extern void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name, PyObject *module );
-
-// For the --deep mode, we need to use this variant, esp. if the modules are in packages,
-// then we need to load it this way.
-#ifdef _NUITKA_EXE
-extern PyObject *IMPORT_EMBEDDED_MODULE( PyObject *module_name, PyObject *import_name );
-#endif
+extern void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module );
 
 #endif

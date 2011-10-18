@@ -588,13 +588,12 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject 
 
     PyObject *result;
 
-
     if ( level == 0 )
     {
         // Absolute import was requested, try only that.
         result = LOOKUP_SUBSCRIPT( sys_modules, import_name );
     }
-    else if ( abs( level ) == 1 && HAS_KEY( sys_modules, import_name ))
+    else if ( abs( level ) == 1 && HAS_KEY( sys_modules, import_name ) )
     {
         // Absolute and relative import were both allowed, absolute works, so take that
         // first.
@@ -656,7 +655,7 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject 
     return result;
 }
 
-void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module_name, PyObject *module )
+void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 {
     // Check parameters.
     assertObject( module );

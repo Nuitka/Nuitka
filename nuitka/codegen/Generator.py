@@ -206,9 +206,6 @@ def getPackageVariableCode( context ):
         package_var_identifier.getCodeTemporaryRef()
     )
 
-def getEmptyImportListCode():
-    return Identifier( "NULL", 0 )
-
 def getImportModuleCode( context, module_name, import_name, import_list, level ):
     return Identifier(
         "IMPORT_MODULE( %s, %s, %s, %s, %d )" % (
@@ -223,133 +220,27 @@ def getImportModuleCode( context, module_name, import_name, import_list, level )
             getPackageVariableCode(
                 context = context
             ),
-            import_list.getCodeTemporaryRef(),
+            "NULL" if import_list is None else getConstantCode(
+                constant = import_list,
+                context  = context
+            ),
             level
         ),
         1
     )
 
-def getImportEmbeddedCode( context, module_name, import_name ):
-    return Identifier(
-        "IMPORT_EMBEDDED_MODULE( %s, %s )" % (
-            getConstantCode(
-                constant = module_name,
-                context  = context
-            ),
-            getConstantCode(
-                constant = import_name,
-                context  = context
-            )
-        ),
-        1
-    )
-
-def _getImportFromStarCode( context, module_name, module_code ):
+def getImportFromStarCode( context, module_identifier ):
     if not context.hasLocalsDict():
-        return "IMPORT_MODULE_STAR( %s, true, %s, %s );" % (
-            getModuleAccessCode( context = context ),
-            getConstantCode(
-                constant = module_name,
-                context  = context
+        return "IMPORT_MODULE_STAR( %s, true, %s );" % (
+            getModuleAccessCode(
+                context = context
             ),
-            module_code.getCodeTemporaryRef()
+            module_identifier.getCodeTemporaryRef()
         )
     else:
-        return "IMPORT_MODULE_STAR( locals_dict.asObject(), false, %s, %s );" % (
-            getConstantCode(
-                constant = module_name,
-                context  = context
-            ),
-            module_code.getCodeTemporaryRef()
+        return "IMPORT_MODULE_STAR( locals_dict.asObject(), false, %s );" % (
+            module_identifier.getCodeTemporaryRef()
         )
-
-def getImportFromStarCode( context, module_name, level ):
-    module_code = getImportModuleCode(
-        context     = context,
-        module_name = module_name,
-        import_name = module_name,
-        import_list = getEmptyImportListCode(),
-        level       = level
-    )
-
-    return _getImportFromStarCode(
-        context     = context,
-        module_name = module_name,
-        module_code = module_code
-    )
-
-
-def getImportFromStarEmbeddedCode( context, module_name ):
-    module_code = getImportEmbeddedCode(
-        context     = context,
-        module_name = module_name,
-        import_name = module_name
-    )
-
-    return _getImportFromStarCode(
-        context     = context,
-        module_name = module_name,
-        module_code = module_code
-    )
-
-
-def getImportFromModuleTempIdentifier():
-    return Identifier( "module_temp.asObject()", 0 )
-
-def _getImportFromCode( context, module_name, module_lookup, lookup_code, sub_module_names ):
-    module_embedded = [
-        getStatementCode(
-            getImportEmbeddedCode(
-                context     = context,
-                module_name = module_name,
-                import_name = module_name
-            )
-        )
-        for module_name in
-        sub_module_names
-    ]
-
-    return CodeTemplates.import_from_template % {
-        "module_lookup"   : indented( module_lookup.getCodeExportRef(), 2 ),
-        "module_embedded" : indented( module_embedded ),
-        "lookup_code"     : indented( lookup_code, 2 ),
-    }
-
-
-def getImportFromCode( context, module_name, lookup_code, import_list, sub_module_names, level ):
-    module_lookup = getImportModuleCode(
-        context = context,
-        module_name = module_name,
-        import_name = module_name,
-        import_list = getConstantHandle(
-            context  = context,
-            constant = tuple( import_list )
-        ),
-        level       = level
-    )
-
-    return _getImportFromCode(
-        context          = context,
-        module_name      = module_name,
-        module_lookup    = module_lookup,
-        lookup_code      = lookup_code,
-        sub_module_names = sub_module_names
-    )
-
-def getImportFromEmbeddedCode( context, module_name, lookup_code, sub_module_names ):
-    module_lookup = getImportEmbeddedCode(
-        context     = context,
-        module_name = module_name,
-        import_name = module_name
-    )
-
-    return _getImportFromCode(
-        context          = context,
-        module_name      = module_name,
-        module_lookup    = module_lookup,
-        lookup_code      = lookup_code,
-        sub_module_names = sub_module_names
-    )
 
 
 def getMaxIndexCode():
@@ -599,6 +490,15 @@ def getAttributeLookupCode( attribute, source ):
         "LOOKUP_ATTRIBUTE( %s, %s )" % (
             source.getCodeTemporaryRef(),
             attribute.getCodeTemporaryRef()
+        ),
+        1
+    )
+
+def getImportNameCode( import_name, module ):
+    return Identifier(
+        "IMPORT_NAME( %s, %s )" % (
+            module.getCodeTemporaryRef(),
+            import_name.getCodeTemporaryRef()
         ),
         1
     )
@@ -2046,7 +1946,7 @@ def getModuleCode( context, module_name, package_name, codes, doc_identifier, \
     )
 
     # Make sure that _python_str_angle_module is available to the template
-    context.getConstantHandle( constant = "<module>" )
+    # context.getConstantHandle( constant = "<module>" )
     context.getConstantHandle( constant = "." )
 
     if package_name is None:

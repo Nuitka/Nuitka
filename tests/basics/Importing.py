@@ -52,3 +52,18 @@ print "Star import gave us", path
 import os.path as myname
 
 print "As import gave", myname
+
+def localImportFailure():
+    try:
+        from os import path, lala, listdir
+    except Exception as e:
+        print type(e), e
+
+    try:
+        print listdir
+    except UnboundLocalError:
+        print " and listdir was not imported",
+
+    print "but path was", path
+
+print "From import that fails in the middle", localImportFailure()

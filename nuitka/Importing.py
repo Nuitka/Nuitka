@@ -56,7 +56,6 @@ def findModule( module_name, parent_package, level, warn = True ):
                 module_name    = module_name,
                 parent_package = parent_package
             )
-
         except ImportError:
             if warn and not _isWhiteListedNotExistingModule( module_name ):
                 warning( "Warning, cannot find '%s' in '%s' on level %d" % ( module_name, parent_package, level ) )
