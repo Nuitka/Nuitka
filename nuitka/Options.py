@@ -62,6 +62,14 @@ parser.add_option(
 )
 
 parser.add_option(
+    "--really-deep",
+    action  = "store_true",
+    dest    = "follow_stdlib",
+    default = False,
+    help    = "When --deep is used, also descend into imported modules from standard library."
+)
+
+parser.add_option(
     "--execute",
     action  = "store_true",
     dest    = "immediate_execution",
@@ -276,7 +284,7 @@ def shallFollowImports():
     return options.follow_imports
 
 def shallFollowStandardLibrary():
-    return False
+    return options.follow_stdlib
 
 def isDebug():
     return options.debug
