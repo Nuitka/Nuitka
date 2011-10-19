@@ -705,7 +705,7 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureG
     def __init__( self, name, package, source_ref ):
         assert type(name) is str, type(name)
         assert "." not in name
-        assert package is None or type( package ) is str
+        assert package is None or ( type( package ) is str and package != "" )
 
         CPythonClosureGiverNodeBase.__init__(
             self,

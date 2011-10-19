@@ -508,28 +508,6 @@ PyObject *MAKE_FRAME( PyObject *filename, PyObject *function_name, PyObject *mod
     return MAKE_FRAME( MAKE_CODEOBJ( filename, function_name ), module );
 }
 
-#ifdef _NUITKA_EXE
-extern bool *FIND_EMBEDDED_MODULE( PyObject *module_name );
-
-PyObject *IMPORT_EMBEDDED_MODULE( PyObject *module_name, PyObject *import_name )
-{
-    if ( HAS_KEY( PySys_GetObject( (char *)"modules" ), module_name ) )
-    {
-        return LOOKUP_SUBSCRIPT( PySys_GetObject( (char *)"modules" ), import_name );
-    }
-    else
-    {
-        if ( FIND_EMBEDDED_MODULE( module_name ) )
-        {
-            return LOOKUP_SUBSCRIPT( PySys_GetObject( (char *)"modules" ), import_name );
-        }
-    }
-
-    PyErr_Format( PyExc_RuntimeError, "couldn't find embedded module '%s'", PyString_AsString( module_name ) );
-    throw _PythonException();
-}
-#endif
-
 PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject *package, PyObject *import_items, int level )
 {
     assert( PyString_Check( module_name ) );
@@ -632,13 +610,13 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject 
 
         package = package_temp.asObject();
 
-        if ( PyString_Size( import_name ) > 0 )
+        if ( PyString_Size( module_name ) > 0 )
         {
             PyObjectTemporary full_name(
                 PyString_FromFormat(
                     "%s.%s",
                     PyString_AsString( package ),
-                    PyString_AsString( import_name )
+                    PyString_AsString( module_name )
                 )
             );
 

@@ -71,7 +71,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
 
 
     def _consider( self, module_filename, module_package ):
-        assert module_package is None or type( module_package ) is str
+        assert module_package is None or ( type( module_package ) is str and module_package != "" )
 
         if module_filename.endswith( ".py" ) or Utils.isDir( module_filename ):
             if self.stdlib or not module_filename.startswith( "/usr/lib/" ):
@@ -117,6 +117,8 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
                 parent_package = node.getParentModule().getPackage(),
                 level          = node.getLevel()
             )
+
+            assert module_package != "", node
 
             if module_filename is not None:
                 imported_module = self._consider(
