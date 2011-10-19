@@ -56,7 +56,6 @@ def findModule( module_name, parent_package, level, warn = True ):
                 module_name    = module_name,
                 parent_package = parent_package
             )
-
         except ImportError:
             if warn and not _isWhiteListedNotExistingModule( module_name ):
                 warning( "Warning, cannot find '%s' in '%s' on level %d" % ( module_name, parent_package, level ) )
@@ -131,6 +130,8 @@ def _findModule( module_name, parent_package ):
         else:
             module_name = "ntpath"
 
+    assert module_name != "" or parent_package is not None
+
     if "." in module_name:
         package_part = module_name[ : module_name.rfind( "." ) ]
         module_name = module_name[ module_name.rfind( "." ) + 1 : ]
@@ -150,6 +151,19 @@ def _findModule( module_name, parent_package ):
             module_name    = module_name,
             parent_package = package_part
         )
+    elif module_name == "":
+        module_filename, package = _findModuleInPath(
+            module_name  = module_name,
+            package_name = parent_package
+        )
+
+        if package is not None:
+            package = ".".join( package.split( "." )[:-1] )
+
+            if package == "":
+                package = None
+
+        return module_filename, package
     else:
         return _findModuleInPath(
             module_name  = module_name,

@@ -960,6 +960,11 @@ def generateExpressionCode( expression, context, allow_none = False ):
             attribute = context.getConstantHandle( attribute_name ),
             source    = makeExpressionCode( expression.getLookupSource() ),
         )
+    elif expression.isExpressionImportName():
+        identifier = Generator.getImportNameCode(
+            import_name = context.getConstantHandle( expression.getImportName() ),
+            module      = makeExpressionCode( expression.getModule() ),
+        )
     elif expression.isExpressionSubscriptLookup():
         identifier = Generator.getSubscriptLookupCode(
             subscript = generateExpressionCode(
@@ -1102,7 +1107,12 @@ def generateExpressionCode( expression, context, allow_none = False ):
             for_return = for_return
         )
     elif expression.isExpressionBuiltinImport():
-        identifier = generateImportBuiltinCode(
+        identifier = generateImportModuleCode(
+            expression = expression,
+            context    = context
+        )
+    elif expression.isExpressionImportModule():
+        identifier = generateImportModuleCode(
             expression = expression,
             context    = context
         )
@@ -1692,129 +1702,21 @@ def generateRaiseCode( statement, context ):
             exception_tb_maker         = None
         )
 
-
-def generateImportBuiltinCode( expression, context ):
+def generateImportModuleCode( expression, context ):
     return Generator.getImportModuleCode(
-        context     = context,
         module_name = expression.getModuleName(),
         import_name = expression.getImportName(),
-        import_list = Generator.getEmptyImportListCode(),
-        level       = expression.getLevel()
-    )
-
-def generateImportExternalCode( statement, context ):
-    return generateAssignmentCode(
-        targets = statement.getTarget(),
-        value   = generateImportBuiltinCode(
-            expression = statement,
-            context    = context
-        ),
-        context = context
-    )
-
-def generateImportEmbeddedCode( statement, context ):
-    return generateAssignmentCode(
-        targets = statement.getTarget(),
-        value   = Generator.getImportEmbeddedCode(
-            module_name = statement.getModuleName(),
-            import_name = statement.getImportName(),
-            context     = context
-        ),
-        context = context
-    )
-
-def generateImportFromLookupCode( statement, context ):
-    module_temp = Generator.getImportFromModuleTempIdentifier()
-
-    lookup_code = ""
-
-    for object_name, target in zip( statement.getImports(), statement.getTargets() ):
-        assert object_name != "*"
-
-        attribute = context.getConstantHandle(
-            constant = object_name
-        )
-
-        lookup_code += Generator.getDefineGuardedCode(
-            define = "_NUITKA_EXE",
-            code   = Generator.getBranchCode(
-                condition = Generator.getAttributeCheckCode(
-                    source    = module_temp,
-                    attribute = attribute
-                ),
-                no_codes = (
-                    Generator.getStatementCode(
-                        Generator.getImportEmbeddedCode(
-                            context     = context,
-                            module_name = statement.getModuleName() + "." + object_name,
-                            import_name = statement.getModuleName() + "." + object_name
-                        )
-                    ),
-                ),
-                yes_codes = ()
-            )
-        )
-
-        lookup_code += "\n"
-
-        lookup_code += generateAssignmentCode(
-            targets = target,
-            value   = Generator.getAttributeLookupCode(
-                source    = module_temp,
-                attribute = attribute
-            ),
-            context = context
-        )
-
-        lookup_code += "\n"
-
-    return lookup_code
-
-
-def generateImportFromExternalCode( statement, context ):
-    lookup_code = generateImportFromLookupCode(
-        statement = statement,
-        context   = context
-    )
-
-    return Generator.getImportFromCode(
-        module_name      = statement.getModuleName(),
-        lookup_code      = lookup_code,
-        import_list      = statement.getImports(),
-        sub_module_names = (),
-        level            = statement.getLevel(),
-        context          = context
-    )
-
-
-def generateImportFromEmbeddedCode( statement, context ):
-    lookup_code = generateImportFromLookupCode(
-        statement = statement,
-        context   = context
-    )
-
-    return Generator.getImportFromEmbeddedCode(
-        module_name      = statement.getModuleName(),
-        lookup_code      = lookup_code,
-        sub_module_names = [
-            sub_module.getFullName()
-            for sub_module in
-            statement.getSubModules()
-        ],
-        context          = context
-    )
-
-
-def generateImportStarExternalCode( statement, context ):
-    return Generator.getImportFromStarCode(
-        module_name = statement.getModuleName(),
-        level       = statement.getLevel(),
+        import_list = expression.getImportList(),
+        level       = expression.getLevel(),
         context     = context
     )
 
-def generateImportStarEmbeddedCode( statement, context ):
-    return Generator.getImportFromStarEmbeddedCode(
-        module_name = statement.getModuleName(),
+def generateImportStarCode( statement, context ):
+    return Generator.getImportFromStarCode(
+        module_identifier = generateImportModuleCode(
+            expression = statement.getModule(),
+            context    = context
+        ),
         context     = context
     )
 
@@ -2099,33 +2001,8 @@ def _generateStatementCode( statement, context ):
         code = Generator.getLoopBreakCode(
             needs_exceptions = statement.needsExceptionBreakContinue()
         )
-    elif statement.isStatementImportExternal():
-        code = generateImportExternalCode(
-            statement = statement,
-            context   = context
-        )
-    elif statement.isStatementImportEmbedded():
-        code = generateImportEmbeddedCode(
-            statement = statement,
-            context   = context
-        )
-    elif statement.isStatementImportFromExternal():
-        code = generateImportFromExternalCode(
-            statement = statement,
-            context   = context
-        )
-    elif statement.isStatementImportFromEmbedded():
-        code = generateImportFromEmbeddedCode(
-            statement = statement,
-            context   = context
-        )
-    elif statement.isStatementImportStarExternal():
-        code = generateImportStarExternalCode(
-            statement = statement,
-            context   = context
-        )
-    elif statement.isStatementImportStarEmbedded():
-        code = generateImportStarEmbeddedCode(
+    elif statement.isStatementImportStar():
+        code = generateImportStarCode(
             statement = statement,
             context   = context
         )

@@ -18,6 +18,5 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-bar = 42
 
-not_overloaded = 45
+print "This is deep brother module talking."

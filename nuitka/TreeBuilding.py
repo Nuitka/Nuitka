@@ -964,18 +964,25 @@ def _buildImportModulesNode( import_names, source_ref ):
         )
 
         import_nodes.append(
-            Nodes.CPythonStatementImportExternal(
-                target      = target,
-                module_name = module_name,
-                import_name = module_name if local_name else module_topname,
-                level       = -1,
-                source_ref  = source_ref
+            Nodes.CPythonStatementAssignment(
+                targets    = ( target, ),
+                expression = Nodes.CPythonExpressionImportModule(
+                    module_name = module_name,
+                    import_name = module_name if local_name else module_topname,
+                    import_list = None,
+                    level       = -1,
+                    source_ref  = source_ref
+                ),
+                source_ref = source_ref
             )
         )
 
+    # Note: Each import is sequential. It can succeed, and the failure of a later one is
+    # not changing one. We can therefore have a sequence of imports that only import one
+    # thing therefore.
     return Nodes.CPythonStatementsSequence(
-        statements  = import_nodes,
-        source_ref  = source_ref
+        statements = import_nodes,
+        source_ref = source_ref
     )
 
 def buildImportModulesNode( node, source_ref ):
@@ -1017,15 +1024,6 @@ def buildImportFromNode( provider, node, source_ref ):
                 object_name = object_name,
                 future_spec = source_ref.getFutureSpec()
             )
-    elif module_name == "" and level == 1:
-        return _buildImportModulesNode(
-            import_names   = [
-                ( import_desc.name, import_desc.asname )
-                for import_desc in
-                node.names
-            ],
-            source_ref     = source_ref
-        )
 
     targets = []
     imports = []
@@ -1045,18 +1043,44 @@ def buildImportFromNode( provider, node, source_ref ):
         imports.append( object_name )
 
     if None in targets:
-        return Nodes.CPythonStatementImportStarExternal(
-            module_name = module_name,
-            level       = level,
+        return Nodes.CPythonStatementImportStar(
+            module_import = Nodes.CPythonExpressionImportModule(
+                module_name = module_name,
+                import_name = module_name,
+                import_list = None,
+                level       = level,
+                source_ref  = source_ref
+            ),
             source_ref  = source_ref
         )
     else:
-        return Nodes.CPythonStatementImportFromExternal(
-            targets     = targets,
-            module_name = module_name,
-            level       = level,
-            imports     = imports,
-            source_ref  = source_ref
+        import_nodes = []
+
+        for target, import_name in zip( targets, imports ):
+            import_nodes.append(
+                Nodes.CPythonStatementAssignment(
+                    targets    = ( target, ),
+                    expression = Nodes.CPythonExpressionImportName(
+                        module      = Nodes.CPythonExpressionImportModule(
+                            module_name = module_name,
+                            import_name = module_name,
+                            import_list = imports,
+                            level       = level,
+                            source_ref  = source_ref
+                        ),
+                        import_name = import_name,
+                        source_ref  = source_ref
+                    ),
+                    source_ref  = source_ref
+                )
+            )
+
+        # Note: Each import is sequential. It can succeed, and the failure of a later one is
+        # not changing one. We can therefore have a sequence of imports that only import one
+        # thing therefore.
+        return Nodes.CPythonStatementsSequence(
+            statements = import_nodes,
+            source_ref = source_ref
         )
 
 def buildPrintNode( provider, node, source_ref ):

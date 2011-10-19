@@ -19,8 +19,8 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-from foo import bar
-print bar
+from foo import bar, not_overloaded
+print bar, not_overloaded
 
-from foo import bar2
+from foo import bar2, not_overloaded
 print bar2
