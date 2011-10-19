@@ -58,9 +58,21 @@ static PyObject *_loader_frozen_modules = NULL;
 
 static PyObject *_PATH_UNFREEZER_FIND_MODULE( PyObject *self, PyObject *args )
 {
-    assert( PyTuple_Size( args ) == 2 );
+    PyObject *module_name;
 
-    PyObject *module_name = PyTuple_GetItem( args, 0 );
+    if ( PyTuple_Check( args ))
+    {
+       assert( PyTuple_Size( args ) == 2 );
+
+       module_name = PyTuple_GetItem( args, 0 );
+    }
+    else
+    {
+       assert( PyString_Check( args ) );
+
+       module_name = args;
+    }
+
     char *name = PyString_AsString( module_name );
 
     // printf( "Looking for %%s\\n", name );
