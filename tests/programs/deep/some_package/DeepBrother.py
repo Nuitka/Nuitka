@@ -19,6 +19,4 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-print "This is DeepDeepChild talking."
-
-from .. import DeepBrother
+print "This is deep brother module talking."
