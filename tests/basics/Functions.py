@@ -517,3 +517,11 @@ def comp_args4(a=2, (b, c)=(3, 4)):
     return a, b, c
 
 print "Complex args functions", comp_args1( (2, 1) ), comp_args2(), comp_args2( (7,9)), comp_args3( 7, (8,9)), comp_args4()
+
+def functionWithDualStarArgsAndKeywordsOnly( a1, a2, a3, a4, b ):
+    return a1, a2, a3, a4, b
+
+l = [ 1, 2, 3 ]
+d = { "b": 8 }
+
+print "Dual star args, but not positional call", functionWithDualStarArgsAndKeywordsOnly( a4 = 1, *l, **d )
