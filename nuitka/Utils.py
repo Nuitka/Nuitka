@@ -66,9 +66,7 @@ def getCoreCount():
     # Try to sum up the CPU cores, if the kernel shows them, pylint: disable=W0702
     try:
         # Try to get the number of logical processors
-        for line in open( '/proc/cpuinfo' ):
-            if line.startswith( 'cpu cores' ):
-                cpu_count += int( line.split(':')[-1].strip() )
+        cpu_count = open( "/proc/cpuinfo" ).read().count( "processor\t:" )
     except:
         pass
 

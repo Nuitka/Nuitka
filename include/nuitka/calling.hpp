@@ -363,6 +363,49 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_POSARGS_KEYARGS_STAR_D
     );
 }
 
+
+#define CALL_FUNCTION_WITH_KEYARGS_STAR_LIST_STAR_DICT( function_object, named_args, list_star_arg, dict_star_arg ) _CALL_FUNCTION_WITH_KEYARGS_STAR_LIST_STAR_DICT( EVAL_ORDERED_4( function_object, named_args, list_star_arg, dict_star_arg ) )
+
+NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_KEYARGS_STAR_LIST_STAR_DICT( EVAL_ORDERED_4( PyObject *function_object, PyObject *named_args, PyObject *list_star_arg, PyObject *dict_star_arg ) )
+{
+    if (unlikely( PyMapping_Check( dict_star_arg ) == 0 ))
+    {
+        PyErr_Format( PyExc_TypeError, "%s%s argument after ** must be a mapping, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), dict_star_arg->ob_type->tp_name );
+        throw _PythonException();
+    }
+
+    PyObjectTemporary result( PyDict_Copy( named_args ) );
+
+    MERGE_STAR_DICT_ARGS(
+        function_object,
+        named_args,
+        dict_star_arg,
+        result.asObject()
+    );
+
+
+    // The list star arg could just as well have been an argument tuple, so
+    // this can is easy.
+    PyObject *list_star_arg_tuple = STAR_LIST_ARG_AS_TUPLE( function_object, list_star_arg );
+
+    if ( list_star_arg_tuple == list_star_arg )
+    {
+        return CALL_FUNCTION(
+            function_object,
+            list_star_arg_tuple,
+            result.asObject()
+        );
+    }
+    else
+    {
+        return CALL_FUNCTION(
+            function_object,
+            PyObjectTemporary( list_star_arg_tuple ).asObject(),
+            result.asObject()
+        );
+    }
+}
+
 #define CALL_FUNCTION_WITH_POSARGS_KEYARGS_STAR_LIST( function_object, positional_args, named_args, list_star_arg ) _CALL_FUNCTION_WITH_POSARGS_KEYARGS_STAR_LIST( EVAL_ORDERED_4( function_object, positional_args, named_args, list_star_arg ) )
 
 NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_POSARGS_KEYARGS_STAR_LIST( EVAL_ORDERED_4( PyObject *function_object, PyObject *positional_args, PyObject *named_args, PyObject *list_star_arg ) )
