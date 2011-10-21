@@ -37,16 +37,21 @@ options.
 
 from . import Options, Tracing
 
-import os
+import os, sys
+
+def getSconsInlinePath():
+    return os.environ[ "NUITKA_SCONS" ] + os.path.sep + "inline_copy"
 
 def getSconsBinaryPath():
     if os.path.exists( "/usr/bin/scons" ):
         return "/usr/bin/scons"
     else:
-        return os.environ[ "NUITKA_SCONS" ] + os.path.sep + "inline_copy" + os.path.sep + \
-               "bin" + os.path.sep + "scons.py"
+        return getSconsInlinePath() + os.path.sep + "bin" + os.path.sep + "scons.py"
 
 def runScons( options, quiet ):
+    if "win" in sys.platform:
+        os.environ[ "SCONS_LIB_DIR" ] = getSconsInlinePath() + os.path.sep + "lib" + os.path.sep + "scons-2.0.1"
+
     scons_command = """%(binary)s %(quiet)s -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
         "binary"     : getSconsBinaryPath(),
         "quiet"      : "--quiet" if quiet else "",
