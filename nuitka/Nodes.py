@@ -385,7 +385,6 @@ class CPythonCodeNodeBase( CPythonNamedNodeBase ):
 
     def getCodeName( self ):
         if self.code_name is None:
-
             search = self.parent
 
             while search is not None:
@@ -786,6 +785,9 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureG
 
     def isEarlyClosure( self ):
         return True
+
+    def getCodeName( self ):
+        return "module_" + self.name
 
 class CPythonPackage( CPythonModule ):
     kind = "PACKAGE"
