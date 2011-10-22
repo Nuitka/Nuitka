@@ -44,7 +44,9 @@ steps.
 
 from .OptimizeBase import OptimizationVisitorBase, warning
 
-from nuitka import TreeBuilding, Nodes
+from nuitka.nodes import Nodes
+
+from nuitka import TreeBuilding
 
 class OptimizeExecVisitor( OptimizationVisitorBase ):
     """ Inline constant execs.

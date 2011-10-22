@@ -38,10 +38,11 @@ from .OptimizeBase import (
     makeRaiseExceptionReplacementExpressionFromInstance
 )
 
-from nuitka import Importing, Nodes
+from nuitka import Importing
 
 from nuitka.Utils import getPythonVersion
 
+from nuitka.nodes import Nodes
 from nuitka.nodes.ParameterSpec import ParameterSpec, TooManyArguments
 
 from nuitka.__past__ import builtin_exception_names

@@ -38,7 +38,7 @@ Provides a class that all optimization visitors should inherit from.
 # Pylint fails to find this, somewhat, at least it reports wrong about this.
 from .. import TreeOperations
 
-from nuitka import Nodes
+from nuitka.nodes import Nodes
 
 # pylint: disable=W0611
 # These are here for easier import by the optimization steps.

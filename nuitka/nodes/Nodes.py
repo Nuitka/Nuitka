@@ -35,7 +35,7 @@ works on it. Optimizations are frequently transformations of the tree.
 
 """
 
-from . import (
+from nuitka import (
     PythonOperators,
     Variables,
     Tracing,
@@ -43,11 +43,12 @@ from . import (
     Utils
 )
 
-from .odict import OrderedDict
-from .nodes import OverflowCheck
-from .nodes import UsageCheck
+from nuitka.odict import OrderedDict
 
-from .nodes.IndicatorMixins import (
+from . import OverflowCheck
+from . import UsageCheck
+
+from .IndicatorMixins import (
     MarkExceptionBreakContinueIndicator,
     MarkContainsTryExceptIndicator,
     MarkLocalsDictIndicator,
@@ -56,7 +57,7 @@ from .nodes.IndicatorMixins import (
 )
 
 
-from .Constants import isMutable, isIterableConstant, isNumberConstant
+from nuitka.Constants import isMutable, isIterableConstant, isNumberConstant
 
 lxml = TreeXML.lxml
 

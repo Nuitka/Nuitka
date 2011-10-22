@@ -32,7 +32,7 @@
 
 from .OptimizeBase import OptimizationVisitorBase, makeRaiseExceptionReplacementStatement
 
-from nuitka import Nodes
+from nuitka.nodes import Nodes
 
 class ReplaceUnpackingVisitor( OptimizationVisitorBase ):
     def __call__( self, node ):

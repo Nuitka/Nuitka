@@ -37,7 +37,7 @@ then adding it during code generation only.
 
 from .OptimizeBase import OptimizationVisitorBase
 
-from nuitka import Nodes
+from nuitka.nodes import Nodes
 
 class FixupNewStaticMethodVisitor( OptimizationVisitorBase ):
     def __call__( self, node ):

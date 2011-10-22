@@ -41,12 +41,13 @@ from .__past__ import long, unicode
 from . import (
     SourceCodeReferences,
     Tracing,
-    Nodes,
     Utils
 )
 
 from .nodes.ParameterSpec import ParameterSpec
 from .nodes.FutureSpec import FutureSpec
+
+from .nodes import Nodes
 
 import ast, sys
 

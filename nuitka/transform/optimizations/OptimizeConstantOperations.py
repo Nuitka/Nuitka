@@ -34,7 +34,7 @@
 
 from .OptimizeBase import OptimizationVisitorBase, areConstants
 
-from nuitka import Nodes
+from nuitka.nodes import Nodes
 
 class OptimizeOperationVisitor( OptimizationVisitorBase ):
     def _optimizeConstantOperandsOperation( self, node, operands ):

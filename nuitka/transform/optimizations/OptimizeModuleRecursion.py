@@ -39,7 +39,9 @@ So this is called repeatedly mayhaps, each time a constant is added.
 
 from .OptimizeBase import OptimizationVisitorBase, info
 
-from nuitka import TreeBuilding, Importing, Options, Nodes, Utils
+from nuitka.nodes import Nodes
+
+from nuitka import TreeBuilding, Importing, Options, Utils
 
 class ModuleRecursionVisitor( OptimizationVisitorBase ):
     imported_modules = {}

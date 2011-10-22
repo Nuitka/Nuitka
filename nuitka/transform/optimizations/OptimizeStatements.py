@@ -37,7 +37,7 @@ also removes useless try/except or try/finally statements.
 
 from .OptimizeBase import OptimizationVisitorBase, TreeOperations
 
-from nuitka import Nodes
+from nuitka.nodes import Nodes
 
 
 class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
