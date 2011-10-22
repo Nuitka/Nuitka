@@ -86,7 +86,18 @@ def _findModuleInPath( module_name, package_name ):
         print( "_findModuleInPath: Enter", module_name, package_name )
 
     if package_name is not None:
-        ext_path = [ element + os.path.sep + package_name.replace( ".", os.path.sep ) for element in sys.path + ["."] ]
+        # Work around imp.find_module bug on at least Windows. Won't handle
+        # module name empty in find_module. And thinking of it, how could it
+        # anyway.
+        if module_name == "":
+            module_name = package_name.split( "." )[ -1 ]
+            package_name = ".".join( package_name.split( "." )[:-1] )
+
+        ext_path = [
+            element + os.path.sep + package_name.replace( ".", os.path.sep )
+            for element in
+            sys.path + [ os.getcwd() ]
+        ]
 
         if _debug_module_finding:
             print( "_findModuleInPath: Package, using extended path", ext_path )
@@ -104,7 +115,7 @@ def _findModuleInPath( module_name, package_name ):
             if _debug_module_finding:
                 print( "_findModuleInPath: imp.find_module failed" )
 
-    ext_path = sys.path + ["."]
+    ext_path = sys.path + [ os.getcwd() ]
 
     if _debug_module_finding:
         print( "_findModuleInPath: Non-package, using extended path", ext_path )
@@ -179,5 +190,5 @@ def _isWhiteListedNotExistingModule( module_name ):
         "operator", "signal", "gc", "exceptions", "win32process", "unicodedata",
         "__builtin__", "fcntl", "_socket", "_ssl", "pwd", "spwd", "_random", "grp",
         "select", "__main__", "_winreg", "_warnings", "_sre", "_functools", "_hashlib",
-        "_collections", "_locale",
+        "_collections", "_locale", "_codecs", "_weakref", "_struct", "_dummy_threading"
     )
