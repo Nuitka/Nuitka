@@ -30,7 +30,7 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-if [ "$0" != "bash" ] && [ "$0" != "-bash" ] && [ "$0" != "/bin/bash" ] && [ "$0" != "-su" ]
+if [ "$0" != "bash" ] && [ "$0" != "-bash" ] && [ "$0" != "/bin/bash" ] && [ "$0" != "-su" ] && [ "$0" != "sh" ]
 then
     cd `dirname $0`/..
 fi
