@@ -2029,7 +2029,7 @@ def getMainCode( codes, other_module_names ):
 
     main_code = CodeTemplates.main_program % {
         "module_inittab" : indented( sorted( module_inittab ) ),
-        "sys_executable" : '"%s"' % (
+        "sys_executable" : CppRawStrings.encodeString(
             "python.exe" if Options.isWindowsTarget() else sys.executable
         )
     }
