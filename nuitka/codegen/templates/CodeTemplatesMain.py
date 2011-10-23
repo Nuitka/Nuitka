@@ -173,9 +173,6 @@ static void REGISTER_META_PATH_UNFREEZER( void )
 
 int main( int argc, char *argv[] )
 {
-    // Register the initialization functions for modules included in the binary if any
-    int res = PyImport_ExtendInittab( _module_inittab );
-    assert( res != -1 );
 
     Py_Initialize();
     PySys_SetArgv( argc, argv );
@@ -190,6 +187,10 @@ int main( int argc, char *argv[] )
     PyType_Ready( &Nuitka_Genexpr_Type );
 
     enhancePythonTypes();
+
+    // Register the initialization functions for modules included in the binary if any
+    int res = PyImport_ExtendInittab( _module_inittab );
+    assert( res != -1 );
 
     // Set the sys.executable path to the original Python executable on Linux
     // or to python.exe on Windows.
