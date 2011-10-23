@@ -49,7 +49,7 @@ def isStandardLibraryPath( path ):
     if not path.startswith( os.path.dirname( os.__file__  ) ):
         return False
 
-    if "dist-packages" in path:
+    if "dist-packages" in path or "site-packages" in path:
         return False
 
     return True
