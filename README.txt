@@ -7,14 +7,14 @@ Usage
 Requirements
 ~~~~~~~~~~~~~
 
-- C++ Compiler: You need a compiler with support for C++0x
+- C++ Compiler: You need a compiler with support for C++11
 
     Currently this means, you need to use the GNU g++ compiler of at least version 4.5 or
-    else the compilation will fail. This is due to uses of C++0x "raw string" literals
+    else the compilation will fail. This is due to uses of C++11 "raw string" literals
     only supported from that version on.
 
     On Windows the MinGW g++ compiler of at least version 4.5, the VC++ compiler is not
-    currently supported, because it is too weak in its C++0x support.
+    currently supported, because it is too weak in its C++11 support.
 
 - Python: Version 2.6 or higher (3.x won't work yet though)
 
@@ -499,7 +499,7 @@ Thanks for giving us CPython, which is the base of Nuitka.
 The gcc project http://gcc.gnu.org/
 -----------------------------------
 
-Thanks for not only the best compiler suite, but also thanks for supporting C++0x which
+Thanks for not only the best compiler suite, but also thanks for supporting C++11 which
 has made the generation of code much easier. Currently no other compiler is usable for
 Nuitka than yours.
 
