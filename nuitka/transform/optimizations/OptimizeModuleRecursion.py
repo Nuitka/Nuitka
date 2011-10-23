@@ -43,6 +43,17 @@ from nuitka.nodes import Nodes
 
 from nuitka import TreeBuilding, Importing, Options, Utils
 
+import os
+
+def isStandardLibraryPath( path ):
+    if not path.startswith( os.path.dirname( os.__file__  ) ):
+        return False
+
+    if "dist-packages" in path:
+        return False
+
+    return True
+
 class ModuleRecursionVisitor( OptimizationVisitorBase ):
     imported_modules = {}
 
@@ -71,12 +82,11 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
 
         return self.imported_modules[ module_relpath ]
 
-
     def _consider( self, module_filename, module_package ):
         assert module_package is None or ( type( module_package ) is str and module_package != "" )
 
         if module_filename.endswith( ".py" ) or Utils.isDir( module_filename ):
-            if self.stdlib or not module_filename.startswith( "/usr/lib/" ):
+            if self.stdlib or not isStandardLibraryPath( module_filename ):
                 module_relpath = Utils.relpath( module_filename )
 
                 return self._recurseTo(
