@@ -484,7 +484,7 @@ sorted by time.
   the issues, and helped me to get cross compile with MinGW from Linux to Windows. This
   was quite a difficult stuff.
 
-- Liz Zhenhai: Submitted patches for Windows support, making the inline Scons copy
+- Liu Zhenhai: Submitted patches for Windows support, making the inline Scons copy
   actually work on Windows as well. Also reported import related bugs, and generally
   helped me make the Windows port more usable through his testing and information.
 
