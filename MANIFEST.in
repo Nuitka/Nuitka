@@ -1,0 +1,22 @@
+include LICENSE
+include bin/*.sh
+include bin/make_diffable
+recursive-include src *.cpp *.hpp *.asm ucontext.h COPYING.LIB
+recursive-include include *.cpp *.hpp
+
+include misc/*.sh
+include misc/check-with-pylint
+
+include dialogs/InspectPythonTree.ui
+
+# Scons inline copy and general Scons file for Nuitka to compile exe or so.
+recursive-include scons *.py *.scons
+
+recursive-include lib *.py
+
+# Core tests are included along with Nuitka itself.
+recursive-include tests/basics *.py run_all.sh
+recursive-include tests/programs *.py run_all.sh
+recursive-include tests/benchmarks *.py LICENSE README
+
+recursive-include tests/reflected *.py
