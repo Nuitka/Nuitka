@@ -104,8 +104,7 @@ def makeModuleSource( tree ):
     source_code = CodeGeneration.generateModuleCode(
         module         = tree,
         module_name    = tree.getName(),
-        global_context = CodeGeneration.makeGlobalContext(),
-        stand_alone    = True
+        global_context = CodeGeneration.makeGlobalContext()
     )
 
     return source_code
@@ -117,20 +116,24 @@ def makeSourceDirectory( main_module ):
 
     source_dir = Options.getOutputPath( name + ".build" )
 
-    if not source_dir.endswith( "/" ):
-        source_dir += "/"
+    if not source_dir.endswith( os.path.sep ):
+        source_dir += os.path.sep
 
     if os.path.exists( source_dir ):
-        os.system( "rm -f '" + source_dir + "'/*.cpp '" + source_dir + "'/*.hpp" )
+        for filename in sorted( os.listdir( source_dir ) ):
+            path = source_dir + os.path.sep + filename
 
-        if Options.shallMakeModule():
-            os.system( "rm -f '" + source_dir + "'/*.o" )
-            os.system( "rm -f '" + source_dir + "'/static/*.o" )
-        else:
-            os.system( "rm -f '" + source_dir + "'/*.os" )
-            os.system( "rm -f '" + source_dir + "'/static/*.os" )
+            if filename.endswith( ".cpp" ) or filename.endswith( ".hpp" ) or filename.endswith( ".o" ) or filename.endswith( ".os" ):
+                os.unlink( path )
     else:
         os.makedirs( source_dir )
+
+    if os.path.exists( source_dir + os.path.sep + "static" ):
+        for filename in sorted( os.listdir( source_dir ) ):
+            path = source_dir + os.path.sep + "static" + os.path.sep + filename
+
+            if filename.endswith( ".o" ) or filename.endswith( ".os" ):
+                os.unlink( path )
 
     global_context = CodeGeneration.makeGlobalContext()
 
@@ -151,8 +154,7 @@ def makeSourceDirectory( main_module ):
         other_module_code = CodeGeneration.generateModuleCode(
             global_context = global_context,
             module         = other_module,
-            module_name    = other_module.getFullName(),
-            stand_alone    = False
+            module_name    = other_module.getFullName()
         )
 
         module_hpps.append( other_module.getFullName() + ".hpp" )
@@ -180,8 +182,7 @@ def makeSourceDirectory( main_module ):
     source_code = CodeGeneration.generateModuleCode(
         module         = main_module,
         module_name    = main_module_name,
-        global_context = global_context,
-        stand_alone    = True
+        global_context = global_context
     )
 
     if not Options.shallMakeModule():

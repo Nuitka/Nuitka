@@ -31,7 +31,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.3.11h
+Nuitka V0.3.12
 Copyright (C) 2011 Kay Hayen."""
 
 from . import Utils, Tracing
@@ -59,6 +59,14 @@ parser.add_option(
     dest    = "follow_imports",
     default = False,
     help    = "Descend into imported modules and compile them recursively."
+)
+
+parser.add_option(
+    "--really-deep",
+    action  = "store_true",
+    dest    = "follow_stdlib",
+    default = False,
+    help    = "When --deep is used, also descend into imported modules from standard library."
 )
 
 parser.add_option(
@@ -276,7 +284,7 @@ def shallFollowImports():
     return options.follow_imports
 
 def shallFollowStandardLibrary():
-    return False
+    return options.follow_stdlib
 
 def isDebug():
     return options.debug

@@ -28,39 +28,47 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Scons interface.
+from setuptools import setup, find_packages
 
-Interaction with scons. Find the binary, and run it with a set of given
-options.
+version_line, = [
+    line
+    for line in
+    open( "nuitka/Options.py" )
+    if line.startswith( "Nuitka V" )
+]
 
-"""
+version = version_line.split( "V" )[1].strip()
 
-from . import Options, Tracing
+import sys
+if sys.argv[1:] != [ "sdist" ]:
+   sys.exit( "Error, only sdist target is currently working." )
 
-import os, sys
+setup(
+    name     = "Nuitka",
+    version  = version,
+    packages = find_packages(),
+    scripts  = [ 'bin/Nuitka.py', "bin/Python" ],
 
-def getSconsInlinePath():
-    return os.environ[ "NUITKA_SCONS" ] + os.path.sep + "inline_copy"
+    # Project uses reStructuredText, so ensure that the docutils get
+    # installed or upgraded on the target machine
+    install_requires = [ 'docutils>=0.3' ],
 
-def getSconsBinaryPath():
-    if os.path.exists( "/usr/bin/scons" ):
-        return "/usr/bin/scons"
-    else:
-        return getSconsInlinePath() + os.path.sep + "bin" + os.path.sep + "scons.py"
+    package_data = {
+        # Include extra files
+        '': ['*.txt', '*.rst', '*.cpp', '*.hpp', '*.ui' ],
+    },
 
-def runScons( options, quiet ):
-    if "win" in sys.platform:
-        os.environ[ "SCONS_LIB_DIR" ] = getSconsInlinePath() + os.path.sep + "lib" + os.path.sep + "scons-2.0.1"
+    # metadata for upload to PyPI
+    author       = "Kay Hayen",
+    author_email = "kayhayen@gmx.de",
 
-    scons_command = """%(binary)s %(quiet)s -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
-        "binary"     : getSconsBinaryPath(),
-        "quiet"      : "--quiet" if quiet else "",
-        "scons_file" : os.environ[ "NUITKA_SCONS" ] + "/SingleExe.scons",
-        "job_limit"  : Options.getJobLimit(),
-        "options"    : " ".join( "%s=%s" % ( key, value ) for key, value in options.items() )
-    }
+    description = "Nuitka - Python compiler",
 
-    if Options.isShowScons():
-        Tracing.printLine( "Scons command:", scons_command )
+    license = "GPLv3",
 
-    return 0 == os.system( scons_command )
+    keywords = "compiler",
+
+    url = "http://nuitka.net",
+
+    # could also include long_description, download_url, classifiers, etc.
+)

@@ -35,7 +35,7 @@ NUITKA_MAY_BE_UNUSED static Py_ssize_t CONVERT_TO_INDEX( PyObject *value )
 {
     assertObject( value );
 
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
     if ( PyInt_Check( value ) )
     {
         return PyInt_AS_LONG( value );

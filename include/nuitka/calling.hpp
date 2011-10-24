@@ -55,7 +55,7 @@ static char const *GET_CALLABLE_DESC( PyObject *object )
     {
         return "()";
     }
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
     else if ( PyClass_Check( object ) )
     {
         return " constructor";
@@ -83,7 +83,7 @@ static inline void CHECK_NON_STRINGS_DICT_ARG( PyObject *dict, PyObject *functio
 
         while ( PyDict_Next( dict, &pos, &key, &value ) )
         {
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
             if (unlikely( PyString_Check( key ) == 0 && PyUnicode_Check( key ) == 0 ))
 #else
                 if (unlikely( PyUnicode_Check( key ) == 0 ))

@@ -34,7 +34,7 @@
 
 from .OptimizeBase import OptimizationVisitorBase
 
-from nuitka import Nodes
+from nuitka.nodes import Nodes
 
 def toRaiseExceptionStatement( node ):
     assert node.isExpressionRaiseException()

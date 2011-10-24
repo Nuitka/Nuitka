@@ -20,3 +20,5 @@
 #
 
 print "This is DeepDeepChild talking."
+
+from .. import DeepBrother

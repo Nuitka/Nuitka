@@ -82,7 +82,7 @@ class MethodContainer:
         pass
 
     def methodOneParameter( self, a ):
-        print b
+        print a
 
     def methodTwoParameters( self, a, b ):
         print a, b

@@ -74,6 +74,9 @@ def findModule( module_name, parent_package, level, warn = True ):
 
         module_filename = None
 
+    if _debug_module_finding:
+        print( "findModule: Enter", module_package_name, module_name, module_filename )
+
     return module_package_name, module_name, module_filename
 
 _debug_module_finding = False
@@ -83,17 +86,44 @@ def _findModuleInPath( module_name, package_name ):
         print( "_findModuleInPath: Enter", module_name, package_name )
 
     if package_name is not None:
-        ext_path = [ element + os.path.sep + package_name.replace( ".", os.path.sep ) for element in sys.path + ["."] ]
+        # Work around imp.find_module bug on at least Windows. Won't handle
+        # module name empty in find_module. And thinking of it, how could it
+        # anyway.
+        if module_name == "":
+            module_name = package_name.split( "." )[ -1 ]
+            package_name = ".".join( package_name.split( "." )[:-1] )
+
+        ext_path = [
+            element + os.path.sep + package_name.replace( ".", os.path.sep )
+            for element in
+            sys.path + [ os.getcwd() ]
+        ]
+
+        if _debug_module_finding:
+            print( "_findModuleInPath: Package, using extended path", ext_path )
 
         try:
             _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
+
+            if _debug_module_finding:
+                print( "_findModuleInPath: imp.find_module worked", module_filename, package_name )
 
             return module_filename, package_name
         except ImportError:
             pass
 
-    ext_path = sys.path + ["."]
+            if _debug_module_finding:
+                print( "_findModuleInPath: imp.find_module failed" )
+
+    ext_path = sys.path + [ os.getcwd() ]
+
+    if _debug_module_finding:
+        print( "_findModuleInPath: Non-package, using extended path", ext_path )
+
     _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
+
+    if _debug_module_finding:
+        print( "_findModuleInPath: imp.find_module gave", module_filename )
 
     return module_filename, None
 
@@ -110,6 +140,8 @@ def _findModule( module_name, parent_package ):
             module_name = os.path.basename( os.path.__file__ ).replace( ".pyc", "" )
         else:
             module_name = "ntpath"
+
+    assert module_name != "" or parent_package is not None
 
     if "." in module_name:
         package_part = module_name[ : module_name.rfind( "." ) ]
@@ -130,6 +162,19 @@ def _findModule( module_name, parent_package ):
             module_name    = module_name,
             parent_package = package_part
         )
+    elif module_name == "":
+        module_filename, package = _findModuleInPath(
+            module_name  = module_name,
+            package_name = parent_package
+        )
+
+        if package is not None:
+            package = ".".join( package.split( "." )[:-1] )
+
+            if package == "":
+                package = None
+
+        return module_filename, package
     else:
         return _findModuleInPath(
             module_name  = module_name,
@@ -144,5 +189,6 @@ def _isWhiteListedNotExistingModule( module_name ):
         "sys", "itertools", "cStringIO", "time", "zlib", "thread", "math", "errno",
         "operator", "signal", "gc", "exceptions", "win32process", "unicodedata",
         "__builtin__", "fcntl", "_socket", "_ssl", "pwd", "spwd", "_random", "grp",
-        "select", "__main__", "_winreg", "_warnings", "_sre", "_functools", "_hashlib"
+        "select", "__main__", "_winreg", "_warnings", "_sre", "_functools", "_hashlib",
+        "_collections", "_locale", "_codecs", "_weakref", "_struct", "_dummy_threading"
     )

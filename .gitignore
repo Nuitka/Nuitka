@@ -9,9 +9,10 @@
 *.o
 *.os
 *.so
+*.pyd
 *.exe
 *.build
 .sconsign.dblite
-tests/reflected/nodes/
-tests/reflected/templates/
-tests/reflected/optimizations/
+tests/reflected/nuitka/
+Nuitka.egg-info/
+dist

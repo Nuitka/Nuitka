@@ -33,7 +33,7 @@
 
 // Helper functions for print. Need to play nice with Python softspace behaviour.
 
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
 
 extern void PRINT_ITEM_TO( PyObject *file, PyObject *object );
 

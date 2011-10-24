@@ -81,6 +81,8 @@
 NUITKA_MAY_BE_UNUSED static PyObject *_eval_globals_tmp;
 NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 
+#define PYTHON_VERSION (PY_MAJOR_VERSION*100+PY_MINOR_VERSION*10+PY_MICRO_VERSION)
+
 #include "nuitka/helpers.hpp"
 
 #include "nuitka/compiled_function.hpp"

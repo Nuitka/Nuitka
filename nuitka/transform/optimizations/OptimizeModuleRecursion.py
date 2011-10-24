@@ -37,11 +37,22 @@ make it possible to predict these, the compiler can go deeper that what it norma
 So this is called repeatedly mayhaps, each time a constant is added.
 """
 
-from __future__ import print_function
-
 from .OptimizeBase import OptimizationVisitorBase, info
 
-from nuitka import TreeBuilding, Importing, Options, Nodes, Utils
+from nuitka.nodes import Nodes
+
+from nuitka import TreeBuilding, Importing, Options, Utils
+
+import os
+
+def isStandardLibraryPath( path ):
+    if not path.startswith( os.path.dirname( os.__file__  ) ):
+        return False
+
+    if "dist-packages" in path or "site-packages" in path:
+        return False
+
+    return True
 
 class ModuleRecursionVisitor( OptimizationVisitorBase ):
     imported_modules = {}
@@ -51,13 +62,15 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
 
     def _recurseTo( self, module_filename, module_package, module_relpath ):
         if module_relpath not in self.imported_modules:
-            info( "Recurse to import", module_relpath )
+            info( "Recurse to import %s", module_relpath )
 
             imported_module = TreeBuilding.buildModuleTree(
                 filename = module_relpath,
                 package  = module_package,
                 is_main  = False
             )
+
+            assert not module_relpath.endswith( "/__init__.py" )
 
             self.imported_modules[ module_relpath ] = imported_module
 
@@ -69,12 +82,11 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
 
         return self.imported_modules[ module_relpath ]
 
-
     def _consider( self, module_filename, module_package ):
-        assert module_package is None or type( module_package ) is str
+        assert module_package is None or ( type( module_package ) is str and module_package != "" )
 
         if module_filename.endswith( ".py" ) or Utils.isDir( module_filename ):
-            if self.stdlib or not module_filename.startswith( "/usr/lib/" ):
+            if self.stdlib or not isStandardLibraryPath( module_filename ):
                 module_relpath = Utils.relpath( module_filename )
 
                 return self._recurseTo(
@@ -88,7 +100,12 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
         module_filename = module.getFilename()
 
         if module_filename not in self.imported_modules:
-            self.imported_modules[ Utils.relpath( module_filename ) ] = module
+            if module_filename.endswith( "/__init__.py" ):
+                module_relpath = Utils.relpath( module_filename[:-12] )
+            else:
+                module_relpath = Utils.relpath( module_filename )
+
+            self.imported_modules[ Utils.relpath( module_relpath ) ] = module
 
         module_package = module.getPackage()
 
@@ -105,34 +122,52 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
                 module_relpath  = Utils.relpath( package_filename )
             )
 
-    def _handleImportExternal( self, node ):
-        module_package, _module_name, module_filename = Importing.findModule(
-            module_name    = node.getModuleName(),
-            parent_package = node.getParentModule().getPackage(),
-            level          = node.getLevel()
-        )
-
-        if module_filename is not None:
-            imported_module = self._consider(
-                module_filename = module_filename,
-                module_package  = module_package
+    def _handleImportModule( self, node ):
+        if node.getModule() is None:
+            module_package, _module_name, module_filename = Importing.findModule(
+                module_name    = node.getModuleName(),
+                parent_package = node.getParentModule().getPackage(),
+                level          = node.getLevel()
             )
 
-            if imported_module is not None:
-                import_cut_len = len( node.getModuleName() ) - len( node.getImportName() )
+            assert module_package != "", node
 
-                import_name = imported_module.getFullName()
-                import_name = import_name[:len(import_name) - import_cut_len ]
-
-                new_node = Nodes.CPythonStatementImportEmbedded(
-                    target      = node.getTarget(),
-                    module_name = imported_module.getFullName(),
-                    import_name = import_name,
-                    module      = imported_module,
-                    source_ref  = node.getSourceReference()
+            if module_filename is not None:
+                imported_module = self._consider(
+                    module_filename = module_filename,
+                    module_package  = module_package
                 )
 
-                node.replaceWith( new_node )
+                if imported_module is not None:
+                    import_cut_len = len( node.getModuleName() ) - len( node.getImportName() )
+
+                    import_name = imported_module.getFullName()
+                    import_name = import_name[:len(import_name) - import_cut_len ]
+
+                    node.setModule( imported_module )
+                    node.setImportName( import_name )
+
+                    import_list = node.getImportList()
+
+                    if import_list and imported_module.isPackage():
+                        for import_item in import_list:
+
+                            module_package, _module_name, module_filename = Importing.findModule(
+                                module_name    = import_item,
+                                parent_package = imported_module.getFullName(),
+                                level          = -1,
+                                warn           = False
+                            )
+
+                            if module_filename is not None:
+                                _imported_module = self._consider(
+                                    module_filename = module_filename,
+                                    module_package  = module_package
+                                )
+
+
+        node.setAttemptedRecurse()
+
 
     def _handleImportFromExternal( self, node ):
         parent_module = node.getParentModule()
@@ -142,8 +177,6 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
             parent_package = parent_module.getPackage(),
             level          = node.getLevel()
         )
-
-        # print (module_filename,module_package,node.level)
 
         if module_filename is not None:
             imported_module = self._consider(
@@ -185,42 +218,13 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
 
                     node.replaceWith( new_node )
 
-    def _handleImportStarExternal( self, node ):
-        module_package, _module_name, module_filename = Importing.findModule(
-            module_name    = node.getModuleName(),
-            parent_package = node.getParentModule().getPackage(),
-            level          = node.getLevel()
-        )
-
-        if module_filename is not None:
-            imported_module = self._consider(
-                module_filename = module_filename,
-                module_package  = module_package
-            )
-
-            if imported_module is not None:
-                new_node = Nodes.CPythonStatementImportStarEmbedded(
-                    module_name = imported_module.getFullName(),
-                    source_ref  = node.getSourceReference()
-                )
-
-                node.replaceWith( new_node )
-
     def __call__( self, node ):
         if node.isModule():
             self._handleModule(
                 module = node
             )
-        elif node.isStatementImportExternal():
-            self._handleImportExternal(
-                node = node
-            )
-        elif node.isStatementImportFromExternal():
-            self._handleImportFromExternal(
-                node = node
-            )
-        elif node.isStatementImportStarExternal():
-            self._handleImportStarExternal(
+        elif node.isExpressionImportModule() and not node.hasAttemptedRecurse():
+            self._handleImportModule(
                 node = node
             )
         elif node.isExpressionBuiltinImport():

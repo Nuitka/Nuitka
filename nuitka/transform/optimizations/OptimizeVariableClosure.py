@@ -36,9 +36,8 @@ Run away, don't read it, quick. Heavily underdocumented rules are implemented he
 
 from .OptimizeBase import OptimizationVisitorBase, TreeOperations
 
-from nuitka import Nodes
-
 from nuitka.nodes.UsageCheck import getVariableUsages
+from nuitka.nodes import Nodes
 
 def _globalizeSingle( module, variable_names, provider ):
     for variable_name in variable_names:

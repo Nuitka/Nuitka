@@ -52,8 +52,51 @@ static struct _inittab _module_inittab[] =
     { NULL, NULL }
 };
 
-bool FIND_EMBEDDED_MODULE( PyObject *module_name )
+#ifdef _NUITKA_EXE
+
+static PyObject *_loader_frozen_modules = NULL;
+
+static PyObject *_PATH_UNFREEZER_FIND_MODULE( PyObject *self, PyObject *args )
 {
+    PyObject *module_name;
+
+    if ( PyTuple_Check( args ))
+    {
+       assert( PyTuple_Size( args ) == 2 );
+
+       module_name = PyTuple_GetItem( args, 0 );
+    }
+    else
+    {
+       assert( PyString_Check( args ) );
+
+       module_name = args;
+    }
+
+    char *name = PyString_AsString( module_name );
+
+    // printf( "Looking for %%s\\n", name );
+
+    struct _inittab *current = _module_inittab;
+
+    while ( current->name != NULL )
+    {
+       if ( strcmp( name, current->name ) == 0 )
+       {
+           return INCREASE_REFCOUNT( _loader_frozen_modules );
+       }
+
+       current++;
+    }
+
+    return INCREASE_REFCOUNT( Py_None );
+}
+
+static PyObject *_PATH_UNFREEZER_LOAD_MODULE( PyObject *self, PyObject *args )
+{
+    PyObject *module_name = args;
+    assert( module_name );
+
     char *name = PyString_AsString( module_name );
 
     struct _inittab *current = _module_inittab;
@@ -64,28 +107,72 @@ bool FIND_EMBEDDED_MODULE( PyObject *module_name )
        {
            current->initfunc();
 
-           if ( PyErr_Occurred() )
-           {
-              throw _PythonException();
-           }
+           PyObject *sys_modules = PySys_GetObject( (char *)"modules" );
 
-           return true;
+           return LOOKUP_SUBSCRIPT( sys_modules, module_name );
        }
 
        current++;
     }
 
-    return false;
+    assert( false );
+
+    return INCREASE_REFCOUNT( Py_None );
 }
+
+
+static PyMethodDef _method_def_loader_find_module
+{
+    "find_module",
+    _PATH_UNFREEZER_FIND_MODULE,
+    METH_OLDARGS,
+    NULL
+};
+
+static PyMethodDef _method_def_loader_load_module
+{
+    "load_module",
+    _PATH_UNFREEZER_LOAD_MODULE,
+    METH_OLDARGS,
+    NULL
+};
+
+static void REGISTER_META_PATH_UNFREEZER( void )
+{
+    PyObject *method_dict = PyDict_New();
+
+    assertObject( method_dict );
+
+    PyObject *loader_find_module = PyCFunction_New( &_method_def_loader_find_module, NULL );
+    assertObject( loader_find_module );
+    PyDict_SetItemString( method_dict, "find_module", loader_find_module );
+
+    PyObject *loader_load_module = PyCFunction_New( &_method_def_loader_load_module, NULL );
+    assertObject( loader_load_module );
+    PyDict_SetItemString( method_dict, "load_module", loader_load_module );
+
+    _loader_frozen_modules = PyObject_CallFunctionObjArgs(
+        (PyObject *)&PyClass_Type,
+        PyString_FromString( "_nuitka_compiled_modules_loader" ),
+        _python_tuple_empty,
+        method_dict,
+        NULL
+    );
+
+    assertObject( _loader_frozen_modules );
+
+    int res = PyList_Insert( PySys_GetObject( ( char *)"meta_path" ), 0, _loader_frozen_modules );
+
+    assert( res == 0 );
+}
+
+#endif
 
 // The main program for C++. It needs to prepare the interpreter and then calls the
 // initialization code of the __main__ module.
 
 int main( int argc, char *argv[] )
 {
-    // Register the initialization functions for modules included in the binary if any
-    int res = PyImport_ExtendInittab( _module_inittab );
-    assert( res != -1 );
 
     Py_Initialize();
     PySys_SetArgv( argc, argv );
@@ -101,9 +188,15 @@ int main( int argc, char *argv[] )
 
     enhancePythonTypes();
 
+    // Register the initialization functions for modules included in the binary if any
+    int res = PyImport_ExtendInittab( _module_inittab );
+    assert( res != -1 );
+
     // Set the sys.executable path to the original Python executable on Linux
     // or to python.exe on Windows.
     PySys_SetObject( (char *)"executable", PyString_FromString( %(sys_executable)s ) );
+
+    REGISTER_META_PATH_UNFREEZER();
 
     init__main__();
 
@@ -284,9 +377,6 @@ PyObject *_module_%(module_identifier)s;
 
 %(expression_temp_decl)s
 
-// The exported interface to CPython. On import of the module, this function gets
-// called. It has have that exact function name.
-
 // Frame object of the module.
 PyObject *frame_%(module_identifier)s;
 
@@ -299,6 +389,9 @@ static inline PyObject *frameobj_%(module_identifier)s( void )
 #ifdef _NUITKA_EXE
 static bool init_done = false;
 #endif
+
+// The exported interface to CPython. On import of the module, this function gets
+// called. It has have that exact function name.
 
 NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 {
@@ -354,7 +447,7 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
     // Initialize the standard module attributes.
 %(module_inits)s
 
-    // For deep importing of a module we need to have __builtins__ we need to set it
+    // For deep importing of a module we need to have "__builtins__", so we set it
     // ourselves in the same way than CPython does.
 
     PyObject *module_dict = PyModule_GetDict( _module_%(module_identifier)s );
@@ -388,6 +481,8 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 
         _exception.toPython();
     }
+
+    // puts( "out init%(module_identifier)s" );
 }
 """
 
