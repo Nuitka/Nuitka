@@ -788,7 +788,7 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureG
         return True
 
     def getCodeName( self ):
-        return "module_" + self.name
+        return "module_" + self.getFullName().replace( ".", "__" ).replace( "-", "_" )
 
 class CPythonPackage( CPythonModule ):
     kind = "PACKAGE"
