@@ -515,7 +515,8 @@ module_init_in_package_template = """\
 #endif
     _mvar_%(module_identifier)s___package__.assign0( %(package_name_identifier)s );
 
-    init%(package_identifier)s();
+    // The package must already be imported.
+    assertObject( _module_%(package_identifier)s );
 
     SET_ATTRIBUTE(
         _module_%(package_identifier)s,
