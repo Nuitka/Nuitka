@@ -39,10 +39,10 @@ from nuitka.Utils import getPythonVersion
 
 class FutureSpec:
     def __init__( self ):
-        self._future_division   = getPythonVersion() >= 300
-        self._unicode_literals  = getPythonVersion() >= 300
-        self._absolute_import   = getPythonVersion() >= 270
-        self._future_print      = getPythonVersion() >= 300
+        self._future_division   = False
+        self._unicode_literals  = False
+        self._absolute_import   = False
+        self._future_print      = False
 
     def clone( self ):
         result = FutureSpec()

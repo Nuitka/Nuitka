@@ -206,15 +206,11 @@ def getPackageVariableCode( context ):
         package_var_identifier.getCodeTemporaryRef()
     )
 
-def getImportModuleCode( context, module_name, import_name, import_list, level ):
+def getImportModuleCode( context, module_name, import_list, level ):
     return Identifier(
-        "IMPORT_MODULE( %s, %s, %s, %s, %d )" % (
+        "IMPORT_MODULE( %s, %s, %s, %d )" % (
             getConstantCode(
                 constant = module_name,
-                context  = context
-            ),
-            getConstantCode(
-                constant = import_name,
                 context  = context
             ),
             getPackageVariableCode(

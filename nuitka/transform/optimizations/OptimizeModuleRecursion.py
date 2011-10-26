@@ -139,13 +139,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
                 )
 
                 if imported_module is not None:
-                    import_cut_len = len( node.getModuleName() ) - len( node.getImportName() )
-
-                    import_name = imported_module.getFullName()
-                    import_name = import_name[:len(import_name) - import_cut_len ]
-
                     node.setModule( imported_module )
-                    node.setImportName( import_name )
 
                     import_list = node.getImportList()
 

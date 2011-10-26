@@ -964,16 +964,32 @@ def _buildImportModulesNode( import_names, source_ref ):
             source_ref    = source_ref
         )
 
+        if local_name:
+            import_node = Nodes.CPythonExpressionImportModule(
+                module_name = module_name,
+                import_list = None,
+                level       = -1, # TODO: Correct?!
+                source_ref  = source_ref
+            )
+
+            for import_name in module_name.split(".")[1:]:
+                import_node = Nodes.CPythonExpressionImportName(
+                    module      = import_node,
+                    import_name = import_name,
+                    source_ref  = source_ref
+                )
+        else:
+            import_node = Nodes.CPythonExpressionImportModule(
+                module_name = module_name,
+                import_list = None,
+                level       = -1, # TODO: Correct?!
+                source_ref  = source_ref
+            )
+
         import_nodes.append(
             Nodes.CPythonStatementAssignment(
                 targets    = ( target, ),
-                expression = Nodes.CPythonExpressionImportModule(
-                    module_name = module_name,
-                    import_name = module_name if local_name else module_topname,
-                    import_list = None,
-                    level       = -1,
-                    source_ref  = source_ref
-                ),
+                expression = import_node,
                 source_ref = source_ref
             )
         )
@@ -1047,8 +1063,7 @@ def buildImportFromNode( provider, node, source_ref ):
         return Nodes.CPythonStatementImportStar(
             module_import = Nodes.CPythonExpressionImportModule(
                 module_name = module_name,
-                import_name = module_name,
-                import_list = None,
+                import_list = ( "*", ),
                 level       = level,
                 source_ref  = source_ref
             ),
@@ -1064,7 +1079,6 @@ def buildImportFromNode( provider, node, source_ref ):
                     expression = Nodes.CPythonExpressionImportName(
                         module      = Nodes.CPythonExpressionImportModule(
                             module_name = module_name,
-                            import_name = module_name,
                             import_list = imports,
                             level       = level,
                             source_ref  = source_ref
