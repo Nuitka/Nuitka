@@ -46,10 +46,24 @@ positional_args = Options.getPositionalArgs()
 if len( positional_args ) == 0:
     sys.exit( "Error, need arg with python module or main program." )
 
+filename = Options.getPositionalArgs()[0]
+
 # Turn that source code into a node tree structure.
-tree = MainControl.createNodeTree(
-    filename = Options.getPositionalArgs()[0]
-)
+try:
+   tree = MainControl.createNodeTree(
+      filename = filename
+   )
+except SyntaxError as e:
+    filename, lineno, colno, message = e.args[1]
+
+    message = """\
+  File "%s", line %d
+    %s
+    %s^
+SyntaxError: invalid syntax""" % ( filename, lineno, message.rstrip(), " " * (colno-1) )
+
+    sys.exit( message )
+
 
 if Options.shallDumpBuiltTree():
     MainControl.dumpTree( tree )

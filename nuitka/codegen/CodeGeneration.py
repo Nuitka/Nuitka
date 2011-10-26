@@ -1705,7 +1705,6 @@ def generateRaiseCode( statement, context ):
 def generateImportModuleCode( expression, context ):
     return Generator.getImportModuleCode(
         module_name = expression.getModuleName(),
-        import_name = expression.getImportName(),
         import_list = expression.getImportList(),
         level       = expression.getLevel(),
         context     = context

@@ -788,7 +788,7 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureG
         return True
 
     def getCodeName( self ):
-        return "module_" + self.name
+        return "module_" + self.getFullName().replace( ".", "__" ).replace( "-", "_" )
 
 class CPythonPackage( CPythonModule ):
     kind = "PACKAGE"
@@ -2461,7 +2461,7 @@ class CPythonExpressionImportModule( CPythonChildrenHaving, CPythonNodeBase ):
 
     named_children = ( "module", )
 
-    def __init__( self, module_name, import_name, import_list, level, source_ref ):
+    def __init__( self, module_name, import_list, level, source_ref ):
         CPythonChildrenHaving.__init__(
             self,
             values = {
@@ -2472,7 +2472,6 @@ class CPythonExpressionImportModule( CPythonChildrenHaving, CPythonNodeBase ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         self.module_name = module_name
-        self.import_name = import_name
         self.import_list = import_list
         self.level = level
 
@@ -2480,7 +2479,6 @@ class CPythonExpressionImportModule( CPythonChildrenHaving, CPythonNodeBase ):
 
     def getDetails( self ):
         return {
-            "import_name" : self.import_name,
             "module_name" : self.module_name,
             "level"       : self.level
         }
@@ -2488,17 +2486,14 @@ class CPythonExpressionImportModule( CPythonChildrenHaving, CPythonNodeBase ):
     def getModuleName( self ):
         return self.module_name
 
-    def getImportName( self ):
-        return self.import_name
-
-    def setImportName( self, import_name ):
-        self.import_name = import_name
-
     def getImportList( self ):
         return self.import_list
 
     def getLevel( self ):
-        return self.level
+        if self.level == 0:
+            return 0 if self.source_ref.getFutureSpec().isAbsoluteImport() else -1
+        else:
+            return self.level
 
     # TODO: visitForest should see the module if any.
     def getVisitableNodes( self ):

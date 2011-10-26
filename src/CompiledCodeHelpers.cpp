@@ -508,7 +508,7 @@ PyObject *MAKE_FRAME( PyObject *filename, PyObject *function_name, PyObject *mod
     return MAKE_FRAME( MAKE_CODEOBJ( filename, function_name ), module );
 }
 
-PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject *package, PyObject *import_items, int level )
+PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *package, PyObject *import_items, int level )
 {
     assert( PyString_Check( module_name ) );
 
@@ -553,84 +553,7 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *import_name, PyObject 
         throw _PythonException();
     }
 
-    // printf( "PASS Importing %s as level %d\n", module_name_str, level );
-
-    // Release the reference returned from the import, we don't trust it, because it
-    // doesn't work well with packages. Look up in sys.modules instead.
-    Py_DECREF( import_result );
-
-    // But it should not become released.
-    assertObject( import_result );
-
-    PyObject *sys_modules = PySys_GetObject( (char *)"modules" );
-
-    PyObject *result;
-
-    if ( level == 0 )
-    {
-        // Absolute import was requested, try only that.
-        result = LOOKUP_SUBSCRIPT( sys_modules, import_name );
-    }
-    else if ( abs( level ) == 1 && HAS_KEY( sys_modules, import_name ) )
-    {
-        // Absolute and relative import were both allowed, absolute works, so take that
-        // first.
-        result = LOOKUP_SUBSCRIPT( sys_modules, import_name );
-    }
-    else
-    {
-        // TODO: If we are here, and package is NULL, we lost and should raise
-        // import error.
-        assertObject( package );
-
-        // Now that absolute import failed, try relative import to current package.
-        level = abs( level );
-
-        PyObjectTemporary package_temp( INCREASE_REFCOUNT( package ) );
-
-        while( level > 1 )
-        {
-            PyObject *partition = PyObject_CallMethod(
-                package_temp.asObject(),
-                (char *)"rpartition",
-                (char *)"O",
-                _python_str_dot
-            );
-
-            if ( partition == NULL )
-            {
-                throw _PythonException();
-            }
-
-            package_temp.assign( SEQUENCE_ELEMENT( partition, 0 ) );
-            Py_DECREF( partition );
-
-            level -= 1;
-        }
-
-        package = package_temp.asObject();
-
-        if ( PyString_Size( module_name ) > 0 )
-        {
-            PyObjectTemporary full_name(
-                PyString_FromFormat(
-                    "%s.%s",
-                    PyString_AsString( package ),
-                    PyString_AsString( module_name )
-                )
-            );
-
-            result = LOOKUP_SUBSCRIPT( sys_modules, full_name.asObject() );
-        }
-        else
-        {
-            result = LOOKUP_SUBSCRIPT( sys_modules, package );
-        }
-    }
-
-    assertObject( result );
-
-    return result;
+    return import_result;
 }
 
 void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
