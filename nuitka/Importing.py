@@ -58,7 +58,7 @@ def findModule( module_name, parent_package, level, warn = True ):
             )
         except ImportError:
             if warn and not _isWhiteListedNotExistingModule( module_name ):
-                warning( "Warning, cannot find '%s' in '%s' on level %d" % ( module_name, parent_package, level ) )
+                warning( "Cannot find '%s' in '%s' on level %d" % ( module_name, parent_package, level ) )
 
             if "." in module_name:
                 module_package_name = module_name[ : module_name.rfind( "." ) ]

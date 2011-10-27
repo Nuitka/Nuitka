@@ -37,6 +37,9 @@ optionally compiles it to either an executable or an extension module.
 
 """
 
+import logging
+logging.basicConfig( format = 'Nuitka:%(levelname)s:%(message)s' )
+
 from nuitka import MainControl, Options
 
 import sys
