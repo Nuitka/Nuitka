@@ -54,6 +54,9 @@ def basename( path ):
 def dirname( path ):
     return os.path.dirname( path )
 
+def getExtension( path ):
+    return os.path.splitext( path )[1]
+
 def isFile( path ):
     return os.path.isfile( path )
 

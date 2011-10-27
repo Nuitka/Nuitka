@@ -123,7 +123,7 @@ def makeSourceDirectory( main_module ):
         for filename in sorted( os.listdir( source_dir ) ):
             path = source_dir + os.path.sep + filename
 
-            if filename.endswith( ".cpp" ) or filename.endswith( ".hpp" ) or filename.endswith( ".o" ) or filename.endswith( ".os" ):
+            if Utils.getExtension( path ) in ( ".cpp", ".hpp", ".o", ".os" ):
                 os.unlink( path )
     else:
         os.makedirs( source_dir )
@@ -132,7 +132,7 @@ def makeSourceDirectory( main_module ):
         for filename in sorted( os.listdir( source_dir ) ):
             path = source_dir + os.path.sep + "static" + os.path.sep + filename
 
-            if filename.endswith( ".o" ) or filename.endswith( ".os" ):
+            if Utils.getExtension( path ) in ( ".o", ".os" ):
                 os.unlink( path )
 
     global_context = CodeGeneration.makeGlobalContext()
