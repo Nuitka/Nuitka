@@ -219,6 +219,7 @@ class ParameterSpec( ParameterSpecTuple ):
         return self.dict_star_variable
 
     def allowsKeywords( self ):
+        # Abstract method, pylint: disable=R0201
         return True
 
     def getKeywordRefusalText( self ):

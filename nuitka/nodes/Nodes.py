@@ -394,11 +394,6 @@ class CPythonCodeNodeBase( CPythonNamedNodeBase ):
 
                 search = search.parent
 
-            if search is None:
-                assert self.isModule()
-
-                return "module_" + self.name
-
             parent_name = search.getCodeName()
 
             uid = "_%d" % search.getChildUID( self )

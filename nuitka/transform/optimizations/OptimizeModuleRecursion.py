@@ -39,8 +39,6 @@ So this is called repeatedly mayhaps, each time a constant is added.
 
 from .OptimizeBase import OptimizationVisitorBase, info
 
-from nuitka.nodes import Nodes
-
 from nuitka import TreeBuilding, Importing, Options, Utils
 
 import os
@@ -60,7 +58,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
     def __init__( self ):
         self.stdlib = Options.shallFollowStandardLibrary()
 
-    def _recurseTo( self, module_filename, module_package, module_relpath ):
+    def _recurseTo( self, module_package, module_relpath ):
         if module_relpath not in self.imported_modules:
             info( "Recurse to import %s", module_relpath )
 
@@ -90,7 +88,6 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
                 module_relpath = Utils.relpath( module_filename )
 
                 return self._recurseTo(
-                    module_filename = module_filename,
                     module_package  = module_package,
                     module_relpath  = module_relpath
                 )
@@ -110,14 +107,13 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
         module_package = module.getPackage()
 
         if module_package is not None:
-            package_package, package_module_name, package_filename = Importing.findModule(
+            package_package, _package_module_name, package_filename = Importing.findModule(
                 module_name    = module_package,
                 parent_package = None,
                 level          = 1
             )
 
             self._recurseTo(
-                module_filename = package_module_name.replace( ".", "/" ),
                 module_package  = package_package,
                 module_relpath  = Utils.relpath( package_filename )
             )
@@ -161,56 +157,6 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
 
 
         node.setAttemptedRecurse()
-
-
-    def _handleImportFromExternal( self, node ):
-        parent_module = node.getParentModule()
-
-        module_package, _module_name, module_filename = Importing.findModule(
-            module_name    = node.getModuleName(),
-            parent_package = parent_module.getPackage(),
-            level          = node.getLevel()
-        )
-
-        if module_filename is not None:
-            imported_module = self._consider(
-                module_filename = module_filename,
-                module_package  = module_package
-            )
-
-            if imported_module:
-                sub_modules = []
-
-                if Utils.isDir( module_filename ):
-                    for imported_name in node.getImports():
-                        sub_module_package, _sub_module_name, sub_module_filename = Importing.findModule(
-                            module_name    = imported_name,
-                            parent_package = imported_module.getFullName(),
-                            level          = 1,
-                            warn           = True
-                        )
-
-                        if sub_module_filename is not None:
-                            sub_module = self._consider(
-                                module_filename = sub_module_filename,
-                                module_package  = sub_module_package,
-                            )
-
-                            if sub_module is not None:
-                                sub_modules.append( sub_module )
-
-                assert len( sub_modules ) == len( node.getImports() ) or len( sub_modules ) == 0
-
-                if sub_modules:
-                    new_node = Nodes.CPythonStatementImportFromEmbedded(
-                        targets     = node.getTargets(),
-                        module_name = imported_module.getFullName(),
-                        sub_modules = sub_modules,
-                        imports     = node.getImports(),
-                        source_ref  = node.getSourceReference()
-                    )
-
-                    node.replaceWith( new_node )
 
     def __call__( self, node ):
         if node.isModule():

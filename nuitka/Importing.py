@@ -110,8 +110,6 @@ def _findModuleInPath( module_name, package_name ):
 
             return module_filename, package_name
         except ImportError:
-            pass
-
             if _debug_module_finding:
                 print( "_findModuleInPath: imp.find_module failed" )
 
