@@ -37,7 +37,7 @@ make it possible to predict these, the compiler can go deeper that what it norma
 So this is called repeatedly mayhaps, each time a constant is added.
 """
 
-from .OptimizeBase import OptimizationVisitorBase, info
+from .OptimizeBase import OptimizationVisitorBase, info, warning
 
 from nuitka import TreeBuilding, Importing, Options, Utils
 
@@ -62,11 +62,15 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
         if module_relpath not in self.imported_modules:
             info( "Recurse to import %s", module_relpath )
 
-            imported_module = TreeBuilding.buildModuleTree(
-                filename = module_relpath,
-                package  = module_package,
-                is_main  = False
-            )
+            try:
+                imported_module = TreeBuilding.buildModuleTree(
+                    filename = module_relpath,
+                    package  = module_package,
+                    is_main  = False
+                )
+            except (SyntaxError, IndentationError) as e:
+                warning( "Cannot recurse to import %s because of %s", module_relpath, e.__class__.__name__ )
+                return
 
             assert not module_relpath.endswith( "/__init__.py" )
 
