@@ -50,20 +50,25 @@ filename = Options.getPositionalArgs()[0]
 
 # Turn that source code into a node tree structure.
 try:
-   tree = MainControl.createNodeTree(
-      filename = filename
-   )
-except SyntaxError as e:
+    tree = MainControl.createNodeTree(
+        filename = filename
+    )
+except (SyntaxError, IndentationError) as e:
     filename, lineno, colno, message = e.args[1]
 
     message = """\
   File "%s", line %d
     %s
     %s^
-SyntaxError: invalid syntax""" % ( filename, lineno, message.rstrip(), " " * (colno-1) )
+%s: invalid syntax""" % (
+       filename,
+       lineno,
+       message.rstrip(),
+       " " * (colno-1),
+       e.__class__.__name__
+    )
 
     sys.exit( message )
-
 
 if Options.shallDumpBuiltTree():
     MainControl.dumpTree( tree )
