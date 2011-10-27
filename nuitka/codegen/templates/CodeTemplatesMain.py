@@ -56,6 +56,8 @@ static struct _inittab _module_inittab[] =
 
 static PyObject *_loader_frozen_modules = NULL;
 
+#define _DEBUG_UNFREEZER 0
+
 static PyObject *_PATH_UNFREEZER_FIND_MODULE( PyObject *self, PyObject *args )
 {
     PyObject *module_name;
@@ -75,7 +77,9 @@ static PyObject *_PATH_UNFREEZER_FIND_MODULE( PyObject *self, PyObject *args )
 
     char *name = PyString_AsString( module_name );
 
-    // printf( "Looking for %%s\\n", name );
+#if _DEBUG_UNFREEZER
+    printf( "Looking for %%s\\n", name );
+#endif
 
     struct _inittab *current = _module_inittab;
 
@@ -88,6 +92,10 @@ static PyObject *_PATH_UNFREEZER_FIND_MODULE( PyObject *self, PyObject *args )
 
        current++;
     }
+
+#if _DEBUG_UNFREEZER
+    printf( "Didn't find %%s\\n", name );
+#endif
 
     return INCREASE_REFCOUNT( Py_None );
 }
@@ -105,9 +113,16 @@ static PyObject *_PATH_UNFREEZER_LOAD_MODULE( PyObject *self, PyObject *args )
     {
        if ( strcmp( name, current->name ) == 0 )
        {
+#if _DEBUG_UNFREEZER
+           printf( "Loading %%s\\n", name );
+#endif
            current->initfunc();
 
            PyObject *sys_modules = PySys_GetObject( (char *)"modules" );
+
+#if _DEBUG_UNFREEZER
+           printf( "Loaded %%s\\n", name );
+#endif
 
            return LOOKUP_SUBSCRIPT( sys_modules, module_name );
        }
