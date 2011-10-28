@@ -41,6 +41,8 @@ import sys, os, imp
 
 from logging import warning
 
+_debug_module_finding = False
+
 def findModule( module_name, parent_package, level, warn = True ):
     assert level < 2 or parent_package, (module_name, parent_package, level)
 
@@ -75,11 +77,9 @@ def findModule( module_name, parent_package, level, warn = True ):
         module_filename = None
 
     if _debug_module_finding:
-        print( "findModule: Enter", module_package_name, module_name, module_filename )
+        print( "findModule: Result", module_package_name, module_name, module_filename )
 
     return module_package_name, module_name, module_filename
-
-_debug_module_finding = False
 
 def _findModuleInPath( module_name, package_name ):
     if _debug_module_finding:
@@ -160,24 +160,16 @@ def _findModule( module_name, parent_package ):
             module_name    = module_name,
             parent_package = package_part
         )
-    elif module_name == "":
+    else:
         module_filename, package = _findModuleInPath(
             module_name  = module_name,
             package_name = parent_package
         )
 
-        if package is not None:
-            package = ".".join( package.split( "." )[:-1] )
-
-            if package == "":
-                package = None
+        if package == "":
+            package = None
 
         return module_filename, package
-    else:
-        return _findModuleInPath(
-            module_name  = module_name,
-            package_name = parent_package
-        )
 
 def _isWhiteListedNotExistingModule( module_name ):
     return module_name in (

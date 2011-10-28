@@ -57,12 +57,28 @@ class PythonBuiltin
                     _module_builtin,
                     this->name
                 );
+
                 this->value = entry->me_value;
             }
 
-            assert( this->value != NULL );
+            assertObject( this->value );
 
             return this->value;
+        }
+
+        void refresh( void )
+        {
+            if ( this->name == NULL )
+            {
+                this->name = (PyStringObject *)PyString_FromString( this->sname );
+            }
+
+            PyDictEntry *entry = GET_PYDICT_ENTRY(
+                _module_builtin,
+                this->name
+            );
+
+            this->value = entry->me_value;
         }
 
         template<typename... P>

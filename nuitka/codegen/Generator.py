@@ -206,21 +206,23 @@ def getPackageVariableCode( context ):
         package_var_identifier.getCodeTemporaryRef()
     )
 
-def getImportModuleCode( context, module_name, import_list, level ):
+def getImportModuleCode( context, module_name, globals_dict, locals_dict, import_list, level ):
     return Identifier(
-        "IMPORT_MODULE( %s, %s, %s, %d )" % (
+        "IMPORT_MODULE( %s, %s, %s, %s, %s )" % (
             getConstantCode(
                 constant = module_name,
                 context  = context
             ),
-            getPackageVariableCode(
-                context = context
-            ),
-            "NULL" if import_list is None else getConstantCode(
+            globals_dict.getCodeTemporaryRef(),
+            locals_dict.getCodeTemporaryRef(),
+            getConstantCode(
                 constant = import_list,
                 context  = context
             ),
-            level
+            getConstantCode(
+                constant = level,
+                context  = context
+            )
         ),
         1
     )
