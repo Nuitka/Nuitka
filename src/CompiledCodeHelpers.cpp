@@ -508,41 +508,30 @@ PyObject *MAKE_FRAME( PyObject *filename, PyObject *function_name, PyObject *mod
     return MAKE_FRAME( MAKE_CODEOBJ( filename, function_name ), module );
 }
 
-PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *package, PyObject *import_items, int level )
+static PythonBuiltin _python_builtin_import( "__import__" );
+
+PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
 {
     assert( PyString_Check( module_name ) );
-
-    // None doesn't count here.
-    if ( package == Py_None )
-    {
-        package = NULL;
-    }
-
-    // Create a globals dict if necessary with the package string.
-    PyObject *globals_dict = NULL;
-
-    if ( package != NULL )
-    {
-        assertObject( package );
-
-        assert( PyString_Check( package ));
-
-        globals_dict = MAKE_DICT( EVAL_ORDERED_2( package, _python_str_plain___package__ ) );
-    }
+    assertObject( globals );
+    assertObject( locals );
+    assertObject( import_items );
 
     int line = _current_line;
 
-    char *module_name_str = PyString_AS_STRING( module_name );
+    PyObject *import_result;
 
-    PyObject *import_result = PyImport_ImportModuleLevel(
-        module_name_str,
-        globals_dict,
-        NULL,
-        import_items,
-        level
+    _python_builtin_import.refresh();
+
+    import_result = _python_builtin_import.call(
+        EVAL_ORDERED_5(
+            module_name,
+            globals,
+            locals,
+            import_items,
+            level
+        )
     );
-
-    Py_XDECREF( globals_dict );
 
     _current_line = line;
 
