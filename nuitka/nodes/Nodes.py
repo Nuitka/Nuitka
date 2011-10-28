@@ -2451,7 +2451,7 @@ class CPythonExpressionBuiltinImport( CPythonNodeBase ):
         return self.module_name.split(".")[0]
 
     def getLevel( self ):
-        return 0 if self.source_ref.getFutureSpec().isAbsoluteImport() else 1
+        return 0 if self.source_ref.getFutureSpec().isAbsoluteImport() else -1
 
     def getImportList( self ):
         return None
