@@ -31,7 +31,7 @@
 #ifndef __NUITKA_IMPORTING_H__
 #define __NUITKA_IMPORTING_H__
 
-extern PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *package, PyObject *import_items, int level );
+extern PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level );
 
 extern void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module );
 
