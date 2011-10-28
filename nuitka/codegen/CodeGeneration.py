@@ -1703,11 +1703,27 @@ def generateRaiseCode( statement, context ):
         )
 
 def generateImportModuleCode( expression, context ):
+    provider = expression.getParentVariableProvider()
+
+    globals_dict = Generator.getLoadGlobalsCode(
+        context = context
+    )
+
+    if provider.isModule():
+        locals_dict = globals_dict
+    else:
+        locals_dict  = generateBuiltinLocalsCode(
+            locals_node = expression,
+            context     = context
+        )
+
     return Generator.getImportModuleCode(
-        module_name = expression.getModuleName(),
-        import_list = expression.getImportList(),
-        level       = expression.getLevel(),
-        context     = context
+        module_name  = expression.getModuleName(),
+        import_list  = expression.getImportList(),
+        globals_dict = globals_dict,
+        locals_dict  = locals_dict,
+        level        = expression.getLevel(),
+        context      = context
     )
 
 def generateImportStarCode( statement, context ):
