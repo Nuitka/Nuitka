@@ -460,7 +460,7 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( void )
     PyObject *value = tstate->exc_value;
     PyObject *tb = tstate->exc_traceback;
 
-    Py_XINCREF( type );
+    Py_INCREF( type );
     Py_XINCREF( value );
     Py_XINCREF( tb );
 
