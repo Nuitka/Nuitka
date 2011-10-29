@@ -364,7 +364,6 @@ def simpleFunction47():
       except:
          reraiser()
 
-
    try:
       reraisy()
    except:
@@ -390,41 +389,33 @@ def simpleFunction49():
 
 x = 17
 
-def checkReferenceCount( checked_function, warmup = False ):
+def checkReferenceCount( checked_function, max_rounds = 4 ):
    sys.exc_clear()
-   print checked_function,
+   print checked_function.func_name + ":",
 
    ref_count1 = 17
    ref_count2 = 17
 
-   gc.collect()
-   ref_count1 = sys.gettotalrefcount()
+   for count in range( max_rounds ):
+      gc.collect()
+      ref_count1 = sys.gettotalrefcount()
 
-   if warmup:
       checked_function()
 
-   sys.exc_clear()
-   gc.collect()
+      sys.exc_clear()
+      gc.collect()
 
-   ref_count2 = sys.gettotalrefcount()
+      ref_count2 = sys.gettotalrefcount()
 
-   if ref_count1 == ref_count2 and warmup and False:
-      print "WARMUP not needed",
-
-   gc.collect()
-   ref_count1 = sys.gettotalrefcount()
-
-   checked_function()
-
-   sys.exc_clear()
-   gc.collect()
-
-   ref_count2 = sys.gettotalrefcount()
-
-   if ref_count1 != ref_count2:
-      print "FAILED", ref_count1, ref_count2
+      if ref_count1 == ref_count2:
+         print "PASSED"
+         break
    else:
-      print "PASSED"
+      print "FAILED", ref_count1, ref_count2
+
+   sys.exc_clear()
+   gc.collect()
+
 
 checkReferenceCount( simpleFunction1 )
 checkReferenceCount( simpleFunction2 )
@@ -439,13 +430,13 @@ checkReferenceCount( simpleFunction10 )
 checkReferenceCount( simpleFunction11 )
 checkReferenceCount( simpleFunction12 )
 checkReferenceCount( simpleFunction13 )
-checkReferenceCount( simpleFunction14, warmup = True )
-checkReferenceCount( simpleFunction15, warmup = True )
+checkReferenceCount( simpleFunction14 )
+checkReferenceCount( simpleFunction15 )
 checkReferenceCount( simpleFunction16 )
 checkReferenceCount( simpleFunction17 )
 checkReferenceCount( simpleFunction18 )
 checkReferenceCount( simpleFunction19 )
-checkReferenceCount( simpleFunction20, warmup = True )
+checkReferenceCount( simpleFunction20 )
 checkReferenceCount( simpleFunction21 )
 checkReferenceCount( simpleFunction22 )
 checkReferenceCount( simpleFunction23 )
@@ -457,21 +448,21 @@ checkReferenceCount( simpleFunction28 )
 checkReferenceCount( simpleFunction29 )
 checkReferenceCount( simpleFunction30 )
 checkReferenceCount( simpleFunction31 )
-# checkReferenceCount( simpleFunction32, warmup = True )
+checkReferenceCount( simpleFunction32 )
 checkReferenceCount( simpleFunction33 )
-checkReferenceCount( simpleFunction34, warmup = True )
-checkReferenceCount( simpleFunction35, warmup = True )
-checkReferenceCount( simpleFunction36, warmup = True )
-checkReferenceCount( simpleFunction37, warmup = True )
+checkReferenceCount( simpleFunction34 )
+checkReferenceCount( simpleFunction35 )
+checkReferenceCount( simpleFunction36 )
+checkReferenceCount( simpleFunction37 )
 checkReferenceCount( simpleFunction38 )
-checkReferenceCount( simpleFunction39, warmup = True )
+checkReferenceCount( simpleFunction39 )
 checkReferenceCount( simpleFunction40 )
 checkReferenceCount( simpleFunction41 )
 checkReferenceCount( simpleFunction42 )
 checkReferenceCount( simpleFunction43 )
 checkReferenceCount( simpleFunction44 )
-checkReferenceCount( simpleFunction45, warmup = True )
-checkReferenceCount( simpleFunction46, warmup = True )
-checkReferenceCount( simpleFunction47, warmup = True )
-checkReferenceCount( simpleFunction48, warmup = True )
+checkReferenceCount( simpleFunction45 )
+checkReferenceCount( simpleFunction46 )
+checkReferenceCount( simpleFunction47 )
+checkReferenceCount( simpleFunction48 )
 checkReferenceCount( simpleFunction49 )
