@@ -265,12 +265,12 @@ def generateContractionCode( contraction, context ):
         contraction_code = Generator.getGeneratorExpressionCode(
             context              = context,
             generator_name       = "genexpr" if Options.isFullCompat() else contraction.getBody().getFullName(),
-            generator_filename   = contraction.getParentModule().getFilename(),
             generator_identifier = contraction_identifier,
             generator_code       = contraction_code,
             generator_conditions = contraction_condition_identifiers,
             generator_iterateds  = sub_iterated_identifiers,
             loop_var_codes       = loop_var_codes,
+            source_ref           = contraction.getSourceReference(),
             line_number_code     = line_number_code,
             closure_variables    = contraction.getClosureVariables(),
             provided_variables   = contraction.getProvidedVariables()
@@ -445,7 +445,7 @@ def generateLambdaCode( lambda_expression, context ):
             closure_variables          = lambda_expression.getClosureVariables(),
             default_access_identifiers = default_access_identifiers,
             function_codes             = function_codes,
-            function_filename          = lambda_expression.getParentModule().getFilename(),
+            source_ref                 = lambda_expression.getSourceReference(),
             function_doc               = None # Lambda expressions don't have doc strings
         )
     else:
@@ -459,7 +459,7 @@ def generateLambdaCode( lambda_expression, context ):
             closure_variables          = lambda_expression.getClosureVariables(),
             default_access_identifiers = default_access_identifiers,
             function_codes             = function_codes,
-            function_filename          = lambda_expression.getParentModule().getFilename(),
+            source_ref                 = lambda_expression.getSourceReference(),
             function_doc               = None # Lambda expressions don't have doc strings
         )
 
@@ -519,7 +519,7 @@ def generateFunctionCode( function, context ):
             user_variables             = function.getBody().getUserLocalVariables(),
             decorator_count            = len( function.getDecorators() ),
             default_access_identifiers = default_access_identifiers,
-            function_filename          = function.getParentModule().getFilename(),
+            source_ref                 = function.getSourceReference(),
             function_codes             = function_codes,
             function_doc               = function.getBody().getDoc()
         )
@@ -533,7 +533,7 @@ def generateFunctionCode( function, context ):
             user_variables             = function.getBody().getUserLocalVariables(),
             decorator_count            = len( function.getDecorators() ),
             default_access_identifiers = default_access_identifiers,
-            function_filename          = function.getParentModule().getFilename(),
+            source_ref                 = function.getSourceReference(),
             function_codes             = function_codes,
             function_doc               = function.getBody().getDoc()
         )

@@ -63,6 +63,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
     PyObject *result = Nuitka_Genexpr_New(
         %(function_identifier)s,
         %(function_name_obj)s,
+        _CODEOBJ_%(function_identifier)s ? _CODEOBJ_%(function_identifier)s : ( _CODEOBJ_%(function_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(function_name_obj)s, %(line_number)d, 1 ) ),
         iterated,
         %(iterator_count)d,
         _python_context,
@@ -87,17 +88,8 @@ case %(iterator_index)d:
 """
 
 genexpr_function_template = """
-static PyObject *frameobj_%(function_identifier)s( void )
-{
-   static PyObject *frameobj = NULL;
-
-   if ( frameobj == NULL )
-   {
-      frameobj = MAKE_FRAME( %(filename_identifier)s, %(name_identifier)s, %(module)s );
-   }
-
-   return frameobj;
-}
+static PyFrameObject *_FRAME_%(function_identifier)s = NULL;
+static PyCodeObject *_CODEOBJ_%(function_identifier)s = NULL;
 
 // The function that is iterated over during generator expression execution. It is
 // supposed to yield the next value as a return value.
@@ -106,6 +98,32 @@ static PyObject *%(function_identifier)s( Nuitka_GenexprObject *generator )
 {
     // The context of the genexpr.
     struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)generator->m_context;
+
+    if ( generator->m_frame == NULL )
+    {
+        if ( _FRAME_%(function_identifier)s == NULL || _FRAME_%(function_identifier)s->ob_refcnt > 1 )
+        {
+            if ( _FRAME_%(function_identifier)s )
+            {
+    #if REFRAME_DEBUG
+                puts( "reframe for %(function_identifier)s" );
+    #endif
+                Py_DECREF( _FRAME_%(function_identifier)s );
+            }
+
+            _FRAME_%(function_identifier)s = MAKE_FRAME( _CODEOBJ_%(function_identifier)s, %(module_identifier)s );
+        }
+
+        Py_INCREF( _FRAME_%(function_identifier)s );
+        generator->m_frame = _FRAME_%(function_identifier)s;
+
+        Py_CLEAR( generator->m_frame->f_back );
+
+        generator->m_frame->f_back = PyThreadState_GET()->frame;
+        Py_INCREF( generator->m_frame->f_back );
+
+        PyThreadState_GET()->frame = generator->m_frame;
+    }
 
     %(line_number_code)s
 %(expression_temp_decl)s
@@ -177,7 +195,7 @@ static PyObject *%(function_identifier)s( Nuitka_GenexprObject *generator )
     }
     catch ( _PythonException &_exception )
     {
-        _exception.addTraceback( frameobj_%(function_identifier)s() );
+        _exception.addTraceback( INCREASE_REFCOUNT( generator->m_frame ) );
         _exception.toPython();
 
         return NULL;

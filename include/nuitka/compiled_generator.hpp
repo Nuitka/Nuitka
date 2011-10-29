@@ -77,6 +77,8 @@ typedef struct {
     PyObject *m_yielded;
     PyObject *m_exception_type, *m_exception_value, *m_exception_tb;
 
+    PyFrameObject *m_frame;
+
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
 
@@ -121,6 +123,7 @@ static inline PyObject *YIELD_VALUE( Nuitka_GeneratorObject *generator, PyObject
 
     generator->m_yielded = value;
 
+    // Return to the calling context.
     swapcontext( &generator->m_yielder_context, &generator->m_caller_context );
 
     CHECK_EXCEPTION( generator );

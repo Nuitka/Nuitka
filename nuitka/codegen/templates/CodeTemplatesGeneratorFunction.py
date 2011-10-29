@@ -89,7 +89,8 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
         %(fparse_function_identifier)s,
         %(mparse_function_identifier)s,
         %(function_name_obj)s,
-        %(module)s,
+        _CODEOBJ_%(function_identifier)s ? _CODEOBJ_%(function_identifier)s : ( _CODEOBJ_%(function_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(function_name_obj)s, %(line_number)d, %(arg_count)d ) ),
+        %(module_identifier)s,
         %(function_doc)s,
         _python_context,
         _context_common_%(function_identifier)s_destructor
@@ -104,21 +105,36 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
 """
 
 genfunc_yielder_template = """
-static PyObject *frameobj_%(function_identifier)s( void )
-{
-   static PyObject *frameobj = NULL;
-
-   if ( frameobj == NULL )
-   {
-      frameobj = MAKE_FRAME( %(filename_identifier)s, %(function_name_obj)s, %(module_identifier)s );
-   }
-
-   return frameobj;
-}
+static PyFrameObject *_FRAME_%(function_identifier)s = NULL;
+static PyCodeObject *_CODEOBJ_%(function_identifier)s = NULL;
 
 static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
     bool traceback;
+
+    // Must be inside block, or else its d-tor will not be run.
+    if ( _FRAME_%(function_identifier)s == NULL || _FRAME_%(function_identifier)s->ob_refcnt > 1 )
+    {
+        if ( _FRAME_%(function_identifier)s )
+        {
+#if REFRAME_DEBUG
+            puts( "reframe for %(function_identifier)s" );
+#endif
+            Py_DECREF( _FRAME_%(function_identifier)s );
+        }
+
+        _FRAME_%(function_identifier)s = MAKE_FRAME( _CODEOBJ_%(function_identifier)s, %(module_identifier)s );
+    }
+
+    Py_INCREF( _FRAME_%(function_identifier)s );
+    generator->m_frame = _FRAME_%(function_identifier)s;
+
+    Py_CLEAR( generator->m_frame->f_back );
+
+    generator->m_frame->f_back = PyThreadState_GET()->frame;
+    Py_INCREF( generator->m_frame->f_back );
+
+    PyThreadState_GET()->frame = generator->m_frame;
 
     try
     {
@@ -146,7 +162,7 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
     {
         if ( traceback == false )
         {
-           _exception.addTraceback( frameobj_%(function_identifier)s() );
+           _exception.addTraceback( INCREASE_REFCOUNT( generator->m_frame ) );
         }
 
         _exception.toPython();

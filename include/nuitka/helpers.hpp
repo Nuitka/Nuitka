@@ -1526,6 +1526,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject 
 
 #include "nuitka/builtins.hpp"
 
+#include "nuitka/frameguards.hpp"
+
 #include "nuitka/variables_parameters.hpp"
 #include "nuitka/variables_locals.hpp"
 #include "nuitka/variables_shared.hpp"
@@ -1756,8 +1758,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
     return result;
 }
 
-// Create a frame object for the given filename, function name and module object.
-extern PyObject *MAKE_FRAME( PyObject *filename, PyObject *function_name, PyObject *module );
+// Create a frame object for the given code object and module
+extern PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module );
+
+// Create a code object for the given filename and function name
+extern PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line = 0, int arg_count = 88 );
 
 #include "nuitka/importing.hpp"
 
@@ -1767,5 +1772,7 @@ extern PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size );
 extern PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern );
 
 extern void enhancePythonTypes( void );
+
+#define REFRAME_DEBUG 0
 
 #endif

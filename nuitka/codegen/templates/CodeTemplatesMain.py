@@ -217,6 +217,13 @@ int main( int argc, char *argv[] )
 
     if ( PyErr_Occurred() )
     {
+        assertFrameObject( frame___main__ );
+        assert( frame___main__->f_back == NULL );
+
+        // Cleanup code may need a frame, so put it back.
+        Py_INCREF( frame___main__ );
+        PyThreadState_GET()->frame = frame___main__;
+
         PyErr_Print();
         return 1;
     }
@@ -393,13 +400,7 @@ PyObject *_module_%(module_identifier)s;
 %(expression_temp_decl)s
 
 // Frame object of the module.
-PyObject *frame_%(module_identifier)s;
-
-// Frame object of the module.
-static inline PyObject *frameobj_%(module_identifier)s( void )
-{
-   return frame_%(module_identifier)s;
-}
+static PyFrameObject *frame_%(module_identifier)s;
 
 #ifdef _NUITKA_EXE
 static bool init_done = false;
@@ -457,13 +458,9 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 
     assertObject( _module_%(module_identifier)s );
 
-    frame_%(module_identifier)s = MAKE_FRAME( %(filename_identifier)s, %(module_name_obj)s, _module_%(module_identifier)s );
-
-    // Initialize the standard module attributes.
-%(module_inits)s
-
     // For deep importing of a module we need to have "__builtins__", so we set it
-    // ourselves in the same way than CPython does.
+    // ourselves in the same way than CPython does. Note: This must be done before
+    // the frame object is allocated, or else it may fail.
 
     PyObject *module_dict = PyModule_GetDict( _module_%(module_identifier)s );
 
@@ -476,6 +473,14 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 
         assert( res == 0 );
     }
+
+    frame_%(module_identifier)s = MAKE_FRAME( MAKE_CODEOBJ( %(filename_identifier)s, %(module_name_obj)s ), _module_%(module_identifier)s );
+
+    // Push the new frame as the currently active one.
+    PyThreadState_GET()->frame = frame_%(module_identifier)s;
+
+    // Initialize the standard module attributes.
+%(module_inits)s
 
     // Module code
     bool traceback = false;
@@ -491,11 +496,14 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
     {
         if ( traceback == false )
         {
-            _exception.addTraceback( frameobj_%(module_identifier)s() );
+            _exception.addTraceback( frame_%(module_identifier)s );
         }
 
         _exception.toPython();
     }
+
+    // Pop the frame from the frame stack, we are done here.
+    PyThreadState_GET()->frame = PyThreadState_GET()->frame->f_back;
 
     // puts( "out init%(module_identifier)s" );
 }

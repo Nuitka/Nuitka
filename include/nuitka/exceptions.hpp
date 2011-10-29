@@ -31,12 +31,14 @@
 #ifndef __NUITKA_EXCEPTIONS_H__
 #define __NUITKA_EXCEPTIONS_H__
 
-NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyObject *frame, int line )
+NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *frame, int line )
 {
+    // assertFrameObject( frame );
+
     PyTracebackObject *result = PyObject_GC_New( PyTracebackObject, &PyTraceBack_Type );
 
     result->tb_next = NULL;
-    result->tb_frame = (PyFrameObject *)INCREASE_REFCOUNT( frame );
+    result->tb_frame = frame;
 
     result->tb_lasti = 0;
     result->tb_lineno = line;
@@ -214,7 +216,7 @@ public:
         return this->exception_tb;
     }
 
-    inline void addTraceback( PyObject *frame )
+    inline void addTraceback( PyFrameObject *frame )
     {
         PyTracebackObject *traceback_new = MAKE_TRACEBACK( frame, this->line );
 

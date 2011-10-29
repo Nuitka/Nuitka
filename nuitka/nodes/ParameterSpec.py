@@ -154,6 +154,9 @@ class ParameterSpec( ParameterSpecTuple ):
         else:
             return "<NoParameters>"
 
+    def getArgumentCount( self ):
+        return len( self.normal_args )
+
     def setOwner( self, owner ):
         ParameterSpecTuple.setOwner( self, owner )
 

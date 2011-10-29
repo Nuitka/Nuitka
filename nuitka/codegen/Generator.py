@@ -1069,7 +1069,9 @@ def getWithCode( context, body_codes, assign_codes, source_identifier, with_mana
     if assign_codes is None:
         assign_codes = "// No 'as' target variable for withed expression."
 
-    frame_making = getFrameMakingIdentifier( context = context ).getCodeTemporaryRef()
+    frame_making = getFrameMakingIdentifier(
+        context = context
+    )
 
     return CodeTemplates.with_template % {
         "assign"              : indented( assign_codes ),
@@ -1079,7 +1081,7 @@ def getWithCode( context, body_codes, assign_codes, source_identifier, with_mana
         "value"               : with_value_identifier.getCode(),
         "with_count"          : context.with_count,
         "module_identifier"   : getModuleAccessCode( context = context ),
-        "frame_making"        : frame_making,
+        "frame_making"        : frame_making.getCodeExportRef(),
         "triple_none_tuple"   : getConstantCode(
             constant = ( None, None, None ),
             context  = context
@@ -1891,12 +1893,12 @@ def getModuleAccessCode( context ):
     return Identifier( "_module_%s" % context.getModuleCodeName(), 0 ).getCode()
 
 def getFrameMakingIdentifier( context ):
-    return Identifier( "frameobj_%s()" % ( context.getCodeName() ), 0 )
+    return context.getFrameHandle()
 
 def getTracebackMakingIdentifier( context, line ):
     return Identifier(
         "MAKE_TRACEBACK( %s, %s )" % (
-            getFrameMakingIdentifier( context = context ).getCodeTemporaryRef(),
+            getFrameMakingIdentifier( context = context ).getCodeExportRef(),
             line
         ),
         1
@@ -2333,7 +2335,7 @@ def _getDecoratorsCallCode( context, decorator_count ):
 
 def getGeneratorFunctionCode( context, function_name, function_identifier, parameters, \
                               closure_variables, user_variables, decorator_count, \
-                              default_access_identifiers, function_codes, function_filename, \
+                              default_access_identifiers, function_codes, source_ref, \
                               function_doc ):
     parameter_variables, entry_point_code, parameter_objects_decl, mparse_identifier = getParameterParsingCode(
         function_identifier     = function_identifier,
@@ -2481,7 +2483,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         ),
         "filename_identifier" : getConstantCode(
             context  = context,
-            constant = function_filename
+            constant = source_ref.getFilename()
         )
     }
 
@@ -2498,11 +2500,10 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         "parameter_entry_point_code" : entry_point_code,
         "parameter_objects_decl"     : parameter_objects_decl,
         "context_copy"               : indented( context_copy ),
-        "module"                     : getModuleAccessCode( context = context ),
+        "module_identifier"          : getModuleAccessCode( context = context )
     }
 
     result += CodeTemplates.make_genfunc_with_context_template % {
-        "function_name"              : function_name,
         "function_name_obj"          : getConstantCode(
             context  = context,
             constant = function_name
@@ -2520,14 +2521,20 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         "function_decorator_calls"   : indented( function_decorator_calls ),
         "context_copy"               : indented( context_copy ),
         "function_doc"               : function_doc,
-        "module"                     : getModuleAccessCode( context = context ),
+        "filename_identifier"        : getConstantCode(
+            context  = context,
+            constant = source_ref.getFilename()
+        ),
+        "line_number"                : source_ref.getLineNumber(),
+        "arg_count"                  : parameters.getArgumentCount(),
+        "module_identifier"          : getModuleAccessCode( context = context ),
     }
 
     return result
 
 def getFunctionCode( context, function_name, function_identifier, parameters, closure_variables, \
                      user_variables, decorator_count, default_access_identifiers, function_codes, \
-                     function_filename, function_doc ):
+                     source_ref, function_doc ):
     parameter_variables, entry_point_code, parameter_objects_decl, mparse_identifier = getParameterParsingCode(
         function_identifier     = function_identifier,
         function_name           = function_name,
@@ -2649,7 +2656,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         ),
         "filename_identifier"          : getConstantCode(
             context  = context,
-            constant = function_filename
+            constant = source_ref.getFilename()
         ),
     }
 
@@ -2670,7 +2677,13 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
             "function_decorator_calls"   : indented( function_decorator_calls ),
             "context_copy"               : indented( context_copy ),
             "function_doc"               : function_doc,
-            "module"                     : getModuleAccessCode( context = context ),
+            "filename_identifier"        : getConstantCode(
+                context  = context,
+                constant = source_ref.getFilename()
+            ),
+            "line_number"                : source_ref.getLineNumber(),
+            "arg_count"                  : parameters.getArgumentCount(),
+            "module_identifier"          : getModuleAccessCode( context = context ),
         }
     else:
         result += CodeTemplates.make_function_without_context_template % {
@@ -2688,12 +2701,18 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
             ),
             "function_decorator_calls"   : indented( function_decorator_calls ),
             "function_doc"               : function_doc,
-            "module"                     : getModuleAccessCode( context = context ),
+            "filename_identifier"        : getConstantCode(
+                context  = context,
+                constant = source_ref.getFilename()
+            ),
+            "line_number"                : source_ref.getLineNumber(),
+            "arg_count"                  : parameters.getArgumentCount(),
+            "module_identifier"          : getModuleAccessCode( context = context ),
         }
 
     return result
 
-def getGeneratorExpressionCode( context, generator_identifier, generator_name, generator_filename, \
+def getGeneratorExpressionCode( context, generator_identifier, generator_name, source_ref, \
                                 generator_code, generator_conditions, generator_iterateds, \
                                 line_number_code, loop_var_codes, closure_variables, \
                                 provided_variables ):
@@ -2775,28 +2794,26 @@ def getGeneratorExpressionCode( context, generator_identifier, generator_name, g
         "iterator_making"            : indented( iterator_making.split( "\n" ), 5 ),
         "iterator_value_assign"      : indented( iterator_value_assign, 5 ),
         "function_body"              : getReturnCode( identifier = generator_code ),
-        "module"                     : getModuleAccessCode( context = context ),
+        "module_identifier"          : getModuleAccessCode( context = context ),
         "name_identifier"            : getConstantCode(
             context  = context,
             constant = function_name
-        ),
-        "filename_identifier"        : getConstantCode(
-            context  = context,
-            constant = generator_filename
         ),
         "line_number_code"           : line_number_code,
         "expression_temp_decl"       : local_expression_temp_inits
     }
 
     result += CodeTemplates.make_genexpr_with_context_template % {
-        "function_name"              : generator_name,
         "function_name_obj"          : function_name_obj,
         "function_identifier"        : generator_identifier,
         "function_creation_args"     : ", ".join( function_creation_args ),
         "context_copy"               : indented( context_copy ),
-        "function_doc"               : "Py_None",
+        "filename_identifier"        : getConstantCode(
+            context  = context,
+            constant = source_ref.getFilename()
+        ),
+        "line_number"                : source_ref.getLineNumber(),
         "iterator_count"             : len( generator_iterateds ) + 1,
-        "module"                     : getModuleAccessCode( context = context ),
     }
 
     return result
@@ -2976,6 +2993,8 @@ def getClassCode( context, class_def, class_name, class_filename, class_identifi
         1
     )
 
+    source_ref = class_def.getSourceReference()
+
     return CodeTemplates.class_dict_template % {
         "class_identifier"      : class_identifier,
         "name_identifier"       : getConstantCode(
@@ -2987,9 +3006,10 @@ def getClassCode( context, class_def, class_name, class_filename, class_identifi
             context  = context
         ),
         "filename_identifier"   : getConstantCode(
-            constant = class_filename,
+            constant = source_ref.getFilename(),
             context  = context
         ),
+        "line_number"           : source_ref.getLineNumber(),
         "class_dict_args"       : ", ".join( class_dict_args ),
         "class_creation_args"   : getEvalOrderedCode(
             context = context,

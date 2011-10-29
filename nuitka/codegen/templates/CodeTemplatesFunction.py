@@ -68,7 +68,8 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
         %(fparse_function_identifier)s,
         %(mparse_function_identifier)s,
         %(function_name_obj)s,
-        %(module)s,
+        _CODEOBJ_%(function_identifier)s ? _CODEOBJ_%(function_identifier)s : ( _CODEOBJ_%(function_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(function_name_obj)s, %(line_number)d, %(arg_count)d ) ),
+        %(module_identifier)s,
         %(function_doc)s,
         _python_context,
         _context_%(function_identifier)s_destructor
@@ -88,7 +89,8 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
         %(fparse_function_identifier)s,
         %(mparse_function_identifier)s,
         %(function_name_obj)s,
-        %(module)s,
+        _CODEOBJ_%(function_identifier)s ? _CODEOBJ_%(function_identifier)s : ( _CODEOBJ_%(function_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(function_name_obj)s, %(line_number)d, %(arg_count)d ) ),
+        %(module_identifier)s,
         %(function_doc)s
     );
 
@@ -100,22 +102,28 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
 """
 
 function_body_template = """
-static PyObject *frameobj_%(function_identifier)s( void )
-{
-   static PyObject *frameobj = NULL;
-
-   if ( frameobj == NULL )
-   {
-      frameobj = MAKE_FRAME( %(filename_identifier)s, %(function_name_obj)s, %(module_identifier)s );
-   }
-
-   return frameobj;
-}
+static PyFrameObject *_FRAME_%(function_identifier)s = NULL;
+static PyCodeObject *_CODEOBJ_%(function_identifier)s = NULL;
 
 static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects_decl)s )
 {
 %(context_access_function_impl)s
     bool traceback = false;
+
+    if ( _FRAME_%(function_identifier)s == NULL || _FRAME_%(function_identifier)s->ob_refcnt > 1 )
+    {
+        if ( _FRAME_%(function_identifier)s )
+        {
+#if REFRAME_DEBUG
+            puts( "reframe for %(function_identifier)s" );
+#endif
+            Py_DECREF( _FRAME_%(function_identifier)s );
+        }
+
+        _FRAME_%(function_identifier)s = MAKE_FRAME( _CODEOBJ_%(function_identifier)s, %(module_identifier)s );
+    }
+
+    FrameGuard frame_guard( _FRAME_%(function_identifier)s );
 
     try
     {
@@ -131,7 +139,7 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects
     {
         if ( traceback == false )
         {
-            _exception.addTraceback( frameobj_%(function_identifier)s() );
+            _exception.addTraceback( frame_guard.getFrame() );
         }
 
         _exception.toPython();
