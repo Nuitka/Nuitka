@@ -142,12 +142,12 @@ static int Nuitka_Function_set_doc( Nuitka_FunctionObject *object, PyObject *val
 
 static PyObject *Nuitka_Function_get_dict( Nuitka_FunctionObject *object )
 {
-   if ( object->m_dict == NULL )
-   {
-      object->m_dict = PyDict_New();
-   }
+    if ( object->m_dict == NULL )
+    {
+        object->m_dict = PyDict_New();
+    }
 
-   return INCREASE_REFCOUNT( object->m_dict );
+    return INCREASE_REFCOUNT( object->m_dict );
 }
 
 static int Nuitka_Function_set_dict( Nuitka_FunctionObject *object, PyObject *value )

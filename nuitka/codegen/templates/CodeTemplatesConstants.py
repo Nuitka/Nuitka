@@ -63,7 +63,6 @@ void _initConstants( void )
         _module_builtin = (PyModuleObject *)PyImport_ImportModule( "__builtin__" );
         assert( _module_builtin );
 
-
         __initConstants();
     }
 }
