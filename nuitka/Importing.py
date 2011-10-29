@@ -35,7 +35,7 @@ functionality, so we implement the module search process on our own.
 
 """
 
-from . import Options
+from . import Options, Utils
 
 import sys, os, imp
 
@@ -94,7 +94,7 @@ def _findModuleInPath( module_name, package_name ):
             package_name = ".".join( package_name.split( "." )[:-1] )
 
         ext_path = [
-            element + os.path.sep + package_name.replace( ".", os.path.sep )
+            Utils.joinpath( element, *package_name.split( "." ) )
             for element in
             sys.path + [ os.getcwd() ]
         ]

@@ -48,6 +48,9 @@ def relpath( path ):
 def abspath( path ):
     return os.path.abspath( path )
 
+def joinpath( *parts ):
+    return os.path.join( *parts )
+
 def basename( path ):
     return os.path.basename( path )
 
