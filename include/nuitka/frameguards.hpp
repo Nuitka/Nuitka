@@ -64,6 +64,7 @@ public:
 
         // Look at current frame.
         PyFrameObject *old = PyThreadState_GET()->frame;
+
         // No recursion allowed of course, assert against it.
         assert( old != frame_object );
 

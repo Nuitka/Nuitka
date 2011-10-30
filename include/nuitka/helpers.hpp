@@ -112,8 +112,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 
 NUITKA_MAY_BE_UNUSED static bool CHECK_IF_TRUE( PyObject *object )
 {
-    assert( object != NULL );
-    assert( object->ob_refcnt > 0 );
+    assertObject( object );
 
     if ( object == Py_True )
     {
@@ -917,7 +916,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, in
         throw _PythonException();
     }
 
-    assert( result->ob_refcnt > 0 );
+    assertObject( result );
 
     return result;
 }
@@ -1417,10 +1416,8 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *target, PyObject *attr
 
 NUITKA_MAY_BE_UNUSED static void DEL_ATTRIBUTE( PyObject *target, PyObject *attr_name )
 {
-    assert( target );
-    assert( target->ob_refcnt > 0 );
-    assert( attr_name );
-    assert( attr_name->ob_refcnt > 0 );
+    assertObject( target );
+    assertObject( attr_name );
 
     int status = PyObject_DelAttr( target, attr_name );
 
@@ -1648,8 +1645,7 @@ static PyObject *MAKE_LOCALS_DIR( P...variables )
 
 NUITKA_MAY_BE_UNUSED static PyObject *TUPLE_COPY( PyObject *tuple )
 {
-    assert( tuple != NULL );
-    assert( tuple->ob_refcnt > 0 );
+    assertObject( tuple );
 
     assert( PyTuple_CheckExact( tuple ) );
 
@@ -1672,8 +1668,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TUPLE_COPY( PyObject *tuple )
 
 NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 {
-    assert( list != NULL );
-    assert( list->ob_refcnt > 0 );
+    assertObject( list );
 
     assert( PyList_CheckExact( list ) );
 

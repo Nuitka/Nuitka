@@ -226,12 +226,10 @@ public:
 
     inline void setTraceback( PyTracebackObject *traceback )
     {
-        assert( traceback );
-        assert( traceback->ob_refcnt > 0 );
+        assertObject( traceback );
 
         // printf( "setTraceback %d\n", traceback->ob_refcnt );
 
-        // Py_INCREF( traceback );
         this->exception_tb = (PyObject *)traceback;
     }
 

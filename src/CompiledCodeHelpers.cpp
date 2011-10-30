@@ -488,7 +488,7 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
 
 PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
 {
-    assertObject( (PyObject *)code );
+    assertCodeObject( code );
     assertObject( module );
 
     PyFrameObject *result = PyFrame_New(
@@ -498,7 +498,7 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
         NULL                                 // locals (we are not going to be compatible (yet?))
     );
 
-    assertObject( (PyObject *)code );
+    assertCodeObject( code );
 
     if (unlikely( result == NULL ))
     {

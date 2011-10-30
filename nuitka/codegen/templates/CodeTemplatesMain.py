@@ -503,6 +503,7 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
     }
 
     // Pop the frame from the frame stack, we are done here.
+    assert( PyThreadState_GET()->frame == frame_%(module_identifier)s );
     PyThreadState_GET()->frame = PyThreadState_GET()->frame->f_back;
 
     // puts( "out init%(module_identifier)s" );
