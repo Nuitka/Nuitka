@@ -81,8 +81,7 @@ for_dir = ( x for x in [1] )
 
 gen_dir = dir( for_dir )
 
-print sorted( g for g in gen_dir if not g.startswith( "gi_" ) )
-
+print sorted( g for g in gen_dir )
 
 def genexprSend():
     x = ( x for x in range(9) )
