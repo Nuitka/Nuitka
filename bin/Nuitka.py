@@ -59,19 +59,21 @@ try:
 except (SyntaxError, IndentationError) as e:
     filename, lineno, colno, message = e.args[1]
 
-    message = """\
+    colno = colno - len( message ) + len( message.lstrip() )
+
+    exit_message = """\
   File "%s", line %d
     %s
     %s^
 %s: invalid syntax""" % (
        filename,
        lineno,
-       message.rstrip(),
+       message.strip(),
        " " * (colno-1),
        e.__class__.__name__
     )
 
-    sys.exit( message )
+    sys.exit( exit_message )
 
 if Options.shallDumpBuiltTree():
     MainControl.dumpTree( tree )

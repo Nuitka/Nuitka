@@ -22,5 +22,6 @@
 
 # Test the syntax error case:
 
-claxss ProxyBase(metaclass=ProxyType):
-   pass
+def nested():
+   claxss ProxyBase(metaclass=ProxyType):
+      pass
