@@ -513,7 +513,6 @@ module_init_in_package_template = """\
 #if %(is_package)d
     _mvar_%(module_identifier)s___path__.assign0( %(path_identifier)s );
 #endif
-    _mvar_%(module_identifier)s___package__.assign0( %(package_name_identifier)s );
 
     init%(package_identifier)s();
 

@@ -1966,10 +1966,6 @@ def getModuleCode( context, module_name, package_name, codes, doc_identifier, \
             "is_package"              : 0 if path_identifier is None else 1,
             "path_identifier"         : path_identifier.getCode() if path_identifier else "",
             "doc_identifier"          : doc_identifier.getCode(),
-            "package_name_identifier" : getConstantCode(
-                constant = package_name,
-                context  = context
-            ),
             "package_identifier"      : getPackageIdentifier( package_name )
         }
 
