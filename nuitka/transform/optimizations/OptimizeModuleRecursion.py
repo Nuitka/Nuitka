@@ -58,13 +58,13 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
     def __init__( self ):
         self.stdlib = Options.shallFollowStandardLibrary()
 
-    def _recurseTo( self, module_package, module_relpath ):
+    def _recurseTo( self, module_package, module_filename, module_relpath ):
         if module_relpath not in self.imported_modules:
             info( "Recurse to import %s", module_relpath )
 
             try:
                 imported_module = TreeBuilding.buildModuleTree(
-                    filename = module_relpath,
+                    filename = module_filename,
                     package  = module_package,
                     is_main  = False
                 )
@@ -93,6 +93,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
 
                 return self._recurseTo(
                     module_package  = module_package,
+                    module_filename = module_filename,
                     module_relpath  = module_relpath
                 )
 
@@ -119,6 +120,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
 
             self._recurseTo(
                 module_package  = package_package,
+                module_filename = package_filename,
                 module_relpath  = Utils.relpath( package_filename )
             )
 
