@@ -750,12 +750,7 @@ def getComparisonExpressionCode( context, comparators, operands ):
         if comparator in OperatorCodes.normal_comparison_codes:
             py_api = OperatorCodes.normal_comparison_codes[ comparator ]
 
-            if py_api.startswith( "SEQUENCE_CONTAINS" ):
-                left, right = right, left
-
-                reference = 0
-            else:
-                reference = 1
+            assert py_api.startswith( "SEQUENCE_CONTAINS" )
 
             comparison = Identifier(
                 "%s( %s, %s )" % (
@@ -763,7 +758,7 @@ def getComparisonExpressionCode( context, comparators, operands ):
                     left.getCodeTemporaryRef(),
                     right.getCodeTemporaryRef()
                 ),
-                reference
+                0
             )
         elif comparator in OperatorCodes.rich_comparison_codes:
             comparison = Identifier(
@@ -808,7 +803,15 @@ def getComparisonExpressionCode( context, comparators, operands ):
                     right_tmp
                 )
             if comparator in OperatorCodes.normal_comparison_codes:
-                assert False, comparator
+                py_api = OperatorCodes.normal_comparison_codes[ comparator ]
+
+                assert py_api.startswith( "SEQUENCE_CONTAINS" )
+
+                chunk = "%s_BOOL( %s, %s )" % (
+                    py_api,
+                    left_tmp.getCodeTemporaryRef(),
+                    right_tmp
+                )
             elif comparator in OperatorCodes.rich_comparison_codes:
                 chunk = "RICH_COMPARE_BOOL_%s( %s, %s )" % (
                     OperatorCodes.rich_comparison_codes[ comparator ],

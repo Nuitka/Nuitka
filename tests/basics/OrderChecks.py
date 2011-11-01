@@ -192,6 +192,21 @@ def classOrderCheck():
 
     print
 
+def inOrderCheck():
+    print "Checking order of in operator:"
+
+    def container():
+        print "container",
+
+        return [ 3 ]
+
+    def searched():
+        print "searched",
+
+        return 3
+
+    print searched() in container()
+
 dictOrderCheck()
 listOrderCheck()
 subscriptOrderCheck()
@@ -199,3 +214,4 @@ compareOrderCheck()
 sliceOrderCheck()
 generatorOrderCheck()
 classOrderCheck()
+inOrderCheck()
