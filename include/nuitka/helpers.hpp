@@ -265,62 +265,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION_INPLACE( PyObject *operand
 }
 
 #include "nuitka/helper/richcomparisons.hpp"
-
-#define SEQUENCE_CONTAINS( sequence, element ) _SEQUENCE_CONTAINS( EVAL_ORDERED_2( sequence, element ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_SEQUENCE_CONTAINS( PyObject *sequence, PyObject *element )
-{
-    int result = PySequence_Contains( sequence, element );
-
-    if (unlikely( result == -1 ))
-    {
-        throw _PythonException();
-    }
-
-    return BOOL_FROM( result == 1 );
-}
-
-#define SEQUENCE_CONTAINS_NOT( sequence, element ) _SEQUENCE_CONTAINS_NOT( EVAL_ORDERED_2( sequence, element ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_SEQUENCE_CONTAINS_NOT( PyObject *sequence, PyObject *element )
-{
-    int result = PySequence_Contains( sequence, element );
-
-    if (unlikely( result == -1 ))
-    {
-        throw _PythonException();
-    }
-
-    return BOOL_FROM( result == 0 );
-}
-
-#define SEQUENCE_CONTAINS_BOOL( sequence, element ) _SEQUENCE_CONTAINS_BOOL( EVAL_ORDERED_2( sequence, element ) )
-
-NUITKA_MAY_BE_UNUSED static bool _SEQUENCE_CONTAINS_BOOL( PyObject *sequence, PyObject *element )
-{
-    int result = PySequence_Contains( sequence, element );
-
-    if (unlikely( result == -1 ))
-    {
-        throw _PythonException();
-    }
-
-    return result == 1;
-}
-
-#define SEQUENCE_CONTAINS_NOT_BOOL( sequence, element ) _SEQUENCE_CONTAINS_NOT_BOOL( EVAL_ORDERED_2( sequence, element ) )
-
-NUITKA_MAY_BE_UNUSED static bool _SEQUENCE_CONTAINS_NOT_BOOL( PyObject *sequence, PyObject *element )
-{
-    int result = PySequence_Contains( sequence, element );
-
-    if (unlikely( result == -1 ))
-    {
-        throw _PythonException();
-    }
-
-    return result == 0;
-}
+#include "nuitka/helper/sequences.hpp"
 
 static inline bool Nuitka_Function_Check( PyObject *object );
 static inline PyObject *Nuitka_Function_GetName( PyObject *object );
@@ -551,119 +496,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *TO_LIST( PyObject *seq_obj )
-{
-    PyObject *result = PySequence_List( seq_obj );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *TO_TUPLE( PyObject *seq_obj )
-{
-    PyObject *result = PySequence_Tuple( seq_obj );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
-template<typename... P>
-static PyObject *MAKE_TUPLE( P...eles )
-{
-    int size = sizeof...(eles);
-    assert( size > 0 );
-
-    PyObject *elements[] = {eles...};
-
-    PyObject *result = PyTuple_New( size );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    for ( Py_ssize_t i = 0; i < size; i++ )
-    {
-        assertObject( elements[ i ] );
-
-        PyTuple_SET_ITEM(
-            result,
-            i,
-            INCREASE_REFCOUNT(
-#if NUITKA_REVERSED_ARGS == 1
-            elements[ size - 1 - i ]
-#else
-            elements[ i ]
-#endif
-            )
-        );
-    }
-
-    assert( result->ob_refcnt == 1 );
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static inline PyObject *MAKE_TUPLE()
-{
-    return INCREASE_REFCOUNT( _python_tuple_empty );
-}
-
-template<typename... P>
-static PyObject *MAKE_LIST( P...eles )
-{
-    PyObject *elements[] = {eles...};
-
-    int size = sizeof...(eles);
-    assert( size > 0 );
-
-    PyObject *result = PyList_New( size );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    for ( Py_ssize_t i = 0; i < size; i++ )
-    {
-        assertObject( elements[ i ] );
-
-        PyList_SET_ITEM(
-            result,
-            i,
-#if NUITKA_REVERSED_ARGS == 1
-            elements[ size - 1 - i ]
-#else
-            elements[ i ]
-#endif
-        );
-    }
-
-    assert( result->ob_refcnt == 1 );
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static inline PyObject *MAKE_LIST()
-{
-    PyObject *result = PyList_New( 0 );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
 template<typename... P>
 static PyObject *MAKE_DICT( P...eles )
 {
@@ -795,20 +627,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_STATIC_METHOD( PyObject *method )
 
         return method;
     }
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_ELEMENT( PyObject *sequence, Py_ssize_t element )
-{
-    assertObject( sequence );
-
-    PyObject *result = PySequence_GetItem( sequence, element );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
 }
 
 // Stolen from CPython implementation, so we can access it.

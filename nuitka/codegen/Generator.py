@@ -802,6 +802,7 @@ def getComparisonExpressionCode( context, comparators, operands ):
                     temp_storage_var.getCode(),
                     right_tmp
                 )
+
             if comparator in OperatorCodes.normal_comparison_codes:
                 py_api = OperatorCodes.normal_comparison_codes[ comparator ]
 
@@ -855,12 +856,7 @@ def getComparisonExpressionBoolCode( context, comparators, operands ):
         if comparator in OperatorCodes.normal_comparison_codes:
             py_api = OperatorCodes.normal_comparison_codes[ comparator ]
 
-            if py_api.startswith( "SEQUENCE_CONTAINS" ):
-                left, right = right, left
-
-                reference = 0
-            else:
-                reference = 1
+            assert py_api.startswith( "SEQUENCE_CONTAINS" )
 
             comparison = Identifier(
                 "%s_BOOL( %s, %s )" % (
@@ -868,7 +864,7 @@ def getComparisonExpressionBoolCode( context, comparators, operands ):
                     left.getCodeTemporaryRef(),
                     right.getCodeTemporaryRef()
                 ),
-                reference
+                0
             )
         elif comparator in OperatorCodes.rich_comparison_codes:
             comparison = Identifier(
@@ -897,7 +893,6 @@ def getComparisonExpressionBoolCode( context, comparators, operands ):
             )
         else:
             assert False, comparator
-
     else:
         left_tmp = operands[0]
 
@@ -915,7 +910,15 @@ def getComparisonExpressionBoolCode( context, comparators, operands ):
                 )
 
             if comparator in OperatorCodes.normal_comparison_codes:
-                assert False, comparator
+                py_api = OperatorCodes.normal_comparison_codes[ comparator ]
+
+                assert py_api.startswith( "SEQUENCE_CONTAINS" )
+
+                chunk = "%s_BOOL( %s, %s )" % (
+                    py_api,
+                    left_tmp.getCodeTemporaryRef(),
+                    right_tmp
+                )
             elif comparator in OperatorCodes.rich_comparison_codes:
                 chunk = "RICH_COMPARE_BOOL_%s( %s, %s )" % (
                     OperatorCodes.rich_comparison_codes[ comparator ],
