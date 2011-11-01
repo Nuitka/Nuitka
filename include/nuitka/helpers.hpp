@@ -266,7 +266,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION_INPLACE( PyObject *operand
 
 #include "nuitka/helper/richcomparisons.hpp"
 
-NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONTAINS( PyObject *sequence, PyObject *element )
+#define SEQUENCE_CONTAINS( sequence, element ) _SEQUENCE_CONTAINS( EVAL_ORDERED_2( sequence, element ) )
+
+NUITKA_MAY_BE_UNUSED static PyObject *_SEQUENCE_CONTAINS( PyObject *sequence, PyObject *element )
 {
     int result = PySequence_Contains( sequence, element );
 
@@ -278,7 +280,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONTAINS( PyObject *sequence, PyO
     return BOOL_FROM( result == 1 );
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONTAINS_NOT( PyObject *sequence, PyObject *element )
+#define SEQUENCE_CONTAINS_NOT( sequence, element ) _SEQUENCE_CONTAINS_NOT( EVAL_ORDERED_2( sequence, element ) )
+
+NUITKA_MAY_BE_UNUSED static PyObject *_SEQUENCE_CONTAINS_NOT( PyObject *sequence, PyObject *element )
 {
     int result = PySequence_Contains( sequence, element );
 
@@ -290,7 +294,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONTAINS_NOT( PyObject *sequence,
     return BOOL_FROM( result == 0 );
 }
 
-NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_BOOL( PyObject *sequence, PyObject *element )
+#define SEQUENCE_CONTAINS_BOOL( sequence, element ) _SEQUENCE_CONTAINS_BOOL( EVAL_ORDERED_2( sequence, element ) )
+
+NUITKA_MAY_BE_UNUSED static bool _SEQUENCE_CONTAINS_BOOL( PyObject *sequence, PyObject *element )
 {
     int result = PySequence_Contains( sequence, element );
 
@@ -302,7 +308,9 @@ NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_BOOL( PyObject *sequence, PyO
     return result == 1;
 }
 
-NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_NOT_BOOL( PyObject *sequence, PyObject *element )
+#define SEQUENCE_CONTAINS_NOT_BOOL( sequence, element ) _SEQUENCE_CONTAINS_NOT_BOOL( EVAL_ORDERED_2( sequence, element ) )
+
+NUITKA_MAY_BE_UNUSED static bool _SEQUENCE_CONTAINS_NOT_BOOL( PyObject *sequence, PyObject *element )
 {
     int result = PySequence_Contains( sequence, element );
 
