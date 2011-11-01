@@ -40,7 +40,7 @@ version_line, = [
 version = version_line.split( "V" )[1].strip()
 
 import sys
-if sys.argv[1:] != [ "sdist" ]:
+if sys.argv[1:] != [ "sdist", "--formats=gztar,bztar,zip" ]:
    sys.exit( "Error, only sdist target is currently working." )
 
 setup(
