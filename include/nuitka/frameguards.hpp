@@ -98,13 +98,6 @@ public:
         // Put the next frame on top instead.
         PyThreadState_GET()->frame = this->frame_object->f_back;
 
-        // If it exists, detach our frame from it.
-        if ( this->frame_object->f_back )
-        {
-            assertFrameObject( this->frame_object->f_back );
-            Py_CLEAR( this->frame_object->f_back );
-        }
-
         // Should still be good.
         assertFrameObject( this->frame_object );
 
