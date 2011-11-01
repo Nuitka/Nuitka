@@ -65,6 +65,9 @@ typedef struct {
     // Store the iterator provided at creation time here.
     PyObject *iterators[ MAX_ITERATOR_COUNT ];
 
+    PyFrameObject *m_frame;
+    PyCodeObject *m_code_object;
+
     int iterator_level;
 } Nuitka_GenexprObject;
 
@@ -72,6 +75,6 @@ typedef PyObject * (*producer)( Nuitka_GenexprObject * );
 
 extern PyTypeObject Nuitka_Genexpr_Type;
 
-extern PyObject *Nuitka_Genexpr_New( producer code, PyObject *name, PyObject *iterated, int iterator_count, void *context, releaser cleanup );
+extern PyObject *Nuitka_Genexpr_New( producer code, PyObject *name, PyCodeObject *code_object, PyObject *iterated, int iterator_count, void *context, releaser cleanup );
 
 #endif

@@ -61,7 +61,7 @@ try:
 
     builtin_exception_names = [
         str( x ) for x in dir( exceptions )
-        if x.endswith( "Error" )
+        if x.endswith( "Error" ) or x in ( "StopIteration", "GeneratorExit" )
     ]
 
 except ImportError:
@@ -70,15 +70,18 @@ except ImportError:
     import sys
 
     for x in dir( sys.modules[ "builtins" ] ):
-        if str( x ).endswith( "Error" ):
-            exceptions[ str( x ) ] = x
+        name = str( x )
+
+        if name.endswith( "Error" ) or name in ( "StopIteration", "GeneratorExit" ):
+            exceptions[ name ] = x
 
     builtin_exception_names = [
         key for key, value in exceptions.items()
-        if key.endswith( "Error" )
     ]
 
+
 assert "ValueError" in builtin_exception_names
+assert "StopIteration" in builtin_exception_names
 
 # For PyLint to be happy.
 assert long

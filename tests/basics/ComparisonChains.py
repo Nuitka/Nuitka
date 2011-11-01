@@ -116,3 +116,21 @@ CustomOps( 7 ) < CustomOps( 8 ) > CustomOps( 6 )
 
 print "Custom ops, do short circuit:"
 CustomOps( 8 ) > CustomOps( 7 ) < CustomOps( 6 )
+
+def inOperatorChain():
+    print "In operator chains:"
+    print 3 in [3,4] in [[3,4]]
+    print 3 in [3,4] not in [[3,4]]
+
+    if 3 in [3,4] in [[3,4]]:
+       print "Yes"
+    else:
+       print "No"
+
+    if 3 in [3,4] not in [[3,4]]:
+       print "Yes"
+    else:
+       print "No"
+
+
+inOperatorChain()

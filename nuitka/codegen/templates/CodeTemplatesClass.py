@@ -40,21 +40,33 @@ static PyObject *MAKE_CLASS_%(class_identifier)s( %(class_creation_args)s );
 """
 
 class_dict_template = """
-static PyObject *frameobj_%(class_identifier)s( void )
-{
-   static PyObject *frameobj = NULL;
-
-   if ( frameobj == NULL )
-   {
-      frameobj = MAKE_FRAME( %(filename_identifier)s, %(name_identifier)s, %(module_identifier)s );
-   }
-
-   return frameobj;
-}
+static PyFrameObject *_FRAME_%(class_identifier)s = NULL;
+static PyCodeObject *_CODEOBJ_%(class_identifier)s = NULL;
 
 static PyObject *%(class_identifier)s( %(class_dict_args)s )
 {
     bool traceback = false;
+
+    if ( _FRAME_%(class_identifier)s == NULL || _FRAME_%(class_identifier)s->ob_refcnt > 1 )
+    {
+        if ( _FRAME_%(class_identifier)s )
+        {
+#if REFRAME_DEBUG
+            puts( "reframe for %(class_identifier)s" );
+#endif
+
+            Py_DECREF( _FRAME_%(class_identifier)s );
+        }
+
+        if ( _CODEOBJ_%(class_identifier)s == NULL )
+        {
+            _CODEOBJ_%(class_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(name_identifier)s, %(line_number)d, 0 );
+        }
+
+        _FRAME_%(class_identifier)s = MAKE_FRAME( _CODEOBJ_%(class_identifier)s, %(module_identifier)s );
+    }
+
+    FrameGuard frame_guard( _FRAME_%(class_identifier)s );
 
     // Local variable declarations.
 %(class_var_decl)s
@@ -70,7 +82,7 @@ static PyObject *%(class_identifier)s( %(class_dict_args)s )
     {
         if ( traceback == false )
         {
-            _exception.addTraceback( frameobj_%(class_identifier)s() );
+            _exception.addTraceback( frame_guard.getFrame() );
             throw _exception;
         }
         else

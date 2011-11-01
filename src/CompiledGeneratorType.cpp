@@ -78,12 +78,35 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
 
         generator->m_yielded = value;
 
+        // Put the generator back on the frame stack.
+        PyFrameObject *return_frame = PyThreadState_GET()->frame;
+        assertFrameObject( return_frame );
+
+        if ( generator->m_frame )
+        {
+            // It would be nice if our frame were still alive. Nobody had the right to release it.
+            assertFrameObject( generator->m_frame );
+
+            // It's not supposed to be on the top right now.
+            assert( return_frame != generator->m_frame );
+
+            Py_INCREF( return_frame );
+            generator->m_frame->f_back = return_frame;
+
+            PyThreadState_GET()->frame = generator->m_frame;
+        }
+
+        // Continue the yielder function while preventing recursion.
         generator->m_running = true;
-
-        // Continue the yielder function.
         swapcontext( &generator->m_caller_context, &generator->m_yielder_context );
-
         generator->m_running = false;
+
+        // Remove the generator from the frame stack.
+        assert( PyThreadState_GET()->frame == generator->m_frame );
+        assertFrameObject( generator->m_frame );
+
+        PyThreadState_GET()->frame = return_frame;
+        Py_CLEAR( generator->m_frame->f_back );
 
         if ( generator->m_yielded == NULL )
         {
@@ -174,6 +197,8 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
     }
 
     Py_DECREF( generator->m_name );
+
+    Py_XDECREF( generator->m_frame );
 
     PyObject_GC_Del( generator );
 }
@@ -334,6 +359,8 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, void *context
 
     result->m_exception_type = NULL;
     result->m_yielded = NULL;
+
+    result->m_frame = NULL;
 
     Nuitka_GC_Track( result );
     return (PyObject *)result;

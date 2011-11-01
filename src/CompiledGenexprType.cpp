@@ -70,6 +70,8 @@ static void Nuitka_Genexpr_tp_dealloc( Nuitka_GenexprObject *generator )
         }
     }
 
+    Py_XDECREF( generator->m_frame );
+
     PyObject_GC_Del( generator );
 }
 
@@ -83,12 +85,36 @@ static PyObject *Nuitka_Genexpr_tp_iternext( Nuitka_GenexprObject *generator )
             return NULL;
         }
 
-        generator->m_running = true;
-
         // Query the next value
-        PyObject *result = ((producer)(generator->m_code))( generator );
 
+        // Put the generator back on the frame stack.
+        PyFrameObject *return_frame = PyThreadState_GET()->frame;
+        assertFrameObject( return_frame );
+
+        if ( generator->m_frame )
+        {
+            // It would be nice if our frame were still alive. Nobody had the right to release it.
+            assertFrameObject( generator->m_frame );
+
+            // It's not supposed to be on the top right now.
+            assert( return_frame != generator->m_frame );
+
+            Py_INCREF( return_frame );
+            generator->m_frame->f_back = return_frame;
+
+            PyThreadState_GET()->frame = generator->m_frame;
+        }
+
+        generator->m_running = true;
+        PyObject *result = ((producer)(generator->m_code))( generator );
         generator->m_running = false;
+
+        // Remove the generator from the frame stack.
+        assert( PyThreadState_GET()->frame == generator->m_frame );
+        assertFrameObject( generator->m_frame );
+
+        PyThreadState_GET()->frame = return_frame;
+        Py_CLEAR( generator->m_frame->f_back );
 
         if ( result == _sentinel_value )
         {
@@ -157,9 +183,41 @@ static PyObject *Nuitka_Genexpr_get_name( Nuitka_GenexprObject *generator )
     return INCREASE_REFCOUNT( generator->m_name );
 }
 
+static PyObject *Nuitka_Genexpr_get_code( Nuitka_GenexprObject *object )
+{
+    return INCREASE_REFCOUNT( (PyObject *)object->m_code_object );
+}
+
+static int Nuitka_Genexpr_set_code( Nuitka_GenexprObject *object, PyObject *value )
+{
+    PyErr_Format( PyExc_RuntimeError, "gi_code is not writable in Nuitka" );
+    return -1;
+}
+
+static PyObject *Nuitka_Genexpr_get_frame( Nuitka_GenexprObject *object )
+{
+    if ( object->m_frame )
+    {
+        return INCREASE_REFCOUNT( (PyObject *)object->m_frame );
+    }
+    else
+    {
+        return INCREASE_REFCOUNT( Py_None );
+    }
+}
+
+static int Nuitka_Genexpr_set_frame( Nuitka_GenexprObject *object, PyObject *value )
+{
+    PyErr_Format( PyExc_RuntimeError, "gi_frame is not writable in Nuitka" );
+    return -1;
+}
+
 static PyGetSetDef Nuitka_Genexpr_getsetlist[] =
 {
-    { (char * )"__name__", (getter)Nuitka_Genexpr_get_name, NULL, NULL },
+    { (char *)"__name__", (getter)Nuitka_Genexpr_get_name, NULL, NULL },
+    { (char *)"gi_code",  (getter)Nuitka_Genexpr_get_code, (setter)Nuitka_Genexpr_set_code, NULL },
+    { (char *)"gi_frame", (getter)Nuitka_Genexpr_get_frame, (setter)Nuitka_Genexpr_set_frame, NULL },
+
     { NULL }
 };
 
@@ -231,7 +289,7 @@ PyTypeObject Nuitka_Genexpr_Type =
 };
 
 
-PyObject *Nuitka_Genexpr_New( producer code, PyObject *name, PyObject *iterated, int iterator_count, void *context, releaser cleanup )
+PyObject *Nuitka_Genexpr_New( producer code, PyObject *name, PyCodeObject *code_object, PyObject *iterated, int iterator_count, void *context, releaser cleanup )
 {
     Nuitka_GenexprObject *result = PyObject_GC_New( Nuitka_GenexprObject, &Nuitka_Genexpr_Type );
 
@@ -263,6 +321,10 @@ PyObject *Nuitka_Genexpr_New( producer code, PyObject *name, PyObject *iterated,
     {
         result->iterators[ i ] = NULL;
     }
+
+    result->m_frame = NULL;
+
+    result->m_code_object = code_object;
 
     Nuitka_GC_Track( result );
     return (PyObject *)result;

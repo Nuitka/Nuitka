@@ -142,12 +142,12 @@ static int Nuitka_Function_set_doc( Nuitka_FunctionObject *object, PyObject *val
 
 static PyObject *Nuitka_Function_get_dict( Nuitka_FunctionObject *object )
 {
-   if ( object->m_dict == NULL )
-   {
-      object->m_dict = PyDict_New();
-   }
+    if ( object->m_dict == NULL )
+    {
+        object->m_dict = PyDict_New();
+    }
 
-   return INCREASE_REFCOUNT( object->m_dict );
+    return INCREASE_REFCOUNT( object->m_dict );
 }
 
 static int Nuitka_Function_set_dict( Nuitka_FunctionObject *object, PyObject *value )
@@ -171,6 +171,17 @@ static int Nuitka_Function_set_dict( Nuitka_FunctionObject *object, PyObject *va
         PyErr_SetString( PyExc_TypeError, "setting function's dictionary to a non-dict" );
         return -1;
     }
+}
+
+static PyObject *Nuitka_Function_get_code( Nuitka_FunctionObject *object )
+{
+    return INCREASE_REFCOUNT( (PyObject *)object->m_code_object );
+}
+
+static int Nuitka_Function_set_code( Nuitka_FunctionObject *object, PyObject *value )
+{
+    PyErr_Format( PyExc_RuntimeError, "__code__ is not writable in Nuitka" );
+    return -1;
 }
 
 static int Nuitka_Function_set_globals( Nuitka_FunctionObject *object, PyObject *value )
@@ -222,6 +233,8 @@ static PyGetSetDef Nuitka_Function_getset[] =
    { (char *)"__doc__" ,     (getter)Nuitka_Function_get_doc,     (setter)Nuitka_Function_set_doc, NULL },
    { (char *)"func_dict",    (getter)Nuitka_Function_get_dict,    (setter)Nuitka_Function_set_dict, NULL },
    { (char *)"__dict__",     (getter)Nuitka_Function_get_dict,    (setter)Nuitka_Function_set_dict, NULL },
+   { (char *)"func_code",    (getter)Nuitka_Function_get_code,    (setter)Nuitka_Function_set_code, NULL },
+   { (char *)"__code__",     (getter)Nuitka_Function_get_code,    (setter)Nuitka_Function_set_code, NULL },
    { (char *)"func_globals", (getter)Nuitka_Function_get_globals, (setter)Nuitka_Function_set_globals, NULL },
    { (char *)"__globals__",  (getter)Nuitka_Function_get_globals, (setter)Nuitka_Function_set_globals, NULL },
    { (char *)"__module__",   (getter)Nuitka_Function_get_module,  (setter)Nuitka_Function_set_module, NULL },
@@ -299,7 +312,7 @@ PyTypeObject Nuitka_Function_Type =
     0,                                              // tp_del
 };
 
-static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, PyObject *name, PyObject *module, PyObject *doc, bool has_args, void *context, releaser cleanup )
+static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *module, PyObject *doc, bool has_args, void *context, releaser cleanup )
 {
     Nuitka_FunctionObject *result = PyObject_GC_New( Nuitka_FunctionObject, &Nuitka_Function_Type );
 
@@ -318,6 +331,8 @@ static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, Py
     result->m_context = context;
     result->m_cleanup = cleanup;
 
+    result->m_code_object = code_object;
+
     result->m_module = module;
     result->m_doc    = doc;
 
@@ -332,19 +347,19 @@ static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, Py
 }
 
 // Make a function without context.
-PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyObject *module, PyObject *doc )
+PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *module, PyObject *doc )
 {
-    return make_kfunction( (void *)fparse, mparse, name, module, doc, true, NULL, NULL );
+    return make_kfunction( (void *)fparse, mparse, name, code_object, module, doc, true, NULL, NULL );
 }
 
 // Make a function with context.
-PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *module, PyObject *doc, void *context, releaser cleanup )
 {
-    return make_kfunction( (void *)fparse, mparse, name, module, doc, true, context, cleanup );
+    return make_kfunction( (void *)fparse, mparse, name, code_object, module, doc, true, context, cleanup );
 }
 
 // Make a function that is only a yielder, no args.
 PyObject *Nuitka_Function_New( argless_code code, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup )
 {
-    return make_kfunction( (void *)code, NULL, name, module, doc, false, context, cleanup );
+    return make_kfunction( (void *)code, NULL, name, NULL, module, doc, false, context, cleanup );
 }

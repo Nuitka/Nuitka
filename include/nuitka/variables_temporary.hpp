@@ -31,7 +31,7 @@
 #ifndef __NUITKA_VARIABLES_TEMPORARY_H__
 #define __NUITKA_VARIABLES_TEMPORARY_H__
 
-// Wraps a PyObject * you received or acquired from another container to simplify refcount
+// Wraps a "PyObject *" you received or acquired from another container to simplify refcount
 // handling when you're not going to use the object beyond the local scope. It will hold a
 // reference to the wrapped object as long as the PyObjectTemporary is alive, and will
 // release the reference when the wrapper is destroyed: this eliminates the need for

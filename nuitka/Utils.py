@@ -48,11 +48,17 @@ def relpath( path ):
 def abspath( path ):
     return os.path.abspath( path )
 
+def joinpath( *parts ):
+    return os.path.join( *parts )
+
 def basename( path ):
     return os.path.basename( path )
 
 def dirname( path ):
     return os.path.dirname( path )
+
+def getExtension( path ):
+    return os.path.splitext( path )[1]
 
 def isFile( path ):
     return os.path.isfile( path )

@@ -154,6 +154,9 @@ class ParameterSpec( ParameterSpecTuple ):
         else:
             return "<NoParameters>"
 
+    def getArgumentCount( self ):
+        return len( self.normal_args )
+
     def setOwner( self, owner ):
         ParameterSpecTuple.setOwner( self, owner )
 
@@ -219,6 +222,7 @@ class ParameterSpec( ParameterSpecTuple ):
         return self.dict_star_variable
 
     def allowsKeywords( self ):
+        # Abstract method, pylint: disable=R0201
         return True
 
     def getKeywordRefusalText( self ):

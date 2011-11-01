@@ -117,11 +117,11 @@ Unsupported functionality
 General
 ~~~~~~~
 
-The "func_code" attribute of functions
---------------------------------------
+The "co_code" attribute of code objects
+---------------------------------------
 
-The "func_code" attribute is not possible for native compiled functions. There is no
-bytecode with Nuitka's compiled function objects, so there is no way to provide bytecode.
+The code objects are empty for for native compiled functions. There is no bytecode with
+Nuitka's compiled function objects, so there is no way to provide bytecode.
 
 Threading can block it seems
 ----------------------------

@@ -116,23 +116,22 @@ def makeSourceDirectory( main_module ):
 
     source_dir = Options.getOutputPath( name + ".build" )
 
-    if not source_dir.endswith( os.path.sep ):
-        source_dir += os.path.sep
-
     if os.path.exists( source_dir ):
         for filename in sorted( os.listdir( source_dir ) ):
-            path = source_dir + os.path.sep + filename
+            path = Utils.joinpath( source_dir, filename )
 
-            if filename.endswith( ".cpp" ) or filename.endswith( ".hpp" ) or filename.endswith( ".o" ) or filename.endswith( ".os" ):
+            if Utils.getExtension( path ) in ( ".cpp", ".hpp", ".o", ".os" ):
                 os.unlink( path )
     else:
         os.makedirs( source_dir )
 
-    if os.path.exists( source_dir + os.path.sep + "static" ):
-        for filename in sorted( os.listdir( source_dir ) ):
-            path = source_dir + os.path.sep + "static" + os.path.sep + filename
+    static_source_dir = Utils.joinpath( source_dir, "static" )
 
-            if filename.endswith( ".o" ) or filename.endswith( ".os" ):
+    if os.path.exists( static_source_dir ):
+        for filename in sorted( os.listdir( static_source_dir ) ):
+            path = Utils.joinpath( static_source_dir, filename )
+
+            if Utils.getExtension( path ) in ( ".o", ".os" ):
                 os.unlink( path )
 
     global_context = CodeGeneration.makeGlobalContext()
@@ -148,8 +147,8 @@ def makeSourceDirectory( main_module ):
     module_hpps = []
 
     for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
-        cpp_filename = source_dir + other_module.getFullName() + ".cpp"
-        hpp_filename = source_dir + other_module.getFullName() + ".hpp"
+        cpp_filename = Utils.joinpath( source_dir, other_module.getFullName() + ".cpp" )
+        hpp_filename = Utils.joinpath( source_dir, other_module.getFullName() + ".hpp" )
 
         other_module_code = CodeGeneration.generateModuleCode(
             global_context = global_context,
@@ -175,8 +174,8 @@ def makeSourceDirectory( main_module ):
 
     main_module_name = main_module.getName()
 
-    cpp_filename = source_dir + "__main__.cpp"
-    hpp_filename = source_dir + "__main__.hpp"
+    cpp_filename = Utils.joinpath( source_dir, "__main__.cpp" )
+    hpp_filename = Utils.joinpath( source_dir, "__main__.hpp" )
 
     # Create code for the main module.
     source_code = CodeGeneration.generateModuleCode(
@@ -206,7 +205,7 @@ def makeSourceDirectory( main_module ):
     module_hpps.append( "__main__.hpp" )
 
     writeSourceCode(
-        filename    = source_dir + "__constants.cpp",
+        filename    = Utils.joinpath( source_dir, "__constants.cpp" ),
         source_code = CodeGeneration.generateConstantsDefinitionCode(
             context = global_context
         )
@@ -219,21 +218,21 @@ def makeSourceDirectory( main_module ):
     ]
 
     writeSourceCode(
-        filename    = source_dir + "__constants.hpp",
+        filename    = Utils.joinpath( source_dir, "__constants.hpp" ),
         source_code = CodeGeneration.generateConstantsDeclarationCode(
             context = global_context
         )
     )
 
     writeSourceCode(
-        filename    = source_dir + "__reverses.hpp",
+        filename    = Utils.joinpath( source_dir, "__reverses.hpp" ),
         source_code = CodeGeneration.generateReversionMacrosCode(
             context = global_context
         )
     )
 
     writeSourceCode(
-        filename    = source_dir + "__modules.hpp",
+        filename    = Utils.joinpath( source_dir, "__modules.hpp" ),
         source_code = "".join( module_hpp_include )
     )
 
@@ -275,6 +274,8 @@ def runScons( tree, quiet ):
     return SconsInterface.runScons( options, quiet ), options
 
 def writeSourceCode( filename, source_code ):
+    assert not os.path.exists( filename )
+
     open( filename, "w" ).write( source_code )
 
 def executeMain( output_filename, tree ):

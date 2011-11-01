@@ -28,7 +28,9 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Generate code that enforces ordered evaluation.
 
+"""
 
 def getEvalOrderedCode( context, args ):
     args_length = len( args )

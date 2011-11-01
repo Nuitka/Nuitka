@@ -35,7 +35,7 @@ functionality, so we implement the module search process on our own.
 
 """
 
-from . import Options
+from . import Options, Utils
 
 import sys, os, imp
 
@@ -43,7 +43,7 @@ from logging import warning
 
 _debug_module_finding = False
 
-def findModule( module_name, parent_package, level, warn = True ):
+def findModule( source_ref, module_name, parent_package, level, warn = True ):
     assert level < 2 or parent_package, (module_name, parent_package, level)
 
     if level > 1:
@@ -60,7 +60,7 @@ def findModule( module_name, parent_package, level, warn = True ):
             )
         except ImportError:
             if warn and not _isWhiteListedNotExistingModule( module_name ):
-                warning( "Warning, cannot find '%s' in '%s' on level %d" % ( module_name, parent_package, level ) )
+                warning( "%s: Cannot find '%s' in '%s' on level %d" % ( source_ref.getAsString(), module_name, parent_package, level ) )
 
             if "." in module_name:
                 module_package_name = module_name[ : module_name.rfind( "." ) ]
@@ -94,7 +94,7 @@ def _findModuleInPath( module_name, package_name ):
             package_name = ".".join( package_name.split( "." )[:-1] )
 
         ext_path = [
-            element + os.path.sep + package_name.replace( ".", os.path.sep )
+            Utils.joinpath( element, *package_name.split( "." ) )
             for element in
             sys.path + [ os.getcwd() ]
         ]
@@ -110,8 +110,6 @@ def _findModuleInPath( module_name, package_name ):
 
             return module_filename, package_name
         except ImportError:
-            pass
-
             if _debug_module_finding:
                 print( "_findModuleInPath: imp.find_module failed" )
 
@@ -176,11 +174,12 @@ def _findModule( module_name, parent_package ):
 def _isWhiteListedNotExistingModule( module_name ):
     return module_name in (
         "mac", "nt", "os2", "posix", "_emx_link", "riscos", "ce", "riscospath",
-        "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256",
+        "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256", "array",
         "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle", "marshal", "imp",
         "sys", "itertools", "cStringIO", "time", "zlib", "thread", "math", "errno",
         "operator", "signal", "gc", "exceptions", "win32process", "unicodedata",
         "__builtin__", "fcntl", "_socket", "_ssl", "pwd", "spwd", "_random", "grp",
         "select", "__main__", "_winreg", "_warnings", "_sre", "_functools", "_hashlib",
-        "_collections", "_locale", "_codecs", "_weakref", "_struct", "_dummy_threading"
+        "_collections", "_locale", "_codecs", "_weakref", "_struct", "_dummy_threading",
+        "binascii",
     )

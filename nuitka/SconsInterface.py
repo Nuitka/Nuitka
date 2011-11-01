@@ -35,27 +35,27 @@ options.
 
 """
 
-from . import Options, Tracing
+from . import Options, Tracing, Utils
 
 import os, sys
 
 def getSconsInlinePath():
-    return os.environ[ "NUITKA_SCONS" ] + os.path.sep + "inline_copy"
+    return Utils.joinpath( os.environ[ "NUITKA_SCONS" ], "inline_copy" )
 
 def getSconsBinaryPath():
     if os.path.exists( "/usr/bin/scons" ):
         return "/usr/bin/scons"
     else:
-        return getSconsInlinePath() + os.path.sep + "bin" + os.path.sep + "scons.py"
+        return Utils.joinpath( getSconsInlinePath(), "bin", "scons.py" )
 
 def runScons( options, quiet ):
     if "win" in sys.platform:
-        os.environ[ "SCONS_LIB_DIR" ] = getSconsInlinePath() + os.path.sep + "lib" + os.path.sep + "scons-2.0.1"
+        os.environ[ "SCONS_LIB_DIR" ] = Utils.joinpath( getSconsInlinePath(), "lib", "scons-2.0.1" )
 
     scons_command = """%(binary)s %(quiet)s -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
         "binary"     : getSconsBinaryPath(),
         "quiet"      : "--quiet" if quiet else "",
-        "scons_file" : os.environ[ "NUITKA_SCONS" ] + "/SingleExe.scons",
+        "scons_file" : Utils.joinpath( os.environ[ "NUITKA_SCONS" ], "SingleExe.scons" ),
         "job_limit"  : Options.getJobLimit(),
         "options"    : " ".join( "%s=%s" % ( key, value ) for key, value in options.items() )
     }

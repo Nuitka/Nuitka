@@ -89,6 +89,6 @@ execute_tests "python2.6-nodebug" "python2.6" ""
 execute_tests "python2.7-nodebug" "python2.7" ""
 
 echo "Running the reflection test in debug mode with $PYTHON:"
-./tests/reflected/compile_itself.sh search
+./tests/reflected/compile_itself.py search
 
 echo "OK."

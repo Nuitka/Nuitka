@@ -457,7 +457,7 @@ PyObject *BUILTIN_LEN( PyObject *value )
 // TODO: Move this to global init, so it's not pre-main code that may not be run.
 static PyObject *empty_code = PyBuffer_FromMemory( NULL, 0 );
 
-static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name )
+PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, int arg_count )
 {
     assert( PyString_Check( filename ) );
     assert( PyString_Check( function_name ) );
@@ -465,7 +465,7 @@ static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name )
     assertObject( empty_code );
 
     PyCodeObject *result = PyCode_New (
-        0, 0, 0, 0,          // argcount, locals, stacksize, flags
+        arg_count, 0, 0, 0,  // argument count, locals, stacksize, flags
         empty_code,          // code
         _python_tuple_empty, // consts (we are not going to be compatible)
         _python_tuple_empty, // names (we are not going to be compatible)
@@ -474,7 +474,7 @@ static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name )
         _python_tuple_empty, // cellvars (we are not going to be compatible)
         filename,            // filename
         function_name,       // name
-        0,                   // firstlineno (offset of the code object)
+        line,                // firstlineno (offset of the code object)
         _python_str_empty    // lnotab (table to translate code object)
     );
 
@@ -486,8 +486,11 @@ static PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name )
     return result;
 }
 
-static PyObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
+PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
 {
+    assertCodeObject( code );
+    assertObject( module );
+
     PyFrameObject *result = PyFrame_New(
         PyThreadState_GET(),                 // thread state
         code,                                // code
@@ -495,17 +498,14 @@ static PyObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
         NULL                                 // locals (we are not going to be compatible (yet?))
     );
 
+    assertCodeObject( code );
+
     if (unlikely( result == NULL ))
     {
         throw _PythonException();
     }
 
-    return (PyObject *)result;
-}
-
-PyObject *MAKE_FRAME( PyObject *filename, PyObject *function_name, PyObject *module )
-{
-    return MAKE_FRAME( MAKE_CODEOBJ( filename, function_name ), module );
+    return result;
 }
 
 static PythonBuiltin _python_builtin_import( "__import__" );

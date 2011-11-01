@@ -31,12 +31,14 @@
 #ifndef __NUITKA_EXCEPTIONS_H__
 #define __NUITKA_EXCEPTIONS_H__
 
-NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyObject *frame, int line )
+NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *frame, int line )
 {
+    // assertFrameObject( frame );
+
     PyTracebackObject *result = PyObject_GC_New( PyTracebackObject, &PyTraceBack_Type );
 
     result->tb_next = NULL;
-    result->tb_frame = (PyFrameObject *)INCREASE_REFCOUNT( frame );
+    result->tb_frame = frame;
 
     result->tb_lasti = 0;
     result->tb_lineno = line;
@@ -214,7 +216,7 @@ public:
         return this->exception_tb;
     }
 
-    inline void addTraceback( PyObject *frame )
+    inline void addTraceback( PyFrameObject *frame )
     {
         PyTracebackObject *traceback_new = MAKE_TRACEBACK( frame, this->line );
 
@@ -224,12 +226,10 @@ public:
 
     inline void setTraceback( PyTracebackObject *traceback )
     {
-        assert( traceback );
-        assert( traceback->ob_refcnt > 0 );
+        assertObject( traceback );
 
         // printf( "setTraceback %d\n", traceback->ob_refcnt );
 
-        // Py_INCREF( traceback );
         this->exception_tb = (PyObject *)traceback;
     }
 
@@ -460,7 +460,7 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( void )
     PyObject *value = tstate->exc_value;
     PyObject *tb = tstate->exc_traceback;
 
-    Py_XINCREF( type );
+    Py_INCREF( type );
     Py_XINCREF( value );
     Py_XINCREF( tb );
 

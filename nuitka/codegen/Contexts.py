@@ -202,6 +202,9 @@ class PythonModuleContext( PythonContextBase ):
     def __repr__( self ):
         return "<PythonModuleContext instance for module %s>" % self.filename
 
+    def getFrameHandle( self ):
+        return Identifier( "frame_%s" % self.getCodeName(), 0 )
+
     def getParent( self ):
         return None
 
@@ -297,6 +300,12 @@ class PythonFunctionContext( PythonChildContextBase ):
 
     def isParametersViaContext( self ):
         return self.function.isGenerator()
+
+    def getFrameHandle( self ):
+        if self.function.isGenerator():
+            return Identifier( "generator->m_frame", 0 )
+        else:
+            return Identifier( "frame_guard.getFrame()", 1 )
 
     def getLocalHandle( self, var_name ):
         return LocalVariableIdentifier( var_name, from_context = self.function.isGenerator() )
@@ -406,6 +415,9 @@ class PythonClassContext( PythonChildContextBase ):
 
     def hasClosureVariable( self, var_name ):
         return var_name in self.class_def.getClosureVariableNames()
+
+    def getFrameHandle( self ):
+        return Identifier( "frame_guard.getFrame()", 1 )
 
     def getLocalHandle( self, var_name ):
         return LocalVariableIdentifier( var_name )

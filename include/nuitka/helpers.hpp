@@ -112,8 +112,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 
 NUITKA_MAY_BE_UNUSED static bool CHECK_IF_TRUE( PyObject *object )
 {
-    assert( object != NULL );
-    assert( object->ob_refcnt > 0 );
+    assertObject( object );
 
     if ( object == Py_True )
     {
@@ -266,62 +265,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION_INPLACE( PyObject *operand
 }
 
 #include "nuitka/helper/richcomparisons.hpp"
-
-#define SEQUENCE_CONTAINS( sequence, element ) _SEQUENCE_CONTAINS( EVAL_ORDERED_2( sequence, element ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_SEQUENCE_CONTAINS( PyObject *sequence, PyObject *element )
-{
-    int result = PySequence_Contains( sequence, element );
-
-    if (unlikely( result == -1 ))
-    {
-        throw _PythonException();
-    }
-
-    return BOOL_FROM( result == 1 );
-}
-
-#define SEQUENCE_CONTAINS_NOT( sequence, element ) _SEQUENCE_CONTAINS_NOT( EVAL_ORDERED_2( sequence, element ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_SEQUENCE_CONTAINS_NOT( PyObject *sequence, PyObject *element )
-{
-    int result = PySequence_Contains( sequence, element );
-
-    if (unlikely( result == -1 ))
-    {
-        throw _PythonException();
-    }
-
-    return BOOL_FROM( result == 0 );
-}
-
-#define SEQUENCE_CONTAINS_BOOL( sequence, element ) _SEQUENCE_CONTAINS_BOOL( EVAL_ORDERED_2( sequence, element ) )
-
-NUITKA_MAY_BE_UNUSED static bool _SEQUENCE_CONTAINS_BOOL( PyObject *sequence, PyObject *element )
-{
-    int result = PySequence_Contains( sequence, element );
-
-    if (unlikely( result == -1 ))
-    {
-        throw _PythonException();
-    }
-
-    return result == 1;
-}
-
-#define SEQUENCE_CONTAINS_NOT_BOOL( sequence, element ) _SEQUENCE_CONTAINS_NOT_BOOL( EVAL_ORDERED_2( sequence, element ) )
-
-NUITKA_MAY_BE_UNUSED static bool _SEQUENCE_CONTAINS_NOT_BOOL( PyObject *sequence, PyObject *element )
-{
-    int result = PySequence_Contains( sequence, element );
-
-    if (unlikely( result == -1 ))
-    {
-        throw _PythonException();
-    }
-
-    return result == 0;
-}
+#include "nuitka/helper/sequences.hpp"
 
 static inline bool Nuitka_Function_Check( PyObject *object );
 static inline PyObject *Nuitka_Function_GetName( PyObject *object );
@@ -552,119 +496,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *TO_LIST( PyObject *seq_obj )
-{
-    PyObject *result = PySequence_List( seq_obj );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *TO_TUPLE( PyObject *seq_obj )
-{
-    PyObject *result = PySequence_Tuple( seq_obj );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
-template<typename... P>
-static PyObject *MAKE_TUPLE( P...eles )
-{
-    int size = sizeof...(eles);
-    assert( size > 0 );
-
-    PyObject *elements[] = {eles...};
-
-    PyObject *result = PyTuple_New( size );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    for ( Py_ssize_t i = 0; i < size; i++ )
-    {
-        assertObject( elements[ i ] );
-
-        PyTuple_SET_ITEM(
-            result,
-            i,
-            INCREASE_REFCOUNT(
-#if NUITKA_REVERSED_ARGS == 1
-            elements[ size - 1 - i ]
-#else
-            elements[ i ]
-#endif
-            )
-        );
-    }
-
-    assert( result->ob_refcnt == 1 );
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static inline PyObject *MAKE_TUPLE()
-{
-    return INCREASE_REFCOUNT( _python_tuple_empty );
-}
-
-template<typename... P>
-static PyObject *MAKE_LIST( P...eles )
-{
-    PyObject *elements[] = {eles...};
-
-    int size = sizeof...(eles);
-    assert( size > 0 );
-
-    PyObject *result = PyList_New( size );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    for ( Py_ssize_t i = 0; i < size; i++ )
-    {
-        assertObject( elements[ i ] );
-
-        PyList_SET_ITEM(
-            result,
-            i,
-#if NUITKA_REVERSED_ARGS == 1
-            elements[ size - 1 - i ]
-#else
-            elements[ i ]
-#endif
-        );
-    }
-
-    assert( result->ob_refcnt == 1 );
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static inline PyObject *MAKE_LIST()
-{
-    PyObject *result = PyList_New( 0 );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
 template<typename... P>
 static PyObject *MAKE_DICT( P...eles )
 {
@@ -798,20 +629,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_STATIC_METHOD( PyObject *method )
     }
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_ELEMENT( PyObject *sequence, Py_ssize_t element )
-{
-    assertObject( sequence );
-
-    PyObject *result = PySequence_GetItem( sequence, element );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
 // Stolen from CPython implementation, so we can access it.
 typedef struct {
     PyObject_HEAD
@@ -925,7 +742,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, in
         throw _PythonException();
     }
 
-    assert( result->ob_refcnt > 0 );
+    assertObject( result );
 
     return result;
 }
@@ -1425,10 +1242,8 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *target, PyObject *attr
 
 NUITKA_MAY_BE_UNUSED static void DEL_ATTRIBUTE( PyObject *target, PyObject *attr_name )
 {
-    assert( target );
-    assert( target->ob_refcnt > 0 );
-    assert( attr_name );
-    assert( attr_name->ob_refcnt > 0 );
+    assertObject( target );
+    assertObject( attr_name );
 
     int status = PyObject_DelAttr( target, attr_name );
 
@@ -1533,6 +1348,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject 
 }
 
 #include "nuitka/builtins.hpp"
+
+#include "nuitka/frameguards.hpp"
 
 #include "nuitka/variables_parameters.hpp"
 #include "nuitka/variables_locals.hpp"
@@ -1654,8 +1471,7 @@ static PyObject *MAKE_LOCALS_DIR( P...variables )
 
 NUITKA_MAY_BE_UNUSED static PyObject *TUPLE_COPY( PyObject *tuple )
 {
-    assert( tuple != NULL );
-    assert( tuple->ob_refcnt > 0 );
+    assertObject( tuple );
 
     assert( PyTuple_CheckExact( tuple ) );
 
@@ -1678,8 +1494,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TUPLE_COPY( PyObject *tuple )
 
 NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 {
-    assert( list != NULL );
-    assert( list->ob_refcnt > 0 );
+    assertObject( list );
 
     assert( PyList_CheckExact( list ) );
 
@@ -1764,8 +1579,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
     return result;
 }
 
-// Create a frame object for the given filename, function name and module object.
-extern PyObject *MAKE_FRAME( PyObject *filename, PyObject *function_name, PyObject *module );
+// Create a frame object for the given code object and module
+extern PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module );
+
+// Create a code object for the given filename and function name
+extern PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line = 0, int arg_count = 88 );
 
 #include "nuitka/importing.hpp"
 
@@ -1775,5 +1593,7 @@ extern PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size );
 extern PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern );
 
 extern void enhancePythonTypes( void );
+
+#define REFRAME_DEBUG 0
 
 #endif
