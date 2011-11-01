@@ -128,9 +128,16 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
 
     def _handleImportModule( self, node ):
         if node.getModule() is None:
+            parent_module = node.getParentModule()
+
+            if parent_module.isPackage():
+                parent_package = parent_module.getFullName()
+            else:
+                parent_package = node.getParentModule().getPackage()
+
             module_package, _module_name, module_filename = Importing.findModule(
                 module_name    = node.getModuleName(),
-                parent_package = node.getParentModule().getPackage(),
+                parent_package = parent_package,
                 level          = node.getLevel()
             )
 
