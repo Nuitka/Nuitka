@@ -351,4 +351,8 @@ if module_mode:
 else:
     target = env.Program( result_file + ".exe", discoverSourceFiles() )
 
+# Remove the target file, otherwise I have seen cases, where it falsely didn't get rebuilt.
+if os.path.exists( target[0].abspath ):
+    os.unlink( target[0].abspath )
+
 Default( target )
