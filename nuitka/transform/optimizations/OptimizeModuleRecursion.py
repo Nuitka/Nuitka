@@ -113,6 +113,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
 
         if module_package is not None:
             package_package, _package_module_name, package_filename = Importing.findModule(
+                source_ref     = module.getSourceReference(),
                 module_name    = module_package,
                 parent_package = None,
                 level          = 1
@@ -126,7 +127,10 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
 
     def _handleImportModule( self, node ):
         if node.getModule() is None:
+            source_ref = node.getSourceReference()
+
             module_package, _module_name, module_filename = Importing.findModule(
+                source_ref     = source_ref,
                 module_name    = node.getModuleName(),
                 parent_package = node.getParentModule().getPackage(),
                 level          = node.getLevel()
@@ -149,6 +153,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
                         for import_item in import_list:
 
                             module_package, _module_name, module_filename = Importing.findModule(
+                                source_ref     = source_ref,
                                 module_name    = import_item,
                                 parent_package = imported_module.getFullName(),
                                 level          = -1,

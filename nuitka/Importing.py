@@ -43,7 +43,7 @@ from logging import warning
 
 _debug_module_finding = False
 
-def findModule( module_name, parent_package, level, warn = True ):
+def findModule( source_ref, module_name, parent_package, level, warn = True ):
     assert level < 2 or parent_package, (module_name, parent_package, level)
 
     if level > 1:
@@ -60,7 +60,7 @@ def findModule( module_name, parent_package, level, warn = True ):
             )
         except ImportError:
             if warn and not _isWhiteListedNotExistingModule( module_name ):
-                warning( "Cannot find '%s' in '%s' on level %d" % ( module_name, parent_package, level ) )
+                warning( "%s: Cannot find '%s' in '%s' on level %d" % ( source_ref.getAsString(), module_name, parent_package, level ) )
 
             if "." in module_name:
                 module_package_name = module_name[ : module_name.rfind( "." ) ]

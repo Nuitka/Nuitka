@@ -470,7 +470,8 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
                 _module_package, module_name, _module_filename = Importing.findModule(
                     module_name    = module_name,
                     parent_package = node.getParentModule().getPackage(),
-                    level          = 0 if source_ref.getFutureSpec().isAbsoluteImport() else 1
+                    level          = 0 if source_ref.getFutureSpec().isAbsoluteImport() else 1,
+                    source_ref     = source_ref
                 )
 
                 return Nodes.CPythonExpressionBuiltinImport(
