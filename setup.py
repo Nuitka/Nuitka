@@ -28,30 +28,77 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-from setuptools import setup, find_packages
 
-version_line, = [
-    line
-    for line in
-    open( "nuitka/Options.py" )
-    if line.startswith( "Nuitka V" )
-]
+import sys, os
 
-version = version_line.split( "V" )[1].strip()
+if not hasattr( sys, "version_info" ) or sys.version_info < (2, 6, 0, 'final'):
+    raise SystemExit( "Nuitka requires Python 2.6 or later.")
 
+if sys.version_info[0] >= 3:
+    raise SystemExit( "Nuitka is not currently ported to 3.x, please help." )
+
+scripts = [ "bin/Nuitka.py", "bin/Python" ]
+
+if os.name == 'nt':
+    scripts.append( 'misc/Nuitka.bat' )
+
+def detectVersion():
+    version_line, = [
+        line
+        for line in
+        open( "nuitka/Options.py" )
+        if line.startswith( "Nuitka V" )
+    ]
+
+    return version_line.split( "V" )[1].strip()
+
+version = detectVersion()
+
+# py2exe needs to be installed to work
+try:
+    import py2exe
+    py2exeloaded = True
+except ImportError:
+    py2exeloaded = False
+
+extra = {}
+
+if py2exeloaded:
+    extra['console'] = [
+        {
+            'script'          : 'Nuitka.py',
+            'copyright'       : 'Copyright (C) 2011 Kay Hayen',
+            'product_version' : version
+        }
+    ]
+
+
+def find_packages():
+    result = []
+
+    for root, _dirnames, filenames in os.walk( "nuitka" ):
+        if "__init__.py" not in filenames:
+            continue
+
+        result.append( root.replace( os.path.sep, "." ) )
+
+    return result
+
+package = find_packages()
+
+from distutils.core import setup, Command, Extension
+
+# TODO: Temporary only, until we have functional installation.
 import sys
 if sys.argv[1:] != [ "sdist", "--formats=gztar,bztar,zip" ]:
-   sys.exit( "Error, only sdist target is currently working." )
+    sys.exit( "Error, only 'sdist --formats=gztar,bztar,zip' is currently working." )
 
 setup(
     name     = "Nuitka",
+    license  = "GPLv3",
     version  = version,
     packages = find_packages(),
-    scripts  = [ 'bin/Nuitka.py', "bin/Python" ],
-
-    # Project uses reStructuredText, so ensure that the docutils get
-    # installed or upgraded on the target machine
-    install_requires = [ 'docutils>=0.3' ],
+    scripts  = scripts,
 
     package_data = {
         # Include extra files
@@ -61,14 +108,8 @@ setup(
     # metadata for upload to PyPI
     author       = "Kay Hayen",
     author_email = "kayhayen@gmx.de",
+    url          = "http://nuitka.net",
+    description  = "Python compiler with full language support and CPython compatibility",
 
-    description = "Nuitka - Python compiler",
-
-    license = "GPLv3",
-
-    keywords = "compiler",
-
-    url = "http://nuitka.net",
-
-    # could also include long_description, download_url, classifiers, etc.
+    keywords     = "compiler,python,nuitka",
 )
