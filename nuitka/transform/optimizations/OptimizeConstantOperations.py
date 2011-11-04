@@ -129,6 +129,16 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
                     "Both branches have no effect, drop conditional."
                 )
 
+    def _optimizeConstantSliceLookup( self, node ):
+        lower = node.getLower()
+        upper = node.getUpper()
+
+        if lower is not None and lower.isExpressionConstantRef() and lower.getConstant() is None:
+            node.setLower( None )
+
+        if upper is not None and upper.isExpressionConstantRef() and upper.getConstant() is None:
+            node.setUpper( None )
+
     def _optimizeForLoop( self, node ):
         no_break = node.getNoBreak()
 
@@ -162,6 +172,10 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
             )
         elif node.isStatementConditional():
             self._optimizeConstantConditionalOperation(
+                node = node
+            )
+        elif node.isExpressionSliceLookup():
+            self._optimizeConstantSliceLookup(
                 node = node
             )
         # TODO: Move this to a separate optimization step.

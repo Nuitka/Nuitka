@@ -106,10 +106,14 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
         parameter_parsing_code += "// Copy given dictionary values to the the respective variables:\n"
 
     if parameters.getDictStarArgVariable() is not None:
+        # In the case of star dict arguments, we need to check what is for it and is arguments
+        # with names we have.
+
         parameter_parsing_code += CodeTemplates.parse_argument_template_dict_star_copy % {
             "dict_star_parameter_name" : parameters.getDictStarArgName(),
         }
 
+        # Check for each variable.
         for variable in top_level_parameters:
             if not variable.isNestedParameterVariable():
                 parameter_parsing_code += CodeTemplates.parse_argument_template_check_dict_parameter_with_star_dict % {

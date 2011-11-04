@@ -780,6 +780,80 @@ def generateSliceAccessIdentifiers( sliced, lower, upper, context ):
 
     return sliced, lower, upper
 
+def generateSliceLookupCode( expression, context ):
+    lower = expression.getLower()
+    upper = expression.getUpper()
+
+    if ( lower is None or lower.isIndexable() ) and ( upper is None or upper.isIndexable() ):
+        expression_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
+            sliced    = expression.getLookupSource(),
+            lower     = lower,
+            upper     = upper,
+            context   = context
+        )
+
+        return Generator.getSliceLookupIndexesCode(
+            source  = expression_identifier,
+            lower   = lower_identifier,
+            upper   = upper_identifier
+        )
+    else:
+        return Generator.getSliceLookupCode(
+            source  = generateExpressionCode(
+                expression = expression.getLookupSource(),
+                context    = context
+            ),
+            lower   = generateExpressionCode(
+                expression = lower,
+                allow_none = True,
+                context    = context
+            ),
+            upper   = generateExpressionCode(
+                expression = upper,
+                allow_none = True,
+                context    = context
+            )
+        )
+
+def generateSliceAssignmentCode( target, assign_source, context ):
+    lower = target.getLower()
+    upper = target.getUpper()
+
+    if ( lower is None or lower.isIndexable() ) and ( upper is None or upper.isIndexable() ):
+        expression_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
+            sliced    = target.getLookupSource(),
+            lower     = lower,
+            upper     = upper,
+            context   = context
+        )
+
+        return Generator.getSliceAssignmentIndexesCode(
+            target     = expression_identifier,
+            upper      = upper_identifier,
+            lower      = lower_identifier,
+            identifier = assign_source
+        )
+    else:
+        return Generator.getSliceAssignmentCode(
+            target     = generateExpressionCode(
+                expression = target.getLookupSource(),
+                context    = context
+            ),
+            identifier = assign_source,
+            lower   = generateExpressionCode(
+                expression = lower,
+                allow_none = True,
+                context    = context
+            ),
+            upper   = generateExpressionCode(
+                expression = upper,
+                allow_none = True,
+                context    = context
+            )
+        )
+
+
+
 def generateFunctionCallNamedArgumentsCode( pairs, context ):
     if pairs:
         return generateDictionaryCreationCode(
@@ -977,17 +1051,9 @@ def generateExpressionCode( expression, context, allow_none = False ):
             )
         )
     elif expression.isExpressionSliceLookup():
-        expression_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
-            sliced    = expression.getLookupSource(),
-            lower     = expression.getLower(),
-            upper     = expression.getUpper(),
-            context   = context
-        )
-
-        identifier = Generator.getSliceLookupCode(
-            source  = expression_identifier,
-            lower   = lower_identifier,
-            upper   = upper_identifier
+        identifier = generateSliceLookupCode(
+            expression = expression,
+            context    = context
         )
     elif expression.isExpressionSliceObject():
         identifier = Generator.getSliceObjectCode(
@@ -1304,18 +1370,10 @@ def generateAssignmentCode( targets, value, context, recursion = 1 ):
 
             code += "\n"
         elif target.isAssignTargetSlice():
-            expression_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
-                sliced    = target.getLookupSource(),
-                lower     = target.getLower(),
-                upper     = target.getUpper(),
-                context   = context
-            )
-
-            code += Generator.getSliceAssignmentCode(
-                target     = expression_identifier,
-                upper      = upper_identifier,
-                lower      = lower_identifier,
-                identifier = assign_source
+            code += generateSliceAssignmentCode(
+                target        = target,
+                assign_source = assign_source,
+                context       = context
             )
 
             code += "\n"

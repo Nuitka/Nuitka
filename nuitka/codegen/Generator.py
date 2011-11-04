@@ -546,6 +546,16 @@ def getSliceLookupCode( lower, upper, source ):
     return Identifier(
         "LOOKUP_SLICE( %s, %s, %s )" % (
             source.getCodeTemporaryRef(),
+            "Py_None" if lower is None else lower.getCodeTemporaryRef(),
+            "Py_None" if upper is None else upper.getCodeTemporaryRef()
+        ),
+        1
+    )
+
+def getSliceLookupIndexesCode( lower, upper, source ):
+    return Identifier(
+        "LOOKUP_INDEX_SLICE( %s, %s, %s )" % (
+            source.getCodeTemporaryRef(),
             lower.getCodeTemporaryRef(),
             upper.getCodeTemporaryRef()
         ),
@@ -1043,19 +1053,27 @@ def getAttributeDelCode( target, attribute ):
         attribute.getCodeTemporaryRef()
     )
 
-def getSliceAssignmentCode( target, lower, upper, identifier  ):
-    return "SET_SLICE( %s, %s, %s, %s );" % (
+def getSliceAssignmentIndexesCode( target, lower, upper, identifier ):
+    return "SET_INDEX_SLICE( %s, %s, %s, %s );" % (
         target.getCodeTemporaryRef(),
         lower.getCodeTemporaryRef(),
         upper.getCodeTemporaryRef(),
         identifier.getCodeTemporaryRef()
     )
 
+def getSliceAssignmentCode( target, lower, upper, identifier ):
+    return "SET_SLICE( %s, %s, %s, %s );" % (
+        identifier.getCodeTemporaryRef(),
+        target.getCodeTemporaryRef(),
+        "Py_None" if lower is None else lower.getCodeTemporaryRef(),
+        "Py_None" if upper is None else upper.getCodeTemporaryRef()
+    )
+
 def getSliceDelCode( target, lower, upper ):
     return "DEL_SLICE( %s, %s, %s );" % (
         target.getCodeTemporaryRef(),
-        lower.getCodeTemporaryRef(),
-        upper.getCodeTemporaryRef()
+        "Py_None" if lower is None else lower.getCodeTemporaryRef(),
+        "Py_None" if upper is None else upper.getCodeTemporaryRef()
     )
 
 def getWithNames( context ):

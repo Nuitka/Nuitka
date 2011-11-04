@@ -110,7 +110,7 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects
 %(context_access_function_impl)s
     bool traceback = false;
 
-    if ( _FRAME_%(function_identifier)s == NULL || _FRAME_%(function_identifier)s->ob_refcnt > 1 )
+    if ( _FRAME_%(function_identifier)s == NULL || _FRAME_%(function_identifier)s->ob_refcnt > 1 || _FRAME_%(function_identifier)s->f_tstate != PyThreadState_GET() )
     {
         if ( _FRAME_%(function_identifier)s )
         {

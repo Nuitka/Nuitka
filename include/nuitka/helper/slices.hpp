@@ -31,13 +31,74 @@
 #ifndef __NUITKA_HELPER_SLICES_H__
 #define __NUITKA_HELPER_SLICES_H__
 
+static inline bool IS_INDEXABLE( PyObject *value )
+{
+    return value == Py_None || PyInt_Check( value ) || PyLong_Check( value ) || PyIndex_Check( value );
+}
+
 #define LOOKUP_SLICE( source, lower, upper ) _LOOKUP_SLICE( EVAL_ORDERED_3( source, lower, upper ) )
 
-NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_SLICE( EVAL_ORDERED_3( PyObject *source, Py_ssize_t lower, Py_ssize_t upper ) )
+NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_SLICE( EVAL_ORDERED_3( PyObject *source, PyObject *lower, PyObject *upper ) )
+{
+    assertObject( source );
+    assertObject( lower );
+    assertObject( upper );
+
+    PySequenceMethods *tp_as_sequence = source->ob_type->tp_as_sequence;
+
+    if ( tp_as_sequence && tp_as_sequence->sq_slice && IS_INDEXABLE( lower ) && IS_INDEXABLE( upper ) )
+    {
+        Py_ssize_t ilow = 0;
+
+        if ( lower != Py_None )
+        {
+            ilow = CONVERT_TO_INDEX( lower );
+        }
+
+        Py_ssize_t ihigh = PY_SSIZE_T_MAX;
+
+        if ( upper != Py_None )
+        {
+            ihigh = CONVERT_TO_INDEX( upper );
+        }
+
+        PyObject *result = PySequence_GetSlice( source, ilow, ihigh );
+
+        if (unlikely( result == NULL ))
+        {
+            throw _PythonException();
+        }
+
+        return result;
+    }
+    else
+    {
+        PyObject *slice = PySlice_New( lower, upper, NULL );
+
+        if (unlikely( slice == NULL ))
+        {
+            throw _PythonException();
+        }
+
+        PyObject *result = PyObject_GetItem( source, slice );
+        Py_DECREF( slice );
+
+        if (unlikely( result == NULL ))
+        {
+            throw _PythonException();
+        }
+
+        return result;
+    }
+}
+
+#define LOOKUP_INDEX_SLICE( source, lower, upper ) _LOOKUP_INDEX_SLICE( EVAL_ORDERED_3( source, lower, upper ) )
+
+NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_INDEX_SLICE( EVAL_ORDERED_3( PyObject *source, Py_ssize_t lower, Py_ssize_t upper ) )
 {
     assertObject( source );
 
-    PyObject *result = PySequence_GetSlice( source, lower, upper);
+    PyObject *result = PySequence_GetSlice( source, lower, upper );
 
     if (unlikely( result == NULL ))
     {
@@ -47,9 +108,62 @@ NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_SLICE( EVAL_ORDERED_3( PyObject *s
     return result;
 }
 
-#define SET_SLICE( target, lower, upper, value ) _SET_SLICE( EVAL_ORDERED_4( target, lower, upper, value ) )
+#define SET_SLICE( value, target, upper, lower ) _SET_SLICE( EVAL_ORDERED_4( value, target, upper, lower ) )
 
-NUITKA_MAY_BE_UNUSED static void _SET_SLICE( EVAL_ORDERED_4( PyObject *target, Py_ssize_t lower, Py_ssize_t upper, PyObject *value ) )
+NUITKA_MAY_BE_UNUSED static void _SET_SLICE( EVAL_ORDERED_4( PyObject *value, PyObject *target, PyObject *lower, PyObject *upper ) )
+{
+    assertObject( target );
+    assertObject( lower );
+    assertObject( upper );
+    assertObject( value );
+
+    PySequenceMethods *tp_as_sequence = target->ob_type->tp_as_sequence;
+
+    if ( tp_as_sequence && tp_as_sequence->sq_ass_slice && IS_INDEXABLE( lower ) && IS_INDEXABLE( upper ) )
+    {
+        Py_ssize_t lower_int = 0;
+
+        if ( lower != Py_None )
+        {
+            lower_int = CONVERT_TO_INDEX( lower );
+        }
+
+        Py_ssize_t upper_int = PY_SSIZE_T_MAX;
+
+        if ( upper != Py_None )
+        {
+            upper_int = CONVERT_TO_INDEX( upper );
+        }
+
+        int status = PySequence_SetSlice( target, lower_int, upper_int, value );
+
+        if (unlikely( status == -1 ))
+        {
+            throw _PythonException();
+        }
+    }
+    else
+    {
+        PyObject *slice = PySlice_New( lower, upper, NULL );
+
+        if (unlikely( slice == NULL ))
+        {
+            throw _PythonException();
+        }
+
+        int status = PyObject_SetItem( target, slice, value );
+        Py_DECREF( slice );
+
+        if (unlikely( status == -1 ))
+        {
+            throw _PythonException();
+        }
+    }
+}
+
+#define SET_INDEX_SLICE( target, lower, upper, value ) _SET_INDEX_SLICE( EVAL_ORDERED_4( target, lower, upper, value ) )
+
+NUITKA_MAY_BE_UNUSED static void _SET_INDEX_SLICE( EVAL_ORDERED_4( PyObject *target, Py_ssize_t lower, Py_ssize_t upper, PyObject *value ) )
 {
     assertObject( target );
     assertObject( value );
