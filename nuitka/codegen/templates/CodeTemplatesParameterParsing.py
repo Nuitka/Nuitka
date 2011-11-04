@@ -32,13 +32,13 @@
 
 """
 
-
 template_parameter_function_entry_point = """\
 static PyObject *%(parse_function_identifier)s( PyObject *self, PyObject *args, PyObject *kw )
 {
 %(context_access)s
     Py_ssize_t args_size = PyTuple_GET_SIZE( args );
     Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
+    NUITKA_MAY_BE_UNUSED Py_ssize_t kw_found = 0;
     Py_ssize_t args_given = args_size;
 %(parameter_parsing_code)s
 
@@ -57,7 +57,8 @@ static PyObject *%(parse_function_identifier)s( PyObject *self, PyObject *_pytho
     Py_INCREF( _python_par_self );
 %(context_access)s
     Py_ssize_t args_size = PyTuple_GET_SIZE( args );
-    Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
+    NUITKA_MAY_BE_UNUSED Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
+    NUITKA_MAY_BE_UNUSED Py_ssize_t kw_found = 0;
     Py_ssize_t args_given = args_size + 1; // Count the self parameter already given as well.
 %(parameter_parsing_code)s
 
@@ -95,23 +96,24 @@ if (unlikely( args_given + kw_size > 0 ))
 
 parse_argument_template_check_counts_with_list_star_arg = r"""
 // Check if too little arguments were given.
-if (unlikely( args_given + kw_size < %(required_parameter_count)d ))
+
+if (unlikely( args_given + kw_found < %(required_parameter_count)d ))
 {
     if ( %(top_level_parameter_count)d == 1 )
     {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least 1 argument (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_size );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least 1 argument (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_found );
     }
     else
     {
 #if PYTHON_VERSION < 270
         if ( kw_size > 0 )
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d non-keyword arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_size );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d non-keyword arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_found );
         }
         else
 #endif
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_size );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_found );
         }
     }
 
@@ -224,33 +226,33 @@ else
 """
 
 parse_argument_template_check_dict_parameter_with_star_dict = """
-// Check if argument %(parameter_name)s was given as plain and keyword argument
+// Check if argument %(parameter_name)s was given as keyword argument
+if ( kw_size > 0 )
 {
     PyObject *kw_arg_value = PyDict_GetItem( _python_par_%(dict_star_parameter_name)s, %(parameter_name_object)s );
 
     if ( kw_arg_value != NULL )
     {
-        if (unlikely( _python_par_%(parameter_name)s ))
-        {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() got multiple values for keyword argument '%(parameter_name)s'" );
-            goto error_exit;
-        }
+        assert( _python_par_%(parameter_name)s == NULL );
 
         _python_par_%(parameter_name)s = INCREASE_REFCOUNT( kw_arg_value );
-
         PyDict_DelItem( _python_par_%(dict_star_parameter_name)s, %(parameter_name_object)s );
+
+        kw_found += 1;
     }
 }
 """
 
 parse_argument_template_check_dict_parameter_without_star_dict = """
-// Check if argument %(parameter_name)s was given as plain and keyword argument
+// Check if argument %(parameter_name)s was given as keyword argument
 if ( kw_size > 0 )
 {
     PyObject *kw_arg_value = PyDict_GetItem( kw, %(parameter_name_object)s );
 
     if ( kw_arg_value != NULL )
     {
+        assert( _python_par_%(parameter_name)s == NULL );
+
         _python_par_%(parameter_name)s = INCREASE_REFCOUNT( kw_arg_value );
     }
 }
@@ -317,13 +319,6 @@ if (unlikely( _python_par_%(parameter_name)s ))
 }
 
 _python_par_%(parameter_name)s = value;
-"""
-
-argparse_template_check_parameter = """\
-if (unlikely( _python_par_%(parameter_name)s == NULL ))
-{
-
-}
 """
 
 parse_argument_template_copy_default_value = """\

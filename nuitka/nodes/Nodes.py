@@ -337,6 +337,10 @@ class CPythonNodeBase:
 
         return True
 
+    def isIndexable( self ):
+        """ Unless we are told otherwise, it's not indexable. """
+
+        return False
 
 class CPythonNamedNodeBase( CPythonNodeBase ):
     def __init__( self, name, source_ref ):
@@ -1162,6 +1166,9 @@ class CPythonExpressionConstantRef( CPythonNodeBase ):
 
     def isNumberConstant( self ):
         return isNumberConstant( self.constant )
+
+    def isIndexable( self ):
+        return self.constant is None or self.isNumberConstant()
 
     def isIterableConstant( self ):
         return isIterableConstant( self.constant )
@@ -2098,8 +2105,12 @@ class CPythonExpressionSliceLookup( CPythonChildrenHaving, CPythonNodeBase ):
         )
 
     getLookupSource = CPythonChildrenHaving.childGetter( "expression" )
-    getUpper = CPythonChildrenHaving.childGetter( "upper" )
+
     getLower = CPythonChildrenHaving.childGetter( "lower" )
+    setLower = CPythonChildrenHaving.childSetter( "lower" )
+
+    getUpper = CPythonChildrenHaving.childGetter( "upper" )
+    setUpper = CPythonChildrenHaving.childSetter( "upper" )
 
 
 class CPythonExpressionSliceObject( CPythonChildrenHaving, CPythonNodeBase ):

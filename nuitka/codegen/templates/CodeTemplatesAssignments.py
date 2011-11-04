@@ -81,8 +81,10 @@ template_inplace_attribute_assignment = """\
 template_inplace_slice_assignment = """\
 {
     PyObjectTemporary target( %(target_identifier)s );
-    PyObjectTemporary value( LOOKUP_SLICE( target.asObject(), %(lower)s, %(upper)s ) );
+    Py_ssize_t lower = %(lower)s;
+    Py_ssize_t upper = %(upper)s;
+    PyObjectTemporary value( LOOKUP_INDEX_SLICE( target.asObject(), lower, upper ) );
     PyObjectTemporary updated( %(operation_identifier)s );
 
-    SET_SLICE( target.asObject(), %(lower)s, %(upper)s, updated.asObject() );
+    SET_INDEX_SLICE( target.asObject(), lower, upper, updated.asObject() );
 }"""

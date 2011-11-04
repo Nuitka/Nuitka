@@ -84,3 +84,13 @@ print `0L`
 
 print repr(L), repr(ss)
 print repr(3L)
+
+print "Slicing on a list:"
+l = [ 1, 3, 5, 7, 11, 13, 17 ]
+
+print l[None:None]
+
+n = None
+print l[n:n]
+print l[3:n]
+print l[n:3]
