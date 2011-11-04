@@ -322,7 +322,7 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
 
 
     def execfile_extractor( self, node ):
-        assert node.parent.isStatementExpressionOnly()
+        assert node.parent.isStatementExpressionOnly(), node.getSourceReference()
 
         positional_args = node.getPositionalArguments()
 

@@ -93,7 +93,7 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
         [
             "PyObject *_python_par_" + variable.getName() + " = NULL;\n"
             for variable in
-            parameters.getAllVariables()[ 0 if not is_method else 1 : ]
+            parameters.getAllVariables()[ 1 if is_method else 0 : ]
         ]
     )
 

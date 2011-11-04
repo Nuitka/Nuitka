@@ -33,6 +33,8 @@
 
 // Helper functions for print. Need to play nice with Python softspace behaviour.
 
+#include "nuitka/exceptions.hpp"
+
 #if PYTHON_VERSION < 300
 
 extern void PRINT_ITEM_TO( PyObject *file, PyObject *object );
