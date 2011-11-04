@@ -65,6 +65,11 @@ def sliceOrderCheck():
 
         return range(2)
 
+    def rvalue4():
+        print "rvalue",
+
+        return range(4)
+
     def low():
         print "low",
 
@@ -80,13 +85,37 @@ def sliceOrderCheck():
 
         return 2
 
-    print lvalue()[ low() : high() : step() ]
+    print "Complex slice lookup", lvalue()[ low() : high() : step() ]
 
+    print "Complex slice assignment",
     lvalue()[ low() : high() : step() ] = rvalue()
     print d
 
+    print "Complex slice del",
     del lvalue()[ low() : high() : step() ]
     print d
+
+    print "Complex inplace slice operation",
+    # TODO: This gives an error in CPython, but not in Nuitka.
+    # lvalue()[ low() : high() : step() ] += rvalue()
+    print d
+
+    d = range(10)
+
+    print "Simple slice lookup", lvalue()[ low() : high() ]
+
+    print "Simple slice assignment",
+    lvalue()[ 3 + low() : 3 + high() ] = rvalue()
+    print d
+
+    print "Simple slice del",
+    del lvalue()[ 3 + low() : 3 + high() ]
+    print d
+
+    print "Simple inplace slice operation",
+    lvalue()[ low() : high() ] += rvalue4()
+    print d
+
 
 def subscriptOrderCheck():
     d={}
