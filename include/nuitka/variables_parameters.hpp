@@ -33,131 +33,145 @@
 
 class PyObjectLocalParameterVariableWithDel
 {
-    public:
-        explicit PyObjectLocalParameterVariableWithDel( PyObject *var_name, PyObject *object )
+public:
+    explicit PyObjectLocalParameterVariableWithDel( PyObject *var_name, PyObject *object )
+    {
+        assertObject( var_name );
+        assertObject( object );
+
+        this->var_name = var_name;
+        this->object = object;
+    }
+
+    ~PyObjectLocalParameterVariableWithDel()
+    {
+        assertObject( this->var_name );
+
+        Py_XDECREF( this->object );
+    }
+
+    void operator=( PyObject *object )
+    {
+        assertObject( object );
+
+        PyObject *old_object = this->object;
+
+        this->object = object;
+
+        // Free old value if any available and owned.
+        Py_XDECREF( old_object );
+    }
+
+    PyObject *asObject() const
+    {
+        if ( this->object == NULL )
         {
-            this->var_name = var_name;
-            this->object = object;
+            PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
+            throw _PythonException();
         }
 
-        ~PyObjectLocalParameterVariableWithDel()
+        assertObject( this->object );
+
+        return this->object;
+    }
+
+    PyObject *asObject1() const
+    {
+        return INCREASE_REFCOUNT( this->asObject() );
+    }
+
+    bool isInitialized() const
+    {
+        return this->object != NULL;
+    }
+
+    void del()
+    {
+        if ( this->object == NULL )
         {
-            Py_XDECREF( this->object );
+            PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
+            throw _PythonException();
         }
 
-        void operator=( PyObject *object )
-        {
-            assert( object );
-            assert( object->ob_refcnt > 0 );
-
-            PyObject *old_object = this->object;
-
-            this->object = object;
-
-            // Free old value if any available and owned.
-            Py_XDECREF( old_object );
-        }
-
-        PyObject *asObject() const
-        {
-            if ( this->object == NULL )
-            {
-                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
-                throw _PythonException();
-            }
-
-            assert( this->object );
-            assert( this->object->ob_refcnt > 0 );
-
-            return this->object;
-        }
-
-        PyObject *asObject1() const
-        {
-            return INCREASE_REFCOUNT( this->asObject() );
-        }
-
-        bool isInitialized() const
-        {
-            return this->object != NULL;
-        }
-
-        void del()
-        {
-            if ( this->object == NULL )
-            {
-                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
-                throw _PythonException();
-            }
+        assertObject( this->object );
 
             Py_DECREF( this->object );
             this->object = NULL;
-        }
+    }
 
-        PyObject *getVariableName() const
-        {
-            return this->var_name;
-        }
+    PyObject *getVariableName() const
+    {
+        assertObject( this->var_name );
 
-    private:
+        return this->var_name;
+    }
 
-        PyObject *var_name;
-        PyObject *object;
+private:
+
+    PyObject *var_name;
+    PyObject *object;
 };
 
 class PyObjectLocalParameterVariableNoDel
 {
-    public:
-        explicit PyObjectLocalParameterVariableNoDel( PyObject *var_name, PyObject *object )
-        {
-            this->var_name = var_name;
-            this->object = object;
-        }
+public:
+    explicit PyObjectLocalParameterVariableNoDel( PyObject *var_name, PyObject *object )
+    {
+        assertObject( object );
+        assertObject( var_name );
 
-        ~PyObjectLocalParameterVariableNoDel()
-        {
-            Py_DECREF( this->object );
-        }
+        this->var_name = var_name;
+        this->object = object;
+    }
 
-        void operator=( PyObject *object )
-        {
-            assert( object );
-            assert( object->ob_refcnt > 0 );
+    ~PyObjectLocalParameterVariableNoDel()
+    {
+        assertObject( this->object );
+        assertObject( this->var_name );
 
-            PyObject *old_object = this->object;
-            this->object = object;
+        Py_DECREF( this->object );
+    }
 
-            // Free old value if any available and owned.
-            Py_DECREF( old_object );
-        }
+    void operator=( PyObject *object )
+    {
+        assertObject( object );
+        assertObject( this->object );
 
-        PyObject *asObject() const
-        {
-            assert( this->object );
-            assert( this->object->ob_refcnt > 0 );
+        PyObject *old_object = this->object;
+        this->object = object;
 
-            return this->object;
-        }
+        // Free old value if any available and owned.
+        Py_DECREF( old_object );
+    }
 
-        PyObject *asObject1() const
-        {
-            return INCREASE_REFCOUNT( this->asObject() );
-        }
+    PyObject *asObject() const
+    {
+        assertObject( this->object );
 
-        bool isInitialized() const
-        {
-            return this->object != NULL;
-        }
+        return this->object;
+    }
 
-        PyObject *getVariableName() const
-        {
-            return this->var_name;
-        }
+    PyObject *asObject1() const
+    {
+        return INCREASE_REFCOUNT( this->asObject() );
+    }
 
-    private:
+    bool isInitialized() const
+    {
+        return true;
+    }
 
-        PyObject *var_name;
-        PyObject *object;
+    PyObject *getVariableName() const
+    {
+        assertObject( this->var_name );
+
+        return this->var_name;
+    }
+
+private:
+
+    PyObject *var_name;
+    PyObject *object;
 };
 
 #endif
