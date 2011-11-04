@@ -237,7 +237,7 @@ print "Function with nested args"
 def nested_args_function( (a,b), c ):
     return a, b, c
 
-print nested_args_function( ( 1, 2 ), 3)
+print nested_args_function( ( 1, 2 ), 3 )
 
 try:
     nested_args_function( ( 1, 2, 3 ), 3 )
@@ -352,8 +352,7 @@ print "Function call with both star args and named args"
 def someFunction( a, b, c, d ):
     print a, b, c, d
 
-# someFunction( a = 1, b = 2, **{ "c" : 3, "d" : 4 } )
-# someFunction( a = 1, b = 2, **{ "c" : 3, "d" : 4, "a" : 5 } )
+someFunction( a = 1, b = 2, **{ "c" : 3, "d" : 4 } )
 
 print "Order of evaluation of function and args:"
 
@@ -525,3 +524,11 @@ l = [ 1, 2, 3 ]
 d = { "b": 8 }
 
 print "Dual star args, but not positional call", functionWithDualStarArgsAndKeywordsOnly( a4 = 1, *l, **d )
+
+def posDoubleStarArgsFunction( a, b, c, *l, **d ):
+    return a, b, c, l, d
+
+l = [2]
+d = { "other" : 7, "c" : 3 }
+
+print "Dual star args consuming function", posDoubleStarArgsFunction( 1,  *l, **d )

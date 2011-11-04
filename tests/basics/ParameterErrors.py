@@ -137,3 +137,16 @@ try:
     obj.methodTwoParameters( a = 1, b = 2, c = 3 )
 except TypeError, e:
     print e
+
+def functionPosBothStarArgs( a, b, c, *l, **d ):
+    print a, b, c, l, d
+
+l = [2]
+d = { "other" : 7 }
+
+print "Call a function with both star arguments and too little arguments:"
+
+try:
+    functionPosBothStarArgs( 1,  *l, **d )
+except TypeError, e:
+    print e
