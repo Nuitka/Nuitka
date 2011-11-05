@@ -189,7 +189,7 @@ builtin_chr_spec = BuiltinParameterSpecNoKeywords( "chr", ( "i", ), 1 )
 builtin_ord_spec = BuiltinParameterSpecNoKeywords( "ord", ( "c", ), 1 )
 builtin_range_spec = BuiltinParameterSpecNoKeywords( "range", ( "start", "stop", "step" ), 2 )
 builtin_repr_spec = BuiltinParameterSpecNoKeywords( "repr", ( "object", ), 1 )
-
+builtin_execfile_spec = BuiltinParameterSpecNoKeywords( "repr", ( "filename", "globals", "locals" ), 1 )
 
 # TODO: The maybe local variable should have a read only indication too, but right
 # now it's not yet done.
@@ -322,38 +322,36 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
 
 
     def execfile_extractor( self, node ):
-        assert node.parent.isStatementExpressionOnly(), node.getSourceReference()
+        def wrapExpressionBuiltinExecfileCreation( filename, globals_arg, locals_arg, source_ref ):
+            # TODO: Ought to be something else than exec, which can cause issues.
 
-        positional_args = node.getPositionalArguments()
-
-        source_ref = node.getSourceReference()
-
-        source_node = Nodes.CPythonExpressionFunctionCall(
-            called_expression = Nodes.CPythonExpressionAttributeLookup(
-                expression     = Nodes.CPythonExpressionBuiltinOpen(
-                    filename   = positional_args[0],
-                    mode       = Nodes.makeConstantReplacementNode(
-                        constant = "rU",
-                        node     = node
+            return Nodes.CPythonStatementExec(
+                source_code = Nodes.CPythonExpressionFunctionCall(
+                    called_expression = Nodes.CPythonExpressionAttributeLookup(
+                        expression     = Nodes.CPythonExpressionBuiltinOpen(
+                            filename   = filename,
+                            mode       = None,
+                            buffering  = None,
+                            source_ref = source_ref
+                        ),
+                        attribute_name = "read",
+                        source_ref     = source_ref
                     ),
-                    buffering  = None,
-                    source_ref = source_ref
+                    positional_args  = (),
+                    pairs            = (),
+                    list_star_arg    = None,
+                    dict_star_arg    = None,
+                    source_ref       = source_ref
                 ),
-                attribute_name = "read",
-                source_ref     = source_ref
-            ),
-            positional_args   = (),
-            pairs             = (),
-            list_star_arg     = None,
-            dict_star_arg     = None,
-            source_ref        = source_ref
-        )
+                globals_arg = globals_arg,
+                locals_arg  = locals_arg,
+                source_ref = source_ref
+            )
 
-        return Nodes.CPythonStatementExec(
-            source_code  = source_node,
-            globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
-            locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
-            source_ref   = source_ref
+        return self._extractBuiltinArgs(
+            node          = node,
+            builtin_class = wrapExpressionBuiltinExecfileCreation,
+            builtin_spec  = builtin_execfile_spec
         )
 
     def eval_extractor( self, node ):

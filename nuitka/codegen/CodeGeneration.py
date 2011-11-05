@@ -1124,8 +1124,13 @@ def generateExpressionCode( expression, context, allow_none = False ):
         )
     elif expression.isExpressionBuiltinEval():
         identifier = generateEvalCode(
-            context         = context,
-            eval_expression = expression
+            context   = context,
+            eval_node = expression
+        )
+    elif expression.isExpressionBuiltinExecfile():
+        identifier = generateExecfileCode(
+            context       = context,
+            execfile_node = expression
         )
     elif expression.isExpressionBuiltinOpen():
         identifier = Generator.getBuiltinOpenCode(
@@ -1564,42 +1569,70 @@ def generateAssignmentInplaceCode( statement, context ):
 
     return code
 
-def generateEvalCode( eval_expression, context ):
-    exec_globals = eval_expression.getGlobals()
 
-    if exec_globals is None:
-        globals_identifier = Generator.getConstantHandle( constant = None, context = context )
+
+def _generateEvalCode( node, context ):
+    globals_value = node.getGlobals()
+
+    if globals_value is None:
+        globals_identifier = Generator.getConstantHandle(
+            constant = None,
+            context  = context
+        )
     else:
         globals_identifier = generateExpressionCode(
-            expression = exec_globals,
+            expression = globals_value,
             context    = context
         )
 
-    exec_locals = eval_expression.getLocals()
+    locals_value = node.getLocals()
 
-    if exec_locals is None:
-        locals_identifier = Generator.getConstantHandle( constant = None, context = context )
+    if locals_value is None:
+        locals_identifier = Generator.getConstantHandle(
+            constant = None,
+            context  = context
+        )
     else:
         locals_identifier = generateExpressionCode(
-            expression = exec_locals,
+            expression = locals_value,
             context    = context
         )
 
     identifier = Generator.getEvalCode(
-        exec_code          = generateExpressionCode(
-            expression   = eval_expression.getSourceCode(),
-            context      = context
+        exec_code           = generateExpressionCode(
+            expression = node.getSourceCode(),
+            context    = context
         ),
-        globals_identifier = globals_identifier,
-        locals_identifier  = locals_identifier,
-        future_flags       = Generator.getFutureFlagsCode(
-            future_spec = eval_expression.getSourceReference().getFutureSpec()
+        globals_identifier  = globals_identifier,
+        locals_identifier   = locals_identifier,
+        filename_identifier = Generator.getConstantCode(
+            constant = "<string>" if node.isExpressionBuiltinEval() else "<execfile>",
+            context  = context
         ),
-        provider           = eval_expression.getParentVariableProvider(),
-        context            = context
+        mode_identifier    = Generator.getConstantCode(
+            constant = "eval" if node.isExpressionBuiltinEval() else "exec",
+            context  = context
+        ),
+        future_flags        = Generator.getFutureFlagsCode(
+            future_spec = node.getSourceReference().getFutureSpec()
+        ),
+        provider            = node.getParentVariableProvider(),
+        context             = context
     )
 
     return identifier
+
+def generateEvalCode( eval_node, context ):
+    return _generateEvalCode(
+        node    = eval_node,
+        context = context
+    )
+
+def generateExecfileCode( execfile_node, context ):
+    return _generateEvalCode(
+        node    = execfile_node,
+        context = context
+    )
 
 def generateExecCode( exec_def, context ):
     exec_globals = exec_def.getGlobals()

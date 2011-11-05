@@ -62,6 +62,9 @@ class OverflowCheckVisitor:
         if node.isStatementExec() and _couldBeNone( node.getGlobals() ):
             declareOverflow()
 
+        if node.isExpressionBuiltinExecfile():
+            declareOverflow()
+
         if node.isStatementExecInline():
             declareOverflow()
 
