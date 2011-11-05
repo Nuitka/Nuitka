@@ -330,7 +330,10 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
                     called_expression = Nodes.CPythonExpressionAttributeLookup(
                         expression     = Nodes.CPythonExpressionBuiltinOpen(
                             filename   = filename,
-                            mode       = None,
+                            mode       = Nodes.makeConstantReplacementNode(
+                                constant = "rU",
+                                node     = node
+                            ),
                             buffering  = None,
                             source_ref = source_ref
                         ),
