@@ -1,4 +1,3 @@
-#!/bin/sh
 #
 #     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -29,20 +28,43 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Scons interface.
 
-if [ "$0" != "bash" ] && [ "$0" != "-bash" ] && [ "$0" != "/bin/bash" ] && [ "$0" != "-su" ] && [ "$0" != "sh" ]
-then
-    cd `dirname $0`/..
-fi
+Interaction with scons. Find the binary, and run it with a set of given
+options.
 
-echo "export PYTHONPATH=`pwd`"
-echo "export PATH=/usr/local/bin/:$PATH:`pwd`/bin"
-echo "export NUITKA_INCLUDE=`pwd`/include"
-echo "export NUITKA_DIALOGS=`pwd`/dialogs"
-echo "export NUITKA_CPP=`pwd`/src"
+"""
 
-export PYTHONPATH=`pwd`
-export PATH=/usr/local/bin/:$PATH:`pwd`/bin
-export NUITKA_INCLUDE=`pwd`/include
-export NUITKA_DIALOGS=`pwd`/dialogs
-export NUITKA_CPP=`pwd`/src
+from nuitka import Options, Tracing, Utils
+
+import os, sys
+
+def getSconsDataPath():
+    return os.path.dirname( __file__ )
+
+def getSconsInlinePath():
+    return Utils.joinpath( getSconsDataPath(), "inline_copy" )
+
+def getSconsBinaryPath():
+    if os.path.exists( "/usr/bin/scons" ):
+        return "/usr/bin/scons"
+    else:
+        return Utils.joinpath( getSconsInlinePath(), "bin", "scons.py" )
+
+def runScons( options, quiet ):
+    if "win" in sys.platform:
+        os.environ[ "SCONS_LIB_DIR" ] = Utils.joinpath( getSconsInlinePath(), "lib", "scons-2.0.1" )
+
+    scons_command = """%(python)s %(binary)s %(quiet)s -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
+        "python"     : sys.executable,
+        "binary"     : getSconsBinaryPath(),
+        "quiet"      : "--quiet" if quiet else "",
+        "scons_file" : Utils.joinpath( getSconsDataPath(), "SingleExe.scons" ),
+        "job_limit"  : Options.getJobLimit(),
+        "options"    : " ".join( "%s=%s" % ( key, value ) for key, value in options.items() )
+    }
+
+    if Options.isShowScons():
+        Tracing.printLine( "Scons command:", scons_command )
+
+    return 0 == os.system( scons_command )

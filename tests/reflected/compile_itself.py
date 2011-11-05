@@ -33,6 +33,7 @@ os.environ[ "PYTHONPATH_BAK" ] = os.environ[ "PYTHONPATH" ]
 PACKAGE_LIST = (
     'nuitka',
     'nuitka/nodes',
+    'nuitka/scons',
     'nuitka/codegen',
     'nuitka/codegen/templates',
     'nuitka/transform',
@@ -91,10 +92,12 @@ def diffRecursive( dir1, dir2 ):
 def executePASS1():
     print "PASS 1: Compiling from compiler running from .py files."
 
+    base_dir = ".." + os.path.sep + ".."
+
     for package in PACKAGE_LIST:
         package = package.replace( "/", os.path.sep )
 
-        source_dir = ".." + os.path.sep + ".." + os.path.sep + package
+        source_dir = base_dir + os.path.sep + package
         target_dir = package
 
         if os.path.exists( target_dir ):
@@ -146,11 +149,22 @@ def executePASS1():
     if result != 0:
         sys.exit( result )
 
+    shutil.copytree(
+        os.path.join( base_dir, "nuitka", "scons", "inline_copy" ),
+        os.path.join( "nuitka", "scons", "inline_copy" )
+    )
+    shutil.copy(
+        os.path.join( base_dir, "nuitka", "scons", "SingleExe.scons" ),
+        os.path.join( "nuitka", "scons", "SingleExe.scons" )
+    )
+
 def compileAndCompareWith( nuitka ):
+    base_dir = ".." + os.path.sep + ".."
+
     for package in PACKAGE_LIST:
         package = package.replace( "/", os.path.sep )
 
-        source_dir = ".." + os.path.sep + ".." + os.path.sep + package
+        source_dir = base_dir + os.path.sep + package
 
         for filename in sorted( os.listdir( source_dir ) ):
             if not filename.endswith( ".py" ):

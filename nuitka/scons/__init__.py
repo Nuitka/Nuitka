@@ -28,39 +28,3 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Scons interface.
-
-Interaction with scons. Find the binary, and run it with a set of given
-options.
-
-"""
-
-from . import Options, Tracing, Utils
-
-import os, sys
-
-def getSconsInlinePath():
-    return Utils.joinpath( os.environ[ "NUITKA_SCONS" ], "inline_copy" )
-
-def getSconsBinaryPath():
-    if os.path.exists( "/usr/bin/scons" ):
-        return "/usr/bin/scons"
-    else:
-        return Utils.joinpath( getSconsInlinePath(), "bin", "scons.py" )
-
-def runScons( options, quiet ):
-    if "win" in sys.platform:
-        os.environ[ "SCONS_LIB_DIR" ] = Utils.joinpath( getSconsInlinePath(), "lib", "scons-2.0.1" )
-
-    scons_command = """%(binary)s %(quiet)s -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
-        "binary"     : getSconsBinaryPath(),
-        "quiet"      : "--quiet" if quiet else "",
-        "scons_file" : Utils.joinpath( os.environ[ "NUITKA_SCONS" ], "SingleExe.scons" ),
-        "job_limit"  : Options.getJobLimit(),
-        "options"    : " ".join( "%s=%s" % ( key, value ) for key, value in options.items() )
-    }
-
-    if Options.isShowScons():
-        Tracing.printLine( "Scons command:", scons_command )
-
-    return 0 == os.system( scons_command )

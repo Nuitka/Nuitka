@@ -36,13 +36,14 @@ C/API, to compile it to either an executable or an extension module.
 """
 
 from . import (
-    SconsInterface,
     TreeBuilding,
     Tracing,
     TreeXML,
     Options,
     Utils
 )
+
+from .scons import SconsInterface
 
 from .codegen import CodeGeneration
 
