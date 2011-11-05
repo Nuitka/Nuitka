@@ -287,6 +287,7 @@ def discoverSourceFiles():
 
     if not module_mode:
         result.append( static_src + "/ExeModuleUnfreezer.cpp" )
+        result.append( static_src + "/InspectPatcher.cpp" )
 
     if win_target:
         result.append( static_src + "/win32_ucontext_src/ucontext.cpp" )

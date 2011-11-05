@@ -1594,6 +1594,8 @@ extern PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool inte
 
 extern void enhancePythonTypes( void );
 
+extern void patchInspectModule( void );
+
 #define _DEBUG_UNFREEZER 0
 #define REFRAME_DEBUG 0
 

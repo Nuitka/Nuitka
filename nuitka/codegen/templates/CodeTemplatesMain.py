@@ -85,6 +85,8 @@ int main( int argc, char *argv[] )
 
     REGISTER_META_PATH_UNFREEZER( _frozes_modules );
 
+    patchInspectModule();
+
     init__main__();
 
     if ( PyErr_Occurred() )
