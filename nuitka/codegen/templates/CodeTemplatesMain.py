@@ -46,142 +46,14 @@ module_inittab_entry = """\
 
 main_program = """\
 // Our own inittab for lookup of "frozen" modules, i.e. the ones included in this binary.
-static struct _inittab _module_inittab[] =
+static struct _inittab _frozes_modules[] =
 {
 %(module_inittab)s
     { NULL, NULL }
 };
 
-#ifdef _NUITKA_EXE
-
-static PyObject *_loader_frozen_modules = NULL;
-
-#define _DEBUG_UNFREEZER 0
-
-static PyObject *_PATH_UNFREEZER_FIND_MODULE( PyObject *self, PyObject *args )
-{
-    PyObject *module_name;
-
-    if ( PyTuple_Check( args ))
-    {
-       assert( PyTuple_Size( args ) == 2 );
-
-       module_name = PyTuple_GetItem( args, 0 );
-    }
-    else
-    {
-       assert( PyString_Check( args ) );
-
-       module_name = args;
-    }
-
-    char *name = PyString_AsString( module_name );
-
-#if _DEBUG_UNFREEZER
-    printf( "Looking for %%s\\n", name );
-#endif
-
-    struct _inittab *current = _module_inittab;
-
-    while ( current->name != NULL )
-    {
-       if ( strcmp( name, current->name ) == 0 )
-       {
-           return INCREASE_REFCOUNT( _loader_frozen_modules );
-       }
-
-       current++;
-    }
-
-#if _DEBUG_UNFREEZER
-    printf( "Didn't find %%s\\n", name );
-#endif
-
-    return INCREASE_REFCOUNT( Py_None );
-}
-
-static PyObject *_PATH_UNFREEZER_LOAD_MODULE( PyObject *self, PyObject *args )
-{
-    PyObject *module_name = args;
-    assert( module_name );
-
-    char *name = PyString_AsString( module_name );
-
-    struct _inittab *current = _module_inittab;
-
-    while ( current->name != NULL )
-    {
-       if ( strcmp( name, current->name ) == 0 )
-       {
-#if _DEBUG_UNFREEZER
-           printf( "Loading %%s\\n", name );
-#endif
-           current->initfunc();
-
-           PyObject *sys_modules = PySys_GetObject( (char *)"modules" );
-
-#if _DEBUG_UNFREEZER
-           printf( "Loaded %%s\\n", name );
-#endif
-
-           return LOOKUP_SUBSCRIPT( sys_modules, module_name );
-       }
-
-       current++;
-    }
-
-    assert( false );
-
-    return INCREASE_REFCOUNT( Py_None );
-}
-
-
-static PyMethodDef _method_def_loader_find_module
-{
-    "find_module",
-    _PATH_UNFREEZER_FIND_MODULE,
-    METH_OLDARGS,
-    NULL
-};
-
-static PyMethodDef _method_def_loader_load_module
-{
-    "load_module",
-    _PATH_UNFREEZER_LOAD_MODULE,
-    METH_OLDARGS,
-    NULL
-};
-
-static void REGISTER_META_PATH_UNFREEZER( void )
-{
-    PyObject *method_dict = PyDict_New();
-
-    assertObject( method_dict );
-
-    PyObject *loader_find_module = PyCFunction_New( &_method_def_loader_find_module, NULL );
-    assertObject( loader_find_module );
-    PyDict_SetItemString( method_dict, "find_module", loader_find_module );
-
-    PyObject *loader_load_module = PyCFunction_New( &_method_def_loader_load_module, NULL );
-    assertObject( loader_load_module );
-    PyDict_SetItemString( method_dict, "load_module", loader_load_module );
-
-    _loader_frozen_modules = PyObject_CallFunctionObjArgs(
-        (PyObject *)&PyClass_Type,
-        PyString_FromString( "_nuitka_compiled_modules_loader" ),
-        _python_tuple_empty,
-        method_dict,
-        NULL
-    );
-
-    assertObject( _loader_frozen_modules );
-
-    int res = PyList_Insert( PySys_GetObject( ( char *)"meta_path" ), 0, _loader_frozen_modules );
-
-    assert( res == 0 );
-}
-
-#endif
+// For embedded modules, to be unpacked. Used by main program only
+extern void REGISTER_META_PATH_UNFREEZER( struct _inittab *_frozes_modules );
 
 // The main program for C++. It needs to prepare the interpreter and then calls the
 // initialization code of the __main__ module.
@@ -203,15 +75,15 @@ int main( int argc, char *argv[] )
 
     enhancePythonTypes();
 
-    // Register the initialization functions for modules included in the binary if any
-    int res = PyImport_ExtendInittab( _module_inittab );
-    assert( res != -1 );
-
     // Set the sys.executable path to the original Python executable on Linux
     // or to python.exe on Windows.
     PySys_SetObject( (char *)"executable", PyString_FromString( %(sys_executable)s ) );
 
-    REGISTER_META_PATH_UNFREEZER();
+    // Register the initialization functions for modules included in the binary if any
+    int res = PyImport_ExtendInittab( _frozes_modules );
+    assert( res != -1 );
+
+    REGISTER_META_PATH_UNFREEZER( _frozes_modules );
 
     init__main__();
 

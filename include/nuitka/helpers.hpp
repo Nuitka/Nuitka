@@ -108,7 +108,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 
 #include "nuitka/exceptions.hpp"
 
-
 #include "printing.hpp"
 
 NUITKA_MAY_BE_UNUSED static bool CHECK_IF_TRUE( PyObject *object )
@@ -1595,6 +1594,7 @@ extern PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool inte
 
 extern void enhancePythonTypes( void );
 
+#define _DEBUG_UNFREEZER 0
 #define REFRAME_DEBUG 0
 
 #endif

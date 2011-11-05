@@ -285,6 +285,9 @@ def discoverSourceFiles():
     result.append( static_src + "/CompiledGenexprType.cpp" )
     result.append( static_src + "/CompiledCodeHelpers.cpp" )
 
+    if not module_mode:
+        result.append( static_src + "/ExeModuleUnfreezer.cpp" )
+
     if win_target:
         result.append( static_src + "/win32_ucontext_src/ucontext.cpp" )
 
