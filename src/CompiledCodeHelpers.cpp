@@ -457,16 +457,28 @@ PyObject *BUILTIN_LEN( PyObject *value )
 // TODO: Move this to global init, so it's not pre-main code that may not be run.
 static PyObject *empty_code = PyBuffer_FromMemory( NULL, 0 );
 
-PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, int arg_count )
+PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, int arg_count, bool is_generator )
 {
+    assertObject( filename );
+    assertObject( function_name );
+    assertObject( empty_code );
+
     assert( PyString_Check( filename ) );
     assert( PyString_Check( function_name ) );
 
-    assertObject( empty_code );
+    int flags = 0;
+
+    if ( is_generator )
+    {
+        flags |= CO_GENERATOR;
+    }
 
     PyCodeObject *result = PyCode_New (
-        arg_count, 0, 0, 0,  // argument count, locals, stacksize, flags
-        empty_code,          // code
+        arg_count,           // argcount
+        0,                   // nlocals
+        0,                   // stacksize
+        flags,               // flags
+        empty_code,          // code (bytecode)
         _python_tuple_empty, // consts (we are not going to be compatible)
         _python_tuple_empty, // names (we are not going to be compatible)
         _python_tuple_empty, // varnames (we are not going to be compatible)

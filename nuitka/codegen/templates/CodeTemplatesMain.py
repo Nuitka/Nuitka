@@ -346,7 +346,7 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
         assert( res == 0 );
     }
 
-    frame_%(module_identifier)s = MAKE_FRAME( MAKE_CODEOBJ( %(filename_identifier)s, %(module_name_obj)s ), _module_%(module_identifier)s );
+    frame_%(module_identifier)s = MAKE_FRAME( MAKE_CODEOBJ( %(filename_identifier)s, %(module_name_obj)s, 0, 0 ), _module_%(module_identifier)s);
 
     // Push the new frame as the currently active one.
     PyThreadState_GET()->frame = frame_%(module_identifier)s;

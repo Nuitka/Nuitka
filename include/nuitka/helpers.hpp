@@ -1583,7 +1583,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
 extern PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module );
 
 // Create a code object for the given filename and function name
-extern PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line = 0, int arg_count = 88 );
+extern PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, int arg_count, bool is_generator = false );
 
 #include "nuitka/importing.hpp"
 
