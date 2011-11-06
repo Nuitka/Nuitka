@@ -27,8 +27,6 @@ os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
 
 tmp_dir = tempfile.gettempdir()
 
-os.environ[ "PYTHONPATH_BAK" ] = os.environ[ "PYTHONPATH" ]
-
 # Could detect this more automatic.
 PACKAGE_LIST = (
     'nuitka',
@@ -210,7 +208,6 @@ def compileAndCompareWith( nuitka ):
 def executePASS2():
     print "PASS 2: Compiling from compiler running from .exe and many .so files."
 
-    os.environ[ "PYTHONPATH" ] = "."
     compileAndCompareWith( "." + os.path.sep + "Nuitka.exe" )
 
     print "OK."
@@ -223,8 +220,6 @@ def executePASS3():
 
     if os.path.exists( tmp_dir + os.path.sep + "Nuitka.build" ):
         shutil.rmtree( tmp_dir + os.path.sep + "Nuitka.build" )
-
-    os.environ[ "PYTHONPATH" ] = os.environ[ "PYTHONPATH_BAK" ]
 
     path = ".." + os.path.sep + ".." + os.path.sep + "bin" + os.path.sep + "Nuitka.py"
 
@@ -246,7 +241,6 @@ def executePASS3():
 def executePASS4():
     print "PASS 4: Compiling the compiler running from single exe"
 
-    os.environ[ "PYTHONPATH" ] = "."
     compileAndCompareWith( tmp_dir + os.path.sep + "Nuitka.exe" )
 
     print "OK."

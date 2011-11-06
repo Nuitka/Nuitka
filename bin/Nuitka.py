@@ -37,12 +37,27 @@ optionally compiles it to either an executable or an extension module.
 
 """
 
+import sys, os
+
+libdir = '@LIBDIR@'
+
+# Two cases:
+if libdir != '@' 'LIBDIR' '@':
+    # Changed by our distutils hook, then use the given path.
+
+    if not os.path.isabs( libdir ):
+        libdir = os.path.join( os.path.dirname( os.path.realpath( __file__ ) ), libdir )
+        libdir = os.path.abspath( libdir )
+
+    sys.path.insert( 0, libdir )
+else:
+    # Unchanged, running from checkout, use the parent directory, the nuitka package ought be there.
+    sys.path.insert( 0, os.path.join( os.path.dirname( __file__ ), ".." ) )
+
 import logging
 logging.basicConfig( format = 'Nuitka:%(levelname)s:%(message)s' )
 
 from nuitka import MainControl, Options
-
-import sys
 
 positional_args = Options.getPositionalArgs()
 

@@ -35,8 +35,6 @@ then
     cd `dirname $0`/..
 fi
 
-echo "export PYTHONPATH=`pwd`"
 echo "export PATH=/usr/local/bin/:$PATH:`pwd`/bin"
 
-export PYTHONPATH=`pwd`
 export PATH=/usr/local/bin/:$PATH:`pwd`/bin

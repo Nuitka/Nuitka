@@ -323,7 +323,7 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
 
     def execfile_extractor( self, node ):
         def wrapExpressionBuiltinExecfileCreation( filename, globals_arg, locals_arg, source_ref ):
-            # TODO: Ought to be something else than exec, which can cause issues.
+            # TODO: Ought to be something else than exec, which can cause Issue#5.
 
             return Nodes.CPythonStatementExec(
                 source_code = Nodes.CPythonExpressionFunctionCall(

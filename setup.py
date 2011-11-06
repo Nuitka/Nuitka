@@ -31,16 +31,16 @@
 
 import sys, os
 
-if not hasattr( sys, "version_info" ) or sys.version_info < (2, 6, 0, 'final'):
-    raise SystemExit( "Nuitka requires Python 2.6 or later.")
+if not hasattr( sys, "version_info" ) or sys.version_info < ( 2, 6, 0, "final" ):
+    raise SystemExit( "Nuitka requires Python 2.6 or later." )
 
 if sys.version_info[0] >= 3:
     raise SystemExit( "Nuitka is not currently ported to 3.x, please help." )
 
 scripts = [ "bin/Nuitka.py", "bin/Python" ]
 
-if os.name == 'nt':
-    scripts.append( 'misc/Nuitka.bat' )
+if "win" in sys.platform:
+    scripts.append( "misc/Nuitka.bat" )
 
 def detectVersion():
     version_line, = [
@@ -64,19 +64,21 @@ except ImportError:
 extra = {}
 
 if py2exeloaded:
-    extra['console'] = [
+    extra[ "console" ] = [
         {
-            'script'          : 'Nuitka.py',
-            'copyright'       : 'Copyright (C) 2011 Kay Hayen',
-            'product_version' : version
+            "script"          : "Nuitka.py",
+            "copyright"       : "Copyright (C) 2011 Kay Hayen",
+            "product_version" : version
         }
     ]
-
 
 def find_packages():
     result = []
 
     for root, _dirnames, filenames in os.walk( "nuitka" ):
+        if "scons-2.0.1" in root:
+            continue
+
         if "__init__.py" not in filenames:
             continue
 
@@ -90,8 +92,69 @@ from distutils.core import setup, Command, Extension
 
 # TODO: Temporary only, until we have functional installation.
 import sys
-if sys.argv[1:] != [ "sdist", "--formats=gztar,bztar,zip" ]:
-    sys.exit( "Error, only 'sdist --formats=gztar,bztar,zip' is currently working." )
+if sys.argv[1:] not in ( [ "sdist", "--formats=gztar,bztar,zip" ], [ "bdist" ] ):
+    sys.exit( "Error, only 'sdist --formats=gztar,bztar,zip' and 'bdist' are currently working." )
+
+from distutils.command.install_scripts import install_scripts
+class nuitka_installscripts( install_scripts ):
+    """
+    This is a specialization of install_scripts that replaces the @LIBDIR@ with
+    the configured directory for modules. If possible, the path is made relative
+    to the directory for scripts.
+    """
+
+    def initialize_options( self ):
+        install_scripts.initialize_options( self )
+
+        self.install_lib = None
+
+    def finalize_options( self ):
+        install_scripts.finalize_options(self)
+
+        self.set_undefined_options( "install", ( "install_lib", "install_lib" ) )
+
+    def run( self ):
+        install_scripts.run( self )
+
+        if ( os.path.splitdrive( self.install_dir )[0] != os.path.splitdrive( self.install_lib )[0] ):
+            # can't make relative paths from one drive to another, so use an
+            # absolute path instead
+            libdir = self.install_lib
+        else:
+            common = os.path.commonprefix( (self. install_dir, self.install_lib ) )
+            rest = self.install_dir[ len(common) : ]
+            uplevel = len( [n for n in os.path.split( rest ) if n ] )
+
+            libdir = uplevel * ( ".." + os.sep ) + self.install_lib[ len(common) : ]
+
+        for outfile in self.outfiles:
+            fp = open( outfile, "rb" )
+            data = fp.read()
+            fp.close()
+
+            # skip binary files
+            if '\0' in data:
+                continue
+
+            data = data.replace( "@LIBDIR@", libdir.encode( "string_escape" ) )
+            fp = open( outfile, "wb" )
+            fp.write( data )
+            fp.close()
+
+cmdclass = {
+    "install_scripts": nuitka_installscripts
+}
+
+def findSources():
+    result = []
+
+    for root, _dirnames, filenames in os.walk( "src" ):
+        for filename in filenames:
+            if filename.endswith( ".cpp" ) or filename.endswith( ".h" ) or filename.endswith( ".asm" ):
+                result.append( os.path.join( root, filename ) )
+
+    return result
+
 
 setup(
     name     = "Nuitka",
@@ -99,10 +162,28 @@ setup(
     version  = version,
     packages = find_packages(),
     scripts  = scripts,
+    cmdclass = cmdclass,
 
     package_data = {
         # Include extra files
-        '': ['*.txt', '*.rst', '*.cpp', '*.hpp', '*.ui' ],
+        "" : ['*.txt', '*.rst', '*.cpp', '*.hpp', '*.ui' ],
+        "nuitka.build" : [
+            "SingleExe.scons",
+            "inline_copy/*/*.py",
+            "inline_copy/*/*/*.py",
+            "inline_copy/*/*/*/*.py",
+            "inline_copy/*/*/*/*/*.py",
+            "static_src/*.cpp",
+            "static_src/*/*.cpp",
+            "static_src/*/*.h",
+            "static_src/*/*.asm",
+            "include/*.hpp",
+            "include/*/*.hpp",
+            "include/*/*/*.hpp",
+        ],
+        "nuitka.gui" : [
+            "dialogs/*.ui",
+        ],
     },
 
     # metadata for upload to PyPI
