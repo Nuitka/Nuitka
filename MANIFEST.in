@@ -12,9 +12,6 @@ include misc/check-with-pylint
 
 include dialogs/InspectPythonTree.ui
 
-# Scons inline copy and general Scons file for Nuitka to compile exe or so.
-recursive-include scons *.py *.scons
-
 recursive-include lib *.py
 
 # Core tests are included along with Nuitka itself.

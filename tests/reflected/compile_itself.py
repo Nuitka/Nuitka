@@ -33,7 +33,7 @@ os.environ[ "PYTHONPATH_BAK" ] = os.environ[ "PYTHONPATH" ]
 PACKAGE_LIST = (
     'nuitka',
     'nuitka/nodes',
-    'nuitka/scons',
+    'nuitka/build',
     'nuitka/codegen',
     'nuitka/codegen/templates',
     'nuitka/transform',
@@ -150,12 +150,20 @@ def executePASS1():
         sys.exit( result )
 
     shutil.copytree(
-        os.path.join( base_dir, "nuitka", "scons", "inline_copy" ),
-        os.path.join( "nuitka", "scons", "inline_copy" )
+        os.path.join( base_dir, "nuitka", "build", "inline_copy" ),
+        os.path.join( "nuitka", "build", "inline_copy" )
     )
     shutil.copy(
-        os.path.join( base_dir, "nuitka", "scons", "SingleExe.scons" ),
-        os.path.join( "nuitka", "scons", "SingleExe.scons" )
+        os.path.join( base_dir, "nuitka", "build", "SingleExe.scons" ),
+        os.path.join( "nuitka", "build", "SingleExe.scons" )
+    )
+    shutil.copytree(
+        os.path.join( base_dir, "nuitka", "build", "static_src" ),
+        os.path.join( "nuitka", "build", "static_src" )
+    )
+    shutil.copytree(
+        os.path.join( base_dir, "nuitka", "build", "include" ),
+        os.path.join( "nuitka", "build", "include" )
     )
 
 def compileAndCompareWith( nuitka ):

@@ -43,7 +43,7 @@ from . import (
     Utils
 )
 
-from .scons import SconsInterface
+from .build import SconsInterface
 
 from .codegen import CodeGeneration
 
