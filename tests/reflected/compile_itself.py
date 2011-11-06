@@ -34,6 +34,7 @@ PACKAGE_LIST = (
     'nuitka',
     'nuitka/nodes',
     'nuitka/build',
+    'nuitka/gui',
     'nuitka/codegen',
     'nuitka/codegen/templates',
     'nuitka/transform',

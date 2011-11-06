@@ -1,4 +1,3 @@
-#!/bin/sh
 #
 #     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -29,14 +28,3 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-
-if [ "$0" != "bash" ] && [ "$0" != "-bash" ] && [ "$0" != "/bin/bash" ] && [ "$0" != "-su" ] && [ "$0" != "sh" ]
-then
-    cd `dirname $0`/..
-fi
-
-echo "export PYTHONPATH=`pwd`"
-echo "export PATH=/usr/local/bin/:$PATH:`pwd`/bin"
-
-export PYTHONPATH=`pwd`
-export PATH=/usr/local/bin/:$PATH:`pwd`/bin

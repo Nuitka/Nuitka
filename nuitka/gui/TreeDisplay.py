@@ -34,7 +34,7 @@ Useful to getting an idea of what the internal representation of Nuitka is about
 code.
 """
 
-from . import SourceCodeReferences
+from nuitka import SourceCodeReferences
 
 from PyQt4 import QtCore, QtGui, uic
 
@@ -195,8 +195,8 @@ class InspectNodeTreeDialog( QtGui.QDialog ):
     def __init__( self, *args ):
         QtGui.QDialog.__init__( self, *args )
 
-        ui_dir = os.environ.get( "NUITKA_DIALOGS", "./dialogs" )
-        ui_filename = ui_dir + "/InspectPythonTree.ui"
+        ui_dir = os.path.dirname( __file__ )
+        ui_filename = os.path.join( ui_dir, "dialogs", "InspectPythonTree.ui" )
 
         uic.loadUi( ui_filename, self )
 
