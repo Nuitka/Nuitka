@@ -98,6 +98,8 @@ public:
         // Put the next frame on top instead.
         PyThreadState_GET()->frame = this->frame_object->f_back;
 
+        assert( PyThreadState_GET()->frame != this->frame_object );
+
         // Should still be good.
         assertFrameObject( this->frame_object );
 
