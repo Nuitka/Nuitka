@@ -92,11 +92,6 @@ package = find_packages()
 
 from distutils.core import setup, Command, Extension
 
-# TODO: Temporary only, until we have functional installation.
-import sys
-if sys.argv[1:] not in ( [ "sdist", "--formats=gztar,bztar,zip" ], [ "bdist" ] ):
-    sys.exit( "Error, only 'sdist --formats=gztar,bztar,zip' and 'bdist' are currently working." )
-
 from distutils.command.install_scripts import install_scripts
 class nuitka_installscripts( install_scripts ):
     """
