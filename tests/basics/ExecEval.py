@@ -101,9 +101,7 @@ def functionExecfile():
     local_vars = dict( global_vars )
 
     print "execfile with globals and locals dict in a function:",
-    # TODO: Won't work yet, Issue#5
-    # print execfile( tmp_filename, global_vars, local_vars ),
-    execfile( tmp_filename, global_vars, local_vars )
+    print execfile( tmp_filename, global_vars, local_vars ),
     print global_vars.keys(), local_vars, e, f
 
 functionExecfile()
