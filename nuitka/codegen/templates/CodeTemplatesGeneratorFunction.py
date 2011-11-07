@@ -113,7 +113,7 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
     bool traceback;
 
     // Must be inside block, or else its d-tor will not be run.
-    if ( _FRAME_%(function_identifier)s == NULL || _FRAME_%(function_identifier)s->ob_refcnt > 1 )
+    if ( _FRAME_%(function_identifier)s == NULL || _FRAME_%(function_identifier)s->ob_refcnt > 1 || _FRAME_%(function_identifier)s->f_tstate != PyThreadState_GET() )
     {
         if ( _FRAME_%(function_identifier)s )
         {
