@@ -15,4 +15,6 @@
 .sconsign.dblite
 tests/reflected/nuitka/
 Nuitka.egg-info/
+build
 dist
+MANIFEST
