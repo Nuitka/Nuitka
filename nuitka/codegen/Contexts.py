@@ -140,6 +140,7 @@ class PythonGlobalContext:
         self.getConstantHandle( "" )
         self.getConstantHandle( True )
         self.getConstantHandle( False )
+        self.getConstantHandle( 0 )
 
         self.getConstantHandle( "__module__" )
         self.getConstantHandle( "__class__" )
@@ -148,6 +149,7 @@ class PythonGlobalContext:
         self.getConstantHandle( "__file__" )
         self.getConstantHandle( "__enter__" )
         self.getConstantHandle( "__exit__" )
+        self.getConstantHandle( "inspect" )
 
         self.eval_orders_used = set( range( 2, 6 ) )
 

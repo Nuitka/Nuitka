@@ -2688,6 +2688,15 @@ class CPythonExpressionBuiltinEval( CPythonChildrenHaving, CPythonNodeBase ):
     getGlobals = CPythonChildrenHaving.childGetter( "globals" )
     getLocals = CPythonChildrenHaving.childGetter( "locals" )
 
+class CPythonExpressionBuiltinExecfile( CPythonExpressionBuiltinEval ):
+    kind = "EXPRESSION_BUILTIN_EXECFILE"
+
+    named_children = ( "source", "globals", "locals" )
+
+    def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
+        CPythonExpressionBuiltinEval.__init__( self, source_code, globals_arg, locals_arg, source_ref )
+
+
 class CPythonExpressionBuiltinOpen( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_BUILTIN_OPEN"
 

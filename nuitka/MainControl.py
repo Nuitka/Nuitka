@@ -36,13 +36,14 @@ C/API, to compile it to either an executable or an extension module.
 """
 
 from . import (
-    SconsInterface,
     TreeBuilding,
     Tracing,
     TreeXML,
     Options,
     Utils
 )
+
+from .build import SconsInterface
 
 from .codegen import CodeGeneration
 
@@ -91,7 +92,7 @@ def dumpTreeXML( tree ):
 def displayTree( tree ):
     # Import only locally so the Qt4 dependency doesn't normally come into play when it's
     # not strictly needed, pylint: disable=W0404
-    from . import TreeDisplay
+    from .gui import TreeDisplay
 
     TreeDisplay.displayTreeInspector( tree )
 

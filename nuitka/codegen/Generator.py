@@ -1648,7 +1648,7 @@ def getFutureFlagsCode( future_spec ):
         return 0
 
 
-def getEvalCode( context, exec_code, globals_identifier, locals_identifier, future_flags, provider ):
+def getEvalCode( context, exec_code, filename_identifier, globals_identifier, locals_identifier, mode_identifier, future_flags, provider ):
     if context.getParent() is None:
         return Identifier(
             CodeTemplates.eval_global_template % {
@@ -1658,14 +1658,8 @@ def getEvalCode( context, exec_code, globals_identifier, locals_identifier, futu
                     context = context
                 ).getCodeExportRef(),
                 "source_identifier"       : exec_code.getCodeTemporaryRef(),
-                "filename_identifier"     : getConstantCode(
-                    constant = "<string>",
-                    context  = context
-                ),
-                "mode_identifier"         : getConstantCode(
-                    constant = "eval",
-                    context  = context
-                ),
+                "filename_identifier"     : filename_identifier,
+                "mode_identifier"         : mode_identifier,
                 "future_flags"            : future_flags,
             },
             1
@@ -1687,14 +1681,8 @@ def getEvalCode( context, exec_code, globals_identifier, locals_identifier, futu
                 "make_globals_identifier" : make_globals_identifier.getCodeExportRef(),
                 "make_locals_identifier"  : make_locals_identifier.getCodeExportRef(),
                 "source_identifier"       : exec_code.getCodeTemporaryRef(),
-                "filename_identifier"     : getConstantCode(
-                    constant = "<string>",
-                    context  = context
-                ),
-                "mode_identifier"         : getConstantCode(
-                    constant = "eval",
-                    context  = context
-                ),
+                "filename_identifier"     : filename_identifier,
+                "mode_identifier"         : mode_identifier,
                 "future_flags"            : future_flags,
             },
             1

@@ -37,7 +37,7 @@ static PyObject *%(parse_function_identifier)s( PyObject *self, PyObject *args, 
 {
 %(context_access)s
     Py_ssize_t args_size = PyTuple_GET_SIZE( args );
-    Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
+    NUITKA_MAY_BE_UNUSED Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_found = 0;
     Py_ssize_t args_given = args_size;
 %(parameter_parsing_code)s

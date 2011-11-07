@@ -27,12 +27,12 @@ os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
 
 tmp_dir = tempfile.gettempdir()
 
-os.environ[ "PYTHONPATH_BAK" ] = os.environ[ "PYTHONPATH" ]
-
 # Could detect this more automatic.
 PACKAGE_LIST = (
     'nuitka',
     'nuitka/nodes',
+    'nuitka/build',
+    'nuitka/gui',
     'nuitka/codegen',
     'nuitka/codegen/templates',
     'nuitka/transform',
@@ -91,10 +91,12 @@ def diffRecursive( dir1, dir2 ):
 def executePASS1():
     print "PASS 1: Compiling from compiler running from .py files."
 
+    base_dir = ".." + os.path.sep + ".."
+
     for package in PACKAGE_LIST:
         package = package.replace( "/", os.path.sep )
 
-        source_dir = ".." + os.path.sep + ".." + os.path.sep + package
+        source_dir = base_dir + os.path.sep + package
         target_dir = package
 
         if os.path.exists( target_dir ):
@@ -146,11 +148,30 @@ def executePASS1():
     if result != 0:
         sys.exit( result )
 
+    shutil.copytree(
+        os.path.join( base_dir, "nuitka", "build", "inline_copy" ),
+        os.path.join( "nuitka", "build", "inline_copy" )
+    )
+    shutil.copy(
+        os.path.join( base_dir, "nuitka", "build", "SingleExe.scons" ),
+        os.path.join( "nuitka", "build", "SingleExe.scons" )
+    )
+    shutil.copytree(
+        os.path.join( base_dir, "nuitka", "build", "static_src" ),
+        os.path.join( "nuitka", "build", "static_src" )
+    )
+    shutil.copytree(
+        os.path.join( base_dir, "nuitka", "build", "include" ),
+        os.path.join( "nuitka", "build", "include" )
+    )
+
 def compileAndCompareWith( nuitka ):
+    base_dir = ".." + os.path.sep + ".."
+
     for package in PACKAGE_LIST:
         package = package.replace( "/", os.path.sep )
 
-        source_dir = ".." + os.path.sep + ".." + os.path.sep + package
+        source_dir = base_dir + os.path.sep + package
 
         for filename in sorted( os.listdir( source_dir ) ):
             if not filename.endswith( ".py" ):
@@ -187,7 +208,6 @@ def compileAndCompareWith( nuitka ):
 def executePASS2():
     print "PASS 2: Compiling from compiler running from .exe and many .so files."
 
-    os.environ[ "PYTHONPATH" ] = "."
     compileAndCompareWith( "." + os.path.sep + "Nuitka.exe" )
 
     print "OK."
@@ -200,8 +220,6 @@ def executePASS3():
 
     if os.path.exists( tmp_dir + os.path.sep + "Nuitka.build" ):
         shutil.rmtree( tmp_dir + os.path.sep + "Nuitka.build" )
-
-    os.environ[ "PYTHONPATH" ] = os.environ[ "PYTHONPATH_BAK" ]
 
     path = ".." + os.path.sep + ".." + os.path.sep + "bin" + os.path.sep + "Nuitka.py"
 
@@ -223,7 +241,6 @@ def executePASS3():
 def executePASS4():
     print "PASS 4: Compiling the compiler running from single exe"
 
-    os.environ[ "PYTHONPATH" ] = "."
     compileAndCompareWith( tmp_dir + os.path.sep + "Nuitka.exe" )
 
     print "OK."

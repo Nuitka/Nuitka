@@ -76,8 +76,13 @@ Subscribe to its mailing lists
 
    http://nuitka.net/blog/nuitka-a-python-compiler/nuitka-mailinglist/
 
-Or contact me via email with your questions
--------------------------------------------
+Report issues or bugs
+---------------------
+
+    http://bugs.nuitka.net
+
+Contact me via email with your questions
+----------------------------------------
 
    mailto:kayhayen@gmx.de
 

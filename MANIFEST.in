@@ -1,16 +1,16 @@
 include LICENSE
+include MANIFEST.in
+
 include bin/*.sh
 include bin/make_diffable
-recursive-include src *.cpp *.hpp *.asm ucontext.h COPYING.LIB
-recursive-include include *.cpp *.hpp
+
+recursive-include src *.cpp *.asm ucontext.h COPYING.LIB
+recursive-include include *.hpp
 
 include misc/*.sh
 include misc/check-with-pylint
 
 include dialogs/InspectPythonTree.ui
-
-# Scons inline copy and general Scons file for Nuitka to compile exe or so.
-recursive-include scons *.py *.scons
 
 recursive-include lib *.py
 

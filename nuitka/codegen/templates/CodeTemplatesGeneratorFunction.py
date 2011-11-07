@@ -89,7 +89,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
         %(fparse_function_identifier)s,
         %(mparse_function_identifier)s,
         %(function_name_obj)s,
-        _CODEOBJ_%(function_identifier)s ? _CODEOBJ_%(function_identifier)s : ( _CODEOBJ_%(function_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(function_name_obj)s, %(line_number)d, %(arg_count)d ) ),
+        _CODEOBJ_%(function_identifier)s ? _CODEOBJ_%(function_identifier)s : ( _CODEOBJ_%(function_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(function_name_obj)s, %(line_number)d, %(arg_count)d, true ) ),
         %(module_identifier)s,
         %(function_doc)s,
         _python_context,
@@ -113,7 +113,7 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
     bool traceback;
 
     // Must be inside block, or else its d-tor will not be run.
-    if ( _FRAME_%(function_identifier)s == NULL || _FRAME_%(function_identifier)s->ob_refcnt > 1 )
+    if ( _FRAME_%(function_identifier)s == NULL || _FRAME_%(function_identifier)s->ob_refcnt > 1 || _FRAME_%(function_identifier)s->f_tstate != PyThreadState_GET() )
     {
         if ( _FRAME_%(function_identifier)s )
         {
