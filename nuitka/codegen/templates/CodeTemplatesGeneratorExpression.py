@@ -105,9 +105,9 @@ static PyObject *%(function_identifier)s( Nuitka_GenexprObject *generator )
         {
             if ( _FRAME_%(function_identifier)s )
             {
-    #if REFRAME_DEBUG
+#if REFRAME_DEBUG
                 puts( "reframe for %(function_identifier)s" );
-    #endif
+#endif
                 Py_DECREF( _FRAME_%(function_identifier)s );
             }
 
