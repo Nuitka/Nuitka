@@ -32,10 +32,10 @@
 
 cd `dirname $0`/..
 
-find nuitka -name \*.py
+find nuitka -name \*.py -a \! -path *inline_copy*
 find bin -name \*.py
-find src -name \*.cpp
-find include -name \*.hpp
+find nuitka/build/static_src -name \*.cpp
+find nuitka/build/include -name \*.hpp
+find nuitka/build/ -name \*.scons
 find misc -name \*.sh
 find bin -name \*.sh
-find scons -name \*.scons
