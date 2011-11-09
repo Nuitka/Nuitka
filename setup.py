@@ -170,6 +170,7 @@ setup(
             "inline_copy/*/*/*.py",
             "inline_copy/*/*/*/*.py",
             "inline_copy/*/*/*/*/*.py",
+            "inline_copy/*/*/*/*/*/*.py",
             "static_src/*.cpp",
             "static_src/*/*.cpp",
             "static_src/*/*.h",
