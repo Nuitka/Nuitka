@@ -114,7 +114,7 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects
     {
         if ( _FRAME_%(function_identifier)s )
         {
-#if REFRAME_DEBUG
+#if _DEBUG_REFRAME
             puts( "reframe for %(function_identifier)s" );
 #endif
             Py_DECREF( _FRAME_%(function_identifier)s );

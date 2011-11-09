@@ -51,7 +51,7 @@ static PyObject *%(class_identifier)s( %(class_dict_args)s )
     {
         if ( _FRAME_%(class_identifier)s )
         {
-#if REFRAME_DEBUG
+#if _DEBUG_REFRAME
             puts( "reframe for %(class_identifier)s" );
 #endif
 

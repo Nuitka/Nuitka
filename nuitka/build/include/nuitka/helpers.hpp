@@ -1597,6 +1597,6 @@ extern void enhancePythonTypes( void );
 extern void patchInspectModule( void );
 
 #define _DEBUG_UNFREEZER 0
-#define REFRAME_DEBUG 0
+#define _DEBUG_REFRAME 0
 
 #endif
