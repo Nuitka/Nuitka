@@ -53,7 +53,7 @@ static struct _inittab _frozes_modules[] =
 };
 
 // For embedded modules, to be unpacked. Used by main program only
-extern void REGISTER_META_PATH_UNFREEZER( struct _inittab *_frozes_modules );
+extern void registerMetaPathBasedUnfreezer( struct _inittab *_frozes_modules );
 
 // The main program for C++. It needs to prepare the interpreter and then calls the
 // initialization code of the __main__ module.
@@ -83,7 +83,7 @@ int main( int argc, char *argv[] )
     int res = PyImport_ExtendInittab( _frozes_modules );
     assert( res != -1 );
 
-    REGISTER_META_PATH_UNFREEZER( _frozes_modules );
+    registerMetaPathBasedUnfreezer( _frozes_modules );
 
     patchInspectModule();
 
@@ -351,7 +351,7 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
     frame_%(module_identifier)s = MAKE_FRAME( MAKE_CODEOBJ( %(filename_identifier)s, %(module_name_obj)s, 0, 0 ), _module_%(module_identifier)s);
 
     // Push the new frame as the currently active one.
-    PyThreadState_GET()->frame = frame_%(module_identifier)s;
+    pushFrameStack( frame_%(module_identifier)s );
 
     // Initialize the standard module attributes.
 %(module_inits)s

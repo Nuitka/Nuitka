@@ -35,7 +35,7 @@ static PyObject *loader_frozen_modules = NULL;
 
 static struct _inittab *frozes_modules = NULL;
 
-static PyObject *_PATH_UNFREEZER_FIND_MODULE( PyObject *self, PyObject *args )
+static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args )
 {
     PyObject *module_name;
 
@@ -77,7 +77,7 @@ static PyObject *_PATH_UNFREEZER_FIND_MODULE( PyObject *self, PyObject *args )
     return INCREASE_REFCOUNT( Py_None );
 }
 
-static PyObject *_PATH_UNFREEZER_LOAD_MODULE( PyObject *self, PyObject *args )
+static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args )
 {
     PyObject *module_name = args;
     assert( module_name );
@@ -116,7 +116,7 @@ static PyObject *_PATH_UNFREEZER_LOAD_MODULE( PyObject *self, PyObject *args )
 static PyMethodDef _method_def_loader_find_module
 {
     "find_module",
-    _PATH_UNFREEZER_FIND_MODULE,
+    _path_unfreezer_find_module,
     METH_OLDARGS,
     NULL
 };
@@ -124,12 +124,12 @@ static PyMethodDef _method_def_loader_find_module
 static PyMethodDef _method_def_loader_load_module
 {
     "load_module",
-    _PATH_UNFREEZER_LOAD_MODULE,
+    _path_unfreezer_load_module,
     METH_OLDARGS,
     NULL
 };
 
-void REGISTER_META_PATH_UNFREEZER( struct _inittab *_frozes_modules )
+void registerMetaPathBasedUnfreezer( struct _inittab *_frozes_modules )
 {
     frozes_modules = _frozes_modules;
 
