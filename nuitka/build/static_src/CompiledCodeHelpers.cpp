@@ -503,6 +503,8 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
     assertCodeObject( code );
     assertObject( module );
 
+    PyFrameObject *current = PyThreadState_GET()->frame;
+
     PyFrameObject *result = PyFrame_New(
         PyThreadState_GET(),                 // thread state
         code,                                // code
@@ -516,6 +518,11 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
     {
         throw _PythonException();
     }
+
+    assert( current == PyThreadState_GET()->frame );
+
+    Py_XDECREF( result->f_back );
+    result->f_back = NULL;
 
     return result;
 }
