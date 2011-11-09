@@ -8,6 +8,7 @@ recursive-include src *.cpp *.asm ucontext.h COPYING.LIB
 recursive-include include *.hpp
 
 include misc/*.sh
+include misc/*.bat
 include misc/check-with-pylint
 
 include dialogs/InspectPythonTree.ui
