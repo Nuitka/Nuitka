@@ -38,7 +38,7 @@ if sys.version_info[0] >= 3:
     raise SystemExit( "Nuitka is not currently ported to 3.x, please help." )
 
 if "win" in sys.platform:
-    scripts = [ "bin/Nuitka.py", "misc/Nuitka.bat" ]
+    scripts = [ "bin/nuitka", "misc/Nuitka.bat" ]
 else:
     scripts = [ "bin/nuitka", "bin/Python" ]
 
