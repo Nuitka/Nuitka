@@ -1,0 +1,5 @@
+nuitka (0.3.15pre2-1) unstable; urgency=low
+
+  * Initial Debian package
+
+ -- Kay Hayen <kayhayen@gmx.de>  Fri, 11 Nov 2011 20:58:55 +0100

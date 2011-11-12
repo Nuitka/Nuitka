@@ -1,0 +1,12 @@
+Source: nuitka
+Maintainer: Kay Hayen <kayhayen@gmx.de>
+Section: python
+Priority: optional
+Build-Depends: python (>= 2.6.6-3), debhelper (>= 7.4.3)
+Standards-Version: 3.9.1
+
+Package: nuitka
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}, g++-4.6 (>= 4.6.1), scons (>=2.1.0-1)
+Description: Python compiler with full language support and CPython compa
+X-Python-Version: >= 2.6
