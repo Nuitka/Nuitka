@@ -1,3 +1,17 @@
+nuitka (0.3.15pre2-2) unstable; urgency=low
+
+  * Some review feedback on the Debian package.
+  * Recommend python-lxml, as it's used by Nuitka to dump XML
+    representation.
+  * Recommend python-qt4, as it may be used to display the node
+    tree in a window.
+  * Repair cut off short description
+  * Removed inline copy of Scons from the package.
+  * Added patch to remove the setting nuitka package in sys.path,
+    not needed in Debian.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 13 Nov 2011 17:42:47 +0100
+
 nuitka (0.3.15pre2-1) unstable; urgency=low
 
   * Initial Debian package

@@ -8,5 +8,6 @@ Standards-Version: 3.9.1
 Package: nuitka
 Architecture: all
 Depends: ${misc:Depends}, ${python:Depends}, g++-4.6 (>= 4.6.1), scons (>=2.1.0-1)
-Description: Python compiler with full language support and CPython compa
+Recommends: python-lxml (>=2.3), python-qt4 (>= 4.8.6)
+Description: Python compiler with full language support and CPython compatibility
 X-Python-Version: >= 2.6
