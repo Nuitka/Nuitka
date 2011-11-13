@@ -91,4 +91,5 @@ os.system( "mv dist/deb_dist/*.deb dist/" )
 
 shutil.rmtree( "dist/deb_dist" )
 
-# assert 0 == os.system( "wine python.exe setup.py bdist_wininst" )
+assert 0 == os.system( "wine python.exe setup.py bdist_wininst --bitmap misc/Nuitka-Installer.bmp" )
+assert 0 == os.system( "chmod 644 dist/*" )
