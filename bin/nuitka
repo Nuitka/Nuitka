@@ -32,13 +32,15 @@
 
 """
 
-This main program translates one module to a C++ source code using Python C/API and
-optionally compiles it to either an executable or an extension module.
+This is the main program of Nuitka, it checks the options and then translates one or more
+modules to a C++ source code using Python C/API in a build directory compiles it to either
+an executable or an extension module.
 
 """
 
 import sys, os
 
+# LIBDIR trick start (marker for removal on platforms that don't need it)
 libdir = '@LIBDIR@'
 
 # Two cases:
@@ -53,6 +55,7 @@ if libdir != '@' 'LIBDIR' '@':
 else:
     # Unchanged, running from checkout, use the parent directory, the nuitka package ought be there.
     sys.path.insert( 0, os.path.join( os.path.dirname( __file__ ), ".." ) )
+# LIBDIR trick end (marker for removal on platforms that don't need it)
 
 import logging
 logging.basicConfig( format = 'Nuitka:%(levelname)s:%(message)s' )
