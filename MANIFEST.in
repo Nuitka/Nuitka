@@ -1,5 +1,6 @@
 include LICENSE
 include MANIFEST.in
+include README.pdf
 
 include bin/*.sh
 include bin/make_diffable
