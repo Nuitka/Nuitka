@@ -93,3 +93,6 @@ shutil.rmtree( "dist/deb_dist" )
 
 assert 0 == os.system( "wine python.exe setup.py bdist_wininst --bitmap misc/Nuitka-Installer.bmp" )
 assert 0 == os.system( "chmod 644 dist/*" )
+
+for filename in os.listdir( "dist" ):
+    assert 0 == os.system( "gpg --local-user 0BCF7396 --detach-sign dist/" + filename )
