@@ -40,6 +40,7 @@ from .__past__ import long, unicode
 
 from . import (
     SourceCodeReferences,
+    SyntaxErrors,
     Tracing,
     Utils
 )
@@ -1242,6 +1243,9 @@ def buildReturnNode( provider, node, source_ref ):
 
 
 def buildYieldNode( provider, node, source_ref ):
+    if provider.isModule():
+        SyntaxErrors.raiseSyntaxError( "'yield' outside function", source_ref )
+
     provider.markAsGenerator()
 
     if node.value is not None:

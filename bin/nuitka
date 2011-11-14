@@ -60,7 +60,7 @@ else:
 import logging
 logging.basicConfig( format = 'Nuitka:%(levelname)s:%(message)s' )
 
-from nuitka import MainControl, Options
+from nuitka import MainControl, SyntaxErrors, Options
 
 positional_args = Options.getPositionalArgs()
 
@@ -75,23 +75,7 @@ try:
         filename = filename
     )
 except (SyntaxError, IndentationError) as e:
-    filename, lineno, colno, message = e.args[1]
-
-    colno = colno - len( message ) + len( message.lstrip() )
-
-    exit_message = """\
-  File "%s", line %d
-    %s
-    %s^
-%s: invalid syntax""" % (
-       filename,
-       lineno,
-       message.strip(),
-       " " * (colno-1),
-       e.__class__.__name__
-    )
-
-    sys.exit( exit_message )
+    sys.exit( SyntaxErrors.formatOutput( e ) )
 
 if Options.shallDumpBuiltTree():
     MainControl.dumpTree( tree )

@@ -44,6 +44,9 @@ execute_tests()
     echo "Running the basic tests with options '$3' with $PYTHON:"
     ./tests/basics/run_all.sh search
 
+    echo "Running the syntax tests with options '$3' with $PYTHON:"
+    ./tests/syntax/run_all.sh search
+
     echo "Running the program tests with options '$3' with $PYTHON:"
     ./tests/programs/run_all.sh search
 
