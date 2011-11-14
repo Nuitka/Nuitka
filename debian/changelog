@@ -1,3 +1,11 @@
+nuitka (0.3.15pre2-3) unstable; urgency=low
+
+  * Lowered dependency for Scons to what Ubuntu Oneiric has and
+    what we have as an inline copy, (scons >=2.0.1) should be
+    sufficient.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Mon, 14 Nov 2011 17:25:06 +0100
+
 nuitka (0.3.15pre2-2) unstable; urgency=low
 
   * Some review feedback on the Debian package.
