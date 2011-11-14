@@ -24,8 +24,7 @@ Requirements
 Environment
 ~~~~~~~~~~~
 
-Set the environment variables like "PYTHONPATH" to the compiler, and extend "PATH" with the
-directory containing Nuitka executables.
+Linux/MSYS shell: Extend "PATH" with the directory containing Nuitka executables.
 
 .. code-block:: sh
 
@@ -36,6 +35,10 @@ With some luck this also works:
 .. code-block:: sh
 
     . misc/create-environment
+
+Windows: Extend "PATH" with the directory containing Nuitka executables. Either have MinGW
+installed to "C:\MinGW" (then Nuitka will find it automatically) or also add it to the
+PATH environment.
 
 
 Command Line
