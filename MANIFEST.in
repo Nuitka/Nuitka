@@ -4,6 +4,7 @@ include README.pdf
 
 include bin/*.sh
 include bin/make_diffable
+include bin/compare_with_cpython
 
 recursive-include src *.cpp *.asm ucontext.h COPYING.LIB
 recursive-include include *.hpp

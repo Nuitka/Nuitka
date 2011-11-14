@@ -33,14 +33,14 @@ do
 
     cd $dir_name
 
-    NUITKA_EXTRA_OPTIONS="$NUITKA_EXTRA_OPTIONS --deep" compare_with_cpython.sh *Main.py silent
+    NUITKA_EXTRA_OPTIONS="$NUITKA_EXTRA_OPTIONS --deep" compare_with_cpython *Main.py silent
     EXIT_CODE=$?
 
     cd - 2>/dev/null
 
     if [ "$EXIT_CODE" != 0 ]
     then
-       echo "FAILED $dir_name, run compare_with_cpython.sh manually"
+       echo "FAILED $dir_name, run compare_with_cpython manually"
 
        if [ "$1" = "search" ]
        then

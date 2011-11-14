@@ -42,19 +42,21 @@ do
         if [ -f /usr/bin/${PYTHON}-dbg ]
         then
             export USE_PYTHON=python-dbg
+            export STDERR_IGNORE=ignore_stderr
         else
             echo "Skip reference count test, CPython debug version not found."
             continue
         fi
     else
         export USE_PYTHON=$PYTHON
+        export STDERR_IGNORE=
     fi
 
-    PYTHON=$USE_PYTHON compare_with_cpython.sh $file silent
+    PYTHON=$USE_PYTHON compare_with_cpython $file silent $STDERR_IGNORE
 
     if [ "$?" != 0 ]
     then
-       echo "FAILED $file, run compare_with_cpython.sh $file"
+       echo "FAILED $file, run compare_with_cpython $file"
 
        if [ "$1" = "search" ]
        then
