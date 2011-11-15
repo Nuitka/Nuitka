@@ -244,6 +244,7 @@ def generateContractionCode( contraction, context ):
 
     if Options.shallHaveStatementLines():
         line_number_code = Generator.getCurrentLineCode(
+            context    = context,
             source_ref = contraction.getSourceReference()
         )
     else:
@@ -1278,7 +1279,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
             ),
             exception_tb_maker         = Generator.getTracebackMakingIdentifier(
                 context = context,
-                line    = expression.getSourceReference().getLineNumber()
             )
         )
     elif expression.isExpressionBuiltinMakeException():
@@ -1757,7 +1757,6 @@ def generateRaiseCode( statement, context ):
             exception_tb_identifier    = None,
             exception_tb_maker         = Generator.getTracebackMakingIdentifier(
                 context = context,
-                line    = statement.getSourceReference().getLineNumber()
             )
         )
     elif exception_tb is None:
@@ -1773,7 +1772,6 @@ def generateRaiseCode( statement, context ):
             exception_tb_identifier    = None,
             exception_tb_maker         = Generator.getTracebackMakingIdentifier(
                 context = context,
-                line    = statement.getSourceReference().getLineNumber()
             )
         )
     else:
@@ -1944,6 +1942,7 @@ def generateForLoopCode( statement, context ):
 
     if Options.shallHaveStatementLines():
         line_number_code = Generator.getCurrentLineCode(
+            context    = context,
             source_ref = statement.getIterated().getSourceReference()
         )
     else:
@@ -2147,7 +2146,6 @@ def _generateStatementCode( statement, context ):
             ),
             exception_tb_maker   = Generator.getTracebackMakingIdentifier(
                 context = context,
-                line    = statement.getSourceReference().getLineNumber()
             )
         )
     elif statement.isStatementExec():
@@ -2205,7 +2203,11 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
         source_ref = statement.getSourceReference()
 
         if Options.shallHaveStatementLines() and source_ref != last_ref:
-            code = Generator.getCurrentLineCode( source_ref ) + code
+            code = Generator.getCurrentLineCode(
+                context    = context,
+                source_ref = source_ref
+            ) + code
+
             last_ref = source_ref
 
         statement_codes = code.split( "\n" )

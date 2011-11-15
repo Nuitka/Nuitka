@@ -35,9 +35,6 @@
 template_constants_reading = """
 #include "nuitka/prelude.hpp"
 
-// The current line of code execution.
-int _current_line;
-
 // Sentinel PyObject to be used for all our call iterator endings. It will become
 // a PyCObject pointing to NULL. TODO: Hopefully that is unique enough.
 PyObject *_sentinel_value = NULL;

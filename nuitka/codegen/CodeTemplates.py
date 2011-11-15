@@ -62,12 +62,14 @@ _PythonExceptionKeeper _caught_%(try_count)d;
 bool _continue_%(try_count)d = false;
 bool _break_%(try_count)d = false;
 bool _return_%(try_count)d = false;
+int _line%(try_count)d = -1;
 try
 {
 %(tried_code)s
 }
 catch ( _PythonException &_exception )
 {
+    _line%(try_count)d = %(line_number_code)s;
     _caught_%(try_count)d.save( _exception );
 }
 catch ( ContinueException &e )
@@ -86,6 +88,7 @@ catch ( ReturnException &e )
 // Final code:
 %(final_code)s
 
+%(line_number_code)s = _line%(try_count)d;
 _caught_%(try_count)d.rethrow();
 
 if ( _continue_%(try_count)d )

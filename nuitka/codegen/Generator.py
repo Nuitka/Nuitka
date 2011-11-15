@@ -1359,9 +1359,10 @@ def getInplaceSliceAssignmentCode( target, lower, upper, operator, identifier ):
 
 def getTryFinallyCode( context, code_tried, code_final ):
     return CodeTemplates.try_finally_template % {
-        "try_count"  : context.allocateTryNumber(),
-        "tried_code" : indented( code_tried ),
-        "final_code" : indented( code_final, 0 )
+        "try_count"        : context.allocateTryNumber(),
+        "tried_code"       : indented( code_tried ),
+        "final_code"       : indented( code_final, 0 ),
+        "line_number_code" : context.getCurrentLineTarget()
     }
 
 def getTryExceptHandlerCode( exception_identifier, exception_assignment, handler_code, \
@@ -1399,7 +1400,7 @@ def getTryExceptCode( context, code_tried, handler_codes, else_code ):
     exception_code = handler_codes
     exception_code += [ "else", "{", "    throw;", "}" ]
 
-    tb_making = getTracebackMakingIdentifier( context, "_exception.getLine()" )
+    tb_making = getTracebackMakingIdentifier( context )
 
     if else_code is not None:
         return CodeTemplates.try_except_else_template % {
@@ -1907,11 +1908,10 @@ def getModuleAccessCode( context ):
 def getFrameMakingIdentifier( context ):
     return context.getFrameHandle()
 
-def getTracebackMakingIdentifier( context, line ):
+def getTracebackMakingIdentifier( context ):
     return Identifier(
-        "MAKE_TRACEBACK( %s, %s )" % (
+        "MAKE_TRACEBACK( %s )" % (
             getFrameMakingIdentifier( context = context ).getCodeExportRef(),
-            line
         ),
         1
     )
@@ -1998,7 +1998,7 @@ def getModuleCode( context, module_name, package_name, codes, doc_identifier, \
     module_code = CodeTemplates.module_body_template % {
         "module_name"           : module_name,
         "module_name_obj"       : getConstantCode(
-            context = context,
+            context  = context,
             constant = module_name
         ),
         "module_identifier"     : module_identifier,
@@ -2826,8 +2826,11 @@ def getGeneratorExpressionCode( context, generator_identifier, generator_name, s
 
     return result
 
-def getCurrentLineCode( source_ref ):
-    return "_current_line = %d;\n" % source_ref.getLineNumber()
+def getCurrentLineCode( context, source_ref ):
+    return """%(current_line)s = %(line_number)d;\n""" % {
+        "line_number"  : source_ref.getLineNumber(),
+        "current_line" : context.getCurrentLineTarget()
+    }
 
 def getCurrentExceptionObjectCode():
     return Identifier( "_exception.getObject()", 0 )

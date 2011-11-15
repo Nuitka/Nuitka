@@ -54,8 +54,6 @@ static void PRINT_ITEMS( bool new_line, PyObject *file, P...eles );
 static PyObject *INCREASE_REFCOUNT( PyObject *object );
 static PyObject *INCREASE_REFCOUNT_X( PyObject *object );
 
-extern int _current_line;
-
 // Helper to check that an object is valid and has reference count better than 0.
 static inline void assertObject( PyObject *value )
 {
@@ -180,9 +178,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION( binary_api api, PyObject
     assertObject( operand1 );
     assertObject( operand2 );
 
-    int line = _current_line;
     PyObject *result = api( operand1, operand2 );
-    _current_line = line;
 
     if (unlikely( result == NULL ))
     {
@@ -197,9 +193,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD( PyObject *operand1, 
     assertObject( operand1 );
     assertObject( operand2 );
 
-    int line = _current_line;
     PyObject *result = PyNumber_Add( operand1, operand2 );
-    _current_line = line;
 
     if (unlikely( result == NULL ))
     {
@@ -214,9 +208,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_MUL( PyObject *operand1, 
     assertObject( operand1 );
     assertObject( operand2 );
 
-    int line = _current_line;
     PyObject *result = PyNumber_Multiply( operand1, operand2 );
-    _current_line = line;
 
     if (unlikely( result == NULL ))
     {
@@ -692,9 +684,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 {
     assertObject( iterator );
 
-    int line = _current_line;
     PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
-    _current_line = line;
 
     if (unlikely( result == NULL ))
     {
@@ -973,8 +963,6 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
             return INCREASE_REFCOUNT( result );
         }
 
-        int line = _current_line;
-
         // Next see if a class has it
         result = FIND_ATTRIBUTE_IN_CLASS( source_instance->in_class, attr_name );
 
@@ -988,7 +976,6 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 
                 if (unlikely( result == NULL ))
                 {
-                    _current_line = line;
                     throw _PythonException();
                 }
 
@@ -1004,7 +991,6 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 
         if (unlikely( PyErr_Occurred() && !PyErr_ExceptionMatches( PyExc_AttributeError ) ))
         {
-            _current_line = line;
             throw _PythonException();
         }
 
@@ -1013,7 +999,6 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
         {
             PyErr_Format( PyExc_AttributeError, "%s instance has no attribute '%s'", PyString_AS_STRING( source_instance->in_class->cl_name ), PyString_AS_STRING( attr_name ) );
 
-            _current_line = line;
             throw _PythonException();
         }
         else
@@ -1023,8 +1008,6 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
                 PyObjectTemporary( MAKE_TUPLE( EVAL_ORDERED_2( source, attr_name ) ) ).asObject(),
                 NULL
             );
-
-            _current_line = line;
 
             if (unlikely( result == NULL ))
             {
@@ -1062,9 +1045,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
 
         if ( type->tp_getattro != NULL )
         {
-            int line = _current_line;
             PyObject *result = (*type->tp_getattro)( source, attr_name );
-            _current_line = line;
 
             if (unlikely( result == NULL ))
             {
@@ -1076,9 +1057,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
         }
         else if ( type->tp_getattr != NULL )
         {
-            int line = _current_line;
             PyObject *result = (*type->tp_getattr)( source, PyString_AS_STRING( attr_name ) );
-            _current_line = line;
 
             if (unlikely( result == NULL ))
             {

@@ -521,6 +521,11 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
 
     assert( current == PyThreadState_GET()->frame );
 
+    // Provide a non-NULL f_trace, so f_lineno will be used in exceptions.
+    result->f_trace = INCREASE_REFCOUNT( Py_None );
+
+    // Remove the reference to the current frame, to be set when actually using it
+    // only.
     Py_XDECREF( result->f_back );
     result->f_back = NULL;
 
@@ -536,8 +541,6 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *loc
     assertObject( locals );
     assertObject( import_items );
 
-    int line = _current_line;
-
     PyObject *import_result;
 
     _python_builtin_import.refresh();
@@ -551,8 +554,6 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *loc
             level
         )
     );
-
-    _current_line = line;
 
     if (unlikely( import_result == NULL ))
     {

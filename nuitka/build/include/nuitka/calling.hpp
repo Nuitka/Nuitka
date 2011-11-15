@@ -208,9 +208,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION( EVAL_ORDERED_3( PyObject *
     assertObject( positional_args );
     assert( named_args == NULL || named_args->ob_refcnt > 0 );
 
-    int line = _current_line;
     PyObject *result = PyObject_Call( function_object, positional_args, named_args );
-    _current_line = line;
 
     if (unlikely( result == NULL ))
     {
