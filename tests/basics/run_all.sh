@@ -41,7 +41,7 @@ do
     then
         if [ -f /usr/bin/${PYTHON}-dbg ]
         then
-            export USE_PYTHON=python-dbg
+            export USE_PYTHON=${PYTHON}-dbg
             export STDERR_IGNORE=ignore_stderr
         else
             echo "Skip reference count test, CPython debug version not found."
