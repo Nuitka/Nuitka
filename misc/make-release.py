@@ -62,24 +62,7 @@ os.chdir( entry )
 # 1. Remove the inline copy of Scons. On Debian there is a dependency.
 shutil.rmtree( "nuitka/build/inline_copy", False )
 
-# 2. Remove the sys.path tricks from Nuitka binary.
-lines = open( "bin/nuitka" ).readlines()
-inside = False
-output = open( "bin/nuitka", "wb" )
-
-for line in lines:
-    if "LIBDIR trick start" in line:
-        inside = True
-
-    if not inside:
-        output.write( line )
-
-    if "LIBDIR trick end" in line:
-        inside = False
-
-output.close()
-
-assert 0 == os.system( "EDITOR='cat </dev/null' dpkg-source --commit . remove-sys-path-trick" )
+assert 0 == os.system( "EDITOR='true' dpkg-source --commit --include-removal . remove-inline-scons" )
 
 assert 0 == os.system( "debuild" )
 
