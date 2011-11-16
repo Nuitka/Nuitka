@@ -1998,8 +1998,8 @@ def getModuleCode( context, module_name, package_name, codes, doc_identifier, \
     module_code = CodeTemplates.module_body_template % {
         "module_name"           : module_name,
         "module_name_obj"       : getConstantCode(
-            context = context,
-            constant = module_name
+            context  = context,
+            constant = module_name if module_name != "__main__" else "<module>"
         ),
         "module_identifier"     : module_identifier,
         "module_functions_decl" : functions_decl,
