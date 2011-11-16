@@ -37,10 +37,10 @@ if not hasattr( sys, "version_info" ) or sys.version_info < ( 2, 6, 0, "final" )
 if sys.version_info[0] >= 3:
     raise SystemExit( "Nuitka is not currently ported to 3.x, please help." )
 
+scripts = [ "bin/nuitka", "bin/nuitka-python" ]
+
 if "win" in sys.platform:
-    scripts = [ "bin/nuitka", "misc/Nuitka.bat" ]
-else:
-    scripts = [ "bin/nuitka", "bin/Python" ]
+    scripts += [ "misc/nuitka.bat", "misc/nuitka-python.bat" ]
 
 def detectVersion():
     version_line, = [

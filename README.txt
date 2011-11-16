@@ -48,24 +48,26 @@ Nuitka has a "--help" option to output what it can do:
 
 .. code-block:: sh
 
-    Nuitka.py --help
+    nuitka --help
 
-The Python command is Nuitka.py, but with different defaults and tries to compile and
-directly execute a script:
+The nuitka-python command is Nuitka.py, but with different defaults and tries to compile
+and directly execute a script:
 
 .. code-block:: sh
 
-    Python --help
+    nuitka-python --help
 
 The options are "--exe" and "--execute", so it is somewhat similar to what plain "python"
-will do.
+will do. Note: In the future, the intention is to support CPython's "python" command lines
+in a compatible way, but currently it isn't so.
 
 If you want to compile recursively, and not only a single file, do it like this:
 
 .. code-block:: sh
 
-    Python --deep program.py
+    nuitka-python --deep program.py
 
+Note: In the future, "--deep" might become the default of "nuitka-python".
 
 Where to go next
 ~~~~~~~~~~~~~~~~
