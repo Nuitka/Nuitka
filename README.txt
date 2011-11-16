@@ -140,6 +140,8 @@ The generated code never lets the CPython run time switch threads, so its chance
 are reduced, which may lead to problems. I personally do not care much about threads,
 would use subprocesses anyway.
 
+http://bugs.nuitka.net/issue10
+
 Start of function call vs. end of function call in traceback output
 -------------------------------------------------------------------
 
@@ -150,6 +152,8 @@ source on our own and search for the end of the function call.
 
 Maybe someone will do it someday. I personally prefer the start of the function call,
 because it shows the function called.
+
+http://bugs.nuitka.net/issue9
 
 Yield in generator expressions is not supported
 -----------------------------------------------
