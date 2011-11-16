@@ -33,3 +33,9 @@
 import os, sys, shutil
 
 assert 0 == os.system( "rst2pdf README.txt" )
+
+if not os.path.exists( "man" ):
+    os.mkdir( "man" )
+
+assert 0 == os.system( "help2man --no-discard-stderr --no-info --include doc/nuitka-man-include.txt nuitka >doc/nuitka.1" )
+assert 0 == os.system( "help2man --no-discard-stderr --no-info nuitka-python >doc/nuitka-python.1" )

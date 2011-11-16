@@ -1,3 +1,11 @@
+nuitka (0.3.15pre3-2) unstable; urgency=low
+
+  * Added man pages for "nuitka" and "nuitka-python", the first
+    with an examples section that shows the most important uses
+    of the "nuitka" binary.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Wed, 16 Nov 2011 23:58:01 +0100
+
 nuitka (0.3.15pre3-1) unstable; urgency=low
 
   * New upstream version

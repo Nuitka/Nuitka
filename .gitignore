@@ -19,3 +19,4 @@ build
 dist
 MANIFEST
 README.pdf
+doc/*.1
