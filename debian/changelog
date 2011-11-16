@@ -3,7 +3,7 @@ nuitka (0.3.15pre3-1) unstable; urgency=low
   * New upstream version
   * Renamed /usr/bin/Python to /usr/bin/nuitka-python
 
- -- Kay Hayen <hayen@anna>  Wed, 16 Nov 2011 08:43:22 +0100
+ -- Kay Hayen <kayhayen@gmx.de>  Wed, 16 Nov 2011 08:43:22 +0100
 
 nuitka (0.3.15pre2-3) unstable; urgency=low
 
