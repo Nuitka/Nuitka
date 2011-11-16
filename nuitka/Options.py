@@ -40,9 +40,9 @@ from optparse import OptionParser
 
 import sys, os, logging
 
-# Indicator if we were called as "Python" in which case we assume some other
+# Indicator if we were called as "nuitka-python" in which case we assume some other
 # defaults and work a bit different with parameters.
-is_Python = os.path.basename( sys.argv[0] ) == "Python"
+is_nuitka_python = os.path.basename( sys.argv[0] ).lower() == "nuitka-python"
 
 parser = OptionParser()
 
@@ -50,7 +50,7 @@ parser.add_option(
     "--exe",
     action  = "store_true",
     dest    = "executable",
-    default = is_Python,
+    default = is_nuitka_python,
     help    = "Create a standalone executable instead of a compiled extension module."
 )
 parser.add_option(
@@ -73,7 +73,7 @@ parser.add_option(
     "--execute",
     action  = "store_true",
     dest    = "immediate_execution",
-    default = is_Python,
+    default = is_nuitka_python,
     help    = "Execute immediately the created binary. (or import the compiled module)"
 )
 
@@ -230,8 +230,7 @@ parser.add_option(
 Specify the allowed number of jobs. Defaults to system CPU count (%d).""" % core_count,
 )
 
-
-if is_Python:
+if is_nuitka_python:
     count = 0
 
     for count, arg in enumerate( sys.argv ):
