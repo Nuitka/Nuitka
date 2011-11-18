@@ -20,3 +20,4 @@ dist
 MANIFEST
 README.pdf
 doc/*.1
+doc/man-*.html

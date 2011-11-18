@@ -30,7 +30,7 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-import os, sys, shutil
+import os, sys, shutil, re
 
 assert 0 == os.system( "rst2pdf README.txt" )
 
@@ -39,3 +39,21 @@ if not os.path.exists( "man" ):
 
 assert 0 == os.system( "help2man --no-discard-stderr --no-info --include doc/nuitka-man-include.txt nuitka >doc/nuitka.1" )
 assert 0 == os.system( "help2man --no-discard-stderr --no-info nuitka-python >doc/nuitka-python.1" )
+
+assert 0 == os.system( "man2html doc/nuitka.1 >doc/man-nuitka.html" )
+assert 0 == os.system( "man2html doc/nuitka-python.1 >doc/man-nuitka-python.html" )
+
+def getFile( filename ):
+    return open( filename ).read()
+
+contents = getFile( "doc/man-nuitka.html" )
+new_contents = contents[ : contents.rfind( "<HR>" ) ] + contents[ contents.rfind( "</BODY>" ) : ]
+assert new_contents != contents
+
+open( "doc/man-nuitka.html", "w" ).write( new_contents )
+
+contents = getFile( "doc/man-nuitka-python.html" )
+new_contents = contents[ : contents.rfind( "<HR>" ) ] + contents[ contents.rfind( "</BODY>" ) : ]
+assert new_contents != contents
+
+open( "doc/man-nuitka-python.html", "w" ).write( new_contents )
