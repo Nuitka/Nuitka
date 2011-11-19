@@ -72,8 +72,9 @@ if not silent_mode:
     print "Nuitka:"
     print "*******************************************************"
 
-nuitka_cmd = "%s `which Nuitka.py` %s --exe --execute %s" % (
+nuitka_cmd = "%s %s %s --exe --execute %s" % (
     os.environ[ "PYTHON" ],
+    os.path.join( os.path.dirname( __file__ ), "Nuitka.py" ),
     os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ),
     module
 )
