@@ -8,9 +8,6 @@ License: GPL-3
 Files: nuitka/build/static_src/arm_context_src/*
 License: MIT
 
-Files: nuitka/build/static_src/win32_context_src/*
-License: LGPL-2.1
-
 License:
  Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
  .
