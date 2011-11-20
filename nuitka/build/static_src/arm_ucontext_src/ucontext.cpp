@@ -64,13 +64,3 @@ void makecontext(ucontext_t *uc, void (*fn)(void), int argc, ...)
     uc->uc_mcontext.arm_r10 = (unsigned long)sp;
     uc->uc_mcontext.arm_fp = (unsigned long)fn;
 }
-
-int swapcontext(ucontext_t *oucp, const ucontext_t *ucp)
-{
-    if (getcontext(oucp) == 0)
-    {
-        setcontext(ucp);
-    }
-
-    return 0;
-}

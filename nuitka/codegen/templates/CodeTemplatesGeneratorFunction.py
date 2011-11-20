@@ -170,7 +170,7 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
         generator->m_yielded = NULL;
     }
 
-    swapcontext( &generator->m_yielder_context, &generator->m_caller_context );
+    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
 }
 """
 
@@ -193,7 +193,7 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects
             _context_generator_%(function_identifier)s_destructor
         );
 
-        if ( result == NULL )
+        if (unlikely( result == NULL ))
         {
             delete _python_context;
 
