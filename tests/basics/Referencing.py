@@ -387,6 +387,22 @@ def simpleFunction49():
 
    a = x, y = b,e = (c,d)
 
+b = range(10)
+
+def simpleFunction50():
+   def getF():
+      def f():
+         for i in b:
+            yield i
+
+      return f
+
+   f = getGeneratorFunction()
+
+   for x in range( 2 ):
+      r = list( f() )
+
+
 x = 17
 
 def checkReferenceCount( checked_function, max_rounds = 4 ):
@@ -466,3 +482,4 @@ checkReferenceCount( simpleFunction46 )
 checkReferenceCount( simpleFunction47 )
 checkReferenceCount( simpleFunction48 )
 checkReferenceCount( simpleFunction49 )
+checkReferenceCount( simpleFunction50 )
