@@ -255,6 +255,12 @@ if options.version:
 if options.verbose:
     logging.getLogger().setLevel( logging.DEBUG )
 
+if options.follow_imports and not options.executable:
+    sys.exit( "Error, options '--deep' makes no sense without option '--exe'." )
+
+if options.follow_stdlib and not options.follow_imports:
+    sys.exit( "Error, options '--really-deep' makes no sense without option '--deep'." )
+
 def shallTraceExecution():
     return options.trace_execution
 
