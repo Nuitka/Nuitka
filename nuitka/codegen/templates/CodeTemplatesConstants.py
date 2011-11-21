@@ -36,7 +36,7 @@ template_constants_reading = """
 #include "nuitka/prelude.hpp"
 
 // Sentinel PyObject to be used for all our call iterator endings. It will become
-// a PyCObject pointing to NULL. TODO: Hopefully that is unique enough.
+// a PyCObject pointing to NULL. It's address is unique, and that's enough.
 PyObject *_sentinel_value = NULL;
 
 PyModuleObject *_module_builtin = NULL;
