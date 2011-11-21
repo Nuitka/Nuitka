@@ -198,3 +198,12 @@ def functionGenerators():
     print "Complex function generator", y, y(), list( y() )
 
 functionGenerators()
+
+
+def strangeLambdaGeneratorExpression():
+    x = ((yield) for i in (1,2) if (yield))
+
+    print "Strange lamba generator expression"
+    print list(x)
+
+strangeLambdaGeneratorExpression()

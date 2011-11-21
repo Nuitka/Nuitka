@@ -136,37 +136,29 @@ Nuitka's compiled function objects, so there is no way to provide bytecode.
 Threading can block it seems
 ----------------------------
 
-The generated code never lets the CPython run time switch threads, so its chances to do so
-are reduced, which may lead to problems. I personally do not care much about threads,
-would use subprocesses anyway.
+Bug tracker link: `"Threading is not supported, never yields the execution to other threads" <http://bugs.nuitka.net/issue10>`_
 
-http://bugs.nuitka.net/issue10
+The generated code never lets the CPython run time switch threads, so its chances to do so
+are reduced, which may lead to dead lock problems.
+
+Help is welcome to add support for threading to Nuitka.
 
 Start of function call vs. end of function call in traceback output
 -------------------------------------------------------------------
 
-In CPython the traceback points to the end of the function call, whereas Nuitka has it
-point to the first line of the function call. This is due to the use of the "ast.parse"
-over bytecode it seems and not easy to overcome. It would require parsing the Python
-source on our own and search for the end of the function call.
+Bug tracker link: `"In tracebacks Nuitka uses start of call line, whereas CPython uses end of call line" <http://bugs.nuitka.net/issue9>`_
 
-Maybe someone will do it someday. I personally prefer the start of the function call,
-because it shows the function called.
+In CPython the traceback points to the end of the function call, whereas in Nuitka they
+point to the first line of the function call.
 
-http://bugs.nuitka.net/issue9
+This is due to the use of the "ast.parse" over bytecode it seems and not easy to
+overcome. It would require parsing the Python source on our own and search for the end of
+the function call.
 
-Yield in generator expressions is not supported
------------------------------------------------
+Maybe someone will do it someday. Help is welcome.
 
-In CPython you can write this strange construct:
-
-.. code-block:: python
-
-   x = (i for i in (yield) if (yield))
-
-This is not currently supported in Nuitka, "only" generator functions are. It can be and
-will be, but it's a strange corner case to start with.
-
+We can consider making the compatible behaviour optional, and use it for the tests only as
+the called expression clearly is more useful to see then the closing brace.
 
 Optimizations
 =============
