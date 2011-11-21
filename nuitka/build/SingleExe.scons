@@ -254,8 +254,10 @@ if debug_mode or unstriped_mode:
     # from it.
     if win_target and "linux" in sys.platform:
         env.Append( CCFLAGS = [ "-gstabs" ] )
+        env.Append( ASFLAGS = [ "-gstabs" ] )
     else:
         env.Append( CCFLAGS = [ "-g", "-feliminate-unused-debug-types" ] )
+        env.Append( ASFLAGS = [ "-g" ] )
 
 # When debugging, optimize less than when optimizing, when not remove the assertions.
 if debug_mode:
