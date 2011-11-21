@@ -102,7 +102,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
 """
 
 function_body_template = """
-static PyFrameObject *_FRAME_%(function_identifier)s = NULL;
+static PyFrameObject *frame_%(function_identifier)s = NULL;
 static PyCodeObject *_CODEOBJ_%(function_identifier)s = NULL;
 
 static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects_decl)s )
@@ -110,20 +110,20 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects
 %(context_access_function_impl)s
     bool traceback = false;
 
-    if ( _FRAME_%(function_identifier)s == NULL || _FRAME_%(function_identifier)s->ob_refcnt > 1 || _FRAME_%(function_identifier)s->f_tstate != PyThreadState_GET() )
+    if ( frame_%(function_identifier)s == NULL || frame_%(function_identifier)s->ob_refcnt > 1 || frame_%(function_identifier)s->f_tstate != PyThreadState_GET() )
     {
-        if ( _FRAME_%(function_identifier)s )
+        if ( frame_%(function_identifier)s )
         {
 #if _DEBUG_REFRAME
             puts( "reframe for %(function_identifier)s" );
 #endif
-            Py_DECREF( _FRAME_%(function_identifier)s );
+            Py_DECREF( frame_%(function_identifier)s );
         }
 
-        _FRAME_%(function_identifier)s = MAKE_FRAME( _CODEOBJ_%(function_identifier)s, %(module_identifier)s );
+        frame_%(function_identifier)s = MAKE_FRAME( _CODEOBJ_%(function_identifier)s, %(module_identifier)s );
     }
 
-    FrameGuard frame_guard( _FRAME_%(function_identifier)s );
+    FrameGuard frame_guard( frame_%(function_identifier)s );
 
     try
     {

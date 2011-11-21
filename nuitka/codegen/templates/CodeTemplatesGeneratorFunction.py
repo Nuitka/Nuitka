@@ -105,7 +105,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
 """
 
 genfunc_yielder_template = """
-static PyFrameObject *_FRAME_%(function_identifier)s = NULL;
+static PyFrameObject *frame_%(function_identifier)s = NULL;
 static PyCodeObject *_CODEOBJ_%(function_identifier)s = NULL;
 
 static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
@@ -113,21 +113,21 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
     bool traceback;
 
     // Must be inside block, or else its d-tor will not be run.
-    if ( _FRAME_%(function_identifier)s == NULL || _FRAME_%(function_identifier)s->ob_refcnt > 1 || _FRAME_%(function_identifier)s->f_tstate != PyThreadState_GET() )
+    if ( frame_%(function_identifier)s == NULL || frame_%(function_identifier)s->ob_refcnt > 1 || frame_%(function_identifier)s->f_tstate != PyThreadState_GET() )
     {
-        if ( _FRAME_%(function_identifier)s )
+        if ( frame_%(function_identifier)s )
         {
 #if _DEBUG_REFRAME
             puts( "reframe for %(function_identifier)s" );
 #endif
-            Py_DECREF( _FRAME_%(function_identifier)s );
+            Py_DECREF( frame_%(function_identifier)s );
         }
 
-        _FRAME_%(function_identifier)s = MAKE_FRAME( _CODEOBJ_%(function_identifier)s, %(module_identifier)s );
+        frame_%(function_identifier)s = MAKE_FRAME( _CODEOBJ_%(function_identifier)s, %(module_identifier)s );
     }
 
-    Py_INCREF( _FRAME_%(function_identifier)s );
-    generator->m_frame = _FRAME_%(function_identifier)s;
+    Py_INCREF( frame_%(function_identifier)s );
+    generator->m_frame = frame_%(function_identifier)s;
 
     Py_CLEAR( generator->m_frame->f_back );
 

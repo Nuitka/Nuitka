@@ -88,7 +88,7 @@ case %(iterator_index)d:
 """
 
 genexpr_function_template = """
-static PyFrameObject *_FRAME_%(function_identifier)s = NULL;
+static PyFrameObject *frame_%(function_identifier)s = NULL;
 static PyCodeObject *_CODEOBJ_%(function_identifier)s = NULL;
 
 // The function that is iterated over during generator expression execution. It is
@@ -101,21 +101,21 @@ static PyObject *%(function_identifier)s( Nuitka_GenexprObject *generator )
 
     if ( generator->m_frame == NULL )
     {
-        if ( _FRAME_%(function_identifier)s == NULL || _FRAME_%(function_identifier)s->ob_refcnt > 1 || _FRAME_%(function_identifier)s->f_tstate != PyThreadState_GET() )
+        if ( frame_%(function_identifier)s == NULL || frame_%(function_identifier)s->ob_refcnt > 1 || frame_%(function_identifier)s->f_tstate != PyThreadState_GET() )
         {
-            if ( _FRAME_%(function_identifier)s )
+            if ( frame_%(function_identifier)s )
             {
 #if _DEBUG_REFRAME
                 puts( "reframe for %(function_identifier)s" );
 #endif
-                Py_DECREF( _FRAME_%(function_identifier)s );
+                Py_DECREF( frame_%(function_identifier)s );
             }
 
-            _FRAME_%(function_identifier)s = MAKE_FRAME( _CODEOBJ_%(function_identifier)s, %(module_identifier)s );
+            frame_%(function_identifier)s = MAKE_FRAME( _CODEOBJ_%(function_identifier)s, %(module_identifier)s );
         }
 
-        Py_INCREF( _FRAME_%(function_identifier)s );
-        generator->m_frame = _FRAME_%(function_identifier)s;
+        Py_INCREF( frame_%(function_identifier)s );
+        generator->m_frame = frame_%(function_identifier)s;
 
         Py_CLEAR( generator->m_frame->f_back );
 

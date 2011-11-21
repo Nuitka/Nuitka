@@ -40,22 +40,22 @@ static PyObject *MAKE_CLASS_%(class_identifier)s( %(class_creation_args)s );
 """
 
 class_dict_template = """
-static PyFrameObject *_FRAME_%(class_identifier)s = NULL;
+static PyFrameObject *frame_%(class_identifier)s = NULL;
 static PyCodeObject *_CODEOBJ_%(class_identifier)s = NULL;
 
 static PyObject *%(class_identifier)s( %(class_dict_args)s )
 {
     bool traceback = false;
 
-    if ( _FRAME_%(class_identifier)s == NULL || _FRAME_%(class_identifier)s->ob_refcnt > 1 || _FRAME_%(class_identifier)s->f_tstate != PyThreadState_GET() )
+    if ( frame_%(class_identifier)s == NULL || frame_%(class_identifier)s->ob_refcnt > 1 || frame_%(class_identifier)s->f_tstate != PyThreadState_GET() )
     {
-        if ( _FRAME_%(class_identifier)s )
+        if ( frame_%(class_identifier)s )
         {
 #if _DEBUG_REFRAME
             puts( "reframe for %(class_identifier)s" );
 #endif
 
-            Py_DECREF( _FRAME_%(class_identifier)s );
+            Py_DECREF( frame_%(class_identifier)s );
         }
 
         if ( _CODEOBJ_%(class_identifier)s == NULL )
@@ -63,10 +63,10 @@ static PyObject *%(class_identifier)s( %(class_dict_args)s )
             _CODEOBJ_%(class_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(name_identifier)s, %(line_number)d, 0 );
         }
 
-        _FRAME_%(class_identifier)s = MAKE_FRAME( _CODEOBJ_%(class_identifier)s, %(module_identifier)s );
+        frame_%(class_identifier)s = MAKE_FRAME( _CODEOBJ_%(class_identifier)s, %(module_identifier)s );
     }
 
-    FrameGuard frame_guard( _FRAME_%(class_identifier)s );
+    FrameGuard frame_guard( frame_%(class_identifier)s );
 
     // Local variable declarations.
 %(class_var_decl)s
