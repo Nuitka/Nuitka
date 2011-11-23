@@ -138,14 +138,14 @@ def getReturnCode( identifier ):
         return "return;"
 
 def getYieldCode( identifier, for_return ):
-    if not for_return:
+    if for_return:
         return Identifier(
-            "YIELD_VALUE( generator, %s )" % identifier.getCodeExportRef(),
+            "YIELD_RETURN( generator, %s )" % identifier.getCodeExportRef(),
             0
         )
     else:
         return Identifier(
-            "YIELD_RETURN( generator, %s )" % identifier.getCodeExportRef(),
+            "YIELD_VALUE( generator, %s )" % identifier.getCodeExportRef(),
             0
         )
 

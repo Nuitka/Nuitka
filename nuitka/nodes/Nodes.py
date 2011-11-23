@@ -1431,7 +1431,7 @@ class CPythonExpressionYield( CPythonChildrenHaving, CPythonNodeBase ):
 
     named_children = ( "expression", )
 
-    def __init__( self, expression, source_ref ):
+    def __init__( self, expression, for_return, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
@@ -1440,6 +1440,11 @@ class CPythonExpressionYield( CPythonChildrenHaving, CPythonNodeBase ):
                 "expression" : expression
             }
         )
+
+        self.for_return = for_return
+
+    def isForReturn( self ):
+        return self.for_return
 
     getExpression = CPythonChildrenHaving.childGetter( "expression" )
 

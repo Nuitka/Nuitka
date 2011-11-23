@@ -1164,19 +1164,11 @@ def generateExpressionCode( expression, context, allow_none = False ):
             context               = context
         )
     elif expression.isExpressionYield():
-        # TODO: Consider if TreeBuilding should indidcate it instead, might confuse normal
-        # function generators and lambda generators or might have to treat them in the same
-        # way.
-        for_return = expression.parent.isStatementExpressionOnly() and \
-                     expression.parent.parent.isStatementsSequence() and \
-                     expression.parent.parent.parent.isExpressionFunctionBody() and \
-                     expression.parent.parent.parent.parent.isExpressionLambdaBuilder()
-
         identifier = Generator.getYieldCode(
             identifier = makeExpressionCode(
                 expression = expression.getExpression()
             ),
-            for_return = for_return
+            for_return = expression.isForReturn()
         )
     elif expression.isExpressionBuiltinImport():
         identifier = generateImportModuleCode(

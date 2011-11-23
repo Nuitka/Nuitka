@@ -271,6 +271,7 @@ def buildLambdaNode( provider, node, source_ref ):
             body = Nodes.CPythonStatementExpressionOnly(
                 expression = Nodes.CPythonExpressionYield(
                     expression = body,
+                    for_return = True,
                     source_ref = function_body.getSourceReference()
                 ),
                 source_ref = function_body.getSourceReference()
@@ -746,6 +747,7 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
             body = Nodes.CPythonStatementExpressionOnly(
                 expression = Nodes.CPythonExpressionYield(
                     expression = contraction_body.getBody(),
+                    for_return = False,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -1328,6 +1330,7 @@ def buildYieldNode( provider, node, source_ref ):
     if node.value is not None:
         return Nodes.CPythonExpressionYield(
             expression = buildNode( provider, node.value, source_ref ),
+            for_return = False,
             source_ref = source_ref
         )
     else:
@@ -1336,6 +1339,7 @@ def buildYieldNode( provider, node, source_ref ):
                 constant   = None,
                 source_ref = source_ref
             ),
+            for_return = False,
             source_ref = source_ref
         )
 
