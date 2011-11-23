@@ -44,6 +44,7 @@ from .Identifiers import (
     TempVariableIdentifier,
     DefaultValueIdentifier,
     ReversedCallIdentifier,
+    HelperCallIdentifier,
     CallIdentifier,
     getCodeTemporaryRefs,
     getCodeExportRefs
@@ -1764,44 +1765,27 @@ def getBuiltinLenCode( identifier ):
     return Identifier( "BUILTIN_LEN( %s )" % identifier.getCodeTemporaryRef(), 1 )
 
 def getBuiltinRangeCode( low, high, step ):
-    # TODO: Have an Identifier class that calls a helper with arguments.
-
     if step is not None:
-        return Identifier(
-            "BUILTIN_RANGE( %s, %s, %s )" % (
-                low.getCodeTemporaryRef(),
-                high.getCodeTemporaryRef(),
-                step.getCodeTemporaryRef()
-            ),
-            1
+        return HelperCallIdentifier(
+            "BUILTIN_RANGE", low, high, step
         )
     elif high is not None:
-        return Identifier(
-            "BUILTIN_RANGE( %s, %s )" % (
-                low.getCodeTemporaryRef(),
-                high.getCodeTemporaryRef()
-            ),
-            1
+        return HelperCallIdentifier(
+            "BUILTIN_RANGE", low, high
         )
     else:
-        return Identifier(
-            "BUILTIN_RANGE( %s )" % (
-                low.getCodeTemporaryRef()
-            ),
-            1
+        return HelperCallIdentifier(
+            "BUILTIN_RANGE", low
         )
 
 def getBuiltinChrCode( value ):
-    return Identifier( "CHR( %s )" % value.getCodeTemporaryRef(), 1 )
+    return HelperCallIdentifier( "CHR", value )
 
 def getBuiltinOrdCode( value ):
-    return Identifier( "ORD( %s )" % value.getCodeTemporaryRef(), 1 )
+    return HelperCallIdentifier( "ORD", value )
 
 def getBuiltinType1Code( value ):
-    return Identifier(
-        "BUILTIN_TYPE1( %s )" % value.getCodeTemporaryRef(),
-        1
-    )
+    return HelperCallIdentifier( "BUILTIN_TYPE1", value )
 
 def getBuiltinType3Code( context, name_identifier, bases_identifier, dict_identifier ):
     return Identifier(
@@ -1818,16 +1802,10 @@ def getBuiltinType3Code( context, name_identifier, bases_identifier, dict_identi
     )
 
 def getBuiltinTupleCode( identifier ):
-    return Identifier(
-        "TO_TUPLE( %s )" % identifier.getCodeTemporaryRef(),
-        1
-    )
+    return HelperCallIdentifier( "TO_TUPLE", identifier )
 
 def getBuiltinListCode( identifier ):
-    return Identifier(
-        "TO_LIST( %s )" % identifier.getCodeTemporaryRef(),
-        1
-    )
+    return HelperCallIdentifier( "TO_LIST", identifier )
 
 def getBuiltinDictCode( seq_identifier, dict_identifier ):
     assert seq_identifier is not None or dict_identifier is not None
@@ -1844,57 +1822,31 @@ def getBuiltinDictCode( seq_identifier, dict_identifier ):
         return dict_identifier
 
 def getBuiltinFloatCode( identifier ):
-    return Identifier(
-        "TO_FLOAT( %s )" % identifier.getCodeTemporaryRef(),
-        1
-    )
+    return HelperCallIdentifier( "TO_FLOAT", identifier )
 
 def getBuiltinLongCode( context, identifier, base ):
     if identifier is None:
         identifier = getConstantHandle( context = context, constant = "0" )
 
     if base is None:
-        return Identifier(
-            "TO_LONG( %s )" % identifier.getCodeTemporaryRef(),
-            1
-        )
+        return HelperCallIdentifier( "TO_LONG", identifier )
     else:
-        return Identifier(
-            "TO_LONG( %s, %s )" % (
-                identifier.getCodeTemporaryRef(),
-                base.getCodeTemporaryRef()
-            ),
-            1
-        )
+        return HelperCallIdentifier( "TO_LONG", identifier, base )
+
 def getBuiltinIntCode( context, identifier, base ):
     if identifier is None:
         identifier = getConstantHandle( context = context, constant = "0" )
 
     if base is None:
-        return Identifier(
-            "TO_INT( %s )" % identifier.getCodeTemporaryRef(),
-            1
-        )
+        return HelperCallIdentifier( "TO_INT", identifier )
     else:
-        return Identifier(
-            "TO_INT( %s, %s )" % (
-                identifier.getCodeTemporaryRef(),
-                base.getCodeTemporaryRef()
-            ),
-            1
-        )
+        return HelperCallIdentifier( "TO_INT", identifier, base )
 
 def getBuiltinStrCode( identifier ):
-    return Identifier(
-        "TO_STR( %s )" % identifier.getCodeTemporaryRef(),
-        1
-    )
+    return HelperCallIdentifier( "TO_STR", identifier )
 
 def getBuiltinUnicodeCode( identifier ):
-    return Identifier(
-        "TO_UNICODE( %s )" % identifier.getCodeTemporaryRef(),
-        1
-    )
+    return HelperCallIdentifier( "TO_UNICODE", identifier )
 
 def getBuiltinBoolCode( identifier ):
     return Identifier(

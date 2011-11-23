@@ -262,6 +262,14 @@ class CallIdentifier( Identifier ):
             ref_count = 1
         )
 
+class HelperCallIdentifier( CallIdentifier ):
+    def __init__( self, helper, *args ):
+        CallIdentifier.__init__(
+            self,
+            called = helper,
+            args   = [ arg.getCodeTemporaryRef() for arg in args ]
+        )
+
 class ReversedCallIdentifier( Identifier ):
     def __init__( self, context, called, args ):
         Identifier.__init__(
