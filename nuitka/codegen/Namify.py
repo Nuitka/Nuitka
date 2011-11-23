@@ -28,17 +28,24 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Namify constants
+""" Namify constants.
+
+This determines the identifier names of constants in the generated code. We try to have
+readable names where possible, and resort to hash codes only when it is really necessary.
 
 """
+
+# pylint: disable=W0622
+from nuitka.__past__ import long, unicode
+# pylint: enable=W0622
+
 
 from logging import warning
 
 import hashlib, re
 
-# pylint: disable=W0622
-from nuitka.__past__ import long, unicode
-# pylint: enable=W0622
+# False alarms about hashlib.md5 due to its strange way of defining what is
+# exported, pylint won't understand it. pylint: disable=E1101
 
 class ExceptionCannotNamify( Exception ):
     pass
@@ -46,14 +53,14 @@ class ExceptionCannotNamify( Exception ):
 def namifyConstant( constant ):
     # Many branches and everyone has a return, pylint: disable=R0911,R0912
 
-    if type( constant ) == int:
+    if type( constant ) is int:
         if constant == 0:
             return "int_0"
         elif constant > 0:
             return "int_pos_%d" % constant
         else:
             return "int_neg_%d" % abs( constant )
-    elif type( constant ) == long:
+    elif type( constant ) is long:
         if constant == 0:
             return "long_0"
         elif constant > 0:
@@ -68,39 +75,39 @@ def namifyConstant( constant ):
         return "false"
     elif constant is Ellipsis:
         return "ellipsis"
-    elif type( constant ) == str:
+    elif type( constant ) is str:
         return "str_" + _namifyString( constant )
-    elif type( constant ) == unicode:
+    elif type( constant ) is unicode:
         if _isAscii( constant ):
             return "unicode_" + _namifyString( str( constant ) )
         else:
             # Others are better digested to not cause compiler trouble
             return "unicode_digest_" + _digest( repr( constant ) )
-    elif type( constant ) == float:
+    elif type( constant ) is float:
         return "float_%s" % repr( constant ).replace( ".", "_" ).replace( "-", "_minus_" ).replace( "+", "" )
-    elif type( constant ) == complex:
+    elif type( constant ) is complex:
         value = str( constant ).replace( "+", "p" ).replace( "-", "m" ).replace(".","_")
 
         if value.startswith( "(" ) and value.endswith( ")" ):
             value = value[1:-1]
 
         return "complex_%s" % value
-    elif type( constant ) == dict:
+    elif type( constant ) is dict:
         if constant == {}:
             return "dict_empty"
         else:
             return "dict_" + _digest( repr( constant ) )
-    elif type( constant ) == set:
+    elif type( constant ) is set:
         if constant == set():
             return "set_empty"
         else:
             return "set_" + _digest( repr( constant ) )
-    elif type( constant ) == frozenset:
+    elif type( constant ) is frozenset:
         if constant == frozenset():
             return "frozenset_empty"
         else:
             return "frozenset_" + _digest( repr( constant ) )
-    elif type( constant ) == tuple:
+    elif type( constant ) is tuple:
         if constant == ():
             return "tuple_empty"
         else:
@@ -117,7 +124,7 @@ def namifyConstant( constant ):
                 warning( "Couldn't namify '%r'" % value )
 
                 return "tuple_" + hashlib.md5( repr( constant ) ).hexdigest()
-    elif type( constant ) == list:
+    elif type( constant ) is list:
         if constant == []:
             return "list_empty"
         else:
@@ -155,8 +162,6 @@ def _namifyString( string ):
     else:
         # Others are better digested to not cause compiler trouble
         return "digest_" + _digest( string )
-
-
 
 def _isAscii( string ):
     try:

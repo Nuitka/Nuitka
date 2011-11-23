@@ -207,7 +207,7 @@ class PythonModuleContext( PythonContextBase ):
         return Identifier( "frame_%s" % self.getCodeName(), 0 )
 
     def getCurrentLineTarget( self ):
-        return "frame_%s->f_lineno" % self.getCodeName();
+        return "frame_%s->f_lineno" % self.getCodeName()
 
     def getParent( self ):
         return None
@@ -407,7 +407,7 @@ class PythonSetContractionContext( PythonContractionBase ):
         return LocalVariableIdentifier( var_name, from_context = False )
 
     def getCurrentLineTarget( self ):
-        return "frame_guard.getFrame0()->f_lineno";
+        return "frame_guard.getFrame0()->f_lineno"
 
 class PythonDictContractionContext( PythonContractionBase ):
     def __init__( self, parent, contraction ):
@@ -424,7 +424,7 @@ class PythonDictContractionContext( PythonContractionBase ):
         return LocalVariableIdentifier( var_name, from_context = False )
 
     def getCurrentLineTarget( self ):
-        return "frame_guard.getFrame0()->f_lineno";
+        return "frame_guard.getFrame0()->f_lineno"
 
 class PythonClassContext( PythonChildContextBase ):
     def __init__( self, parent, class_def ):
@@ -442,7 +442,7 @@ class PythonClassContext( PythonChildContextBase ):
         return Identifier( "frame_guard.getFrame()", 1 )
 
     def getCurrentLineTarget( self ):
-        return "frame_guard.getFrame0()->f_lineno";
+        return "frame_guard.getFrame0()->f_lineno"
 
     def getLocalHandle( self, var_name ):
         return LocalVariableIdentifier( var_name )

@@ -1650,7 +1650,8 @@ def getFutureFlagsCode( future_spec ):
         return 0
 
 
-def getEvalCode( context, exec_code, filename_identifier, globals_identifier, locals_identifier, mode_identifier, future_flags, provider ):
+def getEvalCode( context, exec_code, filename_identifier, globals_identifier, \
+                 locals_identifier, mode_identifier, future_flags, provider ):
     if context.getParent() is None:
         return Identifier(
             CodeTemplates.eval_global_template % {
@@ -2177,7 +2178,8 @@ def _extractArgNames( args ):
     ]
 
 
-def getFunctionDecl( context, function_identifier, decorator_count, default_identifiers, closure_variables, is_genexpr ):
+def getFunctionDecl( context, function_identifier, decorator_count, default_identifiers, \
+                     closure_variables, is_genexpr ):
     function_creation_arg_spec = _getFunctionCreationArgs(
         decorator_count     = decorator_count,
         default_identifiers = default_identifiers,
@@ -2877,9 +2879,9 @@ def getClassDecl( context, class_identifier, closure_variables, decorator_count 
         )
     }
 
-def getClassCode( context, class_def, class_name, class_filename, class_identifier, \
-                  class_variables, closure_variables, decorator_count, module_name, class_doc, \
-                  class_codes, metaclass_variable ):
+def getClassCode( context, class_def, class_name, class_identifier, \
+                  class_variables, closure_variables, decorator_count, \
+                  module_name, class_doc, class_codes, metaclass_variable ):
     assert metaclass_variable.isModuleVariable()
 
     class_var_decl = []

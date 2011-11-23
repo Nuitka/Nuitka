@@ -637,7 +637,6 @@ def generateClassCode( class_def, context ):
         closure_variables  = class_def.getClosureVariables(),
         decorator_count    = len( decorators ),
         module_name        = class_def.getParentModule().getName(),
-        class_filename     = class_def.getParentModule().getFilename(),
         class_doc          = class_def.getBody().getDoc(),
         class_codes        = class_codes,
         metaclass_variable = class_def.getParentModule().getVariableForReference(
