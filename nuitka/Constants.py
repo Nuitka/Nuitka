@@ -36,7 +36,7 @@ This contains means to compare, classify and test constants.
 import math
 
 # pylint: disable=W0622
-from .__past__ import long, unicode
+from .__past__ import long, unicode, iterItems
 # pylint: enable=W0622
 
 NoneType = type( None )
@@ -77,8 +77,8 @@ def compareConstants( a, b ):
         if len( a ) != len( b ):
             return False
 
-        for ea1, ea2 in a.iteritems():
-            for eb1, eb2 in b.iteritems():
+        for ea1, ea2 in iterItems( a ):
+            for eb1, eb2 in iterItems( b ):
                 if compareConstants( ea1, eb1 ) and compareConstants( ea2, eb2 ):
                     break
             else:
@@ -101,6 +101,9 @@ def compareConstants( a, b ):
                     return False
         else:
             return True
+
+    if type( a ) is range and type( b ) is range:
+        return str( a ) == str( b )
 
     # The NaN values of float and complex may let this fail, even if the constants are
     # built in the same way.

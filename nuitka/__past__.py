@@ -83,6 +83,13 @@ except ImportError:
 assert "ValueError" in builtin_exception_names
 assert "StopIteration" in builtin_exception_names
 
+def iterItems( d ):
+    try:
+        return d.iteritems()
+    except AttributeError:
+        return d.items()
+
+
 # For PyLint to be happy.
 assert long
 assert unicode

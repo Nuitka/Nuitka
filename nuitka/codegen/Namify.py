@@ -141,8 +141,11 @@ def namifyConstant( constant ):
                 warning( "Couldn't namify '%r'" % value )
 
                 return "list_" + hashlib.md5( repr( constant ) ).hexdigest()
+    elif type( constant ) is range:
+        # Python3 type only.
+        return "range_%s" % ( str( constant )[6:-1].replace( " ", "" ).replace( ",", "_" ) )
 
-    raise ExceptionCannotNamify( constant )
+    raise ExceptionCannotNamify( "%r" % constant )
 
 _re_str_needs_no_digest = re.compile( r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.S )
 

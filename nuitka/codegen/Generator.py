@@ -78,6 +78,10 @@ from nuitka import (
     Options
 )
 
+# pylint: disable=W0622
+from ..__past__ import long, unicode
+# pylint: enable=W0622
+
 import re, sys
 
 def getConstantAccess( context, constant ):
@@ -2001,13 +2005,13 @@ def getMainCode( codes, other_module_names ):
 def getFunctionsCode( context ):
     result = ""
 
-    for _code_name, ( _contraction_decl, contraction_code ) in sorted( context.getContractionsCodes().iteritems() ):
+    for _code_name, ( _contraction_decl, contraction_code ) in sorted( context.getContractionsCodes().items() ):
         result += contraction_code
 
-    for _code_name, ( _function_decl, function_code ) in sorted( context.getFunctionsCodes().iteritems() ):
+    for _code_name, ( _function_decl, function_code ) in sorted( context.getFunctionsCodes().items() ):
         result += function_code
 
-    for _code_name, ( _class_decl, class_code ) in sorted( context.getClassesCodes().iteritems() ):
+    for _code_name, ( _class_decl, class_code ) in sorted( context.getClassesCodes().items() ):
         result += class_code
 
     return result
@@ -2015,13 +2019,13 @@ def getFunctionsCode( context ):
 def getFunctionsDecl( context ):
     result = ""
 
-    for _code_name, ( contraction_decl, _contraction_code ) in sorted( context.getContractionsCodes().iteritems() ):
+    for _code_name, ( contraction_decl, _contraction_code ) in sorted( context.getContractionsCodes().items() ):
         result += contraction_decl
 
-    for _code_name, ( function_decl, _function_code ) in sorted( context.getFunctionsCodes().iteritems() ):
+    for _code_name, ( function_decl, _function_code ) in sorted( context.getFunctionsCodes().items() ):
         result += function_decl
 
-    for _code_name, ( class_decl, _class_code ) in sorted( context.getClassesCodes().iteritems() ):
+    for _code_name, ( class_decl, _class_code ) in sorted( context.getClassesCodes().items() ):
         result += class_decl
 
     return result
@@ -3034,9 +3038,6 @@ def _getUnstreamCode( constant_value, constant_type, constant_identifier ):
         constant_type  = constant_type
     )
 
-    if str is unicode:
-        saved = saved.decode( "utf_8" )
-
     return "%s = UNSTREAM_CONSTANT( %s, %d );" % (
         constant_identifier,
         CppRawStrings.encodeString( saved ),
@@ -3062,8 +3063,6 @@ def _getConstantsDefinitionCode( context ):
 
             continue
 
-        # Use shortest code for ints and longs, except when they are big, then fall
-        # fallback to pickling.
         if constant_type is long and abs( constant_value ) < 2**31:
             statements.append(
                 "%s = PyLong_FromLong( %s );" % (
@@ -3094,7 +3093,7 @@ def _getConstantsDefinitionCode( context ):
                 "%s = PySet_New( NULL );" % constant_identifier
             )
 
-        if constant_type in ( tuple, list, float, complex, unicode, int, long, dict, frozenset, set ):
+        if constant_type in ( tuple, list, float, complex, unicode, int, long, dict, frozenset, set, range ):
             statements.append(
                 _getUnstreamCode( constant_value, constant_type, constant_identifier )
             )

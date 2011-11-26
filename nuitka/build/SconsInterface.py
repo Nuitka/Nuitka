@@ -67,7 +67,7 @@ def runScons( options, quiet ):
 
 
     scons_command = """%(python)s %(binary)s %(quiet)s -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
-        "python"     : sys.executable,
+        "python"     : sys.executable if Utils.getPythonVersion() < 300 else "python",
         "binary"     : getSconsBinaryPath(),
         "quiet"      : "--quiet" if quiet else "",
         "scons_file" : Utils.joinpath( getSconsDataPath(), "SingleExe.scons" ),

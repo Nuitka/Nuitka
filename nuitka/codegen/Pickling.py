@@ -35,6 +35,10 @@ It should be simple, but it is not yet. Not all the pickle modules are well beha
 
 from nuitka import Constants
 
+# pylint: disable=W0622
+from ..__past__ import unicode
+# pylint: enable=W0622
+
 # Work around for CPython 3.x removal of cpickle.
 try:
     import cPickle as cpickle
@@ -65,7 +69,7 @@ def getStreamedConstant( constant_value, constant_type ):
     # Check that the constant is restored correctly.
     restored = cpickle.loads( saved )
 
-    assert Constants.compareConstants( restored, constant_value )
+    assert Constants.compareConstants( restored, constant_value ), ( constant_value, "!=", restored, "types:", type( constant_value ), type( restored ) )
 
     # If we have Python3, we need to make sure, we use UTF8 or else we get into trouble.
     if str is unicode:
