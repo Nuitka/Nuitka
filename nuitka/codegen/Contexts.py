@@ -134,6 +134,7 @@ class PythonGlobalContext:
     def __init__( self ):
         self.constants = {}
 
+        # Basic values that the code uses all the times.
         self.getConstantHandle( () )
         self.getConstantHandle( {} )
         self.getConstantHandle( "" )
@@ -141,6 +142,7 @@ class PythonGlobalContext:
         self.getConstantHandle( False )
         self.getConstantHandle( 0 )
 
+        # Python mechanics.
         self.getConstantHandle( "__module__" )
         self.getConstantHandle( "__class__" )
         self.getConstantHandle( "__dict__" )
@@ -148,7 +150,15 @@ class PythonGlobalContext:
         self.getConstantHandle( "__file__" )
         self.getConstantHandle( "__enter__" )
         self.getConstantHandle( "__exit__" )
+
+        # Patched module name.
         self.getConstantHandle( "inspect" )
+
+        # Named of builtins used in helper code.
+        self.getConstantHandle( "compile" )
+        self.getConstantHandle( "range" )
+        self.getConstantHandle( "open" )
+        self.getConstantHandle( "__import__" )
 
         self.eval_orders_used = set( range( 2, 6 ) )
 

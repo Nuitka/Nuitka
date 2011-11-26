@@ -33,7 +33,7 @@
 
 #include "__constants.hpp"
 
-static PythonBuiltin _python_builtin_compile( "compile" );
+static PythonBuiltin _python_builtin_compile( &_python_str_plain_compile );
 
 PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags )
 {
@@ -85,7 +85,7 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
     );
 }
 
-static PythonBuiltin _python_builtin_open( "open" );
+static PythonBuiltin _python_builtin_open( &_python_str_plain_open );
 
 PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
 {
@@ -332,7 +332,7 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
     return result;
 }
 
-static PythonBuiltin _python_builtin_range( "range" );
+static PythonBuiltin _python_builtin_range( &_python_str_plain_range );
 
 PyObject *BUILTIN_RANGE( PyObject *boundary )
 {
@@ -532,7 +532,7 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
     return result;
 }
 
-static PythonBuiltin _python_builtin_import( "__import__" );
+static PythonBuiltin _python_builtin_import( &_python_str_plain___import__ );
 
 PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
 {

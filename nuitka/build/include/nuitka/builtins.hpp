@@ -36,26 +36,19 @@ extern PyModuleObject *_module_builtin;
 class PythonBuiltin
 {
     public:
-        explicit PythonBuiltin( char const *name )
+        explicit PythonBuiltin( PyObject **name )
         {
-            this->sname = name;
-
-            this->name = NULL;
+            this->name = (PyStringObject **)name;
             this->value = NULL;
         }
 
         PyObject *asObject()
         {
-            if ( this->name == NULL )
-            {
-                this->name = (PyStringObject *)PyString_FromString( this->sname );
-            }
-
             if ( this->value == NULL )
             {
                 PyDictEntry *entry = GET_PYDICT_ENTRY(
                     _module_builtin,
-                    this->name
+                    *this->name
                 );
 
                 this->value = entry->me_value;
@@ -68,14 +61,9 @@ class PythonBuiltin
 
         void refresh( void )
         {
-            if ( this->name == NULL )
-            {
-                this->name = (PyStringObject *)PyString_FromString( this->sname );
-            }
-
             PyDictEntry *entry = GET_PYDICT_ENTRY(
                 _module_builtin,
-                this->name
+                *this->name
             );
 
             this->value = entry->me_value;
@@ -95,9 +83,7 @@ class PythonBuiltin
 
         PythonBuiltin( PythonBuiltin const &  ) = delete;
 
-        char const *sname;
-
-        PyStringObject *name;
+        PyStringObject **name;
         PyObject *value;
 };
 
