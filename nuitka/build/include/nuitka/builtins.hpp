@@ -38,7 +38,7 @@ class PythonBuiltin
     public:
         explicit PythonBuiltin( PyObject **name )
         {
-            this->name = (PyStringObject **)name;
+            this->name = (Nuitka_StringObject **)name;
             this->value = NULL;
         }
 
@@ -83,7 +83,7 @@ class PythonBuiltin
 
         PythonBuiltin( PythonBuiltin const &  ) = delete;
 
-        PyStringObject **name;
+        Nuitka_StringObject **name;
         PyObject *value;
 };
 

@@ -55,7 +55,15 @@ static PyObject *Nuitka_Function_descr_get( PyObject *function, PyObject *object
  // tp_repr slot, decide how a function shall be output
 static PyObject *Nuitka_Function_tp_repr( Nuitka_FunctionObject *function )
 {
-    return PyString_FromFormat( "<compiled function %s at %p>", PyString_AsString( function->m_name ), function );
+#if PYTHON_VERSION < 300
+    return PyString_FromFormat(
+#else
+    return PyUnicode_FromFormat(
+#endif
+        "<compiled function %s at %p>",
+        Nuitka_String_AsString( function->m_name ),
+        function
+    );
 }
 
 static PyObject *Nuitka_Function_tp_call( Nuitka_FunctionObject *function, PyObject *args, PyObject *kw )
@@ -103,15 +111,19 @@ static PyObject *Nuitka_Function_get_name( Nuitka_FunctionObject *object )
 
 static int Nuitka_Function_set_name( Nuitka_FunctionObject *object, PyObject *value )
 {
-    if (value == NULL || PyString_Check( value ) == 0)
+#if PYTHON_VERSION < 300
+    if (unlikely( value == NULL || PyString_Check( value ) == 0 ))
+#else
+    if (unlikely( value == NULL || PyUnicode_Check( value ) == 0 ))
+#endif
     {
        PyErr_Format( PyExc_TypeError, "__name__ must be set to a string object" );
        return -1;
     }
 
     PyObject *old = object->m_name;
-    Py_DECREF( old );
     object->m_name = INCREASE_REFCOUNT( value );
+    Py_DECREF( old );
 
     return 0;
 }
@@ -127,11 +139,19 @@ static int Nuitka_Function_set_doc( Nuitka_FunctionObject *object, PyObject *val
     {
        object->m_doc = Py_None;
     }
-    else if ( PyString_Check( value ) == 0 )
+#if PYTHON_VERSION < 300
+    else if (unlikely( PyString_Check( value ) == 0 ))
     {
        PyErr_Format( PyExc_TypeError, "__name__ must be set to a string object" );
        return -1;
     }
+#else
+    else if (unlikely( PyUnicode_Check( value ) == 0 ))
+    {
+       PyErr_Format( PyExc_TypeError, "__name__ must be set to a string object" );
+       return -1;
+    }
+#endif
     else
     {
        object->m_doc = INCREASE_REFCOUNT( value );
@@ -217,7 +237,14 @@ static PyObject *Nuitka_Function_get_module( Nuitka_FunctionObject *object )
         }
     }
 
-    int res = Nuitka_Function_set_module( object, PyString_FromString( PyModule_GetName( object->m_module ) ) );
+    int res = Nuitka_Function_set_module(
+        object,
+#if PYTHON_VERSION < 300
+        PyString_FromString( PyModule_GetName( object->m_module ) )
+#else
+        PyUnicode_FromString( PyModule_GetName( object->m_module ) )
+#endif
+    );
 
     assert( res == 0 );
 
@@ -318,7 +345,7 @@ static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, Py
 
     if (unlikely( result == NULL ))
     {
-        PyErr_Format( PyExc_RuntimeError, "cannot create function %s", PyString_AsString( name ) );
+        PyErr_Format( PyExc_RuntimeError, "cannot create function %s", Nuitka_String_AsString( name ) );
         throw _PythonException();
     }
 

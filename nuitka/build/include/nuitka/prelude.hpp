@@ -83,6 +83,32 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 
 #define PYTHON_VERSION (PY_MAJOR_VERSION*100+PY_MINOR_VERSION*10+PY_MICRO_VERSION)
 
+#if PYTHON_VERSION >= 300
+// Python3 removed PyInt instead of renaming PyLong.
+#define PyInt_FromString PyLong_FromString
+#define PyInt_FromLong PyLong_FromLong
+#define PyInt_AsLong PyLong_AsLong
+#define PyInt_FromSsize_t PyLong_FromSsize_t
+
+#define PyNumber_Int PyNumber_Long
+
+#define PyObject_Unicode PyObject_Str
+
+#endif
+
+#if PYTHON_VERSION < 300
+#define Nuitka_String_AsString PyString_AsString
+#define Nuitka_String_AsString_Unchecked PyString_AS_STRING
+
+#define Nuitka_StringObject PyStringObject
+#else
+#define Nuitka_String_AsString _PyUnicode_AsString
+// TODO: Clarify is there is something without checks.
+#define Nuitka_String_AsString_Unchecked Nuitka_String_AsString
+
+#define Nuitka_StringObject PyUnicodeObject
+#endif
+
 #include "nuitka/helpers.hpp"
 
 #include "nuitka/compiled_function.hpp"
