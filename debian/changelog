@@ -1,3 +1,10 @@
+nuitka (0.3.15pre5-1) unstable; urgency=low
+
+  * New upstream version
+  * Added "--unstriped" example to the man page.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Wed, 30 Nov 2011 00:30:25 +0100
+
 nuitka (0.3.15pre4-1) unstable; urgency=low
 
   * New upstream version
