@@ -1441,9 +1441,9 @@ extern PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObj
 extern PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering );
 
 // For quicker builtin chr() functionality.
-extern PyObject *CHR( PyObject *value );
+extern PyObject *BUILTIN_CHR( PyObject *value );
 // For quicker builtin ord() functionality.
-extern PyObject *ORD( PyObject *value );
+extern PyObject *BUILTIN_ORD( PyObject *value );
 
 // For quicker type() functionality if 1 argument is given.
 extern PyObject *BUILTIN_TYPE1( PyObject *arg );

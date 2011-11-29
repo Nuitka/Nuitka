@@ -1785,10 +1785,10 @@ def getBuiltinRangeCode( low, high, step ):
         )
 
 def getBuiltinChrCode( value ):
-    return HelperCallIdentifier( "CHR", value )
+    return HelperCallIdentifier( "BUILTIN_CHR", value )
 
 def getBuiltinOrdCode( value ):
-    return HelperCallIdentifier( "ORD", value )
+    return HelperCallIdentifier( "BUILTIN_ORD", value )
 
 def getBuiltinType1Code( value ):
     return HelperCallIdentifier( "BUILTIN_TYPE1", value )

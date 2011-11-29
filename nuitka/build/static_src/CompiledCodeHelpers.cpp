@@ -122,7 +122,7 @@ PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
     }
 }
 
-PyObject *CHR( unsigned char c )
+PyObject *BUILTIN_CHR( unsigned char c )
 {
     // TODO: A switch statement might be faster, because no object needs to be created at
     // all, this is how CPython does it.
@@ -132,7 +132,7 @@ PyObject *CHR( unsigned char c )
     return PyString_FromStringAndSize( s, 1 );
 }
 
-PyObject *CHR( PyObject *value )
+PyObject *BUILTIN_CHR( PyObject *value )
 {
     long x = PyInt_AsLong( value );
 
@@ -150,7 +150,7 @@ PyObject *CHR( PyObject *value )
     return PyString_FromStringAndSize( s, 1 );
 }
 
-PyObject *ORD( PyObject *value )
+PyObject *BUILTIN_ORD( PyObject *value )
 {
     long result;
 
