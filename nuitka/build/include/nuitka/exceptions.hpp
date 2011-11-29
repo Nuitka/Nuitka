@@ -372,10 +372,8 @@ class BreakException
 {
 };
 
-NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( bool *traceback_indicator, PyObject *exception, PyTracebackObject *traceback )
+NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception, PyTracebackObject *traceback )
 {
-    *traceback_indicator = true;
-
     if ( PyExceptionClass_Check( exception ) )
     {
         throw _PythonException( exception, traceback );
@@ -404,14 +402,6 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exc
 
     throw _PythonException( exception_type, value, traceback );
 }
-
-NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( bool *traceback_indicator, PyObject *exception_type, PyObject *value, PyTracebackObject *traceback )
-{
-    *traceback_indicator = true;
-
-    RAISE_EXCEPTION( exception_type, value, traceback );
-}
-
 
 NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static inline void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyObject *traceback )
 {

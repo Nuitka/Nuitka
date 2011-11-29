@@ -101,7 +101,7 @@ static PyObject *%(function_identifier)s( Nuitka_GenexprObject *generator )
 
     if ( generator->m_frame == NULL )
     {
-        if ( frame_%(function_identifier)s == NULL || frame_%(function_identifier)s->ob_refcnt > 1 || frame_%(function_identifier)s->f_tstate != PyThreadState_GET() )
+        if ( isFrameUnusable( frame_%(function_identifier)s ) )
         {
             if ( frame_%(function_identifier)s )
             {

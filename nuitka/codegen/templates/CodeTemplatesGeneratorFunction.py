@@ -113,7 +113,7 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
     bool traceback;
 
     // Must be inside block, or else its d-tor will not be run.
-    if ( frame_%(function_identifier)s == NULL || frame_%(function_identifier)s->ob_refcnt > 1 || frame_%(function_identifier)s->f_tstate != PyThreadState_GET() )
+    if ( isFrameUnusable( frame_%(function_identifier)s ) )
     {
         if ( frame_%(function_identifier)s )
         {
@@ -135,6 +135,8 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
     Py_INCREF( generator->m_frame->f_back );
 
     PyThreadState_GET()->frame = generator->m_frame;
+
+    FrameGuardLight frame_guard( &generator->m_frame );
 
     try
     {

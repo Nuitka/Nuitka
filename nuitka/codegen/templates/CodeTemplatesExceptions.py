@@ -35,13 +35,13 @@
 assertion_without_arg = """\
 if ( %(condition)s )
 {
-    RAISE_EXCEPTION( &traceback, INCREASE_REFCOUNT( PyExc_AssertionError ), %(tb_maker)s );
+    RAISE_EXCEPTION( INCREASE_REFCOUNT( PyExc_AssertionError ), %(tb_maker)s );
 }"""
 
 assertion_with_arg = """\
 if ( %(condition)s )
 {
-    RAISE_EXCEPTION( &traceback, INCREASE_REFCOUNT( PyExc_AssertionError ), %(failure_arg)s, %(tb_maker)s );
+    RAISE_EXCEPTION( INCREASE_REFCOUNT( PyExc_AssertionError ), %(failure_arg)s, %(tb_maker)s );
 }"""
 
 try_except_template = """\
@@ -55,10 +55,15 @@ catch ( _PythonException &_exception )
     if ( !_exception.hasTraceback() )
     {
         _exception.setTraceback( %(tb_making)s );
-        traceback = true;
+    }
+    else if ( traceback == false )
+    {
+        _exception.addTraceback( frame_guard.getFrame() );
     }
 
     _exception.toExceptionHandler();
+
+    frame_guard.detachFrame();
 
 %(exception_code)s
 }"""
@@ -77,16 +82,28 @@ catch ( _PythonException &_exception )
     if ( !_exception.hasTraceback() )
     {
         _exception.setTraceback( %(tb_making)s );
-        traceback = true;
+    }
+    else if ( traceback == false )
+    {
+        _exception.addTraceback( frame_guard.getFrame() );
     }
 
     _exception.toExceptionHandler();
+
+    frame_guard.detachFrame();
 
 %(exception_code)s
 }
 if ( _caught_%(except_count)d == false )
 {
 %(else_code)s
+}"""
+
+try_except_reraise_unmatched_template = """\
+else
+{
+    traceback = true;
+    throw;
 }"""
 
 frame_exceptionkeeper_setup = """\

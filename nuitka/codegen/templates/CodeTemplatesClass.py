@@ -47,7 +47,7 @@ static PyObject *%(class_identifier)s( %(class_dict_args)s )
 {
     bool traceback = false;
 
-    if ( frame_%(class_identifier)s == NULL || frame_%(class_identifier)s->ob_refcnt > 1 || frame_%(class_identifier)s->f_tstate != PyThreadState_GET() )
+    if ( isFrameUnusable( frame_%(class_identifier)s ) )
     {
         if ( frame_%(class_identifier)s )
         {

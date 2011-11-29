@@ -243,7 +243,7 @@ def generateContractionCode( contraction, context ):
     contraction_identifier = contraction.getCodeName()
 
     if Options.shallHaveStatementLines():
-        line_number_code = Generator.getCurrentLineCode(
+        line_number_code = Generator.getSetCurrentLineCode(
             context    = context,
             source_ref = contraction.getSourceReference()
         )
@@ -1932,7 +1932,7 @@ def generateForLoopCode( statement, context ):
     )
 
     if Options.shallHaveStatementLines():
-        line_number_code = Generator.getCurrentLineCode(
+        line_number_code = Generator.getSetCurrentLineCode(
             context    = context,
             source_ref = statement.getIterated().getSourceReference()
         )
@@ -2194,7 +2194,7 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
         source_ref = statement.getSourceReference()
 
         if Options.shallHaveStatementLines() and source_ref != last_ref:
-            code = Generator.getCurrentLineCode(
+            code = Generator.getSetCurrentLineCode(
                 context    = context,
                 source_ref = source_ref
             ) + code

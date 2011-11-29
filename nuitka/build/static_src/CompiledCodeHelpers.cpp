@@ -532,6 +532,54 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
     return result;
 }
 
+PyFrameObject *detachCurrentFrame()
+{
+    PyFrameObject *old_frame = PyThreadState_GET()->frame;
+    PyFrameObject *new_frame = PyObject_GC_NewVar( PyFrameObject, &PyFrame_Type, 0 );
+
+    // Allow only to detach only our tracing frames.
+    assert( old_frame->f_trace == Py_None );
+    new_frame->f_trace = INCREASE_REFCOUNT( Py_None );
+
+    // Copy the back reference if any.
+    new_frame->f_back = old_frame->f_back;
+    Py_XINCREF( new_frame->f_back );
+
+    // Take a code reference as well.
+    new_frame->f_code = old_frame->f_code;
+    Py_XINCREF( new_frame->f_code );
+
+    // Copy attributes.
+    new_frame->f_locals = INCREASE_REFCOUNT( old_frame->f_locals );
+    new_frame->f_globals = INCREASE_REFCOUNT( old_frame->f_globals );
+    new_frame->f_builtins = INCREASE_REFCOUNT( old_frame->f_builtins );
+
+    new_frame->f_exc_type = INCREASE_REFCOUNT_X( old_frame->f_exc_type );
+    new_frame->f_exc_value = INCREASE_REFCOUNT_X( old_frame->f_exc_value );
+    new_frame->f_exc_traceback = INCREASE_REFCOUNT_X( old_frame->f_exc_traceback );
+
+    assert( old_frame->f_valuestack == old_frame->f_localsplus );
+    new_frame->f_valuestack = new_frame->f_localsplus;
+
+    assert( old_frame->f_stacktop == old_frame->f_valuestack );
+    new_frame->f_stacktop = new_frame->f_valuestack;
+
+    new_frame->f_tstate = old_frame->f_tstate;
+    new_frame->f_lasti = -1;
+    new_frame->f_lineno = old_frame->f_lineno;
+
+    assert( old_frame->f_iblock == 0 );
+    new_frame->f_iblock = 0;
+
+    Nuitka_GC_Track( new_frame );
+
+    // The given frame can be put on top now.
+    PyThreadState_GET()->frame = new_frame;
+    Py_DECREF( old_frame );
+
+    return new_frame;
+}
+
 static PythonBuiltin _python_builtin_import( &_python_str_plain___import__ );
 
 PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )

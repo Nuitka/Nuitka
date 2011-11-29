@@ -397,7 +397,7 @@ def simpleFunction50():
 
       return f
 
-   f = getGeneratorFunction()
+   f = getF()
 
    for x in range( 2 ):
       r = list( f() )

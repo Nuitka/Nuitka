@@ -62,15 +62,26 @@ _PythonExceptionKeeper _caught_%(try_count)d;
 bool _continue_%(try_count)d = false;
 bool _break_%(try_count)d = false;
 bool _return_%(try_count)d = false;
-int _line%(try_count)d = -1;
+
 try
 {
 %(tried_code)s
 }
 catch ( _PythonException &_exception )
 {
-    _line%(try_count)d = %(line_number_code)s;
+    if ( !_exception.hasTraceback() )
+    {
+        _exception.setTraceback( %(tb_making)s );
+    }
+    else if ( traceback == false )
+    {
+        _exception.addTraceback( frame_guard.getFrame() );
+    }
+    traceback = true;
+
     _caught_%(try_count)d.save( _exception );
+
+    frame_guard.detachFrame();
 }
 catch ( ContinueException &e )
 {
@@ -88,7 +99,6 @@ catch ( ReturnException &e )
 // Final code:
 %(final_code)s
 
-%(line_number_code)s = _line%(try_count)d;
 _caught_%(try_count)d.rethrow();
 
 if ( _continue_%(try_count)d )

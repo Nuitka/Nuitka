@@ -350,6 +350,9 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
 
     frame_%(module_identifier)s = MAKE_FRAME( MAKE_CODEOBJ( %(filename_identifier)s, %(module_name_obj)s, 0, 0 ), _module_%(module_identifier)s);
 
+    // Set module frame as the currently active one.
+    FrameGuardLight frame_guard( &frame_%(module_identifier)s );
+
     // Push the new frame as the currently active one.
     pushFrameStack( frame_%(module_identifier)s );
 
@@ -368,9 +371,13 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
     }
     catch ( _PythonException &_exception )
     {
-        if ( traceback == false )
+        if ( !_exception.hasTraceback() )
         {
-            _exception.addTraceback( frame_%(module_identifier)s );
+            _exception.setTraceback( MAKE_TRACEBACK( frame_guard.getFrame() ) );
+        }
+        else if ( traceback == false )
+        {
+            _exception.addTraceback( frame_guard.getFrame() );
         }
 
         _exception.toPython();

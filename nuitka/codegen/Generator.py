@@ -1363,11 +1363,13 @@ def getInplaceSliceAssignmentCode( target, lower, upper, operator, identifier ):
     }
 
 def getTryFinallyCode( context, code_tried, code_final ):
+    tb_making = getTracebackMakingIdentifier( context )
+
     return CodeTemplates.try_finally_template % {
-        "try_count"        : context.allocateTryNumber(),
-        "tried_code"       : indented( code_tried ),
-        "final_code"       : indented( code_final, 0 ),
-        "line_number_code" : context.getCurrentLineTarget()
+        "try_count"  : context.allocateTryNumber(),
+        "tried_code" : indented( code_tried ),
+        "final_code" : indented( code_final, 0 ),
+        "tb_making"  : tb_making.getCodeExportRef(),
     }
 
 def getTryExceptHandlerCode( exception_identifier, exception_assignment, handler_code, \
@@ -1389,7 +1391,6 @@ def getTryExceptHandlerCode( exception_identifier, exception_assignment, handler
         )
 
     exception_code.append( "{" )
-    exception_code.append( "    traceback = false;" )
 
     if exception_assignment is not None:
         exception_code.append(
@@ -1403,7 +1404,7 @@ def getTryExceptHandlerCode( exception_identifier, exception_assignment, handler
 
 def getTryExceptCode( context, code_tried, handler_codes, else_code ):
     exception_code = handler_codes
-    exception_code += [ "else", "{", "    throw;", "}" ]
+    exception_code += CodeTemplates.try_except_reraise_unmatched_template.split( "\n" )
 
     tb_making = getTracebackMakingIdentifier( context )
 
@@ -1426,18 +1427,18 @@ def getTryExceptCode( context, code_tried, handler_codes, else_code ):
 def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier, \
                            exception_tb_identifier, exception_tb_maker ):
     if exception_value_identifier is None and exception_tb_identifier is None:
-        return "RAISE_EXCEPTION( &traceback, %s, %s );" % (
+        return "traceback = true; RAISE_EXCEPTION( %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
         )
     elif exception_tb_identifier is None:
-        return "RAISE_EXCEPTION( &traceback, %s, %s, %s );" % (
+        return "traceback = true; RAISE_EXCEPTION( %s, %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
         )
     else:
-        return "RAISE_EXCEPTION( &traceback, %s, %s, %s );" % (
+        return "traceback = true; RAISE_EXCEPTION( %s, %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
             exception_tb_identifier.getCodeExportRef()
@@ -1445,7 +1446,7 @@ def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier
 
 def getReRaiseExceptionCode( local ):
     if local:
-        return "throw;"
+        return "traceback = true; throw;"
     else:
         return "traceback = true; RERAISE_EXCEPTION();"
 
@@ -2784,11 +2785,11 @@ def getGeneratorExpressionCode( context, generator_identifier, generator_name, s
 
     return result
 
-def getCurrentLineCode( context, source_ref ):
-    return """%(current_line)s = %(line_number)d;\n""" % {
-        "line_number"  : source_ref.getLineNumber(),
-        "current_line" : context.getCurrentLineTarget()
-    }
+def getSetCurrentLineCode( context, source_ref ):
+    if context.hasFrameGuard():
+        return """frame_guard.setLineNumber( %d );\n""" % source_ref.getLineNumber()
+    else:
+        return """generator->m_frame->f_lineno = %d;\n""" % source_ref.getLineNumber()
 
 def getCurrentExceptionObjectCode():
     return Identifier( "_exception.getObject()", 0 )
