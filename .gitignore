@@ -17,5 +17,6 @@ tests/reflected/nuitka/
 dist
 MANIFEST
 README.pdf
+README.html
 doc/*.1
 doc/man-*.html
