@@ -58,7 +58,7 @@ static PyObject *INCREASE_REFCOUNT_X( PyObject *object );
 static inline void assertObject( PyObject *value )
 {
     assert( value != NULL );
-    assert( value->ob_refcnt > 0 );
+    assert( Py_REFCNT( value ) > 0 );
 }
 
 static inline void assertObject( PyTracebackObject *value )
@@ -964,8 +964,6 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObject *attr_name )
 {
-    // printf( "look at %zd %s\n", attr_name->ob_refcnt, PyString_AS_STRING( attr_name ) );
-
     assertObject( source );
     assertObject( attr_name );
 

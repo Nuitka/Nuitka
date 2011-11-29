@@ -160,6 +160,10 @@ class PythonGlobalContext:
         self.getConstantHandle( "open" )
         self.getConstantHandle( "__import__" )
 
+        # COMPILE_CODE uses read/strip method lookups.
+        self.getConstantHandle( "read" )
+        self.getConstantHandle( "strip" )
+
         self.eval_orders_used = set( range( 2, 6 ) )
 
 

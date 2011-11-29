@@ -52,7 +52,7 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args )
        module_name = args;
     }
 
-    char *name = PyString_AsString( module_name );
+    char *name = Nuitka_String_AsString( module_name );
 
 #if _DEBUG_UNFREEZER
     printf( "Looking for %%s\\n", name );
@@ -82,7 +82,7 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args )
     PyObject *module_name = args;
     assert( module_name );
 
-    char *name = PyString_AsString( module_name );
+    char *name = Nuitka_String_AsString( module_name );
 
     struct _inittab *current = frozes_modules;
 
@@ -146,8 +146,12 @@ void registerMetaPathBasedUnfreezer( struct _inittab *_frozes_modules )
     PyDict_SetItemString( method_dict, "load_module", loader_load_module );
 
     loader_frozen_modules = PyObject_CallFunctionObjArgs(
-        (PyObject *)&PyClass_Type,
+        (PyObject *)&PyType_Type,
+#if PYTHON_VERSION < 300
         PyString_FromString( "_nuitka_compiled_modules_loader" ),
+#else
+        PyUnicode_FromString( "_nuitka_compiled_modules_loader" ),
+#endif
         _python_tuple_empty,
         method_dict,
         NULL

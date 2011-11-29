@@ -123,7 +123,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
         {
             assert( var_name );
 
-            this->var_name   = (PyStringObject **)var_name;
+            this->var_name = (PyStringObject **)var_name;
         }
 
         PyObject *asObject0() const
@@ -132,7 +132,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
             if (likely( entry->me_value != NULL ))
             {
-                assert( entry->me_value->ob_refcnt > 0 );
+                assertObject( entry->me_value );
 
                 return entry->me_value;
             }
@@ -141,7 +141,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
             if (likely( entry->me_value != NULL ))
             {
-                assert( entry->me_value->ob_refcnt > 0 );
+                assertObject( entry->me_value );
 
                 return entry->me_value;
             }

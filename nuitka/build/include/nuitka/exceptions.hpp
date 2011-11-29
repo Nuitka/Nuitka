@@ -211,8 +211,6 @@ public:
     {
         assertObject( traceback );
 
-        // printf( "setTraceback %d\n", traceback->ob_refcnt );
-
         this->exception_tb = (PyObject *)traceback;
     }
 

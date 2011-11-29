@@ -47,26 +47,33 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
     // Workaround leading whitespace causing a trouble to compile builtin, but not eval builtin
     PyObject *source;
 
-    if ( ( PyString_Check( source_code ) || PyUnicode_Check( source_code ) ) && strcmp( Nuitka_String_AsString( mode ), "exec" ) != 0 )
+    if (
+        (
+#if PYTHON_VERSION < 300
+            PyString_Check( source_code ) ||
+#endif
+            PyUnicode_Check( source_code )
+        ) &&
+        strcmp( Nuitka_String_AsString( mode ), "exec" ) != 0
+       )
     {
-        static PyObject *strip_str = PyString_FromString( "strip" );
-
         // TODO: There is an API to call a method, use it instead.
-        source = LOOKUP_ATTRIBUTE( source_code, strip_str );
+        source = LOOKUP_ATTRIBUTE( source_code, _python_str_plain_strip );
         source = PyObject_CallFunctionObjArgs( source, NULL );
 
         assert( source );
     }
+#if PYTHON_VERSION < 300
+    // TODO: What does Python3 do here.
     else if ( PyFile_Check( source_code ) && strcmp( Nuitka_String_AsString( mode ), "exec" ) == 0 )
     {
-        static PyObject *read_str = PyString_FromString( "read" );
-
         // TODO: There is an API to call a method, use it instead.
-        source = LOOKUP_ATTRIBUTE( source_code, read_str );
+        source = LOOKUP_ATTRIBUTE( source_code, _python_str_plain_read );
         source = PyObject_CallFunctionObjArgs( source, NULL );
 
         assert( source );
     }
+#endif
     else
     {
         source = source_code;
@@ -129,7 +136,11 @@ PyObject *BUILTIN_CHR( unsigned char c )
     char s[1];
     s[0] = (char)c;
 
+#if PYTHON_VERSION < 300
     return PyString_FromStringAndSize( s, 1 );
+#else
+    return PyUnicode_FromStringAndSize( s, 1 );
+#endif
 }
 
 PyObject *BUILTIN_CHR( PyObject *value )
@@ -147,20 +158,24 @@ PyObject *BUILTIN_CHR( PyObject *value )
     char s[1];
     s[0] = (char)x;
 
+#if PYTHON_VERSION < 300
     return PyString_FromStringAndSize( s, 1 );
+#else
+    return PyUnicode_FromStringAndSize( s, 1 );
+#endif
 }
 
 PyObject *BUILTIN_ORD( PyObject *value )
 {
     long result;
 
-    if (likely( PyString_Check( value ) ))
+    if (likely( PyBytes_Check( value ) ))
     {
-        Py_ssize_t size = PyString_GET_SIZE( value );
+        Py_ssize_t size = PyBytes_GET_SIZE( value );
 
         if (likely( size == 1 ))
         {
-            result = long( ((unsigned char *)PyString_AS_STRING( value ))[0] );
+            result = long( ((unsigned char *)PyBytes_AS_STRING( value ))[0] );
         }
         else
         {
@@ -227,7 +242,12 @@ PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases,
 
     if (likely( PyType_IsSubtype( type, &PyType_Type ) ))
     {
-        if ( PyType_HasFeature( type, Py_TPFLAGS_HAVE_CLASS ) && type->tp_init != NULL )
+        if (
+#if PYTHON_VERSION < 300
+            PyType_HasFeature( type, Py_TPFLAGS_HAVE_CLASS ) &&
+#endif
+            type->tp_init != NULL
+           )
         {
             int res = type->tp_init( result, MAKE_TUPLE( EVAL_ORDERED_3( name, bases, dict ) ), NULL );
 
@@ -301,7 +321,12 @@ PyObject *BUILTIN_RANGE( long boundary )
 
 static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 {
-    if (likely( PyInt_Check( value ) || PyLong_Check( value )) )
+    if (likely(
+#if PYTHON_VERSION < 300
+            PyInt_Check( value ) ||
+#endif
+            PyLong_Check( value )
+       ))
     {
         return INCREASE_REFCOUNT( value );
     }
@@ -455,7 +480,14 @@ PyObject *BUILTIN_LEN( PyObject *value )
 }
 
 // TODO: Move this to global init, so it's not pre-main code that may not be run.
-static PyObject *empty_code = PyBuffer_FromMemory( NULL, 0 );
+
+static PyObject *empty_code =
+#if PYTHON_VERSION < 300
+    PyBuffer_FromMemory( NULL, 0 );
+#else
+    // TODO: How to create buffer objects for CPython3?
+    Py_None;
+#endif
 
 PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, int arg_count, bool is_generator )
 {
@@ -473,8 +505,13 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
         flags |= CO_GENERATOR;
     }
 
+    // TODO: Consider using PyCode_NewEmpty
+
     PyCodeObject *result = PyCode_New (
         arg_count,           // argcount
+#if PYTHON_VERSION >= 300
+        0,                   // kw-only count
+#endif
         0,                   // nlocals
         0,                   // stacksize
         flags,               // flags
@@ -642,7 +679,7 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
         // TODO: Not yet clear, what happens with __all__ and "_" of its contents.
         if ( all_case == false )
         {
-            if ( PyString_AS_STRING( item )[0] == '_' )
+            if ( Nuitka_String_AsString_Unchecked( item )[0] == '_' )
             {
                 continue;
             }
@@ -797,7 +834,11 @@ PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size )
 
 PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
 {
+#if PYTHON_VERSION < 300
     PyObject *result = PyString_FromStringAndSize( buffer, size );
+#else
+    PyObject *result = PyUnicode_FromStringAndSize( buffer, size );
+#endif
     assert( !PyErr_Occurred() );
 
     assertObject( result );
@@ -805,14 +846,19 @@ PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
 
     if ( intern )
     {
+#if PYTHON_VERSION < 300
         PyString_InternInPlace( &result );
-
+#else
+        PyUnicode_InternInPlace( &result );
+#endif
         assertObject( result );
         assert( PyString_Size( result ) == size );
     }
 
     return result;
 }
+
+#if PYTHON_VERSION < 300
 
 static void set_slot( PyObject **slot, PyObject *value )
 {
@@ -828,9 +874,9 @@ static void set_attr_slots( PyClassObject *klass )
 
     if ( getattrstr == NULL )
     {
-        getattrstr = PyString_InternFromString("__getattr__");
-        setattrstr = PyString_InternFromString("__setattr__");
-        delattrstr = PyString_InternFromString("__delattr__");
+        getattrstr = PyString_InternFromString( "__getattr__" );
+        setattrstr = PyString_InternFromString( "__setattr__" );
+        delattrstr = PyString_InternFromString( "__delattr__" );
     }
 
 
@@ -1025,10 +1071,14 @@ static PyObject *nuitka_class_getattr( PyClassObject *klass, PyObject *attr_name
     }
 }
 
+#endif
+
 void enhancePythonTypes( void )
 {
+#if PYTHON_VERSION < 300
     // Our own variant won't call PyEval_GetRestricted, saving quite some cycles not doing
     // that.
     PyClass_Type.tp_setattro = (setattrofunc)nuitka_class_setattr;
     PyClass_Type.tp_getattro = (getattrofunc)nuitka_class_getattr;
+#endif
 }

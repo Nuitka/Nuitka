@@ -57,7 +57,7 @@ NUITKA_MAY_BE_UNUSED static bool isFrameUnusable( PyFrameObject *frame_object )
         // Never used.
         frame_object == NULL ||
         // Still in use
-        frame_object->ob_refcnt > 1 ||
+        Py_REFCNT( frame_object ) > 1 ||
         // Last used by another thread (TODO: Could just set it when re-using)
         frame_object->f_tstate != PyThreadState_GET() ||
         // Was detached from (TODO: When detaching, can't we just have another
@@ -196,6 +196,8 @@ public:
     {
         assertFrameObject( this->frame_object );
         assert( lineno >= 1 );
+
+        // Make sure f_lineno is the actually used information.
         assert( this->frame_object->f_trace == Py_None );
 
         this->frame_object->f_lineno = lineno;

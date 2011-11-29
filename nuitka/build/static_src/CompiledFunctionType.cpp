@@ -87,6 +87,7 @@ static long Nuitka_Function_tp_traverse( PyObject *function, visitproc visit, vo
     return 0;
 }
 
+#if PYTHON_VERSION < 300
 static int Nuitka_Function_tp_compare( Nuitka_FunctionObject *a, Nuitka_FunctionObject *b )
 {
     if ( a->m_counter == b->m_counter )
@@ -98,6 +99,7 @@ static int Nuitka_Function_tp_compare( Nuitka_FunctionObject *a, Nuitka_Function
        return a->m_counter < b->m_counter ? -1 : 1;
     }
 }
+#endif
 
 static long Nuitka_Function_tp_hash( Nuitka_FunctionObject *function )
 {
@@ -289,6 +291,13 @@ static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
     PyObject_GC_Del( function );
 }
 
+static const long tp_flags =
+    Py_TPFLAGS_DEFAULT       |
+#if PYTHON_VERSION < 300
+    Py_TPFLAGS_HAVE_WEAKREFS |
+#endif
+    Py_TPFLAGS_HAVE_GC;
+
 PyTypeObject Nuitka_Function_Type =
 {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
@@ -299,7 +308,11 @@ PyTypeObject Nuitka_Function_Type =
     0,                                              // tp_print
     0,                                              // tp_getattr
     0,                                              // tp_setattr
+#if PYTHON_VERSION < 300
     (cmpfunc)Nuitka_Function_tp_compare,            // tp_compare
+#else
+    0,
+#endif
     (reprfunc)Nuitka_Function_tp_repr,              // tp_repr
     0,                                              // tp_as_number
     0,                                              // tp_as_sequence
@@ -310,7 +323,7 @@ PyTypeObject Nuitka_Function_Type =
     PyObject_GenericGetAttr,                        // tp_getattro
     0,                                              // tp_setattro
     0,                                              // tp_as_buffer
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_HAVE_WEAKREFS, // tp_flags
+    tp_flags,                                       // tp_flags
     0,                                              // tp_doc
     (traverseproc)Nuitka_Function_tp_traverse,      // tp_traverse
     0,                                              // tp_clear
