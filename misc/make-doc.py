@@ -34,8 +34,6 @@ import os, sys, shutil, re
 
 assert 0 == os.system( "rst2pdf README.txt" )
 
-assert 0 == os.system( "python misc/gist/rst2html.py README.txt README.html" )
-
 if not os.path.exists( "man" ):
     os.mkdir( "man" )
 
