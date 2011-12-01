@@ -44,6 +44,7 @@ from .Identifiers import (
     TempVariableIdentifier,
     DefaultValueIdentifier,
     ReversedCallIdentifier,
+    HelperCallIdentifier,
     CallIdentifier,
     getCodeTemporaryRefs,
     getCodeExportRefs
@@ -76,6 +77,10 @@ from nuitka import (
     Constants,
     Options
 )
+
+# pylint: disable=W0622
+from ..__past__ import long, unicode
+# pylint: enable=W0622
 
 import re, sys
 
@@ -137,14 +142,14 @@ def getReturnCode( identifier ):
         return "return;"
 
 def getYieldCode( identifier, for_return ):
-    if not for_return:
+    if for_return:
         return Identifier(
-            "YIELD_VALUE( generator, %s )" % identifier.getCodeExportRef(),
+            "YIELD_RETURN( generator, %s )" % identifier.getCodeExportRef(),
             0
         )
     else:
         return Identifier(
-            "YIELD_RETURN( generator, %s )" % identifier.getCodeExportRef(),
+            "YIELD_VALUE( generator, %s )" % identifier.getCodeExportRef(),
             0
         )
 
@@ -1358,10 +1363,13 @@ def getInplaceSliceAssignmentCode( target, lower, upper, operator, identifier ):
     }
 
 def getTryFinallyCode( context, code_tried, code_final ):
+    tb_making = getTracebackMakingIdentifier( context )
+
     return CodeTemplates.try_finally_template % {
         "try_count"  : context.allocateTryNumber(),
         "tried_code" : indented( code_tried ),
-        "final_code" : indented( code_final, 0 )
+        "final_code" : indented( code_final, 0 ),
+        "tb_making"  : tb_making.getCodeExportRef(),
     }
 
 def getTryExceptHandlerCode( exception_identifier, exception_assignment, handler_code, \
@@ -1383,7 +1391,6 @@ def getTryExceptHandlerCode( exception_identifier, exception_assignment, handler
         )
 
     exception_code.append( "{" )
-    exception_code.append( "    traceback = false;" )
 
     if exception_assignment is not None:
         exception_code.append(
@@ -1397,9 +1404,9 @@ def getTryExceptHandlerCode( exception_identifier, exception_assignment, handler
 
 def getTryExceptCode( context, code_tried, handler_codes, else_code ):
     exception_code = handler_codes
-    exception_code += [ "else", "{", "    throw;", "}" ]
+    exception_code += CodeTemplates.try_except_reraise_unmatched_template.split( "\n" )
 
-    tb_making = getTracebackMakingIdentifier( context, "_exception.getLine()" )
+    tb_making = getTracebackMakingIdentifier( context )
 
     if else_code is not None:
         return CodeTemplates.try_except_else_template % {
@@ -1420,18 +1427,18 @@ def getTryExceptCode( context, code_tried, handler_codes, else_code ):
 def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier, \
                            exception_tb_identifier, exception_tb_maker ):
     if exception_value_identifier is None and exception_tb_identifier is None:
-        return "RAISE_EXCEPTION( &traceback, %s, %s );" % (
+        return "traceback = true; RAISE_EXCEPTION( %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
         )
     elif exception_tb_identifier is None:
-        return "RAISE_EXCEPTION( &traceback, %s, %s, %s );" % (
+        return "traceback = true; RAISE_EXCEPTION( %s, %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
         )
     else:
-        return "RAISE_EXCEPTION( &traceback, %s, %s, %s );" % (
+        return "traceback = true; RAISE_EXCEPTION( %s, %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
             exception_tb_identifier.getCodeExportRef()
@@ -1439,7 +1446,7 @@ def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier
 
 def getReRaiseExceptionCode( local ):
     if local:
-        return "throw;"
+        return "traceback = true; throw;"
     else:
         return "traceback = true; RERAISE_EXCEPTION();"
 
@@ -1648,7 +1655,8 @@ def getFutureFlagsCode( future_spec ):
         return 0
 
 
-def getEvalCode( context, exec_code, filename_identifier, globals_identifier, locals_identifier, mode_identifier, future_flags, provider ):
+def getEvalCode( context, exec_code, filename_identifier, globals_identifier, \
+                 locals_identifier, mode_identifier, future_flags, provider ):
     if context.getParent() is None:
         return Identifier(
             CodeTemplates.eval_global_template % {
@@ -1763,44 +1771,27 @@ def getBuiltinLenCode( identifier ):
     return Identifier( "BUILTIN_LEN( %s )" % identifier.getCodeTemporaryRef(), 1 )
 
 def getBuiltinRangeCode( low, high, step ):
-    # TODO: Have an Identifier class that calls a helper with arguments.
-
     if step is not None:
-        return Identifier(
-            "BUILTIN_RANGE( %s, %s, %s )" % (
-                low.getCodeTemporaryRef(),
-                high.getCodeTemporaryRef(),
-                step.getCodeTemporaryRef()
-            ),
-            1
+        return HelperCallIdentifier(
+            "BUILTIN_RANGE", low, high, step
         )
     elif high is not None:
-        return Identifier(
-            "BUILTIN_RANGE( %s, %s )" % (
-                low.getCodeTemporaryRef(),
-                high.getCodeTemporaryRef()
-            ),
-            1
+        return HelperCallIdentifier(
+            "BUILTIN_RANGE", low, high
         )
     else:
-        return Identifier(
-            "BUILTIN_RANGE( %s )" % (
-                low.getCodeTemporaryRef()
-            ),
-            1
+        return HelperCallIdentifier(
+            "BUILTIN_RANGE", low
         )
 
 def getBuiltinChrCode( value ):
-    return Identifier( "CHR( %s )" % value.getCodeTemporaryRef(), 1 )
+    return HelperCallIdentifier( "BUILTIN_CHR", value )
 
 def getBuiltinOrdCode( value ):
-    return Identifier( "ORD( %s )" % value.getCodeTemporaryRef(), 1 )
+    return HelperCallIdentifier( "BUILTIN_ORD", value )
 
 def getBuiltinType1Code( value ):
-    return Identifier(
-        "BUILTIN_TYPE1( %s )" % value.getCodeTemporaryRef(),
-        1
-    )
+    return HelperCallIdentifier( "BUILTIN_TYPE1", value )
 
 def getBuiltinType3Code( context, name_identifier, bases_identifier, dict_identifier ):
     return Identifier(
@@ -1817,16 +1808,10 @@ def getBuiltinType3Code( context, name_identifier, bases_identifier, dict_identi
     )
 
 def getBuiltinTupleCode( identifier ):
-    return Identifier(
-        "TO_TUPLE( %s )" % identifier.getCodeTemporaryRef(),
-        1
-    )
+    return HelperCallIdentifier( "TO_TUPLE", identifier )
 
 def getBuiltinListCode( identifier ):
-    return Identifier(
-        "TO_LIST( %s )" % identifier.getCodeTemporaryRef(),
-        1
-    )
+    return HelperCallIdentifier( "TO_LIST", identifier )
 
 def getBuiltinDictCode( seq_identifier, dict_identifier ):
     assert seq_identifier is not None or dict_identifier is not None
@@ -1843,57 +1828,31 @@ def getBuiltinDictCode( seq_identifier, dict_identifier ):
         return dict_identifier
 
 def getBuiltinFloatCode( identifier ):
-    return Identifier(
-        "TO_FLOAT( %s )" % identifier.getCodeTemporaryRef(),
-        1
-    )
+    return HelperCallIdentifier( "TO_FLOAT", identifier )
 
 def getBuiltinLongCode( context, identifier, base ):
     if identifier is None:
         identifier = getConstantHandle( context = context, constant = "0" )
 
     if base is None:
-        return Identifier(
-            "TO_LONG( %s )" % identifier.getCodeTemporaryRef(),
-            1
-        )
+        return HelperCallIdentifier( "TO_LONG", identifier )
     else:
-        return Identifier(
-            "TO_LONG( %s, %s )" % (
-                identifier.getCodeTemporaryRef(),
-                base.getCodeTemporaryRef()
-            ),
-            1
-        )
+        return HelperCallIdentifier( "TO_LONG", identifier, base )
+
 def getBuiltinIntCode( context, identifier, base ):
     if identifier is None:
         identifier = getConstantHandle( context = context, constant = "0" )
 
     if base is None:
-        return Identifier(
-            "TO_INT( %s )" % identifier.getCodeTemporaryRef(),
-            1
-        )
+        return HelperCallIdentifier( "TO_INT", identifier )
     else:
-        return Identifier(
-            "TO_INT( %s, %s )" % (
-                identifier.getCodeTemporaryRef(),
-                base.getCodeTemporaryRef()
-            ),
-            1
-        )
+        return HelperCallIdentifier( "TO_INT", identifier, base )
 
 def getBuiltinStrCode( identifier ):
-    return Identifier(
-        "TO_STR( %s )" % identifier.getCodeTemporaryRef(),
-        1
-    )
+    return HelperCallIdentifier( "TO_STR", identifier )
 
 def getBuiltinUnicodeCode( identifier ):
-    return Identifier(
-        "TO_UNICODE( %s )" % identifier.getCodeTemporaryRef(),
-        1
-    )
+    return HelperCallIdentifier( "TO_UNICODE", identifier )
 
 def getBuiltinBoolCode( identifier ):
     return Identifier(
@@ -1907,11 +1866,10 @@ def getModuleAccessCode( context ):
 def getFrameMakingIdentifier( context ):
     return context.getFrameHandle()
 
-def getTracebackMakingIdentifier( context, line ):
+def getTracebackMakingIdentifier( context ):
     return Identifier(
-        "MAKE_TRACEBACK( %s, %s )" % (
+        "MAKE_TRACEBACK( %s )" % (
             getFrameMakingIdentifier( context = context ).getCodeExportRef(),
-            line
         ),
         1
     )
@@ -2048,13 +2006,13 @@ def getMainCode( codes, other_module_names ):
 def getFunctionsCode( context ):
     result = ""
 
-    for _code_name, ( _contraction_decl, contraction_code ) in sorted( context.getContractionsCodes().iteritems() ):
+    for _code_name, ( _contraction_decl, contraction_code ) in sorted( context.getContractionsCodes().items() ):
         result += contraction_code
 
-    for _code_name, ( _function_decl, function_code ) in sorted( context.getFunctionsCodes().iteritems() ):
+    for _code_name, ( _function_decl, function_code ) in sorted( context.getFunctionsCodes().items() ):
         result += function_code
 
-    for _code_name, ( _class_decl, class_code ) in sorted( context.getClassesCodes().iteritems() ):
+    for _code_name, ( _class_decl, class_code ) in sorted( context.getClassesCodes().items() ):
         result += class_code
 
     return result
@@ -2062,13 +2020,13 @@ def getFunctionsCode( context ):
 def getFunctionsDecl( context ):
     result = ""
 
-    for _code_name, ( contraction_decl, _contraction_code ) in sorted( context.getContractionsCodes().iteritems() ):
+    for _code_name, ( contraction_decl, _contraction_code ) in sorted( context.getContractionsCodes().items() ):
         result += contraction_decl
 
-    for _code_name, ( function_decl, _function_code ) in sorted( context.getFunctionsCodes().iteritems() ):
+    for _code_name, ( function_decl, _function_code ) in sorted( context.getFunctionsCodes().items() ):
         result += function_decl
 
-    for _code_name, ( class_decl, _class_code ) in sorted( context.getClassesCodes().iteritems() ):
+    for _code_name, ( class_decl, _class_code ) in sorted( context.getClassesCodes().items() ):
         result += class_decl
 
     return result
@@ -2225,7 +2183,8 @@ def _extractArgNames( args ):
     ]
 
 
-def getFunctionDecl( context, function_identifier, decorator_count, default_identifiers, closure_variables, is_genexpr ):
+def getFunctionDecl( context, function_identifier, decorator_count, default_identifiers, \
+                     closure_variables, is_genexpr ):
     function_creation_arg_spec = _getFunctionCreationArgs(
         decorator_count     = decorator_count,
         default_identifiers = default_identifiers,
@@ -2826,8 +2785,11 @@ def getGeneratorExpressionCode( context, generator_identifier, generator_name, s
 
     return result
 
-def getCurrentLineCode( source_ref ):
-    return "_current_line = %d;\n" % source_ref.getLineNumber()
+def getSetCurrentLineCode( context, source_ref ):
+    if context.hasFrameGuard():
+        return """frame_guard.setLineNumber( %d );\n""" % source_ref.getLineNumber()
+    else:
+        return """generator->m_frame->f_lineno = %d;\n""" % source_ref.getLineNumber()
 
 def getCurrentExceptionObjectCode():
     return Identifier( "_exception.getObject()", 0 )
@@ -2922,9 +2884,9 @@ def getClassDecl( context, class_identifier, closure_variables, decorator_count 
         )
     }
 
-def getClassCode( context, class_def, class_name, class_filename, class_identifier, \
-                  class_variables, closure_variables, decorator_count, module_name, class_doc, \
-                  class_codes, metaclass_variable ):
+def getClassCode( context, class_def, class_name, class_identifier, \
+                  class_variables, closure_variables, decorator_count, \
+                  module_name, class_doc, class_codes, metaclass_variable ):
     assert metaclass_variable.isModuleVariable()
 
     class_var_decl = []
@@ -3077,9 +3039,6 @@ def _getUnstreamCode( constant_value, constant_type, constant_identifier ):
         constant_type  = constant_type
     )
 
-    if str is unicode:
-        saved = saved.decode( "utf_8" )
-
     return "%s = UNSTREAM_CONSTANT( %s, %d );" % (
         constant_identifier,
         CppRawStrings.encodeString( saved ),
@@ -3105,8 +3064,6 @@ def _getConstantsDefinitionCode( context ):
 
             continue
 
-        # Use shortest code for ints and longs, except when they are big, then fall
-        # fallback to pickling.
         if constant_type is long and abs( constant_value ) < 2**31:
             statements.append(
                 "%s = PyLong_FromLong( %s );" % (
@@ -3137,7 +3094,7 @@ def _getConstantsDefinitionCode( context ):
                 "%s = PySet_New( NULL );" % constant_identifier
             )
 
-        if constant_type in ( tuple, list, float, complex, unicode, int, long, dict, frozenset, set ):
+        if constant_type in ( tuple, list, float, complex, unicode, int, long, dict, frozenset, set, range ):
             statements.append(
                 _getUnstreamCode( constant_value, constant_type, constant_identifier )
             )

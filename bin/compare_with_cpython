@@ -1,0 +1,196 @@
+#!/usr/bin/python
+#
+#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     If you submit Kay Hayen patches to this software in either form, you
+#     automatically grant him a copyright assignment to the code, or in the
+#     alternative a BSD license to the code, should your jurisdiction prevent
+#     this. Obviously it won't affect code that comes to him indirectly or
+#     code you don't submit to him.
+#
+#     This is to reserve my ability to re-license the code at any time, e.g.
+#     the PSF. With this version of Nuitka, using it for Closed Source will
+#     not be allowed.
+#
+#     This program is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, version 3 of the License.
+#
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#     Please leave the whole of this copyright notice intact.
+#
+
+import os, sys, subprocess, difflib, re
+
+module = sys.argv[1]
+silent_mode = "silent" in sys.argv
+ignore_stderr = "ignore_stderr" in sys.argv
+
+if "PYTHON" not in os.environ:
+    os.environ[ "PYTHON" ] = "python"
+
+print "Comparing output of '%s' using '%s' ..." % ( module, os.environ[ "PYTHON" ] )
+
+if not silent_mode:
+    print "*******************************************************"
+    print "CPython:"
+    print "*******************************************************"
+
+cpython_cmd = "%s -W ignore %s" % (
+    os.environ[ "PYTHON" ],
+    module
+)
+
+process = subprocess.Popen(
+    args   = cpython_cmd,
+    stdout = subprocess.PIPE,
+    stderr = subprocess.PIPE,
+    shell  = True
+)
+
+stdout_cpython, stderr_cpython = process.communicate()
+exit_cpython = process.returncode
+
+if not silent_mode:
+    print stdout_cpython,
+
+    if stderr_cpython:
+        print stderr_cpython
+
+if not silent_mode:
+    print "*******************************************************"
+    print "Nuitka:"
+    print "*******************************************************"
+
+nuitka_cmd = "%s %s %s --exe --execute %s" % (
+    os.environ[ "PYTHON" ],
+    os.path.join( os.path.dirname( __file__ ), "Nuitka.py" ),
+    os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ),
+    module
+)
+
+process = subprocess.Popen(
+    args   = nuitka_cmd,
+    stdout = subprocess.PIPE,
+    stderr = subprocess.PIPE,
+    shell  = True
+)
+
+stdout_nuitka, stderr_nuitka = process.communicate()
+exit_nuitka = process.returncode
+
+if not silent_mode:
+    print stdout_nuitka,
+
+    if stderr_nuitka:
+        print stderr_nuitka
+
+
+
+ran_re = re.compile( r"^(Ran \d+ tests? in )\d+\.\d+s$" )
+instance_re = re.compile( r"at 0x[0-9a-fA-F]+" )
+compiled_function_re = re.compile( r"\<compiled function" )
+compiled_genexpr_re = re.compile( r"\<compiled generator object \<(.*?)\>" )
+compiled_generator_re = re.compile( r"\<compiled generator object (.*?) at" )
+unbound_method_re = re.compile( r"bound compiled_method " )
+compiled_type_re = re.compile( r"type 'compiled_" )
+global_name_error_re = re.compile( r"global (name ')(.*?)(' is not defined)" )
+module_repr_re = re.compile( r"(\<module '.*?' from ').*?('\>)" )
+
+fromdate = None
+todate = None
+
+def makeDiffable( output ):
+    result = []
+
+    for line in output:
+        line = instance_re.sub( r"at 0xxxxxxxxx", line )
+        line = compiled_function_re.sub( r"<function", line )
+        line = compiled_genexpr_re.sub( r"<generator object <\1>", line )
+        line = compiled_generator_re.sub( r"<generator object \1 at", line )
+        line = unbound_method_re.sub( r"bound method ", line )
+        line = compiled_type_re.sub( r"type '", line )
+        line = global_name_error_re.sub( r"\1\2\3", line )
+        line = module_repr_re.sub( r"\1xxxxx\2", line )
+
+        # Windows has a different os.path, update according to it.
+        line = line.replace( "ntpath", "posixpath" )
+
+        line = line.replace(
+            "must be a mapping, not compiled_function",
+            "must be a mapping, not function"
+        )
+        line = line.replace(
+            "must be a sequence, not compiled_function",
+            "must be a sequence, not function"
+        )
+
+        line = ran_re.sub( r"\1x.xxxs", line )
+
+        if line.startswith( "Nuitka:WARNING:Cannot recurse to import" ):
+            continue
+
+        # TODO: The C++ compiler may give this warning when modules become too big.
+        if line.endswith( "note: variable tracking size limit exceeded with -fvar-tracking-assignments, retrying without" ):
+            del result[-1]
+            continue
+
+        # TODO: This is a bug potentially, occurs only for CPython when re-directed.
+        if line == "Exception RuntimeError: 'maximum recursion depth exceeded while calling a Python object' in <type 'exceptions.AttributeError'> ignored":
+            continue
+
+        result.append( line )
+
+    return result
+
+
+def compareOutput( kind, out_cpython, out_nuitka ):
+    diff = difflib.unified_diff(
+        makeDiffable( out_cpython.split( "\n" ) ),
+        makeDiffable( out_nuitka.split( "\n" ) ),
+        "%s (%s)" % ( os.environ[ "PYTHON" ], kind ),
+        "%s (%s)" % ( "nuitka", kind ),
+        fromdate,
+        todate,
+        n=3
+    )
+
+    result = list( diff )
+
+    if result:
+        for line in result:
+            print line
+
+        return 1
+    else:
+        return 0
+
+exit_code_stdout = compareOutput( "stdout", stdout_cpython, stdout_nuitka )
+
+if ignore_stderr:
+    exit_code_stderr = 0
+else:
+    exit_code_stderr = compareOutput( "stderr", stderr_cpython, stderr_nuitka )
+
+exit_code_return = exit_cpython != exit_nuitka
+
+if exit_code_return:
+    print "Exit codes %d (CPython) != %d (Nuitka)" % ( exit_cpython, exit_nuitka )
+
+exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
+
+if exit_code:
+    sys.exit( "Error, outputs differed." )
+
+if not silent_mode:
+    print "OK, same outputs."

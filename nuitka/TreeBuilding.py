@@ -40,6 +40,7 @@ from .__past__ import long, unicode
 
 from . import (
     SourceCodeReferences,
+    SyntaxErrors,
     Tracing,
     Utils
 )
@@ -270,6 +271,7 @@ def buildLambdaNode( provider, node, source_ref ):
             body = Nodes.CPythonStatementExpressionOnly(
                 expression = Nodes.CPythonExpressionYield(
                     expression = body,
+                    for_return = True,
                     source_ref = function_body.getSourceReference()
                 ),
                 source_ref = function_body.getSourceReference()
@@ -728,6 +730,84 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
             quals            = node.generators,
             source_ref       = source_ref
         )
+
+        # The horror hereafter transforms the result into something else if a yield
+        # expression was discovered. We take the lambda generator expression and convert
+        # it to a lambda generator function, something that does not exist in CPython, but
+        # for which we can generator code.
+        if contraction_body.isExpressionGeneratorBody() and contraction_body.isGenerator():
+            generator_function_body = Nodes.CPythonExpressionFunctionBody(
+                provider   = provider,
+                name       = "pseudo",
+                doc        = None,
+                parameters = ParameterSpec( ( "_iterated", ), None, None, 0 ),
+                source_ref = source_ref
+            )
+
+            body = Nodes.CPythonStatementExpressionOnly(
+                expression = Nodes.CPythonExpressionYield(
+                    expression = contraction_body.getBody(),
+                    for_return = False,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            )
+
+            body = Nodes.CPythonStatementsSequence(
+                statements = ( body, ),
+                source_ref = source_ref
+            )
+
+            sources = [ Nodes.CPythonExpressionVariableRef( variable_name = "_iterated", source_ref = source_ref ) ]
+            sources += contraction_body.getSources()
+
+            for target, source, condition in zip( contraction_body.getTargets(), sources, contraction_body.getConditions() ):
+
+                body = Nodes.CPythonStatementConditional(
+                    condition  = condition,
+                    yes_branch = body,
+                    no_branch  = None,
+                    source_ref = source_ref
+                )
+
+                body = Nodes.CPythonStatementsSequence(
+                    statements = ( body, ),
+                    source_ref = source_ref
+                )
+
+                body = Nodes.CPythonStatementForLoop(
+                    source     = source,
+                    target     = target,
+                    body       = body,
+                    no_break   = None,
+                    source_ref = source_ref,
+                )
+
+                body = Nodes.CPythonStatementsSequence(
+                    statements = ( body, ),
+                    source_ref = source_ref
+                )
+
+            generator_function_body.setBody( body )
+            generator_function_body.markAsGenerator()
+
+            new_result = Nodes.CPythonExpressionLambdaBuilder(
+                defaults   = (),
+                source_ref = source_ref,
+            )
+            new_result.setBody( generator_function_body )
+
+            new_result = Nodes.CPythonExpressionFunctionCall(
+                called_expression = new_result,
+                positional_args   = ( result.getSource0(), ),
+                pairs             = (),
+                list_star_arg     = None,
+                dict_star_arg     = None,
+                source_ref        = source_ref
+            )
+
+            result.replaceWith( new_result )
+
 
     pushDelayedWork( delayedWork )
 
@@ -1242,11 +1322,15 @@ def buildReturnNode( provider, node, source_ref ):
 
 
 def buildYieldNode( provider, node, source_ref ):
+    if provider.isModule():
+        SyntaxErrors.raiseSyntaxError( "'yield' outside function", source_ref )
+
     provider.markAsGenerator()
 
     if node.value is not None:
         return Nodes.CPythonExpressionYield(
             expression = buildNode( provider, node.value, source_ref ),
+            for_return = False,
             source_ref = source_ref
         )
     else:
@@ -1255,6 +1339,7 @@ def buildYieldNode( provider, node, source_ref ):
                 constant   = None,
                 source_ref = source_ref
             ),
+            for_return = False,
             source_ref = source_ref
         )
 

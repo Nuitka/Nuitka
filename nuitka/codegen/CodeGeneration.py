@@ -243,7 +243,8 @@ def generateContractionCode( contraction, context ):
     contraction_identifier = contraction.getCodeName()
 
     if Options.shallHaveStatementLines():
-        line_number_code = Generator.getCurrentLineCode(
+        line_number_code = Generator.getSetCurrentLineCode(
+            context    = context,
             source_ref = contraction.getSourceReference()
         )
     else:
@@ -636,7 +637,6 @@ def generateClassCode( class_def, context ):
         closure_variables  = class_def.getClosureVariables(),
         decorator_count    = len( decorators ),
         module_name        = class_def.getParentModule().getName(),
-        class_filename     = class_def.getParentModule().getFilename(),
         class_doc          = class_def.getBody().getDoc(),
         class_codes        = class_codes,
         metaclass_variable = class_def.getParentModule().getVariableForReference(
@@ -1163,19 +1163,11 @@ def generateExpressionCode( expression, context, allow_none = False ):
             context               = context
         )
     elif expression.isExpressionYield():
-        # TODO: Consider if TreeBuilding should indidcate it instead, might confuse normal
-        # function generators and lambda generators or might have to treat them in the same
-        # way.
-        for_return = expression.parent.isStatementExpressionOnly() and \
-                     expression.parent.parent.isStatementsSequence() and \
-                     expression.parent.parent.parent.isExpressionFunctionBody() and \
-                     expression.parent.parent.parent.parent.isExpressionLambdaBuilder()
-
         identifier = Generator.getYieldCode(
             identifier = makeExpressionCode(
                 expression = expression.getExpression()
             ),
-            for_return = for_return
+            for_return = expression.isForReturn()
         )
     elif expression.isExpressionBuiltinImport():
         identifier = generateImportModuleCode(
@@ -1278,7 +1270,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
             ),
             exception_tb_maker         = Generator.getTracebackMakingIdentifier(
                 context = context,
-                line    = expression.getSourceReference().getLineNumber()
             )
         )
     elif expression.isExpressionBuiltinMakeException():
@@ -1757,7 +1748,6 @@ def generateRaiseCode( statement, context ):
             exception_tb_identifier    = None,
             exception_tb_maker         = Generator.getTracebackMakingIdentifier(
                 context = context,
-                line    = statement.getSourceReference().getLineNumber()
             )
         )
     elif exception_tb is None:
@@ -1773,7 +1763,6 @@ def generateRaiseCode( statement, context ):
             exception_tb_identifier    = None,
             exception_tb_maker         = Generator.getTracebackMakingIdentifier(
                 context = context,
-                line    = statement.getSourceReference().getLineNumber()
             )
         )
     else:
@@ -1943,7 +1932,8 @@ def generateForLoopCode( statement, context ):
     )
 
     if Options.shallHaveStatementLines():
-        line_number_code = Generator.getCurrentLineCode(
+        line_number_code = Generator.getSetCurrentLineCode(
+            context    = context,
             source_ref = statement.getIterated().getSourceReference()
         )
     else:
@@ -2147,7 +2137,6 @@ def _generateStatementCode( statement, context ):
             ),
             exception_tb_maker   = Generator.getTracebackMakingIdentifier(
                 context = context,
-                line    = statement.getSourceReference().getLineNumber()
             )
         )
     elif statement.isStatementExec():
@@ -2205,7 +2194,11 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
         source_ref = statement.getSourceReference()
 
         if Options.shallHaveStatementLines() and source_ref != last_ref:
-            code = Generator.getCurrentLineCode( source_ref ) + code
+            code = Generator.getSetCurrentLineCode(
+                context    = context,
+                source_ref = source_ref
+            ) + code
+
             last_ref = source_ref
 
         statement_codes = code.split( "\n" )

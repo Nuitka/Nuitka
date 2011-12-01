@@ -35,11 +35,8 @@
 template_constants_reading = """
 #include "nuitka/prelude.hpp"
 
-// The current line of code execution.
-int _current_line;
-
 // Sentinel PyObject to be used for all our call iterator endings. It will become
-// a PyCObject pointing to NULL. TODO: Hopefully that is unique enough.
+// a PyCObject pointing to NULL. It's address is unique, and that's enough.
 PyObject *_sentinel_value = NULL;
 
 PyModuleObject *_module_builtin = NULL;
@@ -57,7 +54,12 @@ void _initConstants( void )
 {
     if ( _sentinel_value == NULL )
     {
+#if PYTHON_VERSION < 300
         _sentinel_value = PyCObject_FromVoidPtr( NULL, NULL );
+#else
+        // The NULL value is not allowed for a capsule, so use something else.
+        _sentinel_value = PyCapsule_New( (void *)27, "sentinel", NULL );
+#endif
         assert( _sentinel_value );
 
         _module_builtin = (PyModuleObject *)PyImport_ImportModule( "__builtin__" );

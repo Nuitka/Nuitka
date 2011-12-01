@@ -31,7 +31,7 @@
 #ifndef __NUITKA_HELPER_SUBSCRIPTS_H__
 #define __NUITKA_HELPER_SUBSCRIPTS_H__
 
-extern PyObject *CHR( unsigned char c );
+extern PyObject *BUILTIN_CHR( unsigned char c );
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, PyObject *const_subscript, Py_ssize_t int_subscript )
 {
@@ -70,6 +70,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
 
             return INCREASE_REFCOUNT( ((PyListObject *)source)->ob_item[ int_subscript ] );
         }
+#if PYTHON_VERSION < 300
+        // TODO: May also be useful for Python3.
         else if ( PyString_CheckExact( source ) )
         {
             Py_ssize_t string_size = PyString_GET_SIZE( source );
@@ -94,8 +96,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
             }
 
             unsigned char c = ((PyStringObject *)source)->ob_sval[ int_subscript ];
-            return CHR( c );
+            return BUILTIN_CHR( c );
         }
+#endif
         else
         {
             result = m->mp_subscript( source, const_subscript );

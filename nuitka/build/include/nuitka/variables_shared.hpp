@@ -36,7 +36,7 @@ class PyObjectSharedStorage
     public:
         explicit PyObjectSharedStorage( PyObject *var_name, PyObject *object, bool free_value )
         {
-            assert( object == NULL || object->ob_refcnt > 0 );
+            assert( object == NULL || Py_REFCNT( object ) > 0 );
 
             this->var_name   = var_name;
             this->object     = object;
@@ -54,8 +54,7 @@ class PyObjectSharedStorage
 
         void operator=( PyObject *object )
         {
-            assert( object );
-            assert( object->ob_refcnt > 0 );
+            assertObject( object );
 
             if ( this->free_value )
             {
@@ -143,7 +142,7 @@ class PyObjectSharedLocalVariable
 
             }
 
-            if ( (this->storage->object)->ob_refcnt == 0 )
+            if ( Py_REFCNT( this->storage->object ) == 0 )
             {
                 PyErr_Format( PyExc_UnboundLocalError, "free variable '%s' referenced after its finalization in enclosing scope", Nuitka_String_AsString( this->storage->getVarName() ) );
                 throw _PythonException();

@@ -130,11 +130,11 @@ class PythonChildContextBase( PythonContextBase ):
     def getModuleName( self ):
         return self.parent.getModuleName()
 
-
 class PythonGlobalContext:
     def __init__( self ):
         self.constants = {}
 
+        # Basic values that the code uses all the times.
         self.getConstantHandle( () )
         self.getConstantHandle( {} )
         self.getConstantHandle( "" )
@@ -142,6 +142,7 @@ class PythonGlobalContext:
         self.getConstantHandle( False )
         self.getConstantHandle( 0 )
 
+        # Python mechanics.
         self.getConstantHandle( "__module__" )
         self.getConstantHandle( "__class__" )
         self.getConstantHandle( "__dict__" )
@@ -149,7 +150,19 @@ class PythonGlobalContext:
         self.getConstantHandle( "__file__" )
         self.getConstantHandle( "__enter__" )
         self.getConstantHandle( "__exit__" )
+
+        # Patched module name.
         self.getConstantHandle( "inspect" )
+
+        # Named of builtins used in helper code.
+        self.getConstantHandle( "compile" )
+        self.getConstantHandle( "range" )
+        self.getConstantHandle( "open" )
+        self.getConstantHandle( "__import__" )
+
+        # COMPILE_CODE uses read/strip method lookups.
+        self.getConstantHandle( "read" )
+        self.getConstantHandle( "strip" )
 
         self.eval_orders_used = set( range( 2, 6 ) )
 
@@ -205,7 +218,10 @@ class PythonModuleContext( PythonContextBase ):
         return "<PythonModuleContext instance for module %s>" % self.filename
 
     def getFrameHandle( self ):
-        return Identifier( "frame_%s" % self.getCodeName(), 0 )
+        return Identifier( "frame_guard.getFrame()", 1 )
+
+    def hasFrameGuard( self ):
+        return True
 
     def getParent( self ):
         return None
@@ -309,6 +325,9 @@ class PythonFunctionContext( PythonChildContextBase ):
         else:
             return Identifier( "frame_guard.getFrame()", 1 )
 
+    def hasFrameGuard( self ):
+        return not self.function.isGenerator()
+
     def getLocalHandle( self, var_name ):
         return LocalVariableIdentifier( var_name, from_context = self.function.isGenerator() )
 
@@ -363,6 +382,9 @@ class PythonListContractionContext( PythonContractionBase ):
     def getLocalHandle( self, var_name ):
         return self.getClosureHandle( var_name )
 
+    def hasFrameGuard( self ):
+        return True
+
 class PythonGeneratorExpressionContext( PythonContractionBase ):
     def __init__( self, parent, contraction ):
         PythonContractionBase.__init__(
@@ -376,6 +398,9 @@ class PythonGeneratorExpressionContext( PythonContractionBase ):
 
     def getLocalHandle( self, var_name ):
         return LocalVariableIdentifier( var_name, from_context = True )
+
+    def hasFrameGuard( self ):
+        return False
 
 class PythonSetContractionContext( PythonContractionBase ):
     def __init__( self, parent, contraction ):
@@ -391,6 +416,8 @@ class PythonSetContractionContext( PythonContractionBase ):
     def getLocalHandle( self, var_name ):
         return LocalVariableIdentifier( var_name, from_context = False )
 
+    def hasFrameGuard( self ):
+        return True
 
 class PythonDictContractionContext( PythonContractionBase ):
     def __init__( self, parent, contraction ):
@@ -406,6 +433,9 @@ class PythonDictContractionContext( PythonContractionBase ):
     def getLocalHandle( self, var_name ):
         return LocalVariableIdentifier( var_name, from_context = False )
 
+    def hasFrameGuard( self ):
+        return True
+
 class PythonClassContext( PythonChildContextBase ):
     def __init__( self, parent, class_def ):
         PythonChildContextBase.__init__( self, parent = parent )
@@ -420,6 +450,9 @@ class PythonClassContext( PythonChildContextBase ):
 
     def getFrameHandle( self ):
         return Identifier( "frame_guard.getFrame()", 1 )
+
+    def hasFrameGuard( self ):
+        return True
 
     def getLocalHandle( self, var_name ):
         return LocalVariableIdentifier( var_name )

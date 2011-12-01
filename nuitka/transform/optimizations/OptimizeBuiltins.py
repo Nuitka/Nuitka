@@ -231,7 +231,7 @@ class ReplaceBuiltinsVisitorBase( OptimizationDispatchingVisitorBase ):
 
             # The exec statement must be treated differently.
             if new_node.isStatementExec():
-                assert node.parent.isStatementExpressionOnly()
+                assert node.parent.isStatementExpressionOnly(), node.getSourceReference()
 
                 node.parent.replaceWith( new_node = new_node )
             else:
@@ -323,9 +323,16 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
 
     def execfile_extractor( self, node ):
         def wrapExpressionBuiltinExecfileCreation( filename, globals_arg, locals_arg, source_ref ):
-            # TODO: Ought to be something else than exec, which can cause Issue#5.
 
-            return Nodes.CPythonStatementExec(
+            if node.getParentVariableProvider().isExpressionClassBody():
+                # In a case, the copy-back must be done and will only be done correctly by
+                # the code for exec statements.
+
+                use_call = Nodes.CPythonStatementExec
+            else:
+                use_call = Nodes.CPythonExpressionBuiltinExecfile
+
+            return use_call(
                 source_code = Nodes.CPythonExpressionFunctionCall(
                     called_expression = Nodes.CPythonExpressionAttributeLookup(
                         expression     = Nodes.CPythonExpressionBuiltinOpen(

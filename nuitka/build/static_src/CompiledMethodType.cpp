@@ -50,11 +50,11 @@ static PyGetSetDef Nuitka_Method_getsets[] =
 
 static PyMemberDef Nuitka_Method_members[] =
 {
-    { (char *)"im_class", T_OBJECT, OFF( m_class ), READONLY|RESTRICTED, (char *)"the class associated with a method"},
-    { (char *)"im_func", T_OBJECT, OFF( m_function ), READONLY|RESTRICTED, (char *)"the function (or other callable) implementing a method" },
-    { (char *)"__func__", T_OBJECT, OFF( m_function ), READONLY|RESTRICTED, (char *)"the function (or other callable) implementing a method" },
-    { (char *)"im_self",  T_OBJECT, OFF( m_object ), READONLY|RESTRICTED, (char *)"the instance to which a method is bound; None for unbound method" },
-    { (char *)"__self__", T_OBJECT, OFF( m_object ), READONLY|RESTRICTED, (char *)"the instance to which a method is bound; None for unbound method" },
+    { (char *)"im_class", T_OBJECT, OFF( m_class ), READONLY | RESTRICTED, (char *)"the class associated with a method"},
+    { (char *)"im_func", T_OBJECT, OFF( m_function ), READONLY | RESTRICTED, (char *)"the function (or other callable) implementing a method" },
+    { (char *)"__func__", T_OBJECT, OFF( m_function ), READONLY | RESTRICTED, (char *)"the function (or other callable) implementing a method" },
+    { (char *)"im_self",  T_OBJECT, OFF( m_object ), READONLY | RESTRICTED, (char *)"the instance to which a method is bound; None for unbound method" },
+    { (char *)"__self__", T_OBJECT, OFF( m_object ), READONLY | RESTRICTED, (char *)"the instance to which a method is bound; None for unbound method" },
     { NULL }
 };
 
@@ -68,14 +68,24 @@ static char const *GET_CLASS_NAME( PyObject *klass )
     {
         PyObject *name = PyObject_GetAttrString( klass, "__name__" );
 
-        if ( name == NULL || !PyString_Check( name ) )
+        if (unlikely( name == NULL ))
         {
             PyErr_Clear();
             return "?";
         }
         else
         {
-            return PyString_AS_STRING( name );
+            // TODO: Is name a leaked reference?
+#if PYTHON_VERSION < 300
+            if ( !PyString_Check( name ) )
+#else
+            if ( !PyUnicode_Check( name ) )
+#endif
+            {
+                return "?";
+            }
+
+            return Nuitka_String_AsString_Unchecked( name );
         }
     }
 }
@@ -141,7 +151,7 @@ static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *a
             }
         }
 
-        return method->m_function->ob_type->tp_call(
+        return Py_TYPE( method->m_function )->tp_call(
             (PyObject *)method->m_function, args, kw
         );
     }
@@ -162,11 +172,11 @@ static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *a
                 PyTuple_SET_ITEM( new_args, i + 1, v );
             }
 
-            PyObject *result = method->m_function->ob_type->tp_call(
+            PyObject *result = Py_TYPE( method->m_function )->tp_call(
                 (PyObject *)method->m_function,
                 new_args,
                 kw
-                                                                    );
+            );
 
             Py_DECREF( new_args );
 
@@ -219,12 +229,17 @@ static PyObject *Nuitka_Method_tp_getattro( Nuitka_MethodObject *method, PyObjec
 
     if ( descr != NULL )
     {
-        if ( PyType_HasFeature( descr->ob_type, Py_TPFLAGS_HAVE_CLASS ) && ( descr->ob_type->tp_descr_get != NULL ) )
+        if (
+#if PYTHON_VERSION < 300
+            PyType_HasFeature( descr->ob_type, Py_TPFLAGS_HAVE_CLASS ) &&
+#endif
+            ( descr->ob_type->tp_descr_get != NULL )
+           )
         {
             return descr->ob_type->tp_descr_get(
                 descr,
                 (PyObject *)method,
-                (PyObject *)method->ob_type
+                (PyObject *)Py_TYPE( method )
             );
         }
         else
@@ -251,10 +266,15 @@ static PyObject *Nuitka_Method_tp_repr( Nuitka_MethodObject *method )
 {
     if ( method->m_object == NULL )
     {
+#if PYTHON_VERSION < 300
         return PyString_FromFormat(
+#else
+        return PyUnicode_FromFormat(
+#endif
+
             "<unbound compiled_method %s.%s>",
             GET_CLASS_NAME( method->m_class ),
-            PyString_AsString( method->m_function->m_name )
+            Nuitka_String_AsString( method->m_function->m_name )
         );
     }
     else
@@ -267,17 +287,29 @@ static PyObject *Nuitka_Method_tp_repr( Nuitka_MethodObject *method )
         {
             return NULL;
         }
+#if PYTHON_VERSION < 300
         else if ( !PyString_Check( object_repr ) )
         {
             Py_DECREF( object_repr );
             return NULL;
         }
+#else
+        else if ( !PyUnicode_Check( object_repr ) )
+        {
+            Py_DECREF( object_repr );
+            return NULL;
+        }
+#endif
 
+#if PYTHON_VERSION < 300
         PyObject *result = PyString_FromFormat(
+#else
+        PyObject *result = PyUnicode_FromFormat(
+#endif
             "<bound compiled_method %s.%s of %s>",
             GET_CLASS_NAME( method->m_class ),
-            PyString_AsString( method->m_function->m_name ),
-            PyString_AS_STRING( object_repr )
+            Nuitka_String_AsString( method->m_function->m_name ),
+            Nuitka_String_AsString_Unchecked( object_repr )
         );
 
         Py_DECREF( object_repr );
@@ -286,6 +318,7 @@ static PyObject *Nuitka_Method_tp_repr( Nuitka_MethodObject *method )
     }
 }
 
+#if PYTHON_VERSION < 300
 static int Nuitka_Method_tp_compare( Nuitka_MethodObject *a, Nuitka_MethodObject *b )
 {
     if ( a->m_function->m_counter < b->m_function->m_counter )
@@ -313,6 +346,7 @@ static int Nuitka_Method_tp_compare( Nuitka_MethodObject *a, Nuitka_MethodObject
         return PyObject_Compare( a->m_object, b->m_object );
     }
 }
+#endif
 
 static long Nuitka_Method_tp_hash( Nuitka_MethodObject *method )
 {
@@ -389,7 +423,12 @@ static PyObject *Nuitka_Method_tp_new( PyTypeObject* type, PyObject* args, PyObj
     return Nuitka_Method_New( (Nuitka_FunctionObject *)func, self, klass );
 }
 
-static const long tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_HAVE_WEAKREFS;
+static const long tp_flags =
+    Py_TPFLAGS_DEFAULT       |
+#if PYTHON_VERSION < 300
+    Py_TPFLAGS_HAVE_WEAKREFS |
+#endif
+    Py_TPFLAGS_HAVE_GC;
 
 PyTypeObject Nuitka_Method_Type =
 {
@@ -401,7 +440,11 @@ PyTypeObject Nuitka_Method_Type =
     0,                                           // tp_print
     0,                                           // tp_getattr
     0,                                           // tp_setattr
+#if PYTHON_VERSION < 300
     (cmpfunc)Nuitka_Method_tp_compare,           // tp_compare
+#else
+    0,
+#endif
     (reprfunc)Nuitka_Method_tp_repr,             // tp_repr
     0,                                           // tp_as_number
     0,                                           // tp_as_sequence
@@ -451,7 +494,12 @@ PyObject *Nuitka_Method_New( Nuitka_FunctionObject *function, PyObject *object, 
 
     if (unlikely( result == NULL ))
     {
-        PyErr_Format( PyExc_RuntimeError, "cannot create method %s", PyString_AsString( function->m_name ) );
+        PyErr_Format(
+            PyExc_RuntimeError,
+            "cannot create method %s",
+            Nuitka_String_AsString( function->m_name )
+        );
+
         throw _PythonException();
     }
 

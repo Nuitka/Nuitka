@@ -35,9 +35,7 @@
 
 NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_LT( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
-    int line = _current_line;
     PyObject *result = PyObject_RichCompare( operand1, operand2, Py_LT );
-    _current_line = line;
 
     if (unlikely( result == NULL ))
     {
@@ -51,9 +49,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_LT( EVAL_ORDERED_2( PyObject
 
 NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_LE( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
-    int line = _current_line;
     PyObject *result = PyObject_RichCompare( operand1, operand2, Py_LE );
-    _current_line = line;
 
     if (unlikely( result == NULL ))
     {
@@ -67,9 +63,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_LE( EVAL_ORDERED_2( PyObject
 
 NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_EQ( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
-    int line = _current_line;
     PyObject *result = PyObject_RichCompare( operand1, operand2, Py_EQ );
-    _current_line = line;
 
     if (unlikely( result == NULL ))
     {
@@ -83,9 +77,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_EQ( EVAL_ORDERED_2( PyObject
 
 NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_NE( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
-    int line = _current_line;
     PyObject *result = PyObject_RichCompare( operand1, operand2, Py_NE );
-    _current_line = line;
 
     if (unlikely( result == NULL ))
     {
@@ -99,9 +91,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_NE( EVAL_ORDERED_2( PyObject
 
 NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_GT( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
-    int line = _current_line;
     PyObject *result = PyObject_RichCompare( operand1, operand2, Py_GT );
-    _current_line = line;
 
     if (unlikely( result == NULL ))
     {
@@ -115,9 +105,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_GT( EVAL_ORDERED_2( PyObject
 
 NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_GE( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
-    int line = _current_line;
     PyObject *result = PyObject_RichCompare( operand1, operand2, Py_GE );
-    _current_line = line;
 
     if (unlikely( result == NULL ))
     {
@@ -131,9 +119,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_GE( EVAL_ORDERED_2( PyObject
 
 NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_LT( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
-    int line = _current_line;
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_LT );
-    _current_line = line;
 
     if (unlikely( rich_result == NULL ))
     {
@@ -172,9 +158,7 @@ NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_LE( EVAL_ORDERED_2( PyObject
         return true;
     }
 
-    int line = _current_line;
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_LE );
-    _current_line = line;
 
     if (unlikely( rich_result == NULL ))
     {
@@ -205,9 +189,7 @@ NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_LE( EVAL_ORDERED_2( PyObject
 
 NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ_PARAMETERS( PyObject *operand1, PyObject *operand2 )
 {
-    int line = _current_line;
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_EQ );
-    _current_line = line;
 
     // String comparisons cannot fail they say.
     assertObject( rich_result );
@@ -244,9 +226,7 @@ NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_EQ( EVAL_ORDERED_2( PyObject
         return true;
     }
 
-    int line = _current_line;
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_EQ );
-    _current_line = line;
 
     if (unlikely( rich_result == NULL ))
     {
@@ -285,9 +265,7 @@ NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_NE( EVAL_ORDERED_2( PyObject
         return false;
     }
 
-    int line = _current_line;
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_NE );
-    _current_line = line;
 
     if (unlikely( rich_result == NULL ))
     {
@@ -320,9 +298,7 @@ NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_NE( EVAL_ORDERED_2( PyObject
 
 NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_GT( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
-    int line = _current_line;
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_GT );
-    _current_line = line;
 
     if (unlikely( rich_result == NULL ))
     {
@@ -361,9 +337,7 @@ NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_GE( EVAL_ORDERED_2( PyObject
         return true;
     }
 
-    int line = _current_line;
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_GE );
-    _current_line = line;
 
     if (unlikely( rich_result == NULL ))
     {

@@ -137,8 +137,7 @@ def optimizeTree( tree ):
     trees = [ tree ] + getOtherModules()
 
     while optimizations_queue:
-        next_optimization = iter( optimizations_queue ).next()
-        optimizations_queue.discard( next_optimization )
+        next_optimization = optimizations_queue.pop( last = False )
 
         for module in trees:
             debug( "Applying to '%s' optimization '%s':" % ( module, next_optimization ) )
@@ -152,4 +151,4 @@ def optimizeTree( tree ):
     return tree
 
 def getOtherModules():
-    return ModuleRecursionVisitor.imported_modules.values()
+    return list( ModuleRecursionVisitor.imported_modules.values() )

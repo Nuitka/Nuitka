@@ -87,7 +87,7 @@ static PyObject *MAKE_TUPLE( P...eles )
         );
     }
 
-    assert( result->ob_refcnt == 1 );
+    assert( Py_REFCNT( result ) == 1 );
 
     return result;
 }
@@ -127,7 +127,7 @@ static PyObject *MAKE_LIST( P...eles )
         );
     }
 
-    assert( result->ob_refcnt == 1 );
+    assert( Py_REFCNT( result ) == 1 );
 
     return result;
 }

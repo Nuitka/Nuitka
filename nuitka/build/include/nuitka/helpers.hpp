@@ -54,13 +54,11 @@ static void PRINT_ITEMS( bool new_line, PyObject *file, P...eles );
 static PyObject *INCREASE_REFCOUNT( PyObject *object );
 static PyObject *INCREASE_REFCOUNT_X( PyObject *object );
 
-extern int _current_line;
-
 // Helper to check that an object is valid and has reference count better than 0.
 static inline void assertObject( PyObject *value )
 {
     assert( value != NULL );
-    assert( value->ob_refcnt > 0 );
+    assert( Py_REFCNT( value ) > 0 );
 }
 
 static inline void assertObject( PyTracebackObject *value )
@@ -110,68 +108,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 
 #include "printing.hpp"
 
-NUITKA_MAY_BE_UNUSED static bool CHECK_IF_TRUE( PyObject *object )
-{
-    assertObject( object );
-
-    if ( object == Py_True )
-    {
-        return true;
-    }
-    else if ( object == Py_False || object == Py_None )
-    {
-        return false;
-    }
-    else
-    {
-        Py_ssize_t result;
-
-        if ( object->ob_type->tp_as_number != NULL && object->ob_type->tp_as_number->nb_nonzero != NULL )
-        {
-            result = (*object->ob_type->tp_as_number->nb_nonzero)( object );
-        }
-        else if ( object->ob_type->tp_as_mapping != NULL && object->ob_type->tp_as_mapping->mp_length != NULL )
-        {
-            result = (*object->ob_type->tp_as_mapping->mp_length)( object );
-        }
-        else if ( object->ob_type->tp_as_sequence != NULL && object->ob_type->tp_as_sequence->sq_length != NULL )
-        {
-            result = (*object->ob_type->tp_as_sequence->sq_length)( object );
-        }
-        else
-        {
-            return true;
-        }
-
-        if ( result > 0 )
-        {
-            return true;
-        }
-        else if ( result == 0 )
-        {
-            return false;
-        }
-        else
-        {
-            throw _PythonException();
-        }
-    }
-}
-
-NUITKA_MAY_BE_UNUSED static bool CHECK_IF_FALSE( PyObject *object )
-{
-    return CHECK_IF_TRUE( object ) == false;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *BOOL_FROM( bool value )
-{
-    return value ? Py_True : Py_False;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *UNARY_NOT( PyObject *object )
-{
-    return BOOL_FROM( CHECK_IF_FALSE( object ) );
-}
+#include "nuitka/helper/boolean.hpp"
 
 typedef PyObject *(binary_api)( PyObject *, PyObject * );
 
@@ -180,9 +117,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION( binary_api api, PyObject
     assertObject( operand1 );
     assertObject( operand2 );
 
-    int line = _current_line;
     PyObject *result = api( operand1, operand2 );
-    _current_line = line;
 
     if (unlikely( result == NULL ))
     {
@@ -197,9 +132,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD( PyObject *operand1, 
     assertObject( operand1 );
     assertObject( operand2 );
 
-    int line = _current_line;
     PyObject *result = PyNumber_Add( operand1, operand2 );
-    _current_line = line;
 
     if (unlikely( result == NULL ))
     {
@@ -214,9 +147,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_MUL( PyObject *operand1, 
     assertObject( operand1 );
     assertObject( operand2 );
 
-    int line = _current_line;
     PyObject *result = PyNumber_Multiply( operand1, operand2 );
-    _current_line = line;
 
     if (unlikely( result == NULL ))
     {
@@ -272,12 +203,6 @@ static inline PyObject *Nuitka_Function_GetName( PyObject *object );
 
 static inline bool Nuitka_Generator_Check( PyObject *object );
 static inline PyObject *Nuitka_Generator_GetName( PyObject *object );
-
-#if PYTHON_VERSION < 300
-#define Nuitka_String_AsString PyString_AsString
-#else
-#define Nuitka_String_AsString _PyUnicode_AsString
-#endif
 
 static char const *GET_CALLABLE_NAME( PyObject *object )
 {
@@ -335,10 +260,17 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT( PyObject *value )
 {
     PyObject *result;
 
+#if PYTHON_VERSION < 300
     if ( PyString_CheckExact( value ) )
     {
         result = PyFloat_FromString( value, NULL );
     }
+#else
+    if ( PyUnicode_CheckExact( value ) )
+    {
+        result = PyFloat_FromString( value );
+    }
+#endif
     else
     {
         result = PyNumber_Float( value );
@@ -368,14 +300,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT( PyObject *value, PyObject *base )
 {
     int base_int = PyInt_AsLong( base );
 
-    if ( base_int == -1 && PyErr_Occurred() )
+    if (unlikely( base_int == -1 && PyErr_Occurred() ))
     {
         throw _PythonException();
     }
 
-    char *value_str = PyString_AsString( value );
+    char *value_str = Nuitka_String_AsString( value );
 
-    if ( value_str == NULL )
+    if (unlikely( value_str == NULL ))
     {
         throw _PythonException();
     }
@@ -406,14 +338,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG( PyObject *value, PyObject *base )
 {
     int base_int = PyInt_AsLong( base );
 
-    if ( base_int == -1 && PyErr_Occurred() )
+    if (unlikely( base_int == -1 && PyErr_Occurred() ))
     {
         throw _PythonException();
     }
 
-    char *value_str = PyString_AsString( value );
+    char *value_str = Nuitka_String_AsString( value );
 
-    if ( value_str == NULL )
+    if (unlikely( value_str == NULL ))
     {
         throw _PythonException();
     }
@@ -543,11 +475,7 @@ NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, P
     }
 }
 
-#if PYTHON_VERSION < 300
-static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, PyStringObject *key )
-#else
-static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, PyUnicodeObject *key )
-#endif
+static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, Nuitka_StringObject *key )
 {
     assert( PyDict_CheckExact( dict ) );
 
@@ -640,10 +568,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
 {
     getiterfunc tp_iter = NULL;
 
+#if PYTHON_VERSION < 300
     if ( PyType_HasFeature( iterated->ob_type, Py_TPFLAGS_HAVE_ITER ))
     {
+#endif
         tp_iter = iterated->ob_type->tp_iter;
+#if PYTHON_VERSION < 300
     }
+#endif
 
     if ( tp_iter )
     {
@@ -692,9 +624,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 {
     assertObject( iterator );
 
-    int line = _current_line;
     PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
-    _current_line = line;
 
     if (unlikely( result == NULL ))
     {
@@ -904,7 +834,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
     {
         if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
         {
-            PyErr_Format( PyExc_ImportError, "cannot import name %s", PyString_AsString( import_name ));
+            PyErr_Format( PyExc_ImportError, "cannot import name %s", Nuitka_String_AsString( import_name ));
         }
 
         throw _PythonException();
@@ -973,8 +903,6 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
             return INCREASE_REFCOUNT( result );
         }
 
-        int line = _current_line;
-
         // Next see if a class has it
         result = FIND_ATTRIBUTE_IN_CLASS( source_instance->in_class, attr_name );
 
@@ -988,7 +916,6 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 
                 if (unlikely( result == NULL ))
                 {
-                    _current_line = line;
                     throw _PythonException();
                 }
 
@@ -1004,7 +931,6 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 
         if (unlikely( PyErr_Occurred() && !PyErr_ExceptionMatches( PyExc_AttributeError ) ))
         {
-            _current_line = line;
             throw _PythonException();
         }
 
@@ -1013,7 +939,6 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
         {
             PyErr_Format( PyExc_AttributeError, "%s instance has no attribute '%s'", PyString_AS_STRING( source_instance->in_class->cl_name ), PyString_AS_STRING( attr_name ) );
 
-            _current_line = line;
             throw _PythonException();
         }
         else
@@ -1023,8 +948,6 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
                 PyObjectTemporary( MAKE_TUPLE( EVAL_ORDERED_2( source, attr_name ) ) ).asObject(),
                 NULL
             );
-
-            _current_line = line;
 
             if (unlikely( result == NULL ))
             {
@@ -1041,8 +964,6 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObject *attr_name )
 {
-    // printf( "look at %zd %s\n", attr_name->ob_refcnt, PyString_AS_STRING( attr_name ) );
-
     assertObject( source );
     assertObject( attr_name );
 
@@ -1062,9 +983,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
 
         if ( type->tp_getattro != NULL )
         {
-            int line = _current_line;
             PyObject *result = (*type->tp_getattro)( source, attr_name );
-            _current_line = line;
 
             if (unlikely( result == NULL ))
             {
@@ -1076,9 +995,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
         }
         else if ( type->tp_getattr != NULL )
         {
-            int line = _current_line;
-            PyObject *result = (*type->tp_getattr)( source, PyString_AS_STRING( attr_name ) );
-            _current_line = line;
+            PyObject *result = (*type->tp_getattr)( source, Nuitka_String_AsString_Unchecked( attr_name ) );
 
             if (unlikely( result == NULL ))
             {
@@ -1090,7 +1007,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
         }
         else
         {
-            PyErr_Format( PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name, PyString_AS_STRING( attr_name ) );
+            PyErr_Format( PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name, Nuitka_String_AsString_Unchecked( attr_name ) );
             throw _PythonException();
         }
     }
@@ -1207,7 +1124,7 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *target, PyObject *attr
         }
         else if ( type->tp_setattr != NULL )
         {
-            int status = (*type->tp_setattr)( target, PyString_AS_STRING( attr_name ), value );
+            int status = (*type->tp_setattr)( target, Nuitka_String_AsString_Unchecked( attr_name ), value );
 
             if (unlikely( status == -1 ))
             {
@@ -1220,7 +1137,7 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *target, PyObject *attr
                 PyExc_TypeError,
                 "'%s' object has no attributes (assign to %s)",
                 type->tp_name,
-                PyString_AS_STRING( attr_name )
+                Nuitka_String_AsString_Unchecked( attr_name )
             );
 
             throw _PythonException();
@@ -1231,8 +1148,7 @@ NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *target, PyObject *attr
                 PyExc_TypeError,
                 "'%s' object has only read-only attributes (assign to %s)",
                 type->tp_name,
-
-                PyString_AS_STRING( attr_name )
+                Nuitka_String_AsString_Unchecked( attr_name )
             );
 
             throw _PythonException();
@@ -1523,9 +1439,9 @@ extern PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObj
 extern PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering );
 
 // For quicker builtin chr() functionality.
-extern PyObject *CHR( PyObject *value );
+extern PyObject *BUILTIN_CHR( PyObject *value );
 // For quicker builtin ord() functionality.
-extern PyObject *ORD( PyObject *value );
+extern PyObject *BUILTIN_ORD( PyObject *value );
 
 // For quicker type() functionality if 1 argument is given.
 extern PyObject *BUILTIN_TYPE1( PyObject *arg );
@@ -1569,7 +1485,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
         }
     }
 
+#if PYTHON_VERSION < 300
     PyObject *result = PyEval_EvalCode( (PyCodeObject *)code, globals, locals );
+#else
+    PyObject *result = PyEval_EvalCode( code, globals, locals );
+#endif
 
     if (unlikely( result == NULL ))
     {
@@ -1594,9 +1514,12 @@ extern PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool inte
 
 extern void enhancePythonTypes( void );
 
+// Parse the command line parameters and provide it to sys module.
+extern void setCommandLineParameters( int argc, char *argv[] );
+
 extern void patchInspectModule( void );
 
 #define _DEBUG_UNFREEZER 0
-#define REFRAME_DEBUG 0
+#define _DEBUG_REFRAME 0
 
 #endif

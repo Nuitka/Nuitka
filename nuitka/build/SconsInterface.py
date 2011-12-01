@@ -56,12 +56,18 @@ def runScons( options, quiet ):
     # unable to use __file__ for the task.
     os.environ[ "NUITKA_SCONS" ] = getSconsDataPath()
 
-    # On Windows this variable must be set.
     if "win" in sys.platform:
+        # On Windows this Scons variable must be set by us.
         os.environ[ "SCONS_LIB_DIR" ] = Utils.joinpath( getSconsInlinePath(), "lib", "scons-2.0.1" )
 
+        # Also, for MinGW we can avoid the user having to add the path if he used the
+        # default path or installed it on the same drive by appending to the PATH variable
+        # before executing scons.
+        os.environ[ "PATH" ] += r";\MinGW\bin;C:\MinGW\bin"
+
+
     scons_command = """%(python)s %(binary)s %(quiet)s -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
-        "python"     : sys.executable,
+        "python"     : sys.executable if Utils.getPythonVersion() < 300 else "python",
         "binary"     : getSconsBinaryPath(),
         "quiet"      : "--quiet" if quiet else "",
         "scons_file" : Utils.joinpath( getSconsDataPath(), "SingleExe.scons" ),

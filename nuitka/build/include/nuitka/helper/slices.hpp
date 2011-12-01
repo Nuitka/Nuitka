@@ -33,8 +33,18 @@
 
 static inline bool IS_INDEXABLE( PyObject *value )
 {
-    return value == Py_None || PyInt_Check( value ) || PyLong_Check( value ) || PyIndex_Check( value );
+    return
+        value == Py_None ||
+#if PYTHON_VERSION < 300
+        PyInt_Check( value ) ||
+#endif
+        PyLong_Check( value ) ||
+        PyIndex_Check( value );
 }
+
+#if PYTHON_VERSION < 300
+// TODO: It appears that Python3 has no index slicing operations anymore, but uses slice
+// objects all the time. That's fine by us for now.
 
 #define LOOKUP_SLICE( source, lower, upper ) _LOOKUP_SLICE( EVAL_ORDERED_3( source, lower, upper ) )
 
@@ -214,6 +224,8 @@ NUITKA_MAY_BE_UNUSED static void _DEL_SLICE( EVAL_ORDERED_3( PyObject *target, P
         }
     }
 }
+
+#endif
 
 #define MAKE_SLICEOBJ( start, stop, step ) _MAKE_SLICEOBJ( EVAL_ORDERED_3( start, stop, step ) )
 

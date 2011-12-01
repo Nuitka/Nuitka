@@ -36,7 +36,7 @@ This contains means to compare, classify and test constants.
 import math
 
 # pylint: disable=W0622
-from .__past__ import long, unicode
+from .__past__ import long, unicode, iterItems
 # pylint: enable=W0622
 
 NoneType = type( None )
@@ -77,8 +77,8 @@ def compareConstants( a, b ):
         if len( a ) != len( b ):
             return False
 
-        for ea1, ea2 in a.iteritems():
-            for eb1, eb2 in b.iteritems():
+        for ea1, ea2 in iterItems( a ):
+            for eb1, eb2 in iterItems( b ):
                 if compareConstants( ea1, eb1 ) and compareConstants( ea2, eb2 ):
                     break
             else:
@@ -102,6 +102,9 @@ def compareConstants( a, b ):
         else:
             return True
 
+    if type( a ) is range:
+        return str( a ) == str( b )
+
     # The NaN values of float and complex may let this fail, even if the constants are
     # built in the same way.
     return a == b
@@ -109,7 +112,7 @@ def compareConstants( a, b ):
 def isMutable( constant ):
     constant_type = type( constant )
 
-    if constant_type in ( str, unicode, complex, int, long, bool, float, NoneType ):
+    if constant_type in ( str, unicode, complex, int, long, bool, float, NoneType, range ):
         return False
     elif constant_type in ( dict, list ):
         return True
@@ -129,7 +132,7 @@ def isMutable( constant ):
         assert False, constant_type
 
 def isIterableConstant( constant ):
-    return type( constant) in ( str, unicode, list, tuple, set, frozenset, dict )
+    return type( constant ) in ( str, unicode, list, tuple, set, frozenset, dict, range )
 
 def isNumberConstant( constant ):
     return type( constant ) in ( int, long, float, bool )
@@ -142,6 +145,11 @@ class HashableConstant:
         self.constant = constant
 
         try:
+            # For Python3: range objects with same ranges give different hash
+            # values. It's not even funny, is it.
+            if type( constant ) is range:
+                raise TypeError
+
             self.hash = hash( constant )
         except TypeError:
             self.hash = 55

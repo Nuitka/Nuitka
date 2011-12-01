@@ -1,16 +1,15 @@
 include LICENSE
 include MANIFEST.in
+include README.pdf
+include doc/*.1
 
 include bin/*.sh
 include bin/make_diffable
-
-recursive-include src *.cpp *.asm ucontext.h COPYING.LIB
-recursive-include include *.hpp
+include bin/compare_with_cpython
 
 include misc/*.sh
+include misc/*.bat
 include misc/check-with-pylint
-
-include dialogs/InspectPythonTree.ui
 
 recursive-include lib *.py
 

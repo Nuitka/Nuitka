@@ -33,7 +33,15 @@
 
 static PyObject *Nuitka_Generator_tp_repr( Nuitka_GeneratorObject *generator )
 {
-    return PyString_FromFormat( "<compiled generator object %s at %p>", PyString_AsString( generator->m_name ), generator );
+#if PYTHON_VERSION < 300
+    return PyString_FromFormat(
+#else
+    return PyUnicode_FromFormat(
+#endif
+        "<compiled generator object %s at %p>",
+        Nuitka_String_AsString( generator->m_name ),
+        generator
+    );
 }
 
 static long Nuitka_Generator_tp_traverse( PyObject *function, visitproc visit, void *arg )
@@ -67,13 +75,7 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
             generator->m_status = Generator_Status::status_Running;
 
             // Prepare the generator context to run. TODO: Make stack size rational.
-            generator->m_yielder_context.uc_stack.ss_size = 1024*1024;
-            generator->m_yielder_context.uc_stack.ss_sp = malloc( generator->m_yielder_context.uc_stack.ss_size );
-
-            int res = getcontext( &generator->m_yielder_context );
-            assert( res == 0 );
-
-            makecontext( &generator->m_yielder_context, (void (*)())generator->m_code, 1, (unsigned long)generator );
+            prepareFiber( &generator->m_yielder_context, generator->m_code, (unsigned long)generator );
         }
 
         generator->m_yielded = value;
@@ -98,7 +100,7 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
 
         // Continue the yielder function while preventing recursion.
         generator->m_running = true;
-        swapcontext( &generator->m_caller_context, &generator->m_yielder_context );
+        swapFiber( &generator->m_caller_context, &generator->m_yielder_context );
         generator->m_running = false;
 
         // Remove the generator from the frame stack.
@@ -164,8 +166,8 @@ static PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyOb
 
 static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
 {
-    assert( generator->ob_refcnt == 0 );
-    generator->ob_refcnt = 1;
+    assert( Py_REFCNT( generator ) == 0 );
+    Py_REFCNT( generator ) = 1;
 
     PyObject *close_result = Nuitka_Generator_close( generator, NULL );
 
@@ -178,10 +180,10 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
         Py_DECREF( close_result );
     }
 
-    assert( generator->ob_refcnt == 1 );
-    generator->ob_refcnt = 0;
+    assert( Py_REFCNT( generator ) == 1 );
+    Py_REFCNT( generator ) = 0;
 
-    free( generator->m_yielder_context.uc_stack.ss_sp );
+    releaseFiber( &generator->m_yielder_context );
 
     // Now it is safe to release references and memory for it.
     Nuitka_GC_UnTrack( generator );
@@ -276,7 +278,7 @@ static PyMethodDef Nuitka_Generator_methods[] =
 
 static PyMemberDef Nuitka_Generator_members[] =
 {
-    { (char *)"gi_running", T_INT, offsetof( Nuitka_GeneratorObject, m_running ), RO },
+    { (char *)"gi_running", T_INT, offsetof( Nuitka_GeneratorObject, m_running ), READONLY },
     { NULL }
 };
 
@@ -338,7 +340,12 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, void *context
 
     if (unlikely( result == NULL ))
     {
-        PyErr_Format( PyExc_RuntimeError, "cannot create genexpr %s", PyString_AsString( name ) );
+        PyErr_Format(
+            PyExc_RuntimeError,
+            "cannot create genexpr %s",
+            Nuitka_String_AsString( name )
+        );
+
         throw _PythonException();
     }
 
@@ -354,8 +361,7 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, void *context
     result->m_status = Generator_Status::status_Unused;
     result->m_running = false;
 
-    result->m_yielder_context.uc_stack.ss_sp = NULL;
-    result->m_yielder_context.uc_link = NULL;
+    initFiber( &result->m_yielder_context );
 
     result->m_exception_type = NULL;
     result->m_yielded = NULL;

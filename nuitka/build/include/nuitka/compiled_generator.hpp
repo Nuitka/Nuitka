@@ -52,7 +52,7 @@ enum class Generator_Status {
 
 // *** Nuitka_Generator type begin
 
-#include "ucontext.h"
+#include "fibers.hpp"
 
 // The Nuitka_GeneratorObject is the storage associated with a compiled generator object
 // instance of which there can be many for each code.
@@ -61,8 +61,8 @@ typedef struct {
 
     PyObject *m_name;
 
-    ucontext_t m_yielder_context;
-    ucontext_t m_caller_context;
+    Fiber m_yielder_context;
+    Fiber m_caller_context;
 
     void *m_context;
     releaser m_cleanup;
@@ -124,7 +124,7 @@ static inline PyObject *YIELD_VALUE( Nuitka_GeneratorObject *generator, PyObject
     generator->m_yielded = value;
 
     // Return to the calling context.
-    swapcontext( &generator->m_yielder_context, &generator->m_caller_context );
+    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
 
     CHECK_EXCEPTION( generator );
 

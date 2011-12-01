@@ -14,5 +14,9 @@
 *.build
 .sconsign.dblite
 tests/reflected/nuitka/
-Nuitka.egg-info/
 dist
+MANIFEST
+README.pdf
+README.html
+doc/*.1
+doc/man-*.html

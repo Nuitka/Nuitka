@@ -81,7 +81,11 @@ win_target = getBoolOption( "win_target", "win" in sys.platform )
 
 # ARM target mode: Compile for ARM which has bad ucontext status, we need
 # to provide our own implementation.
-arm_target = getBoolOption( "arm_target", "linux" in sys.platform and "arm" in os.uname()[4] )
+arm_linux_target = getBoolOption( "arm_linux_target", "linux" in sys.platform and "arm" in os.uname()[4] )
+
+# x64 target mode: Compile for x64 which swapcontext that does syscall that is not
+# necessary. We choose to provide our own implementation.
+x64_linux_target = getBoolOption( "x64_linux_target", "linux" in sys.platform and "x86_64" == os.uname()[4] and not win_target )
 
 unstriped_mode = getBoolOption( "unstriped_mode", False )
 
@@ -245,19 +249,15 @@ env.Append( LIBS = [ "python" + python_version + debug_indicator ] )
 nuitka_include = os.path.join( os.environ[ "NUITKA_SCONS" ], "include" )
 env.Append( CPPPATH = [ source_dir, nuitka_include ] )
 
-if win_target:
-    env.Append( CPPPATH = [ static_src + "/win32_ucontext_src" ] )
-
-if arm_target:
-    env.Append( CPPPATH = [ static_src + "/arm_ucontext_src" ] )
-
 if debug_mode or unstriped_mode:
     # On crosscompile, use debug format that wine understands, so we get good tracebacks
     # from it.
     if win_target and "linux" in sys.platform:
         env.Append( CCFLAGS = [ "-gstabs" ] )
+        env.Append( ASFLAGS = [ "-gstabs" ] )
     else:
         env.Append( CCFLAGS = [ "-g", "-feliminate-unused-debug-types" ] )
+        env.Append( ASFLAGS = [ "-g" ] )
 
 # When debugging, optimize less than when optimizing, when not remove the assertions.
 if debug_mode:
@@ -290,11 +290,17 @@ def discoverSourceFiles():
         result.append( static_src + "/InspectPatcher.cpp" )
 
     if win_target:
-        result.append( static_src + "/win32_ucontext_src/ucontext.cpp" )
-
-    if arm_target:
+        result.append( static_src + "/win32_ucontext_src/fibers_win32.cpp" )
+    elif x64_linux_target:
+        result.append( static_src + "/x64_ucontext_src/fibers_x64.cpp" )
+        result.append( static_src + "/x64_ucontext_src/swapfiber.S" )
+    elif arm_linux_target:
+        result.append( static_src + "/arm_ucontext_src/fibers_arm.cpp" )
         result.append( static_src + "/arm_ucontext_src/ucontext.cpp" )
         result.append( static_src + "/arm_ucontext_src/getcontext.asm" )
+    else:
+        # Variant based on getcontext/setcontext/swapcontext/makecontext
+        result.append( static_src + "/gen_ucontext_src/fibers_gen.cpp" )
 
     for filename in os.listdir( source_dir ):
         if filename.endswith( ".cpp" ):

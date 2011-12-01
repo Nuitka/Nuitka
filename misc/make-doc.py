@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/usr/bin/python
 #
 #     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -30,50 +30,30 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-MODULE=$1
-MODE=$2
+import os, sys, shutil, re
 
-if [ "$PYTHON" = "" ]
-then
-    PYTHON=python
-fi
+assert 0 == os.system( "rst2pdf README.txt" )
 
-echo "Comparing $MODULE using $PYTHON ..."
+if not os.path.exists( "man" ):
+    os.mkdir( "man" )
 
-NUITKA_CMD="$PYTHON `which Nuitka.py` $NUITKA_EXTRA_OPTIONS --exe --execute $MODULE"
+assert 0 == os.system( "help2man --no-discard-stderr --no-info --include doc/nuitka-man-include.txt nuitka >doc/nuitka.1" )
+assert 0 == os.system( "help2man --no-discard-stderr --no-info nuitka-python >doc/nuitka-python.1" )
 
-if [ "$MODE" = "silent" ]
-then
-    $PYTHON $MODULE | make_diffable >/tmp/cpython.out.$$
-    PYTHON_EXIT=${PIPESTATUS[0]}
+assert 0 == os.system( "man2html doc/nuitka.1 >doc/man-nuitka.html" )
+assert 0 == os.system( "man2html doc/nuitka-python.1 >doc/man-nuitka-python.html" )
 
-    $NUITKA_CMD | make_diffable >/tmp/nuitka.out.$$
-    NUITKA_EXIT=${PIPESTATUS[0]}
-else
-    echo "*******************************************************"
-    echo "CPython:"
-    echo "*******************************************************"
-    $PYTHON $MODULE | make_diffable | tee /tmp/cpython.out.$$
-    PYTHON_EXIT=${PIPESTATUS[0]}
+def getFile( filename ):
+    return open( filename ).read()
 
-    echo "*******************************************************"
-    echo "Nuitka:"
-    echo "*******************************************************"
-    $NUITKA_CMD | make_diffable | tee /tmp/nuitka.out.$$
-    NUITKA_EXIT=${PIPESTATUS[0]}
+contents = getFile( "doc/man-nuitka.html" )
+new_contents = contents[ : contents.rfind( "<HR>" ) ] + contents[ contents.rfind( "</BODY>" ) : ]
+assert new_contents != contents
 
-    echo "*******************************************************"
-    echo "Diff:"
-    echo "*******************************************************"
-fi
+open( "doc/man-nuitka.html", "w" ).write( new_contents )
 
-diff -us /tmp/cpython.out.$$ /tmp/nuitka.out.$$ --strip-trailing-cr
-rm -f /tmp/cpython.out.$$ /tmp/nuitka.out.$$
+contents = getFile( "doc/man-nuitka-python.html" )
+new_contents = contents[ : contents.rfind( "<HR>" ) ] + contents[ contents.rfind( "</BODY>" ) : ]
+assert new_contents != contents
 
-if [ "$NUITKA_EXIT" != "$PYTHON_EXIT" ]
-then
-    echo "Exit codes are different Nuitka=$NUITKA_EXIT CPython=$PYTHON_EXIT"
-    exit 1
-else
-    exit 0
-fi
+open( "doc/man-nuitka-python.html", "w" ).write( new_contents )

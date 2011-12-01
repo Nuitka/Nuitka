@@ -33,7 +33,7 @@
 
 #include "__constants.hpp"
 
-static PythonBuiltin _python_builtin_compile( "compile" );
+static PythonBuiltin _python_builtin_compile( &_python_str_plain_compile );
 
 PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags )
 {
@@ -47,26 +47,33 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
     // Workaround leading whitespace causing a trouble to compile builtin, but not eval builtin
     PyObject *source;
 
-    if ( ( PyString_Check( source_code ) || PyUnicode_Check( source_code ) ) && strcmp( Nuitka_String_AsString( mode ), "exec" ) != 0 )
+    if (
+        (
+#if PYTHON_VERSION < 300
+            PyString_Check( source_code ) ||
+#endif
+            PyUnicode_Check( source_code )
+        ) &&
+        strcmp( Nuitka_String_AsString( mode ), "exec" ) != 0
+       )
     {
-        static PyObject *strip_str = PyString_FromString( "strip" );
-
         // TODO: There is an API to call a method, use it instead.
-        source = LOOKUP_ATTRIBUTE( source_code, strip_str );
+        source = LOOKUP_ATTRIBUTE( source_code, _python_str_plain_strip );
         source = PyObject_CallFunctionObjArgs( source, NULL );
 
         assert( source );
     }
+#if PYTHON_VERSION < 300
+    // TODO: What does Python3 do here.
     else if ( PyFile_Check( source_code ) && strcmp( Nuitka_String_AsString( mode ), "exec" ) == 0 )
     {
-        static PyObject *read_str = PyString_FromString( "read" );
-
         // TODO: There is an API to call a method, use it instead.
-        source = LOOKUP_ATTRIBUTE( source_code, read_str );
+        source = LOOKUP_ATTRIBUTE( source_code, _python_str_plain_read );
         source = PyObject_CallFunctionObjArgs( source, NULL );
 
         assert( source );
     }
+#endif
     else
     {
         source = source_code;
@@ -85,7 +92,7 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
     );
 }
 
-static PythonBuiltin _python_builtin_open( "open" );
+static PythonBuiltin _python_builtin_open( &_python_str_plain_open );
 
 PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
 {
@@ -122,17 +129,21 @@ PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
     }
 }
 
-PyObject *CHR( unsigned char c )
+PyObject *BUILTIN_CHR( unsigned char c )
 {
     // TODO: A switch statement might be faster, because no object needs to be created at
     // all, this is how CPython does it.
     char s[1];
     s[0] = (char)c;
 
+#if PYTHON_VERSION < 300
     return PyString_FromStringAndSize( s, 1 );
+#else
+    return PyUnicode_FromStringAndSize( s, 1 );
+#endif
 }
 
-PyObject *CHR( PyObject *value )
+PyObject *BUILTIN_CHR( PyObject *value )
 {
     long x = PyInt_AsLong( value );
 
@@ -147,20 +158,24 @@ PyObject *CHR( PyObject *value )
     char s[1];
     s[0] = (char)x;
 
+#if PYTHON_VERSION < 300
     return PyString_FromStringAndSize( s, 1 );
+#else
+    return PyUnicode_FromStringAndSize( s, 1 );
+#endif
 }
 
-PyObject *ORD( PyObject *value )
+PyObject *BUILTIN_ORD( PyObject *value )
 {
     long result;
 
-    if (likely( PyString_Check( value ) ))
+    if (likely( PyBytes_Check( value ) ))
     {
-        Py_ssize_t size = PyString_GET_SIZE( value );
+        Py_ssize_t size = PyBytes_GET_SIZE( value );
 
         if (likely( size == 1 ))
         {
-            result = long( ((unsigned char *)PyString_AS_STRING( value ))[0] );
+            result = long( ((unsigned char *)PyBytes_AS_STRING( value ))[0] );
         }
         else
         {
@@ -227,7 +242,12 @@ PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases,
 
     if (likely( PyType_IsSubtype( type, &PyType_Type ) ))
     {
-        if ( PyType_HasFeature( type, Py_TPFLAGS_HAVE_CLASS ) && type->tp_init != NULL )
+        if (
+#if PYTHON_VERSION < 300
+            PyType_HasFeature( type, Py_TPFLAGS_HAVE_CLASS ) &&
+#endif
+            type->tp_init != NULL
+           )
         {
             int res = type->tp_init( result, MAKE_TUPLE( EVAL_ORDERED_3( name, bases, dict ) ), NULL );
 
@@ -301,7 +321,12 @@ PyObject *BUILTIN_RANGE( long boundary )
 
 static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 {
-    if (likely( PyInt_Check( value ) || PyLong_Check( value )) )
+    if (likely(
+#if PYTHON_VERSION < 300
+            PyInt_Check( value ) ||
+#endif
+            PyLong_Check( value )
+       ))
     {
         return INCREASE_REFCOUNT( value );
     }
@@ -332,7 +357,7 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
     return result;
 }
 
-static PythonBuiltin _python_builtin_range( "range" );
+static PythonBuiltin _python_builtin_range( &_python_str_plain_range );
 
 PyObject *BUILTIN_RANGE( PyObject *boundary )
 {
@@ -455,7 +480,14 @@ PyObject *BUILTIN_LEN( PyObject *value )
 }
 
 // TODO: Move this to global init, so it's not pre-main code that may not be run.
-static PyObject *empty_code = PyBuffer_FromMemory( NULL, 0 );
+
+static PyObject *empty_code =
+#if PYTHON_VERSION < 300
+    PyBuffer_FromMemory( NULL, 0 );
+#else
+    // TODO: How to create buffer objects for CPython3?
+    Py_None;
+#endif
 
 PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, int arg_count, bool is_generator )
 {
@@ -473,8 +505,13 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
         flags |= CO_GENERATOR;
     }
 
+    // TODO: Consider using PyCode_NewEmpty
+
     PyCodeObject *result = PyCode_New (
         arg_count,           // argcount
+#if PYTHON_VERSION >= 300
+        0,                   // kw-only count
+#endif
         0,                   // nlocals
         0,                   // stacksize
         flags,               // flags
@@ -503,6 +540,8 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
     assertCodeObject( code );
     assertObject( module );
 
+    PyFrameObject *current = PyThreadState_GET()->frame;
+
     PyFrameObject *result = PyFrame_New(
         PyThreadState_GET(),                 // thread state
         code,                                // code
@@ -517,10 +556,68 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
         throw _PythonException();
     }
 
+    assert( current == PyThreadState_GET()->frame );
+
+    // Provide a non-NULL f_trace, so f_lineno will be used in exceptions.
+    result->f_trace = INCREASE_REFCOUNT( Py_None );
+
+    // Remove the reference to the current frame, to be set when actually using it
+    // only.
+    Py_XDECREF( result->f_back );
+    result->f_back = NULL;
+
     return result;
 }
 
-static PythonBuiltin _python_builtin_import( "__import__" );
+PyFrameObject *detachCurrentFrame()
+{
+    PyFrameObject *old_frame = PyThreadState_GET()->frame;
+    PyFrameObject *new_frame = PyObject_GC_NewVar( PyFrameObject, &PyFrame_Type, 0 );
+
+    // Allow only to detach only our tracing frames.
+    assert( old_frame->f_trace == Py_None );
+    new_frame->f_trace = INCREASE_REFCOUNT( Py_None );
+
+    // Copy the back reference if any.
+    new_frame->f_back = old_frame->f_back;
+    Py_XINCREF( new_frame->f_back );
+
+    // Take a code reference as well.
+    new_frame->f_code = old_frame->f_code;
+    Py_XINCREF( new_frame->f_code );
+
+    // Copy attributes.
+    new_frame->f_locals = INCREASE_REFCOUNT( old_frame->f_locals );
+    new_frame->f_globals = INCREASE_REFCOUNT( old_frame->f_globals );
+    new_frame->f_builtins = INCREASE_REFCOUNT( old_frame->f_builtins );
+
+    new_frame->f_exc_type = INCREASE_REFCOUNT_X( old_frame->f_exc_type );
+    new_frame->f_exc_value = INCREASE_REFCOUNT_X( old_frame->f_exc_value );
+    new_frame->f_exc_traceback = INCREASE_REFCOUNT_X( old_frame->f_exc_traceback );
+
+    assert( old_frame->f_valuestack == old_frame->f_localsplus );
+    new_frame->f_valuestack = new_frame->f_localsplus;
+
+    assert( old_frame->f_stacktop == old_frame->f_valuestack );
+    new_frame->f_stacktop = new_frame->f_valuestack;
+
+    new_frame->f_tstate = old_frame->f_tstate;
+    new_frame->f_lasti = -1;
+    new_frame->f_lineno = old_frame->f_lineno;
+
+    assert( old_frame->f_iblock == 0 );
+    new_frame->f_iblock = 0;
+
+    Nuitka_GC_Track( new_frame );
+
+    // The given frame can be put on top now.
+    PyThreadState_GET()->frame = new_frame;
+    Py_DECREF( old_frame );
+
+    return new_frame;
+}
+
+static PythonBuiltin _python_builtin_import( &_python_str_plain___import__ );
 
 PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
 {
@@ -528,8 +625,6 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *loc
     assertObject( globals );
     assertObject( locals );
     assertObject( import_items );
-
-    int line = _current_line;
 
     PyObject *import_result;
 
@@ -544,8 +639,6 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *loc
             level
         )
     );
-
-    _current_line = line;
 
     if (unlikely( import_result == NULL ))
     {
@@ -586,7 +679,7 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
         // TODO: Not yet clear, what happens with __all__ and "_" of its contents.
         if ( all_case == false )
         {
-            if ( PyString_AS_STRING( item )[0] == '_' )
+            if ( Nuitka_String_AsString_Unchecked( item )[0] == '_' )
             {
                 continue;
             }
@@ -741,7 +834,11 @@ PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size )
 
 PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
 {
+#if PYTHON_VERSION < 300
     PyObject *result = PyString_FromStringAndSize( buffer, size );
+#else
+    PyObject *result = PyUnicode_FromStringAndSize( buffer, size );
+#endif
     assert( !PyErr_Occurred() );
 
     assertObject( result );
@@ -749,14 +846,19 @@ PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
 
     if ( intern )
     {
+#if PYTHON_VERSION < 300
         PyString_InternInPlace( &result );
-
+#else
+        PyUnicode_InternInPlace( &result );
+#endif
         assertObject( result );
         assert( PyString_Size( result ) == size );
     }
 
     return result;
 }
+
+#if PYTHON_VERSION < 300
 
 static void set_slot( PyObject **slot, PyObject *value )
 {
@@ -772,9 +874,9 @@ static void set_attr_slots( PyClassObject *klass )
 
     if ( getattrstr == NULL )
     {
-        getattrstr = PyString_InternFromString("__getattr__");
-        setattrstr = PyString_InternFromString("__setattr__");
-        delattrstr = PyString_InternFromString("__delattr__");
+        getattrstr = PyString_InternFromString( "__getattr__" );
+        setattrstr = PyString_InternFromString( "__setattr__" );
+        delattrstr = PyString_InternFromString( "__delattr__" );
     }
 
 
@@ -969,10 +1071,67 @@ static PyObject *nuitka_class_getattr( PyClassObject *klass, PyObject *attr_name
     }
 }
 
+#endif
+
 void enhancePythonTypes( void )
 {
+#if PYTHON_VERSION < 300
     // Our own variant won't call PyEval_GetRestricted, saving quite some cycles not doing
     // that.
     PyClass_Type.tp_setattro = (setattrofunc)nuitka_class_setattr;
     PyClass_Type.tp_getattro = (getattrofunc)nuitka_class_getattr;
+#endif
+}
+
+#ifdef __APPLE__
+extern wchar_t* _Py_DecodeUTF8_surrogateescape(const char *s, Py_ssize_t size);
+#endif
+
+#ifdef __FreeBSD__
+#include <floatingpoint.h>
+#endif
+
+#include <locale.h>
+
+void setCommandLineParameters( int argc, char *argv[] )
+{
+#if PYTHON_VERSION < 300
+    PySys_SetArgv( argc, argv );
+#else
+// Taken from CPython3: There seems to be no sane way to use
+
+    wchar_t **argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
+    /* We need a second copies, as Python might modify the first one. */
+    wchar_t **argv_copy2 = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
+    int i, res;
+    char *oldloc;
+    /* 754 requires that FP exceptions run in "no stop" mode by default,
+     * and until C vendors implement C99's ways to control FP exceptions,
+     * Python requires non-stop mode.  Alas, some platforms enable FP
+     * exceptions by default.  Here we disable them.
+     */
+#ifdef __FreeBSD__
+    fp_except_t m;
+
+    m = fpgetmask();
+    fpsetmask(m & ~FP_X_OFL);
+#endif
+
+    oldloc = strdup(setlocale(LC_ALL, NULL));
+    setlocale(LC_ALL, "");
+    for (i = 0; i < argc; i++) {
+#ifdef __APPLE__
+        argv_copy[i] = _Py_DecodeUTF8_surrogateescape(argv[i], strlen(argv[i]));
+#else
+        argv_copy[i] = _Py_char2wchar(argv[i], NULL);
+#endif
+        assert (argv_copy[i]);
+
+        argv_copy2[i] = argv_copy[i];
+    }
+    setlocale(LC_ALL, oldloc);
+    free(oldloc);
+
+    PySys_SetArgv( argc, argv_copy );
+#endif
 }

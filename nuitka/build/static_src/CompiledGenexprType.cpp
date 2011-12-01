@@ -33,7 +33,15 @@
 
 static PyObject *Nuitka_Genexpr_tp_repr( Nuitka_GenexprObject *generator )
 {
-    return PyString_FromFormat( "<compiled generator object <%s> at %p>", PyString_AsString( generator->m_name ), generator );
+#if PYTHON_VERSION < 300
+    return PyString_FromFormat(
+#else
+    return PyUnicode_FromFormat(
+#endif
+        "<compiled generator object <%s> at %p>",
+        Nuitka_String_AsString( generator->m_name ),
+        generator
+    );
 }
 
 static long Nuitka_Genexpr_tp_traverse( PyObject *function, visitproc visit, void *arg )
@@ -233,7 +241,7 @@ static PyMethodDef Nuitka_Genexpr_methods[] =
 
 static PyMemberDef Nuitka_Genexpr_members[] =
 {
-    { (char *)"gi_running", T_INT, offsetof( Nuitka_GenexprObject, m_running ), RO },
+    { (char *)"gi_running", T_INT, offsetof( Nuitka_GenexprObject, m_running ), READONLY },
     { NULL }
 };
 
@@ -295,7 +303,12 @@ PyObject *Nuitka_Genexpr_New( producer code, PyObject *name, PyCodeObject *code_
 
     if (unlikely( result == NULL ))
     {
-        PyErr_Format( PyExc_RuntimeError, "cannot create genexpr %s", PyString_AsString( name ) );
+        PyErr_Format(
+            PyExc_RuntimeError,
+            "cannot create genexpr %s",
+            Nuitka_String_AsString( name )
+        );
+
         throw _PythonException();
     }
 

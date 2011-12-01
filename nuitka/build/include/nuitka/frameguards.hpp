@@ -36,7 +36,6 @@ inline static void assertCodeObject( PyCodeObject *code_object )
     assertObject( (PyObject *)code_object );
 }
 
-
 inline static void assertFrameObject( PyFrameObject *frame_object )
 {
     assertObject( (PyObject *)frame_object );
@@ -52,6 +51,99 @@ NUITKA_MAY_BE_UNUSED static PyFrameObject *INCREASE_REFCOUNT( PyFrameObject *fra
     return frame_object;
 }
 
+NUITKA_MAY_BE_UNUSED static bool isFrameUnusable( PyFrameObject *frame_object )
+{
+    return
+        // Never used.
+        frame_object == NULL ||
+        // Still in use
+        Py_REFCNT( frame_object ) > 1 ||
+        // Last used by another thread (TODO: Could just set it when re-using)
+        frame_object->f_tstate != PyThreadState_GET() ||
+        // Was detached from (TODO: When detaching, can't we just have another
+        // frame guard instead)
+        frame_object->f_back != NULL;
+}
+
+inline static void popFrameStack( void )
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PyFrameObject *old = tstate->frame;
+
+#ifdef _DEBUG_REFRAME
+    printf( "Taking off frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)old ) ), PyString_AsString( PyObject_Str( (PyObject *)old->f_code ) ) );
+#endif
+
+    tstate->frame = old->f_back;
+
+#ifdef _DEBUG_REFRAME
+    printf( "Now at top frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)tstate->frame ) ), PyString_AsString( PyObject_Str( (PyObject *)tstate->frame->f_code ) ) );
+#endif
+}
+
+inline static void pushFrameStack( PyFrameObject *frame_object )
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    // Look at current frame.
+    PyFrameObject *old = tstate->frame;
+
+#ifdef _DEBUG_REFRAME
+    printf( "Upstacking to frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)old ) ), PyString_AsString( PyObject_Str( (PyObject *)old->f_code ) ) );
+#endif
+
+    // No recursion allowed of course, assert against it.
+    assert( old != frame_object );
+
+    // Push the new frame as the currently active one.
+    tstate->frame = frame_object;
+
+    // We don't allow touching cached frame objects where this is not true.
+    assert( frame_object->f_back == NULL );
+
+    if ( old != NULL )
+    {
+        assertFrameObject( old );
+        frame_object->f_back = INCREASE_REFCOUNT( old );
+    }
+
+#ifdef _DEBUG_REFRAME
+    printf( "Now at top frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)tstate->frame ) ), PyString_AsString( PyObject_Str( (PyObject *)tstate->frame->f_code ) ) );
+#endif
+}
+
+#ifdef _DEBUG_REFRAME
+static inline void dumpFrameStack( void )
+{
+    PyFrameObject *current = PyThreadState_GET()->frame;
+    int total = 0;
+
+    while( current )
+    {
+        total++;
+        current = current->f_back;
+    }
+
+    current = PyThreadState_GET()->frame;
+
+    puts( ">--------->" );
+
+    while( current )
+    {
+        printf( "Frame stack %d: %s %s\n", total--, PyString_AsString( PyObject_Str( (PyObject *)current ) ), PyString_AsString( PyObject_Str( (PyObject *)current->f_code ) ) );
+
+        current = current->f_back;
+    }
+
+    puts( ">---------<" );
+}
+#endif
+
+// Make a replacement for the current top frame, that we again own exclusively enough so
+// that the line numbers are detached.
+extern PyFrameObject *detachCurrentFrame();
+
 class FrameGuard
 {
 public:
@@ -62,32 +154,15 @@ public:
         // Remember it.
         this->frame_object = frame_object;
 
-        // Look at current frame.
-        PyFrameObject *old = PyThreadState_GET()->frame;
-
-        // No recursion allowed of course, assert against it.
-        assert( old != frame_object );
-
         // Push the new frame as the currently active one.
-        PyThreadState_GET()->frame = frame_object;
-
-        if ( frame_object->f_back != old )
-        {
-            if ( frame_object->f_back )
-            {
-                assertFrameObject( frame_object->f_back );
-            }
-
-            Py_XDECREF( frame_object->f_back );
-
-            assertFrameObject( old );
-
-            Py_INCREF( old );
-            frame_object->f_back = old;
-        }
+        pushFrameStack( frame_object );
 
         // Keep the frame object alive for this C++ objects live time.
         Py_INCREF( frame_object );
+
+#ifdef _DEBUG_REFRAME
+        dumpFrameStack();
+#endif
     }
 
     ~FrameGuard()
@@ -95,15 +170,19 @@ public:
         // Our frame should be on top.
         assert( PyThreadState_GET()->frame == this->frame_object );
 
-        // Put the next frame on top instead.
-        PyThreadState_GET()->frame = this->frame_object->f_back;
+        // Put the previous frame on top instead.
+        popFrameStack();
 
         assert( PyThreadState_GET()->frame != this->frame_object );
 
         // Should still be good.
         assertFrameObject( this->frame_object );
 
-        // Now release out frame object reference.
+        // Release the back reference immediately.
+        Py_XDECREF( this->frame_object->f_back );
+        this->frame_object->f_back = NULL;
+
+        // Now release our frame object reference.
         Py_DECREF( this->frame_object );
     }
 
@@ -112,15 +191,84 @@ public:
         return INCREASE_REFCOUNT( this->frame_object );
     }
 
-    PyFrameObject *getFrame0() const
+    // Use this to set the current line of the frame
+    void setLineNumber( int lineno ) const
     {
         assertFrameObject( this->frame_object );
+        assert( lineno >= 1 );
 
-        return this->frame_object;
+        // Make sure f_lineno is the actually used information.
+        assert( this->frame_object->f_trace == Py_None );
+
+        this->frame_object->f_lineno = lineno;
+    }
+
+    // Replace the frame object by a newer one.
+    void detachFrame( void )
+    {
+        // Our old frame should be on top.
+        assert( PyThreadState_GET()->frame == this->frame_object );
+
+        this->frame_object = detachCurrentFrame();
+
+        // Our new frame should be on top.
+        assert( PyThreadState_GET()->frame == this->frame_object );
     }
 
 private:
     PyFrameObject *frame_object;
 };
+
+class FrameGuardLight
+{
+public:
+    FrameGuardLight( PyFrameObject **frame_ptr )
+    {
+        assertFrameObject( *frame_ptr );
+
+        // Remember it.
+        this->frame_ptr = frame_ptr;
+    }
+
+    ~FrameGuardLight()
+    {
+        // Should still be good.
+        assertFrameObject( *this->frame_ptr );
+    }
+
+    PyFrameObject *getFrame() const
+    {
+        return INCREASE_REFCOUNT( *this->frame_ptr );
+    }
+
+    // Use this to set the current line of the frame
+    void setLineNumber( int lineno ) const
+    {
+        assertFrameObject( *this->frame_ptr );
+        assert( lineno >= 1 );
+
+        // Make sure f_lineno is the actually used information.
+        assert( (*this->frame_ptr)->f_trace == Py_None );
+
+        (*this->frame_ptr)->f_lineno = lineno;
+    }
+
+    // Replace the frame object by a newer one.
+    void detachFrame( void )
+    {
+        // Our old frame should be on top.
+        assert( PyThreadState_GET()->frame == *this->frame_ptr );
+
+        *this->frame_ptr = detachCurrentFrame();
+
+        // Our new frame should be on top.
+        assert( PyThreadState_GET()->frame == *this->frame_ptr );
+    }
+
+
+private:
+    PyFrameObject **frame_ptr;
+};
+
 
 #endif

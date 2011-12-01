@@ -101,9 +101,10 @@ class NodeCheckMetaClass( type ):
 
 # For every node type, there is a test, and then some more members, pylint: disable=R0904
 
-class CPythonNodeBase:
-    __metaclass__ = NodeCheckMetaClass
+# For Python2/3 compatible source, we create a base class that has the metaclass used and doesn't require making a choice.
+CPythonNodeMetaClassBase = NodeCheckMetaClass( "CPythonNodeMetaClassBase", (object, ), {} )
 
+class CPythonNodeBase( CPythonNodeMetaClassBase ):
     kind = None
 
     def __init__( self, source_ref ):
@@ -1431,7 +1432,7 @@ class CPythonExpressionYield( CPythonChildrenHaving, CPythonNodeBase ):
 
     named_children = ( "expression", )
 
-    def __init__( self, expression, source_ref ):
+    def __init__( self, expression, for_return, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
@@ -1441,7 +1442,13 @@ class CPythonExpressionYield( CPythonChildrenHaving, CPythonNodeBase ):
             }
         )
 
+        self.for_return = for_return
+
+    def isForReturn( self ):
+        return self.for_return
+
     getExpression = CPythonChildrenHaving.childGetter( "expression" )
+
 
 
 class CPythonStatementReturn( CPythonChildrenHaving, CPythonNodeBase ):

@@ -105,7 +105,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
 """
 
 genfunc_yielder_template = """
-static PyFrameObject *_FRAME_%(function_identifier)s = NULL;
+static PyFrameObject *frame_%(function_identifier)s = NULL;
 static PyCodeObject *_CODEOBJ_%(function_identifier)s = NULL;
 
 static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
@@ -113,21 +113,21 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
     bool traceback;
 
     // Must be inside block, or else its d-tor will not be run.
-    if ( _FRAME_%(function_identifier)s == NULL || _FRAME_%(function_identifier)s->ob_refcnt > 1 || _FRAME_%(function_identifier)s->f_tstate != PyThreadState_GET() )
+    if ( isFrameUnusable( frame_%(function_identifier)s ) )
     {
-        if ( _FRAME_%(function_identifier)s )
+        if ( frame_%(function_identifier)s )
         {
-#if REFRAME_DEBUG
+#if _DEBUG_REFRAME
             puts( "reframe for %(function_identifier)s" );
 #endif
-            Py_DECREF( _FRAME_%(function_identifier)s );
+            Py_DECREF( frame_%(function_identifier)s );
         }
 
-        _FRAME_%(function_identifier)s = MAKE_FRAME( _CODEOBJ_%(function_identifier)s, %(module_identifier)s );
+        frame_%(function_identifier)s = MAKE_FRAME( _CODEOBJ_%(function_identifier)s, %(module_identifier)s );
     }
 
-    Py_INCREF( _FRAME_%(function_identifier)s );
-    generator->m_frame = _FRAME_%(function_identifier)s;
+    Py_INCREF( frame_%(function_identifier)s );
+    generator->m_frame = frame_%(function_identifier)s;
 
     Py_CLEAR( generator->m_frame->f_back );
 
@@ -135,6 +135,8 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
     Py_INCREF( generator->m_frame->f_back );
 
     PyThreadState_GET()->frame = generator->m_frame;
+
+    FrameGuardLight frame_guard( &generator->m_frame );
 
     try
     {
@@ -170,7 +172,7 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
         generator->m_yielded = NULL;
     }
 
-    swapcontext( &generator->m_yielder_context, &generator->m_caller_context );
+    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
 }
 """
 
@@ -193,7 +195,7 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects
             _context_generator_%(function_identifier)s_destructor
         );
 
-        if ( result == NULL )
+        if (unlikely( result == NULL ))
         {
             delete _python_context;
 

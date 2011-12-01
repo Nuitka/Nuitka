@@ -31,7 +31,7 @@
 #ifndef __NUITKA_EXCEPTIONS_H__
 #define __NUITKA_EXCEPTIONS_H__
 
-NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *frame, int line )
+NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *frame )
 {
     // assertFrameObject( frame );
 
@@ -41,7 +41,7 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *fr
     result->tb_frame = frame;
 
     result->tb_lasti = 0;
-    result->tb_lineno = line;
+    result->tb_lineno = frame->f_lineno;
 
     Nuitka_GC_Track( result );
 
@@ -76,16 +76,12 @@ class _PythonException
 public:
     _PythonException()
     {
-        this->line = _current_line;
-
         this->_importFromPython();
     }
 
     _PythonException( PyObject *exception )
     {
         assertObject( exception );
-
-        this->line = _current_line;
 
         Py_INCREF( exception );
 
@@ -99,8 +95,6 @@ public:
         assertObject( exception );
         assertObject( traceback );
 
-        this->line = _current_line;
-
         this->exception_type = exception;
         this->exception_value = NULL;
         this->exception_tb = (PyObject *)traceback;
@@ -112,8 +106,6 @@ public:
         assertObject( value );
         assertObject( traceback );
 
-        this->line = _current_line;
-
         this->exception_type = exception;
         this->exception_value = value;
         this->exception_tb = (PyObject *)traceback;
@@ -121,8 +113,6 @@ public:
 
     _PythonException( const _PythonException &other )
     {
-        this->line            = other.line;
-
         this->exception_type  = other.exception_type;
         this->exception_value = other.exception_value;
         this->exception_tb    = other.exception_tb;
@@ -142,8 +132,6 @@ public:
         Py_XDECREF( this->exception_value );
         Py_XDECREF( this->exception_tb );
 
-        this->line            = other.line;
-
         this->exception_type  = other.exception_type;
         this->exception_value = other.exception_value;
         this->exception_tb    = other.exception_tb;
@@ -161,11 +149,6 @@ public:
         PyErr_Fetch( &this->exception_type, &this->exception_value, &this->exception_tb );
 
         assertObject( this->exception_type );
-    }
-
-    inline int getLine() const
-    {
-        return this->line;
     }
 
     inline void normalize()
@@ -218,7 +201,7 @@ public:
 
     inline void addTraceback( PyFrameObject *frame )
     {
-        PyTracebackObject *traceback_new = MAKE_TRACEBACK( frame, this->line );
+        PyTracebackObject *traceback_new = MAKE_TRACEBACK( frame );
 
         traceback_new->tb_next = (PyTracebackObject *)this->exception_tb;
         this->exception_tb = (PyObject *)traceback_new;
@@ -227,8 +210,6 @@ public:
     inline void setTraceback( PyTracebackObject *traceback )
     {
         assertObject( traceback );
-
-        // printf( "setTraceback %d\n", traceback->ob_refcnt );
 
         this->exception_tb = (PyObject *)traceback;
     }
@@ -260,10 +241,8 @@ private:
     friend class _PythonExceptionKeeper;
 
     // For the restore of saved ones.
-    _PythonException( int line, PyObject *exception, PyObject *value, PyObject *traceback )
+    _PythonException( PyObject *exception, PyObject *value, PyObject *traceback )
     {
-        this->line = line;
-
         this->exception_type = exception;
         this->exception_value = value;
         this->exception_tb = traceback;
@@ -271,7 +250,6 @@ private:
 
 
     PyObject *exception_type, *exception_value, *exception_tb;
-    int line;
 };
 
 class _PythonExceptionKeeper
@@ -285,7 +263,6 @@ public:
         this->exception_type = NULL;
         this->exception_value = NULL;
         this->exception_tb = NULL;
-        this->line = -1;
 #endif
     }
 
@@ -301,8 +278,6 @@ public:
 
     void save( const _PythonException &e )
     {
-        this->line            = e.line;
-
         this->exception_type  = e.exception_type;
         this->exception_value = e.exception_value;
         this->exception_tb    = e.exception_tb;
@@ -322,7 +297,7 @@ public:
             Py_XINCREF( this->exception_value );
             Py_XINCREF( this->exception_tb );
 
-            throw _PythonException( line, this->exception_type, this->exception_value, this->exception_tb );
+            throw _PythonException( this->exception_type, this->exception_value, this->exception_tb );
         }
     }
 
@@ -332,10 +307,10 @@ public:
     }
 
 private:
+
     bool keeping;
 
     PyObject *exception_type, *exception_value, *exception_tb;
-    int line;
 };
 
 class FrameExceptionKeeper
@@ -395,10 +370,8 @@ class BreakException
 {
 };
 
-NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( bool *traceback_indicator, PyObject *exception, PyTracebackObject *traceback )
+NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception, PyTracebackObject *traceback )
 {
-    *traceback_indicator = true;
-
     if ( PyExceptionClass_Check( exception ) )
     {
         throw _PythonException( exception, traceback );
@@ -427,14 +400,6 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exc
 
     throw _PythonException( exception_type, value, traceback );
 }
-
-NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( bool *traceback_indicator, PyObject *exception_type, PyObject *value, PyTracebackObject *traceback )
-{
-    *traceback_indicator = true;
-
-    RAISE_EXCEPTION( exception_type, value, traceback );
-}
-
 
 NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static inline void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyObject *traceback )
 {

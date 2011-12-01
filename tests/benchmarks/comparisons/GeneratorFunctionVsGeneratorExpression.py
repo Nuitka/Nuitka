@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/python
 #
 #     Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -20,31 +20,40 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-cd `dirname $0`
+b = range(10000)
 
-if [ "$PYTHON" = "" ]
-then
-    export PYTHON=python
-fi
+def getGeneratorFunction():
+   def f():
+      for i in b:
+         yield i
 
-for dir_name in `find . -maxdepth 1 -mindepth 1 -type d | xargs echo`
-do
-    echo "Consider: $dir_name"
+   return f
 
-    cd $dir_name
+def getGeneratorExpression():
+   return ( i for i in b )
 
-    NUITKA_EXTRA_OPTIONS="$NUITKA_EXTRA_OPTIONS --deep" compare_with_cpython.sh *Main.py silent
-    EXIT_CODE=$?
 
-    cd - 2>/dev/null
+import time
 
-    if [ "$EXIT_CODE" != 0 ]
-    then
-       echo "FAILED $dir_name, run compare_with_cpython.sh manually"
+start = time.time()
 
-       if [ "$1" = "search" ]
-       then
-           exit 1
-       fi
-    fi
-done
+f = getGeneratorFunction()
+
+for x in range( 1000 ):
+   r = list( f() )
+
+end = time.time()
+
+func_time = end - start
+
+start = time.time()
+
+for x in range( 1000 ):
+   r = list( getGeneratorExpression() )
+
+end = time.time()
+
+genexpr_time = end - start
+
+print "Generator Function took", func_time
+print "Generator Expression took", genexpr_time

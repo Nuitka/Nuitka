@@ -48,7 +48,7 @@ extern PyObject *GET_STDOUT();
 NUITKA_MAY_BE_UNUSED static void PRINT_REFCOUNT( PyObject *object )
 {
    char buffer[ 1024 ];
-   sprintf( buffer, " refcnt %" PY_FORMAT_SIZE_T "d ", object->ob_refcnt );
+   sprintf( buffer, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT( object ) );
 
    if (unlikely( PyFile_WriteString( buffer, GET_STDOUT() ) == -1 ))
    {
