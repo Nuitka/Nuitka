@@ -1,3 +1,15 @@
+nuitka (0.3.16pre1-1) unstable; urgency=low
+
+  * New upstream pre-release.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Thu, 01 Dec 2011 23:25:32 +0100
+
+nuitka (0.3.15-1) unstable; urgency=low
+
+  * New stable upstream release.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Thu, 01 Dec 2011 22:43:33 +0100
+
 nuitka (0.3.15pre5-1) unstable; urgency=low
 
   * New upstream version
