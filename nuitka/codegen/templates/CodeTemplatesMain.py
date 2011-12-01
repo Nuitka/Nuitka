@@ -60,9 +60,8 @@ extern void registerMetaPathBasedUnfreezer( struct _inittab *_frozes_modules );
 
 int main( int argc, char *argv[] )
 {
-
     Py_Initialize();
-    PySys_SetArgv( argc, argv );
+    setCommandLineParameters( argc, argv );
 
     // Initialize the constant values used.
     _initConstants();
@@ -77,7 +76,14 @@ int main( int argc, char *argv[] )
 
     // Set the sys.executable path to the original Python executable on Linux
     // or to python.exe on Windows.
-    PySys_SetObject( (char *)"executable", PyString_FromString( %(sys_executable)s ) );
+    PySys_SetObject(
+        (char *)"executable",
+#if PYTHON_VERSION < 300
+        PyString_FromString( %(sys_executable)s )
+#else
+        PyUnicode_FromString( %(sys_executable)s )
+#endif
+    );
 
     // Register the initialization functions for modules included in the binary if any
     int res = PyImport_ExtendInittab( _frozes_modules );
@@ -112,7 +118,11 @@ module_header_template = """\
 
 #include <nuitka/helpers.hpp>
 
-NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void);
+#if PYTHON_VERSION < 300
+NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s( void );
+#else
+// TODO: Python3 has other module init style.
+#endif
 
 extern PyObject *_module_%(module_identifier)s;
 
@@ -123,7 +133,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
         {
             assert( var_name );
 
-            this->var_name = (PyStringObject **)var_name;
+            this->var_name = (Nuitka_StringObject **)var_name;
         }
 
         PyObject *asObject0() const
@@ -242,7 +252,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
         }
 
     private:
-        PyStringObject **var_name;
+        Nuitka_StringObject **var_name;
 };
 
 """
@@ -276,6 +286,21 @@ PyObject *_module_%(module_identifier)s;
 // Frame object of the module.
 static PyFrameObject *frame_%(module_identifier)s;
 
+#if PYTHON_VERSION >= 300
+static struct PyModuleDef _moduledef =
+{
+    PyModuleDef_HEAD_INIT,
+    "%(module_name)s",   /* m_name */
+    NULL,                /* m_doc */
+    -1,                  /* m_size */
+    NULL,                /* m_methods */
+    NULL,                /* m_reload */
+    NULL,                /* m_traverse */
+    NULL,                /* m_clear */
+    NULL,                /* m_free */
+  };
+#endif
+
 #ifdef _NUITKA_EXE
 static bool init_done = false;
 #endif
@@ -289,7 +314,7 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
     // Packages can be imported recursively in deep executables.
     if ( init_done )
     {
-        return;
+        return MOD_RETURN_VALUE( _module_%(module_identifier)s );
     }
     else
     {
@@ -322,6 +347,7 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
     // dynamically in actual code only.  Also no __doc__ is initially set, as it could not
     // contain 0 this way, added early in actual code.  No self for modules, we have no
     // use for it.
+#if PYTHON_VERSION < 300
     _module_%(module_identifier)s = Py_InitModule4(
         "%(module_name)s",       // Module Name
         NULL,                    // No methods initially, all are added dynamically in actual code only.
@@ -329,6 +355,9 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
         NULL,                    // No self for modules, we don't use it.
         PYTHON_API_VERSION
     );
+#else
+    _module_%(module_identifier)s = PyModule_Create( &_moduledef );
+#endif
 
     assertObject( _module_%(module_identifier)s );
 
@@ -388,6 +417,8 @@ NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
     PyThreadState_GET()->frame = PyThreadState_GET()->frame->f_back;
 
     // puts( "out init%(module_identifier)s" );
+
+    return MOD_RETURN_VALUE( _module_%(module_identifier)s );
 }
 """
 

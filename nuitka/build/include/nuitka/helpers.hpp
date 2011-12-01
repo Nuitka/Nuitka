@@ -1514,6 +1514,9 @@ extern PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool inte
 
 extern void enhancePythonTypes( void );
 
+// Parse the command line parameters and provide it to sys module.
+extern void setCommandLineParameters( int argc, char *argv[] );
+
 extern void patchInspectModule( void );
 
 #define _DEBUG_UNFREEZER 0

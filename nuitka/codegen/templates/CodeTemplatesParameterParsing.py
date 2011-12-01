@@ -266,7 +266,11 @@ if ( kw_size > 0 )
 
     while( PyDict_Next( kw, &ppos, &key, &value ) )
     {
+#if PYTHON_VERSION < 300
         if (unlikely( !PyString_Check( key ) && !PyUnicode_Check( key ) ))
+#else
+        if (unlikely( !PyUnicode_Check( key ) ))
+#endif
         {
             PyErr_Format( PyExc_TypeError, "%(function_name)s() keywords must be strings" );
             goto error_exit;
@@ -288,7 +292,17 @@ if ( kw_size > 0 )
         {
            Py_DECREF( value );
 
-           PyErr_Format( PyExc_TypeError, "%(function_name)s() got an unexpected keyword argument '%%s'", PyString_Check( key ) ? PyString_AsString( key ) : "<non-string>" );
+           PyErr_Format(
+               PyExc_TypeError,
+               "%(function_name)s() got an unexpected keyword argument '%%s'",
+#if PYTHON_VERSION < 300
+               PyString_Check( key ) ?
+#else
+               PyUnicode_Check( key ) ?
+#endif
+                   Nuitka_String_AsString( key ) : "<non-string>"
+           );
+
            goto error_exit;
         }
     }

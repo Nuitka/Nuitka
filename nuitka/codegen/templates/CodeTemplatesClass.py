@@ -127,8 +127,13 @@ static PyObject *MAKE_CLASS_%(class_identifier)s( %(class_creation_args)s )
         }
         else
         {
+#if PYTHON_VERSION < 300
             // Default to old style class.
             metaclass = INCREASE_REFCOUNT( (PyObject *)&PyClass_Type );
+#else
+            // Default to old style class.
+            metaclass = INCREASE_REFCOUNT( (PyObject *)&PyType_Type );
+#endif
         }
     }
 

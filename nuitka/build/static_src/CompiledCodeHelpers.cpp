@@ -1082,3 +1082,56 @@ void enhancePythonTypes( void )
     PyClass_Type.tp_getattro = (getattrofunc)nuitka_class_getattr;
 #endif
 }
+
+#ifdef __APPLE__
+extern wchar_t* _Py_DecodeUTF8_surrogateescape(const char *s, Py_ssize_t size);
+#endif
+
+#ifdef __FreeBSD__
+#include <floatingpoint.h>
+#endif
+
+#include <locale.h>
+
+void setCommandLineParameters( int argc, char *argv[] )
+{
+#if PYTHON_VERSION < 300
+    PySys_SetArgv( argc, argv );
+#else
+// Taken from CPython3: There seems to be no sane way to use
+
+    wchar_t **argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
+    /* We need a second copies, as Python might modify the first one. */
+    wchar_t **argv_copy2 = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
+    int i, res;
+    char *oldloc;
+    /* 754 requires that FP exceptions run in "no stop" mode by default,
+     * and until C vendors implement C99's ways to control FP exceptions,
+     * Python requires non-stop mode.  Alas, some platforms enable FP
+     * exceptions by default.  Here we disable them.
+     */
+#ifdef __FreeBSD__
+    fp_except_t m;
+
+    m = fpgetmask();
+    fpsetmask(m & ~FP_X_OFL);
+#endif
+
+    oldloc = strdup(setlocale(LC_ALL, NULL));
+    setlocale(LC_ALL, "");
+    for (i = 0; i < argc; i++) {
+#ifdef __APPLE__
+        argv_copy[i] = _Py_DecodeUTF8_surrogateescape(argv[i], strlen(argv[i]));
+#else
+        argv_copy[i] = _Py_char2wchar(argv[i], NULL);
+#endif
+        assert (argv_copy[i]);
+
+        argv_copy2[i] = argv_copy[i];
+    }
+    setlocale(LC_ALL, oldloc);
+    free(oldloc);
+
+    PySys_SetArgv( argc, argv_copy );
+#endif
+}

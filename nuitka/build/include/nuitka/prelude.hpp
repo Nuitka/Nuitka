@@ -109,6 +109,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 #define Nuitka_StringObject PyUnicodeObject
 #endif
 
+#if PYTHON_VERSION < 300
+#define MOD_RETURN_VALUE( value )
+#else
+#define MOD_RETURN_VALUE( value ) value
+#endif
+
 #include "nuitka/helpers.hpp"
 
 #include "nuitka/compiled_function.hpp"

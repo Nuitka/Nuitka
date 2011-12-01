@@ -35,27 +35,31 @@ static PyObject *loader_frozen_modules = NULL;
 
 static struct _inittab *frozes_modules = NULL;
 
-static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args )
+static char *_kwlist[] = { (char *)"fullname", (char *)"unused", NULL };
+
+static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, PyObject *kwds )
 {
     PyObject *module_name;
+    PyObject *unused;
 
-    if ( PyTuple_Check( args ))
+    int res = PyArg_ParseTupleAndKeywords(
+        args,
+        kwds,
+        "O|O:find_module",
+        _kwlist,
+        &module_name,
+        &unused
+    );
+
+    if (unlikely( res == 0 ))
     {
-       assert( PyTuple_Size( args ) == 2 );
-
-       module_name = PyTuple_GetItem( args, 0 );
-    }
-    else
-    {
-       assert( PyString_Check( args ) );
-
-       module_name = args;
+        return NULL;
     }
 
     char *name = Nuitka_String_AsString( module_name );
 
 #if _DEBUG_UNFREEZER
-    printf( "Looking for %%s\\n", name );
+    printf( "Looking for module '%s'...\n", name );
 #endif
 
     struct _inittab *current = frozes_modules;
@@ -71,16 +75,33 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args )
     }
 
 #if _DEBUG_UNFREEZER
-    printf( "Didn't find %%s\\n", name );
+    printf( "Didn't find module '%s'.\n", name );
 #endif
 
     return INCREASE_REFCOUNT( Py_None );
 }
 
-static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args )
+static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, PyObject *kwds )
 {
-    PyObject *module_name = args;
+    PyObject *module_name;
+    PyObject *unused;
+
+    int res = PyArg_ParseTupleAndKeywords(
+        args,
+        kwds,
+        "O|O:load_module",
+        _kwlist,
+        &module_name,
+        &unused
+    );
+
+    if (unlikely( res == 0 ))
+    {
+        return NULL;
+    }
+
     assert( module_name );
+    assert( PyString_Check( module_name ) );
 
     char *name = Nuitka_String_AsString( module_name );
 
@@ -91,14 +112,14 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args )
        if ( strcmp( name, current->name ) == 0 )
        {
 #if _DEBUG_UNFREEZER
-           printf( "Loading %%s\\n", name );
+           printf( "Loading %s\n", name );
 #endif
            current->initfunc();
 
            PyObject *sys_modules = PySys_GetObject( (char *)"modules" );
 
 #if _DEBUG_UNFREEZER
-           printf( "Loaded %%s\\n", name );
+           printf( "Loaded %s\n", name );
 #endif
 
            return LOOKUP_SUBSCRIPT( sys_modules, module_name );
@@ -116,16 +137,16 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args )
 static PyMethodDef _method_def_loader_find_module
 {
     "find_module",
-    _path_unfreezer_find_module,
-    METH_OLDARGS,
+    (PyCFunction)_path_unfreezer_find_module,
+    METH_KEYWORDS,
     NULL
 };
 
 static PyMethodDef _method_def_loader_load_module
 {
     "load_module",
-    _path_unfreezer_load_module,
-    METH_OLDARGS,
+    (PyCFunction)_path_unfreezer_load_module,
+    METH_KEYWORDS,
     NULL
 };
 

@@ -102,7 +102,7 @@ def compareConstants( a, b ):
         else:
             return True
 
-    if type( a ) is range and type( b ) is range:
+    if type( a ) is range:
         return str( a ) == str( b )
 
     # The NaN values of float and complex may let this fail, even if the constants are
@@ -112,7 +112,7 @@ def compareConstants( a, b ):
 def isMutable( constant ):
     constant_type = type( constant )
 
-    if constant_type in ( str, unicode, complex, int, long, bool, float, NoneType ):
+    if constant_type in ( str, unicode, complex, int, long, bool, float, NoneType, range ):
         return False
     elif constant_type in ( dict, list ):
         return True
@@ -132,7 +132,7 @@ def isMutable( constant ):
         assert False, constant_type
 
 def isIterableConstant( constant ):
-    return type( constant) in ( str, unicode, list, tuple, set, frozenset, dict )
+    return type( constant ) in ( str, unicode, list, tuple, set, frozenset, dict, range )
 
 def isNumberConstant( constant ):
     return type( constant ) in ( int, long, float, bool )
@@ -145,6 +145,11 @@ class HashableConstant:
         self.constant = constant
 
         try:
+            # For Python3: range objects with same ranges give different hash
+            # values. It's not even funny, is it.
+            if type( constant ) is range:
+                raise TypeError
+
             self.hash = hash( constant )
         except TypeError:
             self.hash = 55
