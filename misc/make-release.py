@@ -41,6 +41,9 @@ assert 0 == os.system( "python setup.py sdist --formats=bztar,gztar,zip" )
 
 os.chdir( "dist" )
 
+if os.path.exists( "deb_dist" ):
+    shutil.rmtree( "deb_dist" )
+
 assert 0 == os.system( "py2dsc *.tar.gz" )
 
 os.chdir( "deb_dist" )
@@ -70,12 +73,20 @@ os.chdir( "../../.." )
 
 assert os.path.isfile( "setup.py" ) and open( ".git/description" ).read().strip() == "Nuitka Staging"
 
-os.system( "mv dist/deb_dist/*.deb dist/" )
+assert 0 == os.system( "lintian dist/deb_dist/*.changes" )
 
-shutil.rmtree( "dist/deb_dist" )
+os.system( "cp dist/deb_dist/*.deb dist/" )
+
+assert os.path.exists( "dist/deb_dist" )
+
+for filename in os.listdir( "dist/deb_dist" ):
+    if os.path.isdir( "dist/deb_dist/" + filename ):
+        shutil.rmtree( "dist/deb_dist/" + filename )
 
 assert 0 == os.system( r"wine c:\\python27\\python.exe setup.py bdist_wininst --bitmap misc/Nuitka-Installer.bmp" )
-assert 0 == os.system( "chmod 644 dist/*" )
+
 
 for filename in os.listdir( "dist" ):
-    assert 0 == os.system( "gpg --local-user 0BCF7396 --detach-sign dist/" + filename )
+    if os.path.isfile( "dist/" + filename ):
+        assert 0 == os.system( "chmod 644 dist/" + filename )
+        assert 0 == os.system( "gpg --local-user 0BCF7396 --detach-sign dist/" + filename )
