@@ -34,6 +34,8 @@
 
 from .OptimizeBase import OptimizationVisitorBase
 
+from ..TreeOperations import RestartVisit
+
 from nuitka.nodes import Nodes
 
 def toRaiseExceptionStatement( node ):
@@ -101,6 +103,8 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
                         node.getSourceReference(),
                         "Removed unreachable statements from statement sequence."
                     )
+
+                    raise RestartVisit
 
                 if node.parent.parent.isStatementTryExcept():
                     if node is statements[0]:

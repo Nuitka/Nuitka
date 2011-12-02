@@ -76,7 +76,7 @@ def visitScope( tree, visitor ):
     except ExitVisit:
         pass
     except RestartVisit:
-        visitTree( tree, visitor )
+        visitScope( tree, visitor )
 
 
 def visitKinds( tree, kinds, visitor ):
