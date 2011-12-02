@@ -145,7 +145,7 @@ def findSources():
 
     for root, _dirnames, filenames in os.walk( "src" ):
         for filename in filenames:
-            if filename.endswith( ".cpp" ) or filename.endswith( ".h" ) or filename.endswith( ".asm" ):
+            if filename.endswith( ".cpp" ) or filename.endswith( ".h" ) or filename.endswith( ".asm" ) or filename.endswith( ".S" ):
                 result.append( os.path.join( root, filename ) )
 
     return result
@@ -173,6 +173,7 @@ setup(
             "static_src/*/*.cpp",
             "static_src/*/*.h",
             "static_src/*/*.asm",
+            "static_src/*/*.S",
             "include/*.hpp",
             "include/*/*.hpp",
             "include/*/*/*.hpp",
