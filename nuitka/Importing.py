@@ -181,5 +181,5 @@ def _isWhiteListedNotExistingModule( module_name ):
         "__builtin__", "fcntl", "_socket", "_ssl", "pwd", "spwd", "_random", "grp",
         "select", "__main__", "_winreg", "_warnings", "_sre", "_functools", "_hashlib",
         "_collections", "_locale", "_codecs", "_weakref", "_struct", "_dummy_threading",
-        "binascii",
+        "binascii", "datetime",
     )
