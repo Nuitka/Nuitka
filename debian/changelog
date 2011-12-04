@@ -1,3 +1,10 @@
+nuitka (0.3.16pre2-1) unstable; urgency=low
+
+  * New upstream pre-release.
+  * Includes hotfixes Nuitka 0.3.15a-c
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 04 Dec 2011 13:08:47 +0100
+
 nuitka (0.3.16pre1-2) unstable; urgency=low
 
   * Bump to Standards Version 3.9.2, no changes needed.
