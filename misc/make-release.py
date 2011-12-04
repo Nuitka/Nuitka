@@ -73,7 +73,7 @@ os.chdir( "../../.." )
 
 assert os.path.isfile( "setup.py" ) and open( ".git/description" ).read().strip() == "Nuitka Staging"
 
-assert 0 == os.system( "lintian dist/deb_dist/*.changes" )
+assert 0 == os.system( "lintian --fail-on-warnings dist/deb_dist/*.changes" )
 
 os.system( "cp dist/deb_dist/*.deb dist/" )
 
