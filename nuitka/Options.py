@@ -78,6 +78,16 @@ parser.add_option(
 )
 
 parser.add_option(
+    "--execute-with-pythonpath",
+    action  = "store_true",
+    dest    = "keep_pythonpath",
+    default = False,
+    help    = "When executing the created '--deep' mode binary, don't reset PYTHONPATH. When all modules are successfully included, you ought to not need PYTHONPATH anymore."
+)
+
+
+
+parser.add_option(
     "--trace-execution",
     action  = "store_true",
     dest    = "trace_execution",
@@ -314,6 +324,9 @@ def getMainArgs():
 
 def shallOptimizeStringExec():
     return False
+
+def shallClearPythonPathEnvironment():
+    return shallFollowImports and not options.keep_pythonpath
 
 def isShowScons():
     return options.show_scons

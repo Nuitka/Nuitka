@@ -279,13 +279,22 @@ def writeSourceCode( filename, source_code ):
 
     open( filename, "w" ).write( source_code )
 
-def executeMain( output_filename, tree ):
+def executeMain( binary_filename, tree, clean_path ):
     name = Utils.basename( tree.getFilename() ).replace( ".py", ".exe" )
 
-    if not Options.isWindowsTarget() or "win" in sys.platform:
-        os.execl( output_filename, name, *Options.getMainArgs() )
-    else:
-        os.execl( "/usr/bin/wine", name, output_filename, *Options.getMainArgs() )
+    old_python_path = os.environ.get( "PYTHONPATH", None )
+
+    try:
+        if clean_path and old_python_path is not None:
+            os.environ[ "PYTHONPATH" ] = ""
+
+        if not Options.isWindowsTarget() or "win" in sys.platform:
+            os.execl( binary_filename, name, *Options.getMainArgs() )
+        else:
+            os.execl( "/usr/bin/wine", name, binary_filename, *Options.getMainArgs() )
+    finally:
+        if old_python_path is not None:
+            os.environ[ "PYTHONPATH" ] = old_python_path
 
 def executeModule( tree ):
     __import__( tree.getName() )
