@@ -20,3 +20,6 @@
 #
 
 __import__( "dash-module" )
+
+b = "dash-module"
+__import__( b )
