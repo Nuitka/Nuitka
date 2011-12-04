@@ -495,8 +495,8 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
     assertObject( function_name );
     assertObject( empty_code );
 
-    assert( PyString_Check( filename ) );
-    assert( PyString_Check( function_name ) );
+    assert( Nuitka_String_Check( filename ) );
+    assert( Nuitka_String_Check( function_name ) );
 
     int flags = 0;
 
@@ -621,7 +621,7 @@ static PythonBuiltin _python_builtin_import( &_python_str_plain___import__ );
 
 PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
 {
-    assert( PyString_Check( module_name ) );
+    assert( Nuitka_String_Check( module_name ) );
     assertObject( globals );
     assertObject( locals );
     assertObject( import_items );
@@ -639,13 +639,6 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *loc
             level
         )
     );
-
-    if (unlikely( import_result == NULL ))
-    {
-        // printf( "FAIL Importing %s as level %d\n", module_name_str, level );
-
-        throw _PythonException();
-    }
 
     return import_result;
 }
@@ -674,7 +667,7 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 
     while ( PyObject *item = ITERATOR_NEXT( iter ) )
     {
-        assert( PyString_Check( item ) );
+        assert( Nuitka_String_Check( item ) );
 
         // TODO: Not yet clear, what happens with __all__ and "_" of its contents.
         if ( all_case == false )
@@ -807,7 +800,7 @@ static PyObject *_module_cPickle_function_loads = NULL;
 
 void UNSTREAM_INIT( void )
 {
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
     _module_cPickle = PyImport_ImportModule( "cPickle" );
 #else
     _module_cPickle = PyImport_ImportModule( "pickle" );
@@ -822,10 +815,19 @@ PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size )
 {
     PyObject *result = PyObject_CallFunction(
         _module_cPickle_function_loads,
+#if PYTHON_VERSION < 300
         (char *)"(s#)",
+#else
+        (char *)"(y#)",
+#endif
         buffer,
         size
     );
+
+    if ( !result )
+    {
+        PyErr_Print();
+    }
 
     assertObject( result );
 
@@ -840,9 +842,14 @@ PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
     PyObject *result = PyUnicode_FromStringAndSize( buffer, size );
 #endif
     assert( !PyErr_Occurred() );
-
     assertObject( result );
+    assert( Nuitka_String_Check( result ) );
+
+#if PYTHON_VERSION < 300
     assert( PyString_Size( result ) == size );
+#else
+    assert( PyUnicode_GET_SIZE( result ) == size );
+#endif
 
     if ( intern )
     {
@@ -852,7 +859,13 @@ PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
         PyUnicode_InternInPlace( &result );
 #endif
         assertObject( result );
+        assert( Nuitka_String_Check( result ) );
+
+#if PYTHON_VERSION < 300
         assert( PyString_Size( result ) == size );
+#else
+        assert( PyUnicode_GET_SIZE( result ) == size );
+#endif
     }
 
     return result;
@@ -1103,7 +1116,7 @@ void setCommandLineParameters( int argc, char *argv[] )
     wchar_t **argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
     /* We need a second copies, as Python might modify the first one. */
     wchar_t **argv_copy2 = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
-    int i, res;
+
     char *oldloc;
     /* 754 requires that FP exceptions run in "no stop" mode by default,
      * and until C vendors implement C99's ways to control FP exceptions,
@@ -1119,7 +1132,7 @@ void setCommandLineParameters( int argc, char *argv[] )
 
     oldloc = strdup(setlocale(LC_ALL, NULL));
     setlocale(LC_ALL, "");
-    for (i = 0; i < argc; i++) {
+    for (int i = 0; i < argc; i++) {
 #ifdef __APPLE__
         argv_copy[i] = _Py_DecodeUTF8_surrogateescape(argv[i], strlen(argv[i]));
 #else

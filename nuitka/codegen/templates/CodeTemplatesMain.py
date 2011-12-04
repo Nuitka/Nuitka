@@ -93,7 +93,11 @@ int main( int argc, char *argv[] )
 
     patchInspectModule();
 
+#if PYTHON_VERSION < 300
     init__main__();
+#else
+    PyInit___main__();
+#endif
 
     if ( PyErr_Occurred() )
     {
@@ -308,7 +312,7 @@ static bool init_done = false;
 // The exported interface to CPython. On import of the module, this function gets
 // called. It has have that exact function name.
 
-NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s(void)
+MOD_INIT( %(module_identifier)s )
 {
 #ifdef _NUITKA_EXE
     // Packages can be imported recursively in deep executables.

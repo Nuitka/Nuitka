@@ -478,15 +478,16 @@ NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, P
 static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, Nuitka_StringObject *key )
 {
     assert( PyDict_CheckExact( dict ) );
+    assert( Nuitka_String_Check( key ) );
 
-    // Only improvement would be to identify how to ensure that the hash is computed
-    // already. Calling hash early on could do that potentially.
 #if PYTHON_VERSION < 300
     long hash = key->ob_shash;
 #else
     long hash = key->hash;
 #endif
 
+    // Only improvement would be to identify how to ensure that the hash is computed
+    // already. Calling hash early on could do that potentially.
     if ( hash == -1 )
     {
 #if PYTHON_VERSION < 300

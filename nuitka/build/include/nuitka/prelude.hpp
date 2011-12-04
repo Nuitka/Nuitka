@@ -55,14 +55,6 @@
 #define unlikely(x) (x)
 #endif
 
-// An idea to reduce the amount of exported symbols, esp. as we are using C++ and classes
-// do not allow to limit their visibility normally.
-#ifdef __GNUC__
-#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__((visibility( "default" )))
-#else
-#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC
-#endif
-
 // A way to not give warnings about things that are declared, but might not be used like
 // inline helper functions in headers or static per module variables from headers.
 
@@ -99,19 +91,33 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 #if PYTHON_VERSION < 300
 #define Nuitka_String_AsString PyString_AsString
 #define Nuitka_String_AsString_Unchecked PyString_AS_STRING
-
+#define Nuitka_String_Check PyString_Check
 #define Nuitka_StringObject PyStringObject
 #else
 #define Nuitka_String_AsString _PyUnicode_AsString
 // TODO: Clarify is there is something without checks.
 #define Nuitka_String_AsString_Unchecked Nuitka_String_AsString
-
+#define Nuitka_String_Check PyUnicode_Check
 #define Nuitka_StringObject PyUnicodeObject
 #endif
 
+
 #if PYTHON_VERSION < 300
-#define MOD_RETURN_VALUE( value )
+
+// With the idea to reduce the amount of exported symbols, make it clear that the module
+// init function should of course be exported.
+#ifdef __GNUC__
+#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__((visibility( "default" )))
 #else
+#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC
+#endif
+
+#define MOD_INIT( name ) NUITKA_MODULE_INIT_FUNCTION init##name( void )
+#define MOD_RETURN_VALUE( value )
+
+#else
+
+#define MOD_INIT( name ) PyMODINIT_FUNC PyInit_##name( void )
 #define MOD_RETURN_VALUE( value ) value
 #endif
 

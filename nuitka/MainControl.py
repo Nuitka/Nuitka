@@ -251,6 +251,9 @@ def runScons( tree, quiet ):
     else:
         python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
 
+        if Utils.getPythonVersion() >= 320:
+            python_version += sys.abiflags # pylint: disable=E1101
+
     if Options.options.python_debug is not None:
         python_debug = Options.options.python_debug
     else:
