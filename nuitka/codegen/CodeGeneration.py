@@ -1169,11 +1169,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
             ),
             for_return = expression.isForReturn()
         )
-    elif expression.isExpressionBuiltinImport():
-        identifier = generateImportModuleCode(
-            expression = expression,
-            context    = context
-        )
     elif expression.isExpressionImportModule():
         identifier = generateImportModuleCode(
             expression = expression,

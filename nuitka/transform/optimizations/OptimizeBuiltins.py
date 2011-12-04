@@ -237,7 +237,13 @@ class ReplaceBuiltinsVisitorBase( OptimizationDispatchingVisitorBase ):
             else:
                 node.replaceWith( new_node = new_node )
 
-            if new_node.isExpressionBuiltin() or new_node.isStatementExec():
+            if new_node.isExpressionImportModule():
+                self.signalChange(
+                    "new_import",
+                    node.getSourceReference(),
+                    message = "Replaced call to builtin %s with builtin call." % new_node.kind
+                )
+            elif new_node.isExpressionBuiltin() or new_node.isStatementExec():
                 self.signalChange(
                     "new_builtin",
                     node.getSourceReference(),
@@ -482,8 +488,10 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
                     source_ref     = source_ref
                 )
 
-                return Nodes.CPythonExpressionBuiltinImport(
+                return Nodes.CPythonExpressionImportModule(
                     module_name = module_name,
+                    import_list = None,
+                    level       = -1,
                     source_ref  = source_ref
                 )
     def type_extractor( self, node ):

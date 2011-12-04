@@ -2449,26 +2449,6 @@ class CPythonStatementPass( CPythonNodeBase ):
     def mayHaveSideEffects( self ):
         return False
 
-class CPythonExpressionBuiltinImport( CPythonNodeBase ):
-    kind = "EXPRESSION_BUILTIN_IMPORT"
-
-    def __init__( self, module_name, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        self.module_name = module_name
-
-    def getModuleName( self ):
-        return self.module_name
-
-    def getImportName( self ):
-        return self.module_name.split(".")[0]
-
-    def getLevel( self ):
-        return 0 if self.source_ref.getFutureSpec().isAbsoluteImport() else -1
-
-    def getImportList( self ):
-        return None
-
 class CPythonExpressionImportModule( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_IMPORT_MODULE"
 

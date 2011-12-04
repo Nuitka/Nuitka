@@ -89,7 +89,7 @@ def optimizeTree( tree ):
             optimizations_queue.add( FixupNewStaticMethodVisitor )
 
         # TODO: Split the __import__ one out.
-        if tags.check( "new_code" ) or tags.check( "new_constant" ):
+        if tags.check( "new_code" ) or tags.check( "new_import" ) or tags.check( "new_constant" ):
             if Options.shallFollowImports():
                 optimizations_queue.add( ModuleRecursionVisitor )
 
