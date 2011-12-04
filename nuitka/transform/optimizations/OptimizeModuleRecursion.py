@@ -188,8 +188,3 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
             self._handleImportModule(
                 node = node
             )
-        elif node.isExpressionBuiltinImport():
-            self._consider(
-                module_filename = node.getModuleFilename(),
-                module_package  = node.getModulePackage()
-            )
