@@ -44,7 +44,10 @@ from nuitka import TreeBuilding, Importing, Options, Utils
 import os
 
 def isStandardLibraryPath( path ):
-    if not path.startswith( os.path.dirname( os.__file__  ) ):
+    path = os.path.normcase( path )
+    os_path = os.path.normcase( os.path.dirname( os.__file__  ) )
+
+    if not path.startswith( os_path ):
         return False
 
     if "dist-packages" in path or "site-packages" in path:
