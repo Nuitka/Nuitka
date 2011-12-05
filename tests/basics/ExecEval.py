@@ -270,3 +270,12 @@ def generatorFunctionWithExec():
     yield y
 
 print "Exec in a generator function", tuple( generatorFunctionWithExec() )
+
+def evalInContractions():
+
+    r1 = list( eval( str( s ) ) for s in range( 3 ) )
+    r2 = [ eval( str( s ) ) for s in range( 4 ) ]
+
+    return r1, r2
+
+print "Eval in a list contraction or generator expression", evalInContractions()
