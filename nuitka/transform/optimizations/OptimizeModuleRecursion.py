@@ -72,7 +72,13 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
                     is_main  = False
                 )
             except (SyntaxError, IndentationError) as e:
-                warning( "Cannot recurse to import %s because of %s", module_relpath, e.__class__.__name__ )
+                warning(
+                    "Cannot recurse to import module '%s' (%s) because of '%s'",
+                    module_relpath,
+                    module_filename,
+                    e.__class__.__name__
+                )
+
                 return
 
             assert not module_relpath.endswith( "/__init__.py" )
