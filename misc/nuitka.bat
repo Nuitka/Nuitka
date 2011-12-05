@@ -1,3 +1,4 @@
+@echo off
 rem
 rem     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
 rem
@@ -28,7 +29,6 @@ rem     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 rem
 rem     Please leave the whole of this copyright notice intact.
 rem
-@echo off
 
 setlocal
 
