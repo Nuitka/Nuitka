@@ -1,12 +1,13 @@
-nuitka (0.3.16pre2-2) unstable; urgency=low
+nuitka (0.3.16pre3-1) unstable; urgency=low
 
   * Updated debian/copyright URI to match the newest.
   * Updated debian/copyright to DEP5 changes.
   * Added Nuitka homepage to debian/control.
   * Added watch file, so uscan works.
   * Corrected examples section in man page to correctly escape "-".
+  * Includes hotfix Nuitka 0.3.15d
 
- -- Kay Hayen <kayhayen@gmx.de>  Sun, 04 Dec 2011 19:20:20 +0100
+ -- Kay Hayen <kayhayen@gmx.de>  Mon, 05 Dec 2011 20:24:47 +0100
 
 nuitka (0.3.16pre2-1) unstable; urgency=low
 

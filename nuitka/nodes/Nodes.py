@@ -1741,6 +1741,9 @@ class CPythonExpressionContractionBodyBase( CPythonChildrenHaving, CPythonClosur
         else:
             return self.provider.getVariableForClosure( variable_name )
 
+    def getVariables( self ):
+        return self.providing.values()
+
 class CPythonExpressionListContractionBuilder( CPythonExpressionContractionBuilderBase ):
     kind = "EXPRESSION_LIST_CONTRACTION_BUILDER"
 

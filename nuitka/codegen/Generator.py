@@ -2729,6 +2729,16 @@ def getGeneratorExpressionCode( context, generator_identifier, generator_name, s
             "PyObjectLocalVariable python_var_%s;" % provided_variable.getName()
         )
 
+        context_copy.append(
+            "_python_context->python_var_%s.setVariableName( %s );" % (
+                provided_variable.getName(),
+                getConstantCode(
+                    constant = provided_variable.getName(),
+                    context  = context
+                )
+            )
+        )
+
     result = ""
 
     result += CodeTemplates.genexpr_context_body_template % {
