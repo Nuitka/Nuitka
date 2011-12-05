@@ -2470,6 +2470,12 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         "module_identifier"          : getModuleAccessCode( context = context )
     }
 
+    func_defaults = getSequenceCreationCode(
+        sequence_kind       = "tuple",
+        element_identifiers = default_access_identifiers,
+        context             = context
+    )
+
     result += CodeTemplates.make_genfunc_with_context_template % {
         "function_name_obj"          : getConstantCode(
             context  = context,
@@ -2494,6 +2500,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         ),
         "line_number"                : source_ref.getLineNumber(),
         "arg_count"                  : parameters.getArgumentCount(),
+        "defaults"                   : func_defaults.getCodeExportRef(),
         "module_identifier"          : getModuleAccessCode( context = context ),
     }
 
@@ -2627,6 +2634,12 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         ),
     }
 
+    func_defaults = getSequenceCreationCode(
+        sequence_kind       = "tuple",
+        element_identifiers = default_access_identifiers,
+        context             = context
+    )
+
     if context_decl:
         result += CodeTemplates.make_function_with_context_template % {
             "function_name"              : function_name,
@@ -2650,6 +2663,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
             ),
             "line_number"                : source_ref.getLineNumber(),
             "arg_count"                  : parameters.getArgumentCount(),
+            "defaults"                   : func_defaults.getCodeExportRef(),
             "module_identifier"          : getModuleAccessCode( context = context ),
         }
     else:
@@ -2674,6 +2688,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
             ),
             "line_number"                : source_ref.getLineNumber(),
             "arg_count"                  : parameters.getArgumentCount(),
+            "defaults"                   : func_defaults.getCodeExportRef(),
             "module_identifier"          : getModuleAccessCode( context = context ),
         }
 
