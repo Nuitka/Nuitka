@@ -462,9 +462,14 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
         positional_args = node.getPositionalArguments()
 
         if len( positional_args ) == 0:
-            return Nodes.CPythonExpressionBuiltinLocals(
-                source_ref = node.getSourceReference()
-            )
+            if node.getParentVariableProvider().isModule():
+                return Nodes.CPythonExpressionBuiltinGlobals(
+                    source_ref = node.getSourceReference()
+                )
+            else:
+                return Nodes.CPythonExpressionBuiltinLocals(
+                    source_ref = node.getSourceReference()
+                )
         elif len( positional_args ) == 1:
             return Nodes.CPythonExpressionBuiltinVars(
                 source     = positional_args[ 0 ],
