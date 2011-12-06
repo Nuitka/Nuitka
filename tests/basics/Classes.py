@@ -77,12 +77,13 @@ def strangeClassBehaviour():
         count = 0
 
         def __new__( cls ):
-            # print "__new__"
+            print "__new__"
+
             cls.count += 1
             return object.__new__(cls)
 
         def __del__( self ):
-            # print "__del__"
+            print "__del__"
 
             cls = self.__class__
             cls.count -= 1
