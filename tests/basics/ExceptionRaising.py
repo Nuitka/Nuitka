@@ -242,3 +242,11 @@ def checkRaisingRaise():
 
 
 checkRaisingRaise()
+
+def checkMisRaise():
+    raise
+
+try:
+    checkMisRaise()
+except Exception, e:
+    print "Without exception, raise gives:", e
