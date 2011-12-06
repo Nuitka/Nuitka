@@ -397,6 +397,18 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exc
     {
         PyErr_NormalizeException( &exception_type, &value, (PyObject **)&traceback );
     }
+    else if ( PyExceptionInstance_Check( exception_type ) )
+    {
+        // TODO: What should be done with old value, Py_DECREF maybe?
+        value = exception_type;
+        exception_type = INCREASE_REFCOUNT( PyExceptionInstance_Class( exception_type ) );
+    }
+    else
+    {
+        PyErr_Format( PyExc_TypeError, "exceptions must be old-style classes or derived from BaseException, not %s", Py_TYPE( exception_type )->tp_name );
+
+        throw _PythonException();
+    }
 
     throw _PythonException( exception_type, value, traceback );
 }
@@ -404,7 +416,8 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exc
 NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static inline void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyObject *traceback )
 {
     // Check traceback
-    assert( PyTraceBack_Check( traceback ) );
+
+    assert( traceback == NULL || PyTraceBack_Check( traceback ) );
 
     RAISE_EXCEPTION( exception_type, value, (PyTracebackObject *)traceback );
 }
@@ -420,10 +433,13 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( bool *traceba
 NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( void )
 {
     PyThreadState *tstate = PyThreadState_GET();
+    assert( tstate );
 
     PyObject *type = tstate->exc_type != NULL ? tstate->exc_type : Py_None;
     PyObject *value = tstate->exc_value;
     PyObject *tb = tstate->exc_traceback;
+
+    assertObject( type );
 
     Py_INCREF( type );
     Py_XINCREF( value );

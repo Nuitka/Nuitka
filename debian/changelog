@@ -1,18 +1,24 @@
+nuitka (0.3.16pre4-1) unstable; urgency=low
+
+  * New upstream pre-release, includes hotfix Nuitka 0.3.15e
+
+ -- Kay Hayen <kayhayen@gmx.de>  Tue, 06 Dec 2011 20:14:15 +0100
+
 nuitka (0.3.16pre3-1) unstable; urgency=low
 
-  * Updated debian/copyright URI to match the newest.
+  * New upstream pre-release, includes hotfix Nuitka 0.3.15d
+  * Updated debian/copyright URI to match the latest one.
   * Updated debian/copyright to DEP5 changes.
   * Added Nuitka homepage to debian/control.
   * Added watch file, so uscan works.
   * Corrected examples section in man page to correctly escape "-".
-  * Includes hotfix Nuitka 0.3.15d
 
  -- Kay Hayen <kayhayen@gmx.de>  Mon, 05 Dec 2011 20:24:47 +0100
 
 nuitka (0.3.16pre2-1) unstable; urgency=low
 
   * New upstream pre-release.
-  * Includes hotfixes Nuitka 0.3.15a-c
+  * Includes hotfixes Nuitka 0.3.15c
 
  -- Kay Hayen <kayhayen@gmx.de>  Sun, 04 Dec 2011 13:08:47 +0100
 
