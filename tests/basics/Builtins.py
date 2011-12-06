@@ -60,6 +60,8 @@ print "Testing locals():"
 print someFunctionWritingLocals()
 print someFunctionWritingLocalsContainingExec()
 
+print "Vars on module level", vars()
+
 module_locals = locals()
 
 import os
