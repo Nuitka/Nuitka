@@ -73,7 +73,7 @@ os.chdir( "../../.." )
 
 assert os.path.isfile( "setup.py" ) and open( ".git/description" ).read().strip() == "Nuitka Staging"
 
-assert 0 == os.system( "lintian --fail-on-warnings dist/deb_dist/*.changes" )
+assert 0 == os.system( "lintian --pedantic --fail-on-warnings dist/deb_dist/*.changes" )
 
 os.system( "cp dist/deb_dist/*.deb dist/" )
 
@@ -90,3 +90,5 @@ for filename in os.listdir( "dist" ):
     if os.path.isfile( "dist/" + filename ):
         assert 0 == os.system( "chmod 644 dist/" + filename )
         assert 0 == os.system( "gpg --local-user 0BCF7396 --detach-sign dist/" + filename )
+
+shutil.rmtree( "build", ignore_errors = True )
