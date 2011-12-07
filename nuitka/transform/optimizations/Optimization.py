@@ -61,16 +61,22 @@ from nuitka import Options
 
 from nuitka.oset import OrderedSet
 
+from nuitka.Tracing import printLine
+
 from logging import debug
 
-
+_progress = Options.isShowProgress()
 
 def optimizeTree( tree ):
     # Lots of conditions to take, pylint: disable=R0912
 
+    if _progress:
+        printLine( "Doing module local optimizations for '%s'." % tree.getFullName() )
+
     optimizations_queue = OrderedSet()
     tags = TagSet()
 
+    # Seed optimization with tag that causes all steps to be run.
     tags.add( "new_code" )
 
     def refreshOptimizationsFromTags( optimizations_queue, tags ):
@@ -126,21 +132,42 @@ def optimizeTree( tree ):
 
     refreshOptimizationsFromTags( optimizations_queue, tags )
 
-    trees = [ tree ] + getOtherModules()
-
     while optimizations_queue:
         next_optimization = optimizations_queue.pop( last = False )
 
-        for module in trees:
-            debug( "Applying to '%s' optimization '%s':" % ( module, next_optimization ) )
+        debug( "Applying to '%s' optimization '%s':" % ( tree, next_optimization ) )
 
-            next_optimization().execute( module, on_signal = tags.onSignal )
+        next_optimization().execute( tree, on_signal = tags.onSignal )
 
         if not optimizations_queue:
             refreshOptimizationsFromTags( optimizations_queue, tags )
-            trees = [ tree ] + getOtherModules()
 
     return tree
 
 def getOtherModules():
     return list( ModuleRecursionVisitor.imported_modules.values() )
+
+def optimizeWhole( main_module ):
+    done_modules = set()
+
+    result = optimizeTree( main_module )
+    done_modules.add( main_module )
+
+    if _progress:
+        printLine( "Finished. %d more modules to go." % len( getOtherModules() ) )
+
+    finished = False
+
+    while not finished:
+        finished = True
+        for other_module in getOtherModules():
+            if other_module not in done_modules:
+                optimizeTree( other_module )
+                done_modules.add( other_module )
+
+                if _progress:
+                    printLine( "Finished. %d more modules to go." % ( len( getOtherModules() ) - len( done_modules ) ) )
+
+                finished = False
+
+    return result

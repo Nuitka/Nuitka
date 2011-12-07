@@ -85,8 +85,6 @@ parser.add_option(
     help    = "When executing the created '--deep' mode binary, don't reset PYTHONPATH. When all modules are successfully included, you ought to not need PYTHONPATH anymore."
 )
 
-
-
 parser.add_option(
     "--trace-execution",
     action  = "store_true",
@@ -231,6 +229,13 @@ parser.add_option(
     help    = "Operate scons in non-quiet mode, showing the executed commands."
 )
 
+parser.add_option(
+    "--show-progress",
+    action  = "store_true",
+    dest    = "show_progress",
+    default = False,
+    help    = "Output progress information and statistics."
+)
 
 core_count = Utils.getCoreCount()
 
@@ -342,6 +347,9 @@ def isWindowsTarget():
 
 def isFullCompat():
     return True
+
+def isShowProgress():
+    return options.show_progress and sys.stdout.isatty()
 
 def getVersion():
     return version_string.split()[1][1:]
