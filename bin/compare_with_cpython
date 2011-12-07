@@ -30,26 +30,40 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-import os, sys, subprocess, difflib, re
+import os, sys, subprocess, difflib, re, tempfile
 
-module = sys.argv[1]
+filename = sys.argv[1]
 silent_mode = "silent" in sys.argv
 ignore_stderr = "ignore_stderr" in sys.argv
+exec_in_tmp = "exec_in_tmp" in sys.argv
 
 if "PYTHON" not in os.environ:
     os.environ[ "PYTHON" ] = "python"
 
-print "Comparing output of '%s' using '%s' ..." % ( module, os.environ[ "PYTHON" ] )
+print "Comparing output of '%s' using '%s' ..." % ( filename, os.environ[ "PYTHON" ] )
 
 if not silent_mode:
     print "*******************************************************"
     print "CPython:"
     print "*******************************************************"
 
+if exec_in_tmp:
+    filename = os.path.abspath( filename )
+
 cpython_cmd = "%s -W ignore %s" % (
     os.environ[ "PYTHON" ],
-    module
+    filename
 )
+
+nuitka_cmd = "%s %s %s --exe --execute %s" % (
+    os.environ[ "PYTHON" ],
+    os.path.abspath( os.path.join( os.path.dirname( __file__ ), "Nuitka.py" ) ),
+    os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ),
+    filename
+)
+
+if exec_in_tmp:
+    os.chdir( tempfile.gettempdir() )
 
 process = subprocess.Popen(
     args   = cpython_cmd,
@@ -72,12 +86,6 @@ if not silent_mode:
     print "Nuitka:"
     print "*******************************************************"
 
-nuitka_cmd = "%s %s %s --exe --execute %s" % (
-    os.environ[ "PYTHON" ],
-    os.path.join( os.path.dirname( __file__ ), "Nuitka.py" ),
-    os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ),
-    module
-)
 
 process = subprocess.Popen(
     args   = nuitka_cmd,
