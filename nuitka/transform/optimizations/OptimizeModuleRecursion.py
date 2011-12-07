@@ -43,6 +43,8 @@ from nuitka import TreeBuilding, Importing, Options, Utils
 
 import os
 
+_warned_about = set()
+
 def isStandardLibraryPath( path ):
     path = os.path.normcase( path )
     os_path = os.path.normcase( os.path.dirname( os.__file__  ) )
@@ -71,13 +73,16 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
                     package  = module_package,
                     is_main  = False
                 )
-            except (SyntaxError, IndentationError) as e:
-                warning(
-                    "Cannot recurse to import module '%s' (%s) because of '%s'",
-                    module_relpath,
-                    module_filename,
-                    e.__class__.__name__
-                )
+            except ( SyntaxError, IndentationError ) as e:
+                if module_filename not in _warned_about:
+                    _warned_about.add( module_filename )
+
+                    warning(
+                        "Cannot recurse to import module '%s' (%s) because of '%s'",
+                        module_relpath,
+                        module_filename,
+                        e.__class__.__name__
+                    )
 
                 return
 
