@@ -1591,7 +1591,7 @@ def buildModuleTree( filename, package, is_main ):
 
     buildParseTree(
         provider    = result,
-        source_code = open( source_filename ).read(),
+        source_code = open( source_filename, "rU" ).read(),
         source_ref  = source_ref,
         replacement = False,
     )
