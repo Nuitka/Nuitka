@@ -55,6 +55,7 @@ from .OptimizeUnpacking import ReplaceUnpackingVisitor
 from .OptimizeStatements import StatementSequencesCleanupVisitor
 from .OptimizeRaises import OptimizeRaisesVisitor
 
+from .Tags import TagSet
 
 from nuitka import Options
 
@@ -62,22 +63,13 @@ from nuitka.oset import OrderedSet
 
 from logging import debug
 
-class Tags( set ):
-    def onSignal( self, signal ):
-        if type(signal) is str:
-            signal = signal.split()
 
-        for tag in signal:
-            self.add( tag )
-
-    def check( self, tag ):
-        return tag in self
 
 def optimizeTree( tree ):
     # Lots of conditions to take, pylint: disable=R0912
 
     optimizations_queue = OrderedSet()
-    tags = Tags()
+    tags = TagSet()
 
     tags.add( "new_code" )
 
