@@ -1,3 +1,10 @@
+nuitka (0.3.16pre6-2) unstable; urgency=low
+
+  * Added git pointers to git repository and gitweb to the
+    package control file.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sat, 10 Dec 2011 19:49:15 +0100
+
 nuitka (0.3.16pre6-1) unstable; urgency=low
 
   * New upstream pre-release, includes hotfix Nuitka 0.3.15g.
