@@ -124,6 +124,8 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
             Py_DECREF( frame_%(function_identifier)s );
         }
 
+        assertCodeObject( _CODEOBJ_%(function_identifier)s );
+
         frame_%(function_identifier)s = MAKE_FRAME( _CODEOBJ_%(function_identifier)s, %(module_identifier)s );
     }
 
