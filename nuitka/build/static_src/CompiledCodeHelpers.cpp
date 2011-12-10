@@ -481,22 +481,25 @@ PyObject *BUILTIN_LEN( PyObject *value )
 
 // TODO: Move this to global init, so it's not pre-main code that may not be run.
 
-static PyObject *empty_code =
 #if PYTHON_VERSION < 300
+static PyObject *empty_code =
     PyBuffer_FromMemory( NULL, 0 );
-#else
-    // TODO: How to create buffer objects for CPython3?
-    Py_None;
 #endif
 
 PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, int arg_count, bool is_generator )
 {
     assertObject( filename );
+    assert( Nuitka_String_Check( filename ) );
     assertObject( function_name );
+    assert( Nuitka_String_Check( function_name ) );
+
+#if PYTHON_VERSION >= 300
+    static PyObject *empty_code =
+        PyMemoryView_FromObject( _python_bytes_empty );
+#endif
     assertObject( empty_code );
 
-    assert( Nuitka_String_Check( filename ) );
-    assert( Nuitka_String_Check( function_name ) );
+    assert( PyObject_CheckReadBuffer( empty_code ) );
 
     int flags = 0;
 
@@ -524,7 +527,11 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
         filename,            // filename
         function_name,       // name
         line,                // firstlineno (offset of the code object)
+#if PYTHON_VERSION < 300
         _python_str_empty    // lnotab (table to translate code object)
+#else
+        _python_bytes_empty  // lnotab (table to translate code object)
+#endif
     );
 
     if (unlikely( result == NULL ))
@@ -693,10 +700,12 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 }
 
 // Helper functions for print. Need to play nice with Python softspace behaviour.
-#if PYTHON_VERSION < 300
+
+static PythonBuiltin _python_builtin_print( &_python_str_plain_print );
 
 void PRINT_ITEM_TO( PyObject *file, PyObject *object )
 {
+#if PYTHON_VERSION < 300
     if ( file == NULL || file == Py_None )
     {
         file = GET_STDOUT();
@@ -757,7 +766,35 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
     {
         PyFile_SoftSpace( file, !softspace );
     }
+#else
+    _python_builtin_print.refresh();
+
+    if (likely( file == NULL ))
+    {
+        _python_builtin_print.call(
+            object
+        );
+    }
+    else
+    {
+        // TODO: Not portable to ARM at all. Should generate evaluation order resistent
+        // MAKE_DICT variants and not have to generate at compile time correct order.
+        PyObjectTemporary print_keyargs(
+            MAKE_DICT(
+                _python_str_plain_end, _python_str_empty,
+                _python_str_plain_file, GET_STDOUT()
+            )
+        );
+
+        _python_builtin_print.call_keyargs(
+            print_keyargs.asObject(),
+            object
+        );
+    }
+#endif
 }
+
+#if PYTHON_VERSION < 300
 
 void PRINT_NEW_LINE_TO( PyObject *file )
 {
@@ -790,6 +827,19 @@ PyObject *GET_STDOUT()
     if (unlikely( result == NULL ))
     {
         PyErr_Format( PyExc_RuntimeError, "lost sys.stdout" );
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+PyObject *GET_STDERR()
+{
+    PyObject *result = PySys_GetObject( (char *)"stderr" );
+
+    if (unlikely( result == NULL ))
+    {
+        PyErr_Format( PyExc_RuntimeError, "lost sys.stderr" );
         throw _PythonException();
     }
 
@@ -1122,7 +1172,7 @@ void setCommandLineParameters( int argc, char *argv[] )
 #if PYTHON_VERSION < 300
     PySys_SetArgv( argc, argv );
 #else
-// Taken from CPython3: There seems to be no sane way to use
+// Originally taken from CPython3: There seems to be no sane way to use
 
     wchar_t **argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
     /* We need a second copies, as Python might modify the first one. */
@@ -1141,20 +1191,22 @@ void setCommandLineParameters( int argc, char *argv[] )
     fpsetmask(m & ~FP_X_OFL);
 #endif
 
-    oldloc = strdup(setlocale(LC_ALL, NULL));
-    setlocale(LC_ALL, "");
-    for (int i = 0; i < argc; i++) {
-#ifdef __APPLE__
-        argv_copy[i] = _Py_DecodeUTF8_surrogateescape(argv[i], strlen(argv[i]));
-#else
-        argv_copy[i] = _Py_char2wchar(argv[i], NULL);
-#endif
-        assert (argv_copy[i]);
+    oldloc = strdup( setlocale( LC_ALL, NULL ) );
 
-        argv_copy2[i] = argv_copy[i];
+    setlocale( LC_ALL, "" );
+    for ( int i = 0; i < argc; i++ )
+    {
+#ifdef __APPLE__
+        argv_copy[i] = _Py_DecodeUTF8_surrogateescape( argv[ i ], strlen( argv[ i ] ) );
+#else
+        argv_copy[i] = _Py_char2wchar( argv[ i ], NULL );
+#endif
+        assert ( argv_copy[ i ] );
+
+        argv_copy2[ i ] = argv_copy[ i ];
     }
-    setlocale(LC_ALL, oldloc);
-    free(oldloc);
+    setlocale( LC_ALL, oldloc );
+    free( oldloc );
 
     PySys_SetArgv( argc, argv_copy );
 #endif

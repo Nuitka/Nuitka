@@ -138,7 +138,7 @@ static PyMethodDef _method_def_loader_find_module
 {
     "find_module",
     (PyCFunction)_path_unfreezer_find_module,
-    METH_KEYWORDS,
+    METH_VARARGS | METH_KEYWORDS,
     NULL
 };
 
@@ -146,7 +146,7 @@ static PyMethodDef _method_def_loader_load_module
 {
     "load_module",
     (PyCFunction)_path_unfreezer_load_module,
-    METH_KEYWORDS,
+    METH_VARARGS | METH_KEYWORDS,
     NULL
 };
 

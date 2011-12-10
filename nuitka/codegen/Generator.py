@@ -3104,26 +3104,30 @@ def _getConstantsDefinitionCode( context ):
                 "%s = PyDict_New();" % constant_identifier
             )
 
+            continue
+
         if constant_type is tuple and constant_value == ():
             statements.append(
                 "%s = PyTuple_New( 0 );" % constant_identifier
             )
+
+            continue
 
         if constant_type is list and constant_value == []:
             statements.append(
                 "%s = PyList_New( 0 );" % constant_identifier
             )
 
+            continue
+
         if constant_type is set and constant_value == set():
             statements.append(
                 "%s = PySet_New( NULL );" % constant_identifier
             )
 
-        if constant_type in ( tuple, list, float, complex, unicode, int, long, dict, frozenset, set, range ):
-            statements.append(
-                _getUnstreamCode( constant_value, constant_type, constant_identifier )
-            )
-        elif constant_type is str:
+            continue
+
+        if constant_type is str:
             statements.append(
                 '%s = UNSTREAM_STRING( %s, %d, %d );assert( %s );' % (
                     constant_identifier,
@@ -3133,10 +3137,26 @@ def _getConstantsDefinitionCode( context ):
                     constant_identifier
                 )
             )
-        elif constant_value in ( None, True, False ):
-            pass
-        else:
-            assert False, (type(constant_value), constant_value, constant_identifier)
+
+            continue
+
+        if constant_value is None:
+            continue
+
+        if constant_value is False:
+            continue
+
+        if constant_value is True:
+            continue
+
+        if constant_type in ( tuple, list, float, complex, unicode, int, long, dict, frozenset, set, bytes, range ):
+            statements.append(
+                _getUnstreamCode( constant_value, constant_type, constant_identifier )
+            )
+
+            continue
+
+        assert False, (type(constant_value), constant_value, constant_identifier)
 
     return indented( statements )
 

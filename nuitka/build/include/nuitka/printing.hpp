@@ -41,6 +41,7 @@ extern void PRINT_NEW_LINE_TO( PyObject *file );
 extern void PRINT_NEW_LINE( void );
 
 extern PyObject *GET_STDOUT();
+extern PyObject *GET_STDERR();
 
 // Helper functions to debug the compiler operation.
 extern void PRINT_REFCOUNT( PyObject *object );

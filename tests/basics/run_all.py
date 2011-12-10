@@ -20,7 +20,7 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-import os, sys, commands, subprocess
+import os, sys, commands, subprocess, tempfile, shutil
 
 # Go its own directory, to have it easy with path knowledge.
 os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
@@ -71,9 +71,24 @@ for filename in sorted( os.listdir( "." ) ):
         before = os.environ[ "PYTHON" ]
         os.environ[ "PYTHON" ] = use_python
 
-        command = "%s %scompare_with_cpython %s silent %s" % (
-            use_python,
-            os.path.join( "..", "..", "bin" ) + os.path.sep,
+        # Apply 2to3 conversion if necessary.
+        if python_version.startswith( "3" ):
+            new_path = os.path.join( tempfile.gettempdir(), filename )
+            shutil.copy( path, new_path )
+
+            path = new_path
+
+            # No idea how to make this portable to Windows, but we can delay it until
+            # Python3 is fully functional under Linux first.
+            result = subprocess.call(
+                "2to3 -w -n --no-diffs " + path,
+                stderr = open( "/dev/null", "w" ),
+                shell  = True
+            )
+
+        command = "%s %s %s silent %s" % (
+            use_python if not python_version.startswith( "3" ) else sys.executable,
+            os.path.join( "..", "..", "bin", "compare_with_cpython" ),
             path,
             extra_flags
         )
