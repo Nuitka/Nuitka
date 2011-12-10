@@ -1,3 +1,9 @@
+nuitka (0.3.16pre6-1) unstable; urgency=low
+
+  * New upstream pre-release, includes hotfix Nuitka 0.3.15g.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sat, 10 Dec 2011 09:37:24 +0100
+
 nuitka (0.3.16pre5-1) unstable; urgency=low
 
   * New upstream pre-release, includes hotfix Nuitka 0.3.15f.
