@@ -693,8 +693,7 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 }
 
 // Helper functions for print. Need to play nice with Python softspace behaviour.
-
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
 
 void PRINT_ITEM_TO( PyObject *file, PyObject *object )
 {
@@ -770,6 +769,18 @@ void PRINT_NEW_LINE_TO( PyObject *file )
     PyFile_SoftSpace( file, 0 );
 }
 
+void PRINT_REFCOUNT( PyObject *object )
+{
+   char buffer[ 1024 ];
+   sprintf( buffer, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT( object ) );
+
+   if (unlikely( PyFile_WriteString( buffer, GET_STDOUT() ) == -1 ))
+   {
+      throw _PythonException();
+   }
+}
+
+
 #endif
 
 PyObject *GET_STDOUT()
@@ -785,7 +796,7 @@ PyObject *GET_STDOUT()
     return result;
 }
 
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
 
 void PRINT_NEW_LINE( void )
 {
