@@ -685,13 +685,21 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
             builtin_spec  = BuiltinParameterSpecExceptions( exception_name, 0 )
         )
 
+_quick_names = {
+    "None"  : None,
+    "True"  : True,
+    "False" : False
+}
+
 class ReplaceBuiltinsExceptionsVisitor( OptimizationVisitorBase ):
     def __call__( self, node ):
         if node.isExpressionVariableRef():
             variable = node.getVariable()
 
             if variable is not None:
-                if variable.getName() in builtin_exception_names and _isReadOnlyModuleVariable( variable ):
+                variable_name = variable.getName()
+
+                if variable_name in builtin_exception_names and _isReadOnlyModuleVariable( variable ):
                     new_node = Nodes.CPythonExpressionBuiltinExceptionRef(
                         exception_name = variable.getName(),
                         source_ref     = node.getSourceReference()
@@ -708,6 +716,20 @@ class ReplaceBuiltinsExceptionsVisitor( OptimizationVisitorBase ):
                     )
 
                     assert node.parent is new_node.parent
+                elif variable_name in _quick_names and _isReadOnlyModuleVariable( variable ):
+                    new_node = Nodes.makeConstantReplacementNode(
+                        node     = node,
+                        constant = _quick_names[ variable_name ]
+                    )
+
+                    node.replaceWith( new_node )
+
+                    self.signalChange(
+                        "new_constant",
+                        node.getSourceReference(),
+                        "Builtin constant was predicted to constant."
+                    )
+
 
 
 class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
