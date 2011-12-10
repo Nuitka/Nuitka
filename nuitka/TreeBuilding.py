@@ -76,29 +76,11 @@ def _buildConstantReferenceNode( constant, source_ref ):
         source_ref = source_ref
     )
 
-# These names are immediately resolved. Could be optional and only after variable usage
-# has proven that they are not overriden or local variables.
-_quick_names = {
-    "None"  : None,
-    "True"  : True,
-    "False" : False
-}
-
 def _buildVariableReferenceNode( variable_name, source_ref ):
-    if variable_name in _quick_names:
-        # TODO: This normally belongs to optimization, will be safer against assignments
-        # of the quick names.
-        result = _buildConstantReferenceNode(
-            constant   = _quick_names[ variable_name ],
-            source_ref = source_ref
-        )
-    else:
-        result = Nodes.CPythonExpressionVariableRef(
-            variable_name = variable_name,
-            source_ref    = source_ref
-        )
-
-    return result
+    return Nodes.CPythonExpressionVariableRef(
+        variable_name = variable_name,
+        source_ref    = source_ref
+    )
 
 def buildVariableReferenceNode( node, source_ref ):
     return _buildVariableReferenceNode(
