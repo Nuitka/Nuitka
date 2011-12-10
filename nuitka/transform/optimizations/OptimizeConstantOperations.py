@@ -139,6 +139,36 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
         if upper is not None and upper.isExpressionConstantRef() and upper.getConstant() is None:
             node.setUpper( None )
 
+    def _optimizeConstantDictMaking( self, node ):
+        pairs = node.getPairs()
+
+        for pair in pairs:
+            if not pair.getKey().isExpressionConstantRef():
+                break
+
+            value = pair.getValue()
+
+            if not value.isExpressionConstantRef() or value.isMutable():
+                break
+        else:
+            constant_value = dict.fromkeys( [ pair.getKey().getConstant() for pair in pairs ], None )
+
+            for pair in pairs:
+                constant_value[ pair.getKey().getConstant() ] = pair.getValue().getConstant()
+
+            new_node = Nodes.makeConstantReplacementNode(
+                constant = constant_value,
+                node     = node
+            )
+
+            node.replaceWith( new_node )
+
+            self.signalChange(
+                "new_constant",
+                node.getSourceReference(),
+                "Created diction found to be constant."
+            )
+
     def _optimizeForLoop( self, node ):
         no_break = node.getNoBreak()
 
@@ -176,6 +206,10 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
             )
         elif node.isExpressionSliceLookup():
             self._optimizeConstantSliceLookup(
+                node = node
+            )
+        elif node.isExpressionMakeDict():
+            self._optimizeConstantDictMaking(
                 node = node
             )
         # TODO: Move this to a separate optimization step.
