@@ -347,7 +347,7 @@ class ModuleVariableReadReplacement:
         self.result = 0
 
     def __call__( self, node ):
-        if node.isExpressionVariableRef() and node.getVariableName() == self.variable_name:
+        if node.isExpressionVariableRef() and node.getVariableName() == self.variable_name and node.getVariable().isModuleVariableReference():
             node.replaceWith(
                 self.make_node( node )
             )
