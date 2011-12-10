@@ -136,7 +136,7 @@ static PyObject *Nuitka_Generator_tp_iternext( Nuitka_GeneratorObject *generator
 
 static PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyObject *args )
 {
-    if ( generator->m_status != Generator_Status::status_Finished )
+    if ( generator->m_status == Generator_Status::status_Running )
     {
         generator->m_exception_type = PyExc_GeneratorExit;
         generator->m_exception_value = NULL;
