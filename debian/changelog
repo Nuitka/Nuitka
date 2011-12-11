@@ -1,5 +1,6 @@
-nuitka (0.3.16pre6-2) unstable; urgency=low
+nuitka (0.3.16pre8-1) unstable; urgency=low
 
+  * New upstream pre-release.
   * Added git pointers to git repository and gitweb to the
     package control file.
 
