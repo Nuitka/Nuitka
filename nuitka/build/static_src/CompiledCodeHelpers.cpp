@@ -705,6 +705,8 @@ static PythonBuiltin _python_builtin_print( &_python_str_plain_print );
 
 void PRINT_ITEM_TO( PyObject *file, PyObject *object )
 {
+// The print builtin function cannot replace "softspace" behaviour of CPython
+// print statement, so this code is really necessary.
 #if PYTHON_VERSION < 300
     if ( file == NULL || file == Py_None )
     {
@@ -794,20 +796,40 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
 #endif
 }
 
-#if PYTHON_VERSION < 300
-
 void PRINT_NEW_LINE_TO( PyObject *file )
 {
+#if PYTHON_VERSION < 300
     if (unlikely( PyFile_WriteString( "\n", file ) == -1))
     {
         throw _PythonException();
     }
 
     PyFile_SoftSpace( file, 0 );
+#else
+    if (likely( file == NULL ))
+    {
+        _python_builtin_print.call();
+    }
+    else
+    {
+        // TODO: Not portable to ARM at all. Should generate evaluation order resistent
+        // MAKE_DICT variants and not have to generate at compile time correct order.
+        PyObjectTemporary print_keyargs(
+            MAKE_DICT(
+                _python_str_plain_file, GET_STDOUT()
+            )
+        );
+
+        _python_builtin_print.call_keyargs(
+            print_keyargs.asObject()
+        );
+    }
+#endif
 }
 
 void PRINT_REFCOUNT( PyObject *object )
 {
+#if PYTHON_VERSION < 300
    char buffer[ 1024 ];
    sprintf( buffer, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT( object ) );
 
@@ -815,10 +837,13 @@ void PRINT_REFCOUNT( PyObject *object )
    {
       throw _PythonException();
    }
+#else
+   assert( false );
+#endif
 }
 
 
-#endif
+
 
 PyObject *GET_STDOUT()
 {

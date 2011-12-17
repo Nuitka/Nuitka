@@ -35,9 +35,13 @@ that location. Can be different inside a module due to e.g. the inlining of exec
 statements with their own future imports, or inlining of code from other modules.
 """
 
+from nuitka import Utils
+
+_future_division_default = Utils.getPythonVersion() >= 300
+
 class FutureSpec:
     def __init__( self ):
-        self._future_division   = False
+        self._future_division   = _future_division_default
         self._unicode_literals  = False
         self._absolute_import   = False
         self._future_print      = False

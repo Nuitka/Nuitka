@@ -125,11 +125,7 @@ module_header_template = """\
 
 #include <nuitka/helpers.hpp>
 
-#if PYTHON_VERSION < 300
-NUITKA_MODULE_INIT_FUNCTION init%(module_identifier)s( void );
-#else
-// TODO: Python3 has other module init style.
-#endif
+MOD_INIT( %(module_identifier)s );
 
 extern PyObject *_module_%(module_identifier)s;
 
@@ -374,15 +370,35 @@ MOD_INIT( %(module_identifier)s )
 
     PyObject *module_dict = PyModule_GetDict( _module_%(module_identifier)s );
 
-    if ( PyDict_GetItemString( module_dict, "__builtins__") == NULL )
+    if ( PyDict_GetItem( module_dict, _python_str_plain___builtins__ ) == NULL )
+    {
+        PyObject *value = ( PyObject *)_module_builtin;
+
+#ifndef _NUITKA_MODULE
+        if ( _module_%(module_identifier)s != _module___main__ )
+        {
+            value = PyModule_GetDict( value );
+        }
+#endif
+
+#ifndef __NUITKA_NO_ASSERT__
+        int res =
+#endif
+            PyDict_SetItem( module_dict, _python_str_plain___builtins__, value );
+
+        assert( res == 0 );
+    }
+
+#if PYTHON_VERSION >= 300
     {
 #ifndef __NUITKA_NO_ASSERT__
         int res =
 #endif
-            PyDict_SetItemString( module_dict, "__builtins__", PyEval_GetBuiltins() );
+            PyDict_SetItem( module_dict, _python_str_plain___cached__, Py_None );
 
         assert( res == 0 );
     }
+#endif
 
     frame_%(module_identifier)s = MAKE_FRAME( MAKE_CODEOBJ( %(filename_identifier)s, %(module_name_obj)s, 0, 0 ), _module_%(module_identifier)s);
 

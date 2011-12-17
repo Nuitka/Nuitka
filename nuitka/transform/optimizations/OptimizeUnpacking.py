@@ -34,6 +34,10 @@ from .OptimizeBase import OptimizationVisitorBase, makeRaiseExceptionReplacement
 
 from nuitka.nodes import Nodes
 
+from nuitka import Utils
+
+_unpack_error_length_indication = Utils.getPythonVersion() < 300
+
 class ReplaceUnpackingVisitor( OptimizationVisitorBase ):
     def __call__( self, node ):
         if node.isStatementAssignment():
@@ -83,11 +87,16 @@ class ReplaceUnpackingVisitor( OptimizationVisitorBase ):
                             )
                         else:
                             if len( unpacked ) > len( elements ):
+                                if _unpack_error_length_indication:
+                                    exception_value = "too many values to unpack"
+                                else:
+                                    exception_value = "too many values to unpack (expected %d)" % len( elements )
+
                                 node.replaceWith(
                                     makeRaiseExceptionReplacementStatement(
                                         statement       = node,
                                         exception_type  = "ValueError",
-                                        exception_value = "too many values to unpack",
+                                        exception_value = exception_value,
                                     )
                                 )
                             elif len( unpacked ) == 1:

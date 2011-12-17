@@ -152,6 +152,9 @@ class PythonGlobalContext:
         self.getConstantHandle( "__file__" )
         self.getConstantHandle( "__enter__" )
         self.getConstantHandle( "__exit__" )
+        self.getConstantHandle( "__builtins__" )
+        # For Python3 modules
+        self.getConstantHandle( "__cached__" )
 
         # Patched module name.
         self.getConstantHandle( "inspect" )
