@@ -185,16 +185,14 @@ def makeRaiseExceptionReplacementExpression( expression, exception_type, excepti
 
     return result
 
-# Ignore a deprecation warning of Python 2.6 that seemingly went away with Python 2.7, so
-# I am assuming the attribute will be there forever in Python 2.x, and it's safe to use.
-import warnings
-warnings.filterwarnings( "ignore", "BaseException.message has been deprecated" )
-
 def makeRaiseExceptionReplacementExpressionFromInstance( expression, exception ):
     assert isinstance( exception, Exception )
+
+    args = exception.args
+    assert type( args ) is tuple and len( args ) == 1, args
 
     return makeRaiseExceptionReplacementExpression(
         expression      = expression,
         exception_type  = exception.__class__.__name__,
-        exception_value = exception.message
+        exception_value = args[0]
     )
