@@ -154,6 +154,8 @@ _re_str_needs_no_digest = re.compile( r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.S )
 def _namifyString( string ):
     if string in ( "", b"" ):
         return "empty"
+    elif string == " ":
+        return "space"
     elif string == ".":
         return "dot"
     elif type( string ) is str and _re_str_needs_no_digest.match( string ) and "\n" not in string:
