@@ -1,60 +1,18 @@
-nuitka (0.3.16pre8-1) unstable; urgency=low
+nuitka (0.3.16-1) unstable; urgency=low
 
   * New upstream pre-release.
-  * Added git pointers to git repository and gitweb to the
-    package control file.
-
- -- Kay Hayen <kayhayen@gmx.de>  Sat, 10 Dec 2011 19:49:15 +0100
-
-nuitka (0.3.16pre6-1) unstable; urgency=low
-
-  * New upstream pre-release, includes hotfix Nuitka 0.3.15g.
-
- -- Kay Hayen <kayhayen@gmx.de>  Sat, 10 Dec 2011 09:37:24 +0100
-
-nuitka (0.3.16pre5-1) unstable; urgency=low
-
-  * New upstream pre-release, includes hotfix Nuitka 0.3.15f.
-
- -- Kay Hayen <kayhayen@gmx.de>  Wed, 07 Dec 2011 20:07:17 +0100
-
-nuitka (0.3.16pre4-1) unstable; urgency=low
-
-  * New upstream pre-release, includes hotfix Nuitka 0.3.15e.
-
- -- Kay Hayen <kayhayen@gmx.de>  Tue, 06 Dec 2011 20:14:15 +0100
-
-nuitka (0.3.16pre3-1) unstable; urgency=low
-
-  * New upstream pre-release, includes hotfix Nuitka 0.3.15d.
   * Updated debian/copyright URI to match the latest one.
   * Updated debian/copyright to DEP5 changes.
   * Added Nuitka homepage to debian/control.
   * Added watch file, so uscan works.
+  * Added git pointers to git repository and gitweb to the
+    package control file.
   * Corrected examples section in man page to correctly escape "-".
-
- -- Kay Hayen <kayhayen@gmx.de>  Mon, 05 Dec 2011 20:24:47 +0100
-
-nuitka (0.3.16pre2-1) unstable; urgency=low
-
-  * New upstream pre-release.
-  * Includes hotfixes Nuitka 0.3.15c
-
- -- Kay Hayen <kayhayen@gmx.de>  Sun, 04 Dec 2011 13:08:47 +0100
-
-nuitka (0.3.16pre1-2) unstable; urgency=low
-
+  * Added meaningful "what is" to manpages.
   * Bump to Standards Version 3.9.2, no changes needed.
   * Added extended description to address lintian warning.
-  * Added meaningful "what is" to manpages.
 
- -- Kay Hayen <kayhayen@gmx.de>  Fri, 02 Dec 2011 19:00:47 +0100
-
-nuitka (0.3.16pre1-1) unstable; urgency=low
-
-  * New upstream pre-release.
-
- -- Kay Hayen <kayhayen@gmx.de>  Thu, 01 Dec 2011 23:25:32 +0100
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 18 Dec 2011 13:01:10 +0100
 
 nuitka (0.3.15-1) unstable; urgency=low
 
