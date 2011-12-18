@@ -278,7 +278,7 @@ def runScons( tree, quiet ):
     return SconsInterface.runScons( options, quiet ), options
 
 def writeSourceCode( filename, source_code ):
-    assert not os.path.exists( filename )
+    assert not os.path.exists( filename ), filename
 
     open( filename, "w" ).write( source_code )
 
