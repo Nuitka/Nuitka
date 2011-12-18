@@ -481,22 +481,25 @@ PyObject *BUILTIN_LEN( PyObject *value )
 
 // TODO: Move this to global init, so it's not pre-main code that may not be run.
 
-static PyObject *empty_code =
 #if PYTHON_VERSION < 300
+static PyObject *empty_code =
     PyBuffer_FromMemory( NULL, 0 );
-#else
-    // TODO: How to create buffer objects for CPython3?
-    Py_None;
 #endif
 
 PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, int arg_count, bool is_generator )
 {
     assertObject( filename );
+    assert( Nuitka_String_Check( filename ) );
     assertObject( function_name );
+    assert( Nuitka_String_Check( function_name ) );
+
+#if PYTHON_VERSION >= 300
+    static PyObject *empty_code =
+        PyMemoryView_FromObject( _python_bytes_empty );
+#endif
     assertObject( empty_code );
 
-    assert( PyString_Check( filename ) );
-    assert( PyString_Check( function_name ) );
+    assert( PyObject_CheckReadBuffer( empty_code ) );
 
     int flags = 0;
 
@@ -524,7 +527,11 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
         filename,            // filename
         function_name,       // name
         line,                // firstlineno (offset of the code object)
+#if PYTHON_VERSION < 300
         _python_str_empty    // lnotab (table to translate code object)
+#else
+        _python_bytes_empty  // lnotab (table to translate code object)
+#endif
     );
 
     if (unlikely( result == NULL ))
@@ -621,7 +628,7 @@ static PythonBuiltin _python_builtin_import( &_python_str_plain___import__ );
 
 PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
 {
-    assert( PyString_Check( module_name ) );
+    assert( Nuitka_String_Check( module_name ) );
     assertObject( globals );
     assertObject( locals );
     assertObject( import_items );
@@ -639,13 +646,6 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *loc
             level
         )
     );
-
-    if (unlikely( import_result == NULL ))
-    {
-        // printf( "FAIL Importing %s as level %d\n", module_name_str, level );
-
-        throw _PythonException();
-    }
 
     return import_result;
 }
@@ -674,7 +674,7 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 
     while ( PyObject *item = ITERATOR_NEXT( iter ) )
     {
-        assert( PyString_Check( item ) );
+        assert( Nuitka_String_Check( item ) );
 
         // TODO: Not yet clear, what happens with __all__ and "_" of its contents.
         if ( all_case == false )
@@ -701,10 +701,13 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 
 // Helper functions for print. Need to play nice with Python softspace behaviour.
 
-#if PY_MAJOR_VERSION < 3
+static PythonBuiltin _python_builtin_print( &_python_str_plain_print );
 
 void PRINT_ITEM_TO( PyObject *file, PyObject *object )
 {
+// The print builtin function cannot replace "softspace" behaviour of CPython
+// print statement, so this code is really necessary.
+#if PYTHON_VERSION < 300
     if ( file == NULL || file == Py_None )
     {
         file = GET_STDOUT();
@@ -765,19 +768,82 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
     {
         PyFile_SoftSpace( file, !softspace );
     }
+#else
+    _python_builtin_print.refresh();
+
+    if (likely( file == NULL ))
+    {
+        _python_builtin_print.call(
+            object
+        );
+    }
+    else
+    {
+        // TODO: Not portable to ARM at all. Should generate evaluation order resistent
+        // MAKE_DICT variants and not have to generate at compile time correct order.
+        PyObjectTemporary print_keyargs(
+            MAKE_DICT(
+                _python_str_plain_end, _python_str_empty,
+                _python_str_plain_file, GET_STDOUT()
+            )
+        );
+
+        _python_builtin_print.call_keyargs(
+            print_keyargs.asObject(),
+            object
+        );
+    }
+#endif
 }
 
 void PRINT_NEW_LINE_TO( PyObject *file )
 {
+#if PYTHON_VERSION < 300
     if (unlikely( PyFile_WriteString( "\n", file ) == -1))
     {
         throw _PythonException();
     }
 
     PyFile_SoftSpace( file, 0 );
+#else
+    if (likely( file == NULL ))
+    {
+        _python_builtin_print.call();
+    }
+    else
+    {
+        // TODO: Not portable to ARM at all. Should generate evaluation order resistent
+        // MAKE_DICT variants and not have to generate at compile time correct order.
+        PyObjectTemporary print_keyargs(
+            MAKE_DICT(
+                _python_str_plain_file, GET_STDOUT()
+            )
+        );
+
+        _python_builtin_print.call_keyargs(
+            print_keyargs.asObject()
+        );
+    }
+#endif
 }
 
+void PRINT_REFCOUNT( PyObject *object )
+{
+#if PYTHON_VERSION < 300
+   char buffer[ 1024 ];
+   sprintf( buffer, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT( object ) );
+
+   if (unlikely( PyFile_WriteString( buffer, GET_STDOUT() ) == -1 ))
+   {
+      throw _PythonException();
+   }
+#else
+   assert( false );
 #endif
+}
+
+
+
 
 PyObject *GET_STDOUT()
 {
@@ -792,7 +858,20 @@ PyObject *GET_STDOUT()
     return result;
 }
 
-#if PY_MAJOR_VERSION < 3
+PyObject *GET_STDERR()
+{
+    PyObject *result = PySys_GetObject( (char *)"stderr" );
+
+    if (unlikely( result == NULL ))
+    {
+        PyErr_Format( PyExc_RuntimeError, "lost sys.stderr" );
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+#if PYTHON_VERSION < 300
 
 void PRINT_NEW_LINE( void )
 {
@@ -807,7 +886,7 @@ static PyObject *_module_cPickle_function_loads = NULL;
 
 void UNSTREAM_INIT( void )
 {
-#if PY_MAJOR_VERSION < 3
+#if PYTHON_VERSION < 300
     _module_cPickle = PyImport_ImportModule( "cPickle" );
 #else
     _module_cPickle = PyImport_ImportModule( "pickle" );
@@ -822,10 +901,19 @@ PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size )
 {
     PyObject *result = PyObject_CallFunction(
         _module_cPickle_function_loads,
+#if PYTHON_VERSION < 300
         (char *)"(s#)",
+#else
+        (char *)"(y#)",
+#endif
         buffer,
         size
     );
+
+    if ( !result )
+    {
+        PyErr_Print();
+    }
 
     assertObject( result );
 
@@ -840,9 +928,14 @@ PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
     PyObject *result = PyUnicode_FromStringAndSize( buffer, size );
 #endif
     assert( !PyErr_Occurred() );
-
     assertObject( result );
+    assert( Nuitka_String_Check( result ) );
+
+#if PYTHON_VERSION < 300
     assert( PyString_Size( result ) == size );
+#else
+    assert( PyUnicode_GET_SIZE( result ) == size );
+#endif
 
     if ( intern )
     {
@@ -852,7 +945,13 @@ PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
         PyUnicode_InternInPlace( &result );
 #endif
         assertObject( result );
+        assert( Nuitka_String_Check( result ) );
+
+#if PYTHON_VERSION < 300
         assert( PyString_Size( result ) == size );
+#else
+        assert( PyUnicode_GET_SIZE( result ) == size );
+#endif
     }
 
     return result;
@@ -1098,12 +1197,12 @@ void setCommandLineParameters( int argc, char *argv[] )
 #if PYTHON_VERSION < 300
     PySys_SetArgv( argc, argv );
 #else
-// Taken from CPython3: There seems to be no sane way to use
+// Originally taken from CPython3: There seems to be no sane way to use
 
     wchar_t **argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
     /* We need a second copies, as Python might modify the first one. */
     wchar_t **argv_copy2 = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*)*argc);
-    int i, res;
+
     char *oldloc;
     /* 754 requires that FP exceptions run in "no stop" mode by default,
      * and until C vendors implement C99's ways to control FP exceptions,
@@ -1117,20 +1216,22 @@ void setCommandLineParameters( int argc, char *argv[] )
     fpsetmask(m & ~FP_X_OFL);
 #endif
 
-    oldloc = strdup(setlocale(LC_ALL, NULL));
-    setlocale(LC_ALL, "");
-    for (i = 0; i < argc; i++) {
-#ifdef __APPLE__
-        argv_copy[i] = _Py_DecodeUTF8_surrogateescape(argv[i], strlen(argv[i]));
-#else
-        argv_copy[i] = _Py_char2wchar(argv[i], NULL);
-#endif
-        assert (argv_copy[i]);
+    oldloc = strdup( setlocale( LC_ALL, NULL ) );
 
-        argv_copy2[i] = argv_copy[i];
+    setlocale( LC_ALL, "" );
+    for ( int i = 0; i < argc; i++ )
+    {
+#ifdef __APPLE__
+        argv_copy[i] = _Py_DecodeUTF8_surrogateescape( argv[ i ], strlen( argv[ i ] ) );
+#else
+        argv_copy[i] = _Py_char2wchar( argv[ i ], NULL );
+#endif
+        assert ( argv_copy[ i ] );
+
+        argv_copy2[ i ] = argv_copy[ i ];
     }
-    setlocale(LC_ALL, oldloc);
-    free(oldloc);
+    setlocale( LC_ALL, oldloc );
+    free( oldloc );
 
     PySys_SetArgv( argc, argv_copy );
 #endif

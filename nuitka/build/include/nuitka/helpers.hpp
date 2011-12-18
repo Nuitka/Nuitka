@@ -478,15 +478,16 @@ NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, P
 static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, Nuitka_StringObject *key )
 {
     assert( PyDict_CheckExact( dict ) );
+    assert( Nuitka_String_Check( key ) );
 
-    // Only improvement would be to identify how to ensure that the hash is computed
-    // already. Calling hash early on could do that potentially.
 #if PYTHON_VERSION < 300
     long hash = key->ob_shash;
 #else
     long hash = key->hash;
 #endif
 
+    // Only improvement would be to identify how to ensure that the hash is computed
+    // already. Calling hash early on could do that potentially.
     if ( hash == -1 )
     {
 #if PYTHON_VERSION < 300
@@ -507,11 +508,7 @@ static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, Nuitka_StringObject *k
     return entry;
 }
 
-#if PYTHON_VERSION < 300
-static PyDictEntry *GET_PYDICT_ENTRY( PyModuleObject *module, PyStringObject *key )
-#else
-static PyDictEntry *GET_PYDICT_ENTRY( PyModuleObject *module, PyUnicodeObject *key )
-#endif
+static PyDictEntry *GET_PYDICT_ENTRY( PyModuleObject *module, Nuitka_StringObject *key )
 {
     // Idea similar to LOAD_GLOBAL in CPython. Because the variable name is a string, we
     // can shortcut much of the dictionary code by using its hash and dictionary knowledge

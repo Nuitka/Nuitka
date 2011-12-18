@@ -370,6 +370,12 @@ class BreakException
 {
 };
 
+#if PYTHON_VERSION < 300
+#define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must be old-style classes or derived from BaseException, not %s"
+#else
+#define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must derive from BaseException"
+#endif
+
 NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception, PyTracebackObject *traceback )
 {
     if ( PyExceptionClass_Check( exception ) )
@@ -382,7 +388,7 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exc
     }
     else
     {
-        PyErr_Format( PyExc_TypeError, "exceptions must be old-style classes or derived from BaseException, not %s", exception->ob_type->tp_name );
+        PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception )->tp_name );
 
         _PythonException to_throw;
         to_throw.setTraceback( traceback );
@@ -405,7 +411,7 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exc
     }
     else
     {
-        PyErr_Format( PyExc_TypeError, "exceptions must be old-style classes or derived from BaseException, not %s", Py_TYPE( exception_type )->tp_name );
+        PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
 
         throw _PythonException();
     }

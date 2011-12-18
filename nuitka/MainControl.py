@@ -67,8 +67,8 @@ def createNodeTree( filename ):
         is_main  = not Options.shallMakeModule()
     )
 
-    # Then optimize the tree.
-    result = Optimization.optimizeTree( result )
+    # Then optimize the tree and potentially recursed modules.
+    result = Optimization.optimizeWhole( result )
 
     return result
 
@@ -251,6 +251,9 @@ def runScons( tree, quiet ):
     else:
         python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
 
+        if Utils.getPythonVersion() >= 320:
+            python_version += sys.abiflags # pylint: disable=E1101
+
     if Options.options.python_debug is not None:
         python_debug = Options.options.python_debug
     else:
@@ -275,17 +278,26 @@ def runScons( tree, quiet ):
     return SconsInterface.runScons( options, quiet ), options
 
 def writeSourceCode( filename, source_code ):
-    assert not os.path.exists( filename )
+    assert not os.path.exists( filename ), filename
 
     open( filename, "w" ).write( source_code )
 
-def executeMain( output_filename, tree ):
+def executeMain( binary_filename, tree, clean_path ):
     name = Utils.basename( tree.getFilename() ).replace( ".py", ".exe" )
 
-    if not Options.isWindowsTarget() or "win" in sys.platform:
-        os.execl( output_filename, name, *Options.getMainArgs() )
-    else:
-        os.execl( "/usr/bin/wine", name, output_filename, *Options.getMainArgs() )
+    old_python_path = os.environ.get( "PYTHONPATH", None )
+
+    try:
+        if clean_path and old_python_path is not None:
+            os.environ[ "PYTHONPATH" ] = ""
+
+        if not Options.isWindowsTarget() or "win" in sys.platform:
+            os.execl( binary_filename, name, *Options.getMainArgs() )
+        else:
+            os.execl( "/usr/bin/wine", name, binary_filename, *Options.getMainArgs() )
+    finally:
+        if old_python_path is not None:
+            os.environ[ "PYTHONPATH" ] = old_python_path
 
 def executeModule( tree ):
     __import__( tree.getName() )

@@ -1,13 +1,35 @@
+nuitka (0.3.16-1) unstable; urgency=low
+
+  * New upstream pre-release.
+  * Updated debian/copyright URI to match the latest one.
+  * Updated debian/copyright to DEP5 changes.
+  * Added Nuitka homepage to debian/control.
+  * Added watch file, so uscan works.
+  * Added git pointers to git repository and gitweb to the
+    package control file.
+  * Corrected examples section in man page to correctly escape "-".
+  * Added meaningful "what is" to manpages.
+  * Bump to Standards Version 3.9.2, no changes needed.
+  * Added extended description to address lintian warning.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 18 Dec 2011 13:01:10 +0100
+
+nuitka (0.3.15-1) unstable; urgency=low
+
+  * New stable upstream release.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Thu, 01 Dec 2011 22:43:33 +0100
+
 nuitka (0.3.15pre5-1) unstable; urgency=low
 
-  * New upstream version
+  * New upstream version.
   * Added "--unstriped" example to the man page.
 
  -- Kay Hayen <kayhayen@gmx.de>  Wed, 30 Nov 2011 00:30:25 +0100
 
 nuitka (0.3.15pre4-1) unstable; urgency=low
 
-  * New upstream version
+  * New upstream version.
   * No longer dependent on foreign code for Windows generators,
     removed from debian/copyright.
 
@@ -23,8 +45,8 @@ nuitka (0.3.15pre3-2) unstable; urgency=low
 
 nuitka (0.3.15pre3-1) unstable; urgency=low
 
-  * New upstream version
-  * Renamed /usr/bin/Python to /usr/bin/nuitka-python
+  * New upstream version.
+  * Renamed "/usr/bin/Python" to "/usr/bin/nuitka-python".
 
  -- Kay Hayen <kayhayen@gmx.de>  Wed, 16 Nov 2011 08:43:22 +0100
 
@@ -43,7 +65,7 @@ nuitka (0.3.15pre2-2) unstable; urgency=low
     representation.
   * Recommend python-qt4, as it may be used to display the node
     tree in a window.
-  * Repair cut off short description
+  * Repair cut off short description.
   * Removed inline copy of Scons from the package.
   * Added patch to remove the setting nuitka package in sys.path,
     not needed in Debian.
@@ -52,6 +74,6 @@ nuitka (0.3.15pre2-2) unstable; urgency=low
 
 nuitka (0.3.15pre2-1) unstable; urgency=low
 
-  * Initial Debian package
+  * Initial Debian package.
 
  -- Kay Hayen <kayhayen@gmx.de>  Fri, 11 Nov 2011 20:58:55 +0100

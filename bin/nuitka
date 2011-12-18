@@ -106,4 +106,8 @@ else:
         if Options.shallMakeModule():
             MainControl.executeModule( tree )
         else:
-            MainControl.executeMain( options[ "result_file" ] + ".exe", tree )
+            MainControl.executeMain(
+                binary_filename = options[ "result_file" ] + ".exe",
+                tree            = tree,
+                clean_path      = Options.shallClearPythonPathEnvironment()
+            )

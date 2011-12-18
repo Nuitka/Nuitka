@@ -894,13 +894,26 @@ def buildTryFinallyNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
+_has_raise_value = Utils.getPythonVersion() < 300
+
 def buildRaiseNode( provider, node, source_ref ):
-    return Nodes.CPythonStatementRaiseException(
-        exception_type  = buildNode( provider, node.type, source_ref, True ),
-        exception_value = buildNode( provider, node.inst, source_ref, True ),
-        exception_trace = buildNode( provider, node.tback, source_ref, True ),
-        source_ref      = source_ref
-    )
+    if _has_raise_value:
+        return Nodes.CPythonStatementRaiseException(
+            exception_type  = buildNode( provider, node.type, source_ref, True ),
+            exception_value = buildNode( provider, node.inst, source_ref, True ),
+            exception_trace = buildNode( provider, node.tback, source_ref, True ),
+            source_ref      = source_ref
+        )
+    else:
+        assert node.cause is None
+
+        return Nodes.CPythonStatementRaiseException(
+            exception_type  = buildNode( provider, node.exc, source_ref, True ),
+            exception_value = None,
+            exception_trace = None,
+            source_ref      = source_ref
+        )
+
 
 def buildAssertNode( provider, node, source_ref ):
     return Nodes.CPythonStatementAssert(

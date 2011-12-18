@@ -141,6 +141,8 @@ class PythonGlobalContext:
         self.getConstantHandle( True )
         self.getConstantHandle( False )
         self.getConstantHandle( 0 )
+        # For Python3 empty bytes, no effect for Python2, same as ""
+        self.getConstantHandle( b"" )
 
         # Python mechanics.
         self.getConstantHandle( "__module__" )
@@ -150,15 +152,23 @@ class PythonGlobalContext:
         self.getConstantHandle( "__file__" )
         self.getConstantHandle( "__enter__" )
         self.getConstantHandle( "__exit__" )
+        self.getConstantHandle( "__builtins__" )
+        # For Python3 modules
+        self.getConstantHandle( "__cached__" )
 
         # Patched module name.
         self.getConstantHandle( "inspect" )
 
-        # Named of builtins used in helper code.
+        # Names of builtins used in helper code.
         self.getConstantHandle( "compile" )
         self.getConstantHandle( "range" )
         self.getConstantHandle( "open" )
+        self.getConstantHandle( "print" )
         self.getConstantHandle( "__import__" )
+
+        # The print builtin needs some argument names.
+        self.getConstantHandle( "end" )
+        self.getConstantHandle( "file" )
 
         # COMPILE_CODE uses read/strip method lookups.
         self.getConstantHandle( "read" )

@@ -1,4 +1,3 @@
-#!/usr/bin/python
 #
 #     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
 #
@@ -30,30 +29,53 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-import os, sys, shutil, re
+allowed_tags = (
+    # New code means new statements with possible variable usages that are
+    # not yet bound. Could mean anything.
+    "new_code",
 
-assert 0 == os.system( "rst2pdf README.txt" )
+    # Added new import.
+    "new_import",
 
-if not os.path.exists( "man" ):
-    os.mkdir( "man" )
+    # New statements added.
+    "new_statements",
 
-assert 0 == os.system( "help2man -n 'the Python compiler' --no-discard-stderr --no-info --include doc/nuitka-man-include.txt nuitka >doc/nuitka.1" )
-assert 0 == os.system( "help2man -n 'the Python compiler' --no-discard-stderr --no-info nuitka-python >doc/nuitka-python.1" )
+    # New expression added.
+    "new_expression",
 
-assert 0 == os.system( "man2html doc/nuitka.1 >doc/man-nuitka.html" )
-assert 0 == os.system( "man2html doc/nuitka-python.1 >doc/man-nuitka-python.html" )
+    # New variable usage pattern introduced.
+    "new_variable",
 
-def getFile( filename ):
-    return open( filename ).read()
+    # TODO: A bit unclear what this it, potentially a changed variable.
+    "var_usage",
 
-contents = getFile( "doc/man-nuitka.html" )
-new_contents = contents[ : contents.rfind( "<HR>" ) ] + contents[ contents.rfind( "</BODY>" ) : ]
-assert new_contents != contents
+    # Detected module variable to be read only.
+    "read_only_mvar",
 
-open( "doc/man-nuitka.html", "w" ).write( new_contents )
+    # New builtin function detected.
+    "new_builtin",
 
-contents = getFile( "doc/man-nuitka-python.html" )
-new_contents = contents[ : contents.rfind( "<HR>" ) ] + contents[ contents.rfind( "</BODY>" ) : ]
-assert new_contents != contents
+    # New raise statement detected.
+    "new_raise",
 
-open( "doc/man-nuitka-python.html", "w" ).write( new_contents )
+    # New constant introduced.
+    "new_constant",
+
+
+)
+
+class TagSet( set ):
+    def onSignal( self, signal ):
+        if type( signal ) is str:
+            signal = signal.split()
+
+        for tag in signal:
+            self.add( tag )
+
+    def check( self, tag ):
+        return tag in self
+
+    def add( self, tag ):
+        assert tag in allowed_tags, tag
+
+        set.add( self, tag )

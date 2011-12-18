@@ -77,6 +77,8 @@ def namifyConstant( constant ):
         return "ellipsis"
     elif type( constant ) is str:
         return "str_" + _namifyString( constant )
+    elif type( constant ) is bytes:
+        return "bytes_" + _namifyString( constant )
     elif type( constant ) is unicode:
         if _isAscii( constant ):
             return "unicode_" + _namifyString( str( constant ) )
@@ -150,11 +152,13 @@ def namifyConstant( constant ):
 _re_str_needs_no_digest = re.compile( r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.S )
 
 def _namifyString( string ):
-    if string == "":
+    if string in ( "", b"" ):
         return "empty"
+    elif string == " ":
+        return "space"
     elif string == ".":
         return "dot"
-    elif _re_str_needs_no_digest.match( string ) and "\n" not in string:
+    elif type( string ) is str and _re_str_needs_no_digest.match( string ) and "\n" not in string:
         # Some strings can be left intact for source code readability.
         return "plain_" + string
     elif len( string ) == 1:
@@ -178,4 +182,7 @@ def _digest( value ):
     if str is not unicode:
         return hashlib.md5( value ).hexdigest()
     else:
-        return hashlib.md5( value.encode( "utf_8" ) ).hexdigest()
+        if type( value ) is bytes:
+            return hashlib.md5( value ).hexdigest()
+        else:
+            return hashlib.md5( value.encode( "utf_8" ) ).hexdigest()

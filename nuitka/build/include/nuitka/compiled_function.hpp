@@ -71,6 +71,9 @@ typedef struct {
     PyObject *m_dict;
     PyObject *m_weakrefs;
 
+    // List of defaults, for use in func_defaults and parameter parsing.
+    PyObject *m_defaults;
+
     long m_counter;
 } Nuitka_FunctionObject;
 
@@ -78,10 +81,10 @@ extern PyTypeObject Nuitka_Function_Type;
 
 
 // Make a function without context.
-extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *module, PyObject *doc );
+extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc );
 
 // Make a function with context.
-extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *module, PyObject *doc, void *context, releaser cleanup );
+extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, void *context, releaser cleanup );
 
 // Make a function that is only a yielder, no args.
 extern PyObject *Nuitka_Function_New( argless_code code, PyObject *name, PyObject *module, PyObject *doc, void * );

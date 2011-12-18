@@ -39,7 +39,6 @@ inline static void assertCodeObject( PyCodeObject *code_object )
 inline static void assertFrameObject( PyFrameObject *frame_object )
 {
     assertObject( (PyObject *)frame_object );
-
     assertCodeObject( frame_object->f_code );
 }
 
@@ -71,13 +70,13 @@ inline static void popFrameStack( void )
 
     PyFrameObject *old = tstate->frame;
 
-#ifdef _DEBUG_REFRAME
+#if _DEBUG_REFRAME
     printf( "Taking off frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)old ) ), PyString_AsString( PyObject_Str( (PyObject *)old->f_code ) ) );
 #endif
 
     tstate->frame = old->f_back;
 
-#ifdef _DEBUG_REFRAME
+#if _DEBUG_REFRAME
     printf( "Now at top frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)tstate->frame ) ), PyString_AsString( PyObject_Str( (PyObject *)tstate->frame->f_code ) ) );
 #endif
 }
@@ -89,7 +88,7 @@ inline static void pushFrameStack( PyFrameObject *frame_object )
     // Look at current frame.
     PyFrameObject *old = tstate->frame;
 
-#ifdef _DEBUG_REFRAME
+#if _DEBUG_REFRAME
     printf( "Upstacking to frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)old ) ), PyString_AsString( PyObject_Str( (PyObject *)old->f_code ) ) );
 #endif
 
@@ -108,12 +107,12 @@ inline static void pushFrameStack( PyFrameObject *frame_object )
         frame_object->f_back = INCREASE_REFCOUNT( old );
     }
 
-#ifdef _DEBUG_REFRAME
+#if _DEBUG_REFRAME
     printf( "Now at top frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)tstate->frame ) ), PyString_AsString( PyObject_Str( (PyObject *)tstate->frame->f_code ) ) );
 #endif
 }
 
-#ifdef _DEBUG_REFRAME
+#if _DEBUG_REFRAME
 static inline void dumpFrameStack( void )
 {
     PyFrameObject *current = PyThreadState_GET()->frame;
@@ -160,7 +159,7 @@ public:
         // Keep the frame object alive for this C++ objects live time.
         Py_INCREF( frame_object );
 
-#ifdef _DEBUG_REFRAME
+#if _DEBUG_REFRAME
         dumpFrameStack();
 #endif
     }

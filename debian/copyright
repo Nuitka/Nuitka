@@ -1,14 +1,9 @@
-Format-Specification: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=135
-Name: nuitka
-Maintainer: Kay Hayen <kayhayen@gmx.de>
+Format: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=166
+Upstream-Name: nuitka
+Upstream-Contact: Kay Hayen <kayhayen@gmx.de>
 Source: http://nuitka.net/
 Copyright: 2011 Kay Hayen <kayhayen@gmx.de>
 License: GPL-3
-
-Files: nuitka/build/static_src/arm_context_src/*
-License: MIT
-
-License:
  Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
  .
  Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -40,3 +35,8 @@ License:
  .
  On Debian GNU/Linux systems, the complete text of the GNU General
  Public License can be found in `/usr/share/common-licenses/GPL-3'.
+
+Files: nuitka/build/static_src/arm_ucontext_src/*
+Copyright: Russ Cox, Massachusetts Institute of Technology
+License: MIT
+ Unspecified MIT style license contained in the files.

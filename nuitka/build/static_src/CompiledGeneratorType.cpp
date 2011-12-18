@@ -82,7 +82,12 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
 
         // Put the generator back on the frame stack.
         PyFrameObject *return_frame = PyThreadState_GET()->frame;
-        assertFrameObject( return_frame );
+#ifndef __NUITKA_NO_ASSERT__
+        if ( return_frame )
+        {
+            assertFrameObject( return_frame );
+        }
+#endif
 
         if ( generator->m_frame )
         {
@@ -92,7 +97,7 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
             // It's not supposed to be on the top right now.
             assert( return_frame != generator->m_frame );
 
-            Py_INCREF( return_frame );
+            Py_XINCREF( return_frame );
             generator->m_frame->f_back = return_frame;
 
             PyThreadState_GET()->frame = generator->m_frame;
@@ -136,7 +141,7 @@ static PyObject *Nuitka_Generator_tp_iternext( Nuitka_GeneratorObject *generator
 
 static PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyObject *args )
 {
-    if ( generator->m_status != Generator_Status::status_Finished )
+    if ( generator->m_status == Generator_Status::status_Running )
     {
         generator->m_exception_type = PyExc_GeneratorExit;
         generator->m_exception_value = NULL;
@@ -212,7 +217,7 @@ static PyObject *Nuitka_Generator_throw( Nuitka_GeneratorObject *generator, PyOb
 
     int res = PyArg_UnpackTuple( args, "throw", 1, 3, &generator->m_exception_type, &generator->m_exception_value, &generator->m_exception_tb );
 
-    if ( res == 0 )
+    if (unlikely( res == 0 ))
     {
         generator->m_exception_type = NULL;
 

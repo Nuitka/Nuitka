@@ -43,6 +43,8 @@ from logging import warning
 
 _debug_module_finding = False
 
+_warned_about = set()
+
 def findModule( source_ref, module_name, parent_package, level, warn = True ):
     assert level < 2 or parent_package, (module_name, parent_package, level)
 
@@ -60,7 +62,18 @@ def findModule( source_ref, module_name, parent_package, level, warn = True ):
             )
         except ImportError:
             if warn and not _isWhiteListedNotExistingModule( module_name ):
-                warning( "%s: Cannot find '%s' in '%s' on level %d" % ( source_ref.getAsString(), module_name, parent_package, level ) )
+                key = module_name, parent_package, level
+
+                if key not in _warned_about:
+                    _warned_about.add( key )
+
+                    warning(
+                        "%s: Cannot find '%s' in '%s' on level %d",
+                        source_ref.getAsString(),
+                        module_name,
+                        parent_package,
+                        level
+                    )
 
             if "." in module_name:
                 module_package_name = module_name[ : module_name.rfind( "." ) ]
@@ -181,5 +194,5 @@ def _isWhiteListedNotExistingModule( module_name ):
         "__builtin__", "fcntl", "_socket", "_ssl", "pwd", "spwd", "_random", "grp",
         "select", "__main__", "_winreg", "_warnings", "_sre", "_functools", "_hashlib",
         "_collections", "_locale", "_codecs", "_weakref", "_struct", "_dummy_threading",
-        "binascii",
+        "binascii", "datetime",
     )

@@ -79,6 +79,17 @@ class PythonBuiltin
             );
         }
 
+        template<typename... P>
+        PyObject *call_keyargs( PyObject *kw, P...eles )
+        {
+            return CALL_FUNCTION(
+                this->asObject(),
+                PyObjectTemporary( MAKE_TUPLE( eles... ) ).asObject(),
+                kw
+            );
+        }
+
+
     private:
 
         PythonBuiltin( PythonBuiltin const &  ) = delete;

@@ -41,7 +41,10 @@ print "Setting its dict"
 func.my_value = "attached value"
 print "Reading its dict", func.my_value
 
-# TODO: Consider which parts of func_code should exist, or at least make a dummy object
-
 print "func_code", func.func_code, func.func_code.co_argcount
 print dir( func.func_code )
+
+def func2( arg1, arg2 = "default_arg2", arg3 = "default_arg3" ):
+   pass
+
+print "func_defaults", func2.__defaults__, func2.func_defaults

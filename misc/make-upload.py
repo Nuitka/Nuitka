@@ -34,6 +34,6 @@ import os, sys
 
 assert os.path.isfile( "setup.py" ) and open( ".git/description" ).read().strip() == "Nuitka Staging"
 
-assert 0 == os.system( "rsync -rvlpt dist/ root@nuitka.net:/var/www/releases/" )
+assert 0 == os.system( "rsync -rvlpt --exclude=deb_dist dist/ root@nuitka.net:/var/www/releases/" )
 
 assert 0 == os.system( "scp README.pdf doc/man-nuitka.html doc/man-nuitka-python.html root@nuitka.net:/var/www/doc/" )

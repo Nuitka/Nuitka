@@ -19,7 +19,9 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-__import__( "dash-module" )
 
-b = "dash-module"
-__import__( b )
+import sys
+
+print type( __builtins__ )
+sys.exit("aus")
+print "This won't happen!"

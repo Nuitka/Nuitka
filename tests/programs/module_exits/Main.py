@@ -19,7 +19,8 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-__import__( "dash-module" )
+print type(__builtins__)
 
-b = "dash-module"
-__import__( b )
+import ErrorExitingModule
+
+print "huch!"

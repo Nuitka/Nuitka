@@ -35,27 +35,15 @@
 
 #include "nuitka/exceptions.hpp"
 
-#if PYTHON_VERSION < 300
-
 extern void PRINT_ITEM_TO( PyObject *file, PyObject *object );
 
 extern void PRINT_NEW_LINE_TO( PyObject *file );
 extern void PRINT_NEW_LINE( void );
 
 extern PyObject *GET_STDOUT();
+extern PyObject *GET_STDERR();
 
 // Helper functions to debug the compiler operation.
-NUITKA_MAY_BE_UNUSED static void PRINT_REFCOUNT( PyObject *object )
-{
-   char buffer[ 1024 ];
-   sprintf( buffer, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT( object ) );
-
-   if (unlikely( PyFile_WriteString( buffer, GET_STDOUT() ) == -1 ))
-   {
-      throw _PythonException();
-   }
-}
-
-#endif
+extern void PRINT_REFCOUNT( PyObject *object );
 
 #endif

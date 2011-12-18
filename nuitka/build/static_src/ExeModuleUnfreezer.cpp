@@ -101,7 +101,7 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
     }
 
     assert( module_name );
-    assert( PyString_Check( module_name ) );
+    assert( Nuitka_String_Check( module_name ) );
 
     char *name = Nuitka_String_AsString( module_name );
 
@@ -115,6 +115,11 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
            printf( "Loading %s\n", name );
 #endif
            current->initfunc();
+
+           if ( PyErr_Occurred() )
+           {
+               return NULL;
+           }
 
            PyObject *sys_modules = PySys_GetObject( (char *)"modules" );
 
@@ -138,7 +143,7 @@ static PyMethodDef _method_def_loader_find_module
 {
     "find_module",
     (PyCFunction)_path_unfreezer_find_module,
-    METH_KEYWORDS,
+    METH_VARARGS | METH_KEYWORDS,
     NULL
 };
 
@@ -146,7 +151,7 @@ static PyMethodDef _method_def_loader_load_module
 {
     "load_module",
     (PyCFunction)_path_unfreezer_load_module,
-    METH_KEYWORDS,
+    METH_VARARGS | METH_KEYWORDS,
     NULL
 };
 

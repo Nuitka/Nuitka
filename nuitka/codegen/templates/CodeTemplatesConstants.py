@@ -62,7 +62,11 @@ void _initConstants( void )
 #endif
         assert( _sentinel_value );
 
+#if PYTHON_VERSION < 300
         _module_builtin = (PyModuleObject *)PyImport_ImportModule( "__builtin__" );
+#else
+        _module_builtin = (PyModuleObject *)PyImport_ImportModule( "builtins" );
+#endif
         assert( _module_builtin );
 
         __initConstants();

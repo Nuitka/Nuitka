@@ -39,12 +39,10 @@ if "PYTHON" not in os.environ:
 
 python_version = commands.getoutput( os.environ[ "PYTHON" ] + " --version" ).split()[1]
 
-os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--deep"
-
 print "Using concrete python", python_version
 
 for filename in sorted( os.listdir( "." ) ):
-    if not os.path.isdir( filename ):
+    if not os.path.isdir( filename ) or filename.endswith( ".build" ):
         continue
 
     path = os.path.relpath( filename )
@@ -53,26 +51,31 @@ for filename in sorted( os.listdir( "." ) ):
         active = True
 
     if active:
-        old = os.getcwd()
-        os.chdir( filename )
+        extra_flags = ""
 
-        try:
-            extra_flags = ""
+        os.environ[ "PYTHONPATH" ] = os.path.abspath( filename )
 
-            os.environ[ "PYTHONPATH" ] = os.getcwd()
+        if filename == "syntax_errors":
+            os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--deep --execute-with-pythonpath"
+        else:
+            os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--deep"
 
-            print "Consider: ", path
+        print "Consider: ", path
 
-            result = subprocess.call( "compare_with_cpython *Main.py silent %s" % ( extra_flags ), shell = True )
+        result = subprocess.call(
+            "compare_with_cpython %s/*Main.py silent %s" % (
+                filename,
+                extra_flags
+            ),
+            shell = True
+        )
 
-            if result == 2:
-                sys.stderr.write( "Interruped, with CTRL-C\n" )
-                sys.exit( 2 )
+        if result == 2:
+            sys.stderr.write( "Interruped, with CTRL-C\n" )
+            sys.exit( 2 )
 
-            if result != 0 and search_mode:
-                sys.exit( result )
+        if result != 0 and search_mode:
+            sys.exit( result )
 
-        finally:
-            os.chdir( old )
     else:
         print "Skipping", filename
