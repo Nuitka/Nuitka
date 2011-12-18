@@ -215,15 +215,20 @@ def executePASS2():
 def executePASS3():
     print "PASS 3: Compiling from compiler running from .py files to single .exe."
 
-    if os.path.exists( tmp_dir + os.path.sep + "Nuitka.exe" ):
-        os.unlink( tmp_dir + os.path.sep + "Nuitka.exe" )
+    exe_path = os.path.join( tmp_dir, "Nuitka.exe" )
 
-    if os.path.exists( tmp_dir + os.path.sep + "Nuitka.build" ):
-        shutil.rmtree( tmp_dir + os.path.sep + "Nuitka.build" )
+    if os.path.exists( exe_path ):
+        os.unlink( exe_path )
 
-    path = ".." + os.path.sep + ".." + os.path.sep + "bin" + os.path.sep + "Nuitka.py"
+    build_path = os.path.join( tmp_dir, "Nuitka.build" )
+
+    if os.path.exists( build_path ):
+        shutil.rmtree( build_path )
+
+    path = os.path.join( "..", "..", "bin", "Nuitka.py" )
 
     print "Compiling", path
+
     result = os.system(
         "Nuitka.py %s --output-dir %s --exe --deep" % (
             path,
@@ -234,14 +239,16 @@ def executePASS3():
     if result != 0:
         sys.exit( result )
 
-    shutil.rmtree( tmp_dir + os.path.sep + "Nuitka.build" )
+    shutil.rmtree( build_path )
 
     print "OK."
 
 def executePASS4():
     print "PASS 4: Compiling the compiler running from single exe"
 
-    compileAndCompareWith( tmp_dir + os.path.sep + "Nuitka.exe" )
+    exe_path = os.path.join( tmp_dir, "Nuitka.exe" )
+
+    compileAndCompareWith( exe_path )
 
     print "OK."
 
