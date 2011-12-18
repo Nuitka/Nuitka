@@ -267,7 +267,8 @@ tracing_group.add_option(
     "--show-progress",
     action  = "store_true",
     dest    = "show_progress",
-    default = False,
+    # TODO: Enable by default for interactive mode.
+    default = False and sys.stdout.isatty(),
     help    = """Provide progress information and statistics. Defaults to off."""
 )
 
@@ -391,4 +392,4 @@ def isFullCompat():
     return True
 
 def isShowProgress():
-    return options.show_progress and sys.stdout.isatty()
+    return options.show_progress
