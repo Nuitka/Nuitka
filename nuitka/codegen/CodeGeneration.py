@@ -46,7 +46,8 @@ from . import (
 from nuitka import (
     Constants,
     Tracing,
-    Options
+    Options,
+    Utils
 )
 
 def mangleAttributeName( attribute_name, node ):
@@ -780,11 +781,13 @@ def generateSliceAccessIdentifiers( sliced, lower, upper, context ):
 
     return sliced, lower, upper
 
+_slicing_available = Utils.getPythonVersion() < 300
+
 def generateSliceLookupCode( expression, context ):
     lower = expression.getLower()
     upper = expression.getUpper()
 
-    if ( lower is None or lower.isIndexable() ) and ( upper is None or upper.isIndexable() ):
+    if _slicing_available and ( lower is None or lower.isIndexable() ) and ( upper is None or upper.isIndexable() ):
         expression_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
             sliced    = expression.getLookupSource(),
             lower     = lower,
@@ -798,28 +801,49 @@ def generateSliceLookupCode( expression, context ):
             upper   = upper_identifier
         )
     else:
-        return Generator.getSliceLookupCode(
-            source  = generateExpressionCode(
-                expression = expression.getLookupSource(),
-                context    = context
-            ),
-            lower   = generateExpressionCode(
-                expression = lower,
-                allow_none = True,
-                context    = context
-            ),
-            upper   = generateExpressionCode(
-                expression = upper,
-                allow_none = True,
-                context    = context
+        if _slicing_available:
+            return Generator.getSliceLookupCode(
+                source  = generateExpressionCode(
+                    expression = expression.getLookupSource(),
+                    context    = context
+                ),
+                lower   = generateExpressionCode(
+                    expression = lower,
+                    allow_none = True,
+                    context    = context
+                ),
+                upper   = generateExpressionCode(
+                    expression = upper,
+                    allow_none = True,
+                    context    = context
+                )
             )
-        )
+        else:
+            return Generator.getSubscriptLookupCode(
+                source    = generateExpressionCode(
+                    expression = expression.getLookupSource(),
+                    context    = context
+                ),
+                subscript = Generator.getSliceObjectCode(
+                    lower = generateExpressionCode(
+                        expression = lower,
+                        allow_none = True,
+                        context    = context
+                    ),
+                    upper = generateExpressionCode(
+                        expression = upper,
+                        allow_none = True,
+                        context    = context
+                    ),
+                    step    = None
+                )
+            )
 
 def generateSliceAssignmentCode( target, assign_source, context ):
     lower = target.getLower()
     upper = target.getUpper()
 
-    if ( lower is None or lower.isIndexable() ) and ( upper is None or upper.isIndexable() ):
+    if _slicing_available and ( lower is None or lower.isIndexable() ) and ( upper is None or upper.isIndexable() ):
         expression_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
             sliced    = target.getLookupSource(),
             lower     = lower,
@@ -834,23 +858,45 @@ def generateSliceAssignmentCode( target, assign_source, context ):
             identifier = assign_source
         )
     else:
-        return Generator.getSliceAssignmentCode(
-            target     = generateExpressionCode(
-                expression = target.getLookupSource(),
-                context    = context
-            ),
-            identifier = assign_source,
-            lower   = generateExpressionCode(
-                expression = lower,
-                allow_none = True,
-                context    = context
-            ),
-            upper   = generateExpressionCode(
-                expression = upper,
-                allow_none = True,
-                context    = context
+        if _slicing_available:
+            return Generator.getSliceAssignmentCode(
+                target     = generateExpressionCode(
+                    expression = target.getLookupSource(),
+                    context    = context
+                ),
+                identifier = assign_source,
+                lower   = generateExpressionCode(
+                    expression = lower,
+                    allow_none = True,
+                    context    = context
+                ),
+                upper   = generateExpressionCode(
+                    expression = upper,
+                    allow_none = True,
+                    context    = context
+                )
             )
-        )
+        else:
+            return Generator.getSubscriptAssignmentCode(
+                subscribed = generateExpressionCode(
+                    expression = target.getLookupSource(),
+                    context    = context
+                ),
+                subscript = Generator.getSliceObjectCode(
+                    lower = generateExpressionCode(
+                        expression = lower,
+                        allow_none = True,
+                        context    = context
+                    ),
+                    upper = generateExpressionCode(
+                        expression = upper,
+                        allow_none = True,
+                        context    = context
+                    ),
+                    step    = None
+                ),
+                identifier = assign_source
+            )
 
 
 
@@ -1471,18 +1517,43 @@ def generateDelCode( targets, context ):
                 )
 
         elif target.isAssignTargetSlice():
-            target_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
-                sliced    = target.getLookupSource(),
-                lower     = target.getLower(),
-                upper     = target.getUpper(),
-                context   = context
-            )
+            lower = target.getLower()
+            upper = target.getUpper()
 
-            code += Generator.getSliceDelCode(
-                target     = target_identifier,
-                lower      = lower_identifier,
-                upper      = upper_identifier
-            )
+            if _slicing_available and ( lower is None or lower.isIndexable() ) and ( upper is None or upper.isIndexable() ):
+                target_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
+                    sliced    = target.getLookupSource(),
+                    lower     = lower,
+                    upper     = upper,
+                    context   = context
+                )
+
+                code += Generator.getSliceDelCode(
+                    target     = target_identifier,
+                    lower      = lower_identifier,
+                    upper      = upper_identifier
+                )
+            else:
+                return Generator.getSubscriptDelCode(
+                    subscribed  = generateExpressionCode(
+                        expression = target.getLookupSource(),
+                        context    = context
+                    ),
+                    subscript = Generator.getSliceObjectCode(
+                        lower = generateExpressionCode(
+                            expression = lower,
+                            allow_none = True,
+                            context    = context
+                        ),
+                        upper = generateExpressionCode(
+                            expression = upper,
+                            allow_none = True,
+                            context    = context
+                        ),
+                        step    = None
+                    ),
+                )
+
         else:
             assert False, target
 
@@ -1534,22 +1605,51 @@ def generateAssignmentInplaceCode( statement, context ):
             )
         )
     elif target.isAssignTargetSlice():
-        target_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
-            sliced    = target.getLookupSource(),
-            lower     = target.getLower(),
-            upper     = target.getUpper(),
-            context   = context
-        )
+        lower = target.getLower()
+        upper = target.getUpper()
 
-        code = Generator.getInplaceSliceAssignmentCode(
-            target     = target_identifier,
-            lower      = lower_identifier,
-            upper      = upper_identifier,
-            operator   = statement.getOperator(),
-            identifier = makeExpressionCode(
-                expression = statement.getExpression()
+        if _slicing_available and ( lower is None or lower.isIndexable() ) and ( upper is None or upper.isIndexable() ):
+
+            target_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
+                sliced    = target.getLookupSource(),
+                lower     = lower,
+                upper     = upper,
+                context   = context
             )
-        )
+
+            code = Generator.getInplaceSliceAssignmentCode(
+                target     = target_identifier,
+                lower      = lower_identifier,
+                upper      = upper_identifier,
+                operator   = statement.getOperator(),
+                identifier = makeExpressionCode(
+                    expression = statement.getExpression()
+                )
+            )
+        else:
+            return Generator.getInplaceSubscriptAssignmentCode(
+                subscribed  = generateExpressionCode(
+                    expression = target.getLookupSource(),
+                    context    = context
+                ),
+                subscript = Generator.getSliceObjectCode(
+                    lower = generateExpressionCode(
+                        expression = lower,
+                        allow_none = True,
+                        context    = context
+                    ),
+                    upper = generateExpressionCode(
+                        expression = upper,
+                        allow_none = True,
+                        context    = context
+                    ),
+                    step    = None
+                ),
+                operator   = statement.getOperator(),
+                identifier = makeExpressionCode(
+                    expression = statement.getExpression()
+                )
+            )
     else:
         assert False, ( "not supported for inplace assignment", target, target.getSourceReference() )
 
