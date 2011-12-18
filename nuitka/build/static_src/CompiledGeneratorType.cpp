@@ -217,7 +217,7 @@ static PyObject *Nuitka_Generator_throw( Nuitka_GeneratorObject *generator, PyOb
 
     int res = PyArg_UnpackTuple( args, "throw", 1, 3, &generator->m_exception_type, &generator->m_exception_value, &generator->m_exception_tb );
 
-    if ( res == 0 )
+    if (unlikely( res == 0 ))
     {
         generator->m_exception_type = NULL;
 

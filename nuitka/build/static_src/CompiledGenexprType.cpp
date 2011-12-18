@@ -171,7 +171,7 @@ static PyObject *Nuitka_Genexpr_close( Nuitka_GenexprObject *generator, PyObject
 
 static PyObject *Nuitka_Genexpr_throw( Nuitka_GenexprObject *generator, PyObject *args )
 {
-    PyObject *exception_type, *exception_value, *exception_tb;
+    PyObject *exception_type, *exception_value = NULL, *exception_tb = NULL;
 
     int res = PyArg_UnpackTuple( args, "throw", 1, 3, &exception_type, &exception_value, &exception_tb );
 
@@ -180,6 +180,37 @@ static PyObject *Nuitka_Genexpr_throw( Nuitka_GenexprObject *generator, PyObject
         return NULL;
     }
 
+    assertObject( exception_type );
+
+    if ( PyExceptionClass_Check( exception_type ) )
+    {
+        PyErr_NormalizeException( &exception_type, &exception_value, (PyObject **)&exception_tb );
+    }
+    else if ( PyExceptionInstance_Check( exception_type ) )
+    {
+        // TODO: What should be done with old value, Py_DECREF maybe?
+        exception_value = exception_type;
+        exception_type = INCREASE_REFCOUNT( PyExceptionInstance_Class( exception_type ) );
+    }
+    else
+    {
+        PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
+        return NULL;
+    }
+
+    assertObject( exception_type );
+    assertObject( exception_value );
+
+#if PYTHON_VERSION >= 300
+    if ( exception_tb == NULL )
+    {
+        exception_tb = PyException_GetTraceback( exception_value );
+    }
+#endif
+
+    assertObject( exception_tb );
+
+    _SET_CURRENT_EXCEPTION( exception_type, exception_value, exception_tb );
     PyErr_Restore( exception_type, exception_value, exception_tb );
     generator->m_status = Generator_Status::status_Finished;
 
