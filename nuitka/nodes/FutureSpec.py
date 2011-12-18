@@ -49,7 +49,7 @@ class FutureSpec:
     def clone( self ):
         result = FutureSpec()
 
-        result._future_division   = self._unicode_literals
+        result._future_division   = self._future_division
         result._unicode_literals  = self._unicode_literals
         result._absolute_import   = self._absolute_import
         result._future_print      = self._future_print
