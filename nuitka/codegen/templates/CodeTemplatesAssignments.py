@@ -54,10 +54,9 @@ template_inplace_subscript_assignment = """\
 
     PyObject *result = %(operation_identifier)s;
 
-    if ( result != value.asObject() )
-    {
-        SET_SUBSCRIPT( result, subscribed.asObject(), subscript.asObject() );
-    }
+    // Must set the subscript in any case, a subscript list object will otherwise
+    // not be updated.
+    SET_SUBSCRIPT( result, subscribed.asObject(), subscript.asObject() );
 
     Py_DECREF( result );
 }"""
