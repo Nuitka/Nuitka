@@ -1,6 +1,12 @@
-nuitka (0.3.16-1) unstable; urgency=low
+nuitka (0.3.17pre1-1) unstable; urgency=low
 
   * New upstream pre-release.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 18 Dec 2011 13:16:18 +0100
+
+nuitka (0.3.16-1) unstable; urgency=low
+
+  * New upstream release.
   * Updated debian/copyright URI to match the latest one.
   * Updated debian/copyright to DEP5 changes.
   * Added Nuitka homepage to debian/control.
