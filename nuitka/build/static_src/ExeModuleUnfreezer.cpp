@@ -116,6 +116,11 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
 #endif
            current->initfunc();
 
+           if ( PyErr_Occurred() )
+           {
+               return NULL;
+           }
+
            PyObject *sys_modules = PySys_GetObject( (char *)"modules" );
 
 #if _DEBUG_UNFREEZER
