@@ -88,7 +88,7 @@ def optimizeTree( tree ):
 
         # TODO: Split the __import__ one out.
         if tags.check( "new_code" ) or tags.check( "new_import" ) or tags.check( "new_constant" ):
-            if Options.shallFollowImports():
+            if not Options.shallMakeModule():
                 optimizations_queue.add( ModuleRecursionVisitor )
 
         if tags.check( "new_code" ) or tags.check( "new_constant" ):
@@ -160,9 +160,11 @@ def optimizeWhole( main_module ):
 
     while not finished:
         finished = True
+
         for other_module in getOtherModules():
             if other_module not in done_modules:
                 optimizeTree( other_module )
+
                 done_modules.add( other_module )
 
                 if _progress:

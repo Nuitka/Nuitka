@@ -230,7 +230,7 @@ def executePASS3():
     print "Compiling", path
 
     result = os.system(
-        "Nuitka.py %s --output-dir %s --exe --deep" % (
+        "Nuitka.py %s --output-dir %s --exe --recurse-all" % (
             path,
             tmp_dir
         )

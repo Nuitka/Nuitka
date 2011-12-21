@@ -48,9 +48,9 @@ def getVersion():
     return version_string.split()[1][1:]
 
 if is_nuitka_python:
-    usage = "usage: %prog [--deep] [--exe] [--execute] [options] main_module.py"
+    usage = "usage: %prog [--exe] [--execute] [options] main_module.py"
 else:
-    usage = "usage: %prog [--deep] [options] main_module.py"
+    usage = "usage: %prog [options] main_module.py"
 
 parser = OptionParser(
     usage   = usage,
@@ -67,23 +67,32 @@ parser.add_option(
 
 recurse_group = OptionGroup(
     parser,
-    "Cntrol how deep to recurse into imported modules"
+    "Control the recursion into imported modules with '--exe' mode"
+)
+
+
+recurse_group.add_option(
+    "--recurse-stdlib",
+    action  = "store_true",
+    dest    = "recurse_stdlib",
+    default = False,
+    help    = "Also descend into imported modules from standard library."
 )
 
 recurse_group.add_option(
-    "--deep", "--recurse",
+    "--recurse-none",
     action  = "store_true",
-    dest    = "follow_imports",
+    dest    = "recurse_none",
     default = False,
-    help    = "Descend into imported modules and compile them recursively."
+    help    = "When --recurse-none is used, do not descend into any imported modules at all, overrides all other recursion options. Default %default."
 )
 
 recurse_group.add_option(
-    "--really-deep",
+    "--recurse-all", "--recurse-on",
     action  = "store_true",
-    dest    = "follow_stdlib",
+    dest    = "recurse_all",
     default = False,
-    help    = "When --deep is used, also descend into imported modules from standard library."
+    help    = "When --recurse-all is used, attempt to descend into all imported modules. Default %default."
 )
 
 parser.add_option_group( recurse_group )
@@ -106,7 +115,7 @@ execute_group.add_option(
     action  = "store_true",
     dest    = "keep_pythonpath",
     default = False,
-    help    = """When immediately executing the created '--deep' mode binary, don't reset PYTHONPATH. When
+    help    = """When immediately executing the created binary (--execute), don't reset PYTHONPATH. When
 all modules are successfully included, you ought to not need PYTHONPATH anymore."""
 )
 
@@ -313,11 +322,11 @@ options, positional_args = parser.parse_args()
 if options.verbose:
     logging.getLogger().setLevel( logging.DEBUG )
 
-if options.follow_imports and not options.executable:
-    sys.exit( "Error, options '--deep' makes no sense without option '--exe'." )
+if options.recurse_all and not options.executable:
+    sys.exit( "Error, options '--recurse-all' makes no sense without option '--exe'." )
 
-if options.follow_stdlib and not options.follow_imports:
-    sys.exit( "Error, options '--really-deep' makes no sense without option '--deep'." )
+if options.recurse_stdlib and not options.executable:
+    sys.exit( "Error, options '--recurse-stdlib' makes no sense without option '--exe'." )
 
 def shallTraceExecution():
     return options.trace_execution
@@ -343,11 +352,14 @@ def shallHaveStatementLines():
 def shallMakeModule():
     return not options.executable
 
-def shallFollowImports():
-    return options.follow_imports
-
 def shallFollowStandardLibrary():
-    return options.follow_stdlib
+    return options.recurse_stdlib
+
+def shallFollowNoImports():
+    return options.recurse_none
+
+def shallFollowAllImports():
+    return options.recurse_all
 
 def isDebug():
     return options.debug
@@ -374,7 +386,7 @@ def shallOptimizeStringExec():
     return False
 
 def shallClearPythonPathEnvironment():
-    return shallFollowImports and not options.keep_pythonpath
+    return not options.keep_pythonpath
 
 def isShowScons():
     return options.show_scons

@@ -56,9 +56,9 @@ for filename in sorted( os.listdir( "." ) ):
         os.environ[ "PYTHONPATH" ] = os.path.abspath( filename )
 
         if filename == "syntax_errors":
-            os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--deep --execute-with-pythonpath"
+            os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--recurse-all --execute-with-pythonpath"
         else:
-            os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--deep"
+            os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--recurse-all"
 
         print "Consider: ", path
 

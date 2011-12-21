@@ -60,9 +60,6 @@ def isStandardLibraryPath( path ):
 class ModuleRecursionVisitor( OptimizationVisitorBase ):
     imported_modules = {}
 
-    def __init__( self ):
-        self.stdlib = Options.shallFollowStandardLibrary()
-
     def _recurseTo( self, module_package, module_filename, module_relpath ):
         if module_relpath not in self.imported_modules:
             info( "Recurse to import %s", module_relpath )
@@ -91,7 +88,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
             self.imported_modules[ module_relpath ] = imported_module
 
             self.signalChange(
-                "new_code",
+                "new_module",
                 imported_module.getSourceReference(),
                 "Recursed to module."
             )
@@ -101,8 +98,14 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
     def _consider( self, module_filename, module_package ):
         assert module_package is None or ( type( module_package ) is str and module_package != "" )
 
+        module_filename = os.path.normpath( module_filename )
+
         if module_filename.endswith( ".py" ) or Utils.isDir( module_filename ):
-            if self.stdlib or not isStandardLibraryPath( module_filename ):
+            module_name = Utils.basename( module_filename ).replace( ".py", "" )
+
+            decision = self._decide( module_filename, module_name, module_package )
+
+            if decision:
                 module_relpath = Utils.relpath( module_filename )
 
                 return self._recurseTo(
@@ -110,6 +113,31 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
                     module_filename = module_filename,
                     module_relpath  = module_relpath
                 )
+            elif decision is None:
+                if module_package is None:
+                    module_fullpath = module_name
+                else:
+                    module_fullpath = module_package + "." + module_name
+
+                if module_filename not in _warned_about:
+                    _warned_about.add( module_filename )
+
+                    warning(
+                        "Not recursing to '%(full_path)s' (%(filename)s), please specify --recurse-none (do not recurse at all), --recurse-all (do recurse to everything, may be too much), --recurse-ignore=%(full_path)s (ignore only it), --recurse-to=%(full_path)s (recurse to only it) to change." % {
+                            "full_path" : module_fullpath,
+                            "filename"  : module_filename
+                        }
+                    )
+
+    def _decide( self, module_filename, module_name, module_package ):
+        if Options.shallFollowNoImports():
+            return False
+        elif isStandardLibraryPath( module_filename ):
+            return Options.shallFollowStandardLibrary()
+        elif Options.shallFollowAllImports():
+            return True
+        else:
+            return None
 
 
     def _handleModule( self, module ):

@@ -61,6 +61,8 @@ allowed_tags = (
     # New constant introduced.
     "new_constant",
 
+    # New module recursed to.
+    "new_module",
 
 )
 

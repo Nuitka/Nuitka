@@ -57,17 +57,18 @@ and directly execute a script:
 
     nuitka-python --help
 
-The options are "--exe" and "--execute", so it is somewhat similar to what plain "python"
-will do. Note: In the future, the intention is to support CPython's "python" command lines
-in a compatible way, but currently it isn't so.
+These options with different defaults are "--exe" and "--execute", so it is somewhat
+similar to what plain "python" will do. Note: In the future, the intention is to support
+CPython's "python" command lines in a compatible way, but currently it isn't so.
 
 If you want to compile recursively, and not only a single file, do it like this:
 
 .. code-block:: sh
 
-    nuitka-python --deep program.py
+    nuitka-python --recurse-all program.py
 
-Note: In the future, "--deep" might become the default of "nuitka-python".
+Note: The is more fine grained control that "--recurse-all" available. Consider the output
+of "--help".
 
 Where to go next
 ~~~~~~~~~~~~~~~~
