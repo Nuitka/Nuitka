@@ -198,6 +198,7 @@ parser.add_option(
     "--output-dir",
     action  ="store",
     dest    = "output_dir",
+    metavar = "DIRECTORY",
     default = "",
     help    = """Specify where intermediate and final output files should be put. Defaults to current directory."""
 )
@@ -296,9 +297,10 @@ parser.add_option(
     "-j", "--jobs",
     action  ="store",
     dest    = "jobs",
+    metavar = "N",
     default = Utils.getCoreCount(),
     help    = """\
-Specify the allowed number of jobs. Defaults to system CPU count (%default).""",
+Specify the allowed number of parallel C++ compiler jobs. Defaults to the system CPU count.""",
 )
 
 if is_nuitka_python:
