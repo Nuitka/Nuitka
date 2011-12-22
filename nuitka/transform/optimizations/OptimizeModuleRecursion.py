@@ -123,21 +123,47 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
                     _warned_about.add( module_filename )
 
                     warning(
-                        "Not recursing to '%(full_path)s' (%(filename)s), please specify --recurse-none (do not recurse at all), --recurse-all (do recurse to everything, may be too much), --recurse-ignore=%(full_path)s (ignore only it), --recurse-to=%(full_path)s (recurse to only it) to change." % {
+                        "Not recursing to '%(full_path)s' (%(filename)s), please specify --recurse-none (do not given this warning), --recurse-all (do recurse to all warned), --recurse-not-to=%(full_path)s (ignore it), --recurse-to=%(full_path)s (recurse to it) to change." % {
                             "full_path" : module_fullpath,
                             "filename"  : module_filename
                         }
                     )
 
     def _decide( self, module_filename, module_name, module_package ):
+        no_case_modules = Options.getShallFollowInNoCase()
+
+        if module_package is None:
+            full_name = module_name
+        else:
+            full_name = module_package + "." + module_name
+
+        for no_case_module in no_case_modules:
+            if full_name == no_case_module:
+                return False
+
+            if full_name.startswith( no_case_module + "." ):
+                return False
+
+        any_case_modules = Options.getShallFollowModules()
+
+        for any_case_module in any_case_modules:
+            if full_name == any_case_module:
+                return True
+
+            if full_name.startswith( any_case_module + "." ):
+                return True
+
         if Options.shallFollowNoImports():
             return False
-        elif isStandardLibraryPath( module_filename ):
+
+        if isStandardLibraryPath( module_filename ):
             return Options.shallFollowStandardLibrary()
-        elif Options.shallFollowAllImports():
+
+        if Options.shallFollowAllImports():
             return True
-        else:
-            return None
+
+        # Means, I don't know.
+        return None
 
 
     def _handleModule( self, module ):

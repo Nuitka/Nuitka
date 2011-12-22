@@ -95,6 +95,24 @@ recurse_group.add_option(
     help    = "When --recurse-all is used, attempt to descend into all imported modules. Default %default."
 )
 
+recurse_group.add_option(
+    "--recurse-to",
+    action  = "append",
+    dest    = "recurse_modules",
+    metavar = "MODULE/PACKAGE",
+    default = [],
+    help    = "Recurse to that module, or if a package, to the whole package. Can be given multiple times. Default empty."
+)
+
+recurse_group.add_option(
+    "--recurse-not-to",
+    action  = "append",
+    dest    = "recurse_not_modules",
+    metavar = "MODULE/PACKAGE",
+    default = [],
+    help    = "Do NOT recurse to that module, or if a package, to the whole package in any case, overrides all other options. Can be given multiple times. Default empty."
+)
+
 parser.add_option_group( recurse_group )
 
 execute_group = OptionGroup(
@@ -362,6 +380,12 @@ def shallFollowNoImports():
 
 def shallFollowAllImports():
     return options.recurse_all
+
+def getShallFollowModules():
+    return tuple( options.recurse_modules )
+
+def getShallFollowInNoCase():
+    return tuple( options.recurse_not_modules )
 
 def isDebug():
     return options.debug
