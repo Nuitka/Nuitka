@@ -64,8 +64,7 @@ from nuitka import MainControl, SyntaxErrors, Options
 
 positional_args = Options.getPositionalArgs()
 
-if len( positional_args ) == 0:
-    sys.exit( "Error, need arg with python module or main program." )
+assert len( positional_args ) > 0
 
 filename = Options.getPositionalArgs()[0]
 

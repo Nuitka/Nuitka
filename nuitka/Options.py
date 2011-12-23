@@ -354,6 +354,11 @@ else:
 
 options, positional_args = parser.parse_args()
 
+if not positional_args:
+    parser.print_help()
+
+    sys.exit( "\nError, need positional argument with python module or main program." )
+
 if options.verbose:
     logging.getLogger().setLevel( logging.DEBUG )
 
