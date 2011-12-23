@@ -152,9 +152,40 @@ def makeSourceDirectory( main_module ):
 
     module_hpps = []
 
+    collision_filenames = set()
+    seen_filenames = set()
+
     for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
-        cpp_filename = Utils.joinpath( source_dir, other_module.getFullName() + ".cpp" )
-        hpp_filename = Utils.joinpath( source_dir, other_module.getFullName() + ".hpp" )
+        base_filename = Utils.joinpath( source_dir, other_module.getFullName() )
+
+        collision_filename = os.path.normcase( base_filename )
+
+        if collision_filename in seen_filenames:
+            collision_filenames.add( collision_filename )
+
+        seen_filenames.add( collision_filename )
+
+    collision_count = {}
+
+    for collision_filename in collision_filenames:
+        collision_count[ collision_filename ] = 1
+
+    for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
+        base_filename = Utils.joinpath( source_dir, other_module.getFullName() )
+
+        # TODO: Actually the case sensitivity of build dir should be detected.
+        collision_filename = os.path.normcase( base_filename )
+
+        if collision_filename in collision_filenames:
+            hash_suffix = "@%d" % collision_count[ collision_filename ]
+            collision_count[ collision_filename ] += 1
+        else:
+            hash_suffix = ""
+
+        base_filename += hash_suffix
+
+        cpp_filename = base_filename + ".cpp"
+        hpp_filename = base_filename + ".hpp"
 
         other_module_code = CodeGeneration.generateModuleCode(
             global_context = global_context,
@@ -162,7 +193,7 @@ def makeSourceDirectory( main_module ):
             module_name    = other_module.getFullName()
         )
 
-        module_hpps.append( other_module.getFullName() + ".hpp" )
+        module_hpps.append( hpp_filename )
 
         writeSourceCode(
             filename     = cpp_filename,
