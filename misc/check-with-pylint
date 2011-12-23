@@ -67,7 +67,7 @@ then
 else
     for file in `find nuitka -name \*.py -a \! -path *inline_copy*`
     do
-        if [ "$file" != "src/oset.py" -a "$file" != "src/odict.py" -a "$file" != "nuitka/SyntaxHighlighting.py" -a "$file" != "nuitka/TreeDisplay.py" ]
+        if [ "$file" != "src/oset.py" -a "$file" != "src/odict.py" -a "$file" != "nuitka/gui/SyntaxHighlighting.py" -a "$file" != "nuitka/gui/TreeDisplay.py" ]
         then
             echo $file
             pylint $OPTIONS $PYLINT_EXTRA_OPTIONS $file

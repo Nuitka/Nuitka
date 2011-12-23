@@ -298,7 +298,7 @@ def displayTreeInspector( tree ):
     dialog.setModel( model )
     dialog.model = model
 
-    import nuitka.SyntaxHighlighting as SyntaxHighlighting
+    from . import SyntaxHighlighting
 
     SyntaxHighlighting.addPythonHighlighter(
         document = dialog.textedit_source.document()
