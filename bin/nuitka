@@ -38,7 +38,7 @@ an executable or an extension module.
 
 """
 
-import sys, os
+import sys, os, shutil
 
 # LIBDIR trick start (marker for removal on platforms that don't need it)
 libdir = '@LIBDIR@'
@@ -100,6 +100,9 @@ else:
     if not result:
         sys.exit( 1 )
 
+    # Remove the source directory (now build directory too) if asked to.
+    if Options.isRemoveBuildDir():
+        shutil.rmtree( MainControl.getSourceDirectoryPath( tree ) )
 
     # Execute the module immediately if option was given.
     if Options.shallExecuteImmediately():

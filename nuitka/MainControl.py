@@ -110,12 +110,17 @@ def makeModuleSource( tree ):
 
     return source_code
 
-def makeSourceDirectory( main_module ):
+def getSourceDirectoryPath( main_module ):
     assert main_module.isModule()
 
     name = Utils.basename( main_module.getFilename() ).replace( ".py", "" )
 
-    source_dir = Options.getOutputPath( name + ".build" )
+    return Options.getOutputPath( name + ".build" )
+
+def makeSourceDirectory( main_module ):
+    assert main_module.isModule()
+
+    source_dir = getSourceDirectoryPath( main_module )
 
     if os.path.exists( source_dir ):
         for filename in sorted( os.listdir( source_dir ) ):

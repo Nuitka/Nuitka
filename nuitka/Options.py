@@ -212,14 +212,29 @@ codegen_group.add_option(
 
 parser.add_option_group( codegen_group )
 
-parser.add_option(
+outputdir_group = OptionGroup(
+    parser,
+    "Output directory choices"
+)
+
+outputdir_group.add_option(
     "--output-dir",
     action  ="store",
     dest    = "output_dir",
     metavar = "DIRECTORY",
     default = "",
-    help    = """Specify where intermediate and final output files should be put. Defaults to current directory."""
+    help    = """Specify where intermediate and final output files should be put. DIRECTORY will be populated with C++ files, object files, etc. Defaults to current directory."""
 )
+
+outputdir_group.add_option(
+    "--remove-output",
+    action  = "store_true",
+    dest    = "remove_build",
+    default = False,
+    help    = """Removes the build directory after producing the module or exe file. Default %default."""
+)
+
+parser.add_option_group( outputdir_group )
 
 parser.add_option(
     "--windows-target",
@@ -431,3 +446,6 @@ def isFullCompat():
 
 def isShowProgress():
     return options.show_progress
+
+def isRemoveBuildDir():
+    return options.remove_build
