@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 #     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
 #

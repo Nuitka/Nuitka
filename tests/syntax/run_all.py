@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 #     Kay Hayen, mailto:kayhayen@gmx.de
 #
