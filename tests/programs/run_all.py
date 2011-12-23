@@ -20,7 +20,9 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-import os, sys, commands, subprocess
+from __future__ import print_function
+
+import os, sys, subprocess, tempfile, shutil
 
 # Go its own directory, to have it easy with path knowledge.
 os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
@@ -37,9 +39,16 @@ else:
 if "PYTHON" not in os.environ:
     os.environ[ "PYTHON" ] = "python"
 
-python_version = commands.getoutput( os.environ[ "PYTHON" ] + " --version" ).split()[1]
+version_output = subprocess.check_output(
+    [ os.environ[ "PYTHON" ], "--version" ],
+    stderr = subprocess.STDOUT
+)
 
-print "Using concrete python", python_version
+python_version = version_output.split()[1]
+
+os.environ[ "PYTHONPATH" ] = os.getcwd()
+
+print("Using concrete python", python_version)
 
 for filename in sorted( os.listdir( "." ) ):
     if not os.path.isdir( filename ) or filename.endswith( ".build" ):
@@ -60,7 +69,7 @@ for filename in sorted( os.listdir( "." ) ):
         else:
             os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--recurse-all"
 
-        print "Consider: ", path
+        print( "Consider: ", path )
 
         result = subprocess.call(
             "compare_with_cpython %s/*Main.py silent %s" % (
@@ -75,7 +84,7 @@ for filename in sorted( os.listdir( "." ) ):
             sys.exit( 2 )
 
         if result != 0 and search_mode:
+            print("Error exit!", result)
             sys.exit( result )
-
     else:
-        print "Skipping", filename
+        print("Skipping", filename)

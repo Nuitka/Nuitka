@@ -30,6 +30,8 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
+from __future__ import print_function
+
 import sys, re
 
 ran_re = re.compile( r"^(Ran \d+ tests? in )\d+\.\d+s$" )
@@ -65,6 +67,6 @@ for line in sys.stdin:
     )
 
     if ran_re.match( line ):
-        print ran_re.match( line ).group(1) + " x.xxxs"
+        print(ran_re.match( line ).group(1) + " x.xxxs")
     else:
-        print line,
+        print(line, end=' ')

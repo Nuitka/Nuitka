@@ -30,6 +30,8 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
+from __future__ import print_function
+
 import os, sys, subprocess, difflib, re, tempfile
 
 filename = sys.argv[1]
@@ -40,12 +42,12 @@ exec_in_tmp = "exec_in_tmp" in sys.argv
 if "PYTHON" not in os.environ:
     os.environ[ "PYTHON" ] = "python"
 
-print "Comparing output of '%s' using '%s' ..." % ( filename, os.environ[ "PYTHON" ] )
+print("Comparing output of '%s' using '%s' ..." % ( filename, os.environ[ "PYTHON" ] ))
 
 if not silent_mode:
-    print "*******************************************************"
-    print "CPython:"
-    print "*******************************************************"
+    print("*******************************************************")
+    print("CPython:")
+    print("*******************************************************")
 
 if exec_in_tmp:
     filename = os.path.abspath( filename )
@@ -76,15 +78,15 @@ stdout_cpython, stderr_cpython = process.communicate()
 exit_cpython = process.returncode
 
 if not silent_mode:
-    print stdout_cpython,
+    print(stdout_cpython, end=' ')
 
     if stderr_cpython:
-        print stderr_cpython
+        print(stderr_cpython)
 
 if not silent_mode:
-    print "*******************************************************"
-    print "Nuitka:"
-    print "*******************************************************"
+    print("*******************************************************")
+    print("Nuitka:")
+    print("*******************************************************")
 
 
 process = subprocess.Popen(
@@ -98,10 +100,10 @@ stdout_nuitka, stderr_nuitka = process.communicate()
 exit_nuitka = process.returncode
 
 if not silent_mode:
-    print stdout_nuitka,
+    print(stdout_nuitka, end=' ')
 
     if stderr_nuitka:
-        print stderr_nuitka
+        print(stderr_nuitka)
 
 
 
@@ -121,7 +123,9 @@ todate = None
 def makeDiffable( output ):
     result = []
 
-    for line in output:
+    for line in output.split( b"\n" ):
+        line = str( line )
+
         line = instance_re.sub( r"at 0xxxxxxxxx", line )
         line = compiled_function_re.sub( r"<function", line )
         line = compiled_genexpr_re.sub( r"<generator object <\1>", line )
@@ -164,8 +168,8 @@ def makeDiffable( output ):
 
 def compareOutput( kind, out_cpython, out_nuitka ):
     diff = difflib.unified_diff(
-        makeDiffable( out_cpython.split( "\n" ) ),
-        makeDiffable( out_nuitka.split( "\n" ) ),
+        makeDiffable( out_cpython ),
+        makeDiffable( out_nuitka ),
         "%s (%s)" % ( os.environ[ "PYTHON" ], kind ),
         "%s (%s)" % ( "nuitka", kind ),
         fromdate,
@@ -177,7 +181,7 @@ def compareOutput( kind, out_cpython, out_nuitka ):
 
     if result:
         for line in result:
-            print line
+            print(line)
 
         return 1
     else:
@@ -193,7 +197,7 @@ else:
 exit_code_return = exit_cpython != exit_nuitka
 
 if exit_code_return:
-    print "Exit codes %d (CPython) != %d (Nuitka)" % ( exit_cpython, exit_nuitka )
+    print("Exit codes %d (CPython) != %d (Nuitka)" % ( exit_cpython, exit_nuitka ))
 
 exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
 
@@ -201,4 +205,4 @@ if exit_code:
     sys.exit( "Error, outputs differed." )
 
 if not silent_mode:
-    print "OK, same outputs."
+    print("OK, same outputs.")

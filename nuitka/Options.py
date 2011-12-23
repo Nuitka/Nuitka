@@ -34,7 +34,7 @@ version_string = """\
 Nuitka V0.3.17pre2
 Copyright (C) 2011 Kay Hayen."""
 
-from . import Utils, Tracing
+from . import Utils
 
 from optparse import OptionParser, OptionGroup
 

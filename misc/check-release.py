@@ -30,6 +30,8 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
+from __future__ import print_function
+
 import os, sys, tempfile, subprocess
 
 # Go its own directory, to have it easy with path knowledge.
@@ -75,7 +77,7 @@ def executeSubTest( command ):
 
     command = " ".join( parts )
 
-    print command, os.getcwd()
+    print(command, os.getcwd())
 
 
     result = subprocess.call( command, shell = True )
@@ -84,11 +86,11 @@ def executeSubTest( command ):
         sys.exit( result )
 
 def execute_tests( where, use_python, flags ):
-    print "Executing test case called %s with CPython %s and extra flags '%s'." % (
+    print("Executing test case called %s with CPython %s and extra flags '%s'." % (
         where,
         use_python,
         flags
-    )
+    ))
 
     if "win" in sys.platform:
         if use_python == "python2.6":
@@ -100,19 +102,19 @@ def execute_tests( where, use_python, flags ):
     else:
         os.environ[ "PYTHON" ] = use_python
 
-    print "Running the basic tests with options '%s' with %s:"  % ( flags, use_python )
+    print("Running the basic tests with options '%s' with %s:"  % ( flags, use_python ))
     setExtraFlags( where, "basics", flags )
     executeSubTest( "./tests/basics/run_all.py search" )
 
-    print "Running the syntax tests with options '%s' with %s:"  % ( flags, use_python )
+    print("Running the syntax tests with options '%s' with %s:"  % ( flags, use_python ))
     setExtraFlags( where, "syntax", flags )
     executeSubTest( "./tests/syntax/run_all.py search" )
 
-    print "Running the program tests with options '%s' with %s:" % ( flags, use_python )
+    print("Running the program tests with options '%s' with %s:" % ( flags, use_python ))
     setExtraFlags( where, "programs", flags )
     executeSubTest( "./tests/programs/run_all.py search" )
 
-    print "Running the CPython 2.6 tests with options '%s' with %s:" % ( flags, use_python )
+    print("Running the CPython 2.6 tests with options '%s' with %s:" % ( flags, use_python ))
 
     setExtraFlags( where, "26tests", flags )
     executeSubTest( "./tests/CPython/run_all.py search" )
@@ -123,7 +125,7 @@ def execute_tests( where, use_python, flags ):
         setExtraFlags( where, "27tests", flags )
         executeSubTest( "./tests/CPython27/run_all.py search" )
 
-        print "Running the CPython 2.7 tests with options '%s' with %s:" % ( flags, use_python )
+        print("Running the CPython 2.7 tests with options '%s' with %s:" % ( flags, use_python ))
         executeSubTest( "./tests/CPython27/run_all.py search" )
 
     del os.environ[ "NUITKA_EXTRA_OPTIONS" ]
@@ -132,7 +134,7 @@ def execute_tests( where, use_python, flags ):
 if checkExecutableCommand( "python3.2" ):
     executeSubTest( "python3.2 bin/Nuitka.py --version 2>/dev/null" )
 else:
-    print "Cannot execute Python 3.2 tests, not installed."
+    print("Cannot execute Python 3.2 tests, not installed.")
 
 execute_tests( "python2.6-debug", "python2.6", "--debug" )
 execute_tests( "python2.7-debug", "python2.7", "--debug" )
@@ -142,7 +144,7 @@ execute_tests( "python2.7-nodebug", "python2.7", "" )
 
 del os.environ[ "PYTHON" ]
 
-print "Running the reflection test in debug mode with default python:"
+print("Running the reflection test in debug mode with default python:")
 executeSubTest( "./tests/reflected/compile_itself.py search" )
 
-print "OK."
+print("OK.")
