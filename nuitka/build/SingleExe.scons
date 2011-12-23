@@ -87,6 +87,7 @@ arm_linux_target = getBoolOption( "arm_linux_target", "linux" in sys.platform an
 # necessary. We choose to provide our own implementation.
 x64_linux_target = getBoolOption( "x64_linux_target", "linux" in sys.platform and "x86_64" == os.uname()[4] and not win_target )
 
+# Unstriped mode: Do not remove debug symbols.
 unstriped_mode = getBoolOption( "unstriped_mode", False )
 
 # The MingW compiler tool should be supported if targeting windows.
