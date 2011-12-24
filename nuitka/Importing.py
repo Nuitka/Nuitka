@@ -194,5 +194,82 @@ def _isWhiteListedNotExistingModule( module_name ):
         "__builtin__", "fcntl", "_socket", "_ssl", "pwd", "spwd", "_random", "grp",
         "select", "__main__", "_winreg", "_warnings", "_sre", "_functools", "_hashlib",
         "_collections", "_locale", "_codecs", "_weakref", "_struct", "_dummy_threading",
-        "binascii", "datetime",
+        "binascii", "datetime", "_ast", "xxsubtype", "_bytesio", "cmath", "_fileio",
+
+
+        # CPython3 does these:
+        "builtins", "UserDict", "os.path",
+
+        # test_frozen.py
+        "__hello__", "__phello__", "__phello__.spam", "__phello__.foo",
+
+        # test_import.py
+        "RAnDoM", "infinite_reload", "test_trailing_slash",
+
+        # test_importhooks.py
+        "hooktestmodule", "hooktestpackage", "hooktestpackage.sub", "reloadmodule",
+        "hooktestpackage.sub.subber", "hooktestpackage.oldabs", "hooktestpackage.newrel",
+        "hooktestpackage.sub.subber.subest", "hooktestpackage.futrel", "sub",
+        "hooktestpackage.newabs",
+
+        # test_new.py
+        "Spam",
+
+        # test_pkg.py
+        "t1", "t2", "t2.sub", "t2.sub.subsub", "t3.sub.subsub", "t5", "t6", "t7",
+        "t7.sub", "t7.sub.subsub",
+
+        # test_pkgutil.py
+        "foo", "zipimport",
+
+        # test_platform.py
+        "gestalt",
+
+        # test_repr.py
+        "areallylongpackageandmodulenametotestreprtruncation.areallylongpackageandmodulenametotestreprtruncation",
+
+        # test_runpy.py
+        "test.script_helper",
+
+        # test_strftime.py
+        "java",
+
+        # test_strop.py
+        "strop",
+
+        # test_applesingle.py
+        "applesingle",
+
+        # test_compile.py
+        "__package__.module", "__mangled_mod",
+
+        # test_distutils.py
+        "distutils.tests",
+
+        # test_emails.py
+        "email.test.test_email", "email.test.test_email_renamed",
+
+        # test_imageop.py
+        "imgfile",
+
+        # test_json.py
+        "json.tests",
+
+        # test_lib2to3.py
+        "lib2to3.tests",
+
+        # test_macostools.py
+        "macostools",
+
+        # test_pkg.py
+        "t8",
+
+        # test_tk.py
+        "runtktests",
+
+        # test_traceback.py
+        "test_bug737473",
+
+        # test_zipimport_support.py
+        "test_zipped_doctest", "zip_pkg",
     )
