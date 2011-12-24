@@ -57,7 +57,7 @@ class ComplexClass:
 
 print ComplexClass, dir( ComplexClass )
 
-print ComplexClass, ComplexClass.addedin
+print ComplexClass, hasattr( ComplexClass, "addedin" ) and ComplexClass.addedin
 
 
 def function():

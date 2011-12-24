@@ -38,6 +38,7 @@ try:
 except Exception, f:
     print f, repr(f), type(f)
 
+print sys.exc_info()
 
 def raiseExceptionAndReraise():
     try:
@@ -250,3 +251,15 @@ try:
     checkMisRaise()
 except Exception, e:
     print "Without exception, raise gives:", e
+
+
+def nestedExceptions( a, b ):
+    try:
+        a / b
+    except ZeroDivisionError:
+        a / b
+
+try:
+    nestedExceptions( 1, 0 )
+except Exception, e:
+    print "Nested exception gives", e

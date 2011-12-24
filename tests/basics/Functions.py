@@ -484,7 +484,13 @@ print gen8.next()
 def doubleStarArgs( *a, **d ):
     return a, d
 
-from UserDict import UserDict
+try:
+    from UserDict import UserDict
+except ImportError:
+    print "Using Python3, making own non-dict dict"
+
+    class UserDict( dict ):
+        pass
 
 print "Function that has keyword argument matching the list star arg name",
 print doubleStarArgs( 1, **UserDict( a = 2 ) )

@@ -54,6 +54,8 @@ def someFunctionWritingLocalsContainingExec():
 
     return r, y
 
+    # Note: This exec is dead code, and still changes the behaviour of
+    # CPython, because it detects exec during parse already.
     exec ""
 
 print "Testing locals():"
