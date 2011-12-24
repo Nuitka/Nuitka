@@ -38,6 +38,8 @@ filename = sys.argv[1]
 silent_mode = "silent" in sys.argv
 ignore_stderr = "ignore_stderr" in sys.argv
 exec_in_tmp = "exec_in_tmp" in sys.argv
+expect_success = "expect_success" in sys.argv
+expect_failure = "expect_failure" in sys.argv
 
 if "PYTHON" not in os.environ:
     os.environ[ "PYTHON" ] = "python"
@@ -45,9 +47,9 @@ if "PYTHON" not in os.environ:
 print("Comparing output of '%s' using '%s' ..." % ( filename, os.environ[ "PYTHON" ] ))
 
 if not silent_mode:
-    print("*******************************************************")
-    print("CPython:")
-    print("*******************************************************")
+    print( "*******************************************************" )
+    print( "CPython:" )
+    print( "*******************************************************" )
 
 if exec_in_tmp:
     filename = os.path.abspath( filename )
@@ -78,15 +80,15 @@ stdout_cpython, stderr_cpython = process.communicate()
 exit_cpython = process.returncode
 
 if not silent_mode:
-    print(stdout_cpython, end=' ')
+    print( stdout_cpython, end=' ' )
 
     if stderr_cpython:
-        print(stderr_cpython)
+        print( stderr_cpython )
 
 if not silent_mode:
-    print("*******************************************************")
-    print("Nuitka:")
-    print("*******************************************************")
+    print( "*******************************************************" )
+    print( "Nuitka:" )
+    print( "*******************************************************" )
 
 
 process = subprocess.Popen(
@@ -100,10 +102,10 @@ stdout_nuitka, stderr_nuitka = process.communicate()
 exit_nuitka = process.returncode
 
 if not silent_mode:
-    print(stdout_nuitka, end=' ')
+    print( stdout_nuitka, end=' ' )
 
     if stderr_nuitka:
-        print(stderr_nuitka)
+        print( stderr_nuitka )
 
 
 
@@ -181,7 +183,7 @@ def compareOutput( kind, out_cpython, out_nuitka ):
 
     if result:
         for line in result:
-            print(line)
+            print( line )
 
         return 1
     else:
@@ -197,7 +199,7 @@ else:
 exit_code_return = exit_cpython != exit_nuitka
 
 if exit_code_return:
-    print("Exit codes %d (CPython) != %d (Nuitka)" % ( exit_cpython, exit_nuitka ))
+    print( "Exit codes %d (CPython) != %d (Nuitka)" % ( exit_cpython, exit_nuitka ) )
 
 exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
 
@@ -205,4 +207,10 @@ if exit_code:
     sys.exit( "Error, outputs differed." )
 
 if not silent_mode:
-    print("OK, same outputs.")
+    print( "OK, same outputs." )
+
+if expect_success and exit_cpython != 0:
+    sys.exit( "Unexpected error exit from CPython." )
+
+if expect_failure and exit_cpython == 0:
+    sys.exit( "Unexpected success exit from CPython." )

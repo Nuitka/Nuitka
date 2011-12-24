@@ -48,7 +48,7 @@ python_version = version_output.split()[1]
 
 os.environ[ "PYTHONPATH" ] = os.getcwd()
 
-print("Using concrete python", python_version)
+print( "Using concrete python", python_version )
 
 for filename in sorted( os.listdir( "." ) ):
     if not filename.endswith( ".py" ) or filename == "run_all.py":
@@ -59,10 +59,16 @@ for filename in sorted( os.listdir( "." ) ):
     if not active and start_at in ( filename, path ):
         active = True
 
-    extra_flags = ""
+    extra_flags = [ "expect_failure" ]
 
     if active:
-        result = subprocess.call( "compare_with_cpython %s silent %s" % ( path, extra_flags ), shell = True )
+        result = subprocess.call(
+            "compare_with_cpython %s silent %s" % (
+                path,
+                " ".join( extra_flags )
+            ),
+            shell = True
+        )
 
         if result == 2:
             sys.stderr.write( "Interruped, with CTRL-C\n" )

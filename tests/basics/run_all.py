@@ -48,7 +48,7 @@ python_version = version_output.split()[1]
 
 os.environ[ "PYTHONPATH" ] = os.getcwd()
 
-print("Using concrete python", python_version )
+print( "Using concrete python", python_version )
 
 for filename in sorted( os.listdir( "." ) ):
     if not filename.endswith( ".py" ) or filename == "run_all.py":
@@ -59,6 +59,8 @@ for filename in sorted( os.listdir( "." ) ):
     if not active and start_at in ( filename, path ):
         active = True
 
+    extra_flags = [ "expect_success" ]
+
     if filename == "Referencing.py":
         use_python = os.environ[ "PYTHON" ]
 
@@ -68,11 +70,9 @@ for filename in sorted( os.listdir( "." ) ):
             print("Skip reference count test, CPython debug version not found.")
             continue
 
-        extra_flags = "ignore_stderr"
+        extra_flags.append( "ignore_stderr" )
     else:
         use_python = os.environ[ "PYTHON" ]
-
-        extra_flags = ""
 
     if active:
         before = os.environ[ "PYTHON" ]
@@ -99,7 +99,7 @@ for filename in sorted( os.listdir( "." ) ):
             sys.executable,
             os.path.join( "..", "..", "bin", "compare_with_cpython" ),
             path,
-            extra_flags
+            " ".join( extra_flags )
         )
 
         result = subprocess.call(
