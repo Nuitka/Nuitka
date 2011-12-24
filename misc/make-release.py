@@ -30,9 +30,13 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-import os, sys, shutil
+import os, sys, shutil, subprocess
 
 assert os.path.isfile( "setup.py" ) and open( ".git/description" ).read().strip() == "Nuitka Staging"
+
+branch_name = subprocess.check_output( "git name-rev --name-only HEAD".split() ).strip()
+
+assert branch_name in ( b"master", b"develop" ), branch_name
 
 shutil.rmtree( "dist", ignore_errors = True )
 shutil.rmtree( "build", ignore_errors = True )
@@ -53,8 +57,6 @@ for entry in os.listdir( "." ):
         break
 else:
     assert False
-
-print "Found", entry
 
 assert 0 == os.system( "rsync -a ../../debian/ %s/debian/" % entry )
 
