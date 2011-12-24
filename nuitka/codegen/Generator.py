@@ -1380,7 +1380,7 @@ def getTryExceptHandlerCode( exception_identifier, exception_assignment, handler
 
     if exception_identifier is not None:
         exception_code.append(
-            "%s ( _exception.matches(%s) )" % (
+            "%s ( _exception.matches( %s ) )" % (
                 cond_keyword,
                 exception_identifier.getCodeTemporaryRef()
             )

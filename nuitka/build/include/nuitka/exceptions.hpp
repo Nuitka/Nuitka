@@ -158,7 +158,17 @@ public:
 
     inline bool matches( PyObject *exception ) const
     {
-        return PyErr_GivenExceptionMatches( this->exception_type, exception ) || PyErr_GivenExceptionMatches( this->exception_value, exception );;
+#if PYTHON_VERSION >= 300
+        if (unlikely( !PyExceptionClass_Check( exception ) ))
+        {
+            PyErr_Format( PyExc_TypeError, "catching classes that do not inherit from BaseException is not allowed" );
+            throw _PythonException();
+        }
+#endif
+
+        return
+            PyErr_GivenExceptionMatches( this->exception_type, exception ) ||
+            PyErr_GivenExceptionMatches( this->exception_value, exception );
     }
 
     inline void toPython()
