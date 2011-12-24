@@ -1,16 +1,11 @@
 nuitka (0.3.17pre2-1) unstable; urgency=low
 
   * New upstream pre-release.
+  * New maintainer (Closes: #648489)
   * Updated man page to use new "--recurse-*" options in examples
     over removed "--deep*" options.
 
  -- Kay Hayen <kayhayen@gmx.de>  Fri, 23 Dec 2011 08:26:18 +0100
-
-nuitka (0.3.17pre1-1) unstable; urgency=low
-
-  * New upstream pre-release.
-
- -- Kay Hayen <kayhayen@gmx.de>  Sun, 18 Dec 2011 13:16:18 +0100
 
 nuitka (0.3.16-1) unstable; urgency=low
 
