@@ -54,7 +54,7 @@ def findModule( source_ref, module_name, parent_package, level, warn = True ):
         if parent_package == "":
             parent_package = None
 
-    if not Options.shallMakeModule():
+    if not Options.shallMakeModule() and ( module_name != "" or parent_package is not None ):
         try:
             module_filename, module_package_name = _findModule(
                 module_name    = module_name,
