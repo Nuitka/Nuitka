@@ -28,6 +28,14 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Tags and set of it.
+
+Used by optimization to keep track of the current state of optimization, these tags
+trigger the execution of optimization steps, which in turn may emit these tags to execute
+other steps.
+
+"""
+
 
 allowed_tags = (
     # New code means new statements with possible variable usages that are

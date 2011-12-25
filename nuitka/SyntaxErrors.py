@@ -28,7 +28,11 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Handling of syntax errors.
 
+Format SyntaxError/IndentationError exception for output, as well as
+raise it for the given source code reference.
+"""
 
 def formatOutput( e ):
     reason, ( filename, lineno, colno, message ) = e.args
