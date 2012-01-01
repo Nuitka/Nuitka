@@ -82,8 +82,13 @@ class TagSet( set ):
         for tag in signal:
             self.add( tag )
 
-    def check( self, tag ):
-        return tag in self
+    def check( self, tags ):
+        for tag in tags.split():
+
+            if tag in self:
+                return True
+        else:
+            return False
 
     def add( self, tag ):
         assert tag in allowed_tags, tag

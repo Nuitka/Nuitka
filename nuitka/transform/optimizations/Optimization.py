@@ -80,52 +80,52 @@ def optimizeTree( tree ):
     tags.add( "new_code" )
 
     def refreshOptimizationsFromTags( optimizations_queue, tags ):
-        if tags.check( "new_code" ) or tags.check( "new_variable" ):
+        if tags.check( "new_code new_variable" ):
             optimizations_queue.update( VariableClosureLookupVisitors )
 
         if tags.check( "new_code" ):
             optimizations_queue.add( FixupNewStaticMethodVisitor )
 
         # TODO: Split the __import__ one out.
-        if tags.check( "new_code" ) or tags.check( "new_import" ) or tags.check( "new_constant" ):
+        if tags.check( "new_code new_import new_constant" ):
             if not Options.shallMakeModule():
                 optimizations_queue.add( ModuleRecursionVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "new_constant" ):
+        if tags.check( "new_code new_constant" ):
             optimizations_queue.add( OptimizeOperationVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "new_constant" ):
+        if tags.check( "new_code new_constant" ):
             optimizations_queue.add( ReplaceUnpackingVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "new_statements" ):
+        if tags.check( "new_code new_statements" ):
             optimizations_queue.add( StatementSequencesCleanupVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "new_variable" ):
+        if tags.check( "new_code new_variable" ):
             optimizations_queue.add( ModuleVariableUsageAnalysisVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "read_only_mvar" ):
+        if tags.check( "new_code read_only_mvar" ):
             optimizations_queue.add( ModuleVariableReadOnlyVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "read_only_mvar" ):
+        if tags.check( "new_code read_only_mvar" ):
             optimizations_queue.add( ReplaceBuiltinsCriticalVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "read_only_mvar" ):
+        if tags.check( "new_code read_only_mvar" ):
             optimizations_queue.add( ReplaceBuiltinsOptionalVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "read_only_mvar" ):
+        if tags.check( "new_code read_only_mvar" ):
             optimizations_queue.add( ReplaceBuiltinsExceptionsVisitor )
 
-        if tags.check( "new_builtin" ) or tags.check( "new_constant" ):
+        if tags.check( "new_builtin new_constant" ):
             optimizations_queue.add( PrecomputeBuiltinsVisitor )
 
         if tags.check( "var_usage" ):
             optimizations_queue.add( MaybeLocalVariableReductionVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "new_constant" ):
+        if tags.check( "new_code new_constant" ):
             if Options.shallOptimizeStringExec():
                 optimizations_queue.add( OptimizeExecVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "new_raise" ):
+        if tags.check( "new_code new_raise" ):
             optimizations_queue.add( OptimizeRaisesVisitor )
 
         tags.clear()
