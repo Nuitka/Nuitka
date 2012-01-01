@@ -30,8 +30,19 @@
 #
 """ The virtue of importing modules and packages.
 
-Unfortunately there is nothing in CPython that is easily accessible and gives us this
-functionality, so we implement the module search process on our own.
+The actual import of a module may already execute code that changes things. Imagine a
+module that does "os.system()", it will be done. People often connect to databases,
+and these kind of things, at import time. Not a good style, but it's being done.
+
+Therefore CPython exhibits the interfaces in an "imp" module in standard library,
+which one can use those to know ahead of time, what file import would load. For us
+unfortunately there is nothing in CPython that is easily accessible and gives us this
+functionality for packages and search paths exactly like CPython does, so we implement
+here a multi step search process that is compatible.
+
+This approach is much safer of course and there is no loss. To determine if it's from
+the standard library, one can abuse the attribute "__file__" of the "os" module like
+it's done in "isStandardLibraryPath" of this module.
 
 """
 
