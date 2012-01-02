@@ -2,6 +2,8 @@ Format: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=166
 Upstream-Name: nuitka
 Upstream-Contact: Kay Hayen <kayhayen@gmx.de>
 Source: http://nuitka.net/
+
+Files: *
 Copyright: 2012 Kay Hayen <kayhayen@gmx.de>
 License: GPL-3
  Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
