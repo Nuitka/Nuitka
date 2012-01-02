@@ -30,9 +30,12 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-import os, sys, shutil, subprocess
+import os, sys, shutil, subprocess, tarfile
 
-assert os.path.isfile( "setup.py" ) and open( ".git/description" ).read().strip() == "Nuitka Staging"
+def checkAtHome():
+    assert os.path.isfile( "setup.py" ) and open( ".git/description" ).read().strip() == "Nuitka Staging"
+
+checkAtHome()
 
 branch_name = subprocess.check_output( "git name-rev --name-only HEAD".split() ).strip()
 
@@ -48,7 +51,25 @@ os.chdir( "dist" )
 if os.path.exists( "deb_dist" ):
     shutil.rmtree( "deb_dist" )
 
-assert 0 == os.system( "py2dsc *.tar.gz" )
+for filename in os.listdir( "." ):
+    if filename.endswith( ".tar.gz" ):
+        new_name = filename[:-7] + "+dsfg.tar.gz"
+
+        # Create a +dfsg file, removing:
+        # - the benchmarks (too many sources, not useful)
+        # - the inline copy of scons
+        shutil.copy( filename, new_name )
+        assert 0 == os.system( "gunzip " + new_name )
+        assert 0 == os.system( "tar --wildcards --delete --file " + new_name[:-3] + " Nuitka*/tests/benchmarks Nuitka*/nuitka/build/inline_copy"  )
+        assert 0 == os.system( "gzip -9 -n " + new_name[:-3] )
+
+        assert 0 == os.system( "py2dsc " + new_name )
+
+        break
+else:
+    assert False
+
+
 
 os.chdir( "deb_dist" )
 
@@ -64,26 +85,15 @@ assert 0 == os.system( "rm *.dsc *.debian.tar.gz" )
 
 os.chdir( entry )
 
-# 1. Remove the inline copy of Scons. On Debian there is a dependency.
-shutil.rmtree( "nuitka/build/inline_copy", False )
-
-assert 0 == os.system( "EDITOR='true' dpkg-source --commit --include-removal . remove-inline-scons" )
-
-shutil.rmtree( "tests/benchmarks", False )
-
-assert 0 == os.system( "EDITOR='true' dpkg-source --commit --include-removal . remove-benchmarks" )
-
-for line in subprocess.check_output( "licensecheck -i=.pc -r .", shell = True ).split("\n"):
-    if ".pc" in line:
-        continue
-
+print "Checking licenses",
+for line in subprocess.check_output( "licensecheck -r .", shell = True ).split( "\n" ):
     assert "UNKNOWN" not in line, line
 
 assert 0 == os.system( "debuild" )
 
 os.chdir( "../../.." )
 
-assert os.path.isfile( "setup.py" ) and open( ".git/description" ).read().strip() == "Nuitka Staging"
+checkAtHome()
 
 assert 0 == os.system( "lintian --pedantic --fail-on-warnings dist/deb_dist/*.changes" )
 
