@@ -536,3 +536,14 @@ l = [2]
 d = { "other" : 7, "c" : 3 }
 
 print "Dual star args consuming function", posDoubleStarArgsFunction( 1,  *l, **d )
+
+import inspect, sys
+
+for value in dir():
+    main_value = getattr( sys.modules[ "__main__" ], value )
+
+    if inspect.isfunction( main_value ):
+        # TODO: Make this work as well, currently disabled, because of nested arguments not
+        # being compatible yet.
+        # print main_value, main_value.func_code.co_varnames, inspect.getargspec( main_value )
+        pass
