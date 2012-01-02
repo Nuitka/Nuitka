@@ -1,14 +1,18 @@
-nuitka (0.3.17~pre2+dfsg-1) unstable; urgency=low
+nuitka (0.3.17~pre3+dfsg-1) unstable; urgency=low
 
   * New upstream pre-release.
   * New maintainer (Closes: #648489)
   * Updated man page to use new "--recurse-*" options in examples
     over removed "--deep*" options.
   * Completed copyright file according to "licensecheck" findings
-  * Use a "dfsg" file as input with inline copy of Scons already
-    removed instead of doing it as a patch.
+    and updated files accordingly.
+  * Use a "dfsg" file as orig source with inline copy of Scons
+    already removed instead of doing it as a patch.
+  * Removed the benchmark tests, not useful.
+  * Added syntax tests, these were not included so far by mistake.
+  * Run the test suite at package build time.
 
- -- Kay Hayen <kayhayen@gmx.de>  Fri, 23 Dec 2011 08:26:18 +0100
+ -- Kay Hayen <kayhayen@gmx.de>  Mon, 02 Jan 2012 16:13:23 +0100
 
 nuitka (0.3.16-1) unstable; urgency=low
 

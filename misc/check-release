@@ -145,10 +145,18 @@ if checkExecutableCommand( "python3.2" ):
 else:
     print( "Cannot execute Python 3.2 tests, not installed." )
 
-execute_tests( "python2.6-debug", "python2.6", "--debug" )
+if checkExecutableCommand( "python2.6" ):
+    execute_tests( "python2.6-debug", "python2.6", "--debug" )
+else:
+    print( "Cannot execute tests with python2.6, not installed." )
+
 execute_tests( "python2.7-debug", "python2.7", "--debug" )
 
-execute_tests( "python2.6-nodebug", "python2.6", "" )
+if checkExecutableCommand( "python2.6" ):
+    execute_tests( "python2.6-nodebug", "python2.6", "" )
+else:
+    print( "Cannot execute tests with python2.6, not installed." )
+
 execute_tests( "python2.7-nodebug", "python2.7", "" )
 
 del os.environ[ "PYTHON" ]
