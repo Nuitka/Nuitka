@@ -1,4 +1,4 @@
-nuitka (0.3.17~pre3+dfsg-1) unstable; urgency=low
+nuitka (0.3.17~pre3+dfsg-2) unstable; urgency=low
 
   * New upstream pre-release.
   * New maintainer (Closes: #648489)
@@ -11,6 +11,7 @@ nuitka (0.3.17~pre3+dfsg-1) unstable; urgency=low
   * Removed the benchmark tests, not useful.
   * Added syntax tests, these were not included so far by mistake.
   * Run the test suite at package build time.
+  * Added run time dependencies also as build time dependencies.
 
  -- Kay Hayen <kayhayen@gmx.de>  Mon, 02 Jan 2012 16:13:23 +0100
 
