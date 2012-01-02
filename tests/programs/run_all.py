@@ -46,7 +46,7 @@ python_version = version_output.split()[1]
 
 os.environ[ "PYTHONPATH" ] = os.getcwd()
 
-print("Using concrete python", python_version)
+print( "Using concrete python", python_version )
 
 for filename in sorted( os.listdir( "." ) ):
     if not os.path.isdir( filename ) or filename.endswith( ".build" ):
@@ -58,7 +58,10 @@ for filename in sorted( os.listdir( "." ) ):
         active = True
 
     if active:
-        extra_flags = ""
+        if filename != "module_exits":
+            extra_flags = "expect_success"
+        else:
+            extra_flags = "expect_failure"
 
         os.environ[ "PYTHONPATH" ] = os.path.abspath( filename )
 
@@ -67,7 +70,8 @@ for filename in sorted( os.listdir( "." ) ):
         else:
             os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--recurse-all"
 
-        print( "Consider: ", path )
+        print( "Consider output of recursively compiled program:", path )
+        sys.stdout.flush()
 
         result = subprocess.call(
             "compare_with_cpython %s/*Main.py silent %s" % (
@@ -82,7 +86,7 @@ for filename in sorted( os.listdir( "." ) ):
             sys.exit( 2 )
 
         if result != 0 and search_mode:
-            print("Error exit!", result)
+            print( "Error exit!", result )
             sys.exit( result )
     else:
-        print("Skipping", filename)
+        print( "Skipping", filename )

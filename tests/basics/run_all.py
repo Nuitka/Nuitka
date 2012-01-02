@@ -65,7 +65,7 @@ for filename in sorted( os.listdir( "." ) ):
         if os.path.exists( "/usr/bin/" + use_python + "-dbg" ):
             use_python += "-dbg"
         else:
-            print("Skip reference count test, CPython debug version not found.")
+            print( "Skip reference count test, CPython debug version not found." )
             continue
 
         extra_flags.append( "ignore_stderr" )
@@ -112,7 +112,7 @@ for filename in sorted( os.listdir( "." ) ):
             sys.exit( 2 )
 
         if result != 0 and search_mode:
-            print("Error exit!", result)
+            print( "Error exit!", result )
             sys.exit( result )
     else:
-        print("Skipping", filename)
+        print( "Skipping", filename )
