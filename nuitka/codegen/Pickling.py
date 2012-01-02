@@ -67,7 +67,11 @@ def getStreamedConstant( constant_value, constant_type ):
         raise
 
     # Check that the constant is restored correctly.
-    restored = cpickle.loads( saved )
+    try:
+        restored = cpickle.loads( saved )
+    except:
+        warning( "Problem with persisting constant '%r'." % constant_value )
+        raise
 
     assert Constants.compareConstants( restored, constant_value ), ( constant_value, "!=", restored, "types:", type( constant_value ), type( restored ) )
 
