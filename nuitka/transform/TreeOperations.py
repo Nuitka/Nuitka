@@ -70,13 +70,19 @@ def _visitScope( tree, visitor ):
 
         _visitScope( visitable, visitor )
 
+    visitor.leaveNode( tree )
+
 def visitScope( tree, visitor ):
+    visitor.enterScope( tree )
+
     try:
         _visitScope( tree, visitor )
     except ExitVisit:
         pass
     except RestartVisit:
         visitScope( tree, visitor )
+
+    visitor.leaveScope( tree )
 
 
 def visitKinds( tree, kinds, visitor ):
@@ -92,3 +98,21 @@ def visitScopes( tree, visitor ):
             visitScope( node, visitor )
 
     _visitTree( tree, visitEverything )
+
+class ScopeVisitorNoopMixin:
+    def enterScope( self, tree ):
+        """ To be optionally overloaded for per-scope entry tasks. """
+        pass
+
+    def leaveScope( self, tree ):
+        """ To be optionally overloaded for per-scope exit tasks. """
+        pass
+
+    # TODO: Rename this one day, the functor approach makes
+    def __call__( self, node ):
+        """ To be optionally overloaded for operation before the node children were done. """
+        pass
+
+    def leaveNode( self, node ):
+        """ To be optionally overloaded for operation after the node children were done. """
+        pass

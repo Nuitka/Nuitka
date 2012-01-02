@@ -28,41 +28,8 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Finalize the closure.
 
-If a taker wants a variable, make sure that the closure taker in between all do forward it
-for this use or else it will not be available. We do this late so it is easier to remove
-closure variables and keep track of references, by not having it spoiled with these
-transitive only references.
+from nuitka.transform import TreeOperations
 
-"""
-
-from .FinalizeBase import FinalizationVisitorScopedBase
-
-class FinalizeClosureTaking( FinalizationVisitorScopedBase ):
-    def __call__( self, node ):
-        assert node.isClosureVariableTaker()
-
-        # print node, node.provider
-
-        for variable in node.getClosureVariables():
-            referenced = variable.getReferenced()
-            referenced_owner = referenced.getOwner()
-
-            assert not referenced.isModuleVariable()
-
-            current = node.getParent()
-
-            # print referenced
-
-            while current is not referenced_owner:
-                if current.isClosureVariableTaker():
-                    for current_variable in current.getClosureVariables():
-                        if current_variable.getReferenced() is referenced:
-                            break
-                    else:
-                        # print "ADD", current, referenced
-                        current.addClosureVariable( referenced )
-
-
-                current = current.getParent()
+class FinalizationVisitorScopedBase( TreeOperations.ScopeVisitorNoopMixin ):
+    visit_type = "scopes"

@@ -132,6 +132,9 @@ class OptimizationDispatchingVisitorBase( OptimizationVisitorBase ):
         # Abstract method, pylint: disable=R0201,W0613
         assert False
 
+class OptimizationVisitorScopedBase( OptimizationVisitorBase, TreeOperations.ScopeVisitorNoopMixin ):
+    visit_type = "scopes"
+
 
 def areConstants( expressions ):
     """ Check if all the expressions are in fact constants.

@@ -34,7 +34,7 @@ Run away, don't read it, quick. Heavily underdocumented rules are implemented he
 
 """
 
-from .OptimizeBase import OptimizationVisitorBase, TreeOperations
+from .OptimizeBase import OptimizationVisitorScopedBase, OptimizationVisitorBase, TreeOperations
 
 from nuitka.nodes.UsageCheck import getVariableUsages
 from nuitka.nodes import Nodes
@@ -72,15 +72,13 @@ def _globalizeScope( module, variable_names, exec_inline_node ):
     )
 
 
-class VariableClosureLookupVisitorPhase1( OptimizationVisitorBase ):
+class VariableClosureLookupVisitorPhase1( OptimizationVisitorScopedBase ):
     """ Variable closure phase 1: Find global statements and follow them.
 
         Global statements outside an inlined exec statement need to be treated differently
         than inside. They affect the upper level at least, or potentially all levels below
         the exec.
     """
-
-    visit_type = "scopes"
 
     def __call__( self, node ):
         if node.isStatementDeclareGlobal():
@@ -112,7 +110,7 @@ class VariableClosureLookupVisitorPhase1( OptimizationVisitorBase ):
             )
 
 
-class VariableClosureLookupVisitorPhase2( OptimizationVisitorBase ):
+class VariableClosureLookupVisitorPhase2( OptimizationVisitorScopedBase ):
     """ Variable closure phase 2: Find assignments and early closure references.
 
         In class context, a reference to a variable must be obeyed immediately, so
@@ -120,10 +118,7 @@ class VariableClosureLookupVisitorPhase2( OptimizationVisitorBase ):
         a new local "variable" to override it from there on. For the not early closure
         case of a function, this will not be done and only assigments shall add local
         variables, and references be ignored until phase 3.
-
     """
-
-    visit_type = "scopes"
 
     def __call__( self, node ):
         if node.isAssignTargetVariable():
@@ -149,9 +144,8 @@ class VariableClosureLookupVisitorPhase2( OptimizationVisitorBase ):
                             )
                         )
 
-class VariableClosureLookupVisitorPhase3( OptimizationVisitorBase ):
-    visit_type = "scopes"
 
+class VariableClosureLookupVisitorPhase3( OptimizationVisitorScopedBase ):
     def __call__( self, node ):
         if node.isExpressionVariableRef() and node.getVariable() is None:
             provider = node.getParentVariableProvider()
@@ -258,8 +252,7 @@ class MaybeLocalVariableReductionVisitor( OptimizationVisitorBase ):
         # print old_variable, "->", new_variable
 
 
-
-class ModuleVariableWriteCheck:
+class ModuleVariableWriteCheck( TreeOperations.ScopeVisitorNoopMixin ):
     def __init__( self, variable_name ):
         self.variable_name = variable_name
         self.result = False
@@ -277,7 +270,6 @@ class ModuleVariableWriteCheck:
         return self.result
 
 
-
 def doesWriteModuleVariable( node, variable_name ):
     visitor = ModuleVariableWriteCheck(
         variable_name = variable_name
@@ -291,6 +283,7 @@ def doesWriteModuleVariable( node, variable_name ):
     )
 
     return visitor.getResult()
+
 
 class ModuleVariableVisitorBase( OptimizationVisitorBase ):
     def __call__( self, node ):

@@ -31,7 +31,7 @@
 
 from nuitka.transform import TreeOperations
 
-class VariableSearch:
+class VariableSearch( TreeOperations.ScopeVisitorNoopMixin ):
     def __init__( self, search_for ):
         self.search_for = search_for
         self.found = []
