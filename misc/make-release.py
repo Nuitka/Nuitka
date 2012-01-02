@@ -69,6 +69,16 @@ shutil.rmtree( "nuitka/build/inline_copy", False )
 
 assert 0 == os.system( "EDITOR='true' dpkg-source --commit --include-removal . remove-inline-scons" )
 
+shutil.rmtree( "tests/benchmarks", False )
+
+assert 0 == os.system( "EDITOR='true' dpkg-source --commit --include-removal . remove-benchmarks" )
+
+for line in subprocess.check_output( "licensecheck -i=.pc -r .", shell = True ).split("\n"):
+    if ".pc" in line:
+        continue
+
+    assert "UNKNOWN" not in line, line
+
 assert 0 == os.system( "debuild" )
 
 os.chdir( "../../.." )
