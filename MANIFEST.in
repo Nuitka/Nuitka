@@ -14,8 +14,9 @@ include misc/check-with-pylint
 recursive-include lib *.py
 
 # Core tests are included along with Nuitka itself.
-recursive-include tests/basics *.py run_all.sh
-recursive-include tests/programs *.py run_all.sh
-recursive-include tests/benchmarks *.py LICENSE README
-
+recursive-include tests/basics *.py
+recursive-include tests/programs *.py
 recursive-include tests/reflected *.py
+
+# Bnechmarks are included too, but will be removed for Debian.
+recursive-include tests/benchmarks *.py LICENSE README
