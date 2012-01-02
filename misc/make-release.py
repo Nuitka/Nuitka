@@ -65,6 +65,11 @@ for filename in os.listdir( "." ):
 
         assert 0 == os.system( "py2dsc " + new_name )
 
+        before_deb_name = filename[:-7].lower().replace( "-", "_" )
+        after_deb_name = before_deb_name.replace( "pre", "~pre" )
+
+        assert 0 == os.system( "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+dfsg.orig.tar.gz'" % ( before_deb_name, after_deb_name ) )
+
         break
 else:
     assert False
