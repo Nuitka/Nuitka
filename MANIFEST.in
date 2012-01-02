@@ -10,6 +10,7 @@ include bin/compare_with_cpython
 include misc/*.sh
 include misc/*.bat
 include misc/check-with-pylint
+include misc/check-release
 
 recursive-include lib *.py
 
