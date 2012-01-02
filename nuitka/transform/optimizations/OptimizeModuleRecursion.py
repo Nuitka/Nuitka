@@ -123,7 +123,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
                     _warned_about.add( module_filename )
 
                     warning(
-                        "Not recursing to '%(full_path)s' (%(filename)s), please specify --recurse-none (do not given this warning), --recurse-all (do recurse to all warned), --recurse-not-to=%(full_path)s (ignore it), --recurse-to=%(full_path)s (recurse to it) to change." % {
+                        "Not recursing to '%(full_path)s' (%(filename)s), please specify --recurse-none (do not warn), --recurse-all (recurse to all), --recurse-not-to=%(full_path)s (ignore it), --recurse-to=%(full_path)s (recurse to it) to change." % {
                             "full_path" : module_fullpath,
                             "filename"  : module_filename
                         }
