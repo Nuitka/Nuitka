@@ -119,3 +119,5 @@ for filename in os.listdir( "dist" ):
         assert 0 == os.system( "gpg --local-user 0BCF7396 --detach-sign dist/" + filename )
 
 shutil.rmtree( "build", ignore_errors = True )
+
+print( "Finished." )
