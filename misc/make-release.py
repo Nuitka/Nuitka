@@ -90,9 +90,9 @@ assert 0 == os.system( "rm *.dsc *.debian.tar.gz" )
 
 os.chdir( entry )
 
-print "Checking licenses",
-for line in subprocess.check_output( "licensecheck -r .", shell = True ).split( "\n" ):
-    assert "UNKNOWN" not in line, line
+print( "Checking licenses... " )
+for line in subprocess.check_output( "licensecheck -r .", shell = True ).strip().split( b"\n" ):
+    assert b"UNKNOWN" not in line, line
 
 assert 0 == os.system( "debuild" )
 
