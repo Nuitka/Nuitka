@@ -132,7 +132,7 @@ def execute_tests( where, use_python, flags ):
 
 
 if checkExecutableCommand( "python3.2" ):
-    executeSubTest( "python3.2 bin/Nuitka.py --version 2>/dev/null" )
+    executeSubTest( "python3.2 bin/nuitka --version 2>/dev/null" )
 else:
     print("Cannot execute Python 3.2 tests, not installed.")
 
