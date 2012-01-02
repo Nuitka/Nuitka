@@ -2,9 +2,9 @@ Format: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=166
 Upstream-Name: nuitka
 Upstream-Contact: Kay Hayen <kayhayen@gmx.de>
 Source: http://nuitka.net/
-Copyright: 2011 Kay Hayen <kayhayen@gmx.de>
+Copyright: 2012 Kay Hayen <kayhayen@gmx.de>
 License: GPL-3
- Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+ Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
  .
  Part of "Nuitka", an optimizing Python compiler that is compatible and
  integrates with CPython, but also works on its own.
@@ -15,9 +15,9 @@ License: GPL-3
  this. Obviously it won't affect code that comes to him indirectly or
  code you don't submit to him.
  .
- This is to reserve my ability to re-license the code at any time, e.g.
- the PSF. With this version of Nuitka, using it for Closed Source will
- not be allowed.
+ This is to reserve my ability to re-license the code at a later time to
+ the PSF. With this version of Nuitka, using it for a Closed Source and
+ distributing the binary only is not allowed.
  .
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -36,7 +36,93 @@ License: GPL-3
  On Debian GNU/Linux systems, the complete text of the GNU General
  Public License can be found in `/usr/share/common-licenses/GPL-3'.
 
+Files: tests/basics/* tests/programs/* tests/reflected/*
+Copyright: 2012 Kay Hayen <kayhayen@gmx.de>
+License: public-domain
+ Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+ .
+ Python test originally created or extracted from other peoples work. The
+ parts and resulting tests are too small to be protected and therefore
+ is in the public domain.
+ .
+ If you submit Kay Hayen patches to this in either form, you automatically
+ grant him a copyright assignment to the code, or in the alternative a BSD
+ license to the code, should your jurisdiction prevent this. Obviously it
+ won't affect code that comes to him indirectly or code you don't submit to
+ him.
+ .
+ This is to reserve my ability to re-license the official code at any time,
+ to put it into public domain or under PSF.
+ .
+ Please leave the whole of this copyright notice intact.
+
+Files: nuitka/odict.py
+Copyright: 2008 by Armin Ronacher and PEP 273 authors
+License: BSD
+ :copyright: (c) 2008 by Armin Ronacher and PEP 273 authors.
+ :license: modified BSD license.
+
+Files: nuitka/oset.py
+Copyright: 2009 Raymond Hettinger
+License: MIT
+ Permission is hereby granted, free of charge, to any person obtaining
+ a copy of this software and associated documentation files (the
+ "Software"), to deal in the Software without restriction, including
+ without limitation the rights to use, copy, modify, merge, publish,
+ distribute, sublicense, and/or sell copies of the Software, and to
+ permit persons to whom the Software is furnished to do so, subject to
+ the following conditions:
+ .
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+
 Files: nuitka/build/static_src/arm_ucontext_src/*
 Copyright: Russ Cox, Massachusetts Institute of Technology
 License: MIT
- Unspecified MIT style license contained in the files.
+ This software was developed as part of a project at MIT.
+ .
+ Copyright (c) 2005-2007 Russ Cox,
+                    Massachusetts Institute of Technology
+ .
+ Permission is hereby granted, free of charge, to any person obtaining
+ a copy of this software and associated documentation files (the
+ "Software"), to deal in the Software without restriction, including
+ without limitation the rights to use, copy, modify, merge, publish,
+ distribute, sublicense, and/or sell copies of the Software, and to
+ permit persons to whom the Software is furnished to do so, subject to
+ the following conditions:
+ .
+ The above copyright notice and this permission notice shall be
+ included in all copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ .
+ ===
+ .
+ Contains parts of an earlier library that has:
+ .
+  * The authors of this software are Rob Pike, Sape Mullender, and Russ Cox
+  *       Copyright (c) 2003 by Lucent Technologies.
+  * Permission to use, copy, modify, and distribute this software for any
+  * purpose without fee is hereby granted, provided that this entire notice
+  * is included in all copies of any software which is or includes a copy
+  * or modification of this software and in all copies of the supporting
+  * documentation for such software.
+  * THIS SOFTWARE IS BEING PROVIDED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
+  * WARRANTY.  IN PARTICULAR, NEITHER THE AUTHORS NOR LUCENT TECHNOLOGIES MAKE ANY
+  * REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
+  * OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.

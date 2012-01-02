@@ -1,6 +1,6 @@
 @echo off
 rem
-rem     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+rem     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 rem
 rem     Part of "Nuitka", an optimizing Python compiler that is compatible and
 rem     integrates with CPython, but also works on its own.
@@ -11,9 +11,9 @@ rem     alternative a BSD license to the code, should your jurisdiction prevent
 rem     this. Obviously it won't affect code that comes to him indirectly or
 rem     code you don't submit to him.
 rem
-rem     This is to reserve my ability to re-license the code at any time, e.g.
-rem     the PSF. With this version of Nuitka, using it for Closed Source will
-rem     not be allowed.
+rem     This is to reserve my ability to re-license the code at a later time to
+rem     the PSF. With this version of Nuitka, using it for a Closed Source and
+rem     distributing the binary only is not allowed.
 rem
 rem     This program is free software: you can redistribute it and/or modify
 rem     it under the terms of the GNU General Public License as published by

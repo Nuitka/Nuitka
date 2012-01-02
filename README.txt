@@ -547,7 +547,7 @@ windows installation at all.
 
 .. footer::
 
-        © Kay Hayen, 2011 | Page ###Page### of ###Total### | Section ###Section###
+        © Kay Hayen, 2012 | Page ###Page### of ###Total### | Section ###Section###
 
 Updates for this Manual
 =======================

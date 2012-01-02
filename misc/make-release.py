@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -11,9 +11,9 @@
 #     this. Obviously it won't affect code that comes to him indirectly or
 #     code you don't submit to him.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     This is to reserve my ability to re-license the code at a later time to
+#     the PSF. With this version of Nuitka, using it for a Closed Source and
+#     distributing the binary only is not allowed.
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
