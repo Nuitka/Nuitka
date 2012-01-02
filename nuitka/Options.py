@@ -402,10 +402,10 @@ def shallFollowAllImports():
     return options.recurse_all
 
 def getShallFollowModules():
-    return tuple( options.recurse_modules )
+    return sum( [ x.split( "," ) for x in options.recurse_modules ], [] )
 
 def getShallFollowInNoCase():
-    return tuple( options.recurse_not_modules )
+    return sum( [ x.split( "," ) for x in options.recurse_not_modules ], [] )
 
 def isDebug():
     return options.debug
