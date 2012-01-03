@@ -34,7 +34,12 @@ Run away, don't read it, quick. Heavily underdocumented rules are implemented he
 
 """
 
-from .OptimizeBase import OptimizationVisitorScopedBase, OptimizationVisitorBase, TreeOperations
+from .OptimizeBase import (
+    OptimizationVisitorScopedBase,
+    OptimizationVisitorBase,
+    TreeOperations,
+    makeConstantReplacementNode
+)
 
 from nuitka.nodes.UsageCheck import getVariableUsages
 from nuitka.nodes import Nodes
@@ -354,7 +359,7 @@ class ModuleVariableReadOnlyVisitor( ModuleVariableVisitorBase ):
 
             if variable_name == "__name__":
                 def makeNode( node ):
-                    return Nodes.makeConstantReplacementNode(
+                    return makeConstantReplacementNode(
                         constant = variable.getOwner().getName(),
                         node     = node
                     )

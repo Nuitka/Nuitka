@@ -32,7 +32,11 @@
 
 """
 
-from .OptimizeBase import OptimizationVisitorBase, areConstants
+from .OptimizeBase import (
+    OptimizationVisitorBase,
+    areConstants,
+    makeConstantReplacementNode
+)
 
 from nuitka.nodes import Nodes
 
@@ -156,7 +160,7 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
             for pair in pairs:
                 constant_value[ pair.getKey().getConstant() ] = pair.getValue().getConstant()
 
-            new_node = Nodes.makeConstantReplacementNode(
+            new_node = makeConstantReplacementNode(
                 constant = constant_value,
                 node     = node
             )
@@ -235,7 +239,7 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
 
                         for constant in star_list_arg.getConstant():
                             constant_nodes.append(
-                                Nodes.makeConstantReplacementNode(
+                                makeConstantReplacementNode(
                                     constant = constant,
                                     node     = star_list_arg
                                 )

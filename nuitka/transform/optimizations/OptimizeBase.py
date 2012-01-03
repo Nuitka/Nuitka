@@ -39,6 +39,7 @@ Provides a class that all optimization visitors should inherit from.
 from .. import TreeOperations
 
 from nuitka.nodes import Nodes
+from nuitka.nodes.Nodes import makeConstantReplacementNode
 
 # pylint: disable=W0611
 # These are here for easier import by the optimization steps.
@@ -102,7 +103,7 @@ class OptimizationVisitorBase:
                 description + " was predicted to raise an exception."
             )
         else:
-            new_node =  Nodes.makeConstantReplacementNode(
+            new_node = makeConstantReplacementNode(
                 constant = result,
                 node     = node
             )
@@ -158,7 +159,7 @@ def makeRaiseExceptionReplacementStatement( statement, exception_type, exception
             variable_name = exception_type,
             source_ref    = source_ref
         ),
-        exception_value = Nodes.makeConstantReplacementNode(
+        exception_value = makeConstantReplacementNode(
             constant = exception_value,
             node     = statement
         ),
@@ -178,7 +179,7 @@ def makeRaiseExceptionReplacementExpression( expression, exception_type, excepti
             variable_name = exception_type,
             source_ref    = source_ref
         ),
-        exception_value = Nodes.makeConstantReplacementNode(
+        exception_value = makeConstantReplacementNode(
             constant = exception_value,
             node     = expression
         ),

@@ -112,7 +112,7 @@ for filename in sorted( os.listdir( "." ) ):
             sys.exit( 2 )
 
         if result != 0 and search_mode:
-            print( "Error exit!", result )
+            print("Error exit!", result)
             sys.exit( result )
     else:
-        print( "Skipping", filename )
+        print("Skipping", filename)

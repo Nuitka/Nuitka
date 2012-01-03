@@ -1039,7 +1039,7 @@ class CPythonAssignTargetSubscript( CPythonChildrenHaving, CPythonNodeBase ):
             self,
             values = {
                 "expression" : expression,
-                "subscript" : subscript
+                "subscript"  : subscript
             }
         )
 
@@ -1542,7 +1542,7 @@ class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNodeBase ):
            }
         )
 
-        assert self.getChild( "called" ) == called_expression
+        assert self.getChild( "called" ) is called_expression
 
     getCalledExpression = CPythonChildrenHaving.childGetter( "called" )
     getPositionalArguments = CPythonChildrenHaving.childGetter( "positional_args" )

@@ -35,7 +35,8 @@
 from .OptimizeBase import (
     OptimizationDispatchingVisitorBase,
     OptimizationVisitorBase,
-    makeRaiseExceptionReplacementExpressionFromInstance
+    makeRaiseExceptionReplacementExpressionFromInstance,
+    makeConstantReplacementNode
 )
 
 from nuitka import Importing
@@ -343,7 +344,7 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
                     called_expression = Nodes.CPythonExpressionAttributeLookup(
                         expression     = Nodes.CPythonExpressionBuiltinOpen(
                             filename   = filename,
-                            mode       = Nodes.makeConstantReplacementNode(
+                            mode       = makeConstantReplacementNode(
                                 constant = "rU",
                                 node     = node
                             ),
@@ -717,7 +718,7 @@ class ReplaceBuiltinsExceptionsVisitor( OptimizationVisitorBase ):
 
                     assert node.parent is new_node.parent
                 elif variable_name in _quick_names and _isReadOnlyModuleVariable( variable ):
-                    new_node = Nodes.makeConstantReplacementNode(
+                    new_node = makeConstantReplacementNode(
                         node     = node,
                         constant = _quick_names[ variable_name ]
                     )

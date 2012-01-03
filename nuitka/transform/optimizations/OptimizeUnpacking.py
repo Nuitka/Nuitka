@@ -30,7 +30,11 @@
 #
 """ Replace useless unpacking with multiple assignments where possible."""
 
-from .OptimizeBase import OptimizationVisitorBase, makeRaiseExceptionReplacementStatement
+from .OptimizeBase import (
+    OptimizationVisitorBase,
+    makeRaiseExceptionReplacementStatement,
+    makeConstantReplacementNode
+)
 
 from nuitka.nodes import Nodes
 
@@ -65,7 +69,7 @@ class ReplaceUnpackingVisitor( OptimizationVisitorBase ):
                                 statements.append(
                                     Nodes.CPythonStatementAssignment(
                                         targets    = ( element, ),
-                                        expression = Nodes.makeConstantReplacementNode(
+                                        expression = makeConstantReplacementNode(
                                             constant = value,
                                             node     = node
                                         ),
