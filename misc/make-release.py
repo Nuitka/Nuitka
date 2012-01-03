@@ -48,18 +48,25 @@ assert 0 == os.system( "python setup.py sdist --formats=bztar,gztar,zip" )
 
 os.chdir( "dist" )
 
+# Clean the stage for the debian package. The name "deb_dist" is what "py2dsc" uses for
+# its output later on.
+
 if os.path.exists( "deb_dist" ):
     shutil.rmtree( "deb_dist" )
+
+# Provide a re-packed tar.gz for the Debian package as input.
+
+# Create it as a "+ds" file, removing:
+# - the benchmarks (too many sources, not useful to end users, potential license
+#   issues)
+# - the inline copy of scons (not wanted for Debian)
+
+# Then run "py2dsc" on it.
 
 for filename in os.listdir( "." ):
     if filename.endswith( ".tar.gz" ):
         new_name = filename[:-7] + "+ds.tar.gz"
 
-        # Create a +ds file, removing:
-
-        # - the benchmarks (too many sources, not useful to end users, potential license
-        #   issues)
-        # - the inline copy of scons (not wanted for Debian)
         shutil.copy( filename, new_name )
         assert 0 == os.system( "gunzip " + new_name )
         assert 0 == os.system( "tar --wildcards --delete --file " + new_name[:-3] + " Nuitka*/tests/benchmarks Nuitka*/nuitka/build/inline_copy"  )
@@ -78,36 +85,45 @@ for filename in os.listdir( "." ):
 else:
     assert False
 
-
-
 os.chdir( "deb_dist" )
 
+# Assert that the unpacked directory is there and file it. Otherwise fail badly.
 for entry in os.listdir( "." ):
     if os.path.isdir( entry ) and entry.startswith( "nuitka" ) and not entry.endswith( ".orig" ):
         break
 else:
     assert False
 
+# Import the "debian" directory from above. It's not in the original tar and overrides or
+# extends what py2dsc does.
 assert 0 == os.system( "rsync -a ../../debian/ %s/debian/" % entry )
 
 assert 0 == os.system( "rm *.dsc *.debian.tar.gz" )
 
 os.chdir( entry )
 
+# Check for licenses and do not accept "UNKNOWN", because that means a proper license
+# string is missing. Not the case for current Nuitka and it shall remain that way.
 print( "Checking licenses... " )
 for line in subprocess.check_output( "licensecheck -r .", shell = True ).strip().split( b"\n" ):
     assert b"UNKNOWN" not in line, line
 
-
+# Build the debian package, but disable the running of tests, will be done later in the
+# pbuilder test steps.
 assert 0 == os.system( "debuild --set-envvar=NUITKA_SKIP_TESTS=1" )
 
 os.chdir( "../../.." )
 
 checkAtHome()
 
-assert 0 == os.system( "sudo /usr/sbin/pbuilder --build dist/deb_dist/*.dsc" )
-
+# Check with pylint in pedantic mode and don't procede if there were any warnings
+# given. Nuitka is lintian clean and shall remain that way.
 assert 0 == os.system( "lintian --pedantic --fail-on-warnings dist/deb_dist/*.changes" )
+
+# Build inside the pbuilder chroot, which should be an updated sid. The update is
+# not done here. TODO: Add a time based check that e.g. runs it with --update at
+# least every 24 hours or so.
+assert 0 == os.system( "sudo /usr/sbin/pbuilder --build dist/deb_dist/*.dsc" )
 
 os.system( "cp dist/deb_dist/*.deb dist/" )
 
@@ -117,14 +133,16 @@ for filename in os.listdir( "dist/deb_dist" ):
     if os.path.isdir( "dist/deb_dist/" + filename ):
         shutil.rmtree( "dist/deb_dist/" + filename )
 
+# Build the Windows installer.
 assert 0 == os.system( r"wine c:\\python27\\python.exe setup.py bdist_wininst --bitmap misc/Nuitka-Installer.bmp" )
 
-
+# Sign the result files. The Debian binary package was copied here.
 for filename in os.listdir( "dist" ):
     if os.path.isfile( "dist/" + filename ):
         assert 0 == os.system( "chmod 644 dist/" + filename )
         assert 0 == os.system( "gpg --local-user 0BCF7396 --detach-sign dist/" + filename )
 
+# Cleanup the build directory, not needed.
 shutil.rmtree( "build", ignore_errors = True )
 
 print( "Finished." )
