@@ -81,6 +81,9 @@ for filename in os.listdir( "." ):
 
         assert 0 == os.system( "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'" % ( before_deb_name, after_deb_name ) )
 
+        # Remove the now useless input, py2dsc has copied it, and we don't publish it.
+        os.unlink( new_name )
+
         break
 else:
     assert False
