@@ -42,8 +42,8 @@ def diffRecursive( dir1, dir2 ):
     done = set()
 
     for filename in os.listdir( dir1 ):
-        path1 = dir1 + os.path.sep + filename
-        path2 = dir2 + os.path.sep + filename
+        path1 = os.path.join( dir1, filename )
+        path2 = os.path.join( dir2, filename )
 
         if not os.path.exists( path2 ):
             sys.exit( "Only in %s: %s" % ( dir1, filename ))
@@ -77,24 +77,24 @@ def diffRecursive( dir1, dir2 ):
         done.add( path1 )
 
     for filename in os.listdir( dir2 ):
-        path1 = dir1 + os.path.sep + filename
-        path2 = dir2 + os.path.sep + filename
+        path1 = os.path.join( dir1, filename )
+        path2 = os.path.join( dir2, filename )
 
         if path1 in done:
             continue
 
-        if not os.path.exists( dir1 + os.path.sep + filename ):
+        if not os.path.exists( path1 ):
             sys.exit( "Only in %s: %s" % ( dir2, filename ))
 
 def executePASS1():
     print "PASS 1: Compiling from compiler running from .py files."
 
-    base_dir = ".." + os.path.sep + ".."
+    base_dir = os.path.join( "..", ".." )
 
     for package in PACKAGE_LIST:
         package = package.replace( "/", os.path.sep )
 
-        source_dir = base_dir + os.path.sep + package
+        source_dir = os.path.join( base_dir, package )
         target_dir = package
 
         if os.path.exists( target_dir ):
@@ -104,7 +104,7 @@ def executePASS1():
 
         for filename in os.listdir( target_dir ):
             if filename.endswith( ".so" ):
-                path = target_dir + os.path.sep + ".so"
+                path = os.path.join( target_dir, filename )
 
                 os.unlink( path )
 
@@ -112,13 +112,13 @@ def executePASS1():
             if not filename.endswith( ".py" ):
                 continue
 
-            path = source_dir + os.path.sep + filename
+            path = os.path.join( source_dir, filename )
 
             if filename != "__init__.py":
                 print "Compiling", path
 
                 result = os.system(
-                    "Nuitka.py %s --output-dir %s %s" % (
+                    "nuitka %s --output-dir %s %s" % (
                         path,
                         target_dir,
                         os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
@@ -128,15 +128,15 @@ def executePASS1():
                 if result != 0:
                     sys.exit( result )
             else:
-                shutil.copyfile( path, target_dir + os.path.sep + filename )
+                shutil.copyfile( path, os.path.join( target_dir, filename ) )
 
 
-    path = ".." + os.path.sep + ".." + os.path.sep + "bin" + os.path.sep + "Nuitka.py"
+    path = os.path.join( "..", "..", "bin", "nuitka" )
 
     print "Compiling", path
 
     result = os.system(
-        "Nuitka.py %s --exe --output-dir %s %s" % (
+        "nuitka %s --exe --recurse-none --output-dir %s %s" % (
             path,
             ".",
             os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
@@ -164,25 +164,25 @@ def executePASS1():
     )
 
 def compileAndCompareWith( nuitka ):
-    base_dir = ".." + os.path.sep + ".."
+    base_dir = os.path.join( "..", ".." )
 
     for package in PACKAGE_LIST:
         package = package.replace( "/", os.path.sep )
 
-        source_dir = base_dir + os.path.sep + package
+        source_dir = os.path.join( base_dir, package )
 
         for filename in sorted( os.listdir( source_dir ) ):
             if not filename.endswith( ".py" ):
                 continue
 
-            path = source_dir + os.path.sep + filename
+            path = os.path.join( source_dir, filename )
 
             if filename != "__init__.py":
                 print "Compiling", path
 
                 target = filename.replace( ".py", ".build" )
 
-                target_dir = tmp_dir + os.path.sep + target
+                target_dir = os.path.join( tmp_dir, target )
 
                 if os.path.exists( target_dir ):
                     shutil.rmtree( target_dir )
@@ -199,31 +199,31 @@ def compileAndCompareWith( nuitka ):
                 if result != 0:
                     sys.exit( result )
 
-                diffRecursive( package + os.path.sep + target, target_dir )
+                diffRecursive( os.path.join( package, target ), target_dir )
 
                 shutil.rmtree( target_dir )
 
 def executePASS2():
     print "PASS 2: Compiling from compiler running from .exe and many .so files."
 
-    compileAndCompareWith( "." + os.path.sep + "Nuitka.exe" )
+    compileAndCompareWith( os.path.join( ".", "nuitka.exe" ) )
 
     print "OK."
 
 def executePASS3():
     print "PASS 3: Compiling from compiler running from .py files to single .exe."
 
-    exe_path = os.path.join( tmp_dir, "Nuitka.exe" )
+    exe_path = os.path.join( tmp_dir, "nuitka.exe" )
 
     if os.path.exists( exe_path ):
         os.unlink( exe_path )
 
-    build_path = os.path.join( tmp_dir, "Nuitka.build" )
+    build_path = os.path.join( tmp_dir, "nuitka.build" )
 
     if os.path.exists( build_path ):
         shutil.rmtree( build_path )
 
-    path = os.path.join( "..", "..", "bin", "Nuitka.py" )
+    path = os.path.join( "..", "..", "bin", "nuitka" )
 
     print "Compiling", path
 
@@ -244,7 +244,7 @@ def executePASS3():
 def executePASS4():
     print "PASS 4: Compiling the compiler running from single exe"
 
-    exe_path = os.path.join( tmp_dir, "Nuitka.exe" )
+    exe_path = os.path.join( tmp_dir, "nuitka.exe" )
 
     compileAndCompareWith( exe_path )
 
