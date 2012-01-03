@@ -79,6 +79,7 @@ def executeSubTest( command ):
 
     print( command, os.getcwd() )
 
+    sys.stdout.flush()
     result = subprocess.call( command, shell = True )
 
     if result != 0:

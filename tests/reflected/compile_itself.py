@@ -146,10 +146,14 @@ def executePASS1():
     if result != 0:
         sys.exit( result )
 
-    shutil.copytree(
-        os.path.join( base_dir, "nuitka", "build", "inline_copy" ),
-        os.path.join( "nuitka", "build", "inline_copy" )
-    )
+    scons_inline_copy_path = os.path.join( base_dir, "nuitka", "build", "inline_copy" )
+
+    if os.path.exists( scons_inline_copy_path ):
+        shutil.copytree(
+            scons_inline_copy_path,
+            os.path.join( "nuitka", "build", "inline_copy" )
+        )
+
     shutil.copy(
         os.path.join( base_dir, "nuitka", "build", "SingleExe.scons" ),
         os.path.join( "nuitka", "build", "SingleExe.scons" )
