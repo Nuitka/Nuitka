@@ -1,4 +1,4 @@
-nuitka (0.3.17~pre3+ds-1) unstable; urgency=low
+nuitka (0.3.17~pre4+ds-1) unstable; urgency=low
 
   * New upstream pre-release.
   * New maintainer (Closes: #648489)
@@ -7,17 +7,20 @@ nuitka (0.3.17~pre3+ds-1) unstable; urgency=low
   * Completed copyright file according to "licensecheck" findings
     and updated files accordingly. Put the included tests owned
     by upstream into public domain.
-  * Use a "ds" file as orig source with inline copy of Scons
+  * Use a "+ds" file as orig source with inline copy of Scons
     already removed instead of doing it as a patch.
-  * Also removed the benchmark tests from "ds" file, not useful.
-  * Added syntax tests to package, these were not included so far
-    by mistake.
+  * Also removed the benchmark tests from "+ds" file, not useful
+    to be provided with Nuitka.
+  * Added syntax tests, these were omitted by mistake previously.
   * Run the test suite at package build time, it checks the basic
     tests, syntax error tests, program tests, and the compile
-    itself tests.
-  * Added run time dependencies also as build time dependencies.
+    itself test.
+  * Added run time dependencies also as build time dependencies
+    to be able to execute the tests.
+  * Corrected handling of upstream pre-release names in the watch
+    file.
 
- -- Kay Hayen <kayhayen@gmx.de>  Tue, 03 Jan 2012 08:02:57 +0100
+ -- Kay Hayen <kayhayen@gmx.de>  Wed, 04 Jan 2012 00:03:48 +0100
 
 nuitka (0.3.16-1) unstable; urgency=low
 
