@@ -53,11 +53,13 @@ if os.path.exists( "deb_dist" ):
 
 for filename in os.listdir( "." ):
     if filename.endswith( ".tar.gz" ):
-        new_name = filename[:-7] + "+dsfg.tar.gz"
+        new_name = filename[:-7] + "+ds.tar.gz"
 
-        # Create a +dfsg file, removing:
-        # - the benchmarks (too many sources, not useful)
-        # - the inline copy of scons
+        # Create a +ds file, removing:
+
+        # - the benchmarks (too many sources, not useful to end users, potential license
+        #   issues)
+        # - the inline copy of scons (not wanted for Debian)
         shutil.copy( filename, new_name )
         assert 0 == os.system( "gunzip " + new_name )
         assert 0 == os.system( "tar --wildcards --delete --file " + new_name[:-3] + " Nuitka*/tests/benchmarks Nuitka*/nuitka/build/inline_copy"  )
@@ -65,10 +67,12 @@ for filename in os.listdir( "." ):
 
         assert 0 == os.system( "py2dsc " + new_name )
 
+        # Fixup for py2dsc not taking our custom suffix into account, so we need to rename
+        # it ourselves.
         before_deb_name = filename[:-7].lower().replace( "-", "_" )
         after_deb_name = before_deb_name.replace( "pre", "~pre" )
 
-        assert 0 == os.system( "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+dfsg.orig.tar.gz'" % ( before_deb_name, after_deb_name ) )
+        assert 0 == os.system( "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'" % ( before_deb_name, after_deb_name ) )
 
         break
 else:
