@@ -34,6 +34,10 @@ from __future__ import print_function
 
 import os, sys, tempfile, subprocess
 
+if os.environ.get( "NUITKA_SKIP_TESTS", 0 ):
+    print( "Skiped all tests as per NUITKA_SKIP_TESTS environment." )
+    sys.exit( 0 )
+
 # Go its own directory, to have it easy with path knowledge.
 os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
 os.chdir( ".." )

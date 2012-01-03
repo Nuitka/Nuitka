@@ -98,11 +98,14 @@ print( "Checking licenses... " )
 for line in subprocess.check_output( "licensecheck -r .", shell = True ).strip().split( b"\n" ):
     assert b"UNKNOWN" not in line, line
 
-assert 0 == os.system( "debuild" )
+
+assert 0 == os.system( "debuild --set-envvar=NUITKA_SKIP_TESTS=1" )
 
 os.chdir( "../../.." )
 
 checkAtHome()
+
+assert 0 == os.system( "sudo /usr/sbin/pbuilder --build dist/deb_dist/*.dsc" )
 
 assert 0 == os.system( "lintian --pedantic --fail-on-warnings dist/deb_dist/*.changes" )
 
