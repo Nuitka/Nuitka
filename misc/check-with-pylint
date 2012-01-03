@@ -86,8 +86,8 @@ import sys, os, subprocess
 if "PYTHONPATH" not in os.environ:
     os.environ[ "PYTHONPATH" ] = "."
 
-if len( sys.argv ) > 2:
-    executePyLint( sys.argv[1 ] )
+if len( sys.argv ) >= 2:
+    executePyLint( sys.argv[ 1 ] )
 else:
     executePyLint( "bin/nuitka" )
 
