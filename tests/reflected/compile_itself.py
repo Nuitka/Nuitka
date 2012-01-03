@@ -18,12 +18,26 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-import os, sys, shutil, tempfile, time, difflib
+from __future__ import print_function
+
+import os, sys, shutil, tempfile, time, difflib, subprocess
 
 # Go its own directory, to have it easy with path knowledge.
 os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
 
 nuitka_main_path = os.path.join( "..", "..", "bin", "nuitka" )
+
+if "PYTHON" not in os.environ:
+    os.environ[ "PYTHON" ] = "python"
+
+version_output = subprocess.check_output(
+    [ os.environ[ "PYTHON" ], "--version" ],
+    stderr = subprocess.STDOUT
+)
+
+python_version = version_output.split()[1]
+
+print( "Using concrete python", python_version )
 
 tmp_dir = tempfile.gettempdir()
 
@@ -57,20 +71,20 @@ def diffRecursive( dir1, dir2 ):
             todate = time.ctime( os.stat( path2 ).st_mtime )
 
             diff = difflib.unified_diff(
-                open( path1 ).readlines(),
-                open( path2 ).readlines(),
-                path1,
-                path2,
-                fromdate,
-                todate,
-                n=3
+                a            = open( path1, "rb" ).readlines(),
+                b            = open( path2, "rb" ).readlines(),
+                fromfile     = path1,
+                tofile       = path2,
+                fromfiledate = fromdate,
+                tofiledate   = todate,
+                n            = 3
             )
 
             result = list( diff )
 
             if result:
                 for line in result:
-                    print line
+                    print( line )
 
                 sys.exit( 1 )
         else:
@@ -89,7 +103,7 @@ def diffRecursive( dir1, dir2 ):
             sys.exit( "Only in %s: %s" % ( dir2, filename ))
 
 def executePASS1():
-    print "PASS 1: Compiling from compiler running from .py files."
+    print( "PASS 1: Compiling from compiler running from .py files." )
 
     base_dir = os.path.join( "..", ".." )
 
@@ -117,10 +131,11 @@ def executePASS1():
             path = os.path.join( source_dir, filename )
 
             if filename != "__init__.py":
-                print "Compiling", path
+                print( "Compiling", path )
 
                 result = os.system(
-                    "%s %s --output-dir %s %s" % (
+                    "%s %s %s --output-dir %s %s" % (
+                        os.environ[ "PYTHON" ],
                         nuitka_main_path,
                         path,
                         target_dir,
@@ -134,10 +149,11 @@ def executePASS1():
                 shutil.copyfile( path, os.path.join( target_dir, filename ) )
 
 
-    print "Compiling", nuitka_main_path
+    print( "Compiling", nuitka_main_path )
 
     result = os.system(
-        "%s %s --exe --recurse-none --output-dir %s %s" % (
+        "%s %s %s --exe --recurse-none --output-dir %s %s" % (
+            os.environ[ "PYTHON" ],
             nuitka_main_path,
             nuitka_main_path,
             ".",
@@ -184,7 +200,7 @@ def compileAndCompareWith( nuitka ):
             path = os.path.join( source_dir, filename )
 
             if filename != "__init__.py":
-                print "Compiling", path
+                print( "Compiling", path )
 
                 target = filename.replace( ".py", ".build" )
 
@@ -210,14 +226,14 @@ def compileAndCompareWith( nuitka ):
                 shutil.rmtree( target_dir )
 
 def executePASS2():
-    print "PASS 2: Compiling from compiler running from .exe and many .so files."
+    print( "PASS 2: Compiling from compiler running from .exe and many .so files." )
 
     compileAndCompareWith( os.path.join( ".", "nuitka.exe" ) )
 
-    print "OK."
+    print( "OK." )
 
 def executePASS3():
-    print "PASS 3: Compiling from compiler running from .py files to single .exe."
+    print( "PASS 3: Compiling from compiler running from .py files to single .exe." )
 
     exe_path = os.path.join( tmp_dir, "nuitka.exe" )
 
@@ -231,10 +247,11 @@ def executePASS3():
 
     path = os.path.join( "..", "..", "bin", "nuitka" )
 
-    print "Compiling", path
+    print( "Compiling", path )
 
     result = os.system(
-        "%s %s --output-dir %s --exe --recurse-all" % (
+        "%s %s %s --output-dir %s --exe --recurse-all" % (
+            os.environ[ "PYTHON" ],
             nuitka_main_path,
             path,
             tmp_dir
@@ -246,16 +263,16 @@ def executePASS3():
 
     shutil.rmtree( build_path )
 
-    print "OK."
+    print( "OK." )
 
 def executePASS4():
-    print "PASS 4: Compiling the compiler running from single exe"
+    print( "PASS 4: Compiling the compiler running from single exe" )
 
     exe_path = os.path.join( tmp_dir, "nuitka.exe" )
 
     compileAndCompareWith( exe_path )
 
-    print "OK."
+    print( "OK." )
 
 executePASS1()
 executePASS2()
