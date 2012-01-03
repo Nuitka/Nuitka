@@ -17,6 +17,10 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
+import random
+
+def getrandom():
+    return random.random()
 
 def optimizerCrashIssue13():
     try:
@@ -29,3 +33,12 @@ def optimizerCrashIssue13():
 
 # Just so it won't be optimized away entirely.
 optimizerCrashIssue13()
+
+def codegeneratorCrashIssue15():
+    f = float( "nan" )
+    g = getrandom() # Prevent optimization of nan-constant
+
+    return f+g
+
+# Just so it won't be optimized away entirely.
+codegeneratorCrashIssue15()

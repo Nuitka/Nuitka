@@ -46,21 +46,15 @@ except ImportError:
     # False alarm, no double import at all, pylint: disable=W0404
     import pickle as cpickle
 
-# Need to use the pure Python pickle to workaround seeming bugs of cPickle
-import pickle
-
 from logging import warning
 
 def getStreamedConstant( constant_value, constant_type ):
 
     # Note: The marshal module cannot persist all unicode strings and
-    # therefore cannot be used.  The cPickle fails to gives reproducible
-    # results for some tuples, which needs clarification. In the mean time we
-    # are using pickle.
+    # therefore cannot be used. Instead we use pickle.
     try:
-        saved = pickle.dumps(
-            constant_value,
-            protocol = 0 if constant_type is unicode else 0
+        saved = cpickle.dumps(
+            constant_value
         )
     except TypeError:
         warning( "Problem with persisting constant '%r'." % constant_value )
@@ -68,7 +62,9 @@ def getStreamedConstant( constant_value, constant_type ):
 
     # Check that the constant is restored correctly.
     try:
-        restored = cpickle.loads( saved )
+        restored = cpickle.loads(
+            saved
+        )
     except:
         warning( "Problem with persisting constant '%r'." % constant_value )
         raise
