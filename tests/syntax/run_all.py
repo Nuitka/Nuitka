@@ -61,7 +61,9 @@ for filename in sorted( os.listdir( "." ) ):
 
     if active:
         result = subprocess.call(
-            "compare_with_cpython %s silent %s" % (
+            "%s %s %s silent %s" % (
+                sys.executable,
+                os.path.join( "..", "..", "bin", "compare_with_cpython" ),
                 path,
                 " ".join( extra_flags )
             ),

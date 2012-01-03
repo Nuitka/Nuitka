@@ -32,7 +32,7 @@
 
 MODULE=$1
 
-Nuitka.py --exe --output-dir=/tmp/ --unstriped $@
+nuitka --exe --output-dir=/tmp/ --unstriped $@
 
 OUTPUT="/tmp/`basename $MODULE .py`.exe"
 LOGFILE="/tmp/`basename $MODULE .py`.log"

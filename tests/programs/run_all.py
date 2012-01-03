@@ -74,7 +74,9 @@ for filename in sorted( os.listdir( "." ) ):
         sys.stdout.flush()
 
         result = subprocess.call(
-            "compare_with_cpython %s/*Main.py silent %s" % (
+            "%s %s %s/*Main.py silent %s" % (
+                sys.executable,
+                os.path.join( "..", "..", "bin", "compare_with_cpython" ),
                 filename,
                 extra_flags
             ),

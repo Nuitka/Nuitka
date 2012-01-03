@@ -23,6 +23,8 @@ import os, sys, shutil, tempfile, time, difflib
 # Go its own directory, to have it easy with path knowledge.
 os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
 
+nuitka_main_path = os.path.join( "..", "..", "bin", "nuitka" )
+
 tmp_dir = tempfile.gettempdir()
 
 # Could detect this more automatic.
@@ -118,7 +120,8 @@ def executePASS1():
                 print "Compiling", path
 
                 result = os.system(
-                    "nuitka %s --output-dir %s %s" % (
+                    "%s %s --output-dir %s %s" % (
+                        nuitka_main_path,
                         path,
                         target_dir,
                         os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
@@ -131,13 +134,12 @@ def executePASS1():
                 shutil.copyfile( path, os.path.join( target_dir, filename ) )
 
 
-    path = os.path.join( "..", "..", "bin", "nuitka" )
-
-    print "Compiling", path
+    print "Compiling", nuitka_main_path
 
     result = os.system(
-        "nuitka %s --exe --recurse-none --output-dir %s %s" % (
-            path,
+        "%s %s --exe --recurse-none --output-dir %s %s" % (
+            nuitka_main_path,
+            nuitka_main_path,
             ".",
             os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
         )
@@ -232,7 +234,8 @@ def executePASS3():
     print "Compiling", path
 
     result = os.system(
-        "Nuitka.py %s --output-dir %s --exe --recurse-all" % (
+        "%s %s --output-dir %s --exe --recurse-all" % (
+            nuitka_main_path,
             path,
             tmp_dir
         )
