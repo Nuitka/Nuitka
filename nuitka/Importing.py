@@ -207,6 +207,10 @@ def _isWhiteListedNotExistingModule( module_name ):
         "_collections", "_locale", "_codecs", "_weakref", "_struct", "_dummy_threading",
         "binascii", "datetime", "_ast", "xxsubtype", "_bytesio", "cmath", "_fileio",
 
+        # Python-Qt4 does these if missing python3 parts:
+        "PyQt4.uic.port_v3.string_io", "PyQt4.uic.port_v3.load_plugin",
+        "PyQt4.uic.port_v3.ascii_upper", "PyQt4.uic.port_v3.proxy_base",
+        "PyQt4.uic.port_v3.as_string",
 
         # CPython3 does these:
         "builtins", "UserDict", "os.path",
