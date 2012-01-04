@@ -62,7 +62,9 @@ parser.add_option(
     action  = "store_true",
     dest    = "executable",
     default = is_nuitka_python,
-    help    = """Create a standalone executable instead of a compiled extension module. Default is %s.""" % ( "on" if is_nuitka_python else "off" )
+    help    = """\
+Create a standalone executable instead of a compiled extension module. Default is %s.""" %
+       ( "on" if is_nuitka_python else "off" )
 )
 
 recurse_group = OptionGroup(
@@ -84,7 +86,9 @@ recurse_group.add_option(
     action  = "store_true",
     dest    = "recurse_none",
     default = False,
-    help    = "When --recurse-none is used, do not descend into any imported modules at all, overrides all other recursion options. Default %default."
+    help    = """\
+When --recurse-none is used, do not descend into any imported modules at all, overrides
+all other recursion options. Default %default."""
 )
 
 recurse_group.add_option(
@@ -92,7 +96,9 @@ recurse_group.add_option(
     action  = "store_true",
     dest    = "recurse_all",
     default = False,
-    help    = "When --recurse-all is used, attempt to descend into all imported modules. Default %default."
+    help    = """\
+When --recurse-all is used, attempt to descend into all imported modules.
+Default %default."""
 )
 
 recurse_group.add_option(
@@ -101,7 +107,9 @@ recurse_group.add_option(
     dest    = "recurse_modules",
     metavar = "MODULE/PACKAGE",
     default = [],
-    help    = "Recurse to that module, or if a package, to the whole package. Can be given multiple times. Default empty."
+    help    = """\
+ Recurse to that module, or if a package, to the whole package. Can be given multiple
+ times.Default empty."""
 )
 
 recurse_group.add_option(
@@ -110,7 +118,9 @@ recurse_group.add_option(
     dest    = "recurse_not_modules",
     metavar = "MODULE/PACKAGE",
     default = [],
-    help    = "Do NOT recurse to that module, or if a package, to the whole package in any case, overrides all other options. Can be given multiple times. Default empty."
+    help    = """\
+Do not recurse to that module, or if a package, to the whole package in any case,
+overrides all other options. Can be given multiple times. Default empty."""
 )
 
 parser.add_option_group( recurse_group )
@@ -125,7 +135,10 @@ execute_group.add_option(
     action  = "store_true",
     dest    = "immediate_execution",
     default = is_nuitka_python,
-    help    = """Execute immediately the created binary (or import the compiled module). Default is %s.""" % ( "on" if is_nuitka_python else "off" )
+    help    = """\
+Execute immediately the created binary (or import the compiled module). Default
+is %s.""" %
+       ( "on" if is_nuitka_python else "off" )
 )
 
 execute_group.add_option(
@@ -133,7 +146,8 @@ execute_group.add_option(
     action  = "store_true",
     dest    = "keep_pythonpath",
     default = False,
-    help    = """When immediately executing the created binary (--execute), don't reset PYTHONPATH. When
+    help    = """\
+When immediately executing the created binary (--execute), don't reset PYTHONPATH. When
 all modules are successfully included, you ought to not need PYTHONPATH anymore."""
 )
 
@@ -198,7 +212,8 @@ codegen_group.add_option(
     action  ="store_false",
     dest    = "statement_lines",
     default = True,
-    help    = """Statements shall have their line numbers set. Disable this for less precise exceptions and
+    help    = """\
+Statements shall have their line numbers set. Disable this for less precise exceptions and
 slightly faster code. Not recommended. Defaults to off."""
 )
 
@@ -223,7 +238,9 @@ outputdir_group.add_option(
     dest    = "output_dir",
     metavar = "DIRECTORY",
     default = "",
-    help    = """Specify where intermediate and final output files should be put. DIRECTORY will be populated with C++ files, object files, etc. Defaults to current directory."""
+    help    = """\
+Specify where intermediate and final output files should be put. DIRECTORY will
+be populated with C++ files, object files, etc. Defaults to current directory."""
 )
 
 outputdir_group.add_option(
@@ -231,7 +248,9 @@ outputdir_group.add_option(
     action  = "store_true",
     dest    = "remove_build",
     default = False,
-    help    = """Removes the build directory after producing the module or exe file. Default %default."""
+    help    = """\
+Removes the build directory after producing the module or exe file.
+Default %default."""
 )
 
 parser.add_option_group( outputdir_group )
@@ -241,7 +260,8 @@ parser.add_option(
     action  = "store_true",
     dest    = "windows_target",
     default = False,
-    help    = """Force compilation for windows, useful for cross-compilation. Defaults to off."""
+    help    = """\
+Force compilation for windows, useful for cross-compilation. Defaults to off."""
 )
 
 debug_group = OptionGroup(
@@ -254,7 +274,8 @@ debug_group.add_option(
     action  = "store_true",
     dest    = "debug",
     default = False,
-    help    = """Executing all self checks possible to find errors in Nuitka, do not use for
+    help    = """\
+Executing all self checks possible to find errors in Nuitka, do not use for
 production. Defaults to off."""
 )
 
@@ -263,7 +284,9 @@ debug_group.add_option(
     action  = "store_true",
     dest    = "unstriped",
     default = False,
-    help    = """Keep debug info in the resulting object file for better gdb interaction. Defaults to off."""
+    help    = """\
+Keep debug info in the resulting object file for better gdb interaction.
+Defaults to off."""
 )
 
 debug_group.add_option(
@@ -271,7 +294,9 @@ debug_group.add_option(
     action  = "store_true",
     dest    = "trace_execution",
     default = False,
-    help    = """Traced execution output, output the line of code before executing it. Defaults to off."""
+    help    = """\
+Traced execution output, output the line of code before executing it.
+Defaults to off."""
 )
 
 debug_group.add_option(
@@ -279,7 +304,8 @@ debug_group.add_option(
     action  = "store_true",
     dest    = "cpp_only",
     default = False,
-    help    = """Compile the would-be generated source file. Allows edition and translation with same
+    help    = """\
+Compile the would-be generated source file. Allows edition and translation with same
 options for quick debugging changes to the generated source. Defaults to off."""
 )
 
@@ -290,7 +316,9 @@ parser.add_option(
     action  = "store_true",
     dest    = "lto",
     default = False,
-    help    = """Use link time optimizations if available and usable (g++ 4.6 and higher). Defaults to off."""
+    help    = """\
+Use link time optimizations if available and usable (g++ 4.6 and higher).
+Defaults to off."""
 )
 
 tracing_group = OptionGroup(
@@ -303,7 +331,8 @@ tracing_group.add_option(
     action  = "store_true",
     dest    = "show_scons",
     default = False,
-    help    = """Operate Scons in non-quiet mode, showing the executed commands. Defaults to off."""
+    help    = """\
+Operate Scons in non-quiet mode, showing the executed commands. Defaults to off."""
 )
 
 tracing_group.add_option(
@@ -320,7 +349,8 @@ tracing_group.add_option(
     action  = "store_true",
     dest    = "verbose",
     default = False,
-    help    = "Output details of actions take, esp. in optimizations. Can become a lot."
+    help    = """\
+Output details of actions take, esp. in optimizations. Can become a lot."""
 )
 
 
@@ -333,7 +363,8 @@ parser.add_option(
     metavar = "N",
     default = Utils.getCoreCount(),
     help    = """\
-Specify the allowed number of parallel C++ compiler jobs. Defaults to the system CPU count.""",
+Specify the allowed number of parallel C++ compiler jobs. Defaults to the system
+CPU count.""",
 )
 
 if is_nuitka_python:
