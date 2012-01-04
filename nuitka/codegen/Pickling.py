@@ -48,7 +48,7 @@ except ImportError:
 
 from logging import warning
 
-def getStreamedConstant( constant_value, constant_type ):
+def getStreamedConstant( constant_value ):
 
     # Note: The marshal module cannot persist all unicode strings and
     # therefore cannot be used. Instead we use pickle.

@@ -3060,8 +3060,7 @@ def _isAttributeName( value ):
 
 def _getUnstreamCode( constant_value, constant_type, constant_identifier ):
     saved = getStreamedConstant(
-        constant_value = constant_value,
-        constant_type  = constant_type
+        constant_value = constant_value
     )
 
     return "%s = UNSTREAM_CONSTANT( %s, %d );" % (
