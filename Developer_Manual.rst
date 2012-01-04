@@ -4,15 +4,17 @@
 Developer Manual
 ~~~~~~~~~~~~~~~~
 
-The purpose of this manual is to present the current design of Nuitka, the coding rules,
-and the intentions of choices made. It is intended to be a guide to the source code, and to give explanations that don't fit into the source code in comments form.
+The purpose of this developer manual is to present the current design of Nuitka, the
+coding rules, and the intentions of choices made. It is intended to be a guide to the
+source code, and to give explanations that don't fit into the source code in comments
+form.
 
-It should be used as a reference for the process of planning and documenting decisions
-made. We are e.g. presenting here the type inference plans before implementing them.
+It should be used as a reference for the process of planning and documenting decisions we
+made. Therefore we are e.g. presenting here the type inference plans before implementing
+them. And we update them as we proceed.x
 
 It grows out of discussions and presentations made at PyCON alike conferences as well as
 private conversations or discussions on the mailing list.
-
 
 Current State
 =============
@@ -102,6 +104,31 @@ Contractions may span across multiple lines for increased readability:
        range( decorator_count )
    ]
 
+Module/Package Names
+--------------------
+
+Normal modules are named in camel case with leading upper case, because their of role as
+singleton classes. The difference between a module and a class is small enough and in the
+source code they are also used similarly.
+
+For the packages, no real code is allowed in them and they must be lower case, like
+e.g. "nuitka" or "codegen". This is to distinguish them from the modules.
+
+Packages shall only be used to group packages. In "nuitka.codegen" the code generation
+packages are located, while the main interface is "nuitka.codegen.CodeGeneration" and may
+then use most of the entries as local imports.
+
+The use of a global package "nuitka", originally introduced by Nicolas, makes the
+packaging of Nuitka with "distutils" etc. easier and lowers the requirements on changes to
+the "sys.path" if necessary.
+
+.. note::
+
+   There are not yet enough packages inside Nuitka, feel free to propose changes as you
+   see fit.
+
+Names of modules should be plurals if they contain classes. Example is "Nodes" contains
+"Node" classes.
 
 Prefer list contractions over "map", "filter", and "apply"
 ----------------------------------------------------------
@@ -188,6 +215,12 @@ nuitka.Importing Module
   one. It will give warnings for modules attempted to be located, but not found. These
   warnings are controlled by a while list inside the module.
 
+Plan to replace "python-qt" for the GUI
+=======================================
+
+Porting the tree inspector available with "--dump-gui" to "wxwindows" is very much welcome
+as the Qt bindings are severely under documented.
+
 Plan to add ctypes
 ==================
 
@@ -238,26 +271,29 @@ and that obviously to:
 
 This may be called (Constant) Value Propagation. But we are aiming for more. In order to
 fully benefit from type knowledge, the new type system must be able to be fully friends
-with existing builtin types. The behavior of a type "long", "str", etc. ought to be
+with existing builtin types.  The behavior of a type "long", "str", etc. ought to be
 implemented as far as possible with the builtin "long", "str" as well.
 
 .. note::
 
-   This use the real thing concept extends beyond builtin types, "ctypes.c_int()" should
+   This "use the real thing" concept extends beyond builtin types, "ctypes.c_int()" should
    also be used, but we must be aware of platform dependencies. The maximum size of
-   "ctypes.c_int" values would be an example of that.
+   "ctypes.c_int" values would be an example of that. Of course that may not be possible
+   for everything.
 
 This approach has well proven itself with builtin functions already, when many times the
-real builtin was used to make computations. We have the problem though is, that builtins
-may have problems to execute everything.
+real builtin is used to make computations. We have the problem though that builtins may
+have problems to execute everything with reasonable compile time cost.
 
 .. code-block:: python
 
    len( "a" * 1000000000000 )
 
-To predict this code, calculating it at compile time, while feasible puts a
-burden. Esp. we wouldn't want to produce such a constant and stream it, the C++ code would
-be huge. So, we need to stop the "*" operator from being used at compile time and live
+To predict this code, calculating it at compile time using constant operations, while
+feasible, puts a burden on the compilation.
+
+Esp. we wouldn't want to produce such a constant and stream it, the C++ code would be
+huge. So, we need to stop the "\*" operator from being used at compile time and live
 with reduced knowledge, already here:
 
 .. code-block:: python
@@ -268,7 +304,7 @@ Instead, we would probably say that for this expression:
 
    - The result is a "str" or "PyStringObject"
    - We know its length exactly, "10000000000000"
-   - and we can predict every of its elements, if need be, with a function.
+   - Can predict every of its elements, if need be, with a function.
 
 Similar is true for this nice thing:
 
@@ -276,20 +312,25 @@ Similar is true for this nice thing:
 
    range( 10000000000000 )
 
-We know:
+So it's a rather general problem, this time we know:
 
    - The result is a "list" or "PyListObject"
    - We know its length exactly, "10000000000000"
-   - and we can predict every of its elements, if need be, with a function.
+   - Can predict every of its elements, if need be, with a function.
 
 Again, we wouldn't want to create the list. Nuitka currently refuses to compile time
 calculate lists with more than 256 elements, an arbitrary choice.
 
-We could know, from use of the "range" result maybe, that we ought to prefer a "xrange",
-but that's not as much.
+.. note::
 
-In our builtin code, we have specialized "range()" to check for the result size in a
-prediction. This ought to be generalized.
+   We could know, from use of the "range" result maybe, that we ought to prefer a
+   "xrange", but that's not as much useful except maybe at code generation time.
+
+.. note::
+
+   In our builtin code, we have specialized "range()" to check for the result size in a
+   prediction. This ought to be generalized and provided by "ValueFriends" and take the
+   computation cost and result size into account.
 
 Now lets look at a use:
 
@@ -300,31 +341,36 @@ Now lets look at a use:
 
 Looking at this example, one way to look at it, would be to turn "range" into "xrange",
 note that "x" is unused. But in fact, what would be best, is to notice that "range()"
-values is not used, but only the length of the expression matters. And even if "x" were
-used, only the ability to predict the value from a function would be interesting.
+generated value is not really used, but only the length of the expression matters. And
+even if "x" were used, only the ability to predict the value from a function would be
+interesting, so we would use that computation function instead.
 
 Predict from a function could mean to have Python code to do it, as well as C++ code to do
-it. And of course, it would only make sense where such calculations are "O(1)", i.e. do
-not require recursion like "n!" does.
+it. Then code for the loop can be generated.
 
 .. note::
 
-   The other thing is that CPython appears to take length hints from objects for some
-   operations, and there it would help too, to track length of objects.
+   Of course, it would only make sense where such calculations are "O(1)" complexity,
+   i.e. do not require recursion like "n!" does.
 
-Back to the orginal example:
+The other thing is that CPython appears to take length hints from objects for some
+operations, and there it would help too, to track length of objects, and provide it, to
+outside code.
+
+Back to the original example:
 
 .. code-block:: python
 
    len( "a" * 1000000000000 )
 
 The theme here, is that when we can't pre-compute all intermediate expressions, and we
-sure can't always in the general case. But we can still, predict properties of an
+sure can't always in the general case. But we can still, predict some of properties of an
 expression result, more or less.
 
 Here we have "len" to look at an argument that we know the size of. Great. We need to ask
 if there are any side effects, and if there are, we need to maintain them of course, but
-generally this appears feasible.
+generally this appears feasible, and is already being done by existing optimizations if an
+operation generates an exception.
 
 
 Applying this to "ctypes"
@@ -338,8 +384,8 @@ follows:
    import ctypes
 
 This leads to Nuitka tree containing an "import module expression", that can be predicted
-to be a module object, and it can be better known as "ctypes" from standard library with
-more or less certainty. See the section about "Importing".
+by default to be a module object, and it can be better known as "ctypes" from standard
+library with more or less certainty. See the section about "Importing".
 
 So that part is easy, and it's what should happen. During optimization, when the module
 import expression is examined, it should say:
@@ -433,6 +479,41 @@ will try it that way. If it fails, we will do it backwards, i.e. on demand. Whil
 looks like a perfect match for loops, for function calls, it would require heavy
 operations to be repeated for every call, over and over.
 
+Excursion to Loops
+------------------
+
+.. code-block:: python
+
+   a = 1
+
+   for i in range( 10 ):
+       b = a + 1
+       a = b
+
+   print a
+
+The handling of "for" (and "while") loops has its own problem. They are similar to that of
+function calls and their bodies. The "for" loop would have a start assumption that "a" is
+constant, but that is only true for the first iteration. So, we can't pass knowledge from
+outside the for loop directly into the for loop body.
+
+We can treat loop bodies like recursive functions that call themselves and are capable of
+assigning to the current scope. The framework to instantiate function calls and apply the
+knowledge, should be capable to tell that "a" is assigned to an "int" when given an "int"
+value to start with.x
+
+As for implementation, "scope" means the variable scope. We need an "execution" scope that
+makes value propagation visit the for loop separately and invalidate all variables it
+references for modification.
+
+.. warning::
+
+   For the loop body, different than a function argument though, we have the extra
+   complication that it may even make "a" undefined ("del a") or change its type entirely, so
+   that means we will want to have it as a special case that analysis of functions degrades
+   to.
+
+
 Mixed Types
 -----------
 
@@ -445,8 +526,6 @@ Consider the following inside a function or module:
    else:
       a = ()
 
-
-
 A programmer will often not make a difference between "list" and "tuple". In fact, using a
 tuple is a good way to express that something won't be changed later, as these are mutable.
 
@@ -454,6 +533,8 @@ To Nuitka though this means, that if "cond" is not predictable, after the condit
 statement we may either have a "tuple" or a "list". In order to represent that without
 resorting to "I know nothing about it", we need a kind of "min/max" operating mechanism
 that is capable of say what is common with multiple alternative values.
+
+
 
 Back to "ctypes"
 ----------------
@@ -474,29 +555,39 @@ Now to the interface
 
 The following is the intended interface
 
-- Name for module "ModuleFriend"
-
 - Base class "ValueFriendBase"
 
-- The "ModuleFriends" should emit derived classes of type "ValueFriendBase" for their
-  attributes
+- Name for module "ValueFriends" according to rules.
+
+- Class for module value friend "ValueFriendModule"
+
+- Base class for module and module friend "ValueFriendModuleBase"
+
+- Module "ModuleFriendRegistry" provides a register function with "name" and instances of
+  "ValueFriendModuleBase" to be registered. Recursed to modules should integrate with that
+  too.
+
+- The module friends should live in a module of their own, with a naming policy to be
+  determined. These modules should add themselves to "ModuleFriendRegistry" and all shall
+  be imported and register. Importing of e.g. "ctypes" should be delayed to when the
+  friend is actually used. A meta class should aid this task.
 
 - A collection of "ValueFriend" instances expresses the current data flow state.
 
-  - This collection should carry the name "DataFlowState"
+  - This collection should carry the name "ConstraintCollection"
 
   - Updates to the collection should be done via methods
 
-      - "addVariableValue( var_name, value_friend )"
+      - "onAssigmentToTargetFromValueFriend( target, value_friend )"
+      - "onAttributeLookup( source, attribute_name )"
       - "onOutsideCode()"
       - "passedByReference( var_name )"
       - etc. (will decide the actual interface of this when implementing its use)
 
-  - This collection is the input to walking the tree by "scope", i.e. per module body,
-    per function body, etc.
+  - This collection is the input to walking the tree by "execute", i.e. per module body,
+    per function body, per loop body, etc.
 
-  - The walk should initially be single pass, that means it does not maintain any
-    history.
+  - The walk should initially be single pass, that means it does not maintain the history.
 
 .. note:: Warning
 
@@ -534,7 +625,6 @@ The following examples:
    # "ValueFriend"s.
    a + b
 
-
 The walking of the tree is best done in "Optimization" and can be used to implement many
 optimizations in a more consistent and faster way. We currently check the tree for calls
 to builtins with constant arguments. But with the new way of walking, we reverse the order
@@ -557,10 +647,6 @@ Future:
 It's really exciting to see, how this proposal cleans up the existing code and integrates
 with it.
 
-The "TreeBuilding" result should already contain default "ValueFriends" for constants and
-for everything else. In fact the expression nodes should do that during build time and
-then "ctypes" would be an module object, but most things will be of no real type, and that
-one should be cheap.
 
 Code Generation Impact
 ----------------------
@@ -568,7 +654,7 @@ Code Generation Impact
 Right now, code generation assumes that everything is an object, and does not take "int"
 or these at all, and it should remain like that for some time to come.
 
-Instead, ctypes value friend will be asked give "Identifiers", like other codes do too
+Instead, "ctypes" value friend will be asked give "Identifiers", like other codes do too
 from calls. And these need to be able to convert themselves to objects to work with the
 other things.
 
@@ -585,7 +671,8 @@ which the "ctypes" Identifiers handle without conversions.
 
 Code Generation should one day also become able to tell that all uses of a variable have
 only "c_int" value, and use "int" instead of "PyObjectLocalVariable" directly, or at least
-a "PyIntLocalVariable" of similar complexity as "int" after inlining.
+a "PyIntLocalVariable" of similar complexity as "int" after the C++ compiler performed its
+inlining.
 
 Such decisions would be prepared by finalization, which then would track the history of
 values throughout a function or part of it.
@@ -593,10 +680,37 @@ values throughout a function or part of it.
 Initial Implementation
 ----------------------
 
-The "ValueFriend" will at first only be added to constants. And it will be constructed at
-node creation time, being little more than a tool to do lookups.
+The "ValueFriend" will be added to _all_ expressions at node creation time. Initially most
+of them will only be able to give up on about anything. And it will be little more than a
+tool to do lookups. Depending on how it goes, "CPythonExpression" nodes may become value
+the friends of their own, but for a start, I would keep it separate. We can merge later,
+if we find it's only overhead.
 
-It will then be used to turn the following code into better performing one:
+It will then be the first goal to turn the following code into better performing one:
+
+.. code-block:: python
+
+   a = 3
+   b = 7
+   c = a / b
+
+to:
+
+.. code-block:: python
+   a = 3
+   b = 7
+   c = 3 / 7
+
+The assignments to "a" and "b" might become prey to "unused" assignment analysis later on,
+but that is not important yet. Also "3 / 7" could be optimized while going through it, but
+there is already code that does this "OptimizeConstantOperations" easily. So that would be
+a later step.
+
+.. note::
+
+   This part is implemented.
+
+Then second goal is to understand all of this:
 
 .. code-block:: python
 
@@ -612,37 +726,78 @@ It will then be used to turn the following code into better performing one:
 
       return len( a )
 
-The first goal will be that the "list" ValueFriend annotation from the constant assignment
-will be copied to "a" until "a.append" is done. Then it must be detached, because "a" has
-changed value by calling a then unknown member "append" of it. But at "print a" time it
-knows that it is really "[]", which has a "__str__" that the "list" value friend provides.
+.. note::
 
-Now:
+   There are many operations in this, and all of them should be properly handled, or at
+   least ignored in safe way.
 
-   - Print has an argument "a" that is a variable reference
-   - After loop, "a" is a variable reference
+The first goal code gave us that the "list" has an annotation from the assignment of "[]"
+and that it will be copied to "a" until the for loop in encountered. Then it must be
+removed, because the "for" loop somehow says so.
 
-Future:
+The "a" may change its value, due to the unknown attribute lookup of it already, not even
+the call. The for loop must be able to say "may change value" due to that, of course also
+due to the call of that attribute too.
 
-   - Print has a constant node argument
-   - After loop "a" is of type list still
+The code should therefore become equivalent to:
 
-With that, we would have constant value propagation for lists in place, which is not much,
-but an important step clearly.
+.. code-block:: python
 
-The second goal will be that the "ValueFriendConstantList" knows that append changes "a"
-value, but it remains a list, and that the size increases by one. It should provide an
-other value friend "ValueFriendList" for "a" due to that.
+   def f():
+      a = []
 
-The third and challenging goal will be to make the code generation be impacted by the
-tracked types. It should have a knowledge that "PyList_Append" does the job of append and
-use "PyList_Size" for "len". The "ValueFriends" should aid code generation too.
+      print []
+
+      for i in range(1000):
+          print a
+
+          a.append( i )
+
+      return len( a )
+
+But no other changes must occur, especially not to the "return" statement, it must not
+assume "a" to be constant "[]" but an unknown "a" instead.
+
+With that, we would handle this code correctly and have some form constant value
+propagation in place, handle loops at least correctly, and while it is not much, it is
+important demonstration of the concept.
+
+The third goal will therefore be that the "ValueFriendConstantList" knows that append
+changes "a" value, but it remains a list, and that the size increases by one. It should
+provide an other value friend "ValueFriendList" for "a" due to that.
+
+In order to do that, such code must be considered:
+
+.. code-block:: python
+
+   a = []
+
+   a.append( 1 )
+   a.append( 2 )
+
+   print len( a )
+
+It will be good, if "len" still knows that "a" is a list, but not the constant list
+anymore.
+
+From here, work should be done to demonstrate the correctness of it with the basic tests
+applied to discover undetected issues.
+
+Forth and optional goal: Extra bonus points for being able to track and predict "append"
+to update the constant list in a known way. Using "list.append" that should be done and
+lead to a constant result of "len" being used.
+
+The fifth and challenging goal will be to make the code generation be impacted by the
+value friends types. It should have a knowledge that "PyList_Append" does the job of
+append and use "PyList_Size" for "len". The "ValueFriends" should aid the code generation
+too.
 
 Last and right now optional goal will be to make "range" have a value friend, that can
 interact with iteration of the for loop, and "append" of the "list" value friend, so it
 knows it's possible to iterate 5000 times, and that "a" has then after the "loop" this
 size, so "len( a )" could be predicted. For during the loop, about a the range of its
-length should be known to be less than 5000.
+length should be known to be less than 5000. That would make the code of goal 2 completely
+analyzed at compile time.
 
 Limitations for now
 -------------------
@@ -656,11 +811,12 @@ Limitations for now
 
 - Only enough to trace "ctypes" information through the code
 
-  We won't cover everything immediately. We should consider to re-factor existing
+  We won't cover everything immediately. We need to consider re-factoring existing
   optimizations into such that happen during the pass with value information. The builtins
-  have already been mentioned as a worth-while target.
+  have already been mentioned as a worth-while target. It would also validate the new
+  design. But it should not block to reach the ability to implement "ctypes".
 
-- Aim only for limited examples. For ctypes that means to compile time evaluate:
+- Aim only for limited examples. For "ctypes" that means to compile time evaluate:
 
   .. code-block:: python
 
@@ -676,12 +832,28 @@ Limitations for now
   that is some work that will be based on this work here. The "hints" fits into the
   "ValueFriends" concept nicely or so the hope is.
 
+- No inter-function optimization functions yet
+
+  It's not needed yet or so I think. Of course, once in place, it will make the "ctypes"
+  annotation even more usable. Using "ctypes" objects inside functions, while creating
+  them on the module level, is therefore not immediately going to work.
+
+- No loops yet
+
+  Loops break value propagation. For the "ctypes" use case, this won't be much of a
+  difficulty. Due to the strangeness of the task, it should be tackled later on at a
+  higher priority.
+
 - Not too much.
 
   Try and get simple things to work now. We shall see, what kinds of constraints really
-  make the most sense. Understanding list values e.g. is not strictly useful immediately
-  and should not block us. This new design is not the final one likely, it just needs to
-  be better than existing optimizations design.
+  make the most sense. Understanding "list" subscript/slice values e.g. is not strictly
+  useful for much code and should not block us.
+
+.. note::
+
+   This new design is not the final one likely, it just needs to be better than existing
+   optimizations design.
 
 Realization
 -----------
@@ -689,9 +861,9 @@ Realization
 Kay will attempt to provide the framework parts that provide the interface and Christopher
 will work on the "ctypes" as an example.
 
-The work is likely to happen on a git feature branch named "ctypes_annotation" or
-something similar to be thought on. It will likely be long lived, and Kay will move usable
-bits out of it for releases, causing rebases at agreed to times.
+The work is likely to happen on a git feature branch named "ctypes_annotation". It will
+likely be long lived, and Kay will move usable bits out of it for releases, causing
+rebases at agreed to times.
 
 .. note::
 
