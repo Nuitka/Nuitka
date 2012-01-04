@@ -45,7 +45,7 @@ def _couldBeNone( node ):
         return True
 
 
-class OverflowCheckVisitor( TreeOperations.ScopeVisitorNoopMixin ):
+class OverflowCheckVisitor( TreeOperations.VisitorNoopMixin ):
     def __init__( self, checked_node ):
         self.result = False
 

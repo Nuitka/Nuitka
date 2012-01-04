@@ -31,5 +31,9 @@
 
 from nuitka.transform import TreeOperations
 
-class FinalizationVisitorScopedBase( TreeOperations.ScopeVisitorNoopMixin ):
+class FinalizationVisitorBase( TreeOperations.VisitorNoopMixin ):
+    visit_type = "tree"
+
+
+class FinalizationVisitorScopedBase( TreeOperations.VisitorNoopMixin ):
     visit_type = "scopes"

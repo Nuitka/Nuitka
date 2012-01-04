@@ -41,7 +41,7 @@ from .FinalizeBase import FinalizationVisitorScopedBase
 
 class FinalizeClosureTaking( FinalizationVisitorScopedBase ):
     def __call__( self, node ):
-        assert node.isClosureVariableTaker()
+        assert node.isClosureVariableTaker(), node
 
         # print node, node.provider
 

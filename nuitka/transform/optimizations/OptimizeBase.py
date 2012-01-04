@@ -45,7 +45,7 @@ from nuitka.nodes.Nodes import makeConstantReplacementNode
 # These are here for easier import by the optimization steps.
 from logging import warning, debug, info
 
-class OptimizationVisitorBase:
+class OptimizationVisitorBase( TreeOperations.VisitorNoopMixin ):
     on_signal = None
 
     # Type of visit, by default all the tree is visited, but can also visit scopes only or
@@ -72,19 +72,18 @@ class OptimizationVisitorBase:
                 tree    = tree,
                 visitor = self
             )
-        elif self.visit_type == "kinds":
-            TreeOperations.visitKinds(
-                tree    = tree,
-                visitor = self,
-                kinds   = self.visit_kinds
-            )
         elif self.visit_type == "scopes":
             TreeOperations.visitScopes(
                 tree    = tree,
                 visitor = self
             )
+        elif self.visit_type == "execution":
+            TreeOperations.visitExecutions(
+                tree    = tree,
+                visitor = self
+            )
         else:
-            assert False
+            assert False, self.visit_type
 
     def replaceWithComputationResult( self, node, computation, description ):
         # Try and turn raised exceptions into static raises. pylint: disable=W0703
@@ -133,8 +132,11 @@ class OptimizationDispatchingVisitorBase( OptimizationVisitorBase ):
         # Abstract method, pylint: disable=R0201,W0613
         assert False
 
-class OptimizationVisitorScopedBase( OptimizationVisitorBase, TreeOperations.ScopeVisitorNoopMixin ):
+class OptimizationVisitorScopedBase( OptimizationVisitorBase ):
     visit_type = "scopes"
+
+class OptimizationVisitorExecutionBase( OptimizationVisitorBase ):
+    visit_type = "execution"
 
 
 def areConstants( expressions ):

@@ -64,6 +64,19 @@ lxml = TreeXML.lxml
 class NodeCheckMetaClass( type ):
     kinds = set()
 
+    def __new__( mcs, name, bases, dictionary ):
+        if "tags" not in dictionary:
+            dictionary[ "tags" ] = ()
+
+        for base in bases:
+            if hasattr( base, "tags" ):
+                dictionary[ "tags" ] += getattr( base, "tags" )
+
+        # Uncomment this for debug view of class tags.
+        # print name, dictionary[ "tags" ]
+
+        return type.__new__( mcs, name, bases, dictionary )
+
     def __init__( mcs, name, bases, dictionary ):
         if not name.endswith( "Base" ):
             assert ( "kind" in dictionary ), name
@@ -81,15 +94,13 @@ class NodeCheckMetaClass( type ):
                     return value.title()
 
             kind_to_name_part = "".join( [ convert( x ) for x in kind.split( "_" ) ] )
-
             assert name.endswith( kind_to_name_part ), ( name, kind_to_name_part )
 
+            # Automatically add checker methods for everything to the common base class
             checker_method = "is" + kind_to_name_part
 
             if name.startswith( "CPython" ):
                 checker_method = checker_method.replace( "CPython", "" )
-
-            # Automatically add checker methods for everything.
 
             def checkKind( self ):
                 return self.kind == kind
@@ -97,11 +108,16 @@ class NodeCheckMetaClass( type ):
             if not hasattr( CPythonNodeBase, checker_method ):
                 setattr( CPythonNodeBase, checker_method, checkKind )
 
+            # Tags mechanism, so node classes can be tagged with inheritance or freely,
+            # the "tags" attribute is not overloaded, but added. Absolutely not obvious
+            # and a trap set for the compiler by itself.
+
         type.__init__( mcs, name, bases, dictionary )
 
 # For every node type, there is a test, and then some more members, pylint: disable=R0904
 
-# For Python2/3 compatible source, we create a base class that has the metaclass used and doesn't require making a choice.
+# For Python2/3 compatible source, we create a base class that has the metaclass used and
+# doesn't require making a choice.
 CPythonNodeMetaClassBase = NodeCheckMetaClass( "CPythonNodeMetaClassBase", (object, ), {} )
 
 class CPythonNodeBase( CPythonNodeMetaClassBase ):
@@ -216,7 +232,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         return isinstance( self, CPythonClosureGiverNodeBase ) or self.isExpressionClassBody()
 
     def isClosureVariableTaker( self ):
-        return isinstance( self, CPythonClosureTaker )
+        return self.hasTag( "closure_taker" )
 
     def getParentVariableProvider( self ):
         parent = self.getParent()
@@ -305,17 +321,16 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         return ()
 
-    def getSameScopeNodes( self ):
-        """ Get nodes to be evaluated within the same scope.
+    def getChildNodesNotTagged( self, tag ):
+        """ Get child nodes that do not have a given tag.
 
-            These are all that are not closure variable takers.
         """
 
         return [
             node
             for node in
             self.getVisitableNodes()
-            if not node.isClosureVariableTaker()
+            if not node.hasTag( tag )
         ]
 
 
@@ -342,6 +357,10 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         """ Unless we are told otherwise, it's not indexable. """
 
         return False
+
+
+    def hasTag( self, tag ):
+        return tag in self.__class__.tags
 
 class CPythonNamedNodeBase( CPythonNodeBase ):
     def __init__( self, name, source_ref ):
@@ -617,6 +636,8 @@ class CPythonParameterHavingNodeBase( CPythonClosureGiverNodeBase ):
 
 class CPythonClosureTaker:
     """ Mixin for nodes that accept variables from closure givers. """
+
+    tags = ( "closure_taker", "execution_border" )
 
     def __init__( self, provider ):
         assert self.__class__.early_closure is not None, self

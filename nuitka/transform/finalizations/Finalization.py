@@ -41,18 +41,9 @@ from .FinalizeClosureTaking import FinalizeClosureTaking
 # Bug of pylint, it's there but it reports it wrongly, pylint: disable=E0611
 from .. import TreeOperations
 
-taking_kinds = (
-    "EXPRESSION_FUNCTION_BODY",
-    "EXPRESSION_CLASS_BODY",
-    "EXPRESSION_LIST_CONTRACTION_BODY",
-    "EXPRESSION_DICT_CONTRACTION_BODY",
-    "EXPRESSION_SET_CONTRACTION_BODY",
-    "EXPRESSION_GENERATOR_BODY",
-)
-
 def prepareCodeGeneration( tree ):
     visitor = FinalizeMarkups()
     TreeOperations.visitTree( tree, visitor )
 
     visitor = FinalizeClosureTaking()
-    TreeOperations.visitKinds( tree, taking_kinds, visitor )
+    TreeOperations.visitTagHaving( tree, visitor, "closure_taker" )

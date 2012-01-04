@@ -257,7 +257,7 @@ class MaybeLocalVariableReductionVisitor( OptimizationVisitorBase ):
         # print old_variable, "->", new_variable
 
 
-class ModuleVariableWriteCheck( TreeOperations.ScopeVisitorNoopMixin ):
+class ModuleVariableWriteCheck( TreeOperations.VisitorNoopMixin ):
     def __init__( self, variable_name ):
         self.variable_name = variable_name
         self.result = False
@@ -337,7 +337,7 @@ class ModuleVariableUsageAnalysisVisitor( ModuleVariableVisitorBase ):
             )
 
 
-class ModuleVariableReadReplacement:
+class ModuleVariableReadReplacement( TreeOperations.VisitorNoopMixin ):
     def __init__( self, variable_name, make_node ):
         self.variable_name = variable_name
         self.make_node = make_node

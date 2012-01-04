@@ -41,7 +41,9 @@ in another context.
 """
 from nuitka.nodes import OverflowCheck
 
-class FinalizeMarkups:
+from .FinalizeBase import FinalizationVisitorBase
+
+class FinalizeMarkups( FinalizationVisitorBase ):
     def __call__( self, node ):
         if node.isExpressionFunctionBody() or node.isExpressionClassBody():
             if OverflowCheck.check( node.getBody() ):

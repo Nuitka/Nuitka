@@ -36,83 +36,88 @@ forest of modules.
 
 """
 
-
 class ExitVisit( BaseException ):
     pass
 
 class RestartVisit( BaseException ):
     pass
 
-def _visitTree( tree, visitor ):
+def _visitTree( tree, visitor, limit_tag ):
     visitor( tree )
 
-    for visitable in tree.getVisitableNodes():
+    for visitable in tree.getChildNodesNotTagged( limit_tag ):
         if visitable is None:
-            raise AssertionError( "none child encountered", tree, tree.source_ref )
+            raise AssertionError( "'None' child encountered", tree, tree.source_ref )
 
-        _visitTree( visitable, visitor )
+        _visitTree( visitable, visitor, limit_tag )
 
-def visitTree( tree, visitor ):
+    visitor.onLeaveNode( tree )
+
+def visitTree( tree, visitor, limit_tag = None ):
     try:
-        _visitTree( tree, visitor )
+        _visitTree( tree, visitor, limit_tag )
     except ExitVisit:
         pass
     except RestartVisit:
-        visitTree( tree, visitor )
-
-
-def _visitScope( tree, visitor ):
-    visitor( tree )
-
-    for visitable in tree.getSameScopeNodes():
-        if visitable is None:
-            raise AssertionError( "none child encountered", tree, tree.source_ref )
-
-        _visitScope( visitable, visitor )
-
-    visitor.leaveNode( tree )
+        visitTree( tree, visitor, limit_tag )
 
 def visitScope( tree, visitor ):
-    visitor.enterScope( tree )
+    visitTree( tree, visitor, "closure_taker" )
 
-    try:
-        _visitScope( tree, visitor )
-    except ExitVisit:
-        pass
-    except RestartVisit:
-        visitScope( tree, visitor )
-
-    visitor.leaveScope( tree )
-
-
-def visitKinds( tree, kinds, visitor ):
-    def visitMatchingKinds( node ):
-        if node.kind in kinds:
-            visitor( node )
-
-    _visitTree( tree, visitMatchingKinds )
+def visitExecution( tree, visitor ):
+    visitTree( tree, visitor, "execution_border" )
 
 def visitScopes( tree, visitor ):
     def visitEverything( node ):
-        if node.isClosureVariableTaker():
-            visitScope( node, visitor )
+        if node.hasTag( "closure_taker" ):
+            visitor.onEnterScope( node )
+            visitTree( node, visitor, "closure_taker" )
+            visitor.onLeaveScope( node )
 
-    _visitTree( tree, visitEverything )
+    visitEverything.onLeaveNode = lambda tree: None
 
-class ScopeVisitorNoopMixin:
-    def enterScope( self, tree ):
-        """ To be optionally overloaded for per-scope entry tasks. """
-        pass
+    _visitTree( tree, visitEverything, None )
 
-    def leaveScope( self, tree ):
-        """ To be optionally overloaded for per-scope exit tasks. """
-        pass
+def visitExecutions( tree, visitor ):
+    def visitEverything( node ):
+        if node.hasTag( "closure_taker" ):
+            visitor.onEnterScope( node )
+            visitTree( tree, visitor, "execution_border" )
+            visitor.onLeaveScope( node )
+        elif node.hasTag( "execution_border" ):
+            visitor.onEnterExecutionBorder( node )
+            visitTree( tree, visitor, "execution_border" )
+            visitor.onLeaveExecutionBorder( node )
 
-    # TODO: Rename this one day, the functor approach makes
+    visitEverything.onLeaveNode = lambda tree: None
+
+    _visitTree( tree, visitEverything, None )
+
+def visitTagHaving( tree, visitor, tag ):
+    def visitEverything( node ):
+        if node.hasTag( tag ):
+            visitor( node )
+
+    visitEverything.onLeaveNode = lambda tree: None
+
+    _visitTree( tree, visitEverything, None )
+
+
+class VisitorNoopMixin:
+    # TODO: Rename this one day to onEnterNode, the functor approach makes no sense really.
     def __call__( self, node ):
         """ To be optionally overloaded for operation before the node children were done. """
         pass
 
-    def leaveNode( self, node ):
+    def onLeaveNode( self, node ):
         """ To be optionally overloaded for operation after the node children were done. """
+        pass
+
+    # Only for "scope" and "execution" visits.
+    def onEnterScope( self, tree ):
+        """ To be optionally overloaded for per-scope entry tasks. """
+        pass
+
+    def onLeaveScope( self, tree ):
+        """ To be optionally overloaded for per-scope exit tasks. """
         pass
