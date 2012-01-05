@@ -1,5 +1,4 @@
 #!/bin/sh -e
-#
 #     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and

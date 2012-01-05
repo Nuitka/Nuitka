@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-#
 #     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Python test originally created or extracted from other peoples work. The

@@ -1,5 +1,4 @@
 @echo off
-rem
 rem     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 rem
 rem     Part of "Nuitka", an optimizing Python compiler that is compatible and
