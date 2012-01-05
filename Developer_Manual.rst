@@ -795,6 +795,11 @@ With that, we would handle this code correctly and have some form constant value
 propagation in place, handle loops at least correctly, and while it is not much, it is
 important demonstration of the concept.
 
+.. note::
+
+   This part is implemented. Except that "return" is not yet understood. Need a plan to
+   cover it.
+
 The third goal will therefore be that the "ValueFriendConstantList" knows that append
 changes "a" value, but it remains a list, and that the size increases by one. It should
 provide an other value friend "ValueFriendList" for "a" due to that.
