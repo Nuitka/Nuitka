@@ -6,6 +6,7 @@ Build-Depends: debhelper (>= 7.4.3),
                g++-4.6 (>= 4.6.1),
                python (>= 2.6.6-3),
                python-dev (>= 2.6.6-3),
+               rst2pdf (>= 0.16-2),
                scons (>=2.0.1)
 Vcs-Git: http://git.nuitka.net/Nuitka.git
 Vcs-browser: http://nuitka.net/gitweb/?p=Nuitka.git;a=summary

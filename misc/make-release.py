@@ -69,7 +69,7 @@ for filename in os.listdir( "." ):
 
         shutil.copy( filename, new_name )
         assert 0 == os.system( "gunzip " + new_name )
-        assert 0 == os.system( "tar --wildcards --delete --file " + new_name[:-3] + " Nuitka*/tests/benchmarks Nuitka*/nuitka/build/inline_copy"  )
+        assert 0 == os.system( "tar --wildcards --delete --file " + new_name[:-3] + " Nuitka*/tests/benchmarks Nuitka*/nuitka/build/inline_copy Nuitka*/*.pdf"  )
         assert 0 == os.system( "gzip -9 -n " + new_name[:-3] )
 
         assert 0 == os.system( "py2dsc " + new_name )
