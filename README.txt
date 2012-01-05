@@ -486,8 +486,10 @@ Credits
 Contributors to Nuitka
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Thanks go to these individuals for their much valued contributions to Nuitka. The order is
-sorted by time.
+Thanks go to these individuals for their much valued contributions to Nuitka. Contributors
+have the license to use Nuitka for their own code even if Closed Source.
+
+The order is sorted by time.
 
 - Li Xuan Ji: Contributed patches for general portability issue and enhancements to the
   environment variable settings.
@@ -503,6 +505,10 @@ sorted by time.
 - Liu Zhenhai: Submitted patches for Windows support, making the inline Scons copy
   actually work on Windows as well. Also reported import related bugs, and generally
   helped me make the Windows port more usable through his testing and information.
+
+- Christopher Tott: Submitted patches for Windows, and general as well as structural
+  cleanups, he is also attempting to support direct "ctypes" calls to be evaluated at
+  compile time.
 
 Projects used by Nuitka
 ~~~~~~~~~~~~~~~~~~~~~~~
