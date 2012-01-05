@@ -184,6 +184,39 @@ For an external API you may exactly want to hide things, but internally that has
 and in Nuitka, every API is internal API. One exception may be the "hints" module, which
 will gladly use such tricks for easier write syntax.
 
+The "git flow" model
+====================
+
+Nuitka das Projekt - git flow
+-----------------------------
+
+* The flow was used for the least releases and subsequent hotfixes.
+
+  A few feature branches were used so far. It allows for quick delivery of fixes to both
+  the stable and the development version, supported by a git plugin, that can be installed
+  via "apt-get install git-flow" on latest Debian Testing at least.
+
+* Stable (master branch)
+
+  The stable version, is expected to pass all the tests at all times and is fully
+  supported. As soon as bugs are discovered, they are fixed as hotfixes, and then merged
+  to develop by the "git flow" automatically.
+
+* Development (develop branch)
+
+  The future release, supposedly in almost ready for release state at nearly all times,
+  but this is as strict. It is not officially supported, and may have problems and at
+  times inconsistencies.
+
+* Feature Branches
+
+  On these long lived developments that extend for multiple release cycles or contain
+  changes that break Nuitka temporarily. They need not be functional at all.
+
+.. image:: doc/Nuitka-git-flow.png
+   :width: 7.2cm
+
+
 Design Descriptions
 ===================
 
@@ -863,7 +896,7 @@ will work on the "ctypes" as an example.
 
 The work is likely to happen on a git feature branch named "ctypes_annotation". It will
 likely be long lived, and Kay will move usable bits out of it for releases, causing
-rebases at agreed to times.
+"git flow feature rebases" at agreed to times.
 
 .. note::
 
@@ -876,7 +909,8 @@ rebases at agreed to times.
 Updates for this Manual
 =======================
 
-This document is written in REST. That is an ASCII format readable as ASCII, but used to generate a PDF or HTML document.
+This document is written in REST. That is an ASCII format readable as ASCII, but used to
+generate a PDF or HTML document.
 
 You will find the current source under:
 http://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=Developer_Manual.txt
