@@ -101,6 +101,14 @@ def buildStatementsNode( provider, nodes, source_ref, allow_none = False ):
         source_ref = source_ref
     )
 
+def buildLoopBodyNode( provider, nodes, source_ref ):
+    statements = buildNodeList( provider, nodes, source_ref )
+
+    return Nodes.CPythonStatementsSequenceLoopBody(
+        statements = statements,
+        source_ref = source_ref
+    )
+
 def buildDecoratorNodes( provider, nodes, source_ref ):
     return buildNodeList( provider, nodes, source_ref )
 
@@ -278,7 +286,7 @@ def buildForLoopNode( provider, node, source_ref ):
     return Nodes.CPythonStatementForLoop(
         source     = buildNode( provider, node.iter, source_ref ),
         target     = buildAssignTarget( provider, node.target, source_ref ),
-        body       = buildStatementsNode( provider, node.body, source_ref ),
+        body       = buildLoopBodyNode( provider, node.body, source_ref ),
         no_break   = buildStatementsNode(
             provider   = provider,
             nodes      = node.orelse if node.orelse else None,
@@ -291,7 +299,7 @@ def buildForLoopNode( provider, node, source_ref ):
 def buildWhileLoopNode( provider, node, source_ref ):
     return Nodes.CPythonStatementWhileLoop(
         condition  = buildNode( provider, node.test, source_ref ),
-        body       = buildStatementsNode( provider, node.body, source_ref ),
+        body       = buildLoopBodyNode( provider, node.body, source_ref ),
         no_enter   = buildStatementsNode(
             provider   = provider,
             nodes      = node.orelse if node.orelse else None,
@@ -751,7 +759,7 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
                     source_ref = source_ref
                 )
 
-                body = Nodes.CPythonStatementsSequence(
+                body = Nodes.CPythonStatementsSequenceLoopBody(
                     statements = ( body, ),
                     source_ref = source_ref
                 )

@@ -45,17 +45,7 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
             parent = node.getParent()
 
             if parent.isStatementsSequence():
-                statements = list( parent.getStatements() )
-
-                offset = statements.index( node )
-                statements[ offset : offset + 1 ] = node.getStatements()
-
-                new_node = Nodes.CPythonStatementsSequence(
-                    statements = statements,
-                    source_ref = parent.getSourceReference()
-                )
-
-                parent.replaceWith( new_node )
+                parent.mergeStatementsSequence( node )
 
                 raise TreeOperations.RestartVisit
         elif node.isStatementExpressionOnly():
@@ -88,18 +78,9 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
                     # discover if it would be useful.
                     pass
             else:
-                statements = list( statements )
-                offset = statements.index( node )
+                parent.removeStatement( node )
 
-                del statements[ offset ]
-
-                new_node = Nodes.CPythonStatementsSequence(
-                    statements = statements,
-                    source_ref = parent.getSourceReference()
-                )
-
-                parent.replaceWith( new_node )
-
+                # TODO: Should only re-visit this node.
                 raise TreeOperations.RestartVisit
         elif node.isStatementTryExcept():
             if node.getBlockTry() is None:

@@ -979,6 +979,9 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
 
     getStatements = CPythonChildrenHaving.childGetter( "statements" )
 
+    def isStatementsSequence( self ):
+        return True
+
     def trimStatements( self, statement ):
         assert statement.parent is self
 
@@ -989,6 +992,28 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
 
         self.setChild( "statements", new_statements )
 
+    def removeStatement( self, statement ):
+        assert statement.parent is self
+
+        statements = list( self.getStatements() )
+        statements.remove( statement )
+        self.setChild( "statements", statements )
+
+    def mergeStatementsSequence( self, statement_sequence ):
+        assert statement_sequence.parent is self
+
+        old_statements = list( self.getStatements() )
+        assert statement_sequence in old_statements, ( statement_sequence, self )
+
+        merge_index =  old_statements.index( statement_sequence )
+
+        new_statements = tuple( old_statements[ : merge_index ] )   + \
+                         statement_sequence.getStatements()         + \
+                         tuple( old_statements[ merge_index + 1 : ] )
+
+        self.setChild( "statements", new_statements )
+
+
     def mayHaveSideEffects( self ):
         # Statement sequences have a side effect if one of the statements does.
         for statement in self.getStatements():
@@ -996,6 +1021,13 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
                 return True
         else:
             return False
+
+class CPythonStatementsSequenceLoopBody( CPythonStatementsSequence ):
+    kind = "STATEMENTS_SEQUENCE_LOOP_BODY"
+
+    named_children = ( "statements", )
+
+    tags = ( "execution_border", )
 
 
 class CPythonAssignTargetVariable( CPythonChildrenHaving, CPythonNodeBase ):
@@ -1974,6 +2006,8 @@ class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExcep
     named_children = ( "iterated", "target", "body", "else" )
 
     def __init__( self, source, target, body, no_break, source_ref ):
+        assert body.isStatementsSequenceLoopBody()
+
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
@@ -2001,6 +2035,8 @@ class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExc
     named_children = ( "condition", "frame", "else" )
 
     def __init__( self, condition, body, no_enter, source_ref ):
+        assert body.isStatementsSequenceLoopBody()
+
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
