@@ -35,9 +35,10 @@ global_copyright = """\
 // Generated code for Python source for module '%(name)s'
 // created by Nuitka version %(version)s
 
-// This code is in part copyright Kay Hayen, license GPLv3. This has the consequence that
-// your must either obtain a commercial license or also publish your original source code
-// under the same license unless you don't distribute this source or its binary.
+// This code is in part copyright Kay Hayen, license GPLv3. This has the
+// consequence that your must either obtain another license or also publish
+// your original source code under a compatible license unless you don't
+// distribute this source or the compiled binary.
 """
 
 module_inittab_entry = """\
