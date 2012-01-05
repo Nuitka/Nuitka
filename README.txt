@@ -107,8 +107,7 @@ Join Nuitka
 You are more than welcome to join Nuitka development and help to complete the project in
 all minor and major ways.
 
-
-The development of Nuitka occurs in git. We currently have 2 branches:
+The development of Nuitka occurs in git. We currently have these 2 branches:
 
 - `master <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/master>`_:
   This branch contains the stable release to which only hotfixes for bugs will be
@@ -119,7 +118,17 @@ The development of Nuitka occurs in git. We currently have 2 branches:
   regressions, but also new features. On this branch the integration work is done, whereas
   new features might be developed on feature branches.
 
-.. note:: I accept patch files, git formated patch queues, and git pull requests. I will do the integration work. If you base your work on "master", I will do any rebasing required.
+.. note::
+
+   I accept patch files, git formated patch queues, and git pull requests. I will do the
+   integration work. If you base your work on "master" at any given time, I will do any
+   re-basing required.
+
+.. note::
+
+   The Developer Manual explains the coding rules, branching model used, with feature
+   branches and hotfix releases, the Nuitka design and much more. Consider reading it to
+   become a contributor. This document is intended for Nuitka users.
 
 
 Unsupported functionality
