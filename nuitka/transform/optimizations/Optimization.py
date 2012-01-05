@@ -67,6 +67,8 @@ from logging import debug
 
 _progress = Options.isShowProgress()
 
+use_propagation = Options.useValuePropagation()
+
 def optimizeTree( tree ):
     # Lots of conditions to take, pylint: disable=R0912
 
@@ -127,6 +129,9 @@ def optimizeTree( tree ):
 
         if tags.check( "new_code new_raise" ):
             optimizations_queue.add( OptimizeRaisesVisitor )
+
+        if use_propagation and tags.check( "new_code new_constant" ):
+            optimizations_queue.add( ValuePropagationVisitor )
 
         tags.clear()
 

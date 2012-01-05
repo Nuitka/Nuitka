@@ -309,6 +309,16 @@ Compile the would-be generated source file. Allows edition and translation with 
 options for quick debugging changes to the generated source. Defaults to off."""
 )
 
+debug_group.add_option(
+    "--experimental",
+    action  = "store_true",
+    dest    = "experimental",
+    default = False,
+    help    = """\
+Use features declared as "experimental". May have no effect if no experimental features
+are present in the code. Defaults to off."""
+)
+
 parser.add_option_group( debug_group )
 
 parser.add_option(
@@ -398,6 +408,9 @@ if options.recurse_all and not options.executable:
 
 if options.recurse_stdlib and not options.executable:
     sys.exit( "Error, options '--recurse-stdlib' makes no sense without option '--exe'." )
+
+def useValuePropagation():
+    return options.experimental
 
 def shallTraceExecution():
     return options.trace_execution

@@ -82,11 +82,11 @@ def visitExecutions( tree, visitor ):
     def visitEverything( node ):
         if node.hasTag( "closure_taker" ):
             visitor.onEnterScope( node )
-            visitTree( tree, visitor, "execution_border" )
+            visitTree( node, visitor, "execution_border" )
             visitor.onLeaveScope( node )
         elif node.hasTag( "execution_border" ):
             visitor.onEnterExecutionBorder( node )
-            visitTree( tree, visitor, "execution_border" )
+            visitTree( node, visitor, "execution_border" )
             visitor.onLeaveExecutionBorder( node )
 
     visitEverything.onLeaveNode = lambda tree: None

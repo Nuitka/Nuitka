@@ -6,8 +6,6 @@ Source: http://nuitka.net/
 Files: *
 Copyright: 2012 Kay Hayen <kayhayen@gmx.de>
 License: GPL-3
- Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
- .
  Part of "Nuitka", an optimizing Python compiler that is compatible and
  integrates with CPython, but also works on its own.
  .
@@ -38,16 +36,9 @@ License: GPL-3
  On Debian GNU/Linux systems, the complete text of the GNU General
  Public License can be found in `/usr/share/common-licenses/GPL-3'.
 
-Files: debian/*
-Copyright: 2012 Kay Hayen <kayhayen@gmx.de>
-License: public-domain
- The Debian packaging of Nuitka is into the public domain.
-
 Files: tests/basics/* tests/programs/* tests/reflected/*
 Copyright: 2012 Kay Hayen <kayhayen@gmx.de>
 License: public-domain
- Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
- .
  Python test originally created or extracted from other peoples work. The
  parts and resulting tests are too small to be protected and therefore
  is in the public domain.
@@ -151,3 +142,8 @@ License: MIT
   * WARRANTY.  IN PARTICULAR, NEITHER THE AUTHORS NOR LUCENT TECHNOLOGIES MAKE ANY
   * REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
   * OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
+
+Files: debian/*
+Copyright: 2012 Kay Hayen <kayhayen@gmx.de>
+License: public-domain
+ The Debian packaging of Nuitka is into the public domain.
