@@ -1,4 +1,4 @@
-nuitka (0.3.17~pre4+ds-1) unstable; urgency=low
+nuitka (0.3.17~pre4+ds-1) UNRELEASED; urgency=low
 
   * New upstream pre-release.
   * New maintainer (Closes: #648489)
@@ -20,9 +20,9 @@ nuitka (0.3.17~pre4+ds-1) unstable; urgency=low
   * Corrected handling of upstream pre-release names in the watch
     file.
 
- -- Kay Hayen <kayhayen@gmx.de>  Wed, 04 Jan 2012 00:03:48 +0100
+ -- Kay Hayen <kayhayen@gmx.de>  Thu, 05 Jan 2012 10:16:19 +0100
 
-nuitka (0.3.16-1) unstable; urgency=low
+nuitka (0.3.16-1) UNRELEASED; urgency=low
 
   * New upstream release.
   * Updated debian/copyright URI to match the latest one.
@@ -38,20 +38,20 @@ nuitka (0.3.16-1) unstable; urgency=low
 
  -- Kay Hayen <kayhayen@gmx.de>  Sun, 18 Dec 2011 13:01:10 +0100
 
-nuitka (0.3.15-1) unstable; urgency=low
+nuitka (0.3.15-1) UNRELEASED; urgency=low
 
   * New stable upstream release.
 
  -- Kay Hayen <kayhayen@gmx.de>  Thu, 01 Dec 2011 22:43:33 +0100
 
-nuitka (0.3.15pre5-1) unstable; urgency=low
+nuitka (0.3.15pre5-1) UNRELEASED; urgency=low
 
   * New upstream version.
   * Added "--unstriped" example to the man page.
 
  -- Kay Hayen <kayhayen@gmx.de>  Wed, 30 Nov 2011 00:30:25 +0100
 
-nuitka (0.3.15pre4-1) unstable; urgency=low
+nuitka (0.3.15pre4-1) UNRELEASED; urgency=low
 
   * New upstream version.
   * No longer dependent on foreign code for Windows generators,
@@ -59,7 +59,7 @@ nuitka (0.3.15pre4-1) unstable; urgency=low
 
  -- Kay Hayen <kayhayen@gmx.de>  Mon, 21 Nov 2011 00:19:56 +0100
 
-nuitka (0.3.15pre3-2) unstable; urgency=low
+nuitka (0.3.15pre3-2) UNRELEASED; urgency=low
 
   * Added man pages for "nuitka" and "nuitka-python", the first
     with an examples section that shows the most important uses
@@ -67,14 +67,14 @@ nuitka (0.3.15pre3-2) unstable; urgency=low
 
  -- Kay Hayen <kayhayen@gmx.de>  Wed, 16 Nov 2011 23:58:01 +0100
 
-nuitka (0.3.15pre3-1) unstable; urgency=low
+nuitka (0.3.15pre3-1) UNRELEASED; urgency=low
 
   * New upstream version.
   * Renamed "/usr/bin/Python" to "/usr/bin/nuitka-python".
 
  -- Kay Hayen <kayhayen@gmx.de>  Wed, 16 Nov 2011 08:43:22 +0100
 
-nuitka (0.3.15pre2-3) unstable; urgency=low
+nuitka (0.3.15pre2-3) UNRELEASED; urgency=low
 
   * Lowered dependency for Scons to what Ubuntu Oneiric has and
     what we have as an inline copy, (scons >=2.0.1) should be
@@ -82,7 +82,7 @@ nuitka (0.3.15pre2-3) unstable; urgency=low
 
  -- Kay Hayen <kayhayen@gmx.de>  Mon, 14 Nov 2011 17:25:06 +0100
 
-nuitka (0.3.15pre2-2) unstable; urgency=low
+nuitka (0.3.15pre2-2) UNRELEASED; urgency=low
 
   * Some review feedback on the Debian package.
   * Recommend python-lxml, as it's used by Nuitka to dump XML
@@ -96,7 +96,7 @@ nuitka (0.3.15pre2-2) unstable; urgency=low
 
  -- Kay Hayen <kayhayen@gmx.de>  Sun, 13 Nov 2011 17:42:47 +0100
 
-nuitka (0.3.15pre2-1) unstable; urgency=low
+nuitka (0.3.15pre2-1) UNRELEASED; urgency=low
 
   * Initial Debian package.
 
