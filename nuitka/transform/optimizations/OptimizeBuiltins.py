@@ -214,7 +214,7 @@ class ReplaceBuiltinsVisitorBase( OptimizationDispatchingVisitorBase ):
 
     def getKey( self, node ):
         if node.isExpressionFunctionCall():
-            called = node.getCalledExpression()
+            called = node.getCalled()
 
             if called.isExpressionVariableRef():
                 variable = called.getVariable()
@@ -266,7 +266,7 @@ class ReplaceBuiltinsVisitorBase( OptimizationDispatchingVisitorBase ):
 
             assert node.isExpressionFunctionCall
 
-            called = node.getCalledExpression()
+            called = node.getCalled()
             assert called.isExpressionVariableRef()
 
             variable = called.getVariable()
@@ -670,7 +670,7 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
         )
 
     def exceptions_extractor( self, node ):
-        exception_name = node.getCalledExpression().getVariable().getName()
+        exception_name = node.getCalled().getVariable().getName()
 
         def createBuiltinMakeException( args, source_ref ):
             return Nodes.CPythonExpressionBuiltinMakeException(

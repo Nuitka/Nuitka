@@ -1596,7 +1596,7 @@ class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNodeBase ):
 
         assert self.getChild( "called" ) is called_expression
 
-    getCalledExpression = CPythonChildrenHaving.childGetter( "called" )
+    getCalled = CPythonChildrenHaving.childGetter( "called" )
     getPositionalArguments = CPythonChildrenHaving.childGetter( "positional_args" )
     setPositionalArguments = CPythonChildrenHaving.childSetter( "positional_args" )
     getNamedArgumentPairs = CPythonChildrenHaving.childGetter( "pairs" )

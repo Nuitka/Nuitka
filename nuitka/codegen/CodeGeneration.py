@@ -910,7 +910,7 @@ def generateFunctionCallNamedArgumentsCode( pairs, context ):
 
 def generateFunctionCallCode( function, context ):
     function_identifier = generateExpressionCode(
-        expression = function.getCalledExpression(),
+        expression = function.getCalled(),
         context    = context
     )
 
