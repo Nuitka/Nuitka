@@ -336,16 +336,30 @@ class ModuleVariableUsageAnalysisVisitor( ModuleVariableVisitorBase ):
                 "Determined variable '%s' is only read." % variable.getName()
             )
 
+def isModuleVariableReference( node, var_name, module_name ):
+    if node.isExpressionVariableRef():
+        variable = node.getVariable()
+
+        assert variable is not None, node
+
+        if variable.isModuleVariableReference() and variable.getOwner().getName() == module_name:
+            return variable.getName() == var_name
+        else:
+            return False
+    else:
+        return False
+
 
 class ModuleVariableReadReplacement( TreeOperations.VisitorNoopMixin ):
-    def __init__( self, variable_name, make_node ):
+    def __init__( self, module_name, variable_name, make_node ):
+        self.module_name = module_name
         self.variable_name = variable_name
         self.make_node = make_node
 
         self.result = 0
 
     def __call__( self, node ):
-        if node.isExpressionVariableRef() and node.getVariableName() == self.variable_name and node.getVariable().isModuleVariableReference():
+        if isModuleVariableReference( node, self.variable_name, self.module_name ):
             node.replaceWith(
                 self.make_node( node )
             )
@@ -365,6 +379,7 @@ class ModuleVariableReadOnlyVisitor( ModuleVariableVisitorBase ):
                     )
 
                 visitor = ModuleVariableReadReplacement(
+                    module_name   = variable.getOwner().getName(),
                     variable_name = variable_name,
                     make_node     = makeNode
                 )
