@@ -31,6 +31,9 @@
 
 """
 
+# Bad to read, but we wan't the helper name to say it all and the call on same line
+# pylint: disable=C0301
+
 template_call_star_dict = """\
 CALL_FUNCTION_WITH_STAR_DICT( %(function)s, %(star_dict_arg)s )"""
 

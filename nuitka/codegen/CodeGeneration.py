@@ -781,11 +781,16 @@ def generateSliceAccessIdentifiers( sliced, lower, upper, context ):
 
 _slicing_available = Utils.getPythonVersion() < 300
 
+def decideSlicing( lower, upper ):
+    return _slicing_available and                       \
+           ( lower is None or lower.isIndexable() ) and \
+           ( upper is None or upper.isIndexable() )
+
 def generateSliceLookupCode( expression, context ):
     lower = expression.getLower()
     upper = expression.getUpper()
 
-    if _slicing_available and ( lower is None or lower.isIndexable() ) and ( upper is None or upper.isIndexable() ):
+    if decideSlicing( lower, upper ):
         expression_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
             sliced    = expression.getLookupSource(),
             lower     = lower,
@@ -841,7 +846,7 @@ def generateSliceAssignmentCode( target, assign_source, context ):
     lower = target.getLower()
     upper = target.getUpper()
 
-    if _slicing_available and ( lower is None or lower.isIndexable() ) and ( upper is None or upper.isIndexable() ):
+    if decideSlicing( lower, upper ):
         expression_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
             sliced    = target.getLookupSource(),
             lower     = lower,
@@ -1514,7 +1519,7 @@ def generateDelCode( targets, context ):
             lower = target.getLower()
             upper = target.getUpper()
 
-            if _slicing_available and ( lower is None or lower.isIndexable() ) and ( upper is None or upper.isIndexable() ):
+            if decideSlicing( lower, upper ):
                 target_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
                     sliced    = target.getLookupSource(),
                     lower     = lower,
@@ -1602,8 +1607,7 @@ def generateAssignmentInplaceCode( statement, context ):
         lower = target.getLower()
         upper = target.getUpper()
 
-        if _slicing_available and ( lower is None or lower.isIndexable() ) and ( upper is None or upper.isIndexable() ):
-
+        if decideSlicing( lower, upper ):
             target_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
                 sliced    = target.getLookupSource(),
                 lower     = lower,

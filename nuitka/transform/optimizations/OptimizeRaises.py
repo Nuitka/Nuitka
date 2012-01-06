@@ -205,12 +205,16 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
 
         # TODO: Why can raised_exception be None at all?
         if raised_exception is not None:
-            if catched_exception.isExpressionBuiltinExceptionRef() and raised_exception.isExpressionBuiltinExceptionRef():
+            # Both are builtin exception references of the same name
+            if catched_exception.isExpressionBuiltinExceptionRef() and \
+               raised_exception.isExpressionBuiltinExceptionRef():
                 # TODO: Could check run time objects from builtins for subclass relationship
                 if catched_exception.getExceptionName() == raised_exception.getExceptionName():
                     return True
 
-            if catched_exception.isExpressionBuiltinExceptionRef() and raised_exception.isExpressionBuiltinMakeException():
+            # Catched in builtin exception reference, and raised is an builtin one too.
+            if catched_exception.isExpressionBuiltinExceptionRef() and \
+                 raised_exception.isExpressionBuiltinMakeException():
                 # TODO: Could check run time objects from builtins for subclass relationship
                 if catched_exception.getExceptionName() == raised_exception.getExceptionName():
                     return True

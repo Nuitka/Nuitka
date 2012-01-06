@@ -121,7 +121,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
                 if module_filename not in _warned_about:
                     _warned_about.add( module_filename )
 
-                    warning(
+                    warning( # long message, but shall be like it, pylint: disable=C0301
                         "Not recursing to '%(full_path)s' (%(filename)s), please specify --recurse-none (do not warn), --recurse-all (recurse to all), --recurse-not-to=%(full_path)s (ignore it), --recurse-to=%(full_path)s (recurse to it) to change." % {
                             "full_path" : module_fullpath,
                             "filename"  : module_filename
