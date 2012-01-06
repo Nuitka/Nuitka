@@ -631,8 +631,8 @@ def buildBodyQuals( contraction_body, quals, source_ref ):
                 condition = conditions[ 0 ]
             else:
                 condition = Nodes.CPythonExpressionBoolAND(
-                    expressions = conditions,
-                    source_ref  = source_ref
+                    operands   = conditions,
+                    source_ref = source_ref
                 )
         else:
             condition = _buildConstantReferenceNode(
@@ -750,7 +750,10 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
             sources = [ Nodes.CPythonExpressionVariableRef( variable_name = "_iterated", source_ref = source_ref ) ]
             sources += contraction_body.getSources()
 
-            for target, source, condition in zip( contraction_body.getTargets(), sources, contraction_body.getConditions() ):
+            for target, source, condition in zip(
+                contraction_body.getTargets(),
+                sources,
+                contraction_body.getConditions() ):
 
                 body = Nodes.CPythonStatementConditional(
                     condition  = condition,
@@ -1282,18 +1285,21 @@ def buildBoolOpNode( provider, node, source_ref ):
     bool_op = getKind( node.op )
 
     if bool_op == "Or":
+        # The "or" may be short circuit and is therefore not a plain operation
         return Nodes.CPythonExpressionBoolOR(
-            expressions = buildNodeList( provider, node.values, source_ref ),
-            source_ref  = source_ref
+            operands   = buildNodeList( provider, node.values, source_ref ),
+            source_ref = source_ref
         )
     elif bool_op == "And":
+        # The "and" may be short circuit and is therefore not a plain operation
         return Nodes.CPythonExpressionBoolAND(
-            expressions = buildNodeList( provider, node.values, source_ref ),
+            operands    = buildNodeList( provider, node.values, source_ref ),
             source_ref  = source_ref
         )
     elif bool_op == "Not":
-        return Nodes.CPythonExpressionBoolNOT(
-            expression = buildNode( provider, node.operand, source_ref ),
+        # The "not" is really only a unary operation and no special.
+        return Nodes.CPythonExpressionOperationNOT(
+            operand    = buildNode( provider, node.operand, source_ref ),
             source_ref = source_ref
         )
     else:

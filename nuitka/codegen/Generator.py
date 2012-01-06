@@ -624,12 +624,14 @@ def getOperationCode( operator, identifiers ):
             1
         )
     elif len( identifiers ) == 1:
+        helper, ref_count = OperatorCodes.unary_operator_codes[ operator ]
+
         return Identifier(
             "UNARY_OPERATION( %s, %s )" % (
-                OperatorCodes.unary_operator_codes[ operator ],
+                helper,
                 identifier_refs[0]
             ),
-            1
+            ref_count
         )
     else:
         assert False, (operator, identifiers)

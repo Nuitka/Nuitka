@@ -68,10 +68,11 @@ inplace_operator_codes = {
 assert inplace_operator_codes.keys() == binary_operator_codes.keys()
 
 unary_operator_codes = {
-    "UAdd"   : "PyNumber_Positive",
-    "USub"   : "PyNumber_Negative",
-    "Invert" : "PyNumber_Invert",
-    "Repr"   : "PyObject_Repr",
+    "UAdd"   : ( "PyNumber_Positive", 1 ),
+    "USub"   : ( "PyNumber_Negative", 1 ),
+    "Invert" : ( "PyNumber_Invert", 1 ),
+    "Repr"   : ( "PyObject_Repr", 1 ),
+    "Not"    : ( "UNARY_NOT", 0 )
 }
 
 rich_comparison_codes = {

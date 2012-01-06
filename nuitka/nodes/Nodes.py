@@ -302,6 +302,9 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
     def isOperation( self ):
         return self.kind.startswith( "EXPRESSION_OPERATION_" )
 
+    def isExpressionOperationBool2( self ):
+        return self.kind.startswith( "EXPRESSION_BOOL_" )
+
     def isAssignTargetSomething( self ):
         return self.kind.startswith( "ASSIGN_" )
 
@@ -1698,6 +1701,12 @@ class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
             source_ref = source_ref
         )
 
+    def getOperand( self ):
+        operands = self.getOperands()
+
+        assert len( operands ) == 1
+        return operands[ 0 ]
+
 class CPythonExpressionContractionBuilderBase( CPythonChildrenHaving, CPythonNodeBase ):
     named_children = ( "source0", "body" )
 
@@ -2276,62 +2285,77 @@ class CPythonExpressionConditional( CPythonChildrenHaving, CPythonNodeBase ):
     getExpressionNo = CPythonChildrenHaving.childGetter( "expression_no" )
     getCondition = CPythonChildrenHaving.childGetter( "condition" )
 
-class CPythonExpressionBoolOR( CPythonChildrenHaving, CPythonNodeBase ):
+class CPythonExpressionBool2Base( CPythonChildrenHaving, CPythonNodeBase ):
+    """ The "and/or" are short circuit and is therefore are not plain operations.
+
+    """
+    tags = ( "short_circuit", )
+
+    named_children = ( "operands", )
+
+    def __init__( self, operands, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        assert len( operands ) >= 2
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "operands" : tuple( operands )
+            }
+        )
+
+
+    getOperands = CPythonChildrenHaving.childGetter( "operands" )
+
+class CPythonExpressionBoolOR( CPythonExpressionBool2Base ):
+    """ The "or" is short circuit and is therefore not a plain operation.
+
+    """
+
     kind = "EXPRESSION_BOOL_OR"
 
-    named_children = ( "expressions", )
+    def getSimulator( self ):
+        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=R0201
+        def simulateOR( *operands ):
+            for operand in operands:
+                if operand:
+                    return operand
+            else:
+                return operands[-1]
 
-    def __init__( self, expressions, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        assert len( expressions ) >= 2
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "expressions" : tuple( expressions )
-            }
-        )
+        return simulateOR
 
 
-    getExpressions = CPythonChildrenHaving.childGetter( "expressions" )
+class CPythonExpressionBoolAND( CPythonExpressionBool2Base ):
+    """ The "and" is short circuit and is therefore not a plain operation.
 
-class CPythonExpressionBoolAND( CPythonChildrenHaving, CPythonNodeBase ):
+    """
+
     kind = "EXPRESSION_BOOL_AND"
 
-    named_children = ( "expressions", )
+    def getSimulator( self ):
+        # Virtual method, pylint: disable=R0201
+        def simulateAND( *operands ):
+            for operand in operands:
+                if not operand:
+                    return operand
+            else:
+                return operands[-1]
 
-    def __init__( self, expressions, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        return simulateAND
 
-        assert len( expressions ) >= 2
+class CPythonExpressionOperationNOT( CPythonExpressionOperationUnary ):
+    kind = "EXPRESSION_OPERATION_NOT"
 
-        CPythonChildrenHaving.__init__(
+    def __init__( self, operand, source_ref ):
+        CPythonExpressionOperationUnary.__init__(
             self,
-            values = {
-                "expressions" : tuple( expressions )
-            }
+            operator   = "Not",
+            operand    = operand,
+            source_ref = source_ref
         )
-
-
-    getExpressions = CPythonChildrenHaving.childGetter( "expressions" )
-
-class CPythonExpressionBoolNOT( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "EXPRESSION_BOOL_NOT"
-
-    named_children = ( "expression", )
-
-    def __init__( self, expression, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "expression" : expression
-            }
-        )
-
-    getExpression = CPythonChildrenHaving.childGetter( "expression" )
 
 class CPythonStatementConditional( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_CONDITIONAL"

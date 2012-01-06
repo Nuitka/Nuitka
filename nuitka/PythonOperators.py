@@ -82,6 +82,8 @@ unary_operator_functions = {
     "USub"   : operator.neg,
     "Invert" : operator.invert,
     "Repr"   : repr,
+    # Boolean not is treated an unary operator.
+    "Not"    : operator.not_,
 }
 
 
