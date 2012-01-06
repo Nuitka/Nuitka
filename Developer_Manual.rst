@@ -902,10 +902,28 @@ important demonstration of the concept.
 
 .. note::
 
-   This part is implemented. Except that "return" is not yet understood. Need a plan to
-   cover it.
+   This part is implemented.
 
-The third goal will therefore be that the "ValueFriendConstantList" knows that append
+The third goal is to understand the following:
+
+.. code-block:: python
+
+   def f( cond ):
+       y = 3
+
+       if cond:
+           x = 1
+       else:
+           x = 2
+
+   return x < y
+
+In this we have a branch, and we will be required to keep track of both the branches
+separately, and then to merge with the original knowledge. After the conditional statement
+we will know that "x" is an "int" with possible values in "(1,2)", which can be used to
+predict that the return value is always "True".
+
+The forth goal will therefore be that the "ValueFriendConstantList" knows that append
 changes "a" value, but it remains a list, and that the size increases by one. It should
 provide an other value friend "ValueFriendList" for "a" due to that.
 
@@ -926,11 +944,11 @@ anymore.
 From here, work should be done to demonstrate the correctness of it with the basic tests
 applied to discover undetected issues.
 
-Forth and optional goal: Extra bonus points for being able to track and predict "append"
+Fifth and optional goal: Extra bonus points for being able to track and predict "append"
 to update the constant list in a known way. Using "list.append" that should be done and
 lead to a constant result of "len" being used.
 
-The fifth and challenging goal will be to make the code generation be impacted by the
+The sixth and challenging goal will be to make the code generation be impacted by the
 value friends types. It should have a knowledge that "PyList_Append" does the job of
 append and use "PyList_Size" for "len". The "ValueFriends" should aid the code generation
 too.
