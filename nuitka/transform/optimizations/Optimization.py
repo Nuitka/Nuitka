@@ -80,11 +80,12 @@ def optimizeTree( tree ):
     tags.add( "new_code" )
 
     def refreshOptimizationsFromTags( optimizations_queue, tags ):
+        if tags.check( "new_code" ):
+            optimizations_queue.add( FixupNewStaticMethodVisitor )
+
         if tags.check( "new_code new_variable" ):
             optimizations_queue.update( VariableClosureLookupVisitors )
 
-        if tags.check( "new_code" ):
-            optimizations_queue.add( FixupNewStaticMethodVisitor )
 
         # TODO: Split the __import__ one out.
         if tags.check( "new_code new_import new_constant" ):
@@ -142,7 +143,7 @@ def optimizeTree( tree ):
 
         next_optimization().execute( tree, on_signal = tags.onSignal )
 
-        if not optimizations_queue:
+        if not optimizations_queue or tags.check( "new_code" ):
             refreshOptimizationsFromTags( optimizations_queue, tags )
 
     return tree
