@@ -38,6 +38,7 @@ from .OptimizeBase import OptimizationVisitorBase, TreeOperations
 
 from nuitka.nodes import Nodes
 
+from logging import warning
 
 class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
     def __call__( self, node ):
@@ -63,20 +64,29 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
             if len( statements ) == 1:
                 owner = parent.getParent()
 
+                # TODO: Make use of tag to be added "empty_body"
                 if owner.isStatementConditional():
                     parent.replaceWith( None )
                 elif owner.isStatementForLoop():
                     parent.replaceWith( None )
                 elif owner.isStatementWhileLoop():
                     parent.replaceWith( None )
+                elif owner.isStatementWith():
+                    parent.replaceWith( None )
                 elif owner.isStatementTryExcept():
                     parent.replaceWith( None )
                 elif owner.isStatementTryFinally():
                     parent.replaceWith( None )
+                elif owner.isStatementExceptHandler():
+                    parent.replaceWith( None )
+                elif owner.isExpressionFunctionBody():
+                    parent.replaceWith( None )
+                elif owner.isExpressionClassBody():
+                    parent.replaceWith( None )
+                elif owner.isModule():
+                    parent.replaceWith( None )
                 else:
-                    # It's a pass in something else, TODO: Consider a warning to
-                    # discover if it would be useful.
-                    pass
+                    warning( "Discovered pass statement %s owned by %s", node, owner )
             else:
                 parent.removeStatement( node )
 

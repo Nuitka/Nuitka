@@ -279,12 +279,13 @@ def doesWriteModuleVariable( node, variable_name ):
         variable_name = variable_name
     )
 
-    assert node.getBody() is not None, ( node, node.getSourceReference() )
+    body = node.getBody()
 
-    TreeOperations.visitScope(
-        tree    = node.getBody(),
-        visitor = visitor
-    )
+    if body is not None:
+        TreeOperations.visitScope(
+            tree    = body,
+            visitor = visitor
+        )
 
     return visitor.getResult()
 

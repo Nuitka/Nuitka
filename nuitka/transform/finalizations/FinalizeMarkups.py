@@ -44,8 +44,13 @@ from .FinalizeBase import FinalizationVisitorBase
 
 class FinalizeMarkups( FinalizationVisitorBase ):
     def __call__( self, node ):
+        # Record if a function or class has an overflow. TODO: The Overflow check
+        # module and this should be united in a per tag finalization check on say
+        # "callable_body" tag
         if node.isExpressionFunctionBody() or node.isExpressionClassBody():
-            if OverflowCheck.check( node.getBody() ):
+            body = node.getBody()
+
+            if body is not None and OverflowCheck.check( body ):
                 node.markAsLocalsDict()
 
         if node.isStatementBreakLoop() or node.isStatementContinueLoop():

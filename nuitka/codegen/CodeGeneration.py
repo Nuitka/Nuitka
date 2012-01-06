@@ -487,8 +487,11 @@ def generateFunctionBodyCode( function, context ):
 
     codes = generateStatementSequenceCode(
         context            = context,
+        allow_none         = True,
         statement_sequence = body
     )
+
+    codes = codes or []
 
     return context, codes
 
@@ -580,9 +583,12 @@ def generateClassBodyCode( class_body, context ):
     )
 
     codes = generateStatementSequenceCode(
-        context            = context,
-        statement_sequence = class_body.getBody()
+        statement_sequence = class_body.getBody(),
+        allow_none         = True,
+        context            = context
     )
+
+    codes = codes or []
 
     return context, codes
 
@@ -2048,8 +2054,11 @@ def generateForLoopCode( statement, context ):
 def generateWithCode( statement, context ):
     body_codes = generateStatementSequenceCode(
         statement_sequence = statement.getWithBody(),
+        allow_none         = True,
         context            = context
     )
+
+    body_codes = body_codes or []
 
     with_manager_identifier, with_value_identifier = Generator.getWithNames(
         context = context
@@ -2317,8 +2326,11 @@ def generateModuleCode( module, module_name, global_context ):
 
     codes = generateStatementSequenceCode(
         statement_sequence = statement_sequence,
-        context            = context
+        allow_none         = True,
+        context            = context,
     )
+
+    codes = codes or []
 
     if module.isPackage():
         path_identifier = context.getConstantHandle(
