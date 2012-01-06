@@ -3059,7 +3059,7 @@ _match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
 def _isAttributeName( value ):
     return _match_attribute_names.match( value )
 
-def _getUnstreamCode( constant_value, constant_type, constant_identifier ):
+def _getUnstreamCode( constant_value, constant_identifier ):
     saved = getStreamedConstant(
         constant_value = constant_value
     )
@@ -3151,7 +3151,7 @@ def _getConstantsDefinitionCode( context ):
 
         if constant_type in ( tuple, list, float, complex, unicode, int, long, dict, frozenset, set, bytes, range ):
             statements.append(
-                _getUnstreamCode( constant_value, constant_type, constant_identifier )
+                _getUnstreamCode( constant_value, constant_identifier )
             )
 
             continue

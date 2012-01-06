@@ -92,7 +92,9 @@ class NodeCheckMetaClass( type ):
                 else:
                     return value.title()
 
-            kind_to_name_part = "".join( [ convert( x ) for x in kind.split( "_" ) ] )
+            kind_to_name_part = "".join(
+                [ convert( x ) for x in kind.split( "_" ) ]
+            )
             assert name.endswith( kind_to_name_part ), ( name, kind_to_name_part )
 
             # Automatically add checker methods for everything to the common base class

@@ -68,7 +68,16 @@ def getStreamedConstant( constant_value ):
         warning( "Problem with persisting constant '%r'." % constant_value )
         raise
 
-    assert Constants.compareConstants( restored, constant_value ), ( constant_value, "!=", restored, "types:", type( constant_value ), type( restored ) )
+    if not Constants.compareConstants( restored, constant_value ):
+        raise AssertionError(
+            "Streaming of constant changed value",
+            constant_value,
+            "!=",
+            restored,
+            "types:",
+            type( constant_value ),
+            type( restored )
+        )
 
     # If we have Python3, we need to make sure, we use UTF8 or else we get into trouble.
     if str is unicode:
