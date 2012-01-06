@@ -19,7 +19,7 @@ private conversations or discussions on the mailing list.
 Current State
 =============
 
-Nuitka as of 0.3.16 works like this:
+Nuitka top level works like this:
 
    - "TreeBuilding" outputs node tree
    - "Optimization" enhances it as best as it can
@@ -31,10 +31,10 @@ Nuitka as of 0.3.16 works like this:
 This design is intended to last. Regarding Types, the state is:
 
    - Types are always "PyObject \*", implictely
-   - The only more specific use of type is "constant", which can be
-     used to predict some operations, conditions, etc.
-   - Every operation is expected to have "PyObject \*" as result, if
-     it is not a constant, then we know nothing about it.
+   - The only more specific use of type is "constant", which can be used to predict some
+     operations, conditions, etc.
+   - Every operation is expected to have "PyObject \*" as result, if it is not a constant,
+     then we know nothing about it.
 
 Coding Rules
 ============
@@ -213,9 +213,17 @@ Nuitka das Projekt - git flow
   On these long lived developments that extend for multiple release cycles or contain
   changes that break Nuitka temporarily. They need not be functional at all.
 
-.. image:: doc/Nuitka-git-flow.png
-   :width: 7.2cm
+  Current Feature branches:
 
+  - "feature/minimize_CPython26_tests_diff": Maximizing compatibility, we minimize the
+    differences to baseline CPython2.6 tests. Currently stuck at "test_inspect.py" and
+    recently fallen behind, to be continued once Kay is free from preparatory works for
+    "feature/ctypes_annotation" branch work.
+
+  - "feature/ctypes_annotation": Achieve the inlining of ctypes calls, so they become
+    executed at no speed penalty compared to direct calls via extension modules. This
+    being fully CPython compatible and pure Python, is considered the "Nuitka" way of
+    creating extension modules that provide bindings.
 
 Design Descriptions
 ===================
@@ -248,11 +256,31 @@ nuitka.Importing Module
   one. It will give warnings for modules attempted to be located, but not found. These
   warnings are controlled by a while list inside the module.
 
+Hooking for module import process
+---------------------------------
+
+Currently, in created code, for every "import" variable a normal "__import__()" call is
+executed. The "ExeModuleUnfreezer.cpp" (located in "nuitka/build/static_src") provides the
+implementation of a "sys.meta_path" hook.
+
+This one allows us to have the Nuitka provided module imported even when imported by
+non-compiled code. Kay learned this at PyCON DE conference, from a presentation by the
+implementer of that PEP, and it's very useful, as it increased compatibility over the
+previous approach of special casing imports to check if it's the included module.
+
+.. note::
+
+   Of course it would make sense to compile time detect which module it is that is being
+   imported and then to make it directly. At this time, we don't have this inter-module
+   optimization yet, it should be easy to add.
+
+
+
 Plan to replace "python-qt" for the GUI
 =======================================
 
 Porting the tree inspector available with "--dump-gui" to "wxwindows" is very much welcome
-as the Qt bindings are severely under documented.
+as the "python-qt4" bindings are severely under documented.
 
 Plan to add ctypes
 ==================
@@ -546,6 +574,66 @@ references for modification.
    that means we will want to have it as a special case that analysis of functions degrades
    to.
 
+Excursion to Conditions
+-----------------------
+
+.. code-block:: python
+
+   if cond:
+      x = 1
+   else:
+      x = 2
+
+   b = x < 3
+
+The above code contains a condition, and these have the problem, that when exiting the
+conditional block, it must be clear to the outside, that things changed inside the block
+may not necessarily apply. Even worse, one of 2 things might be true. In one branch, the
+variable "x" is constant, in the other too, but it's a different value.
+
+So for constants, we need to have the constraint collection know when it enters a
+conditional branch, and when it does, it must take special precautions, to preserve the
+existing state. Then when exiting all the branches, it must merge existing information
+with new information.
+
+In the above case:
+
+   - The "yes" branch knows variable "x" is an "int" of constant value "1"
+   - The "no" branch knows variable "x" is an "int" of constant value "2"
+
+That should be collapsed to:
+
+   - The variable "x" is an integer of value in "(1,2)"
+
+When should allow to precompute the value of this:
+
+.. code-block:: python
+
+   b = x < 3
+
+The comparison operator can work on the function that provides all values in see if the
+result is always the same. Because if it is, and it is, then it can tell:
+
+    - The variable "b" is a boolean of constant value "True".
+
+Excursion to return statements
+------------------------------
+
+The return statement ought to be the last statement of inspected block, or else previous
+optimization steps have failed. With a conditional statement branch, in case it ends with
+a return statement, the merging of the constraint collection must consider it by not
+taking any knowledge from it at all.
+
+If all branches of a conditional statement return, that should have an optimization to
+discover that, and remove the following statements. Currently no such optimization exists
+and it should be added, so value propagation can rely on it to be handled already.
+
+Excursion to yield statements
+-----------------------------
+
+The yield statement can be treated like a normal function call, and as such invalidates
+some known constraints.
+
 
 Mixed Types
 -----------
@@ -561,6 +649,23 @@ Consider the following inside a function or module:
 
 A programmer will often not make a difference between "list" and "tuple". In fact, using a
 tuple is a good way to express that something won't be changed later, as these are mutable.
+
+.. note::
+
+   Better programming style, would be to use this:
+
+   .. code-block:: python
+
+      if cond is not None:
+         a = tuple( x for x in something() if cond(x) )
+      else:
+         a = ()
+
+   People don't do it, because they dislike the performance hit encountered by the
+   generator expression being used to initialize the tuple. But it would be more
+   consistent, and so Nuitka is using it, and of course one day ought to be able to
+   evaluate the tuple call to the generator expression by the means of a "tuple
+   contraction".
 
 To Nuitka though this means, that if "cond" is not predictable, after the conditional
 statement we may either have a "tuple" or a "list". In order to represent that without
@@ -900,8 +1005,8 @@ Kay will attempt to provide the framework parts that provide the interface and C
 will work on the "ctypes" as an example.
 
 The work is likely to happen on a git feature branch named "ctypes_annotation". It will
-likely be long lived, and Kay will move usable bits out of it for releases, causing
-"git flow feature rebases" at agreed to times.
+likely be long lived, and Kay will move usable bits out of it for releases, and
+occasional "git flow feature rebase" at agreed times.
 
 .. note::
 
