@@ -41,6 +41,12 @@
 # a different warning. Amazing. Luckily I can decide to ignore that globally
 # then.
 
+import sys, os, subprocess
+
+# Go its own directory, to have it easy with path knowledge.
+os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
+os.chdir( ".." )
+
 options = """
 --rcfile=/dev/null
 --include-ids=y
@@ -62,6 +68,9 @@ options = """
 --max-parents=9
 """.split()
 
+if os.environ.get( "TODO", 0 ):
+    options.append( "--notes=" )
+
 blacklist = (
     "oset.py",
     "odict.py",
@@ -70,17 +79,27 @@ blacklist = (
 )
 
 def executePyLint( filename ):
-    print( filename )
-
     command = "pylint %s %s %s" % (
         " ".join( options ),
         os.environ.get( "PYLINT_EXTRA_OPTIONS", "" ),
         filename
     )
 
-    result = os.system( command )
+    process = subprocess.Popen(
+        args   = command,
+        stdout = subprocess.PIPE,
+        stderr = subprocess.STDOUT,
+        shell  = True
+    )
 
-import sys, os, subprocess
+    stdout, _stderr = process.communicate()
+    exit_code = process.returncode
+
+    assert not _stderr
+    if stdout:
+        for line in stdout.split( b"\n" ):
+            print( line.decode() )
+
 
 if "PYTHONPATH" not in os.environ:
     os.environ[ "PYTHONPATH" ] = "."
