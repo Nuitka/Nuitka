@@ -187,11 +187,11 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
 
             node.setBody( None )
 
-        # TODO: Optimize away the for loop if possible, if e.g. the iteration has
-        # no side effects, it's result is predictable etc.
+        # TODO: Optimize away the for loop if possible, if e.g. the iteration has no side
+        # effects, it's result is predictable etc.
 
     def __call__( self, node ):
-        if node.isOperation():
+        if node.isOperation() or node.isExpressionOperationBool2():
             operands = node.getOperands()
 
             if areConstants( operands ):
