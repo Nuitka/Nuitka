@@ -1,19 +1,19 @@
 #     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
-#     Python test originally created or extracted from other peoples work. The
-#     parts and resulting tests are too small to be protected and therefore
-#     is in the public domain.
+#     Python tests originally created or extracted from other peoples work. The
+#     parts were too small to be protected.
 #
-#     If you submit Kay Hayen patches to this in either form, you automatically
-#     grant him a copyright assignment to the code, or in the alternative a BSD
-#     license to the code, should your jurisdiction prevent this. Obviously it
-#     won't affect code that comes to him indirectly or code you don't submit to
-#     him.
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
 #
-#     This is to reserve my ability to re-license the official code at any time,
-#     to put it into public domain or under PSF.
+#        http://www.apache.org/licenses/LICENSE-2.0
 #
-#     Please leave the whole of this copyright notice intact.
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
 #
 var_on_module_level = 1
 
