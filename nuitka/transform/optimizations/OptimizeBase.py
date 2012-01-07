@@ -117,7 +117,7 @@ class OptimizationDispatchingVisitorBase( OptimizationVisitorBase ):
     def __init__( self, dispatch_dict ):
         self.dispatch_dict = dispatch_dict
 
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         key = self.getKey( node )
 
         if key in self.dispatch_dict:

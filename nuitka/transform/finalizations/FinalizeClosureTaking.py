@@ -38,7 +38,7 @@ transitive only references.
 from .FinalizeBase import FinalizationVisitorScopedBase
 
 class FinalizeClosureTaking( FinalizationVisitorScopedBase ):
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         assert node.isClosureVariableTaker(), node
 
         # print node, node.provider

@@ -83,7 +83,7 @@ class VariableClosureLookupVisitorPhase1( OptimizationVisitorScopedBase ):
         the exec.
     """
 
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isStatementDeclareGlobal():
             source_ref = node.getSourceReference()
 
@@ -123,7 +123,7 @@ class VariableClosureLookupVisitorPhase2( OptimizationVisitorScopedBase ):
         variables, and references be ignored until phase 3.
     """
 
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isAssignTargetVariable():
             variable_ref = node.getTargetVariableRef()
 
@@ -149,7 +149,7 @@ class VariableClosureLookupVisitorPhase2( OptimizationVisitorScopedBase ):
 
 
 class VariableClosureLookupVisitorPhase3( OptimizationVisitorScopedBase ):
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isExpressionVariableRef() and node.getVariable() is None:
             provider = node.getParentVariableProvider()
 
@@ -168,7 +168,7 @@ VariableClosureLookupVisitors = (
 )
 
 class MaybeLocalVariableReductionVisitor( OptimizationVisitorBase ):
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isExpressionFunctionBody():
             self._consider( node )
 
@@ -260,7 +260,7 @@ class ModuleVariableWriteCheck( TreeOperations.VisitorNoopMixin ):
         self.variable_name = variable_name
         self.result = False
 
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isAssignTargetVariable():
             variable = node.getTargetVariableRef().getVariable()
 
@@ -290,7 +290,7 @@ def doesWriteModuleVariable( node, variable_name ):
 
 
 class ModuleVariableVisitorBase( OptimizationVisitorBase ):
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isModule():
             variables = node.getVariables()
 
@@ -357,7 +357,7 @@ class ModuleVariableReadReplacement( TreeOperations.VisitorNoopMixin ):
 
         self.result = 0
 
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if isModuleVariableReference( node, self.variable_name, self.module_name ):
             node.replaceWith(
                 self.make_node( node )

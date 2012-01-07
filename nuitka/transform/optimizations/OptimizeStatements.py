@@ -40,7 +40,7 @@ from nuitka.nodes import Nodes
 from logging import warning
 
 class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isStatementsSequence():
             parent = node.getParent()
 

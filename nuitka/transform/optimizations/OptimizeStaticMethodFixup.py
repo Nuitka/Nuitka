@@ -38,7 +38,7 @@ from .OptimizeBase import OptimizationVisitorBase
 from nuitka.nodes import Nodes
 
 class FixupNewStaticMethodVisitor( OptimizationVisitorBase ):
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isStatementFunctionBuilder() and \
            node.getFunctionName() == "__new__" and \
            node.getParentClass() is not None:

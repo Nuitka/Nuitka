@@ -189,7 +189,7 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
         # TODO: Optimize away the for loop if possible, if e.g. the iteration has no side
         # effects, it's result is predictable etc.
 
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isOperation() or node.isExpressionOperationBool2():
             operands = node.getOperands()
 

@@ -223,8 +223,8 @@ class ReplaceBuiltinsVisitorBase( OptimizationDispatchingVisitorBase ):
                 if _isReadOnlyModuleVariable( variable ):
                     return variable.getName()
 
-    def __call__( self, node ):
-        new_node = OptimizationDispatchingVisitorBase.__call__( self, node )
+    def onEnterNode( self, node ):
+        new_node = OptimizationDispatchingVisitorBase.onEnterNode( self, node )
 
         if new_node is not None:
 
@@ -691,7 +691,7 @@ _quick_names = {
 }
 
 class ReplaceBuiltinsExceptionsVisitor( OptimizationVisitorBase ):
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isExpressionVariableRef():
             variable = node.getVariable()
 

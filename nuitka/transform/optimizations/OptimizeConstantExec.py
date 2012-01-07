@@ -50,7 +50,7 @@ class OptimizeExecVisitor( OptimizationVisitorBase ):
     """ Inline constant execs.
 
     """
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isStatementExec() and node.getGlobals() is None and node.getLocals() is None:
             source = node.getSourceCode()
 

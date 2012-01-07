@@ -49,7 +49,7 @@ class OverflowCheckVisitor( TreeOperations.VisitorNoopMixin ):
 
         self.is_class = checked_node.getParent().isExpressionClassBody()
 
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         def declareOverflow():
             self.result = True
             raise TreeOperations.ExitVisit

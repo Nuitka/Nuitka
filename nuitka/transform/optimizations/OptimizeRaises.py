@@ -66,7 +66,7 @@ def toRaiseExceptionStatement( node ):
 
 
 class OptimizeRaisesVisitor( OptimizationVisitorBase ):
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isExpressionRaiseException():
             if node.parent.isStatementPrint():
                 self.trimEvaluation(

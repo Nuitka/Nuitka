@@ -242,7 +242,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
 
         node.setAttemptedRecurse()
 
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isModule():
             self._handleModule(
                 module = node

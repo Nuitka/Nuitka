@@ -41,7 +41,7 @@ class RestartVisit( BaseException ):
     pass
 
 def _visitTree( tree, visitor, limit_tag ):
-    visitor( tree )
+    visitor.onEnterNode( tree )
 
     for visitable in tree.getChildNodesNotTagged( limit_tag ):
         if visitable is None:
@@ -65,45 +65,43 @@ def visitScope( tree, visitor ):
 def visitExecution( tree, visitor ):
     visitTree( tree, visitor, "execution_border" )
 
+
+
 def visitScopes( tree, visitor ):
-    def visitEverything( node ):
-        if node.hasTag( "closure_taker" ):
-            visitor.onEnterScope( node )
-            visitTree( node, visitor, "closure_taker" )
-            visitor.onLeaveScope( node )
+    class VisitEverything( VisitorNoopMixin ):
+        def onEnterNode( self, node ):
+            if node.hasTag( "closure_taker" ):
+                visitor.onEnterScope( node )
+                visitTree( node, visitor, "closure_taker" )
+                visitor.onLeaveScope( node )
 
-    visitEverything.onLeaveNode = lambda tree: None
-
-    _visitTree( tree, visitEverything, None )
+    _visitTree( tree, VisitEverything(), None )
 
 def visitExecutions( tree, visitor ):
-    def visitEverything( node ):
-        if node.hasTag( "closure_taker" ):
-            visitor.onEnterScope( node )
-            visitTree( node, visitor, "execution_border" )
-            visitor.onLeaveScope( node )
-        elif node.hasTag( "execution_border" ):
-            visitor.onEnterExecutionBorder( node )
-            visitTree( node, visitor, "execution_border" )
-            visitor.onLeaveExecutionBorder( node )
+    class VisitEverything( VisitorNoopMixin ):
+        def onEnterNode( self, node ):
+            if node.hasTag( "closure_taker" ):
+                visitor.onEnterScope( node )
+                visitTree( node, visitor, "execution_border" )
+                visitor.onLeaveScope( node )
+            elif node.hasTag( "execution_border" ):
+                visitor.onEnterExecutionBorder( node )
+                visitTree( node, visitor, "execution_border" )
+                visitor.onLeaveExecutionBorder( node )
 
-    visitEverything.onLeaveNode = lambda tree: None
-
-    _visitTree( tree, visitEverything, None )
+    _visitTree( tree, VisitEverything(), None )
 
 def visitTagHaving( tree, visitor, tag ):
-    def visitEverything( node ):
-        if node.hasTag( tag ):
-            visitor( node )
+    class VisitEverything( VisitorNoopMixin ):
+        def onEnterNode( self, node ):
+            if node.hasTag( tag ):
+                visitor.onEnterNode( node )
 
-    visitEverything.onLeaveNode = lambda tree: None
-
-    _visitTree( tree, visitEverything, None )
+    _visitTree( tree, VisitEverything(), None )
 
 
 class VisitorNoopMixin:
-    # TODO: Rename this one day to onEnterNode, the functor approach makes no sense really.
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         """ To be optionally overloaded for operation before the node children were done. """
         pass
 

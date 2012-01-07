@@ -41,7 +41,7 @@ from nuitka import Utils
 _unpack_error_length_indication = Utils.getPythonVersion() < 300
 
 class ReplaceUnpackingVisitor( OptimizationVisitorBase ):
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isStatementAssignment():
             targets = node.getTargets()
 

@@ -42,7 +42,7 @@ from nuitka.nodes import OverflowCheck
 from .FinalizeBase import FinalizationVisitorBase
 
 class FinalizeMarkups( FinalizationVisitorBase ):
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         # Record if a function or class has an overflow. TODO: The Overflow check
         # module and this should be united in a per tag finalization check on say
         # "callable_body" tag
