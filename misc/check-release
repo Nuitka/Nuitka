@@ -166,4 +166,14 @@ del os.environ[ "PYTHON" ]
 print("Running the reflection test in debug mode with default python:")
 executeSubTest( "./tests/reflected/compile_itself.py search" )
 
+if checkExecutableCommand( "cppcheck" ):
+    command = "cppcheck -q --error-exitcode=1 --enable=all --check-config nuitka/build/ -I nuitka/build/include/ -I /usr/include/python2.7"
+
+    sys.stdout.flush()
+    result = subprocess.call( command, shell = True )
+
+    if result != 0:
+        sys.exit( result )
+
+
 print( "OK." )
