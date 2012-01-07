@@ -1,4 +1,4 @@
-nuitka (0.3.17~pre5+ds-1) UNRELEASED; urgency=low
+nuitka (0.3.17~pre5+ds-1) unstable; urgency=low
 
   * New upstream pre-release.
   * New maintainer (Closes: #648489)
@@ -19,9 +19,12 @@ nuitka (0.3.17~pre5+ds-1) UNRELEASED; urgency=low
     to be able to execute the tests.
   * Corrected handling of upstream pre-release names in the watch
     file.
-  * Changed contributor notice to only require ASF2.0.
+  * Changed contributor notice to only require "Apache License 2.0"
+    for the new parts.
+  * Put Debian packaging and owned tests under "Apache License 2.0"
+    as well.
 
- -- Kay Hayen <kayhayen@gmx.de>  Sat, 07 Jan 2012 00:09:31 +0100
+ -- Kay Hayen <kayhayen@gmx.de>  Sat, 07 Jan 2012 02:18:09 +0100
 
 nuitka (0.3.16-1) UNRELEASED; urgency=low
 
