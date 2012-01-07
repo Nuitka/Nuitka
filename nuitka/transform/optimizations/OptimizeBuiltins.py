@@ -776,6 +776,9 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
 
                 assert (type_name in _builtin_names), (type_name, _builtin_names)
 
+                # TODO: We really need a "builtin" name ref node to avoid creating a
+                # variable reference here that can only cause trouble
+
                 result = Nodes.CPythonExpressionVariableRef(
                     variable_name = type_name,
                     source_ref    = node.getSourceReference()

@@ -155,9 +155,9 @@ def makeRaiseExceptionReplacementStatement( statement, exception_type, exception
     assert type( exception_type ) is str
 
     result = Nodes.CPythonStatementRaiseException(
-        exception_type = Nodes.CPythonExpressionVariableRef(
-            variable_name = exception_type,
-            source_ref    = source_ref
+        exception_type  = Nodes.CPythonExpressionBuiltinExceptionRef(
+            exception_name = exception_type,
+            source_ref     = source_ref
         ),
         exception_value = makeConstantReplacementNode(
             constant = exception_value,
