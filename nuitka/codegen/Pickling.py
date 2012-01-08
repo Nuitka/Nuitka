@@ -46,13 +46,25 @@ except ImportError:
 
 from logging import warning
 
-def getStreamedConstant( constant_value ):
+if str is unicode:
+    # Python3: The protocol 2 outputs bytes that I don't know how to covert to "str",
+    # which protocol 0 doesn't, so stay with it. TODO: Use more efficient protocol version
+    # instead.
 
+    pickle_protocol = 0
+else:
+    # Python2: The protocol 2 exhibits strange behaviour with reflected that that is not
+    # yet understood. TODO: Find out what is going on there.
+
+    pickle_protocol = 0
+
+def getStreamedConstant( constant_value ):
     # Note: The marshal module cannot persist all unicode strings and
     # therefore cannot be used. Instead we use pickle.
     try:
         saved = cpickle.dumps(
-            constant_value
+            constant_value,
+            protocol = pickle_protocol
         )
     except TypeError:
         warning( "Problem with persisting constant '%r'." % constant_value )
