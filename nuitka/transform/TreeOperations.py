@@ -34,6 +34,9 @@ forest of modules.
 
 """
 
+class ExitNodeVisit( BaseException ):
+    pass
+
 class ExitVisit( BaseException ):
     pass
 
@@ -41,13 +44,19 @@ class RestartVisit( BaseException ):
     pass
 
 def _visitTree( tree, visitor, limit_tag ):
-    visitor.onEnterNode( tree )
+    try:
+        visitor.onEnterNode( tree )
 
-    for visitable in tree.getChildNodesNotTagged( limit_tag ):
-        if visitable is None:
-            raise AssertionError( "'None' child encountered", tree, tree.source_ref )
+        visit_children = True
+    except ExitNodeVisit:
+        visit_children = False
 
-        _visitTree( visitable, visitor, limit_tag )
+    if visit_children:
+        for visitable in tree.getChildNodesNotTagged( limit_tag ):
+            if visitable is None:
+                raise AssertionError( "'None' child encountered", tree, tree.source_ref )
+
+            _visitTree( visitable, visitor, limit_tag )
 
     visitor.onLeaveNode( tree )
 
