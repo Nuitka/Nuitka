@@ -44,6 +44,8 @@ except ImportError:
     # False alarm, no double import at all, pylint: disable=W0404
     import pickle as cpickle
 
+import pickletools
+
 from logging import warning
 
 python_version = Utils.getPythonVersion()
@@ -54,15 +56,8 @@ if python_version >= 300:
     # instead.
 
     pickle_protocol = 0
-    restream_workaround = False
-elif python_version >= 270:
-    # Python2: The protocol 2 of CPython2.7 exhibits strange behaviour in that it only
-    # stabilizes after 2 tries, Python Issue#13735
-    pickle_protocol = 2
-    restream_workaround = True
 else:
     pickle_protocol = 2
-    restream_workaround = False
 
 
 
@@ -78,6 +73,8 @@ def getStreamedConstant( constant_value ):
         warning( "Problem with persisting constant '%r'." % constant_value )
         raise
 
+    saved = pickletools.optimize( saved )
+
     # Check that the constant is restored correctly.
     try:
         restored = cpickle.loads(
@@ -86,12 +83,6 @@ def getStreamedConstant( constant_value ):
     except:
         warning( "Problem with persisting constant '%r'." % constant_value )
         raise
-
-    if restream_workaround:
-        saved = cpickle.dumps(
-            restored,
-            protocol = pickle_protocol
-        )
 
     if not Constants.compareConstants( restored, constant_value ):
         raise AssertionError(
