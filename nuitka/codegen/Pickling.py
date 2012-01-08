@@ -54,7 +54,6 @@ if python_version >= 300:
     # Python3: The protocol 2 outputs bytes that I don't know how to covert to "str",
     # which protocol 0 doesn't, so stay with it. TODO: Use more efficient protocol version
     # instead.
-
     pickle_protocol = 0
 else:
     pickle_protocol = 2
@@ -67,7 +66,7 @@ def getStreamedConstant( constant_value ):
     try:
         saved = cpickle.dumps(
             constant_value,
-            protocol = pickle_protocol
+            protocol = 0 if type( constant_value ) is unicode else pickle_protocol
         )
     except TypeError:
         warning( "Problem with persisting constant '%r'." % constant_value )
