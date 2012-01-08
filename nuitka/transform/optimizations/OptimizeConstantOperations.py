@@ -168,7 +168,7 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
             self.signalChange(
                 "new_constant",
                 node.getSourceReference(),
-                "Created diction found to be constant."
+                "Created dictionary found to be constant."
             )
 
     def _optimizeForLoop( self, node ):
