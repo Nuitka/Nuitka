@@ -28,18 +28,33 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-import os, sys, shutil, re
+import os, subprocess
 
-assert 0 == os.system( "rst2pdf README.txt" )
+assert 0 == subprocess.call( "git submodule update misc/gist", shell = True )
+
+for document in ( "README.txt", "Developer_Manual.rst" ):
+    assert 0 == subprocess.call(
+        "rst2pdf %(document)s" % {
+            "document" : document
+        },
+        shell = True
+    )
+    assert 0 == subprocess.call(
+        "python ./misc/gist/rst2html.py %(document)s >%(doc_base)s.html" % {
+            "document" : document,
+            "doc_base" : document[:-4]
+        },
+        shell = True
+    )
 
 if not os.path.exists( "man" ):
     os.mkdir( "man" )
 
-assert 0 == os.system( "help2man -n 'the Python compiler' --no-discard-stderr --no-info --include doc/nuitka-man-include.txt ./bin/nuitka >doc/nuitka.1" )
-assert 0 == os.system( "help2man -n 'the Python compiler' --no-discard-stderr --no-info ./bin/nuitka-python >doc/nuitka-python.1" )
+assert 0 == subprocess.call( "help2man -n 'the Python compiler' --no-discard-stderr --no-info --include doc/nuitka-man-include.txt ./bin/nuitka >doc/nuitka.1", shell = True )
+assert 0 == subprocess.call( "help2man -n 'the Python compiler' --no-discard-stderr --no-info ./bin/nuitka-python >doc/nuitka-python.1", shell = True )
 
-assert 0 == os.system( "man2html doc/nuitka.1 >doc/man-nuitka.html" )
-assert 0 == os.system( "man2html doc/nuitka-python.1 >doc/man-nuitka-python.html" )
+assert 0 == subprocess.call( "man2html doc/nuitka.1 >doc/man-nuitka.html", shell = True )
+assert 0 == subprocess.call( "man2html doc/nuitka-python.1 >doc/man-nuitka-python.html", shell = True )
 
 def getFile( filename ):
     return open( filename ).read()
