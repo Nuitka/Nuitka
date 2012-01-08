@@ -17,7 +17,7 @@
 #
 
 
-import inspect
+import inspect, sys
 
 def compiledFunction():
    pass
@@ -32,7 +32,8 @@ assert inspect.isfunction( compiledClass ) is False
 
 assert inspect.ismethod( compiledFunction ) is False
 assert inspect.ismethod( compiledClass ) is False
-assert inspect.ismethod( compiledClass.compiledMethod ) is True
+
+assert inspect.ismethod( compiledClass.compiledMethod ) == ( sys.version_info < ( 3, ) )
 assert inspect.ismethod( compiledClass().compiledMethod ) is True
 
 def compiledGenerator():
