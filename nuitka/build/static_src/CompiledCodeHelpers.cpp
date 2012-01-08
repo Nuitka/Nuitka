@@ -477,27 +477,12 @@ PyObject *BUILTIN_LEN( PyObject *value )
     return PyInt_FromSsize_t( res );
 }
 
-// TODO: Move this to global init, so it's not pre-main code that may not be run.
-
-#if PYTHON_VERSION < 300
-static PyObject *empty_code =
-    PyBuffer_FromMemory( NULL, 0 );
-#endif
-
 PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, int arg_count, bool is_generator )
 {
     assertObject( filename );
     assert( Nuitka_String_Check( filename ) );
     assertObject( function_name );
     assert( Nuitka_String_Check( function_name ) );
-
-#if PYTHON_VERSION >= 300
-    static PyObject *empty_code =
-        PyMemoryView_FromObject( _python_bytes_empty );
-#endif
-    assertObject( empty_code );
-
-    assert( PyObject_CheckReadBuffer( empty_code ) );
 
     int flags = 0;
 
@@ -516,7 +501,11 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
         0,                   // nlocals
         0,                   // stacksize
         flags,               // flags
-        empty_code,          // code (bytecode)
+#if PYTHON_VERSION < 300
+        _python_str_empty,   // code (bytecode)
+#else
+        _python_bytes_empty, // code (bytecode)
+#endif
         _python_tuple_empty, // consts (we are not going to be compatible)
         _python_tuple_empty, // names (we are not going to be compatible)
         _python_tuple_empty, // varnames (we are not going to be compatible)
