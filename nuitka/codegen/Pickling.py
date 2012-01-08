@@ -31,7 +31,7 @@
 It should be simple, but it is not yet. Not all the pickle modules are well behaved.
 """
 
-from nuitka import Constants
+from nuitka import Constants, Utils
 
 # pylint: disable=W0622
 from ..__past__ import unicode
@@ -46,17 +46,25 @@ except ImportError:
 
 from logging import warning
 
-if str is unicode:
+python_version = Utils.getPythonVersion()
+
+if python_version >= 300:
     # Python3: The protocol 2 outputs bytes that I don't know how to covert to "str",
     # which protocol 0 doesn't, so stay with it. TODO: Use more efficient protocol version
     # instead.
 
     pickle_protocol = 0
+    restream_workaround = False
+elif python_version >= 270:
+    # Python2: The protocol 2 of CPython2.7 exhibits strange behaviour in that it only
+    # stabilizes after 2 tries, Python Issue#13735
+    pickle_protocol = 2
+    restream_workaround = True
 else:
-    # Python2: The protocol 2 exhibits strange behaviour with reflected that that is not
-    # yet understood. TODO: Find out what is going on there.
+    pickle_protocol = 2
+    restream_workaround = False
 
-    pickle_protocol = 0
+
 
 def getStreamedConstant( constant_value ):
     # Note: The marshal module cannot persist all unicode strings and
@@ -78,6 +86,12 @@ def getStreamedConstant( constant_value ):
     except:
         warning( "Problem with persisting constant '%r'." % constant_value )
         raise
+
+    if restream_workaround:
+        saved = cpickle.dumps(
+            restored,
+            protocol = pickle_protocol
+        )
 
     if not Constants.compareConstants( restored, constant_value ):
         raise AssertionError(
