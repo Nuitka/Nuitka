@@ -79,7 +79,7 @@ def executeSubTest( command ):
 
     command = " ".join( parts )
 
-    print( command, os.getcwd() )
+    print( "Run '%s' in '%s'." % ( command, os.getcwd() ) )
 
     sys.stdout.flush()
     result = subprocess.call( command, shell = True )
@@ -101,6 +101,8 @@ def execute_tests( where, use_python, flags ):
             os.environ[ "PYTHON" ] = r"C:\Python26\python.exe"
         elif use_python == "python2.7":
             os.environ[ "PYTHON" ] = r"C:\Python27\python.exe"
+        elif use_python == "python3.2":
+            os.environ[ "PYTHON" ] = r"C:\Python32\python.exe"
         else:
             assert False, use_python
     else:
@@ -110,45 +112,44 @@ def execute_tests( where, use_python, flags ):
     setExtraFlags( where, "basics", flags )
     executeSubTest( "./tests/basics/run_all.py search" )
 
-    print( "Running the syntax tests with options '%s' with %s:"  % ( flags, use_python ) )
-    setExtraFlags( where, "syntax", flags )
-    executeSubTest( "./tests/syntax/run_all.py search" )
+    if use_python != "python3.2":
+        print( "Running the syntax tests with options '%s' with %s:"  % ( flags, use_python ) )
+        setExtraFlags( where, "syntax", flags )
+        executeSubTest( "./tests/syntax/run_all.py search" )
 
-    print( "Running the program tests with options '%s' with %s:" % ( flags, use_python ) )
-    setExtraFlags( where, "programs", flags )
-    executeSubTest( "./tests/programs/run_all.py search" )
+        print( "Running the program tests with options '%s' with %s:" % ( flags, use_python ) )
+        setExtraFlags( where, "programs", flags )
+        executeSubTest( "./tests/programs/run_all.py search" )
 
-    print( "Running the reflection test with options '%s' with %s:" % ( flags, use_python ) )
-    executeSubTest( "./tests/reflected/compile_itself.py search" )
+        print( "Running the reflection test with options '%s' with %s:" % ( flags, use_python ) )
+        executeSubTest( "./tests/reflected/compile_itself.py search" )
 
-    if os.path.exists( "./tests/CPython/run_all.py" ):
-        print( "Running the CPython 2.6 tests with options '%s' with %s:" % ( flags, use_python ) )
+        if os.path.exists( "./tests/CPython/run_all.py" ):
+            print( "Running the CPython 2.6 tests with options '%s' with %s:" % ( flags, use_python ) )
 
-        setExtraFlags( where, "26tests", flags )
-        executeSubTest( "./tests/CPython/run_all.py search" )
-    else:
-        print( "The CPython2.6 tests are not present, not run." )
-
-    # Running the Python 2.7 test suite with CPython 2.6 gives little insight, because
-    # "importlib" will not be there and that's it.
-    if use_python != "python2.6":
-        if os.path.exists( "./tests/CPython27/run_all.py" ):
-            setExtraFlags( where, "27tests", flags )
-            executeSubTest( "./tests/CPython27/run_all.py search" )
-
-            print("Running the CPython 2.7 tests with options '%s' with %s:" % ( flags, use_python ))
-            executeSubTest( "./tests/CPython27/run_all.py search" )
+            setExtraFlags( where, "26tests", flags )
+            executeSubTest( "./tests/CPython/run_all.py search" )
         else:
-            print( "The CPython2.7 tests are not present, not run." )
+            print( "The CPython2.6 tests are not present, not run." )
 
+        # Running the Python 2.7 test suite with CPython 2.6 gives little insight, because
+        # "importlib" will not be there and that's it.
+        if use_python != "python2.6":
+            if os.path.exists( "./tests/CPython27/run_all.py" ):
+                setExtraFlags( where, "27tests", flags )
+                executeSubTest( "./tests/CPython27/run_all.py search" )
+
+                print("Running the CPython 2.7 tests with options '%s' with %s:" % ( flags, use_python ))
+                executeSubTest( "./tests/CPython27/run_all.py search" )
+            else:
+                print( "The CPython2.7 tests are not present, not run." )
 
     del os.environ[ "NUITKA_EXTRA_OPTIONS" ]
 
 
+# Just the quick syntax test, full tests are run later.
 if checkExecutableCommand( "python3.2" ):
     executeSubTest( "python3.2 bin/nuitka --version 2>/dev/null" )
-else:
-    print( "Cannot execute Python 3.2 tests, not installed." )
 
 if checkExecutableCommand( "python2.6" ):
     execute_tests( "python2.6-debug", "python2.6", "--debug" )
@@ -163,6 +164,12 @@ else:
     print( "Cannot execute tests with python2.6, not installed." )
 
 execute_tests( "python2.7-nodebug", "python2.7", "" )
+
+if checkExecutableCommand( "python3.2" ):
+    execute_tests( "python3.2-debug", "python3.2", "--debug" )
+else:
+    print( "Cannot execute Python 3.2 tests, not installed." )
+
 
 if checkExecutableCommand( "cppcheck" ):
     command = "cppcheck -q --error-exitcode=1 --enable=all --check-config nuitka/build/ -I nuitka/build/include/ -I /usr/include/python2.7"
