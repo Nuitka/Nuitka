@@ -1,6 +1,10 @@
 
 .. contents::
 
+.. raw:: pdf
+
+   PageBreak
+
 Developer Manual
 ~~~~~~~~~~~~~~~~
 
@@ -593,8 +597,7 @@ variable "x" is constant, in the other too, but it's a different value.
 
 So for constants, we need to have the constraint collection know when it enters a
 conditional branch, and when it does, it must take special precautions, to preserve the
-existing state. Then when exiting all the branches, it must merge existing information
-with new information.
+existing state. When exiting all the branches, these branches must be merged, with new information.
 
 In the above case:
 
@@ -615,6 +618,30 @@ The comparison operator can work on the function that provides all values in see
 result is always the same. Because if it is, and it is, then it can tell:
 
     - The variable "b" is a boolean of constant value "True".
+
+For conditional statements optimization, the following is note-worthy:
+
+   - The value of the condition is known to pass truth check or not inside either branch.
+
+     We may want to take advantage of it. Consider e.g.
+
+     .. code-block:: python
+
+         if type( a ) is list:
+             a = a.append( x )
+         else:
+             a += ( x, )
+
+     In this case, the knowledge that "a" is a list, could be used to generate better code
+     and with definite knowledge that "a" is of type list. These is a lot more to do, until we understand "type checks" though.
+
+     - If 2 branches exist, or one makes a difference.
+
+       If both branches exist, both should fork existing state and continue it, and
+       afterwards merge those 2 and replace the state before the statement.
+
+       If only one branch exist, that one should fork existing state and continue it, but
+       afterwards, it needs to be merged back to the state before the statement.
 
 Excursion to return statements
 ------------------------------
@@ -835,6 +862,7 @@ It will then be the first goal to turn the following code into better performing
 to:
 
 .. code-block:: python
+
    a = 3
    b = 7
    c = 3 / 7
@@ -1033,6 +1061,10 @@ occasional "git flow feature rebase" at agreed times.
    git commit emails for better collaboration. In the mean time, "git format-patch" will
    do.
 
+
+.. raw:: pdf
+
+   PageBreak
 
 Updates for this Manual
 =======================
