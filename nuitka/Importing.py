@@ -204,6 +204,7 @@ def _isWhiteListedNotExistingModule( module_name ):
         "select", "__main__", "_winreg", "_warnings", "_sre", "_functools", "_hashlib",
         "_collections", "_locale", "_codecs", "_weakref", "_struct", "_dummy_threading",
         "binascii", "datetime", "_ast", "xxsubtype", "_bytesio", "cmath", "_fileio",
+        "aetypes", "aepack", "MacOS", "cd", "cl",
 
         # Python-Qt4 does these if missing python3 parts:
         "PyQt4.uic.port_v3.string_io", "PyQt4.uic.port_v3.load_plugin",
