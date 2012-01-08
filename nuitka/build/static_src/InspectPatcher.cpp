@@ -62,7 +62,15 @@ static PyObject *_inspect_ismethod_replacement( PyObject *self, PyObject *args, 
         return NULL;
     }
 
-    if ( Nuitka_Method_Check( object ) || PyMethod_Check( object ) )
+    if ( Nuitka_Method_Check( object ) )
+    {
+#if PYTHON_VERSION < 300
+        return INCREASE_REFCOUNT( Py_True );
+#else
+        return INCREASE_REFCOUNT( ((Nuitka_MethodObject *)object)->m_object ? Py_True : Py_False );
+#endif
+    }
+    else if ( PyMethod_Check( object ) )
     {
         return INCREASE_REFCOUNT( Py_True );
     }
@@ -95,7 +103,7 @@ static PyMethodDef _method_def_inspect_isfunction_replacement
 {
     "isfunction",
     (PyCFunction)_inspect_isfunction_replacement,
-    METH_KEYWORDS,
+    METH_VARARGS | METH_KEYWORDS,
     NULL
 };
 
@@ -103,7 +111,7 @@ static PyMethodDef _method_def_inspect_ismethod_replacement
 {
     "ismethod",
     (PyCFunction)_inspect_ismethod_replacement,
-    METH_KEYWORDS,
+    METH_VARARGS | METH_KEYWORDS,
     NULL
 };
 
@@ -111,7 +119,7 @@ static PyMethodDef _method_def_inspect_isgenerator_replacement
 {
     "isgenerator",
     (PyCFunction)_inspect_isgenerator_replacement,
-    METH_KEYWORDS,
+    METH_VARARGS | METH_KEYWORDS,
     NULL
 };
 
