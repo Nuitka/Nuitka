@@ -2299,6 +2299,18 @@ def _getDecoratorsCallCode( context, decorator_count ):
 
     return decorator_calls
 
+def _getCoArgNamesValue( parameters ):
+    result = []
+
+    for count, variable in enumerate( parameters.getTopLevelVariables() ):
+        if variable.isNestedParameterVariable():
+            result.append( ".%d" % count )
+        else:
+            result.append( variable.getName() )
+
+    return tuple( result )
+
+
 
 def getGeneratorFunctionCode( context, function_name, function_identifier, parameters, \
                               closure_variables, user_variables, decorator_count, \
@@ -2499,6 +2511,10 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
             constant = source_ref.getFilename()
         ),
         "line_number"                : source_ref.getLineNumber(),
+        "arg_names"                  : getConstantCode(
+            constant = _getCoArgNamesValue( parameters ),
+            context  = context
+        ),
         "arg_count"                  : parameters.getArgumentCount(),
         "defaults"                   : func_defaults.getCodeExportRef(),
         "module_identifier"          : getModuleAccessCode( context = context ),
@@ -2605,7 +2621,6 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
     else:
         context_access_function_impl = CodeTemplates.function_context_unused_template
 
-
     module_identifier = getModuleAccessCode( context = context )
 
     function_name_obj = getConstantCode(
@@ -2662,6 +2677,10 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                 constant = source_ref.getFilename()
             ),
             "line_number"                : source_ref.getLineNumber(),
+            "arg_names"                  : getConstantCode(
+                constant = _getCoArgNamesValue( parameters ),
+                context  = context
+            ),
             "arg_count"                  : parameters.getArgumentCount(),
             "defaults"                   : func_defaults.getCodeExportRef(),
             "module_identifier"          : getModuleAccessCode( context = context ),
@@ -2687,6 +2706,10 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                 constant = source_ref.getFilename()
             ),
             "line_number"                : source_ref.getLineNumber(),
+            "arg_names"                  : getConstantCode(
+                constant = _getCoArgNamesValue( parameters ),
+                context  = context
+            ),
             "arg_count"                  : parameters.getArgumentCount(),
             "defaults"                   : func_defaults.getCodeExportRef(),
             "module_identifier"          : getModuleAccessCode( context = context ),

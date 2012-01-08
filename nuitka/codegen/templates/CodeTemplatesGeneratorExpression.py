@@ -61,7 +61,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
     PyObject *result = Nuitka_Genexpr_New(
         %(function_identifier)s,
         %(function_name_obj)s,
-        _CODEOBJ_%(function_identifier)s ? _CODEOBJ_%(function_identifier)s : ( _CODEOBJ_%(function_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(function_name_obj)s, %(line_number)d, 1 ) ),
+        _CODEOBJ_%(function_identifier)s ? _CODEOBJ_%(function_identifier)s : ( _CODEOBJ_%(function_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(function_name_obj)s, %(line_number)d, _python_tuple_empty, 1 ) ),
         iterated,
         %(iterator_count)d,
         _python_context,

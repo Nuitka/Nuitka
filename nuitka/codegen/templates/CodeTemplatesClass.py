@@ -58,7 +58,7 @@ static PyObject *%(class_identifier)s( %(class_dict_args)s )
 
         if ( _CODEOBJ_%(class_identifier)s == NULL )
         {
-            _CODEOBJ_%(class_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(name_identifier)s, %(line_number)d, 0 );
+            _CODEOBJ_%(class_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(name_identifier)s, %(line_number)d, _python_tuple_empty, 0 );
         }
 
         frame_%(class_identifier)s = MAKE_FRAME( _CODEOBJ_%(class_identifier)s, %(module_identifier)s );

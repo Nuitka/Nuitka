@@ -538,7 +538,7 @@ print "Dual star args consuming function", posDoubleStarArgsFunction( 1,  *l, **
 
 import inspect, sys
 
-for value in dir():
+for value in sorted( dir() ):
     main_value = getattr( sys.modules[ "__main__" ], value )
 
     if inspect.isfunction( main_value ):

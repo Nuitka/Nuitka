@@ -477,7 +477,7 @@ PyObject *BUILTIN_LEN( PyObject *value )
     return PyInt_FromSsize_t( res );
 }
 
-PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, int arg_count, bool is_generator )
+PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, bool is_generator )
 {
     assertObject( filename );
     assert( Nuitka_String_Check( filename ) );
@@ -508,7 +508,7 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
 #endif
         _python_tuple_empty, // consts (we are not going to be compatible)
         _python_tuple_empty, // names (we are not going to be compatible)
-        _python_tuple_empty, // varnames (we are not going to be compatible)
+        argnames,            // varnames (we are not going to be compatible)
         _python_tuple_empty, // freevars (we are not going to be compatible)
         _python_tuple_empty, // cellvars (we are not going to be compatible)
         filename,            // filename
