@@ -132,14 +132,15 @@ def executePASS1():
             if filename != "__init__.py":
                 print( "Compiling", path )
 
-                result = os.system(
+                result = subprocess.call(
                     "%s %s %s --output-dir %s %s" % (
                         os.environ[ "PYTHON" ],
                         nuitka_main_path,
                         path,
                         target_dir,
                         os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
-                    )
+                    ),
+                    shell = True
                 )
 
                 if result != 0:
@@ -150,14 +151,15 @@ def executePASS1():
 
     print( "Compiling", nuitka_main_path )
 
-    result = os.system(
+    result = subprocess.call(
         "%s %s %s --exe --recurse-none --output-dir %s %s" % (
             os.environ[ "PYTHON" ],
             nuitka_main_path,
             nuitka_main_path,
             ".",
             os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
-        )
+        ),
+        shell = True
     )
 
     if result != 0:
@@ -208,13 +210,14 @@ def compileAndCompareWith( nuitka ):
                 if os.path.exists( target_dir ):
                     shutil.rmtree( target_dir )
 
-                result = os.system(
+                result = subprocess.call(
                     "%s %s --output-dir %s %s" % (
                         nuitka,
                         path,
                         tmp_dir,
                         os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
-                    )
+                    ),
+                    shell = True
                 )
 
                 if result != 0:
@@ -248,13 +251,14 @@ def executePASS3():
 
     print( "Compiling", path )
 
-    result = os.system(
+    result = subprocess.call(
         "%s %s %s --output-dir %s --exe --recurse-all" % (
             os.environ[ "PYTHON" ],
             nuitka_main_path,
             path,
             tmp_dir
-        )
+        ),
+        shell = True
     )
 
     if result != 0:
