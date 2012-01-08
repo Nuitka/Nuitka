@@ -110,13 +110,16 @@ def execute_tests( where, use_python, flags ):
     setExtraFlags( where, "basics", flags )
     executeSubTest( "./tests/basics/run_all.py search" )
 
-    print( "Running the syntax tests with options '%s' with %s:"  % ( flags, use_python ))
+    print( "Running the syntax tests with options '%s' with %s:"  % ( flags, use_python ) )
     setExtraFlags( where, "syntax", flags )
     executeSubTest( "./tests/syntax/run_all.py search" )
 
-    print( "Running the program tests with options '%s' with %s:" % ( flags, use_python ))
+    print( "Running the program tests with options '%s' with %s:" % ( flags, use_python ) )
     setExtraFlags( where, "programs", flags )
     executeSubTest( "./tests/programs/run_all.py search" )
+
+    print( "Running the reflection test with options '%s' with %s:" % ( flags, use_python ) )
+    executeSubTest( "./tests/reflected/compile_itself.py search" )
 
     if os.path.exists( "./tests/CPython/run_all.py" ):
         print( "Running the CPython 2.6 tests with options '%s' with %s:" % ( flags, use_python ) )
@@ -161,11 +164,6 @@ else:
 
 execute_tests( "python2.7-nodebug", "python2.7", "" )
 
-del os.environ[ "PYTHON" ]
-
-print("Running the reflection test in debug mode with default python:")
-executeSubTest( "./tests/reflected/compile_itself.py search" )
-
 if checkExecutableCommand( "cppcheck" ):
     command = "cppcheck -q --error-exitcode=1 --enable=all --check-config nuitka/build/ -I nuitka/build/include/ -I /usr/include/python2.7"
 
@@ -174,6 +172,5 @@ if checkExecutableCommand( "cppcheck" ):
 
     if result != 0:
         sys.exit( result )
-
 
 print( "OK." )
