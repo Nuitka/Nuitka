@@ -71,7 +71,7 @@ print "exec in function without and with locals() provided:", functionExec1(), f
 
 tmp_filename = tempfile.gettempdir() + "/execfile.py"
 
-f = open( tmp_filename, "wb" )
+f = open( tmp_filename, "w" )
 f.write( "e=7\nf=8\n" )
 f.close()
 

@@ -31,10 +31,10 @@ def lamdaContainer( x ):
     if 'a' <= x > 'z':
         print "Yes1"
 
-    if 'a' <= (1 if x else 2 ) > 'z':
+    if 'a' <= ('1' if x else '2') > 'z':
         print "Yes2"
 
-    if 'a' <= (1 if x else 2 ) > 'z' > i:
+    if 'a' <= ('1' if x else '2') > 'z' > i:
         print "Yes3"
 
     z = lambda huhu = y : huhu

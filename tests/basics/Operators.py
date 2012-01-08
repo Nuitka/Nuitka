@@ -61,7 +61,7 @@ print "Should be a,c:", l[ "a", "c" ]
 print "Short form of extended slicing:"
 
 d = {}
-d[1] = 1
+# d[1] = 1
 d[1,] = 2
 d[1,2] = 3
 d[1,2,3] = 4
