@@ -389,7 +389,10 @@ def buildDictionaryNode( provider, node, source_ref ):
     if constant:
         # Create the dictionary in its full size, so that no growing occurs and the
         # constant becomes as similar as possible before being marshalled.
-        constant_value = dict.fromkeys( [ key.getConstant() for key in keys ], None )
+        constant_value = dict.fromkeys(
+            [ key.getConstant() for key in keys ],
+            None
+        )
 
         for key, value in zip( keys, values ):
             constant_value[ key.getConstant() ] = value.getConstant()
