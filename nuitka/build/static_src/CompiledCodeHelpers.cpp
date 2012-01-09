@@ -795,6 +795,11 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
 void PRINT_NEW_LINE_TO( PyObject *file )
 {
 #if PYTHON_VERSION < 300
+    if ( file == NULL || file == Py_None )
+    {
+        file = GET_STDOUT();
+    }
+
     if (unlikely( PyFile_WriteString( "\n", file ) == -1))
     {
         throw _PythonException();

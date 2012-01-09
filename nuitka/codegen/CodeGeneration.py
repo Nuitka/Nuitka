@@ -1914,9 +1914,11 @@ def generateImportStarCode( statement, context ):
     )
 
 def generatePrintCode( statement, target_file, context ):
+    expressions = statement.getValues()
+
     values = generateExpressionsCode(
         context     = context,
-        expressions = statement.getValues()
+        expressions = expressions,
     )
 
     return Generator.getPrintCode(

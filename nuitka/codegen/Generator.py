@@ -636,20 +636,31 @@ def getOperationCode( operator, identifiers ):
         assert False, (operator, identifiers)
 
 def getPrintCode( newline, identifiers, target_file ):
-    print_elements_code = ""
+    print_elements_code = []
 
     for identifier in identifiers:
-        print_elements_code += CodeTemplates.template_print_value % {
-            "print_value" : identifier.getCodeTemporaryRef()
-        }
+        print_elements_code.append(
+            CodeTemplates.template_print_value % {
+                "print_value" : identifier.getCodeTemporaryRef(),
+                "target_file" : "target_file" if target_file is not None else "NULL"
+            }
+        )
 
     if newline:
-        print_elements_code += CodeTemplates.template_print_newline
+        print_elements_code.append(
+            CodeTemplates.template_print_newline  % {
+                "target_file" : "target_file" if target_file is not None else "NULL"
+            }
+        )
 
-    return CodeTemplates.template_print_statement % {
-        "target_file"         : target_file.getCodeExportRef() if target_file is not None else "NULL",
-        "print_elements_code" : print_elements_code
-    }
+    if target_file is not None:
+        return CodeTemplates.template_print_statement % {
+            "target_file"         : target_file.getCodeExportRef() if target_file is not None else "NULL",
+            "print_elements_code" : indented( print_elements_code )
+        }
+    else:
+        return "\n".join( print_elements_code )
+
 
 def getClosureVariableProvisionCode( context, closure_variables ):
     result = []
