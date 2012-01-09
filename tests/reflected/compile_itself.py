@@ -60,6 +60,12 @@ def diffRecursive( dir1, dir2 ):
         path1 = os.path.join( dir1, filename )
         path2 = os.path.join( dir2, filename )
 
+        done.add( path1 )
+
+        # Skip these binary files of course.
+        if filename.endswith( ".o" ) or filename.endswith( ".os" ):
+            continue
+
         if not os.path.exists( path2 ):
             sys.exit( "Only in %s: %s" % ( dir1, filename ))
 
@@ -88,8 +94,6 @@ def diffRecursive( dir1, dir2 ):
                 sys.exit( 1 )
         else:
             assert False, path1
-
-        done.add( path1 )
 
     for filename in os.listdir( dir2 ):
         path1 = os.path.join( dir1, filename )
