@@ -2259,7 +2259,8 @@ def _generateStatementCode( statement, context ):
     else:
         assert False, statement.__class__
 
-    assert code == code.strip(), ( statement, "'%s'" % code )
+    if code != code.strip():
+        raise AssertionError( "Code contains leading or trailing whitespace", statement, "'%s'" % code )
 
     return code
 
