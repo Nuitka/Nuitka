@@ -1,7 +1,16 @@
-nuitka (0.3.17+ds-1) unstable; urgency=low
+nuitka (0.3.18~pre1+ds-2) unstable; urgency=low
 
   * New upstream pre-release.
   * New maintainer (Closes: #648489)
+  * Added Developer Manual to the generated PDF documentation.
+  * Added python-dbg to Build-Depends to also execcute reference
+    count tests.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Mon, 09 Jan 2012 10:30:43 +0100
+
+nuitka (0.3.17+ds-1) UNRELEASED; urgency=low
+
+  * New upstream release.
   * Updated man page to use new "--recurse-*" options in examples
     over removed "--deep*" options.
   * Completed copyright file according to "licensecheck" findings
