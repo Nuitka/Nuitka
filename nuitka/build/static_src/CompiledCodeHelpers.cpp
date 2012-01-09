@@ -563,9 +563,8 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
     return result;
 }
 
-PyFrameObject *detachCurrentFrame()
+static PyFrameObject *duplicateFrame( PyFrameObject *old_frame )
 {
-    PyFrameObject *old_frame = PyThreadState_GET()->frame;
     PyFrameObject *new_frame = PyObject_GC_NewVar( PyFrameObject, &PyFrame_Type, 0 );
 
     // Allow only to detach only our tracing frames.
@@ -603,6 +602,16 @@ PyFrameObject *detachCurrentFrame()
     new_frame->f_iblock = 0;
 
     Nuitka_GC_Track( new_frame );
+
+    return new_frame;
+}
+
+PyFrameObject *detachCurrentFrame()
+{
+    PyFrameObject *old_frame = PyThreadState_GET()->frame;
+
+    // Duplicate it.
+    PyFrameObject *new_frame = duplicateFrame( old_frame );
 
     // The given frame can be put on top now.
     PyThreadState_GET()->frame = new_frame;
