@@ -1487,20 +1487,6 @@ def getRaiseExceptionExpressionCode( side_effects, exception_type_identifier, \
 
     return result
 
-def getAssertCode( condition_identifier, failure_identifier, exception_tb_maker ):
-    if failure_identifier is None:
-        return CodeTemplates.assertion_without_arg % {
-            "condition" : condition_identifier.getCode(),
-            "tb_maker"  : exception_tb_maker.getCodeExportRef()
-        }
-    else:
-        return CodeTemplates.assertion_with_arg % {
-            "condition"   : condition_identifier.getCode(),
-            "failure_arg" : failure_identifier.getCodeExportRef(),
-            "tb_maker"    : exception_tb_maker.getCodeExportRef()
-        }
-
-
 def getExceptionRefCode( exception_type ):
     return Identifier(
         "PyExc_%s" % exception_type,

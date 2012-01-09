@@ -2227,21 +2227,6 @@ def _generateStatementCode( statement, context ):
             statement = statement,
             context   = context
         )
-    elif statement.isStatementAssert():
-        code = Generator.getAssertCode(
-            condition_identifier = generateConditionCode(
-                condition = statement.getExpression(),
-                inverted  = True,
-                context   = context
-            ),
-            failure_identifier   = makeExpressionCode(
-                expression = statement.getArgument(),
-                allow_none = True
-            ),
-            exception_tb_maker   = Generator.getTracebackMakingIdentifier(
-                context = context,
-            )
-        )
     elif statement.isStatementExec():
         code = generateExecCode(
             exec_def     = statement,

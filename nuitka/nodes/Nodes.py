@@ -1550,25 +1550,6 @@ class CPythonStatementPrint( CPythonChildrenHaving, CPythonNodeBase ):
     getDestination = CPythonChildrenHaving.childGetter( "dest" )
     getValues = CPythonChildrenHaving.childGetter( "values" )
 
-class CPythonStatementAssert( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "STATEMENT_ASSERT"
-
-    named_children = ( "expression", "failure" )
-
-    def __init__( self, expression, failure, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "expression" : expression,
-                "failure"    : failure
-            }
-        )
-
-    getExpression = CPythonChildrenHaving.childGetter( "expression" )
-    getArgument   = CPythonChildrenHaving.childGetter( "failure" )
-
 class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_FUNCTION_CALL"
 
