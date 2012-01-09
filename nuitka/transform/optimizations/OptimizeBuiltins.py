@@ -1,18 +1,16 @@
-#
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -35,7 +33,8 @@
 from .OptimizeBase import (
     OptimizationDispatchingVisitorBase,
     OptimizationVisitorBase,
-    makeRaiseExceptionReplacementExpressionFromInstance
+    makeRaiseExceptionReplacementExpressionFromInstance,
+    makeConstantReplacementNode
 )
 
 from nuitka import Importing
@@ -214,7 +213,7 @@ class ReplaceBuiltinsVisitorBase( OptimizationDispatchingVisitorBase ):
 
     def getKey( self, node ):
         if node.isExpressionFunctionCall():
-            called = node.getCalledExpression()
+            called = node.getCalled()
 
             if called.isExpressionVariableRef():
                 variable = called.getVariable()
@@ -224,8 +223,8 @@ class ReplaceBuiltinsVisitorBase( OptimizationDispatchingVisitorBase ):
                 if _isReadOnlyModuleVariable( variable ):
                     return variable.getName()
 
-    def __call__( self, node ):
-        new_node = OptimizationDispatchingVisitorBase.__call__( self, node )
+    def onEnterNode( self, node ):
+        new_node = OptimizationDispatchingVisitorBase.onEnterNode( self, node )
 
         if new_node is not None:
 
@@ -266,7 +265,7 @@ class ReplaceBuiltinsVisitorBase( OptimizationDispatchingVisitorBase ):
 
             assert node.isExpressionFunctionCall
 
-            called = node.getCalledExpression()
+            called = node.getCalled()
             assert called.isExpressionVariableRef()
 
             variable = called.getVariable()
@@ -343,7 +342,7 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
                     called_expression = Nodes.CPythonExpressionAttributeLookup(
                         expression     = Nodes.CPythonExpressionBuiltinOpen(
                             filename   = filename,
-                            mode       = Nodes.makeConstantReplacementNode(
+                            mode       = makeConstantReplacementNode(
                                 constant = "rU",
                                 node     = node
                             ),
@@ -670,7 +669,7 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
         )
 
     def exceptions_extractor( self, node ):
-        exception_name = node.getCalledExpression().getVariable().getName()
+        exception_name = node.getCalled().getVariable().getName()
 
         def createBuiltinMakeException( args, source_ref ):
             return Nodes.CPythonExpressionBuiltinMakeException(
@@ -692,7 +691,7 @@ _quick_names = {
 }
 
 class ReplaceBuiltinsExceptionsVisitor( OptimizationVisitorBase ):
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isExpressionVariableRef():
             variable = node.getVariable()
 
@@ -717,7 +716,7 @@ class ReplaceBuiltinsExceptionsVisitor( OptimizationVisitorBase ):
 
                     assert node.parent is new_node.parent
                 elif variable_name in _quick_names and _isReadOnlyModuleVariable( variable ):
-                    new_node = Nodes.makeConstantReplacementNode(
+                    new_node = makeConstantReplacementNode(
                         node     = node,
                         constant = _quick_names[ variable_name ]
                     )
@@ -776,6 +775,9 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
                 type_name = value.__class__.__name__
 
                 assert (type_name in _builtin_names), (type_name, _builtin_names)
+
+                # TODO: We really need a "builtin" name ref node to avoid creating a
+                # variable reference here that can only cause trouble
 
                 result = Nodes.CPythonExpressionVariableRef(
                     variable_name = type_name,

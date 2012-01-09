@@ -1,26 +1,25 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
-#     Kay Hayen, mailto:kayhayen@gmx.de
+#     Python tests originally created or extracted from other peoples work. The
+#     parts were too small to be protected.
 #
-#     Python test originally created or extracted from other peoples work. The
-#     parts from me are in the public domain. It is at least Free Software
-#     where it's copied from other people. In these cases, it will normally be
-#     indicated.
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#        http://www.apache.org/licenses/LICENSE-2.0
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
-#
-#     Please leave the whole of this copyright notice intact.
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
 #
 
-import os, sys, commands, subprocess
+from __future__ import print_function
+
+import os, sys, subprocess, tempfile, shutil
 
 # Go its own directory, to have it easy with path knowledge.
 os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
@@ -37,11 +36,16 @@ else:
 if "PYTHON" not in os.environ:
     os.environ[ "PYTHON" ] = "python"
 
-python_version = commands.getoutput( os.environ[ "PYTHON" ] + " --version" ).split()[1]
+version_output = subprocess.check_output(
+    [ os.environ[ "PYTHON" ], "--version" ],
+    stderr = subprocess.STDOUT
+)
+
+python_version = version_output.split()[1]
 
 os.environ[ "PYTHONPATH" ] = os.getcwd()
 
-print "Using concrete python", python_version
+print( "Using concrete python", python_version )
 
 for filename in sorted( os.listdir( "." ) ):
     if not filename.endswith( ".py" ) or filename == "run_all.py":
@@ -52,16 +56,25 @@ for filename in sorted( os.listdir( "." ) ):
     if not active and start_at in ( filename, path ):
         active = True
 
-    extra_flags = ""
+    extra_flags = [ "expect_failure" ]
 
     if active:
-        result = subprocess.call( "compare_with_cpython %s silent %s" % ( path, extra_flags ), shell = True )
+        result = subprocess.call(
+            "%s %s %s silent %s" % (
+                sys.executable,
+                os.path.join( "..", "..", "bin", "compare_with_cpython" ),
+                path,
+                " ".join( extra_flags )
+            ),
+            shell = True
+        )
 
         if result == 2:
             sys.stderr.write( "Interruped, with CTRL-C\n" )
             sys.exit( 2 )
 
         if result != 0 and search_mode:
+            print( "Error exit!", result )
             sys.exit( result )
     else:
-        print "Skipping", filename
+        print( "Skipping", filename )

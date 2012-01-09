@@ -1,18 +1,16 @@
-#
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -39,12 +37,13 @@ Provides a class that all optimization visitors should inherit from.
 from .. import TreeOperations
 
 from nuitka.nodes import Nodes
+from nuitka.nodes.Nodes import makeConstantReplacementNode
 
 # pylint: disable=W0611
 # These are here for easier import by the optimization steps.
 from logging import warning, debug, info
 
-class OptimizationVisitorBase:
+class OptimizationVisitorBase( TreeOperations.VisitorNoopMixin ):
     on_signal = None
 
     # Type of visit, by default all the tree is visited, but can also visit scopes only or
@@ -71,19 +70,18 @@ class OptimizationVisitorBase:
                 tree    = tree,
                 visitor = self
             )
-        elif self.visit_type == "kinds":
-            TreeOperations.visitKinds(
-                tree    = tree,
-                visitor = self,
-                kinds   = self.visit_kinds
-            )
         elif self.visit_type == "scopes":
             TreeOperations.visitScopes(
                 tree    = tree,
                 visitor = self
             )
+        elif self.visit_type == "execution":
+            TreeOperations.visitExecutions(
+                tree    = tree,
+                visitor = self
+            )
         else:
-            assert False
+            assert False, self.visit_type
 
     def replaceWithComputationResult( self, node, computation, description ):
         # Try and turn raised exceptions into static raises. pylint: disable=W0703
@@ -102,7 +100,7 @@ class OptimizationVisitorBase:
                 description + " was predicted to raise an exception."
             )
         else:
-            new_node =  Nodes.makeConstantReplacementNode(
+            new_node = makeConstantReplacementNode(
                 constant = result,
                 node     = node
             )
@@ -119,7 +117,7 @@ class OptimizationDispatchingVisitorBase( OptimizationVisitorBase ):
     def __init__( self, dispatch_dict ):
         self.dispatch_dict = dispatch_dict
 
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         key = self.getKey( node )
 
         if key in self.dispatch_dict:
@@ -131,6 +129,12 @@ class OptimizationDispatchingVisitorBase( OptimizationVisitorBase ):
     def getKey( self, node ):
         # Abstract method, pylint: disable=R0201,W0613
         assert False
+
+class OptimizationVisitorScopedBase( OptimizationVisitorBase ):
+    visit_type = "scopes"
+
+class OptimizationVisitorExecutionBase( OptimizationVisitorBase ):
+    visit_type = "execution"
 
 
 def areConstants( expressions ):
@@ -151,11 +155,11 @@ def makeRaiseExceptionReplacementStatement( statement, exception_type, exception
     assert type( exception_type ) is str
 
     result = Nodes.CPythonStatementRaiseException(
-        exception_type = Nodes.CPythonExpressionVariableRef(
-            variable_name = exception_type,
-            source_ref    = source_ref
+        exception_type  = Nodes.CPythonExpressionBuiltinExceptionRef(
+            exception_name = exception_type,
+            source_ref     = source_ref
         ),
-        exception_value = Nodes.makeConstantReplacementNode(
+        exception_value = makeConstantReplacementNode(
             constant = exception_value,
             node     = statement
         ),
@@ -175,7 +179,7 @@ def makeRaiseExceptionReplacementExpression( expression, exception_type, excepti
             exception_name = exception_type,
             source_ref     = source_ref
         ),
-        exception_value = Nodes.makeConstantReplacementNode(
+        exception_value = makeConstantReplacementNode(
             constant = exception_value,
             node     = expression
         ),

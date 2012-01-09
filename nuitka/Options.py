@@ -1,18 +1,16 @@
-#
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -31,10 +29,10 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.3.16b
-Copyright (C) 2011 Kay Hayen."""
+Nuitka V0.3.17
+Copyright (C) 2012 Kay Hayen."""
 
-from . import Utils, Tracing
+from . import Utils
 
 from optparse import OptionParser, OptionGroup
 
@@ -48,9 +46,9 @@ def getVersion():
     return version_string.split()[1][1:]
 
 if is_nuitka_python:
-    usage = "usage: %prog [--deep] [--exe] [--execute] [options] main_module.py"
+    usage = "usage: %prog [--exe] [--execute] [options] main_module.py"
 else:
-    usage = "usage: %prog [--deep] [options] main_module.py"
+    usage = "usage: %prog [options] main_module.py"
 
 parser = OptionParser(
     usage   = usage,
@@ -62,28 +60,65 @@ parser.add_option(
     action  = "store_true",
     dest    = "executable",
     default = is_nuitka_python,
-    help    = """Create a standalone executable instead of a compiled extension module. Default is %s.""" % ( "on" if is_nuitka_python else "off" )
+    help    = """\
+Create a standalone executable instead of a compiled extension module. Default is %s.""" %
+       ( "on" if is_nuitka_python else "off" )
 )
 
 recurse_group = OptionGroup(
     parser,
-    "Cntrol how deep to recurse into imported modules"
+    "Control the recursion into imported modules with '--exe' mode"
+)
+
+
+recurse_group.add_option(
+    "--recurse-stdlib",
+    action  = "store_true",
+    dest    = "recurse_stdlib",
+    default = False,
+    help    = "Also descend into imported modules from standard library."
 )
 
 recurse_group.add_option(
-    "--deep", "--recurse",
+    "--recurse-none",
     action  = "store_true",
-    dest    = "follow_imports",
+    dest    = "recurse_none",
     default = False,
-    help    = "Descend into imported modules and compile them recursively."
+    help    = """\
+When --recurse-none is used, do not descend into any imported modules at all, overrides
+all other recursion options. Default %default."""
 )
 
 recurse_group.add_option(
-    "--really-deep",
+    "--recurse-all", "--recurse-on",
     action  = "store_true",
-    dest    = "follow_stdlib",
+    dest    = "recurse_all",
     default = False,
-    help    = "When --deep is used, also descend into imported modules from standard library."
+    help    = """\
+When --recurse-all is used, attempt to descend into all imported modules.
+Default %default."""
+)
+
+recurse_group.add_option(
+    "--recurse-to",
+    action  = "append",
+    dest    = "recurse_modules",
+    metavar = "MODULE/PACKAGE",
+    default = [],
+    help    = """\
+ Recurse to that module, or if a package, to the whole package. Can be given multiple
+ times.Default empty."""
+)
+
+recurse_group.add_option(
+    "--recurse-not-to",
+    action  = "append",
+    dest    = "recurse_not_modules",
+    metavar = "MODULE/PACKAGE",
+    default = [],
+    help    = """\
+Do not recurse to that module, or if a package, to the whole package in any case,
+overrides all other options. Can be given multiple times. Default empty."""
 )
 
 parser.add_option_group( recurse_group )
@@ -98,7 +133,10 @@ execute_group.add_option(
     action  = "store_true",
     dest    = "immediate_execution",
     default = is_nuitka_python,
-    help    = """Execute immediately the created binary (or import the compiled module). Default is %s.""" % ( "on" if is_nuitka_python else "off" )
+    help    = """\
+Execute immediately the created binary (or import the compiled module). Default
+is %s.""" %
+       ( "on" if is_nuitka_python else "off" )
 )
 
 execute_group.add_option(
@@ -106,7 +144,8 @@ execute_group.add_option(
     action  = "store_true",
     dest    = "keep_pythonpath",
     default = False,
-    help    = """When immediately executing the created '--deep' mode binary, don't reset PYTHONPATH. When
+    help    = """\
+When immediately executing the created binary (--execute), don't reset PYTHONPATH. When
 all modules are successfully included, you ought to not need PYTHONPATH anymore."""
 )
 
@@ -171,7 +210,8 @@ codegen_group.add_option(
     action  ="store_false",
     dest    = "statement_lines",
     default = True,
-    help    = """Statements shall have their line numbers set. Disable this for less precise exceptions and
+    help    = """\
+Statements shall have their line numbers set. Disable this for less precise exceptions and
 slightly faster code. Not recommended. Defaults to off."""
 )
 
@@ -185,20 +225,41 @@ codegen_group.add_option(
 
 parser.add_option_group( codegen_group )
 
-parser.add_option(
+outputdir_group = OptionGroup(
+    parser,
+    "Output directory choices"
+)
+
+outputdir_group.add_option(
     "--output-dir",
     action  ="store",
     dest    = "output_dir",
+    metavar = "DIRECTORY",
     default = "",
-    help    = """Specify where intermediate and final output files should be put. Defaults to current directory."""
+    help    = """\
+Specify where intermediate and final output files should be put. DIRECTORY will
+be populated with C++ files, object files, etc. Defaults to current directory."""
 )
+
+outputdir_group.add_option(
+    "--remove-output",
+    action  = "store_true",
+    dest    = "remove_build",
+    default = False,
+    help    = """\
+Removes the build directory after producing the module or exe file.
+Default %default."""
+)
+
+parser.add_option_group( outputdir_group )
 
 parser.add_option(
     "--windows-target",
     action  = "store_true",
     dest    = "windows_target",
     default = False,
-    help    = """Force compilation for windows, useful for cross-compilation. Defaults to off."""
+    help    = """\
+Force compilation for windows, useful for cross-compilation. Defaults to off."""
 )
 
 debug_group = OptionGroup(
@@ -211,7 +272,8 @@ debug_group.add_option(
     action  = "store_true",
     dest    = "debug",
     default = False,
-    help    = """Executing all self checks possible to find errors in Nuitka, do not use for
+    help    = """\
+Executing all self checks possible to find errors in Nuitka, do not use for
 production. Defaults to off."""
 )
 
@@ -220,7 +282,9 @@ debug_group.add_option(
     action  = "store_true",
     dest    = "unstriped",
     default = False,
-    help    = """Keep debug info in the resulting object file for better gdb interaction. Defaults to off."""
+    help    = """\
+Keep debug info in the resulting object file for better gdb interaction.
+Defaults to off."""
 )
 
 debug_group.add_option(
@@ -228,7 +292,9 @@ debug_group.add_option(
     action  = "store_true",
     dest    = "trace_execution",
     default = False,
-    help    = """Traced execution output, output the line of code before executing it. Defaults to off."""
+    help    = """\
+Traced execution output, output the line of code before executing it.
+Defaults to off."""
 )
 
 debug_group.add_option(
@@ -236,8 +302,19 @@ debug_group.add_option(
     action  = "store_true",
     dest    = "cpp_only",
     default = False,
-    help    = """Compile the would-be generated source file. Allows edition and translation with same
+    help    = """\
+Compile the would-be generated source file. Allows edition and translation with same
 options for quick debugging changes to the generated source. Defaults to off."""
+)
+
+debug_group.add_option(
+    "--experimental",
+    action  = "store_true",
+    dest    = "experimental",
+    default = False,
+    help    = """\
+Use features declared as "experimental". May have no effect if no experimental features
+are present in the code. Defaults to off."""
 )
 
 parser.add_option_group( debug_group )
@@ -247,7 +324,9 @@ parser.add_option(
     action  = "store_true",
     dest    = "lto",
     default = False,
-    help    = """Use link time optimizations if available and usable (g++ 4.6 and higher). Defaults to off."""
+    help    = """\
+Use link time optimizations if available and usable (g++ 4.6 and higher).
+Defaults to off."""
 )
 
 tracing_group = OptionGroup(
@@ -260,7 +339,8 @@ tracing_group.add_option(
     action  = "store_true",
     dest    = "show_scons",
     default = False,
-    help    = """Operate Scons in non-quiet mode, showing the executed commands. Defaults to off."""
+    help    = """\
+Operate Scons in non-quiet mode, showing the executed commands. Defaults to off."""
 )
 
 tracing_group.add_option(
@@ -277,7 +357,8 @@ tracing_group.add_option(
     action  = "store_true",
     dest    = "verbose",
     default = False,
-    help    = "Output details of actions take, esp. in optimizations. Can become a lot."
+    help    = """\
+Output details of actions take, esp. in optimizations. Can become a lot."""
 )
 
 
@@ -287,9 +368,11 @@ parser.add_option(
     "-j", "--jobs",
     action  ="store",
     dest    = "jobs",
+    metavar = "N",
     default = Utils.getCoreCount(),
     help    = """\
-Specify the allowed number of jobs. Defaults to system CPU count (%default).""",
+Specify the allowed number of parallel C++ compiler jobs. Defaults to the system
+CPU count.""",
 )
 
 if is_nuitka_python:
@@ -310,14 +393,22 @@ else:
 
 options, positional_args = parser.parse_args()
 
+if not positional_args:
+    parser.print_help()
+
+    sys.exit( "\nError, need positional argument with python module or main program." )
+
 if options.verbose:
     logging.getLogger().setLevel( logging.DEBUG )
 
-if options.follow_imports and not options.executable:
-    sys.exit( "Error, options '--deep' makes no sense without option '--exe'." )
+if options.recurse_all and not options.executable:
+    sys.exit( "Error, options '--recurse-all' makes no sense without option '--exe'." )
 
-if options.follow_stdlib and not options.follow_imports:
-    sys.exit( "Error, options '--really-deep' makes no sense without option '--deep'." )
+if options.recurse_stdlib and not options.executable:
+    sys.exit( "Error, options '--recurse-stdlib' makes no sense without option '--exe'." )
+
+def useValuePropagation():
+    return options.experimental
 
 def shallTraceExecution():
     return options.trace_execution
@@ -343,11 +434,20 @@ def shallHaveStatementLines():
 def shallMakeModule():
     return not options.executable
 
-def shallFollowImports():
-    return options.follow_imports
-
 def shallFollowStandardLibrary():
-    return options.follow_stdlib
+    return options.recurse_stdlib
+
+def shallFollowNoImports():
+    return options.recurse_none
+
+def shallFollowAllImports():
+    return options.recurse_all
+
+def getShallFollowModules():
+    return sum( [ x.split( "," ) for x in options.recurse_modules ], [] )
+
+def getShallFollowInNoCase():
+    return sum( [ x.split( "," ) for x in options.recurse_not_modules ], [] )
 
 def isDebug():
     return options.debug
@@ -374,7 +474,7 @@ def shallOptimizeStringExec():
     return False
 
 def shallClearPythonPathEnvironment():
-    return shallFollowImports and not options.keep_pythonpath
+    return not options.keep_pythonpath
 
 def isShowScons():
     return options.show_scons
@@ -393,3 +493,6 @@ def isFullCompat():
 
 def isShowProgress():
     return options.show_progress
+
+def isRemoveBuildDir():
+    return options.remove_build

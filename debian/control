@@ -2,7 +2,12 @@ Source: nuitka
 Maintainer: Kay Hayen <kayhayen@gmx.de>
 Section: python
 Priority: optional
-Build-Depends: python (>= 2.6.6-3), debhelper (>= 7.4.3)
+Build-Depends: debhelper (>= 7.4.3),
+               g++-4.6 (>= 4.6.1),
+               python (>= 2.6.6-3),
+               python-dev (>= 2.6.6-3),
+               rst2pdf (>= 0.16-2),
+               scons (>=2.0.1)
 Vcs-Git: http://git.nuitka.net/Nuitka.git
 Vcs-browser: http://nuitka.net/gitweb/?p=Nuitka.git;a=summary
 Homepage: http://nuitka.net
@@ -10,7 +15,7 @@ Standards-Version: 3.9.2
 
 Package: nuitka
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}, g++-4.6 (>= 4.6.1), scons (>=2.0.1)
+Depends: g++-4.6 (>= 4.6.1), scons (>=2.0.1), ${misc:Depends}, ${python:Depends}
 Recommends: python-lxml (>=2.3), python-qt4 (>= 4.8.6)
 Description: Python compiler with full language support and CPython compatibility
  This Python compiler achieves full language compatibility and compiles Python

@@ -1,19 +1,17 @@
-#!/usr/bin/python
-#
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#!/usr/bin/env python
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -30,18 +28,33 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
-import os, sys, shutil, re
+import os, subprocess
 
-assert 0 == os.system( "rst2pdf README.txt" )
+assert 0 == subprocess.call( "git submodule update misc/gist", shell = True )
+
+for document in ( "README.txt", "Developer_Manual.rst" ):
+    assert 0 == subprocess.call(
+        "rst2pdf %(document)s" % {
+            "document" : document
+        },
+        shell = True
+    )
+    assert 0 == subprocess.call(
+        "python ./misc/gist/rst2html.py %(document)s >%(doc_base)s.html" % {
+            "document" : document,
+            "doc_base" : document[:-4]
+        },
+        shell = True
+    )
 
 if not os.path.exists( "man" ):
     os.mkdir( "man" )
 
-assert 0 == os.system( "help2man -n 'the Python compiler' --no-discard-stderr --no-info --include doc/nuitka-man-include.txt nuitka >doc/nuitka.1" )
-assert 0 == os.system( "help2man -n 'the Python compiler' --no-discard-stderr --no-info nuitka-python >doc/nuitka-python.1" )
+assert 0 == subprocess.call( "help2man -n 'the Python compiler' --no-discard-stderr --no-info --include doc/nuitka-man-include.txt ./bin/nuitka >doc/nuitka.1", shell = True )
+assert 0 == subprocess.call( "help2man -n 'the Python compiler' --no-discard-stderr --no-info ./bin/nuitka-python >doc/nuitka-python.1", shell = True )
 
-assert 0 == os.system( "man2html doc/nuitka.1 >doc/man-nuitka.html" )
-assert 0 == os.system( "man2html doc/nuitka-python.1 >doc/man-nuitka-python.html" )
+assert 0 == subprocess.call( "man2html doc/nuitka.1 >doc/man-nuitka.html", shell = True )
+assert 0 == subprocess.call( "man2html doc/nuitka-python.1 >doc/man-nuitka-python.html", shell = True )
 
 def getFile( filename ):
     return open( filename ).read()

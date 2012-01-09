@@ -1,18 +1,16 @@
-#
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -32,7 +30,11 @@
 
 """
 
-from .OptimizeBase import OptimizationVisitorBase, areConstants
+from .OptimizeBase import (
+    OptimizationVisitorBase,
+    areConstants,
+    makeConstantReplacementNode
+)
 
 from nuitka.nodes import Nodes
 
@@ -156,7 +158,7 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
             for pair in pairs:
                 constant_value[ pair.getKey().getConstant() ] = pair.getValue().getConstant()
 
-            new_node = Nodes.makeConstantReplacementNode(
+            new_node = makeConstantReplacementNode(
                 constant = constant_value,
                 node     = node
             )
@@ -166,7 +168,7 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
             self.signalChange(
                 "new_constant",
                 node.getSourceReference(),
-                "Created diction found to be constant."
+                "Created dictionary found to be constant."
             )
 
     def _optimizeForLoop( self, node ):
@@ -184,11 +186,11 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
 
             node.setBody( None )
 
-        # TODO: Optimize away the for loop if possible, if e.g. the iteration has
-        # no side effects, it's result is predictable etc.
+        # TODO: Optimize away the for loop if possible, if e.g. the iteration has no side
+        # effects, it's result is predictable etc.
 
-    def __call__( self, node ):
-        if node.isOperation():
+    def onEnterNode( self, node ):
+        if node.isOperation() or node.isExpressionOperationBool2():
             operands = node.getOperands()
 
             if areConstants( operands ):
@@ -235,7 +237,7 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
 
                         for constant in star_list_arg.getConstant():
                             constant_nodes.append(
-                                Nodes.makeConstantReplacementNode(
+                                makeConstantReplacementNode(
                                     constant = constant,
                                     node     = star_list_arg
                                 )

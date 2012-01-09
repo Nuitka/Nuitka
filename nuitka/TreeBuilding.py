@@ -1,18 +1,16 @@
-#
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -98,6 +96,14 @@ def buildStatementsNode( provider, nodes, source_ref, allow_none = False ):
         return None
 
     return Nodes.CPythonStatementsSequence(
+        statements = statements,
+        source_ref = source_ref
+    )
+
+def buildLoopBodyNode( provider, nodes, source_ref ):
+    statements = buildNodeList( provider, nodes, source_ref )
+
+    return Nodes.CPythonStatementsSequenceLoopBody(
         statements = statements,
         source_ref = source_ref
     )
@@ -279,7 +285,7 @@ def buildForLoopNode( provider, node, source_ref ):
     return Nodes.CPythonStatementForLoop(
         source     = buildNode( provider, node.iter, source_ref ),
         target     = buildAssignTarget( provider, node.target, source_ref ),
-        body       = buildStatementsNode( provider, node.body, source_ref ),
+        body       = buildLoopBodyNode( provider, node.body, source_ref ),
         no_break   = buildStatementsNode(
             provider   = provider,
             nodes      = node.orelse if node.orelse else None,
@@ -292,7 +298,7 @@ def buildForLoopNode( provider, node, source_ref ):
 def buildWhileLoopNode( provider, node, source_ref ):
     return Nodes.CPythonStatementWhileLoop(
         condition  = buildNode( provider, node.test, source_ref ),
-        body       = buildStatementsNode( provider, node.body, source_ref ),
+        body       = buildLoopBodyNode( provider, node.body, source_ref ),
         no_enter   = buildStatementsNode(
             provider   = provider,
             nodes      = node.orelse if node.orelse else None,
@@ -383,7 +389,10 @@ def buildDictionaryNode( provider, node, source_ref ):
     if constant:
         # Create the dictionary in its full size, so that no growing occurs and the
         # constant becomes as similar as possible before being marshalled.
-        constant_value = dict.fromkeys( [ key.getConstant() for key in keys ], None )
+        constant_value = dict.fromkeys(
+            [ key.getConstant() for key in keys ],
+            None
+        )
 
         for key, value in zip( keys, values ):
             constant_value[ key.getConstant() ] = value.getConstant()
@@ -624,8 +633,8 @@ def buildBodyQuals( contraction_body, quals, source_ref ):
                 condition = conditions[ 0 ]
             else:
                 condition = Nodes.CPythonExpressionBoolAND(
-                    expressions = conditions,
-                    source_ref  = source_ref
+                    operands   = conditions,
+                    source_ref = source_ref
                 )
         else:
             condition = _buildConstantReferenceNode(
@@ -743,7 +752,10 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
             sources = [ Nodes.CPythonExpressionVariableRef( variable_name = "_iterated", source_ref = source_ref ) ]
             sources += contraction_body.getSources()
 
-            for target, source, condition in zip( contraction_body.getTargets(), sources, contraction_body.getConditions() ):
+            for target, source, condition in zip(
+                contraction_body.getTargets(),
+                sources,
+                contraction_body.getConditions() ):
 
                 body = Nodes.CPythonStatementConditional(
                     condition  = condition,
@@ -752,7 +764,7 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
                     source_ref = source_ref
                 )
 
-                body = Nodes.CPythonStatementsSequence(
+                body = Nodes.CPythonStatementsSequenceLoopBody(
                     statements = ( body, ),
                     source_ref = source_ref
                 )
@@ -1275,18 +1287,21 @@ def buildBoolOpNode( provider, node, source_ref ):
     bool_op = getKind( node.op )
 
     if bool_op == "Or":
+        # The "or" may be short circuit and is therefore not a plain operation
         return Nodes.CPythonExpressionBoolOR(
-            expressions = buildNodeList( provider, node.values, source_ref ),
-            source_ref  = source_ref
+            operands   = buildNodeList( provider, node.values, source_ref ),
+            source_ref = source_ref
         )
     elif bool_op == "And":
+        # The "and" may be short circuit and is therefore not a plain operation
         return Nodes.CPythonExpressionBoolAND(
-            expressions = buildNodeList( provider, node.values, source_ref ),
+            operands    = buildNodeList( provider, node.values, source_ref ),
             source_ref  = source_ref
         )
     elif bool_op == "Not":
-        return Nodes.CPythonExpressionBoolNOT(
-            expression = buildNode( provider, node.operand, source_ref ),
+        # The "not" is really only a unary operation and no special.
+        return Nodes.CPythonExpressionOperationNOT(
+            operand    = buildNode( provider, node.operand, source_ref ),
             source_ref = source_ref
         )
     else:

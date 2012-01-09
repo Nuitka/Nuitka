@@ -1,18 +1,16 @@
-#
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -64,6 +62,19 @@ lxml = TreeXML.lxml
 class NodeCheckMetaClass( type ):
     kinds = set()
 
+    def __new__( mcs, name, bases, dictionary ):
+        if "tags" not in dictionary:
+            dictionary[ "tags" ] = ()
+
+        for base in bases:
+            if hasattr( base, "tags" ):
+                dictionary[ "tags" ] += getattr( base, "tags" )
+
+        # Uncomment this for debug view of class tags.
+        # print name, dictionary[ "tags" ]
+
+        return type.__new__( mcs, name, bases, dictionary )
+
     def __init__( mcs, name, bases, dictionary ):
         if not name.endswith( "Base" ):
             assert ( "kind" in dictionary ), name
@@ -80,16 +91,16 @@ class NodeCheckMetaClass( type ):
                 else:
                     return value.title()
 
-            kind_to_name_part = "".join( [ convert( x ) for x in kind.split( "_" ) ] )
-
+            kind_to_name_part = "".join(
+                [ convert( x ) for x in kind.split( "_" ) ]
+            )
             assert name.endswith( kind_to_name_part ), ( name, kind_to_name_part )
 
+            # Automatically add checker methods for everything to the common base class
             checker_method = "is" + kind_to_name_part
 
             if name.startswith( "CPython" ):
                 checker_method = checker_method.replace( "CPython", "" )
-
-            # Automatically add checker methods for everything.
 
             def checkKind( self ):
                 return self.kind == kind
@@ -97,11 +108,16 @@ class NodeCheckMetaClass( type ):
             if not hasattr( CPythonNodeBase, checker_method ):
                 setattr( CPythonNodeBase, checker_method, checkKind )
 
+            # Tags mechanism, so node classes can be tagged with inheritance or freely,
+            # the "tags" attribute is not overloaded, but added. Absolutely not obvious
+            # and a trap set for the compiler by itself.
+
         type.__init__( mcs, name, bases, dictionary )
 
 # For every node type, there is a test, and then some more members, pylint: disable=R0904
 
-# For Python2/3 compatible source, we create a base class that has the metaclass used and doesn't require making a choice.
+# For Python2/3 compatible source, we create a base class that has the metaclass used and
+# doesn't require making a choice.
 CPythonNodeMetaClassBase = NodeCheckMetaClass( "CPythonNodeMetaClassBase", (object, ), {} )
 
 class CPythonNodeBase( CPythonNodeMetaClassBase ):
@@ -216,7 +232,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         return isinstance( self, CPythonClosureGiverNodeBase ) or self.isExpressionClassBody()
 
     def isClosureVariableTaker( self ):
-        return isinstance( self, CPythonClosureTaker )
+        return self.hasTag( "closure_taker" )
 
     def getParentVariableProvider( self ):
         parent = self.getParent()
@@ -287,6 +303,9 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
     def isOperation( self ):
         return self.kind.startswith( "EXPRESSION_OPERATION_" )
 
+    def isExpressionOperationBool2( self ):
+        return self.kind.startswith( "EXPRESSION_BOOL_" )
+
     def isAssignTargetSomething( self ):
         return self.kind.startswith( "ASSIGN_" )
 
@@ -305,17 +324,16 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         return ()
 
-    def getSameScopeNodes( self ):
-        """ Get nodes to be evaluated within the same scope.
+    def getChildNodesNotTagged( self, tag ):
+        """ Get child nodes that do not have a given tag.
 
-            These are all that are not closure variable takers.
         """
 
         return [
             node
             for node in
             self.getVisitableNodes()
-            if not node.isClosureVariableTaker()
+            if not node.hasTag( tag )
         ]
 
 
@@ -342,6 +360,10 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         """ Unless we are told otherwise, it's not indexable. """
 
         return False
+
+
+    def hasTag( self, tag ):
+        return tag in self.__class__.tags
 
 class CPythonNamedNodeBase( CPythonNodeBase ):
     def __init__( self, name, source_ref ):
@@ -617,6 +639,8 @@ class CPythonParameterHavingNodeBase( CPythonClosureGiverNodeBase ):
 
 class CPythonClosureTaker:
     """ Mixin for nodes that accept variables from closure givers. """
+
+    tags = ( "closure_taker", "execution_border" )
 
     def __init__( self, provider ):
         assert self.__class__.early_closure is not None, self
@@ -959,6 +983,9 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
 
     getStatements = CPythonChildrenHaving.childGetter( "statements" )
 
+    def isStatementsSequence( self ):
+        return True
+
     def trimStatements( self, statement ):
         assert statement.parent is self
 
@@ -969,6 +996,28 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
 
         self.setChild( "statements", new_statements )
 
+    def removeStatement( self, statement ):
+        assert statement.parent is self
+
+        statements = list( self.getStatements() )
+        statements.remove( statement )
+        self.setChild( "statements", statements )
+
+    def mergeStatementsSequence( self, statement_sequence ):
+        assert statement_sequence.parent is self
+
+        old_statements = list( self.getStatements() )
+        assert statement_sequence in old_statements, ( statement_sequence, self )
+
+        merge_index =  old_statements.index( statement_sequence )
+
+        new_statements = tuple( old_statements[ : merge_index ] )   + \
+                         statement_sequence.getStatements()         + \
+                         tuple( old_statements[ merge_index + 1 : ] )
+
+        self.setChild( "statements", new_statements )
+
+
     def mayHaveSideEffects( self ):
         # Statement sequences have a side effect if one of the statements does.
         for statement in self.getStatements():
@@ -976,6 +1025,13 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
                 return True
         else:
             return False
+
+class CPythonStatementsSequenceLoopBody( CPythonStatementsSequence ):
+    kind = "STATEMENTS_SEQUENCE_LOOP_BODY"
+
+    named_children = ( "statements", )
+
+    tags = ( "execution_border", )
 
 
 class CPythonAssignTargetVariable( CPythonChildrenHaving, CPythonNodeBase ):
@@ -1039,7 +1095,7 @@ class CPythonAssignTargetSubscript( CPythonChildrenHaving, CPythonNodeBase ):
             self,
             values = {
                 "expression" : expression,
-                "subscript" : subscript
+                "subscript"  : subscript
             }
         )
 
@@ -1542,9 +1598,9 @@ class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNodeBase ):
            }
         )
 
-        assert self.getChild( "called" ) == called_expression
+        assert self.getChild( "called" ) is called_expression
 
-    getCalledExpression = CPythonChildrenHaving.childGetter( "called" )
+    getCalled = CPythonChildrenHaving.childGetter( "called" )
     getPositionalArguments = CPythonChildrenHaving.childGetter( "positional_args" )
     setPositionalArguments = CPythonChildrenHaving.childSetter( "positional_args" )
     getNamedArgumentPairs = CPythonChildrenHaving.childGetter( "pairs" )
@@ -1645,6 +1701,12 @@ class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
             operands   = ( operand, ),
             source_ref = source_ref
         )
+
+    def getOperand( self ):
+        operands = self.getOperands()
+
+        assert len( operands ) == 1
+        return operands[ 0 ]
 
 class CPythonExpressionContractionBuilderBase( CPythonChildrenHaving, CPythonNodeBase ):
     named_children = ( "source0", "body" )
@@ -1954,6 +2016,8 @@ class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExcep
     named_children = ( "iterated", "target", "body", "else" )
 
     def __init__( self, source, target, body, no_break, source_ref ):
+        assert body.isStatementsSequenceLoopBody()
+
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
@@ -1981,6 +2045,8 @@ class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExc
     named_children = ( "condition", "frame", "else" )
 
     def __init__( self, condition, body, no_enter, source_ref ):
+        assert body.isStatementsSequenceLoopBody()
+
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
@@ -2220,62 +2286,77 @@ class CPythonExpressionConditional( CPythonChildrenHaving, CPythonNodeBase ):
     getExpressionNo = CPythonChildrenHaving.childGetter( "expression_no" )
     getCondition = CPythonChildrenHaving.childGetter( "condition" )
 
-class CPythonExpressionBoolOR( CPythonChildrenHaving, CPythonNodeBase ):
+class CPythonExpressionBool2Base( CPythonChildrenHaving, CPythonNodeBase ):
+    """ The "and/or" are short circuit and is therefore are not plain operations.
+
+    """
+    tags = ( "short_circuit", )
+
+    named_children = ( "operands", )
+
+    def __init__( self, operands, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        assert len( operands ) >= 2
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "operands" : tuple( operands )
+            }
+        )
+
+
+    getOperands = CPythonChildrenHaving.childGetter( "operands" )
+
+class CPythonExpressionBoolOR( CPythonExpressionBool2Base ):
+    """ The "or" is short circuit and is therefore not a plain operation.
+
+    """
+
     kind = "EXPRESSION_BOOL_OR"
 
-    named_children = ( "expressions", )
+    def getSimulator( self ):
+        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=R0201
+        def simulateOR( *operands ):
+            for operand in operands:
+                if operand:
+                    return operand
+            else:
+                return operands[-1]
 
-    def __init__( self, expressions, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        assert len( expressions ) >= 2
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "expressions" : tuple( expressions )
-            }
-        )
+        return simulateOR
 
 
-    getExpressions = CPythonChildrenHaving.childGetter( "expressions" )
+class CPythonExpressionBoolAND( CPythonExpressionBool2Base ):
+    """ The "and" is short circuit and is therefore not a plain operation.
 
-class CPythonExpressionBoolAND( CPythonChildrenHaving, CPythonNodeBase ):
+    """
+
     kind = "EXPRESSION_BOOL_AND"
 
-    named_children = ( "expressions", )
+    def getSimulator( self ):
+        # Virtual method, pylint: disable=R0201
+        def simulateAND( *operands ):
+            for operand in operands:
+                if not operand:
+                    return operand
+            else:
+                return operands[-1]
 
-    def __init__( self, expressions, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        return simulateAND
 
-        assert len( expressions ) >= 2
+class CPythonExpressionOperationNOT( CPythonExpressionOperationUnary ):
+    kind = "EXPRESSION_OPERATION_NOT"
 
-        CPythonChildrenHaving.__init__(
+    def __init__( self, operand, source_ref ):
+        CPythonExpressionOperationUnary.__init__(
             self,
-            values = {
-                "expressions" : tuple( expressions )
-            }
+            operator   = "Not",
+            operand    = operand,
+            source_ref = source_ref
         )
-
-
-    getExpressions = CPythonChildrenHaving.childGetter( "expressions" )
-
-class CPythonExpressionBoolNOT( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "EXPRESSION_BOOL_NOT"
-
-    named_children = ( "expression", )
-
-    def __init__( self, expression, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "expression" : expression
-            }
-        )
-
-    getExpression = CPythonChildrenHaving.childGetter( "expression" )
 
 class CPythonStatementConditional( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_CONDITIONAL"

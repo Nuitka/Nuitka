@@ -1,18 +1,16 @@
-#
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -34,7 +32,12 @@ Run away, don't read it, quick. Heavily underdocumented rules are implemented he
 
 """
 
-from .OptimizeBase import OptimizationVisitorBase, TreeOperations
+from .OptimizeBase import (
+    OptimizationVisitorScopedBase,
+    OptimizationVisitorBase,
+    TreeOperations,
+    makeConstantReplacementNode
+)
 
 from nuitka.nodes.UsageCheck import getVariableUsages
 from nuitka.nodes import Nodes
@@ -72,7 +75,7 @@ def _globalizeScope( module, variable_names, exec_inline_node ):
     )
 
 
-class VariableClosureLookupVisitorPhase1( OptimizationVisitorBase ):
+class VariableClosureLookupVisitorPhase1( OptimizationVisitorScopedBase ):
     """ Variable closure phase 1: Find global statements and follow them.
 
         Global statements outside an inlined exec statement need to be treated differently
@@ -80,9 +83,7 @@ class VariableClosureLookupVisitorPhase1( OptimizationVisitorBase ):
         the exec.
     """
 
-    visit_type = "scopes"
-
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isStatementDeclareGlobal():
             source_ref = node.getSourceReference()
 
@@ -112,7 +113,7 @@ class VariableClosureLookupVisitorPhase1( OptimizationVisitorBase ):
             )
 
 
-class VariableClosureLookupVisitorPhase2( OptimizationVisitorBase ):
+class VariableClosureLookupVisitorPhase2( OptimizationVisitorScopedBase ):
     """ Variable closure phase 2: Find assignments and early closure references.
 
         In class context, a reference to a variable must be obeyed immediately, so
@@ -120,12 +121,9 @@ class VariableClosureLookupVisitorPhase2( OptimizationVisitorBase ):
         a new local "variable" to override it from there on. For the not early closure
         case of a function, this will not be done and only assigments shall add local
         variables, and references be ignored until phase 3.
-
     """
 
-    visit_type = "scopes"
-
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isAssignTargetVariable():
             variable_ref = node.getTargetVariableRef()
 
@@ -149,10 +147,9 @@ class VariableClosureLookupVisitorPhase2( OptimizationVisitorBase ):
                             )
                         )
 
-class VariableClosureLookupVisitorPhase3( OptimizationVisitorBase ):
-    visit_type = "scopes"
 
-    def __call__( self, node ):
+class VariableClosureLookupVisitorPhase3( OptimizationVisitorScopedBase ):
+    def onEnterNode( self, node ):
         if node.isExpressionVariableRef() and node.getVariable() is None:
             provider = node.getParentVariableProvider()
 
@@ -171,7 +168,7 @@ VariableClosureLookupVisitors = (
 )
 
 class MaybeLocalVariableReductionVisitor( OptimizationVisitorBase ):
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isExpressionFunctionBody():
             self._consider( node )
 
@@ -258,13 +255,12 @@ class MaybeLocalVariableReductionVisitor( OptimizationVisitorBase ):
         # print old_variable, "->", new_variable
 
 
-
-class ModuleVariableWriteCheck:
+class ModuleVariableWriteCheck( TreeOperations.VisitorNoopMixin ):
     def __init__( self, variable_name ):
         self.variable_name = variable_name
         self.result = False
 
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isAssignTargetVariable():
             variable = node.getTargetVariableRef().getVariable()
 
@@ -277,23 +273,24 @@ class ModuleVariableWriteCheck:
         return self.result
 
 
-
 def doesWriteModuleVariable( node, variable_name ):
     visitor = ModuleVariableWriteCheck(
         variable_name = variable_name
     )
 
-    assert node.getBody() is not None, ( node, node.getSourceReference() )
+    body = node.getBody()
 
-    TreeOperations.visitScope(
-        tree    = node.getBody(),
-        visitor = visitor
-    )
+    if body is not None:
+        TreeOperations.visitScope(
+            tree    = body,
+            visitor = visitor
+        )
 
     return visitor.getResult()
 
+
 class ModuleVariableVisitorBase( OptimizationVisitorBase ):
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isModule():
             variables = node.getVariables()
 
@@ -338,16 +335,30 @@ class ModuleVariableUsageAnalysisVisitor( ModuleVariableVisitorBase ):
                 "Determined variable '%s' is only read." % variable.getName()
             )
 
+def isModuleVariableReference( node, var_name, module_name ):
+    if node.isExpressionVariableRef():
+        variable = node.getVariable()
 
-class ModuleVariableReadReplacement:
-    def __init__( self, variable_name, make_node ):
+        assert variable is not None, node
+
+        if variable.isModuleVariableReference() and variable.getOwner().getName() == module_name:
+            return variable.getName() == var_name
+        else:
+            return False
+    else:
+        return False
+
+
+class ModuleVariableReadReplacement( TreeOperations.VisitorNoopMixin ):
+    def __init__( self, module_name, variable_name, make_node ):
+        self.module_name = module_name
         self.variable_name = variable_name
         self.make_node = make_node
 
         self.result = 0
 
-    def __call__( self, node ):
-        if node.isExpressionVariableRef() and node.getVariableName() == self.variable_name and node.getVariable().isModuleVariableReference():
+    def onEnterNode( self, node ):
+        if isModuleVariableReference( node, self.variable_name, self.module_name ):
             node.replaceWith(
                 self.make_node( node )
             )
@@ -361,12 +372,13 @@ class ModuleVariableReadOnlyVisitor( ModuleVariableVisitorBase ):
 
             if variable_name == "__name__":
                 def makeNode( node ):
-                    return Nodes.makeConstantReplacementNode(
+                    return makeConstantReplacementNode(
                         constant = variable.getOwner().getName(),
                         node     = node
                     )
 
                 visitor = ModuleVariableReadReplacement(
+                    module_name   = variable.getOwner().getName(),
                     variable_name = variable_name,
                     make_node     = makeNode
                 )

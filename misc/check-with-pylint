@@ -1,19 +1,17 @@
-#!/bin/sh
-#
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#!/usr/bin/env python
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -42,37 +40,84 @@
 # a different warning. Amazing. Luckily I can decide to ignore that globally
 # then.
 
-OPTIONS='--rcfile=/dev/null
-         --include-ids=y
-         --disable=I0011,W0232
-         --reports=no
-         --persistent=no
-         --method-rgx=[a-z_][a-zA-Z0-9_]{2,40}$
-         --module-rgx=.*
-         --function-rgx=.*
-         --variable-rgx=.*
-         --argument-rgx=.*
-         --const-rgx=.*
-         --max-line-length=120
-         --no-docstring-rgx=.*
-         --max-module-lines=5000
-         --min-public-methods=0
-         --max-public-methods=100
-         --max-args=10
-         --max-parents=9'
+import sys, os, subprocess
 
-if [ "$1" != "" ]
-then
-    pylint $OPTIONS $PYLINT_EXTRA_OPTIONS $1
-else
-    for file in `find nuitka -name \*.py -a \! -path *inline_copy*`
-    do
-        if [ "$file" != "src/oset.py" -a "$file" != "src/odict.py" -a "$file" != "nuitka/SyntaxHighlighting.py" -a "$file" != "nuitka/TreeDisplay.py" ]
-        then
-            echo $file
-            pylint $OPTIONS $PYLINT_EXTRA_OPTIONS $file
+# Go its own directory, to have it easy with path knowledge.
+os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
+os.chdir( ".." )
 
-            #   pychecker $file
-        fi
-    done
-fi
+options = """
+--rcfile=/dev/null
+--include-ids=y
+--disable=I0011,W0232
+--reports=no
+--persistent=no
+--method-rgx=[a-z_][a-zA-Z0-9_]{2,40}$
+--module-rgx=.*
+--function-rgx=.*
+--variable-rgx=.*
+--argument-rgx=.*
+--const-rgx=.*
+--max-line-length=120
+--no-docstring-rgx=.*
+--max-module-lines=5000
+--min-public-methods=0
+--max-public-methods=100
+--max-args=10
+--max-parents=9
+""".split()
+
+if os.environ.get( "TODO", 0 ):
+    options.append( "--notes=" )
+
+blacklist = (
+    "oset.py",
+    "odict.py",
+    "SyntaxHighlighting.py",
+    "TreeDisplay.py"
+)
+
+def executePyLint( filename ):
+    command = "pylint %s %s %s" % (
+        " ".join( options ),
+        os.environ.get( "PYLINT_EXTRA_OPTIONS", "" ),
+        filename
+    )
+
+    process = subprocess.Popen(
+        args   = command,
+        stdout = subprocess.PIPE,
+        stderr = subprocess.STDOUT,
+        shell  = True
+    )
+
+    stdout, _stderr = process.communicate()
+    exit_code = process.returncode
+
+    assert not _stderr
+    if stdout:
+        for line in stdout.split( b"\n" ):
+            print( line.decode() )
+
+    sys.stdout.flush()
+
+if "PYTHONPATH" not in os.environ:
+    os.environ[ "PYTHONPATH" ] = "."
+
+if len( sys.argv ) >= 2:
+    executePyLint( sys.argv[ 1 ] )
+else:
+    executePyLint( "bin/nuitka" )
+
+    for dirpath, dirnames, filenames in os.walk( "nuitka" ):
+        dirnames.sort()
+
+        if "inline_copy" in dirnames:
+            dirnames.remove( "inline_copy" )
+
+        for filename in filenames:
+            if not filename.endswith( ".py" ):
+                continue
+
+            if filename not in blacklist:
+                executePyLint( os.path.join( dirpath, filename ) )

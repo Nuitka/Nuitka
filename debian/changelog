@@ -1,6 +1,34 @@
-nuitka (0.3.16-1) unstable; urgency=low
+nuitka (0.3.17+ds-1) unstable; urgency=low
 
   * New upstream pre-release.
+  * New maintainer (Closes: #648489)
+  * Updated man page to use new "--recurse-*" options in examples
+    over removed "--deep*" options.
+  * Completed copyright file according to "licensecheck" findings
+    and updated files accordingly. Put the included tests owned
+    by upstream into public domain.
+  * Use a "+ds" file as orig source with inline copy of Scons
+    already removed instead of doing it as a patch.
+  * Also removed the benchmark tests from "+ds" file, not useful
+    to be provided with Nuitka.
+  * Added syntax tests, these were omitted by mistake previously.
+  * Run the test suite at package build time, it checks the basic
+    tests, syntax error tests, program tests, and the compile
+    itself test.
+  * Added run time dependencies also as build time dependencies
+    to be able to execute the tests.
+  * Corrected handling of upstream pre-release names in the watch
+    file.
+  * Changed contributor notice to only require "Apache License 2.0"
+    for the new parts.
+  * Put Debian packaging and owned tests under "Apache License 2.0"
+    as well.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Mon, 09 Jan 2012 09:02:19 +0100
+
+nuitka (0.3.16-1) UNRELEASED; urgency=low
+
+  * New upstream release.
   * Updated debian/copyright URI to match the latest one.
   * Updated debian/copyright to DEP5 changes.
   * Added Nuitka homepage to debian/control.
@@ -14,65 +42,29 @@ nuitka (0.3.16-1) unstable; urgency=low
 
  -- Kay Hayen <kayhayen@gmx.de>  Sun, 18 Dec 2011 13:01:10 +0100
 
-nuitka (0.3.15-1) unstable; urgency=low
+nuitka (0.3.15-1) UNRELEASED; urgency=low
 
-  * New stable upstream release.
-
- -- Kay Hayen <kayhayen@gmx.de>  Thu, 01 Dec 2011 22:43:33 +0100
-
-nuitka (0.3.15pre5-1) unstable; urgency=low
-
-  * New upstream version.
-  * Added "--unstriped" example to the man page.
-
- -- Kay Hayen <kayhayen@gmx.de>  Wed, 30 Nov 2011 00:30:25 +0100
-
-nuitka (0.3.15pre4-1) unstable; urgency=low
-
-  * New upstream version.
-  * No longer dependent on foreign code for Windows generators,
-    removed from debian/copyright.
-
- -- Kay Hayen <kayhayen@gmx.de>  Mon, 21 Nov 2011 00:19:56 +0100
-
-nuitka (0.3.15pre3-2) unstable; urgency=low
-
+  * New upstream release.
+  * Renamed "/usr/bin/Python" to "/usr/bin/nuitka-python".
   * Added man pages for "nuitka" and "nuitka-python", the first
     with an examples section that shows the most important uses
     of the "nuitka" binary.
-
- -- Kay Hayen <kayhayen@gmx.de>  Wed, 16 Nov 2011 23:58:01 +0100
-
-nuitka (0.3.15pre3-1) unstable; urgency=low
-
-  * New upstream version.
-  * Renamed "/usr/bin/Python" to "/usr/bin/nuitka-python".
-
- -- Kay Hayen <kayhayen@gmx.de>  Wed, 16 Nov 2011 08:43:22 +0100
-
-nuitka (0.3.15pre2-3) unstable; urgency=low
-
+  * Removed foreign code for Windows generators, removed from
+    debian/copyright.
   * Lowered dependency for Scons to what Ubuntu Oneiric has and
     what we have as an inline copy, (scons >=2.0.1) should be
     sufficient.
-
- -- Kay Hayen <kayhayen@gmx.de>  Mon, 14 Nov 2011 17:25:06 +0100
-
-nuitka (0.3.15pre2-2) unstable; urgency=low
-
-  * Some review feedback on the Debian package.
   * Recommend python-lxml, as it's used by Nuitka to dump XML
     representation.
   * Recommend python-qt4, as it may be used to display the node
     tree in a window.
-  * Repair cut off short description.
-  * Removed inline copy of Scons from the package.
+  * Removed inline copy of Scons from the binary package.
   * Added patch to remove the setting nuitka package in sys.path,
     not needed in Debian.
 
- -- Kay Hayen <kayhayen@gmx.de>  Sun, 13 Nov 2011 17:42:47 +0100
+ -- Kay Hayen <kayhayen@gmx.de>  Thu, 01 Dec 2011 22:43:33 +0100
 
-nuitka (0.3.15pre2-1) unstable; urgency=low
+nuitka (0.3.15pre2-1) UNRELEASED; urgency=low
 
   * Initial Debian package.
 

@@ -1,18 +1,16 @@
-#
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -68,7 +66,7 @@ def toRaiseExceptionStatement( node ):
 
 
 class OptimizeRaisesVisitor( OptimizationVisitorBase ):
-    def __call__( self, node ):
+    def onEnterNode( self, node ):
         if node.isExpressionRaiseException():
             if node.parent.isStatementPrint():
                 self.trimEvaluation(
@@ -206,12 +204,16 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
 
         # TODO: Why can raised_exception be None at all?
         if raised_exception is not None:
-            if catched_exception.isExpressionBuiltinExceptionRef() and raised_exception.isExpressionBuiltinExceptionRef():
+            # Both are builtin exception references of the same name
+            if catched_exception.isExpressionBuiltinExceptionRef() and \
+               raised_exception.isExpressionBuiltinExceptionRef():
                 # TODO: Could check run time objects from builtins for subclass relationship
                 if catched_exception.getExceptionName() == raised_exception.getExceptionName():
                     return True
 
-            if catched_exception.isExpressionBuiltinExceptionRef() and raised_exception.isExpressionBuiltinMakeException():
+            # Catched in builtin exception reference, and raised is an builtin one too.
+            if catched_exception.isExpressionBuiltinExceptionRef() and \
+                 raised_exception.isExpressionBuiltinMakeException():
                 # TODO: Could check run time objects from builtins for subclass relationship
                 if catched_exception.getExceptionName() == raised_exception.getExceptionName():
                     return True

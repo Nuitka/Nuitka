@@ -57,17 +57,18 @@ and directly execute a script:
 
     nuitka-python --help
 
-The options are "--exe" and "--execute", so it is somewhat similar to what plain "python"
-will do. Note: In the future, the intention is to support CPython's "python" command lines
-in a compatible way, but currently it isn't so.
+These options with different defaults are "--exe" and "--execute", so it is somewhat
+similar to what plain "python" will do. Note: In the future, the intention is to support
+CPython's "python" command lines in a compatible way, but currently it isn't so.
 
 If you want to compile recursively, and not only a single file, do it like this:
 
 .. code-block:: sh
 
-    nuitka-python --deep program.py
+    nuitka-python --recurse-all program.py
 
-Note: In the future, "--deep" might become the default of "nuitka-python".
+Note: The is more fine grained control that "--recurse-all" available. Consider the output
+of "--help".
 
 Where to go next
 ~~~~~~~~~~~~~~~~
@@ -106,8 +107,7 @@ Join Nuitka
 You are more than welcome to join Nuitka development and help to complete the project in
 all minor and major ways.
 
-
-The development of Nuitka occurs in git. We currently have 2 branches:
+The development of Nuitka occurs in git. We currently have these 2 branches:
 
 - `master <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/master>`_:
   This branch contains the stable release to which only hotfixes for bugs will be
@@ -118,7 +118,17 @@ The development of Nuitka occurs in git. We currently have 2 branches:
   regressions, but also new features. On this branch the integration work is done, whereas
   new features might be developed on feature branches.
 
-.. note:: I accept patch files, git formated patch queues, and git pull requests. I will do the integration work. If you base your work on "master", I will do any rebasing required.
+.. note::
+
+   I accept patch files, git formated patch queues, and git pull requests. I will do the
+   integration work. If you base your work on "master" at any given time, I will do any
+   re-basing required.
+
+.. note::
+
+   The Developer Manual explains the coding rules, branching model used, with feature
+   branches and hotfix releases, the Nuitka design and much more. Consider reading it to
+   become a contributor. This document is intended for Nuitka users.
 
 
 Unsupported functionality
@@ -476,8 +486,10 @@ Credits
 Contributors to Nuitka
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Thanks go to these individuals for their much valued contributions to Nuitka. The order is
-sorted by time.
+Thanks go to these individuals for their much valued contributions to Nuitka. Contributors
+have the license to use Nuitka for their own code even if Closed Source.
+
+The order is sorted by time.
 
 - Li Xuan Ji: Contributed patches for general portability issue and enhancements to the
   environment variable settings.
@@ -493,6 +505,10 @@ sorted by time.
 - Liu Zhenhai: Submitted patches for Windows support, making the inline Scons copy
   actually work on Windows as well. Also reported import related bugs, and generally
   helped me make the Windows port more usable through his testing and information.
+
+- Christopher Tott: Submitted patches for Windows, and general as well as structural
+  cleanups, he is also attempting to support direct "ctypes" calls to be evaluated at
+  compile time.
 
 Projects used by Nuitka
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -546,7 +562,7 @@ windows installation at all.
 
 .. footer::
 
-        © Kay Hayen, 2011 | Page ###Page### of ###Total### | Section ###Section###
+        © Kay Hayen, 2012 | Page ###Page### of ###Total### | Section ###Section###
 
 Updates for this Manual
 =======================

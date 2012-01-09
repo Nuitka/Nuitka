@@ -1,19 +1,17 @@
-#!/usr/bin/python
-#
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#!/usr/bin/env python
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -30,22 +28,26 @@
 #     Please leave the whole of this copyright notice intact.
 #
 
+from __future__ import print_function
+
 import os, sys, subprocess, difflib, re, tempfile
 
 filename = sys.argv[1]
 silent_mode = "silent" in sys.argv
 ignore_stderr = "ignore_stderr" in sys.argv
 exec_in_tmp = "exec_in_tmp" in sys.argv
+expect_success = "expect_success" in sys.argv
+expect_failure = "expect_failure" in sys.argv
 
 if "PYTHON" not in os.environ:
     os.environ[ "PYTHON" ] = "python"
 
-print "Comparing output of '%s' using '%s' ..." % ( filename, os.environ[ "PYTHON" ] )
+print("Comparing output of '%s' using '%s' ..." % ( filename, os.environ[ "PYTHON" ] ))
 
 if not silent_mode:
-    print "*******************************************************"
-    print "CPython:"
-    print "*******************************************************"
+    print( "*******************************************************" )
+    print( "CPython:" )
+    print( "*******************************************************" )
 
 if exec_in_tmp:
     filename = os.path.abspath( filename )
@@ -57,7 +59,7 @@ cpython_cmd = "%s -W ignore %s" % (
 
 nuitka_cmd = "%s %s %s --exe --execute %s" % (
     os.environ[ "PYTHON" ],
-    os.path.abspath( os.path.join( os.path.dirname( __file__ ), "Nuitka.py" ) ),
+    os.path.abspath( os.path.join( os.path.dirname( __file__ ), "nuitka" ) ),
     os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ),
     filename
 )
@@ -76,15 +78,15 @@ stdout_cpython, stderr_cpython = process.communicate()
 exit_cpython = process.returncode
 
 if not silent_mode:
-    print stdout_cpython,
+    print( stdout_cpython, end=' ' )
 
     if stderr_cpython:
-        print stderr_cpython
+        print( stderr_cpython )
 
 if not silent_mode:
-    print "*******************************************************"
-    print "Nuitka:"
-    print "*******************************************************"
+    print( "*******************************************************" )
+    print( "Nuitka:" )
+    print( "*******************************************************" )
 
 
 process = subprocess.Popen(
@@ -98,10 +100,10 @@ stdout_nuitka, stderr_nuitka = process.communicate()
 exit_nuitka = process.returncode
 
 if not silent_mode:
-    print stdout_nuitka,
+    print( stdout_nuitka, end=' ' )
 
     if stderr_nuitka:
-        print stderr_nuitka
+        print( stderr_nuitka )
 
 
 
@@ -121,7 +123,9 @@ todate = None
 def makeDiffable( output ):
     result = []
 
-    for line in output:
+    for line in output.split( b"\n" ):
+        line = str( line )
+
         line = instance_re.sub( r"at 0xxxxxxxxx", line )
         line = compiled_function_re.sub( r"<function", line )
         line = compiled_genexpr_re.sub( r"<generator object <\1>", line )
@@ -164,8 +168,8 @@ def makeDiffable( output ):
 
 def compareOutput( kind, out_cpython, out_nuitka ):
     diff = difflib.unified_diff(
-        makeDiffable( out_cpython.split( "\n" ) ),
-        makeDiffable( out_nuitka.split( "\n" ) ),
+        makeDiffable( out_cpython ),
+        makeDiffable( out_nuitka ),
         "%s (%s)" % ( os.environ[ "PYTHON" ], kind ),
         "%s (%s)" % ( "nuitka", kind ),
         fromdate,
@@ -177,7 +181,7 @@ def compareOutput( kind, out_cpython, out_nuitka ):
 
     if result:
         for line in result:
-            print line
+            print( line )
 
         return 1
     else:
@@ -193,7 +197,7 @@ else:
 exit_code_return = exit_cpython != exit_nuitka
 
 if exit_code_return:
-    print "Exit codes %d (CPython) != %d (Nuitka)" % ( exit_cpython, exit_nuitka )
+    print( "Exit codes %d (CPython) != %d (Nuitka)" % ( exit_cpython, exit_nuitka ) )
 
 exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
 
@@ -201,4 +205,10 @@ if exit_code:
     sys.exit( "Error, outputs differed." )
 
 if not silent_mode:
-    print "OK, same outputs."
+    print( "OK, same outputs." )
+
+if expect_success and exit_cpython != 0:
+    sys.exit( "Unexpected error exit from CPython." )
+
+if expect_failure and exit_cpython == 0:
+    sys.exit( "Unexpected success exit from CPython." )

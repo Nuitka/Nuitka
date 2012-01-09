@@ -1,18 +1,16 @@
-#
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -33,7 +31,7 @@
 It should be simple, but it is not yet. Not all the pickle modules are well behaved.
 """
 
-from nuitka import Constants
+from nuitka import Constants, Utils
 
 # pylint: disable=W0622
 from ..__past__ import unicode
@@ -46,30 +44,55 @@ except ImportError:
     # False alarm, no double import at all, pylint: disable=W0404
     import pickle as cpickle
 
-# Need to use the pure Python pickle to workaround seeming bugs of cPickle
-import pickle
+import pickletools
 
 from logging import warning
 
-def getStreamedConstant( constant_value, constant_type ):
+python_version = Utils.getPythonVersion()
 
+if python_version >= 300:
+    # Python3: The protocol 2 outputs bytes that I don't know how to covert to "str",
+    # which protocol 0 doesn't, so stay with it. TODO: Use more efficient protocol version
+    # instead.
+    pickle_protocol = 0
+else:
+    pickle_protocol = 2
+
+
+
+def getStreamedConstant( constant_value ):
     # Note: The marshal module cannot persist all unicode strings and
-    # therefore cannot be used.  The cPickle fails to gives reproducible
-    # results for some tuples, which needs clarification. In the mean time we
-    # are using pickle.
+    # therefore cannot be used. Instead we use pickle.
     try:
-        saved = pickle.dumps(
+        saved = cpickle.dumps(
             constant_value,
-            protocol = 0 if constant_type is unicode else 0
+            protocol = 0 if type( constant_value ) is unicode else pickle_protocol
         )
     except TypeError:
         warning( "Problem with persisting constant '%r'." % constant_value )
         raise
 
-    # Check that the constant is restored correctly.
-    restored = cpickle.loads( saved )
+    saved = pickletools.optimize( saved )
 
-    assert Constants.compareConstants( restored, constant_value ), ( constant_value, "!=", restored, "types:", type( constant_value ), type( restored ) )
+    # Check that the constant is restored correctly.
+    try:
+        restored = cpickle.loads(
+            saved
+        )
+    except:
+        warning( "Problem with persisting constant '%r'." % constant_value )
+        raise
+
+    if not Constants.compareConstants( restored, constant_value ):
+        raise AssertionError(
+            "Streaming of constant changed value",
+            constant_value,
+            "!=",
+            restored,
+            "types:",
+            type( constant_value ),
+            type( restored )
+        )
 
     # If we have Python3, we need to make sure, we use UTF8 or else we get into trouble.
     if str is unicode:

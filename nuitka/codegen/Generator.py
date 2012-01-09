@@ -1,18 +1,16 @@
-#
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -625,12 +623,14 @@ def getOperationCode( operator, identifiers ):
             1
         )
     elif len( identifiers ) == 1:
+        helper, ref_count = OperatorCodes.unary_operator_codes[ operator ]
+
         return Identifier(
             "UNARY_OPERATION( %s, %s )" % (
-                OperatorCodes.unary_operator_codes[ operator ],
+                helper,
                 identifier_refs[0]
             ),
-            1
+            ref_count
         )
     else:
         assert False, (operator, identifiers)
@@ -1380,7 +1380,7 @@ def getTryExceptHandlerCode( exception_identifier, exception_assignment, handler
 
     if exception_identifier is not None:
         exception_code.append(
-            "%s ( _exception.matches(%s) )" % (
+            "%s ( _exception.matches( %s ) )" % (
                 cond_keyword,
                 exception_identifier.getCodeTemporaryRef()
             )
@@ -2299,6 +2299,18 @@ def _getDecoratorsCallCode( context, decorator_count ):
 
     return decorator_calls
 
+def _getCoArgNamesValue( parameters ):
+    result = []
+
+    for count, variable in enumerate( parameters.getTopLevelVariables() ):
+        if variable.isNestedParameterVariable():
+            result.append( ".%d" % count )
+        else:
+            result.append( variable.getName() )
+
+    return tuple( result )
+
+
 
 def getGeneratorFunctionCode( context, function_name, function_identifier, parameters, \
                               closure_variables, user_variables, decorator_count, \
@@ -2499,6 +2511,10 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
             constant = source_ref.getFilename()
         ),
         "line_number"                : source_ref.getLineNumber(),
+        "arg_names"                  : getConstantCode(
+            constant = _getCoArgNamesValue( parameters ),
+            context  = context
+        ),
         "arg_count"                  : parameters.getArgumentCount(),
         "defaults"                   : func_defaults.getCodeExportRef(),
         "module_identifier"          : getModuleAccessCode( context = context ),
@@ -2605,7 +2621,6 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
     else:
         context_access_function_impl = CodeTemplates.function_context_unused_template
 
-
     module_identifier = getModuleAccessCode( context = context )
 
     function_name_obj = getConstantCode(
@@ -2662,6 +2677,10 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                 constant = source_ref.getFilename()
             ),
             "line_number"                : source_ref.getLineNumber(),
+            "arg_names"                  : getConstantCode(
+                constant = _getCoArgNamesValue( parameters ),
+                context  = context
+            ),
             "arg_count"                  : parameters.getArgumentCount(),
             "defaults"                   : func_defaults.getCodeExportRef(),
             "module_identifier"          : getModuleAccessCode( context = context ),
@@ -2687,6 +2706,10 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                 constant = source_ref.getFilename()
             ),
             "line_number"                : source_ref.getLineNumber(),
+            "arg_names"                  : getConstantCode(
+                constant = _getCoArgNamesValue( parameters ),
+                context  = context
+            ),
             "arg_count"                  : parameters.getArgumentCount(),
             "defaults"                   : func_defaults.getCodeExportRef(),
             "module_identifier"          : getModuleAccessCode( context = context ),
@@ -3058,10 +3081,9 @@ _match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
 def _isAttributeName( value ):
     return _match_attribute_names.match( value )
 
-def _getUnstreamCode( constant_value, constant_type, constant_identifier ):
+def _getUnstreamCode( constant_value, constant_identifier ):
     saved = getStreamedConstant(
-        constant_value = constant_value,
-        constant_type  = constant_type
+        constant_value = constant_value
     )
 
     return "%s = UNSTREAM_CONSTANT( %s, %d );" % (
@@ -3151,7 +3173,7 @@ def _getConstantsDefinitionCode( context ):
 
         if constant_type in ( tuple, list, float, complex, unicode, int, long, dict, frozenset, set, bytes, range ):
             statements.append(
-                _getUnstreamCode( constant_value, constant_type, constant_identifier )
+                _getUnstreamCode( constant_value, constant_identifier )
             )
 
             continue

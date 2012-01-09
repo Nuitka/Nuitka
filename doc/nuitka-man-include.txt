@@ -6,38 +6,39 @@ Compile a python file "some_module.py" to a module "some_module.so":
 .PP
 Compile a python program "some_program.py" to an executable "some_program.exe":
 .IP
-\f(CW$ nuitka some_program.py \-\-exe\fR
+\f(CW$ nuitka \-\-exe some_program.py\fR
 .PP
-Compile a python program "some_program.py" and the modules it uses to an executable "some_program.exe":
+Compile a python program "some_program.py" and the package "some_package" it
+uses to an executable "some_program.exe":
 .IP
-\f(CW$ nuitka \-\-deep some_program.py \-\-exe\fR
+\f(CW$ nuitka \-\-exe \-\-recurse\-to=some_package some_program.py\fR
 .PP
-Compile a python program "some_program.py" and the modules it uses to an executable "some_program.exe". Then execute it immediately when ready:
+Compile a python program "some_program.py" and all the modules it uses to an executable "some_program.exe". Then execute it immediately when ready:
 .IP
-\f(CW$ nuitka \-\-deep some_program.py \-\-exe \-\-execute\fR
+\f(CW$ nuitka  \-\-exe \-\-execute \-\-recurse\-all some_program.py\fR
 .PP
 Compile a python program "some_program.py" and the modules it uses (even standard library) to an executable "some_program.exe":
 .IP
-\f(CW$ nuitka \-\-deep \-\-really\-deep some_program.py \-\-exe\fR
+\f(CW$ nuitka \-\-recurse\-all \-\-recurse\-stdlib some_program.py \-\-exe\fR
 .PP
 Compile a python program "some_program.py" and the modules it uses to an executable "some_program.exe". Keep the debug information, so valrind, gdb, etc. work
 nice.
 
 Note: This will *not* degrade performance:
 .IP
-\f(CW$ nuitka \-\-unstriped \-\-deep some_program.py \-\-exe\fR
+\f(CW$ nuitka \-\-unstriped \-\-recurse\-all some_program.py \-\-exe\fR
 .PP
 Compile a python program "some_program.py" and the modules it uses to an executable "some_program.exe". Perform all kinds of checks about correctness of the generated
 C++ and run\-time checks.
 
 Note: This will degrade performance and should only be used to debug Nuitka:
 .IP
-\f(CW$ nuitka \-\-debug \-\-deep some_program.py \-\-exe\fR
+\f(CW$ nuitka \-\-debug \-\-recurse\-all some_program.py \-\-exe\fR
 .PP
 Compile a python program "some_program.py" and the modules it uses to an executable "some_program.exe". Perform all kinds of checks about correctness of the generated
 C++ and run\-time checks. Also use the debug Python library, which does its own checks.
 
 Note: This will degrade performance and should only be used to debug Nuitka:
 .IP
-\f(CW$ nuitka \-\-debug \-\-python-debug \-\-deep some_program.py \-\-exe\fR
+\f(CW$ nuitka \-\-debug \-\-python-debug \-\-recurse\-all some_program.py \-\-exe\fR
 .PP

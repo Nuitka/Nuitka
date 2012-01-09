@@ -1,23 +1,20 @@
 # -*- coding: utf-8 -*-
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
-#     Kay Hayen, mailto:kayhayen@gmx.de
+#     Python tests originally created or extracted from other peoples work. The
+#     parts were too small to be protected.
 #
-#     Python test originally created or extracted from other peoples work. The
-#     parts from me are in the public domain. It is at least Free Software
-#     where it's copied from other people. In these cases, it will normally be
-#     indicated.
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#        http://www.apache.org/licenses/LICENSE-2.0
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
-#
-#     Please leave the whole of this copyright notice intact.
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
 #
 
 def plain_list_dict_args_function( plain, *arg_list, **arg_dict ):

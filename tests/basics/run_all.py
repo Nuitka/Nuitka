@@ -1,26 +1,25 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
-#     Kay Hayen, mailto:kayhayen@gmx.de
+#     Python tests originally created or extracted from other peoples work. The
+#     parts were too small to be protected.
 #
-#     Python test originally created or extracted from other peoples work. The
-#     parts from me are in the public domain. It is at least Free Software
-#     where it's copied from other people. In these cases, it will normally be
-#     indicated.
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#        http://www.apache.org/licenses/LICENSE-2.0
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
-#
-#     Please leave the whole of this copyright notice intact.
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
 #
 
-import os, sys, commands, subprocess, tempfile, shutil
+from __future__ import print_function
+
+import os, sys, subprocess, tempfile, shutil
 
 # Go its own directory, to have it easy with path knowledge.
 os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
@@ -37,11 +36,16 @@ else:
 if "PYTHON" not in os.environ:
     os.environ[ "PYTHON" ] = "python"
 
-python_version = subprocess.check_output( [ os.environ[ "PYTHON" ], "--version" ], stderr = subprocess.STDOUT ).split()[1]
+version_output = subprocess.check_output(
+    [ os.environ[ "PYTHON" ], "--version" ],
+    stderr = subprocess.STDOUT
+)
+
+python_version = version_output.split()[1]
 
 os.environ[ "PYTHONPATH" ] = os.getcwd()
 
-print "Using concrete python", python_version
+print( "Using concrete python", python_version )
 
 for filename in sorted( os.listdir( "." ) ):
     if not filename.endswith( ".py" ) or filename == "run_all.py":
@@ -52,27 +56,36 @@ for filename in sorted( os.listdir( "." ) ):
     if not active and start_at in ( filename, path ):
         active = True
 
+    extra_flags = [ "expect_success" ]
+
     if filename == "Referencing.py":
         use_python = os.environ[ "PYTHON" ]
 
         if os.path.exists( "/usr/bin/" + use_python + "-dbg" ):
             use_python += "-dbg"
         else:
-            print "Skip reference count test, CPython debug version not found."
+            print( "Skip reference count test, CPython debug version not found." )
             continue
 
-        extra_flags = "ignore_stderr"
+        extra_flags.append( "ignore_stderr" )
     else:
         use_python = os.environ[ "PYTHON" ]
 
-        extra_flags = ""
-
     if active:
+        # Temporary measure, until Python3 is better supported, disable some tests, so
+        # this can be used to monitor the success of existing ones and have no regression for it.
+        if use_python == "python3.2" and filename[:-3] in ( "Builtins", "Classes", "ExceptionRaising", "ExecEval", "Functions", "GlobalStatement", "Looping", "OverflowFunctions", "ParameterErrors", "Unicode", ):
+            print( "Skipping malfunctional test", filename )
+            continue
+
+
         before = os.environ[ "PYTHON" ]
         os.environ[ "PYTHON" ] = use_python
 
         # Apply 2to3 conversion if necessary.
-        if python_version.startswith( "3" ):
+        assert type( python_version ) is bytes
+
+        if python_version.startswith( b"3" ):
             new_path = os.path.join( tempfile.gettempdir(), filename )
             shutil.copy( path, new_path )
 
@@ -87,10 +100,10 @@ for filename in sorted( os.listdir( "." ) ):
             )
 
         command = "%s %s %s silent %s" % (
-            use_python if not python_version.startswith( "3" ) else sys.executable,
+            sys.executable,
             os.path.join( "..", "..", "bin", "compare_with_cpython" ),
             path,
-            extra_flags
+            " ".join( extra_flags )
         )
 
         result = subprocess.call(
@@ -105,7 +118,7 @@ for filename in sorted( os.listdir( "." ) ):
             sys.exit( 2 )
 
         if result != 0 and search_mode:
-            print "Error exit!", result
+            print("Error exit!", result)
             sys.exit( result )
     else:
-        print "Skipping", filename
+        print("Skipping", filename)

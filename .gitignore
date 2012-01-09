@@ -18,5 +18,7 @@ dist
 MANIFEST
 README.pdf
 README.html
+Developer_Manual.pdf
+Developer_Manual.html
 doc/*.1
 doc/man-*.html

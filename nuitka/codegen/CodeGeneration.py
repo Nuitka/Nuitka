@@ -1,18 +1,16 @@
-#
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -124,10 +122,10 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
             result = Generator.getConditionNotBoolCode(
                 condition = result
             )
-    elif condition.isExpressionBoolAND():
+    elif condition.isExpressionOperationBool2():
         parts = []
 
-        for expression in condition.getExpressions():
+        for expression in condition.getOperands():
             parts.append(
                 generateConditionCode(
                     condition = expression,
@@ -135,28 +133,27 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
                 )
             )
 
-        result = Generator.getConditionAndCode( parts )
+        if condition.isExpressionBoolOR():
+            result = Generator.getConditionOrCode( parts )
+        else:
+            result = Generator.getConditionAndCode( parts )
 
         if inverted:
             result = Generator.getConditionNotBoolCode(
                 condition = result
             )
-    elif condition.isExpressionBoolOR():
-        parts = []
-
-        for expression in condition.getExpressions():
-            parts.append(
-                generateConditionCode(
-                    condition = expression,
+    elif condition.isExpressionOperationNOT():
+        if not inverted:
+            result = Generator.getConditionNotBoolCode(
+                condition = generateConditionCode(
+                    condition = condition.getOperand(),
                     context   = context
                 )
             )
-
-        result = Generator.getConditionOrCode( parts )
-
-        if inverted:
-            result = Generator.getConditionNotBoolCode(
-                condition = result
+        else:
+            result = generateConditionCode(
+                condition = condition.getOperand(),
+                context   = context
             )
     else:
         condition_identifier = generateExpressionCode(
@@ -489,8 +486,11 @@ def generateFunctionBodyCode( function, context ):
 
     codes = generateStatementSequenceCode(
         context            = context,
+        allow_none         = True,
         statement_sequence = body
     )
+
+    codes = codes or []
 
     return context, codes
 
@@ -582,9 +582,12 @@ def generateClassBodyCode( class_body, context ):
     )
 
     codes = generateStatementSequenceCode(
-        context            = context,
-        statement_sequence = class_body.getBody()
+        statement_sequence = class_body.getBody(),
+        allow_none         = True,
+        context            = context
     )
+
+    codes = codes or []
 
     return context, codes
 
@@ -783,11 +786,16 @@ def generateSliceAccessIdentifiers( sliced, lower, upper, context ):
 
 _slicing_available = Utils.getPythonVersion() < 300
 
+def decideSlicing( lower, upper ):
+    return _slicing_available and                       \
+           ( lower is None or lower.isIndexable() ) and \
+           ( upper is None or upper.isIndexable() )
+
 def generateSliceLookupCode( expression, context ):
     lower = expression.getLower()
     upper = expression.getUpper()
 
-    if _slicing_available and ( lower is None or lower.isIndexable() ) and ( upper is None or upper.isIndexable() ):
+    if decideSlicing( lower, upper ):
         expression_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
             sliced    = expression.getLookupSource(),
             lower     = lower,
@@ -843,7 +851,7 @@ def generateSliceAssignmentCode( target, assign_source, context ):
     lower = target.getLower()
     upper = target.getUpper()
 
-    if _slicing_available and ( lower is None or lower.isIndexable() ) and ( upper is None or upper.isIndexable() ):
+    if decideSlicing( lower, upper ):
         expression_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
             sliced    = target.getLookupSource(),
             lower     = lower,
@@ -911,7 +919,7 @@ def generateFunctionCallNamedArgumentsCode( pairs, context ):
 
 def generateFunctionCallCode( function, context ):
     function_identifier = generateExpressionCode(
-        expression = function.getCalledExpression(),
+        expression = function.getCalled(),
         context    = context
     )
 
@@ -1119,7 +1127,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
     elif expression.isExpressionBoolOR():
         identifier = Generator.getSelectionOrCode(
             conditions = generateExpressionsCode(
-                expressions = expression.getExpressions(),
+                expressions = expression.getOperands(),
                 context = context
             )
         )
@@ -1127,13 +1135,9 @@ def generateExpressionCode( expression, context, allow_none = False ):
     elif expression.isExpressionBoolAND():
         identifier = Generator.getSelectionAndCode(
             conditions = generateExpressionsCode(
-                expressions = expression.getExpressions(),
+                expressions = expression.getOperands(),
                 context = context
             )
-        )
-    elif expression.isExpressionBoolNOT():
-        identifier = Generator.getConditionNotCode(
-            condition = makeExpressionCode( expression = expression.getExpression() )
         )
     elif expression.isExpressionConditional():
         identifier = Generator.getConditionalExpressionCode(
@@ -1520,7 +1524,7 @@ def generateDelCode( targets, context ):
             lower = target.getLower()
             upper = target.getUpper()
 
-            if _slicing_available and ( lower is None or lower.isIndexable() ) and ( upper is None or upper.isIndexable() ):
+            if decideSlicing( lower, upper ):
                 target_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
                     sliced    = target.getLookupSource(),
                     lower     = lower,
@@ -1608,8 +1612,7 @@ def generateAssignmentInplaceCode( statement, context ):
         lower = target.getLower()
         upper = target.getUpper()
 
-        if _slicing_available and ( lower is None or lower.isIndexable() ) and ( upper is None or upper.isIndexable() ):
-
+        if decideSlicing( lower, upper ):
             target_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
                 sliced    = target.getLookupSource(),
                 lower     = lower,
@@ -2050,8 +2053,11 @@ def generateForLoopCode( statement, context ):
 def generateWithCode( statement, context ):
     body_codes = generateStatementSequenceCode(
         statement_sequence = statement.getWithBody(),
+        allow_none         = True,
         context            = context
     )
+
+    body_codes = body_codes or []
 
     with_manager_identifier, with_value_identifier = Generator.getWithNames(
         context = context
@@ -2319,8 +2325,11 @@ def generateModuleCode( module, module_name, global_context ):
 
     codes = generateStatementSequenceCode(
         statement_sequence = statement_sequence,
-        context            = context
+        allow_none         = True,
+        context            = context,
     )
+
+    codes = codes or []
 
     if module.isPackage():
         path_identifier = context.getConstantHandle(

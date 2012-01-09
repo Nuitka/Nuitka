@@ -1,18 +1,16 @@
-#
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -36,6 +34,8 @@ forest of modules.
 
 """
 
+class ExitNodeVisit( BaseException ):
+    pass
 
 class ExitVisit( BaseException ):
     pass
@@ -43,52 +43,86 @@ class ExitVisit( BaseException ):
 class RestartVisit( BaseException ):
     pass
 
-def _visitTree( tree, visitor ):
-    visitor( tree )
-
-    for visitable in tree.getVisitableNodes():
-        if visitable is None:
-            raise AssertionError( "none child encountered", tree, tree.source_ref )
-
-        _visitTree( visitable, visitor )
-
-def visitTree( tree, visitor ):
+def _visitTree( tree, visitor, limit_tag ):
     try:
-        _visitTree( tree, visitor )
+        visitor.onEnterNode( tree )
+
+        visit_children = True
+    except ExitNodeVisit:
+        visit_children = False
+
+    if visit_children:
+        for visitable in tree.getChildNodesNotTagged( limit_tag ):
+            if visitable is None:
+                raise AssertionError( "'None' child encountered", tree, tree.source_ref )
+
+            _visitTree( visitable, visitor, limit_tag )
+
+    visitor.onLeaveNode( tree )
+
+def visitTree( tree, visitor, limit_tag = None ):
+    try:
+        _visitTree( tree, visitor, limit_tag )
     except ExitVisit:
         pass
     except RestartVisit:
-        visitTree( tree, visitor )
-
-
-def _visitScope( tree, visitor ):
-    visitor( tree )
-
-    for visitable in tree.getSameScopeNodes():
-        if visitable is None:
-            raise AssertionError( "none child encountered", tree, tree.source_ref )
-
-        _visitScope( visitable, visitor )
+        visitTree( tree, visitor, limit_tag )
 
 def visitScope( tree, visitor ):
-    try:
-        _visitScope( tree, visitor )
-    except ExitVisit:
-        pass
-    except RestartVisit:
-        visitScope( tree, visitor )
+    visitTree( tree, visitor, "closure_taker" )
+
+def visitExecution( tree, visitor ):
+    visitTree( tree, visitor, "execution_border" )
 
 
-def visitKinds( tree, kinds, visitor ):
-    def visitMatchingKinds( node ):
-        if node.kind in kinds:
-            visitor( node )
-
-    _visitTree( tree, visitMatchingKinds )
 
 def visitScopes( tree, visitor ):
-    def visitEverything( node ):
-        if node.isClosureVariableTaker():
-            visitScope( node, visitor )
+    class VisitEverything( VisitorNoopMixin ):
+        def onEnterNode( self, node ):
+            if node.hasTag( "closure_taker" ):
+                visitor.onEnterScope( node )
+                visitTree( node, visitor, "closure_taker" )
+                visitor.onLeaveScope( node )
 
-    _visitTree( tree, visitEverything )
+    _visitTree( tree, VisitEverything(), None )
+
+def visitExecutions( tree, visitor ):
+    class VisitEverything( VisitorNoopMixin ):
+        def onEnterNode( self, node ):
+            if node.hasTag( "closure_taker" ):
+                visitor.onEnterScope( node )
+                visitTree( node, visitor, "execution_border" )
+                visitor.onLeaveScope( node )
+            elif node.hasTag( "execution_border" ):
+                visitor.onEnterExecutionBorder( node )
+                visitTree( node, visitor, "execution_border" )
+                visitor.onLeaveExecutionBorder( node )
+
+    _visitTree( tree, VisitEverything(), None )
+
+def visitTagHaving( tree, visitor, tag ):
+    class VisitEverything( VisitorNoopMixin ):
+        def onEnterNode( self, node ):
+            if node.hasTag( tag ):
+                visitor.onEnterNode( node )
+
+    _visitTree( tree, VisitEverything(), None )
+
+
+class VisitorNoopMixin:
+    def onEnterNode( self, node ):
+        """ To be optionally overloaded for operation before the node children were done. """
+        pass
+
+    def onLeaveNode( self, node ):
+        """ To be optionally overloaded for operation after the node children were done. """
+        pass
+
+    # Only for "scope" and "execution" visits.
+    def onEnterScope( self, tree ):
+        """ To be optionally overloaded for per-scope entry tasks. """
+        pass
+
+    def onLeaveScope( self, tree ):
+        """ To be optionally overloaded for per-scope exit tasks. """
+        pass

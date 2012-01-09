@@ -1,18 +1,16 @@
-#
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -30,8 +28,19 @@
 #
 """ The virtue of importing modules and packages.
 
-Unfortunately there is nothing in CPython that is easily accessible and gives us this
-functionality, so we implement the module search process on our own.
+The actual import of a module may already execute code that changes things. Imagine a
+module that does "os.system()", it will be done. People often connect to databases,
+and these kind of things, at import time. Not a good style, but it's being done.
+
+Therefore CPython exhibits the interfaces in an "imp" module in standard library,
+which one can use those to know ahead of time, what file import would load. For us
+unfortunately there is nothing in CPython that is easily accessible and gives us this
+functionality for packages and search paths exactly like CPython does, so we implement
+here a multi step search process that is compatible.
+
+This approach is much safer of course and there is no loss. To determine if it's from
+the standard library, one can abuse the attribute "__file__" of the "os" module like
+it's done in "isStandardLibraryPath" of this module.
 
 """
 
@@ -54,7 +63,7 @@ def findModule( source_ref, module_name, parent_package, level, warn = True ):
         if parent_package == "":
             parent_package = None
 
-    if Options.shallFollowImports():
+    if not Options.shallMakeModule() and ( module_name != "" or parent_package is not None ):
         try:
             module_filename, module_package_name = _findModule(
                 module_name    = module_name,
@@ -194,5 +203,87 @@ def _isWhiteListedNotExistingModule( module_name ):
         "__builtin__", "fcntl", "_socket", "_ssl", "pwd", "spwd", "_random", "grp",
         "select", "__main__", "_winreg", "_warnings", "_sre", "_functools", "_hashlib",
         "_collections", "_locale", "_codecs", "_weakref", "_struct", "_dummy_threading",
-        "binascii", "datetime",
+        "binascii", "datetime", "_ast", "xxsubtype", "_bytesio", "cmath", "_fileio",
+        "aetypes", "aepack", "MacOS", "cd", "cl",
+
+        # Python-Qt4 does these if missing python3 parts:
+        "PyQt4.uic.port_v3.string_io", "PyQt4.uic.port_v3.load_plugin",
+        "PyQt4.uic.port_v3.ascii_upper", "PyQt4.uic.port_v3.proxy_base",
+        "PyQt4.uic.port_v3.as_string",
+
+        # CPython3 does these:
+        "builtins", "UserDict", "os.path",
+
+        # test_frozen.py
+        "__hello__", "__phello__", "__phello__.spam", "__phello__.foo",
+
+        # test_import.py
+        "RAnDoM", "infinite_reload", "test_trailing_slash",
+
+        # test_importhooks.py
+        "hooktestmodule", "hooktestpackage", "hooktestpackage.sub", "reloadmodule",
+        "hooktestpackage.sub.subber", "hooktestpackage.oldabs", "hooktestpackage.newrel",
+        "hooktestpackage.sub.subber.subest", "hooktestpackage.futrel", "sub",
+        "hooktestpackage.newabs",
+
+        # test_new.py
+        "Spam",
+
+        # test_pkg.py
+        "t1", "t2", "t2.sub", "t2.sub.subsub", "t3.sub.subsub", "t5", "t6", "t7",
+        "t7.sub", "t7.sub.subsub",
+
+        # test_pkgutil.py
+        "foo", "zipimport",
+
+        # test_platform.py
+        "gestalt",
+
+        # test_repr.py
+        "areallylongpackageandmodulenametotestreprtruncation.areallylongpackageandmodulenametotestreprtruncation",
+
+        # test_runpy.py
+        "test.script_helper",
+
+        # test_strftime.py
+        "java",
+
+        # test_strop.py
+        "strop",
+
+        # test_applesingle.py
+        "applesingle",
+
+        # test_compile.py
+        "__package__.module", "__mangled_mod",
+
+        # test_distutils.py
+        "distutils.tests",
+
+        # test_emails.py
+        "email.test.test_email", "email.test.test_email_renamed",
+
+        # test_imageop.py
+        "imgfile",
+
+        # test_json.py
+        "json.tests",
+
+        # test_lib2to3.py
+        "lib2to3.tests",
+
+        # test_macostools.py
+        "macostools",
+
+        # test_pkg.py
+        "t8",
+
+        # test_tk.py
+        "runtktests",
+
+        # test_traceback.py
+        "test_bug737473",
+
+        # test_zipimport_support.py
+        "test_zipped_doctest", "zip_pkg",
     )

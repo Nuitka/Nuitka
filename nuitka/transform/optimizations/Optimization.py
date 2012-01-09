@@ -1,18 +1,16 @@
-#
-#     Copyright 2011, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
 #
-#     If you submit Kay Hayen patches to this software in either form, you
-#     automatically grant him a copyright assignment to the code, or in the
-#     alternative a BSD license to the code, should your jurisdiction prevent
-#     this. Obviously it won't affect code that comes to him indirectly or
-#     code you don't submit to him.
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
 #
-#     This is to reserve my ability to re-license the code at any time, e.g.
-#     the PSF. With this version of Nuitka, using it for Closed Source will
-#     not be allowed.
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
 #
 #     This program is free software: you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -67,6 +65,8 @@ from logging import debug
 
 _progress = Options.isShowProgress()
 
+use_propagation = Options.useValuePropagation()
+
 def optimizeTree( tree ):
     # Lots of conditions to take, pylint: disable=R0912
 
@@ -83,50 +83,54 @@ def optimizeTree( tree ):
         if tags.check( "new_code" ):
             optimizations_queue.add( FixupNewStaticMethodVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "new_variable" ):
+        if tags.check( "new_code new_variable" ):
             optimizations_queue.update( VariableClosureLookupVisitors )
 
+
         # TODO: Split the __import__ one out.
-        if tags.check( "new_code" ) or tags.check( "new_import" ) or tags.check( "new_constant" ):
-            if Options.shallFollowImports():
+        if tags.check( "new_code new_import new_constant" ):
+            if not Options.shallMakeModule():
                 optimizations_queue.add( ModuleRecursionVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "new_constant" ):
+        if tags.check( "new_code new_constant" ):
             optimizations_queue.add( OptimizeOperationVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "new_constant" ):
+        if tags.check( "new_code new_constant" ):
             optimizations_queue.add( ReplaceUnpackingVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "new_statements" ):
+        if tags.check( "new_code new_statements" ):
             optimizations_queue.add( StatementSequencesCleanupVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "new_variable" ):
+        if tags.check( "new_code new_variable" ):
             optimizations_queue.add( ModuleVariableUsageAnalysisVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "read_only_mvar" ):
+        if tags.check( "new_code read_only_mvar" ):
             optimizations_queue.add( ModuleVariableReadOnlyVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "read_only_mvar" ):
+        if tags.check( "new_code read_only_mvar" ):
             optimizations_queue.add( ReplaceBuiltinsCriticalVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "read_only_mvar" ):
+        if tags.check( "new_code read_only_mvar" ):
             optimizations_queue.add( ReplaceBuiltinsOptionalVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "read_only_mvar" ):
+        if tags.check( "new_code read_only_mvar" ):
             optimizations_queue.add( ReplaceBuiltinsExceptionsVisitor )
 
-        if tags.check( "new_builtin" ) or tags.check( "new_constant" ):
+        if tags.check( "new_builtin new_constant" ):
             optimizations_queue.add( PrecomputeBuiltinsVisitor )
 
         if tags.check( "var_usage" ):
             optimizations_queue.add( MaybeLocalVariableReductionVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "new_constant" ):
+        if tags.check( "new_code new_constant" ):
             if Options.shallOptimizeStringExec():
                 optimizations_queue.add( OptimizeExecVisitor )
 
-        if tags.check( "new_code" ) or tags.check( "new_raise" ):
+        if tags.check( "new_code new_raise" ):
             optimizations_queue.add( OptimizeRaisesVisitor )
+
+        if use_propagation and tags.check( "new_code new_constant" ):
+            optimizations_queue.add( ValuePropagationVisitor )
 
         tags.clear()
 
@@ -160,9 +164,11 @@ def optimizeWhole( main_module ):
 
     while not finished:
         finished = True
+
         for other_module in getOtherModules():
             if other_module not in done_modules:
                 optimizeTree( other_module )
+
                 done_modules.add( other_module )
 
                 if _progress:

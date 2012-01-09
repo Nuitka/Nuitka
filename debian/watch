@@ -1,2 +1,3 @@
 version=3
-http://nuitka.net/releases/Nuitka-(.+).tar.gz debian uupdate
+opts=dversionmangle=s/\+ds$//,uversionmangle=s/pre/~pre/ \
+   http://nuitka.net/releases/Nuitka-(.+).tar.gz debian uupdate
