@@ -26,42 +26,44 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Module like __future__ for things that are no more in CPython3, but provide compatible fallbacks.
+""" Builtins module. Information about builtins of the currently running Python.
 
-This is required to run the same code easily with both CPython2 and CPython3.
 """
 
-# pylint: disable=W0622
-
-# Work around for CPython 3.x renaming long to int.
+# Hide Python3 changes for builtin exception names
 try:
-    long = long
-except NameError:
-    long = int
+    import exceptions
 
-# Work around for CPython 3.x renaming unicode to str.
-try:
-    unicode = unicode
-except NameError:
-    unicode = str
-
-# Work around for CPython 3.x removal of commands
-try:
-    import commands
+    builtin_exception_names = [
+        str( x ) for x in dir( exceptions )
+        if x.endswith( "Error" ) or x in ( "StopIteration", "GeneratorExit" )
+    ]
 except ImportError:
-    # false alarm, no re-import, just another try if the above fails, which it will
-    # on Python3 pylint: disable=W0404
+    exceptions = {}
 
-    import subprocess as commands
+    import sys
 
-def iterItems( d ):
-    try:
-        return d.iteritems()
-    except AttributeError:
-        return d.items()
+    for x in dir( sys.modules[ "builtins" ] ):
+        name = str( x )
 
+        if name.endswith( "Error" ) or name in ( "StopIteration", "GeneratorExit" ):
+            exceptions[ name ] = x
+
+    builtin_exception_names = [
+        key for key, value in exceptions.items()
+    ]
+
+assert "ValueError" in builtin_exception_names
+assert "StopIteration" in builtin_exception_names
+assert "GeneratorExit" in builtin_exception_names
+assert "AssertionError" in builtin_exception_names
+
+builtin_names = [
+    str( x )
+    for x in __builtins__.keys()
+]
+
+assert "int" in builtin_names, __builtins__.keys()
 
 # For PyLint to be happy.
-assert long
-assert unicode
-assert commands
+assert exceptions
