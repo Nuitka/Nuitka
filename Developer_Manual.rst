@@ -1066,6 +1066,41 @@ occasional "git flow feature rebase" at agreed times.
 
    PageBreak
 
+Idea Bin
+========
+
+This an area where to drop random ideas on our minds, to later sort it out, and out it
+into action, which could be code changes, plan changes, issues created, etc.
+
+* Faster/cheaper class creation for the normal case.
+
+  Right now for every class body, there is a "MAKE_CLASS_" with frame guard, exception
+  keeper, etc. overhead, but for most classes that is not needed at all. Most often the
+  building of functions is all that happens, if at all. For these cases, a different
+  approach might be taken, that is to simply build the directory directly.
+
+  A finalization step ought to markup classes whose dictionary elements only have things
+  without side effects, and building functions isn't that.
+
+* The variadic template functions for container creation need to go.
+
+  With the "EVAL_ORDER" approach, we already changed most things to a fixed order, but
+  with variadic functions, that is not as simple. We should change "MAKE_LIST" to
+  generated "MAKE_LIST2", "MAKE_LIST3" as demand shows. Same for "MAKE_TUPLE" and of
+  course "MAKE_DICT", which is even worse to read.
+
+  This may improve readability and potentially compile time. The downside is that it needs
+  extra code, but "EVAL_ORDER" stuff could be generalized for it maybe.
+
+* The conditional expression needs to be handled like conditional statement for
+  propagation.
+
+  We branch conditional statements for value propagation, and we likely need to do the
+  same for conditional expressions too. May apply to "or" as well, and "and", because
+  there also only conditionally code is executed.
+
+
+
 Updates for this Manual
 =======================
 
