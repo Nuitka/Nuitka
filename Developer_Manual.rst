@@ -1074,7 +1074,7 @@ into action, which could be code changes, plan changes, issues created, etc.
 
 * Faster/cheaper class creation for the normal case.
 
-  Right now for every class body, there is a "MAKE_CLASS_" with frame guard, exception
+  Right now for every class body, there is a "MAKE_CLASS_*" with frame guard, exception
   keeper, etc. overhead, but for most classes that is not needed at all. Most often the
   building of functions is all that happens, if at all. For these cases, a different
   approach might be taken, that is to simply build the directory directly.
@@ -1099,7 +1099,8 @@ into action, which could be code changes, plan changes, issues created, etc.
   same for conditional expressions too. May apply to "or" as well, and "and", because
   there also only conditionally code is executed.
 
-
+  Is there any re-formulation of conditional expressions with "and" and "or" that is
+  generally true?
 
 Updates for this Manual
 =======================
