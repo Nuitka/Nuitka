@@ -3014,6 +3014,9 @@ class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
             source_ref   = source_ref
         )
 
+    def isExpressionBuiltin( self ):
+        # Means if it's a builtin function call.
+        return False
 
 class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
     kind = "EXPRESSION_BUILTIN_EXCEPTION_REF"
@@ -3031,3 +3034,7 @@ class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
         return { "exception_name" : self.builtin_name }
 
     getExceptionName = CPythonExpressionBuiltinRefBase.getBuiltinName
+
+    def isExpressionBuiltin( self ):
+        # Means if it's a builtin function call.
+        return False

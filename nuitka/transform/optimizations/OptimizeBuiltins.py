@@ -769,27 +769,19 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
 
                 assert (type_name in builtin_names), (type_name, builtin_names)
 
-                # TODO: We really need a "builtin" name ref node to avoid creating a
-                # variable reference here that can only cause trouble
-
-                result = Nodes.CPythonExpressionVariableRef(
-                    variable_name = type_name,
-                    source_ref    = node.getSourceReference()
-                )
-
-                result.setVariable(
-                    variable = node.getParentModule().getVariableForReference(
-                        variable_name = type_name
-                    )
+                new_node = Nodes.CPythonExpressionBuiltinRef(
+                    builtin_name = type_name,
+                    source_ref   = node.getSourceReference()
                 )
 
                 self.signalChange(
-                    "new_variable",
+                    "new_builtin",
                     node.getSourceReference(),
-                    message = "Replaced predictable type lookup with result '%s'." % type_name
+                    message = "Replaced predictable type lookup of constant with builtin type '%s'." % type_name
                 )
 
-                return result
+                node.replaceWith( new_node )
+
 
 
     def range_extractor( self, node ):

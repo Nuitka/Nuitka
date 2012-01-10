@@ -46,11 +46,9 @@ class FixupNewStaticMethodVisitor( OptimizationVisitorBase ):
             decorators = node.getDecorators()
 
             if len( decorators ) == 0:
-                # TODO: We really need a "builtin" name ref node to avoid creating a
-                # variable reference here that can only cause trouble
-                new_node = Nodes.CPythonExpressionVariableRef(
-                    variable_name = "staticmethod",
-                    source_ref    = node.getSourceReference()
+                new_node = Nodes.CPythonExpressionBuiltinRef(
+                    builtin_name = "staticmethod",
+                    source_ref   = node.getSourceReference()
                 )
 
                 node.setDecorators(

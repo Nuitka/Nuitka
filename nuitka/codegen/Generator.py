@@ -1487,6 +1487,16 @@ def getRaiseExceptionExpressionCode( side_effects, exception_type_identifier, \
 
     return result
 
+
+def getBuiltinRefCode( context, builtin_name ):
+    return Identifier(
+        "LOOKUP_BUILTIN( %s )" % getConstantCode(
+            constant = builtin_name,
+            context  = context
+        ),
+        0
+    )
+
 def getExceptionRefCode( exception_type ):
     return Identifier(
         "PyExc_%s" % exception_type,

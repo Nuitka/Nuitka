@@ -1326,6 +1326,11 @@ def generateExpressionCode( expression, context, allow_none = False ):
             ),
             context        = context
         )
+    elif expression.isExpressionBuiltinRef():
+        identifier = Generator.getBuiltinRefCode(
+            builtin_name = expression.getBuiltinName(),
+            context      = context
+        )
     elif expression.isExpressionBuiltinExceptionRef():
         identifier = Generator.getExceptionRefCode(
             exception_type = expression.getExceptionName(),
