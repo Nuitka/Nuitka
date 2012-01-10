@@ -1,12 +1,16 @@
-nuitka (0.3.18~pre1+ds-2) unstable; urgency=low
+nuitka (0.3.18~pre2+ds-1) unstable; urgency=low
 
   * New upstream pre-release.
+  * First upload to unstable, many thanks to my reviewer and
+    sponsor Yaroslav Halchenko <debian@onerussian.com>
   * New maintainer (Closes: #648489)
   * Added Developer Manual to the generated PDF documentation.
   * Added python-dbg to Build-Depends to also execcute reference
     count tests.
+  * Changed copyright file to reference Apache license via its
+    standard Debian location as well.
 
- -- Kay Hayen <kayhayen@gmx.de>  Mon, 09 Jan 2012 10:30:43 +0100
+ -- Kay Hayen <kayhayen@gmx.de>  Tue, 10 Jan 2012 22:21:56 +0100
 
 nuitka (0.3.17+ds-1) UNRELEASED; urgency=low
 
