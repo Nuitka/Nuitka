@@ -54,8 +54,9 @@ from .IndicatorMixins import (
     MarkExecContainingIndicator
 )
 
-
 from nuitka.Constants import isMutable, isIterableConstant, isNumberConstant
+
+from nuitka.Builtins import builtin_names, builtin_exception_names
 
 lxml = TreeXML.lxml
 
@@ -1506,7 +1507,6 @@ class CPythonExpressionYield( CPythonChildrenHaving, CPythonNodeBase ):
     getExpression = CPythonChildrenHaving.childGetter( "expression" )
 
 
-
 class CPythonStatementReturn( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_RETURN"
 
@@ -1549,6 +1549,7 @@ class CPythonStatementPrint( CPythonChildrenHaving, CPythonNodeBase ):
 
     getDestination = CPythonChildrenHaving.childGetter( "dest" )
     getValues = CPythonChildrenHaving.childGetter( "values" )
+
 
 class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_FUNCTION_CALL"
@@ -1622,6 +1623,7 @@ class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNodeBase ):
             return False
 
         return True
+
 
 class CPythonExpressionOperationBase( CPythonChildrenHaving, CPythonNodeBase ):
     named_children = ( "operands", )
@@ -2984,20 +2986,48 @@ class CPythonExpressionBuiltinMakeException( CPythonChildrenHaving, CPythonNodeB
 
     getArgs = CPythonChildrenHaving.childGetter( "args" )
 
-class CPythonExpressionBuiltinExceptionRef( CPythonNodeBase ):
+class CPythonExpressionBuiltinRefBase( CPythonNodeBase ):
+    def __init__( self, builtin_name, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        self.builtin_name = builtin_name
+
+    def getDetails( self ):
+        return { "builtin_name" : self.builtin_name }
+
+    def getBuiltinName( self ):
+        return self.builtin_name
+
+    def mayHaveSideEffects( self ):
+        # Referencing the builtin name has no side effect
+        return False
+
+class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
+    kind = "EXPRESSION_BUILTIN_REF"
+
+    def __init__( self, builtin_name, source_ref ):
+        assert builtin_name in builtin_names
+
+        CPythonExpressionBuiltinRefBase.__init__(
+            self,
+            builtin_name = builtin_name,
+            source_ref   = source_ref
+        )
+
+
+class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
     kind = "EXPRESSION_BUILTIN_EXCEPTION_REF"
 
     def __init__( self, exception_name, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        assert exception_name in builtin_exception_names
 
-        self.exception_name = exception_name
+        CPythonExpressionBuiltinRefBase.__init__(
+            self,
+            builtin_name = exception_name,
+            source_ref   = source_ref
+        )
 
     def getDetails( self ):
-        return { "exception_name" : self.exception_name }
+        return { "exception_name" : self.builtin_name }
 
-    def getExceptionName( self ):
-        return self.exception_name
-
-    def mayHaveSideEffects( self ):
-        # Referencing the exception has no side effect
-        return False
+    getExceptionName = CPythonExpressionBuiltinRefBase.getBuiltinName
