@@ -1,4 +1,4 @@
-nuitka (0.3.17+ds-1) unstable; urgency=low
+nuitka (0.3.17a+ds-1) unstable; urgency=low
 
   * New upstream pre-release.
   * New maintainer (Closes: #648489)
@@ -23,8 +23,9 @@ nuitka (0.3.17+ds-1) unstable; urgency=low
     for the new parts.
   * Put Debian packaging and owned tests under "Apache License 2.0"
     as well.
+  * Hotfix a) for Issue#16 included, fixes compiler crash.
 
- -- Kay Hayen <kayhayen@gmx.de>  Mon, 09 Jan 2012 09:02:19 +0100
+ -- Kay Hayen <kayhayen@gmx.de>  Wed, 11 Jan 2012 19:12:14 +0100
 
 nuitka (0.3.16-1) UNRELEASED; urgency=low
 

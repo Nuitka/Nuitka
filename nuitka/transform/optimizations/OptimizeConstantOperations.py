@@ -77,60 +77,6 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
                 description = "Comparison with constant args"
             )
 
-    def _optimizeConstantConditionalOperation( self, node ):
-        condition = node.getCondition()
-
-        if condition.isExpressionConstantRef():
-            if condition.getConstant():
-                choice = "true"
-
-                new_node = node.getBranchYes()
-            else:
-                choice = "false"
-
-                new_node = node.getBranchNo()
-
-            if new_node is None:
-                new_node = Nodes.CPythonStatementPass(
-                    source_ref = node.getSourceReference()
-                )
-
-            node.replaceWith( new_node )
-
-            self.signalChange(
-                "new_statements",
-                node.getSourceReference(),
-                "Condition for branch was predicted to be always %s." % choice
-            )
-        else:
-            no_branch = node.getBranchNo()
-
-            if no_branch is not None and not no_branch.mayHaveSideEffects():
-                no_branch = None
-
-                node.setBranchNo( None )
-
-            yes_branch = node.getBranchYes()
-
-            if yes_branch is not None and not yes_branch.mayHaveSideEffects():
-                yes_branch = None
-
-                node.setBranchYes( None )
-
-            if no_branch is None and yes_branch is None:
-                new_node = Nodes.CPythonStatementExpressionOnly(
-                    expression = node.getCondition(),
-                    source_ref = node.getSourceReference()
-                )
-
-                node.replaceWith( new_node )
-
-                self.signalChange(
-                    "new_statements",
-                    node.getSourceReference(),
-                    "Both branches have no effect, drop conditional."
-                )
-
     def _optimizeConstantSliceLookup( self, node ):
         lower = node.getLower()
         upper = node.getUpper()
@@ -171,24 +117,6 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
                 "Created dictionary found to be constant."
             )
 
-    def _optimizeForLoop( self, node ):
-        no_break = node.getNoBreak()
-
-        if no_break is not None and not no_break.mayHaveSideEffects():
-            no_break = None
-
-            node.setNoBreak( None )
-
-        body = node.getBody()
-
-        if body is not None and not body.mayHaveSideEffects():
-            body = None
-
-            node.setBody( None )
-
-        # TODO: Optimize away the for loop if possible, if e.g. the iteration has no side
-        # effects, it's result is predictable etc.
-
     def onEnterNode( self, node ):
         if node.isOperation() or node.isExpressionOperationBool2():
             operands = node.getOperands()
@@ -202,21 +130,12 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
             self._optimizeConstantOperandsComparison(
                 node = node
             )
-        elif node.isStatementConditional():
-            self._optimizeConstantConditionalOperation(
-                node = node
-            )
         elif node.isExpressionSliceLookup():
             self._optimizeConstantSliceLookup(
                 node = node
             )
         elif node.isExpressionMakeDict():
             self._optimizeConstantDictMaking(
-                node = node
-            )
-        # TODO: Move this to a separate optimization step.
-        elif node.isStatementForLoop():
-            self._optimizeForLoop(
                 node = node
             )
         # TODO: Move this to a separate optimization step.
