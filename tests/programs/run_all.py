@@ -72,10 +72,13 @@ for filename in sorted( os.listdir( "." ) ):
         active = True
 
     if active:
-        if filename != "module_exits":
-            extra_flags = "expect_success"
+        if filename not in ( "module_exits", "package_missing_init" ):
+            extra_flags = [ "expect_success" ]
         else:
-            extra_flags = "expect_failure"
+            extra_flags = [ "expect_failure" ]
+
+        if filename == "package_missing_init":
+            extra_flags.append( "ignore_stderr" )
 
         os.environ[ "PYTHONPATH" ] = os.path.abspath( filename )
 
@@ -92,7 +95,7 @@ for filename in sorted( os.listdir( "." ) ):
                 sys.executable,
                 os.path.join( "..", "..", "bin", "compare_with_cpython" ),
                 filename,
-                extra_flags
+                " ".join( extra_flags )
             ),
             shell = True
         )

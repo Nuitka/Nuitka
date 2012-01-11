@@ -1,3 +1,9 @@
+nuitka (0.3.18~pre3+ds-1) unstable; urgency=low
+
+  * Hotfix for Issue#16 included, fixes compiler crash.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Wed, 11 Jan 2012 19:12:14 +0100
+
 nuitka (0.3.18~pre2+ds-1) unstable; urgency=low
 
   * New upstream pre-release.
