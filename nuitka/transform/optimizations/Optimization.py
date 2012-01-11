@@ -98,7 +98,7 @@ def optimizeTree( tree ):
         if tags.check( "new_code new_constant" ):
             optimizations_queue.add( ReplaceUnpackingVisitor )
 
-        if tags.check( "new_code new_statements" ):
+        if tags.check( "new_code new_statements new_constant" ):
             optimizations_queue.add( StatementSequencesCleanupVisitor )
 
         if tags.check( "new_code new_variable" ):
