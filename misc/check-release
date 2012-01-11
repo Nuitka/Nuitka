@@ -150,6 +150,7 @@ def execute_tests( where, use_python, flags ):
 
     del os.environ[ "NUITKA_EXTRA_OPTIONS" ]
 
+assert checkExecutableCommand( "python2.6" ) or checkExecutableCommand( "python2.7" )
 
 # Just the quick syntax test, full tests are run later.
 if checkExecutableCommand( "python3.2" ):
@@ -160,14 +161,20 @@ if checkExecutableCommand( "python2.6" ):
 else:
     print( "Cannot execute tests with python2.6, not installed." )
 
-execute_tests( "python2.7-debug", "python2.7", "--debug" )
+if checkExecutableCommand( "python2.7" ):
+    execute_tests( "python2.7-debug", "python2.7", "--debug" )
+else:
+    print( "Cannot execute tests with python2.7, not installed." )
 
 if checkExecutableCommand( "python2.6" ):
     execute_tests( "python2.6-nodebug", "python2.6", "" )
 else:
     print( "Cannot execute tests with python2.6, not installed." )
 
-execute_tests( "python2.7-nodebug", "python2.7", "" )
+if checkExecutableCommand( "python2.7" ):
+    execute_tests( "python2.7-nodebug", "python2.7", "" )
+else:
+    print( "Cannot execute tests with python2.7, not installed." )
 
 if checkExecutableCommand( "python3.2" ):
     execute_tests( "python3.2-debug", "python3.2", "--debug" )
