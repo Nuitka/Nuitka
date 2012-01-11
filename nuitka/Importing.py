@@ -115,10 +115,17 @@ def _findModuleInPath( module_name, package_name ):
             module_name = package_name.split( "." )[ -1 ]
             package_name = ".".join( package_name.split( "." )[:-1] )
 
+        def getPackageDirname( element ):
+            return Utils.joinpath( element, *package_name.split( "." ) )
+
+        def getPackageFilename( element ):
+            return Utils.joinpath( getPackageDirname( element ), "__init__.py" )
+
         ext_path = [
-            Utils.joinpath( element, *package_name.split( "." ) )
+            getPackageDirname( element )
             for element in
             sys.path + [ os.getcwd() ]
+            if os.path.exists( getPackageFilename( element ) )
         ]
 
         if _debug_module_finding:
