@@ -807,14 +807,21 @@ void PRINT_NEW_LINE_TO( PyObject *file )
         file = GET_STDOUT();
     }
 
+    // need to hold a reference to the file or else __getattr__ may release "file" in the
+    // mean time.
+    Py_INCREF( file );
+
     if (unlikely( PyFile_WriteString( "\n", file ) == -1))
     {
+        Py_DECREF( file );
         throw _PythonException();
     }
 
     PyFile_SoftSpace( file, 0 );
 
     assertObject( file );
+
+    Py_DECREF( file );
 #else
     if (likely( file == NULL ))
     {
