@@ -36,7 +36,22 @@ else:
 if "PYTHON" not in os.environ:
     os.environ[ "PYTHON" ] = "python"
 
-version_output = subprocess.check_output(
+def check_output(*popenargs, **kwargs):
+    from subprocess import Popen, PIPE, CalledProcessError
+
+    if 'stdout' in kwargs:
+        raise ValueError('stdout argument not allowed, it will be overridden.')
+    process = Popen(stdout=PIPE, *popenargs, **kwargs)
+    output, unused_err = process.communicate()
+    retcode = process.poll()
+    if retcode:
+        cmd = kwargs.get("args")
+        if cmd is None:
+            cmd = popenargs[0]
+        raise CalledProcessError(retcode, cmd, output=output)
+    return output
+
+version_output = check_output(
     [ os.environ[ "PYTHON" ], "--version" ],
     stderr = subprocess.STDOUT
 )
