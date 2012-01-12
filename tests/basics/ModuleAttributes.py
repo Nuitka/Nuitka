@@ -24,3 +24,4 @@ import os
 print "doc:", __doc__
 print "filename:", __file__
 print "builtins:", __builtins__
+print "debug", __debug__
