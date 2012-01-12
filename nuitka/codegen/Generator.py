@@ -2317,7 +2317,18 @@ def _getCoArgNamesValue( parameters ):
 
     return tuple( result )
 
-
+def _getFuncDefaultValue( identifiers, context ):
+    if len( identifiers ) > 0:
+        return getSequenceCreationCode(
+            sequence_kind       = "tuple",
+            element_identifiers = identifiers,
+            context             = context
+        )
+    else:
+        return getConstantHandle(
+            constant = None,
+            context  = context
+        )
 
 def getGeneratorFunctionCode( context, function_name, function_identifier, parameters, \
                               closure_variables, user_variables, decorator_count, \
@@ -2489,10 +2500,9 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         "module_identifier"          : getModuleAccessCode( context = context )
     }
 
-    func_defaults = getSequenceCreationCode(
-        sequence_kind       = "tuple",
-        element_identifiers = default_access_identifiers,
-        context             = context
+    func_defaults = _getFuncDefaultValue(
+        identifiers = default_access_identifiers,
+        context     = context
     )
 
     result += CodeTemplates.make_genfunc_with_context_template % {
@@ -2656,10 +2666,9 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         ),
     }
 
-    func_defaults = getSequenceCreationCode(
-        sequence_kind       = "tuple",
-        element_identifiers = default_access_identifiers,
-        context             = context
+    func_defaults = _getFuncDefaultValue(
+        identifiers = default_access_identifiers,
+        context     = context
     )
 
     if context_decl:
