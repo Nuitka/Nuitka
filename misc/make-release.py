@@ -35,6 +35,15 @@ from optparse import OptionParser, OptionGroup
 parser = OptionParser()
 
 parser.add_option(
+    "--use-as-ds-source",
+    action  = "store",
+    dest    = "ds_source",
+    default = None,
+    help    = """\
+When given, use this as the source for the Debian package instead. Default %default."""
+)
+
+parser.add_option(
     "--no-check-debian-sid",
     action  = "store_false",
     dest    = "debian_sid",
@@ -135,6 +144,9 @@ for filename in os.listdir( "." ):
 
         # Remove the now useless input, py2dsc has copied it, and we don't publish it.
         os.unlink( new_name )
+
+        if options.ds_source is not None:
+            shutil.copyfile( options.ds_source, "deb_dist/%s+ds.orig.tar.gz" % after_deb_name )
 
         break
 else:
