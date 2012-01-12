@@ -57,8 +57,13 @@ class OverflowCheckVisitor( TreeOperations.VisitorNoopMixin ):
         if node.isStatementImportStar():
             declareOverflow()
 
-        if node.isStatementExec() and _couldBeNone( node.getGlobals() ):
-            declareOverflow()
+        if node.isStatementExec():
+            if _couldBeNone( node.getGlobals() ):
+                declareOverflow()
+            elif node.getGlobals().isExpressionBuiltinLocals():
+                declareOverflow()
+            elif node.getLocals() is not None and node.getLocals().isExpressionBuiltinLocals():
+                declareOverflow()
 
         if node.isExpressionBuiltinExecfile():
             declareOverflow()
