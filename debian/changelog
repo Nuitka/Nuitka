@@ -1,14 +1,13 @@
-nuitka (0.3.18~pre3+ds-1) unstable; urgency=low
+nuitka (0.3.18+ds-1) unstable; urgency=low
 
-  * New upstream pre-release.
+  * New upstream release.
   * Lowered dependencies so that a backport to Ubuntu Natty and
     higher is now feasible. A "scons >=2.0.0" is good enough,
-    and so is g++-4.5 as well.
-  * Don't require the PDF generation to be successful, on older
-    Ubuntu versions, it crashes due to old "rst2pdf" bugs.
-  * Hotfix for Issue#16 included, fixes compiler crash.
+    and so is "g++-4.5" as well.
+  * Don't require the PDF generation to be successful on older
+    Ubuntu versions as it crashes due to old "rst2pdf" bugs.
 
- -- Kay Hayen <kayhayen@gmx.de>  Wed, 11 Jan 2012 20:20:10 +0100
+ -- Kay Hayen <kayhayen@gmx.de>  Thu, 12 Jan 2012 19:55:43 +0100
 
 nuitka (0.3.18~pre2+ds-1) unstable; urgency=low
 
