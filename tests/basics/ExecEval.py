@@ -276,3 +276,17 @@ def evalInContractions():
     return r1, r2
 
 print "Eval in a list contraction or generator expression", evalInContractions()
+
+def execDefinesFunctionToLocalsExplicity():
+    exec """\
+def makeAddPair((a, b)):
+    def addPair((c, d)):
+        return (a + c, b + d)
+    return addPair
+""" in locals()
+
+    assert makeAddPair
+
+    return "yes"
+
+print "Exec adds functions declares in explicit locals() given.", execDefinesFunctionToLocalsExplicity()
