@@ -29,6 +29,7 @@
 #ifndef __NUITKA_EXCEPTIONS_H__
 #define __NUITKA_EXCEPTIONS_H__
 
+#if PYTHON_VERSION < 300
 NUITKA_MAY_BE_UNUSED static void dumpTraceback( PyTracebackObject *traceback )
 {
     puts( "Dumping traceback:" );
@@ -53,6 +54,7 @@ NUITKA_MAY_BE_UNUSED static void dumpTraceback( PyTracebackObject *traceback )
 
     puts( "End of Dump." );
 }
+#endif
 
 NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *frame )
 {
