@@ -54,33 +54,6 @@ except ImportError:
 
     import subprocess as commands
 
-try:
-    import exceptions
-
-    builtin_exception_names = [
-        str( x ) for x in dir( exceptions )
-        if x.endswith( "Error" ) or x in ( "StopIteration", "GeneratorExit" )
-    ]
-
-except ImportError:
-    exceptions = {}
-
-    import sys
-
-    for x in dir( sys.modules[ "builtins" ] ):
-        name = str( x )
-
-        if name.endswith( "Error" ) or name in ( "StopIteration", "GeneratorExit" ):
-            exceptions[ name ] = x
-
-    builtin_exception_names = [
-        key for key, value in exceptions.items()
-    ]
-
-
-assert "ValueError" in builtin_exception_names
-assert "StopIteration" in builtin_exception_names
-
 def iterItems( d ):
     try:
         return d.iteritems()
@@ -92,4 +65,3 @@ def iterItems( d ):
 assert long
 assert unicode
 assert commands
-assert exceptions

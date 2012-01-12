@@ -1,7 +1,31 @@
-nuitka (0.3.17a+ds-1) unstable; urgency=low
+nuitka (0.3.18+ds-1) unstable; urgency=low
+
+  * New upstream release.
+  * Lowered dependencies so that a backport to Ubuntu Natty and
+    higher is now feasible. A "scons >=2.0.0" is good enough,
+    and so is "g++-4.5" as well.
+  * Don't require the PDF generation to be successful on older
+    Ubuntu versions as it crashes due to old "rst2pdf" bugs.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Thu, 12 Jan 2012 19:55:43 +0100
+
+nuitka (0.3.18~pre2+ds-1) unstable; urgency=low
 
   * New upstream pre-release.
+  * First upload to unstable, many thanks to my reviewer and
+    sponsor Yaroslav Halchenko <debian@onerussian.com>
   * New maintainer (Closes: #648489)
+  * Added Developer Manual to the generated PDF documentation.
+  * Added python-dbg to Build-Depends to also execcute reference
+    count tests.
+  * Changed copyright file to reference Apache license via its
+    standard Debian location as well.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Tue, 10 Jan 2012 22:21:56 +0100
+
+nuitka (0.3.17+ds-1) UNRELEASED; urgency=low
+
+  * New upstream release.
   * Updated man page to use new "--recurse-*" options in examples
     over removed "--deep*" options.
   * Completed copyright file according to "licensecheck" findings
@@ -23,9 +47,8 @@ nuitka (0.3.17a+ds-1) unstable; urgency=low
     for the new parts.
   * Put Debian packaging and owned tests under "Apache License 2.0"
     as well.
-  * Hotfix a) for Issue#16 included, fixes compiler crash.
 
- -- Kay Hayen <kayhayen@gmx.de>  Wed, 11 Jan 2012 19:12:14 +0100
+ -- Kay Hayen <kayhayen@gmx.de>  Mon, 09 Jan 2012 09:02:19 +0100
 
 nuitka (0.3.16-1) UNRELEASED; urgency=low
 

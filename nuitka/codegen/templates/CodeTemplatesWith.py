@@ -75,7 +75,7 @@ with_template = """\
 
         PyObject *exception_type  = _exception.getType();
         PyObject *exception_value = _exception.getObject();
-        PyObject *exception_tb    = _exception.getTraceback();
+        PyObject *exception_tb    = (PyObject *)_exception.getTraceback();
 
         assertObject( exception_type );
         assertObject( exception_value );

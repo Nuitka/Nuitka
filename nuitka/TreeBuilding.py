@@ -928,12 +928,36 @@ def buildRaiseNode( provider, node, source_ref ):
 
 
 def buildAssertNode( provider, node, source_ref ):
-    return Nodes.CPythonStatementAssert(
-        expression = buildNode( provider, node.test, source_ref ),
-        failure    = buildNode( provider, node.msg, source_ref, True ),
+    # Underlying assumption:
+    #
+    # Assert x, y is the same as:
+    # if not x:
+    #     raise AssertionError, y
+    #
+    # Therefore assert statements are really just conditional statements with a static
+    # raise contained.
+    return Nodes.CPythonStatementConditional(
+        condition = Nodes.CPythonExpressionOperationNOT(
+            operand    = buildNode( provider, node.test, source_ref ),
+            source_ref = source_ref
+        ),
+        yes_branch = Nodes.CPythonStatementsSequence(
+            statements = (
+                Nodes.CPythonStatementRaiseException(
+                    exception_type = Nodes.CPythonExpressionBuiltinExceptionRef(
+                        exception_name = "AssertionError",
+                        source_ref     = source_ref
+                    ),
+                    exception_value = buildNode( provider, node.msg, source_ref, True ),
+                    exception_trace = None,
+                    source_ref      = source_ref
+                ),
+            ),
+            source_ref = source_ref
+        ),
+        no_branch  = None,
         source_ref = source_ref
     )
-
 
 def _buildExtSliceNode( provider, node, source_ref ):
     elements = []

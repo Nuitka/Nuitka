@@ -563,9 +563,8 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
     return result;
 }
 
-PyFrameObject *detachCurrentFrame()
+static PyFrameObject *duplicateFrame( PyFrameObject *old_frame )
 {
-    PyFrameObject *old_frame = PyThreadState_GET()->frame;
     PyFrameObject *new_frame = PyObject_GC_NewVar( PyFrameObject, &PyFrame_Type, 0 );
 
     // Allow only to detach only our tracing frames.
@@ -603,6 +602,16 @@ PyFrameObject *detachCurrentFrame()
     new_frame->f_iblock = 0;
 
     Nuitka_GC_Track( new_frame );
+
+    return new_frame;
+}
+
+PyFrameObject *detachCurrentFrame()
+{
+    PyFrameObject *old_frame = PyThreadState_GET()->frame;
+
+    // Duplicate it.
+    PyFrameObject *new_frame = duplicateFrame( old_frame );
 
     // The given frame can be put on top now.
     PyThreadState_GET()->frame = new_frame;
@@ -701,8 +710,11 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
     }
 
     assertObject( file );
-
     assertObject( object );
+
+    // need to hold a reference to the file or else __getattr__ may release "file" in the
+    // mean time.
+    Py_INCREF( file );
 
     PyObject *str = PyObject_Str( object );
     PyObject *print;
@@ -731,8 +743,7 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
         print = str;
     }
 
-    // Check for soft space indicator, need to hold a reference to the file
-    // or else __getattr__ may release "file" in the mean time.
+    // Check for soft space indicator
     if ( PyFile_SoftSpace( file, !softspace ) )
     {
         if (unlikely( PyFile_WriteString( " ", file ) == -1 ))
@@ -745,6 +756,7 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
 
     if ( unlikely( PyFile_WriteObject( print, file, Py_PRINT_RAW ) == -1 ))
     {
+        Py_DECREF( file );
         Py_XDECREF( str );
         throw _PythonException();
     }
@@ -755,6 +767,10 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
     {
         PyFile_SoftSpace( file, !softspace );
     }
+
+    assertObject( file );
+
+    Py_DECREF( file );
 #else
     _python_builtin_print.refresh();
 
@@ -786,12 +802,26 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
 void PRINT_NEW_LINE_TO( PyObject *file )
 {
 #if PYTHON_VERSION < 300
+    if ( file == NULL || file == Py_None )
+    {
+        file = GET_STDOUT();
+    }
+
+    // need to hold a reference to the file or else __getattr__ may release "file" in the
+    // mean time.
+    Py_INCREF( file );
+
     if (unlikely( PyFile_WriteString( "\n", file ) == -1))
     {
+        Py_DECREF( file );
         throw _PythonException();
     }
 
     PyFile_SoftSpace( file, 0 );
+
+    assertObject( file );
+
+    Py_DECREF( file );
 #else
     if (likely( file == NULL ))
     {

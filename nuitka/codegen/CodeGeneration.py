@@ -1326,6 +1326,11 @@ def generateExpressionCode( expression, context, allow_none = False ):
             ),
             context        = context
         )
+    elif expression.isExpressionBuiltinRef():
+        identifier = Generator.getBuiltinRefCode(
+            builtin_name = expression.getBuiltinName(),
+            context      = context
+        )
     elif expression.isExpressionBuiltinExceptionRef():
         identifier = Generator.getExceptionRefCode(
             exception_type = expression.getExceptionName(),
@@ -1914,9 +1919,11 @@ def generateImportStarCode( statement, context ):
     )
 
 def generatePrintCode( statement, target_file, context ):
+    expressions = statement.getValues()
+
     values = generateExpressionsCode(
         context     = context,
-        expressions = statement.getValues()
+        expressions = expressions,
     )
 
     return Generator.getPrintCode(
@@ -2225,21 +2232,6 @@ def _generateStatementCode( statement, context ):
             statement = statement,
             context   = context
         )
-    elif statement.isStatementAssert():
-        code = Generator.getAssertCode(
-            condition_identifier = generateConditionCode(
-                condition = statement.getExpression(),
-                inverted  = True,
-                context   = context
-            ),
-            failure_identifier   = makeExpressionCode(
-                expression = statement.getArgument(),
-                allow_none = True
-            ),
-            exception_tb_maker   = Generator.getTracebackMakingIdentifier(
-                context = context,
-            )
-        )
     elif statement.isStatementExec():
         code = generateExecCode(
             exec_def     = statement,
@@ -2257,7 +2249,8 @@ def _generateStatementCode( statement, context ):
     else:
         assert False, statement.__class__
 
-    assert code == code.strip(), ( statement, "'%s'" % code )
+    if code != code.strip():
+        raise AssertionError( "Code contains leading or trailing whitespace", statement, "'%s'" % code )
 
     return code
 

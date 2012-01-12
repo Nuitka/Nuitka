@@ -636,20 +636,31 @@ def getOperationCode( operator, identifiers ):
         assert False, (operator, identifiers)
 
 def getPrintCode( newline, identifiers, target_file ):
-    print_elements_code = ""
+    print_elements_code = []
 
     for identifier in identifiers:
-        print_elements_code += CodeTemplates.template_print_value % {
-            "print_value" : identifier.getCodeTemporaryRef()
-        }
+        print_elements_code.append(
+            CodeTemplates.template_print_value % {
+                "print_value" : identifier.getCodeTemporaryRef(),
+                "target_file" : "target_file" if target_file is not None else "NULL"
+            }
+        )
 
     if newline:
-        print_elements_code += CodeTemplates.template_print_newline
+        print_elements_code.append(
+            CodeTemplates.template_print_newline  % {
+                "target_file" : "target_file" if target_file is not None else "NULL"
+            }
+        )
 
-    return CodeTemplates.template_print_statement % {
-        "target_file"         : target_file.getCodeExportRef() if target_file is not None else "NULL",
-        "print_elements_code" : print_elements_code
-    }
+    if target_file is not None:
+        return CodeTemplates.template_print_statement % {
+            "target_file"         : target_file.getCodeExportRef() if target_file is not None else "NULL",
+            "print_elements_code" : indented( print_elements_code )
+        }
+    else:
+        return "\n".join( print_elements_code )
+
 
 def getClosureVariableProvisionCode( context, closure_variables ):
     result = []
@@ -1476,19 +1487,15 @@ def getRaiseExceptionExpressionCode( side_effects, exception_type_identifier, \
 
     return result
 
-def getAssertCode( condition_identifier, failure_identifier, exception_tb_maker ):
-    if failure_identifier is None:
-        return CodeTemplates.assertion_without_arg % {
-            "condition" : condition_identifier.getCode(),
-            "tb_maker"  : exception_tb_maker.getCodeExportRef()
-        }
-    else:
-        return CodeTemplates.assertion_with_arg % {
-            "condition"   : condition_identifier.getCode(),
-            "failure_arg" : failure_identifier.getCodeExportRef(),
-            "tb_maker"    : exception_tb_maker.getCodeExportRef()
-        }
 
+def getBuiltinRefCode( context, builtin_name ):
+    return Identifier(
+        "LOOKUP_BUILTIN( %s )" % getConstantCode(
+            constant = builtin_name,
+            context  = context
+        ),
+        0
+    )
 
 def getExceptionRefCode( exception_type ):
     return Identifier(
@@ -2310,7 +2317,18 @@ def _getCoArgNamesValue( parameters ):
 
     return tuple( result )
 
-
+def _getFuncDefaultValue( identifiers, context ):
+    if len( identifiers ) > 0:
+        return getSequenceCreationCode(
+            sequence_kind       = "tuple",
+            element_identifiers = identifiers,
+            context             = context
+        )
+    else:
+        return getConstantHandle(
+            constant = None,
+            context  = context
+        )
 
 def getGeneratorFunctionCode( context, function_name, function_identifier, parameters, \
                               closure_variables, user_variables, decorator_count, \
@@ -2482,10 +2500,9 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         "module_identifier"          : getModuleAccessCode( context = context )
     }
 
-    func_defaults = getSequenceCreationCode(
-        sequence_kind       = "tuple",
-        element_identifiers = default_access_identifiers,
-        context             = context
+    func_defaults = _getFuncDefaultValue(
+        identifiers = default_access_identifiers,
+        context     = context
     )
 
     result += CodeTemplates.make_genfunc_with_context_template % {
@@ -2649,10 +2666,9 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         ),
     }
 
-    func_defaults = getSequenceCreationCode(
-        sequence_kind       = "tuple",
-        element_identifiers = default_access_identifiers,
-        context             = context
+    func_defaults = _getFuncDefaultValue(
+        identifiers = default_access_identifiers,
+        context     = context
     )
 
     if context_decl:

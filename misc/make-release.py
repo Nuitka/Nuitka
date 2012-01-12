@@ -30,6 +30,59 @@
 
 import os, sys, shutil, subprocess, tarfile
 
+from optparse import OptionParser, OptionGroup
+
+parser = OptionParser()
+
+parser.add_option(
+    "--no-check-debian-sid",
+    action  = "store_false",
+    dest    = "debian_sid",
+    default = True,
+    help    = """\
+Check the created Debian package in a Debian Sid pbuilder. Default %default."""
+)
+
+parser.add_option(
+    "--check-ubuntu-maverick",
+    action  = "store_true",
+    dest    = "ubuntu_maverick",
+    default = False,
+    help    = """\
+Check the created Debian package in a Ubuntu Maveric pbuilder. Default %default."""
+)
+
+parser.add_option(
+    "--check-ubuntu-natty",
+    action  = "store_true",
+    dest    = "ubuntu_natty",
+    default = False,
+    help    = """\
+Check the created Debian package in a Ubuntu Natty pbuilder. Default %default."""
+)
+
+parser.add_option(
+    "--check-ubuntu-oneiric",
+    action  = "store_true",
+    dest    = "ubuntu_oneiric",
+    default = False,
+    help    = """\
+Check the created Debian package in a Ubuntu Oneiric pbuilder. Default %default."""
+)
+
+parser.add_option(
+    "--check-ubuntu-precise",
+    action  = "store_true",
+    dest    = "ubuntu_precise",
+    default = False,
+    help    = """\
+Check the created Debian package in a Ubuntu Precise pbuilder. Default %default."""
+)
+
+options, positional_args = parser.parse_args()
+
+assert not positional_args, positional_args
+
 def checkAtHome():
     assert os.path.isfile( "setup.py" ) and open( ".git/description" ).read().strip() == "Nuitka Staging"
 
@@ -118,18 +171,39 @@ os.chdir( "../../.." )
 
 checkAtHome()
 
+assert os.path.exists( "dist/deb_dist" )
+
 # Check with pylint in pedantic mode and don't procede if there were any warnings
 # given. Nuitka is lintian clean and shall remain that way.
 assert 0 == os.system( "lintian --pedantic --fail-on-warnings dist/deb_dist/*.changes" )
 
+os.system( "cp dist/deb_dist/*.deb dist/" )
+
 # Build inside the pbuilder chroot, which should be an updated sid. The update is
 # not done here. TODO: Add a time based check that e.g. runs it with --update at
 # least every 24 hours or so.
-assert 0 == os.system( "sudo /usr/sbin/pbuilder --build dist/deb_dist/*.dsc" )
 
-os.system( "cp dist/deb_dist/*.deb dist/" )
+basetgz_list = []
 
-assert os.path.exists( "dist/deb_dist" )
+if options.debian_sid:
+    basetgz_list.append( "base.tgz" )
+
+if options.ubuntu_oneiric:
+    basetgz_list.append( "oneiric.tgz" )
+
+if options.ubuntu_maverick:
+    basetgz_list.append( "maverick.tgz" )
+
+if options.ubuntu_natty:
+    basetgz_list.append( "natty.tgz" )
+
+if options.ubuntu_precise:
+    basetgz_list.append( "precise.tgz" )
+
+for basetgz in basetgz_list:
+    command = "sudo /usr/sbin/pbuilder --build --basetgz  /var/cache/pbuilder/%s dist/deb_dist/*.dsc" % basetgz
+
+    assert 0 == os.system( command ), basetgz
 
 for filename in os.listdir( "dist/deb_dist" ):
     if os.path.isdir( "dist/deb_dist/" + filename ):

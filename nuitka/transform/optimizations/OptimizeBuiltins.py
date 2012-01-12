@@ -44,16 +44,9 @@ from nuitka.Utils import getPythonVersion
 from nuitka.nodes import Nodes
 from nuitka.nodes.ParameterSpec import ParameterSpec, TooManyArguments
 
-from nuitka.__past__ import builtin_exception_names
+from nuitka.Builtins import builtin_exception_names, builtin_names
 
 import math, sys
-
-_builtin_names = [
-    str( x )
-    for x in __builtins__.keys()
-]
-
-assert "int" in _builtin_names, __builtins__.keys()
 
 class BuiltinParameterSpec( ParameterSpec ):
     def __init__( self, name, arg_names, default_count, list_star_arg = None, dict_star_arg = None ):
@@ -774,29 +767,21 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
             if value is not None:
                 type_name = value.__class__.__name__
 
-                assert (type_name in _builtin_names), (type_name, _builtin_names)
+                assert (type_name in builtin_names), (type_name, builtin_names)
 
-                # TODO: We really need a "builtin" name ref node to avoid creating a
-                # variable reference here that can only cause trouble
-
-                result = Nodes.CPythonExpressionVariableRef(
-                    variable_name = type_name,
-                    source_ref    = node.getSourceReference()
-                )
-
-                result.setVariable(
-                    variable = node.getParentModule().getVariableForReference(
-                        variable_name = type_name
-                    )
+                new_node = Nodes.CPythonExpressionBuiltinRef(
+                    builtin_name = type_name,
+                    source_ref   = node.getSourceReference()
                 )
 
                 self.signalChange(
-                    "new_variable",
+                    "new_builtin",
                     node.getSourceReference(),
-                    message = "Replaced predictable type lookup with result '%s'." % type_name
+                    message = "Replaced predictable type lookup of constant with builtin type '%s'." % type_name
                 )
 
-                return result
+                node.replaceWith( new_node )
+
 
 
     def range_extractor( self, node ):

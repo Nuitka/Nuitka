@@ -31,6 +31,23 @@
 
 extern PyModuleObject *_module_builtin;
 
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN( PyObject *name )
+{
+    assertObject( name );
+    assert( Nuitka_String_Check( name ) );
+
+    PyDictEntry *entry = GET_PYDICT_ENTRY(
+        _module_builtin,
+        (Nuitka_StringObject *)name
+    );
+
+    PyObject *result = entry->me_value;
+
+    assertObject( result );
+
+    return result;
+}
+
 class PythonBuiltin
 {
     public:

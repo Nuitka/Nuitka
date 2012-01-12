@@ -26,38 +26,44 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Delete the staticmethod decorator from __new__ methods if provided.
+""" Builtins module. Information about builtins of the currently running Python.
 
-CPython made these optional, and applies them to every __new__. We better add
-them early, so our analysis will see it for improved consistency. This is better
-then adding it during code generation only.
 """
 
-from .OptimizeBase import OptimizationVisitorBase
+# Hide Python3 changes for builtin exception names
+try:
+    import exceptions
 
-from nuitka.nodes import Nodes
+    builtin_exception_names = [
+        str( x ) for x in dir( exceptions )
+        if x.endswith( "Error" ) or x in ( "StopIteration", "GeneratorExit" )
+    ]
+except ImportError:
+    exceptions = {}
 
-class FixupNewStaticMethodVisitor( OptimizationVisitorBase ):
-    def onEnterNode( self, node ):
-        if node.isStatementFunctionBuilder() and \
-           node.getFunctionName() == "__new__" and \
-           node.getParentClass() is not None:
+    import sys
 
-            decorators = node.getDecorators()
+    for x in dir( sys.modules[ "builtins" ] ):
+        name = str( x )
 
-            if len( decorators ) == 0:
-                new_node = Nodes.CPythonExpressionBuiltinRef(
-                    builtin_name = "staticmethod",
-                    source_ref   = node.getSourceReference()
-                )
+        if name.endswith( "Error" ) or name in ( "StopIteration", "GeneratorExit" ):
+            exceptions[ name ] = x
 
-                node.setDecorators(
-                    ( new_node, )
-                )
-                new_node.parent = node
+    builtin_exception_names = [
+        key for key, value in exceptions.items()
+    ]
 
-                self.signalChange(
-                    "new_code",
-                    node.getSourceReference(),
-                    "Added missing staticmethod decoration to __new__ method"
-                )
+assert "ValueError" in builtin_exception_names
+assert "StopIteration" in builtin_exception_names
+assert "GeneratorExit" in builtin_exception_names
+assert "AssertionError" in builtin_exception_names
+
+builtin_names = [
+    str( x )
+    for x in __builtins__.keys()
+]
+
+assert "int" in builtin_names, __builtins__.keys()
+
+# For PyLint to be happy.
+assert exceptions

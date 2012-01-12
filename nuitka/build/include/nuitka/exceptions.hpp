@@ -29,6 +29,33 @@
 #ifndef __NUITKA_EXCEPTIONS_H__
 #define __NUITKA_EXCEPTIONS_H__
 
+#if PYTHON_VERSION < 300
+NUITKA_MAY_BE_UNUSED static void dumpTraceback( PyTracebackObject *traceback )
+{
+    puts( "Dumping traceback:" );
+
+    if ( traceback == NULL ) puts( "<NULL traceback?!>" );
+
+    while( traceback )
+    {
+        puts( " Frame object chain:" );
+
+        PyFrameObject *frame = traceback->tb_frame;
+
+        while ( frame )
+        {
+            printf( "  Frame at %s\n", PyString_AsString( PyObject_Str( (PyObject *)frame->f_code )));
+
+            frame = frame->f_back;
+        }
+
+        traceback = traceback->tb_next;
+    }
+
+    puts( "End of Dump." );
+}
+#endif
+
 NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *frame )
 {
     // assertFrameObject( frame );
@@ -202,9 +229,9 @@ public:
         return this->exception_type;
     }
 
-    inline PyObject *getTraceback() const
+    inline PyTracebackObject *getTraceback() const
     {
-        return this->exception_tb;
+        return (PyTracebackObject *)this->exception_tb;
     }
 
     inline void addTraceback( PyFrameObject *frame )
