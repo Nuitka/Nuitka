@@ -120,7 +120,7 @@ class ReplaceUnpackingVisitor( OptimizationVisitorBase ):
 
 
                             self.signalChange(
-                                "new_code",
+                                "new_raise",
                                 node.getSourceReference(),
                                 "Removed bound to fail unpacking assignments."
                             )
