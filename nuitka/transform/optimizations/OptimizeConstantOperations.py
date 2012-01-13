@@ -36,8 +36,6 @@ from .OptimizeBase import (
     makeConstantReplacementNode
 )
 
-from nuitka.nodes import Nodes
-
 class OptimizeOperationVisitor( OptimizationVisitorBase ):
     def _optimizeConstantOperandsOperation( self, node, operands ):
         operands = [ constant.getConstant() for constant in operands ]

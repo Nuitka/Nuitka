@@ -240,15 +240,6 @@ def generateContractionCode( contraction, context ):
 
     contraction_identifier = contraction.getCodeName()
 
-    if Options.shallHaveStatementLines():
-        line_number_code = Generator.getSetCurrentLineCode(
-            context    = context,
-            source_ref = contraction.getSourceReference()
-        )
-    else:
-        line_number_code = ""
-
-
     if contraction.isExpressionGeneratorBuilder():
         assert len( contraction.getTargets() ) == len( sub_iterated_identifiers ) + 1
 
@@ -270,7 +261,6 @@ def generateContractionCode( contraction, context ):
             generator_iterateds  = sub_iterated_identifiers,
             loop_var_codes       = loop_var_codes,
             source_ref           = contraction.getSourceReference(),
-            line_number_code     = line_number_code,
             closure_variables    = contraction.getClosureVariables(),
             provided_variables   = contraction.getProvidedVariables()
         )
@@ -632,16 +622,25 @@ def generateClassCode( class_def, context ):
         context           = context
     )
 
+    class_dict_codes = Generator.getReturnCode(
+        identifier = Generator.getLoadLocalsCode(
+            provider = class_def.getBody(),
+            context  = class_context,
+            mode     = "updated"
+        )
+    )
+
     class_code = Generator.getClassCode(
         context            = class_context,
+        source_ref         = class_def.getSourceReference(),
         class_identifier   = class_def.getCodeName(),
-        class_def          = class_def,
         class_name         = class_def.getClassName(),
         class_variables    = class_def.getClassVariables(),
         closure_variables  = class_def.getClosureVariables(),
         decorator_count    = len( decorators ),
         module_name        = class_def.getParentModule().getName(),
         class_doc          = class_def.getBody().getDoc(),
+        class_dict_codes   = class_dict_codes,
         class_codes        = class_codes,
         metaclass_variable = class_def.getParentModule().getVariableForReference(
             variable_name = "__metaclass__"
@@ -2036,16 +2035,7 @@ def generateForLoopCode( statement, context ):
         context            = context
     )
 
-    if Options.shallHaveStatementLines():
-        line_number_code = Generator.getSetCurrentLineCode(
-            context    = context,
-            source_ref = statement.getIterated().getSourceReference()
-        )
-    else:
-        line_number_code = ""
-
     return Generator.getForLoopCode(
-        line_number_code = line_number_code,
         iterator         = iterator,
         iter_name        = iter_name,
         iter_value       = iter_value,
@@ -2054,6 +2044,7 @@ def generateForLoopCode( statement, context ):
         loop_body_codes  = loop_body_codes,
         loop_else_codes  = loop_else_codes,
         needs_exceptions = statement.needsExceptionBreakContinue(),
+        source_ref       = statement.getSourceReference(),
         context          = context
     )
 

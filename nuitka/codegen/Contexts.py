@@ -204,11 +204,11 @@ class PythonGlobalContext:
         return self.eval_orders_used
 
 class PythonModuleContext( PythonContextBase ):
+    # Plent of attributes, because it's storing so many different things.
+    # pylint: disable=R0902
+
     def __init__( self, module_name, code_name, filename, global_context ):
         PythonContextBase.__init__( self )
-
-        # Plent of attributes, because it's storing so many different things.
-        # pylint: disable=R0902
 
         self.name = module_name
         self.code_name = code_name

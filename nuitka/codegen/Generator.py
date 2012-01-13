@@ -1145,7 +1145,19 @@ def getForLoopNames( context ):
         "itertemp_%d" % for_count
     )
 
-def getForLoopCode( context, line_number_code, iterator, iter_name, iter_value, iter_object, \
+def getLineNumberCode( context, source_ref ):
+    if Options.shallHaveStatementLines():
+        line_number_code = getSetCurrentLineCode(
+            context    = context,
+            source_ref = source_ref
+        )
+    else:
+        line_number_code = ""
+
+    return line_number_code
+
+
+def getForLoopCode( context, source_ref, iterator, iter_name, iter_value, iter_object, \
                     loop_var_code, loop_body_codes, loop_else_codes, needs_exceptions ):
 
     loop_body_codes = loop_body_codes if loop_body_codes is not None else ""
@@ -1159,14 +1171,16 @@ def getForLoopCode( context, line_number_code, iterator, iter_name, iter_value, 
         has_else_codes   = loop_else_codes
     )
 
-
     indicator_name = "_python_for_loop_indicator_%d" % context.allocateForLoopNumber()
 
     return for_loop_template % {
         "body"                     : indented( loop_body_codes, 2 ),
         "else_codes"               : indented( loop_else_codes ),
         "iterator"                 : iterator.getCodeExportRef(),
-        "line_number_code"         : line_number_code,
+        "line_number_code"         : getLineNumberCode(
+            source_ref = source_ref,
+            context    = context
+        ),
         "loop_iter_identifier"     : iter_name,
         "loop_value_identifier"    : iter_value,
         "loop_object_identifier"   : iter_object.getCode(),
@@ -2072,30 +2086,17 @@ def getContractionDecl( context, contraction_identifier, closure_variables ):
         )
     }
 
-def getContractionCode( context, contraction_identifier, contraction_kind, loop_var_codes, \
-                        contraction_code, contraction_conditions, contraction_iterateds, \
-                        closure_variables, provided_variables ):
+def _getContractionLocalVarDecl( context, contraction_kind, provided_variables ):
+    local_var_decl = []
 
     if contraction_kind == "list":
         contraction_decl_template = CodeTemplates.list_contration_var_decl
-        contraction_loop = CodeTemplates.list_contraction_loop_production % {
-            "contraction_body" : contraction_code.getCodeTemporaryRef(),
-        }
     elif contraction_kind == "set":
         contraction_decl_template = CodeTemplates.set_contration_var_decl
-        contraction_loop = CodeTemplates.set_contraction_loop_production % {
-            "contraction_body" : contraction_code.getCodeTemporaryRef(),
-        }
     elif contraction_kind == "dict":
         contraction_decl_template = CodeTemplates.dict_contration_var_decl
-        contraction_loop = CodeTemplates.dict_contraction_loop_production % {
-            "key_identifier" : contraction_code[0].getCodeTemporaryRef(),
-            "value_identifier" : contraction_code[1].getCodeTemporaryRef()
-        }
     else:
         assert False, contraction_kind
-
-    local_var_decl = []
 
     for variable in provided_variables:
         if not variable.isClosureReference() and not variable.isModuleVariable():
@@ -2107,40 +2108,80 @@ def getContractionCode( context, contraction_identifier, contraction_kind, loop_
                 )
             )
 
-    contraction_iterateds.insert( 0, Identifier( "iterated", 0 ) )
+    return contraction_decl_template % {
+        "local_var_decl" : indented( local_var_decl )
+    }
+
+def _getContractionLoopCode( contraction_kind, contraction_iterateds, \
+                             contraction_conditions,  loop_var_codes, contraction_code ):
+    if contraction_kind == "list":
+        contraction_loop_code = CodeTemplates.list_contraction_loop_production % {
+            "contraction_body" : contraction_code.getCodeTemporaryRef(),
+        }
+    elif contraction_kind == "set":
+        contraction_loop_code = CodeTemplates.set_contraction_loop_production % {
+            "contraction_body" : contraction_code.getCodeTemporaryRef(),
+        }
+    elif contraction_kind == "dict":
+        contraction_loop_code = CodeTemplates.dict_contraction_loop_production % {
+            "key_identifier" : contraction_code[0].getCodeTemporaryRef(),
+            "value_identifier" : contraction_code[1].getCodeTemporaryRef()
+        }
+    else:
+        assert False, contraction_kind
+
+    contraction_iterateds = [ Identifier( "iterated", 0 ) ] + contraction_iterateds
 
     for count, ( contraction_condition, contraction_iterated, loop_var_code ) in enumerate (
         reversed( list( zip( contraction_conditions, contraction_iterateds, loop_var_codes ) ) )
     ):
-        contraction_loop = CodeTemplates.contraction_loop_iterated % {
-            "contraction_loop"         : contraction_loop,
+        contraction_loop_code = CodeTemplates.contraction_loop_iterated % {
+            "contraction_loop"         : contraction_loop_code,
             "iter_count"               : len( loop_var_codes ) - count,
             "iterated"                 : contraction_iterated.getCodeTemporaryRef(),
             "loop_var_assignment_code" : loop_var_code,
             "contraction_condition"    : contraction_condition.getCode()
         }
 
-    contraction_var_decl = contraction_decl_template % {
-        "local_var_decl" : indented( local_var_decl )
-    }
+
+    return contraction_loop_code
+
+def getContractionCode( context, contraction_identifier, contraction_kind, loop_var_codes, \
+                        contraction_code, contraction_conditions, contraction_iterateds, \
+                        closure_variables, provided_variables ):
+
+    contraction_var_decl = _getContractionLocalVarDecl(
+        contraction_kind   = contraction_kind,
+        provided_variables = provided_variables,
+        context            = context
+    )
+
+    contraction_loop_code = _getContractionLoopCode(
+        contraction_kind       = contraction_kind,
+        contraction_iterateds  = contraction_iterateds,
+        contraction_conditions = contraction_conditions,
+        contraction_code       = contraction_code,
+        loop_var_codes         = loop_var_codes
+    )
 
     local_expression_temp_inits = _getLocalExpressionTempsInitCode(
         context = context
     )
 
-    contraction_creation_arg_spec = _getContractionParameters(
-        closure_variables = closure_variables
-    )
+    if local_expression_temp_inits:
+        local_expression_temp_inits += "\n"
 
     return CodeTemplates.contraction_code_template % {
         "contraction_identifier" : contraction_identifier,
         "contraction_parameters" : getEvalOrderedCode(
-            args    = contraction_creation_arg_spec,
+            args    = _getContractionParameters(
+                closure_variables = closure_variables
+            ),
             context = context
         ),
-        "contraction_body"       : contraction_loop,
+        "contraction_body"       : contraction_loop_code,
         "contraction_var_decl"   : indented( contraction_var_decl ),
-        "contraction_temp_decl"  : indented( local_expression_temp_inits + "\n" if local_expression_temp_inits else "" )
+        "contraction_temp_decl"  : indented( local_expression_temp_inits )
     }
 
 def getContractionIterValueIdentifier( context, index ):
@@ -2216,11 +2257,16 @@ def getFunctionDecl( context, function_identifier, decorator_count, default_iden
 
 def _getLocalVariableInitCode( context, variable, init_from = None, needs_no_free = False, \
                                in_context = False, shared = False, mangle_name = None ):
+    # This has many cases to deal with, so there need to be a lot of branches. It could
+    # be cleaner a bit by solving the TODOs, but the fundamental problem renames.
+    # pylint: disable=R0912
+
     assert not variable.isModuleVariable()
 
     var_name = variable.getName()
     shared = shared or variable.isShared()
 
+    # TODO: This selection of suitable variable class should be shared.
     if shared:
         result = "PyObjectSharedLocalVariable"
     elif init_from is not None and not needs_no_free:
@@ -2244,6 +2290,7 @@ def _getLocalVariableInitCode( context, variable, init_from = None, needs_no_fre
     if not in_context:
         result += "_"
 
+    # TODO: Too much naming policy here.
     if variable.isClosureReference():
         result += "python_closure_%s" % var_name
     else:
@@ -2334,6 +2381,9 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
                               closure_variables, user_variables, decorator_count, \
                               default_access_identifiers, function_codes, source_ref, \
                               function_doc ):
+    # We really need this many parameters here.
+    # pylint: disable=R0913
+
     parameter_variables, entry_point_code, parameter_objects_decl, mparse_identifier = getParameterParsingCode(
         function_identifier     = function_identifier,
         function_name           = function_name,
@@ -2505,6 +2555,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         context     = context
     )
 
+    # TODO: Check with hard coded line number, if it is good.
     result += CodeTemplates.make_genfunc_with_context_template % {
         "function_name_obj"          : getConstantCode(
             context  = context,
@@ -2542,6 +2593,9 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 def getFunctionCode( context, function_name, function_identifier, parameters, closure_variables, \
                      user_variables, decorator_count, default_access_identifiers, function_codes, \
                      source_ref, function_doc ):
+    # We really need this many parameters here.
+    # pylint: disable=R0913
+
     parameter_variables, entry_point_code, parameter_objects_decl, mparse_identifier = getParameterParsingCode(
         function_identifier     = function_identifier,
         function_name           = function_name,
@@ -2672,6 +2726,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
     )
 
     if context_decl:
+        # TODO: Check with hard coded line number, if it is good.
         result += CodeTemplates.make_function_with_context_template % {
             "function_name"              : function_name,
             "function_name_obj"          : function_name_obj,
@@ -2702,6 +2757,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
             "module_identifier"          : getModuleAccessCode( context = context ),
         }
     else:
+        # TODO: Check with hard coded line number, if it is good.
         result += CodeTemplates.make_function_without_context_template % {
             "function_name"              : function_name,
             "function_name_obj"          : function_name_obj,
@@ -2735,7 +2791,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
 
 def getGeneratorExpressionCode( context, generator_identifier, generator_name, source_ref, \
                                 generator_code, generator_conditions, generator_iterateds, \
-                                line_number_code, loop_var_codes, closure_variables, \
+                                loop_var_codes, closure_variables, \
                                 provided_variables ):
     function_name     = "<" + generator_name + ">"
 
@@ -2830,10 +2886,14 @@ def getGeneratorExpressionCode( context, generator_identifier, generator_name, s
             context  = context,
             constant = function_name
         ),
-        "line_number_code"           : line_number_code,
+        "line_number_code"           : getLineNumberCode(
+            source_ref = source_ref,
+            context    = context
+        ),
         "expression_temp_decl"       : local_expression_temp_inits
     }
 
+    # TODO: Check with hard coded line number, if it is good.
     result += CodeTemplates.make_genexpr_with_context_template % {
         "function_name_obj"          : function_name_obj,
         "function_identifier"        : generator_identifier,
@@ -2948,9 +3008,13 @@ def getClassDecl( context, class_identifier, closure_variables, decorator_count 
         )
     }
 
-def getClassCode( context, class_def, class_name, class_identifier, \
+def getClassCode( context, source_ref, class_name, class_identifier, \
                   class_variables, closure_variables, decorator_count, \
-                  module_name, class_doc, class_codes, metaclass_variable ):
+                  module_name, class_doc, class_codes, class_dict_codes, \
+                  metaclass_variable ):
+    # We really need this many parameters here.
+    # pylint: disable=R0913
+
     assert metaclass_variable.isModuleVariable()
 
     class_var_decl = []
@@ -3002,14 +3066,6 @@ def getClassCode( context, class_def, class_name, class_identifier, \
         decorator_count   = decorator_count
     )
 
-    class_dict_creation = getReturnCode(
-        identifier = getLoadLocalsCode(
-            provider = class_def.getBody(),
-            context  = context,
-            mode     = "updated"
-        )
-    )
-
     class_decorator_calls = _getDecoratorsCallCode(
         context         = context,
         decorator_count = decorator_count
@@ -3027,8 +3083,7 @@ def getClassCode( context, class_def, class_name, class_identifier, \
         1
     )
 
-    source_ref = class_def.getSourceReference()
-
+    # TODO: Check with hard coded line number, if it is good.
     return CodeTemplates.class_dict_template % {
         "class_identifier"      : class_identifier,
         "name_identifier"       : getConstantCode(
@@ -3050,7 +3105,7 @@ def getClassCode( context, class_def, class_name, class_identifier, \
             args    = class_creation_args
         ),
         "class_var_decl"        : indented( class_locals ),
-        "class_dict_creation"   : indented( class_dict_creation, 2 ),
+        "class_dict_creation"   : indented( class_dict_codes, 2 ),
         "class_decorator_calls" : indented( class_decorator_calls ),
         "class_body"            : indented( class_codes, 2 ),
         "module_identifier"     : getModuleAccessCode( context = context ),

@@ -26,6 +26,9 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Check if a function or class body needs a locals dict."""
+
+# TODO: Merge with the finalization step that uses it.
 
 from nuitka.transform import TreeOperations
 

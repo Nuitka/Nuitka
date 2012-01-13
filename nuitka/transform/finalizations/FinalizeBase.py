@@ -26,6 +26,10 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Base for all finalization modules
+
+Provides a class that all finalization visitors should inherit from.
+"""
 
 from nuitka.transform import TreeOperations
 

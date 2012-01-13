@@ -124,6 +124,8 @@ CPythonNodeMetaClassBase = NodeCheckMetaClass( "CPythonNodeMetaClassBase", (obje
 class CPythonNodeBase( CPythonNodeMetaClassBase ):
     kind = None
 
+    tags = ()
+
     def __init__( self, source_ref ):
         assert source_ref is not None
         assert source_ref.line is not None
@@ -359,6 +361,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
     def isIndexable( self ):
         """ Unless we are told otherwise, it's not indexable. """
+        # Virtual method, pylint: disable=R0201,W0613
 
         return False
 
@@ -984,7 +987,10 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
 
     getStatements = CPythonChildrenHaving.childGetter( "statements" )
 
+    # Overloading automatic check, so that derived ones know it too.
     def isStatementsSequence( self ):
+        # Virtual method, pylint: disable=R0201,W0613
+
         return True
 
     def trimStatements( self, statement ):
@@ -1327,6 +1333,9 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
                                      CPythonClosureTaker, MarkContainsTryExceptIndicator, \
                                      MarkGeneratorIndicator, MarkLocalsDictIndicator,
                                      MarkExecContainingIndicator ):
+    # We really want these many ancestors, as per design, we add properties via base class
+    # mixins a lot, pylint: disable=R0901
+
     kind = "EXPRESSION_FUNCTION_BODY"
 
     early_closure = False

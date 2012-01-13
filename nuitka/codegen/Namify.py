@@ -49,7 +49,9 @@ class ExceptionCannotNamify( Exception ):
     pass
 
 def namifyConstant( constant ):
-    # Many branches and everyone has a return, pylint: disable=R0911,R0912
+    # Many branches, statements and every case has a return, this is a huge case
+    # statement, that encodes the naming policy of constants, with often complex decisions
+    # to make, pylint: disable=R0911,R0912,R0915
 
     if type( constant ) is int:
         if constant == 0:
@@ -150,6 +152,9 @@ def namifyConstant( constant ):
 _re_str_needs_no_digest = re.compile( r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.S )
 
 def _namifyString( string ):
+    # Many branches case has a return, encodes the naming policy of strings constants,
+    # with often complex decisions to make, pylint: disable=R0911
+
     if string in ( "", b"" ):
         return "empty"
     elif string == " ":

@@ -26,7 +26,6 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-
 """ Base for all optimization modules
 
 Provides a class that all optimization visitors should inherit from.
