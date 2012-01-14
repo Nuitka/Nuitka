@@ -53,6 +53,26 @@ if not os.path.exists( "man" ):
 assert 0 == subprocess.call( "help2man -n 'the Python compiler' --no-discard-stderr --no-info --include doc/nuitka-man-include.txt ./bin/nuitka >doc/nuitka.1", shell = True )
 assert 0 == subprocess.call( "help2man -n 'the Python compiler' --no-discard-stderr --no-info ./bin/nuitka-python >doc/nuitka-python.1", shell = True )
 
+for manpage in ( "doc/nuitka.1", "doc/nuitka-python.1" ):
+    manpage_contents = open( manpage ).readlines()
+    new_contents = []
+    mark = False
+
+    for count, line in enumerate( manpage_contents ):
+        if mark:
+            line = ".SS " + line + ".BR\n"
+            mark = False
+        elif line == ".IP\n" and manpage_contents[ count + 1 ].endswith( ":\n" ):
+            mark = True
+            continue
+
+        if line == r"\fB\-\-g\fR++\-only" + "\n":
+            line = r"\fB\-\-g\++\-only\fR" + "\n"
+
+        new_contents.append( line )
+
+    open( manpage, "w" ).writelines( new_contents )
+
 assert 0 == subprocess.call( "man2html doc/nuitka.1 >doc/man-nuitka.html", shell = True )
 assert 0 == subprocess.call( "man2html doc/nuitka-python.1 >doc/man-nuitka-python.html", shell = True )
 
