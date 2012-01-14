@@ -181,7 +181,7 @@ def compareOutput( kind, out_cpython, out_nuitka ):
 
     if result:
         for line in result:
-            print( line )
+            print( line, end = "\n" if not line.startswith( "---" ) else "" )
 
         return 1
     else:
