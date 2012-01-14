@@ -29,7 +29,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.3.19pre1
+Nuitka V0.3.19pre2
 Copyright (C) 2012 Kay Hayen."""
 
 from . import Utils
@@ -106,8 +106,8 @@ recurse_group.add_option(
     metavar = "MODULE/PACKAGE",
     default = [],
     help    = """\
- Recurse to that module, or if a package, to the whole package. Can be given multiple
- times.Default empty."""
+Recurse to that module, or if a package, to the whole package. Can be given multiple
+times. Default empty."""
 )
 
 recurse_group.add_option(
