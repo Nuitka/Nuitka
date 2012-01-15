@@ -64,6 +64,8 @@ class NodeCheckMetaClass( type ):
     kinds = set()
 
     def __new__( mcs, name, bases, dictionary ):
+        # Merge the tags with the base classes in a non-overriding
+        # way, instead add them up.
         if "tags" not in dictionary:
             dictionary[ "tags" ] = ()
 
@@ -369,8 +371,8 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
     def hasTag( self, tag ):
         return tag in self.__class__.tags
 
-class CPythonNamedNodeBase( CPythonNodeBase ):
-    def __init__( self, name, source_ref ):
+class CPythonCodeNodeBase( CPythonNodeBase ):
+    def __init__( self, name, code_prefix, source_ref ):
         assert name is not None
         assert " " not in name
         assert "<" not in name
@@ -378,6 +380,13 @@ class CPythonNamedNodeBase( CPythonNodeBase ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         self.name = name
+        self.code_prefix = code_prefix
+
+        # The code name is determined on demand only.
+        self.code_name = None
+
+        # The "UID" values of children kinds are kept here.
+        self.uids = {}
 
     def getName( self ):
         return self.name
@@ -402,19 +411,6 @@ class CPythonNamedNodeBase( CPythonNodeBase ):
 
         return result
 
-class CPythonCodeNodeBase( CPythonNamedNodeBase ):
-    def __init__( self, name, code_prefix, source_ref ):
-        CPythonNamedNodeBase.__init__(
-            self,
-            name       = name,
-            source_ref = source_ref
-        )
-
-        self.code_prefix = code_prefix
-        self.uids = {}
-
-        self.code_name = None
-
     def getCodeName( self ):
         if self.code_name is None:
             search = self.parent
@@ -429,7 +425,7 @@ class CPythonCodeNodeBase( CPythonNamedNodeBase ):
 
             uid = "_%d" % search.getChildUID( self )
 
-            if isinstance( self, CPythonNamedNodeBase ):
+            if isinstance( self, CPythonCodeNodeBase ):
                 name = uid + "_" + self.name
             else:
                 name = uid
