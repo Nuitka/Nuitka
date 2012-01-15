@@ -401,6 +401,10 @@ if module_mode:
 
     target = env.SharedLibrary( result_file, discoverSourceFiles() )
 else:
+    # Avoid dependency on MinGW libraries.
+    if win_target:
+        env.Append( LINKFLAGS = [ "-static-libgcc",  "-static-libstdc++" ] )
+
     target = env.Program( result_file + ".exe", discoverSourceFiles() )
 
 # Remove the target file to avoid cases where it falsely didn't get rebuilt.
