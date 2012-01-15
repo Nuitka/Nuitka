@@ -20,6 +20,77 @@ them. And we update them as we proceed.x
 It grows out of discussions and presentations made at PyCON alike conferences as well as
 private conversations or discussions on the mailing list.
 
+Milestones
+==========
+
+   1. Feature parity with Python, understand all the language construct and behave
+      absolutely compatible.
+
+      Feature parity has been reached for Python 2.6 and 2.7, we do not target any older
+      CPython release. For Python 3.2, things are still not complete. To us 3.x is not
+      currently a high priority, but eventually we will get Nuitka going there too, and
+      some of the basic tests already pass. You are more than welcome to volunteer for
+      this task.
+
+      This milestone is considered reached.
+
+   2. Create the most efficient native code from this. This means to be fast with the
+      basic Python object handling.
+
+
+      This milestone is considered mostly reached.
+
+   3. Then do constant propagation, determine as many values and useful constraints as
+      possible at compile time and create more efficient code.
+
+      This milestone is considered in progress.
+
+   4. Type inference, detect and special case the handling of strings, integers, lists in
+      the program.
+
+      This milestone is started only.
+
+   5. Add interfacing to C code, so Nuitka can turn a "ctypes" binding into an efficient
+      binding as written with C.
+
+      This milestone is planned only.
+
+   6. Add hints module with a useful Python implementation that the compiler can use to
+      learn about types from the programmer.
+
+      This milestone is planned only.
+
+Version Numbers
+===============
+
+For Nuitka we use defensive version numbering to indicate that it is not yet ready and
+useful for everything yet. We have defined milestones and the version numbers should
+express which of these, we consider done.
+
+- So far:
+
+   Before milestone 1, we uses "0.1.x" version numbers. After reaching it, we used "0.2.x"
+   version numbers.
+
+- Now:
+
+   We currently use "0.3.x" version numbers as we still strive for milestone 2 and 3 to be
+   really completed.
+
+- Future:
+
+   When we start to have sufficient amount of type inference in a stable release, that
+   will be "0.4.x" version numbers. With "ctypes" bindings in a sufficient state it will
+   be "0.5.x".
+
+- Final:
+
+   We will then round it up and call it "Nuitka 1.0" when this works as expected for a
+   bunch of people. The plan is to reach this goal during 2012. This is based on lots
+   of assumptions that may not hold up though.
+
+Of course, this may be subject to change.
+
 Current State
 =============
 
