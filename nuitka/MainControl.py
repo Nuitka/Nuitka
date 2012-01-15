@@ -321,17 +321,22 @@ def executeMain( binary_filename, tree, clean_path ):
 
     old_python_path = os.environ.get( "PYTHONPATH", None )
 
-    try:
-        if clean_path and old_python_path is not None:
-            os.environ[ "PYTHONPATH" ] = ""
+    if clean_path and old_python_path is not None:
+        os.environ[ "PYTHONPATH" ] = ""
 
-        if not Options.isWindowsTarget() or "win" in sys.platform:
-            os.execl( binary_filename, name, *Options.getMainArgs() )
-        else:
-            os.execl( "/usr/bin/wine", name, binary_filename, *Options.getMainArgs() )
-    finally:
-        if old_python_path is not None:
-            os.environ[ "PYTHONPATH" ] = old_python_path
+    # We better flush these, "os.execl" won't do it anymore.
+    sys.stdout.flush()
+    sys.stderr.flush()
+
+    if not Options.isWindowsTarget() or "win" in sys.platform:
+        os.execl( binary_filename, name, *Options.getMainArgs() )
+    else:
+        os.execl( "/usr/bin/wine", name, binary_filename, *Options.getMainArgs() )
+
+    if old_python_path is not None:
+        os.environ[ "PYTHONPATH" ] = old_python_path
 
 def executeModule( tree ):
+    # TODO: Might be cleaner to start a new interpreter with the module to load.
+
     __import__( tree.getName() )
