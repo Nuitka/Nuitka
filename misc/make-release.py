@@ -222,7 +222,7 @@ for filename in os.listdir( "dist/deb_dist" ):
         shutil.rmtree( "dist/deb_dist/" + filename )
 
 # Build the Windows installer.
-assert 0 == os.system( r"wine c:\\python26\\python.exe setup.py bdist_wininst --bitmap misc/Nuitka-Installer.bmp" )
+assert 0 == os.system( r"wine c:\\python27\\python.exe setup.py bdist_wininst --bitmap misc/Nuitka-Installer.bmp" )
 
 # Sign the result files. The Debian binary package was copied here.
 for filename in os.listdir( "dist" ):
