@@ -108,14 +108,11 @@ int main( int argc, char *argv[] )
         PyThreadState_GET()->frame = frame___main__;
 
         PyErr_Print();
-
-        Py_Finalize();
-        return 1;
+        Py_Exit( 1 );
     }
     else
     {
-        Py_Finalize();
-        return 0;
+        Py_Exit( 0 );
     }
 }
 """
