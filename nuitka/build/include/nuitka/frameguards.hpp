@@ -200,6 +200,21 @@ public:
         this->frame_object->f_lineno = lineno;
     }
 
+    int getLineNumber() const
+    {
+        assertFrameObject( this->frame_object );
+
+        return this->frame_object->f_lineno;
+    }
+
+    void check() const
+    {
+        assertFrameObject( this->frame_object );
+
+        // Make sure f_lineno is the actually used information.
+        assert( this->frame_object->f_trace == Py_None );
+    }
+
     // Replace the frame object by a newer one.
     void detachFrame( void )
     {

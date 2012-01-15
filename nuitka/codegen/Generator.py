@@ -1109,9 +1109,7 @@ def getWithCode( context, body_codes, assign_codes, source_identifier, with_mana
     if assign_codes is None:
         assign_codes = "// No 'as' target variable for withed expression."
 
-    frame_making = getFrameMakingIdentifier(
-        context = context
-    )
+    tb_making = getTracebackMakingIdentifier( context )
 
     return CodeTemplates.with_template % {
         "assign"              : indented( assign_codes ),
@@ -1121,7 +1119,7 @@ def getWithCode( context, body_codes, assign_codes, source_identifier, with_mana
         "value"               : with_value_identifier.getCode(),
         "with_count"          : context.with_count,
         "module_identifier"   : getModuleAccessCode( context = context ),
-        "frame_making"        : frame_making.getCodeExportRef(),
+        "tb_making"           : tb_making.getCodeExportRef(),
         "triple_none_tuple"   : getConstantCode(
             constant = ( None, None, None ),
             context  = context

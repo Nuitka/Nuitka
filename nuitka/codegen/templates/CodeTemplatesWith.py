@@ -66,7 +66,14 @@ with_template = """\
            _caught_%(with_count)d.save( _exception );
         }
 
-        _exception.addTraceback( %(frame_making)s );
+        if ( !_exception.hasTraceback() )
+        {
+            _exception.setTraceback( %(tb_making)s );
+        }
+        else if ( traceback == false )
+        {
+            _exception.addTraceback( frame_guard.getFrame() );
+        }
 
         if ( traceback == false )
         {
