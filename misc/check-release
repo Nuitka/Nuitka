@@ -45,8 +45,18 @@ path_sep = ";" if "win" in sys.platform else ":"
 # Add the local bin directory to search path start.
 os.environ[ "PATH" ] = os.path.join( os.getcwd(), "bin" ) + path_sep + os.environ[ "PATH" ]
 
-
 def checkExecutableCommand( command ):
+    """ Check if a command is executable. """
+
+    # Shortcuts for python versions, also needed for Windows as it won't have the version
+    # number in the Python binaries at all.
+    if command == "python2.6" and sys.version_info[0:2] == (2,6):
+       return True
+    if command == "python2.7" and sys.version_info[0:2] == (2,7):
+       return True
+    if command == "python3.2" and sys.version_info[0:2] == (3,2):
+       return True
+
     path = os.environ[ "PATH" ]
 
     suffixes = ( ".exe", ) if "win" in sys.platform else ( "", )
