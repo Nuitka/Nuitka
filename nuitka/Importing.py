@@ -265,7 +265,7 @@ def _isWhiteListedNotExistingModule( module_name ):
         "__package__.module", "__mangled_mod",
 
         # test_distutils.py
-        "distutils.tests",
+        "distutils.tests", "distutils.mwerkscompiler",
 
         # test_emails.py
         "email.test.test_email", "email.test.test_email_renamed",
