@@ -791,22 +791,61 @@ Now to the interface
 
 The following is the intended interface
 
-- Base class "ValueFriendBase"
+- Base class "ValueFriendBase" according to rules.
+
+  The base class offers methods that allow to check if certain operations are supported or
+  not. These can always return "True" (yes), "False" (no), and "None" (cannot decide). In
+  the case of the later, optimizations may not be able do much about it. Lets call these
+  values "tristate".
+
+  Part of the interface is a method "getComputation" which gives the node the chance to
+  return a tristate together with a lambda, that when executed, produces either an
+  exception or constant value.
+
+  The "getComputation" may be able to produce exceptions or constant even for non-constant
+  inputs depending on the operation being performed. For every computational step it will
+  be executed.
+
+  In this sense, attribute lookup is also a computation, as its value might be computed as
+  well. Most often an attribute lookup will produce a new value, which is not assigned,
+  but e.g. called. In this case, the call value friend may be able to query its called
+  expression for the attribute call prediction.
 
 - Name for module "ValueFriends" according to rules.
 
-- Class for module value friend "ValueFriendModule"
+  These should live in a package of some sort and be split up into groups later on, but
+  for the start it's probably easier to keep them all in one file.
 
-- Base class for module and module friend "ValueFriendModuleBase"
+- Class for module import expression "ValueFriendImportModule".
 
-- Module "ModuleFriendRegistry" provides a register function with "name" and instances of
-  "ValueFriendModuleBase" to be registered. Recursed to modules should integrate with that
-  too.
+  This one just knows that something is imported and not how or what it is assigned to, it
+  will be able in a recursive compile, to provide the module as an assignment source, or
+  the module variables or submodules as an attribute source.
 
-- The module friends should live in a module of their own, with a naming policy to be
-  determined. These modules should add themselves to "ModuleFriendRegistry" and all shall
-  be imported and register. Importing of e.g. "ctypes" should be delayed to when the
-  friend is actually used. A meta class should aid this task.
+- Class for module value friend "ValueFriendModule".
+
+  The concrete module, e.g. "ctypes" or "math" from standard library.
+
+- Base class for module and module friend "ValueFriendModuleBase".
+
+  This is intended to provide something to overload, which e.g. can handle "math" in a
+  better way.
+
+- Module "ModuleFriendRegistry"
+
+  Provides a register function with "name" and instances of "ValueFriendModuleBase" to be
+  registered. Recursed to modules should integrate with that too. The registry could well
+  be done with a metaclass approach.
+
+- The module friends should each live in a module of their own.
+
+  With a naming policy to be determined. These modules should add themselves via above
+  mechanism to "ModuleFriendRegistry" and all shall be imported and register. Importing of
+  e.g. "ctypes" should be delayed to when the friend is actually used. A meta class should
+  aid this task.
+
+  The delay will avoid unnecessary blot of the compiler at run time, if no such module is
+  used. For "qt" and other complex stuff, this will be a must.
 
 - A collection of "ValueFriend" instances expresses the current data flow state.
 
