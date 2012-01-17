@@ -168,7 +168,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
         module_filename = module.getFilename()
 
         if module_filename not in self.imported_modules:
-            if module_filename.endswith( "/__init__.py" ):
+            if module_filename.endswith( os.path.sep + "__init__.py" ):
                 module_relpath = Utils.relpath( module_filename[:-12] )
             else:
                 module_relpath = Utils.relpath( module_filename )

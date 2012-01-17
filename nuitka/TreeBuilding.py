@@ -1606,11 +1606,11 @@ def buildModuleTree( filename, package, is_main ):
             package    = package,
             source_ref = source_ref
         )
-    elif Utils.isDir( filename ) and Utils.isFile( filename + "/__init__.py" ):
-        source_filename = filename + "/__init__.py"
+    elif Utils.isDir( filename ) and Utils.joinpath( filename, "__init__.py" ):
+        source_filename = Utils.joinpath( filename, "__init__.py" )
 
         source_ref = SourceCodeReferences.fromFilename(
-            filename    = Utils.abspath( filename ) + "/__init__.py",
+            filename    = Utils.abspath( source_filename ),
             future_spec = FutureSpec()
         )
 
