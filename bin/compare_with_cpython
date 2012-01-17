@@ -38,6 +38,7 @@ ignore_stderr = "ignore_stderr" in sys.argv
 exec_in_tmp = "exec_in_tmp" in sys.argv
 expect_success = "expect_success" in sys.argv
 expect_failure = "expect_failure" in sys.argv
+two_step_execution = "two_step_execution" in sys.argv or "win" in sys.platform
 
 if "PYTHON" not in os.environ:
     os.environ[ "PYTHON" ] = "python"
@@ -57,12 +58,32 @@ cpython_cmd = "%s -W ignore %s" % (
     filename
 )
 
-nuitka_cmd = "%s %s %s --exe --execute %s" % (
-    os.environ[ "PYTHON" ],
-    os.path.abspath( os.path.join( os.path.dirname( __file__ ), "nuitka" ) ),
-    os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ),
-    filename
-)
+extra_options = os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
+
+if not two_step_execution:
+    nuitka_cmd = "%s %s %s --exe --execute %s" % (
+        os.environ[ "PYTHON" ],
+        os.path.abspath( os.path.join( os.path.dirname( __file__ ), "nuitka" ) ),
+        extra_options,
+        filename
+    )
+else:
+    nuitka_cmd1 = "%s %s %s --exe %s" % (
+        os.environ[ "PYTHON" ],
+        os.path.abspath( os.path.join( os.path.dirname( __file__ ), "nuitka" ) ),
+        extra_options,
+        filename
+    )
+
+    dir_match = re.search( r"--output-dir=(.*?)(\s|$)", extra_options )
+
+    exe_filename = os.path.basename( filename ).replace( ".py", ".exe" )
+
+    if dir_match:
+        nuitka_cmd2 = os.path.join( dir_match.group( 1 ), exe_filename )
+    else:
+        nuitka_cmd2 = os.path.join( ".", exe_filename )
+
 
 if exec_in_tmp:
     os.chdir( tempfile.gettempdir() )
@@ -89,15 +110,41 @@ if not silent_mode:
     print( "*******************************************************" )
 
 
-process = subprocess.Popen(
-    args   = nuitka_cmd,
-    stdout = subprocess.PIPE,
-    stderr = subprocess.PIPE,
-    shell  = True
-)
+if not two_step_execution:
+    process = subprocess.Popen(
+        args   = nuitka_cmd,
+        stdout = subprocess.PIPE,
+        stderr = subprocess.PIPE,
+        shell  = True
+    )
 
-stdout_nuitka, stderr_nuitka = process.communicate()
-exit_nuitka = process.returncode
+    stdout_nuitka, stderr_nuitka = process.communicate()
+    exit_nuitka = process.returncode
+else:
+    process = subprocess.Popen(
+        args   = nuitka_cmd1,
+        stdout = subprocess.PIPE,
+        stderr = subprocess.PIPE,
+        shell  = True
+    )
+
+    stdout_nuitka1, stderr_nuitka1 = process.communicate()
+    exit_nuitka1 = process.returncode
+
+    if exit_nuitka1 != 0:
+        exit_nuitka = exit_nuitka1
+        stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
+    else:
+        process = subprocess.Popen(
+            args   = nuitka_cmd2,
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE,
+            shell  = True
+        )
+
+        stdout_nuitka2, stderr_nuitka2 = process.communicate()
+        stdout_nuitka, stderr_nuitka = stdout_nuitka1 + stdout_nuitka2, stderr_nuitka1 + stderr_nuitka2
+        exit_nuitka = process.returncode
 
 if not silent_mode:
     print( stdout_nuitka, end=' ' )
