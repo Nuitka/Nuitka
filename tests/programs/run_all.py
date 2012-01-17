@@ -90,11 +90,17 @@ for filename in sorted( os.listdir( "." ) ):
         print( "Consider output of recursively compiled program:", path )
         sys.stdout.flush()
 
+        for filename_main in os.listdir( filename ):
+            if filename_main.endswith( "Main.py" ):
+                break
+        else:
+            assert False, filename
+
         result = subprocess.call(
-            "%s %s %s/*Main.py silent %s" % (
+            "%s %s %s silent %s" % (
                 sys.executable,
                 os.path.join( "..", "..", "bin", "compare_with_cpython" ),
-                filename,
+                os.path.join( filename, filename_main ),
                 " ".join( extra_flags )
             ),
             shell = True
