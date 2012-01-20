@@ -209,26 +209,22 @@ def getPackageVariableCode( context ):
         package_var_identifier.getCodeTemporaryRef()
     )
 
-def getImportModuleCode( context, module_name, globals_dict, locals_dict, import_list, level ):
+def getBuiltinImportCode( module_identifier, globals_dict, locals_dict, import_list, level ):
+    assert type( module_identifier ) is not str
+    assert type( globals_dict ) is not str
+    assert type( locals_dict ) is not str
+
     return Identifier(
         "IMPORT_MODULE( %s, %s, %s, %s, %s )" % (
-            getConstantCode(
-                constant = module_name,
-                context  = context
-            ),
+            module_identifier.getCodeTemporaryRef(),
             globals_dict.getCodeTemporaryRef(),
             locals_dict.getCodeTemporaryRef(),
-            getConstantCode(
-                constant = import_list,
-                context  = context
-            ),
-            getConstantCode(
-                constant = level,
-                context  = context
-            )
+            import_list.getCodeTemporaryRef(),
+            level.getCodeTemporaryRef()
         ),
         1
     )
+
 
 def getImportFromStarCode( context, module_identifier ):
     if not context.hasLocalsDict():

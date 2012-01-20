@@ -1223,6 +1223,11 @@ def generateExpressionCode( expression, context, allow_none = False ):
             expression = expression,
             context    = context
         )
+    elif expression.isExpressionBuiltinImport():
+        identifier = generateBuiltinImportCode(
+            expression = expression,
+            context    = context
+        )
     elif expression.isExpressionBuiltinChr():
         identifier = Generator.getBuiltinChrCode(
             value = makeExpressionCode( expression.getValue() )
@@ -1899,14 +1904,69 @@ def generateImportModuleCode( expression, context ):
             context     = context
         )
 
-    return Generator.getImportModuleCode(
-        module_name  = expression.getModuleName(),
-        import_list  = expression.getImportList(),
-        globals_dict = globals_dict,
-        locals_dict  = locals_dict,
-        level        = expression.getLevel(),
-        context      = context
+    return Generator.getBuiltinImportCode(
+        module_identifier  = Generator.getConstantHandle(
+            constant = expression.getModuleName(),
+            context  = context
+        ),
+        globals_dict       = globals_dict,
+        locals_dict        = locals_dict,
+        import_list        = Generator.getConstantHandle(
+            constant = expression.getImportList(),
+            context  = context
+        ),
+        level              = Generator.getConstantHandle(
+            constant = expression.getLevel(),
+            context  = context
+        )
     )
+
+def generateBuiltinImportCode( expression, context ):
+    globals_dict = generateExpressionCode(
+        expression = expression.getGlobals(),
+        allow_none = True,
+        context    = context
+    )
+
+    if globals_dict is None:
+        globals_dict = Generator.getLoadGlobalsCode(
+            context = context
+        )
+
+    locals_dict = generateExpressionCode(
+        expression = expression.getLocals(),
+        allow_none = True,
+        context    = context
+    )
+
+    if locals_dict is None:
+        provider = expression.getParentVariableProvider()
+
+        if provider.isModule():
+            locals_dict = globals_dict
+        else:
+            locals_dict  = generateBuiltinLocalsCode(
+                locals_node = expression,
+                context     = context
+            )
+
+    return Generator.getBuiltinImportCode(
+        module_identifier = generateExpressionCode(
+            expression = expression.getImportName(),
+            context    = context
+        ),
+        import_list       = generateExpressionCode(
+            expression = expression.getFromList(),
+            context    = context
+        ),
+        globals_dict      = globals_dict,
+        locals_dict       = locals_dict,
+        level             = generateExpressionCode(
+            expression = expression.getLevel(),
+            context    = context
+        )
+    )
+
 
 def generateImportStarCode( statement, context ):
     return Generator.getImportFromStarCode(

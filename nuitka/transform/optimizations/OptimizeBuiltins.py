@@ -39,15 +39,13 @@ from .OptimizeBase import (
     makeConstantReplacementNode
 )
 
-from nuitka import Importing
-
 from nuitka.Utils import getPythonVersion
 
 from nuitka.nodes import Nodes
 from nuitka.nodes.BuiltinRangeNode import CPythonExpressionBuiltinRange
 from nuitka.nodes.BuiltinDictNode import CPythonExpressionBuiltinDict
 from nuitka.nodes.ExceptionNodes import CPythonExpressionBuiltinMakeException
-from nuitka.nodes.ImportNodes import CPythonExpressionImportModule
+from nuitka.nodes.ImportNodes import CPythonExpressionBuiltinImport, CPythonExpressionImportModule
 from nuitka.nodes.OperatorNodes import CPythonExpressionOperationUnary
 
 from nuitka.nodes.ParameterSpec import ParameterSpec
@@ -187,11 +185,14 @@ builtin_dict_spec = BuiltinParameterSpec( "dict", (), 2, "list_args", "dict_args
 builtin_len_spec = BuiltinParameterSpecNoKeywords( "len", ( "object", ), 0 )
 builtin_tuple_spec = BuiltinParameterSpec( "tuple", ( "sequence", ), 1 )
 builtin_list_spec = BuiltinParameterSpec( "list", ( "sequence", ), 1 )
+builtin_import_spec = BuiltinParameterSpec( "__import__", ( "name", "globals", "locals", "fromlist", "level" ), 1 )
+
 builtin_chr_spec = BuiltinParameterSpecNoKeywords( "chr", ( "i", ), 1 )
 builtin_ord_spec = BuiltinParameterSpecNoKeywords( "ord", ( "c", ), 1 )
 builtin_range_spec = BuiltinParameterSpecNoKeywords( "range", ( "start", "stop", "step" ), 2 )
 builtin_repr_spec = BuiltinParameterSpecNoKeywords( "repr", ( "object", ), 1 )
 builtin_execfile_spec = BuiltinParameterSpecNoKeywords( "repr", ( "filename", "globals", "locals" ), 1 )
+
 
 # TODO: The maybe local variable should have a read only indication too, but right
 # now it's not yet done.
@@ -239,11 +240,11 @@ class ReplaceBuiltinsVisitorBase( OptimizationDispatchingVisitorBase ):
             else:
                 node.replaceWith( new_node = new_node )
 
-            if new_node.isExpressionImportModule():
+            if new_node.isExpressionBuiltinImport():
                 self.signalChange(
-                    "new_import",
+                    "new_builtin new_import",
                     node.getSourceReference(),
-                    message = "Replaced call to builtin %s with builtin call." % new_node.kind
+                    message = "Replaced dynamic builtin import %s with static module import." % new_node.kind
                 )
             elif new_node.isExpressionBuiltin() or new_node.isStatementExec():
                 self.signalChange(
@@ -451,26 +452,12 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
             assert False
 
     def import_extractor( self, node ):
-        positional_args = node.getPositionalArguments()
+        return extractBuiltinArgs(
+            node          = node,
+            builtin_class = CPythonExpressionBuiltinImport,
+            builtin_spec  = builtin_import_spec
+        )
 
-        if len( positional_args ) == 1 and positional_args[0].isExpressionConstantRef():
-            module_name = positional_args[0].getConstant()
-            source_ref = node.getSourceReference()
-
-            if type( module_name ) is str and "." not in module_name:
-                _module_package, module_name, _module_filename = Importing.findModule(
-                    module_name    = module_name,
-                    parent_package = node.getParentModule().getPackage(),
-                    level          = 0 if source_ref.getFutureSpec().isAbsoluteImport() else 1,
-                    source_ref     = source_ref
-                )
-
-                return CPythonExpressionImportModule(
-                    module_name = module_name,
-                    import_list = None,
-                    level       = -1,
-                    source_ref  = source_ref
-                )
     def type_extractor( self, node ):
         positional_args = node.getPositionalArguments()
 
@@ -694,7 +681,8 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
             "str"        : self.str_extractor,
             "bool"       : self.bool_extractor,
             "int"        : self.int_extractor,
-            "long"       : self.long_extractor
+            "long"       : self.long_extractor,
+            "import"     : self.import_extractor
         }
 
         if getPythonVersion() < 300:
@@ -933,3 +921,29 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
             builtin_spec = builtin_long_spec,
             given_values = ( node.getValue(), node.getBase() )
         )
+
+    def import_extractor( self, node ):
+        module_name = node.getImportName()
+        fromlist = node.getFromList()
+        level = node.getLevel()
+
+        # TODO: In fact, if the module is not a package, we don't have to insist on the
+        # fromlist that much, but normally it's not used for anything but packages, so
+        # it will be rare.
+
+        if module_name.isExpressionConstantRef() and fromlist.isExpressionConstantRef() \
+             and level.isExpressionConstantRef():
+            new_node = CPythonExpressionImportModule(
+                module_name = module_name.getConstant(),
+                import_list = fromlist.getConstant(),
+                level       = level.getConstant(),
+                source_ref  = node.getSourceReference()
+            )
+
+            node.replaceWith( new_node )
+
+            self.signalChange(
+                "new_import",
+                node.getSourceReference(),
+                message = "Replaced call to builtin %s with builtin call." % node.kind
+            )

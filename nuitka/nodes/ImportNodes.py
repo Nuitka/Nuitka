@@ -32,6 +32,8 @@
 
 from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
 
+from .NodeMakingHelpers import makeConstantReplacementNode
+
 class CPythonExpressionImportModule( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_IMPORT_MODULE"
 
@@ -84,6 +86,42 @@ class CPythonExpressionImportModule( CPythonChildrenHaving, CPythonNodeBase ):
     getModule = CPythonChildrenHaving.childGetter( "module" )
     setModule = CPythonChildrenHaving.childSetter( "module" )
 
+class CPythonExpressionBuiltinImport( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_BUILTIN_IMPORT"
+
+    named_children = ( "import_name", "globals", "locals", "fromlist", "level" )
+
+    def __init__( self, name, import_globals, import_locals, fromlist, level, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        if fromlist is None:
+            fromlist = makeConstantReplacementNode(
+                constant = [],
+                node     = self
+            )
+
+        if level is None:
+            level = makeConstantReplacementNode(
+                constant = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1,
+                node     = self
+            )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "import_name" : name,
+                "globals"     : import_globals,
+                "locals"      : import_locals,
+                "fromlist"    : fromlist,
+                "level"       : level
+            }
+        )
+
+    getImportName = CPythonChildrenHaving.childGetter( "import_name" )
+    getFromList = CPythonChildrenHaving.childGetter( "fromlist" )
+    getGlobals = CPythonChildrenHaving.childGetter( "globals" )
+    getLocals = CPythonChildrenHaving.childGetter( "locals" )
+    getLevel = CPythonChildrenHaving.childGetter( "level" )
 
 class CPythonStatementImportStar( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_IMPORT_STAR"

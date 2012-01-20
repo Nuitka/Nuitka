@@ -69,7 +69,6 @@ use_propagation = Options.useValuePropagation()
 
 def optimizeTree( tree ):
     # Lots of conditions to take, pylint: disable=R0912
-
     if _progress:
         printLine( "Doing module local optimizations for '%s'." % tree.getFullName() )
 
@@ -86,8 +85,6 @@ def optimizeTree( tree ):
         if tags.check( "new_code new_variable" ):
             optimizations_queue.update( VariableClosureLookupVisitors )
 
-
-        # TODO: Split the __import__ one out.
         if tags.check( "new_code new_import new_constant" ):
             if not Options.shallMakeModule():
                 optimizations_queue.add( ModuleRecursionVisitor )
