@@ -34,6 +34,7 @@ C/API, to compile it to either an executable or an extension module.
 """
 
 from . import (
+    TreeRecursion,
     TreeBuilding,
     Tracing,
     TreeXML,
@@ -58,15 +59,24 @@ def createNodeTree( filename ):
 
     """
 
-    # First build the raw node tree from the source code.
+    # First, build the raw node tree from the source code.
     result = TreeBuilding.buildModuleTree(
         filename = filename,
         package  = None,
         is_main  = not Options.shallMakeModule()
     )
 
+    # Second, do it for the directories given.
+    for plugin_filename in Options.getShallFollowExtra():
+        TreeRecursion.checkPluginPath(
+            plugin_filename = plugin_filename,
+            module_package  = None
+        )
+
     # Then optimize the tree and potentially recursed modules.
-    result = Optimization.optimizeWhole( result )
+    result = Optimization.optimizeWhole(
+        main_module = result
+    )
 
     return result
 
@@ -121,9 +131,7 @@ def makeSourceDirectory( main_module ):
     source_dir = getSourceDirectoryPath( main_module )
 
     if os.path.exists( source_dir ):
-        for filename in sorted( os.listdir( source_dir ) ):
-            path = Utils.joinpath( source_dir, filename )
-
+        for path, filename in Utils.listDir( source_dir ):
             if Utils.getExtension( path ) in ( ".cpp", ".hpp", ".o", ".os" ):
                 os.unlink( path )
     else:
@@ -132,7 +140,7 @@ def makeSourceDirectory( main_module ):
     static_source_dir = Utils.joinpath( source_dir, "static" )
 
     if os.path.exists( static_source_dir ):
-        for filename in sorted( os.listdir( static_source_dir ) ):
+        for path, filename in sorted( Utils.listDir( static_source_dir ) ):
             path = Utils.joinpath( static_source_dir, filename )
 
             if Utils.getExtension( path ) in ( ".o", ".os" ):

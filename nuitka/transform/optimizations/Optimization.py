@@ -55,7 +55,7 @@ from .OptimizeRaises import OptimizeRaisesVisitor
 
 from .Tags import TagSet
 
-from nuitka import Options
+from nuitka import Options, TreeRecursion
 
 from nuitka.oset import OrderedSet
 
@@ -146,7 +146,7 @@ def optimizeTree( tree ):
     return tree
 
 def getOtherModules():
-    return list( ModuleRecursionVisitor.imported_modules.values() )
+    return list( TreeRecursion.imported_modules.values() )
 
 def optimizeWhole( main_module ):
     done_modules = set()

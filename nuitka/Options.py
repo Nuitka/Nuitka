@@ -121,6 +121,17 @@ Do not recurse to that module, or if a package, to the whole package in any case
 overrides all other options. Can be given multiple times. Default empty."""
 )
 
+recurse_group.add_option(
+    "--recurse-plugins", "--recurse-directory",
+    action  = "append",
+    dest    = "recurse_extra",
+    metavar = "MODULE/PACKAGE",
+    default = [],
+    help    = """\
+Recurse into that directory, no matter if it's used by the given main program in a
+visible form. Overrides all other options. Can be given multiple times. Default empty."""
+)
+
 parser.add_option_group( recurse_group )
 
 execute_group = OptionGroup(
@@ -448,6 +459,9 @@ def getShallFollowModules():
 
 def getShallFollowInNoCase():
     return sum( [ x.split( "," ) for x in options.recurse_not_modules ], [] )
+
+def getShallFollowExtra():
+    return sum( [ x.split( "," ) for x in options.recurse_extra ], [] )
 
 def isDebug():
     return options.debug

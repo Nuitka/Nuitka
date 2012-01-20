@@ -64,6 +64,17 @@ def isFile( path ):
 def isDir( path ):
     return os.path.isdir( path )
 
+def listDir( path ):
+    """ Give a sorted path, basename pairs of a directory."""
+
+    return sorted(
+        [
+            ( joinpath( path, filename ), filename )
+            for filename in
+            os.listdir( path )
+        ]
+    )
+
 def getCoreCount():
     cpu_count = 0
 

@@ -35,9 +35,9 @@ make it possible to predict these, the compiler can go deeper that what it norma
 So this is called repeatedly mayhaps, each time a constant is added.
 """
 
-from .OptimizeBase import OptimizationVisitorBase, info, warning
+from .OptimizeBase import OptimizationVisitorBase, warning
 
-from nuitka import TreeBuilding, Importing, Options, Utils
+from nuitka import TreeRecursion, Importing, Options, Utils
 
 import os
 
@@ -55,43 +55,23 @@ def isStandardLibraryPath( path ):
 
     return True
 
+
 class ModuleRecursionVisitor( OptimizationVisitorBase ):
-    imported_modules = {}
-
     def _recurseTo( self, module_package, module_filename, module_relpath ):
-        if module_relpath not in self.imported_modules:
-            info( "Recurse to import %s", module_relpath )
+        imported_module, added_flag = TreeRecursion.recurseTo(
+            module_package  = module_package,
+            module_filename = module_filename,
+            module_relpath  = module_relpath
+        )
 
-            try:
-                imported_module = TreeBuilding.buildModuleTree(
-                    filename = module_filename,
-                    package  = module_package,
-                    is_main  = False
-                )
-            except ( SyntaxError, IndentationError ) as e:
-                if module_filename not in _warned_about:
-                    _warned_about.add( module_filename )
-
-                    warning(
-                        "Cannot recurse to import module '%s' (%s) because of '%s'",
-                        module_relpath,
-                        module_filename,
-                        e.__class__.__name__
-                    )
-
-                return
-
-            assert not module_relpath.endswith( "/__init__.py" )
-
-            self.imported_modules[ module_relpath ] = imported_module
-
+        if added_flag:
             self.signalChange(
                 "new_module",
                 imported_module.getSourceReference(),
                 "Recursed to module."
             )
 
-        return self.imported_modules[ module_relpath ]
+        return imported_module
 
     def _consider( self, module_filename, module_package ):
         assert module_package is None or ( type( module_package ) is str and module_package != "" )
@@ -171,17 +151,16 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         # Means, I don't know.
         return None
 
-
     def _handleModule( self, module ):
         module_filename = module.getFilename()
 
-        if module_filename not in self.imported_modules:
+        if module_filename not in TreeRecursion.imported_modules:
             if module_filename.endswith( os.path.sep + "__init__.py" ):
                 module_relpath = Utils.relpath( module_filename[:-12] )
             else:
                 module_relpath = Utils.relpath( module_filename )
 
-            self.imported_modules[ Utils.relpath( module_relpath ) ] = module
+            TreeRecursion.imported_modules[ Utils.relpath( module_relpath ) ] = module
 
         module_package = module.getPackage()
 
