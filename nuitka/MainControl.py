@@ -48,7 +48,7 @@ from .codegen import CodeGeneration
 from .transform.optimizations import Optimization
 from .transform.finalizations import Finalization
 
-import sys, os
+import sys, os, shutil
 
 def createNodeTree( filename ):
     """ Create a node tree.
@@ -340,3 +340,35 @@ def executeModule( tree ):
     # TODO: Might be cleaner to start a new interpreter with the module to load.
 
     __import__( tree.getName() )
+
+def compileTree( tree ):
+    if not Options.shallOnlyExecGcc():
+        # Now build the target language code for the whole tree.
+        makeSourceDirectory(
+            main_module = tree
+        )
+
+    # Run the Scons to build things.
+    result, options = runScons(
+        tree  = tree,
+        quiet = not Options.isShowScons()
+    )
+
+    # Exit if compilation failed.
+    if not result:
+        sys.exit( 1 )
+
+    # Remove the source directory (now build directory too) if asked to.
+    if Options.isRemoveBuildDir():
+        shutil.rmtree( getSourceDirectoryPath( tree ) )
+
+    # Execute the module immediately if option was given.
+    if Options.shallExecuteImmediately():
+        if Options.shallMakeModule():
+            executeModule( tree )
+        else:
+            executeMain(
+                binary_filename = options[ "result_file" ] + ".exe",
+                tree            = tree,
+                clean_path      = Options.shallClearPythonPathEnvironment()
+            )
