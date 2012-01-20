@@ -97,7 +97,14 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
             if not value.isExpressionConstantRef() or value.isMutable():
                 break
         else:
-            constant_value = dict.fromkeys( [ pair.getKey().getConstant() for pair in pairs ], None )
+            constant_value = dict.fromkeys(
+                [
+                    pair.getKey().getConstant()
+                    for pair in
+                    pairs
+                ],
+                None
+            )
 
             for pair in pairs:
                 constant_value[ pair.getKey().getConstant() ] = pair.getValue().getConstant()

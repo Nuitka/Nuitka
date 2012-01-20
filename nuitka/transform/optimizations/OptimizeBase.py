@@ -31,16 +31,24 @@
 Provides a class that all optimization visitors should inherit from.
 """
 
-# pylint: disable=E0611
 # Pylint fails to find this, somewhat, at least it reports wrong about this.
 from .. import TreeOperations
 
-from nuitka.nodes import Nodes
-from nuitka.nodes.Nodes import makeConstantReplacementNode
-
 # pylint: disable=W0611
 # These are here for easier import by the optimization steps.
+from nuitka.nodes import Nodes
+
+from nuitka.nodes.NodeMakingHelpers import (
+    makeRaiseExceptionReplacementExpressionFromInstance,
+    makeRaiseExceptionReplacementStatement,
+    makeBuiltinExceptionRefReplacementNode,
+    makeBuiltinRefReplacementNode,
+    makeConstantReplacementNode,
+)
+
 from logging import warning, debug, info
+# pylint: enable=W0611
+
 
 class OptimizationVisitorBase( TreeOperations.VisitorNoopMixin ):
     on_signal = None
@@ -147,55 +155,3 @@ def areConstants( expressions ):
             return False
     else:
         return True
-
-def makeRaiseExceptionReplacementStatement( statement, exception_type, exception_value ):
-    source_ref = statement.getSourceReference()
-
-    assert type( exception_type ) is str
-
-    result = Nodes.CPythonStatementRaiseException(
-        exception_type  = Nodes.CPythonExpressionBuiltinExceptionRef(
-            exception_name = exception_type,
-            source_ref     = source_ref
-        ),
-        exception_value = makeConstantReplacementNode(
-            constant = exception_value,
-            node     = statement
-        ),
-        exception_trace = None,
-        source_ref = source_ref
-    )
-
-    return result
-
-def makeRaiseExceptionReplacementExpression( expression, exception_type, exception_value ):
-    source_ref = expression.getSourceReference()
-
-    assert type( exception_type ) is str
-
-    result = Nodes.CPythonExpressionRaiseException(
-        exception_type  = Nodes.CPythonExpressionBuiltinExceptionRef(
-            exception_name = exception_type,
-            source_ref     = source_ref
-        ),
-        exception_value = makeConstantReplacementNode(
-            constant = exception_value,
-            node     = expression
-        ),
-        side_effects    = (),
-        source_ref      = source_ref
-    )
-
-    return result
-
-def makeRaiseExceptionReplacementExpressionFromInstance( expression, exception ):
-    assert isinstance( exception, Exception )
-
-    args = exception.args
-    assert type( args ) is tuple and len( args ) == 1, args
-
-    return makeRaiseExceptionReplacementExpression(
-        expression      = expression,
-        exception_type  = exception.__class__.__name__,
-        exception_value = args[0]
-    )

@@ -47,6 +47,36 @@ from .nodes.ParameterSpec import ParameterSpec
 from .nodes.FutureSpec import FutureSpec
 
 from .nodes import Nodes
+from .nodes.VariableRefNode import CPythonExpressionVariableRef
+from .nodes.ConstantRefNode import CPythonExpressionConstantRef
+from .nodes.BuiltinReferenceNodes import CPythonExpressionBuiltinExceptionRef
+from .nodes.ExceptionNodes import CPythonStatementRaiseException
+from .nodes.ComparisonNode import CPythonExpressionComparison
+
+from .nodes.ContainerMakingNodes import (
+    CPythonExpressionKeyValuePair,
+    CPythonExpressionMakeSequence,
+    CPythonExpressionMakeDict,
+    CPythonExpressionMakeSet
+)
+
+from .nodes.StatementNodes import (
+    CPythonStatementsSequenceLoopBody,
+    CPythonStatementExpressionOnly,
+    CPythonStatementsSequence
+)
+
+from .nodes.ImportNodes import (
+    CPythonExpressionImportModule,
+    CPythonExpressionImportName,
+    CPythonStatementImportStar,
+)
+
+from .nodes.OperatorNodes import (
+    CPythonExpressionOperationBinary,
+    CPythonExpressionOperationUnary,
+    CPythonExpressionOperationNOT
+)
 
 import ast, sys
 
@@ -69,13 +99,13 @@ def pushDelayedWork( delayed_work ):
 
 
 def _buildConstantReferenceNode( constant, source_ref ):
-    return Nodes.CPythonExpressionConstantRef(
+    return CPythonExpressionConstantRef(
         constant   = constant,
         source_ref = source_ref
     )
 
 def _buildVariableReferenceNode( variable_name, source_ref ):
-    return Nodes.CPythonExpressionVariableRef(
+    return CPythonExpressionVariableRef(
         variable_name = variable_name,
         source_ref    = source_ref
     )
@@ -95,7 +125,7 @@ def buildStatementsNode( provider, nodes, source_ref, allow_none = False ):
     if not statements and allow_none:
         return None
 
-    return Nodes.CPythonStatementsSequence(
+    return CPythonStatementsSequence(
         statements = statements,
         source_ref = source_ref
     )
@@ -103,7 +133,7 @@ def buildStatementsNode( provider, nodes, source_ref, allow_none = False ):
 def buildLoopBodyNode( provider, nodes, source_ref ):
     statements = buildNodeList( provider, nodes, source_ref )
 
-    return Nodes.CPythonStatementsSequenceLoopBody(
+    return CPythonStatementsSequenceLoopBody(
         statements = statements,
         source_ref = source_ref
     )
@@ -256,7 +286,7 @@ def buildLambdaNode( provider, node, source_ref ):
         )
 
         if function_body.isGenerator():
-            body = Nodes.CPythonStatementExpressionOnly(
+            body = CPythonStatementExpressionOnly(
                 expression = Nodes.CPythonExpressionYield(
                     expression = body,
                     for_return = True,
@@ -270,7 +300,7 @@ def buildLambdaNode( provider, node, source_ref ):
                 source_ref = function_body.getSourceReference()
             )
 
-        body = Nodes.CPythonStatementsSequence(
+        body = CPythonStatementsSequence(
             statements = ( body, ),
             source_ref = function_body.getSourceReference()
         )
@@ -314,7 +344,7 @@ def buildFunctionCallNode( provider, node, source_ref ):
 
     # TODO: Clarify if the source_ref could be better
     pairs = [
-        Nodes.CPythonExpressionKeyValuePair(
+        CPythonExpressionKeyValuePair(
             key        = _buildConstantReferenceNode(
                 constant   = keyword.arg,
                 source_ref = source_ref
@@ -356,7 +386,7 @@ def buildSequenceCreationNode( provider, node, source_ref ):
             source_ref = source_ref
         )
     else:
-        return Nodes.CPythonExpressionMakeSequence(
+        return CPythonExpressionMakeSequence(
             sequence_kind = sequence_kind,
             elements      = elements,
             source_ref    = source_ref
@@ -402,9 +432,9 @@ def buildDictionaryNode( provider, node, source_ref ):
             source_ref = source_ref
         )
     else:
-        return Nodes.CPythonExpressionMakeDict(
+        return CPythonExpressionMakeDict(
             pairs      = [
-                Nodes.CPythonExpressionKeyValuePair( key, value, key.getSourceReference() )
+                CPythonExpressionKeyValuePair( key, value, key.getSourceReference() )
                 for key, value in
                 zip( keys, values )
             ],
@@ -430,7 +460,7 @@ def buildSetNode( provider, node, source_ref ):
             source_ref = source_ref
         )
     else:
-        return Nodes.CPythonExpressionMakeSet(
+        return CPythonExpressionMakeSet(
             values     = values,
             source_ref = source_ref
         )
@@ -702,7 +732,7 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
             )
 
             contraction_body.setBody(
-                Nodes.CPythonExpressionKeyValuePair(
+                CPythonExpressionKeyValuePair(
                     key        = key_node,
                     value      = value_node,
                     source_ref = source_ref
@@ -735,7 +765,7 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
                 source_ref = source_ref
             )
 
-            body = Nodes.CPythonStatementExpressionOnly(
+            body = CPythonStatementExpressionOnly(
                 expression = Nodes.CPythonExpressionYield(
                     expression = contraction_body.getBody(),
                     for_return = False,
@@ -744,12 +774,17 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
                 source_ref = source_ref
             )
 
-            body = Nodes.CPythonStatementsSequence(
+            body = CPythonStatementsSequence(
                 statements = ( body, ),
                 source_ref = source_ref
             )
 
-            sources = [ Nodes.CPythonExpressionVariableRef( variable_name = "_iterated", source_ref = source_ref ) ]
+            sources = [
+                CPythonExpressionVariableRef(
+                    variable_name = "_iterated",
+                    source_ref    = source_ref
+                )
+            ]
             sources += contraction_body.getSources()
 
             for target, source, condition in zip(
@@ -764,7 +799,7 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
                     source_ref = source_ref
                 )
 
-                body = Nodes.CPythonStatementsSequenceLoopBody(
+                body = CPythonStatementsSequenceLoopBody(
                     statements = ( body, ),
                     source_ref = source_ref
                 )
@@ -777,7 +812,7 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
                     source_ref = source_ref,
                 )
 
-                body = Nodes.CPythonStatementsSequence(
+                body = CPythonStatementsSequence(
                     statements = ( body, ),
                     source_ref = source_ref
                 )
@@ -858,7 +893,7 @@ def buildComparisonNode( provider, node, source_ref ):
         comparison.append( getKind( comparator ) )
         comparison.append( buildNode( provider, operand, source_ref ) )
 
-    return Nodes.CPythonExpressionComparison(
+    return CPythonExpressionComparison(
         comparison = comparison,
         source_ref = source_ref
     )
@@ -910,7 +945,7 @@ _has_raise_value = Utils.getPythonVersion() < 300
 
 def buildRaiseNode( provider, node, source_ref ):
     if _has_raise_value:
-        return Nodes.CPythonStatementRaiseException(
+        return CPythonStatementRaiseException(
             exception_type  = buildNode( provider, node.type, source_ref, True ),
             exception_value = buildNode( provider, node.inst, source_ref, True ),
             exception_trace = buildNode( provider, node.tback, source_ref, True ),
@@ -919,7 +954,7 @@ def buildRaiseNode( provider, node, source_ref ):
     else:
         assert node.cause is None
 
-        return Nodes.CPythonStatementRaiseException(
+        return CPythonStatementRaiseException(
             exception_type  = buildNode( provider, node.exc, source_ref, True ),
             exception_value = None,
             exception_trace = None,
@@ -937,14 +972,14 @@ def buildAssertNode( provider, node, source_ref ):
     # Therefore assert statements are really just conditional statements with a static
     # raise contained.
     return Nodes.CPythonStatementConditional(
-        condition = Nodes.CPythonExpressionOperationNOT(
+        condition = CPythonExpressionOperationNOT(
             operand    = buildNode( provider, node.test, source_ref ),
             source_ref = source_ref
         ),
-        yes_branch = Nodes.CPythonStatementsSequence(
+        yes_branch = CPythonStatementsSequence(
             statements = (
-                Nodes.CPythonStatementRaiseException(
-                    exception_type = Nodes.CPythonExpressionBuiltinExceptionRef(
+                CPythonStatementRaiseException(
+                    exception_type = CPythonExpressionBuiltinExceptionRef(
                         exception_name = "AssertionError",
                         source_ref     = source_ref
                     ),
@@ -992,7 +1027,7 @@ def _buildExtSliceNode( provider, node, source_ref ):
 
         elements.append( element )
 
-    return Nodes.CPythonExpressionMakeSequence(
+    return CPythonExpressionMakeSequence(
         sequence_kind = "TUPLE",
         elements      = elements,
         source_ref    = source_ref
@@ -1076,7 +1111,7 @@ def _buildImportModulesNode( import_names, source_ref ):
         )
 
         if local_name:
-            import_node = Nodes.CPythonExpressionImportModule(
+            import_node = CPythonExpressionImportModule(
                 module_name = module_name,
                 import_list = None,
                 level       = -1, # TODO: Correct?!
@@ -1084,13 +1119,13 @@ def _buildImportModulesNode( import_names, source_ref ):
             )
 
             for import_name in module_name.split(".")[1:]:
-                import_node = Nodes.CPythonExpressionImportName(
+                import_node = CPythonExpressionImportName(
                     module      = import_node,
                     import_name = import_name,
                     source_ref  = source_ref
                 )
         else:
-            import_node = Nodes.CPythonExpressionImportModule(
+            import_node = CPythonExpressionImportModule(
                 module_name = module_name,
                 import_list = None,
                 level       = -1, # TODO: Correct?!
@@ -1108,7 +1143,7 @@ def _buildImportModulesNode( import_names, source_ref ):
     # Note: Each import is sequential. It can succeed, and the failure of a later one is
     # not changing one. We can therefore have a sequence of imports that only import one
     # thing therefore.
-    return Nodes.CPythonStatementsSequence(
+    return CPythonStatementsSequence(
         statements = import_nodes,
         source_ref = source_ref
     )
@@ -1171,8 +1206,8 @@ def buildImportFromNode( provider, node, source_ref ):
         imports.append( object_name )
 
     if None in targets:
-        return Nodes.CPythonStatementImportStar(
-            module_import = Nodes.CPythonExpressionImportModule(
+        return CPythonStatementImportStar(
+            module_import = CPythonExpressionImportModule(
                 module_name = module_name,
                 import_list = ( "*", ),
                 level       = level,
@@ -1187,8 +1222,8 @@ def buildImportFromNode( provider, node, source_ref ):
             import_nodes.append(
                 Nodes.CPythonStatementAssignment(
                     targets    = ( target, ),
-                    expression = Nodes.CPythonExpressionImportName(
-                        module      = Nodes.CPythonExpressionImportModule(
+                    expression = CPythonExpressionImportName(
+                        module      = CPythonExpressionImportModule(
                             module_name = module_name,
                             import_list = imports,
                             level       = level,
@@ -1204,7 +1239,7 @@ def buildImportFromNode( provider, node, source_ref ):
         # Note: Each import is sequential. It can succeed, and the failure of a later one is
         # not changing one. We can therefore have a sequence of imports that only import one
         # thing therefore.
-        return Nodes.CPythonStatementsSequence(
+        return CPythonStatementsSequence(
             statements = import_nodes,
             source_ref = source_ref
         )
@@ -1324,7 +1359,7 @@ def buildBoolOpNode( provider, node, source_ref ):
         )
     elif bool_op == "Not":
         # The "not" is really only a unary operation and no special.
-        return Nodes.CPythonExpressionOperationNOT(
+        return CPythonExpressionOperationNOT(
             operand    = buildNode( provider, node.operand, source_ref ),
             source_ref = source_ref
         )
@@ -1378,7 +1413,7 @@ def buildYieldNode( provider, node, source_ref ):
         )
 
 def buildExprOnlyNode( provider, node, source_ref ):
-    return Nodes.CPythonStatementExpressionOnly(
+    return CPythonStatementExpressionOnly(
         expression = buildNode( provider, node.value, source_ref ),
         source_ref = source_ref
     )
@@ -1392,7 +1427,7 @@ def buildUnaryOpNode( provider, node, source_ref ):
             source_ref = source_ref
         )
     else:
-        return Nodes.CPythonExpressionOperationUnary(
+        return CPythonExpressionOperationUnary(
             operator   = getKind( node.op ),
             operand    = buildNode( provider, node.operand, source_ref ),
             source_ref = source_ref
@@ -1405,7 +1440,7 @@ def buildBinaryOpNode( provider, node, source_ref ):
     if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
         operator = "TrueDiv"
 
-    return Nodes.CPythonExpressionOperationBinary(
+    return CPythonExpressionOperationBinary(
         operator   = operator,
         left       = buildNode( provider, node.left, source_ref ),
         right      = buildNode( provider, node.right, source_ref ),
@@ -1413,7 +1448,7 @@ def buildBinaryOpNode( provider, node, source_ref ):
     )
 
 def buildReprNode( provider, node, source_ref ):
-    return Nodes.CPythonExpressionOperationUnary(
+    return CPythonExpressionOperationUnary(
         operator   = "Repr",
         operand    = buildNode( provider, node.value, source_ref ),
         source_ref = source_ref
