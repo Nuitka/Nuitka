@@ -109,13 +109,9 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
         else:
             result = Generator.getFalseExpressionCode()
     elif condition.isExpressionComparison():
-        result = Generator.getComparisonExpressionBoolCode(
-            comparators = condition.getComparators(),
-            operands    = generateExpressionsCode(
-                expressions = condition.getOperands(),
-                context     = context
-            ),
-            context     = context
+        result = generateComparisonExpressionBoolCode(
+            comparison_expression = condition,
+            context               = context
         )
 
         if inverted:
@@ -262,7 +258,8 @@ def generateContractionCode( contraction, context ):
             loop_var_codes       = loop_var_codes,
             source_ref           = contraction.getSourceReference(),
             closure_variables    = contraction.getClosureVariables(),
-            provided_variables   = contraction.getProvidedVariables()
+            provided_variables   = contraction.getProvidedVariables(),
+            tmp_variables        = contraction.getTempVariables()
         )
     else:
         if contraction.isExpressionListContractionBuilder():
@@ -289,6 +286,7 @@ def generateContractionCode( contraction, context ):
             loop_var_codes         = loop_var_codes,
             closure_variables      = contraction.getClosureVariables(),
             provided_variables     = contraction.getProvidedVariables(),
+            tmp_variables          = contraction.getTempVariables(),
             context                = context
         )
 
@@ -429,7 +427,8 @@ def generateLambdaCode( lambda_expression, context ):
             function_name              = "<lambda>",
             function_identifier        = lambda_expression.getCodeName(),
             parameters                 = parameters,
-            user_variables             = lambda_expression.getBody().getUserLocalVariables(),
+            user_variables             = lambda_expression.getUserLocalVariables(),
+            tmp_variables              = lambda_expression.getTempVariables(),
             decorator_count            = 0, # Lambda expressions can't be decorated.
             closure_variables          = lambda_expression.getClosureVariables(),
             default_access_identifiers = default_access_identifiers,
@@ -443,7 +442,8 @@ def generateLambdaCode( lambda_expression, context ):
             function_name              = "<lambda>",
             function_identifier        = lambda_expression.getCodeName(),
             parameters                 = parameters,
-            user_variables             = lambda_expression.getBody().getUserLocalVariables(),
+            user_variables             = lambda_expression.getUserLocalVariables(),
+            tmp_variables              = lambda_expression.getTempVariables(),
             decorator_count            = 0, # Lambda expressions can't be decorated.
             closure_variables          = lambda_expression.getClosureVariables(),
             default_access_identifiers = default_access_identifiers,
@@ -508,7 +508,8 @@ def generateFunctionCode( function, context ):
             function_identifier        = function.getCodeName(),
             parameters                 = parameters,
             closure_variables          = function.getClosureVariables(),
-            user_variables             = function.getBody().getUserLocalVariables(),
+            user_variables             = function.getUserLocalVariables(),
+            tmp_variables              = function.getTempVariables(),
             decorator_count            = len( function.getDecorators() ),
             default_access_identifiers = default_access_identifiers,
             source_ref                 = function.getSourceReference(),
@@ -522,7 +523,8 @@ def generateFunctionCode( function, context ):
             function_identifier        = function.getCodeName(),
             parameters                 = parameters,
             closure_variables          = function.getClosureVariables(),
-            user_variables             = function.getBody().getUserLocalVariables(),
+            user_variables             = function.getUserLocalVariables(),
+            tmp_variables              = function.getTempVariables(),
             decorator_count            = len( function.getDecorators() ),
             default_access_identifiers = default_access_identifiers,
             source_ref                 = function.getSourceReference(),
@@ -637,6 +639,7 @@ def generateClassCode( class_def, context ):
         class_name         = class_def.getClassName(),
         class_variables    = class_def.getClassVariables(),
         closure_variables  = class_def.getClosureVariables(),
+        tmp_variables      = class_def.getTempVariables(),
         decorator_count    = len( decorators ),
         module_name        = class_def.getParentModule().getName(),
         class_doc          = class_def.getBody().getDoc(),
@@ -669,14 +672,40 @@ def generateOperationCode( operator, operands, context ):
     )
 
 def generateComparisonExpressionCode( comparison_expression, context ):
-    return Generator.getComparisonExpressionCode(
-        comparators = comparison_expression.getComparators(),
-        operands    = generateExpressionsCode(
-            expressions = comparison_expression.getOperands(),
-            context     = context
-        ),
-        context     = context
+    left = generateExpressionCode(
+        expression = comparison_expression.getLeft(),
+        context    = context
     )
+    right = generateExpressionCode(
+        expression = comparison_expression.getRight(),
+        context    = context
+    )
+
+    result = Generator.getComparisonExpressionCode(
+        comparator        = comparison_expression.getComparator(),
+        left              = left,
+        right             = right
+    )
+
+    return result
+
+
+def generateComparisonExpressionBoolCode( comparison_expression, context ):
+    left = generateExpressionCode(
+        expression = comparison_expression.getLeft(),
+        context    = context
+    )
+    right = generateExpressionCode(
+        expression = comparison_expression.getRight(),
+        context    = context
+    )
+
+    return Generator.getComparisonExpressionBoolCode(
+        comparator        = comparison_expression.getComparator(),
+        left              = left,
+        right             = right
+    )
+
 
 def generateDictionaryCreationCode( pairs, context ):
     keys = []
@@ -1030,6 +1059,11 @@ def generateExpressionCode( expression, context, allow_none = False ):
             variable = expression.getVariable(),
             context  = context
         )
+    elif expression.isExpressionTempVariableRef():
+        identifier = Generator.getVariableHandle(
+            variable = expression.getVariable(),
+            context  = context
+        )
     elif expression.isExpressionConstantRef():
         identifier = Generator.getConstantAccess(
             constant = expression.getConstant(),
@@ -1339,11 +1373,28 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = Generator.getExceptionRefCode(
             exception_type = expression.getExceptionName(),
         )
+    elif expression.isExpressionAssignment():
+        target = expression.getTarget()
+        assert target.isAssignTargetVariable(), target
+
+        source_identifier = makeExpressionCode( expression.getSource() )
+
+        identifier = Generator.Identifier(
+            "( %s )" % (
+                Generator.getVariableAssignmentCode(
+                    variable   = target.getTargetVariableRef().getVariable(),
+                    identifier = source_identifier,
+                    context    = context
+                )[:-1]
+            ),
+            source_identifier.getRefCount()
+        )
+
     else:
         assert False, expression
 
     if not hasattr( identifier, "getCodeTemporaryRef" ):
-        assert False, identifier
+        raise AssertionError( "not a code object?", repr( identifier ) )
 
     return identifier
 
@@ -2393,6 +2444,7 @@ def generateModuleCode( module, module_name, global_context ):
         ),
         path_identifier     = path_identifier,
         codes               = codes,
+        tmp_variables       = module.getTempVariables(),
         context             = context,
     )
 
@@ -2425,7 +2477,6 @@ def generateReversionMacrosCode( context ):
     return Generator.getReversionMacrosCode(
         context = context
     )
-
 
 def makeGlobalContext():
     return Contexts.PythonGlobalContext()

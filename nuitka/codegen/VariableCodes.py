@@ -66,7 +66,10 @@ def getVariableHandle( context, variable ):
             var_name         = var_name,
             module_code_name = context.getModuleCodeName()
         )
-
+    elif variable.isTempVariableReference():
+        return context.getTempHandle(
+            var_name = var_name
+        )
     else:
         assert False, variable
 

@@ -47,7 +47,10 @@ from .nodes.ParameterSpec import ParameterSpec
 from .nodes.FutureSpec import FutureSpec
 
 from .nodes import Nodes
-from .nodes.VariableRefNode import CPythonExpressionVariableRef
+from .nodes.VariableRefNode import (
+    CPythonExpressionVariableRef,
+    CPythonExpressionTempVariableRef
+)
 from .nodes.ConstantRefNode import CPythonExpressionConstantRef
 from .nodes.BuiltinReferenceNodes import CPythonExpressionBuiltinExceptionRef
 from .nodes.ExceptionNodes import CPythonStatementRaiseException
@@ -885,18 +888,70 @@ def buildGeneratorExpressionNode( provider, node, source_ref ):
     )
 
 def buildComparisonNode( provider, node, source_ref ):
-    comparison = [ buildNode( provider, node.left, source_ref ) ]
-
     assert len( node.comparators ) == len( node.ops )
 
-    for comparator, operand in zip( node.ops, node.comparators ):
-        comparison.append( getKind( comparator ) )
-        comparison.append( buildNode( provider, operand, source_ref ) )
+    # The operands are split out
+    left = buildNode( provider, node.left, source_ref )
+    rights = [
+        buildNode( provider, comparator, source_ref )
+        for comparator in
+        node.comparators
+    ]
 
-    return CPythonExpressionComparison(
-        comparison = comparison,
-        source_ref = source_ref
-    )
+    # Only the first comparison has as left operands as the real thing, the others must
+    # reference the previous comparison right one temp variable ref.
+    result = []
+
+    # For PyLint to like it, this will hold the previous one, normally.
+    tmp_variable = None
+
+    for comparator, right in zip( node.ops, rights ):
+        if result:
+            # Now we know it's not the only one, so we change the "left" to be a reference
+            # to the previously saved right side.
+            left = CPythonExpressionTempVariableRef(
+                variable   = tmp_variable.makeReference( provider ),
+                source_ref = source_ref
+            )
+
+            tmp_variable = None
+
+        if right is not rights[-1]:
+            # Now we known it's not the last one, so we ought to preseve the "right" so it
+            # can be referenced by the next part that will come. We do it by assining it
+            # to a temp variable to be shared with the next part.
+            tmp_variable = provider.getTempVariable()
+
+            right = Nodes.CPythonExpressionAssignment(
+                source     = right,
+                target     = Nodes.CPythonAssignTargetVariable(
+                    variable_ref = CPythonExpressionTempVariableRef(
+                        variable   = tmp_variable.makeReference( provider ),
+                        source_ref = source_ref
+                    ),
+                    source_ref   = source_ref
+                ),
+                source_ref = source_ref
+            )
+
+        result.append(
+            CPythonExpressionComparison(
+                left       = left,
+                right      = right,
+                comparator = getKind( comparator ),
+                source_ref = source_ref
+            )
+        )
+
+    assert tmp_variable is None
+
+    if len( result ) > 1:
+        return Nodes.CPythonExpressionBoolAND(
+            operands   = result,
+            source_ref = source_ref
+        )
+    else:
+        return result[ 0 ]
 
 def buildConditionNode( provider, node, source_ref ):
     return Nodes.CPythonStatementConditional(

@@ -33,6 +33,7 @@
 from .Identifiers import (
     Identifier,
     ConstantIdentifier,
+    TempObjectIdentifier,
     LocalVariableIdentifier,
     ClosureVariableIdentifier
 )
@@ -51,7 +52,7 @@ class PythonContextBase:
         self.try_count = 0
         self.with_count = 0
 
-        self.temp_counter = 0
+        self.preservations = {}
 
     def allocateForLoopNumber( self ):
         self.for_loop_count += 1
@@ -79,21 +80,15 @@ class PythonContextBase:
     def isParametersViaContext( self ):
         return False
 
-    def getTempObjectVariable( self ):
-        result = Identifier( "_expression_temps[%d] " % self.temp_counter, 0 )
-
-        self.temp_counter += 1
-
-        return result
-
-    def getTempObjectCounter( self ):
-        return self.temp_counter
-
     def hasLocalsDict( self ):
         return False
 
     def needsFrameExceptionKeeper( self ):
         return False
+
+    def getTempHandle( self, var_name ):
+        return TempObjectIdentifier( var_name, from_context = "" )
+
 
 class PythonChildContextBase( PythonContextBase ):
     def __init__( self, parent ):
@@ -221,6 +216,7 @@ class PythonModuleContext( PythonContextBase ):
         self.contraction_codes = {}
 
         self.global_var_names = set()
+        self.temp_var_names = set()
 
     def __repr__( self ):
         return "<PythonModuleContext instance for module %s>" % self.filename
@@ -345,6 +341,12 @@ class PythonFunctionContext( PythonChildContextBase ):
         else:
             return ClosureVariableIdentifier( var_name, from_context = "_python_context->common_context->" )
 
+    def getTempHandle( self, var_name ):
+        if self.function.isGenerator():
+            return TempObjectIdentifier( var_name, from_context = "_python_context->" )
+        else:
+            return TempObjectIdentifier( var_name, from_context = "" )
+
     def getCodeName( self ):
         return self.function.getCodeName()
 
@@ -406,6 +408,9 @@ class PythonGeneratorExpressionContext( PythonContractionBase ):
 
     def getLocalHandle( self, var_name ):
         return LocalVariableIdentifier( var_name, from_context = True )
+
+    def getTempHandle( self, var_name ):
+        return TempObjectIdentifier( var_name, from_context = "_python_context->" )
 
     def hasFrameGuard( self ):
         return False

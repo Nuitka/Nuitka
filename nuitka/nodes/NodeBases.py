@@ -36,6 +36,7 @@ These classes provide the generic base classes available for nodes.
 from nuitka.odict import OrderedDict
 
 from nuitka import (
+    Variables,
     Tracing,
     TreeXML
 )
@@ -540,6 +541,7 @@ class CPythonChildrenHaving:
         if new_node is not None:
             new_node.parent = old_node.parent
 
+
 class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
     """ Mixin for nodes that provide variables for closure takers. """
     def __init__( self, name, code_prefix, source_ref ):
@@ -600,7 +602,6 @@ class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
                 if not usages:
                     del self.providing[ variable.getName() ]
 
-
 class CPythonParameterHavingNodeBase( CPythonClosureGiverNodeBase ):
     def __init__( self, name, code_prefix, parameters, source_ref ):
         CPythonClosureGiverNodeBase.__init__(
@@ -634,6 +635,9 @@ class CPythonClosureTaker:
         self.provider = provider
 
         self.taken = set()
+
+        self.temp_variables = set()
+
 
     def getParentVariableProvider( self ):
         return self.provider
@@ -695,3 +699,21 @@ class CPythonClosureTaker:
 
     def isEarlyClosure( self ):
         return self.early_closure
+
+    def getTempVariable( self ):
+        result = Variables.TempVariable(
+            owner         = self,
+            variable_name = "__tmp_%d" % len( self.temp_variables )
+        )
+        self.temp_variables.add( result )
+        return result
+
+    def getTempVariables( self ):
+        return tuple( self.temp_variables )
+
+    def setTempVariables( self, variables ):
+        for variable in variables:
+            assert variable.isTempVariable(), variable
+            assert variable.getOwner() is self
+
+        self.temp_variables = variables

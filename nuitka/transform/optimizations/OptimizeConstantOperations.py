@@ -52,11 +52,7 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
         )
 
     def _optimizeConstantOperandsComparison( self, node ):
-        comparators = node.getComparators()
-
-        # TODO: Handle cases with multiple comparators too.
-        if len( comparators ) != 1:
-            return
+        comparator = node.getComparator()
 
         operand1, operand2 = node.getOperands()
 
@@ -64,7 +60,7 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
             value1 = operand1.getConstant()
             value2 = operand2.getConstant()
 
-            simulator = node.getSimulator( 0 )
+            simulator = node.getSimulator()
 
             def simulate():
                 return simulator( value1, value2 )

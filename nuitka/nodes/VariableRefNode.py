@@ -111,3 +111,23 @@ class CPythonExpressionVariableRef( CPythonNodeBase ):
             return new_node, change_tags, change_desc
 
         return self, None, None
+
+class CPythonExpressionTempVariableRef( CPythonNodeBase ):
+    kind = "EXPRESSION_TEMP_VARIABLE_REF"
+
+    def __init__( self, variable, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        self.variable = variable
+
+    def getDetails( self ):
+        return { "name" : self.variable.getName() }
+
+    def getDetail( self ):
+        return self.variable.getName()
+
+    def getVariableName( self ):
+        return self.variable.getName()
+
+    def getVariable( self ):
+        return self.variable

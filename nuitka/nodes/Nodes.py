@@ -54,7 +54,7 @@ from .NodeBases import (
     CPythonChildrenHaving,
     CPythonClosureTaker,
     CPythonClosureGiverNodeBase,
-    CPythonParameterHavingNodeBase
+    CPythonParameterHavingNodeBase,
 )
 
 class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureGiverNodeBase, \
@@ -210,6 +210,9 @@ class CPythonStatementClassBuilder( CPythonChildrenHaving, CPythonNodeBase ):
 
     def getClassVariables( self ):
         return self.getBody().getClassVariables()
+
+    def getTempVariables( self ):
+        return self.getBody().getTempVariables()
 
 
 class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CPythonCodeNodeBase, \
@@ -449,6 +452,29 @@ class CPythonStatementAssignment( CPythonChildrenHaving, CPythonNodeBase ):
     getSource = CPythonChildrenHaving.childGetter( "source" )
 
 
+class CPythonExpressionAssignment( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_ASSIGNMENT"
+
+    named_children = ( "source", "target" )
+
+    def __init__( self, target, source, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "source" : source,
+                "target" : target
+            }
+        )
+
+    def getDetail( self ):
+        return "%s from %s" % ( self.getTarget(), self.getSource() )
+
+    getTarget = CPythonChildrenHaving.childGetter( "target" )
+    getSource = CPythonChildrenHaving.childGetter( "source" )
+
+
 class CPythonStatementAssignmentInplace( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_ASSIGNMENT_INPLACE"
 
@@ -502,6 +528,12 @@ class CPythonExpressionLambdaBuilder( CPythonChildrenHaving, CPythonNodeBase ):
     def getClosureVariables( self ):
         return self.getBody().getClosureVariables()
 
+    def getUserLocalVariables( self ):
+        return self.getBody().getUserLocalVariables()
+
+    def getTempVariables( self ):
+        return self.getBody().getTempVariables()
+
     def getParameters( self ):
         return self.getBody().getParameters()
 
@@ -533,6 +565,12 @@ class CPythonStatementFunctionBuilder( CPythonChildrenHaving, CPythonNodeBase ):
 
     def getClosureVariables( self ):
         return self.getBody().getClosureVariables()
+
+    def getUserLocalVariables( self ):
+        return self.getBody().getUserLocalVariables()
+
+    def getTempVariables( self ):
+        return self.getBody().getTempVariables()
 
     def getParameters( self ):
         return self.getBody().getParameters()
@@ -622,12 +660,12 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         ]
 
     def getUserLocalVariables( self ):
-        return [
+        return tuple(
             variable for
             variable in
             self.providing.values()
             if variable.isLocalVariable() and not variable.isParameterVariable()
-        ]
+        )
 
     def getVariables( self ):
         return self.providing.values()
@@ -822,8 +860,6 @@ class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNodeBase ):
         return True
 
 
-
-
 class CPythonExpressionContractionBuilderBase( CPythonChildrenHaving, CPythonNodeBase ):
     named_children = ( "source0", "body" )
 
@@ -858,6 +894,10 @@ class CPythonExpressionContractionBuilderBase( CPythonChildrenHaving, CPythonNod
 
     def getProvidedVariables( self ):
         return self.getBody().getProvidedVariables()
+
+    def getTempVariables( self ):
+        return self.getBody().getTempVariables()
+
 
 class CPythonExpressionContractionBodyBase( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureGiverNodeBase ):
     early_closure = False
@@ -922,11 +962,13 @@ class CPythonExpressionContractionBodyBase( CPythonChildrenHaving, CPythonClosur
     def getVariables( self ):
         return self.providing.values()
 
+
 class CPythonExpressionListContractionBuilder( CPythonExpressionContractionBuilderBase ):
     kind = "EXPRESSION_LIST_CONTRACTION_BUILDER"
 
     def __init__( self, source_ref ):
         CPythonExpressionContractionBuilderBase.__init__( self, source_ref )
+
 
 class CPythonExpressionListContractionBody( CPythonExpressionContractionBodyBase ):
     kind = "EXPRESSION_LIST_CONTRACTION_BODY"
@@ -949,6 +991,7 @@ class CPythonExpressionListContractionBody( CPythonExpressionContractionBodyBase
         return self.getClosureVariable(
             variable_name = variable_name
         )
+
 
 class CPythonExpressionGeneratorBuilder( CPythonExpressionContractionBuilderBase ):
     kind = "EXPRESSION_GENERATOR_BUILDER"
@@ -982,6 +1025,7 @@ class CPythonExpressionSetContractionBuilder( CPythonExpressionContractionBuilde
     def __init__( self, source_ref ):
         CPythonExpressionContractionBuilderBase.__init__( self, source_ref )
 
+
 class CPythonExpressionSetContractionBody( CPythonExpressionContractionBodyBase ):
     kind = "EXPRESSION_SET_CONTRACTION_BODY"
 
@@ -1005,6 +1049,7 @@ class CPythonExpressionDictContractionBuilder( CPythonExpressionContractionBuild
 
     def __init__( self, source_ref ):
         CPythonExpressionContractionBuilderBase.__init__( self, source_ref )
+
 
 class CPythonExpressionDictContractionBody( CPythonExpressionContractionBodyBase ):
     kind = "EXPRESSION_DICT_CONTRACTION_BODY"
@@ -1045,6 +1090,7 @@ class CPythonStatementWith( CPythonChildrenHaving, CPythonNodeBase ):
     getTarget = CPythonChildrenHaving.childGetter( "target" )
     getExpression = CPythonChildrenHaving.childGetter( "expression" )
 
+
 class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExceptionBreakContinueIndicator ):
     kind = "STATEMENT_FOR_LOOP"
 
@@ -1074,6 +1120,7 @@ class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExcep
     getNoBreak = CPythonChildrenHaving.childGetter( "else" )
     setNoBreak = CPythonChildrenHaving.childSetter( "else" )
 
+
 class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExceptionBreakContinueIndicator ):
     kind = "STATEMENT_WHILE_LOOP"
 
@@ -1099,7 +1146,6 @@ class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExc
     getCondition = CPythonChildrenHaving.childGetter( "condition" )
     getNoEnter = CPythonChildrenHaving.childGetter( "else" )
     setNoEnter = CPythonChildrenHaving.childSetter( "else" )
-
 
 
 class CPythonExpressionAttributeLookup( CPythonChildrenHaving, CPythonNodeBase ):
@@ -1131,7 +1177,6 @@ class CPythonExpressionAttributeLookup( CPythonChildrenHaving, CPythonNodeBase )
     getLookupSource = CPythonChildrenHaving.childGetter( "expression" )
 
 
-
 class CPythonExpressionSubscriptLookup( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_SUBSCRIPT_LOOKUP"
 
@@ -1150,6 +1195,7 @@ class CPythonExpressionSubscriptLookup( CPythonChildrenHaving, CPythonNodeBase )
 
     getLookupSource = CPythonChildrenHaving.childGetter( "expression" )
     getSubscript = CPythonChildrenHaving.childGetter( "subscript" )
+
 
 class CPythonExpressionSliceLookup( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_SLICE_LOOKUP"
@@ -1210,6 +1256,7 @@ class CPythonStatementDeclareGlobal( CPythonNodeBase ):
     def getVariableNames( self ):
         return self.variable_names
 
+
 class CPythonExpressionConditional( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_CONDITIONAL"
 
@@ -1234,6 +1281,7 @@ class CPythonExpressionConditional( CPythonChildrenHaving, CPythonNodeBase ):
     getExpressionYes = CPythonChildrenHaving.childGetter( "expression_yes" )
     getExpressionNo = CPythonChildrenHaving.childGetter( "expression_no" )
     getCondition = CPythonChildrenHaving.childGetter( "condition" )
+
 
 class CPythonExpressionBool2Base( CPythonChildrenHaving, CPythonNodeBase ):
     """ The "and/or" are short circuit and is therefore are not plain operations.
@@ -1707,6 +1755,7 @@ class CPythonExpressionBuiltinLong( CPythonChildrenHaving, CPythonNodeBase ):
 
     getValue = CPythonChildrenHaving.childGetter( "value" )
     getBase = CPythonChildrenHaving.childGetter( "base" )
+
 
 class CPythonExpressionBuiltinUnicode( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_BUILTIN_UNICODE"

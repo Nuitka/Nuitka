@@ -36,50 +36,54 @@ from nuitka import PythonOperators
 
 from .NodeMakingHelpers import getComputationResult
 
-# TODO: Change this node, so it becomes something easier to handle, i.e. has
-# only two operands, expressing the chaining in a different way.
-
 class CPythonExpressionComparison( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_COMPARISON"
 
-    named_children = ( "operands", )
+    named_children = ( "left", "right" )
 
-    def __init__( self, comparison, source_ref ):
-        operands = []
-        comparators = []
-
-        for count, operand in enumerate( comparison ):
-            if count % 2 == 0:
-                assert operand.isExpression()
-
-                operands.append( operand )
-            else:
-                comparators.append( operand )
+    def __init__( self, left, right, comparator, source_ref ):
+        assert left.isExpression()
+        assert right.isExpression()
+        assert type( comparator ) is str, comparator
 
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
             values = {
-                "operands" : tuple( operands ),
+                "left" : left,
+                "right" : right
             }
         )
 
-        self.comparators = tuple( comparators )
+        self.comparator = comparator
 
-    getOperands = CPythonChildrenHaving.childGetter( "operands" )
+    def getOperands( self ):
+        return (
+            self.getLeft(),
+            self.getRight()
+        )
 
-    def getComparators( self ):
-        return self.comparators
+    getLeft = CPythonChildrenHaving.childGetter( "left" )
+    getRight = CPythonChildrenHaving.childGetter( "right" )
+
+    def getComparator( self ):
+        return self.comparator
 
     def getDetails( self ):
-        return { "comparators" : self.comparators }
+        return { "comparator" : self.comparator }
 
-    def getSimulator( self, count ):
-        return PythonOperators.all_comparison_functions[ self.comparators[ count ] ]
+    def getSimulator( self ):
+        return PythonOperators.all_comparison_functions[ self.comparator ]
 
     def computeNode( self ):
-        comparators = self.getComparators()
-        operands = self.getOperands()
+        left, right = self.getOperands()
 
-        assert False
+        if left.isConstant() and right.isConstant():
+            return getComputationResult(
+                node        = self,
+                computation = self.getSimulator(),
+                description = "Comparison"
+            )
+
+        return self, None, None

@@ -26,26 +26,29 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Finalizations. Last steps directly before code creation is called.
+""" Finalize the temp variables.
 
-Here the final tasks are executed. Things normally volatile during optimizations can
-be computed here, so the code generation can be quick and doesn't have to check it
-many times.
+If a temp variable is used in a holder, notice that and later set these temp variables
+for use by code generation to add declarations for them to a suitable spot.
 
 """
-from .FinalizeMarkups import FinalizeMarkups
-from .FinalizeClosureTaking import FinalizeClosureTaking
-from .FinalizeTempVariables import FinalizeTempVariables
 
-# Bug of pylint, it's there but it reports it wrongly, pylint: disable=E0611
-from .. import TreeOperations
+from .FinalizeBase import FinalizationVisitorScopedBase
 
-def prepareCodeGeneration( tree ):
-    visitor = FinalizeMarkups()
-    TreeOperations.visitTree( tree, visitor )
+class FinalizeTempVariables( FinalizationVisitorScopedBase ):
+    def __init__( self ):
+        self.variables = set()
+        self.current = None
 
-    visitor = FinalizeClosureTaking()
-    TreeOperations.visitTagHaving( tree, visitor, "closure_taker" )
+    def onEnterScope( self, node ):
+        self.current = node
 
-    visitor = FinalizeTempVariables()
-    TreeOperations.visitScopes( tree, visitor )
+    def onLeaveScope( self, node ):
+        self.current.setTempVariables( self.variables )
+
+        self.variables = set()
+        self.current = None
+
+    def onEnterNode( self, node ):
+        if node.isExpressionTempVariableRef():
+            self.variables.add( node.getVariable().getReferenced() )

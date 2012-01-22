@@ -131,3 +131,36 @@ def inOperatorChain():
 
 
 inOperatorChain()
+
+# Make sure the values are called and order is correct:
+
+class A( object ):
+    def __init__( self, name, value ):
+        self.name = name
+        self.value = value
+
+    def __repr__( self ):
+        return "<Value %s %d>" % ( self.name, self.value )
+
+    def __lt__( self, other ):
+        print "less than called for:", self, other, self.value, other.value, self.value < other.value
+
+        if self.value < other.value:
+            print "good"
+            return 7
+        else:
+            print "bad"
+            return 0
+
+a = A("a",1)
+b = A("b",2)
+c = A("c",0)
+
+print a < b < c
+print "*" * 80
+
+a = A("a",2)
+b = A("b",1)
+c = A("c",0)
+
+print a < b < c

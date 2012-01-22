@@ -280,8 +280,6 @@ PyObject *_module_%(module_identifier)s;
 // The module function definitions.
 %(module_functions_code)s
 
-%(expression_temp_decl)s
-
 // Frame object of the module.
 static PyFrameObject *frame_%(module_identifier)s;
 
@@ -460,7 +458,8 @@ module_init_no_package_template = """\
             )
         );
     }
-#endif"""
+#endif
+"""
 
 module_init_in_package_template = """\
     _mvar_%(module_identifier)s___doc__.assign0( %(doc_identifier)s );
