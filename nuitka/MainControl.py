@@ -324,30 +324,62 @@ def writeSourceCode( filename, source_code ):
 
     open( filename, "w" ).write( source_code )
 
-def executeMain( binary_filename, tree, clean_path ):
-    name = Utils.basename( tree.getFilename() ).replace( ".py", ".exe" )
-
+def callExec( args, clean_path, add_path ):
     old_python_path = os.environ.get( "PYTHONPATH", None )
 
     if clean_path and old_python_path is not None:
         os.environ[ "PYTHONPATH" ] = ""
 
+    if add_path:
+        os.environ[ "PYTHONPATH" ] = os.environ.get( "PYTHONPATH", "" ) + ":" + Options.getOutputDir()
+
     # We better flush these, "os.execl" won't do it anymore.
     sys.stdout.flush()
     sys.stderr.flush()
 
-    if not Options.isWindowsTarget() or "win" in sys.platform:
-        os.execl( binary_filename, name, *Options.getMainArgs() )
-    else:
-        os.execl( "/usr/bin/wine", name, binary_filename, *Options.getMainArgs() )
+    args += Options.getMainArgs()
+
+    # That's the API of execl, pylint: disable=W0142
+    os.execl( *args )
 
     if old_python_path is not None:
         os.environ[ "PYTHONPATH" ] = old_python_path
+    else:
+        del os.environ[ "PYTHONPATH" ]
 
-def executeModule( tree ):
-    # TODO: Might be cleaner to start a new interpreter with the module to load.
 
-    __import__( tree.getName() )
+def executeMain( binary_filename, tree, clean_path ):
+    main_filename = tree.getFilename()
+
+    if main_filename.endswith( ".py" ):
+        name = Utils.basename( main_filename[:-3]  )
+    else:
+        name = Utils.basename( main_filename )
+
+    if not Options.isWindowsTarget() or "win" in sys.platform:
+        args = ( binary_filename, name )
+    else:
+        args = ( "/usr/bin/wine", name, binary_filename )
+
+    callExec(
+        clean_path = clean_path,
+        add_path   = False,
+        args       = args
+    )
+
+def executeModule( tree, clean_path ):
+    args = (
+        sys.executable,
+        "python",
+        "-c",
+        "__import__( '%s' )" % tree.getName(),
+    )
+
+    callExec(
+        clean_path = clean_path,
+        add_path   = True,
+        args       = args
+    )
 
 def compileTree( tree ):
     if not Options.shallOnlyExecGcc():
@@ -373,7 +405,10 @@ def compileTree( tree ):
     # Execute the module immediately if option was given.
     if Options.shallExecuteImmediately():
         if Options.shallMakeModule():
-            executeModule( tree )
+            executeModule(
+                tree       = tree,
+                clean_path = Options.shallClearPythonPathEnvironment()
+            )
         else:
             executeMain(
                 binary_filename = options[ "result_file" ] + ".exe",
