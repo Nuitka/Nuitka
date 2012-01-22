@@ -70,6 +70,22 @@ If you want to compile recursively, and not only a single file, do it like this:
 Note: The is more fine grained control that "--recurse-all" available. Consider the output
 of "--help".
 
+In case you have a plugin directory, i.e. one which is not found by recursing after normal
+import statements (recommended way), you can always require that a given directory shall
+also be included in the executable.
+
+.. code-block:: sh
+
+    nuitka-python --recurse-all --recurse-directory=plugin_dir program.py
+
+.. note::
+
+   If you don't do any dynamic imports, your PYTHONPATH at compilation time will be
+   sufficient for all your needs normally. Use "--recurse-directory" only if you make
+   "__import__()" calls that Nuitka cannot predict, because they e.g. depend on command
+   line parameters.
+
+
 Where to go next
 ~~~~~~~~~~~~~~~~
 
@@ -567,7 +583,8 @@ windows installation at all.
 Updates for this Manual
 =======================
 
-This document is written in REST. That is an ASCII format readable as ASCII, but used to generate a PDF or HTML document.
+This document is written in REST. That is an ASCII format readable as ASCII, but used to
+generate a PDF or HTML document.
 
 You will find the current source under:
 http://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=README.txt
