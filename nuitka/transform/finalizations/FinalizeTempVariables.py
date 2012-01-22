@@ -44,6 +44,8 @@ class FinalizeTempVariables( FinalizationVisitorScopedBase ):
         self.current = node
 
     def onLeaveScope( self, node ):
+        assert node is self.current
+
         self.current.setTempVariables( self.variables )
 
         self.variables = set()

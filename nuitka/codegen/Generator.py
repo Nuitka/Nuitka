@@ -2429,7 +2429,6 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         context     = context
     )
 
-    # TODO: Check with hard coded line number, if it is good.
     result += CodeTemplates.make_genfunc_with_context_template % {
         "function_name_obj"          : getConstantCode(
             context  = context,
@@ -2591,7 +2590,6 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
     )
 
     if context_decl:
-        # TODO: Check with hard coded line number, if it is good.
         result += CodeTemplates.make_function_with_context_template % {
             "function_name"              : function_name,
             "function_name_obj"          : function_name_obj,
@@ -2622,7 +2620,6 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
             "module_identifier"          : getModuleAccessCode( context = context ),
         }
     else:
-        # TODO: Check with hard coded line number, if it is good.
         result += CodeTemplates.make_function_without_context_template % {
             "function_name"              : function_name,
             "function_name_obj"          : function_name_obj,
@@ -2764,7 +2761,6 @@ def getGeneratorExpressionCode( context, generator_identifier, generator_name, s
         ),
     }
 
-    # TODO: Check with hard coded line number, if it is good.
     result += CodeTemplates.make_genexpr_with_context_template % {
         "function_name_obj"          : function_name_obj,
         "function_identifier"        : generator_identifier,
@@ -2953,7 +2949,6 @@ def getClassCode( context, source_ref, class_name, class_identifier, class_varia
         1
     )
 
-    # TODO: Check with hard coded line number, if it is good.
     return CodeTemplates.class_dict_template % {
         "class_identifier"      : class_identifier,
         "name_identifier"       : getConstantCode(

@@ -53,6 +53,7 @@ class CPythonExpressionBuiltinRefBase( CPythonNodeBase ):
         return { "builtin_name" : self.builtin_name }
 
     def isConstant( self ):
+        # Virtual method, pylint: disable=R0201
         return False
 
     def getBuiltinName( self ):

@@ -59,6 +59,7 @@ class CPythonExpressionConstantRef( CPythonNodeBase ):
         return self
 
     def isConstant( self ):
+        # Virtual method, pylint: disable=R0201
         return True
 
     def getConstant( self ):

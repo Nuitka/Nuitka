@@ -52,8 +52,6 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
         )
 
     def _optimizeConstantOperandsComparison( self, node ):
-        comparator = node.getComparator()
-
         operand1, operand2 = node.getOperands()
 
         if areConstants( ( operand1, operand2 ) ):

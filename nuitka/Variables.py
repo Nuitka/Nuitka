@@ -384,6 +384,7 @@ def getNames( variables ):
 class TempVariableReference( VariableReferenceBase ):
 
     def isTempVariableReference( self ):
+        # Virtual method, pylint: disable=R0201
         return True
 
 class TempVariable( Variable ):
@@ -403,10 +404,13 @@ class TempVariable( Variable ):
         )
 
     def isTempVariable( self ):
+        # Virtual method, pylint: disable=R0201
         return True
 
     def getDeclarationTypeCode( self ):
+        # Virtual method, pylint: disable=R0201
         return "PyObject *"
 
     def getDeclarationInitValueCode( self ):
+        # Virtual method, pylint: disable=R0201
         return "NULL"
