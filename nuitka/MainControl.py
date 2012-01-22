@@ -118,12 +118,31 @@ def makeModuleSource( tree ):
 
     return source_code
 
+def getTreeFilenameWithSuffix( tree, suffix ):
+    main_filename = tree.getFilename()
+
+    if main_filename.endswith( ".py" ):
+        return main_filename[:-3] + suffix
+    else:
+        return main_filename + suffix
+
 def getSourceDirectoryPath( main_module ):
     assert main_module.isModule()
 
-    name = Utils.basename( main_module.getFilename() ).replace( ".py", "" )
+    return Options.getOutputPath(
+        path = Utils.basename(
+            getTreeFilenameWithSuffix( main_module, ".build" )
+        )
+    )
 
-    return Options.getOutputPath( name + ".build" )
+def getResultPath( main_module ):
+    assert main_module.isModule()
+
+    return Options.getOutputPath(
+        path = Utils.basename(
+            getTreeFilenameWithSuffix( main_module, "" )
+        )
+    )
 
 def makeSourceDirectory( main_module ):
     assert main_module.isModule()
@@ -280,14 +299,6 @@ def makeSourceDirectory( main_module ):
     )
 
 def runScons( tree, quiet ):
-    name = Utils.basename( tree.getFilename() ).replace( ".py", "" )
-
-    def asBoolStr( value ):
-        return "true" if value else "false"
-
-    result_file = Options.getOutputPath( name )
-    source_dir = Options.getOutputPath( name + ".build" )
-
     if Options.options.python_version is not None:
         python_version = Options.options.python_version
     else:
@@ -301,10 +312,13 @@ def runScons( tree, quiet ):
     else:
         python_debug = hasattr( sys, "getobjects" )
 
+    def asBoolStr( value ):
+        return "true" if value else "false"
+
     options = {
-        "name"           : name,
-        "result_file"    : result_file,
-        "source_dir"     : source_dir,
+        "name"           : Utils.basename( getTreeFilenameWithSuffix( tree, "" ) ),
+        "result_file"    : getResultPath( tree ),
+        "source_dir"     : getSourceDirectoryPath( tree ),
         "debug_mode"     : asBoolStr( Options.isDebug() ),
         "unstriped_mode" : asBoolStr( Options.isUnstriped() ),
         "module_mode"    : asBoolStr( Options.shallMakeModule() ),

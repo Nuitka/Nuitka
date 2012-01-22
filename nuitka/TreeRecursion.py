@@ -79,9 +79,13 @@ def considerFilename( module_filename, module_package ):
 
     module_filename = os.path.normpath( module_filename )
 
-    if module_filename.endswith( ".py" ) or Utils.isDir( module_filename ):
-        # TODO: Make that replace safer
-        module_name = Utils.basename( module_filename ).replace( ".py", "" )
+    if Utils.isDir( module_filename ):
+        module_name = Utils.basename( module_filename )
+        module_relpath = Utils.relpath( module_filename )
+
+        return module_filename, module_relpath, module_name
+    elif module_filename.endswith( ".py" ):
+        module_name = Utils.basename( module_filename )[:-3]
         module_relpath = Utils.relpath( module_filename )
 
         return module_filename, module_relpath, module_name

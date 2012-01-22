@@ -1689,7 +1689,10 @@ def buildModuleTree( filename, package, is_main ):
         if is_main:
             module_name = "__main__"
         else:
-            module_name = Utils.basename( filename ).replace( ".py", "" )
+            module_name = Utils.basename( filename )
+
+            if module_name.endswith( ".py" ):
+                module_name = module_name[:-3]
 
         result = Nodes.CPythonModule(
             name       = module_name,

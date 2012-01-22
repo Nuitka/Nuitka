@@ -81,7 +81,10 @@ else:
 
     dir_match = re.search( r"--output-dir=(.*?)(\s|$)", extra_options )
 
-    exe_filename = os.path.basename( filename ).replace( ".py", ".exe" )
+    exe_filename = os.path.basename( filename )
+
+    if filename.endswith( ".py" ):
+        filename = filename[:-3] + ".exe"
 
     if dir_match:
         nuitka_cmd2 = os.path.join( dir_match.group( 1 ), exe_filename )

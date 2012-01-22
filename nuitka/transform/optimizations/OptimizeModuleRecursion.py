@@ -78,9 +78,14 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
 
         module_filename = os.path.normpath( module_filename )
 
-        if module_filename.endswith( ".py" ) or Utils.isDir( module_filename ):
-            module_name = Utils.basename( module_filename ).replace( ".py", "" )
+        if Utils.isDir( module_filename ):
+            module_name = Utils.basename( module_filename )
+        elif module_filename.endswith( ".py" ):
+            module_name = Utils.basename( module_filename )[:-3]
+        else:
+            module_name = None
 
+        if module_name is not None:
             decision = self._decide( module_filename, module_name, module_package )
 
             if decision:
