@@ -797,7 +797,14 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
             else:
                 return False
 
-        if high is None and step is None:
+        if low is None and high is None and step is None:
+            # Intentional to get exception, pylint: disable=W0108
+            self.replaceWithComputationResult(
+                node        = node,
+                computation = lambda : range(),
+                description = "Range builtin without args"
+            )
+        elif high is None and step is None:
             if isRangePredictable( low ):
                 constant = low.getConstant()
 
