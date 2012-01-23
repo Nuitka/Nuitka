@@ -1,4 +1,4 @@
-nuitka (0.3.18.3+ds-1) unstable; urgency=low
+nuitka (0.3.18.4+ds-1) unstable; urgency=low
 
   * New upstream hotfix release.
   * Improvements to option groups layout in manpages, and broken
@@ -6,7 +6,7 @@ nuitka (0.3.18.3+ds-1) unstable; urgency=low
   * Made the "debian/watch" file ignore upstream pre-releases,
     these shall not be considered for this package.
 
- -- Kay Hayen <kayhayen@gmx.de>  Tue, 17 Jan 2012 10:29:45 +0100
+ -- Kay Hayen <kayhayen@gmx.de>  Mon, 23 Jan 2012 00:59:06 +0100
 
 nuitka (0.3.18+ds-1) unstable; urgency=low
 
