@@ -345,7 +345,8 @@ def buildWhileLoopNode( provider, node, source_ref ):
 def buildFunctionCallNode( provider, node, source_ref ):
     positional_args = buildNodeList( provider, node.args, source_ref )
 
-    # TODO: Clarify if the source_ref could be better
+    # Only the values of keyword pairs have a real source ref, and those only really
+    # matter, so that makes sense.
     pairs = [
         CPythonExpressionKeyValuePair(
             key        = _buildConstantReferenceNode(

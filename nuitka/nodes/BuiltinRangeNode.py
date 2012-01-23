@@ -63,81 +63,106 @@ class CPythonExpressionBuiltinRange( CPythonChildrenHaving, CPythonNodeBase ):
     getHigh = CPythonChildrenHaving.childGetter( "high" )
     getStep = CPythonChildrenHaving.childGetter( "step" )
 
+    def _computeNodeNoArgsRange( self ):
+        # Intentional to get exception, pylint: disable=W0108
+        return getComputationResult(
+            node        = self,
+            computation = lambda : range(),
+            description = "No arg range builtin"
+        )
+
+    def _computeNodeSimpleRange( self, low ):
+        if low.isNumberConstant():
+            constant = low.getConstant()
+
+            # Avoid warnings before Python 2.7, in Python 2.7 it's an exception.
+            if type( constant ) is float and getPythonVersion() < 270:
+                constant = int( constant )
+
+            # Negative values are empty, so don't check against < 0.
+            if constant <= 256:
+                return getComputationResult(
+                    node        = self,
+                    computation = lambda : range( constant ),
+                    description = "Single arg range builtin"
+                )
+
+        return self, None, None
+
+    def _computeNodeTwoValueRange( self, low, high ):
+        if low.isNumberConstant() and high.isNumberConstant():
+            constant1 = low.getConstant()
+            constant2 = high.getConstant()
+
+            if type( constant1 ) is float and getPythonVersion() < 270:
+                constant1 = int( constant1 )
+            if type( constant2 ) is float and getPythonVersion() < 270:
+                constant2 = int( constant2 )
+
+            if constant2 - constant1 <= 256:
+                return getComputationResult(
+                    node        = self,
+                    computation = lambda : range( constant1, constant2 ),
+                    description = "Two arg range builtin"
+                )
+
+        return self, None, None
+
+    def _computeNodeThreeValueRange( self, low, high, step ):
+        if low.isNumberConstant() and high.isNumberConstant() and step.isNumberConstant():
+            constant1 = low.getConstant()
+            constant2 = high.getConstant()
+            constant3 = step.getConstant()
+
+            if type( constant1 ) is float and getPythonVersion() < 270:
+                constant1 = int( constant1 )
+            if type( constant2 ) is float and getPythonVersion() < 270:
+                constant2 = int( constant2 )
+            if type( constant3 ) is float and getPythonVersion() < 270:
+                constant3 = int( constant3 )
+
+            try:
+                if constant1 < constant2:
+                    if constant3 < 0:
+                        estimate = 0
+                    else:
+                        estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
+                else:
+                    if constant3 > 0:
+                        estimate = 0
+                    else:
+                        estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
+            except (ValueError, TypeError, ZeroDivisionError):
+                estimate = -1
+
+            estimate = round( estimate )
+
+            if estimate <= 256:
+                try:
+                    assert len( range( constant1, constant2, constant3 ) ) == estimate, self.getSourceReference()
+                except (ValueError, TypeError, ZeroDivisionError):
+                    pass
+
+                return getComputationResult(
+                    node        = self,
+                    computation = lambda : range( constant1, constant2, constant3 ),
+                    description = "Three arg range builtin"
+                )
+
+        return self, None, None
+
     def computeNode( self ):
         low  = self.getLow()
         high = self.getHigh()
         step = self.getStep()
 
+        if low is None and high is None and step is None:
+            return self._computeNodeNoArgsRange()
         if high is None and step is None:
-            if low.isNumberConstant():
-                constant = low.getConstant()
-
-                # Avoid warnings before Python 2.7, in Python 2.7 it's an exception.
-                if type( constant ) is float and getPythonVersion() < 270:
-                    constant = int( constant )
-
-                # Negative values are empty, so don't check against < 0.
-                if constant <= 256:
-                    return getComputationResult(
-                        node        = self,
-                        computation = lambda : range( constant ),
-                        description = "Range builtin"
-                    )
+            return self._computeNodeSimpleRange( low )
         elif step is None:
-            if low.isNumberConstant() and high.isNumberConstant():
-                constant1 = low.getConstant()
-                constant2 = high.getConstant()
-
-                if type( constant1 ) is float and getPythonVersion() < 270:
-                    constant1 = int( constant1 )
-                if type( constant2 ) is float and getPythonVersion() < 270:
-                    constant2 = int( constant2 )
-
-                if constant2 - constant1 <= 256:
-                    return getComputationResult(
-                        node        = self,
-                        computation = lambda : range( constant1, constant2 ),
-                        description = "Range builtin"
-                    )
+            return self._computeNodeTwoValueRange( low, high )
         else:
-            if low.isNumberConstant() and high.isNumberConstant() and step.isNumberConstant():
-                constant1 = low.getConstant()
-                constant2 = high.getConstant()
-                constant3 = step.getConstant()
-
-                if type( constant1 ) is float and getPythonVersion() < 270:
-                    constant1 = int( constant1 )
-                if type( constant2 ) is float and getPythonVersion() < 270:
-                    constant2 = int( constant2 )
-                if type( constant3 ) is float and getPythonVersion() < 270:
-                    constant3 = int( constant3 )
-
-                try:
-                    if constant1 < constant2:
-                        if constant3 < 0:
-                            estimate = 0
-                        else:
-                            estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
-                    else:
-                        if constant3 > 0:
-                            estimate = 0
-                        else:
-                            estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
-                except (ValueError, TypeError, ZeroDivisionError):
-                    estimate = -1
-
-                estimate = round( estimate )
-
-                if estimate <= 256:
-                    try:
-                        assert len( range( constant1, constant2, constant3 ) ) == estimate, self.getSourceReference()
-                    except (ValueError, TypeError, ZeroDivisionError):
-                        pass
-
-                    return getComputationResult(
-                        node        = self,
-                        computation = lambda : range( constant1, constant2, constant3 ),
-                        description = "Range builtin"
-                    )
+            return self._computeNodeThreeValueRange( low, high, step )
 
         return self, None, None
