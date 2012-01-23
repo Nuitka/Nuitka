@@ -16,7 +16,7 @@ Requirements
     On Windows the MinGW g++ compiler of at least version 4.5, the VC++ compiler is not
     currently supported, because it is too weak in its C++11 support.
 
-- Python: Version 2.6 or higher (3.x won't work yet though)
+- Python: Version 2.6 or 2.7 (3.x won't work yet though)
 
     You need at least CPython to execute Nuitka and the created binary, because the
     created executables will link against the CPython shared library at run time.
@@ -24,7 +24,11 @@ Requirements
 Environment
 ~~~~~~~~~~~
 
-Linux/MSYS shell: Extend "PATH" with the directory containing Nuitka executables.
+No changes are required, you can call the "nuitka" and "nuitka-python" executables
+directly without any changes to the environment. For convinience, it might be easier to
+add the directory with them to the PATH variable:
+
+Linux/MSYS shell:
 
 .. code-block:: sh
 
@@ -37,8 +41,8 @@ With some luck this also works:
     . misc/create-environment
 
 Windows: Extend "PATH" with the directory containing Nuitka executables. Either have MinGW
-installed to "C:\MinGW" (then Nuitka will find it automatically) or also add it to the
-PATH environment.
+installed to "C:\MinGW" (then Nuitka will find and use it automatically) or also add it to
+the PATH environment.
 
 
 Command Line
@@ -90,8 +94,8 @@ Where to go next
 ~~~~~~~~~~~~~~~~
 
 Remember, this project is not completed yet. Although the CPython test suite works near
-perfect, there is still more work needed, to make it do enough optimizations to be
-worth while. Try it out.
+perfect, there is still more work needed, to make it do enough optimizations to be worth
+while. Try it out.
 
 Subscribe to its mailing lists
 ------------------------------
