@@ -1210,6 +1210,12 @@ def generateExpressionCode( expression, context, allow_none = False ):
             context   = context,
             eval_node = expression
         )
+    elif expression.isExpressionBuiltinExec():
+        # exec builtin of Python3, as opposed to Python2 statement
+        identifier = generateEvalCode(
+            context   = context,
+            eval_node = expression
+        )
     elif expression.isExpressionBuiltinExecfile():
         identifier = generateExecfileCode(
             context       = context,

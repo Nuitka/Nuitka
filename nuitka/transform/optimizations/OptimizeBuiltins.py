@@ -295,6 +295,7 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
                 "globals"    : self.globals_extractor,
                 "locals"     : self.locals_extractor,
                 "eval"       : self.eval_extractor,
+                "exec"       : self.exec_extractor,
                 "execfile"   : self.execfile_extractor,
             }
         )
@@ -344,9 +345,23 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
         )
 
     def eval_extractor( self, node ):
+        # TODO: Should precompute error as well: TypeError: eval() takes no keyword arguments
+
         positional_args = node.getPositionalArguments()
 
         return Nodes.CPythonExpressionBuiltinEval(
+            source_code  = positional_args[0],
+            globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
+            locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
+            source_ref   = node.getSourceReference()
+        )
+
+    def exec_extractor( self, node ):
+        # TODO: Should precompute error as well: TypeError: exec() takes no keyword arguments
+
+        positional_args = node.getPositionalArguments()
+
+        return Nodes.CPythonExpressionBuiltinExec(
             source_code  = positional_args[0],
             globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
             locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,

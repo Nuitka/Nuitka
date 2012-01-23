@@ -1614,6 +1614,10 @@ class CPythonExpressionBuiltinEval( CPythonChildrenHaving, CPythonNodeBase ):
     getGlobals = CPythonChildrenHaving.childGetter( "globals" )
     getLocals = CPythonChildrenHaving.childGetter( "locals" )
 
+# Note: Python3 only so far.
+class CPythonExpressionBuiltinExec( CPythonExpressionBuiltinEval ):
+    kind = "EXPRESSION_BUILTIN_EXEC"
+
 class CPythonExpressionBuiltinExecfile( CPythonExpressionBuiltinEval ):
     kind = "EXPRESSION_BUILTIN_EXECFILE"
 
