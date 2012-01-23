@@ -29,7 +29,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.3.19pre4
+Nuitka V0.3.19pre5
 Copyright (C) 2012 Kay Hayen."""
 
 from . import Utils
@@ -474,7 +474,7 @@ def isUnstriped():
 
 def getOutputPath( path ):
     if options.output_dir:
-        return os.path.normpath( options.output_dir + "/" + path )
+        return os.path.normpath( Utils.joinpath( options.output_dir, path ) )
     else:
         return path
 

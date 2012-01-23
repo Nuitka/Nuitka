@@ -1,11 +1,11 @@
-nuitka (0.3.19~pre4+ds-1) UNRELEASED; urgency=low
+nuitka (0.3.19~pre5+ds-1) UNRELEASED; urgency=low
 
   * New upstream pre-release.
   * This is not going to be uploaded to Debian yet.
 
  -- Kay Hayen <kayhayen@gmx.de>  Sun, 22 Jan 2012 10:19:52 +0100
 
-nuitka (0.3.18.3+ds-1) unstable; urgency=low
+nuitka (0.3.18.4+ds-1) unstable; urgency=low
 
   * New upstream hotfix release.
   * Improvements to option groups layout in manpages, and broken
