@@ -403,7 +403,9 @@ def simpleFunction50():
 x = 17
 
 def checkReferenceCount( checked_function, max_rounds = 4 ):
-   sys.exc_clear()
+   if sys.version_info[0] < 3:
+      sys.exc_clear()
+
    print checked_function.func_name + ":",
 
    ref_count1 = 17
@@ -415,7 +417,9 @@ def checkReferenceCount( checked_function, max_rounds = 4 ):
 
       checked_function()
 
-      sys.exc_clear()
+      if sys.version_info[0] < 3:
+         sys.exc_clear()
+
       gc.collect()
 
       ref_count2 = sys.gettotalrefcount()
@@ -426,7 +430,9 @@ def checkReferenceCount( checked_function, max_rounds = 4 ):
    else:
       print "FAILED", ref_count1, ref_count2
 
-   sys.exc_clear()
+   if sys.version_info[0] < 3:
+      sys.exc_clear()
+
    gc.collect()
 
 
