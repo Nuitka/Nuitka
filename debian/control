@@ -9,7 +9,8 @@ Build-Depends: debhelper (>= 7.4.3),
                python-dev (>= 2.6.6-2),
                rst2pdf (>= 0.14-2),
                scons (>=2.0.0),
-               base-files (<<6.0) | python3.2-dev
+               base-files (<<6.0) | python3-dev (>= 3.2),
+               base-files (<<6.0) | python3-dbg (>= 3.2)
 Vcs-Git: http://git.nuitka.net/Nuitka.git
 Vcs-browser: http://nuitka.net/gitweb/?p=Nuitka.git;a=summary
 Homepage: http://nuitka.net
