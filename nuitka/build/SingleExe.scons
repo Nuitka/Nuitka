@@ -246,12 +246,9 @@ if "g++" in env[ "CXX" ]:
 
 # Python version, use the scons one if not given.
 python_version = ARGUMENTS.get( "python_version", None )
+
 if python_version is None:
     python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
-
-# Are we running a Python debug version or not.
-python_debug = getBoolOption( "python_debug", False )
-debug_indicator = "_d" if python_debug else ""
 
 if win_target:
     python_version = python_version.replace( ".", "" )
@@ -283,10 +280,10 @@ if win_target:
 else:
     # The python header path is a combination of python version and debug indication, make
     # sure the headers are found by adding it to the C++ include path.
-    python_header_path = "/usr/include/python" + python_version + debug_indicator
+    python_header_path = "/usr/include/python" + python_version
 
 env.Append( CCFLAGS = [ "-I" + python_header_path ] )
-env.Append( LIBS = [ "python" + python_version + debug_indicator ] )
+env.Append( LIBS = [ "python" + python_version ] )
 
 nuitka_include = os.path.join( os.environ[ "NUITKA_SCONS" ], "include" )
 env.Append( CPPPATH = [ source_dir, nuitka_include ] )
