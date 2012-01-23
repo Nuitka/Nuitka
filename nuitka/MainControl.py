@@ -339,7 +339,9 @@ def runScons( tree, quiet ):
 def writeSourceCode( filename, source_code ):
     assert not os.path.exists( filename ), filename
 
-    open( filename, "w" ).write( source_code )
+    with open( filename, "w" ) as output_file:
+        output_file.write( source_code )
+
 
 def callExec( args, clean_path, add_path ):
     old_python_path = os.environ.get( "PYTHONPATH", None )

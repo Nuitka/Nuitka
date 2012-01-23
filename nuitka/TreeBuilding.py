@@ -1717,11 +1717,12 @@ def buildModuleTree( filename, package, is_main ):
         sys.stderr.write(  "Nuitka: can't open file '%s'.\n" % filename )
         sys.exit( 2 )
 
-    buildParseTree(
-        provider    = result,
-        source_code = open( source_filename, "rU" ).read(),
-        source_ref  = source_ref,
-        replacement = False,
-    )
+    with open( source_filename, "rU" ) as source_file:
+        buildParseTree(
+            provider    = result,
+            source_code = source_file.read(),
+            source_ref  = source_ref,
+            replacement = False,
+        )
 
     return result
