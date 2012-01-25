@@ -5,12 +5,12 @@ Priority: optional
 Build-Depends: debhelper (>= 7.4.3),
                g++-4.6 (>= 4.6.1) | g++-4.5,
                python (>= 2.6.6-2),
-               python-dbg (>= 2.6.6-2),
-               python-dev (>= 2.6.6-2),
+               python-all-dbg (>= 2.6.6-2),
+               python-all-dev (>= 2.6.6-2),
                rst2pdf (>= 0.14-2),
                scons (>=2.0.0),
-               base-files (<<6.0) | python3-dev (>= 3.2),
-               base-files (<<6.0) | python3-dbg (>= 3.2)
+               base-files (<<6.0) | python3-all-dev (>= 3.2),
+               base-files (<<6.0) | python3-all-dbg (>= 3.2)
 Vcs-Git: http://git.nuitka.net/Nuitka.git
 Vcs-browser: http://nuitka.net/gitweb/?p=Nuitka.git;a=summary
 Homepage: http://nuitka.net
@@ -18,8 +18,14 @@ Standards-Version: 3.9.2
 
 Package: nuitka
 Architecture: all
-Depends: g++-4.6 (>= 4.6.1), scons (>=2.0.1), ${misc:Depends}, ${python:Depends}
-Recommends: python-lxml (>=2.3), python-qt4 (>= 4.8.6)
+Depends: g++-4.6 (>= 4.6.1) | g++-4.5,
+         scons (>=2.0.0),
+         python-dev (>= 2.6.6-2),
+         ${misc:Depends},
+         ${python:Depends}
+Recommends: python-lxml (>=2.3),
+            python-qt4 (>= 4.8.6)
+Suggests: ccache
 Description: Python compiler with full language support and CPython compatibility
  This Python compiler achieves full language compatibility and compiles Python
  code into compiled objects that are not second class to pure Python objects
