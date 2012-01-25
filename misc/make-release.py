@@ -163,7 +163,7 @@ else:
 
 # Import the "debian" directory from above. It's not in the original tar and overrides or
 # extends what py2dsc does.
-assert 0 == os.system( "rsync -a ../../debian/ %s/debian/" % entry )
+assert 0 == os.system( "rsync -a --exclude pbuilder-hookdir ../../debian/ %s/debian/" % entry )
 
 assert 0 == os.system( "rm *.dsc *.debian.tar.gz" )
 
@@ -213,7 +213,7 @@ if options.ubuntu_precise:
     basetgz_list.append( "precise.tgz" )
 
 for basetgz in basetgz_list:
-    command = "sudo /usr/sbin/pbuilder --build --basetgz  /var/cache/pbuilder/%s dist/deb_dist/*.dsc" % basetgz
+    command = "sudo /usr/sbin/pbuilder --build --basetgz  /var/cache/pbuilder/%s --hookdir debian/pbuilder-hookdir dist/deb_dist/*.dsc" % basetgz
 
     assert 0 == os.system( command ), basetgz
 
