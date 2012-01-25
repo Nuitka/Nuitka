@@ -1362,7 +1362,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
             )
         )
     elif expression.isExpressionBuiltinMakeException():
-        identifier = Generator.getMakeExceptionCode(
+        identifier = Generator.getMakeBuiltinExceptionCode(
             exception_type = expression.getExceptionName(),
             exception_args = generateExpressionsCode(
                 expressions = expression.getArgs(),
@@ -1753,6 +1753,11 @@ def _generateEvalCode( node, context ):
             context    = context
         )
 
+    if node.isExpressionBuiltinEval() or node.isExpressionBuiltinExec():
+        filename = "<string>"
+    else:
+        filename = "<execfile>"
+
     identifier = Generator.getEvalCode(
         exec_code           = generateExpressionCode(
             expression = node.getSourceCode(),
@@ -1761,7 +1766,7 @@ def _generateEvalCode( node, context ):
         globals_identifier  = globals_identifier,
         locals_identifier   = locals_identifier,
         filename_identifier = Generator.getConstantCode(
-            constant = "<string>" if node.isExpressionBuiltinEval() else "<execfile>",
+            constant = filename,
             context  = context
         ),
         mode_identifier    = Generator.getConstantCode(
@@ -2483,6 +2488,14 @@ def generateReversionMacrosCode( context ):
     return Generator.getReversionMacrosCode(
         context = context
     )
+
+def generateMakeTuplesCode( context ):
+    return Generator.getMakeTuplesCode(
+        context = context
+    )
+
+def generateHelpersCode( context ):
+    return generateReversionMacrosCode( context ) + generateMakeTuplesCode( context )
 
 def makeGlobalContext():
     return Contexts.PythonGlobalContext()

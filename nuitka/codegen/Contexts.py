@@ -99,6 +99,9 @@ class PythonChildContextBase( PythonContextBase ):
     def addEvalOrderUse( self, value ):
         self.parent.addEvalOrderUse( value )
 
+    def addMakeTupleUse( self, value ):
+        self.parent.addMakeTupleUse( value )
+
     def getParent( self ):
         return self.parent
 
@@ -167,8 +170,10 @@ class PythonGlobalContext:
         self.getConstantHandle( "read" )
         self.getConstantHandle( "strip" )
 
-        self.eval_orders_used = set( range( 2, 6 ) )
-
+        # Have EVAL_ORDER for 1..6 in any case, so we can use it in the C++ code freely
+        # without concern.
+        self.eval_orders_used = set( range( 1, 6 ) )
+        self.make_tuples_used = set( range( 1, 6 ) )
 
     def getConstantHandle( self, constant ):
         if constant is None:
@@ -196,7 +201,17 @@ class PythonGlobalContext:
         self.eval_orders_used.add( value )
 
     def getEvalOrdersUsed( self ):
-        return self.eval_orders_used
+        return sorted( self.eval_orders_used )
+
+    def addMakeTupleUse( self, value ):
+        assert type( value ) is int
+
+        self.addEvalOrderUse( value ) # generated code uses it
+        self.make_tuples_used.add( value )
+
+    def getMakeTuplesUsed( self ):
+        return sorted( self.make_tuples_used )
+
 
 class PythonModuleContext( PythonContextBase ):
     # Plent of attributes, because it's storing so many different things.
@@ -294,6 +309,10 @@ class PythonModuleContext( PythonContextBase ):
 
     def addEvalOrderUse( self, value ):
         self.global_context.addEvalOrderUse( value )
+
+    def addMakeTupleUse( self, value ):
+        self.global_context.addMakeTupleUse( value )
+
 
 class PythonFunctionContext( PythonChildContextBase ):
     def __init__( self, parent, function ):

@@ -287,8 +287,8 @@ def makeSourceDirectory( main_module ):
     )
 
     writeSourceCode(
-        filename    = Utils.joinpath( source_dir, "__reverses.hpp" ),
-        source_code = CodeGeneration.generateReversionMacrosCode(
+        filename    = Utils.joinpath( source_dir, "__helpers.hpp" ),
+        source_code = CodeGeneration.generateHelpersCode(
             context = global_context
         )
     )

@@ -57,6 +57,8 @@ from .OrderedEvaluation import getEvalOrderedCode
 from .ConstantCodes import getConstantHandle, getConstantCode
 from .VariableCodes import getVariableHandle, getVariableCode
 
+from .TupleCodes import getTupleCreationCode
+
 from .ParameterParsing import (
     getParameterEntryPointIdentifier,
     getDefaultParameterDeclarations,
@@ -162,7 +164,10 @@ def getSequenceCreationCode( context, sequence_kind, element_identifiers ):
     assert sequence_kind != "list" or element_identifiers
 
     if sequence_kind == "tuple":
-        arg_codes = getCodeTemporaryRefs( element_identifiers )
+        return getTupleCreationCode(
+            context             = context,
+            element_identifiers = element_identifiers
+        )
     else:
         arg_codes = getCodeExportRefs( element_identifiers )
 
@@ -1388,7 +1393,7 @@ def getExceptionRefCode( exception_type ):
         0
     )
 
-def getMakeExceptionCode( context, exception_type, exception_args ):
+def getMakeBuiltinExceptionCode( context, exception_type, exception_args ):
     return getFunctionCallCode(
         function_identifier = Identifier( "PyExc_%s" % exception_type, 0 ),
         argument_tuple      = getSequenceCreationCode(
@@ -3154,6 +3159,40 @@ def getReversionMacrosCode( context ):
     return CodeTemplates.template_header_guard % {
         "header_guard_name" : "__NUITKA_REVERSES_H__",
         "header_body"       : reverse_macros_declaration
+    }
+
+def getMakeTuplesCode( context ):
+    make_tuples_codes = []
+
+    for arg_count in context.getMakeTuplesUsed():
+        add_elements_code = []
+
+        for arg_index in range( arg_count ):
+            add_elements_code.append(
+                CodeTemplates.template_add_tuple_element_code % {
+                    "tuple_index" : arg_index,
+                    "tuple_value" : "element%d" % arg_index
+                }
+            )
+
+        make_tuples_codes.append(
+            CodeTemplates.template_make_tuple_function % {
+                "argument_count"             : arg_count,
+                "args"                       : ", ".join(
+                    "arg%s" % (arg_index+1) for arg_index in range( arg_count )
+                ),
+                "argument_decl"              : ", ".join(
+                    "PyObject *element%d" % arg_index
+                    for arg_index in
+                    range( arg_count )
+                ),
+                "add_elements_code"          : "\n".join( add_elements_code ),
+            }
+        )
+
+    return CodeTemplates.template_header_guard % {
+        "header_guard_name" : "__NUITKA_TUPLES_H__",
+        "header_body"       : "\n".join( make_tuples_codes )
     }
 
 
