@@ -74,28 +74,19 @@ for filename in sorted( os.listdir( "." ) ):
     extra_flags = [ "expect_success" ]
 
     if filename == "Referencing.py":
-        use_python = os.environ[ "PYTHON" ]
-
-        if os.path.exists( "/usr/bin/" + use_python + "-dbg" ):
-            use_python += "-dbg"
-        else:
+        if not os.path.exists( "/usr/bin/" + os.environ[ "PYTHON" ] + "-dbg" ):
             print( "Skip reference count test, CPython debug version not found." )
             continue
 
         extra_flags.append( "ignore_stderr" )
-    else:
-        use_python = os.environ[ "PYTHON" ]
+        extra_flags.append( "python_debug" )
 
     if active:
         # Temporary measure, until Python3 is better supported, disable some tests, so
         # this can be used to monitor the success of existing ones and have no regression for it.
-        if use_python == "python3.2" and filename[:-3] in ( "Builtins", "Classes", "ExceptionRaising", "ExecEval", "Functions", "Looping", "OverflowFunctions", "ParameterErrors", "Unicode", ):
+        if os.environ[ "PYTHON" ] == "python3.2" and filename[:-3] in ( "Builtins", "Classes", "ExceptionRaising", "ExecEval", "Functions", "Looping", "OverflowFunctions", "ParameterErrors", "Unicode", ):
             print( "Skipping malfunctional test", filename )
             continue
-
-
-        before = os.environ[ "PYTHON" ]
-        os.environ[ "PYTHON" ] = use_python
 
         # Apply 2to3 conversion if necessary.
         assert type( python_version ) is bytes
@@ -125,8 +116,6 @@ for filename in sorted( os.listdir( "." ) ):
             command,
             shell = True
         )
-
-        os.environ[ "PYTHON" ] = before
 
         if result == 2:
             sys.stderr.write( "Interruped, with CTRL-C\n" )

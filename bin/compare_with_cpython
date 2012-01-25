@@ -38,11 +38,16 @@ ignore_stderr = "ignore_stderr" in sys.argv
 exec_in_tmp = "exec_in_tmp" in sys.argv
 expect_success = "expect_success" in sys.argv
 expect_failure = "expect_failure" in sys.argv
+python_debug = "python_debug" in sys.argv
 two_step_execution = "two_step_execution" in sys.argv or "win" in sys.platform
 trace_command = "trace_command" in sys.argv
 
 if "PYTHON" not in os.environ:
     os.environ[ "PYTHON" ] = "python"
+
+if python_debug and os.path.exists( "/usr/bin/" + os.environ[ "PYTHON" ] + "-dbg" ):
+    os.environ[ "PYTHON" ] += "-dbg"
+
 
 print("Comparing output of '%s' using '%s' ..." % ( filename, os.environ[ "PYTHON" ] ))
 
@@ -68,6 +73,9 @@ nuitka_call = os.environ.get(
 )
 
 extra_options = os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
+
+if python_debug:
+    extra_options += " --python-debug"
 
 if not two_step_execution:
     nuitka_cmd = "%s %s --exe --execute %s" % (
