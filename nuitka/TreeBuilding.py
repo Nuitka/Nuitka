@@ -1335,9 +1335,6 @@ def buildExecNode( provider, node, source_ref ):
         if globals_node.isExpressionConstantRef() and globals_node.getConstant() is None:
             globals_node = None
 
-    if provider.isExpressionFunctionBody():
-        provider.markAsExecContaining()
-
     return Nodes.CPythonStatementExec(
         source_code = buildNode( provider, body, source_ref ),
         globals_arg = globals_node,
