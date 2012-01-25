@@ -164,11 +164,13 @@ print "Exec with a future division definition and one without:"
 
 exec """
 from __future__ import division
-print "3/2 is with future division", 3/2
+from __future__ import print_function
+print( "3/2 is with future division", 3/2 )
 """
 
 exec """
-print "3/2 is without future division", 3/2
+from __future__ import print_function
+print( "3/2 is without future division", 3/2 )
 """
 
 x = 1
@@ -183,36 +185,39 @@ def functionGlobalsExecShadow():
 
     print "Locals initially", locals()
     exec """
+from __future__ import print_function
 x = 2
-print "Exec local x is", x
+print( "Exec local x is", x )
 """
     print "Function global x is", x
 
     exec """
-print "Re-exec local x", x
+from __future__ import print_function
+print( "Re-exec local x", x )
 """
     print "Locals after exec assigning to local x", locals()
 
     exec """
+from __future__ import print_function
 global x
 x = 3
-print "Exec global x is", x
+print( "Exec global x is", x )
 """
     print "Exec level global x is", x
 
     exec """
+from __future__ import print_function
 def change_y():
    global y
    y = 4
 
-   print "Exec function global y is", y
+   print( "Exec function global y is", y )
 
 y = 7
 change_y()
 
 # TODO: The below will not work
-print "Exec local y is", y
-
+print( "Exec local y is", y )
 """
     # print "Local y is afterwards", y
 
@@ -279,8 +284,8 @@ print "Eval in a list contraction or generator expression", evalInContractions()
 
 def execDefinesFunctionToLocalsExplicity():
     exec """\
-def makeAddPair((a, b)):
-    def addPair((c, d)):
+def makeAddPair(a, b):
+    def addPair(c, d):
         return (a + c, b + d)
     return addPair
 """ in locals()
