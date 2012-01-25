@@ -350,6 +350,80 @@ previous approach of special casing imports to check if it's the included module
    optimization yet, it should be easy to add.
 
 
+Language Conversions to make things simpler
+===========================================
+
+There are some cases, where the Python language has things that can in fact be expressed
+in a simpler or more general way, and where we choose to do that at either tree building
+or optimization time.
+
+The "assert" statement
+----------------------
+
+Handling is:
+
+.. code-block:
+
+   assert value, raise_arg
+   # Absolutely the same as:
+   if not value:
+       raise AssertionError, raise_arg
+
+.. code-block:
+
+   assert value
+   # Absolutely the same as:
+   if not value:
+       raise AssertionError
+
+
+This makes assertions the same as a branch guarded exception, what it really is, and
+removes the need for any special code or optimizations to concern with it.
+
+This transformation is performed at tree building already.
+
+The "comparison chain" expressions
+----------------------------------
+
+.. code-block:
+
+   a < b > c < d
+   # With "temp variables" and "assignment expressions", absolutely the same as:
+   a < ( tmp_b = b ) and tmp_b > ( tmp_c = c) and ( tmp_c < d )
+
+This transformation is performed at tree building already. The assignment expressions are
+not standard Python, but a useful addition that enables this transformation and to express
+the short circuit nature of comparison chains.
+
+The "execfile" builtin
+----------------------
+
+Handling is:
+
+.. code-block:
+
+   execfile( filename )
+   # Basically the same as:
+   exec( compile( open( filename ).read() ), filename, "exec" )
+
+.. note::
+
+   This allows optimizations to discover the file opening nature easily and apply file
+   embedding or whatever we will have there one day.
+
+This transformation is performed when the "execfile" builtin is detected as such during
+optimization.
+
+
+Generator expressions with yields
+---------------------------------
+
+These are converted at tree building time into a generator function body that yields the
+iterator given, which is the put into a for loop to iterate, created a lambda function of
+and then called with the first iterator.
+
+That eliminates the generator expression for this case. It's a bizarre construct and with
+this trick needs no special code generation.
 
 Plan to replace "python-qt" for the GUI
 =======================================
@@ -1211,6 +1285,23 @@ into action, which could be code changes, plan changes, issues created, etc.
 
   Is there any re-formulation of conditional expressions with "and" and "or" that is
   generally true?
+
+* Inplace assignments should be re-formulated from C++ templates to node based.
+
+  With temporary variables, that then need to be able to release references then, we can
+  have these in the node trees, making them easier to understand for optimization.
+
+* Generator expressions should be re-formulated as functions.
+
+  Generally they could be turned into nested creations of for loop function bodies with
+  the first iterator as an argument. Right now, that would loose their optimizations, but
+  once we could recognize cases, where that optimization could be applied from the code
+  at code generation time, we wouldn't have to carry them through optimizations anymore,
+  so that idea is worth perusing.
+
+.. raw:: pdf
+
+   PageBreak
 
 Updates for this Manual
 =======================
