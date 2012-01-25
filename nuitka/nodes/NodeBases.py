@@ -717,3 +717,19 @@ class CPythonClosureTaker:
             assert variable.getOwner() is self
 
         self.temp_variables = variables
+
+
+class CPythonExpressionBuiltinSingleArgBase( CPythonChildrenHaving, CPythonNodeBase ):
+    named_children = ( "value", )
+
+    def __init__( self, value, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "value" : value,
+            }
+        )
+
+    getValue = CPythonChildrenHaving.childGetter( "value" )

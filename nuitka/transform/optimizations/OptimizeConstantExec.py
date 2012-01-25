@@ -42,7 +42,7 @@ steps.
 
 from .OptimizeBase import OptimizationVisitorBase, warning
 
-from nuitka.nodes import Nodes
+from nuitka.nodes.ExecEvalNodes import CPythonStatementExecInline
 
 from nuitka import TreeBuilding
 
@@ -58,7 +58,7 @@ class OptimizeExecVisitor( OptimizationVisitorBase ):
                 source_ref = node.getSourceReference().getExecReference()
 
                 try:
-                    new_node = Nodes.CPythonStatementExecInline(
+                    new_node = CPythonStatementExecInline(
                         provider    = node.getParentVariableProvider(),
                         source_ref  = source_ref
                     )

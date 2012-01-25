@@ -55,6 +55,13 @@ from .nodes.ConstantRefNode import CPythonExpressionConstantRef
 from .nodes.BuiltinReferenceNodes import CPythonExpressionBuiltinExceptionRef
 from .nodes.ExceptionNodes import CPythonStatementRaiseException
 from .nodes.ComparisonNode import CPythonExpressionComparison
+from .nodes.ExecEvalNodes import CPythonStatementExec
+
+from .nodes.FunctionNodes import (
+    CPythonStatementFunctionBuilder,
+    CPythonExpressionLambdaBuilder,
+    CPythonExpressionFunctionBody
+)
 
 from .nodes.ContainerMakingNodes import (
     CPythonExpressionKeyValuePair,
@@ -220,7 +227,7 @@ def buildFunctionNode( provider, node, source_ref ):
     decorators = buildDecoratorNodes( provider, node.decorator_list, source_ref )
     defaults = buildNodeList( provider, node.args.defaults, source_ref )
 
-    result = Nodes.CPythonStatementFunctionBuilder(
+    result = CPythonStatementFunctionBuilder(
         target     = buildVariableRefAssignTarget( node.name, source_ref ),
         defaults   = defaults,
         decorators = decorators,
@@ -233,7 +240,7 @@ def buildFunctionNode( provider, node, source_ref ):
         while real_provider.isExpressionClassBody():
             real_provider = real_provider.provider
 
-        function_body = Nodes.CPythonExpressionFunctionBody(
+        function_body = CPythonExpressionFunctionBody(
             provider   = real_provider,
             name       = node.name,
             doc        = function_doc,
@@ -261,7 +268,7 @@ def isSameListContent( a, b ):
 def buildLambdaNode( provider, node, source_ref ):
     defaults = buildNodeList( provider, node.args.defaults, source_ref )
 
-    result = Nodes.CPythonExpressionLambdaBuilder(
+    result = CPythonExpressionLambdaBuilder(
         defaults   = defaults,
         source_ref = source_ref,
     )
@@ -272,7 +279,7 @@ def buildLambdaNode( provider, node, source_ref ):
         while real_provider.isExpressionClassBody():
             real_provider = real_provider.provider
 
-        function_body = Nodes.CPythonExpressionFunctionBody(
+        function_body = CPythonExpressionFunctionBody(
             provider   = real_provider,
             name       = "lambda",
             doc        = None,
@@ -761,7 +768,7 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
         # it to a lambda generator function, something that does not exist in CPython, but
         # for which we can generator code.
         if contraction_body.isExpressionGeneratorBody() and contraction_body.isGenerator():
-            generator_function_body = Nodes.CPythonExpressionFunctionBody(
+            generator_function_body = CPythonExpressionFunctionBody(
                 provider   = provider,
                 name       = "pseudo",
                 doc        = None,
@@ -824,7 +831,7 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
             generator_function_body.setBody( body )
             generator_function_body.markAsGenerator()
 
-            new_result = Nodes.CPythonExpressionLambdaBuilder(
+            new_result = CPythonExpressionLambdaBuilder(
                 defaults   = (),
                 source_ref = source_ref,
             )
@@ -1335,7 +1342,7 @@ def buildExecNode( provider, node, source_ref ):
         if globals_node.isExpressionConstantRef() and globals_node.getConstant() is None:
             globals_node = None
 
-    return Nodes.CPythonStatementExec(
+    return CPythonStatementExec(
         source_code = buildNode( provider, body, source_ref ),
         globals_arg = globals_node,
         locals_arg  = locals_node,

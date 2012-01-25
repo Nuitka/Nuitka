@@ -38,14 +38,11 @@ from nuitka import (
     Utils
 )
 
-from . import OverflowCheck
-
 from .IndicatorMixins import (
     MarkExceptionBreakContinueIndicator,
     MarkContainsTryExceptIndicator,
     MarkLocalsDictIndicator,
     MarkGeneratorIndicator,
-    MarkExecContainingIndicator
 )
 
 from .NodeBases import (
@@ -54,7 +51,7 @@ from .NodeBases import (
     CPythonChildrenHaving,
     CPythonClosureTaker,
     CPythonClosureGiverNodeBase,
-    CPythonParameterHavingNodeBase,
+    CPythonExpressionBuiltinSingleArgBase,
 )
 
 class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureGiverNodeBase, \
@@ -502,222 +499,7 @@ class CPythonStatementAssignmentInplace( CPythonChildrenHaving, CPythonNodeBase 
     getTarget = CPythonChildrenHaving.childGetter( "target" )
     getExpression = CPythonChildrenHaving.childGetter( "expression" )
 
-class CPythonExpressionLambdaBuilder( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "EXPRESSION_LAMBDA_BUILDER"
 
-    named_children = ( "defaults", "body" )
-
-    def __init__( self, defaults, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "defaults" : tuple( defaults )
-            }
-        )
-
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
-
-    getDefaultExpressions = CPythonChildrenHaving.childGetter( "defaults" )
-
-    def getCodeName( self ):
-        return self.getBody().getCodeName()
-
-    def getClosureVariables( self ):
-        return self.getBody().getClosureVariables()
-
-    def getUserLocalVariables( self ):
-        return self.getBody().getUserLocalVariables()
-
-    def getTempVariables( self ):
-        return self.getBody().getTempVariables()
-
-    def getParameters( self ):
-        return self.getBody().getParameters()
-
-    def isGenerator( self ):
-        return self.getBody().isGenerator()
-
-class CPythonStatementFunctionBuilder( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "STATEMENT_FUNCTION_BUILDER"
-
-    named_children = ( "defaults", "decorators", "target", "body" )
-
-    def __init__( self, target, decorators, defaults, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "target"     : target,
-                "decorators" : tuple( decorators ),
-                "defaults"   : tuple( defaults )
-            }
-        )
-
-    def getFunctionName( self ):
-        return self.getBody().getName()
-
-    def getCodeName( self ):
-        return self.getBody().getCodeName()
-
-    def getClosureVariables( self ):
-        return self.getBody().getClosureVariables()
-
-    def getUserLocalVariables( self ):
-        return self.getBody().getUserLocalVariables()
-
-    def getTempVariables( self ):
-        return self.getBody().getTempVariables()
-
-    def getParameters( self ):
-        return self.getBody().getParameters()
-
-    def isGenerator( self ):
-        return self.getBody().isGenerator()
-
-    getDecorators = CPythonChildrenHaving.childGetter( "decorators" )
-    setDecorators = CPythonChildrenHaving.childSetter( "decorators" )
-
-    getDefaultExpressions = CPythonChildrenHaving.childGetter( "defaults" )
-
-    getTarget = CPythonChildrenHaving.childGetter( "target" )
-
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
-
-
-class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavingNodeBase, \
-                                     CPythonClosureTaker, MarkContainsTryExceptIndicator, \
-                                     MarkGeneratorIndicator, MarkLocalsDictIndicator,
-                                     MarkExecContainingIndicator ):
-    # We really want these many ancestors, as per design, we add properties via base class
-    # mixins a lot, pylint: disable=R0901
-
-    kind = "EXPRESSION_FUNCTION_BODY"
-
-    early_closure = False
-
-    named_children = ( "body", )
-
-    def __init__( self, provider, name, doc, parameters, source_ref ):
-        CPythonClosureTaker.__init__(
-            self,
-            provider = provider
-        )
-
-        CPythonParameterHavingNodeBase.__init__(
-            self,
-            name        = name,
-            code_prefix = "function",
-            parameters  = parameters,
-            source_ref  = source_ref
-        )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {}
-        )
-
-        MarkContainsTryExceptIndicator.__init__( self )
-
-        MarkGeneratorIndicator.__init__( self )
-
-        MarkLocalsDictIndicator.__init__( self )
-
-        MarkExecContainingIndicator.__init__( self )
-
-        self.parent = provider
-
-        self.doc = doc
-
-    def getDetails( self ):
-        return {
-            "name"       : self.getFunctionName(),
-            "parameters" : self.getParameters()
-        }
-
-    def getDetail( self ):
-        return "named %s with %s" % ( self.name, self.parameters )
-
-    def getFunctionName( self ):
-        return self.name
-
-    def getDoc( self ):
-        return self.doc
-
-    def getLocalVariableNames( self ):
-        return Variables.getNames( self.getLocalVariables() )
-
-    def getLocalVariables( self ):
-        return [
-            variable for
-            variable in
-            self.providing.values()
-            if variable.isLocalVariable()
-        ]
-
-    def getUserLocalVariables( self ):
-        return tuple(
-            variable for
-            variable in
-            self.providing.values()
-            if variable.isLocalVariable() and not variable.isParameterVariable()
-        )
-
-    def getVariables( self ):
-        return self.providing.values()
-
-    def getVariableForAssignment( self, variable_name ):
-        # print ( "ASS func", self, variable_name )
-
-        if self.hasTakenVariable( variable_name ):
-            result = self.getTakenVariable( variable_name )
-        else:
-            result = self.getProvidedVariable( variable_name )
-
-        return result
-
-    def getVariableForReference( self, variable_name ):
-        # print ( "REF func", self, variable_name )
-
-        if self.hasProvidedVariable( variable_name ):
-            result = self.getProvidedVariable( variable_name )
-        else:
-            if self.hasStaticLocals():
-                result = self.getClosureVariable(
-                    variable_name = variable_name
-                )
-            else:
-                result = Variables.MaybeLocalVariable(
-                    owner            = self,
-                    variable_name    = variable_name
-                )
-
-            # Remember that we need that closure for something.
-            self.registerProvidedVariable( result )
-
-        return result
-
-    def getVariableForClosure( self, variable_name ):
-        if self.hasProvidedVariable( variable_name ):
-            return self.getProvidedVariable( variable_name )
-        else:
-            return self.provider.getVariableForClosure( variable_name )
-
-    def createProvidedVariable( self, variable_name ):
-        return Variables.LocalVariable(
-            owner         = self,
-            variable_name = variable_name
-        )
-
-    def hasStaticLocals( self ):
-        return not OverflowCheck.check( self.getBody() )
-
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
 
 class CPythonExpressionYield( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_YIELD"
@@ -1457,107 +1239,6 @@ class CPythonStatementPass( CPythonNodeBase ):
 
 
 
-def _convertNoneConstantToNone( value ):
-    if value is not None and value.isExpressionConstantRef() and value.getConstant() is None:
-        return None
-    else:
-        return value
-
-class CPythonStatementExec( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "STATEMENT_EXEC"
-
-    named_children = ( "source", "globals", "locals" )
-
-    def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "globals" : globals_arg,
-                "locals"  : locals_arg,
-                "source"  : source_code
-            }
-        )
-
-    getSourceCode = CPythonChildrenHaving.childGetter( "source" )
-    _getGlobals = CPythonChildrenHaving.childGetter( "globals" )
-    _getLocals = CPythonChildrenHaving.childGetter( "locals" )
-
-    def getLocals( self ):
-        return _convertNoneConstantToNone( self._getLocals() )
-
-    def getGlobals( self ):
-        if self.getLocals() is None:
-            return _convertNoneConstantToNone( self._getGlobals() )
-        else:
-            return self._getGlobals()
-
-class CPythonStatementExecInline( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureGiverNodeBase ):
-    kind = "STATEMENT_EXEC_INLINE"
-
-    named_children = ( "body", )
-
-    early_closure = True
-
-    def __init__( self, provider, source_ref ):
-        CPythonClosureTaker.__init__( self, provider )
-        CPythonClosureGiverNodeBase.__init__(
-            self,
-            name        = "exec_inline",
-            code_prefix = "exec_inline",
-            source_ref  = source_ref
-        )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {}
-        )
-
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
-
-    def getVariableForAssignment( self, variable_name ):
-        # print ( "ASS inline", self, variable_name )
-
-        if self.hasProvidedVariable( variable_name ):
-            return self.getProvidedVariable( variable_name )
-
-        result = self.getProvidedVariable( variable_name )
-
-        # Remember that we need that closure for something.
-        self.registerProvidedVariable( result )
-
-        # print ( "RES inline", result )
-
-        return result
-
-    def getVariableForReference( self, variable_name ):
-        # print ( "REF inline", self, variable_name )
-
-        result = self.getVariableForAssignment( variable_name )
-
-        # print ( "RES inline", result )
-
-        return result
-
-    def createProvidedVariable( self, variable_name ):
-        # print ( "CREATE inline", self, variable_name )
-
-        # An exec in a module gives a module variable always, on the top level
-        # of an exec, if it's not already a global through a global statement,
-        # the parent receives a local variable now.
-        if self.provider.isModule():
-            return self.provider.getProvidedVariable(
-                variable_name = variable_name
-            )
-        else:
-            return Variables.LocalVariable(
-                owner         = self.provider,
-                variable_name = variable_name
-            )
-
-
 class CPythonExpressionBuiltinGlobals( CPythonNodeBase ):
     kind = "EXPRESSION_BUILTIN_GLOBALS"
 
@@ -1593,39 +1274,6 @@ class CPythonExpressionBuiltinVars( CPythonChildrenHaving, CPythonNodeBase ):
 
     getSource = CPythonChildrenHaving.childGetter( "source" )
 
-class CPythonExpressionBuiltinEval( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "EXPRESSION_BUILTIN_EVAL"
-
-    named_children = ( "source", "globals", "locals" )
-
-    def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "source"  : source_code,
-                "globals" : globals_arg,
-                "locals"  : locals_arg,
-            }
-        )
-
-    getSourceCode = CPythonChildrenHaving.childGetter( "source" )
-    getGlobals = CPythonChildrenHaving.childGetter( "globals" )
-    getLocals = CPythonChildrenHaving.childGetter( "locals" )
-
-# Note: Python3 only so far.
-class CPythonExpressionBuiltinExec( CPythonExpressionBuiltinEval ):
-    kind = "EXPRESSION_BUILTIN_EXEC"
-
-class CPythonExpressionBuiltinExecfile( CPythonExpressionBuiltinEval ):
-    kind = "EXPRESSION_BUILTIN_EXECFILE"
-
-    named_children = ( "source", "globals", "locals" )
-
-    def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
-        CPythonExpressionBuiltinEval.__init__( self, source_code, globals_arg, locals_arg, source_ref )
-
 
 class CPythonExpressionBuiltinOpen( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_BUILTIN_OPEN"
@@ -1647,21 +1295,6 @@ class CPythonExpressionBuiltinOpen( CPythonChildrenHaving, CPythonNodeBase ):
     getFilename = CPythonChildrenHaving.childGetter( "filename" )
     getMode = CPythonChildrenHaving.childGetter( "mode" )
     getBuffering = CPythonChildrenHaving.childGetter( "buffering" )
-
-class CPythonExpressionBuiltinSingleArgBase( CPythonChildrenHaving, CPythonNodeBase ):
-    named_children = ( "value", )
-
-    def __init__( self, value, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "value" : value,
-            }
-        )
-
-    getValue = CPythonChildrenHaving.childGetter( "value" )
 
 
 class CPythonExpressionBuiltinChr( CPythonExpressionBuiltinSingleArgBase ):
@@ -1740,6 +1373,7 @@ class CPythonExpressionBuiltinInt( CPythonChildrenHaving, CPythonNodeBase ):
 
     getValue = CPythonChildrenHaving.childGetter( "value" )
     getBase = CPythonChildrenHaving.childGetter( "base" )
+
 
 class CPythonExpressionBuiltinLong( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_BUILTIN_LONG"

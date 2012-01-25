@@ -47,6 +47,12 @@ from nuitka.nodes.BuiltinDictNode import CPythonExpressionBuiltinDict
 from nuitka.nodes.ExceptionNodes import CPythonExpressionBuiltinMakeException
 from nuitka.nodes.ImportNodes import CPythonExpressionBuiltinImport, CPythonExpressionImportModule
 from nuitka.nodes.OperatorNodes import CPythonExpressionOperationUnary
+from nuitka.nodes.ExecEvalNodes import (
+    CPythonExpressionBuiltinEval,
+    CPythonExpressionBuiltinExec,
+    CPythonExpressionBuiltinExecfile,
+    CPythonStatementExec
+)
 
 from nuitka.nodes.ParameterSpec import ParameterSpec
 
@@ -308,9 +314,9 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
                 # In a case, the copy-back must be done and will only be done correctly by
                 # the code for exec statements.
 
-                use_call = Nodes.CPythonStatementExec
+                use_call = CPythonStatementExec
             else:
-                use_call = Nodes.CPythonExpressionBuiltinExecfile
+                use_call = CPythonExpressionBuiltinExecfile
 
             return use_call(
                 source_code = Nodes.CPythonExpressionFunctionCall(
@@ -349,7 +355,7 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
 
         positional_args = node.getPositionalArguments()
 
-        return Nodes.CPythonExpressionBuiltinEval(
+        return CPythonExpressionBuiltinEval(
             source_code  = positional_args[0],
             globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
             locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
@@ -361,7 +367,7 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
 
         positional_args = node.getPositionalArguments()
 
-        return Nodes.CPythonExpressionBuiltinExec(
+        return CPythonExpressionBuiltinExec(
             source_code  = positional_args[0],
             globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
             locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
