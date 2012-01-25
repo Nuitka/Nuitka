@@ -44,6 +44,25 @@ When given, use this as the source for the Debian package instead. Default %defa
 )
 
 parser.add_option(
+    "--no-pbuilder-update",
+    action  = "store_false",
+    dest    = "update_pbuilder",
+    default = True,
+    help    = """\
+Update the pbuilder chroot before building. Default %default."""
+)
+
+
+parser.add_option(
+    "--check-ubuntu-all",
+    action  = "store_true",
+    dest    = "ubuntu_all",
+    default = False,
+    help    = """\
+Check the created Debian package in all Ubuntu versions. Default %default."""
+)
+
+parser.add_option(
     "--no-check-debian-sid",
     action  = "store_false",
     dest    = "debian_sid",
@@ -192,27 +211,31 @@ assert 0 == os.system( "lintian --pedantic --fail-on-warnings dist/deb_dist/*.ch
 os.system( "cp dist/deb_dist/*.deb dist/" )
 
 # Build inside the pbuilder chroot, which should be an updated sid. The update is
-# not done here. TODO: Add a time based check that e.g. runs it with --update at
-# least every 24 hours or so.
+# not done here.
 
 basetgz_list = []
 
 if options.debian_sid:
     basetgz_list.append( "base.tgz" )
 
-if options.ubuntu_oneiric:
+if options.ubuntu_oneiric or options.ubuntu_all:
     basetgz_list.append( "oneiric.tgz" )
 
-if options.ubuntu_maverick:
+if options.ubuntu_maverick or options.ubuntu_all:
     basetgz_list.append( "maverick.tgz" )
 
-if options.ubuntu_natty:
+if options.ubuntu_natty or options.ubuntu_all:
     basetgz_list.append( "natty.tgz" )
 
-if options.ubuntu_precise:
+if options.ubuntu_precise  or options.ubuntu_all:
     basetgz_list.append( "precise.tgz" )
 
 for basetgz in basetgz_list:
+    if options.update_pbuilder:
+        command = "sudo /usr/sbin/pbuilder --update --basetgz  /var/cache/pbuilder/%s" % basetgz
+
+        assert 0 == os.system( command ), basetgz
+
     command = "sudo /usr/sbin/pbuilder --build --basetgz  /var/cache/pbuilder/%s --hookdir debian/pbuilder-hookdir dist/deb_dist/*.dsc" % basetgz
 
     assert 0 == os.system( command ), basetgz
