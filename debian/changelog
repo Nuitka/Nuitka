@@ -1,17 +1,22 @@
-nuitka (0.3.19~pre5+ds-1) UNRELEASED; urgency=low
+nuitka (0.3.19+ds-1) unstable; urgency=low
 
-  * New upstream pre-release.
-  * This is not going to be uploaded to Debian yet.
-
- -- Kay Hayen <kayhayen@gmx.de>  Sun, 22 Jan 2012 10:19:52 +0100
-
-nuitka (0.3.18.4+ds-1) unstable; urgency=low
-
-  * New upstream hotfix release.
+  * New upstream release.
   * Improvements to option groups layout in manpages, and broken
     whitespace for "--recurse-to" option. (Closes: #655910)
+  * Documented new option "--recurse-directory" in man page with
+    example.
   * Made the "debian/watch" file ignore upstream pre-releases,
     these shall not be considered for this package.
+  * Aligned depended version with build depended versions.
+  * Depend on "python-dev" as well, needed to compile against
+    "libpython".
+  * Build depend on "python-dev-all" and "python-dbg-all" to
+    execute tests with both all supported Python versions.
+  * Build depend on "python3.2-dev-all" and "python3-dbg-all"
+    to execute tests with Python3 as well. It is currently not
+    supported by upstream, this is only preparatory.
+  * Added suggestion of "ccache", can speed up the compilation
+    process.
 
  -- Kay Hayen <kayhayen@gmx.de>  Tue, 17 Jan 2012 10:29:45 +0100
 
