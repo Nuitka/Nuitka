@@ -90,6 +90,9 @@ def considerFilename( module_filename, module_package ):
 
         return module_filename, module_relpath, module_name
 
+def isPackageDir( dirname ):
+    return Utils.isDir( dirname ) and Utils.isFile( Utils.joinpath( dirname, "__init__.py" ))
+
 def checkPluginPath( plugin_filename, module_package ):
     plugin_info = considerFilename(
         module_package  = module_package,
@@ -114,7 +117,7 @@ def checkPluginPath( plugin_filename, module_package ):
                     if sub_filename == "__init__.py":
                         continue
 
-                    if Utils.isDir( sub_path ) or sub_path.endswith( ".py" ):
+                    if isPackageDir( sub_path ) or sub_path.endswith( ".py" ):
                         checkPluginPath( sub_path, module.getFullName() )
 
 
