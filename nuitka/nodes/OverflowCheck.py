@@ -26,6 +26,9 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Check if a function or class body needs a locals dict."""
+
+# TODO: Merge with the finalization step that uses it.
 
 from nuitka.transform import TreeOperations
 
@@ -57,7 +60,7 @@ class OverflowCheckVisitor( TreeOperations.VisitorNoopMixin ):
         if node.isStatementImportStar():
             declareOverflow()
 
-        if node.isStatementExec():
+        if node.isStatementExec() or node.isExpressionBuiltinExec():
             if _couldBeNone( node.getGlobals() ):
                 declareOverflow()
             elif node.getGlobals().isExpressionBuiltinLocals():

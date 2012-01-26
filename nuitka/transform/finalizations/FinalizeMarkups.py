@@ -99,3 +99,9 @@ class FinalizeMarkups( FinalizationVisitorBase ):
             parent = node.getParentVariableProvider()
 
             parent.markAsTryExceptContaining()
+
+        if node.isStatementExec() or node.isExpressionBuiltinExec():
+            parent = node.getParentVariableProvider()
+
+            if parent.isExpressionFunctionBody():
+                parent.markAsExecContaining()

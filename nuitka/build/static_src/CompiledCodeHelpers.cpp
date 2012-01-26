@@ -79,8 +79,8 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
 
     PyObjectTemporary future_flags( PyInt_FromLong( flags ) );
 
-    return _python_builtin_compile.call(
-        EVAL_ORDERED_5(
+    return _python_builtin_compile.call_args(
+        MAKE_TUPLE5(
             source,
             file_name,
             mode,
@@ -101,15 +101,15 @@ PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
     }
     else if ( mode == NULL )
     {
-        return _python_builtin_open.call(
+        return _python_builtin_open.call1(
             file_name
         );
 
     }
     else if ( buffering == NULL )
     {
-        return _python_builtin_open.call(
-            EVAL_ORDERED_2(
+        return _python_builtin_open.call_args(
+            MAKE_TUPLE2(
                file_name,
                mode
             )
@@ -117,8 +117,8 @@ PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
     }
     else
     {
-        return _python_builtin_open.call(
-            EVAL_ORDERED_3(
+        return _python_builtin_open.call_args(
+            MAKE_TUPLE3(
                 file_name,
                 mode,
                 buffering
@@ -227,7 +227,7 @@ PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases,
 {
     PyObject *result = PyType_Type.tp_new(
         &PyType_Type,
-        PyObjectTemporary( MAKE_TUPLE( EVAL_ORDERED_3( name, bases, dict ) ) ).asObject(),
+        PyObjectTemporary( MAKE_TUPLE3( name, bases, dict ) ).asObject(),
         NULL
     );
 
@@ -247,7 +247,7 @@ PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases,
             type->tp_init != NULL
            )
         {
-            int res = type->tp_init( result, MAKE_TUPLE( EVAL_ORDERED_3( name, bases, dict ) ), NULL );
+            int res = type->tp_init( result, MAKE_TUPLE3( name, bases, dict ), NULL );
 
             if (unlikely( res < 0 ))
             {
@@ -367,7 +367,7 @@ PyObject *BUILTIN_RANGE( PyObject *boundary )
     {
         PyErr_Clear();
 
-        return _python_builtin_range.call( boundary_temp.asObject() );
+        return _python_builtin_range.call1( boundary_temp.asObject() );
     }
 
     return BUILTIN_RANGE( start );
@@ -398,8 +398,8 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high )
 
     if ( fallback )
     {
-        return _python_builtin_range.call(
-            EVAL_ORDERED_2(
+        return _python_builtin_range.call_args(
+            MAKE_TUPLE2(
                 low_temp.asObject(),
                 high_temp.asObject()
             )
@@ -445,8 +445,8 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step )
 
     if ( fallback )
     {
-        return _python_builtin_range.call(
-            EVAL_ORDERED_3(
+        return _python_builtin_range.call_args(
+            MAKE_TUPLE3(
                 low_temp.asObject(),
                 high_temp.asObject(),
                 step_temp.asObject()
@@ -633,8 +633,8 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *loc
 
     _python_builtin_import.refresh();
 
-    import_result = _python_builtin_import.call(
-        EVAL_ORDERED_5(
+    import_result = _python_builtin_import.call_args(
+        MAKE_TUPLE5(
             module_name,
             globals,
             locals,
@@ -776,7 +776,7 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
 
     if (likely( file == NULL ))
     {
-        _python_builtin_print.call(
+        _python_builtin_print.call1(
             object
         );
     }
@@ -784,16 +784,20 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
     {
         // TODO: Not portable to ARM at all. Should generate evaluation order resistent
         // MAKE_DICT variants and not have to generate at compile time correct order.
-        PyObjectTemporary print_keyargs(
+        PyObjectTemporary print_kw(
             MAKE_DICT(
                 _python_str_plain_end, _python_str_empty,
                 _python_str_plain_file, GET_STDOUT()
             )
         );
 
-        _python_builtin_print.call_keyargs(
-            print_keyargs.asObject(),
-            object
+        PyObjectTemporary print_args(
+            MAKE_TUPLE1( object )
+        );
+
+        _python_builtin_print.call_args_kw(
+            print_args.asObject(),
+            print_kw.asObject()
         );
     }
 #endif
@@ -837,7 +841,7 @@ void PRINT_NEW_LINE_TO( PyObject *file )
             )
         );
 
-        _python_builtin_print.call_keyargs(
+        _python_builtin_print.call_kw(
             print_keyargs.asObject()
         );
     }

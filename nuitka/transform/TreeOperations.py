@@ -75,7 +75,6 @@ def visitExecution( tree, visitor ):
     visitTree( tree, visitor, "execution_border" )
 
 
-
 def visitScopes( tree, visitor ):
     class VisitEverything( VisitorNoopMixin ):
         def onEnterNode( self, node ):

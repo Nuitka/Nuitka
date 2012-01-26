@@ -34,7 +34,7 @@ Different kinds of variables represent different scopes and owners.
 
 class Variable:
     def __init__( self, owner, variable_name ):
-        assert type( variable_name ) == str, variable_name
+        assert type( variable_name ) is str, variable_name
 
         self.variable_name = variable_name
         self.owner = owner
@@ -98,6 +98,9 @@ class Variable:
         return False
 
     def isModuleVariable( self ):
+        return False
+
+    def isTempVariable( self ):
         return False
     # pylint: enable=R0201
 
@@ -377,3 +380,37 @@ class ModuleVariable( Variable ):
 
 def getNames( variables ):
     return [ variable.getName() for variable in variables ]
+
+class TempVariableReference( VariableReferenceBase ):
+
+    def isTempVariableReference( self ):
+        # Virtual method, pylint: disable=R0201
+        return True
+
+class TempVariable( Variable ):
+    reference_class = TempVariableReference
+
+    def __init__( self, owner, variable_name ):
+        Variable.__init__(
+            self,
+            owner         = owner,
+            variable_name = variable_name
+        )
+
+    def __repr__( self ):
+        return "<TempVariable '%s' of '%s'>" % (
+            self.getName(),
+            self.getOwner()
+        )
+
+    def isTempVariable( self ):
+        # Virtual method, pylint: disable=R0201
+        return True
+
+    def getDeclarationTypeCode( self ):
+        # Virtual method, pylint: disable=R0201
+        return "PyObject *"
+
+    def getDeclarationInitValueCode( self ):
+        # Virtual method, pylint: disable=R0201
+        return "NULL"

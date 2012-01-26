@@ -36,34 +36,10 @@ from ..TreeOperations import RestartVisit
 
 from nuitka.nodes import Nodes
 
-def toRaiseExceptionStatement( node ):
-    assert node.isExpressionRaiseException()
-
-    side_effects = node.getSideEffects()
-
-    raise_node = Nodes.CPythonStatementRaiseException(
-        exception_type  = node.getExceptionType(),
-        exception_value = node.getExceptionValue(),
-        exception_trace = None,
-        source_ref      = node.getSourceReference()
-    )
-
-    if side_effects:
-        side_effects = tuple(
-            Nodes.CPythonStatementExpressionOnly(
-                expression = side_effect,
-                source_ref = side_effect.getSourceReference()
-            )
-            for side_effect in side_effects
-        )
-
-        return Nodes.CPythonStatementsSequence(
-            statements = side_effects + ( raise_node, ),
-            source_ref = node.getSourceReference()
-        )
-    else:
-        return raise_node
-
+from nuitka.nodes.NodeMakingHelpers import (
+    convertRaiseExceptionExpressionRaiseExceptionStatement,
+    makeStatementsSequenceReplacementNode
+)
 
 class OptimizeRaisesVisitor( OptimizationVisitorBase ):
     def onEnterNode( self, node ):
@@ -132,9 +108,9 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
                                         source_ref = handler.getSourceReference(),
                                     )
 
-                                    new_node = Nodes.CPythonStatementsSequence(
+                                    new_node = makeStatementsSequenceReplacementNode(
                                         statements = ( assign_node, ) + handler.getExceptionBranch().getStatements(),
-                                        source_ref = handler.getSourceReference(),
+                                        node       = handler,
                                     )
                                 else:
                                     new_node = handler.getExceptionBranch()
@@ -187,7 +163,9 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
             )
         elif node.isStatement():
             node.replaceWith(
-                new_node = toRaiseExceptionStatement( raise_exception )
+                new_node = convertRaiseExceptionExpressionRaiseExceptionStatement(
+                    node = raise_exception
+                )
             )
 
             self.signalChange(

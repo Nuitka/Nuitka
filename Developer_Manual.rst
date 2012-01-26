@@ -20,6 +20,77 @@ them. And we update them as we proceed.x
 It grows out of discussions and presentations made at PyCON alike conferences as well as
 private conversations or discussions on the mailing list.
 
+Milestones
+==========
+
+   1. Feature parity with Python, understand all the language construct and behave
+      absolutely compatible.
+
+      Feature parity has been reached for Python 2.6 and 2.7, we do not target any older
+      CPython release. For Python 3.2, things are still not complete. To us 3.x is not
+      currently a high priority, but eventually we will get Nuitka going there too, and
+      some of the basic tests already pass. You are more than welcome to volunteer for
+      this task.
+
+      This milestone is considered reached.
+
+   2. Create the most efficient native code from this. This means to be fast with the
+      basic Python object handling.
+
+
+      This milestone is considered mostly reached.
+
+   3. Then do constant propagation, determine as many values and useful constraints as
+      possible at compile time and create more efficient code.
+
+      This milestone is considered in progress.
+
+   4. Type inference, detect and special case the handling of strings, integers, lists in
+      the program.
+
+      This milestone is started only.
+
+   5. Add interfacing to C code, so Nuitka can turn a "ctypes" binding into an efficient
+      binding as written with C.
+
+      This milestone is planned only.
+
+   6. Add hints module with a useful Python implementation that the compiler can use to
+      learn about types from the programmer.
+
+      This milestone is planned only.
+
+Version Numbers
+===============
+
+For Nuitka we use defensive version numbering to indicate that it is not yet ready and
+useful for everything yet. We have defined milestones and the version numbers should
+express which of these, we consider done.
+
+- So far:
+
+   Before milestone 1, we uses "0.1.x" version numbers. After reaching it, we used "0.2.x"
+   version numbers.
+
+- Now:
+
+   We currently use "0.3.x" version numbers as we still strive for milestone 2 and 3 to be
+   really completed.
+
+- Future:
+
+   When we start to have sufficient amount of type inference in a stable release, that
+   will be "0.4.x" version numbers. With "ctypes" bindings in a sufficient state it will
+   be "0.5.x".
+
+- Final:
+
+   We will then round it up and call it "Nuitka 1.0" when this works as expected for a
+   bunch of people. The plan is to reach this goal during 2012. This is based on lots
+   of assumptions that may not hold up though.
+
+Of course, this may be subject to change.
+
 Current State
 =============
 
@@ -279,6 +350,80 @@ previous approach of special casing imports to check if it's the included module
    optimization yet, it should be easy to add.
 
 
+Language Conversions to make things simpler
+===========================================
+
+There are some cases, where the Python language has things that can in fact be expressed
+in a simpler or more general way, and where we choose to do that at either tree building
+or optimization time.
+
+The "assert" statement
+----------------------
+
+Handling is:
+
+.. code-block:
+
+   assert value, raise_arg
+   # Absolutely the same as:
+   if not value:
+       raise AssertionError, raise_arg
+
+.. code-block:
+
+   assert value
+   # Absolutely the same as:
+   if not value:
+       raise AssertionError
+
+
+This makes assertions the same as a branch guarded exception, what it really is, and
+removes the need for any special code or optimizations to concern with it.
+
+This transformation is performed at tree building already.
+
+The "comparison chain" expressions
+----------------------------------
+
+.. code-block:
+
+   a < b > c < d
+   # With "temp variables" and "assignment expressions", absolutely the same as:
+   a < ( tmp_b = b ) and tmp_b > ( tmp_c = c) and ( tmp_c < d )
+
+This transformation is performed at tree building already. The assignment expressions are
+not standard Python, but a useful addition that enables this transformation and to express
+the short circuit nature of comparison chains.
+
+The "execfile" builtin
+----------------------
+
+Handling is:
+
+.. code-block:
+
+   execfile( filename )
+   # Basically the same as:
+   exec( compile( open( filename ).read() ), filename, "exec" )
+
+.. note::
+
+   This allows optimizations to discover the file opening nature easily and apply file
+   embedding or whatever we will have there one day.
+
+This transformation is performed when the "execfile" builtin is detected as such during
+optimization.
+
+
+Generator expressions with yields
+---------------------------------
+
+These are converted at tree building time into a generator function body that yields the
+iterator given, which is the put into a for loop to iterate, created a lambda function of
+and then called with the first iterator.
+
+That eliminates the generator expression for this case. It's a bizarre construct and with
+this trick needs no special code generation.
 
 Plan to replace "python-qt" for the GUI
 =======================================
@@ -720,22 +865,61 @@ Now to the interface
 
 The following is the intended interface
 
-- Base class "ValueFriendBase"
+- Base class "ValueFriendBase" according to rules.
+
+  The base class offers methods that allow to check if certain operations are supported or
+  not. These can always return "True" (yes), "False" (no), and "None" (cannot decide). In
+  the case of the later, optimizations may not be able do much about it. Lets call these
+  values "tristate".
+
+  Part of the interface is a method "getComputation" which gives the node the chance to
+  return a tristate together with a lambda, that when executed, produces either an
+  exception or constant value.
+
+  The "getComputation" may be able to produce exceptions or constant even for non-constant
+  inputs depending on the operation being performed. For every computational step it will
+  be executed.
+
+  In this sense, attribute lookup is also a computation, as its value might be computed as
+  well. Most often an attribute lookup will produce a new value, which is not assigned,
+  but e.g. called. In this case, the call value friend may be able to query its called
+  expression for the attribute call prediction.
 
 - Name for module "ValueFriends" according to rules.
 
-- Class for module value friend "ValueFriendModule"
+  These should live in a package of some sort and be split up into groups later on, but
+  for the start it's probably easier to keep them all in one file.
 
-- Base class for module and module friend "ValueFriendModuleBase"
+- Class for module import expression "ValueFriendImportModule".
 
-- Module "ModuleFriendRegistry" provides a register function with "name" and instances of
-  "ValueFriendModuleBase" to be registered. Recursed to modules should integrate with that
-  too.
+  This one just knows that something is imported and not how or what it is assigned to, it
+  will be able in a recursive compile, to provide the module as an assignment source, or
+  the module variables or submodules as an attribute source.
 
-- The module friends should live in a module of their own, with a naming policy to be
-  determined. These modules should add themselves to "ModuleFriendRegistry" and all shall
-  be imported and register. Importing of e.g. "ctypes" should be delayed to when the
-  friend is actually used. A meta class should aid this task.
+- Class for module value friend "ValueFriendModule".
+
+  The concrete module, e.g. "ctypes" or "math" from standard library.
+
+- Base class for module and module friend "ValueFriendModuleBase".
+
+  This is intended to provide something to overload, which e.g. can handle "math" in a
+  better way.
+
+- Module "ModuleFriendRegistry"
+
+  Provides a register function with "name" and instances of "ValueFriendModuleBase" to be
+  registered. Recursed to modules should integrate with that too. The registry could well
+  be done with a metaclass approach.
+
+- The module friends should each live in a module of their own.
+
+  With a naming policy to be determined. These modules should add themselves via above
+  mechanism to "ModuleFriendRegistry" and all shall be imported and register. Importing of
+  e.g. "ctypes" should be delayed to when the friend is actually used. A meta class should
+  aid this task.
+
+  The delay will avoid unnecessary blot of the compiler at run time, if no such module is
+  used. For "qt" and other complex stuff, this will be a must.
 
 - A collection of "ValueFriend" instances expresses the current data flow state.
 
@@ -1101,6 +1285,23 @@ into action, which could be code changes, plan changes, issues created, etc.
 
   Is there any re-formulation of conditional expressions with "and" and "or" that is
   generally true?
+
+* Inplace assignments should be re-formulated from C++ templates to node based.
+
+  With temporary variables, that then need to be able to release references then, we can
+  have these in the node trees, making them easier to understand for optimization.
+
+* Generator expressions should be re-formulated as functions.
+
+  Generally they could be turned into nested creations of for loop function bodies with
+  the first iterator as an argument. Right now, that would loose their optimizations, but
+  once we could recognize cases, where that optimization could be applied from the code
+  at code generation time, we wouldn't have to carry them through optimizations anymore,
+  so that idea is worth perusing.
+
+.. raw:: pdf
+
+   PageBreak
 
 Updates for this Manual
 =======================

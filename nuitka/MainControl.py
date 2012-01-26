@@ -34,6 +34,7 @@ C/API, to compile it to either an executable or an extension module.
 """
 
 from . import (
+    TreeRecursion,
     TreeBuilding,
     Tracing,
     TreeXML,
@@ -48,7 +49,7 @@ from .codegen import CodeGeneration
 from .transform.optimizations import Optimization
 from .transform.finalizations import Finalization
 
-import sys, os
+import sys, os, shutil
 
 def createNodeTree( filename ):
     """ Create a node tree.
@@ -58,15 +59,24 @@ def createNodeTree( filename ):
 
     """
 
-    # First build the raw node tree from the source code.
+    # First, build the raw node tree from the source code.
     result = TreeBuilding.buildModuleTree(
         filename = filename,
         package  = None,
         is_main  = not Options.shallMakeModule()
     )
 
+    # Second, do it for the directories given.
+    for plugin_filename in Options.getShallFollowExtra():
+        TreeRecursion.checkPluginPath(
+            plugin_filename = plugin_filename,
+            module_package  = None
+        )
+
     # Then optimize the tree and potentially recursed modules.
-    result = Optimization.optimizeWhole( result )
+    result = Optimization.optimizeWhole(
+        main_module = result
+    )
 
     return result
 
@@ -108,12 +118,31 @@ def makeModuleSource( tree ):
 
     return source_code
 
+def getTreeFilenameWithSuffix( tree, suffix ):
+    main_filename = tree.getFilename()
+
+    if main_filename.endswith( ".py" ):
+        return main_filename[:-3] + suffix
+    else:
+        return main_filename + suffix
+
 def getSourceDirectoryPath( main_module ):
     assert main_module.isModule()
 
-    name = Utils.basename( main_module.getFilename() ).replace( ".py", "" )
+    return Options.getOutputPath(
+        path = Utils.basename(
+            getTreeFilenameWithSuffix( main_module, ".build" )
+        )
+    )
 
-    return Options.getOutputPath( name + ".build" )
+def getResultPath( main_module ):
+    assert main_module.isModule()
+
+    return Options.getOutputPath(
+        path = Utils.basename(
+            getTreeFilenameWithSuffix( main_module, "" )
+        )
+    )
 
 def makeSourceDirectory( main_module ):
     assert main_module.isModule()
@@ -121,9 +150,7 @@ def makeSourceDirectory( main_module ):
     source_dir = getSourceDirectoryPath( main_module )
 
     if os.path.exists( source_dir ):
-        for filename in sorted( os.listdir( source_dir ) ):
-            path = Utils.joinpath( source_dir, filename )
-
+        for path, filename in Utils.listDir( source_dir ):
             if Utils.getExtension( path ) in ( ".cpp", ".hpp", ".o", ".os" ):
                 os.unlink( path )
     else:
@@ -132,7 +159,7 @@ def makeSourceDirectory( main_module ):
     static_source_dir = Utils.joinpath( source_dir, "static" )
 
     if os.path.exists( static_source_dir ):
-        for filename in sorted( os.listdir( static_source_dir ) ):
+        for path, filename in sorted( Utils.listDir( static_source_dir ) ):
             path = Utils.joinpath( static_source_dir, filename )
 
             if Utils.getExtension( path ) in ( ".o", ".os" ):
@@ -260,8 +287,8 @@ def makeSourceDirectory( main_module ):
     )
 
     writeSourceCode(
-        filename    = Utils.joinpath( source_dir, "__reverses.hpp" ),
-        source_code = CodeGeneration.generateReversionMacrosCode(
+        filename    = Utils.joinpath( source_dir, "__helpers.hpp" ),
+        source_code = CodeGeneration.generateHelpersCode(
             context = global_context
         )
     )
@@ -272,37 +299,35 @@ def makeSourceDirectory( main_module ):
     )
 
 def runScons( tree, quiet ):
-    name = Utils.basename( tree.getFilename() ).replace( ".py", "" )
-
-    def asBoolStr( value ):
-        return "true" if value else "false"
-
-    result_file = Options.getOutputPath( name )
-    source_dir = Options.getOutputPath( name + ".build" )
-
     if Options.options.python_version is not None:
         python_version = Options.options.python_version
     else:
         python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
 
         if Utils.getPythonVersion() >= 320:
-            python_version += sys.abiflags # pylint: disable=E1101
+            # The Python3 really has sys.abiflags pylint: disable=E1101
+            if Options.options.python_debug is not None or hasattr( sys, "getobjects" ):
+                if sys.abiflags.startswith( "d" ):
+                    python_version += sys.abiflags
+                else:
+                    python_version += "d" + sys.abiflags
+            else:
+                python_version += sys.abiflags
+        elif Options.options.python_debug is not None or hasattr( sys, "getobjects" ):
+            python_version += "_d"
 
-    if Options.options.python_debug is not None:
-        python_debug = Options.options.python_debug
-    else:
-        python_debug = hasattr( sys, "getobjects" )
+    def asBoolStr( value ):
+        return "true" if value else "false"
 
     options = {
-        "name"           : name,
-        "result_file"    : result_file,
-        "source_dir"     : source_dir,
+        "name"           : Utils.basename( getTreeFilenameWithSuffix( tree, "" ) ),
+        "result_file"    : getResultPath( tree ),
+        "source_dir"     : getSourceDirectoryPath( tree ),
         "debug_mode"     : asBoolStr( Options.isDebug() ),
         "unstriped_mode" : asBoolStr( Options.isUnstriped() ),
         "module_mode"    : asBoolStr( Options.shallMakeModule() ),
         "optimize_mode"  : asBoolStr( Options.isOptimize() ),
         "python_version" : python_version,
-        "python_debug"   : asBoolStr( python_debug ),
         "lto_mode"       : asBoolStr( Options.isLto() ),
     }
 
@@ -314,24 +339,98 @@ def runScons( tree, quiet ):
 def writeSourceCode( filename, source_code ):
     assert not os.path.exists( filename ), filename
 
-    open( filename, "w" ).write( source_code )
+    with open( filename, "w" ) as output_file:
+        output_file.write( source_code )
 
-def executeMain( binary_filename, tree, clean_path ):
-    name = Utils.basename( tree.getFilename() ).replace( ".py", ".exe" )
 
+def callExec( args, clean_path, add_path ):
     old_python_path = os.environ.get( "PYTHONPATH", None )
 
-    try:
-        if clean_path and old_python_path is not None:
-            os.environ[ "PYTHONPATH" ] = ""
+    if clean_path and old_python_path is not None:
+        os.environ[ "PYTHONPATH" ] = ""
 
-        if not Options.isWindowsTarget() or "win" in sys.platform:
-            os.execl( binary_filename, name, *Options.getMainArgs() )
+    if add_path:
+        os.environ[ "PYTHONPATH" ] = os.environ.get( "PYTHONPATH", "" ) + ":" + Options.getOutputDir()
+
+    # We better flush these, "os.execl" won't do it anymore.
+    sys.stdout.flush()
+    sys.stderr.flush()
+
+    args += Options.getMainArgs()
+
+    # That's the API of execl, pylint: disable=W0142
+    os.execl( *args )
+
+    if old_python_path is not None:
+        os.environ[ "PYTHONPATH" ] = old_python_path
+    else:
+        del os.environ[ "PYTHONPATH" ]
+
+
+def executeMain( binary_filename, tree, clean_path ):
+    main_filename = tree.getFilename()
+
+    if main_filename.endswith( ".py" ):
+        name = Utils.basename( main_filename[:-3]  )
+    else:
+        name = Utils.basename( main_filename )
+
+    if not Options.isWindowsTarget() or "win" in sys.platform:
+        args = ( binary_filename, name )
+    else:
+        args = ( "/usr/bin/wine", name, binary_filename )
+
+    callExec(
+        clean_path = clean_path,
+        add_path   = False,
+        args       = args
+    )
+
+def executeModule( tree, clean_path ):
+    args = (
+        sys.executable,
+        "python",
+        "-c",
+        "__import__( '%s' )" % tree.getName(),
+    )
+
+    callExec(
+        clean_path = clean_path,
+        add_path   = True,
+        args       = args
+    )
+
+def compileTree( tree ):
+    if not Options.shallOnlyExecGcc():
+        # Now build the target language code for the whole tree.
+        makeSourceDirectory(
+            main_module = tree
+        )
+
+    # Run the Scons to build things.
+    result, options = runScons(
+        tree  = tree,
+        quiet = not Options.isShowScons()
+    )
+
+    # Exit if compilation failed.
+    if not result:
+        sys.exit( 1 )
+
+    # Remove the source directory (now build directory too) if asked to.
+    if Options.isRemoveBuildDir():
+        shutil.rmtree( getSourceDirectoryPath( tree ) )
+
+    # Execute the module immediately if option was given.
+    if Options.shallExecuteImmediately():
+        if Options.shallMakeModule():
+            executeModule(
+                tree       = tree,
+                clean_path = Options.shallClearPythonPathEnvironment()
+            )
         else:
-            os.execl( "/usr/bin/wine", name, binary_filename, *Options.getMainArgs() )
-    finally:
-        if old_python_path is not None:
-            os.environ[ "PYTHONPATH" ] = old_python_path
-
-def executeModule( tree ):
-    __import__( tree.getName() )
+            executeMain(
+                binary_filename = options[ "result_file" ] + ".exe",
+                tree            = tree,
+                clean_path      = Options.shallClearPythonPathEnvironment()
+            )

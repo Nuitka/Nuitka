@@ -31,6 +31,8 @@
 
 extern PyModuleObject *_module_builtin;
 
+#include "nuitka/calling.hpp"
+
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN( PyObject *name )
 {
     assertObject( name );
@@ -84,22 +86,43 @@ class PythonBuiltin
             this->value = entry->me_value;
         }
 
-        template<typename... P>
-        PyObject *call( P...eles )
+        PyObject *call()
         {
-            return CALL_FUNCTION(
-                this->asObject(),
-                PyObjectTemporary( MAKE_TUPLE( eles... ) ).asObject(),
-                NULL
+            return CALL_FUNCTION_NO_ARGS(
+                this->asObject()
             );
         }
 
-        template<typename... P>
-        PyObject *call_keyargs( PyObject *kw, P...eles )
+
+        PyObject *call1( PyObject *arg )
+        {
+            return CALL_FUNCTION_WITH_POSARGS(
+                this->asObject(),
+                PyObjectTemporary( MAKE_TUPLE1( arg ) ).asObject()
+            );
+        }
+
+        PyObject *call_args( PyObject *args )
+        {
+            return CALL_FUNCTION_WITH_POSARGS(
+                this->asObject(),
+                PyObjectTemporary( args ).asObject()
+            );
+        }
+
+        PyObject *call_kw( PyObject *kw )
+        {
+            return CALL_FUNCTION_WITH_KEYARGS(
+                this->asObject(),
+                kw
+            );
+        }
+
+        PyObject *call_args_kw( PyObject *args, PyObject *kw )
         {
             return CALL_FUNCTION(
                 this->asObject(),
-                PyObjectTemporary( MAKE_TUPLE( eles... ) ).asObject(),
+                args,
                 kw
             );
         }

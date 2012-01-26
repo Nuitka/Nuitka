@@ -33,6 +33,7 @@
 from .Identifiers import (
     Identifier,
     ConstantIdentifier,
+    TempObjectIdentifier,
     LocalVariableIdentifier,
     ClosureVariableIdentifier
 )
@@ -51,7 +52,7 @@ class PythonContextBase:
         self.try_count = 0
         self.with_count = 0
 
-        self.temp_counter = 0
+        self.preservations = {}
 
     def allocateForLoopNumber( self ):
         self.for_loop_count += 1
@@ -79,21 +80,15 @@ class PythonContextBase:
     def isParametersViaContext( self ):
         return False
 
-    def getTempObjectVariable( self ):
-        result = Identifier( "_expression_temps[%d] " % self.temp_counter, 0 )
-
-        self.temp_counter += 1
-
-        return result
-
-    def getTempObjectCounter( self ):
-        return self.temp_counter
-
     def hasLocalsDict( self ):
         return False
 
     def needsFrameExceptionKeeper( self ):
         return False
+
+    def getTempHandle( self, var_name ):
+        return TempObjectIdentifier( var_name, from_context = "" )
+
 
 class PythonChildContextBase( PythonContextBase ):
     def __init__( self, parent ):
@@ -103,6 +98,9 @@ class PythonChildContextBase( PythonContextBase ):
 
     def addEvalOrderUse( self, value ):
         self.parent.addEvalOrderUse( value )
+
+    def addMakeTupleUse( self, value ):
+        self.parent.addMakeTupleUse( value )
 
     def getParent( self ):
         return self.parent
@@ -172,8 +170,10 @@ class PythonGlobalContext:
         self.getConstantHandle( "read" )
         self.getConstantHandle( "strip" )
 
-        self.eval_orders_used = set( range( 2, 6 ) )
-
+        # Have EVAL_ORDER for 1..6 in any case, so we can use it in the C++ code freely
+        # without concern.
+        self.eval_orders_used = set( range( 1, 6 ) )
+        self.make_tuples_used = set( range( 1, 6 ) )
 
     def getConstantHandle( self, constant ):
         if constant is None:
@@ -201,14 +201,24 @@ class PythonGlobalContext:
         self.eval_orders_used.add( value )
 
     def getEvalOrdersUsed( self ):
-        return self.eval_orders_used
+        return sorted( self.eval_orders_used )
+
+    def addMakeTupleUse( self, value ):
+        assert type( value ) is int
+
+        self.addEvalOrderUse( value ) # generated code uses it
+        self.make_tuples_used.add( value )
+
+    def getMakeTuplesUsed( self ):
+        return sorted( self.make_tuples_used )
+
 
 class PythonModuleContext( PythonContextBase ):
+    # Plent of attributes, because it's storing so many different things.
+    # pylint: disable=R0902
+
     def __init__( self, module_name, code_name, filename, global_context ):
         PythonContextBase.__init__( self )
-
-        # Plent of attributes, because it's storing so many different things.
-        # pylint: disable=R0902
 
         self.name = module_name
         self.code_name = code_name
@@ -221,6 +231,7 @@ class PythonModuleContext( PythonContextBase ):
         self.contraction_codes = {}
 
         self.global_var_names = set()
+        self.temp_var_names = set()
 
     def __repr__( self ):
         return "<PythonModuleContext instance for module %s>" % self.filename
@@ -299,6 +310,10 @@ class PythonModuleContext( PythonContextBase ):
     def addEvalOrderUse( self, value ):
         self.global_context.addEvalOrderUse( value )
 
+    def addMakeTupleUse( self, value ):
+        self.global_context.addMakeTupleUse( value )
+
+
 class PythonFunctionContext( PythonChildContextBase ):
     def __init__( self, parent, function ):
         PythonChildContextBase.__init__( self, parent = parent )
@@ -344,6 +359,12 @@ class PythonFunctionContext( PythonChildContextBase ):
             return ClosureVariableIdentifier( var_name, from_context = "_python_context->" )
         else:
             return ClosureVariableIdentifier( var_name, from_context = "_python_context->common_context->" )
+
+    def getTempHandle( self, var_name ):
+        if self.function.isGenerator():
+            return TempObjectIdentifier( var_name, from_context = "_python_context->" )
+        else:
+            return TempObjectIdentifier( var_name, from_context = "" )
 
     def getCodeName( self ):
         return self.function.getCodeName()
@@ -406,6 +427,9 @@ class PythonGeneratorExpressionContext( PythonContractionBase ):
 
     def getLocalHandle( self, var_name ):
         return LocalVariableIdentifier( var_name, from_context = True )
+
+    def getTempHandle( self, var_name ):
+        return TempObjectIdentifier( var_name, from_context = "_python_context->" )
 
     def hasFrameGuard( self ):
         return False

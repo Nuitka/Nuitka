@@ -36,6 +36,8 @@ from .OptimizeBase import (
 
 from nuitka.nodes import Nodes
 
+from nuitka.nodes.NodeMakingHelpers import makeStatementsSequenceReplacementNode
+
 from nuitka import Utils
 
 _unpack_error_length_indication = Utils.getPythonVersion() < 300
@@ -76,9 +78,9 @@ class ReplaceUnpackingVisitor( OptimizationVisitorBase ):
                                 )
 
                             node.replaceWith(
-                                Nodes.CPythonStatementsSequence(
+                                makeStatementsSequenceReplacementNode(
                                     statements = statements,
-                                    source_ref = node.getSourceReference()
+                                    node       = node
                                 )
                             )
 
@@ -120,7 +122,7 @@ class ReplaceUnpackingVisitor( OptimizationVisitorBase ):
 
 
                             self.signalChange(
-                                "new_code",
+                                "new_raise",
                                 node.getSourceReference(),
                                 "Removed bound to fail unpacking assignments."
                             )

@@ -45,6 +45,7 @@ from .templates.CodeTemplatesAssignments import *
 from .templates.CodeTemplatesExceptions import *
 from .templates.CodeTemplatesImporting import *
 from .templates.CodeTemplatesPrinting import *
+from .templates.CodeTemplatesTuples import *
 from .templates.CodeTemplatesCalls import *
 from .templates.CodeTemplatesClass import *
 from .templates.CodeTemplatesLoops import *

@@ -66,7 +66,14 @@ with_template = """\
            _caught_%(with_count)d.save( _exception );
         }
 
-        _exception.addTraceback( %(frame_making)s );
+        if ( !_exception.hasTraceback() )
+        {
+            _exception.setTraceback( %(tb_making)s );
+        }
+        else if ( traceback == false )
+        {
+            _exception.addTraceback( frame_guard.getFrame() );
+        }
 
         if ( traceback == false )
         {
@@ -81,7 +88,11 @@ with_template = """\
         assertObject( exception_value );
         assertObject( exception_tb );
 
-        PyObject *_exit_result = PyObject_Call( %(manager)s_exit.asObject(), PyObjectTemporary( MAKE_TUPLE( EVAL_ORDERED_3( exception_type, exception_value, exception_tb ) ) ).asObject(), NULL );
+        PyObject *_exit_result = PyObject_Call(
+           %(manager)s_exit.asObject(),
+           PyObjectTemporary( MAKE_TUPLE3( exception_type, exception_value, exception_tb ) ).asObject(),
+           NULL
+        );
 
         if (unlikely( _exit_result == NULL ))
         {

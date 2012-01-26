@@ -42,3 +42,7 @@ Note: This will degrade performance and should only be used to debug Nuitka:
 .IP
 \f(CW$ nuitka \-\-debug \-\-python-debug \-\-recurse\-all some_program.py \-\-exe\fR
 .PP
+Compile a python program "some_program.py" and the plugins modules it loads at run time to an executable "some_program.exe":
+.IP
+\f(CW$ nuitka \-\-recurse\-all \-\-recurse\-directory=plugins_dir some_program.py \-\-exe\fR
+.PP

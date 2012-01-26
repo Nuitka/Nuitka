@@ -16,6 +16,8 @@
 #     limitations under the License.
 #
 
+import sys
+
 x = 2
 
 def someFunction1():
@@ -88,7 +90,10 @@ def someNestedGlobalUser3b():
 z = 1
 """
 
-    return z, locals().keys() == [ "z" ]
+    if sys.version_info[0] < 3:
+        return z, locals().keys() == [ "z" ]
+    else:
+        return locals().keys() == []
 
 
 def someNestedGlobalUser4():

@@ -109,13 +109,9 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
         else:
             result = Generator.getFalseExpressionCode()
     elif condition.isExpressionComparison():
-        result = Generator.getComparisonExpressionBoolCode(
-            comparators = condition.getComparators(),
-            operands    = generateExpressionsCode(
-                expressions = condition.getOperands(),
-                context     = context
-            ),
-            context     = context
+        result = generateComparisonExpressionBoolCode(
+            comparison_expression = condition,
+            context               = context
         )
 
         if inverted:
@@ -240,15 +236,6 @@ def generateContractionCode( contraction, context ):
 
     contraction_identifier = contraction.getCodeName()
 
-    if Options.shallHaveStatementLines():
-        line_number_code = Generator.getSetCurrentLineCode(
-            context    = context,
-            source_ref = contraction.getSourceReference()
-        )
-    else:
-        line_number_code = ""
-
-
     if contraction.isExpressionGeneratorBuilder():
         assert len( contraction.getTargets() ) == len( sub_iterated_identifiers ) + 1
 
@@ -270,9 +257,9 @@ def generateContractionCode( contraction, context ):
             generator_iterateds  = sub_iterated_identifiers,
             loop_var_codes       = loop_var_codes,
             source_ref           = contraction.getSourceReference(),
-            line_number_code     = line_number_code,
             closure_variables    = contraction.getClosureVariables(),
-            provided_variables   = contraction.getProvidedVariables()
+            provided_variables   = contraction.getProvidedVariables(),
+            tmp_variables        = contraction.getTempVariables()
         )
     else:
         if contraction.isExpressionListContractionBuilder():
@@ -299,6 +286,7 @@ def generateContractionCode( contraction, context ):
             loop_var_codes         = loop_var_codes,
             closure_variables      = contraction.getClosureVariables(),
             provided_variables     = contraction.getProvidedVariables(),
+            tmp_variables          = contraction.getTempVariables(),
             context                = context
         )
 
@@ -439,7 +427,8 @@ def generateLambdaCode( lambda_expression, context ):
             function_name              = "<lambda>",
             function_identifier        = lambda_expression.getCodeName(),
             parameters                 = parameters,
-            user_variables             = lambda_expression.getBody().getUserLocalVariables(),
+            user_variables             = lambda_expression.getUserLocalVariables(),
+            tmp_variables              = lambda_expression.getTempVariables(),
             decorator_count            = 0, # Lambda expressions can't be decorated.
             closure_variables          = lambda_expression.getClosureVariables(),
             default_access_identifiers = default_access_identifiers,
@@ -453,7 +442,8 @@ def generateLambdaCode( lambda_expression, context ):
             function_name              = "<lambda>",
             function_identifier        = lambda_expression.getCodeName(),
             parameters                 = parameters,
-            user_variables             = lambda_expression.getBody().getUserLocalVariables(),
+            user_variables             = lambda_expression.getUserLocalVariables(),
+            tmp_variables              = lambda_expression.getTempVariables(),
             decorator_count            = 0, # Lambda expressions can't be decorated.
             closure_variables          = lambda_expression.getClosureVariables(),
             default_access_identifiers = default_access_identifiers,
@@ -518,7 +508,8 @@ def generateFunctionCode( function, context ):
             function_identifier        = function.getCodeName(),
             parameters                 = parameters,
             closure_variables          = function.getClosureVariables(),
-            user_variables             = function.getBody().getUserLocalVariables(),
+            user_variables             = function.getUserLocalVariables(),
+            tmp_variables              = function.getTempVariables(),
             decorator_count            = len( function.getDecorators() ),
             default_access_identifiers = default_access_identifiers,
             source_ref                 = function.getSourceReference(),
@@ -532,7 +523,8 @@ def generateFunctionCode( function, context ):
             function_identifier        = function.getCodeName(),
             parameters                 = parameters,
             closure_variables          = function.getClosureVariables(),
-            user_variables             = function.getBody().getUserLocalVariables(),
+            user_variables             = function.getUserLocalVariables(),
+            tmp_variables              = function.getTempVariables(),
             decorator_count            = len( function.getDecorators() ),
             default_access_identifiers = default_access_identifiers,
             source_ref                 = function.getSourceReference(),
@@ -632,16 +624,26 @@ def generateClassCode( class_def, context ):
         context           = context
     )
 
+    class_dict_codes = Generator.getReturnCode(
+        identifier = Generator.getLoadLocalsCode(
+            provider = class_def.getBody(),
+            context  = class_context,
+            mode     = "updated"
+        )
+    )
+
     class_code = Generator.getClassCode(
         context            = class_context,
+        source_ref         = class_def.getSourceReference(),
         class_identifier   = class_def.getCodeName(),
-        class_def          = class_def,
         class_name         = class_def.getClassName(),
         class_variables    = class_def.getClassVariables(),
         closure_variables  = class_def.getClosureVariables(),
+        tmp_variables      = class_def.getTempVariables(),
         decorator_count    = len( decorators ),
         module_name        = class_def.getParentModule().getName(),
         class_doc          = class_def.getBody().getDoc(),
+        class_dict_codes   = class_dict_codes,
         class_codes        = class_codes,
         metaclass_variable = class_def.getParentModule().getVariableForReference(
             variable_name = "__metaclass__"
@@ -670,14 +672,40 @@ def generateOperationCode( operator, operands, context ):
     )
 
 def generateComparisonExpressionCode( comparison_expression, context ):
-    return Generator.getComparisonExpressionCode(
-        comparators = comparison_expression.getComparators(),
-        operands    = generateExpressionsCode(
-            expressions = comparison_expression.getOperands(),
-            context     = context
-        ),
-        context     = context
+    left = generateExpressionCode(
+        expression = comparison_expression.getLeft(),
+        context    = context
     )
+    right = generateExpressionCode(
+        expression = comparison_expression.getRight(),
+        context    = context
+    )
+
+    result = Generator.getComparisonExpressionCode(
+        comparator        = comparison_expression.getComparator(),
+        left              = left,
+        right             = right
+    )
+
+    return result
+
+
+def generateComparisonExpressionBoolCode( comparison_expression, context ):
+    left = generateExpressionCode(
+        expression = comparison_expression.getLeft(),
+        context    = context
+    )
+    right = generateExpressionCode(
+        expression = comparison_expression.getRight(),
+        context    = context
+    )
+
+    return Generator.getComparisonExpressionBoolCode(
+        comparator        = comparison_expression.getComparator(),
+        left              = left,
+        right             = right
+    )
+
 
 def generateDictionaryCreationCode( pairs, context ):
     keys = []
@@ -1031,6 +1059,11 @@ def generateExpressionCode( expression, context, allow_none = False ):
             variable = expression.getVariable(),
             context  = context
         )
+    elif expression.isExpressionTempVariableRef():
+        identifier = Generator.getVariableHandle(
+            variable = expression.getVariable(),
+            context  = context
+        )
     elif expression.isExpressionConstantRef():
         identifier = Generator.getConstantAccess(
             constant = expression.getConstant(),
@@ -1177,6 +1210,12 @@ def generateExpressionCode( expression, context, allow_none = False ):
             context   = context,
             eval_node = expression
         )
+    elif expression.isExpressionBuiltinExec():
+        # exec builtin of Python3, as opposed to Python2 statement
+        identifier = generateEvalCode(
+            context   = context,
+            eval_node = expression
+        )
     elif expression.isExpressionBuiltinExecfile():
         identifier = generateExecfileCode(
             context       = context,
@@ -1221,6 +1260,11 @@ def generateExpressionCode( expression, context, allow_none = False ):
         )
     elif expression.isExpressionImportModule():
         identifier = generateImportModuleCode(
+            expression = expression,
+            context    = context
+        )
+    elif expression.isExpressionBuiltinImport():
+        identifier = generateBuiltinImportCode(
             expression = expression,
             context    = context
         )
@@ -1318,7 +1362,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
             )
         )
     elif expression.isExpressionBuiltinMakeException():
-        identifier = Generator.getMakeExceptionCode(
+        identifier = Generator.getMakeBuiltinExceptionCode(
             exception_type = expression.getExceptionName(),
             exception_args = generateExpressionsCode(
                 expressions = expression.getArgs(),
@@ -1335,11 +1379,28 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = Generator.getExceptionRefCode(
             exception_type = expression.getExceptionName(),
         )
+    elif expression.isExpressionAssignment():
+        target = expression.getTarget()
+        assert target.isAssignTargetVariable(), target
+
+        source_identifier = makeExpressionCode( expression.getSource() )
+
+        identifier = Generator.Identifier(
+            "( %s )" % (
+                Generator.getVariableAssignmentCode(
+                    variable   = target.getTargetVariableRef().getVariable(),
+                    identifier = source_identifier,
+                    context    = context
+                )[:-1]
+            ),
+            source_identifier.getRefCount()
+        )
+
     else:
         assert False, expression
 
     if not hasattr( identifier, "getCodeTemporaryRef" ):
-        assert False, identifier
+        raise AssertionError( "not a code object?", repr( identifier ) )
 
     return identifier
 
@@ -1692,6 +1753,11 @@ def _generateEvalCode( node, context ):
             context    = context
         )
 
+    if node.isExpressionBuiltinEval() or node.isExpressionBuiltinExec():
+        filename = "<string>"
+    else:
+        filename = "<execfile>"
+
     identifier = Generator.getEvalCode(
         exec_code           = generateExpressionCode(
             expression = node.getSourceCode(),
@@ -1700,7 +1766,7 @@ def _generateEvalCode( node, context ):
         globals_identifier  = globals_identifier,
         locals_identifier   = locals_identifier,
         filename_identifier = Generator.getConstantCode(
-            constant = "<string>" if node.isExpressionBuiltinEval() else "<execfile>",
+            constant = filename,
             context  = context
         ),
         mode_identifier    = Generator.getConstantCode(
@@ -1900,14 +1966,69 @@ def generateImportModuleCode( expression, context ):
             context     = context
         )
 
-    return Generator.getImportModuleCode(
-        module_name  = expression.getModuleName(),
-        import_list  = expression.getImportList(),
-        globals_dict = globals_dict,
-        locals_dict  = locals_dict,
-        level        = expression.getLevel(),
-        context      = context
+    return Generator.getBuiltinImportCode(
+        module_identifier  = Generator.getConstantHandle(
+            constant = expression.getModuleName(),
+            context  = context
+        ),
+        globals_dict       = globals_dict,
+        locals_dict        = locals_dict,
+        import_list        = Generator.getConstantHandle(
+            constant = expression.getImportList(),
+            context  = context
+        ),
+        level              = Generator.getConstantHandle(
+            constant = expression.getLevel(),
+            context  = context
+        )
     )
+
+def generateBuiltinImportCode( expression, context ):
+    globals_dict = generateExpressionCode(
+        expression = expression.getGlobals(),
+        allow_none = True,
+        context    = context
+    )
+
+    if globals_dict is None:
+        globals_dict = Generator.getLoadGlobalsCode(
+            context = context
+        )
+
+    locals_dict = generateExpressionCode(
+        expression = expression.getLocals(),
+        allow_none = True,
+        context    = context
+    )
+
+    if locals_dict is None:
+        provider = expression.getParentVariableProvider()
+
+        if provider.isModule():
+            locals_dict = globals_dict
+        else:
+            locals_dict  = generateBuiltinLocalsCode(
+                locals_node = expression,
+                context     = context
+            )
+
+    return Generator.getBuiltinImportCode(
+        module_identifier = generateExpressionCode(
+            expression = expression.getImportName(),
+            context    = context
+        ),
+        import_list       = generateExpressionCode(
+            expression = expression.getFromList(),
+            context    = context
+        ),
+        globals_dict      = globals_dict,
+        locals_dict       = locals_dict,
+        level             = generateExpressionCode(
+            expression = expression.getLevel(),
+            context    = context
+        )
+    )
+
 
 def generateImportStarCode( statement, context ):
     return Generator.getImportFromStarCode(
@@ -2036,16 +2157,7 @@ def generateForLoopCode( statement, context ):
         context            = context
     )
 
-    if Options.shallHaveStatementLines():
-        line_number_code = Generator.getSetCurrentLineCode(
-            context    = context,
-            source_ref = statement.getIterated().getSourceReference()
-        )
-    else:
-        line_number_code = ""
-
     return Generator.getForLoopCode(
-        line_number_code = line_number_code,
         iterator         = iterator,
         iter_name        = iter_name,
         iter_value       = iter_value,
@@ -2054,6 +2166,7 @@ def generateForLoopCode( statement, context ):
         loop_body_codes  = loop_body_codes,
         loop_else_codes  = loop_else_codes,
         needs_exceptions = statement.needsExceptionBreakContinue(),
+        source_ref       = statement.getSourceReference(),
         context          = context
     )
 
@@ -2342,6 +2455,7 @@ def generateModuleCode( module, module_name, global_context ):
         ),
         path_identifier     = path_identifier,
         codes               = codes,
+        tmp_variables       = module.getTempVariables(),
         context             = context,
     )
 
@@ -2375,6 +2489,13 @@ def generateReversionMacrosCode( context ):
         context = context
     )
 
+def generateMakeTuplesCode( context ):
+    return Generator.getMakeTuplesCode(
+        context = context
+    )
+
+def generateHelpersCode( context ):
+    return generateReversionMacrosCode( context ) + generateMakeTuplesCode( context )
 
 def makeGlobalContext():
     return Contexts.PythonGlobalContext()

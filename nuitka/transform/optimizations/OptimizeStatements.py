@@ -37,6 +37,10 @@ from .OptimizeBase import OptimizationVisitorBase, TreeOperations
 
 from nuitka.nodes import Nodes
 
+from nuitka.nodes.NodeMakingHelpers import (
+    makeStatementExpressionOnlyReplacementNode
+)
+
 from logging import warning
 
 class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
@@ -81,9 +85,9 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
                 node.setBranchYes( None )
 
             if no_branch is None and yes_branch is None:
-                new_node = Nodes.CPythonStatementExpressionOnly(
+                new_node = makeStatementExpressionOnlyReplacementNode(
                     expression = node.getCondition(),
-                    source_ref = node.getSourceReference()
+                    node       = node
                 )
 
                 node.replaceWith( new_node )

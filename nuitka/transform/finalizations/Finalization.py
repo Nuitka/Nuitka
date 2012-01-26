@@ -35,6 +35,7 @@ many times.
 """
 from .FinalizeMarkups import FinalizeMarkups
 from .FinalizeClosureTaking import FinalizeClosureTaking
+from .FinalizeTempVariables import FinalizeTempVariables
 
 # Bug of pylint, it's there but it reports it wrongly, pylint: disable=E0611
 from .. import TreeOperations
@@ -45,3 +46,6 @@ def prepareCodeGeneration( tree ):
 
     visitor = FinalizeClosureTaking()
     TreeOperations.visitTagHaving( tree, visitor, "closure_taker" )
+
+    visitor = FinalizeTempVariables()
+    TreeOperations.visitScopes( tree, visitor )

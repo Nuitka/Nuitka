@@ -35,6 +35,34 @@ from optparse import OptionParser, OptionGroup
 parser = OptionParser()
 
 parser.add_option(
+    "--use-as-ds-source",
+    action  = "store",
+    dest    = "ds_source",
+    default = None,
+    help    = """\
+When given, use this as the source for the Debian package instead. Default %default."""
+)
+
+parser.add_option(
+    "--no-pbuilder-update",
+    action  = "store_false",
+    dest    = "update_pbuilder",
+    default = True,
+    help    = """\
+Update the pbuilder chroot before building. Default %default."""
+)
+
+
+parser.add_option(
+    "--check-ubuntu-all",
+    action  = "store_true",
+    dest    = "ubuntu_all",
+    default = False,
+    help    = """\
+Check the created Debian package in all Ubuntu versions. Default %default."""
+)
+
+parser.add_option(
     "--no-check-debian-sid",
     action  = "store_false",
     dest    = "debian_sid",
@@ -136,6 +164,9 @@ for filename in os.listdir( "." ):
         # Remove the now useless input, py2dsc has copied it, and we don't publish it.
         os.unlink( new_name )
 
+        if options.ds_source is not None:
+            shutil.copyfile( options.ds_source, "deb_dist/%s+ds.orig.tar.gz" % after_deb_name )
+
         break
 else:
     assert False
@@ -151,7 +182,7 @@ else:
 
 # Import the "debian" directory from above. It's not in the original tar and overrides or
 # extends what py2dsc does.
-assert 0 == os.system( "rsync -a ../../debian/ %s/debian/" % entry )
+assert 0 == os.system( "rsync -a --exclude pbuilder-hookdir ../../debian/ %s/debian/" % entry )
 
 assert 0 == os.system( "rm *.dsc *.debian.tar.gz" )
 
@@ -180,28 +211,32 @@ assert 0 == os.system( "lintian --pedantic --fail-on-warnings dist/deb_dist/*.ch
 os.system( "cp dist/deb_dist/*.deb dist/" )
 
 # Build inside the pbuilder chroot, which should be an updated sid. The update is
-# not done here. TODO: Add a time based check that e.g. runs it with --update at
-# least every 24 hours or so.
+# not done here.
 
 basetgz_list = []
 
 if options.debian_sid:
     basetgz_list.append( "base.tgz" )
 
-if options.ubuntu_oneiric:
+if options.ubuntu_oneiric or options.ubuntu_all:
     basetgz_list.append( "oneiric.tgz" )
 
-if options.ubuntu_maverick:
+if options.ubuntu_maverick or options.ubuntu_all:
     basetgz_list.append( "maverick.tgz" )
 
-if options.ubuntu_natty:
+if options.ubuntu_natty or options.ubuntu_all:
     basetgz_list.append( "natty.tgz" )
 
-if options.ubuntu_precise:
+if options.ubuntu_precise  or options.ubuntu_all:
     basetgz_list.append( "precise.tgz" )
 
 for basetgz in basetgz_list:
-    command = "sudo /usr/sbin/pbuilder --build --basetgz  /var/cache/pbuilder/%s dist/deb_dist/*.dsc" % basetgz
+    if options.update_pbuilder:
+        command = "sudo /usr/sbin/pbuilder --update --basetgz  /var/cache/pbuilder/%s" % basetgz
+
+        assert 0 == os.system( command ), basetgz
+
+    command = "sudo /usr/sbin/pbuilder --build --basetgz  /var/cache/pbuilder/%s --hookdir debian/pbuilder-hookdir dist/deb_dist/*.dsc" % basetgz
 
     assert 0 == os.system( command ), basetgz
 

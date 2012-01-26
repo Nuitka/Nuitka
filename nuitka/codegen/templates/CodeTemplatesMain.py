@@ -108,14 +108,11 @@ int main( int argc, char *argv[] )
         PyThreadState_GET()->frame = frame___main__;
 
         PyErr_Print();
-
-        Py_Finalize();
-        return 1;
+        Py_Exit( 1 );
     }
     else
     {
-        Py_Finalize();
-        return 0;
+        Py_Exit( 0 );
     }
 }
 """
@@ -264,7 +261,7 @@ module_body_template = """\
 
 #include "__modules.hpp"
 #include "__constants.hpp"
-#include "__reverses.hpp"
+#include "__helpers.hpp"
 
 // The _module_%(module_identifier)s is a Python object pointer of module type.
 
@@ -282,8 +279,6 @@ PyObject *_module_%(module_identifier)s;
 
 // The module function definitions.
 %(module_functions_code)s
-
-%(expression_temp_decl)s
 
 // Frame object of the module.
 static PyFrameObject *frame_%(module_identifier)s;
@@ -463,7 +458,8 @@ module_init_no_package_template = """\
             )
         );
     }
-#endif"""
+#endif
+"""
 
 module_init_in_package_template = """\
     _mvar_%(module_identifier)s___doc__.assign0( %(doc_identifier)s );

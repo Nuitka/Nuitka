@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Make sure we error exit if something goes wrong.
+set -e
+
+echo "Checking package installation and running some tests with it too."
+
+# The current directory is the top of the source-tree.
+cd /tmp/buildd/*/debian/..
+
+echo "Removing unneeded stuff (build, binaries of nuitka, nuitka package, debian directory):"
+rm -rf build bin/nuitka* nuitka debian
+
+echo "Installing the Debian package."
+
+# Install the single package, and then the dependencies. Idea taken from "B92test-pkg"
+
+dpkg -i /tmp/buildd/*.deb || true
+apt-get install -y -f "${APTGETOPT[@]}"
+
+# Run tests with the installed one only.
+export NUITKA=/usr/bin/nuitka
+
+# Run the basic tests with default options.
+./tests/basics/run_all.py search
+
+echo "Thanks passed the tests with installed package it seems."

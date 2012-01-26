@@ -124,7 +124,7 @@ static PyObject *%(function_identifier)s( Nuitka_GenexprObject *generator )
     }
 
     %(line_number_code)s
-%(expression_temp_decl)s
+
     try
     {
         while ( generator->iterator_level != -1 && generator->iterator_level < %(iterator_count)d )

@@ -31,9 +31,6 @@
 
 #include "nuitka/eval_order.hpp"
 
-// For the EVAL_ORDER macros.
-#include "__reverses.hpp"
-
 extern PyObject *_python_tuple_empty;
 extern PyObject *_python_str_plain___dict__;
 extern PyObject *_python_str_plain___class__;
@@ -75,6 +72,11 @@ static inline void assertObject( PyTracebackObject *value )
 #endif
 
 #include "nuitka/variables_temporary.hpp"
+#include "nuitka/exceptions.hpp"
+
+// For the EVAL_ORDER and MAKE_TUPLE macros.
+#include "__helpers.hpp"
+
 
 // Helper functions for reference count handling in the fly.
 NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
@@ -940,7 +942,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
         {
             PyObject *result = PyObject_Call(
                 source_instance->in_class->cl_getattr,
-                PyObjectTemporary( MAKE_TUPLE( EVAL_ORDERED_2( source, attr_name ) ) ).asObject(),
+                PyObjectTemporary( MAKE_TUPLE2( source, attr_name ) ).asObject(),
                 NULL
             );
 
@@ -1068,7 +1070,7 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
         {
             PyObject *result = PyObject_Call(
                 target_instance->in_class->cl_setattr,
-                PyObjectTemporary( MAKE_TUPLE( EVAL_ORDERED_3( target, attr_name, value ) ) ).asObject(),
+                PyObjectTemporary( MAKE_TUPLE3( target, attr_name, value ) ).asObject(),
                 NULL
             );
 

@@ -26,6 +26,9 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Check if a variable is used.
+
+"""
 
 from nuitka.transform import TreeOperations
 

@@ -104,6 +104,9 @@ class ModuleVariableIdentifier:
     def __repr__( self ):
         return "<ModuleVariableIdentifier %s>" % self.var_name
 
+    def getRefCount( self ):
+        return 0
+
     def getCheapRefCount( self ):
         # The asObject0 is the fastest way, stealing a reference directly from the module
         # dictionary if possible.
@@ -205,6 +208,19 @@ class HolderVariableIdentifier( Identifier ):
     def getClass( self ):
         return "PyObjectTempHolder"
 
+class TempObjectIdentifier( Identifier ):
+    def __init__( self, tempvar_name, from_context ):
+        self.tempvar_name = tempvar_name
+        self.from_context = from_context
+
+        if self.from_context:
+            Identifier.__init__( self, self.from_context + "python_tmp_" + tempvar_name, 0 )
+        else:
+
+            Identifier.__init__( self, "_python_tmp_" + tempvar_name, 0 )
+
+    def getCodeTemporaryRef( self ):
+        return self.code
 
 class ClosureVariableIdentifier( Identifier ):
     def __init__( self, var_name, from_context ):

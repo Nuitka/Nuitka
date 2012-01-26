@@ -36,8 +36,6 @@ from .OptimizeBase import (
     makeConstantReplacementNode
 )
 
-from nuitka.nodes import Nodes
-
 class OptimizeOperationVisitor( OptimizationVisitorBase ):
     def _optimizeConstantOperandsOperation( self, node, operands ):
         operands = [ constant.getConstant() for constant in operands ]
@@ -54,19 +52,13 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
         )
 
     def _optimizeConstantOperandsComparison( self, node ):
-        comparators = node.getComparators()
-
-        # TODO: Handle cases with multiple comparators too.
-        if len( comparators ) != 1:
-            return
-
         operand1, operand2 = node.getOperands()
 
         if areConstants( ( operand1, operand2 ) ):
             value1 = operand1.getConstant()
             value2 = operand2.getConstant()
 
-            simulator = node.getSimulator( 0 )
+            simulator = node.getSimulator()
 
             def simulate():
                 return simulator( value1, value2 )
@@ -99,7 +91,14 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
             if not value.isExpressionConstantRef() or value.isMutable():
                 break
         else:
-            constant_value = dict.fromkeys( [ pair.getKey().getConstant() for pair in pairs ], None )
+            constant_value = dict.fromkeys(
+                [
+                    pair.getKey().getConstant()
+                    for pair in
+                    pairs
+                ],
+                None
+            )
 
             for pair in pairs:
                 constant_value[ pair.getKey().getConstant() ] = pair.getValue().getConstant()

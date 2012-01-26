@@ -64,13 +64,25 @@ def isFile( path ):
 def isDir( path ):
     return os.path.isdir( path )
 
+def listDir( path ):
+    """ Give a sorted path, basename pairs of a directory."""
+
+    return sorted(
+        [
+            ( joinpath( path, filename ), filename )
+            for filename in
+            os.listdir( path )
+        ]
+    )
+
 def getCoreCount():
     cpu_count = 0
 
     # Try to sum up the CPU cores, if the kernel shows them, pylint: disable=W0702
     try:
         # Try to get the number of logical processors
-        cpu_count = open( "/proc/cpuinfo" ).read().count( "processor\t:" )
+        with open( "/proc/cpuinfo" ) as cpuinfo_file:
+            cpu_count = cpuinfo_file.read().count( "processor\t:" )
     except:
         pass
 

@@ -115,6 +115,12 @@ try:
 except TypeError, e:
     print "Gives exception:", e
 
+try:
+    print "Empty range call",
+    print range()
+except TypeError, e:
+    print "Gives exception:", e
+
 print "List from iterable", list( "abc" ), list()
 print "List from sequence", list( sequence = (0, 1, 2) )
 print "Tuple from iterable", tuple( "cda" ), tuple()

@@ -29,7 +29,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.3.18.4
+Nuitka V0.3.19
 Copyright (C) 2012 Kay Hayen."""
 
 from . import Utils
@@ -119,6 +119,17 @@ recurse_group.add_option(
     help    = """\
 Do not recurse to that module, or if a package, to the whole package in any case,
 overrides all other options. Can be given multiple times. Default empty."""
+)
+
+recurse_group.add_option(
+    "--recurse-plugins", "--recurse-directory",
+    action  = "append",
+    dest    = "recurse_extra",
+    metavar = "MODULE/PACKAGE",
+    default = [],
+    help    = """\
+Recurse into that directory, no matter if it's used by the given main program in a
+visible form. Overrides all other options. Can be given multiple times. Default empty."""
 )
 
 parser.add_option_group( recurse_group )
@@ -449,6 +460,9 @@ def getShallFollowModules():
 def getShallFollowInNoCase():
     return sum( [ x.split( "," ) for x in options.recurse_not_modules ], [] )
 
+def getShallFollowExtra():
+    return sum( [ x.split( "," ) for x in options.recurse_extra ], [] )
+
 def isDebug():
     return options.debug
 
@@ -464,11 +478,14 @@ def getOutputPath( path ):
     else:
         return path
 
+def getOutputDir():
+    return options.output_dir if options.output_dir else "."
+
 def getPositionalArgs():
-    return positional_args
+    return tuple( positional_args )
 
 def getMainArgs():
-    return extra_args
+    return tuple( extra_args )
 
 def shallOptimizeStringExec():
     return False

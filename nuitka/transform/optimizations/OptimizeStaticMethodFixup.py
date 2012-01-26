@@ -33,9 +33,10 @@ them early, so our analysis will see it for improved consistency. This is better
 then adding it during code generation only.
 """
 
-from .OptimizeBase import OptimizationVisitorBase
-
-from nuitka.nodes import Nodes
+from .OptimizeBase import (
+    makeBuiltinRefReplacementNode,
+    OptimizationVisitorBase
+)
 
 class FixupNewStaticMethodVisitor( OptimizationVisitorBase ):
     def onEnterNode( self, node ):
@@ -46,9 +47,9 @@ class FixupNewStaticMethodVisitor( OptimizationVisitorBase ):
             decorators = node.getDecorators()
 
             if len( decorators ) == 0:
-                new_node = Nodes.CPythonExpressionBuiltinRef(
+                new_node = makeBuiltinRefReplacementNode(
                     builtin_name = "staticmethod",
-                    source_ref   = node.getSourceReference()
+                    node         = node
                 )
 
                 node.setDecorators(

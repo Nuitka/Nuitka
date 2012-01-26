@@ -84,6 +84,8 @@ for filename in sorted( os.listdir( "." ) ):
 
         if filename == "syntax_errors":
             os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--recurse-all --execute-with-pythonpath"
+        elif filename == "plugin_import":
+            os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--recurse-all --recurse-directory=%s/some_package" % filename
         else:
             os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--recurse-all"
 
