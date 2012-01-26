@@ -58,6 +58,8 @@ from .ConstantCodes import getConstantHandle, getConstantCode
 from .VariableCodes import getVariableHandle, getVariableCode
 
 from .TupleCodes import getTupleCreationCode
+from .ListCodes import getListCreationCode
+from .SetCodes import getSetCreationCode
 
 from .ParameterParsing import (
     getParameterEntryPointIdentifier,
@@ -156,27 +158,6 @@ def getYieldCode( identifier, for_return ):
 def getYieldTerminatorCode():
     return "throw ReturnException();"
 
-def getSequenceCreationCode( context, sequence_kind, element_identifiers ):
-    assert sequence_kind in ( "tuple", "list" )
-
-    # Disallow building the empty tuple with this assertion, we want users to not let
-    # us here optimize it away.
-    assert sequence_kind != "list" or element_identifiers
-
-    if sequence_kind == "tuple":
-        return getTupleCreationCode(
-            context             = context,
-            element_identifiers = element_identifiers
-        )
-    else:
-        arg_codes = getCodeExportRefs( element_identifiers )
-
-    return ReversedCallIdentifier(
-        context = context,
-        called  = "MAKE_%s" % sequence_kind.upper(),
-        args    = arg_codes
-    )
-
 def getDictionaryCreationCode( context, keys, values ):
     key_codes = getCodeTemporaryRefs( keys )
     value_codes = getCodeTemporaryRefs( values )
@@ -193,14 +174,6 @@ def getDictionaryCreationCode( context, keys, values ):
         context = context,
         called  = "MAKE_DICT",
         args    = arg_codes
-    )
-
-def getSetCreationCode( values ):
-    arg_codes = getCodeTemporaryRefs( values )
-
-    return Identifier(
-        "MAKE_SET( %s )" % ( ", ".join( reversed( arg_codes ) ) ),
-        1
     )
 
 def getPackageVariableCode( context ):
@@ -1396,8 +1369,7 @@ def getExceptionRefCode( exception_type ):
 def getMakeBuiltinExceptionCode( context, exception_type, exception_args ):
     return getFunctionCallCode(
         function_identifier = Identifier( "PyExc_%s" % exception_type, 0 ),
-        argument_tuple      = getSequenceCreationCode(
-            sequence_kind       = "tuple",
+        argument_tuple      = getTupleCreationCode(
             element_identifiers = exception_args,
             context             = context,
         ),
@@ -2214,8 +2186,7 @@ def _getDecoratorsCallCode( context, decorator_count ):
     def _getCall( count ):
         return getFunctionCallCode(
             function_identifier  = Identifier( "decorator_%d" % count, 0 ),
-            argument_tuple       = getSequenceCreationCode(
-                sequence_kind       = "tuple",
+            argument_tuple       = getTupleCreationCode(
                 element_identifiers = [ Identifier( "result", 1 ) ],
                 context             = context
             ),
@@ -2245,8 +2216,7 @@ def _getCoArgNamesValue( parameters ):
 
 def _getFuncDefaultValue( identifiers, context ):
     if len( identifiers ) > 0:
-        return getSequenceCreationCode(
-            sequence_kind       = "tuple",
+        return getTupleCreationCode(
             element_identifiers = identifiers,
             context             = context
         )

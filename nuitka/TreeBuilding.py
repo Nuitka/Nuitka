@@ -65,7 +65,8 @@ from .nodes.FunctionNodes import (
 
 from .nodes.ContainerMakingNodes import (
     CPythonExpressionKeyValuePair,
-    CPythonExpressionMakeSequence,
+    CPythonExpressionMakeTuple,
+    CPythonExpressionMakeList,
     CPythonExpressionMakeDict,
     CPythonExpressionMakeSet
 )
@@ -388,20 +389,41 @@ def buildSequenceCreationNode( provider, node, source_ref ):
 
     sequence_kind = getKind( node ).upper()
 
-    # TODO: This should happen in optimization instead.
+    # Note: This would happen in optimization instead, but lets just do it immediately to
+    # save some time.
     if constant:
-        const_type = tuple if sequence_kind == "TUPLE" else list
+        if sequence_kind == "TUPLE":
+            const_type = tuple
+        elif sequence_kind == "LIST":
+            const_type = list
+        elif sequence_kind == "SET":
+            const_type = set
+        else:
+            assert False, sequence_kind
 
         return _buildConstantReferenceNode(
             constant   = const_type( element.getConstant() for element in elements ),
             source_ref = source_ref
         )
     else:
-        return CPythonExpressionMakeSequence(
-            sequence_kind = sequence_kind,
-            elements      = elements,
-            source_ref    = source_ref
-        )
+        if sequence_kind == "TUPLE":
+            return CPythonExpressionMakeTuple(
+                elements      = elements,
+                source_ref    = source_ref
+            )
+        elif sequence_kind == "LIST":
+            return CPythonExpressionMakeList(
+                elements      = elements,
+                source_ref    = source_ref
+            )
+        elif sequence_kind == "SET":
+            return CPythonExpressionMakeSet(
+                elements      = elements,
+                source_ref    = source_ref
+            )
+        else:
+            assert False, sequence_kind
+
 
 def _areConstants( expressions ):
     for expression in expressions:
@@ -426,7 +448,8 @@ def buildDictionaryNode( provider, node, source_ref ):
         constant = constant and key_node.isExpressionConstantRef()
         constant = constant and value_node.isExpressionConstantRef() and not value_node.isMutable()
 
-    # TODO: Again, this is for optimization to do.
+    # Note: This would happen in optimization instead, but lets just do it immediately to
+    # save some time.
     if constant:
         # Create the dictionary in its full size, so that no growing occurs and the
         # constant becomes as similar as possible before being marshalled.
@@ -449,30 +472,6 @@ def buildDictionaryNode( provider, node, source_ref ):
                 for key, value in
                 zip( keys, values )
             ],
-            source_ref = source_ref
-        )
-
-def buildSetNode( provider, node, source_ref ):
-    values = buildNodeList( provider, node.elts, source_ref )
-
-    constant = True
-
-    for value in values:
-        if not value.isExpressionConstantRef():
-            constant = False
-            break
-
-    # TODO: Again, this is for optimization to do.
-    if constant:
-        constant_value = frozenset( value.getConstant() for value in values )
-
-        return _buildConstantReferenceNode(
-            constant   = constant_value,
-            source_ref = source_ref
-        )
-    else:
-        return CPythonExpressionMakeSet(
-            values     = values,
             source_ref = source_ref
         )
 
@@ -1090,8 +1089,7 @@ def _buildExtSliceNode( provider, node, source_ref ):
 
         elements.append( element )
 
-    return CPythonExpressionMakeSequence(
-        sequence_kind = "TUPLE",
+    return CPythonExpressionMakeTuple(
         elements      = elements,
         source_ref    = source_ref
     )
@@ -1546,7 +1544,7 @@ _fast_path_args3 = {
     "DictComp"     : buildDictContractionNode,
     "SetComp"      : buildSetContractionNode,
     "Dict"         : buildDictionaryNode,
-    "Set"          : buildSetNode,
+    "Set"          : buildSequenceCreationNode,
     "Tuple"        : buildSequenceCreationNode,
     "List"         : buildSequenceCreationNode,
     "Global"       : buildGlobalDeclarationNode,

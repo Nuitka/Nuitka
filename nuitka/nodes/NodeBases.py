@@ -300,6 +300,9 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
     def isAssignTargetSomething( self ):
         return self.kind.startswith( "ASSIGN_" )
 
+    def isExpressionMakeSequence( self ):
+        return False
+
     def visit( self, context, visitor ):
         visitor( self )
 

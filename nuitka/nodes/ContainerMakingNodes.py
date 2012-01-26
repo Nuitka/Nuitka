@@ -33,13 +33,13 @@
 
 from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
 
-class CPythonExpressionMakeSequence( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "EXPRESSION_MAKE_SEQUENCE"
+from .NodeMakingHelpers import getComputationResult
 
+class CPythonExpressionMakeSequenceBase( CPythonChildrenHaving, CPythonNodeBase ):
     named_children = ( "elements", )
 
     def __init__( self, sequence_kind, elements, source_ref ):
-        assert sequence_kind in ( "TUPLE", "LIST" ), sequence_kind
+        assert sequence_kind in ( "TUPLE", "LIST", "SET" ), sequence_kind
 
         for element in elements:
             assert element.isExpression(), element
@@ -55,29 +55,74 @@ class CPythonExpressionMakeSequence( CPythonChildrenHaving, CPythonNodeBase ):
             }
         )
 
+    def isExpressionMakeSequence( self ):
+        return True
+
     def getSequenceKind( self ):
         return self.sequence_kind
 
     getElements = CPythonChildrenHaving.childGetter( "elements" )
 
+    def computeNode( self ):
+        for element in self.getElements():
+            if not element.isExpressionConstantRef() or element.isMutable():
+                return self, None, None
+        else:
+            simulator = self.getSimulator()
 
+            return getComputationResult(
+                node        = self,
+                computation = lambda : simulator(
+                    element.getConstant()
+                    for element in
+                    self.getElements()
+                ),
+                description = "%s with constant arguments" % simulator
+            )
 
-class CPythonExpressionMakeSet( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "EXPRESSION_MAKE_SET"
+class CPythonExpressionMakeTuple( CPythonExpressionMakeSequenceBase ):
+    kind = "EXPRESSION_MAKE_TUPLE"
 
-    named_children = ( "values", )
-
-    def __init__( self, values, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+    def __init__( self, elements, source_ref ):
+        CPythonExpressionMakeSequenceBase.__init__(
             self,
-            values = {
-                "values" : tuple( values )
-            }
+            sequence_kind = "TUPLE",
+            elements      = elements,
+            source_ref    = source_ref
         )
 
-    getValues = CPythonChildrenHaving.childGetter( "values" )
+    def getSimulator( self ):
+        return tuple
+
+
+class CPythonExpressionMakeList( CPythonExpressionMakeSequenceBase ):
+    kind = "EXPRESSION_MAKE_LIST"
+
+    def __init__( self, elements, source_ref ):
+        CPythonExpressionMakeSequenceBase.__init__(
+            self,
+            sequence_kind = "LIST",
+            elements      = elements,
+            source_ref    = source_ref
+        )
+
+    def getSimulator( self ):
+        return list
+
+
+class CPythonExpressionMakeSet( CPythonExpressionMakeSequenceBase ):
+    kind = "EXPRESSION_MAKE_SET"
+
+    def __init__( self, elements, source_ref ):
+        CPythonExpressionMakeSequenceBase.__init__(
+            self,
+            sequence_kind = "SET",
+            elements      = elements,
+            source_ref    = source_ref
+        )
+
+    def getSimulator( self ):
+        return set
 
 
 class CPythonExpressionKeyValuePair( CPythonChildrenHaving, CPythonNodeBase ):

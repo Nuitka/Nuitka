@@ -70,13 +70,11 @@ def mangleAttributeName( attribute_name, node ):
 
     return attribute_name
 
-def generateSequenceCreationCode( sequence_kind, elements, context ):
+def generateTupleCreationCode( elements, context ):
     if _areConstants( elements ):
-        sequence_type = tuple if sequence_kind == "tuple" else list
-
         return Generator.getConstantHandle(
             context  = context,
-            constant = sequence_type( element.getConstant() for element in elements )
+            constant = tuple( element.getConstant() for element in elements )
         )
     else:
         identifiers = generateExpressionsCode(
@@ -84,8 +82,24 @@ def generateSequenceCreationCode( sequence_kind, elements, context ):
             context     = context
         )
 
-        return Generator.getSequenceCreationCode(
-            sequence_kind       = sequence_kind,
+        return Generator.getTupleCreationCode(
+            element_identifiers = identifiers,
+            context             = context
+        )
+
+def generateListCreationCode( elements, context ):
+    if _areConstants( elements ):
+        return Generator.getConstantHandle(
+            context  = context,
+            constant = list( element.getConstant() for element in elements )
+        )
+    else:
+        identifiers = generateExpressionsCode(
+            expressions = elements,
+            context     = context
+        )
+
+        return Generator.getListCreationCode(
             element_identifiers = identifiers,
             context             = context
         )
@@ -587,10 +601,9 @@ def generateClassBodyCode( class_body, context ):
 def generateClassCode( class_def, context ):
     assert class_def.isStatementClassBuilder()
 
-    bases_identifier = generateSequenceCreationCode(
-        sequence_kind = "tuple",
-        elements      = class_def.getBaseClasses(),
-        context       = context
+    bases_identifier = generateTupleCreationCode(
+        elements = class_def.getBaseClasses(),
+        context  = context
     )
 
     class_context, class_codes = generateClassBodyCode(
@@ -742,14 +755,14 @@ def generateDictionaryCreationCode( pairs, context ):
             values  = value_identifiers,
         )
 
-def generateSetCreationCode( values, context ):
-    value_identifiers = generateExpressionsCode(
-        expressions = values,
+def generateSetCreationCode( elements, context ):
+    element_identifiers = generateExpressionsCode(
+        expressions = elements,
         context     = context
     )
 
     return Generator.getSetCreationCode(
-        values  = value_identifiers
+        element_identifiers = element_identifiers
     )
 
 def _areConstants( expressions ):
@@ -952,10 +965,9 @@ def generateFunctionCallCode( function, context ):
     )
 
     if function.getPositionalArguments():
-        positional_args_identifier = generateSequenceCreationCode(
-            sequence_kind = "tuple",
-            elements      = function.getPositionalArguments(),
-            context       = context
+        positional_args_identifier = generateTupleCreationCode(
+            elements = function.getPositionalArguments(),
+            context  = context
         )
     else:
         positional_args_identifier = None
@@ -1075,21 +1087,25 @@ def generateExpressionCode( expression, context, allow_none = False ):
             operands  = expression.getOperands(),
             context   = context
         )
-    elif expression.isExpressionMakeSequence():
-        identifier = generateSequenceCreationCode(
-            sequence_kind = expression.getSequenceKind(),
-            elements      = expression.getElements(),
-            context       = context
+    elif expression.isExpressionMakeTuple():
+        identifier = generateTupleCreationCode(
+            elements = expression.getElements(),
+            context  = context
+        )
+    elif expression.isExpressionMakeList():
+        identifier = generateListCreationCode(
+            elements = expression.getElements(),
+            context  = context
+        )
+    elif expression.isExpressionMakeSet():
+        identifier = generateSetCreationCode(
+            elements = expression.getValues(),
+            context  = context
         )
     elif expression.isExpressionMakeDict():
         identifier = generateDictionaryCreationCode(
             pairs   = expression.getPairs(),
             context = context
-        )
-    elif expression.isExpressionMakeSet():
-        identifier = generateSetCreationCode(
-            values    = expression.getValues(),
-            context   = context
         )
     elif expression.isExpressionFunctionCall():
         identifier = generateFunctionCallCode(

@@ -79,6 +79,19 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
         if upper is not None and upper.isExpressionConstantRef() and upper.getConstant() is None:
             node.setUpper( None )
 
+    def _optimizeConstantSequenceMaking( self, node ):
+        new_node, tags, descr = node.computeNode()
+
+        if new_node is not node:
+            node.replaceWith( new_node )
+
+            self.signalChange(
+                tags,
+                node.getSourceReference(),
+                descr
+            )
+
+
     def _optimizeConstantDictMaking( self, node ):
         pairs = node.getPairs()
 
@@ -131,6 +144,10 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
             )
         elif node.isExpressionSliceLookup():
             self._optimizeConstantSliceLookup(
+                node = node
+            )
+        elif node.isExpressionMakeSequence():
+            self._optimizeConstantSequenceMaking(
                 node = node
             )
         elif node.isExpressionMakeDict():
