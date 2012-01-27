@@ -58,8 +58,8 @@ from .ConstantCodes import getConstantHandle, getConstantCode
 from .VariableCodes import getVariableHandle, getVariableCode
 
 from .TupleCodes import getTupleCreationCode
-from .ListCodes import getListCreationCode
-from .SetCodes import getSetCreationCode
+from .ListCodes import getListCreationCode # imported from here pylint: disable=W0611
+from .SetCodes import getSetCreationCode # imported from here pylint: disable=W0611
 
 from .ParameterParsing import (
     getParameterEntryPointIdentifier,

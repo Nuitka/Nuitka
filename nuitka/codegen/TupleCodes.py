@@ -26,6 +26,10 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Code generation for tuples.
+
+Right now only the creation is done here. But more should be added later on.
+"""
 
 from .Identifiers import getCodeTemporaryRefs, CallIdentifier, ConstantIdentifier
 

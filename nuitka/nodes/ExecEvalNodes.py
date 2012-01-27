@@ -26,6 +26,12 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Nodes concern with exec and eval builtins.
+
+These are the dynamic codes, and as such rather difficult. We would like
+to eliminate or limit their impact as much as possible, but it's difficult
+to do.
+"""
 
 from .NodeBases import CPythonChildrenHaving, CPythonNodeBase, CPythonClosureTaker, CPythonClosureGiverNodeBase
 

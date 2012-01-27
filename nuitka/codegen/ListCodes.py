@@ -26,6 +26,10 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Code generation for lists.
+
+Right now only the creation is done here. But more should be added later on.
+"""
 
 
 from .Identifiers import getCodeExportRefs, ReversedCallIdentifier

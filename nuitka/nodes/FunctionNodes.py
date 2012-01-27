@@ -26,6 +26,12 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Nodes for functions and their creations.
+
+Lambdas are functions too. The functions are at the core of the language and have their
+complexities.
+
+"""
 
 from .NodeBases import (
     CPythonParameterHavingNodeBase,
