@@ -44,8 +44,8 @@ import os
 _warned_about = set()
 
 def isStandardLibraryPath( path ):
-    path = os.path.normcase( path )
-    os_path = os.path.normcase( os.path.dirname( os.__file__  ) )
+    path = Utils.normcase( path )
+    os_path = Utils.normcase( Utils.dirname( os.__file__  ) )
 
     if not path.startswith( os_path ):
         return False
@@ -76,7 +76,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
     def _consider( self, module_filename, module_package ):
         assert module_package is None or ( type( module_package ) is str and module_package != "" )
 
-        module_filename = os.path.normpath( module_filename )
+        module_filename = Utils.normpath( module_filename )
 
         if Utils.isDir( module_filename ):
             module_name = Utils.basename( module_filename )
@@ -160,10 +160,12 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         module_filename = module.getFilename()
 
         if module_filename not in TreeRecursion.imported_modules:
-            if module_filename.endswith( os.path.sep + "__init__.py" ):
-                module_relpath = Utils.relpath( module_filename[:-12] )
+            if Utils.basename( module_filename ) == "__init__.py":
+                module_relpath = Utils.dirname( module_filename )
             else:
-                module_relpath = Utils.relpath( module_filename )
+                module_relpath = module_filename
+
+            module_relpath = Utils.relpath( module_relpath )
 
             TreeRecursion.imported_modules[ Utils.relpath( module_relpath ) ] = module
 

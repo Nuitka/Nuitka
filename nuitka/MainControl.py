@@ -149,21 +149,21 @@ def makeSourceDirectory( main_module ):
 
     source_dir = getSourceDirectoryPath( main_module )
 
-    if os.path.exists( source_dir ):
+    if Utils.isDir( source_dir ):
         for path, filename in Utils.listDir( source_dir ):
             if Utils.getExtension( path ) in ( ".cpp", ".hpp", ".o", ".os" ):
-                os.unlink( path )
+                Utils.deleteFile( path, True )
     else:
-        os.makedirs( source_dir )
+        Utils.makePath( source_dir )
 
     static_source_dir = Utils.joinpath( source_dir, "static" )
 
-    if os.path.exists( static_source_dir ):
+    if Utils.isDir( static_source_dir ):
         for path, filename in sorted( Utils.listDir( static_source_dir ) ):
             path = Utils.joinpath( static_source_dir, filename )
 
             if Utils.getExtension( path ) in ( ".o", ".os" ):
-                os.unlink( path )
+                Utils.deleteFile( path, True )
 
     global_context = CodeGeneration.makeGlobalContext()
 
@@ -183,7 +183,7 @@ def makeSourceDirectory( main_module ):
     for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
         base_filename = Utils.joinpath( source_dir, other_module.getFullName() )
 
-        collision_filename = os.path.normcase( base_filename )
+        collision_filename = Utils.normcase( base_filename )
 
         if collision_filename in seen_filenames:
             collision_filenames.add( collision_filename )
@@ -199,7 +199,7 @@ def makeSourceDirectory( main_module ):
         base_filename = Utils.joinpath( source_dir, other_module.getFullName() )
 
         # TODO: Actually the case sensitivity of build dir should be detected.
-        collision_filename = os.path.normcase( base_filename )
+        collision_filename = Utils.normcase( base_filename )
 
         if collision_filename in collision_filenames:
             hash_suffix = "@%d" % collision_count[ collision_filename ]
@@ -337,7 +337,9 @@ def runScons( tree, quiet ):
     return SconsInterface.runScons( options, quiet ), options
 
 def writeSourceCode( filename, source_code ):
-    assert not os.path.exists( filename ), filename
+    # Prevent accidental overwriting. When this happens the collision detection or
+    # something else has failed.
+    assert not Utils.isFile( filename ), filename
 
     with open( filename, "w" ) as output_file:
         output_file.write( source_code )

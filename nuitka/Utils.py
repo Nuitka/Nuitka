@@ -55,6 +55,12 @@ def basename( path ):
 def dirname( path ):
     return os.path.dirname( path )
 
+def normpath( path ):
+    return os.path.normpath( path )
+
+def normcase( path ):
+    return os.path.normcase( path )
+
 def getExtension( path ):
     return os.path.splitext( path )[1]
 
@@ -74,6 +80,13 @@ def listDir( path ):
             os.listdir( path )
         ]
     )
+
+def deleteFile( path, must_exist ):
+    if must_exist or isFile( path ):
+        os.unlink( path )
+
+def makePath( path ):
+    os.makedirs( path )
 
 def getCoreCount():
     cpu_count = 0

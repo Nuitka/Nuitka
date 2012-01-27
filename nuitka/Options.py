@@ -36,11 +36,11 @@ from . import Utils
 
 from optparse import OptionParser, OptionGroup
 
-import sys, os, logging
+import sys, logging
 
 # Indicator if we were called as "nuitka-python" in which case we assume some other
 # defaults and work a bit different with parameters.
-is_nuitka_python = os.path.basename( sys.argv[0] ).lower() == "nuitka-python"
+is_nuitka_python = Utils.basename( sys.argv[0] ).lower() == "nuitka-python"
 
 def getVersion():
     return version_string.split()[1][1:]
@@ -474,7 +474,7 @@ def isUnstriped():
 
 def getOutputPath( path ):
     if options.output_dir:
-        return os.path.normpath( Utils.joinpath( options.output_dir, path ) )
+        return Utils.normpath( Utils.joinpath( options.output_dir, path ) )
     else:
         return path
 
