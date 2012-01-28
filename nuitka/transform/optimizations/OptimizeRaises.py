@@ -32,7 +32,7 @@
 
 from .OptimizeBase import OptimizationVisitorBase
 
-from ..TreeOperations import RestartVisit
+from ..TreeOperations import RestartVisit, ExitNodeVisit
 
 from nuitka.nodes import Nodes
 
@@ -123,6 +123,8 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
                                     "Resolved known raise to exception branch execution."
                                 )
 
+                                raise RestartVisit
+
                                 # assert False
                             elif match is False:
                                 assert False
@@ -161,6 +163,8 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
                 node.getSourceReference(),
                 "Detected expression exception was propagated to expression upwards."
             )
+
+            raise RestartVisit
         elif node.isStatement():
             node.replaceWith(
                 new_node = convertRaiseExceptionExpressionRaiseExceptionStatement(
@@ -173,6 +177,8 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
                 node.getSourceReference(),
                 "Detected expression exception was converted to raise exception statement."
             )
+
+            raise RestartVisit
         else:
             assert False
 

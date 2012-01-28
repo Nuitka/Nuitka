@@ -544,7 +544,12 @@ class CPythonChildrenHaving:
             else:
                 assert False, ( key, value, value.__class__ )
         else:
-            assert False, ( "didn't find child", old_node, "in", self )
+            raise AssertionError(
+                "Didn't find child",
+                old_node,
+                "in",
+                self
+            )
 
         if new_node is not None:
             new_node.parent = old_node.parent
