@@ -303,6 +303,10 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
     def isExpressionMakeSequence( self ):
         return False
 
+    def isNumberConstant( self ):
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
     def visit( self, context, visitor ):
         visitor( self )
 

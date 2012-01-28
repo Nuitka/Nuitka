@@ -60,7 +60,7 @@ from nuitka.Builtins import builtin_exception_names, builtin_names
 
 from .BuiltinOptimization import extractBuiltinArgs
 
-import math, sys
+import sys
 
 class BuiltinParameterSpec( ParameterSpec ):
     def __init__( self, name, arg_names, default_count, list_star_arg = None, dict_star_arg = None ):
@@ -745,97 +745,16 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
 
 
     def range_extractor( self, node ):
-        # Quite a lot of checks to do. pylint: disable=R0912
+        new_node, tags, descr = node.computeNode()
 
-        low  = node.getLow()
-        high = node.getHigh()
-        step = node.getStep()
+        if new_node is not node:
+            node.replaceWith( new_node )
 
-        def isRangePredictable( node ):
-            if node.isExpressionConstantRef():
-                return node.isNumberConstant()
-            else:
-                return False
-
-        if low is None and high is None and step is None:
-            # Intentional to get exception, pylint: disable=W0108
-            self.replaceWithComputationResult(
-                node        = node,
-                computation = lambda : range(),
-                description = "Range builtin without args"
+            self.signalChange(
+                tags,
+                node.getSourceReference(),
+                descr
             )
-        elif high is None and step is None:
-            if isRangePredictable( low ):
-                constant = low.getConstant()
-
-                # Avoid warnings before Python 2.7, in Python 2.7 it's an exception.
-                if type( constant ) is float and getPythonVersion() < 270:
-                    constant = int( constant )
-
-                # Negative values are empty, so don't check against 0.
-                if constant <= 256:
-                    self.replaceWithComputationResult(
-                        node        = node,
-                        computation = lambda : range( constant ),
-                        description = "Range builtin"
-                    )
-        elif step is None:
-            if isRangePredictable( low ) and isRangePredictable( high ):
-                constant1 = low.getConstant()
-                constant2 = high.getConstant()
-
-                if type( constant1 ) is float and getPythonVersion() < 270:
-                    constant1 = int( constant1 )
-                if type( constant2 ) is float and getPythonVersion() < 270:
-                    constant2 = int( constant2 )
-
-                if constant2 - constant1 <= 256:
-                    self.replaceWithComputationResult(
-                        node        = node,
-                        computation = lambda : range( constant1, constant2 ),
-                        description = "Range builtin"
-                    )
-        else:
-            if isRangePredictable( low ) and isRangePredictable( high ) and isRangePredictable( step ):
-                constant1 = low.getConstant()
-                constant2 = high.getConstant()
-                constant3 = step.getConstant()
-
-                if type( constant1 ) is float and getPythonVersion() < 270:
-                    constant1 = int( constant1 )
-                if type( constant2 ) is float and getPythonVersion() < 270:
-                    constant2 = int( constant2 )
-                if type( constant3 ) is float and getPythonVersion() < 270:
-                    constant3 = int( constant3 )
-
-                try:
-                    if constant1 < constant2:
-                        if constant3 < 0:
-                            estimate = 0
-                        else:
-                            estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
-                    else:
-                        if constant3 > 0:
-                            estimate = 0
-                        else:
-                            estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
-                except (ValueError, TypeError, ZeroDivisionError):
-                    estimate = -1
-
-                estimate = round( estimate )
-
-                if estimate <= 256:
-                    try:
-                        assert len( range( constant1, constant2, constant3 ) ) == estimate, node.getSourceReference()
-                    except (ValueError, TypeError, ZeroDivisionError):
-                        pass
-
-                    self.replaceWithComputationResult(
-                        node        = node,
-                        computation = lambda : range( constant1, constant2, constant3 ),
-                        description = "Range builtin"
-                    )
-
 
     def _extractConstantBuiltinCall( self, node, builtin_spec, given_values ):
         def isValueListConstant( values ):
