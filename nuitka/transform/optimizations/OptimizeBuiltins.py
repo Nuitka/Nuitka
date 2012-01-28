@@ -122,7 +122,6 @@ class BuiltinParameterSpec( ParameterSpec ):
             return self.builtin( **arg_dict )
 
 class BuiltinParameterSpecNoKeywords( BuiltinParameterSpec ):
-
     def allowsKeywords( self ):
         return False
 
@@ -195,6 +194,7 @@ builtin_import_spec = BuiltinParameterSpec( "__import__", ( "name", "globals", "
 
 builtin_chr_spec = BuiltinParameterSpecNoKeywords( "chr", ( "i", ), 1 )
 builtin_ord_spec = BuiltinParameterSpecNoKeywords( "ord", ( "c", ), 1 )
+builtin_oct_spec = BuiltinParameterSpecNoKeywords( "oct", ( "number", ), 1 )
 builtin_range_spec = BuiltinParameterSpecNoKeywords( "range", ( "start", "stop", "step" ), 2 )
 builtin_repr_spec = BuiltinParameterSpecNoKeywords( "repr", ( "object", ), 1 )
 builtin_execfile_spec = BuiltinParameterSpecNoKeywords( "repr", ( "filename", "globals", "locals" ), 1 )
@@ -419,6 +419,7 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
             "__import__" : self.import_extractor,
             "chr"        : self.chr_extractor,
             "ord"        : self.ord_extractor,
+            "oct"        : self.oct_extractor,
             "type"       : self.type_extractor,
             "range"      : self.range_extractor,
             "tuple"      : self.tuple_extractor,
@@ -541,6 +542,13 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinOrd,
             builtin_spec  = builtin_ord_spec
+        )
+
+    def oct_extractor( self, node ):
+        return extractBuiltinArgs(
+            node          = node,
+            builtin_class = Nodes.CPythonExpressionBuiltinOct,
+            builtin_spec  = builtin_oct_spec
         )
 
     def repr_extractor( self, node ):
@@ -692,6 +700,7 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         dispatch_dict = {
             "chr"        : self.chr_extractor,
             "ord"        : self.ord_extractor,
+            "oct"        : self.oct_extractor,
             "type1"      : self.type1_extractor,
             "range"      : self.range_extractor,
             "len"        : self.len_extractor,
@@ -808,6 +817,13 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         return self._extractConstantBuiltinCall(
             node         = node,
             builtin_spec = builtin_ord_spec,
+            given_values = ( node.getValue(), )
+        )
+
+    def oct_extractor( self, node ):
+        return self._extractConstantBuiltinCall(
+            node         = node,
+            builtin_spec = builtin_oct_spec,
             given_values = ( node.getValue(), )
         )
 

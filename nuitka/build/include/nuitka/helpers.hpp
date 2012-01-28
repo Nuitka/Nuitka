@@ -1437,8 +1437,12 @@ extern PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffe
 
 // For quicker builtin chr() functionality.
 extern PyObject *BUILTIN_CHR( PyObject *value );
+
 // For quicker builtin ord() functionality.
 extern PyObject *BUILTIN_ORD( PyObject *value );
+
+// For quicker builtin oct() functionality.
+extern PyObject *BUILTIN_OCT( PyObject *value );
 
 // For quicker type() functionality if 1 argument is given.
 extern PyObject *BUILTIN_TYPE1( PyObject *arg );

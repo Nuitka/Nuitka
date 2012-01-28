@@ -1305,6 +1305,10 @@ class CPythonExpressionBuiltinOrd( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_ORD"
 
 
+class CPythonExpressionBuiltinOct( CPythonExpressionBuiltinSingleArgBase ):
+    kind = "EXPRESSION_BUILTIN_OCT"
+
+
 class CPythonExpressionBuiltinType1( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_TYPE1"
 
