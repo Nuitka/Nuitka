@@ -63,13 +63,19 @@ class CPythonExpressionMakeSequenceBase( CPythonChildrenHaving, CPythonNodeBase 
 
     getElements = CPythonChildrenHaving.childGetter( "elements" )
 
+    def getSimulator( self ):
+        # Abstract method, pylint: disable=R0201,W0613
+        return None
+
     def computeNode( self ):
         for element in self.getElements():
             if not element.isExpressionConstantRef() or element.isMutable():
                 return self, None, None
         else:
             simulator = self.getSimulator()
+            assert simulator is not None
 
+            # The simulator is in fact callable if not None, pylint: disable=E1102
             return getComputationResult(
                 node        = self,
                 computation = lambda : simulator(

@@ -301,6 +301,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         return self.kind.startswith( "ASSIGN_" )
 
     def isExpressionMakeSequence( self ):
+        # Virtual method, pylint: disable=R0201,W0613
         return False
 
     def isNumberConstant( self ):

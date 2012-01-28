@@ -43,6 +43,9 @@ from .FinalizeBase import FinalizationVisitorBase
 
 class FinalizeMarkups( FinalizationVisitorBase ):
     def onEnterNode( self, node ):
+        # This has many different things it deals with, so there need to be a lot of
+        # branches. pylint: disable=R0912
+
         # Record if a function or class has an overflow. TODO: The Overflow check
         # module and this should be united in a per tag finalization check on say
         # "callable_body" tag
