@@ -68,7 +68,7 @@ class Identifier:
 
     def getCodeDropRef( self ):
         if self.ref_count == 0:
-            return self.getCodeObject()
+            return self.getCodeTemporaryRef()
         else:
             return "DECREASE_REFCOUNT( %s )" % self.getCodeObject()
 
@@ -169,6 +169,9 @@ class LocalVariableIdentifier:
     def getCodeExportRef( self ):
         return "%s.asObject1()" % self.getCode()
 
+    def getCodeDropRef( self ):
+        return self.getCodeTemporaryRef()
+
 class TempVariableIdentifier( Identifier ):
     def __init__( self, tempvar_name ):
         self.tempvar_name = tempvar_name
@@ -242,9 +245,6 @@ class ClosureVariableIdentifier( Identifier ):
 
     def getCodeObject( self ):
         return self.getCode() + ".asObject()"
-
-    def getCodeDropRef( self ):
-        return "DECREASE_REFCOUNT( %s )" % self.getCodeObject()
 
 
 class DefaultValueIdentifier( Identifier ):
