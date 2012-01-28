@@ -41,3 +41,8 @@ def codegeneratorCrashIssue15():
 
 # Just so it won't be optimized away entirely.
 codegeneratorCrashIssue15()
+
+def codegeneratorCrashIssue30():
+    f = getrandom()  # Prevent optimization
+
+    f   # Will be optimized way in later versions of Nuitka.
