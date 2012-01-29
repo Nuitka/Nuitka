@@ -102,6 +102,12 @@ class PythonChildContextBase( PythonContextBase ):
     def addMakeTupleUse( self, value ):
         self.parent.addMakeTupleUse( value )
 
+    def addMakeListUse( self, value ):
+        self.parent.addMakeListUse( value )
+
+    def addMakeDictUse( self, value ):
+        self.parent.addMakeDictUse( value )
+
     def getParent( self ):
         return self.parent
 
@@ -172,8 +178,11 @@ class PythonGlobalContext:
 
         # Have EVAL_ORDER for 1..6 in any case, so we can use it in the C++ code freely
         # without concern.
-        self.eval_orders_used = set( range( 1, 6 ) )
         self.make_tuples_used = set( range( 1, 6 ) )
+        self.make_lists_used = set( range( 0, 1 ) )
+        self.make_dicts_used = set( range( 0, 3 ) )
+
+        self.eval_orders_used = set( range( 0, 6 ) )
 
     def getConstantHandle( self, constant ):
         if constant is None:
@@ -209,8 +218,26 @@ class PythonGlobalContext:
         self.addEvalOrderUse( value ) # generated code uses it
         self.make_tuples_used.add( value )
 
+    def addMakeListUse( self, value ):
+        assert type( value ) is int
+
+        self.addEvalOrderUse( value ) # generated code uses it
+        self.make_lists_used.add( value )
+
+    def addMakeDictUse( self, value ):
+        assert type( value ) is int
+
+        self.addEvalOrderUse( value * 2 ) # generated code uses it
+        self.make_dicts_used.add( value )
+
     def getMakeTuplesUsed( self ):
         return sorted( self.make_tuples_used )
+
+    def getMakeListsUsed( self ):
+        return sorted( self.make_lists_used )
+
+    def getMakeDictsUsed( self ):
+        return sorted( self.make_dicts_used )
 
 
 class PythonModuleContext( PythonContextBase ):
@@ -312,6 +339,12 @@ class PythonModuleContext( PythonContextBase ):
 
     def addMakeTupleUse( self, value ):
         self.global_context.addMakeTupleUse( value )
+
+    def addMakeListUse( self, value ):
+        self.global_context.addMakeListUse( value )
+
+    def addMakeDictUse( self, value ):
+        self.global_context.addMakeDictUse( value )
 
 
 class PythonFunctionContext( PythonChildContextBase ):

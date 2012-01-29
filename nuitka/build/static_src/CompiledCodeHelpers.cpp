@@ -818,12 +818,10 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
     }
     else
     {
-        // TODO: Not portable to ARM at all. Should generate evaluation order resistent
-        // MAKE_DICT variants and not have to generate at compile time correct order.
         PyObjectTemporary print_kw(
-            MAKE_DICT(
-                _python_str_plain_end, _python_str_empty,
-                _python_str_plain_file, GET_STDOUT()
+            MAKE_DICT2(
+                _python_str_empty, _python_str_plain_end,
+                GET_STDOUT(), _python_str_plain_file
             )
         );
 
@@ -869,11 +867,9 @@ void PRINT_NEW_LINE_TO( PyObject *file )
     }
     else
     {
-        // TODO: Not portable to ARM at all. Should generate evaluation order resistent
-        // MAKE_DICT variants and not have to generate at compile time correct order.
         PyObjectTemporary print_keyargs(
-            MAKE_DICT(
-                _python_str_plain_file, GET_STDOUT()
+            MAKE_DICT1( // Note: Values for first for MAKE_DICT
+                GET_STDOUT(), _python_str_plain_file
             )
         );
 

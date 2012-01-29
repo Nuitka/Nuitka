@@ -428,42 +428,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict
     return result;
 }
 
-template<typename... P>
-static PyObject *MAKE_DICT( P...eles )
-{
-    PyObject *elements[] = {eles...};
-    int size = sizeof...(eles);
-
-    assert( size % 2 == 0 );
-
-    PyObject *result = PyDict_New();
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    for( int i = 0; i < size; i += 2 )
-    {
-        int status = PyDict_SetItem(
-            result,
-#if NUITKA_REVERSED_ARGS == 1
-            elements[i],
-            elements[i+1]
-#else
-            elements[i+1],
-            elements[i]
-#endif
-        );
-
-        if (unlikely( status == -1 ))
-        {
-            throw _PythonException();
-        }
-    }
-
-    return result;
-}
 
 NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, PyObject *value )
 {
@@ -1282,7 +1246,7 @@ extern PyModuleObject *_module_builtin;
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LOCALS_DICT( void )
 {
-    return MAKE_DICT();
+    return MAKE_DICT0();
 }
 
 template<typename T>
@@ -1349,7 +1313,7 @@ static PyObject *UPDATED_LOCALS_DICT( PyObject *locals_dict, P...variables )
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LOCALS_DIR( void )
 {
-    return MAKE_LIST();
+    return MAKE_LIST0();
 }
 
 template<typename T>

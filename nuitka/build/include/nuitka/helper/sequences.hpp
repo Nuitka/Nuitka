@@ -53,53 +53,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_TUPLE( PyObject *seq_obj )
     return result;
 }
 
-template<typename... P>
-static PyObject *MAKE_LIST( P...eles )
-{
-    PyObject *elements[] = {eles...};
-
-    int size = sizeof...(eles);
-    assert( size > 0 );
-
-    PyObject *result = PyList_New( size );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    for ( Py_ssize_t i = 0; i < size; i++ )
-    {
-        assertObject( elements[ i ] );
-
-        PyList_SET_ITEM(
-            result,
-            i,
-#if NUITKA_REVERSED_ARGS == 1
-            elements[ size - 1 - i ]
-#else
-            elements[ i ]
-#endif
-        );
-    }
-
-    assert( Py_REFCNT( result ) == 1 );
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static inline PyObject *MAKE_LIST()
-{
-    PyObject *result = PyList_New( 0 );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
 #define SEQUENCE_CONTAINS( element, sequence ) _SEQUENCE_CONTAINS( EVAL_ORDERED_2( element, sequence ) )
 
 NUITKA_MAY_BE_UNUSED static PyObject *_SEQUENCE_CONTAINS( EVAL_ORDERED_2( PyObject *element, PyObject *sequence ) )

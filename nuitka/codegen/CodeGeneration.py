@@ -2408,8 +2408,19 @@ def generateMakeTuplesCode( context ):
         context = context
     )
 
+def generateMakeListsCode( context ):
+    return Generator.getMakeListsCode(
+        context = context
+    )
+
+def generateMakeDictsCode( context ):
+    return Generator.getMakeDictsCode(
+        context = context
+    )
+
 def generateHelpersCode( context ):
-    return generateReversionMacrosCode( context ) + generateMakeTuplesCode( context )
+    return generateReversionMacrosCode( context ) + generateMakeTuplesCode( context ) + \
+           generateMakeListsCode( context ) + generateMakeDictsCode( context )
 
 def makeGlobalContext():
     return Contexts.PythonGlobalContext()

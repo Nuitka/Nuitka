@@ -32,8 +32,6 @@ These are generally the means to effectively hide the reference count. The best 
 is where getCheapRefCount tries to not allocate references not needed.
 """
 
-from .OrderedEvaluation import getEvalOrderedCode
-
 # The method signatures do not always require usage of self, sometimes can be decided
 # based on class. pylint: disable=R0201
 
@@ -282,20 +280,6 @@ class HelperCallIdentifier( CallIdentifier ):
             self,
             called = helper,
             args   = [ arg.getCodeTemporaryRef() for arg in args ]
-        )
-
-class ReversedCallIdentifier( Identifier ):
-    def __init__( self, context, called, args ):
-        Identifier.__init__(
-            self,
-            code      = "%s( %s )" % (
-                called,
-                getEvalOrderedCode(
-                    context = context,
-                    args    = args
-                )
-            ),
-            ref_count = 1
         )
 
 def getCodeTemporaryRefs( identifiers ):

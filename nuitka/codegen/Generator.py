@@ -41,7 +41,6 @@ from .Identifiers import (
     HolderVariableIdentifier,
     TempVariableIdentifier,
     DefaultValueIdentifier,
-    ReversedCallIdentifier,
     HelperCallIdentifier,
     CallIdentifier,
     getCodeTemporaryRefs,
@@ -60,6 +59,7 @@ from .VariableCodes import getVariableHandle, getVariableCode
 from .TupleCodes import getTupleCreationCode
 from .ListCodes import getListCreationCode # imported from here pylint: disable=W0611
 from .SetCodes import getSetCreationCode # imported from here pylint: disable=W0611
+from .DictCodes import getDictionaryCreationCode # imported from here pylint: disable=W0611
 
 from .ParameterParsing import (
     getParameterEntryPointIdentifier,
@@ -157,24 +157,6 @@ def getYieldCode( identifier, for_return ):
 
 def getYieldTerminatorCode():
     return "throw ReturnException();"
-
-def getDictionaryCreationCode( context, keys, values ):
-    key_codes = getCodeTemporaryRefs( keys )
-    value_codes = getCodeTemporaryRefs( values )
-
-    arg_codes = []
-
-    # Strange as it is, CPython evalutes the key/value pairs strictly in order, but for
-    # each pair, the value first.
-    for key_code, value_code in zip( key_codes, value_codes ):
-        arg_codes.append( value_code )
-        arg_codes.append( key_code )
-
-    return ReversedCallIdentifier(
-        context = context,
-        called  = "MAKE_DICT",
-        args    = arg_codes
-    )
 
 def getPackageVariableCode( context ):
     package_var_identifier = ModuleVariableIdentifier(
@@ -3063,7 +3045,7 @@ def getReversionMacrosCode( context ):
         )
 
     reverse_macros_declaration = CodeTemplates.template_reverse_macros_declaration % {
-        "reverse_macros" : "\n".join( reverse_macros ),
+        "reverse_macros"   : "\n".join( reverse_macros ),
         "noreverse_macros" : "\n".join( noreverse_macros )
     }
 
@@ -3106,6 +3088,76 @@ def getMakeTuplesCode( context ):
         "header_body"       : "\n".join( make_tuples_codes )
     }
 
+def getMakeListsCode( context ):
+    make_lists_codes = []
+
+    for arg_count in context.getMakeListsUsed():
+        add_elements_code = []
+
+        for arg_index in range( arg_count ):
+            add_elements_code.append(
+                CodeTemplates.template_add_list_element_code % {
+                    "list_index" : arg_index,
+                    "list_value" : "element%d" % arg_index
+                }
+            )
+
+        make_lists_codes.append(
+            CodeTemplates.template_make_list_function % {
+                "argument_count"             : arg_count,
+                "args"                       : ", ".join(
+                    "arg%s" % (arg_index+1) for arg_index in range( arg_count )
+                ),
+                "argument_decl"              : ", ".join(
+                    "PyObject *element%d" % arg_index
+                    for arg_index in
+                    range( arg_count )
+                ),
+                "add_elements_code"          : "\n".join( add_elements_code ),
+            }
+        )
+
+    return CodeTemplates.template_header_guard % {
+        "header_guard_name" : "__NUITKA_LISTS_H__",
+        "header_body"       : "\n".join( make_lists_codes )
+    }
+
+def getMakeDictsCode( context ):
+    make_dicts_codes = []
+
+    for arg_count in context.getMakeDictsUsed():
+        add_elements_code = []
+
+        for arg_index in range( arg_count ):
+            add_elements_code.append(
+                CodeTemplates.template_add_dict_element_code % {
+                    "dict_key"   : "key%d" % ( arg_index + 1 ),
+                    "dict_value" : "value%d" % ( arg_index + 1 )
+                }
+            )
+
+        make_dicts_codes.append(
+            CodeTemplates.template_make_dict_function % {
+                "pair_count"                 : arg_count,
+                "argument_count"             : arg_count * 2,
+                "args"                       : ", ".join(
+                    "value%(index)d, key%(index)d" % { "index" : (arg_index+1) }
+                    for arg_index in
+                    range( arg_count )
+                ),
+                "argument_decl"              : ", ".join(
+                    "PyObject *value%(index)d, PyObject *key%(index)d" % { "index" : (arg_index+1) }
+                    for arg_index in
+                    range( arg_count )
+                ),
+                "add_elements_code"          : "\n".join( add_elements_code ),
+            }
+        )
+
+    return CodeTemplates.template_header_guard % {
+        "header_guard_name" : "__NUITKA_DICTS_H__",
+        "header_body"       : "\n".join( make_dicts_codes )
+    }
 
 def getConstantsDeclarationCode( context ):
     constants_declarations = CodeTemplates.template_constants_declaration % {

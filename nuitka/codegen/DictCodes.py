@@ -26,22 +26,30 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Code generation for lists.
+""" Code generation for dicts.
 
 Right now only the creation is done here. But more should be added later on.
 """
 
+from .Identifiers import getCodeTemporaryRefs, CallIdentifier
 
-from .Identifiers import getCodeExportRefs, CallIdentifier
+def getDictionaryCreationCode( context, keys, values ):
+    key_codes = getCodeTemporaryRefs( keys )
+    value_codes = getCodeTemporaryRefs( values )
 
-def getListCreationCode( context, element_identifiers ):
-    arg_codes = getCodeExportRefs( element_identifiers )
+    arg_codes = []
 
-    args_length = len( element_identifiers )
+    # Strange as it is, CPython evalutes the key/value pairs strictly in order, but for
+    # each pair, the value first.
+    for key_code, value_code in zip( key_codes, value_codes ):
+        arg_codes.append( value_code )
+        arg_codes.append( key_code )
 
-    context.addMakeListUse( args_length )
+    args_length = len( keys )
+
+    context.addMakeDictUse( args_length )
 
     return CallIdentifier(
-        called  = "MAKE_LIST%d" % args_length,
+        called  = "MAKE_DICT%d" % args_length,
         args    = arg_codes
     )

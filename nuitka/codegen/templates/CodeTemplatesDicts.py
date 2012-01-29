@@ -26,22 +26,39 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Code generation for lists.
+""" Dict related templates.
 
-Right now only the creation is done here. But more should be added later on.
 """
 
+template_make_dict_function = """\
+#define MAKE_DICT%(pair_count)d( %(args)s ) _MAKE_DICT%(pair_count)d( EVAL_ORDERED_%(argument_count)d( %(args)s ) )
 
-from .Identifiers import getCodeExportRefs, CallIdentifier
+NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_DICT%(pair_count)d( EVAL_ORDERED_%(argument_count)d( %(argument_decl)s ) )
+{
+    PyObject *result = PyDict_New();
 
-def getListCreationCode( context, element_identifiers ):
-    arg_codes = getCodeExportRefs( element_identifiers )
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
 
-    args_length = len( element_identifiers )
+%(add_elements_code)s
 
-    context.addMakeListUse( args_length )
+    assert( Py_REFCNT( result ) == 1 );
 
-    return CallIdentifier(
-        called  = "MAKE_LIST%d" % args_length,
-        args    = arg_codes
-    )
+    return result;
+}
+"""
+
+template_add_dict_element_code = """\
+    assertObject( %(dict_key)s );
+    assertObject( %(dict_value)s );
+
+    {
+        int status = PyDict_SetItem( result, %(dict_key)s, %(dict_value)s );
+
+        if (unlikely( status == -1 ))
+        {
+            throw _PythonException();
+        }
+    }"""
