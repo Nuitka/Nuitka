@@ -49,20 +49,20 @@ from .nodes.FutureSpec import FutureSpec
 from .nodes import Nodes
 from .nodes.VariableRefNode import (
     CPythonExpressionVariableRef,
-    CPythonExpressionTempVariableRef
+    CPythonExpressionTempVariableRef,
 )
 from .nodes.ConstantRefNode import CPythonExpressionConstantRef
-from .nodes.BuiltinReferenceNodes import CPythonExpressionBuiltinExceptionRef
+from .nodes.BuiltinReferenceNodes import (
+    CPythonExpressionBuiltinExceptionRef,
+    CPythonExpressionBuiltinRef
+)
 from .nodes.ExceptionNodes import CPythonStatementRaiseException
 from .nodes.ComparisonNode import CPythonExpressionComparison
 from .nodes.ExecEvalNodes import CPythonStatementExec
-
 from .nodes.FunctionNodes import (
-    CPythonStatementFunctionBuilder,
-    CPythonExpressionLambdaBuilder,
+    CPythonExpressionFunctionBodyDefaulted,
     CPythonExpressionFunctionBody
 )
-
 from .nodes.ContainerMakingNodes import (
     CPythonExpressionKeyValuePair,
     CPythonExpressionMakeTuple,
@@ -70,19 +70,16 @@ from .nodes.ContainerMakingNodes import (
     CPythonExpressionMakeDict,
     CPythonExpressionMakeSet
 )
-
 from .nodes.StatementNodes import (
     CPythonStatementsSequenceLoopBody,
     CPythonStatementExpressionOnly,
     CPythonStatementsSequence
 )
-
 from .nodes.ImportNodes import (
     CPythonExpressionImportModule,
     CPythonExpressionImportName,
     CPythonStatementImportStar,
 )
-
 from .nodes.OperatorNodes import (
     CPythonExpressionOperationBinary,
     CPythonExpressionOperationUnary,
@@ -98,15 +95,6 @@ def dump( node ):
 
 def getKind( node ):
     return node.__class__.__name__.split( "." )[-1]
-
-# pylint: disable=W0603
-_delayed_works = []
-
-def pushDelayedWork( delayed_work ):
-    # pylint: disable=W0602
-    global _delayed_works
-
-    _delayed_works.append( delayed_work )
 
 
 def _buildConstantReferenceNode( constant, source_ref ):
@@ -149,47 +137,54 @@ def buildLoopBodyNode( provider, nodes, source_ref ):
         source_ref = source_ref
     )
 
-def buildDecoratorNodes( provider, nodes, source_ref ):
-    return buildNodeList( provider, nodes, source_ref )
-
 def buildClassNode( provider, node, source_ref ):
     assert getKind( node ) == "ClassDef"
 
     class_statements, class_doc = _extractDocFromBody( node )
 
-    decorators = buildDecoratorNodes( provider, node.decorator_list, source_ref )
-
+    decorators = buildNodeList( provider, reversed( node.decorator_list ), source_ref )
     bases = buildNodeList( provider, node.bases, source_ref )
 
-    result = Nodes.CPythonStatementClassBuilder(
-        target     = buildVariableRefAssignTarget( node.name, source_ref ),
-        bases      = bases,
-        decorators = decorators,
+    class_body = Nodes.CPythonExpressionClassBody(
+        provider   = provider,
+        name       = node.name,
+        doc        = class_doc,
         source_ref = source_ref
     )
 
-    def delayedWork():
-        class_body = Nodes.CPythonExpressionClassBody(
-            provider   = provider,
-            name       = node.name,
-            doc        = class_doc,
+    body = buildStatementsNode(
+        provider   = class_body,
+        nodes      = class_statements,
+        source_ref = source_ref,
+    )
+
+    class_body.setBody( body )
+
+    if bases:
+        decorated_body = Nodes.CPythonExpressionClassBodyBased(
+            bases      = bases,
+            class_body = class_body,
             source_ref = source_ref
         )
+    else:
+        decorated_body = class_body
 
-        result.setBody( class_body )
-
-        body = buildStatementsNode(
-            provider   = class_body,
-            nodes      = class_statements,
-            source_ref = source_ref,
+    for decorator in decorators:
+        decorated_body = Nodes.CPythonExpressionFunctionCall(
+            called_expression = decorator,
+            positional_args   = ( decorated_body, ),
+            pairs             = (),
+            list_star_arg     = None,
+            dict_star_arg     = None,
+            source_ref        = decorator.getSourceReference()
         )
 
-        class_body.setBody( body )
 
-    pushDelayedWork( delayedWork )
-
-    return result
-
+    return Nodes.CPythonStatementAssignment(
+        targets    = ( buildVariableRefAssignTarget( node.name, source_ref ), ),
+        source     = decorated_body,
+        source_ref = source_ref
+    )
 
 def buildParameterSpec( node ):
     kind = getKind( node )
@@ -225,100 +220,122 @@ def buildFunctionNode( provider, node, source_ref ):
 
     function_statements, function_doc = _extractDocFromBody( node )
 
-    decorators = buildDecoratorNodes( provider, node.decorator_list, source_ref )
+    decorators = buildNodeList( provider, reversed( node.decorator_list ), source_ref )
     defaults = buildNodeList( provider, node.args.defaults, source_ref )
 
-    result = CPythonStatementFunctionBuilder(
-        target     = buildVariableRefAssignTarget( node.name, source_ref ),
-        defaults   = defaults,
-        decorators = decorators,
+    real_provider = provider
+
+    while real_provider.isExpressionClassBody():
+        real_provider = real_provider.provider
+
+    function_body = CPythonExpressionFunctionBody(
+        provider   = real_provider,
+        name       = node.name,
+        doc        = function_doc,
+        parameters = buildParameterSpec( node ),
         source_ref = source_ref
     )
 
-    def delayedWork():
-        real_provider = provider
 
-        while real_provider.isExpressionClassBody():
-            real_provider = real_provider.provider
+    function_body.setBody(
+        buildStatementsNode( function_body, function_statements, source_ref ),
+    )
 
-        function_body = CPythonExpressionFunctionBody(
-            provider   = real_provider,
-            name       = node.name,
-            doc        = function_doc,
-            parameters = buildParameterSpec( node ),
-            source_ref = source_ref
+    if defaults:
+        decorated_body = CPythonExpressionFunctionBodyDefaulted(
+            function_body = function_body,
+            defaults      = defaults,
+            source_ref    = source_ref
+        )
+    else:
+        decorated_body = function_body
+
+    for decorator in decorators:
+        decorated_body = Nodes.CPythonExpressionFunctionCall(
+            called_expression = decorator,
+            positional_args   = ( decorated_body, ),
+            pairs             = (),
+            list_star_arg     = None,
+            dict_star_arg     = None,
+            source_ref        = decorator.getSourceReference()
         )
 
-        result.setBody( function_body )
+    # Add the staticmethod decorator to __new__ methods if not provided.
 
-        statements = buildStatementsNode(
-            provider   = function_body,
-            nodes      = function_statements,
-            source_ref = source_ref,
+    # CPython made these optional, but applies them to every class __new__. We better add
+    # them early, so our analysis will see it
+    if node.name == "__new__" and not decorators and provider.isExpressionClassBody():
+        decorated_body = Nodes.CPythonExpressionFunctionCall(
+            called_expression = CPythonExpressionBuiltinRef(
+                builtin_name = "staticmethod",
+                source_ref   = source_ref
+            ),
+            positional_args   = ( decorated_body, ),
+            pairs             = (),
+            list_star_arg     = None,
+            dict_star_arg     = None,
+            source_ref        = source_ref,
         )
 
-        function_body.setBody( statements )
 
-    pushDelayedWork( delayedWork )
-
-    return result
-
-def isSameListContent( a, b ):
-    return list( sorted( a ) ) == list( sorted( b ) )
+    return Nodes.CPythonStatementAssignment(
+        targets    = ( buildVariableRefAssignTarget( node.name, source_ref ), ),
+        source     = decorated_body,
+        source_ref = source_ref
+    )
 
 def buildLambdaNode( provider, node, source_ref ):
+    assert getKind( node ) == "Lambda"
+
     defaults = buildNodeList( provider, node.args.defaults, source_ref )
 
-    result = CPythonExpressionLambdaBuilder(
-        defaults   = defaults,
+    real_provider = provider
+
+    while real_provider.isExpressionClassBody():
+        real_provider = real_provider.provider
+
+    result = CPythonExpressionFunctionBody(
+        provider   = real_provider,
+        name       = "<lambda>",
+        doc        = None,
+        parameters = buildParameterSpec( node ),
         source_ref = source_ref,
     )
 
-    def delayedWork():
-        real_provider = provider
+    body = buildNode(
+        provider   = result,
+        node       = node.body,
+        source_ref = source_ref,
+    )
 
-        while real_provider.isExpressionClassBody():
-            real_provider = real_provider.provider
-
-        function_body = CPythonExpressionFunctionBody(
-            provider   = real_provider,
-            name       = "lambda",
-            doc        = None,
-            parameters = buildParameterSpec( node ),
-            source_ref = source_ref
-        )
-
-        result.setBody( function_body )
-
-        body = buildNode(
-            provider   = function_body,
-            node       = node.body,
-            source_ref = source_ref,
-        )
-
-        if function_body.isGenerator():
-            body = CPythonStatementExpressionOnly(
-                expression = Nodes.CPythonExpressionYield(
-                    expression = body,
-                    for_return = True,
-                    source_ref = function_body.getSourceReference()
-                ),
-                source_ref = function_body.getSourceReference()
-            )
-        else:
-            body = Nodes.CPythonStatementReturn(
+    if result.isGenerator():
+        body = CPythonStatementExpressionOnly(
+            expression = Nodes.CPythonExpressionYield(
                 expression = body,
-                source_ref = function_body.getSourceReference()
-            )
-
-        body = CPythonStatementsSequence(
-            statements = ( body, ),
-            source_ref = function_body.getSourceReference()
+                for_return = True,
+                source_ref = body.getSourceReference()
+            ),
+            source_ref = body.getSourceReference()
+        )
+    else:
+        body = Nodes.CPythonStatementReturn(
+            expression = body,
+            source_ref = body.getSourceReference()
         )
 
-        function_body.setBody( body )
+    body = CPythonStatementsSequence(
+        statements = ( body, ),
+        source_ref = body.getSourceReference()
+    )
 
-    pushDelayedWork( delayedWork )
+    result.setBody( body )
+
+    if defaults:
+        result = CPythonExpressionFunctionBodyDefaulted(
+            function_body = result,
+            defaults      = defaults,
+            source_ref    = source_ref
+        )
 
     return result
 
@@ -599,21 +616,21 @@ def buildAssignNode( provider, node, source_ref ):
 
     # Evaluate the right hand side first, so it can get names provided
     # before the left hand side exists.
-    expression = buildNode( provider, node.value, source_ref )
+    source = buildNode( provider, node.value, source_ref )
 
     # Only now the left hand side, so the right hand side is first.
     targets = buildAssignTargets( provider, node.targets, source_ref )
 
     return Nodes.CPythonStatementAssignment(
         targets    = targets,
-        expression = expression,
+        source     = source,
         source_ref = source_ref
     )
 
 def buildDeleteNode( provider, node, source_ref ):
     return Nodes.CPythonStatementAssignment(
         targets    = buildAssignTargets( provider, node.targets, source_ref ),
-        expression = None,
+        source     = None,
         source_ref = source_ref
     )
 
@@ -712,76 +729,113 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
         source_ref          = source_ref
     )
 
-    def delayedWork():
-        contraction_body = body_class(
-            provider   = provider,
+    contraction_body = body_class(
+        provider   = provider,
+        source_ref = source_ref,
+    )
+
+    result.setBody( contraction_body )
+
+    if hasattr( node, "elt" ):
+        contraction_body.setBody(
+            buildNode(
+                provider   = contraction_body,
+                node       = node.elt,
+                source_ref = source_ref
+            )
+        )
+    else:
+        key_node = buildNode(
+            provider   = contraction_body,
+            node       = node.key,
             source_ref = source_ref,
         )
 
-        result.setBody( contraction_body )
-
-        if hasattr( node, "elt" ):
-            contraction_body.setBody(
-                buildNode(
-                    provider   = contraction_body,
-                    node       = node.elt,
-                    source_ref = source_ref
-                )
-            )
-        else:
-            key_node = buildNode(
-                provider   = contraction_body,
-                node       = node.key,
-                source_ref = source_ref,
-            )
-
-            value_node = buildNode(
-                provider   = contraction_body,
-                node       = node.value,
-                source_ref = source_ref,
-            )
-
-            contraction_body.setBody(
-                CPythonExpressionKeyValuePair(
-                    key        = key_node,
-                    value      = value_node,
-                    source_ref = source_ref
-                )
-            )
-
-        buildTargetsFromQuals(
-            provider     = provider if list_contraction else contraction_body,
-            target_owner = contraction_body,
-            quals        = node.generators,
-            source_ref   = source_ref
+        value_node = buildNode(
+            provider   = contraction_body,
+            node       = node.value,
+            source_ref = source_ref,
         )
 
-        buildBodyQuals(
-            contraction_body = contraction_body,
-            quals            = node.generators,
-            source_ref       = source_ref
+        contraction_body.setBody(
+            CPythonExpressionKeyValuePair(
+                key        = key_node,
+                value      = value_node,
+                source_ref = source_ref
+            )
         )
 
-        # The horror hereafter transforms the result into something else if a yield
-        # expression was discovered. We take the lambda generator expression and convert
-        # it to a lambda generator function, something that does not exist in CPython, but
-        # for which we can generator code.
-        if contraction_body.isExpressionGeneratorBody() and contraction_body.isGenerator():
-            generator_function_body = CPythonExpressionFunctionBody(
-                provider   = provider,
-                name       = "pseudo",
-                doc        = None,
-                parameters = ParameterSpec( ( "_iterated", ), None, None, 0 ),
+    buildTargetsFromQuals(
+        provider     = provider if list_contraction else contraction_body,
+        target_owner = contraction_body,
+        quals        = node.generators,
+        source_ref   = source_ref
+    )
+
+    buildBodyQuals(
+        contraction_body = contraction_body,
+        quals            = node.generators,
+        source_ref       = source_ref
+    )
+
+    # The horror hereafter transforms the result into something else if a yield
+    # expression was discovered. We take the lambda generator expression and convert
+    # it to a lambda generator function, something that does not exist in CPython, but
+    # for which we can generator code.
+    if contraction_body.isExpressionGeneratorBody() and contraction_body.isGenerator():
+        generator_function_body = CPythonExpressionFunctionBody(
+            provider   = provider,
+            name       = "pseudo",
+            doc        = None,
+            parameters = ParameterSpec( ( "_iterated", ), None, None, 0 ),
+            source_ref = source_ref
+        )
+
+        body = CPythonStatementExpressionOnly(
+            expression = Nodes.CPythonExpressionYield(
+                expression = contraction_body.getBody(),
+                for_return = False,
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        )
+
+        body = CPythonStatementsSequence(
+            statements = ( body, ),
+            source_ref = source_ref
+        )
+
+        sources = [
+            CPythonExpressionVariableRef(
+                variable_name = "_iterated",
+                source_ref    = source_ref
+            )
+        ]
+        sources += contraction_body.getSources()
+
+        for target, source, condition in zip(
+            contraction_body.getTargets(),
+            sources,
+            contraction_body.getConditions() ):
+
+            body = Nodes.CPythonStatementConditional(
+                condition  = condition,
+                yes_branch = body,
+                no_branch  = None,
                 source_ref = source_ref
             )
 
-            body = CPythonStatementExpressionOnly(
-                expression = Nodes.CPythonExpressionYield(
-                    expression = contraction_body.getBody(),
-                    for_return = False,
-                    source_ref = source_ref
-                ),
+            body = CPythonStatementsSequenceLoopBody(
+                statements = ( body, ),
                 source_ref = source_ref
+            )
+
+            body = Nodes.CPythonStatementForLoop(
+                source     = source,
+                target     = target,
+                body       = body,
+                no_break   = None,
+                source_ref = source_ref,
             )
 
             body = CPythonStatementsSequence(
@@ -789,66 +843,17 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
                 source_ref = source_ref
             )
 
-            sources = [
-                CPythonExpressionVariableRef(
-                    variable_name = "_iterated",
-                    source_ref    = source_ref
-                )
-            ]
-            sources += contraction_body.getSources()
+        generator_function_body.setBody( body )
+        generator_function_body.markAsGenerator()
 
-            for target, source, condition in zip(
-                contraction_body.getTargets(),
-                sources,
-                contraction_body.getConditions() ):
-
-                body = Nodes.CPythonStatementConditional(
-                    condition  = condition,
-                    yes_branch = body,
-                    no_branch  = None,
-                    source_ref = source_ref
-                )
-
-                body = CPythonStatementsSequenceLoopBody(
-                    statements = ( body, ),
-                    source_ref = source_ref
-                )
-
-                body = Nodes.CPythonStatementForLoop(
-                    source     = source,
-                    target     = target,
-                    body       = body,
-                    no_break   = None,
-                    source_ref = source_ref,
-                )
-
-                body = CPythonStatementsSequence(
-                    statements = ( body, ),
-                    source_ref = source_ref
-                )
-
-            generator_function_body.setBody( body )
-            generator_function_body.markAsGenerator()
-
-            new_result = CPythonExpressionLambdaBuilder(
-                defaults   = (),
-                source_ref = source_ref,
-            )
-            new_result.setBody( generator_function_body )
-
-            new_result = Nodes.CPythonExpressionFunctionCall(
-                called_expression = new_result,
-                positional_args   = ( result.getSource0(), ),
-                pairs             = (),
-                list_star_arg     = None,
-                dict_star_arg     = None,
-                source_ref        = source_ref
-            )
-
-            result.replaceWith( new_result )
-
-
-    pushDelayedWork( delayedWork )
+        result = Nodes.CPythonExpressionFunctionCall(
+            called_expression = generator_function_body,
+            positional_args   = ( result.getSource0(), ),
+            pairs             = (),
+            list_star_arg     = None,
+            dict_star_arg     = None,
+            source_ref        = source_ref
+        )
 
     return result
 
@@ -1100,7 +1105,7 @@ def buildSubscriptNode( provider, node, source_ref ):
 
         return Nodes.CPythonStatementAssignment(
             targets    = ( target, ),
-            expression = None,
+            source     = None,
             source_ref = source_ref
         )
 
@@ -1196,7 +1201,7 @@ def _buildImportModulesNode( import_names, source_ref ):
         import_nodes.append(
             Nodes.CPythonStatementAssignment(
                 targets    = ( target, ),
-                expression = import_node,
+                source     = import_node,
                 source_ref = source_ref
             )
         )
@@ -1283,7 +1288,7 @@ def buildImportFromNode( provider, node, source_ref ):
             import_nodes.append(
                 Nodes.CPythonStatementAssignment(
                     targets    = ( target, ),
-                    expression = CPythonExpressionImportName(
+                    source     = CPythonExpressionImportName(
                         module      = CPythonExpressionImportModule(
                             module_name = module_name,
                             import_list = imports,
@@ -1293,7 +1298,7 @@ def buildImportFromNode( provider, node, source_ref ):
                         import_name = import_name,
                         source_ref  = source_ref
                     ),
-                    source_ref  = source_ref
+                    source_ref = source_ref
                 )
             )
 
@@ -1647,26 +1652,17 @@ def buildParseTree( provider, source_code, source_ref, replacement ):
 
     body, doc = _extractDocFromBody( body )
 
-    result = buildStatementsNode(
-        provider   = provider,
-        nodes      = body,
-        source_ref = source_ref
-    )
+    result = buildStatementsNode( provider, body, source_ref )
 
-    # TODO: The handling of doc strings should be done in an early optimization step that
-    # handles this.
     if not replacement:
         provider.setDoc( doc )
         provider.setBody( result )
 
-    while _delayed_works:
-        delayed_work = _delayed_works.pop()
-
-        delayed_work()
-
     return result
 
 def buildReplacementTree( provider, source_code, source_ref ):
+    assert False, "bitrot"
+
     return buildParseTree(
         provider    = provider,
         source_code = source_code,
@@ -1676,10 +1672,6 @@ def buildReplacementTree( provider, source_code, source_ref ):
 
 def buildModuleTree( filename, package, is_main ):
     assert package is None or type( package ) is str
-
-    # pylint: disable=W0602
-    global _delayed_works
-    _delayed_works = []
 
     if Utils.isFile( filename ):
         source_filename = filename

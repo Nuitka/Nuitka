@@ -106,7 +106,6 @@ class CPythonStatementsSequenceLoopBody( CPythonStatementsSequence ):
     tags = ( "execution_border", )
 
 
-
 class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_EXPRESSION_ONLY"
 

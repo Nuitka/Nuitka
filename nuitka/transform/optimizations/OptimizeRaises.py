@@ -32,7 +32,7 @@
 
 from .OptimizeBase import OptimizationVisitorBase
 
-from ..TreeOperations import RestartVisit, ExitNodeVisit
+from ..TreeOperations import RestartVisit
 
 from nuitka.nodes import Nodes
 

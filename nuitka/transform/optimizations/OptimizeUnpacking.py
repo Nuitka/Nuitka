@@ -69,7 +69,7 @@ class ReplaceUnpackingVisitor( OptimizationVisitorBase ):
                                 statements.append(
                                     Nodes.CPythonStatementAssignment(
                                         targets    = ( element, ),
-                                        expression = makeConstantReplacementNode(
+                                        source     = makeConstantReplacementNode(
                                             constant = value,
                                             node     = node
                                         ),

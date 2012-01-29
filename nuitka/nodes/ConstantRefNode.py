@@ -87,3 +87,7 @@ class CPythonExpressionConstantRef( CPythonNodeBase ):
     def mayRaiseException( self, exception_type ):
         # Constants won't raise anything.
         return False
+
+    def computeNode( self ):
+        # Cannot compute any further.
+        return self, None, None

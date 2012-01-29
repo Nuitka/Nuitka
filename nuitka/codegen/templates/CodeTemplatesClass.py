@@ -144,9 +144,6 @@ static PyObject *MAKE_CLASS_%(class_identifier)s( %(class_creation_args)s )
         throw _PythonException();
     }
 
-    // Apply decorators if any
-%(class_decorator_calls)s\
-
     return result;
 }
 """

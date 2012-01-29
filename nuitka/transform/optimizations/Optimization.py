@@ -47,7 +47,6 @@ from .OptimizeBuiltins import (
     ReplaceBuiltinsExceptionsVisitor,
     PrecomputeBuiltinsVisitor
 )
-from .OptimizeStaticMethodFixup import FixupNewStaticMethodVisitor
 from .OptimizeConstantOperations import OptimizeOperationVisitor
 from .OptimizeUnpacking import ReplaceUnpackingVisitor
 from .OptimizeStatements import StatementSequencesCleanupVisitor
@@ -79,9 +78,6 @@ def optimizeTree( tree ):
     tags.add( "new_code" )
 
     def refreshOptimizationsFromTags( optimizations_queue, tags ):
-        if tags.check( "new_code" ):
-            optimizations_queue.add( FixupNewStaticMethodVisitor )
-
         if tags.check( "new_code new_variable" ):
             optimizations_queue.update( VariableClosureLookupVisitors )
 

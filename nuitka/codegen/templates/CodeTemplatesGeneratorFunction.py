@@ -95,9 +95,6 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
         _context_common_%(function_identifier)s_destructor
     );
 
-    // Apply decorators if any
-%(function_decorator_calls)s
-
     return result;
 }
 

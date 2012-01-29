@@ -56,3 +56,11 @@ def function2():
     return 3
 
 print function2()
+
+# Same as function2, but without decorator syntax.
+def function3():
+    return 3
+
+function3 = deco_returner1()( deco_returner2()( function3 ) )
+
+print function3()

@@ -124,6 +124,9 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         self.source_ref = source_ref
 
+    def isNode( self ):
+        return True
+
     def __repr__( self ):
         # This is to avoid crashes, because of bugs in detail. pylint: disable=W0702
         try:
@@ -443,7 +446,7 @@ class CPythonChildrenHaving:
         assert type( self.named_children ) is tuple
 
         for key in values.keys():
-            assert key in self.named_children
+            assert key in self.named_children, key
 
         self.child_values = dict.fromkeys( self.named_children )
         self.child_values.update( values )
@@ -505,7 +508,7 @@ class CPythonChildrenHaving:
             elif isinstance( value, CPythonNodeBase ):
                 result.append( value )
             else:
-                assert False, ( name, value, value.__class__ )
+                raise AssertionError( self, "has illegal child", name, value, value.__class__ )
 
         return tuple( result )
 
@@ -520,6 +523,9 @@ class CPythonChildrenHaving:
         return result
 
     def replaceChild( self, old_node, new_node ):
+        if new_node is not None and not isinstance( new_node, CPythonNodeBase ):
+            raise AssertionError( "Cannot replace with", new_node, "old", old_node, "in", self )
+
         for key, value in self.child_values.items():
             if value is None:
                 pass

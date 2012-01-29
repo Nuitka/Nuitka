@@ -171,47 +171,6 @@ class CPythonPackage( CPythonModule ):
         return [ Utils.dirname( self.getFilename() ) ]
 
 
-class CPythonStatementClassBuilder( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "STATEMENT_CLASS_BUILDER"
-
-    named_children = ( "bases", "decorators", "target", "body", )
-
-    def __init__( self, target, bases, decorators, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "target"     : target,
-                "decorators" : tuple( decorators ),
-                "bases"      : tuple( bases ),
-            }
-        )
-
-    getBaseClasses = CPythonChildrenHaving.childGetter( "bases" )
-    getDecorators = CPythonChildrenHaving.childGetter( "decorators" )
-
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
-
-    getTarget = CPythonChildrenHaving.childGetter( "target" )
-
-    def getClassName( self ):
-        return self.getBody().getName()
-
-    def getCodeName( self ):
-        return self.getBody().getCodeName()
-
-    def getClosureVariables( self ):
-        return self.getBody().getClosureVariables()
-
-    def getClassVariables( self ):
-        return self.getBody().getClassVariables()
-
-    def getTempVariables( self ):
-        return self.getBody().getTempVariables()
-
-
 class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CPythonCodeNodeBase, \
                                   MarkContainsTryExceptIndicator, MarkLocalsDictIndicator ):
     kind = "EXPRESSION_CLASS_BODY"
@@ -255,6 +214,9 @@ class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CP
 
     getBody = CPythonChildrenHaving.childGetter( "body" )
     setBody = CPythonChildrenHaving.childSetter( "body" )
+
+    def getClassName( self ):
+        return self.getName()
 
     def getDoc( self ):
         return self.doc
@@ -308,6 +270,24 @@ class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CP
     getVariables = getClassVariables
 
 
+class CPythonExpressionClassBodyBased( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_CLASS_BODY_BASED"
+
+    named_children = ( "bases", "class_body", )
+
+    def __init__( self, bases, class_body, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "class_body" : class_body,
+                "bases"      : tuple( bases ),
+            }
+        )
+
+    getClassBody = CPythonChildrenHaving.childGetter( "class_body" )
+    getBases = CPythonChildrenHaving.childGetter( "bases" )
 
 class CPythonAssignTargetVariable( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "ASSIGN_TARGET_VARIABLE"
@@ -424,13 +404,13 @@ class CPythonStatementAssignment( CPythonChildrenHaving, CPythonNodeBase ):
 
     named_children = ( "source", "targets" )
 
-    def __init__( self, targets, expression, source_ref ):
+    def __init__( self, targets, source, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
             values = {
-                "source"  : expression,
+                "source"  : source,
                 "targets" : tuple( targets )
             }
         )

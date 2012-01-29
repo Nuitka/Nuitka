@@ -694,10 +694,8 @@ def getConditionalExpressionCode( condition, codes_no, codes_yes ):
             1
         )
 
-def getFunctionCreationCode( context, function_identifier, decorators, default_identifiers, closure_variables ):
-    args = getCodeTemporaryRefs( decorators )
-
-    args += getCodeExportRefs( default_identifiers )
+def getFunctionCreationCode( context, function_identifier, default_identifiers, closure_variables ):
+    args = getCodeExportRefs( default_identifiers )
 
     args += getClosureVariableProvisionCode(
         context           = context,
@@ -2046,19 +2044,11 @@ def getContractionIterValueIdentifier( context, index ):
     else:
         return Identifier( "_python_genexpr_iter_value", 1 )
 
-def _getFunctionCreationArgs( decorator_count, default_identifiers, closure_variables, is_genexpr ):
-    if decorator_count:
-        result = [
-            "PyObject *decorator_%d" % ( d + 1 )
-            for d in
-            range( decorator_count )
-        ]
+def _getFunctionCreationArgs( default_identifiers, closure_variables, is_genexpr ):
+    if is_genexpr:
+        result = [ "PyObject *iterator" ]
     else:
         result = []
-
-    if is_genexpr:
-        result += [ "PyObject *iterator" ]
-
 
     result += getDefaultParameterDeclarations(
         default_identifiers = default_identifiers
@@ -2087,10 +2077,9 @@ def _extractArgNames( args ):
     ]
 
 
-def getFunctionDecl( context, function_identifier, decorator_count, default_identifiers, \
+def getFunctionDecl( context, function_identifier, default_identifiers, \
                      closure_variables, is_genexpr ):
     function_creation_arg_spec = _getFunctionCreationArgs(
-        decorator_count     = decorator_count,
         default_identifiers = default_identifiers,
         closure_variables   = closure_variables,
         is_genexpr          = is_genexpr
@@ -2185,27 +2174,6 @@ def _getLocalVariableInitCode( context, variable, init_from = None, needs_no_fre
 
     return result
 
-def _getDecoratorsCallCode( context, decorator_count ):
-    def _getCall( count ):
-        return getFunctionCallCode(
-            function_identifier  = Identifier( "decorator_%d" % count, 0 ),
-            argument_tuple       = getTupleCreationCode(
-                element_identifiers = [ Identifier( "result", 1 ) ],
-                context             = context
-            ),
-            argument_dictionary  = Identifier( "NULL", 0 ),
-            star_dict_identifier = None,
-            star_list_identifier = None
-        )
-
-    decorator_calls = [
-        "result = %s;" % _getCall( count + 1 ).getCode()
-        for count in
-        reversed( range( decorator_count ) )
-    ]
-
-    return decorator_calls
-
 def _getCoArgNamesValue( parameters ):
     result = []
 
@@ -2231,7 +2199,7 @@ def _getFuncDefaultValue( identifiers, context ):
 
 def getGeneratorFunctionCode( context, function_name, function_identifier, parameters, \
                               closure_variables, user_variables, tmp_variables, \
-                              decorator_count, default_access_identifiers, function_codes, \
+                              default_access_identifiers, function_codes, \
                               source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
@@ -2325,15 +2293,9 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         )
 
     function_creation_args  = _getFunctionCreationArgs(
-        decorator_count     = decorator_count,
         default_identifiers = default_access_identifiers,
         closure_variables   = closure_variables,
         is_genexpr          = False
-    )
-
-    function_decorator_calls = _getDecoratorsCallCode(
-        context         = context,
-        decorator_count = decorator_count
     )
 
     function_doc = getConstantCode(
@@ -2422,7 +2384,6 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
             context = context,
             args    = function_creation_args
         ),
-        "function_decorator_calls"   : indented( function_decorator_calls ),
         "context_copy"               : indented( context_copy ),
         "function_doc"               : function_doc,
         "filename_identifier"        : getConstantCode(
@@ -2442,7 +2403,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
     return result
 
 def getFunctionCode( context, function_name, function_identifier, parameters, closure_variables, \
-                     user_variables, tmp_variables, decorator_count, default_access_identifiers, \
+                     user_variables, tmp_variables, default_access_identifiers, \
                      function_codes, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
@@ -2483,7 +2444,6 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         )
 
     function_creation_args = _getFunctionCreationArgs(
-        decorator_count     = decorator_count,
         closure_variables   = closure_variables,
         default_identifiers = default_access_identifiers,
         is_genexpr          = False
@@ -2498,11 +2458,6 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         for variable in
         user_variables + tmp_variables
     ]
-
-    function_decorator_calls = _getDecoratorsCallCode(
-        context         = context,
-        decorator_count = decorator_count
-    )
 
     function_doc = getConstantCode(
         context  = context,
@@ -2581,7 +2536,6 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                 context = context,
                 args    = function_creation_args
             ),
-            "function_decorator_calls"   : indented( function_decorator_calls ),
             "context_copy"               : indented( context_copy ),
             "function_doc"               : function_doc,
             "filename_identifier"        : getConstantCode(
@@ -2611,7 +2565,6 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                 context = context,
                 args    = function_creation_args
             ),
-            "function_decorator_calls"   : indented( function_decorator_calls ),
             "function_doc"               : function_doc,
             "filename_identifier"        : getConstantCode(
                 context  = context,
@@ -2790,8 +2743,8 @@ def _getClosureVariableDecl( variable ):
 
     return "%s &_python_closure_%s" % ( kind, variable.getName() )
 
-def getClassCreationCode( context, code_name, dict_identifier, bases_identifier, decorators ):
-    args = decorators + [ bases_identifier, dict_identifier ]
+def getClassCreationCode( context, code_name, dict_identifier, bases_identifier ):
+    args = [ bases_identifier, dict_identifier ]
 
     return Identifier(
         "MAKE_CLASS_%s( %s )" % (
@@ -2818,15 +2771,8 @@ def getClassDictCreationCode( context, class_identifier, closure_variables ):
         1
     )
 
-def _getClassCreationArgs( decorator_count, closure_variables ):
-    class_creation_args = [
-        "PyObject *decorator_%d" % ( d + 1 )
-        for d in
-        range( decorator_count )
-    ]
-    class_creation_args.append( "PyObject *bases" )
-    class_creation_args.append( "PyObject *dict" )
-
+def _getClassCreationArgs( closure_variables ):
+    class_creation_args = [ "PyObject *bases", "PyObject *dict" ]
     class_dict_args = []
 
     for closure_variable in closure_variables:
@@ -2838,10 +2784,9 @@ def _getClassCreationArgs( decorator_count, closure_variables ):
 
     return class_creation_args, class_dict_args
 
-def getClassDecl( context, class_identifier, closure_variables, decorator_count ):
+def getClassDecl( context, class_identifier, closure_variables ):
     class_creation_args, class_dict_args = _getClassCreationArgs(
-        closure_variables = closure_variables,
-        decorator_count   = decorator_count
+        closure_variables = closure_variables
     )
 
     return CodeTemplates.class_decl_template % {
@@ -2854,7 +2799,7 @@ def getClassDecl( context, class_identifier, closure_variables, decorator_count 
     }
 
 def getClassCode( context, source_ref, class_name, class_identifier, class_variables, \
-                  closure_variables, tmp_variables, decorator_count, module_name, \
+                  closure_variables, tmp_variables, module_name, \
                   class_doc, class_codes, class_dict_codes, metaclass_variable ):
     # We really need this many parameters here.
     # pylint: disable=R0913
@@ -2906,13 +2851,7 @@ def getClassCode( context, source_ref, class_name, class_identifier, class_varia
         class_locals = CodeTemplates.frame_exceptionkeeper_setup.split("\n") + class_locals
 
     class_creation_args, class_dict_args = _getClassCreationArgs(
-        closure_variables = closure_variables,
-        decorator_count   = decorator_count
-    )
-
-    class_decorator_calls = _getDecoratorsCallCode(
-        context         = context,
-        decorator_count = decorator_count
+        closure_variables = closure_variables
     )
 
     context.addGlobalVariableNameUsage(
@@ -2949,7 +2888,6 @@ def getClassCode( context, source_ref, class_name, class_identifier, class_varia
         ),
         "class_var_decl"        : indented( class_locals ),
         "class_dict_creation"   : indented( class_dict_codes, 2 ),
-        "class_decorator_calls" : indented( class_decorator_calls ),
         "class_body"            : indented( class_codes, 2 ),
         "module_identifier"     : getModuleAccessCode( context = context ),
         "metaclass_global_test" : getVariableTestCode(
