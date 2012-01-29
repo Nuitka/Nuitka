@@ -31,12 +31,17 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from .Identifiers import getCodeTemporaryRefs, Identifier
+from .Identifiers import CallIdentifier
 
-def getSetCreationCode( element_identifiers ):
-    arg_codes = getCodeTemporaryRefs( element_identifiers )
+from .TupleCodes import getTupleCreationCode
 
-    return Identifier(
-        "MAKE_SET( %s )" % ( ", ".join( reversed( arg_codes ) ) ),
-        1
+def getSetCreationCode( context, element_identifiers ):
+    tuple_identifier = getTupleCreationCode(
+        element_identifiers = element_identifiers,
+        context             = context
+    )
+
+    return CallIdentifier(
+        called  = "MAKE_SET",
+        args    = ( tuple_identifier, )
     )

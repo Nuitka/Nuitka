@@ -519,14 +519,24 @@ static PyDictEntry *GET_PYDICT_ENTRY( PyModuleObject *module, Nuitka_StringObjec
     return GET_PYDICT_ENTRY( dict, key );
 }
 
-template<typename... P>
-static PyObject *MAKE_SET( P...eles )
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SET()
 {
-    PyObject *tuple = MAKE_TUPLE( eles... );
+    PyObject *result = PySet_New( NULL );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SET( PyObject *tuple )
+{
+    assertObject( tuple );
+    assert( PyTuple_Check( tuple ) );
 
     PyObject *result = PySet_New( tuple );
-
-    Py_DECREF( tuple );
 
     if (unlikely( result == NULL ))
     {

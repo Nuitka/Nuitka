@@ -645,7 +645,8 @@ def generateSetCreationCode( elements, context ):
     )
 
     return Generator.getSetCreationCode(
-        element_identifiers = element_identifiers
+        element_identifiers = element_identifiers,
+        context             = context
     )
 
 def _areConstants( expressions ):

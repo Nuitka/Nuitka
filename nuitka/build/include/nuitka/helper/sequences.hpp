@@ -54,48 +54,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_TUPLE( PyObject *seq_obj )
 }
 
 template<typename... P>
-static PyObject *MAKE_TUPLE( P...eles )
-{
-    int size = sizeof...(eles);
-    assert( size > 0 );
-
-    PyObject *elements[] = {eles...};
-
-    PyObject *result = PyTuple_New( size );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    for ( Py_ssize_t i = 0; i < size; i++ )
-    {
-        assertObject( elements[ i ] );
-
-        PyTuple_SET_ITEM(
-            result,
-            i,
-            INCREASE_REFCOUNT(
-#if NUITKA_REVERSED_ARGS == 1
-            elements[ size - 1 - i ]
-#else
-            elements[ i ]
-#endif
-            )
-        );
-    }
-
-    assert( Py_REFCNT( result ) == 1 );
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static inline PyObject *MAKE_TUPLE()
-{
-    return INCREASE_REFCOUNT( _python_tuple_empty );
-}
-
-template<typename... P>
 static PyObject *MAKE_LIST( P...eles )
 {
     PyObject *elements[] = {eles...};
