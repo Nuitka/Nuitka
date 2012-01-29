@@ -41,13 +41,11 @@ from nuitka import (
 from .IndicatorMixins import (
     MarkExceptionBreakContinueIndicator,
     MarkContainsTryExceptIndicator,
-    MarkLocalsDictIndicator,
     MarkGeneratorIndicator,
 )
 
 from .NodeBases import (
     CPythonNodeBase,
-    CPythonCodeNodeBase,
     CPythonChildrenHaving,
     CPythonClosureTaker,
     CPythonClosureGiverNodeBase,
@@ -170,124 +168,6 @@ class CPythonPackage( CPythonModule ):
     def getPathAttribute( self ):
         return [ Utils.dirname( self.getFilename() ) ]
 
-
-class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CPythonCodeNodeBase, \
-                                  MarkContainsTryExceptIndicator, MarkLocalsDictIndicator ):
-    kind = "EXPRESSION_CLASS_BODY"
-
-    early_closure = True
-
-    named_children = ( "body", )
-
-    def __init__( self, provider, name, doc, source_ref ):
-        CPythonCodeNodeBase.__init__(
-            self,
-            name        = name,
-            code_prefix = "class",
-            source_ref  = source_ref
-        )
-
-        CPythonClosureTaker.__init__(
-            self,
-            provider = provider,
-        )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {}
-        )
-
-        MarkContainsTryExceptIndicator.__init__( self )
-
-        MarkLocalsDictIndicator.__init__( self )
-
-        self.doc = doc
-
-        self.variables = {}
-
-        self._addClassVariable(
-            variable_name = "__module__"
-        )
-        self._addClassVariable(
-            variable_name = "__doc__"
-        )
-
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
-
-    def getClassName( self ):
-        return self.getName()
-
-    def getDoc( self ):
-        return self.doc
-
-    def _addClassVariable( self, variable_name ):
-        result = Variables.ClassVariable(
-            owner         = self,
-            variable_name = variable_name
-        )
-
-        self.variables[ variable_name ] = result
-
-        return result
-
-    def getVariableForAssignment( self, variable_name ):
-        # print( "ASS class", variable_name, self )
-
-        if self.hasTakenVariable( variable_name ):
-            result = self.getTakenVariable( variable_name )
-
-            if result.isClassVariable() and result.getOwner() == self:
-                return result
-
-            if result.isModuleVariableReference() and result.isFromGlobalStatement():
-                return result
-
-        return self._addClassVariable(
-            variable_name = variable_name
-        )
-
-    def getVariableForReference( self, variable_name ):
-        # print( "REF class", variable_name, self )
-
-        if variable_name in self.variables:
-            return self.variables[ variable_name ]
-        else:
-            return self.getClosureVariable( variable_name )
-
-    def getVariableForClosure( self, variable_name ):
-        if variable_name in self.variables:
-            return self.variables[ variable_name ]
-        else:
-            return self.provider.getVariableForClosure( variable_name )
-
-    def reconsiderVariable( self, variable ):
-        pass
-
-    def getClassVariables( self ):
-        return self.variables.values()
-
-    getVariables = getClassVariables
-
-
-class CPythonExpressionClassBodyBased( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "EXPRESSION_CLASS_BODY_BASED"
-
-    named_children = ( "bases", "class_body", )
-
-    def __init__( self, bases, class_body, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "class_body" : class_body,
-                "bases"      : tuple( bases ),
-            }
-        )
-
-    getClassBody = CPythonChildrenHaving.childGetter( "class_body" )
-    getBases = CPythonChildrenHaving.childGetter( "bases" )
 
 class CPythonAssignTargetVariable( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "ASSIGN_TARGET_VARIABLE"

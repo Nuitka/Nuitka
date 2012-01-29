@@ -125,6 +125,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         self.source_ref = source_ref
 
     def isNode( self ):
+        # Virtual method, pylint: disable=R0201
         return True
 
     def __repr__( self ):
@@ -149,14 +150,14 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         """ Details of the node, intented for use in __repr__ and dumps.
 
         """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return {}
 
     def getDetail( self ):
         """ Details of the node, intented for use in __repr__ and graphical display.
 
         """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return ""
 
     def getParent( self ):

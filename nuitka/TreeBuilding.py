@@ -63,6 +63,10 @@ from .nodes.FunctionNodes import (
     CPythonExpressionFunctionBodyDefaulted,
     CPythonExpressionFunctionBody
 )
+from .nodes.ClassNodes import (
+    CPythonExpressionClassBodyBased,
+    CPythonExpressionClassBody
+)
 from .nodes.ContainerMakingNodes import (
     CPythonExpressionKeyValuePair,
     CPythonExpressionMakeTuple,
@@ -145,7 +149,7 @@ def buildClassNode( provider, node, source_ref ):
     decorators = buildNodeList( provider, reversed( node.decorator_list ), source_ref )
     bases = buildNodeList( provider, node.bases, source_ref )
 
-    class_body = Nodes.CPythonExpressionClassBody(
+    class_body = CPythonExpressionClassBody(
         provider   = provider,
         name       = node.name,
         doc        = class_doc,
@@ -161,7 +165,7 @@ def buildClassNode( provider, node, source_ref ):
     class_body.setBody( body )
 
     if bases:
-        decorated_body = Nodes.CPythonExpressionClassBodyBased(
+        decorated_body = CPythonExpressionClassBodyBased(
             bases      = bases,
             class_body = class_body,
             source_ref = source_ref
