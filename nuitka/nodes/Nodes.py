@@ -185,7 +185,13 @@ class CPythonAssignTargetVariable( CPythonChildrenHaving, CPythonNodeBase ):
         )
 
     def getDetail( self ):
-        return "to variable %s" % self.getTargetVariableRef()
+        variable_ref = self.getTargetVariableRef()
+        variable = variable_ref.getVariable()
+
+        if variable is not None:
+            return "to variable %s" % variable
+        else:
+            return "to variable %s" % self.getTargetVariableRef()
 
     getTargetVariableRef = CPythonChildrenHaving.childGetter( "variable_ref" )
 
