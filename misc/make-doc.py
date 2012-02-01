@@ -32,7 +32,7 @@ import os, subprocess
 
 assert 0 == subprocess.call( "git submodule update misc/gist", shell = True )
 
-for document in ( "README.txt", "Developer_Manual.rst" ):
+for document in ( "README.txt", "Developer_Manual.rst", "Changelog.rst" ):
     assert 0 == subprocess.call(
         "rst2pdf %(document)s" % {
             "document" : document
