@@ -742,9 +742,9 @@ class CPythonStatementWith( CPythonChildrenHaving, CPythonNodeBase ):
 class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExceptionBreakContinueIndicator ):
     kind = "STATEMENT_FOR_LOOP"
 
-    named_children = ( "iterated", "target", "body", "else" )
+    named_children = ( "iterator", "target", "body", "else" )
 
-    def __init__( self, source, target, body, no_break, source_ref ):
+    def __init__( self, iterator, target, body, no_break, source_ref ):
         assert body.isStatementsSequenceLoopBody()
 
         CPythonNodeBase.__init__( self, source_ref = source_ref )
@@ -752,7 +752,7 @@ class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExcep
         CPythonChildrenHaving.__init__(
             self,
             values = {
-                "iterated" : source,
+                "iterator" : iterator,
                 "target"   : target,
                 "else"     : no_break,
                 "body"     : body
@@ -761,7 +761,7 @@ class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExcep
 
         MarkExceptionBreakContinueIndicator.__init__( self )
 
-    getIterated = CPythonChildrenHaving.childGetter( "iterated" )
+    getIterator = CPythonChildrenHaving.childGetter( "iterator" )
     getLoopVariableAssignment = CPythonChildrenHaving.childGetter( "target" )
     getBody = CPythonChildrenHaving.childGetter( "body" )
     setBody = CPythonChildrenHaving.childSetter( "body" )

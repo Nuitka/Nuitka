@@ -2055,14 +2055,11 @@ def mayRaise( targets ):
     return True
 
 def generateForLoopCode( statement, context ):
-
     iter_name, iter_value, iter_object = Generator.getForLoopNames( context = context )
 
-    iterator = Generator.getIteratorCreationCode(
-        iterated = generateExpressionCode(
-            expression = statement.getIterated(),
-            context    = context
-        )
+    iterator = generateExpressionCode(
+        expression = statement.getIterator(),
+        context    = context
     )
 
     targets = statement.getLoopVariableAssignment()

@@ -344,8 +344,13 @@ def buildLambdaNode( provider, node, source_ref ):
     return result
 
 def buildForLoopNode( provider, node, source_ref ):
+    source = buildNode( provider, node.iter, source_ref )
+
     return Nodes.CPythonStatementForLoop(
-        source     = buildNode( provider, node.iter, source_ref ),
+        iterator   = Nodes.CPythonExpressionBuiltinIter1(
+            value       = source,
+            source_ref  = source.getSourceReference()
+        ),
         target     = buildAssignTarget( provider, node.target, source_ref ),
         body       = buildLoopBodyNode( provider, node.body, source_ref ),
         no_break   = buildStatementsNode(
@@ -835,7 +840,10 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
             )
 
             body = Nodes.CPythonStatementForLoop(
-                source     = source,
+                iterator   = Nodes.CPythonExpressionBuiltinIter1(
+                    value      = source,
+                    source_ref = source.getSourceReference()
+                ),
                 target     = target,
                 body       = body,
                 no_break   = None,

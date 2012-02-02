@@ -49,6 +49,10 @@ Cleanups
   decorations easy subjects for future optimizations, as they practically are now just
   function calls.
 
+- The for loop has a "source" child, and the iterator was only taken at the code
+  generation level, so that was invisible to optimizations. Moved it to tree building
+  stage instead.
+
 Summary
 -------
 
