@@ -400,6 +400,7 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
             "oct"        : self.oct_extractor,
             "hex"        : self.hex_extractor,
             "type"       : self.type_extractor,
+            "iter"       : self.iter_extractor,
             "range"      : self.range_extractor,
             "tuple"      : self.tuple_extractor,
             "list"       : self.list_extractor,
@@ -475,6 +476,20 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
                 source_ref = node.getSourceReference()
             )
 
+    def iter_extractor( self, node ):
+        positional_args = node.getPositionalArguments()
+
+        if len( positional_args ) == 1:
+            return Nodes.CPythonExpressionBuiltinIter1(
+                value      = positional_args[0],
+                source_ref = node.getSourceReference()
+            )
+        elif len( positional_args ) == 2:
+            return Nodes.CPythonExpressionBuiltinIter2(
+                call_able  = positional_args[0],
+                sentinel   = positional_args[1],
+                source_ref = node.getSourceReference()
+            )
 
     def dict_extractor( self, node ):
         # The dict is a bit strange in that it accepts a position parameter, or not, but

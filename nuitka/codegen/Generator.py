@@ -1651,6 +1651,18 @@ def getBuiltinHexCode( value ):
 def getBuiltinType1Code( value ):
     return HelperCallIdentifier( "BUILTIN_TYPE1", value )
 
+def getBuiltinIter1Code( value ):
+    return HelperCallIdentifier( "MAKE_ITERATOR", value )
+
+def getBuiltinIter2Code( callable_identifier, sentinel_identifier ):
+    return Identifier(
+        "BUILTIN_ITER2( %s, %s )" % (
+            callable_identifier.getCodeTemporaryRef(),
+            sentinel_identifier.getCodeTemporaryRef() # TODO: Export may be more useful.
+        ),
+        1
+    )
+
 def getBuiltinType3Code( context, name_identifier, bases_identifier, dict_identifier ):
     return Identifier(
         "BUILTIN_TYPE3( %s, %s, %s, %s )" % (

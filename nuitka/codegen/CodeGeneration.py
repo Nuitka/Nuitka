@@ -1212,6 +1212,15 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = Generator.getBuiltinLenCode(
             identifier = makeExpressionCode( expression.getValue() )
         )
+    elif expression.isExpressionBuiltinIter1():
+        identifier = Generator.getBuiltinIter1Code(
+            value = makeExpressionCode( expression.getValue() )
+        )
+    elif expression.isExpressionBuiltinIter2():
+        identifier = Generator.getBuiltinIter2Code(
+            callable_identifier = makeExpressionCode( expression.getCallable() ),
+            sentinel_identifier = makeExpressionCode( expression.getSentinel() )
+        )
     elif expression.isExpressionBuiltinType1():
         identifier = Generator.getBuiltinType1Code(
             value = makeExpressionCode( expression.getValue() )

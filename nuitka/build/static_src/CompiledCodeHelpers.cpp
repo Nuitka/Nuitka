@@ -317,6 +317,18 @@ PyObject *BUILTIN_HEX( PyObject *value )
 #endif
 }
 
+PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel )
+{
+    PyObject *result = PyCallIter_New( callable, sentinel );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
 PyObject *BUILTIN_TYPE1( PyObject *arg )
 {
     return INCREASE_REFCOUNT( (PyObject *)Py_TYPE( arg ) );

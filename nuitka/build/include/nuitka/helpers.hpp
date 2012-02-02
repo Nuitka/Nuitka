@@ -1424,6 +1424,9 @@ extern PyObject *BUILTIN_OCT( PyObject *value );
 // For quicker builtin hex() functionality.
 extern PyObject *BUILTIN_HEX( PyObject *value );
 
+// For quicker iter() functionality if 2 arguments arg given.
+extern PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel );
+
 // For quicker type() functionality if 1 argument is given.
 extern PyObject *BUILTIN_TYPE1( PyObject *arg );
 

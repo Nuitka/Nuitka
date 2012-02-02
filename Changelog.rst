@@ -21,7 +21,11 @@ None
 New Optimizations
 -----------------
 
-None
+- Added support for builtins "bin", "oct", and "hex", which also can be computed at
+  compile time, if their arguments are constant.
+
+- Added support for the "iter" builtin in both forms, one and two arguments. These cannot
+  be computed at compile time, but now will execute faster.
 
 Organizational
 --------------
@@ -30,7 +34,8 @@ Organizational
   and converted to PDF as well.
 
 - The posting of release announcements is now prepared by a script that converts the
-  ReStructured Text to HTML and adds it to Wordpress as a draft posting.
+  ReStructured Text to HTML and adds it to Wordpress as a draft posting or updates it,
+  until it's release time.
 
 Cleanups
 --------
@@ -41,7 +46,8 @@ Cleanups
 - Refactored the decorator handling to the tree building stage, presenting them as
   function calls on "function body expression" or class body expression". This allowed to
   remove the special code for decorators from code generation and C++ templates, making
-  decorations easier for optimizations.
+  decorations easy subjects for future optimizations, as they practically are now just
+  function calls.
 
 Summary
 -------

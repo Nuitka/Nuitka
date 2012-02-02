@@ -1187,6 +1187,10 @@ class CPythonExpressionBuiltinType1( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_TYPE1"
 
 
+class CPythonExpressionBuiltinIter1( CPythonExpressionBuiltinSingleArgBase ):
+    kind = "EXPRESSION_BUILTIN_ITER1"
+
+
 class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_LEN"
 
@@ -1231,6 +1235,26 @@ class CPythonExpressionBuiltinType3( CPythonChildrenHaving, CPythonNodeBase ):
     getTypeName = CPythonChildrenHaving.childGetter( "type_name" )
     getBases = CPythonChildrenHaving.childGetter( "bases" )
     getDict = CPythonChildrenHaving.childGetter( "dict" )
+
+
+class CPythonExpressionBuiltinIter2( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_BUILTIN_ITER2"
+
+    named_children = ( "callable", "sentinel", )
+
+    def __init__( self, call_able, sentinel, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "callable" : call_able,
+                "sentinel" : sentinel,
+            }
+        )
+
+    getCallable = CPythonChildrenHaving.childGetter( "callable" )
+    getSentinel = CPythonChildrenHaving.childGetter( "sentinel" )
 
 
 class CPythonExpressionBuiltinInt( CPythonChildrenHaving, CPythonNodeBase ):
