@@ -218,10 +218,30 @@ PyObject *BUILTIN_ORD( PyObject *value )
     return PyInt_FromLong( result );
 }
 
+PyObject *BUILTIN_BIN( PyObject *value )
+{
+    // Note: I don't really know why ord and hex don't use this as well.
+    PyObject *result = PyNumber_ToBase( value, 2 );
+
+    if ( unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
 PyObject *BUILTIN_OCT( PyObject *value )
 {
 #if PYTHON_VERSION >= 300
-    return PyNumber_ToBase( value, 8 );
+    PyObject *result = PyNumber_ToBase( value, 8 );
+
+    if ( unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
 #else
     if (unlikely( value == NULL ))
     {
@@ -244,6 +264,49 @@ PyObject *BUILTIN_OCT( PyObject *value )
         if (unlikely( !PyString_Check( result ) ))
         {
             PyErr_Format( PyExc_TypeError, "__oct__ returned non-string (type %s)", Py_TYPE( result )->tp_name );
+
+            Py_DECREF( result );
+            return NULL;
+        }
+    }
+
+    return result;
+#endif
+}
+
+PyObject *BUILTIN_HEX( PyObject *value )
+{
+#if PYTHON_VERSION >= 300
+    PyObject *result = PyNumber_ToBase( value, 16 );
+
+    if ( unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+#else
+    if (unlikely( value == NULL ))
+    {
+        PyErr_Format( PyExc_TypeError, "hex() argument can't be converted to hex" );
+        return NULL;
+    }
+
+    PyNumberMethods *nb = Py_TYPE( value )->tp_as_number;
+
+    if (unlikely( nb == NULL || nb->nb_hex == NULL ))
+    {
+        PyErr_Format( PyExc_TypeError, "hex() argument can't be converted to hex" );
+        return NULL;
+    }
+
+    PyObject *result = (*nb->nb_hex)( value );
+
+    if ( result )
+    {
+        if (unlikely( !PyString_Check( result ) ))
+        {
+            PyErr_Format( PyExc_TypeError, "__hex__ returned non-string (type %s)", Py_TYPE( result )->tp_name );
 
             Py_DECREF( result );
             return NULL;

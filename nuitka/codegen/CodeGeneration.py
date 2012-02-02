@@ -1196,8 +1196,16 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = Generator.getBuiltinOrdCode(
             value = makeExpressionCode( expression.getValue() )
         )
+    elif expression.isExpressionBuiltinBin():
+        identifier = Generator.getBuiltinBinCode(
+            value = makeExpressionCode( expression.getValue() )
+        )
     elif expression.isExpressionBuiltinOct():
         identifier = Generator.getBuiltinOctCode(
+            value = makeExpressionCode( expression.getValue() )
+        )
+    elif expression.isExpressionBuiltinHex():
+        identifier = Generator.getBuiltinHexCode(
             value = makeExpressionCode( expression.getValue() )
         )
     elif expression.isExpressionBuiltinLen():

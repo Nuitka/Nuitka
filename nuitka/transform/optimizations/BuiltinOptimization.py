@@ -157,7 +157,6 @@ class BuiltinParameterSpecExceptions( BuiltinParameterSpec ):
         return "exceptions." + self.getName()
 
 builtin_int_spec = BuiltinParameterSpec( "int", ( "x", "base" ), 2 )
-
 # This builtin is only available for Python2
 if getPythonVersion() < 300:
     builtin_long_spec = BuiltinParameterSpec( "long", ( "x", "base" ), 2 )
@@ -170,8 +169,12 @@ builtin_dict_spec = BuiltinParameterSpec( "dict", (), 2, "list_args", "dict_args
 builtin_len_spec = BuiltinParameterSpecNoKeywords( "len", ( "object", ), 0 )
 builtin_tuple_spec = BuiltinParameterSpec( "tuple", ( "sequence", ), 1 )
 builtin_list_spec = BuiltinParameterSpec( "list", ( "sequence", ), 1 )
+builtin_import_spec = BuiltinParameterSpec( "__import__", ( "name", "globals", "locals", "fromlist", "level" ), 1 )
 builtin_chr_spec = BuiltinParameterSpecNoKeywords( "chr", ( "i", ), 1 )
 builtin_ord_spec = BuiltinParameterSpecNoKeywords( "ord", ( "c", ), 1 )
+builtin_bin_spec = BuiltinParameterSpecNoKeywords( "bin", ( "number", ), 1 )
+builtin_oct_spec = BuiltinParameterSpecNoKeywords( "oct", ( "number", ), 1 )
+builtin_hex_spec = BuiltinParameterSpecNoKeywords( "hex", ( "number", ), 1 )
 builtin_range_spec = BuiltinParameterSpecNoKeywords( "range", ( "start", "stop", "step" ), 2 )
 builtin_repr_spec = BuiltinParameterSpecNoKeywords( "repr", ( "object", ), 1 )
 builtin_execfile_spec = BuiltinParameterSpecNoKeywords( "repr", ( "filename", "globals", "locals" ), 1 )

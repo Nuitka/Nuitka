@@ -1639,8 +1639,14 @@ def getBuiltinChrCode( value ):
 def getBuiltinOrdCode( value ):
     return HelperCallIdentifier( "BUILTIN_ORD", value )
 
+def getBuiltinBinCode( value ):
+    return HelperCallIdentifier( "BUILTIN_BIN", value )
+
 def getBuiltinOctCode( value ):
     return HelperCallIdentifier( "BUILTIN_OCT", value )
+
+def getBuiltinHexCode( value ):
+    return HelperCallIdentifier( "BUILTIN_HEX", value )
 
 def getBuiltinType1Code( value ):
     return HelperCallIdentifier( "BUILTIN_TYPE1", value )

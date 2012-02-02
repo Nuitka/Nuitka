@@ -1171,8 +1171,16 @@ class CPythonExpressionBuiltinOrd( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_ORD"
 
 
+class CPythonExpressionBuiltinBin( CPythonExpressionBuiltinSingleArgBase ):
+    kind = "EXPRESSION_BUILTIN_BIN"
+
+
 class CPythonExpressionBuiltinOct( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_OCT"
+
+
+class CPythonExpressionBuiltinHex( CPythonExpressionBuiltinSingleArgBase ):
+    kind = "EXPRESSION_BUILTIN_HEX"
 
 
 class CPythonExpressionBuiltinType1( CPythonExpressionBuiltinSingleArgBase ):

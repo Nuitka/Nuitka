@@ -58,7 +58,7 @@ from nuitka.nodes.ParameterSpec import ParameterSpec
 
 from nuitka.Builtins import builtin_exception_names, builtin_names
 
-from .BuiltinOptimization import extractBuiltinArgs
+from . import BuiltinOptimization
 
 import sys
 
@@ -175,29 +175,6 @@ class BuiltinParameterSpecExceptions( BuiltinParameterSpec ):
 
     def getCallableName( self ):
         return "exceptions." + self.getName()
-
-builtin_int_spec = BuiltinParameterSpec( "int", ( "x", "base" ), 2 )
-
-# This builtin is only available for Python2
-if getPythonVersion() < 300:
-    builtin_long_spec = BuiltinParameterSpec( "long", ( "x", "base" ), 2 )
-
-builtin_bool_spec = BuiltinParameterSpec( "bool", ( "x", ), 1 )
-builtin_float_spec = BuiltinParameterSpec( "float", ( "x", ), 1 )
-builtin_str_spec = BuiltinParameterSpec( "str", ( "object", ), 1 )
-builtin_len_spec = BuiltinParameterSpecNoKeywords( "len", ( "object", ), 0 )
-builtin_dict_spec = BuiltinParameterSpec( "dict", (), 2, "list_args", "dict_args" )
-builtin_len_spec = BuiltinParameterSpecNoKeywords( "len", ( "object", ), 0 )
-builtin_tuple_spec = BuiltinParameterSpec( "tuple", ( "sequence", ), 1 )
-builtin_list_spec = BuiltinParameterSpec( "list", ( "sequence", ), 1 )
-builtin_import_spec = BuiltinParameterSpec( "__import__", ( "name", "globals", "locals", "fromlist", "level" ), 1 )
-
-builtin_chr_spec = BuiltinParameterSpecNoKeywords( "chr", ( "i", ), 1 )
-builtin_ord_spec = BuiltinParameterSpecNoKeywords( "ord", ( "c", ), 1 )
-builtin_oct_spec = BuiltinParameterSpecNoKeywords( "oct", ( "number", ), 1 )
-builtin_range_spec = BuiltinParameterSpecNoKeywords( "range", ( "start", "stop", "step" ), 2 )
-builtin_repr_spec = BuiltinParameterSpecNoKeywords( "repr", ( "object", ), 1 )
-builtin_execfile_spec = BuiltinParameterSpecNoKeywords( "repr", ( "filename", "globals", "locals" ), 1 )
 
 
 # TODO: The maybe local variable should have a read only indication too, but right
@@ -344,10 +321,10 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
                 source_ref = source_ref
             )
 
-        return extractBuiltinArgs(
+        return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = wrapExpressionBuiltinExecfileCreation,
-            builtin_spec  = builtin_execfile_spec
+            builtin_spec  = BuiltinOptimization.builtin_execfile_spec
         )
 
     def eval_extractor( self, node ):
@@ -419,7 +396,9 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
             "__import__" : self.import_extractor,
             "chr"        : self.chr_extractor,
             "ord"        : self.ord_extractor,
+            "bin"        : self.bin_extractor,
             "oct"        : self.oct_extractor,
+            "hex"        : self.hex_extractor,
             "type"       : self.type_extractor,
             "range"      : self.range_extractor,
             "tuple"      : self.tuple_extractor,
@@ -474,10 +453,10 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
             assert False
 
     def import_extractor( self, node ):
-        return extractBuiltinArgs(
+        return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = CPythonExpressionBuiltinImport,
-            builtin_spec  = builtin_import_spec
+            builtin_spec  = BuiltinOptimization.builtin_import_spec
         )
 
     def type_extractor( self, node ):
@@ -523,32 +502,45 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
                 source_ref = node.getSourceReference()
             )
 
-
-        return extractBuiltinArgs(
+        return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = wrapExpressionBuiltinDictCreation,
-            builtin_spec  = builtin_dict_spec
+            builtin_spec  = BuiltinOptimization.builtin_dict_spec
         )
 
     def chr_extractor( self, node ):
-        return extractBuiltinArgs(
+        return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinChr,
-            builtin_spec  = builtin_chr_spec
+            builtin_spec  = BuiltinOptimization.builtin_chr_spec
         )
 
     def ord_extractor( self, node ):
-        return extractBuiltinArgs(
+        return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinOrd,
-            builtin_spec  = builtin_ord_spec
+            builtin_spec  = BuiltinOptimization.builtin_ord_spec
+        )
+
+    def bin_extractor( self, node ):
+        return BuiltinOptimization.extractBuiltinArgs(
+            node          = node,
+            builtin_class = Nodes.CPythonExpressionBuiltinBin,
+            builtin_spec  = BuiltinOptimization.builtin_bin_spec
         )
 
     def oct_extractor( self, node ):
-        return extractBuiltinArgs(
+        return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinOct,
-            builtin_spec  = builtin_oct_spec
+            builtin_spec  = BuiltinOptimization.builtin_oct_spec
+        )
+
+    def hex_extractor( self, node ):
+        return BuiltinOptimization.extractBuiltinArgs(
+            node          = node,
+            builtin_class = Nodes.CPythonExpressionBuiltinHex,
+            builtin_spec  = BuiltinOptimization.builtin_hex_spec
         )
 
     def repr_extractor( self, node ):
@@ -559,73 +551,73 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
                 source_ref = source_ref
             )
 
-        return extractBuiltinArgs(
+        return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = makeReprOperator,
-            builtin_spec  = builtin_repr_spec
+            builtin_spec  = BuiltinOptimization.builtin_repr_spec
         )
 
     def range_extractor( self, node ):
-        return extractBuiltinArgs(
+        return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = CPythonExpressionBuiltinRange,
-            builtin_spec  = builtin_range_spec
+            builtin_spec  = BuiltinOptimization.builtin_range_spec
         )
 
     def len_extractor( self, node ):
-        return extractBuiltinArgs(
+        return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinLen,
-            builtin_spec  = builtin_len_spec
+            builtin_spec  = BuiltinOptimization.builtin_len_spec
         )
 
     def tuple_extractor( self, node ):
-        return extractBuiltinArgs(
+        return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinTuple,
-            builtin_spec  = builtin_tuple_spec
+            builtin_spec  = BuiltinOptimization.builtin_tuple_spec
         )
 
     def list_extractor( self, node ):
-        return extractBuiltinArgs(
+        return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinList,
-            builtin_spec  = builtin_list_spec
+            builtin_spec  = BuiltinOptimization.builtin_list_spec
         )
 
     def float_extractor( self, node ):
-        return extractBuiltinArgs(
+        return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinFloat,
-            builtin_spec  = builtin_float_spec
+            builtin_spec  = BuiltinOptimization.builtin_float_spec
         )
 
     def str_extractor( self, node ):
-        return extractBuiltinArgs(
+        return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinStr,
-            builtin_spec  = builtin_str_spec
+            builtin_spec  = BuiltinOptimization.builtin_str_spec
         )
 
     def bool_extractor( self, node ):
-        return extractBuiltinArgs(
+        return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinBool,
-            builtin_spec  = builtin_bool_spec
+            builtin_spec  = BuiltinOptimization.builtin_bool_spec
         )
 
     def int_extractor( self, node ):
-        return extractBuiltinArgs(
+        return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinInt,
-            builtin_spec  = builtin_int_spec
+            builtin_spec  = BuiltinOptimization.builtin_int_spec
         )
 
     def long_extractor( self, node ):
-        return extractBuiltinArgs(
+        return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = Nodes.CPythonExpressionBuiltinLong,
-            builtin_spec  = builtin_long_spec
+            builtin_spec  = BuiltinOptimization.builtin_long_spec
         )
 
     def exceptions_extractor( self, node ):
@@ -638,7 +630,7 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
                 source_ref     = source_ref
             )
 
-        return extractBuiltinArgs(
+        return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = createBuiltinMakeException,
             builtin_spec  = BuiltinParameterSpecExceptions( exception_name, 0 )
@@ -700,7 +692,9 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
         dispatch_dict = {
             "chr"        : self.chr_extractor,
             "ord"        : self.ord_extractor,
+            "bin"        : self.bin_extractor,
             "oct"        : self.oct_extractor,
+            "hex"        : self.hex_extractor,
             "type1"      : self.type1_extractor,
             "range"      : self.range_extractor,
             "len"        : self.len_extractor,
@@ -802,63 +796,77 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
 
         return self._extractConstantBuiltinCall(
             node         = node,
-            builtin_spec = builtin_dict_spec,
+            builtin_spec = BuiltinOptimization.builtin_dict_spec,
             given_values = ( pos_args, node.getNamedArgumentPairs() )
         )
 
     def chr_extractor( self, node ):
         return self._extractConstantBuiltinCall(
             node         = node,
-            builtin_spec = builtin_chr_spec,
+            builtin_spec = BuiltinOptimization.builtin_chr_spec,
             given_values = ( node.getValue(), )
         )
 
     def ord_extractor( self, node ):
         return self._extractConstantBuiltinCall(
             node         = node,
-            builtin_spec = builtin_ord_spec,
+            builtin_spec = BuiltinOptimization.builtin_ord_spec,
+            given_values = ( node.getValue(), )
+        )
+
+    def bin_extractor( self, node ):
+        return self._extractConstantBuiltinCall(
+            node         = node,
+            builtin_spec = BuiltinOptimization.builtin_bin_spec,
             given_values = ( node.getValue(), )
         )
 
     def oct_extractor( self, node ):
         return self._extractConstantBuiltinCall(
             node         = node,
-            builtin_spec = builtin_oct_spec,
+            builtin_spec = BuiltinOptimization.builtin_oct_spec,
+            given_values = ( node.getValue(), )
+        )
+
+    def hex_extractor( self, node ):
+        return self._extractConstantBuiltinCall(
+            node         = node,
+            builtin_spec = BuiltinOptimization.builtin_hex_spec,
             given_values = ( node.getValue(), )
         )
 
     def len_extractor( self, node ):
         return self._extractConstantBuiltinCall(
             node         = node,
-            builtin_spec = builtin_len_spec,
+            builtin_spec = BuiltinOptimization.builtin_len_spec,
             given_values = ( node.getValue(), )
         )
 
     def tuple_extractor( self, node ):
         return self._extractConstantBuiltinCall(
             node         = node,
-            builtin_spec = builtin_tuple_spec,
+            builtin_spec = BuiltinOptimization.builtin_tuple_spec,
             given_values = ( node.getValue(), )
         )
 
     def list_extractor( self, node ):
         return self._extractConstantBuiltinCall(
             node         = node,
-            builtin_spec = builtin_list_spec,
+            builtin_spec = BuiltinOptimization.builtin_list_spec,
             given_values = ( node.getValue(), )
         )
 
     def float_extractor( self, node ):
         return self._extractConstantBuiltinCall(
             node         = node,
-            builtin_spec = builtin_float_spec,
+            builtin_spec = BuiltinOptimization.builtin_float_spec,
             given_values = ( node.getValue(), )
         )
 
     def str_extractor( self, node ):
         return self._extractConstantBuiltinCall(
             node         = node,
-            builtin_spec = builtin_str_spec,
+            builtin_spec = BuiltinOptimization.builtin_str_spec,
             given_values = ( node.getValue(), )
         )
 
@@ -866,14 +874,14 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
     def bool_extractor( self, node ):
         return self._extractConstantBuiltinCall(
             node         = node,
-            builtin_spec = builtin_bool_spec,
+            builtin_spec = BuiltinOptimization.builtin_bool_spec,
             given_values = ( node.getValue(), )
         )
 
     def int_extractor( self, node ):
         return self._extractConstantBuiltinCall(
             node         = node,
-            builtin_spec = builtin_int_spec,
+            builtin_spec = BuiltinOptimization.builtin_int_spec,
             given_values = ( node.getValue(), node.getBase() )
         )
 
@@ -881,7 +889,7 @@ class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):
     def long_extractor( self, node ):
         return self._extractConstantBuiltinCall(
             node         = node,
-            builtin_spec = builtin_long_spec,
+            builtin_spec = BuiltinOptimization.builtin_long_spec,
             given_values = ( node.getValue(), node.getBase() )
         )
 

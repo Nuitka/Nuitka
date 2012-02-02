@@ -1415,8 +1415,14 @@ extern PyObject *BUILTIN_CHR( PyObject *value );
 // For quicker builtin ord() functionality.
 extern PyObject *BUILTIN_ORD( PyObject *value );
 
+// For quicker builtin bin() functionality.
+extern PyObject *BUILTIN_BIN( PyObject *value );
+
 // For quicker builtin oct() functionality.
 extern PyObject *BUILTIN_OCT( PyObject *value );
+
+// For quicker builtin hex() functionality.
+extern PyObject *BUILTIN_HEX( PyObject *value );
 
 // For quicker type() functionality if 1 argument is given.
 extern PyObject *BUILTIN_TYPE1( PyObject *arg );
