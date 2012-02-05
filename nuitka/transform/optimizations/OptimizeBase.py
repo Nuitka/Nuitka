@@ -82,13 +82,8 @@ class OptimizationVisitorBase( TreeOperations.VisitorNoopMixin ):
                 tree    = tree,
                 visitor = self
             )
-        elif self.visit_type == "execution":
-            TreeOperations.visitExecutions(
-                tree    = tree,
-                visitor = self
-            )
         else:
-            assert False, self.visit_type
+            raise AssertionError( self, self.visit_type )
 
     def replaceWithComputationResult( self, node, computation, description ):
         # Try and turn raised exceptions into static raises. pylint: disable=W0703
@@ -139,9 +134,6 @@ class OptimizationDispatchingVisitorBase( OptimizationVisitorBase ):
 
 class OptimizationVisitorScopedBase( OptimizationVisitorBase ):
     visit_type = "scopes"
-
-class OptimizationVisitorExecutionBase( OptimizationVisitorBase ):
-    visit_type = "execution"
 
 
 def areConstants( expressions ):

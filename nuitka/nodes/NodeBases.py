@@ -645,7 +645,7 @@ class CPythonParameterHavingNodeBase( CPythonClosureGiverNodeBase ):
 class CPythonClosureTaker:
     """ Mixin for nodes that accept variables from closure givers. """
 
-    tags = ( "closure_taker", "execution_border" )
+    tags = ( "closure_taker", )
 
     def __init__( self, provider ):
         assert self.__class__.early_closure is not None, self

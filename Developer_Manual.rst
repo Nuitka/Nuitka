@@ -27,9 +27,9 @@ Milestones
       absolutely compatible.
 
       Feature parity has been reached for Python 2.6 and 2.7, we do not target any older
-      CPython release. For Python 3.2, things are still not complete. To us 3.x is not
-      currently a high priority, but eventually we will get Nuitka going there too, and
-      some of the basic tests already pass. You are more than welcome to volunteer for
+      CPython release. For Python 3.2, things are still not complete. The Python 3.x is
+      not currently a high priority, but eventually we will get Nuitka going there too,
+      and some of the basic tests already pass. You are more than welcome to volunteer for
       this task.
 
       This milestone is considered reached.
@@ -751,21 +751,10 @@ function calls and their bodies. The "for" loop would have a start assumption th
 constant, but that is only true for the first iteration. So, we can't pass knowledge from
 outside the for loop directly into the for loop body.
 
-We can treat loop bodies like recursive functions that call themselves and are capable of
-assigning to the current scope. The framework to instantiate function calls and apply the
-knowledge, should be capable to tell that "a" is assigned to an "int" when given an "int"
-value to start with.
-
-As for implementation, "scope" means the variable scope. We need an "execution" scope that
-makes value propagation visit the for loop separately and invalidate all variables it
-references for modification.
-
-.. warning::
-
-   For the loop body, different than a function argument though, we have the extra
-   complication that it may even make "a" undefined ("del a") or change its type entirely, so
-   that means we will want to have it as a special case that analysis of functions degrades
-   to.
+We will do a first pass, where we collect invalidations of the outside knowledge. The
+assignment to "a" should make it an alternative with what we knew about "b". And we can't
+really assume to know anything about a to e.g. predict "b" due to that. That first pass
+needs to scan for assignments, and treat them as invalidations.
 
 
 Excursion to Conditions
@@ -1338,6 +1327,53 @@ into action, which could be code changes, plan changes, issues created, etc.
   once we could recognize cases, where that optimization could be applied from the code
   at code generation time, we wouldn't have to carry them through optimizations anymore,
   so that idea is worth perusing.
+
+* For loops should probably become while loops.
+
+  Instead of treating for loops special, we could consider this:
+
+  .. code-block:: python
+
+     for x,y in iterable:
+         if something( x ):
+            break
+     else:
+         otherwise()
+
+  .. code-block:: python
+
+     _broken = False
+     while True: # forever
+         try:
+             _tmp = next( iterable )
+             x, y = _tmp
+         except StopIteration:
+             break
+
+         if something ( x ):
+            _broken = True
+            break
+
+     if not _broken:
+         otherwise()
+
+  It's a reduction of for loop to a while loop. But we would loose all chances to detect
+  the loop exit conditions, but did we have it? This is also very similar to the C++ code
+  we generate for them right now. The detection of "iterable", how often next will be
+  possible at max, would e.g. be more difficult, but also more general.
+
+  Not visible here, is how "_tmp" is released right after unpacking, and how the
+  "StopIteration" need not be a real exception, but is a "NULL" return of "ITERATOR_NEXT"
+  for maximum efficiency.
+
+* Code Templates may become objects.
+
+  It should only wrap around the "%" operator and provide the ability to display the
+  template name in tracebacks as well as in generated code. So one could optionally enable
+  things and know from what template a code snippet comes.
+
+  Maybe they should overload "%" to start with it easily. And the code template could be
+  the doc string of the class for simplicity.
 
 .. raw:: pdf
 

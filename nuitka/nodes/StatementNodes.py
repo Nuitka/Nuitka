@@ -98,13 +98,6 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
         else:
             return False
 
-class CPythonStatementsSequenceLoopBody( CPythonStatementsSequence ):
-    kind = "STATEMENTS_SEQUENCE_LOOP_BODY"
-
-    named_children = ( "statements", )
-
-    tags = ( "execution_border", )
-
 
 class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_EXPRESSION_ONLY"

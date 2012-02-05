@@ -71,9 +71,6 @@ def visitTree( tree, visitor, limit_tag = None ):
 def visitScope( tree, visitor ):
     visitTree( tree, visitor, "closure_taker" )
 
-def visitExecution( tree, visitor ):
-    visitTree( tree, visitor, "execution_border" )
-
 
 def visitScopes( tree, visitor ):
     class VisitEverything( VisitorNoopMixin ):
@@ -82,20 +79,6 @@ def visitScopes( tree, visitor ):
                 visitor.onEnterScope( node )
                 visitTree( node, visitor, "closure_taker" )
                 visitor.onLeaveScope( node )
-
-    _visitTree( tree, VisitEverything(), None )
-
-def visitExecutions( tree, visitor ):
-    class VisitEverything( VisitorNoopMixin ):
-        def onEnterNode( self, node ):
-            if node.hasTag( "closure_taker" ):
-                visitor.onEnterScope( node )
-                visitTree( node, visitor, "execution_border" )
-                visitor.onLeaveScope( node )
-            elif node.hasTag( "execution_border" ):
-                visitor.onEnterExecutionBorder( node )
-                visitTree( node, visitor, "execution_border" )
-                visitor.onLeaveExecutionBorder( node )
 
     _visitTree( tree, VisitEverything(), None )
 

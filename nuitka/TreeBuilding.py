@@ -75,7 +75,6 @@ from .nodes.ContainerMakingNodes import (
     CPythonExpressionMakeSet
 )
 from .nodes.StatementNodes import (
-    CPythonStatementsSequenceLoopBody,
     CPythonStatementExpressionOnly,
     CPythonStatementsSequence
 )
@@ -143,7 +142,7 @@ def buildStatementsNode( provider, nodes, source_ref, allow_none = False ):
 def buildLoopBodyNode( provider, nodes, source_ref ):
     statements = buildNodeList( provider, nodes, source_ref )
 
-    return CPythonStatementsSequenceLoopBody(
+    return CPythonStatementsSequence(
         statements = statements,
         source_ref = source_ref
     )
@@ -841,7 +840,7 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
                 source_ref = source_ref
             )
 
-            body = CPythonStatementsSequenceLoopBody(
+            body = CPythonStatementsSequence(
                 statements = ( body, ),
                 source_ref = source_ref
             )

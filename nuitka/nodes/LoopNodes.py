@@ -39,8 +39,6 @@ class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExcep
     named_children = ( "iterator", "target", "body", "else" )
 
     def __init__( self, iterator, target, body, no_break, source_ref ):
-        assert body.isStatementsSequenceLoopBody()
-
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
@@ -69,8 +67,6 @@ class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExc
     named_children = ( "condition", "frame", "else" )
 
     def __init__( self, condition, body, no_enter, source_ref ):
-        assert body.isStatementsSequenceLoopBody()
-
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(

@@ -506,6 +506,10 @@ class CPythonExpressionFunctionCall( CPythonChildrenHaving, CPythonNodeBase ):
 
         return True
 
+    def computeNode( self ):
+        # TODO: Function call should ask if the called expression has knowledge.
+        return self, None, None
+
 
 class CPythonExpressionContractionBuilderBase( CPythonChildrenHaving, CPythonNodeBase ):
     named_children = ( "source0", "body" )
