@@ -401,6 +401,7 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
             "hex"        : self.hex_extractor,
             "type"       : self.type_extractor,
             "iter"       : self.iter_extractor,
+            "next"       : self.next_extractor,
             "range"      : self.range_extractor,
             "tuple"      : self.tuple_extractor,
             "list"       : self.list_extractor,
@@ -488,6 +489,21 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
             return Nodes.CPythonExpressionBuiltinIter2(
                 call_able  = positional_args[0],
                 sentinel   = positional_args[1],
+                source_ref = node.getSourceReference()
+            )
+
+    def next_extractor( self, node ):
+        positional_args = node.getPositionalArguments()
+
+        if len( positional_args ) == 1:
+            return Nodes.CPythonExpressionBuiltinNext1(
+                value      = positional_args[0],
+                source_ref = node.getSourceReference()
+            )
+        else:
+            return Nodes.CPythonExpressionBuiltinNext2(
+                iterator   = positional_args[0],
+                default    = positional_args[1],
                 source_ref = node.getSourceReference()
             )
 

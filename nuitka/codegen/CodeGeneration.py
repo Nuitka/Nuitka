@@ -1221,6 +1221,15 @@ def generateExpressionCode( expression, context, allow_none = False ):
             callable_identifier = makeExpressionCode( expression.getCallable() ),
             sentinel_identifier = makeExpressionCode( expression.getSentinel() )
         )
+    elif expression.isExpressionBuiltinNext1():
+        identifier = Generator.getBuiltinNext1Code(
+            value = makeExpressionCode( expression.getValue() )
+        )
+    elif expression.isExpressionBuiltinNext2():
+        identifier = Generator.getBuiltinNext2Code(
+            iterator_identifier = makeExpressionCode( expression.getIterator() ),
+            default_identifier = makeExpressionCode( expression.getDefault() )
+        )
     elif expression.isExpressionBuiltinType1():
         identifier = Generator.getBuiltinType1Code(
             value = makeExpressionCode( expression.getValue() )

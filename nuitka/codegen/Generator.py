@@ -1663,6 +1663,18 @@ def getBuiltinIter2Code( callable_identifier, sentinel_identifier ):
         1
     )
 
+def getBuiltinNext1Code( value ):
+    return HelperCallIdentifier( "BUILTIN_NEXT1", value )
+
+def getBuiltinNext2Code( iterator_identifier, default_identifier ):
+    return Identifier(
+        "BUILTIN_NEXT2( %s, %s )" % (
+            iterator_identifier.getCodeTemporaryRef(),
+            default_identifier.getCodeTemporaryRef()
+        ),
+        1
+    )
+
 def getBuiltinType3Code( context, name_identifier, bases_identifier, dict_identifier ):
     return Identifier(
         "BUILTIN_TYPE3( %s, %s, %s, %s )" % (

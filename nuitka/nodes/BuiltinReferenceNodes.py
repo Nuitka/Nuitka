@@ -85,6 +85,25 @@ class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
         # Means if it's a builtin function call.
         return False
 
+    def computeNode( self ):
+        quick_names = {
+            "None"  : None,
+            "True"  : True,
+            "False" : False
+        }
+
+
+        if self.builtin_name in quick_names:
+            new_node = CPythonExpressionConstantRef(
+                constant   = quick_names[ self.builtin_name ],
+                source_ref = self.getSourceReference()
+            )
+
+            return new_node, "new_constant", "Builtin constant %s resolved" % self.builtin_name
+
+        return self, None, None
+
+
 class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
     kind = "EXPRESSION_BUILTIN_EXCEPTION_REF"
 

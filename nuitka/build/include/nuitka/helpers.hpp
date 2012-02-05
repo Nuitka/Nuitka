@@ -619,6 +619,66 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
     return result;
 }
 
+NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
+{
+    assertObject( iterator );
+
+    PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
+
+    if (unlikely( result == NULL ))
+    {
+        if ( PyErr_Occurred() )
+        {
+            PyErr_SetNone( PyExc_StopIteration );
+        }
+
+        throw _PythonException();
+    }
+    else
+    {
+        assertObject( result );
+    }
+
+    return result;
+}
+
+
+NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObject *default_value )
+{
+    assertObject( iterator );
+    assertObject( default_value );
+
+    PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
+
+    if (unlikely( result == NULL ))
+    {
+        if ( PyErr_Occurred() )
+        {
+            if ( PyErr_ExceptionMatches( PyExc_StopIteration ))
+            {
+                PyErr_Clear();
+
+                return INCREASE_REFCOUNT( default_value );
+            }
+            else
+            {
+                throw _PythonException();
+            }
+        }
+        else
+        {
+            return INCREASE_REFCOUNT( default_value );
+        }
+    }
+    else
+    {
+        assertObject( result );
+    }
+
+    return result;
+}
+
+
 NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, int seq_size_so_far )
 {
     assertObject( iterator );

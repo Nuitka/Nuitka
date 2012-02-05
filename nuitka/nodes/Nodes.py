@@ -824,6 +824,12 @@ class CPythonExpressionAttributeLookup( CPythonChildrenHaving, CPythonNodeBase )
 
     getLookupSource = CPythonChildrenHaving.childGetter( "expression" )
 
+    def computeNode( self ):
+        # TODO: Should probably ask the lookup source about the attribute name, it might
+        # be constant somehow.
+        return self, None, None
+
+
 
 class CPythonExpressionSubscriptLookup( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "EXPRESSION_SUBSCRIPT_LOOKUP"
@@ -1190,6 +1196,21 @@ class CPythonExpressionBuiltinType1( CPythonExpressionBuiltinSingleArgBase ):
 class CPythonExpressionBuiltinIter1( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_ITER1"
 
+    def computeNode( self ):
+        value = self.getValue()
+
+        if value.isIteratorMaking():
+            return value, "untag", "Eliminated useless iterator creation"
+        else:
+            return self, None, None
+
+    def isIteratorMaking( self ):
+        return True
+
+
+class CPythonExpressionBuiltinNext1( CPythonExpressionBuiltinSingleArgBase ):
+    kind = "EXPRESSION_BUILTIN_NEXT1"
+
 
 class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_LEN"
@@ -1255,6 +1276,29 @@ class CPythonExpressionBuiltinIter2( CPythonChildrenHaving, CPythonNodeBase ):
 
     getCallable = CPythonChildrenHaving.childGetter( "callable" )
     getSentinel = CPythonChildrenHaving.childGetter( "sentinel" )
+
+    def isIteratorMaking( self ):
+        return True
+
+
+class CPythonExpressionBuiltinNext2( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "EXPRESSION_BUILTIN_NEXT2"
+
+    named_children = ( "iterator", "default", )
+
+    def __init__( self, iterator, default, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "iterator" : iterator,
+                "default" : default,
+            }
+        )
+
+    getIterator = CPythonChildrenHaving.childGetter( "iterator" )
+    getDefault = CPythonChildrenHaving.childGetter( "default" )
 
 
 class CPythonExpressionBuiltinInt( CPythonChildrenHaving, CPythonNodeBase ):

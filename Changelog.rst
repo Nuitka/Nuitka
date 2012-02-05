@@ -27,6 +27,10 @@ New Optimizations
 - Added support for the "iter" builtin in both forms, one and two arguments. These cannot
   be computed at compile time, but now will execute faster.
 
+- Added support for the "next" builtin, also in its both forms, one and two
+  arguments. These also cannot be computed at compile time, but now will execute faster as
+  well.
+
 Organizational
 --------------
 
