@@ -90,6 +90,13 @@ from .nodes.OperatorNodes import (
     CPythonExpressionOperationNOT
 )
 
+from .nodes.LoopNodes import (
+    CPythonStatementContinueLoop,
+    CPythonStatementBreakLoop,
+    CPythonStatementWhileLoop,
+    CPythonStatementForLoop
+)
+
 import ast, sys
 
 from logging import warning
@@ -346,7 +353,7 @@ def buildLambdaNode( provider, node, source_ref ):
 def buildForLoopNode( provider, node, source_ref ):
     source = buildNode( provider, node.iter, source_ref )
 
-    return Nodes.CPythonStatementForLoop(
+    return CPythonStatementForLoop(
         iterator   = Nodes.CPythonExpressionBuiltinIter1(
             value       = source,
             source_ref  = source.getSourceReference()
@@ -363,7 +370,7 @@ def buildForLoopNode( provider, node, source_ref ):
     )
 
 def buildWhileLoopNode( provider, node, source_ref ):
-    return Nodes.CPythonStatementWhileLoop(
+    return CPythonStatementWhileLoop(
         condition  = buildNode( provider, node.test, source_ref ),
         body       = buildLoopBodyNode( provider, node.body, source_ref ),
         no_enter   = buildStatementsNode(
@@ -839,7 +846,7 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
                 source_ref = source_ref
             )
 
-            body = Nodes.CPythonStatementForLoop(
+            body = CPythonStatementForLoop(
                 iterator   = Nodes.CPythonExpressionBuiltinIter1(
                     value      = source,
                     source_ref = source.getSourceReference()
@@ -1597,8 +1604,8 @@ _fast_path_args2 = {
 }
 
 _fast_path_args1 = {
-    "Continue" : Nodes.CPythonStatementContinueLoop,
-    "Break"    : Nodes.CPythonStatementBreakLoop,
+    "Continue" : CPythonStatementContinueLoop,
+    "Break"    : CPythonStatementBreakLoop,
     "Pass"     : Nodes.CPythonStatementPass,
 }
 

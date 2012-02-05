@@ -39,7 +39,6 @@ from nuitka import (
 )
 
 from .IndicatorMixins import (
-    MarkExceptionBreakContinueIndicator,
     MarkContainsTryExceptIndicator,
     MarkGeneratorIndicator,
 )
@@ -739,61 +738,6 @@ class CPythonStatementWith( CPythonChildrenHaving, CPythonNodeBase ):
     getExpression = CPythonChildrenHaving.childGetter( "expression" )
 
 
-class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExceptionBreakContinueIndicator ):
-    kind = "STATEMENT_FOR_LOOP"
-
-    named_children = ( "iterator", "target", "body", "else" )
-
-    def __init__( self, iterator, target, body, no_break, source_ref ):
-        assert body.isStatementsSequenceLoopBody()
-
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "iterator" : iterator,
-                "target"   : target,
-                "else"     : no_break,
-                "body"     : body
-            }
-        )
-
-        MarkExceptionBreakContinueIndicator.__init__( self )
-
-    getIterator = CPythonChildrenHaving.childGetter( "iterator" )
-    getLoopVariableAssignment = CPythonChildrenHaving.childGetter( "target" )
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
-    getNoBreak = CPythonChildrenHaving.childGetter( "else" )
-    setNoBreak = CPythonChildrenHaving.childSetter( "else" )
-
-
-class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExceptionBreakContinueIndicator ):
-    kind = "STATEMENT_WHILE_LOOP"
-
-    named_children = ( "condition", "frame", "else" )
-
-    def __init__( self, condition, body, no_enter, source_ref ):
-        assert body.isStatementsSequenceLoopBody()
-
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "condition" : condition,
-                "else"      : no_enter,
-                "frame"     : body
-            }
-        )
-
-        MarkExceptionBreakContinueIndicator.__init__( self )
-
-    getLoopBody = CPythonChildrenHaving.childGetter( "frame" )
-    getCondition = CPythonChildrenHaving.childGetter( "condition" )
-    getNoEnter = CPythonChildrenHaving.childGetter( "else" )
-    setNoEnter = CPythonChildrenHaving.childSetter( "else" )
 
 
 class CPythonExpressionAttributeLookup( CPythonChildrenHaving, CPythonNodeBase ):
@@ -1085,21 +1029,6 @@ class CPythonStatementTryExcept( CPythonChildrenHaving, CPythonNodeBase ):
     getExceptionHandlers = CPythonChildrenHaving.childGetter( "handlers" )
 
 
-
-class CPythonStatementContinueLoop( CPythonNodeBase, MarkExceptionBreakContinueIndicator ):
-    kind = "STATEMENT_CONTINUE_LOOP"
-
-    def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-        MarkExceptionBreakContinueIndicator.__init__( self )
-
-class CPythonStatementBreakLoop( CPythonNodeBase, MarkExceptionBreakContinueIndicator ):
-    kind = "STATEMENT_BREAK_LOOP"
-
-    def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-        MarkExceptionBreakContinueIndicator.__init__( self )
-
 class CPythonStatementPass( CPythonNodeBase ):
     kind = "STATEMENT_PASS"
 
@@ -1108,7 +1037,6 @@ class CPythonStatementPass( CPythonNodeBase ):
 
     def mayHaveSideEffects( self ):
         return False
-
 
 
 class CPythonExpressionBuiltinGlobals( CPythonNodeBase ):
