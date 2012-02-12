@@ -63,7 +63,17 @@ builtin_names = [
     for x in __builtins__.keys()
 ]
 
-assert "int" in builtin_names, __builtins__.keys()
+
+builtin_names.remove( "__doc__" )
+builtin_names.remove( "__name__" )
+builtin_names.remove( "__package__" )
+# TODO: Python3 may have others to remove.
+
+assert "__import__" in builtin_names
+assert "int" in builtin_names
+
+assert "__doc__" not in builtin_names
+assert "sys" not in builtin_names
 
 # For PyLint to be happy.
 assert exceptions
