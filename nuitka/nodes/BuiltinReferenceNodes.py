@@ -36,11 +36,13 @@ to variables only ever read.
 """
 
 
-from .NodeBases import CPythonNodeBase
+from .NodeBases import CPythonNodeBase, CPythonExpressionMixin
+
+from .ConstantRefNode import CPythonExpressionConstantRef
 
 from nuitka.Builtins import builtin_names, builtin_exception_names
 
-class CPythonExpressionBuiltinRefBase( CPythonNodeBase ):
+class CPythonExpressionBuiltinRefBase( CPythonNodeBase, CPythonExpressionMixin ):
     def __init__( self, builtin_name, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
@@ -52,21 +54,12 @@ class CPythonExpressionBuiltinRefBase( CPythonNodeBase ):
     def getDetails( self ):
         return { "builtin_name" : self.builtin_name }
 
-    def isConstant( self ):
-        # Virtual method, pylint: disable=R0201
-        return False
-
     def getBuiltinName( self ):
         return self.builtin_name
 
     def mayHaveSideEffects( self ):
         # Referencing the builtin name has no side effect
         return False
-
-    def getValueFriend( self ):
-        # These can speak for themselves and do not bother about being in danger of
-        # mutation having any impact.
-        return self
 
 
 class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
@@ -92,7 +85,6 @@ class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
             "False" : False
         }
 
-
         if self.builtin_name in quick_names:
             new_node = CPythonExpressionConstantRef(
                 constant   = quick_names[ self.builtin_name ],
@@ -102,6 +94,10 @@ class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
             return new_node, "new_constant", "Builtin constant %s resolved" % self.builtin_name
 
         return self, None, None
+
+    def isKnownToBeIterable( self, count ):
+        # TODO: Why yes, some may be, could be told here.
+        return None
 
 
 class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
@@ -124,3 +120,6 @@ class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
     def isExpressionBuiltin( self ):
         # Means if it's a builtin function call.
         return False
+
+    def computeNode( self ):
+        return self, None, None

@@ -34,7 +34,7 @@ from .OptimizeBase import OptimizationVisitorBase
 
 from ..TreeOperations import RestartVisit
 
-from nuitka.nodes import Nodes
+from nuitka.nodes.AssignNodes import CPythonStatementAssignment
 
 from nuitka.nodes.NodeMakingHelpers import (
     convertRaiseExceptionExpressionRaiseExceptionStatement,
@@ -102,7 +102,7 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
 
                                     assert exception_type is not None
 
-                                    assign_node = Nodes.CPythonStatementAssignment(
+                                    assign_node = CPythonStatementAssignment(
                                         expression = exception_type,
                                         targets    = ( handler.getExceptionTarget(), ),
                                         source_ref = handler.getSourceReference(),

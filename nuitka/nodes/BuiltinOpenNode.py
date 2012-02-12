@@ -26,69 +26,35 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Nodes for comparisons.
+""" Node the calls to the 'open' builtin.
 
+This is a rather two sided beast, as it may be read or write. And we would like to be able
+to track it, so we can include files into the executable, or write more efficiently.
 """
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
 
-from nuitka import PythonOperators
 
-from .NodeMakingHelpers import getComputationResult
+class CPythonExpressionBuiltinOpen( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_BUILTIN_OPEN"
 
-class CPythonExpressionComparison( CPythonExpressionChildrenHavingBase ):
-    kind = "EXPRESSION_COMPARISON"
+    named_children = ( "filename", "mode", "buffering" )
 
-    named_children = ( "left", "right" )
-
-    def __init__( self, left, right, comparator, source_ref ):
-        assert left.isExpression()
-        assert right.isExpression()
-        assert type( comparator ) is str, comparator
-
+    def __init__( self, filename, mode, buffering, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
-            values = {
-                "left" : left,
-                "right" : right
+            values     = {
+                "filename"  : filename,
+                "mode"      : mode,
+                "buffering" : buffering
             },
             source_ref = source_ref
         )
 
-        self.comparator = comparator
-
-    def getOperands( self ):
-        return (
-            self.getLeft(),
-            self.getRight()
-        )
-
-    getLeft = CPythonExpressionChildrenHavingBase.childGetter( "left" )
-    getRight = CPythonExpressionChildrenHavingBase.childGetter( "right" )
-
-    def getComparator( self ):
-        return self.comparator
-
-    def getDetails( self ):
-        return { "comparator" : self.comparator }
-
-    def getSimulator( self ):
-        return PythonOperators.all_comparison_functions[ self.comparator ]
+    getFilename = CPythonExpressionChildrenHavingBase.childGetter( "filename" )
+    getMode = CPythonExpressionChildrenHavingBase.childGetter( "mode" )
+    getBuffering = CPythonExpressionChildrenHavingBase.childGetter( "buffering" )
 
     def computeNode( self ):
-        left, right = self.getOperands()
-
-        if left.isCompileTimeConstant() and right.isCompileTimeConstant():
-            left_value = left.getCompileTimeConstant()
-            right_value = right.getCompileTimeConstant()
-
-            return getComputationResult(
-                node        = self,
-                computation = lambda : self.getSimulator()(
-                    left_value,
-                    right_value
-                ),
-                description = "Comparison with constant arguments"
-            )
-
+        # Note: Quite impossible to predict without further assumptions.
         return self, None, None

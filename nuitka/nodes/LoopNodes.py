@@ -26,14 +26,21 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Loop nodes.
 
+There are for and loop nodes, and the break/continue statements for it. Loops are a very
+difficult topic, and it might be that the two forms need to be reduced to one common form,
+which is more general, the 'Forever' loop, with breaks
+
+"""
 
 from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
 
 from .IndicatorMixins import MarkExceptionBreakContinueIndicator
 
 
-class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExceptionBreakContinueIndicator ):
+class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNodeBase, \
+                               MarkExceptionBreakContinueIndicator ):
     kind = "STATEMENT_FOR_LOOP"
 
     named_children = ( "iterator", "target", "body", "else" )
@@ -55,13 +62,14 @@ class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExcep
 
     getIterator = CPythonChildrenHaving.childGetter( "iterator" )
     getLoopVariableAssignment = CPythonChildrenHaving.childGetter( "target" )
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
+    getLoopBody = CPythonChildrenHaving.childGetter( "body" )
+    setLoopBody = CPythonChildrenHaving.childSetter( "body" )
     getNoBreak = CPythonChildrenHaving.childGetter( "else" )
     setNoBreak = CPythonChildrenHaving.childSetter( "else" )
 
 
-class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNodeBase, MarkExceptionBreakContinueIndicator ):
+class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNodeBase, \
+                                 MarkExceptionBreakContinueIndicator ):
     kind = "STATEMENT_WHILE_LOOP"
 
     named_children = ( "condition", "frame", "else" )

@@ -30,7 +30,11 @@
 
 """
 
-from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
+from .NodeBases import (
+    CPythonExpressionChildrenHavingBase,
+    CPythonChildrenHaving,
+    CPythonNodeBase
+)
 
 class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_RAISE_EXCEPTION"
@@ -73,7 +77,7 @@ class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
         self.reraise_local = True
 
 
-class CPythonExpressionRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
+class CPythonExpressionRaiseException( CPythonExpressionChildrenHavingBase ):
     """ This node type is only produced via optimization.
 
     CPython only knows exception raising as a statement, but often the raising
@@ -89,39 +93,39 @@ class CPythonExpressionRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
     named_children = ( "side_effects", "exception_type", "exception_value" )
 
     def __init__( self, exception_type, exception_value, side_effects, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        CPythonExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "exception_type"  : exception_type,
                 "exception_value" : exception_value,
                 "side_effects"    : tuple( side_effects )
-            }
+            },
+            source_ref = source_ref
         )
 
-    getExceptionType = CPythonChildrenHaving.childGetter( "exception_type" )
-    getExceptionValue = CPythonChildrenHaving.childGetter( "exception_value" )
-
-    getSideEffects = CPythonChildrenHaving.childGetter( "side_effects" )
+    getExceptionType = CPythonExpressionChildrenHavingBase.childGetter( "exception_type" )
+    getExceptionValue = CPythonExpressionChildrenHavingBase.childGetter( "exception_value" )
+    getSideEffects = CPythonExpressionChildrenHavingBase.childGetter( "side_effects" )
 
     def addSideEffects( self, side_effects ):
         self.setChild( "side_effects", tuple( side_effects ) + self.getSideEffects() )
 
+    def computeNode( self ):
+        return self, None, None
 
-class CPythonExpressionBuiltinMakeException( CPythonChildrenHaving, CPythonNodeBase ):
+
+class CPythonExpressionBuiltinMakeException( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION"
 
     named_children = ( "args", )
 
     def __init__( self, exception_name, args, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        CPythonExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "args" : tuple( args ),
-            }
+            },
+            source_ref = source_ref
         )
 
         self.exception_name = exception_name
@@ -132,4 +136,4 @@ class CPythonExpressionBuiltinMakeException( CPythonChildrenHaving, CPythonNodeB
     def getExceptionName( self ):
         return self.exception_name
 
-    getArgs = CPythonChildrenHaving.childGetter( "args" )
+    getArgs = CPythonExpressionChildrenHavingBase.childGetter( "args" )

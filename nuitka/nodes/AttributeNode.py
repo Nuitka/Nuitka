@@ -26,69 +26,47 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Nodes for comparisons.
+""" Attribute node
 
+Knowing attributes of an object is very important, esp. when it comes to 'self' and
+objects and classes. There will be a registry to aid predicting them.
 """
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
 
-from nuitka import PythonOperators
+from nuitka.transform.optimizations.registry import AttributeRegistry
 
-from .NodeMakingHelpers import getComputationResult
+class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_ATTRIBUTE_LOOKUP"
 
-class CPythonExpressionComparison( CPythonExpressionChildrenHavingBase ):
-    kind = "EXPRESSION_COMPARISON"
+    named_children = ( "expression", )
 
-    named_children = ( "left", "right" )
-
-    def __init__( self, left, right, comparator, source_ref ):
-        assert left.isExpression()
-        assert right.isExpression()
-        assert type( comparator ) is str, comparator
-
+    def __init__( self, expression, attribute_name, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
-            values = {
-                "left" : left,
-                "right" : right
+            values     = {
+                "expression" : expression
             },
             source_ref = source_ref
         )
 
-        self.comparator = comparator
+        self.attribute_name = attribute_name
 
-    def getOperands( self ):
-        return (
-            self.getLeft(),
-            self.getRight()
-        )
-
-    getLeft = CPythonExpressionChildrenHavingBase.childGetter( "left" )
-    getRight = CPythonExpressionChildrenHavingBase.childGetter( "right" )
-
-    def getComparator( self ):
-        return self.comparator
+    def getAttributeName( self ):
+        return self.attribute_name
 
     def getDetails( self ):
-        return { "comparator" : self.comparator }
+        return { "attribute" : self.getAttributeName() }
 
-    def getSimulator( self ):
-        return PythonOperators.all_comparison_functions[ self.comparator ]
+    def getDetail( self ):
+        return "attribute %s from %s" % ( self.getAttributeName(), self.getLookupSource() )
+
+    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 
     def computeNode( self ):
-        left, right = self.getOperands()
+        # There is a whole registry dedicated to this.
+        return AttributeRegistry.computeAttribute( self )
 
-        if left.isCompileTimeConstant() and right.isCompileTimeConstant():
-            left_value = left.getCompileTimeConstant()
-            right_value = right.getCompileTimeConstant()
-
-            return getComputationResult(
-                node        = self,
-                computation = lambda : self.getSimulator()(
-                    left_value,
-                    right_value
-                ),
-                description = "Comparison with constant arguments"
-            )
-
-        return self, None, None
+    def isKnownToBeIterable( self, count ):
+        # TODO: Should ask AttributeRegistry
+        return None

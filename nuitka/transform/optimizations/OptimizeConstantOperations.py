@@ -165,7 +165,7 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
                     node.setPositionalArguments( positional_args + star_list_arg.getElements() )
                     node.setStarListArg( None )
                 elif star_list_arg.isExpressionConstantRef():
-                    if star_list_arg.isIterableConstant():
+                    if star_list_arg.isKnownToBeIterable( count = None ):
                         positional_args = node.getPositionalArguments()
 
                         constant_nodes = []

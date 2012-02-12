@@ -41,140 +41,60 @@ from .OptimizeBase import (
 
 from nuitka.Utils import getPythonVersion
 
-from nuitka.nodes import Nodes
 from nuitka.nodes.BuiltinRangeNode import CPythonExpressionBuiltinRange
 from nuitka.nodes.BuiltinDictNode import CPythonExpressionBuiltinDict
+from nuitka.nodes.BuiltinOpenNode import CPythonExpressionBuiltinOpen
+from nuitka.nodes.BuiltinVarsNode import CPythonExpressionBuiltinVars
+from nuitka.nodes.BuiltinIteratorNodes import (
+    CPythonExpressionBuiltinNext1,
+    CPythonExpressionBuiltinNext2,
+    CPythonExpressionBuiltinIter1,
+    CPythonExpressionBuiltinIter2,
+    CPythonExpressionBuiltinLen
+)
+from nuitka.nodes.BuiltinTypeNodes import (
+    CPythonExpressionBuiltinFloat,
+    CPythonExpressionBuiltinTuple,
+    CPythonExpressionBuiltinList,
+    CPythonExpressionBuiltinBool,
+    CPythonExpressionBuiltinInt,
+    CPythonExpressionBuiltinStr
+)
+if getPythonVersion() < 300:
+    from nuitka.nodes.BuiltinTypeNodes import CPythonExpressionBuiltinLong
+from nuitka.nodes.BuiltinFormatNodes import (
+    CPythonExpressionBuiltinBin,
+    CPythonExpressionBuiltinOct,
+    CPythonExpressionBuiltinHex,
+)
+from nuitka.nodes.BuiltinDecodingNodes import (
+    CPythonExpressionBuiltinChr,
+    CPythonExpressionBuiltinOrd
+)
 from nuitka.nodes.ExceptionNodes import CPythonExpressionBuiltinMakeException
+from nuitka.nodes.TypeNode import CPythonExpressionBuiltinType1
+from nuitka.nodes.CallNode import CPythonExpressionFunctionCall
+from nuitka.nodes.AttributeNode import CPythonExpressionAttributeLookup
 from nuitka.nodes.ImportNodes import CPythonExpressionBuiltinImport, CPythonExpressionImportModule
 from nuitka.nodes.OperatorNodes import CPythonExpressionOperationUnary
+from nuitka.nodes.ClassNodes import CPythonExpressionBuiltinType3
+
 from nuitka.nodes.ExecEvalNodes import (
     CPythonExpressionBuiltinEval,
     CPythonExpressionBuiltinExec,
     CPythonExpressionBuiltinExecfile,
     CPythonStatementExec
 )
-
-from nuitka.nodes.ParameterSpec import ParameterSpec
+from nuitka.nodes.GlobalsLocalsNodes import (
+    CPythonExpressionBuiltinGlobals,
+    CPythonExpressionBuiltinLocals,
+    CPythonExpressionBuiltinDir0
+)
 
 from nuitka.Builtins import builtin_exception_names, builtin_names
 
 from . import BuiltinOptimization
 
-import sys
-
-class BuiltinParameterSpec( ParameterSpec ):
-    def __init__( self, name, arg_names, default_count, list_star_arg = None, dict_star_arg = None ):
-        self.name = name
-        self.builtin = __builtins__[ name ]
-
-        ParameterSpec.__init__(
-            self,
-            normal_args    = arg_names,
-            list_star_arg  = list_star_arg,
-            dict_star_arg  = dict_star_arg,
-            default_count  = default_count
-        )
-
-    def __repr__( self ):
-        return "<BuiltinParameterSpec %s>" % self.name
-
-    def getName( self ):
-        return self.name
-
-    def simulateCall( self, given_values ):
-        # Using star dict call for simulation and catch any exception as really fatal,
-        # pylint: disable=W0142,W0703
-
-        try:
-            given_normal_args = given_values[ : len( self.normal_args ) ]
-
-            if self.list_star_arg:
-                given_list_star_args = given_values[ len( self.normal_args ) ]
-            else:
-                given_list_star_args = None
-
-            if self.dict_star_arg:
-                given_dict_star_args = given_values[ -1 ]
-            else:
-                given_dict_star_args = None
-
-            arg_dict = {}
-
-            for arg_name, given_value in zip( self.normal_args, given_normal_args ):
-                assert type( given_value ) not in ( tuple, list ), ( "do not like a tuple %s" % ( given_value, ))
-
-                if given_value is not None:
-                    arg_dict[ arg_name ] = given_value.getConstant()
-
-            if given_dict_star_args:
-                for given_dict_star_arg in given_dict_star_args:
-                    arg_name = given_dict_star_arg.getKey()
-                    arg_value = given_dict_star_arg.getValue()
-
-                    arg_dict[ arg_name.getConstant() ] = arg_value.getConstant()
-
-        except Exception as e:
-            sys.exit( "Fatal problem: %r" % e )
-
-        if given_list_star_args:
-            return self.builtin( *( value.getConstant() for value in given_list_star_args ), **arg_dict )
-        else:
-            return self.builtin( **arg_dict )
-
-class BuiltinParameterSpecNoKeywords( BuiltinParameterSpec ):
-    def allowsKeywords( self ):
-        return False
-
-    def simulateCall( self, given_values ):
-        # Using star dict call for simulation and catch any exception as really fatal,
-        # pylint: disable=W0142,W0703
-
-        try:
-            if self.list_star_arg:
-                given_list_star_arg = given_values[ len( self.normal_args ) ]
-            else:
-                given_list_star_arg = None
-
-            arg_list = []
-            refuse_more = False
-
-            for _arg_name, given_value in zip( self.normal_args, given_values ):
-                assert type( given_value ) not in ( tuple, list ), ( "do not like tuple %s" % ( given_value, ))
-
-                if given_value is not None:
-                    if not refuse_more:
-                        arg_list.append( given_value.getConstant() )
-                    else:
-                        assert False
-                else:
-                    refuse_more = True
-
-            if given_list_star_arg is not None:
-                arg_list += [ value.getConstant() for value in given_list_star_arg ]
-        except Exception as e:
-            sys.exit( e )
-
-        return self.builtin( *arg_list )
-
-
-class BuiltinParameterSpecExceptions( BuiltinParameterSpec ):
-    def allowsKeywords( self ):
-        return False
-
-    def getKeywordRefusalText( self ):
-        return "exceptions.%s does not take keyword arguments" % self.name
-
-    def __init__( self, name, default_count ):
-        BuiltinParameterSpec.__init__(
-            self,
-            name          = name,
-            arg_names     = (),
-            default_count = default_count,
-            list_star_arg = "args"
-        )
-
-    def getCallableName( self ):
-        return "exceptions." + self.getName()
 
 
 # TODO: The maybe local variable should have a read only indication too, but right
@@ -296,9 +216,9 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
                 use_call = CPythonExpressionBuiltinExecfile
 
             return use_call(
-                source_code = Nodes.CPythonExpressionFunctionCall(
-                    called_expression = Nodes.CPythonExpressionAttributeLookup(
-                        expression     = Nodes.CPythonExpressionBuiltinOpen(
+                source_code = CPythonExpressionFunctionCall(
+                    called_expression = CPythonExpressionAttributeLookup(
+                        expression     = CPythonExpressionBuiltinOpen(
                             filename   = filename,
                             mode       = makeConstantReplacementNode(
                                 constant = "rU",
@@ -358,11 +278,11 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
         provider = node.getParentVariableProvider()
 
         if provider.isModule():
-            return Nodes.CPythonExpressionBuiltinGlobals(
+            return CPythonExpressionBuiltinGlobals(
                 source_ref = node.getSourceReference()
             )
         else:
-            return Nodes.CPythonExpressionBuiltinLocals(
+            return CPythonExpressionBuiltinLocals(
                 source_ref = node.getSourceReference()
             )
 
@@ -370,7 +290,7 @@ class ReplaceBuiltinsCriticalVisitor( ReplaceBuiltinsVisitorBase ):
     def _pickGlobalsForNode( node ):
         """ Pick a globals default for the given node. """
 
-        return Nodes.CPythonExpressionBuiltinGlobals(
+        return CPythonExpressionBuiltinGlobals(
             source_ref = node.getSourceReference()
         )
 
@@ -430,7 +350,7 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
         if not node.isEmptyCall():
             return None
 
-        return Nodes.CPythonExpressionBuiltinDir(
+        return CPythonExpressionBuiltinDir0(
             source_ref = node.getSourceReference()
         )
 
@@ -439,15 +359,15 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
 
         if len( positional_args ) == 0:
             if node.getParentVariableProvider().isModule():
-                return Nodes.CPythonExpressionBuiltinGlobals(
+                return CPythonExpressionBuiltinGlobals(
                     source_ref = node.getSourceReference()
                 )
             else:
-                return Nodes.CPythonExpressionBuiltinLocals(
+                return CPythonExpressionBuiltinLocals(
                     source_ref = node.getSourceReference()
                 )
         elif len( positional_args ) == 1:
-            return Nodes.CPythonExpressionBuiltinVars(
+            return CPythonExpressionBuiltinVars(
                 source     = positional_args[ 0 ],
                 source_ref = node.getSourceReference()
             )
@@ -465,12 +385,12 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
         positional_args = node.getPositionalArguments()
 
         if len( positional_args ) == 1:
-            return Nodes.CPythonExpressionBuiltinType1(
+            return CPythonExpressionBuiltinType1(
                 value      = positional_args[0],
                 source_ref = node.getSourceReference()
             )
         elif len( positional_args ) == 3:
-            return Nodes.CPythonExpressionBuiltinType3(
+            return CPythonExpressionBuiltinType3(
                 type_name  = positional_args[0],
                 bases      = positional_args[1],
                 type_dict  = positional_args[2],
@@ -481,12 +401,12 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
         positional_args = node.getPositionalArguments()
 
         if len( positional_args ) == 1:
-            return Nodes.CPythonExpressionBuiltinIter1(
+            return CPythonExpressionBuiltinIter1(
                 value      = positional_args[0],
                 source_ref = node.getSourceReference()
             )
         elif len( positional_args ) == 2:
-            return Nodes.CPythonExpressionBuiltinIter2(
+            return CPythonExpressionBuiltinIter2(
                 call_able  = positional_args[0],
                 sentinel   = positional_args[1],
                 source_ref = node.getSourceReference()
@@ -496,12 +416,12 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
         positional_args = node.getPositionalArguments()
 
         if len( positional_args ) == 1:
-            return Nodes.CPythonExpressionBuiltinNext1(
+            return CPythonExpressionBuiltinNext1(
                 value      = positional_args[0],
                 source_ref = node.getSourceReference()
             )
         else:
-            return Nodes.CPythonExpressionBuiltinNext2(
+            return CPythonExpressionBuiltinNext2(
                 iterator   = positional_args[0],
                 default    = positional_args[1],
                 source_ref = node.getSourceReference()
@@ -513,7 +433,7 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
 
         def wrapExpressionBuiltinDictCreation( positional_args, pairs, source_ref ):
             if len( positional_args ) > 1:
-                return Nodes.CPythonExpressionFunctionCall(
+                return CPythonExpressionFunctionCall(
                     called_expression = makeRaiseExceptionReplacementExpressionFromInstance(
                         expression     = node,
                         exception      = TypeError(
@@ -542,35 +462,35 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
     def chr_extractor( self, node ):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
-            builtin_class = Nodes.CPythonExpressionBuiltinChr,
+            builtin_class = CPythonExpressionBuiltinChr,
             builtin_spec  = BuiltinOptimization.builtin_chr_spec
         )
 
     def ord_extractor( self, node ):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
-            builtin_class = Nodes.CPythonExpressionBuiltinOrd,
+            builtin_class = CPythonExpressionBuiltinOrd,
             builtin_spec  = BuiltinOptimization.builtin_ord_spec
         )
 
     def bin_extractor( self, node ):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
-            builtin_class = Nodes.CPythonExpressionBuiltinBin,
+            builtin_class = CPythonExpressionBuiltinBin,
             builtin_spec  = BuiltinOptimization.builtin_bin_spec
         )
 
     def oct_extractor( self, node ):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
-            builtin_class = Nodes.CPythonExpressionBuiltinOct,
+            builtin_class = CPythonExpressionBuiltinOct,
             builtin_spec  = BuiltinOptimization.builtin_oct_spec
         )
 
     def hex_extractor( self, node ):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
-            builtin_class = Nodes.CPythonExpressionBuiltinHex,
+            builtin_class = CPythonExpressionBuiltinHex,
             builtin_spec  = BuiltinOptimization.builtin_hex_spec
         )
 
@@ -598,56 +518,56 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
     def len_extractor( self, node ):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
-            builtin_class = Nodes.CPythonExpressionBuiltinLen,
+            builtin_class = CPythonExpressionBuiltinLen,
             builtin_spec  = BuiltinOptimization.builtin_len_spec
         )
 
     def tuple_extractor( self, node ):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
-            builtin_class = Nodes.CPythonExpressionBuiltinTuple,
+            builtin_class = CPythonExpressionBuiltinTuple,
             builtin_spec  = BuiltinOptimization.builtin_tuple_spec
         )
 
     def list_extractor( self, node ):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
-            builtin_class = Nodes.CPythonExpressionBuiltinList,
+            builtin_class = CPythonExpressionBuiltinList,
             builtin_spec  = BuiltinOptimization.builtin_list_spec
         )
 
     def float_extractor( self, node ):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
-            builtin_class = Nodes.CPythonExpressionBuiltinFloat,
+            builtin_class = CPythonExpressionBuiltinFloat,
             builtin_spec  = BuiltinOptimization.builtin_float_spec
         )
 
     def str_extractor( self, node ):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
-            builtin_class = Nodes.CPythonExpressionBuiltinStr,
+            builtin_class = CPythonExpressionBuiltinStr,
             builtin_spec  = BuiltinOptimization.builtin_str_spec
         )
 
     def bool_extractor( self, node ):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
-            builtin_class = Nodes.CPythonExpressionBuiltinBool,
+            builtin_class = CPythonExpressionBuiltinBool,
             builtin_spec  = BuiltinOptimization.builtin_bool_spec
         )
 
     def int_extractor( self, node ):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
-            builtin_class = Nodes.CPythonExpressionBuiltinInt,
+            builtin_class = CPythonExpressionBuiltinInt,
             builtin_spec  = BuiltinOptimization.builtin_int_spec
         )
 
     def long_extractor( self, node ):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
-            builtin_class = Nodes.CPythonExpressionBuiltinLong,
+            builtin_class = CPythonExpressionBuiltinLong,
             builtin_spec  = BuiltinOptimization.builtin_long_spec
         )
 
@@ -664,7 +584,10 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = createBuiltinMakeException,
-            builtin_spec  = BuiltinParameterSpecExceptions( exception_name, 0 )
+            builtin_spec  = BuiltinOptimization.BuiltinParameterSpecExceptions(
+                name          = exception_name,
+                default_count = 0
+            )
         )
 
 _quick_names = {

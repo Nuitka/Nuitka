@@ -46,7 +46,7 @@ from . import (
 from .nodes.ParameterSpec import ParameterSpec
 from .nodes.FutureSpec import FutureSpec
 
-from .nodes import Nodes
+from .nodes.NodeBases import CPythonNodeBase
 from .nodes.VariableRefNode import (
     CPythonExpressionVariableRef,
     CPythonExpressionTempVariableRef,
@@ -56,9 +56,22 @@ from .nodes.BuiltinReferenceNodes import (
     CPythonExpressionBuiltinExceptionRef,
     CPythonExpressionBuiltinRef
 )
+from .nodes.BuiltinIteratorNodes import CPythonExpressionBuiltinIter1
+from .nodes.BoolNodes import (
+    CPythonExpressionBoolAND,
+    CPythonExpressionBoolOR
+)
 from .nodes.ExceptionNodes import CPythonStatementRaiseException
 from .nodes.ComparisonNode import CPythonExpressionComparison
 from .nodes.ExecEvalNodes import CPythonStatementExec
+from .nodes.CallNode import CPythonExpressionFunctionCall
+from .nodes.AttributeNode import CPythonExpressionAttributeLookup
+from .nodes.SubscriptNode import CPythonExpressionSubscriptLookup
+from .nodes.SliceNodes import (
+    CPythonExpressionSliceLookup,
+    CPythonExpressionSliceObject
+)
+
 from .nodes.FunctionNodes import (
     CPythonExpressionFunctionBodyDefaulted,
     CPythonExpressionFunctionBody
@@ -76,7 +89,9 @@ from .nodes.ContainerMakingNodes import (
 )
 from .nodes.StatementNodes import (
     CPythonStatementExpressionOnly,
-    CPythonStatementsSequence
+    CPythonStatementDeclareGlobal,
+    CPythonStatementsSequence,
+    CPythonStatementPass
 )
 from .nodes.ImportNodes import (
     CPythonExpressionImportModule,
@@ -88,13 +103,49 @@ from .nodes.OperatorNodes import (
     CPythonExpressionOperationUnary,
     CPythonExpressionOperationNOT
 )
-
 from .nodes.LoopNodes import (
     CPythonStatementContinueLoop,
     CPythonStatementBreakLoop,
     CPythonStatementWhileLoop,
     CPythonStatementForLoop
 )
+from .nodes.ConditionalNodes import (
+    CPythonExpressionConditional,
+    CPythonStatementConditional
+)
+from .nodes.YieldNode import CPythonExpressionYield
+from .nodes.ReturnNode import CPythonStatementReturn
+from .nodes.AssignNodes import (
+    CPythonStatementAssignmentInplace,
+    CPythonStatementAssignment,
+    CPythonExpressionAssignment,
+    CPythonAssignTargetAttribute,
+    CPythonAssignTargetSubscript,
+    CPythonAssignTargetVariable,
+    CPythonAssignTargetTuple,
+    CPythonAssignTargetSlice
+)
+from .nodes.PrintNodes import CPythonStatementPrint
+from .nodes.ModuleNodes import (
+    CPythonPackage,
+    CPythonModule
+)
+from .nodes.ContractionNodes import (
+    CPythonExpressionListContractionBuilder,
+    CPythonExpressionListContractionBody,
+    CPythonExpressionDictContractionBuilder,
+    CPythonExpressionDictContractionBody,
+    CPythonExpressionSetContractionBuilder,
+    CPythonExpressionSetContractionBody,
+    CPythonExpressionGeneratorBuilder,
+    CPythonExpressionGeneratorBody,
+)
+from .nodes.TryNodes import (
+    CPythonStatementExceptHandler,
+    CPythonStatementTryFinally,
+    CPythonStatementTryExcept
+)
+from .nodes.WithNode import CPythonStatementWith
 
 import ast, sys
 
@@ -162,11 +213,14 @@ def buildClassNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-    body = buildStatementsNode(
-        provider   = class_body,
-        nodes      = class_statements,
-        source_ref = source_ref,
-    )
+    if class_statements:
+        body = buildStatementsNode(
+            provider   = class_body,
+            nodes      = class_statements,
+            source_ref = source_ref,
+        )
+    else:
+        body = None
 
     class_body.setBody( body )
 
@@ -180,7 +234,7 @@ def buildClassNode( provider, node, source_ref ):
         decorated_body = class_body
 
     for decorator in decorators:
-        decorated_body = Nodes.CPythonExpressionFunctionCall(
+        decorated_body = CPythonExpressionFunctionCall(
             called_expression = decorator,
             positional_args   = ( decorated_body, ),
             pairs             = (),
@@ -190,7 +244,7 @@ def buildClassNode( provider, node, source_ref ):
         )
 
 
-    return Nodes.CPythonStatementAssignment(
+    return CPythonStatementAssignment(
         targets    = ( buildVariableRefAssignTarget( node.name, source_ref ), ),
         source     = decorated_body,
         source_ref = source_ref
@@ -246,10 +300,12 @@ def buildFunctionNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
+    if function_statements:
+        function_statements_body = buildStatementsNode( function_body, function_statements, source_ref )
+    else:
+        function_statements_body = None
 
-    function_body.setBody(
-        buildStatementsNode( function_body, function_statements, source_ref ),
-    )
+    function_body.setBody( function_statements_body )
 
     if defaults:
         decorated_body = CPythonExpressionFunctionBodyDefaulted(
@@ -261,7 +317,7 @@ def buildFunctionNode( provider, node, source_ref ):
         decorated_body = function_body
 
     for decorator in decorators:
-        decorated_body = Nodes.CPythonExpressionFunctionCall(
+        decorated_body = CPythonExpressionFunctionCall(
             called_expression = decorator,
             positional_args   = ( decorated_body, ),
             pairs             = (),
@@ -275,7 +331,7 @@ def buildFunctionNode( provider, node, source_ref ):
     # CPython made these optional, but applies them to every class __new__. We better add
     # them early, so our analysis will see it
     if node.name == "__new__" and not decorators and provider.isExpressionClassBody():
-        decorated_body = Nodes.CPythonExpressionFunctionCall(
+        decorated_body = CPythonExpressionFunctionCall(
             called_expression = CPythonExpressionBuiltinRef(
                 builtin_name = "staticmethod",
                 source_ref   = source_ref
@@ -288,7 +344,7 @@ def buildFunctionNode( provider, node, source_ref ):
         )
 
 
-    return Nodes.CPythonStatementAssignment(
+    return CPythonStatementAssignment(
         targets    = ( buildVariableRefAssignTarget( node.name, source_ref ), ),
         source     = decorated_body,
         source_ref = source_ref
@@ -320,7 +376,7 @@ def buildLambdaNode( provider, node, source_ref ):
 
     if result.isGenerator():
         body = CPythonStatementExpressionOnly(
-            expression = Nodes.CPythonExpressionYield(
+            expression = CPythonExpressionYield(
                 expression = body,
                 for_return = True,
                 source_ref = body.getSourceReference()
@@ -328,7 +384,7 @@ def buildLambdaNode( provider, node, source_ref ):
             source_ref = body.getSourceReference()
         )
     else:
-        body = Nodes.CPythonStatementReturn(
+        body = CPythonStatementReturn(
             expression = body,
             source_ref = body.getSourceReference()
         )
@@ -353,7 +409,7 @@ def buildForLoopNode( provider, node, source_ref ):
     source = buildNode( provider, node.iter, source_ref )
 
     return CPythonStatementForLoop(
-        iterator   = Nodes.CPythonExpressionBuiltinIter1(
+        iterator   = CPythonExpressionBuiltinIter1(
             value       = source,
             source_ref  = source.getSourceReference()
         ),
@@ -400,7 +456,7 @@ def buildFunctionCallNode( provider, node, source_ref ):
         node.keywords
     ]
 
-    return Nodes.CPythonExpressionFunctionCall(
+    return CPythonExpressionFunctionCall(
         called_expression = buildNode( provider, node.func, source_ref ),
         positional_args   = positional_args,
         pairs             = pairs,
@@ -508,7 +564,7 @@ def buildDictionaryNode( provider, node, source_ref ):
         )
 
 def buildVariableRefAssignTarget( variable_name, source_ref ):
-    return Nodes.CPythonAssignTargetVariable(
+    return CPythonAssignTargetVariable(
         variable_ref = _buildVariableReferenceNode(
             variable_name = variable_name,
             source_ref    = source_ref
@@ -519,7 +575,7 @@ def buildVariableRefAssignTarget( variable_name, source_ref ):
 def buildAttributeAssignTarget( provider, attribute_name, value, source_ref ):
     assert type( attribute_name ) is str
 
-    return Nodes.CPythonAssignTargetAttribute(
+    return CPythonAssignTargetAttribute(
         expression      = buildNode( provider, value, source_ref ),
         attribute_name  = attribute_name,
         source_ref      = source_ref
@@ -529,7 +585,7 @@ def buildSubscriptAssignTarget( provider, node, source_ref ):
     slice_kind = getKind( node.slice )
 
     if slice_kind == "Index":
-        result = Nodes.CPythonAssignTargetSubscript(
+        result = CPythonAssignTargetSubscript(
             expression = buildNode( provider, node.value, source_ref ),
             subscript  = buildNode( provider, node.slice.value, source_ref ),
             source_ref = source_ref
@@ -541,9 +597,9 @@ def buildSubscriptAssignTarget( provider, node, source_ref ):
         if node.slice.step is not None:
             step = buildNode( provider, node.slice.step, source_ref )
 
-            result = Nodes.CPythonAssignTargetSubscript(
+            result = CPythonAssignTargetSubscript(
                 expression = buildNode( provider, node.value, source_ref ),
-                subscript  = Nodes.CPythonExpressionSliceObject(
+                subscript  = CPythonExpressionSliceObject(
                     lower      = lower,
                     upper      = upper,
                     step       = step,
@@ -552,20 +608,20 @@ def buildSubscriptAssignTarget( provider, node, source_ref ):
                 source_ref = source_ref
             )
         else:
-            result = Nodes.CPythonAssignTargetSlice(
+            result = CPythonAssignTargetSlice(
                 expression = buildNode( provider, node.value, source_ref ),
                 lower      = lower,
                 upper      = upper,
                 source_ref = source_ref
             )
     elif slice_kind == "ExtSlice":
-        result = Nodes.CPythonAssignTargetSubscript(
+        result = CPythonAssignTargetSubscript(
             expression = buildNode( provider, node.value, source_ref ),
             subscript  = _buildExtSliceNode( provider, node, source_ref ),
             source_ref = source_ref
         )
     elif slice_kind == "Ellipsis":
-        result = Nodes.CPythonAssignTargetSubscript(
+        result = CPythonAssignTargetSubscript(
             expression = buildNode( provider, node.value, source_ref ),
             subscript  = _buildConstantReferenceNode(
                 constant   = Ellipsis,
@@ -607,7 +663,7 @@ def buildAssignTarget( provider, node, source_ref, allow_none = False ):
             source_ref     = source_ref
         )
     elif kind in ( "Tuple", "List" ):
-        result = Nodes.CPythonAssignTargetTuple(
+        result = CPythonAssignTargetTuple(
             elements   = buildAssignTargets( provider, node.elts, source_ref ),
             source_ref = source_ref
         )
@@ -636,14 +692,14 @@ def buildAssignNode( provider, node, source_ref ):
     # Only now the left hand side, so the right hand side is first.
     targets = buildAssignTargets( provider, node.targets, source_ref )
 
-    return Nodes.CPythonStatementAssignment(
+    return CPythonStatementAssignment(
         targets    = targets,
         source     = source,
         source_ref = source_ref
     )
 
 def buildDeleteNode( provider, node, source_ref ):
-    return Nodes.CPythonStatementAssignment(
+    return CPythonStatementAssignment(
         targets    = buildAssignTargets( provider, node.targets, source_ref ),
         source     = None,
         source_ref = source_ref
@@ -704,7 +760,7 @@ def buildBodyQuals( contraction_body, quals, source_ref ):
             if len( conditions ) == 1:
                 condition = conditions[ 0 ]
             else:
-                condition = Nodes.CPythonExpressionBoolAND(
+                condition = CPythonExpressionBoolAND(
                     operands   = conditions,
                     source_ref = source_ref
                 )
@@ -807,7 +863,7 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
         )
 
         body = CPythonStatementExpressionOnly(
-            expression = Nodes.CPythonExpressionYield(
+            expression = CPythonExpressionYield(
                 expression = contraction_body.getBody(),
                 for_return = False,
                 source_ref = source_ref
@@ -833,7 +889,7 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
             sources,
             contraction_body.getConditions() ):
 
-            body = Nodes.CPythonStatementConditional(
+            body = CPythonStatementConditional(
                 condition  = condition,
                 yes_branch = body,
                 no_branch  = None,
@@ -846,7 +902,7 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
             )
 
             body = CPythonStatementForLoop(
-                iterator   = Nodes.CPythonExpressionBuiltinIter1(
+                iterator   = CPythonExpressionBuiltinIter1(
                     value      = source,
                     source_ref = source.getSourceReference()
                 ),
@@ -864,7 +920,7 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
         generator_function_body.setBody( body )
         generator_function_body.markAsGenerator()
 
-        result = Nodes.CPythonExpressionFunctionCall(
+        result = CPythonExpressionFunctionCall(
             called_expression = generator_function_body,
             positional_args   = ( result.getSource0(), ),
             pairs             = (),
@@ -879,8 +935,8 @@ def buildListContractionNode( provider, node, source_ref ):
     return _buildContractionNode(
         provider         = provider,
         node             = node,
-        builder_class    = Nodes.CPythonExpressionListContractionBuilder,
-        body_class       = Nodes.CPythonExpressionListContractionBody,
+        builder_class    = CPythonExpressionListContractionBuilder,
+        body_class       = CPythonExpressionListContractionBody,
         list_contraction = True,
         source_ref       = source_ref
     )
@@ -889,8 +945,8 @@ def buildSetContractionNode( provider, node, source_ref ):
     return _buildContractionNode(
         provider         = provider,
         node             = node,
-        builder_class    = Nodes.CPythonExpressionSetContractionBuilder,
-        body_class       = Nodes.CPythonExpressionSetContractionBody,
+        builder_class    = CPythonExpressionSetContractionBuilder,
+        body_class       = CPythonExpressionSetContractionBody,
         list_contraction = False,
         source_ref       = source_ref
     )
@@ -899,8 +955,8 @@ def buildDictContractionNode( provider, node, source_ref ):
     return _buildContractionNode(
         provider         = provider,
         node             = node,
-        builder_class    = Nodes.CPythonExpressionDictContractionBuilder,
-        body_class       = Nodes.CPythonExpressionDictContractionBody,
+        builder_class    = CPythonExpressionDictContractionBuilder,
+        body_class       = CPythonExpressionDictContractionBody,
         list_contraction = False,
         source_ref       = source_ref
     )
@@ -911,8 +967,8 @@ def buildGeneratorExpressionNode( provider, node, source_ref ):
     return _buildContractionNode(
         provider         = provider,
         node             = node,
-        builder_class    = Nodes.CPythonExpressionGeneratorBuilder,
-        body_class       = Nodes.CPythonExpressionGeneratorBody,
+        builder_class    = CPythonExpressionGeneratorBuilder,
+        body_class       = CPythonExpressionGeneratorBody,
         list_contraction = False,
         source_ref       = source_ref
     )
@@ -952,9 +1008,9 @@ def buildComparisonNode( provider, node, source_ref ):
             # to a temp variable to be shared with the next part.
             tmp_variable = provider.getTempVariable()
 
-            right = Nodes.CPythonExpressionAssignment(
+            right = CPythonExpressionAssignment(
                 source     = right,
-                target     = Nodes.CPythonAssignTargetVariable(
+                target     = CPythonAssignTargetVariable(
                     variable_ref = CPythonExpressionTempVariableRef(
                         variable   = tmp_variable.makeReference( provider ),
                         source_ref = source_ref
@@ -976,7 +1032,7 @@ def buildComparisonNode( provider, node, source_ref ):
     assert tmp_variable is None
 
     if len( result ) > 1:
-        return Nodes.CPythonExpressionBoolAND(
+        return CPythonExpressionBoolAND(
             operands   = result,
             source_ref = source_ref
         )
@@ -984,7 +1040,7 @@ def buildComparisonNode( provider, node, source_ref ):
         return result[ 0 ]
 
 def buildConditionNode( provider, node, source_ref ):
-    return Nodes.CPythonStatementConditional(
+    return CPythonStatementConditional(
         condition  = buildNode( provider, node.test, source_ref ),
         yes_branch = buildStatementsNode( provider, node.body, source_ref ),
         no_branch  = buildStatementsNode(
@@ -1003,7 +1059,7 @@ def buildTryExceptionNode( provider, node, source_ref ):
         exception_expression, exception_assign, exception_block = handler.type, handler.name, handler.body
 
         handlers.append(
-            Nodes.CPythonStatementExceptHandler(
+            CPythonStatementExceptHandler(
                 exception_type = buildNode( provider, exception_expression, source_ref, True ),
                 target         = buildAssignTarget
                 ( provider, exception_assign, source_ref, True ),
@@ -1012,7 +1068,7 @@ def buildTryExceptionNode( provider, node, source_ref ):
             )
         )
 
-    return Nodes.CPythonStatementTryExcept(
+    return CPythonStatementTryExcept(
         tried      = buildStatementsNode( provider, node.body, source_ref ),
         handlers   = handlers,
         no_raise   = buildStatementsNode( provider, node.orelse, source_ref, True ),
@@ -1020,7 +1076,7 @@ def buildTryExceptionNode( provider, node, source_ref ):
     )
 
 def buildTryFinallyNode( provider, node, source_ref ):
-    return Nodes.CPythonStatementTryFinally(
+    return CPythonStatementTryFinally(
         tried      = buildStatementsNode( provider, node.body, source_ref ),
         final      = buildStatementsNode( provider, node.finalbody, source_ref ),
         source_ref = source_ref
@@ -1056,7 +1112,7 @@ def buildAssertNode( provider, node, source_ref ):
     #
     # Therefore assert statements are really just conditional statements with a static
     # raise contained.
-    return Nodes.CPythonStatementConditional(
+    return CPythonStatementConditional(
         condition = CPythonExpressionOperationNOT(
             operand    = buildNode( provider, node.test, source_ref ),
             source_ref = source_ref
@@ -1090,7 +1146,7 @@ def _buildExtSliceNode( provider, node, source_ref ):
             upper = buildNode( provider, dim.upper, source_ref, True )
             step = buildNode( provider, dim.step, source_ref, True )
 
-            element = Nodes.CPythonExpressionSliceObject(
+            element = CPythonExpressionSliceObject(
                 lower      = lower,
                 upper      = upper,
                 step       = step,
@@ -1121,7 +1177,7 @@ def buildSubscriptNode( provider, node, source_ref ):
     if getKind( node.ctx ) == "Del":
         target = buildAssignTarget( provider, node, source_ref )
 
-        return Nodes.CPythonStatementAssignment(
+        return CPythonStatementAssignment(
             targets    = ( target, ),
             source     = None,
             source_ref = source_ref
@@ -1132,7 +1188,7 @@ def buildSubscriptNode( provider, node, source_ref ):
     kind = getKind( node.slice )
 
     if kind == "Index":
-        return Nodes.CPythonExpressionSubscriptLookup(
+        return CPythonExpressionSubscriptLookup(
             expression = buildNode( provider, node.value, source_ref ),
             subscript  = buildNode( provider, node.slice.value, source_ref ),
             source_ref = source_ref
@@ -1144,9 +1200,9 @@ def buildSubscriptNode( provider, node, source_ref ):
         if node.slice.step is not None:
             step = buildNode( provider, node.slice.step,  source_ref )
 
-            return Nodes.CPythonExpressionSubscriptLookup(
+            return CPythonExpressionSubscriptLookup(
                 expression = buildNode( provider, node.value, source_ref ),
-                subscript  = Nodes.CPythonExpressionSliceObject(
+                subscript  = CPythonExpressionSliceObject(
                     lower      = lower,
                     upper      = upper,
                     step       = step,
@@ -1155,20 +1211,20 @@ def buildSubscriptNode( provider, node, source_ref ):
                 source_ref = source_ref
             )
         else:
-            return Nodes.CPythonExpressionSliceLookup(
+            return CPythonExpressionSliceLookup(
                 expression = buildNode( provider, node.value, source_ref ),
                 lower      = lower,
                 upper      = upper,
                 source_ref = source_ref
             )
     elif kind == "ExtSlice":
-        return Nodes.CPythonExpressionSubscriptLookup(
+        return CPythonExpressionSubscriptLookup(
             expression = buildNode( provider, node.value, source_ref ),
             subscript  = _buildExtSliceNode( provider, node, source_ref ),
             source_ref = source_ref
         )
     elif kind == "Ellipsis":
-        return Nodes.CPythonExpressionSubscriptLookup(
+        return CPythonExpressionSubscriptLookup(
             expression = buildNode( provider, node.value, source_ref ),
             subscript  = _buildConstantReferenceNode(
                 constant   = Ellipsis,
@@ -1217,7 +1273,7 @@ def _buildImportModulesNode( import_names, source_ref ):
             )
 
         import_nodes.append(
-            Nodes.CPythonStatementAssignment(
+            CPythonStatementAssignment(
                 targets    = ( target, ),
                 source     = import_node,
                 source_ref = source_ref
@@ -1304,7 +1360,7 @@ def buildImportFromNode( provider, node, source_ref ):
 
         for target, import_name in zip( targets, imports ):
             import_nodes.append(
-                Nodes.CPythonStatementAssignment(
+                CPythonStatementAssignment(
                     targets    = ( target, ),
                     source     = CPythonExpressionImportName(
                         module      = CPythonExpressionImportModule(
@@ -1332,7 +1388,7 @@ def buildPrintNode( provider, node, source_ref ):
     values = buildNodeList( provider, node.values, source_ref )
     dest = buildNode( provider, node.dest, source_ref, True )
 
-    return Nodes.CPythonStatementPrint(
+    return CPythonStatementPrint(
         newline    = node.nl,
         dest       = dest,
         values     = values,
@@ -1371,7 +1427,7 @@ def buildExecNode( provider, node, source_ref ):
     )
 
 def buildWithNode( provider, node, source_ref ):
-    return Nodes.CPythonStatementWith(
+    return CPythonStatementWith(
         source     = buildNode( provider, node.context_expr, source_ref ),
         target     = buildAssignTarget( provider, node.optional_vars, source_ref, True ),
         body       = buildStatementsNode( provider, node.body, source_ref ),
@@ -1400,7 +1456,7 @@ def buildGlobalDeclarationNode( provider, node, source_ref ):
     except AttributeError:
         pass
 
-    return Nodes.CPythonStatementDeclareGlobal(
+    return CPythonStatementDeclareGlobal(
         variable_names = node.names,
         source_ref     = source_ref
     )
@@ -1428,13 +1484,13 @@ def buildBoolOpNode( provider, node, source_ref ):
 
     if bool_op == "Or":
         # The "or" may be short circuit and is therefore not a plain operation
-        return Nodes.CPythonExpressionBoolOR(
+        return CPythonExpressionBoolOR(
             operands   = buildNodeList( provider, node.values, source_ref ),
             source_ref = source_ref
         )
     elif bool_op == "And":
         # The "and" may be short circuit and is therefore not a plain operation
-        return Nodes.CPythonExpressionBoolAND(
+        return CPythonExpressionBoolAND(
             operands    = buildNodeList( provider, node.values, source_ref ),
             source_ref  = source_ref
         )
@@ -1449,7 +1505,7 @@ def buildBoolOpNode( provider, node, source_ref ):
 
 
 def buildAttributeNode( provider, node, source_ref ):
-    return Nodes.CPythonExpressionAttributeLookup(
+    return CPythonExpressionAttributeLookup(
         expression     = buildNode( provider, node.value, source_ref ),
         attribute_name = node.attr,
         source_ref     = source_ref
@@ -1457,12 +1513,12 @@ def buildAttributeNode( provider, node, source_ref ):
 
 def buildReturnNode( provider, node, source_ref ):
     if node.value is not None:
-        return Nodes.CPythonStatementReturn(
+        return CPythonStatementReturn(
             expression = buildNode( provider, node.value, source_ref ),
             source_ref = source_ref
         )
     else:
-        return Nodes.CPythonStatementReturn(
+        return CPythonStatementReturn(
             expression = _buildConstantReferenceNode(
                 constant   = None,
                 source_ref = source_ref
@@ -1478,13 +1534,13 @@ def buildYieldNode( provider, node, source_ref ):
     provider.markAsGenerator()
 
     if node.value is not None:
-        return Nodes.CPythonExpressionYield(
+        return CPythonExpressionYield(
             expression = buildNode( provider, node.value, source_ref ),
             for_return = False,
             source_ref = source_ref
         )
     else:
-        return Nodes.CPythonExpressionYield(
+        return CPythonExpressionYield(
             expression = _buildConstantReferenceNode(
                 constant   = None,
                 source_ref = source_ref
@@ -1536,7 +1592,7 @@ def buildReprNode( provider, node, source_ref ):
     )
 
 def buildInplaceAssignNode( provider, node, source_ref ):
-    return Nodes.CPythonStatementAssignmentInplace(
+    return CPythonStatementAssignmentInplace(
         operator   = getKind( node.op ),
         target     = buildAssignTarget( provider, node.target, source_ref ),
         expression = buildNode( provider, node.value, source_ref ),
@@ -1544,7 +1600,7 @@ def buildInplaceAssignNode( provider, node, source_ref ):
     )
 
 def buildConditionalExpressionNode( provider, node, source_ref ):
-    return Nodes.CPythonExpressionConditional(
+    return CPythonExpressionConditional(
         condition      = buildNode( provider, node.test, source_ref ),
         yes_expression = buildNode( provider, node.body, source_ref ),
         no_expression  = buildNode( provider, node.orelse, source_ref ),
@@ -1605,7 +1661,7 @@ _fast_path_args2 = {
 _fast_path_args1 = {
     "Continue" : CPythonStatementContinueLoop,
     "Break"    : CPythonStatementBreakLoop,
-    "Pass"     : Nodes.CPythonStatementPass,
+    "Pass"     : CPythonStatementPass,
 }
 
 def buildNode( provider, node, source_ref, allow_none = False ):
@@ -1635,7 +1691,7 @@ def buildNode( provider, node, source_ref, allow_none = False ):
         else:
             assert False, kind
 
-        assert isinstance( result, Nodes.CPythonNodeBase )
+        assert isinstance( result, CPythonNodeBase )
 
         return result
     except SyntaxError:
@@ -1672,6 +1728,9 @@ def buildParseTree( provider, source_code, source_ref, replacement ):
 
     result = buildStatementsNode( provider, body, source_ref )
 
+    if not result.getStatements():
+        result = None
+
     if not replacement:
         provider.setDoc( doc )
         provider.setBody( result )
@@ -1707,7 +1766,7 @@ def buildModuleTree( filename, package, is_main ):
             if module_name.endswith( ".py" ):
                 module_name = module_name[:-3]
 
-        result = Nodes.CPythonModule(
+        result = CPythonModule(
             name       = module_name,
             package    = package,
             source_ref = source_ref
@@ -1720,7 +1779,7 @@ def buildModuleTree( filename, package, is_main ):
             future_spec = FutureSpec()
         )
 
-        result = Nodes.CPythonPackage(
+        result = CPythonPackage(
             name       = Utils.basename( filename ),
             package    = package,
             source_ref = source_ref

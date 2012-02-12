@@ -29,11 +29,9 @@
 """ Optimizations of builtins to builtin calls.
 
 """
-from .OptimizeBase import makeRaiseExceptionReplacementExpressionFromInstance
+from nuitka.nodes.NodeMakingHelpers import makeRaiseExceptionReplacementExpressionFromInstance
 
-from nuitka.nodes import Nodes
-
-from nuitka.nodes.BuiltinRangeNode import CPythonExpressionBuiltinRange
+from nuitka.nodes.CallNode import CPythonExpressionFunctionCall
 
 from nuitka.nodes.ParameterSpec import ParameterSpec, TooManyArguments
 
@@ -138,13 +136,8 @@ class BuiltinParameterSpecNoKeywords( BuiltinParameterSpec ):
 
 
 class BuiltinParameterSpecExceptions( BuiltinParameterSpec ):
-    def allowsKeywords( self ):
-        return False
-
-    def getKeywordRefusalText( self ):
-        return "exceptions.%s does not take keyword arguments" % self.name
-
     def __init__( self, name, default_count ):
+        # TODO: Parameter default_count makes no sense for exceptions probably.
         BuiltinParameterSpec.__init__(
             self,
             name          = name,
@@ -152,6 +145,13 @@ class BuiltinParameterSpecExceptions( BuiltinParameterSpec ):
             default_count = default_count,
             list_star_arg = "args"
         )
+
+    def allowsKeywords( self ):
+        return False
+
+    def getKeywordRefusalText( self ):
+        return "exceptions.%s does not take keyword arguments" % self.name
+
 
     def getCallableName( self ):
         return "exceptions." + self.getName()
@@ -170,6 +170,7 @@ builtin_len_spec = BuiltinParameterSpecNoKeywords( "len", ( "object", ), 0 )
 builtin_tuple_spec = BuiltinParameterSpec( "tuple", ( "sequence", ), 1 )
 builtin_list_spec = BuiltinParameterSpec( "list", ( "sequence", ), 1 )
 builtin_import_spec = BuiltinParameterSpec( "__import__", ( "name", "globals", "locals", "fromlist", "level" ), 1 )
+builtin_open_spec = BuiltinParameterSpec( "open", ( "name", "mode", "buffering" ), 1 )
 builtin_chr_spec = BuiltinParameterSpecNoKeywords( "chr", ( "i", ), 1 )
 builtin_ord_spec = BuiltinParameterSpecNoKeywords( "ord", ( "c", ), 1 )
 builtin_bin_spec = BuiltinParameterSpecNoKeywords( "bin", ( "number", ), 1 )
@@ -178,11 +179,6 @@ builtin_hex_spec = BuiltinParameterSpecNoKeywords( "hex", ( "number", ), 1 )
 builtin_range_spec = BuiltinParameterSpecNoKeywords( "range", ( "start", "stop", "step" ), 2 )
 builtin_repr_spec = BuiltinParameterSpecNoKeywords( "repr", ( "object", ), 1 )
 builtin_execfile_spec = BuiltinParameterSpecNoKeywords( "repr", ( "filename", "globals", "locals" ), 1 )
-
-# TODO: This should be separate
-builtin_table = {
-    "range" : ( CPythonExpressionBuiltinRange, builtin_range_spec )
-}
 
 def extractBuiltinArgs( node, builtin_spec, builtin_class ):
     # TODO: These could be handled too.
@@ -201,7 +197,7 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class ):
             source_ref = node.getSourceReference()
         )
     except TooManyArguments as e:
-        return Nodes.CPythonExpressionFunctionCall(
+        return CPythonExpressionFunctionCall(
             called_expression = makeRaiseExceptionReplacementExpressionFromInstance(
                 expression     = node,
                 exception      = e.getRealException()
@@ -212,17 +208,3 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class ):
             pairs             = node.getNamedArgumentPairs(),
             source_ref        = node.getSourceReference()
         )
-
-def makeBuiltinCallNode( node ):
-    builtin_name = node.getCalled().getBuiltinName()
-
-    if builtin_name not in builtin_table:
-        return None
-
-    builtin_maker, builtin_spec = builtin_table[ builtin_name ]
-
-    return extractBuiltinArgs(
-        builtin_spec  = builtin_spec,
-        builtin_class = builtin_maker,
-        node          = node
-    )

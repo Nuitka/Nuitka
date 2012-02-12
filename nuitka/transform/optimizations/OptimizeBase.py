@@ -36,7 +36,6 @@ from .. import TreeOperations
 
 # pylint: disable=W0611
 # These are here for easier import by the optimization steps.
-from nuitka.nodes import Nodes
 
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,

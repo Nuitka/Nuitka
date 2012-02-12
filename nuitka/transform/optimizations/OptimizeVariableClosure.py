@@ -40,7 +40,9 @@ from .OptimizeBase import (
 )
 
 from nuitka.nodes.UsageCheck import getVariableUsages
-from nuitka.nodes import Nodes
+from nuitka.nodes.StatementNodes import CPythonStatementPass
+
+from nuitka.nodes.NodeBases import CPythonClosureGiverNodeBase
 
 def _globalizeSingle( module, variable_names, provider ):
     for variable_name in variable_names:
@@ -53,7 +55,7 @@ def _globalizeSingle( module, variable_names, provider ):
             global_statement = True
         )
 
-        if isinstance( provider, Nodes.CPythonClosureGiverNodeBase ):
+        if isinstance( provider, CPythonClosureGiverNodeBase ):
             provider.registerProvidedVariable(
                 variable = closure_variable
             )
@@ -107,7 +109,7 @@ class VariableClosureLookupVisitorPhase1( OptimizationVisitorScopedBase ):
             # Remove the global statement, so we don't repeat this ever, the effect of
             # above is permanent.
             node.replaceWith(
-                new_node = Nodes.CPythonStatementPass(
+                new_node = CPythonStatementPass(
                     source_ref = source_ref
                 )
             )

@@ -34,7 +34,7 @@ predicted still, and these are interesting for warnings.
 
 """
 
-from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
+from .NodeBases import CPythonExpressionChildrenHavingBase
 
 from .NodeMakingHelpers import getComputationResult
 
@@ -42,26 +42,25 @@ from nuitka.Utils import getPythonVersion
 
 import math
 
-class CPythonExpressionBuiltinRange( CPythonChildrenHaving, CPythonNodeBase ):
+class CPythonExpressionBuiltinRange( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_RANGE"
 
     named_children = ( "low", "high", "step" )
 
     def __init__( self, low, high, step, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        CPythonExpressionChildrenHavingBase.__init__(
             self,
             values = {
                 "low"  : low,
                 "high" : high,
                 "step" : step
-            }
+            },
+            source_ref = source_ref
         )
 
-    getLow  = CPythonChildrenHaving.childGetter( "low" )
-    getHigh = CPythonChildrenHaving.childGetter( "high" )
-    getStep = CPythonChildrenHaving.childGetter( "step" )
+    getLow  = CPythonExpressionChildrenHavingBase.childGetter( "low" )
+    getHigh = CPythonExpressionChildrenHavingBase.childGetter( "high" )
+    getStep = CPythonExpressionChildrenHavingBase.childGetter( "step" )
 
     def _computeNodeNoArgsRange( self ):
         # Intentional to get exception, pylint: disable=W0108

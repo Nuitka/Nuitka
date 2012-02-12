@@ -51,7 +51,7 @@ def getVariableHandle( context, variable ):
         # TODO: This should depend on no known to hit closure existing
         context.addGlobalVariableNameUsage( var_name )
 
-        assert context.hasLocalsDict()
+        assert context.hasLocalsDict(), context
 
         return MaybeModuleVariableIdentifier(
             var_name         = var_name,

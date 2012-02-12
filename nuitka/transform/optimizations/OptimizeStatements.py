@@ -35,7 +35,7 @@ also removes useless try/except or try/finally statements.
 
 from .OptimizeBase import OptimizationVisitorBase, TreeOperations
 
-from nuitka.nodes import Nodes
+from nuitka.nodes.StatementNodes import CPythonStatementPass
 
 from nuitka.nodes.NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode
@@ -58,7 +58,7 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
                 new_node = node.getBranchNo()
 
             if new_node is None:
-                new_node = Nodes.CPythonStatementPass(
+                new_node = CPythonStatementPass(
                     source_ref = node.getSourceReference()
                 )
 
@@ -106,12 +106,12 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
 
             node.setNoBreak( None )
 
-        body = node.getBody()
+        body = node.getLoopBody()
 
         if body is not None and not body.mayHaveSideEffects():
             body = None
 
-            node.setBody( None )
+            node.setLoopBody( None )
 
         # TODO: Optimize away the for loop if possible, if e.g. the iteration has no side
         # effects, it's result is predictable etc.
@@ -126,7 +126,7 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
                 raise TreeOperations.RestartVisit
         elif node.isStatementExpressionOnly():
             if node.getExpression().isExpressionConstantRef():
-                new_node = Nodes.CPythonStatementPass(
+                new_node = CPythonStatementPass(
                     source_ref = node.getSourceReference()
                 )
 
@@ -186,7 +186,7 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
                 new_node = node.getBlockNoRaise()
 
                 if new_node is None:
-                    new_node = Nodes.CPythonStatementPass(
+                    new_node = CPythonStatementPass(
                         source_ref = node.getSourceReference()
                     )
 
@@ -202,7 +202,7 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
                 new_node = node.getBlockFinal()
 
                 if new_node is None:
-                    new_node = Nodes.CPythonStatementPass(
+                    new_node = CPythonStatementPass(
                         source_ref = node.getSourceReference()
                     )
 

@@ -32,25 +32,34 @@
 
 from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
 
+
 class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENTS_SEQUENCE"
 
     named_children = ( "statements", )
 
     def __init__( self, statements, source_ref ):
+        merged_statements = []
+
         for statement in statements:
-            assert statement.isStatement() or statement.isStatementsSequence(), statement
+            if statement.isStatement():
+                merged_statements.append( statement )
+            elif statement.isStatementsSequence():
+                merged_statements.extend( statement.getStatements() )
+            else:
+                assert False, statement
 
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
             values = {
-                "statements" : tuple( statements )
+                "statements" : tuple( merged_statements )
             }
         )
 
     getStatements = CPythonChildrenHaving.childGetter( "statements" )
+    setStatements = CPythonChildrenHaving.childSetterNotNone( "statements" )
 
     # Overloading automatic check, so that derived ones know it too.
     def isStatementsSequence( self ):
@@ -118,3 +127,25 @@ class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
         return "expression %s" % self.getExpression()
 
     getExpression = CPythonChildrenHaving.childGetter( "expression" )
+
+
+class CPythonStatementPass( CPythonNodeBase ):
+    kind = "STATEMENT_PASS"
+
+    def __init__( self, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+    def mayHaveSideEffects( self ):
+        return False
+
+
+class CPythonStatementDeclareGlobal( CPythonNodeBase ):
+    kind = "STATEMENT_DECLARE_GLOBAL"
+
+    def __init__( self, variable_names, source_ref ):
+        self.variable_names = tuple( variable_names )
+
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+    def getVariableNames( self ):
+        return self.variable_names

@@ -30,24 +30,23 @@
 
 """
 
-from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
+from .NodeBases import CPythonExpressionChildrenHavingBase
 
-from .NodeMakingHelpers import makeConstantReplacementNode
+from .ConstantRefNode import CPythonExpressionConstantRef
 
-class CPythonExpressionImportModule( CPythonChildrenHaving, CPythonNodeBase ):
+class CPythonExpressionImportModule( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_IMPORT_MODULE"
 
     named_children = ( "module", )
 
     def __init__( self, module_name, import_list, level, source_ref ):
-        CPythonChildrenHaving.__init__(
+        CPythonExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "module" : None
-            }
+            },
+            source_ref = source_ref
         )
-
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         self.module_name = module_name
         self.import_list = import_list
@@ -83,77 +82,85 @@ class CPythonExpressionImportModule( CPythonChildrenHaving, CPythonNodeBase ):
     def setAttemptedRecurse( self ):
         self.attempted_recurse = True
 
-    getModule = CPythonChildrenHaving.childGetter( "module" )
-    setModule = CPythonChildrenHaving.childSetter( "module" )
+    getModule = CPythonExpressionChildrenHavingBase.childGetter( "module" )
+    setModule = CPythonExpressionChildrenHavingBase.childSetter( "module" )
 
-class CPythonExpressionBuiltinImport( CPythonChildrenHaving, CPythonNodeBase ):
+    def computeNode( self ):
+        # TODO: May return a module reference of some sort in the future with embedded
+        # modules.
+        return self, None, None
+
+class CPythonExpressionBuiltinImport( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_IMPORT"
 
     named_children = ( "import_name", "globals", "locals", "fromlist", "level" )
 
     def __init__( self, name, import_globals, import_locals, fromlist, level, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
         if fromlist is None:
-            fromlist = makeConstantReplacementNode(
-                constant = [],
-                node     = self
+            fromlist = CPythonExpressionConstantRef(
+                constant   = [],
+                source_ref = source_ref
             )
 
         if level is None:
-            level = makeConstantReplacementNode(
-                constant = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1,
-                node     = self
+            level = CPythonExpressionConstantRef(
+                constant   = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1,
+                source_ref = source_ref
             )
 
-        CPythonChildrenHaving.__init__(
+        CPythonExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "import_name" : name,
                 "globals"     : import_globals,
                 "locals"      : import_locals,
                 "fromlist"    : fromlist,
                 "level"       : level
-            }
+            },
+            source_ref = source_ref
         )
 
-    getImportName = CPythonChildrenHaving.childGetter( "import_name" )
-    getFromList = CPythonChildrenHaving.childGetter( "fromlist" )
-    getGlobals = CPythonChildrenHaving.childGetter( "globals" )
-    getLocals = CPythonChildrenHaving.childGetter( "locals" )
-    getLevel = CPythonChildrenHaving.childGetter( "level" )
+    getImportName = CPythonExpressionChildrenHavingBase.childGetter( "import_name" )
+    getFromList = CPythonExpressionChildrenHavingBase.childGetter( "fromlist" )
+    getGlobals = CPythonExpressionChildrenHavingBase.childGetter( "globals" )
+    getLocals = CPythonExpressionChildrenHavingBase.childGetter( "locals" )
+    getLevel = CPythonExpressionChildrenHavingBase.childGetter( "level" )
 
-class CPythonStatementImportStar( CPythonChildrenHaving, CPythonNodeBase ):
+    def computeNode( self ):
+        # TODO: May return a module or module variable reference of some sort in the
+        # future with embedded modules.
+        return self, None, None
+
+
+class CPythonStatementImportStar( CPythonExpressionChildrenHavingBase ):
     kind = "STATEMENT_IMPORT_STAR"
 
     named_children = ( "module", )
 
     def __init__( self, module_import, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        CPythonExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "module" : module_import
-            }
+            },
+            source_ref = source_ref
         )
 
-    getModule = CPythonChildrenHaving.childGetter( "module" )
+    getModule = CPythonExpressionChildrenHavingBase.childGetter( "module" )
 
 
-class CPythonExpressionImportName( CPythonChildrenHaving, CPythonNodeBase ):
+class CPythonExpressionImportName( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_IMPORT_NAME"
 
     named_children = ( "module", )
 
     def __init__( self, module, import_name, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        CPythonExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "module" : module
-            }
+            },
+            source_ref = source_ref
         )
 
         self.import_name = import_name
@@ -167,4 +174,9 @@ class CPythonExpressionImportName( CPythonChildrenHaving, CPythonNodeBase ):
     def getDetail( self ):
         return "import %s from %s" % ( self.getImportName(), self.getModule() )
 
-    getModule = CPythonChildrenHaving.childGetter( "module" )
+    getModule = CPythonExpressionChildrenHavingBase.childGetter( "module" )
+
+    def computeNode( self ):
+        # TODO: May return a module or module variable reference of some sort in the
+        # future with embedded modules.
+        return self, None, None

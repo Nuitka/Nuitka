@@ -1096,7 +1096,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
             locals_node = expression,
             context     = context
         )
-    elif expression.isExpressionBuiltinDir():
+    elif expression.isExpressionBuiltinDir0():
         identifier = generateBuiltinDirCode(
             dir_node = expression,
             context  = context
@@ -1278,22 +1278,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = Generator.getBuiltinBoolCode(
             identifier = makeExpressionCode( expression.getValue() )
         )
-    elif expression.isExpressionBuiltinInt():
-        assert expression.getValue() is not None or expression.getBase() is not None
-
-        identifier = Generator.getBuiltinIntCode(
-            identifier = makeExpressionCode( expression.getValue(), allow_none = True ),
-            base       = makeExpressionCode( expression.getBase(), allow_none = True ),
-            context    = context
-        )
-    elif expression.isExpressionBuiltinLong():
-        assert expression.getValue() is not None or expression.getBase() is not None
-
-        identifier = Generator.getBuiltinLongCode(
-            identifier = makeExpressionCode( expression.getValue(), allow_none = True ),
-            base       = makeExpressionCode( expression.getBase(), allow_none = True ),
-            context    = context
-        )
     elif expression.isExpressionRaiseException():
         identifier = Generator.getRaiseExceptionExpressionCode(
             side_effects               = generateExpressionsCode(
@@ -1345,7 +1329,22 @@ def generateExpressionCode( expression, context, allow_none = False ):
             ),
             source_identifier.getRefCount()
         )
+    elif expression.isExpressionBuiltinInt():
+        assert expression.getValue() is not None or expression.getBase() is not None
 
+        identifier = Generator.getBuiltinIntCode(
+            identifier = makeExpressionCode( expression.getValue(), allow_none = True ),
+            base       = makeExpressionCode( expression.getBase(), allow_none = True ),
+            context    = context
+        )
+    elif Utils.getPythonVersion() < 300 and expression.isExpressionBuiltinLong():
+        assert expression.getValue() is not None or expression.getBase() is not None
+
+        identifier = Generator.getBuiltinLongCode(
+            identifier = makeExpressionCode( expression.getValue(), allow_none = True ),
+            base       = makeExpressionCode( expression.getBase(), allow_none = True ),
+            context    = context
+        )
     else:
         assert False, expression
 
@@ -2092,7 +2091,7 @@ def generateForLoopCode( statement, context ):
     )
 
     loop_body_codes = generateStatementSequenceCode(
-        statement_sequence = statement.getBody(),
+        statement_sequence = statement.getLoopBody(),
         allow_none         = True,
         context            = context
     )

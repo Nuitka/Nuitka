@@ -58,6 +58,8 @@ class NodeCheckMetaClass( type ):
             if hasattr( base, "tags" ):
                 dictionary[ "tags" ] += getattr( base, "tags" )
 
+        assert len( bases ) == len( set( bases ) )
+
         # Uncomment this for debug view of class tags.
         # print name, dictionary[ "tags" ]
 
@@ -308,6 +310,10 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
+    def isIteratorMaking( self ):
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
     def isNumberConstant( self ):
         # Virtual method, pylint: disable=R0201,W0613
         return False
@@ -492,6 +498,15 @@ class CPythonChildrenHaving:
     @staticmethod
     def childSetter( name ):
         def setter( self, value ):
+            self.setChild( name, value )
+
+        return setter
+
+    @staticmethod
+    def childSetterNotNone( name ):
+        def setter( self, value ):
+            assert value, ( self, value )
+
             self.setChild( name, value )
 
         return setter
@@ -739,17 +754,74 @@ class CPythonClosureTaker:
         self.temp_variables = variables
 
 
-class CPythonExpressionBuiltinSingleArgBase( CPythonChildrenHaving, CPythonNodeBase ):
-    named_children = ( "value", )
 
-    def __init__( self, value, source_ref ):
+class CPythonExpressionMixin:
+    def getValueFriend( self ):
+        return self
+
+    def isCompileTimeConstant( self ):
+        """ Has a value that we can use at compile time.
+
+            Yes or no. If it has such a value, simulations can be applied at compile time
+            and e.g. operations or conditions, or even calls may be executed against it.
+        """
+        # Virtual method, pylint: disable=R0201
+
+        return False
+
+    def getCompileTimeConstant( self ):
+        assert self.isCompileTimeConstant()
+        assert False
+
+class CPythonExpressionSpecBasedComputationMixin( CPythonExpressionMixin ):
+    builtin_spec = None
+
+    def computeBuiltinSpec( self, given_values ):
+        assert self.builtin_spec is not None, self
+
+        for value in given_values:
+            if not value.isExpressionConstantRef():
+                return self, None, None
+
+        from .NodeMakingHelpers import getComputationResult
+
+        return getComputationResult(
+            node        = self,
+            computation = lambda : self.builtin_spec.simulateCall( given_values ),
+            description = "Builtin call to %s precomputed." % self.builtin_spec.getName()
+        )
+
+
+class CPythonExpressionChildrenHavingBase( CPythonChildrenHaving, CPythonNodeBase, CPythonExpressionMixin ):
+    def __init__( self, values, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
-            values = {
-                "value" : value,
-            }
+            values = values
         )
 
-    getValue = CPythonChildrenHaving.childGetter( "value" )
+class CPythonExpressionBuiltinSingleArgBase( CPythonExpressionChildrenHavingBase, \
+                                             CPythonExpressionSpecBasedComputationMixin ):
+    named_children = ( "value", )
+
+    def __init__( self, value, source_ref ):
+        CPythonExpressionChildrenHavingBase.__init__(
+            self,
+            values = {
+                "value" : value,
+            },
+            source_ref = source_ref
+        )
+
+    getValue = CPythonExpressionChildrenHavingBase.childGetter( "value" )
+
+    def computeNode( self ):
+        value = self.getValue()
+
+        assert self.builtin_spec is not None, self
+
+        if value is None:
+            return self.computeBuiltinSpec( () )
+        else:
+            return self.computeBuiltinSpec( ( value, ) )

@@ -85,13 +85,13 @@ def optimizeTree( tree ):
             if not Options.shallMakeModule():
                 optimizations_queue.add( ModuleRecursionVisitor )
 
-        if tags.check( "new_code new_constant" ):
+        if not use_propagation and tags.check( "new_code new_constant" ):
             optimizations_queue.add( OptimizeOperationVisitor )
 
-        if tags.check( "new_code new_constant" ):
+        if not use_propagation and tags.check( "new_code new_constant" ):
             optimizations_queue.add( ReplaceUnpackingVisitor )
 
-        if tags.check( "new_code new_statements new_constant" ):
+        if not use_propagation and tags.check( "new_code new_statements new_constant" ):
             optimizations_queue.add( StatementSequencesCleanupVisitor )
 
         if tags.check( "new_code new_variable" ):
@@ -100,29 +100,29 @@ def optimizeTree( tree ):
         if tags.check( "new_code read_only_mvar" ):
             optimizations_queue.add( ModuleVariableReadOnlyVisitor )
 
-        if tags.check( "new_code read_only_mvar" ):
+        if not use_propagation and tags.check( "new_code read_only_mvar" ):
             optimizations_queue.add( ReplaceBuiltinsCriticalVisitor )
 
-        if tags.check( "new_code read_only_mvar" ):
+        if not use_propagation and tags.check( "new_code read_only_mvar" ):
             optimizations_queue.add( ReplaceBuiltinsOptionalVisitor )
 
         if tags.check( "new_code read_only_mvar" ):
             optimizations_queue.add( ReplaceBuiltinsExceptionsVisitor )
 
-        if tags.check( "new_builtin new_constant" ):
+        if not use_propagation and tags.check( "new_builtin new_constant" ):
             optimizations_queue.add( PrecomputeBuiltinsVisitor )
 
-        if tags.check( "var_usage" ):
+        if tags.check( "var_usage new_builtin" ):
             optimizations_queue.add( MaybeLocalVariableReductionVisitor )
 
         if tags.check( "new_code new_constant" ):
             if Options.shallOptimizeStringExec():
                 optimizations_queue.add( OptimizeExecVisitor )
 
-        if tags.check( "new_code new_raise" ):
+        if not use_propagation and tags.check( "new_code new_raise" ):
             optimizations_queue.add( OptimizeRaisesVisitor )
 
-        if use_propagation and tags.check( "new_code new_constant" ):
+        if use_propagation and tags.check( "new_code new_statements new_constant new_builtin" ):
             optimizations_queue.add( ValuePropagationVisitor )
 
         tags.clear()

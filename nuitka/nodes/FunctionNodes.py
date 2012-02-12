@@ -34,10 +34,11 @@ complexities.
 """
 
 from .NodeBases import (
+    CPythonExpressionChildrenHavingBase,
     CPythonParameterHavingNodeBase,
+    CPythonExpressionMixin,
     CPythonChildrenHaving,
-    CPythonClosureTaker,
-    CPythonNodeBase
+    CPythonClosureTaker
 )
 
 from .IndicatorMixins import (
@@ -53,8 +54,8 @@ from nuitka import Variables
 
 class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavingNodeBase, \
                                      CPythonClosureTaker, MarkContainsTryExceptIndicator, \
-                                     MarkGeneratorIndicator, MarkLocalsDictIndicator,
-                                     MarkExecContainingIndicator ):
+                                     CPythonExpressionMixin, MarkGeneratorIndicator, \
+                                     MarkLocalsDictIndicator, MarkExecContainingIndicator ):
     # We really want these many ancestors, as per design, we add properties via base class
     # mixins a lot, pylint: disable=R0901
 
@@ -188,21 +189,36 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     getBody = CPythonChildrenHaving.childGetter( "body" )
     setBody = CPythonChildrenHaving.childSetter( "body" )
 
-class CPythonExpressionFunctionBodyDefaulted( CPythonChildrenHaving, CPythonNodeBase ):
+    def computeNode( self ):
+        # Function body is quite irreplacable.
+        return self, None, None
+
+    def isCompileTimeConstant( self ):
+        # TODO: It's actually pretty much compile time accessible mayhaps.
+        return None
+
+class CPythonExpressionFunctionBodyDefaulted( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_FUNCTION_BODY_DEFAULTED"
 
     named_children = ( "defaults", "function_body", )
 
     def __init__( self, defaults, function_body, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        CPythonExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "function_body" : function_body,
                 "defaults"      : tuple( defaults )
-            }
+            },
+            source_ref = source_ref
         )
 
-    getFunctionBody = CPythonChildrenHaving.childGetter( "function_body" )
-    getDefaults = CPythonChildrenHaving.childGetter( "defaults" )
+    getFunctionBody = CPythonExpressionChildrenHavingBase.childGetter( "function_body" )
+    getDefaults = CPythonExpressionChildrenHavingBase.childGetter( "defaults" )
+
+    def computeNode( self ):
+        # Function body is quite irreplacable.
+        return self, None, None
+
+    def isCompileTimeConstant( self ):
+        # TODO: It's actually pretty much compile time accessible mayhaps.
+        return None

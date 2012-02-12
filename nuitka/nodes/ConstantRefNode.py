@@ -30,15 +30,16 @@
 
 """
 
-from .NodeBases import CPythonNodeBase
+from .NodeBases import CPythonNodeBase, CPythonExpressionMixin
 
 from nuitka.Constants import (
+    getConstantIterationLength,
     isIterableConstant,
     isNumberConstant,
     isMutable,
 )
 
-class CPythonExpressionConstantRef( CPythonNodeBase ):
+class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_CONSTANT_REF"
 
     def __init__( self, constant, source_ref ):
@@ -55,15 +56,18 @@ class CPythonExpressionConstantRef( CPythonNodeBase ):
     def getDetail( self ):
         return repr( self.constant )
 
-    def getValueFriend( self ):
-        return self
+    def computeNode( self ):
+        # Cannot compute any further.
+        return self, None, None
 
-    def isConstant( self ):
+    def isCompileTimeConstant( self ):
         # Virtual method, pylint: disable=R0201
         return True
 
-    def getConstant( self ):
+    def getCompileTimeConstant( self ):
         return self.constant
+
+    getConstant = getCompileTimeConstant
 
     def isMutable( self ):
         return isMutable( self.constant )
@@ -74,8 +78,22 @@ class CPythonExpressionConstantRef( CPythonNodeBase ):
     def isIndexable( self ):
         return self.constant is None or self.isNumberConstant()
 
-    def isIterableConstant( self ):
-        return isIterableConstant( self.constant )
+    def isKnownToBeIterable( self, count ):
+        if isIterableConstant( self.constant ):
+            return count is None or getConstantIterationLength( self.constant ) == count
+        else:
+            return False
+
+    def getUnpacked( self, count ):
+        assert getConstantIterationLength( self.constant ) == count
+
+        source_ref = self.getSourceReference()
+
+        return [
+            CPythonExpressionConstantRef( value, source_ref )
+            for value in
+            self.constant
+        ]
 
     def isBoolConstant( self ):
         return type( self.constant ) is bool
@@ -87,7 +105,3 @@ class CPythonExpressionConstantRef( CPythonNodeBase ):
     def mayRaiseException( self, exception_type ):
         # Constants won't raise anything.
         return False
-
-    def computeNode( self ):
-        # Cannot compute any further.
-        return self, None, None

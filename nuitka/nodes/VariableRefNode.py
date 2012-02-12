@@ -35,18 +35,19 @@ expressions, changing the meaning of course dramatically.
 
 from nuitka import Variables, Builtins
 
-from .NodeBases import CPythonNodeBase
+from .NodeBases import CPythonNodeBase, CPythonExpressionMixin
 
-from .NodeMakingHelpers import (
-    makeBuiltinExceptionRefReplacementNode,
-    makeBuiltinRefReplacementNode
+from .BuiltinReferenceNodes import (
+    CPythonExpressionBuiltinExceptionRef,
+    CPythonExpressionBuiltinRef
 )
+
 
 def _isReadOnlyModuleVariable( variable ):
     return ( variable.isModuleVariable() and variable.getReadOnlyIndicator() is True ) or \
            variable.isMaybeLocalVariable()
 
-class CPythonExpressionVariableRef( CPythonNodeBase ):
+class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_VARIABLE_REF"
 
     def __init__( self, variable_name, source_ref ):
@@ -85,18 +86,18 @@ class CPythonExpressionVariableRef( CPythonNodeBase ):
 
         if _isReadOnlyModuleVariable( self.variable ):
             if self.variable_name in Builtins.builtin_exception_names:
-                new_node = makeBuiltinExceptionRefReplacementNode(
+                new_node = CPythonExpressionBuiltinExceptionRef(
                     exception_name = self.variable_name,
-                    node           = self
+                    source_ref     = self.getSourceReference()
                 )
 
                 # TODO: More like "removed_variable and new_constant" probably
                 change_tags = "new_builtin"
                 change_desc = "Module variable '%s' found to be builtin exception reference." % self.variable_name
             elif self.variable_name in Builtins.builtin_names:
-                new_node = makeBuiltinRefReplacementNode(
+                new_node = CPythonExpressionBuiltinRef(
                     builtin_name = self.variable_name,
-                    node         = self
+                    source_ref   = self.getSourceReference()
                 )
 
                 # TODO: More like "removed_variable and new_constant" probably
@@ -112,7 +113,11 @@ class CPythonExpressionVariableRef( CPythonNodeBase ):
 
         return self, None, None
 
-class CPythonExpressionTempVariableRef( CPythonNodeBase ):
+    def isKnownToBeIterable( self, count ):
+        return None
+
+
+class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"
 
     def __init__( self, variable, source_ref ):
@@ -131,3 +136,7 @@ class CPythonExpressionTempVariableRef( CPythonNodeBase ):
 
     def getVariable( self ):
         return self.variable
+
+    def computeNode( self ):
+        # Nothing to do here.
+        return self, None, None

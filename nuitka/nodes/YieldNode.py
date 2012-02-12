@@ -26,69 +26,39 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Nodes for comparisons.
+""" Yield node.
 
+The yield node returns to the caller of the generator and therefore may execute absolutely
+abitrary code, from the point of view of this code. It then returns something, which may
+often be 'None', but doesn't have to be.
+
+Often it will be used as a statement, which should also be reflected in a dedicated node.
 """
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
 
-from nuitka import PythonOperators
+class CPythonExpressionYield( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_YIELD"
 
-from .NodeMakingHelpers import getComputationResult
+    named_children = ( "expression", )
 
-class CPythonExpressionComparison( CPythonExpressionChildrenHavingBase ):
-    kind = "EXPRESSION_COMPARISON"
-
-    named_children = ( "left", "right" )
-
-    def __init__( self, left, right, comparator, source_ref ):
-        assert left.isExpression()
-        assert right.isExpression()
-        assert type( comparator ) is str, comparator
-
+    def __init__( self, expression, for_return, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
-            values = {
-                "left" : left,
-                "right" : right
+            values     = {
+                "expression" : expression
             },
             source_ref = source_ref
         )
 
-        self.comparator = comparator
+        self.for_return = for_return
 
-    def getOperands( self ):
-        return (
-            self.getLeft(),
-            self.getRight()
-        )
+    def isForReturn( self ):
+        return self.for_return
 
-    getLeft = CPythonExpressionChildrenHavingBase.childGetter( "left" )
-    getRight = CPythonExpressionChildrenHavingBase.childGetter( "right" )
-
-    def getComparator( self ):
-        return self.comparator
-
-    def getDetails( self ):
-        return { "comparator" : self.comparator }
-
-    def getSimulator( self ):
-        return PythonOperators.all_comparison_functions[ self.comparator ]
+    getExpression = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 
     def computeNode( self ):
-        left, right = self.getOperands()
-
-        if left.isCompileTimeConstant() and right.isCompileTimeConstant():
-            left_value = left.getCompileTimeConstant()
-            right_value = right.getCompileTimeConstant()
-
-            return getComputationResult(
-                node        = self,
-                computation = lambda : self.getSimulator()(
-                    left_value,
-                    right_value
-                ),
-                description = "Comparison with constant arguments"
-            )
+        # Nothing possible really here.
 
         return self, None, None

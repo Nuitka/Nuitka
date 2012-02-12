@@ -33,10 +33,11 @@ The classes are are at the core of the language and have their complexities.
 """
 
 from .NodeBases import (
+    CPythonExpressionChildrenHavingBase,
+    CPythonExpressionMixin,
     CPythonChildrenHaving,
     CPythonCodeNodeBase,
-    CPythonClosureTaker,
-    CPythonNodeBase
+    CPythonClosureTaker
 )
 
 from .IndicatorMixins import (
@@ -47,7 +48,8 @@ from .IndicatorMixins import (
 from nuitka import Variables
 
 class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CPythonCodeNodeBase, \
-                                  MarkContainsTryExceptIndicator, MarkLocalsDictIndicator ):
+                                  MarkContainsTryExceptIndicator, MarkLocalsDictIndicator, \
+                                  CPythonExpressionMixin ):
     kind = "EXPRESSION_CLASS_BODY"
 
     early_closure = True
@@ -144,22 +146,57 @@ class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CP
 
     getVariables = getClassVariables
 
+    def computeNode( self ):
+        # Class body is quite irreplacable. TODO: Not really, could be predictable as
+        # a whole.
+        return self, None, None
 
-class CPythonExpressionClassBodyBased( CPythonChildrenHaving, CPythonNodeBase ):
+
+class CPythonExpressionClassBodyBased( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_CLASS_BODY_BASED"
 
     named_children = ( "bases", "class_body", )
 
     def __init__( self, bases, class_body, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        CPythonExpressionChildrenHavingBase.__init__(
             self,
             values = {
                 "class_body" : class_body,
                 "bases"      : tuple( bases ),
-            }
+            },
+            source_ref = source_ref
         )
 
-    getClassBody = CPythonChildrenHaving.childGetter( "class_body" )
-    getBases = CPythonChildrenHaving.childGetter( "bases" )
+    getClassBody = CPythonExpressionChildrenHavingBase.childGetter( "class_body" )
+    getBases = CPythonExpressionChildrenHavingBase.childGetter( "bases" )
+
+    def computeNode( self ):
+        # Class body is quite irreplacable. TODO: Not really, could be predictable as
+        # a whole.
+        return self, None, None
+
+
+class CPythonExpressionBuiltinType3( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_BUILTIN_TYPE3"
+
+    named_children = ( "type_name", "bases", "dict" )
+
+    def __init__( self, type_name, bases, type_dict, source_ref ):
+        CPythonExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "type_name" : type_name,
+                "bases"     : bases,
+                "dict"      : type_dict
+            },
+            source_ref = source_ref
+        )
+
+    getTypeName = CPythonExpressionChildrenHavingBase.childGetter( "type_name" )
+    getBases = CPythonExpressionChildrenHavingBase.childGetter( "bases" )
+    getDict = CPythonExpressionChildrenHavingBase.childGetter( "dict" )
+
+    def computeNode( self ):
+        # TODO: Should be compile time computable if bases and dict are.
+
+        return self, None, None
