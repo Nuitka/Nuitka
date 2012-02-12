@@ -20,6 +20,7 @@ them. And we update them as we proceed.x
 It grows out of discussions and presentations made at PyCON alike conferences as well as
 private conversations or discussions on the mailing list.
 
+
 Milestones
 ==========
 
@@ -106,7 +107,7 @@ Nuitka top level works like this:
 
 This design is intended to last. Regarding Types, the state is:
 
-   - Types are always "PyObject \*", implictely
+   - Types are always "PyObject \*", implicitly
    - The only more specific use of type is "constant", which can be used to predict some
      operations, conditions, etc.
    - Every operation is expected to have "PyObject \*" as result, if it is not a constant,
@@ -337,6 +338,7 @@ nuitka.Importing Module
   This module serves the recursion into modules and analysis if a module is a known
   one. It will give warnings for modules attempted to be located, but not found. These
   warnings are controlled by a while list inside the module.
+
 
 Hooking for module import process
 ---------------------------------
@@ -977,11 +979,9 @@ The following is the intended interface
 .. note:: Warning
 
    With this, the order of node walking becomes vital to correctness. The evaluation
-   order of the generated code is now enforced, I am not so sure, that the walk of
-   the node tree, really right now, is always exactly in the order of execution for
-   CPython yet.
+   order of the generated code is now absolutely needed.
 
-   This may carry bug potential. We need tests that cover this.
+   This may carry bug potential. We will need tests that cover this.
 
 
 Discussing with examples
@@ -1037,8 +1037,8 @@ with it.
 Code Generation Impact
 ----------------------
 
-Right now, code generation assumes that everything is an object, and does not take "int"
-or these at all, and it should remain like that for some time to come.
+Right now, code generation assumes that everything is a Python object, and does not take
+"int" or these at all, and it should remain like that for some time to come.
 
 Instead, "ctypes" value friend will be asked give "Identifiers", like other codes do too
 from calls. And these need to be able to convert themselves to objects to work with the
@@ -1069,7 +1069,7 @@ Initial Implementation
 
 The "ValueFriendBase" interface will be added to _all_ expressions nodes creation time,
 a node may either do it for itself (constant reference is an obvious example) or may
-delegate the task to an instantiated object of "ValueFriendBase" inheritence.
+delegate the task to an instantiated object of "ValueFriendBase" inheritance.
 
 Initially most of them will only be able to give up on about anything. And it will be
 little more than a tool to do lookups.
@@ -1218,8 +1218,8 @@ Limitations for now
   goes.
 
   We will see, if we need any better at all. One day we might have passes with more
-  expensive and history maintaining variants, that will be able to look at one variable and
-  decide "value is only written, never read" and make something out of it.
+  expensive and history maintaining variants, that will be able to look at one variable
+  and decide "value is only written, never read" and make something out of it.
 
 - Only enough to trace "ctypes" information through the code
 
@@ -1240,13 +1240,13 @@ Limitations for now
 - We won't have the ability to test that optimizations are actually performed, we will
   check the generated code by hand.
 
-  With time, I will add XML based checks with "xpath" queries, expressed as hints, but
+  With time, Kay will add XML based checks with "xpath" queries, expressed as hints, but
   that is some work that will be based on this work here. The "hints" fits into the
   "ValueFriends" concept nicely or so the hope is.
 
 - No inter-function optimization functions yet
 
-  It's not needed yet or so I think. Of course, once in place, it will make the "ctypes"
+  It's not needed yet or so we think. Of course, once in place, it will make the "ctypes"
   annotation even more usable. Using "ctypes" objects inside functions, while creating
   them on the module level, is therefore not immediately going to work.
 
@@ -1300,10 +1300,13 @@ into action, which could be code changes, plan changes, issues created, etc.
   Right now for every class body, there is a "MAKE_CLASS_*" with frame guard, exception
   keeper, etc. overhead, but for most classes that is not needed at all. Most often the
   building of functions is all that happens, if at all. For these cases, a different
-  approach might be taken, that is to simply build the directory directly.
+  approach might be taken, that is to simply build the dictionary directly if possible and
+  no side-effect could happen.
 
   A finalization step ought to markup classes whose dictionary elements only have things
-  without side effects, and building functions isn't that.
+  without side effects, and building functions isn't that. Side effects may also be OK, if
+  order is respected, we probably mean "conditions" here that are not conditional
+  expressions or can be reduced to such.
 
 * The conditional expression needs to be handled like conditional statement for
   propagation.
@@ -1319,6 +1322,25 @@ into action, which could be code changes, plan changes, issues created, etc.
 
   With temporary variables, that then need to be able to release references then, we can
   have these in the node trees, making them easier to understand for optimization.
+
+  These are not as much a reformulation of "+=" to "+", but instead one which makes it
+  explicit that the assign target may change its value.
+
+  .. code-block:: python
+
+     a += b
+
+  .. code-block:: python
+
+     _tmp = a.__iadd__( b )
+
+     if a is not _tmp:
+        a = _tmp
+
+  Using "__iadd__" here to express that the in-place operation is like a attribute call,
+  that could be understood. For strings, e.g. it's not going to change a, and the result
+  would be similar to "a + b", so it could be reformulated in that case, and the "is not"
+  could be statically decided to apply or not, if "b" is not empty string.
 
 * Generator expressions should be re-formulated as functions.
 
@@ -1364,7 +1386,14 @@ into action, which could be code changes, plan changes, issues created, etc.
 
   Not visible here, is how "_tmp" is released right after unpacking, and how the
   "StopIteration" need not be a real exception, but is a "NULL" return of "ITERATOR_NEXT"
-  for maximum efficiency.
+  for maximum efficiency. A structure will be needed that holds "tmp", much like a "with"
+  block.
+
+* With statements should become scoped
+
+  The algorithm of "with" statements should be re-formulated in the node tree. The taking
+  and calling of "__enter__" and "__exit__" with arguments, should be presented there in
+  order to be absolutely safe.
 
 * Code Templates may become objects.
 
@@ -1375,9 +1404,15 @@ into action, which could be code changes, plan changes, issues created, etc.
   Maybe they should overload "%" to start with it easily. And the code template could be
   the doc string of the class for simplicity.
 
+* The "pass" statement node must not reach code generation.
+
+  The pass statement is added by tree building, but supposed to be removed during
+  optimization, and that should be checked by removing its code generation.
+
 .. raw:: pdf
 
    PageBreak
+
 
 Updates for this Manual
 =======================
