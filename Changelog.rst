@@ -31,6 +31,10 @@ New Optimizations
   arguments. These also cannot be computed at compile time, but now will execute faster as
   well.
 
+- Added support the the "open" builtin in all its form. We intend for future releases to be
+  able to track file opens for including them into the executable if data files.
+
+
 Organizational
 --------------
 
@@ -39,7 +43,8 @@ Organizational
 
 - The posting of release announcements is now prepared by a script that converts the
   ReStructured Text to HTML and adds it to Wordpress as a draft posting or updates it,
-  until it's release time.
+  until it's release time. Simple, sweet and elegant.
+
 
 Cleanups
 --------
@@ -56,6 +61,15 @@ Cleanups
 - The for loop has a "source" child, and the iterator was only taken at the code
   generation level, so that was invisible to optimizations. Moved it to tree building
   stage instead.
+
+- Split out the "nuitka.nodes.Nodes" module into many topic nodes, so that there are now
+  "nuitka.nodes.BoolNodes" or "nuitka.nodes.LoopNodes" to host nodes of similar kinds, so
+  that it is now cleaner.
+
+- Added new bases classes and mixins for expressions.
+
+- Made the builtin code more reusable.
+
 
 Summary
 -------
