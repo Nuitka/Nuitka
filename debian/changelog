@@ -1,9 +1,9 @@
-nuitka (0.3.20~pre4+ds-1) UNRELEASED; urgency=low
+nuitka (0.3.20~pre5+ds-1) UNRELEASED; urgency=low
 
   * New upstream pre-release, not for upload to Debian.
   * Added upstream changelog.
 
- -- Kay Hayen <kayhayen@gmx.de>  Wed, 01 Feb 2012 08:03:27 +0100
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 12 Feb 2012 11:17:50 +0100
 
 nuitka (0.3.19.1+ds-1) unstable; urgency=low
 
