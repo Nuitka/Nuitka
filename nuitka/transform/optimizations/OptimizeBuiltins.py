@@ -593,7 +593,8 @@ class ReplaceBuiltinsOptionalVisitor( ReplaceBuiltinsVisitorBase ):
 _quick_names = {
     "None"  : None,
     "True"  : True,
-    "False" : False
+    "False" : False,
+    "__debug__" : __debug__
 }
 
 class ReplaceBuiltinsExceptionsVisitor( OptimizationVisitorBase ):
@@ -634,7 +635,6 @@ class ReplaceBuiltinsExceptionsVisitor( OptimizationVisitorBase ):
                         node.getSourceReference(),
                         "Builtin constant was predicted to constant."
                     )
-
 
 
 class PrecomputeBuiltinsVisitor( OptimizationDispatchingVisitorBase ):

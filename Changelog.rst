@@ -31,8 +31,12 @@ New Optimizations
   arguments. These also cannot be computed at compile time, but now will execute faster as
   well.
 
-- Added support the the "open" builtin in all its form. We intend for future releases to be
-  able to track file opens for including them into the executable if data files.
+- Added support the the "open" builtin in all its form. We intend for future releases to
+  be able to track file opens for including them into the executable if data files.
+
+- Optimize the "__debug__" builtin constant as well. It cannot be assigned, yet code can
+  determine a mode of operation from it, and apparently some code does. When compiling the
+  mode is decided.
 
 
 Organizational
