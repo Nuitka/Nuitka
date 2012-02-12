@@ -22,19 +22,16 @@ from __future__ import print_function
 import os, sys, subprocess, tempfile, shutil
 
 # Go its own directory, to have it easy with path knowledge.
-os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
+nuitka1 = sys.argv[1]
+nuitka2 = sys.argv[2]
 
-search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
-
-start_at = sys.argv[2] if len( sys.argv ) > 2 else None
+search_mode = len( sys.argv ) > 3 and sys.argv[3] == "search"
+start_at = sys.argv[4] if len( sys.argv ) > 4 else None
 
 if start_at:
     active = False
 else:
     active = True
-
-if "PYTHON" not in os.environ:
-    os.environ[ "PYTHON" ] = "python"
 
 def check_output(*popenargs, **kwargs):
     from subprocess import Popen, PIPE, CalledProcessError
@@ -51,47 +48,20 @@ def check_output(*popenargs, **kwargs):
         raise CalledProcessError(retcode, cmd, output=output)
     return output
 
-version_output = check_output(
-    [ os.environ[ "PYTHON" ], "--version" ],
-    stderr = subprocess.STDOUT
-)
+my_dir = os.path.dirname( os.path.abspath( __file__ ) )
 
-python_version = version_output.split()[1]
-
-os.environ[ "PYTHONPATH" ] = os.getcwd()
-
-print( "Using concrete python", python_version )
-
-for filename in sorted( os.listdir( "." ) ):
+for filename in sorted( os.listdir( my_dir ) ):
     if not filename.endswith( ".py" ) or filename.startswith( "run_" ):
         continue
 
-    path = filename
+    path = os.path.relpath( os.path.join( my_dir, filename ) )
 
     if not active and start_at in ( filename, path ):
         active = True
 
-    extra_flags = [ "expect_success" ]
-
-    if filename == "Referencing.py":
-        if not os.path.exists( "/usr/bin/" + os.environ[ "PYTHON" ] + "-dbg" ):
-            print( "Skip reference count test, CPython debug version not found." )
-            continue
-
-        extra_flags.append( "ignore_stderr" )
-        extra_flags.append( "python_debug" )
-
     if active:
-        # Temporary measure, until Python3 is better supported, disable some tests, so
-        # this can be used to monitor the success of existing ones and have no regression for it.
-        if os.environ[ "PYTHON" ] == "python3.2" and filename[:-3] in ( "Builtins", "Classes", "ExceptionRaising", "ExecEval", "Functions", "Looping", "OverflowFunctions", "ParameterErrors", "Unicode", ):
-            print( "Skipping malfunctional test", filename )
-            continue
-
-        # Apply 2to3 conversion if necessary.
-        assert type( python_version ) is bytes
-
-        if python_version.startswith( b"3" ):
+        # TODO: Reactivate Python3 support here.
+        if False:
             new_path = os.path.join( tempfile.gettempdir(), filename )
             shutil.copy( path, new_path )
 
@@ -105,11 +75,12 @@ for filename in sorted( os.listdir( "." ) ):
                 shell  = True
             )
 
-        command = "%s %s %s silent %s" % (
+        command = "%s %s '%s' '%s' %s" % (
             sys.executable,
-            os.path.join( "..", "..", "bin", "compare_with_cpython" ),
+            os.path.join( my_dir, "..", "..", "bin", "compare_with_xml" ),
+            nuitka1,
+            nuitka2,
             path,
-            " ".join( extra_flags )
         )
 
         result = subprocess.call(

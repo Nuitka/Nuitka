@@ -1,0 +1,116 @@
+#!/usr/bin/env python
+#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
+#
+#     If you submit patches or make the software available to licensors of
+#     this software in either form, you automatically them grant them a
+#     license for your part of the code under "Apache License 2.0" unless you
+#     choose to remove this notice.
+#
+#     Kay Hayen uses the right to license his code under only GPL version 3,
+#     to discourage a fork of Nuitka before it is "finished". He will later
+#     make a new "Nuitka" release fully under "Apache License 2.0".
+#
+#     This program is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, version 3 of the License.
+#
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#     Please leave the whole of this copyright notice intact.
+#
+
+from __future__ import print_function
+
+import os, sys, subprocess, difflib, re, tempfile
+
+
+nuitka1 = sys.argv[1]
+nuitka2 = sys.argv[2]
+filename = sys.argv[3]
+
+print( "Comparing output of '%s' using '%s' <-> '%s' ..." % ( filename, nuitka1, nuitka2 ))
+
+
+extra_options = os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
+
+nuitka1_cmd = "%s --dump-xml %s" % ( nuitka1, filename )
+
+process = subprocess.Popen(
+    args   = nuitka1_cmd,
+    stdout = subprocess.PIPE,
+    stderr = subprocess.PIPE,
+    shell  = True
+)
+
+stdout_nuitka1, stderr_nuitka1 = process.communicate()
+exit_nuitka1 = process.returncode
+
+nuitka2_cmd = "%s --dump-xml %s" % ( nuitka2, filename )
+
+process = subprocess.Popen(
+    args   = nuitka2_cmd,
+    stdout = subprocess.PIPE,
+    stderr = subprocess.PIPE,
+    shell  = True
+)
+
+stdout_nuitka2, stderr_nuitka2 = process.communicate()
+exit_nuitka2 = process.returncode
+
+def makeDiffable( output ):
+    result = []
+
+    for line in output.split( b"\n" ):
+        line = str( line )
+
+
+        result.append( line )
+
+    return result
+
+fromdate = None
+todate = None
+
+def compareOutput( kind, out1, out2 ):
+    diff = difflib.unified_diff(
+        makeDiffable( out1 ),
+        makeDiffable( out2 ),
+        "%s (%s)" % ( "nuitka1 " + filename, kind ),
+        "%s (%s)" % ( "nuitka2 " + filename, kind ),
+        fromdate,
+        todate,
+        n=3
+    )
+
+    result = list( diff )
+
+    if result:
+        for line in result:
+            print( line, end = "\n" if not line.startswith( "---" ) else "" )
+
+        return 1
+    else:
+        return 0
+
+exit_code_stdout = compareOutput( "stdout", stdout_nuitka1, stdout_nuitka2 )
+exit_code_return = exit_nuitka1 != exit_nuitka2
+
+if exit_code_return:
+    print( "Exit codes %d (CPython) != %d (Nuitka)" % ( exit_cpython, exit_nuitka ) )
+
+exit_code = exit_code_stdout or exit_code_return
+
+if exit_code:
+    sys.exit( "Error, outputs differed." )
+
+
+print( "OK, same outputs." )
