@@ -655,17 +655,21 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
     PyObject *iter;
     bool all_case;
 
-    if ( PyObject *all = PyMapping_GetItemString( module, (char *)"__all__" ) )
+    if ( PyObject *all = PyObject_GetAttrString( module, (char *)"__all__" ) )
     {
         iter = MAKE_ITERATOR( all );
         all_case = true;
     }
-    else
+    else if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
     {
         PyErr_Clear();
 
         iter = MAKE_ITERATOR( PyModule_GetDict( module ) );
         all_case = false;
+    }
+    else
+    {
+        throw _PythonException();
     }
 
     while ( PyObject *item = ITERATOR_NEXT( iter ) )
