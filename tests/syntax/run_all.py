@@ -71,7 +71,11 @@ for filename in sorted( os.listdir( "." ) ):
     if not active and start_at in ( filename, path ):
         active = True
 
-    extra_flags = [ "expect_failure" ]
+    # Some syntax errors are for Python3 only.
+    if filename == "Importing2.py" and python_version < "3":
+        extra_flags = [ "" ]
+    else:
+        extra_flags = [ "expect_failure" ]
 
     if active:
         result = subprocess.call(
