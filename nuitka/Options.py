@@ -273,6 +273,16 @@ parser.add_option(
 Force compilation for windows, useful for cross-compilation. Defaults to off."""
 )
 
+parser.add_option(
+    "--windows-disable-console",
+    action  = "store_true",
+    dest    = "win_disable_console",
+    default = False,
+    help    = """\
+When compiling for windows, disable the console window. Defaults to off."""
+)
+
+
 debug_group = OptionGroup(
     parser,
     "Debug features"
@@ -504,6 +514,9 @@ def isLto():
 
 def isWindowsTarget():
     return options.windows_target
+
+def shallDisableConsoleWindow():
+    return options.win_disable_console
 
 def isFullCompat():
     return True

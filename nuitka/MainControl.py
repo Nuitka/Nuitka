@@ -350,6 +350,9 @@ def runScons( tree, quiet ):
     if Options.isWindowsTarget():
         options[ "win_target" ] = "true"
 
+    if Options.shallDisableConsoleWindow():
+        options[ "win_disable_console" ] = "true"
+
     return SconsInterface.runScons( options, quiet ), options
 
 def writeSourceCode( filename, source_code ):

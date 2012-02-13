@@ -77,6 +77,9 @@ lto_mode = getBoolOption( "lto_mode", False )
 # Windows target mode: Cross compile for Windows or compiling on windows.
 win_target = getBoolOption( "win_target", "win" in sys.platform )
 
+# Windows subsystem mode: Disable console for windows builds.
+win_disable_console = getBoolOption( "win_disable_console", False )
+
 # ARM target mode: Compile for ARM which has bad ucontext status, we need
 # to provide our own implementation.
 arm_linux_target = getBoolOption( "arm_linux_target", "linux" in sys.platform and "arm" in os.uname()[4] )
@@ -271,6 +274,9 @@ if win_target:
     env.Append( LIBPATH = [ python_home + "/libs" ] )
 
     env.Append( LINKFLAGS = [ "-Wl,--enable-auto-import" ] )
+
+    if win_disable_console:
+        env.Append( LINKFLAGS = [ "-Wl,--subsystem,windows" ] )
 
     python_header_path = python_home + "/include"
 
