@@ -47,7 +47,7 @@ from .OptimizeBuiltins import (
     ReplaceBuiltinsExceptionsVisitor,
     PrecomputeBuiltinsVisitor
 )
-from .OptimizeConstantOperations import OptimizeOperationVisitor
+from .OptimizeConstantOperations import OptimizeOperationVisitor, OptimizeFunctionCallArgsVisitor
 from .OptimizeUnpacking import ReplaceUnpackingVisitor
 from .OptimizeStatements import StatementSequencesCleanupVisitor
 from .OptimizeRaises import OptimizeRaisesVisitor
@@ -88,7 +88,10 @@ def optimizeTree( tree ):
         if not use_propagation and tags.check( "new_code new_constant" ):
             optimizations_queue.add( OptimizeOperationVisitor )
 
-        if not use_propagation and tags.check( "new_code new_constant" ):
+        if tags.check( "new_code new_constant" ):
+            optimizations_queue.add( OptimizeFunctionCallArgsVisitor )
+
+        if tags.check( "new_code new_constant" ):
             optimizations_queue.add( ReplaceUnpackingVisitor )
 
         if not use_propagation and tags.check( "new_code new_statements new_constant" ):
@@ -119,7 +122,7 @@ def optimizeTree( tree ):
             if Options.shallOptimizeStringExec():
                 optimizations_queue.add( OptimizeExecVisitor )
 
-        if not use_propagation and tags.check( "new_code new_raise" ):
+        if tags.check( "new_code new_raise" ):
             optimizations_queue.add( OptimizeRaisesVisitor )
 
         if use_propagation and tags.check( "new_code new_statements new_constant new_builtin" ):

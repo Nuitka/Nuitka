@@ -36,6 +36,46 @@ from .OptimizeBase import (
     makeConstantReplacementNode
 )
 
+class OptimizeFunctionCallArgsVisitor( OptimizationVisitorBase ):
+
+    def onEnterNode( self, node ):
+        if node.isExpressionFunctionCall():
+            star_list_arg = node.getStarListArg()
+
+            if star_list_arg is not None:
+                if star_list_arg.isExpressionMakeSequence():
+                    positional_args = node.getPositionalArguments()
+
+                    node.setPositionalArguments( positional_args + star_list_arg.getElements() )
+                    node.setStarListArg( None )
+                elif star_list_arg.isExpressionConstantRef():
+                    if star_list_arg.isKnownToBeIterable( count = None ):
+                        positional_args = node.getPositionalArguments()
+
+                        constant_nodes = []
+
+                        for constant in star_list_arg.getConstant():
+                            constant_nodes.append(
+                                makeConstantReplacementNode(
+                                    constant = constant,
+                                    node     = star_list_arg
+                                )
+                            )
+
+                        node.setPositionalArguments( positional_args + tuple( constant_nodes ) )
+                        node.setStarListArg( None )
+
+
+            star_dict_arg = node.getStarDictArg()
+
+            if star_dict_arg is not None:
+                if star_dict_arg.isExpressionMakeDict():
+                    # TODO: Need to cleanup the named argument mess before it is possible.
+                    pass
+                elif star_dict_arg.isExpressionConstantRef():
+                    # TODO: Need to cleanup the named argument mess before it is possible.
+                    pass
+
 class OptimizeOperationVisitor( OptimizationVisitorBase ):
     def _optimizeConstantOperandsOperation( self, node, operands ):
         operands = [ constant.getConstant() for constant in operands ]
@@ -154,40 +194,3 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
             self._optimizeConstantDictMaking(
                 node = node
             )
-        # TODO: Move this to a separate optimization step.
-        elif node.isExpressionFunctionCall():
-            star_list_arg = node.getStarListArg()
-
-            if star_list_arg is not None:
-                if star_list_arg.isExpressionMakeSequence():
-                    positional_args = node.getPositionalArguments()
-
-                    node.setPositionalArguments( positional_args + star_list_arg.getElements() )
-                    node.setStarListArg( None )
-                elif star_list_arg.isExpressionConstantRef():
-                    if star_list_arg.isKnownToBeIterable( count = None ):
-                        positional_args = node.getPositionalArguments()
-
-                        constant_nodes = []
-
-                        for constant in star_list_arg.getConstant():
-                            constant_nodes.append(
-                                makeConstantReplacementNode(
-                                    constant = constant,
-                                    node     = star_list_arg
-                                )
-                            )
-
-                        node.setPositionalArguments( positional_args + tuple( constant_nodes ) )
-                        node.setStarListArg( None )
-
-
-            star_dict_arg = node.getStarDictArg()
-
-            if star_dict_arg is not None:
-                if star_dict_arg.isExpressionMakeDict():
-                    # TODO: Need to cleanup the named argument mess before it is possible.
-                    pass
-                elif star_dict_arg.isExpressionConstantRef():
-                    # TODO: Need to cleanup the named argument mess before it is possible.
-                    pass
