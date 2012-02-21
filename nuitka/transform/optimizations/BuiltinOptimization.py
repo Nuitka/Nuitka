@@ -177,8 +177,9 @@ builtin_bin_spec = BuiltinParameterSpecNoKeywords( "bin", ( "number", ), 1 )
 builtin_oct_spec = BuiltinParameterSpecNoKeywords( "oct", ( "number", ), 1 )
 builtin_hex_spec = BuiltinParameterSpecNoKeywords( "hex", ( "number", ), 1 )
 builtin_range_spec = BuiltinParameterSpecNoKeywords( "range", ( "start", "stop", "step" ), 2 )
-builtin_repr_spec = BuiltinParameterSpecNoKeywords( "repr", ( "object", ), 1 )
+builtin_repr_spec = BuiltinParameterSpecNoKeywords( "repr", ( "object", ), 0 )
 builtin_execfile_spec = BuiltinParameterSpecNoKeywords( "repr", ( "filename", "globals", "locals" ), 1 )
+builtin_dir_spec = BuiltinParameterSpecNoKeywords( "dir", ( "object", ), 0 )
 
 def extractBuiltinArgs( node, builtin_spec, builtin_class ):
     # TODO: These could be handled too.

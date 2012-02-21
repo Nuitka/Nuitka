@@ -165,3 +165,8 @@ class CPythonExpressionBuiltinRange( CPythonExpressionChildrenHavingBase ):
             return self._computeNodeThreeValueRange( low, high, step )
 
         return self, None, None
+
+    def isKnownToBeIterable( self, count ):
+        # We are clearly iterable, but don't know exactly how much. TODO: Analysis could
+        # be done to that end.
+        return count is None

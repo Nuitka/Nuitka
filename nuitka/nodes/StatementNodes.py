@@ -139,6 +139,9 @@ class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
     def getDetail( self ):
         return "expression %s" % self.getExpression()
 
+    def mayHaveSideEffects( self ):
+        return self.getExpression().mayHaveSideEffects()
+
     getExpression = CPythonChildrenHaving.childGetter( "expression" )
 
 

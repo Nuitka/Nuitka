@@ -779,6 +779,17 @@ class CPythonExpressionMixin:
         assert self.isCompileTimeConstant()
         assert False
 
+    def isKnownToBeIterable( self, count ):
+        """ Can be iterated at all (count is None) or exactly count times.
+
+            Yes or no. If it can be iterated a known number of times, it may be asked to
+            unpack itself.
+        """
+
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
+
 class CPythonExpressionSpecBasedComputationMixin( CPythonExpressionMixin ):
     builtin_spec = None
 
