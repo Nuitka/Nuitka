@@ -288,6 +288,9 @@ else:
     # sure the headers are found by adding it to the C++ include path.
     python_header_path = "/usr/include/python" + python_version
 
+if not os.path.exists( os.path.join( python_header_path, "Python.h" ) ):
+    sys.exit( "Error, no 'Python.h' development headers can be found at '%s', dependency not satisfied!" % python_header_path )
+
 env.Append( CCFLAGS = [ "-I" + python_header_path ] )
 env.Append( LIBS = [ "python" + python_version ] )
 
