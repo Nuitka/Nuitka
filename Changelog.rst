@@ -13,10 +13,19 @@ Bug fixes
 - The use of a closure variable name as an expression was not covered as well. And in this
   case corrupted the reference count. Issue#31. Fixed in release 0.3.19.1 already.
 
+- The "from x import \*" attempted to respect "__all__" but failed to do
+  so. Issue#32. Fixed in release 0.3.19.2 already.
+
+- The "from x import \*" didn't give a "SyntaxError" when used on Python3. Fixed in release
+  0.3.19.2 already.
+
 New Features
 ------------
 
-None
+- Added support for disabling the console for Windows binaries. Thanks for the patch go to
+  Michael H Kent.
+
+- Enhanced Python3 support for syntax errors, these are now also compatible.
 
 New Optimizations
 -----------------
@@ -38,49 +47,133 @@ New Optimizations
   determine a mode of operation from it, and apparently some code does. When compiling the
   mode is decided.
 
-
 Organizational
 --------------
 
-- Created a "changelog" from the previous release announcements. It's as ReStructured Text
-  and converted to PDF as well.
+- Created a "change log" from the previous release announcements. It's as ReStructured
+  Text and converted to PDF for the release as well, but I chose not to include that in
+  Debian, because it's so easy to generate the PDF on that yourself.
 
 - The posting of release announcements is now prepared by a script that converts the
   ReStructured Text to HTML and adds it to Wordpress as a draft posting or updates it,
   until it's release time. Simple, sweet and elegant.
 
-
 Cleanups
 --------
-
-- Turned the function and class builder statements into mere assignment statements, where
-  defaults and base classes are handled by wrapping expressions.
-
-- Refactored the decorator handling to the tree building stage, presenting them as
-  function calls on "function body expression" or class body expression". This allowed to
-  remove the special code for decorators from code generation and C++ templates, making
-  decorations easy subjects for future optimizations, as they practically are now just
-  function calls.
-
-- The for loop has a "source" child, and the iterator was only taken at the code
-  generation level, so that was invisible to optimizations. Moved it to tree building
-  stage instead.
 
 - Split out the "nuitka.nodes.Nodes" module into many topic nodes, so that there are now
   "nuitka.nodes.BoolNodes" or "nuitka.nodes.LoopNodes" to host nodes of similar kinds, so
   that it is now cleaner.
 
-- Added new bases classes and mixins for expressions.
+- Split "del" statements into their own node kind, and use much simpler node structures
+  for them. The following blocks are absolutely the same:
+
+  .. code-block:: python
+
+     del a, b.c, d
+
+  .. code-block:: python
+
+     del a
+     del b.c
+     del d
+
+  So that's now represented in the node tree. And even more complex looking cases, like
+  this one, also the same:
+
+  .. code-block:: python
+
+     del a, (b.c, d)
+
+  This one gives a different parse tree, but the same bytecode. And so Nuitka need no
+  longer concern itself with this at all, and can remove the tuple from the parse tree
+  immediately. That makes them easy to handle. As you may have noted already, it also
+  means, there is no way to enforce that two things are deleted or none at all.
+
+- Turned the function and class builder statements into mere assignment statements, where
+  defaults and base classes are handled by wrapping expressions. Previously they are also
+  kind of assignment statements too, which is not needed. Now they were reduced to only
+  handle the "bases" for classes and the "defaults" for functions and make optional.
+
+- Refactored the decorator handling to the tree building stage, presenting them as
+  function calls on "function body expression" or class body expression".
+
+  This allowed to remove the special code for decorators from code generation and C++
+  templates, making decorations easy subjects for future optimizations, as they
+  practically are now just function calls.
+
+  .. code-block:: python
+
+     @some_classdecorator
+     class C:
+         @staticmethod
+         def f():
+             pass
+
+  It's just a different form of writing things. Nothing requires the implementation of
+  decorators, it's just functions calls with function bodies before the assignment.
+
+  The following is only similar:
+
+  .. code-block:: python
+
+     class C:
+         def f():
+             pass
+
+         f = staticmethod( f )
+
+     C = some_classdecorator( C )
+
+  It's only similar, because the assignment to an intermediate value of "C" and "f" is not
+  done, and should an exception be raised by the decoration, that name could persist. For
+  Nuitka, the function and class body, before having a name, are an expression, and so can
+  of course be passed to decorators already.
+
+- The in-place assignments statements are now handled using temporary variable blocks
+
+  Adding support for scoped temporary variables and references to them, it was possible to
+  re-formulate in-place assignments expressions as normal lookups, in-place operation call
+  and then assignment statement. This allowed to remove static templates and will yield
+  even better generated code in the future.
+
+- The for loop used to have has a "source" expression as child, and the iterator over it
+  was only taken at the code generation level, so that step was therefore invisible to
+  optimizations. Moved it to tree building stage instead, where optimizations can work on
+  it then.
+
+- Tree building now generally allows statement sequences to be "None" everywhere, and pass
+  statements are immediately eliminated from them immediately. Empty statement sequences
+  are now forbidden to exist.
+
+- Added new bases classes and mix-in classes dedicated to expressions.
 
 - Made the builtin code more reusable.
 
+New Tests
+---------
+
+- Added some more diagnostic tests about complex assignment and "del" statements.
+
+- Added syntax test for star import on function level, that should fail on Python3.
 
 Summary
 -------
 
-The decorator and building changes are important progress for the type inference work,
-because they remove special casing the builders previously required. Lambdas and functions
-now really are the same thing right after tree building.
+The decorator and building changes, the assignment changes, and the node cleanups are all
+very important progress for the type inference work, because they remove special casing
+the that previously would have been required. Lambdas and functions now really are the
+same thing right after tree building. The in-place assignments are now merely only
+assignments, the built functions and classes are now assigned to names in assignment
+statements, more much consistency there.
+
+Yet, even more work will be needed in the same direction. There may e.g. be work required
+to cover "with" statements as well.
+
+For this release, there is only minimal progress on the Python3 front, despite the syntax
+support, which is only miniscule progress. The remaining tasks appear all more or less
+difficult work that I don't want to touch now.
+
 
 Nuitka Release 0.3.19
 =====================
@@ -635,7 +728,6 @@ New Optimizations
   recursed into, this makes a huge difference in compilation time.
 
 - The creation of dictionaries from constants is now also optimized.
-
 
 New Features
 ------------
