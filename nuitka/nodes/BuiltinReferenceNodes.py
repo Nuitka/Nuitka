@@ -40,7 +40,12 @@ from .NodeBases import CPythonNodeBase, CPythonExpressionMixin
 
 from .ConstantRefNode import CPythonExpressionConstantRef
 
-from nuitka.Builtins import builtin_names, builtin_exception_names, builtin_exception_values
+from nuitka.Builtins import (
+    builtin_exception_names,
+    builtin_exception_values,
+    builtin_anon_names,
+    builtin_names
+)
 
 class CPythonExpressionBuiltinRefBase( CPythonNodeBase, CPythonExpressionMixin ):
     def __init__( self, builtin_name, source_ref ):
@@ -105,6 +110,33 @@ class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
     def isKnownToBeIterable( self, count ):
         # TODO: Why yes, some may be, could be told here.
         return None
+
+
+class CPythonExpressionBuiltinAnonymousRef( CPythonExpressionBuiltinRefBase ):
+    kind = "EXPRESSION_BUILTIN_ANONYMOUS_REF"
+
+    def __init__( self, builtin_name, source_ref ):
+        assert builtin_name not in builtin_names, builtin_name
+
+        CPythonExpressionBuiltinRefBase.__init__(
+            self,
+            builtin_name = builtin_name,
+            source_ref   = source_ref
+        )
+
+    def isExpressionBuiltin( self ):
+        # Means if it's a builtin function call.
+        return False
+
+    def isCompileTimeConstant( self ):
+        # Virtual method, pylint: disable=R0201
+        return True
+
+    def getCompileTimeConstant( self ):
+        return builtin_anon_names[ self.builtin_name ]
+
+    def computeNode( self ):
+        return self, None, None
 
 
 class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):

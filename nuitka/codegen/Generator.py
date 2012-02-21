@@ -77,6 +77,7 @@ from . import (
 from nuitka import (
     Variables,
     Constants,
+    Builtins,
     Options
 )
 
@@ -1290,6 +1291,13 @@ def getBuiltinRefCode( context, builtin_name ):
         ),
         0
     )
+
+def getBuiltinAnonymousRefCode( builtin_name ):
+    return Identifier(
+        "(PyObject *)%s" % Builtins.builtin_anon_codes[ builtin_name ],
+        0
+    )
+
 
 def getExceptionRefCode( exception_type ):
     return Identifier(

@@ -88,3 +88,13 @@ assert "sys" not in builtin_names
 
 # For PyLint to be happy.
 assert exceptions
+
+builtin_anon_names = {
+    "NoneType"                   : type( None ),
+    "builtin_function_or_method" : type( len ),
+}
+
+builtin_anon_codes = {
+    "NoneType"                   : "&_Py_NoneStruct",
+    "builtin_function_or_method" : "&PyCFunction_Type"
+}

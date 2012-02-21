@@ -51,23 +51,23 @@ class CPythonExpressionBuiltinType1( CPythonExpressionBuiltinSingleArgBase ):
         if value.isCompileTimeConstant():
             value = value.getCompileTimeConstant()
 
-            # TODO: What's wrong with "NoneType" is that it is not a builtin name and
-            # cannot be given. We will need a "BuiltinTypeRef" for that, which would be
-            # better for some things anyway.
-            if value is not None:
-                type_name = value.__class__.__name__
+            type_name = value.__class__.__name__
 
-                assert (type_name in builtin_names), (type_name, builtin_names)
-
+            if type_name in builtin_names:
                 new_node = BuiltinReferenceNodes.CPythonExpressionBuiltinRef(
                     builtin_name = type_name,
                     source_ref   = self.getSourceReference()
                 )
-
-                return (
-                    new_node,
-                    "new_builtin",
-                    "Replaced predictable type lookup with builtin type '%s'." % type_name
+            else:
+                new_node = BuiltinReferenceNodes.CPythonExpressionBuiltinAnonymousRef(
+                    builtin_name = type_name,
+                    source_ref   = self.getSourceReference()
                 )
+
+            return (
+                new_node,
+                "new_builtin",
+                "Replaced predictable type lookup with builtin type '%s'." % type_name
+            )
 
         return self, None, None
