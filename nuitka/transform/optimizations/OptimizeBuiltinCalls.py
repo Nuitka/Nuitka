@@ -70,7 +70,10 @@ from nuitka.nodes.GlobalsLocalsNodes import (
     CPythonExpressionBuiltinLocals,
     CPythonExpressionBuiltinDir0
 )
-from nuitka.nodes.BuiltinReferenceNodes import CPythonExpressionBuiltinRef
+from nuitka.nodes.BuiltinReferenceNodes import (
+    CPythonExpressionBuiltinExceptionRef,
+    CPythonExpressionBuiltinRef
+)
 from nuitka.nodes.OperatorNodes import CPythonExpressionOperationUnary
 from nuitka.nodes.ConstantRefNode import CPythonExpressionConstantRef
 from nuitka.nodes.BuiltinDictNode import CPythonExpressionBuiltinDict
@@ -466,12 +469,40 @@ def computeBuiltinCall( call_node, called ):
 
         return new_node, "new_builtin", "Detected builtin call %s" % builtin_name
     else:
-        # TODO: Consider warnings, whitelisted potentially
+        # TODO: Consider giving warnings, whitelisted potentially
         return call_node, None, None
+
+from nuitka.nodes.ExceptionNodes import CPythonExpressionBuiltinMakeException
+
+def computeBuiltinExceptionCall( call_node, called ):
+    exception_name = called.getExceptionName()
+
+    def createBuiltinMakeException( args, source_ref ):
+        return CPythonExpressionBuiltinMakeException(
+            exception_name = exception_name,
+            args           = args,
+            source_ref     = source_ref
+        )
+
+    new_node = BuiltinOptimization.extractBuiltinArgs(
+        node          = call_node,
+        builtin_class = createBuiltinMakeException,
+        builtin_spec  = BuiltinOptimization.BuiltinParameterSpecExceptions(
+            name          = exception_name,
+            default_count = 0
+        )
+    )
+
+    return new_node, "new_expression", "detected builtin exception making"
 
 
 def register():
     CallRegistry.registerCallHandler(
         kind    = CPythonExpressionBuiltinRef.kind,
         handler = computeBuiltinCall
+    )
+
+    CallRegistry.registerCallHandler(
+        kind    = CPythonExpressionBuiltinExceptionRef.kind,
+        handler = computeBuiltinExceptionCall
     )

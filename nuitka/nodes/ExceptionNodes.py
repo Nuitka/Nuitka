@@ -137,3 +137,6 @@ class CPythonExpressionBuiltinMakeException( CPythonExpressionChildrenHavingBase
         return self.exception_name
 
     getArgs = CPythonExpressionChildrenHavingBase.childGetter( "args" )
+
+    def computeNode( self ):
+        return self, None, None

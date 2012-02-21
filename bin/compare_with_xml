@@ -105,7 +105,7 @@ exit_code_stdout = compareOutput( "stdout", stdout_nuitka1, stdout_nuitka2 )
 exit_code_return = exit_nuitka1 != exit_nuitka2
 
 if exit_code_return:
-    print( "Exit codes %d (CPython) != %d (Nuitka)" % ( exit_cpython, exit_nuitka ) )
+    print( "Exit codes %d (%s) != %d (%s)" % ( exit_nuitka1, nuitka1, exit_nuitka2, nuitka2 ) )
 
 exit_code = exit_code_stdout or exit_code_return
 
