@@ -95,7 +95,7 @@ class FinalizeMarkups( FinalizationVisitorBase ):
             while not parent.isStatement():
                 parent = parent.getParent()
 
-            if parent.isStatementAssignment() and parent.getSource() is None:
+            if parent.isStatementDel():
                 node.getTargetVariableRef().getVariable().setHasDelIndicator()
 
         if node.isStatementTryExcept():

@@ -137,6 +137,12 @@ def getConstantAccess( context, constant ):
             constant = constant
         )
 
+def getVariableAccess( variable, context ):
+    return getVariableHandle(
+        variable = variable,
+        context  = context
+    )
+
 def getReturnCode( identifier ):
     if identifier is not None:
         return "return %s;" % identifier.getCodeExportRef()
@@ -548,6 +554,16 @@ def getOperationCode( operator, identifiers ):
 
         return Identifier(
             "POWER_OPERATION( %s, %s )" % (
+                identifier_refs[0],
+                identifier_refs[1]
+            ),
+            1
+        )
+    elif operator == "IPow":
+        assert len( identifiers ) == 2
+
+        return Identifier(
+            "POWER_OPERATION_INPLACE( %s, %s )" % (
                 identifier_refs[0],
                 identifier_refs[1]
             ),
@@ -1066,6 +1082,24 @@ def getVariableAssignmentCode( context, variable, identifier ):
             ),
             identifier = identifier
         )
+    elif variable.isTempVariableReference() and not variable.getOwner().isClosureVariableTaker():
+        if not variable.getReferenced().declared:
+            variable.getReferenced().declared = True
+
+            return _getLocalVariableInitCode(
+                context    = context,
+                variable   = variable.getReferenced(),
+                in_context = False,
+                init_from  = identifier.getCodeExportRef()
+            )
+        else:
+            return "%s.assign( %s );" % (
+                getVariableCode(
+                    variable = variable,
+                    context  = context
+                ),
+                identifier.getCodeExportRef()
+            )
     else:
         return "%s = %s;" % (
             getVariableCode(
@@ -1132,89 +1166,6 @@ def getSubscriptDelCode( subscribed, subscript ):
         subscribed.getCodeTemporaryRef(),
         subscript.getCodeTemporaryRef()
     )
-
-def _getInplaceOperationCode( operator, operand1, operand2 ):
-    operator = OperatorCodes.inplace_operator_codes[ operator ]
-
-    if operator == "PyNumber_InPlacePower":
-        return Identifier(
-            "POWER_OPERATION_INPLACE( %s, %s )" % (
-                operand1.getCodeTemporaryRef(),
-                operand2.getCodeTemporaryRef()
-            ),
-            1
-        )
-    else:
-        return Identifier(
-            "BINARY_OPERATION( %s, %s, %s )" % (
-                operator,
-                operand1.getCodeTemporaryRef(),
-                operand2.getCodeTemporaryRef()
-            ),
-            1
-        )
-
-def getInplaceVarAssignmentCode( context, variable, operator, identifier ):
-    value_identifier = Identifier( "value.asObject()", 0 )
-    result_identifier = Identifier( "result", 0 )
-
-    return CodeTemplates.template_inplace_var_assignment % {
-        "assign_source_identifier" : getVariableHandle(
-            variable = variable,
-            context  = context
-        ).getCodeExportRef(),
-        "inplace_operation_code" : _getInplaceOperationCode(
-            operator = operator,
-            operand1 = value_identifier,
-            operand2 = identifier
-        ).getCode(),
-        "assignment_code" : getVariableAssignmentCode(
-            variable   = variable,
-            context    = context,
-            identifier = result_identifier
-        )
-    }
-
-
-def getInplaceSubscriptAssignmentCode( subscribed, subscript, operator, identifier ):
-    operation_identifier = _getInplaceOperationCode(
-        operator = operator,
-        operand1 = Identifier( "value.asObject()", 0 ),
-        operand2 = identifier
-    )
-
-    return CodeTemplates.template_inplace_subscript_assignment % {
-        "subscribed_identifier" : subscribed.getCodeExportRef(),
-        "subscript_identifier"  : subscript.getCodeExportRef(),
-        "operation_identifier"  : operation_identifier.getCode()
-    }
-
-def getInplaceAttributeAssignmentCode( target, attribute, operator, identifier ):
-    operation_identifier = _getInplaceOperationCode(
-        operator = operator,
-        operand1 = Identifier( "value.asObject()", 0 ),
-        operand2 = identifier
-    )
-
-    return CodeTemplates.template_inplace_attribute_assignment % {
-        "target_identifier"    : target.getCodeExportRef(),
-        "attribute_identifier" : attribute.getCodeTemporaryRef(),
-        "operation_identifier" : operation_identifier.getCode()
-    }
-
-def getInplaceSliceAssignmentCode( target, lower, upper, operator, identifier ):
-    operation_identifier = _getInplaceOperationCode(
-        operator = operator,
-        operand1 = Identifier( "value.asObject()", 0 ),
-        operand2 = identifier
-    )
-
-    return CodeTemplates.template_inplace_slice_assignment % {
-        "target_identifier"    : target.getCodeExportRef(),
-        "lower"                : lower.getCode(),
-        "upper"                : upper.getCode(),
-        "operation_identifier" : operation_identifier.getCode()
-    }
 
 def getTryFinallyCode( context, code_tried, code_final ):
     tb_making = getTracebackMakingIdentifier( context )
@@ -2125,17 +2076,19 @@ def _getLocalVariableInitCode( context, variable, init_from = None, needs_no_fre
 
     # TODO: This selection of suitable variable class should be shared.
     if shared:
-        result = "PyObjectSharedLocalVariable "
+        result = "PyObjectSharedLocalVariable"
     elif variable.isTempVariable():
-
         result = variable.getDeclarationTypeCode()
     elif init_from is not None and not needs_no_free:
         if variable.getHasDelIndicator():
-            result = "PyObjectLocalParameterVariableWithDel "
+            result = "PyObjectLocalParameterVariableWithDel"
         else:
-            result = "PyObjectLocalParameterVariableNoDel "
+            result = "PyObjectLocalParameterVariableNoDel"
     else:
-        result = "PyObjectLocalVariable "
+        result = "PyObjectLocalVariable"
+
+    if not result.endswith( "*" ):
+        result += " "
 
     def mangleName( name ):
         if mangle_name is None or not name.startswith( "__" ) or name.endswith( "__" ):
@@ -2158,7 +2111,12 @@ def _getLocalVariableInitCode( context, variable, init_from = None, needs_no_fre
 
     if not in_context:
         if variable.isTempVariable():
-            result += " = " + variable.getDeclarationInitValueCode()
+            if init_from is None:
+                result += " = " + variable.getDeclarationInitValueCode()
+            else:
+                assert variable.getOwner().isStatementTempBlock()
+
+                result += "( %s )" % init_from
         else:
             result += "( "
 

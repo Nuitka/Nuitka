@@ -156,3 +156,21 @@ class CPythonExpressionOperationNOT( CPythonExpressionOperationUnary ):
             operand    = operand,
             source_ref = source_ref
         )
+
+class CPythonExpressionOperationBinaryInplace( CPythonExpressionOperationBinary ):
+    kind = "EXPRESSION_OPERATION_BINARY_INPLACE"
+
+    def __init__( self, operator, left, right, source_ref ):
+        operator = "I" + operator
+
+        CPythonExpressionOperationBinary.__init__(
+            self,
+            operator   = operator,
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+
+    def computeNode( self ):
+        # TODO: Inplace operation requires extra care to avoid corruption of values.
+        return self, None, None

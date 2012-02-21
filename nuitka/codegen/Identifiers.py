@@ -170,6 +170,7 @@ class LocalVariableIdentifier:
     def getCodeDropRef( self ):
         return self.getCodeTemporaryRef()
 
+
 class TempVariableIdentifier( Identifier ):
     def __init__( self, tempvar_name ):
         self.tempvar_name = tempvar_name
@@ -187,6 +188,7 @@ class TempVariableIdentifier( Identifier ):
 
     def getClass( self ):
         return "PyObjectTemporary"
+
 
 class HolderVariableIdentifier( Identifier ):
     def __init__( self, tempvar_name ):
@@ -209,19 +211,19 @@ class HolderVariableIdentifier( Identifier ):
     def getClass( self ):
         return "PyObjectTempHolder"
 
+
 class TempObjectIdentifier( Identifier ):
     def __init__( self, tempvar_name, from_context ):
         self.tempvar_name = tempvar_name
-        self.from_context = from_context
 
-        if self.from_context:
-            Identifier.__init__( self, self.from_context + "python_tmp_" + tempvar_name, 0 )
+        if from_context:
+            Identifier.__init__( self, from_context + "python_tmp_" + tempvar_name, 0 )
         else:
-
             Identifier.__init__( self, "_python_tmp_" + tempvar_name, 0 )
 
     def getCodeTemporaryRef( self ):
         return self.code
+
 
 class ClosureVariableIdentifier( Identifier ):
     def __init__( self, var_name, from_context ):

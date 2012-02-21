@@ -35,7 +35,7 @@ expressions, changing the meaning of course dramatically.
 
 from nuitka import Variables, Builtins
 
-from .NodeBases import CPythonNodeBase, CPythonExpressionMixin
+from .NodeBases import CPythonChildrenHaving, CPythonNodeBase, CPythonExpressionMixin
 
 from .BuiltinReferenceNodes import (
     CPythonExpressionBuiltinExceptionRef,
@@ -67,6 +67,14 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
             return self.variable_name
         else:
             return repr( self.variable )
+
+    def makeCloneAt( self, source_ref ):
+        assert self.variable is None
+
+        return CPythonExpressionVariableRef(
+            variable_name = self.variable_name,
+            source_ref    = source_ref
+        )
 
     def getVariableName( self ):
         return self.variable_name
@@ -140,3 +148,39 @@ class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin 
     def computeNode( self ):
         # Nothing to do here.
         return self, None, None
+
+
+class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "STATEMENT_TEMP_BLOCK"
+
+    named_children = ( "body", )
+
+    getBody = CPythonChildrenHaving.childGetter( "body" )
+    setBody = CPythonChildrenHaving.childSetter( "body" )
+
+    def __init__( self, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "body" : None
+            }
+        )
+
+        self.temp_variables = set()
+
+    def getTempVariable( self, name ):
+        assert name not in self.temp_variables
+
+        result = Variables.TempVariable(
+            owner         = self,
+            variable_name = "__tmp_%s" % name
+        )
+
+        self.temp_variables.add( result )
+
+        return result
+
+    def getTempVariables( self ):
+        return self.temp_variables

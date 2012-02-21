@@ -100,6 +100,9 @@ class Variable:
     def isModuleVariable( self ):
         return False
 
+    def isTempVariableReference( self ):
+        return False
+
     def isTempVariable( self ):
         return False
     # pylint: enable=R0201
@@ -397,6 +400,9 @@ class TempVariable( Variable ):
             variable_name = variable_name
         )
 
+        # For code generation.
+        self.declared = False
+
     def __repr__( self ):
         return "<TempVariable '%s' of '%s'>" % (
             self.getName(),
@@ -408,8 +414,11 @@ class TempVariable( Variable ):
         return True
 
     def getDeclarationTypeCode( self ):
-        # Virtual method, pylint: disable=R0201
-        return "PyObject *"
+        # TODO: Derive more effective type from use analysis.
+        if self.getOwner().isClosureVariableTaker():
+            return "PyObject *"
+        else:
+            return "PyObjectTemporary"
 
     def getDeclarationInitValueCode( self ):
         # Virtual method, pylint: disable=R0201

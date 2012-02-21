@@ -34,6 +34,7 @@ from .Identifiers import (
     Identifier,
     ConstantIdentifier,
     TempObjectIdentifier,
+    TempVariableIdentifier,
     LocalVariableIdentifier,
     ClosureVariableIdentifier
 )
@@ -86,8 +87,11 @@ class PythonContextBase:
     def needsFrameExceptionKeeper( self ):
         return False
 
-    def getTempHandle( self, var_name ):
+    def getTempObjectHandle( self, var_name ):
         return TempObjectIdentifier( var_name, from_context = "" )
+
+    def getTempVarHandle( self, var_name ):
+        return TempVariableIdentifier( var_name )
 
 
 class PythonChildContextBase( PythonContextBase ):
@@ -393,7 +397,7 @@ class PythonFunctionContext( PythonChildContextBase ):
         else:
             return ClosureVariableIdentifier( var_name, from_context = "_python_context->common_context->" )
 
-    def getTempHandle( self, var_name ):
+    def getTempObjectHandle( self, var_name ):
         if self.function.isGenerator():
             return TempObjectIdentifier( var_name, from_context = "_python_context->" )
         else:
@@ -461,7 +465,7 @@ class PythonGeneratorExpressionContext( PythonContractionBase ):
     def getLocalHandle( self, var_name ):
         return LocalVariableIdentifier( var_name, from_context = True )
 
-    def getTempHandle( self, var_name ):
+    def getTempObjectHandle( self, var_name ):
         return TempObjectIdentifier( var_name, from_context = "_python_context->" )
 
     def hasFrameGuard( self ):

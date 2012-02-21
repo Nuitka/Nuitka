@@ -951,12 +951,12 @@ def generateExpressionCode( expression, context, allow_none = False ):
             expression.dump()
             assert False, ( expression.getSourceReference(), expression.getVariableName() )
 
-        identifier = Generator.getVariableHandle(
+        identifier = Generator.getVariableAccess(
             variable = expression.getVariable(),
             context  = context
         )
     elif expression.isExpressionTempVariableRef():
-        identifier = Generator.getVariableHandle(
+        identifier = Generator.getVariableAccess(
             variable = expression.getVariable(),
             context  = context
         )
@@ -1493,9 +1493,7 @@ def generateAssignmentCode( targets, value, context, recursion = 1 ):
 
     return code
 
-def generateDelCode( targets, context ):
-    code = ""
-
+def generateDelCode( target, context ):
     def makeExpressionCode( expression, allow_none = False ):
         if allow_none and expression is None:
             return None
@@ -1505,107 +1503,11 @@ def generateDelCode( targets, context ):
             context    = context
         )
 
-    for target in targets:
-        if target.isAssignTargetSubscript():
-            code += Generator.getSubscriptDelCode(
-                subscribed = makeExpressionCode( target.getSubscribed() ),
-                subscript  = makeExpressionCode( target.getSubscript() )
-            )
-        elif target.isAssignTargetAttribute():
-            attribute_name = mangleAttributeName(
-                attribute_name = target.getAttributeName(),
-                node           = target
-            )
 
-            code += Generator.getAttributeDelCode(
-                target    = makeExpressionCode( target.getLookupSource() ),
-                attribute = context.getConstantHandle( constant = attribute_name )
-            )
-        elif target.isAssignTargetVariable():
-            code += Generator.getVariableDelCode(
-                variable = target.getTargetVariableRef().getVariable(),
-                context  = context
-            )
-        elif target.isAssignTargetTuple():
-            elements = target.getElements()
-
-            for element in elements:
-                code += generateDelCode(
-                    targets   = [ element ],
-                    context   = context
-                )
-
-        elif target.isAssignTargetSlice():
-            lower = target.getLower()
-            upper = target.getUpper()
-
-            if decideSlicing( lower, upper ):
-                target_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
-                    sliced    = target.getLookupSource(),
-                    lower     = lower,
-                    upper     = upper,
-                    context   = context
-                )
-
-                code += Generator.getSliceDelCode(
-                    target     = target_identifier,
-                    lower      = lower_identifier,
-                    upper      = upper_identifier
-                )
-            else:
-                return Generator.getSubscriptDelCode(
-                    subscribed  = generateExpressionCode(
-                        expression = target.getLookupSource(),
-                        context    = context
-                    ),
-                    subscript = Generator.getSliceObjectCode(
-                        lower = generateExpressionCode(
-                            expression = lower,
-                            allow_none = True,
-                            context    = context
-                        ),
-                        upper = generateExpressionCode(
-                            expression = upper,
-                            allow_none = True,
-                            context    = context
-                        ),
-                        step    = None
-                    ),
-                )
-
-        else:
-            assert False, target
-
-    return code
-
-def generateAssignmentInplaceCode( statement, context ):
-    def makeExpressionCode( expression ):
-        return generateExpressionCode(
-            expression = expression,
-            context    = context
-        )
-
-    target = statement.getTarget()
-
-    if target.isAssignTargetVariable():
-        code = Generator.getInplaceVarAssignmentCode(
-            variable   = target.getTargetVariableRef().getVariable(),
-            operator   = statement.getOperator(),
-            identifier = makeExpressionCode( statement.getExpression() ),
-            context    = context
-        )
-    elif target.isAssignTargetSubscript():
-        code = Generator.getInplaceSubscriptAssignmentCode(
-            subscribed = makeExpressionCode(
-                expression = target.getSubscribed()
-            ),
-            subscript  = makeExpressionCode(
-                expression = target.getSubscript()
-            ),
-            operator   = statement.getOperator(),
-            identifier = makeExpressionCode(
-                expression = statement.getExpression()
-            )
+    if target.isAssignTargetSubscript():
+        code = Generator.getSubscriptDelCode(
+            subscribed = makeExpressionCode( target.getSubscribed() ),
+            subscript  = makeExpressionCode( target.getSubscript() )
         )
     elif target.isAssignTargetAttribute():
         attribute_name = mangleAttributeName(
@@ -1613,15 +1515,14 @@ def generateAssignmentInplaceCode( statement, context ):
             node           = target
         )
 
-        code = Generator.getInplaceAttributeAssignmentCode(
-            target     = makeExpressionCode(
-                expression = target.getLookupSource()
-            ),
-            attribute  = context.getConstantHandle( attribute_name ),
-            operator   = statement.getOperator(),
-            identifier = makeExpressionCode(
-                expression = statement.getExpression()
-            )
+        code = Generator.getAttributeDelCode(
+            target    = makeExpressionCode( target.getLookupSource() ),
+            attribute = context.getConstantHandle( constant = attribute_name )
+        )
+    elif target.isAssignTargetVariable():
+        code = Generator.getVariableDelCode(
+            variable = target.getTargetVariableRef().getVariable(),
+            context  = context
         )
     elif target.isAssignTargetSlice():
         lower = target.getLower()
@@ -1635,17 +1536,13 @@ def generateAssignmentInplaceCode( statement, context ):
                 context   = context
             )
 
-            code = Generator.getInplaceSliceAssignmentCode(
-                target     = target_identifier,
-                lower      = lower_identifier,
-                upper      = upper_identifier,
-                operator   = statement.getOperator(),
-                identifier = makeExpressionCode(
-                    expression = statement.getExpression()
-                )
+            code = Generator.getSliceDelCode(
+                target = target_identifier,
+                lower  = lower_identifier,
+                upper  = upper_identifier
             )
         else:
-            return Generator.getInplaceSubscriptAssignmentCode(
+            code = Generator.getSubscriptDelCode(
                 subscribed  = generateExpressionCode(
                     expression = target.getLookupSource(),
                     context    = context
@@ -1663,17 +1560,12 @@ def generateAssignmentInplaceCode( statement, context ):
                     ),
                     step    = None
                 ),
-                operator   = statement.getOperator(),
-                identifier = makeExpressionCode(
-                    expression = statement.getExpression()
-                )
             )
+
     else:
-        assert False, ( "not supported for inplace assignment", target, target.getSourceReference() )
+        assert False, target
 
     return code
-
-
 
 def _generateEvalCode( node, context ):
     globals_value = node.getGlobals()
@@ -2150,6 +2042,17 @@ def generateWithCode( statement, context ):
         context                 = context
     )
 
+def generateTempBlock( statement, context ):
+    body_codes = generateStatementSequenceCode(
+        statement_sequence = statement.getBody(),
+        context            = context
+    )
+
+    return Generator.getBlockCode(
+        body_codes
+    )
+
+
 def generateReturnCode( statement, context ):
     parent_function = statement.getParentFunction()
 
@@ -2188,21 +2091,18 @@ def _generateStatementCode( statement, context ):
         )
 
     if statement.isStatementAssignment():
-        source = statement.getSource()
-
-        if source is not None:
-            code = generateAssignmentCode(
-                targets   = statement.getTargets(),
-                value     = makeExpressionCode( source ),
-                context   = context
-            )
-        else:
-            code = generateDelCode(
-                targets   = statement.getTargets(),
-                context   = context
-            )
-    elif statement.isStatementAssignmentInplace():
-        code = generateAssignmentInplaceCode(
+        code = generateAssignmentCode(
+            targets   = statement.getTargets(),
+            value     = makeExpressionCode( statement.getSource() ),
+            context   = context
+        )
+    elif statement.isStatementDel():
+        code = generateDelCode(
+            target  = statement.getTarget(),
+            context = context
+        )
+    elif statement.isStatementTempBlock():
+        code = generateTempBlock(
             statement = statement,
             context   = context
         )
@@ -2294,7 +2194,7 @@ def _generateStatementCode( statement, context ):
     elif statement.isStatementDeclareGlobal():
         code = ""
     elif statement.isStatementPass():
-        code = ""
+        raise AssertionError( "Error, this should not reach here!", statement )
     else:
         assert False, statement.__class__
 

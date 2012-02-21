@@ -65,6 +65,11 @@ class CPythonAssignTargetVariable( CPythonExpressionChildrenHavingBase ):
 
     getTargetVariableRef = CPythonExpressionChildrenHavingBase.childGetter( "variable_ref" )
 
+    def makeCloneAt( self, source_ref ):
+        return CPythonAssignTargetVariable(
+            variable_ref = self.getTargetVariableRef().makeCloneAt( source_ref ),
+            source_ref   = source_ref
+        )
 
 class CPythonAssignTargetAttribute( CPythonExpressionChildrenHavingBase ):
     kind = "ASSIGN_TARGET_ATTRIBUTE"
@@ -93,6 +98,13 @@ class CPythonAssignTargetAttribute( CPythonExpressionChildrenHavingBase ):
 
     getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 
+    def makeCloneAt( self, source_ref ):
+        return CPythonAssignTargetAttribute(
+            expression     = self.getLookupSource(),
+            attribute_name = self.getAttributeName(),
+            source_ref     = source_ref
+        )
+
 
 class CPythonAssignTargetSubscript( CPythonExpressionChildrenHavingBase ):
     kind = "ASSIGN_TARGET_SUBSCRIPT"
@@ -112,6 +124,13 @@ class CPythonAssignTargetSubscript( CPythonExpressionChildrenHavingBase ):
     getSubscribed = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
     getSubscript = CPythonExpressionChildrenHavingBase.childGetter( "subscript" )
 
+    def makeCloneAt( self, source_ref ):
+        return CPythonAssignTargetSubscript(
+            expression = self.getSubscribed(),
+            subscript  = self.getSubscript(),
+            source_ref = source_ref
+        )
+
 
 class CPythonAssignTargetSlice( CPythonExpressionChildrenHavingBase ):
     kind = "ASSIGN_TARGET_SLICE"
@@ -130,8 +149,16 @@ class CPythonAssignTargetSlice( CPythonExpressionChildrenHavingBase ):
         )
 
     getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
-    getUpper = CPythonExpressionChildrenHavingBase.childGetter( "upper" )
     getLower = CPythonExpressionChildrenHavingBase.childGetter( "lower" )
+    getUpper = CPythonExpressionChildrenHavingBase.childGetter( "upper" )
+
+    def makeCloneAt( self, source_ref ):
+        return CPythonAssignTargetSlice(
+            expression = self.getLookupSource(),
+            lower      = self.getLower(),
+            upper      = self.getUpper(),
+            source_ref = source_ref
+        )
 
 
 class CPythonAssignTargetTuple( CPythonExpressionChildrenHavingBase ):
@@ -208,29 +235,22 @@ class CPythonStatementAssignment( CPythonChildrenHaving, CPythonNodeBase ):
     getSource = CPythonChildrenHaving.childGetter( "source" )
 
 
-class CPythonStatementAssignmentInplace( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "STATEMENT_ASSIGNMENT_INPLACE"
+class CPythonStatementDel( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "STATEMENT_DEL"
 
-    named_children = ( "target", "expression" )
+    named_children = ( "target", )
 
-    def __init__( self, target, operator, expression, source_ref ):
+    def __init__( self, target, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
             values = {
-                "expression" : expression,
-                "target"     : target
+                "target" : target
             }
         )
 
-        self.operator = operator
-
     def getDetail( self ):
-        return "to %s" % self.getTarget()
-
-    def getOperator( self ):
-        return self.operator
+        return "Del of %s" % self.getTarget()
 
     getTarget = CPythonChildrenHaving.childGetter( "target" )
-    getExpression = CPythonChildrenHaving.childGetter( "expression" )

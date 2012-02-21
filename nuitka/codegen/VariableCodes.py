@@ -67,9 +67,14 @@ def getVariableHandle( context, variable ):
             module_code_name = context.getModuleCodeName()
         )
     elif variable.isTempVariableReference():
-        return context.getTempHandle(
-            var_name = var_name
-        )
+        if variable.getOwner().isClosureVariableTaker():
+            return context.getTempObjectHandle(
+                var_name = var_name
+            )
+        else:
+            return context.getTempVarHandle(
+                var_name = var_name
+            )
     else:
         assert False, variable
 

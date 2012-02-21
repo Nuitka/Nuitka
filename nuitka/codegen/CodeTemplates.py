@@ -41,7 +41,6 @@ from .templates.CodeTemplatesContraction import *
 
 from .templates.CodeTemplatesParameterParsing import *
 
-from .templates.CodeTemplatesAssignments import *
 from .templates.CodeTemplatesExceptions import *
 from .templates.CodeTemplatesImporting import *
 from .templates.CodeTemplatesPrinting import *
