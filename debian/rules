@@ -9,7 +9,6 @@ override_dh_auto_install:
 override_dh_auto_build:
 	rst2pdf README.txt || dpkg --compare-versions `rst2pdf --version 2>/dev/null` lt 0.16
 	rst2pdf Developer_Manual.rst || dpkg --compare-versions `rst2pdf --version 2>/dev/null` lt 0.16
-	rst2pdf Changelog.rst || dpkg --compare-versions `rst2pdf --version 2>/dev/null` lt 0.16
 	cp Changelog.rst changelog
 
 override_dh_auto_test:
