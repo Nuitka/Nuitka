@@ -245,7 +245,7 @@ def buildClassNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-def buildParameterSpec( node ):
+def buildParameterSpec( name, node, source_ref ):
     kind = getKind( node )
 
     assert kind in ( "FunctionDef", "Lambda" ), "unsupported for kind " + kind
@@ -258,7 +258,7 @@ def buildParameterSpec( node ):
 
             return arg.arg
         elif getKind( arg ) == "Tuple":
-            return tuple( [ extractArg( arg ) for arg in arg.elts ] )
+            return tuple( extractArg( arg ) for arg in arg.elts )
         else:
             assert False, getKind( arg )
 
@@ -267,12 +267,23 @@ def buildParameterSpec( node ):
     kwargs = node.args.kwarg
     varargs = node.args.vararg
 
-    return ParameterSpec(
+    result = ParameterSpec(
+        name           = name,
         normal_args    = argnames,
         list_star_arg  = varargs,
         dict_star_arg  = kwargs,
         default_count  = len( node.args.defaults )
     )
+
+    message = result.checkValid()
+
+    if message is not None:
+        SyntaxErrors.raiseSyntaxError(
+            message,
+            source_ref
+        )
+
+    return result
 
 def buildFunctionNode( provider, node, source_ref ):
     assert getKind( node ) == "FunctionDef"
@@ -291,7 +302,7 @@ def buildFunctionNode( provider, node, source_ref ):
         provider   = real_provider,
         name       = node.name,
         doc        = function_doc,
-        parameters = buildParameterSpec( node ),
+        parameters = buildParameterSpec( node.name, node, source_ref ),
         source_ref = source_ref
     )
 
@@ -360,7 +371,7 @@ def buildLambdaNode( provider, node, source_ref ):
         provider   = real_provider,
         name       = "<lambda>",
         doc        = None,
-        parameters = buildParameterSpec( node ),
+        parameters = buildParameterSpec( "<lambda>", node, source_ref ),
         source_ref = source_ref,
     )
 
@@ -884,7 +895,13 @@ def _buildContractionNode( provider, node, builder_class, body_class, list_contr
             provider   = provider,
             name       = "pseudo",
             doc        = None,
-            parameters = ParameterSpec( ( "_iterated", ), None, None, 0 ),
+            parameters = ParameterSpec(
+                name          = "pseudo",
+                normal_args   = ( "_iterated", ),
+                list_star_arg = None,
+                dict_star_arg = None,
+                default_count = 0
+            ),
             source_ref = source_ref
         )
 

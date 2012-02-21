@@ -41,16 +41,16 @@ import sys
 
 class BuiltinParameterSpec( ParameterSpec ):
     def __init__( self, name, arg_names, default_count, list_star_arg = None, dict_star_arg = None ):
-        self.name = name
-        self.builtin = __builtins__[ name ]
-
         ParameterSpec.__init__(
             self,
+            name           = name,
             normal_args    = arg_names,
             list_star_arg  = list_star_arg,
             dict_star_arg  = dict_star_arg,
             default_count  = default_count
         )
+
+        self.builtin = __builtins__[ name ]
 
     def __repr__( self ):
         return "<BuiltinParameterSpec %s>" % self.name
