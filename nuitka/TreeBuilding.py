@@ -92,7 +92,8 @@ from .nodes.StatementNodes import (
     CPythonStatementExpressionOnly,
     CPythonStatementDeclareGlobal,
     CPythonStatementsSequence,
-    CPythonStatementPass
+    CPythonStatementPass,
+    mergeStatements
 )
 from .nodes.ImportNodes import (
     CPythonExpressionImportModule,
@@ -178,22 +179,15 @@ def buildVariableReferenceNode( node, source_ref ):
         source_ref    = source_ref
     )
 
-def buildStatementsNode( provider, nodes, source_ref, allow_none = False ):
-    if nodes is None and allow_none:
+def buildStatementsNode( provider, nodes, source_ref ):
+    if nodes is None:
         return None
 
     statements = buildNodeList( provider, nodes, source_ref )
+    statements = mergeStatements( statements )
 
-    if not statements and allow_none:
+    if not statements:
         return None
-
-    return CPythonStatementsSequence(
-        statements = statements,
-        source_ref = source_ref
-    )
-
-def buildLoopBodyNode( provider, nodes, source_ref ):
-    statements = buildNodeList( provider, nodes, source_ref )
 
     return CPythonStatementsSequence(
         statements = statements,
@@ -219,7 +213,7 @@ def buildClassNode( provider, node, source_ref ):
         body = buildStatementsNode(
             provider   = class_body,
             nodes      = class_statements,
-            source_ref = source_ref,
+            source_ref = source_ref
         )
     else:
         body = None
@@ -302,10 +296,11 @@ def buildFunctionNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-    if function_statements:
-        function_statements_body = buildStatementsNode( function_body, function_statements, source_ref )
-    else:
-        function_statements_body = None
+    function_statements_body = buildStatementsNode(
+        provider   = function_body,
+        nodes      = function_statements,
+        source_ref = source_ref
+    )
 
     function_body.setBody( function_statements_body )
 
@@ -416,12 +411,15 @@ def buildForLoopNode( provider, node, source_ref ):
             source_ref  = source.getSourceReference()
         ),
         target     = buildAssignTarget( provider, node.target, source_ref ),
-        body       = buildLoopBodyNode( provider, node.body, source_ref ),
+        body       = buildStatementsNode(
+            provider   = provider,
+            nodes      = node.body,
+            source_ref = source_ref
+        ),
         no_break   = buildStatementsNode(
             provider   = provider,
             nodes      = node.orelse if node.orelse else None,
-            source_ref = source_ref,
-            allow_none = True
+            source_ref = source_ref
         ),
         source_ref = source_ref
     )
@@ -429,12 +427,15 @@ def buildForLoopNode( provider, node, source_ref ):
 def buildWhileLoopNode( provider, node, source_ref ):
     return CPythonStatementWhileLoop(
         condition  = buildNode( provider, node.test, source_ref ),
-        body       = buildLoopBodyNode( provider, node.body, source_ref ),
+        body       = buildStatementsNode(
+            provider   = provider,
+            nodes      = node.body,
+            source_ref = source_ref
+        ),
         no_enter   = buildStatementsNode(
             provider   = provider,
             nodes      = node.orelse if node.orelse else None,
-            source_ref = source_ref,
-            allow_none = True
+            source_ref = source_ref
         ),
         source_ref = source_ref
     )
@@ -1068,12 +1069,15 @@ def buildComparisonNode( provider, node, source_ref ):
 def buildConditionNode( provider, node, source_ref ):
     return CPythonStatementConditional(
         condition  = buildNode( provider, node.test, source_ref ),
-        yes_branch = buildStatementsNode( provider, node.body, source_ref ),
+        yes_branch = buildStatementsNode(
+            provider   = provider,
+            nodes      = node.body,
+            source_ref = source_ref
+        ),
         no_branch  = buildStatementsNode(
             provider   = provider,
             nodes      = node.orelse if node.orelse else None,
-            source_ref = source_ref,
-            allow_none = True
+            source_ref = source_ref
         ),
         source_ref = source_ref
     )
@@ -1089,22 +1093,42 @@ def buildTryExceptionNode( provider, node, source_ref ):
                 exception_type = buildNode( provider, exception_expression, source_ref, True ),
                 target         = buildAssignTarget
                 ( provider, exception_assign, source_ref, True ),
-                body           = buildStatementsNode( provider, exception_block, source_ref ),
+                body           = buildStatementsNode(
+                    provider   = provider,
+                    nodes      = exception_block,
+                    source_ref = source_ref
+                ),
                 source_ref     = source_ref
             )
         )
 
     return CPythonStatementTryExcept(
-        tried      = buildStatementsNode( provider, node.body, source_ref ),
+        tried      = buildStatementsNode(
+            provider   = provider,
+            nodes      = node.body,
+            source_ref = source_ref
+        ),
         handlers   = handlers,
-        no_raise   = buildStatementsNode( provider, node.orelse, source_ref, True ),
+        no_raise   = buildStatementsNode(
+            provider   = provider,
+            nodes      = node.orelse,
+            source_ref = source_ref
+        ),
         source_ref = source_ref
     )
 
 def buildTryFinallyNode( provider, node, source_ref ):
     return CPythonStatementTryFinally(
-        tried      = buildStatementsNode( provider, node.body, source_ref ),
-        final      = buildStatementsNode( provider, node.finalbody, source_ref ),
+        tried      = buildStatementsNode(
+            provider   = provider,
+            nodes      = node.body,
+            source_ref = source_ref
+        ),
+        final      = buildStatementsNode(
+            provider   = provider,
+            nodes      = node.finalbody,
+            source_ref = source_ref
+        ),
         source_ref = source_ref
     )
 
@@ -1324,7 +1348,7 @@ def _buildImportModulesNode( import_names, source_ref ):
     # Note: Each import is sequential. It can succeed, and the failure of a later one is
     # not changing one. We can therefore have a sequence of imports that only import one
     # thing therefore.
-    return CPythonStatementsSequence(
+    return _makeStatementsSequenceOrStatement(
         statements = import_nodes,
         source_ref = source_ref
     )
@@ -2146,10 +2170,11 @@ def buildParseTree( provider, source_code, source_ref, replacement ):
 
     body, doc = _extractDocFromBody( body )
 
-    result = buildStatementsNode( provider, body, source_ref )
-
-    if not result.getStatements():
-        result = None
+    result = buildStatementsNode(
+        provider   = provider,
+        nodes      = body,
+        source_ref = source_ref
+    )
 
     if not replacement:
         provider.setDoc( doc )

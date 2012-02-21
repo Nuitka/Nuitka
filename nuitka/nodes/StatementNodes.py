@@ -32,6 +32,21 @@
 
 from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
 
+def mergeStatements( statements ):
+    """ Helper function that merges nested statement sequences. """
+    merged_statements = []
+
+    for statement in statements:
+        if statement.isStatementPass():
+            pass # Ironic, isn't it?
+        elif statement.isStatement():
+            merged_statements.append( statement )
+        elif statement.isStatementsSequence():
+            merged_statements.extend( mergeStatements( statement.getStatements() ) )
+        else:
+            assert False, statement
+
+    return merged_statements
 
 class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENTS_SEQUENCE"
@@ -39,27 +54,26 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
     named_children = ( "statements", )
 
     def __init__( self, statements, source_ref ):
-        merged_statements = []
-
-        for statement in statements:
-            if statement.isStatement():
-                merged_statements.append( statement )
-            elif statement.isStatementsSequence():
-                merged_statements.extend( statement.getStatements() )
-            else:
-                assert False, statement
-
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
             values = {
-                "statements" : tuple( merged_statements )
+                "statements" : tuple( statements )
             }
         )
 
     getStatements = CPythonChildrenHaving.childGetter( "statements" )
     setStatements = CPythonChildrenHaving.childSetterNotNone( "statements" )
+
+    def setChild( self, name, value ):
+        assert name == "statements"
+
+        return CPythonChildrenHaving.setChild(
+            self,
+            name  = name,
+            value = mergeStatements( value )
+        )
 
     # Overloading automatic check, so that derived ones know it too.
     def isStatementsSequence( self ):
@@ -82,6 +96,7 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
 
         statements = list( self.getStatements() )
         statements.remove( statement )
+
         self.setChild( "statements", statements )
 
     def mergeStatementsSequence( self, statement_sequence ):

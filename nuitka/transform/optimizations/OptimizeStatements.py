@@ -35,8 +35,6 @@ also removes useless try/except or try/finally statements.
 
 from .OptimizeBase import OptimizationVisitorBase, TreeOperations
 
-from nuitka.nodes.StatementNodes import CPythonStatementPass
-
 from nuitka.nodes.NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode
 )
@@ -58,17 +56,20 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
                 new_node = node.getBranchNo()
 
             if new_node is None:
-                new_node = CPythonStatementPass(
-                    source_ref = node.getSourceReference()
-                )
-
-            node.replaceWith( new_node )
+                if len( node.getParent().getStatements() ) == 1:
+                    node.getParent().replaceWith( None )
+                else:
+                    node.getParent().removeStatement( node )
+            else:
+                node.replaceWith( new_node )
 
             self.signalChange(
                 "new_statements",
                 node.getSourceReference(),
                 "Condition for branch was predicted to be always %s." % choice
             )
+
+            raise TreeOperations.ExitNodeVisit
         else:
             no_branch = node.getBranchNo()
 
@@ -98,6 +99,8 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
                     "Both branches have no effect, drop conditional."
                 )
 
+                raise TreeOperations.ExitNodeVisit
+
     def _optimizeForLoop( self, node ):
         no_break = node.getNoBreak()
 
@@ -121,16 +124,19 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
             parent = node.getParent()
 
             if parent.isStatementsSequence():
+                assert False, node
+
                 parent.mergeStatementsSequence( node )
 
                 raise TreeOperations.RestartVisit
         elif node.isStatementExpressionOnly():
             if node.getExpression().isExpressionConstantRef():
-                new_node = CPythonStatementPass(
-                    source_ref = node.getSourceReference()
-                )
+                parent = node.getParent()
 
-                node.replaceWith( new_node )
+                if len( parent.getStatements() ) == 1:
+                    parent.replaceWith( None )
+                else:
+                    parent.removeStatement( node )
         elif node.isStatementConditional():
             self._optimizeConstantConditionalOperation(
                 node = node
@@ -186,35 +192,48 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
                 new_node = node.getBlockNoRaise()
 
                 if new_node is None:
-                    new_node = CPythonStatementPass(
-                        source_ref = node.getSourceReference()
-                    )
-
-                node.replaceWith( new_node )
+                    if len( node.getParent().getStatements() ) == 1:
+                        node.getParent().replaceWith( None )
+                    else:
+                        node.getParent().removeStatement( node )
+                else:
+                    node.replaceWith( new_node )
 
                 self.signalChange(
                     "new_statements",
                     node.getSourceReference(),
                     "Try/except was predicted to never raise, removing exception handling and guard."
                 )
+
+                raise TreeOperations.RestartVisit
         elif node.isStatementTryFinally():
             if node.getBlockTry() is None:
                 new_node = node.getBlockFinal()
 
                 if new_node is None:
-                    new_node = CPythonStatementPass(
-                        source_ref = node.getSourceReference()
-                    )
-
-                node.replaceWith( new_node )
+                    if len( node.getParent().getStatements() ) == 1:
+                        node.getParent().replaceWith( None )
+                    else:
+                        node.getParent().removeStatement( node )
+                else:
+                    node.replaceWith( new_node )
 
                 self.signalChange(
                     "new_statements",
                     node.getSourceReference(),
                     "Try/finally was predicted to never raise, removing 'final' nature of the block."
                 )
+
+                raise TreeOperations.RestartVisit
             elif node.getBlockFinal() is None:
                 new_node = node.getBlockTry()
 
+                self.signalChange(
+                    "new_statements",
+                    node.getSourceReference(),
+                    "Finally was predicted to not do anything, removing 'final' nature of the block."
+                )
 
                 node.replaceWith( new_node )
+
+                raise TreeOperations.RestartVisit

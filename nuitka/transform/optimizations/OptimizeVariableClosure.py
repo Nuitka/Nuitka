@@ -40,7 +40,6 @@ from .OptimizeBase import (
 )
 
 from nuitka.nodes.UsageCheck import getVariableUsages
-from nuitka.nodes.StatementNodes import CPythonStatementPass
 
 from nuitka.nodes.NodeBases import CPythonClosureGiverNodeBase
 
@@ -108,11 +107,10 @@ class VariableClosureLookupVisitorPhase1( OptimizationVisitorScopedBase ):
 
             # Remove the global statement, so we don't repeat this ever, the effect of
             # above is permanent.
-            node.replaceWith(
-                new_node = CPythonStatementPass(
-                    source_ref = source_ref
-                )
-            )
+            if len( node.getParent().getStatements() ) == 1:
+                node.getParent().replaceWith( None )
+            else:
+                node.getParent().removeStatement( node )
 
 
 class VariableClosureLookupVisitorPhase2( OptimizationVisitorScopedBase ):
