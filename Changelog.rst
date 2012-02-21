@@ -19,6 +19,9 @@ Bug fixes
 - The "from x import \*" didn't give a "SyntaxError" when used on Python3. Fixed in release
   0.3.19.2 already.
 
+- The syntax error messages for "global for function argument name" and "duplicate function
+  argument name" are now identical as well.
+
 New Features
 ------------
 
@@ -156,6 +159,10 @@ New Tests
 - Added some more diagnostic tests about complex assignment and "del" statements.
 
 - Added syntax test for star import on function level, that should fail on Python3.
+
+- Added syntax test for duplicate argument name.
+
+- Added syntax test for global on a function argument name.
 
 Summary
 -------
