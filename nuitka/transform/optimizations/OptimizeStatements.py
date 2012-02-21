@@ -145,48 +145,6 @@ class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
             self._optimizeForLoop(
                 node = node
             )
-        elif node.isStatementPass():
-            parent = node.getParent()
-
-            statements = parent.getStatements()
-
-            if len( statements ) == 1:
-                owner = parent.getParent()
-
-                # TODO: Make use of tag to be added "empty_body"
-                if owner.isStatementConditional():
-                    parent.replaceWith( None )
-                elif owner.isStatementForLoop():
-                    parent.replaceWith( None )
-                elif owner.isStatementWhileLoop():
-                    parent.replaceWith( None )
-                elif owner.isStatementWith():
-                    parent.replaceWith( None )
-                elif owner.isStatementTryExcept():
-                    parent.replaceWith( None )
-                elif owner.isStatementTryFinally():
-                    parent.replaceWith( None )
-                elif owner.isStatementExceptHandler():
-                    parent.replaceWith( None )
-                elif owner.isExpressionFunctionBody():
-                    parent.replaceWith( None )
-                elif owner.isExpressionClassBody():
-                    parent.replaceWith( None )
-                elif owner.isModule():
-                    parent.replaceWith( None )
-                else:
-                    warning( "Discovered pass statement %s owned by %s", node, owner )
-
-                self.signalChange(
-                    "new_statements",
-                    node.getSourceReference(),
-                    "Empty statements sequence was removed."
-                )
-            else:
-                parent.removeStatement( node )
-
-                # TODO: Should only re-visit this node.
-                raise TreeOperations.RestartVisit
         elif node.isStatementTryExcept():
             if node.getBlockTry() is None:
                 new_node = node.getBlockNoRaise()

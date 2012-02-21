@@ -2193,8 +2193,6 @@ def _generateStatementCode( statement, context ):
         )
     elif statement.isStatementDeclareGlobal():
         code = ""
-    elif statement.isStatementPass():
-        raise AssertionError( "Error, this should not reach here!", statement )
     else:
         assert False, statement.__class__
 

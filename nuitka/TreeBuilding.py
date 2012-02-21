@@ -92,7 +92,6 @@ from .nodes.StatementNodes import (
     CPythonStatementExpressionOnly,
     CPythonStatementDeclareGlobal,
     CPythonStatementsSequence,
-    CPythonStatementPass,
     mergeStatements
 )
 from .nodes.ImportNodes import (
@@ -183,7 +182,7 @@ def buildStatementsNode( provider, nodes, source_ref ):
     if nodes is None:
         return None
 
-    statements = buildNodeList( provider, nodes, source_ref )
+    statements = buildNodeList( provider, nodes, source_ref, True )
     statements = mergeStatements( statements )
 
     if not statements:
@@ -1507,13 +1506,17 @@ def buildWithNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-def buildNodeList( provider, nodes, source_ref ):
+def buildNodeList( provider, nodes, source_ref, allow_none = False ):
     if nodes is not None:
-        return [
-            buildNode( provider, node, source_ref.atLineNumber( node.lineno ) )
-            for node in
-            nodes
-        ]
+        result = []
+
+        for node in nodes:
+            entry = buildNode( provider, node, source_ref.atLineNumber( node.lineno ), allow_none )
+
+            if entry is not None:
+                result.append( entry )
+
+        return result
     else:
         return []
 
@@ -2105,7 +2108,6 @@ _fast_path_args2 = {
 _fast_path_args1 = {
     "Continue" : CPythonStatementContinueLoop,
     "Break"    : CPythonStatementBreakLoop,
-    "Pass"     : CPythonStatementPass,
 }
 
 def buildNode( provider, node, source_ref, allow_none = False ):
@@ -2118,20 +2120,22 @@ def buildNode( provider, node, source_ref, allow_none = False ):
         source_ref = source_ref.atLineNumber( node.lineno )
 
         if kind in _fast_path_args3:
-            result = _fast_path_args3[kind](
+            result = _fast_path_args3[ kind ](
                 provider   = provider,
                 node       = node,
                 source_ref = source_ref
             )
         elif kind in _fast_path_args2:
-            result = _fast_path_args2[kind](
+            result = _fast_path_args2[ kind ](
                 node       = node,
                 source_ref = source_ref
             )
         elif kind in _fast_path_args1:
-            result = _fast_path_args1[kind](
+            result = _fast_path_args1[ kind ](
                 source_ref = source_ref
             )
+        elif kind == "Pass" and allow_none:
+            return None
         else:
             assert False, kind
 

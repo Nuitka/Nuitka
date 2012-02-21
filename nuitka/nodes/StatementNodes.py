@@ -37,9 +37,7 @@ def mergeStatements( statements ):
     merged_statements = []
 
     for statement in statements:
-        if statement.isStatementPass():
-            pass # Ironic, isn't it?
-        elif statement.isStatement():
+        if statement.isStatement():
             merged_statements.append( statement )
         elif statement.isStatementsSequence():
             merged_statements.extend( mergeStatements( statement.getStatements() ) )
@@ -142,16 +140,6 @@ class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
         return "expression %s" % self.getExpression()
 
     getExpression = CPythonChildrenHaving.childGetter( "expression" )
-
-
-class CPythonStatementPass( CPythonNodeBase ):
-    kind = "STATEMENT_PASS"
-
-    def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-    def mayHaveSideEffects( self ):
-        return False
 
 
 class CPythonStatementDeclareGlobal( CPythonNodeBase ):
