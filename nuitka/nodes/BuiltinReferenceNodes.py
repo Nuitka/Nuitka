@@ -40,7 +40,7 @@ from .NodeBases import CPythonNodeBase, CPythonExpressionMixin
 
 from .ConstantRefNode import CPythonExpressionConstantRef
 
-from nuitka.Builtins import builtin_names, builtin_exception_names
+from nuitka.Builtins import builtin_names, builtin_exception_names, builtin_exception_values
 
 class CPythonExpressionBuiltinRefBase( CPythonNodeBase, CPythonExpressionMixin ):
     def __init__( self, builtin_name, source_ref ):
@@ -77,6 +77,13 @@ class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
     def isExpressionBuiltin( self ):
         # Means if it's a builtin function call.
         return False
+
+    def isCompileTimeConstant( self ):
+        # Virtual method, pylint: disable=R0201
+        return True
+
+    def getCompileTimeConstant( self ):
+        return __builtins__[ self.builtin_name ]
 
     def computeNode( self ):
         quick_names = {
@@ -120,6 +127,13 @@ class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
     def isExpressionBuiltin( self ):
         # Means if it's a builtin function call.
         return False
+
+    def isCompileTimeConstant( self ):
+        # Virtual method, pylint: disable=R0201
+        return True
+
+    def getCompileTimeConstant( self ):
+        return builtin_exception_values[ self.builtin_name ]
 
     def computeNode( self ):
         return self, None, None

@@ -38,6 +38,12 @@ try:
         str( x ) for x in dir( exceptions )
         if x.endswith( "Error" ) or x in ( "StopIteration", "GeneratorExit" )
     ]
+
+    builtin_exception_values = {}
+
+    for key in builtin_exception_names:
+        builtin_exception_values[ key ] = getattr( exceptions, key )
+
 except ImportError:
     exceptions = {}
 
@@ -52,6 +58,11 @@ except ImportError:
     builtin_exception_names = [
         key for key, value in exceptions.items()
     ]
+
+    builtin_exception_values = {}
+
+    for key, value in exceptions.items():
+        builtin_exception_values[ key ] = value
 
 assert "ValueError" in builtin_exception_names
 assert "StopIteration" in builtin_exception_names
