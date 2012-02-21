@@ -1545,7 +1545,13 @@ def buildGlobalDeclarationNode( provider, node, source_ref ):
 
         for variable_name in node.names:
             if variable_name in parameters.getParameterNames():
-                raise SyntaxError( "global for parameter name" )
+                SyntaxErrors.raiseSyntaxError(
+                    "name '%s' is %s and global" % (
+                        variable_name,
+                        "local" if Utils.getPythonVersion() < 300 else "parameter"
+                    ),
+                    provider.getSourceReference()
+                )
     except AttributeError:
         pass
 
