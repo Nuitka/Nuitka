@@ -462,6 +462,30 @@ This removes the need for code generation to support decorators. And it should m
 two variants optimize equally well.
 
 
+Inplace Assignments
+-------------------
+
+Inplace assignments are be re-formulated to an expression using temporary variables.
+
+These are not as much a reformulation of "+=" to "+", but instead one which makes it
+explicit that the assign target may change its value.
+
+  .. code-block:: python
+
+     a += b
+
+  .. code-block:: python
+
+     _tmp = a.__iadd__( b )
+
+     if a is not _tmp:
+        a = _tmp
+
+Using "__iadd__" here to express that not the "+", but the in-place variant "iadd" is used
+instead. The "is" check may be optimized away depending on type and value knowledge later
+on.
+
+
 Plan to replace "python-qt" for the GUI
 =======================================
 
@@ -1318,29 +1342,6 @@ into action, which could be code changes, plan changes, issues created, etc.
   Is there any re-formulation of conditional expressions with "and" and "or" that is
   generally true?
 
-* Inplace assignments should be re-formulated from C++ templates to node based.
-
-  With temporary variables, that then need to be able to release references then, we can
-  have these in the node trees, making them easier to understand for optimization.
-
-  These are not as much a reformulation of "+=" to "+", but instead one which makes it
-  explicit that the assign target may change its value.
-
-  .. code-block:: python
-
-     a += b
-
-  .. code-block:: python
-
-     _tmp = a.__iadd__( b )
-
-     if a is not _tmp:
-        a = _tmp
-
-  Using "__iadd__" here to express that the in-place operation is like a attribute call,
-  that could be understood. For strings, e.g. it's not going to change a, and the result
-  would be similar to "a + b", so it could be reformulated in that case, and the "is not"
-  could be statically decided to apply or not, if "b" is not empty string.
 
 * Generator expressions should be re-formulated as functions.
 
@@ -1395,6 +1396,34 @@ into action, which could be code changes, plan changes, issues created, etc.
   and calling of "__enter__" and "__exit__" with arguments, should be presented there in
   order to be absolutely safe.
 
+* Assignments unpacking should use scoped temporary variables
+
+  .. code-block:: python
+
+     a, b.attr, c[ind] = d = e, f, g = h()
+
+  Can become this:
+
+  .. code-block:: python
+
+     _tmp = h()
+
+     _iter1 = iter( tmp )
+     _tmp1, _tmp2, tmp3 = unpack_and_check( _iter1, 3 )
+     a = _tmp1
+     b.attr = _tmp2
+     c[ind] = _tmp3
+     d = _tmp
+     _iter2 = iter( tmp )
+     _tmp4, _tmp5, tmp6 = unpack_and_check( _iter2, 3 )
+     e = _tmp2
+     f = _tmp3
+     g = _tmp
+
+  That will of course be a lot less inefficient, until we can value propagate as well as
+  in the past, which was working for constants. In these cases, the "iter" taking and the
+  and "unpack_and_check" calls can be optimized away again.
+
 * Code Templates may become objects.
 
   It should only wrap around the "%" operator and provide the ability to display the
@@ -1404,10 +1433,6 @@ into action, which could be code changes, plan changes, issues created, etc.
   Maybe they should overload "%" to start with it easily. And the code template could be
   the doc string of the class for simplicity.
 
-* The "pass" statement node must not reach code generation.
-
-  The pass statement is added by tree building, but supposed to be removed during
-  optimization, and that should be checked by removing its code generation.
 
 .. raw:: pdf
 
