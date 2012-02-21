@@ -62,7 +62,7 @@ def formatOutput( e ):
             reason
          )
 
-def raiseSyntaxError( reason, source_ref ):
+def raiseSyntaxError( reason, source_ref, col_offset = None ):
     source = open( source_ref.getFilename(), 'rU' ).readlines()
 
     raise SyntaxError(
@@ -70,7 +70,7 @@ def raiseSyntaxError( reason, source_ref ):
         (
             source_ref.getFilename(),
             source_ref.getLineNumber(),
-            None,
+            col_offset,
             source[ source_ref.getLineNumber() - 1 ],
         )
     )

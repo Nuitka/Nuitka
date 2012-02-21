@@ -1529,7 +1529,11 @@ def buildReturnNode( provider, node, source_ref ):
 
 def buildYieldNode( provider, node, source_ref ):
     if provider.isModule():
-        SyntaxErrors.raiseSyntaxError( "'yield' outside function", source_ref )
+        SyntaxErrors.raiseSyntaxError(
+            "'yield' outside function",
+            source_ref,
+            None if Utils.getPythonVersion() < 300 else node.col_offset
+        )
 
     provider.markAsGenerator()
 
