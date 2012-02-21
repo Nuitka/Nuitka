@@ -38,8 +38,11 @@ in another context.
 
 """
 from nuitka.nodes import OverflowCheck
+from nuitka import Options
 
 from .FinalizeBase import FinalizationVisitorBase
+
+from logging import warning
 
 class FinalizeMarkups( FinalizationVisitorBase ):
     def onEnterNode( self, node ):
@@ -108,3 +111,6 @@ class FinalizeMarkups( FinalizationVisitorBase ):
 
             if parent.isExpressionFunctionBody():
                 parent.markAsExecContaining()
+
+        if node.isExpressionBuiltinImport() and not Options.getShallFollowExtra():
+            warning( "Unresolved '__import__' call at '%s' may require use of '--recurse-directory' to be included." % node.getSourceReference().getAsString() )
