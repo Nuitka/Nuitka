@@ -1346,6 +1346,14 @@ def buildImportFromNode( provider, node, source_ref ):
         imports.append( object_name )
 
     if None in targets:
+        # Python3 made this a syntax error unfortunately.
+        if not provider.isModule() and Utils.getPythonVersion() >= 300:
+            SyntaxErrors.raiseSyntaxError(
+                "import * only allowed at module level",
+                provider.getSourceReference()
+            )
+
+
         return CPythonStatementImportStar(
             module_import = CPythonExpressionImportModule(
                 module_name = module_name,
