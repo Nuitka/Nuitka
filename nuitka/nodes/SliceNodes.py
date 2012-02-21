@@ -59,17 +59,18 @@ class CPythonExpressionSliceLookup( CPythonExpressionChildrenHavingBase ):
 
     getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 
-    getLower = CPythonExpressionChildrenHavingBase.childGetter( "lower" )
-    _setLower = CPythonExpressionChildrenHavingBase.childSetter( "lower" )
+    def setChild( self, name, value ):
+        if name in ( "lower", "upper" ):
+            value = convertNoneConstantToNone( value )
 
-    def setLower( self, value ):
-        self._setLower( convertNoneConstantToNone( value ) )
+        return CPythonExpressionChildrenHavingBase.setChild( self, name, value )
+
+
+    getLower = CPythonExpressionChildrenHavingBase.childGetter( "lower" )
+    setLower = CPythonExpressionChildrenHavingBase.childSetter( "lower" )
 
     getUpper = CPythonExpressionChildrenHavingBase.childGetter( "upper" )
-    _setUpper = CPythonExpressionChildrenHavingBase.childSetter( "upper" )
-
-    def setUpper( self, value ):
-        self._setUpper( convertNoneConstantToNone( value ) )
+    setUpper = CPythonExpressionChildrenHavingBase.childSetter( "upper" )
 
     def computeNode( self ):
         # There is a whole registry dedicated to this.

@@ -347,7 +347,10 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
 
     def replaceWith( self, new_node ):
-        self.parent.replaceChild( old_node = self, new_node = new_node )
+        self.parent.replaceChild(
+            old_node = self,
+            new_node = new_node
+        )
 
     def getName( self ):
         # Virtual method, pylint: disable=R0201,W0613
@@ -468,6 +471,9 @@ class CPythonChildrenHaving:
                     val.parent = self
             elif value is not None:
                 value.parent = self
+
+        for key in values.keys():
+            self.setChild( key, self.getChild( key ) )
 
     def setChild( self, name, value ):
         assert name in self.child_values, name

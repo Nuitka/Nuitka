@@ -95,11 +95,17 @@ class CPythonStatementExec( CPythonChildrenHaving, CPythonNodeBase ):
         CPythonChildrenHaving.__init__(
             self,
             values = {
-                "globals" : convertNoneConstantToNone( globals_arg ),
-                "locals"  : convertNoneConstantToNone( locals_arg ),
+                "globals" : globals_arg,
+                "locals"  : locals_arg,
                 "source"  : source_code
             }
         )
+
+    def setChild( self, name, value ):
+        if name in ( "globals", "locals" ):
+            value = convertNoneConstantToNone( value )
+
+        return CPythonChildrenHaving.setChild( self, name, value )
 
     getSourceCode = CPythonChildrenHaving.childGetter( "source" )
     getGlobals = CPythonChildrenHaving.childGetter( "globals" )
