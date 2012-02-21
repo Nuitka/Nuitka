@@ -193,13 +193,12 @@ def execute_tests( where, use_python, flags ):
         setExtraFlags( where, "basics", flags )
         executeSubTest( "./tests/basics/run_all.py search" )
 
+    if options.syntax_tests:
+        print( "Running the syntax tests with options '%s' with %s:"  % ( flags, use_python ) )
+        setExtraFlags( where, "syntax", flags )
+        executeSubTest( "./tests/syntax/run_all.py search" )
+
     if use_python != "python3.2":
-
-        if options.syntax_tests:
-            print( "Running the syntax tests with options '%s' with %s:"  % ( flags, use_python ) )
-            setExtraFlags( where, "syntax", flags )
-            executeSubTest( "./tests/syntax/run_all.py search" )
-
         if options.program_tests:
             print( "Running the program tests with options '%s' with %s:" % ( flags, use_python ) )
             setExtraFlags( where, "programs", flags )
