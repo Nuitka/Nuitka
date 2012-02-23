@@ -58,9 +58,8 @@ def isPackageDir( dirname ):
     return Utils.isDir( dirname ) and Utils.isFile( Utils.joinpath( dirname, "__init__.py" ))
 
 def findModule( source_ref, module_name, parent_package, level, warn = True ):
-    assert level < 2 or parent_package, (module_name, parent_package, level)
 
-    if level > 1:
+    if level > 1 and parent_package is not None:
         parent_package = ".".join( parent_package.split(".")[ : -level+1 ] )
 
         if parent_package == "":
