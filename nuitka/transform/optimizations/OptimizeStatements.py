@@ -39,8 +39,6 @@ from nuitka.nodes.NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode
 )
 
-from logging import warning
-
 class StatementSequencesCleanupVisitor( OptimizationVisitorBase ):
     def _optimizeConstantConditionalOperation( self, node ):
         condition = node.getCondition()

@@ -113,4 +113,8 @@ class FinalizeMarkups( FinalizationVisitorBase ):
                 parent.markAsExecContaining()
 
         if node.isExpressionBuiltinImport() and not Options.getShallFollowExtra():
-            warning( "Unresolved '__import__' call at '%s' may require use of '--recurse-directory' to be included." % node.getSourceReference().getAsString() )
+            warning( """\
+Unresolved '__import__' call at '%s' may require use of '--recurse-directory'.""" % (
+                    node.getSourceReference().getAsString()
+                )
+            )

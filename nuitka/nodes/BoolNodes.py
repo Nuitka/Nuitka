@@ -81,6 +81,12 @@ class CPythonExpressionBool2Base( CPythonExpressionChildrenHavingBase ):
         )
 
     def getSimulator( self ):
+        """ Simulation of the node operation, given some values.
+
+            The short circuit nature cannot be provided when calling this.
+        """
+
+        # Virtual method, pylint: disable=R0201
         raise SystemExit( "Fatal error, must overload getSimulator" )
 
 
@@ -92,7 +98,6 @@ class CPythonExpressionBoolOR( CPythonExpressionBool2Base ):
     kind = "EXPRESSION_BOOL_OR"
 
     def getSimulator( self ):
-        # Virtual method, pylint: disable=R0201
         # Virtual method, pylint: disable=R0201
         def simulateOR( *operands ):
             for operand in operands:
