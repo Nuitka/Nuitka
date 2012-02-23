@@ -92,9 +92,10 @@ class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
 
     def computeNode( self ):
         quick_names = {
-            "None"  : None,
-            "True"  : True,
-            "False" : False
+            "None"     : None,
+            "True"     : True,
+            "False"    : False,
+            "Ellipsis" : Ellipsis
         }
 
         if self.builtin_name in quick_names:
