@@ -43,3 +43,32 @@ try:
         print x
 except Exception, e:
     print e
+
+class NonContextManager1:
+    def __enter__( self ):
+        return self
+
+class NonContextManager2:
+    def __exit__( self ):
+        return self
+
+try:
+    with NonContextManager1() as x:
+        print x
+except Exception, e:
+    print e
+
+try:
+    with NonContextManager2() as x:
+        print x
+except Exception, e:
+    print e
+
+class NotAtAllContextManager:
+    pass
+
+try:
+    with NotAtAllContextManager() as x:
+        print x
+except Exception, e:
+    print e

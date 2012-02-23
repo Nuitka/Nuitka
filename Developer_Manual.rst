@@ -1342,7 +1342,6 @@ into action, which could be code changes, plan changes, issues created, etc.
   Is there any re-formulation of conditional expressions with "and" and "or" that is
   generally true?
 
-
 * Generator expressions should be re-formulated as functions.
 
   Generally they could be turned into nested creations of for loop function bodies with
@@ -1395,6 +1394,41 @@ into action, which could be code changes, plan changes, issues created, etc.
   The algorithm of "with" statements should be re-formulated in the node tree. The taking
   and calling of "__enter__" and "__exit__" with arguments, should be presented there in
   order to be absolutely safe.
+
+  .. code-block:: python
+
+     with some_context as x:
+         something( x )
+
+  .. code-block:: python
+
+     tmp_source = some_context
+
+     # Actually it needs to be "special lookup" for Python2.7, so attribute lookup won't
+     # be exactly it there.
+     tmp_exit = some_context.__exit__
+     tmp_enter = some_context.__enter__
+
+     # Actually it's unclear for how long the result must be kept, might be possible to
+     # delete immediately. Current code holds it during the execution of the with statement.
+     tmp_enter_result = tmp_enter()
+
+     try:
+        # Now the assignment is to be done, if there is any name for the manager given.
+        x = tmp_enter_result
+
+        # Then the code of the block.
+        something( x )
+     except Exception as e, tb: # Catching tb is not allowed syntax.
+        # Note: This part of the code must not set line numbers, we don't have a way to
+        # say that yet. Maybe the source_ref can be improved to indicate with flags to
+        # not do it.
+        tmp_exit_result = tmp_exit( type(e), e, tb )
+
+        if not tmp_exit_result:
+           raise
+     else:
+        tmp_exit( None, None, None )
 
 * Assignments unpacking should use scoped temporary variables
 
