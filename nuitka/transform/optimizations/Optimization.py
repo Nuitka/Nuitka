@@ -52,6 +52,10 @@ from .OptimizeUnpacking import ReplaceUnpackingVisitor
 from .OptimizeStatements import StatementSequencesCleanupVisitor
 from .OptimizeRaises import OptimizeRaisesVisitor
 
+# Populate slice registry
+from . import OptimizeSlices
+OptimizeSlices.register()
+
 from .Tags import TagSet
 
 from nuitka import Options, TreeRecursion
