@@ -96,7 +96,7 @@ class OptimizationVisitorBase( TreeOperations.VisitorNoopMixin ):
             )
 
             self.signalChange(
-                "new_raise new_variable",
+                "new_raise",
                 node.getSourceReference(),
                 description + " was predicted to raise an exception."
             )

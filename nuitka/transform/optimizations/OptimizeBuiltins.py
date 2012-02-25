@@ -71,7 +71,7 @@ class ReplaceBuiltinsExceptionsVisitor( OptimizationVisitorBase ):
                     node.replaceWith( new_node )
 
                     self.signalChange(
-                        "new_raise new_variable",
+                        "new_raise",
                         node.getSourceReference(),
                         message = "Replaced access to read only module variable with exception %s." % (
                            variable.getName()

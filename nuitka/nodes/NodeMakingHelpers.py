@@ -114,8 +114,7 @@ def getComputationResult( node, computation, description ):
             exception  = e
         )
 
-        # TODO: That's not really a variable there, is it?
-        change_tags = "new_raise new_variable"
+        change_tags = "new_raise"
         change_desc = description + " was predicted to raise an exception."
     else:
         new_node = makeConstantReplacementNode(

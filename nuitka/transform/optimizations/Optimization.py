@@ -81,7 +81,7 @@ def optimizeTree( tree ):
     tags.add( "new_code" )
 
     def refreshOptimizationsFromTags( optimizations_queue, tags ):
-        if tags.check( "new_code new_variable" ):
+        if tags.check( "new_code" ):
             optimizations_queue.update( VariableClosureLookupVisitors )
 
         if tags.check( "new_code new_import new_constant" ):
@@ -94,7 +94,7 @@ def optimizeTree( tree ):
         if tags.check( "new_code new_constant" ):
             optimizations_queue.add( ReplaceUnpackingVisitor )
 
-        if tags.check( "new_code new_variable" ):
+        if tags.check( "new_code" ):
             optimizations_queue.add( ModuleVariableUsageAnalysisVisitor )
 
         if tags.check( "new_code read_only_mvar" ):

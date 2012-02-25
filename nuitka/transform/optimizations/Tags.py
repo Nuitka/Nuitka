@@ -49,9 +49,6 @@ allowed_tags = (
     # New expression added.
     "new_expression",
 
-    # New variable usage pattern introduced.
-    "new_variable",
-
     # TODO: A bit unclear what this it, potentially a changed variable.
     "var_usage",
 
@@ -82,6 +79,7 @@ class TagSet( set ):
 
     def check( self, tags ):
         for tag in tags.split():
+            assert tag in allowed_tags, tag
 
             if tag in self:
                 return True

@@ -476,7 +476,7 @@ def computeBuiltinCall( call_node, called ):
             tags = "new_builtin"
             message = "Replaced call to builtin %s with builtin call." % new_node.kind
         elif new_node.isExpressionFunctionCall():
-            tags = "new_raise new_variable"
+            tags = "new_raise"
             message = "Replaced call to builtin %s with exception raising call." % new_node.kind
         elif new_node.isExpressionOperationUnary():
             tags = "new_expression"
