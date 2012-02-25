@@ -71,13 +71,13 @@ class CPythonExpressionBuiltinDict( CPythonExpressionChildrenHavingBase ):
     def hasOnlyConstantArguments( self ):
         pos_arg = self.getPositionalArgument()
 
-        if pos_arg is not None and not pos_arg.isExpressionConstantRef():
+        if pos_arg is not None and not pos_arg.isCompileTimeConstant():
             return False
 
         for arg_pair in self.getNamedArgumentPairs():
-            if not arg_pair.getKey().isExpressionConstantRef():
+            if not arg_pair.getKey().isCompileTimeConstant():
                 return False
-            if not arg_pair.getValue().isExpressionConstantRef():
+            if not arg_pair.getValue().isCompileTimeConstant():
                 return False
 
         return True

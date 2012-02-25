@@ -90,6 +90,7 @@ class CPythonExpressionImportModule( CPythonExpressionChildrenHavingBase ):
         # modules.
         return self, None, None
 
+
 class CPythonExpressionBuiltinImport( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_IMPORT"
 
@@ -127,6 +128,25 @@ class CPythonExpressionBuiltinImport( CPythonExpressionChildrenHavingBase ):
     getLevel = CPythonExpressionChildrenHavingBase.childGetter( "level" )
 
     def computeNode( self ):
+        module_name = self.getImportName()
+        fromlist = self.getFromList()
+        level = self.getLevel()
+
+        # TODO: In fact, if the module is not a package, we don't have to insist on the
+        # fromlist that much, but normally it's not used for anything but packages, so
+        # it will be rare.
+
+        if module_name.isExpressionConstantRef() and fromlist.isExpressionConstantRef() \
+             and level.isExpressionConstantRef():
+            new_node = CPythonExpressionImportModule(
+                module_name = module_name.getConstant(),
+                import_list = fromlist.getConstant(),
+                level       = level.getConstant(),
+                source_ref  = self.getSourceReference()
+            )
+
+            return new_node, "new_import", "Replaced __import__ call with module import expression."
+
         # TODO: May return a module or module variable reference of some sort in the
         # future with embedded modules.
         return self, None, None

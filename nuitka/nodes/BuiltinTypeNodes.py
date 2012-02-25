@@ -48,10 +48,12 @@ from nuitka.Utils import getPythonVersion
 class CPythonExpressionBuiltinTypeBase( CPythonExpressionBuiltinSingleArgBase ):
     pass
 
+
 class CPythonExpressionBuiltinTuple( CPythonExpressionBuiltinTypeBase ):
     kind = "EXPRESSION_BUILTIN_TUPLE"
 
     builtin_spec = BuiltinOptimization.builtin_tuple_spec
+
 
 class CPythonExpressionBuiltinList( CPythonExpressionBuiltinTypeBase ):
     kind = "EXPRESSION_BUILTIN_LIST"
