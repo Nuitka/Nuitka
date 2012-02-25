@@ -38,7 +38,6 @@ from .OptimizeConstantExec import OptimizeExecVisitor
 from .OptimizeVariableClosure import (
     VariableClosureLookupVisitors,
     ModuleVariableUsageAnalysisVisitor,
-    ModuleVariableReadOnlyVisitor,
     MaybeLocalVariableReductionVisitor
 )
 from .OptimizeBuiltins import (
@@ -98,9 +97,6 @@ def optimizeTree( tree ):
 
         if tags.check( "new_code" ):
             optimizations_queue.add( ModuleVariableUsageAnalysisVisitor )
-
-        if tags.check( "new_code read_only_mvar" ):
-            optimizations_queue.add( ModuleVariableReadOnlyVisitor )
 
         if tags.check( "new_code read_only_mvar" ):
             optimizations_queue.add( ReplaceBuiltinsExceptionsVisitor )
