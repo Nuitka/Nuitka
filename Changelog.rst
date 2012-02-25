@@ -22,6 +22,9 @@ Bug fixes
 - The syntax error messages for "global for function argument name" and "duplicate function
   argument name" are now identical as well.
 
+- Parameter values of generator function could cause compilation errors when used in the
+  closure of list contractions. Fixed.
+
 New Features
 ------------
 
@@ -33,8 +36,12 @@ New Features
 New Optimizations
 -----------------
 
+- Enhanced all optimizations that previously worked on "constants" to work on "compile
+  time constants" instead. A "compile time constant" can currently also be any form of a
+  builtin name or exception reference. It is intended to expand this in the future.
+
 - Added support for builtins "bin", "oct", and "hex", which also can be computed at
-  compile time, if their arguments are constant.
+  compile time, if their arguments are compile time constant.
 
 - Added support for the "iter" builtin in both forms, one and two arguments. These cannot
   be computed at compile time, but now will execute faster.
@@ -49,6 +56,24 @@ New Optimizations
 - Optimize the "__debug__" builtin constant as well. It cannot be assigned, yet code can
   determine a mode of operation from it, and apparently some code does. When compiling the
   mode is decided.
+
+- Optimize the "Ellipsis" builtin constant as well. It falls in the same category as
+  "True", "False", "None", i.e. names of builtin constants that a singletons.
+
+- Added support for anonymous builtin references, i.e. builtins which have names that are
+  not normally accessible. An example is "type(None)" which is not accessible from
+  anywhere. Other examples of such names are "compiled_method_or_function". Having these
+  as represented internally, and flagged as "compile time constants", allows the compiler
+  to make more compile time optimizations and to generate more efficient C++ code for it
+  that won't e.g. call the "type" builtin with "None" as an argument.
+
+- All builtin names used in the program are now converted to "builtin name references" in
+  a first step. Unsupported builtins like e.g. "zip", for which Nuitka has no
+  own code or understanding yet, remained as "module variables", which made access to them
+  slow, and difficult to recognize.
+
+- Added optimization for module attributes "__file__", "__doc__" and "__package__" if they
+  are read only. It's the same as "__name__".
 
 Organizational
 --------------
@@ -149,7 +174,11 @@ Cleanups
   statements are immediately eliminated from them immediately. Empty statement sequences
   are now forbidden to exist.
 
-- Added new bases classes and mix-in classes dedicated to expressions.
+- Moved the optimization for "__name__" to compute node of variable references, where it
+  doesn't need anything complex to replace with the constant value if it's only read.
+
+- Added new bases classes and mix-in classes dedicated to expressions, giving a place for
+  some defaults.
 
 - Made the builtin code more reusable.
 
