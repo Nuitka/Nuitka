@@ -2087,7 +2087,7 @@ def _getLocalVariableInitCode( context, variable, init_from = None, needs_no_fre
         result = "PyObjectSharedLocalVariable"
     elif variable.isTempVariable():
         result = variable.getDeclarationTypeCode()
-    elif init_from is not None and not needs_no_free:
+    elif variable.isParameterVariable():
         if variable.getHasDelIndicator():
             result = "PyObjectLocalParameterVariableWithDel"
         else:
@@ -2209,17 +2209,12 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 
     for variable in parameter_variables:
         parameter_context_assign.append(
-            "_python_context->python_var_%s.setVariableName( %s );" % (
+            "_python_context->python_var_%s.setVariableNameAndValue( %s, _python_par_%s );" % (
                 variable.getName(),
                 getConstantCode(
                     constant = variable.getName(),
                     context = context
-                )
-            )
-        )
-        parameter_context_assign.append(
-            "_python_context->python_var_%s = _python_par_%s;" % (
-                variable.getName(),
+                ),
                 variable.getName()
             )
         )
