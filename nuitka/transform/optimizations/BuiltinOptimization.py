@@ -81,20 +81,20 @@ class BuiltinParameterSpec( ParameterSpec ):
                 assert type( given_value ) not in ( tuple, list ), ( "do not like a tuple %s" % ( given_value, ))
 
                 if given_value is not None:
-                    arg_dict[ arg_name ] = given_value.getConstant()
+                    arg_dict[ arg_name ] = given_value.getCompileTimeConstant()
 
             if given_dict_star_args:
                 for given_dict_star_arg in given_dict_star_args:
                     arg_name = given_dict_star_arg.getKey()
                     arg_value = given_dict_star_arg.getValue()
 
-                    arg_dict[ arg_name.getConstant() ] = arg_value.getConstant()
+                    arg_dict[ arg_name.getCompileTimeConstant() ] = arg_value.getCompileTimeConstant()
 
         except Exception as e:
             sys.exit( "Fatal problem: %r" % e )
 
         if given_list_star_args:
-            return self.builtin( *( value.getConstant() for value in given_list_star_args ), **arg_dict )
+            return self.builtin( *( value.getCompileTimeConstant() for value in given_list_star_args ), **arg_dict )
         else:
             return self.builtin( **arg_dict )
 
@@ -121,14 +121,14 @@ class BuiltinParameterSpecNoKeywords( BuiltinParameterSpec ):
 
                 if given_value is not None:
                     if not refuse_more:
-                        arg_list.append( given_value.getConstant() )
+                        arg_list.append( given_value.getCompileTimeConstant() )
                     else:
                         assert False
                 else:
                     refuse_more = True
 
             if given_list_star_arg is not None:
-                arg_list += [ value.getConstant() for value in given_list_star_arg ]
+                arg_list += [ value.getCompileTimeConstant() for value in given_list_star_arg ]
         except Exception as e:
             sys.exit( e )
 
