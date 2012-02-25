@@ -97,8 +97,8 @@ builtin_anon_names = {
 }
 
 builtin_anon_codes = {
-    "NoneType"                   : "&_Py_NoneStruct",
+    "NoneType"                   : "Py_TYPE( Py_None )",
     "builtin_function_or_method" : "&PyCFunction_Type",
     "ellipsis"                   : "&PyEllipsis_Type",
-    "NotImplementedType"         : "Py_NotImplemented"
+    "NotImplementedType"         : "Py_TYPE( Py_NotImplemented )"
 }
