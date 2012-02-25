@@ -42,15 +42,16 @@ from .OptimizeVariableClosure import (
     MaybeLocalVariableReductionVisitor
 )
 from .OptimizeBuiltins import (
-    ReplaceBuiltinsCriticalVisitor,
-    ReplaceBuiltinsOptionalVisitor,
     ReplaceBuiltinsExceptionsVisitor,
-    PrecomputeBuiltinsVisitor
 )
-from .OptimizeConstantOperations import OptimizeOperationVisitor, OptimizeFunctionCallArgsVisitor
+from .OptimizeConstantOperations import OptimizeFunctionCallArgsVisitor
 from .OptimizeUnpacking import ReplaceUnpackingVisitor
-from .OptimizeStatements import StatementSequencesCleanupVisitor
 from .OptimizeRaises import OptimizeRaisesVisitor
+from .OptimizeValuePropagation import ValuePropagationVisitor
+
+# Populate call registry.
+from . import OptimizeBuiltinCalls
+OptimizeBuiltinCalls.register()
 
 # Populate slice registry
 from . import OptimizeSlices
@@ -67,8 +68,6 @@ from nuitka.Tracing import printLine
 from logging import debug
 
 _progress = Options.isShowProgress()
-
-use_propagation = Options.useValuePropagation()
 
 def optimizeTree( tree ):
     # Lots of conditions to take, pylint: disable=R0912
@@ -89,17 +88,11 @@ def optimizeTree( tree ):
             if not Options.shallMakeModule():
                 optimizations_queue.add( ModuleRecursionVisitor )
 
-        if not use_propagation and tags.check( "new_code new_constant" ):
-            optimizations_queue.add( OptimizeOperationVisitor )
-
         if tags.check( "new_code new_constant" ):
             optimizations_queue.add( OptimizeFunctionCallArgsVisitor )
 
         if tags.check( "new_code new_constant" ):
             optimizations_queue.add( ReplaceUnpackingVisitor )
-
-        if not use_propagation and tags.check( "new_code new_statements new_constant" ):
-            optimizations_queue.add( StatementSequencesCleanupVisitor )
 
         if tags.check( "new_code new_variable" ):
             optimizations_queue.add( ModuleVariableUsageAnalysisVisitor )
@@ -107,17 +100,8 @@ def optimizeTree( tree ):
         if tags.check( "new_code read_only_mvar" ):
             optimizations_queue.add( ModuleVariableReadOnlyVisitor )
 
-        if not use_propagation and tags.check( "new_code read_only_mvar" ):
-            optimizations_queue.add( ReplaceBuiltinsCriticalVisitor )
-
-        if not use_propagation and tags.check( "new_code read_only_mvar" ):
-            optimizations_queue.add( ReplaceBuiltinsOptionalVisitor )
-
         if tags.check( "new_code read_only_mvar" ):
             optimizations_queue.add( ReplaceBuiltinsExceptionsVisitor )
-
-        if not use_propagation and tags.check( "new_builtin new_constant" ):
-            optimizations_queue.add( PrecomputeBuiltinsVisitor )
 
         if tags.check( "var_usage new_builtin" ):
             optimizations_queue.add( MaybeLocalVariableReductionVisitor )
@@ -129,7 +113,7 @@ def optimizeTree( tree ):
         if tags.check( "new_code new_raise" ):
             optimizations_queue.add( OptimizeRaisesVisitor )
 
-        if use_propagation and tags.check( "new_code new_statements new_constant new_builtin" ):
+        if tags.check( "new_code new_statements new_constant new_builtin" ):
             optimizations_queue.add( ValuePropagationVisitor )
 
         tags.clear()

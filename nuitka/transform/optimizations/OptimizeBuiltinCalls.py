@@ -467,7 +467,24 @@ def computeBuiltinCall( call_node, called ):
             # TODO: Actually returning None should not be allowed at this point.
             raise AssertionError( "None is not allowed to return", _dispatch_dict[ builtin_name ] )
 
-        return new_node, "new_builtin", "Detected builtin call %s" % builtin_name
+        tags = set( [ "new_builtin" ] )
+
+        if new_node.isExpressionBuiltinImport():
+            tags    = "new_builtin new_import"
+            message = "Replaced dynamic builtin import %s with static module import." % new_node.kind
+        elif new_node.isExpressionBuiltin() or new_node.isStatementExec():
+            tags = "new_builtin"
+            message = "Replaced call to builtin %s with builtin call." % new_node.kind
+        elif new_node.isExpressionFunctionCall():
+            tags = "new_raise new_variable"
+            message = "Replaced call to builtin %s with exception raising call." % new_node.kind
+        elif new_node.isExpressionOperationUnary():
+            tags = "new_expression"
+            message = "Replaced call to builtin %s with exception raising call." % new_node.kind
+        else:
+            assert False
+
+        return new_node, tags, message
     else:
         # TODO: Consider giving warnings, whitelisted potentially
         return call_node, None, None
