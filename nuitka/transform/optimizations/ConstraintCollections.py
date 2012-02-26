@@ -41,6 +41,8 @@ from nuitka.nodes import ValueFriends
 
 from nuitka.nodes.NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
+from nuitka import Options, Utils, TreeRecursion, Importing
+
 from logging import debug
 
 # TODO: This is code duplication, assignments should have a helper module do deal with a
@@ -619,6 +621,49 @@ class ConstraintCollectionModule( ConstraintCollection ):
 
         if module_body is not None:
             self.onStatementsSequence( module_body )
+
+        self.attemptRecursion( module )
+
+    def attemptRecursion( self, module ):
+        if not Options.shallMakeModule():
+            module_filename = module.getFilename()
+
+            # Make sure, we are known to the tree recursion. TODO: Why isn't this done at
+            # creation time already? This whole function should be executed at the time
+            # the module came into existence, i.e. long before optimization kicks in.
+            if module_filename not in TreeRecursion.imported_modules:
+                if Utils.basename( module_filename ) == "__init__.py":
+                    module_relpath = Utils.dirname( module_filename )
+                else:
+                    module_relpath = module_filename
+
+                module_relpath = Utils.relpath( module_relpath )
+
+                TreeRecursion.imported_modules[ Utils.relpath( module_relpath ) ] = module
+
+            # Make sure the package is recursed to.
+            module_package = module.getPackage()
+
+            if module_package is not None:
+                package_package, _package_module_name, package_filename = Importing.findModule(
+                    source_ref     = module.getSourceReference(),
+                    module_name    = module_package,
+                    parent_package = None,
+                    level          = 1
+                )
+
+                imported_module, added_flag = TreeRecursion.recurseTo(
+                    module_package  = package_package,
+                    module_filename = package_filename,
+                    module_relpath  = Utils.relpath( package_filename )
+                )
+
+                if added_flag:
+                    self.signalChange(
+                        "new_module",
+                        imported_module.getSourceReference(),
+                        "Recursed to module."
+                    )
 
 
 class ConstraintCollectionLoopOther( ConstraintCollection ):

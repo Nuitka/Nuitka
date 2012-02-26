@@ -156,35 +156,6 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         # Means, I don't know.
         return None
 
-    def _handleModule( self, module ):
-        module_filename = module.getFilename()
-
-        if module_filename not in TreeRecursion.imported_modules:
-            if Utils.basename( module_filename ) == "__init__.py":
-                module_relpath = Utils.dirname( module_filename )
-            else:
-                module_relpath = module_filename
-
-            module_relpath = Utils.relpath( module_relpath )
-
-            TreeRecursion.imported_modules[ Utils.relpath( module_relpath ) ] = module
-
-        module_package = module.getPackage()
-
-        if module_package is not None:
-            package_package, _package_module_name, package_filename = Importing.findModule(
-                source_ref     = module.getSourceReference(),
-                module_name    = module_package,
-                parent_package = None,
-                level          = 1
-            )
-
-            self._recurseTo(
-                module_package  = package_package,
-                module_filename = package_filename,
-                module_relpath  = Utils.relpath( package_filename )
-            )
-
     def _handleImportModule( self, node ):
         if node.getModule() is None:
             source_ref = node.getSourceReference()
@@ -237,11 +208,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         node.setAttemptedRecurse()
 
     def onEnterNode( self, node ):
-        if node.isModule():
-            self._handleModule(
-                module = node
-            )
-        elif node.isExpressionImportModule() and not node.hasAttemptedRecurse():
+        if node.isExpressionImportModule() and not node.hasAttemptedRecurse():
             self._handleImportModule(
                 node = node
             )

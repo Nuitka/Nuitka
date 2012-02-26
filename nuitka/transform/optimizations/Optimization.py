@@ -80,7 +80,9 @@ def optimizeTree( tree ):
         if tags.check( "new_code" ):
             optimizations_queue.update( VariableClosureLookupVisitors )
 
-        # TODO: This could all happen in computeNode
+        # Note: The import recursion cannot be done in "computeNode" due to circular
+        # dependency and since it only needs to be done with "new_import" again, it
+        # remains its own visitor.
         if tags.check( "new_code new_import" ):
             if not Options.shallMakeModule():
                 optimizations_queue.add( ModuleRecursionVisitor )
