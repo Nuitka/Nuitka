@@ -40,9 +40,6 @@ from .OptimizeVariableClosure import (
     ModuleVariableUsageAnalysisVisitor,
     MaybeLocalVariableReductionVisitor
 )
-from .OptimizeBuiltins import (
-    ReplaceBuiltinsExceptionsVisitor,
-)
 from .OptimizeConstantOperations import OptimizeFunctionCallArgsVisitor
 from .OptimizeUnpacking import ReplaceUnpackingVisitor
 from .OptimizeRaises import OptimizeRaisesVisitor
@@ -97,9 +94,6 @@ def optimizeTree( tree ):
 
         if tags.check( "new_code" ):
             optimizations_queue.add( ModuleVariableUsageAnalysisVisitor )
-
-        if tags.check( "new_code read_only_mvar" ):
-            optimizations_queue.add( ReplaceBuiltinsExceptionsVisitor )
 
         if tags.check( "var_usage new_builtin" ):
             optimizations_queue.add( MaybeLocalVariableReductionVisitor )
