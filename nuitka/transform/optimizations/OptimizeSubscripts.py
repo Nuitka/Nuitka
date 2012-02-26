@@ -26,35 +26,29 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Subscript registry.
 
-Other modules can register here handlers for subscript lookups on something, so they can
-be computed at run time. This is used to predict list slices and dictionary elements and
-can be used for more.
+from .registry import SubscriptRegistry
 
-"""
+from nuitka.nodes.ConstantRefNode import CPythonExpressionConstantRef
+from nuitka.nodes.NodeMakingHelpers import getComputationResult
 
-_subscript_handlers = {}
+def computeConstantSubscript( subscript_node, lookup, subscript ):
+    assert lookup.isCompileTimeConstant()
+    assert subscript is not None
 
-def registerSubscriptHandlers( kinds, handler ):
-    assert type( kinds ) in ( tuple, list )
+    if subscript.isCompileTimeConstant():
+        return getComputationResult(
+            node        = subscript_node,
+            computation = lambda : lookup.getCompileTimeConstant()[ subscript.getCompileTimeConstant() ],
+            description = "Subscript of constant with constant value."
+        )
 
-    for kind in kinds:
-        registerSubscriptHandler( kind, handler )
-
-
-def registerSubscriptHandler( kind, handler ):
-    assert type( kind ) is str
-
-    assert kind not in _subscript_handlers
-
-    _subscript_handlers[ kind ] = handler
+    return subscript_node, None, None
 
 
-def computeSubscript( source_node ):
-    lookup_source = source_node.getLookupSource()
 
-    if lookup_source.kind in _subscript_handlers:
-        return _subscript_handlers[ lookup_source.kind ]( source_node, lookup_source, source_node.getSubscript() )
-    else:
-        return source_node, None, None
+def register():
+    SubscriptRegistry.registerSubscriptHandler(
+        kind    = CPythonExpressionConstantRef.kind,
+        handler = computeConstantSubscript
+    )

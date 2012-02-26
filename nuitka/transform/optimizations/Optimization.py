@@ -53,6 +53,10 @@ OptimizeBuiltinCalls.register()
 from . import OptimizeSlices
 OptimizeSlices.register()
 
+# Populate subscript registry
+from . import OptimizeSubscripts
+OptimizeSubscripts.register()
+
 from .Tags import TagSet
 
 from nuitka import Options, TreeRecursion
