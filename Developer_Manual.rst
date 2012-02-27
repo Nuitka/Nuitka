@@ -1406,8 +1406,8 @@ into action, which could be code changes, plan changes, issues created, etc.
 
      # Actually it needs to be "special lookup" for Python2.7, so attribute lookup won't
      # be exactly it there.
-     tmp_exit = some_context.__exit__
-     tmp_enter = some_context.__enter__
+     tmp_exit = tmp_source.__exit__
+     tmp_enter = tmp_source.__enter__
 
      # Actually it's unclear for how long the result must be kept, might be possible to
      # delete immediately. Current code holds it during the execution of the with statement.
@@ -1423,9 +1423,7 @@ into action, which could be code changes, plan changes, issues created, etc.
         # Note: This part of the code must not set line numbers, we don't have a way to
         # say that yet. Maybe the source_ref can be improved to indicate with flags to
         # not do it.
-        tmp_exit_result = tmp_exit( type(e), e, tb )
-
-        if not tmp_exit_result:
+        if not tmp_exit( type(e), e, tb ):
            raise
      else:
         tmp_exit( None, None, None )
@@ -1450,9 +1448,9 @@ into action, which could be code changes, plan changes, issues created, etc.
      d = _tmp
      _iter2 = iter( tmp )
      _tmp4, _tmp5, tmp6 = unpack_and_check( _iter2, 3 )
-     e = _tmp2
-     f = _tmp3
-     g = _tmp
+     e = _tmp4
+     f = _tmp5
+     g = _tmp6
 
   That will of course be a lot less inefficient, until we can value propagate as well as
   in the past, which was working for constants. In these cases, the "iter" taking and the
