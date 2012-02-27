@@ -2,8 +2,8 @@ Nuitka Release 0.3.20
 =====================
 
 This time there are a few bug fixes and some really major cleanups, lots of new
-optimizations and preparations for more. And then there is a new platform supported,
-MacOS X appears to work, thanks for the patches from Pete Hunt.
+optimizations and preparations for more. And then there is a new compiler clang and a new
+platform supported. MacOS X appears to work mostly, thanks for the patches from Pete Hunt.
 
 Bug fixes
 ---------
@@ -210,16 +210,21 @@ Summary
 The decorator and building changes, the assignment changes, and the node cleanups are all
 very important progress for the type inference work, because they remove special casing
 the that previously would have been required. Lambdas and functions now really are the
-same thing right after tree building. The in-place assignments are now merely only
-assignments, the built functions and classes are now assigned to names in assignment
-statements, more much consistency there.
+same thing right after tree building. The in-place assignments are now merely done using
+standard assignment code, the built functions and classes are now assigned to names in
+assignment statements, much *more* consistency there.
 
 Yet, even more work will be needed in the same direction. There may e.g. be work required
-to cover "with" statements as well.
+to cover "with" statements as well. And assignments should never be any more complex than
+unpacking from a temporary variable.
 
 For this release, there is only minimal progress on the Python3 front, despite the syntax
 support, which is only miniscule progress. The remaining tasks appear all more or less
 difficult work that I don't want to touch now.
+
+But overall, it's fantastic progress that was made. There are still remaining steps, but I
+believe, we can foresee that a release may be done that finally actually does type
+inference and becomes the effective Python compiler this project is all about.
 
 
 Nuitka Release 0.3.19
