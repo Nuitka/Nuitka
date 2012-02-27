@@ -39,7 +39,7 @@ def _couldBeNone( node ):
     elif node.isExpressionMakeDict():
         return False
     elif node.isExpressionBuiltinGlobals() or node.isExpressionBuiltinLocals() or \
-           node.isExpressionBuiltinDir() or node.isExpressionBuiltinVars():
+           node.isExpressionBuiltinDir0() or node.isExpressionBuiltinVars():
         return False
     else:
         # assert False, node
@@ -55,6 +55,7 @@ class OverflowCheckVisitor( TreeOperations.VisitorNoopMixin ):
     def onEnterNode( self, node ):
         def declareOverflow():
             self.result = True
+
             raise TreeOperations.ExitVisit
 
         if node.isStatementImportStar():

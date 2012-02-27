@@ -54,10 +54,11 @@ _debug_module_finding = False
 
 _warned_about = set()
 
-def findModule( source_ref, module_name, parent_package, level, warn = True ):
-    assert level < 2 or parent_package, (module_name, parent_package, level)
+def isPackageDir( dirname ):
+    return Utils.isDir( dirname ) and Utils.isFile( Utils.joinpath( dirname, "__init__.py" ))
 
-    if level > 1:
+def findModule( source_ref, module_name, parent_package, level, warn = True ):
+    if level > 1 and parent_package is not None:
         parent_package = ".".join( parent_package.split(".")[ : -level+1 ] )
 
         if parent_package == "":
@@ -118,14 +119,11 @@ def _findModuleInPath( module_name, package_name ):
         def getPackageDirname( element ):
             return Utils.joinpath( element, *package_name.split( "." ) )
 
-        def getPackageFilename( element ):
-            return Utils.joinpath( getPackageDirname( element ), "__init__.py" )
-
         ext_path = [
             getPackageDirname( element )
             for element in
             sys.path + [ os.getcwd() ]
-            if os.path.exists( getPackageFilename( element ) )
+            if isPackageDir( getPackageDirname( element ) )
         ]
 
         if _debug_module_finding:
@@ -164,7 +162,7 @@ def _findModule( module_name, parent_package ):
         parent_package = "os"
 
         if not Options.isWindowsTarget():
-            module_name = os.path.basename( os.path.__file__ ).replace( ".pyc", "" )
+            module_name = Utils.basename( os.path.__file__ ).replace( ".pyc", "" )
         else:
             module_name = "ntpath"
 

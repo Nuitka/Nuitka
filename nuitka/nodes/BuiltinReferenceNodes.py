@@ -36,11 +36,18 @@ to variables only ever read.
 """
 
 
-from .NodeBases import CPythonNodeBase
+from .NodeBases import CPythonNodeBase, CPythonExpressionMixin
 
-from nuitka.Builtins import builtin_names, builtin_exception_names
+from .ConstantRefNode import CPythonExpressionConstantRef
 
-class CPythonExpressionBuiltinRefBase( CPythonNodeBase ):
+from nuitka.Builtins import (
+    builtin_exception_names,
+    builtin_exception_values,
+    builtin_anon_names,
+    builtin_names
+)
+
+class CPythonExpressionBuiltinRefBase( CPythonNodeBase, CPythonExpressionMixin ):
     def __init__( self, builtin_name, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
@@ -52,21 +59,12 @@ class CPythonExpressionBuiltinRefBase( CPythonNodeBase ):
     def getDetails( self ):
         return { "builtin_name" : self.builtin_name }
 
-    def isConstant( self ):
-        # Virtual method, pylint: disable=R0201
-        return False
-
     def getBuiltinName( self ):
         return self.builtin_name
 
     def mayHaveSideEffects( self ):
         # Referencing the builtin name has no side effect
         return False
-
-    def getValueFriend( self ):
-        # These can speak for themselves and do not bother about being in danger of
-        # mutation having any impact.
-        return self
 
 
 class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
@@ -84,6 +82,64 @@ class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
     def isExpressionBuiltin( self ):
         # Means if it's a builtin function call.
         return False
+
+    def isCompileTimeConstant( self ):
+        # Virtual method, pylint: disable=R0201
+        return True
+
+    def getCompileTimeConstant( self ):
+        return __builtins__[ self.builtin_name ]
+
+    def computeNode( self ):
+        quick_names = {
+            "None"      : None,
+            "True"      : True,
+            "False"     : False,
+            "__debug__" : __debug__,
+            "Ellipsis"  : Ellipsis,
+        }
+
+        if self.builtin_name in quick_names:
+            new_node = CPythonExpressionConstantRef(
+                constant   = quick_names[ self.builtin_name ],
+                source_ref = self.getSourceReference()
+            )
+
+            return new_node, "new_constant", "Builtin constant %s resolved" % self.builtin_name
+
+        return self, None, None
+
+    def isKnownToBeIterable( self, count ):
+        # TODO: Why yes, some may be, could be told here.
+        return None
+
+
+class CPythonExpressionBuiltinAnonymousRef( CPythonExpressionBuiltinRefBase ):
+    kind = "EXPRESSION_BUILTIN_ANONYMOUS_REF"
+
+    def __init__( self, builtin_name, source_ref ):
+        assert builtin_name not in builtin_names, builtin_name
+
+        CPythonExpressionBuiltinRefBase.__init__(
+            self,
+            builtin_name = builtin_name,
+            source_ref   = source_ref
+        )
+
+    def isExpressionBuiltin( self ):
+        # Means if it's a builtin function call.
+        return False
+
+    def isCompileTimeConstant( self ):
+        # Virtual method, pylint: disable=R0201
+        return True
+
+    def getCompileTimeConstant( self ):
+        return builtin_anon_names[ self.builtin_name ]
+
+    def computeNode( self ):
+        return self, None, None
+
 
 class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
     kind = "EXPRESSION_BUILTIN_EXCEPTION_REF"
@@ -105,3 +161,13 @@ class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
     def isExpressionBuiltin( self ):
         # Means if it's a builtin function call.
         return False
+
+    def isCompileTimeConstant( self ):
+        # Virtual method, pylint: disable=R0201
+        return True
+
+    def getCompileTimeConstant( self ):
+        return builtin_exception_values[ self.builtin_name ]
+
+    def computeNode( self ):
+        return self, None, None

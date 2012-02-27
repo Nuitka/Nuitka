@@ -1,12 +1,13 @@
 include LICENSE
 include MANIFEST.in
 include README.txt README.pdf
+include Changelog.rst Changelog.pdf
 include Developer_Manual.rst Developer_Manual.pdf
 include doc/*.1
 
 include bin/*.sh
-include bin/make_diffable
 include bin/compare_with_cpython
+include bin/compare_with_xml
 
 include misc/*.sh
 include misc/*.bat

@@ -40,7 +40,8 @@ from .OptimizeBase import (
 )
 
 from nuitka.nodes.UsageCheck import getVariableUsages
-from nuitka.nodes import Nodes
+
+from nuitka.nodes.NodeBases import CPythonClosureGiverNodeBase
 
 def _globalizeSingle( module, variable_names, provider ):
     for variable_name in variable_names:
@@ -53,7 +54,7 @@ def _globalizeSingle( module, variable_names, provider ):
             global_statement = True
         )
 
-        if isinstance( provider, Nodes.CPythonClosureGiverNodeBase ):
+        if isinstance( provider, CPythonClosureGiverNodeBase ):
             provider.registerProvidedVariable(
                 variable = closure_variable
             )
@@ -106,11 +107,10 @@ class VariableClosureLookupVisitorPhase1( OptimizationVisitorScopedBase ):
 
             # Remove the global statement, so we don't repeat this ever, the effect of
             # above is permanent.
-            node.replaceWith(
-                new_node = Nodes.CPythonStatementPass(
-                    source_ref = source_ref
-                )
-            )
+            if len( node.getParent().getStatements() ) == 1:
+                node.getParent().replaceWith( None )
+            else:
+                node.getParent().removeStatement( node )
 
 
 class VariableClosureLookupVisitorPhase2( OptimizationVisitorScopedBase ):
@@ -347,50 +347,3 @@ def isModuleVariableReference( node, var_name, module_name ):
             return False
     else:
         return False
-
-
-class ModuleVariableReadReplacement( TreeOperations.VisitorNoopMixin ):
-    def __init__( self, module_name, variable_name, make_node ):
-        self.module_name = module_name
-        self.variable_name = variable_name
-        self.make_node = make_node
-
-        self.result = 0
-
-    def onEnterNode( self, node ):
-        if isModuleVariableReference( node, self.variable_name, self.module_name ):
-            node.replaceWith(
-                self.make_node( node )
-            )
-
-            self.result += 1
-
-class ModuleVariableReadOnlyVisitor( ModuleVariableVisitorBase ):
-    def onModuleVariable( self, variable ):
-        if variable.getReadOnlyIndicator():
-            variable_name = variable.getName()
-
-            if variable_name == "__name__":
-                def makeNode( node ):
-                    return makeConstantReplacementNode(
-                        constant = variable.getOwner().getName(),
-                        node     = node
-                    )
-
-                visitor = ModuleVariableReadReplacement(
-                    module_name   = variable.getOwner().getName(),
-                    variable_name = variable_name,
-                    make_node     = makeNode
-                )
-
-                TreeOperations.visitTree(
-                    tree    = variable.getOwner(),
-                    visitor = visitor
-                )
-
-                if visitor.result > 0:
-                    self.signalChange(
-                        "new_constant",
-                        variable.getOwner().getSourceReference(),
-                        "Replaced read-only module attribute %s with constant value." % variable_name
-                    )

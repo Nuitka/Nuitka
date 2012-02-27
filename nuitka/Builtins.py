@@ -30,14 +30,30 @@
 
 """
 
+def isExceptionName( value ):
+    if name.endswith( "Error" ) or name.endswith( "Exception" ):
+        return True
+    elif name in ( "StopIteration", "GeneratorExit" ):
+        return True
+    else:
+        return False
+
 # Hide Python3 changes for builtin exception names
 try:
     import exceptions
 
     builtin_exception_names = [
-        str( x ) for x in dir( exceptions )
-        if x.endswith( "Error" ) or x in ( "StopIteration", "GeneratorExit" )
+        str( name ) for name in dir( exceptions )
+        if isExceptionName( name )
     ]
+
+    builtin_exception_values = {}
+
+    for key in builtin_exception_names:
+        builtin_exception_values[ key ] = getattr( exceptions, key )
+
+    del name, key
+
 except ImportError:
     exceptions = {}
 
@@ -46,24 +62,56 @@ except ImportError:
     for x in dir( sys.modules[ "builtins" ] ):
         name = str( x )
 
-        if name.endswith( "Error" ) or name in ( "StopIteration", "GeneratorExit" ):
+        if isExceptionName( name ):
             exceptions[ name ] = x
 
     builtin_exception_names = [
         key for key, value in exceptions.items()
     ]
 
+    builtin_exception_values = {}
+
+    for key, value in exceptions.items():
+        builtin_exception_values[ key ] = value
+
+    del name, key, value, x
+
 assert "ValueError" in builtin_exception_names
 assert "StopIteration" in builtin_exception_names
 assert "GeneratorExit" in builtin_exception_names
 assert "AssertionError" in builtin_exception_names
+assert "BaseException" in builtin_exception_names
+assert "Exception" in builtin_exception_names
 
 builtin_names = [
     str( x )
     for x in __builtins__.keys()
 ]
 
-assert "int" in builtin_names, __builtins__.keys()
+builtin_names.remove( "__doc__" )
+builtin_names.remove( "__name__" )
+builtin_names.remove( "__package__" )
+# TODO: Python3 may have others to remove.
+
+assert "__import__" in builtin_names
+assert "int" in builtin_names
+
+assert "__doc__" not in builtin_names
+assert "sys" not in builtin_names
 
 # For PyLint to be happy.
 assert exceptions
+
+builtin_anon_names = {
+    "NoneType"                   : type( None ),
+    "builtin_function_or_method" : type( len ),
+    "ellipsis"                   : type( Ellipsis ),
+    "NotImplementedType"         : type( NotImplemented )
+}
+
+builtin_anon_codes = {
+    "NoneType"                   : "Py_TYPE( Py_None )",
+    "builtin_function_or_method" : "&PyCFunction_Type",
+    "ellipsis"                   : "&PyEllipsis_Type",
+    "NotImplementedType"         : "Py_TYPE( Py_NotImplemented )"
+}

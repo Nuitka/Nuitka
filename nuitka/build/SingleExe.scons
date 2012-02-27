@@ -75,7 +75,10 @@ optimize_mode = getBoolOption( "optimize_mode", True )
 lto_mode = getBoolOption( "lto_mode", False )
 
 # Windows target mode: Cross compile for Windows or compiling on windows.
-win_target = getBoolOption( "win_target", "win" in sys.platform )
+win_target = getBoolOption( "win_target", os.name == "nt" )
+
+# Windows subsystem mode: Disable console for windows builds.
+win_disable_console = getBoolOption( "win_disable_console", False )
 
 # ARM target mode: Compile for ARM which has bad ucontext status, we need
 # to provide our own implementation.
@@ -87,6 +90,9 @@ x64_linux_target = getBoolOption( "x64_linux_target", "linux" in sys.platform an
 
 # Unstriped mode: Do not remove debug symbols.
 unstriped_mode = getBoolOption( "unstriped_mode", False )
+
+# Clang compiler mode, default on MacOS X, optional on Linux.
+clang_mode = getBoolOption( "clang_mode", False ) or sys.platform == "darwin"
 
 # The MingW compiler tool should be supported if targeting windows.
 if win_target:
@@ -105,6 +111,9 @@ env = Environment(
     # filename "module_name.so" to load it.
     SHLIBPREFIX = "",
 )
+
+if clang_mode:
+    env[ "CXX" ] = "clang"
 
 # To work around Windows not supporting command lines of greater than 10K by default:
 
@@ -146,7 +155,7 @@ def setupSpawn( env ):
     buf.ourenv = env
     env[ "SPAWN" ] = buf.spawn
 
-if "win" in sys.platform:
+if os.name == "nt":
     setupSpawn( env )
 
 # To support cross-compiling under Linux for a  windows target, a cross compiler linked or
@@ -177,6 +186,10 @@ if win_target and "linux" in sys.platform:
     env[ "CXXVERSION" ] = match.group(0)
 
 env[ "BUILD_DIR" ] = source_dir
+
+if "clang" in env[ "CXX" ]:
+    env.Append( CCFLAGS = [ "-std=c++0x", "-w", "-D _XOPEN_SOURCE" ] )
+    env.Append( LINKFLAGS = [ "-lstdc++" ])
 
 if "g++" in env[ "CXX" ]:
     # All Nuitka generated C++ is C++0X standard, so make that clear.
@@ -261,7 +274,7 @@ if win_target:
         variable in any case.
         """
 
-        if "win" in sys.platform:
+        if os.name == "nt":
             return os.path.dirname( sys.executable )
         else:
             return os.path.expanduser( "~/.wine/drive_c/Python" + python_version )
@@ -272,6 +285,9 @@ if win_target:
 
     env.Append( LINKFLAGS = [ "-Wl,--enable-auto-import" ] )
 
+    if win_disable_console:
+        env.Append( LINKFLAGS = [ "-Wl,--subsystem,windows" ] )
+
     python_header_path = python_home + "/include"
 
     # Might be required for native current MinGW to not have a link time issue.
@@ -281,6 +297,9 @@ else:
     # The python header path is a combination of python version and debug indication, make
     # sure the headers are found by adding it to the C++ include path.
     python_header_path = "/usr/include/python" + python_version
+
+if not os.path.exists( os.path.join( python_header_path, "Python.h" ) ):
+    sys.exit( "Error, no 'Python.h' development headers can be found at '%s', dependency not satisfied!" % python_header_path )
 
 env.Append( CCFLAGS = [ "-I" + python_header_path ] )
 env.Append( LIBS = [ "python" + python_version ] )

@@ -41,6 +41,24 @@ public:
         this->object = object;
     }
 
+    explicit PyObjectLocalParameterVariableWithDel()
+    {
+        this->var_name = NULL;
+        this->object = NULL;
+    }
+
+    void setVariableNameAndValue( PyObject *var_name, PyObject *object )
+    {
+        assertObject( var_name );
+        assert( this->var_name == NULL);
+
+        this->var_name = var_name;
+
+        assertObject( object );
+        assert( this->object == NULL);
+        this->object = object;
+    }
+
     ~PyObjectLocalParameterVariableWithDel()
     {
         assertObject( this->var_name );
@@ -105,6 +123,7 @@ public:
     }
 
 private:
+    PyObjectLocalParameterVariableWithDel( const PyObjectLocalParameterVariableWithDel &other ) = delete;
 
     PyObject *var_name;
     PyObject *object;
@@ -119,6 +138,24 @@ public:
         assertObject( var_name );
 
         this->var_name = var_name;
+        this->object = object;
+    }
+
+    explicit PyObjectLocalParameterVariableNoDel()
+    {
+        this->var_name = NULL;
+        this->object = NULL;
+    }
+
+    void setVariableNameAndValue( PyObject *var_name, PyObject *object )
+    {
+        assertObject( var_name );
+        assert( this->var_name == NULL);
+
+        this->var_name = var_name;
+
+        assertObject( object );
+        assert( this->object == NULL);
         this->object = object;
     }
 
@@ -167,6 +204,7 @@ public:
     }
 
 private:
+    PyObjectLocalParameterVariableNoDel( const PyObjectLocalParameterVariableNoDel &other ) = delete;
 
     PyObject *var_name;
     PyObject *object;

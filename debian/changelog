@@ -1,3 +1,10 @@
+nuitka (0.3.20+ds-1) unstable; urgency=low
+
+  * New upstream pre-release, not for upload to Debian.
+  * Added upstream "Changelog.rst" as "changelog"
+
+ -- Kay Hayen <kayhayen@gmx.de>  Mon, 27 Feb 2012 09:32:10 +0100
+
 nuitka (0.3.19.2+ds-1) unstable; urgency=low
 
   * New upstream hotfix release.

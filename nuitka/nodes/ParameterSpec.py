@@ -119,8 +119,10 @@ class ParameterSpecTuple:
         return Variables.getNames( self.getVariables() )
 
 class ParameterSpec( ParameterSpecTuple ):
-    def __init__( self, normal_args, list_star_arg, dict_star_arg, default_count ):
+    def __init__( self, name, normal_args, list_star_arg, dict_star_arg, default_count ):
         assert None not in normal_args
+
+        self.name = name
 
         self.nest_count = 1
 
@@ -134,9 +136,13 @@ class ParameterSpec( ParameterSpecTuple ):
 
         self.default_count = default_count
 
-        for count, normal_arg in enumerate( normal_args ):
-            if normal_arg in normal_args[ count+1:] or normal_arg in ( list_star_arg, dict_star_arg ):
-                raise SyntaxError( "Duplicate argument detected" )
+    def checkValid( self ):
+        # Check for duplicate arguments, could happen.
+        for normal_arg in self.normal_args:
+            if self.normal_args.count( normal_arg ) != 1:
+                return "duplicate argument '%s' in function definition" % normal_arg
+        else:
+            return None
 
     def __repr__( self ):
         parts = [ str(normal_arg) for normal_arg in self.normal_args ]
@@ -348,6 +354,5 @@ class ParameterSpec( ParameterSpecTuple ):
                         )
                     )
                 )
-
 
         return result

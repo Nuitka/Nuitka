@@ -37,7 +37,7 @@ if sys.version_info[0] >= 3:
 
 scripts = [ "bin/nuitka", "bin/nuitka-python" ]
 
-if "win" in sys.platform:
+if os.name == "nt":
     scripts += [ "misc/nuitka.bat", "misc/nuitka-python.bat" ]
 
 def detectVersion():

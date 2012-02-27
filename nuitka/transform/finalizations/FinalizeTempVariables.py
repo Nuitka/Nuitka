@@ -52,5 +52,5 @@ class FinalizeTempVariables( FinalizationVisitorScopedBase ):
         self.current = None
 
     def onEnterNode( self, node ):
-        if node.isExpressionTempVariableRef():
+        if node.isExpressionTempVariableRef() and node.getVariable().getOwner() is self.current:
             self.variables.add( node.getVariable().getReferenced() )

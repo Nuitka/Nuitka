@@ -37,3 +37,5 @@ find nuitka/build/include -name \*.hpp
 find nuitka/build/ -name \*.scons
 find misc -name \*.sh
 find bin -name \*.sh
+echo Developer_Manual.rst
+echo Changelog.rst

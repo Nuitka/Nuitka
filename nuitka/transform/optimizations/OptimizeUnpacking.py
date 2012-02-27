@@ -34,7 +34,7 @@ from .OptimizeBase import (
     makeConstantReplacementNode
 )
 
-from nuitka.nodes import Nodes
+from nuitka.nodes.AssignNodes import CPythonStatementAssignment
 
 from nuitka.nodes.NodeMakingHelpers import makeStatementsSequenceReplacementNode
 
@@ -67,9 +67,9 @@ class ReplaceUnpackingVisitor( OptimizationVisitorBase ):
 
                             for value, element in zip( unpacked, elements ):
                                 statements.append(
-                                    Nodes.CPythonStatementAssignment(
+                                    CPythonStatementAssignment(
                                         targets    = ( element, ),
-                                        expression = makeConstantReplacementNode(
+                                        source     = makeConstantReplacementNode(
                                             constant = value,
                                             node     = node
                                         ),

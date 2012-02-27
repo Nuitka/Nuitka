@@ -120,22 +120,84 @@ def interuptedUnpack():
     a = 1
     b = 2
 
+    print "Assignment from a too short tuple to multiple targets",
+
     try:
-        c, d = a,
+        s = a,
+
+        c, d = s
     except ValueError, e:
-        print "ValueError", e
+        print "gives ValueError", e,
 
         try:
             print c
         except UnboundLocalError, e:
-            print "UnboundLocalError", e
+            print "and then nothing is assigned", e
+
+    del a, b
+
+    z = []
+
+    try:
+        a, z.unknown, b = 1, 2, 3
+    except AttributeError:
+        print "Interrupted unpack, leaves value assigned", a
+
+def multiTargetInterrupt():
+    a = 1
+    b = 2
+
+    print "Multiple, overlapping targets",
+
+    d = c, d = a, b
+    print d, c,
+
+    del c
+    del d
+
+    c, d = d = a, b
+    print d, c
+
+    print "Error during multiple assignments",
+
+    del c
+    del d
+    e = 9
+
+    z = []
+    try:
+        c, d = e, z.a = a, b
+    except AttributeError:
+        print "having attribute error", c, d, e
+
+    del c
+    del d
+    e = 9
+
+    print "Error during multiple assignments",
+
+    try:
+        c, d = z.a, e = a, b
+    except AttributeError:
+        print "having attribute error", c, d, e
+
 
 def optimizeableTargets():
     a = [ 1, 2 ]
 
     a[ int(1) ] = 3
 
-    print a
+    print "Optimizable slice operation, results in", a
+
+def complexDel():
+    a = b = c = d = 1
+
+    del a, b, ( c, d )
+
+    try:
+        print c
+    except UnboundLocalError, e:
+        print "yes, del worked"
 
 someFunction()
 varargsFunction(1,2,3,4)
@@ -143,4 +205,6 @@ otherFunction()
 anotherFunction()
 swapVariables()
 interuptedUnpack()
+multiTargetInterrupt()
 optimizeableTargets()
+complexDel()

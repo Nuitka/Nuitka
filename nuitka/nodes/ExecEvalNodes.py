@@ -26,31 +26,48 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Nodes concern with exec and eval builtins.
 
-from .NodeBases import CPythonChildrenHaving, CPythonNodeBase, CPythonClosureTaker, CPythonClosureGiverNodeBase
+These are the dynamic codes, and as such rather difficult. We would like
+to eliminate or limit their impact as much as possible, but it's difficult
+to do.
+"""
+
+from .NodeBases import (
+    CPythonExpressionChildrenHavingBase,
+    CPythonChildrenHaving,
+    CPythonNodeBase,
+    CPythonClosureTaker,
+    CPythonClosureGiverNodeBase
+)
+
+from .NodeMakingHelpers import convertNoneConstantToNone
 
 from nuitka import Variables
 
-class CPythonExpressionBuiltinEval( CPythonChildrenHaving, CPythonNodeBase ):
+class CPythonExpressionBuiltinEval( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_EVAL"
 
     named_children = ( "source", "globals", "locals" )
 
     def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        CPythonExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "source"  : source_code,
                 "globals" : globals_arg,
                 "locals"  : locals_arg,
-            }
+            },
+            source_ref = source_ref
         )
 
-    getSourceCode = CPythonChildrenHaving.childGetter( "source" )
-    getGlobals = CPythonChildrenHaving.childGetter( "globals" )
-    getLocals = CPythonChildrenHaving.childGetter( "locals" )
+    getSourceCode = CPythonExpressionChildrenHavingBase.childGetter( "source" )
+    getGlobals = CPythonExpressionChildrenHavingBase.childGetter( "globals" )
+    getLocals = CPythonExpressionChildrenHavingBase.childGetter( "locals" )
+
+    def computeNode( self ):
+        # TODO: Attempt for constant values to do it.
+        return self, None, None
 
 
 # Note: Python3 only so far.
@@ -66,12 +83,6 @@ class CPythonExpressionBuiltinExecfile( CPythonExpressionBuiltinEval ):
     def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
         CPythonExpressionBuiltinEval.__init__( self, source_code, globals_arg, locals_arg, source_ref )
 
-
-def _convertNoneConstantToNone( value ):
-    if value is not None and value.isExpressionConstantRef() and value.getConstant() is None:
-        return None
-    else:
-        return value
 
 class CPythonStatementExec( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_EXEC"
@@ -90,18 +101,15 @@ class CPythonStatementExec( CPythonChildrenHaving, CPythonNodeBase ):
             }
         )
 
+    def setChild( self, name, value ):
+        if name in ( "globals", "locals" ):
+            value = convertNoneConstantToNone( value )
+
+        return CPythonChildrenHaving.setChild( self, name, value )
+
     getSourceCode = CPythonChildrenHaving.childGetter( "source" )
-    _getGlobals = CPythonChildrenHaving.childGetter( "globals" )
-    _getLocals = CPythonChildrenHaving.childGetter( "locals" )
-
-    def getLocals( self ):
-        return _convertNoneConstantToNone( self._getLocals() )
-
-    def getGlobals( self ):
-        if self.getLocals() is None:
-            return _convertNoneConstantToNone( self._getGlobals() )
-        else:
-            return self._getGlobals()
+    getGlobals = CPythonChildrenHaving.childGetter( "globals" )
+    getLocals = CPythonChildrenHaving.childGetter( "locals" )
 
 
 # TODO: This is totally bitrot

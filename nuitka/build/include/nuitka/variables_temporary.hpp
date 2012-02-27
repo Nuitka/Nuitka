@@ -40,73 +40,73 @@
 
 class PyObjectTemporary
 {
-    public:
-        explicit PyObjectTemporary( PyObject *object )
-        {
-            assertObject( object );
+public:
+    explicit PyObjectTemporary( PyObject *object )
+    {
+        assertObject( object );
 
-            this->object = object;
-        }
+        this->object = object;
+    }
 
-        ~PyObjectTemporary()
-        {
-            assertObject( this->object );
+    ~PyObjectTemporary()
+    {
+        assertObject( this->object );
 
-            Py_DECREF( this->object );
-        }
+        Py_DECREF( this->object );
+    }
 
-        PyObject *asObject() const
-        {
-            assertObject( this->object );
+    PyObject *asObject() const
+    {
+        assertObject( this->object );
 
-            return this->object;
-        }
+        return this->object;
+    }
 
-        void assign( PyObject *object )
-        {
-            assertObject( this->object );
+    void assign( PyObject *object )
+    {
+        assertObject( this->object );
 
-            Py_DECREF( this->object );
+        Py_DECREF( this->object );
 
-            assertObject( object );
+        assertObject( object );
 
-            this->object = object;
-        }
+        this->object = object;
+    }
 
-    private:
-        PyObjectTemporary( const PyObjectTemporary &object ) = delete;
+private:
+    PyObjectTemporary( const PyObjectTemporary &object ) = delete;
 
-        PyObject *object;
+    PyObject *object;
 };
 
 class PyObjectTempHolder
 {
-    public:
-        explicit PyObjectTempHolder( PyObject *object )
-        {
-            assertObject( object );
+public:
+    explicit PyObjectTempHolder( PyObject *object )
+    {
+        assertObject( object );
 
-            this->object = object;
-        }
+        this->object = object;
+    }
 
-        ~PyObjectTempHolder()
-        {
-            Py_XDECREF( this->object );
-        }
+    ~PyObjectTempHolder()
+    {
+        Py_XDECREF( this->object );
+    }
 
-        PyObject *asObject()
-        {
-            assertObject( this->object );
+    PyObject *asObject()
+    {
+        assertObject( this->object );
 
-            PyObject *result = this->object;
-            this->object = NULL;
-            return result;
-        }
+        PyObject *result = this->object;
+        this->object = NULL;
+        return result;
+    }
 
-    private:
-        PyObjectTempHolder( const PyObjectTempHolder &object ) = delete;
+private:
+    PyObjectTempHolder( const PyObjectTempHolder &other ) = delete;
 
-        PyObject *object;
+    PyObject *object;
 };
 
 #endif

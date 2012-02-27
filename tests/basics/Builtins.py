@@ -144,6 +144,16 @@ print "Found during optimization", bool( float( "3.3" ) ), bool( x = float( 0.0 
 print "Ints from constants", int( "3" ), int( x = "9" ), int( "f", 16 ), int( x = "e", base = 16 ), int( base = 2 ), int( "0101", base = 2 ), int(0), int()
 print "Found during optimization", int( int( "3" ) ), int( x = int( 0.0 ) )
 
+print "Oct from constants", oct( 467 ), oct( 0 )
+print "Found during optimization", oct( int( "3" ) )
+
+print "Hex from constants", hex( 467 ), hex( 0 )
+print "Found during optimization", hex( int( "3" ) )
+
+
+print "Bin from constants", bin( 467 ), bin( 0 )
+print "Found during optimization", bin( int( "3" ) )
+
 try:
     int( 1,2,3 )
 except Exception, e:

@@ -63,7 +63,7 @@ os.environ[ "PYTHONPATH" ] = os.getcwd()
 print( "Using concrete python", python_version )
 
 for filename in sorted( os.listdir( "." ) ):
-    if not filename.endswith( ".py" ) or filename == "run_all.py":
+    if not filename.endswith( ".py" ) or filename.startswith( "run_" ):
         continue
 
     path = filename

@@ -77,7 +77,7 @@ for filename in sorted( os.listdir( "." ) ):
         else:
             extra_flags = [ "expect_failure" ]
 
-        if filename == "package_missing_init":
+        if filename in ( "package_missing_init", "dash_import", ):
             extra_flags.append( "ignore_stderr" )
 
         os.environ[ "PYTHONPATH" ] = os.path.abspath( filename )

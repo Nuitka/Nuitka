@@ -38,20 +38,24 @@ from .OptimizeConstantExec import OptimizeExecVisitor
 from .OptimizeVariableClosure import (
     VariableClosureLookupVisitors,
     ModuleVariableUsageAnalysisVisitor,
-    ModuleVariableReadOnlyVisitor,
     MaybeLocalVariableReductionVisitor
 )
-from .OptimizeBuiltins import (
-    ReplaceBuiltinsCriticalVisitor,
-    ReplaceBuiltinsOptionalVisitor,
-    ReplaceBuiltinsExceptionsVisitor,
-    PrecomputeBuiltinsVisitor
-)
-from .OptimizeStaticMethodFixup import FixupNewStaticMethodVisitor
-from .OptimizeConstantOperations import OptimizeOperationVisitor
+from .OptimizeConstantOperations import OptimizeFunctionCallArgsVisitor
 from .OptimizeUnpacking import ReplaceUnpackingVisitor
-from .OptimizeStatements import StatementSequencesCleanupVisitor
 from .OptimizeRaises import OptimizeRaisesVisitor
+from .OptimizeValuePropagation import ValuePropagationVisitor
+
+# Populate call registry.
+from . import OptimizeBuiltinCalls
+OptimizeBuiltinCalls.register()
+
+# Populate slice registry
+from . import OptimizeSlices
+OptimizeSlices.register()
+
+# Populate subscript registry
+from . import OptimizeSubscripts
+OptimizeSubscripts.register()
 
 from .Tags import TagSet
 
@@ -64,8 +68,6 @@ from nuitka.Tracing import printLine
 from logging import debug
 
 _progress = Options.isShowProgress()
-
-use_propagation = Options.useValuePropagation()
 
 def optimizeTree( tree ):
     # Lots of conditions to take, pylint: disable=R0912
@@ -80,43 +82,26 @@ def optimizeTree( tree ):
 
     def refreshOptimizationsFromTags( optimizations_queue, tags ):
         if tags.check( "new_code" ):
-            optimizations_queue.add( FixupNewStaticMethodVisitor )
-
-        if tags.check( "new_code new_variable" ):
             optimizations_queue.update( VariableClosureLookupVisitors )
 
-        if tags.check( "new_code new_import new_constant" ):
+        # Note: The import recursion cannot be done in "computeNode" due to circular
+        # dependency and since it only needs to be done with "new_import" again, it
+        # remains its own visitor.
+        if tags.check( "new_code new_import" ):
             if not Options.shallMakeModule():
                 optimizations_queue.add( ModuleRecursionVisitor )
 
+        # TODO: This ought to happen in computeNode clearly.
         if tags.check( "new_code new_constant" ):
-            optimizations_queue.add( OptimizeOperationVisitor )
+            optimizations_queue.add( OptimizeFunctionCallArgsVisitor )
 
         if tags.check( "new_code new_constant" ):
             optimizations_queue.add( ReplaceUnpackingVisitor )
 
-        if tags.check( "new_code new_statements new_constant" ):
-            optimizations_queue.add( StatementSequencesCleanupVisitor )
-
-        if tags.check( "new_code new_variable" ):
+        if tags.check( "new_code" ):
             optimizations_queue.add( ModuleVariableUsageAnalysisVisitor )
 
-        if tags.check( "new_code read_only_mvar" ):
-            optimizations_queue.add( ModuleVariableReadOnlyVisitor )
-
-        if tags.check( "new_code read_only_mvar" ):
-            optimizations_queue.add( ReplaceBuiltinsCriticalVisitor )
-
-        if tags.check( "new_code read_only_mvar" ):
-            optimizations_queue.add( ReplaceBuiltinsOptionalVisitor )
-
-        if tags.check( "new_code read_only_mvar" ):
-            optimizations_queue.add( ReplaceBuiltinsExceptionsVisitor )
-
-        if tags.check( "new_builtin new_constant" ):
-            optimizations_queue.add( PrecomputeBuiltinsVisitor )
-
-        if tags.check( "var_usage" ):
+        if tags.check( "var_usage new_builtin" ):
             optimizations_queue.add( MaybeLocalVariableReductionVisitor )
 
         if tags.check( "new_code new_constant" ):
@@ -126,7 +111,7 @@ def optimizeTree( tree ):
         if tags.check( "new_code new_raise" ):
             optimizations_queue.add( OptimizeRaisesVisitor )
 
-        if use_propagation and tags.check( "new_code new_constant" ):
+        if tags.check( "new_code new_statements new_constant new_builtin" ):
             optimizations_queue.add( ValuePropagationVisitor )
 
         tags.clear()

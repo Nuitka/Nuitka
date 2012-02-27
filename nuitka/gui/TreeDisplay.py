@@ -32,11 +32,11 @@ Useful to getting an idea of what the internal representation of Nuitka is about
 code.
 """
 
-from nuitka import SourceCodeReferences
+from nuitka import SourceCodeReferences, Utils
 
 from PyQt4 import QtCore, QtGui, uic
 
-import sys, os
+import sys
 
 # The API requires a signature, sometimes we don't use it, pylint: disable=R0201
 # Also using private stuff from classes, probably ok, pylint: disable=W0212
@@ -193,8 +193,8 @@ class InspectNodeTreeDialog( QtGui.QDialog ):
     def __init__( self, *args ):
         QtGui.QDialog.__init__( self, *args )
 
-        ui_dir = os.path.dirname( __file__ )
-        ui_filename = os.path.join( ui_dir, "dialogs", "InspectPythonTree.ui" )
+        ui_dir = Utils.dirname( __file__ )
+        ui_filename = Utils.joinpath( ui_dir, "dialogs", "InspectPythonTree.ui" )
 
         uic.loadUi( ui_filename, self )
 

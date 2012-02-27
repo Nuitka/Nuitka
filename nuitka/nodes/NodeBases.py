@@ -58,6 +58,8 @@ class NodeCheckMetaClass( type ):
             if hasattr( base, "tags" ):
                 dictionary[ "tags" ] += getattr( base, "tags" )
 
+        assert len( bases ) == len( set( bases ) )
+
         # Uncomment this for debug view of class tags.
         # print name, dictionary[ "tags" ]
 
@@ -124,6 +126,10 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         self.source_ref = source_ref
 
+    def isNode( self ):
+        # Virtual method, pylint: disable=R0201
+        return True
+
     def __repr__( self ):
         # This is to avoid crashes, because of bugs in detail. pylint: disable=W0702
         try:
@@ -146,14 +152,14 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         """ Details of the node, intented for use in __repr__ and dumps.
 
         """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return {}
 
     def getDetail( self ):
         """ Details of the node, intented for use in __repr__ and graphical display.
 
         """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=R0201
         return ""
 
     def getParent( self ):
@@ -300,6 +306,18 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
     def isAssignTargetSomething( self ):
         return self.kind.startswith( "ASSIGN_" )
 
+    def isExpressionMakeSequence( self ):
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
+    def isIteratorMaking( self ):
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
+    def isNumberConstant( self ):
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
     def visit( self, context, visitor ):
         visitor( self )
 
@@ -329,7 +347,10 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
 
     def replaceWith( self, new_node ):
-        self.parent.replaceChild( old_node = self, new_node = new_node )
+        self.parent.replaceChild(
+            old_node = self,
+            new_node = new_node
+        )
 
     def getName( self ):
         # Virtual method, pylint: disable=R0201,W0613
@@ -435,7 +456,7 @@ class CPythonChildrenHaving:
         assert type( self.named_children ) is tuple
 
         for key in values.keys():
-            assert key in self.named_children
+            assert key in self.named_children, key
 
         self.child_values = dict.fromkeys( self.named_children )
         self.child_values.update( values )
@@ -450,6 +471,9 @@ class CPythonChildrenHaving:
                     val.parent = self
             elif value is not None:
                 value.parent = self
+
+        for key in values.keys():
+            self.setChild( key, self.getChild( key ) )
 
     def setChild( self, name, value ):
         assert name in self.child_values, name
@@ -484,6 +508,15 @@ class CPythonChildrenHaving:
 
         return setter
 
+    @staticmethod
+    def childSetterNotNone( name ):
+        def setter( self, value ):
+            assert value, ( self, value )
+
+            self.setChild( name, value )
+
+        return setter
+
     def getVisitableNodes( self ):
         result = []
 
@@ -497,7 +530,7 @@ class CPythonChildrenHaving:
             elif isinstance( value, CPythonNodeBase ):
                 result.append( value )
             else:
-                assert False, ( name, value, value.__class__ )
+                raise AssertionError( self, "has illegal child", name, value, value.__class__ )
 
         return tuple( result )
 
@@ -512,6 +545,9 @@ class CPythonChildrenHaving:
         return result
 
     def replaceChild( self, old_node, new_node ):
+        if new_node is not None and not isinstance( new_node, CPythonNodeBase ):
+            raise AssertionError( "Cannot replace with", new_node, "old", old_node, "in", self )
+
         for key, value in self.child_values.items():
             if value is None:
                 pass
@@ -536,7 +572,12 @@ class CPythonChildrenHaving:
             else:
                 assert False, ( key, value, value.__class__ )
         else:
-            assert False, ( "didn't find child", old_node, "in", self )
+            raise AssertionError(
+                "Didn't find child",
+                old_node,
+                "in",
+                self
+            )
 
         if new_node is not None:
             new_node.parent = old_node.parent
@@ -625,7 +666,7 @@ class CPythonParameterHavingNodeBase( CPythonClosureGiverNodeBase ):
 class CPythonClosureTaker:
     """ Mixin for nodes that accept variables from closure givers. """
 
-    tags = ( "closure_taker", "execution_border" )
+    tags = ( "closure_taker", )
 
     def __init__( self, provider ):
         assert self.__class__.early_closure is not None, self
@@ -719,17 +760,85 @@ class CPythonClosureTaker:
         self.temp_variables = variables
 
 
-class CPythonExpressionBuiltinSingleArgBase( CPythonChildrenHaving, CPythonNodeBase ):
-    named_children = ( "value", )
 
-    def __init__( self, value, source_ref ):
+class CPythonExpressionMixin:
+    def getValueFriend( self ):
+        return self
+
+    def isCompileTimeConstant( self ):
+        """ Has a value that we can use at compile time.
+
+            Yes or no. If it has such a value, simulations can be applied at compile time
+            and e.g. operations or conditions, or even calls may be executed against it.
+        """
+        # Virtual method, pylint: disable=R0201
+
+        return False
+
+    def getCompileTimeConstant( self ):
+        assert self.isCompileTimeConstant()
+        assert False
+
+    def isKnownToBeIterable( self, count ):
+        """ Can be iterated at all (count is None) or exactly count times.
+
+            Yes or no. If it can be iterated a known number of times, it may be asked to
+            unpack itself.
+        """
+
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
+
+class CPythonExpressionSpecBasedComputationMixin( CPythonExpressionMixin ):
+    builtin_spec = None
+
+    def computeBuiltinSpec( self, given_values ):
+        assert self.builtin_spec is not None, self
+
+        for value in given_values:
+            if not value.isCompileTimeConstant():
+                return self, None, None
+
+        from .NodeMakingHelpers import getComputationResult
+
+        return getComputationResult(
+            node        = self,
+            computation = lambda : self.builtin_spec.simulateCall( given_values ),
+            description = "Builtin call to %s precomputed." % self.builtin_spec.getName()
+        )
+
+
+class CPythonExpressionChildrenHavingBase( CPythonChildrenHaving, CPythonNodeBase, CPythonExpressionMixin ):
+    def __init__( self, values, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
-            values = {
-                "value" : value,
-            }
+            values = values
         )
 
-    getValue = CPythonChildrenHaving.childGetter( "value" )
+class CPythonExpressionBuiltinSingleArgBase( CPythonExpressionChildrenHavingBase, \
+                                             CPythonExpressionSpecBasedComputationMixin ):
+    named_children = ( "value", )
+
+    def __init__( self, value, source_ref ):
+        CPythonExpressionChildrenHavingBase.__init__(
+            self,
+            values = {
+                "value" : value,
+            },
+            source_ref = source_ref
+        )
+
+    getValue = CPythonExpressionChildrenHavingBase.childGetter( "value" )
+
+    def computeNode( self ):
+        value = self.getValue()
+
+        assert self.builtin_spec is not None, self
+
+        if value is None:
+            return self.computeBuiltinSpec( () )
+        else:
+            return self.computeBuiltinSpec( ( value, ) )

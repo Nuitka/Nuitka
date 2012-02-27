@@ -30,13 +30,13 @@
 
 """
 
-from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
+from .NodeBases import CPythonExpressionChildrenHavingBase
 
 from nuitka import PythonOperators
 
 from .NodeMakingHelpers import getComputationResult
 
-class CPythonExpressionComparison( CPythonChildrenHaving, CPythonNodeBase ):
+class CPythonExpressionComparison( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_COMPARISON"
 
     named_children = ( "left", "right" )
@@ -46,14 +46,13 @@ class CPythonExpressionComparison( CPythonChildrenHaving, CPythonNodeBase ):
         assert right.isExpression()
         assert type( comparator ) is str, comparator
 
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        CPythonExpressionChildrenHavingBase.__init__(
             self,
             values = {
                 "left" : left,
                 "right" : right
-            }
+            },
+            source_ref = source_ref
         )
 
         self.comparator = comparator
@@ -64,8 +63,8 @@ class CPythonExpressionComparison( CPythonChildrenHaving, CPythonNodeBase ):
             self.getRight()
         )
 
-    getLeft = CPythonChildrenHaving.childGetter( "left" )
-    getRight = CPythonChildrenHaving.childGetter( "right" )
+    getLeft = CPythonExpressionChildrenHavingBase.childGetter( "left" )
+    getRight = CPythonExpressionChildrenHavingBase.childGetter( "right" )
 
     def getComparator( self ):
         return self.comparator
@@ -79,11 +78,17 @@ class CPythonExpressionComparison( CPythonChildrenHaving, CPythonNodeBase ):
     def computeNode( self ):
         left, right = self.getOperands()
 
-        if left.isConstant() and right.isConstant():
+        if left.isCompileTimeConstant() and right.isCompileTimeConstant():
+            left_value = left.getCompileTimeConstant()
+            right_value = right.getCompileTimeConstant()
+
             return getComputationResult(
                 node        = self,
-                computation = self.getSimulator(),
-                description = "Comparison"
+                computation = lambda : self.getSimulator()(
+                    left_value,
+                    right_value
+                ),
+                description = "Comparison with constant arguments"
             )
 
         return self, None, None

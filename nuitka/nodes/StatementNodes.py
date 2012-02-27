@@ -32,15 +32,26 @@
 
 from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
 
+def mergeStatements( statements ):
+    """ Helper function that merges nested statement sequences. """
+    merged_statements = []
+
+    for statement in statements:
+        if statement.isStatement():
+            merged_statements.append( statement )
+        elif statement.isStatementsSequence():
+            merged_statements.extend( mergeStatements( statement.getStatements() ) )
+        else:
+            assert False, statement
+
+    return merged_statements
+
 class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENTS_SEQUENCE"
 
     named_children = ( "statements", )
 
     def __init__( self, statements, source_ref ):
-        for statement in statements:
-            assert statement.isStatement() or statement.isStatementsSequence(), statement
-
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
@@ -51,6 +62,16 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
         )
 
     getStatements = CPythonChildrenHaving.childGetter( "statements" )
+    setStatements = CPythonChildrenHaving.childSetterNotNone( "statements" )
+
+    def setChild( self, name, value ):
+        assert name == "statements"
+
+        return CPythonChildrenHaving.setChild(
+            self,
+            name  = name,
+            value = mergeStatements( value )
+        )
 
     # Overloading automatic check, so that derived ones know it too.
     def isStatementsSequence( self ):
@@ -73,6 +94,7 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
 
         statements = list( self.getStatements() )
         statements.remove( statement )
+
         self.setChild( "statements", statements )
 
     def mergeStatementsSequence( self, statement_sequence ):
@@ -98,14 +120,6 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
         else:
             return False
 
-class CPythonStatementsSequenceLoopBody( CPythonStatementsSequence ):
-    kind = "STATEMENTS_SEQUENCE_LOOP_BODY"
-
-    named_children = ( "statements", )
-
-    tags = ( "execution_border", )
-
-
 
 class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_EXPRESSION_ONLY"
@@ -125,4 +139,19 @@ class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
     def getDetail( self ):
         return "expression %s" % self.getExpression()
 
+    def mayHaveSideEffects( self ):
+        return self.getExpression().mayHaveSideEffects()
+
     getExpression = CPythonChildrenHaving.childGetter( "expression" )
+
+
+class CPythonStatementDeclareGlobal( CPythonNodeBase ):
+    kind = "STATEMENT_DECLARE_GLOBAL"
+
+    def __init__( self, variable_names, source_ref ):
+        self.variable_names = tuple( variable_names )
+
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+    def getVariableNames( self ):
+        return self.variable_names

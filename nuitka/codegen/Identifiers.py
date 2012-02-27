@@ -32,8 +32,6 @@ These are generally the means to effectively hide the reference count. The best 
 is where getCheapRefCount tries to not allocate references not needed.
 """
 
-from .OrderedEvaluation import getEvalOrderedCode
-
 # The method signatures do not always require usage of self, sometimes can be decided
 # based on class. pylint: disable=R0201
 
@@ -172,6 +170,7 @@ class LocalVariableIdentifier:
     def getCodeDropRef( self ):
         return self.getCodeTemporaryRef()
 
+
 class TempVariableIdentifier( Identifier ):
     def __init__( self, tempvar_name ):
         self.tempvar_name = tempvar_name
@@ -189,6 +188,7 @@ class TempVariableIdentifier( Identifier ):
 
     def getClass( self ):
         return "PyObjectTemporary"
+
 
 class HolderVariableIdentifier( Identifier ):
     def __init__( self, tempvar_name ):
@@ -211,19 +211,19 @@ class HolderVariableIdentifier( Identifier ):
     def getClass( self ):
         return "PyObjectTempHolder"
 
+
 class TempObjectIdentifier( Identifier ):
     def __init__( self, tempvar_name, from_context ):
         self.tempvar_name = tempvar_name
-        self.from_context = from_context
 
-        if self.from_context:
-            Identifier.__init__( self, self.from_context + "python_tmp_" + tempvar_name, 0 )
+        if from_context:
+            Identifier.__init__( self, from_context + "python_tmp_" + tempvar_name, 0 )
         else:
-
             Identifier.__init__( self, "_python_tmp_" + tempvar_name, 0 )
 
     def getCodeTemporaryRef( self ):
         return self.code
+
 
 class ClosureVariableIdentifier( Identifier ):
     def __init__( self, var_name, from_context ):
@@ -282,20 +282,6 @@ class HelperCallIdentifier( CallIdentifier ):
             self,
             called = helper,
             args   = [ arg.getCodeTemporaryRef() for arg in args ]
-        )
-
-class ReversedCallIdentifier( Identifier ):
-    def __init__( self, context, called, args ):
-        Identifier.__init__(
-            self,
-            code      = "%s( %s )" % (
-                called,
-                getEvalOrderedCode(
-                    context = context,
-                    args    = args
-                )
-            ),
-            ref_count = 1
         )
 
 def getCodeTemporaryRefs( identifiers ):

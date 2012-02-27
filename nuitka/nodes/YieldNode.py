@@ -26,39 +26,39 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
-""" Delete the staticmethod decorator from __new__ methods if provided.
+""" Yield node.
 
-CPython made these optional, and applies them to every __new__. We better add
-them early, so our analysis will see it for improved consistency. This is better
-then adding it during code generation only.
+The yield node returns to the caller of the generator and therefore may execute absolutely
+abitrary code, from the point of view of this code. It then returns something, which may
+often be 'None', but doesn't have to be.
+
+Often it will be used as a statement, which should also be reflected in a dedicated node.
 """
 
-from .OptimizeBase import (
-    makeBuiltinRefReplacementNode,
-    OptimizationVisitorBase
-)
+from .NodeBases import CPythonExpressionChildrenHavingBase
 
-class FixupNewStaticMethodVisitor( OptimizationVisitorBase ):
-    def onEnterNode( self, node ):
-        if node.isStatementFunctionBuilder() and \
-           node.getFunctionName() == "__new__" and \
-           node.getParentClass() is not None:
+class CPythonExpressionYield( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_YIELD"
 
-            decorators = node.getDecorators()
+    named_children = ( "expression", )
 
-            if len( decorators ) == 0:
-                new_node = makeBuiltinRefReplacementNode(
-                    builtin_name = "staticmethod",
-                    node         = node
-                )
+    def __init__( self, expression, for_return, source_ref ):
+        CPythonExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "expression" : expression
+            },
+            source_ref = source_ref
+        )
 
-                node.setDecorators(
-                    ( new_node, )
-                )
-                new_node.parent = node
+        self.for_return = for_return
 
-                self.signalChange(
-                    "new_code",
-                    node.getSourceReference(),
-                    "Added missing staticmethod decoration to __new__ method"
-                )
+    def isForReturn( self ):
+        return self.for_return
+
+    getExpression = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
+
+    def computeNode( self ):
+        # Nothing possible really here.
+
+        return self, None, None

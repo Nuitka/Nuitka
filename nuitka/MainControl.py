@@ -144,27 +144,69 @@ def getResultPath( main_module ):
         )
     )
 
+def _cleanSourceDirectory( source_dir ):
+    if Utils.isDir( source_dir ):
+        for path, _filename in Utils.listDir( source_dir ):
+            if Utils.getExtension( path ) in ( ".cpp", ".hpp", ".o", ".os" ):
+                Utils.deleteFile( path, True )
+    else:
+        Utils.makePath( source_dir )
+
+    static_source_dir = Utils.joinpath( source_dir, "static" )
+
+    if Utils.isDir( static_source_dir ):
+        for path, _filename in sorted( Utils.listDir( static_source_dir ) ):
+            if Utils.getExtension( path ) in ( ".o", ".os" ):
+                Utils.deleteFile( path, True )
+
+def _pickSourceFilenames( source_dir, other_modules ):
+    collision_filenames = set()
+    seen_filenames = set()
+
+    for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
+        base_filename = Utils.joinpath( source_dir, other_module.getFullName() )
+
+        # TODO: Could detect if the filesystem is cases sensitive in source_dir or not.
+        collision_filename = Utils.normcase( base_filename )
+
+        if collision_filename in seen_filenames:
+            collision_filenames.add( collision_filename )
+
+        seen_filenames.add( collision_filename )
+
+    collision_count = {}
+
+    module_filenames = {}
+
+    for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
+        base_filename = Utils.joinpath( source_dir, other_module.getFullName() )
+
+        collision_filename = Utils.normcase( base_filename )
+
+        if collision_filename in collision_filenames:
+            hash_suffix = "@%d" % collision_count[ collision_filename ]
+            collision_count[ collision_filename ] = collision_count.get( collision_filename, 0 ) + 1
+        else:
+            hash_suffix = ""
+
+        base_filename += hash_suffix
+
+        cpp_filename = base_filename + ".cpp"
+        hpp_filename = base_filename + ".hpp"
+
+        module_filenames[ other_module ] = ( cpp_filename, hpp_filename )
+
+    return module_filenames
+
 def makeSourceDirectory( main_module ):
     assert main_module.isModule()
 
     source_dir = getSourceDirectoryPath( main_module )
 
-    if os.path.exists( source_dir ):
-        for path, filename in Utils.listDir( source_dir ):
-            if Utils.getExtension( path ) in ( ".cpp", ".hpp", ".o", ".os" ):
-                os.unlink( path )
-    else:
-        os.makedirs( source_dir )
+    # First remove old object files and old generated files, they can only do harm.
+    _cleanSourceDirectory( source_dir )
 
-    static_source_dir = Utils.joinpath( source_dir, "static" )
-
-    if os.path.exists( static_source_dir ):
-        for path, filename in sorted( Utils.listDir( static_source_dir ) ):
-            path = Utils.joinpath( static_source_dir, filename )
-
-            if Utils.getExtension( path ) in ( ".o", ".os" ):
-                os.unlink( path )
-
+    # The global context used to generate code.
     global_context = CodeGeneration.makeGlobalContext()
 
     other_modules = Optimization.getOtherModules()
@@ -177,40 +219,14 @@ def makeSourceDirectory( main_module ):
 
     module_hpps = []
 
-    collision_filenames = set()
-    seen_filenames = set()
+
+    module_filenames = _pickSourceFilenames(
+        source_dir     = source_dir,
+        other_modules = other_modules
+    )
 
     for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
-        base_filename = Utils.joinpath( source_dir, other_module.getFullName() )
-
-        collision_filename = os.path.normcase( base_filename )
-
-        if collision_filename in seen_filenames:
-            collision_filenames.add( collision_filename )
-
-        seen_filenames.add( collision_filename )
-
-    collision_count = {}
-
-    for collision_filename in collision_filenames:
-        collision_count[ collision_filename ] = 1
-
-    for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
-        base_filename = Utils.joinpath( source_dir, other_module.getFullName() )
-
-        # TODO: Actually the case sensitivity of build dir should be detected.
-        collision_filename = os.path.normcase( base_filename )
-
-        if collision_filename in collision_filenames:
-            hash_suffix = "@%d" % collision_count[ collision_filename ]
-            collision_count[ collision_filename ] += 1
-        else:
-            hash_suffix = ""
-
-        base_filename += hash_suffix
-
-        cpp_filename = base_filename + ".cpp"
-        hpp_filename = base_filename + ".hpp"
+        cpp_filename, hpp_filename = module_filenames[ other_module ]
 
         other_module_code = CodeGeneration.generateModuleCode(
             global_context = global_context,
@@ -329,15 +345,21 @@ def runScons( tree, quiet ):
         "optimize_mode"  : asBoolStr( Options.isOptimize() ),
         "python_version" : python_version,
         "lto_mode"       : asBoolStr( Options.isLto() ),
+        "clang_mode"     : asBoolStr( Options.isClang() )
     }
 
     if Options.isWindowsTarget():
         options[ "win_target" ] = "true"
 
+    if Options.shallDisableConsoleWindow():
+        options[ "win_disable_console" ] = "true"
+
     return SconsInterface.runScons( options, quiet ), options
 
 def writeSourceCode( filename, source_code ):
-    assert not os.path.exists( filename ), filename
+    # Prevent accidental overwriting. When this happens the collision detection or
+    # something else has failed.
+    assert not Utils.isFile( filename ), filename
 
     with open( filename, "w" ) as output_file:
         output_file.write( source_code )
@@ -375,7 +397,7 @@ def executeMain( binary_filename, tree, clean_path ):
     else:
         name = Utils.basename( main_filename )
 
-    if not Options.isWindowsTarget() or "win" in sys.platform:
+    if not Options.isWindowsTarget() or os.name == "nt":
         args = ( binary_filename, name )
     else:
         args = ( "/usr/bin/wine", name, binary_filename )

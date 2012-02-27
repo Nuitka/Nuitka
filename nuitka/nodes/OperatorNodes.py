@@ -28,27 +28,26 @@
 #
 """ Nodes for unary and binary operations.
 
-No short-circuit involved, boolean NOT is an unary operation.
-
+No short-circuit involved, boolean 'not' is an unary operation like '-' is, no real
+difference.
 """
 
-from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
+from .NodeBases import CPythonExpressionChildrenHavingBase
 
 from .NodeMakingHelpers import getComputationResult
 
 from nuitka import PythonOperators
 
-class CPythonExpressionOperationBase( CPythonChildrenHaving, CPythonNodeBase ):
+class CPythonExpressionOperationBase( CPythonExpressionChildrenHavingBase ):
     named_children = ( "operands", )
 
     def __init__( self, operator, simulator, operands, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        CPythonExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "operands" : operands
-            }
+            },
+            source_ref = source_ref
         )
 
         self.operator = operator
@@ -67,7 +66,12 @@ class CPythonExpressionOperationBase( CPythonChildrenHaving, CPythonNodeBase ):
     def getSimulator( self ):
         return self.simulator
 
-    getOperands = CPythonChildrenHaving.childGetter( "operands" )
+    getOperands = CPythonExpressionChildrenHavingBase.childGetter( "operands" )
+
+    def isKnownToBeIterable( self, count ):
+        # TODO: Could be true, if the arguments said so
+        return None
+
 
 class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
     kind = "EXPRESSION_OPERATION_BINARY"
@@ -87,20 +91,22 @@ class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
         operator = self.getOperator()
         operands = self.getOperands()
 
-        a, b = operands
+        left, right = operands
 
-        if operator == "Div":
-            if a.isConstant() and b.isConstant():
-                return getComputationResult(
-                    node        = self,
-                    computation = lambda : self.getSimulator()( a.getConstant(), b.getConstant() ),
-                    description = "Range builtin"
-                )
+        if left.isCompileTimeConstant() and right.isCompileTimeConstant():
+            left_value = left.getCompileTimeConstant()
+            right_value = right.getCompileTimeConstant()
 
-            else:
-                return self, None, None
+            return getComputationResult(
+                node        = self,
+                computation = lambda : self.getSimulator()(
+                    left_value,
+                    right_value
+                ),
+                description = "Operator '%s' with constant arguments" % operator
+            )
         else:
-            raise AssertionError( "Operator not implemented", operator )
+            return self, None, None
 
 
 class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
@@ -116,6 +122,22 @@ class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
             operands   = ( operand, ),
             source_ref = source_ref
         )
+
+    def computeNode( self ):
+        operator = self.getOperator()
+        operand = self.getOperand()
+
+        if operand.isCompileTimeConstant():
+            operand_value = operand.getCompileTimeConstant()
+            return getComputationResult(
+                node        = self,
+                computation = lambda : self.getSimulator()(
+                    operand_value,
+                ),
+                description = "Operator '%s' with constant argument" % operator
+            )
+        else:
+            return self, None, None
 
     def getOperand( self ):
         operands = self.getOperands()
@@ -134,3 +156,21 @@ class CPythonExpressionOperationNOT( CPythonExpressionOperationUnary ):
             operand    = operand,
             source_ref = source_ref
         )
+
+class CPythonExpressionOperationBinaryInplace( CPythonExpressionOperationBinary ):
+    kind = "EXPRESSION_OPERATION_BINARY_INPLACE"
+
+    def __init__( self, operator, left, right, source_ref ):
+        operator = "I" + operator
+
+        CPythonExpressionOperationBinary.__init__(
+            self,
+            operator   = operator,
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+
+    def computeNode( self ):
+        # TODO: Inplace operation requires extra care to avoid corruption of values.
+        return self, None, None

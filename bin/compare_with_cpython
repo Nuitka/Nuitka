@@ -39,7 +39,7 @@ exec_in_tmp = "exec_in_tmp" in sys.argv
 expect_success = "expect_success" in sys.argv
 expect_failure = "expect_failure" in sys.argv
 python_debug = "python_debug" in sys.argv
-two_step_execution = "two_step_execution" in sys.argv or "win" in sys.platform
+two_step_execution = "two_step_execution" in sys.argv or os.name == "nt"
 trace_command = "trace_command" in sys.argv
 
 if "PYTHON" not in os.environ:
@@ -85,7 +85,7 @@ if not two_step_execution:
     )
 
     if trace_command:
-        print( nuitka_cmd )
+        print( "Nuitka command:", nuitka_cmd )
 else:
     nuitka_cmd1 = "%s %s --exe %s" % (
         nuitka_call,
@@ -98,7 +98,7 @@ else:
     exe_filename = os.path.basename( filename )
 
     if filename.endswith( ".py" ):
-        filename = filename[:-3] + ".exe"
+        exe_filename = exe_filename[:-3] + ".exe"
 
     if dir_match:
         nuitka_cmd2 = os.path.join( dir_match.group( 1 ), exe_filename )
@@ -106,8 +106,8 @@ else:
         nuitka_cmd2 = os.path.join( ".", exe_filename )
 
     if trace_command:
-        print( nuitka_cmd1 )
-        print( nuitka_cmd1 )
+        print( "Nuitka command 1:", nuitka_cmd1 )
+        print( "Nuitka command 2:", nuitka_cmd2 )
 
 if exec_in_tmp:
     os.chdir( tempfile.gettempdir() )
@@ -196,6 +196,9 @@ def makeDiffable( output ):
 
     for line in output.split( b"\n" ):
         line = str( line )
+
+        if line.endswith( "\r" ):
+            line = line[:-1]
 
         line = instance_re.sub( r"at 0xxxxxxxxx", line )
         line = compiled_function_re.sub( r"<function", line )

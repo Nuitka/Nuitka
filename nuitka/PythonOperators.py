@@ -39,42 +39,36 @@ import operator
 
 if getPythonVersion() >= 300:
     operator.div = operator.truediv
-
-binary_operator_functions = {
-    "Add"      : operator.add,
-    "Sub"      : operator.sub,
-    "Pow"      : operator.pow,
-    "Mult"     : operator.mul,
-    "Div"      : operator.div,
-    "FloorDiv" : operator.floordiv,
-    "TrueDiv"  : operator.truediv,
-    "Mod"      : operator.mod,
-    "LShift"   : operator.lshift,
-    "RShift"   : operator.rshift,
-    "BitAnd"   : operator.and_,
-    "BitOr"    : operator.or_,
-    "BitXor"   : operator.xor,
-}
-
-if getPythonVersion() >= 300:
     operator.idiv = operator.itruediv
 
-inplace_operator_functions = {
-    "Add"      : operator.iadd,
-    "Sub"      : operator.isub,
-    "Pow"      : operator.ipow,
-    "Mult"     : operator.imul,
-    "Div"      : operator.idiv,
-    "FloorDiv" : operator.ifloordiv,
-    "TrueDiv"  : operator.itruediv,
-    "Mod"      : operator.imod,
-    "LShift"   : operator.ilshift,
-    "RShift"   : operator.irshift,
-    "BitAnd"   : operator.iand,
-    "BitOr"    : operator.ior,
-    "BitXor"   : operator.ixor,
+binary_operator_functions = {
+    "Add"       : operator.add,
+    "Sub"       : operator.sub,
+    "Pow"       : operator.pow,
+    "Mult"      : operator.mul,
+    "Div"       : operator.div,
+    "FloorDiv"  : operator.floordiv,
+    "TrueDiv"   : operator.truediv,
+    "Mod"       : operator.mod,
+    "LShift"    : operator.lshift,
+    "RShift"    : operator.rshift,
+    "BitAnd"    : operator.and_,
+    "BitOr"     : operator.or_,
+    "BitXor"    : operator.xor,
+    "IAdd"      : operator.iadd,
+    "ISub"      : operator.isub,
+    "IPow"      : operator.ipow,
+    "IMult"     : operator.imul,
+    "IDiv"      : operator.idiv,
+    "IFloorDiv" : operator.ifloordiv,
+    "ITrueDiv"  : operator.itruediv,
+    "IMod"      : operator.imod,
+    "ILShift"   : operator.ilshift,
+    "IRShift"   : operator.irshift,
+    "IBitAnd"   : operator.iand,
+    "IBitOr"    : operator.ior,
+    "IBitXor"   : operator.ixor,
 }
-
 
 unary_operator_functions = {
     "UAdd"   : operator.pos,

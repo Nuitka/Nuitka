@@ -36,7 +36,6 @@ from .. import TreeOperations
 
 # pylint: disable=W0611
 # These are here for easier import by the optimization steps.
-from nuitka.nodes import Nodes
 
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,
@@ -82,13 +81,8 @@ class OptimizationVisitorBase( TreeOperations.VisitorNoopMixin ):
                 tree    = tree,
                 visitor = self
             )
-        elif self.visit_type == "execution":
-            TreeOperations.visitExecutions(
-                tree    = tree,
-                visitor = self
-            )
         else:
-            assert False, self.visit_type
+            raise AssertionError( self, self.visit_type )
 
     def replaceWithComputationResult( self, node, computation, description ):
         # Try and turn raised exceptions into static raises. pylint: disable=W0703
@@ -102,7 +96,7 @@ class OptimizationVisitorBase( TreeOperations.VisitorNoopMixin ):
             )
 
             self.signalChange(
-                "new_raise new_variable",
+                "new_raise",
                 node.getSourceReference(),
                 description + " was predicted to raise an exception."
             )
@@ -139,9 +133,6 @@ class OptimizationDispatchingVisitorBase( OptimizationVisitorBase ):
 
 class OptimizationVisitorScopedBase( OptimizationVisitorBase ):
     visit_type = "scopes"
-
-class OptimizationVisitorExecutionBase( OptimizationVisitorBase ):
-    visit_type = "execution"
 
 
 def areConstants( expressions ):

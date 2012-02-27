@@ -29,18 +29,18 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.3.19.2
+Nuitka V0.3.20
 Copyright (C) 2012 Kay Hayen."""
 
 from . import Utils
 
 from optparse import OptionParser, OptionGroup
 
-import sys, os, logging
+import sys, logging
 
 # Indicator if we were called as "nuitka-python" in which case we assume some other
 # defaults and work a bit different with parameters.
-is_nuitka_python = os.path.basename( sys.argv[0] ).lower() == "nuitka-python"
+is_nuitka_python = Utils.basename( sys.argv[0] ).lower() == "nuitka-python"
 
 def getVersion():
     return version_string.split()[1][1:]
@@ -273,6 +273,16 @@ parser.add_option(
 Force compilation for windows, useful for cross-compilation. Defaults to off."""
 )
 
+parser.add_option(
+    "--windows-disable-console",
+    action  = "store_true",
+    dest    = "win_disable_console",
+    default = False,
+    help    = """\
+When compiling for windows, disable the console window. Defaults to off."""
+)
+
+
 debug_group = OptionGroup(
     parser,
     "Debug features"
@@ -337,6 +347,16 @@ parser.add_option(
     default = False,
     help    = """\
 Use link time optimizations if available and usable (g++ 4.6 and higher).
+Defaults to off."""
+)
+
+parser.add_option(
+    "--clang",
+    action  = "store_true",
+    dest    = "clang",
+    default = False,
+    help    = """\
+Enforce the use of clang (clang 3.0 or higher).
 Defaults to off."""
 )
 
@@ -474,7 +494,7 @@ def isUnstriped():
 
 def getOutputPath( path ):
     if options.output_dir:
-        return os.path.normpath( Utils.joinpath( options.output_dir, path ) )
+        return Utils.normpath( Utils.joinpath( options.output_dir, path ) )
     else:
         return path
 
@@ -502,8 +522,14 @@ def getJobLimit():
 def isLto():
     return options.lto
 
+def isClang():
+    return options.clang
+
 def isWindowsTarget():
     return options.windows_target
+
+def shallDisableConsoleWindow():
+    return options.win_disable_console
 
 def isFullCompat():
     return True

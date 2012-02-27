@@ -31,143 +31,153 @@
 
 class PyObjectSharedStorage
 {
-    public:
-        explicit PyObjectSharedStorage( PyObject *var_name, PyObject *object, bool free_value )
+public:
+    explicit PyObjectSharedStorage( PyObject *var_name, PyObject *object, bool free_value )
+    {
+        assert( object == NULL || Py_REFCNT( object ) > 0 );
+
+        this->var_name   = var_name;
+        this->object     = object;
+        this->free_value = free_value;
+        this->ref_count  = 1;
+    }
+
+    ~PyObjectSharedStorage()
+    {
+        if ( this->free_value )
         {
-            assert( object == NULL || Py_REFCNT( object ) > 0 );
-
-            this->var_name   = var_name;
-            this->object     = object;
-            this->free_value = free_value;
-            this->ref_count  = 1;
+            Py_DECREF( this->object );
         }
+    }
 
-        ~PyObjectSharedStorage()
+    void operator=( PyObject *object )
+    {
+        assertObject( object );
+
+        if ( this->free_value )
         {
-            if ( this->free_value )
-            {
-                Py_DECREF( this->object );
-            }
-        }
+            PyObject *old_object = this->object;
 
-        void operator=( PyObject *object )
+            this->object = object;
+
+            // Free old value if any available and owned.
+            Py_DECREF( old_object );
+        }
+        else
         {
-            assertObject( object );
-
-            if ( this->free_value )
-            {
-                PyObject *old_object = this->object;
-
-                this->object = object;
-
-                // Free old value if any available and owned.
-                Py_DECREF( old_object );
-            }
-            else
-            {
-                this->object = object;
-                this->free_value = true;
-            }
+            this->object = object;
+            this->free_value = true;
         }
+    }
 
-        inline PyObject *getVarName() const
-        {
-            return this->var_name;
-        }
+    inline PyObject *getVarName() const
+    {
+        return this->var_name;
+    }
 
-        PyObject *var_name;
-        PyObject *object;
-        bool free_value;
-        int ref_count;
+    PyObject *var_name;
+    PyObject *object;
+    bool free_value;
+    int ref_count;
+
+private:
+    PyObjectSharedStorage( const PyObjectSharedStorage & ) = delete;
+
 };
 
 class PyObjectSharedLocalVariable
 {
-    public:
-        explicit PyObjectSharedLocalVariable( PyObject *var_name, PyObject *object = NULL, bool free_value = false )
-        {
-            this->storage = new PyObjectSharedStorage( var_name, object, free_value );
-        }
+public:
+    explicit PyObjectSharedLocalVariable( PyObject *var_name, PyObject *object = NULL, bool free_value = false )
+    {
+        this->storage = new PyObjectSharedStorage( var_name, object, free_value );
+    }
 
-        explicit PyObjectSharedLocalVariable()
-        {
-            this->storage = NULL;
-        }
+    explicit PyObjectSharedLocalVariable()
+    {
+        this->storage = NULL;
+    }
 
-        ~PyObjectSharedLocalVariable()
+    ~PyObjectSharedLocalVariable()
+    {
+        if ( this->storage )
         {
-            if ( this->storage )
+            assert( this->storage->ref_count > 0 );
+            this->storage->ref_count -= 1;
+
+            if (this->storage->ref_count == 0)
             {
-                assert( this->storage->ref_count > 0 );
-                this->storage->ref_count -= 1;
-
-                if (this->storage->ref_count == 0)
-                {
-                    delete this->storage;
-                }
+                delete this->storage;
             }
         }
+    }
 
-        void setVariableName( PyObject *var_name )
+    void setVariableNameAndValue( PyObject *var_name, PyObject *object )
+    {
+        this->setVariableName( var_name  );
+        *this = object;
+    }
+
+    void setVariableName( PyObject *var_name )
+    {
+        assert( this->storage == NULL );
+
+        this->storage = new PyObjectSharedStorage( var_name, NULL, false );
+    }
+
+    void shareWith( const PyObjectSharedLocalVariable &other )
+    {
+        assert( this->storage == NULL );
+        assert( other.storage != NULL );
+
+        this->storage = other.storage;
+        this->storage->ref_count += 1;
+    }
+
+    void operator=( PyObject *object )
+    {
+        this->storage->operator=( object );
+    }
+
+    PyObject *asObject() const
+    {
+        assert( this->storage );
+
+        if ( this->storage->object == NULL )
         {
-            assert( this->storage == NULL );
+            PyErr_Format( PyExc_UnboundLocalError, "free variable '%s' referenced before assignment in enclosing scope", Nuitka_String_AsString( this->storage->getVarName() ) );
+            throw _PythonException();
 
-            this->storage = new PyObjectSharedStorage( var_name, NULL, false );
         }
 
-        void shareWith( const PyObjectSharedLocalVariable &other )
+        if ( Py_REFCNT( this->storage->object ) == 0 )
         {
-            assert( this->storage == NULL );
-            assert( other.storage != NULL );
-
-            this->storage = other.storage;
-            this->storage->ref_count += 1;
+            PyErr_Format( PyExc_UnboundLocalError, "free variable '%s' referenced after its finalization in enclosing scope", Nuitka_String_AsString( this->storage->getVarName() ) );
+            throw _PythonException();
         }
 
-        void operator=( PyObject *object )
-        {
-            this->storage->operator=( object );
-        }
+        return this->storage->object;
+    }
 
-        PyObject *asObject() const
-        {
-            assert( this->storage );
+    PyObject *asObject1() const
+    {
+        return INCREASE_REFCOUNT( this->asObject() );
+    }
 
-            if ( this->storage->object == NULL )
-            {
-                PyErr_Format( PyExc_UnboundLocalError, "free variable '%s' referenced before assignment in enclosing scope", Nuitka_String_AsString( this->storage->getVarName() ) );
-                throw _PythonException();
+    bool isInitialized() const
+    {
+        return this->storage->object != NULL;
+    }
 
-            }
+    PyObject *getVariableName() const
+    {
+        return this->storage->var_name;
+    }
 
-            if ( Py_REFCNT( this->storage->object ) == 0 )
-            {
-                PyErr_Format( PyExc_UnboundLocalError, "free variable '%s' referenced after its finalization in enclosing scope", Nuitka_String_AsString( this->storage->getVarName() ) );
-                throw _PythonException();
-            }
+private:
+    PyObjectSharedLocalVariable( const PyObjectSharedLocalVariable & ) = delete;
 
-            return this->storage->object;
-        }
-
-        PyObject *asObject1() const
-        {
-            return INCREASE_REFCOUNT( this->asObject() );
-        }
-
-        bool isInitialized() const
-        {
-            return this->storage->object != NULL;
-        }
-
-        PyObject *getVariableName() const
-        {
-            return this->storage->var_name;
-        }
-
-    private:
-        PyObjectSharedLocalVariable( PyObjectSharedLocalVariable & );
-
-        PyObjectSharedStorage *storage;
+    PyObjectSharedStorage *storage;
 };
 
 #endif

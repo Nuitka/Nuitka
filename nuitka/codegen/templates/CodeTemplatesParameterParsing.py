@@ -211,7 +211,7 @@ else
     {
         PyErr_Clear();
 
-        _python_par_%(dict_star_parameter_name)s = MAKE_DICT();
+        _python_par_%(dict_star_parameter_name)s = MAKE_DICT0();
 
         if (unlikely( PyDict_Update( _python_par_%(dict_star_parameter_name)s, kw ) != 0 ))
         {

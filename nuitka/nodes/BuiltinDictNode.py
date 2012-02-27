@@ -30,13 +30,16 @@
 
 """
 
-from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
+from .NodeBases import CPythonExpressionChildrenHavingBase
 
 from .ConstantRefNode import CPythonExpressionConstantRef
 from .ContainerMakingNodes import CPythonExpressionKeyValuePair
 
+from .NodeMakingHelpers import getComputationResult
 
-class CPythonExpressionBuiltinDict( CPythonChildrenHaving, CPythonNodeBase ):
+from nuitka.transform.optimizations.BuiltinOptimization import builtin_dict_spec
+
+class CPythonExpressionBuiltinDict( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_DICT"
 
     named_children = ( "pos_arg", "pairs" )
@@ -45,9 +48,7 @@ class CPythonExpressionBuiltinDict( CPythonChildrenHaving, CPythonNodeBase ):
         assert type( pos_arg ) not in ( tuple, list ), source_ref
         assert type( pairs ) in ( tuple, list ), source_ref
 
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        CPythonExpressionChildrenHavingBase.__init__(
             self,
             values = {
                 "pos_arg" : pos_arg,
@@ -60,22 +61,42 @@ class CPythonExpressionBuiltinDict( CPythonChildrenHaving, CPythonNodeBase ):
                     for key, value in
                     pairs
                 )
-            }
+            },
+            source_ref = source_ref
         )
 
-    getPositionalArgument = CPythonChildrenHaving.childGetter( "pos_arg" )
-    getNamedArgumentPairs = CPythonChildrenHaving.childGetter( "pairs" )
+    getPositionalArgument = CPythonExpressionChildrenHavingBase.childGetter( "pos_arg" )
+    getNamedArgumentPairs = CPythonExpressionChildrenHavingBase.childGetter( "pairs" )
 
     def hasOnlyConstantArguments( self ):
         pos_arg = self.getPositionalArgument()
 
-        if pos_arg is not None and not pos_arg.isExpressionConstantRef():
+        if pos_arg is not None and not pos_arg.isCompileTimeConstant():
             return False
 
         for arg_pair in self.getNamedArgumentPairs():
-            if not arg_pair.getKey().isExpressionConstantRef():
+            if not arg_pair.getKey().isCompileTimeConstant():
                 return False
-            if not arg_pair.getValue().isExpressionConstantRef():
+            if not arg_pair.getValue().isCompileTimeConstant():
                 return False
 
         return True
+
+    def computeNode( self ):
+        if self.hasOnlyConstantArguments():
+            pos_arg = self.getPositionalArgument()
+
+            if pos_arg is not None:
+                pos_args = ( pos_arg, )
+            else:
+                pos_args = None
+
+            return getComputationResult(
+                node         = self,
+                computation = lambda : builtin_dict_spec.simulateCall(
+                    ( pos_args, self.getNamedArgumentPairs() )
+                ),
+                description = "Replace dict call with constant arguments"
+            )
+        else:
+            return self, None, None

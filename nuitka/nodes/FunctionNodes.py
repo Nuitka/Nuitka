@@ -26,12 +26,19 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Nodes for functions and their creations.
+
+Lambdas are functions too. The functions are at the core of the language and have their
+complexities.
+
+"""
 
 from .NodeBases import (
+    CPythonExpressionChildrenHavingBase,
     CPythonParameterHavingNodeBase,
+    CPythonExpressionMixin,
     CPythonChildrenHaving,
-    CPythonClosureTaker,
-    CPythonNodeBase
+    CPythonClosureTaker
 )
 
 from .IndicatorMixins import (
@@ -45,99 +52,10 @@ from . import OverflowCheck
 
 from nuitka import Variables
 
-
-class CPythonExpressionLambdaBuilder( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "EXPRESSION_LAMBDA_BUILDER"
-
-    named_children = ( "defaults", "body" )
-
-    def __init__( self, defaults, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "defaults" : tuple( defaults )
-            }
-        )
-
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
-
-    getDefaultExpressions = CPythonChildrenHaving.childGetter( "defaults" )
-
-    def getCodeName( self ):
-        return self.getBody().getCodeName()
-
-    def getClosureVariables( self ):
-        return self.getBody().getClosureVariables()
-
-    def getUserLocalVariables( self ):
-        return self.getBody().getUserLocalVariables()
-
-    def getTempVariables( self ):
-        return self.getBody().getTempVariables()
-
-    def getParameters( self ):
-        return self.getBody().getParameters()
-
-    def isGenerator( self ):
-        return self.getBody().isGenerator()
-
-
-class CPythonStatementFunctionBuilder( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "STATEMENT_FUNCTION_BUILDER"
-
-    named_children = ( "defaults", "decorators", "target", "body" )
-
-    def __init__( self, target, decorators, defaults, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "target"     : target,
-                "decorators" : tuple( decorators ),
-                "defaults"   : tuple( defaults )
-            }
-        )
-
-    def getFunctionName( self ):
-        return self.getBody().getName()
-
-    def getCodeName( self ):
-        return self.getBody().getCodeName()
-
-    def getClosureVariables( self ):
-        return self.getBody().getClosureVariables()
-
-    def getUserLocalVariables( self ):
-        return self.getBody().getUserLocalVariables()
-
-    def getTempVariables( self ):
-        return self.getBody().getTempVariables()
-
-    def getParameters( self ):
-        return self.getBody().getParameters()
-
-    def isGenerator( self ):
-        return self.getBody().isGenerator()
-
-    getDecorators = CPythonChildrenHaving.childGetter( "decorators" )
-    setDecorators = CPythonChildrenHaving.childSetter( "decorators" )
-
-    getDefaultExpressions = CPythonChildrenHaving.childGetter( "defaults" )
-
-    getTarget = CPythonChildrenHaving.childGetter( "target" )
-
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
-
-
 class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavingNodeBase, \
                                      CPythonClosureTaker, MarkContainsTryExceptIndicator, \
-                                     MarkGeneratorIndicator, MarkLocalsDictIndicator,
-                                     MarkExecContainingIndicator ):
+                                     CPythonExpressionMixin, MarkGeneratorIndicator, \
+                                     MarkLocalsDictIndicator, MarkExecContainingIndicator ):
     # We really want these many ancestors, as per design, we add properties via base class
     # mixins a lot, pylint: disable=R0901
 
@@ -148,6 +66,12 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     named_children = ( "body", )
 
     def __init__( self, provider, name, doc, parameters, source_ref ):
+        if name == "<lambda>":
+            self.is_lambda = True
+            name = "lambda"
+        else:
+            self.is_lambda = False
+
         CPythonClosureTaker.__init__(
             self,
             provider = provider
@@ -174,8 +98,6 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
 
         MarkExecContainingIndicator.__init__( self )
 
-        self.parent = provider
-
         self.doc = doc
 
     def getDetails( self ):
@@ -188,7 +110,10 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         return "named %s with %s" % ( self.name, self.parameters )
 
     def getFunctionName( self ):
-        return self.name
+        if self.is_lambda:
+            return "<lambda>"
+        else:
+            return self.name
 
     def getDoc( self ):
         return self.doc
@@ -263,3 +188,37 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
 
     getBody = CPythonChildrenHaving.childGetter( "body" )
     setBody = CPythonChildrenHaving.childSetter( "body" )
+
+    def computeNode( self ):
+        # Function body is quite irreplacable.
+        return self, None, None
+
+    def isCompileTimeConstant( self ):
+        # TODO: It's actually pretty much compile time accessible mayhaps.
+        return None
+
+class CPythonExpressionFunctionBodyDefaulted( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_FUNCTION_BODY_DEFAULTED"
+
+    named_children = ( "defaults", "function_body", )
+
+    def __init__( self, defaults, function_body, source_ref ):
+        CPythonExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "function_body" : function_body,
+                "defaults"      : tuple( defaults )
+            },
+            source_ref = source_ref
+        )
+
+    getFunctionBody = CPythonExpressionChildrenHavingBase.childGetter( "function_body" )
+    getDefaults = CPythonExpressionChildrenHavingBase.childGetter( "defaults" )
+
+    def computeNode( self ):
+        # Function body is quite irreplacable.
+        return self, None, None
+
+    def isCompileTimeConstant( self ):
+        # TODO: It's actually pretty much compile time accessible mayhaps.
+        return None

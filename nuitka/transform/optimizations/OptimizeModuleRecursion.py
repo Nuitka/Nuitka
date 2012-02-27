@@ -44,8 +44,8 @@ import os
 _warned_about = set()
 
 def isStandardLibraryPath( path ):
-    path = os.path.normcase( path )
-    os_path = os.path.normcase( os.path.dirname( os.__file__  ) )
+    path = Utils.normcase( path )
+    os_path = Utils.normcase( Utils.dirname( os.__file__  ) )
 
     if not path.startswith( os_path ):
         return False
@@ -76,7 +76,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
     def _consider( self, module_filename, module_package ):
         assert module_package is None or ( type( module_package ) is str and module_package != "" )
 
-        module_filename = os.path.normpath( module_filename )
+        module_filename = Utils.normpath( module_filename )
 
         if Utils.isDir( module_filename ):
             module_name = Utils.basename( module_filename )
@@ -156,33 +156,6 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         # Means, I don't know.
         return None
 
-    def _handleModule( self, module ):
-        module_filename = module.getFilename()
-
-        if module_filename not in TreeRecursion.imported_modules:
-            if module_filename.endswith( os.path.sep + "__init__.py" ):
-                module_relpath = Utils.relpath( module_filename[:-12] )
-            else:
-                module_relpath = Utils.relpath( module_filename )
-
-            TreeRecursion.imported_modules[ Utils.relpath( module_relpath ) ] = module
-
-        module_package = module.getPackage()
-
-        if module_package is not None:
-            package_package, _package_module_name, package_filename = Importing.findModule(
-                source_ref     = module.getSourceReference(),
-                module_name    = module_package,
-                parent_package = None,
-                level          = 1
-            )
-
-            self._recurseTo(
-                module_package  = package_package,
-                module_filename = package_filename,
-                module_relpath  = Utils.relpath( package_filename )
-            )
-
     def _handleImportModule( self, node ):
         if node.getModule() is None:
             source_ref = node.getSourceReference()
@@ -235,11 +208,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         node.setAttemptedRecurse()
 
     def onEnterNode( self, node ):
-        if node.isModule():
-            self._handleModule(
-                module = node
-            )
-        elif node.isExpressionImportModule() and not node.hasAttemptedRecurse():
+        if node.isExpressionImportModule() and not node.hasAttemptedRecurse():
             self._handleImportModule(
                 node = node
             )

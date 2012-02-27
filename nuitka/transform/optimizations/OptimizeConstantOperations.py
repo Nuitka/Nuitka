@@ -36,109 +36,10 @@ from .OptimizeBase import (
     makeConstantReplacementNode
 )
 
-class OptimizeOperationVisitor( OptimizationVisitorBase ):
-    def _optimizeConstantOperandsOperation( self, node, operands ):
-        operands = [ constant.getConstant() for constant in operands ]
-
-        def simulate():
-            # This is a convinent way to execute no matter what the number of
-            # operands is. pylint: disable=W0142
-            return node.getSimulator()( *operands )
-
-        self.replaceWithComputationResult(
-            node        = node,
-            computation = simulate,
-            description = "Operation with constant args"
-        )
-
-    def _optimizeConstantOperandsComparison( self, node ):
-        operand1, operand2 = node.getOperands()
-
-        if areConstants( ( operand1, operand2 ) ):
-            value1 = operand1.getConstant()
-            value2 = operand2.getConstant()
-
-            simulator = node.getSimulator()
-
-            def simulate():
-                return simulator( value1, value2 )
-
-            self.replaceWithComputationResult(
-                node        = node,
-                computation = simulate,
-                description = "Comparison with constant args"
-            )
-
-    def _optimizeConstantSliceLookup( self, node ):
-        lower = node.getLower()
-        upper = node.getUpper()
-
-        if lower is not None and lower.isExpressionConstantRef() and lower.getConstant() is None:
-            node.setLower( None )
-
-        if upper is not None and upper.isExpressionConstantRef() and upper.getConstant() is None:
-            node.setUpper( None )
-
-    def _optimizeConstantDictMaking( self, node ):
-        pairs = node.getPairs()
-
-        for pair in pairs:
-            if not pair.getKey().isExpressionConstantRef():
-                break
-
-            value = pair.getValue()
-
-            if not value.isExpressionConstantRef() or value.isMutable():
-                break
-        else:
-            constant_value = dict.fromkeys(
-                [
-                    pair.getKey().getConstant()
-                    for pair in
-                    pairs
-                ],
-                None
-            )
-
-            for pair in pairs:
-                constant_value[ pair.getKey().getConstant() ] = pair.getValue().getConstant()
-
-            new_node = makeConstantReplacementNode(
-                constant = constant_value,
-                node     = node
-            )
-
-            node.replaceWith( new_node )
-
-            self.signalChange(
-                "new_constant",
-                node.getSourceReference(),
-                "Created dictionary found to be constant."
-            )
+class OptimizeFunctionCallArgsVisitor( OptimizationVisitorBase ):
 
     def onEnterNode( self, node ):
-        if node.isOperation() or node.isExpressionOperationBool2():
-            operands = node.getOperands()
-
-            if areConstants( operands ):
-                self._optimizeConstantOperandsOperation(
-                    node     = node,
-                    operands = operands
-                )
-        elif node.isExpressionComparison():
-            self._optimizeConstantOperandsComparison(
-                node = node
-            )
-        elif node.isExpressionSliceLookup():
-            self._optimizeConstantSliceLookup(
-                node = node
-            )
-        elif node.isExpressionMakeDict():
-            self._optimizeConstantDictMaking(
-                node = node
-            )
-        # TODO: Move this to a separate optimization step.
-        elif node.isExpressionFunctionCall():
+        if node.isExpressionFunctionCall():
             star_list_arg = node.getStarListArg()
 
             if star_list_arg is not None:
@@ -148,7 +49,7 @@ class OptimizeOperationVisitor( OptimizationVisitorBase ):
                     node.setPositionalArguments( positional_args + star_list_arg.getElements() )
                     node.setStarListArg( None )
                 elif star_list_arg.isExpressionConstantRef():
-                    if star_list_arg.isIterableConstant():
+                    if star_list_arg.isKnownToBeIterable( count = None ):
                         positional_args = node.getPositionalArguments()
 
                         constant_nodes = []

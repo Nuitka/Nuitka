@@ -32,12 +32,12 @@ These are for use in optimizations and computations, and therefore cover mostly 
 and constants. Otherwise the thread of cyclic dependency kicks in.
 """
 
+from .ConstantRefNode import CPythonExpressionConstantRef
+
 from .BuiltinReferenceNodes import (
     CPythonExpressionBuiltinExceptionRef,
     CPythonExpressionBuiltinRef
 )
-
-from .ConstantRefNode import CPythonExpressionConstantRef
 
 from .ExceptionNodes import (
     CPythonExpressionRaiseException,
@@ -114,8 +114,7 @@ def getComputationResult( node, computation, description ):
             exception  = e
         )
 
-        # TODO: That's not really a variable there, is it?
-        change_tags = "new_raise new_variable"
+        change_tags = "new_raise"
         change_desc = description + " was predicted to raise an exception."
     else:
         new_node = makeConstantReplacementNode(
@@ -187,3 +186,11 @@ def makeStatementsSequenceReplacementNode( statements, node ):
         statements = statements,
         source_ref = node.getSourceReference()
     )
+
+def convertNoneConstantToNone( node ):
+    if node is None:
+        return None
+    elif node.isExpressionConstantRef() and node.getConstant() is None:
+        return None
+    else:
+        return node

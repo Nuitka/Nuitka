@@ -38,11 +38,17 @@ in another context.
 
 """
 from nuitka.nodes import OverflowCheck
+from nuitka import Options
 
 from .FinalizeBase import FinalizationVisitorBase
 
+from logging import warning
+
 class FinalizeMarkups( FinalizationVisitorBase ):
     def onEnterNode( self, node ):
+        # This has many different things it deals with, so there need to be a lot of
+        # branches. pylint: disable=R0912
+
         # Record if a function or class has an overflow. TODO: The Overflow check
         # module and this should be united in a per tag finalization check on say
         # "callable_body" tag
@@ -92,7 +98,7 @@ class FinalizeMarkups( FinalizationVisitorBase ):
             while not parent.isStatement():
                 parent = parent.getParent()
 
-            if parent.isStatementAssignment() and parent.getSource() is None:
+            if parent.isStatementDel():
                 node.getTargetVariableRef().getVariable().setHasDelIndicator()
 
         if node.isStatementTryExcept():
@@ -105,3 +111,10 @@ class FinalizeMarkups( FinalizationVisitorBase ):
 
             if parent.isExpressionFunctionBody():
                 parent.markAsExecContaining()
+
+        if node.isExpressionBuiltinImport() and not Options.getShallFollowExtra():
+            warning( """\
+Unresolved '__import__' call at '%s' may require use of '--recurse-directory'.""" % (
+                    node.getSourceReference().getAsString()
+                )
+            )

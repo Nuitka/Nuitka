@@ -32,11 +32,9 @@
 
 from nuitka import Utils
 
-from . import TreeBuilding
+from . import TreeBuilding, Importing
 
 from logging import info, warning
-
-import os
 
 _warned_about = set()
 
@@ -77,7 +75,7 @@ def recurseTo( module_package, module_filename, module_relpath ):
 def considerFilename( module_filename, module_package ):
     assert module_package is None or ( type( module_package ) is str and module_package != "" )
 
-    module_filename = os.path.normpath( module_filename )
+    module_filename = Utils.normpath( module_filename )
 
     if Utils.isDir( module_filename ):
         module_name = Utils.basename( module_filename )
@@ -114,7 +112,7 @@ def checkPluginPath( plugin_filename, module_package ):
                     if sub_filename == "__init__.py":
                         continue
 
-                    if Utils.isDir( sub_path ) or sub_path.endswith( ".py" ):
+                    if Importing.isPackageDir( sub_path ) or sub_path.endswith( ".py" ):
                         checkPluginPath( sub_path, module.getFullName() )
 
 

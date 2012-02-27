@@ -51,7 +51,7 @@ def getVariableHandle( context, variable ):
         # TODO: This should depend on no known to hit closure existing
         context.addGlobalVariableNameUsage( var_name )
 
-        assert context.hasLocalsDict()
+        assert context.hasLocalsDict(), context
 
         return MaybeModuleVariableIdentifier(
             var_name         = var_name,
@@ -67,9 +67,14 @@ def getVariableHandle( context, variable ):
             module_code_name = context.getModuleCodeName()
         )
     elif variable.isTempVariableReference():
-        return context.getTempHandle(
-            var_name = var_name
-        )
+        if variable.getOwner().isClosureVariableTaker():
+            return context.getTempObjectHandle(
+                var_name = var_name
+            )
+        else:
+            return context.getTempVarHandle(
+                var_name = var_name
+            )
     else:
         assert False, variable
 

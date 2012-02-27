@@ -428,42 +428,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict
     return result;
 }
 
-template<typename... P>
-static PyObject *MAKE_DICT( P...eles )
-{
-    PyObject *elements[] = {eles...};
-    int size = sizeof...(eles);
-
-    assert( size % 2 == 0 );
-
-    PyObject *result = PyDict_New();
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    for( int i = 0; i < size; i += 2 )
-    {
-        int status = PyDict_SetItem(
-            result,
-#if NUITKA_REVERSED_ARGS == 1
-            elements[i],
-            elements[i+1]
-#else
-            elements[i+1],
-            elements[i]
-#endif
-        );
-
-        if (unlikely( status == -1 ))
-        {
-            throw _PythonException();
-        }
-    }
-
-    return result;
-}
 
 NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, PyObject *value )
 {
@@ -519,14 +483,24 @@ static PyDictEntry *GET_PYDICT_ENTRY( PyModuleObject *module, Nuitka_StringObjec
     return GET_PYDICT_ENTRY( dict, key );
 }
 
-template<typename... P>
-static PyObject *MAKE_SET( P...eles )
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SET()
 {
-    PyObject *tuple = MAKE_TUPLE( eles... );
+    PyObject *result = PySet_New( NULL );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SET( PyObject *tuple )
+{
+    assertObject( tuple );
+    assert( PyTuple_Check( tuple ) );
 
     PyObject *result = PySet_New( tuple );
-
-    Py_DECREF( tuple );
 
     if (unlikely( result == NULL ))
     {
@@ -644,6 +618,66 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 
     return result;
 }
+
+NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
+{
+    assertObject( iterator );
+
+    PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
+
+    if (unlikely( result == NULL ))
+    {
+        if ( PyErr_Occurred() )
+        {
+            PyErr_SetNone( PyExc_StopIteration );
+        }
+
+        throw _PythonException();
+    }
+    else
+    {
+        assertObject( result );
+    }
+
+    return result;
+}
+
+
+NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObject *default_value )
+{
+    assertObject( iterator );
+    assertObject( default_value );
+
+    PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
+
+    if (unlikely( result == NULL ))
+    {
+        if ( PyErr_Occurred() )
+        {
+            if ( PyErr_ExceptionMatches( PyExc_StopIteration ))
+            {
+                PyErr_Clear();
+
+                return INCREASE_REFCOUNT( default_value );
+            }
+            else
+            {
+                throw _PythonException();
+            }
+        }
+        else
+        {
+            return INCREASE_REFCOUNT( default_value );
+        }
+    }
+    else
+    {
+        assertObject( result );
+    }
+
+    return result;
+}
+
 
 NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, int seq_size_so_far )
 {
@@ -1272,7 +1306,7 @@ extern PyModuleObject *_module_builtin;
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LOCALS_DICT( void )
 {
-    return MAKE_DICT();
+    return MAKE_DICT0();
 }
 
 template<typename T>
@@ -1339,7 +1373,7 @@ static PyObject *UPDATED_LOCALS_DICT( PyObject *locals_dict, P...variables )
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LOCALS_DIR( void )
 {
-    return MAKE_LIST();
+    return MAKE_LIST0();
 }
 
 template<typename T>
@@ -1437,8 +1471,21 @@ extern PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffe
 
 // For quicker builtin chr() functionality.
 extern PyObject *BUILTIN_CHR( PyObject *value );
+
 // For quicker builtin ord() functionality.
 extern PyObject *BUILTIN_ORD( PyObject *value );
+
+// For quicker builtin bin() functionality.
+extern PyObject *BUILTIN_BIN( PyObject *value );
+
+// For quicker builtin oct() functionality.
+extern PyObject *BUILTIN_OCT( PyObject *value );
+
+// For quicker builtin hex() functionality.
+extern PyObject *BUILTIN_HEX( PyObject *value );
+
+// For quicker iter() functionality if 2 arguments arg given.
+extern PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel );
 
 // For quicker type() functionality if 1 argument is given.
 extern PyObject *BUILTIN_TYPE1( PyObject *arg );

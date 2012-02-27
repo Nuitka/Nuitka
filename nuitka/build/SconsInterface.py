@@ -38,13 +38,13 @@ from nuitka import Options, Tracing, Utils
 import os, sys
 
 def getSconsDataPath():
-    return os.path.dirname( __file__ )
+    return Utils.dirname( __file__ )
 
 def getSconsInlinePath():
     return Utils.joinpath( getSconsDataPath(), "inline_copy" )
 
 def getSconsBinaryPath():
-    if os.path.exists( "/usr/bin/scons" ):
+    if Utils.isFile( "/usr/bin/scons" ):
         return "/usr/bin/scons"
     else:
         return Utils.joinpath( getSconsInlinePath(), "bin", "scons.py" )
@@ -54,7 +54,7 @@ def runScons( options, quiet ):
     # unable to use __file__ for the task.
     os.environ[ "NUITKA_SCONS" ] = getSconsDataPath()
 
-    if "win" in sys.platform:
+    if os.name == "nt":
         # On Windows this Scons variable must be set by us.
         os.environ[ "SCONS_LIB_DIR" ] = Utils.joinpath( getSconsInlinePath(), "lib", "scons-2.0.1" )
 
@@ -62,7 +62,6 @@ def runScons( options, quiet ):
         # default path or installed it on the same drive by appending to the PATH variable
         # before executing scons.
         os.environ[ "PATH" ] += r";\MinGW\bin;C:\MinGW\bin"
-
 
     scons_command = """%(python)s %(binary)s %(quiet)s -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
         "python"     : sys.executable if Utils.getPythonVersion() < 300 else "python",

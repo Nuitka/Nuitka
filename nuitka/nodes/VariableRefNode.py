@@ -35,18 +35,20 @@ expressions, changing the meaning of course dramatically.
 
 from nuitka import Variables, Builtins
 
-from .NodeBases import CPythonNodeBase
+from .NodeBases import CPythonChildrenHaving, CPythonNodeBase, CPythonExpressionMixin
 
-from .NodeMakingHelpers import (
-    makeBuiltinExceptionRefReplacementNode,
-    makeBuiltinRefReplacementNode
+from .BuiltinReferenceNodes import (
+    CPythonExpressionBuiltinExceptionRef,
+    CPythonExpressionBuiltinRef
 )
+
+from .ConstantRefNode import CPythonExpressionConstantRef
 
 def _isReadOnlyModuleVariable( variable ):
     return ( variable.isModuleVariable() and variable.getReadOnlyIndicator() is True ) or \
            variable.isMaybeLocalVariable()
 
-class CPythonExpressionVariableRef( CPythonNodeBase ):
+class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_VARIABLE_REF"
 
     def __init__( self, variable_name, source_ref ):
@@ -67,6 +69,14 @@ class CPythonExpressionVariableRef( CPythonNodeBase ):
         else:
             return repr( self.variable )
 
+    def makeCloneAt( self, source_ref ):
+        assert self.variable is None
+
+        return CPythonExpressionVariableRef(
+            variable_name = self.variable_name,
+            source_ref    = source_ref
+        )
+
     def getVariableName( self ):
         return self.variable_name
 
@@ -85,23 +95,56 @@ class CPythonExpressionVariableRef( CPythonNodeBase ):
 
         if _isReadOnlyModuleVariable( self.variable ):
             if self.variable_name in Builtins.builtin_exception_names:
-                new_node = makeBuiltinExceptionRefReplacementNode(
+                new_node = CPythonExpressionBuiltinExceptionRef(
                     exception_name = self.variable_name,
-                    node           = self
+                    source_ref     = self.getSourceReference()
                 )
 
                 # TODO: More like "removed_variable and new_constant" probably
                 change_tags = "new_builtin"
                 change_desc = "Module variable '%s' found to be builtin exception reference." % self.variable_name
             elif self.variable_name in Builtins.builtin_names:
-                new_node = makeBuiltinRefReplacementNode(
+                new_node = CPythonExpressionBuiltinRef(
                     builtin_name = self.variable_name,
-                    node         = self
+                    source_ref   = self.getSourceReference()
                 )
 
                 # TODO: More like "removed_variable and new_constant" probably
                 change_tags = "new_builtin"
                 change_desc = "Module variable '%s' found to be builtin reference." % self.variable_name
+            elif self.variable_name == "__name__":
+                new_node = CPythonExpressionConstantRef(
+                    constant   = self.variable.getReferenced().getOwner().getName(),
+                    source_ref = self.getSourceReference()
+                )
+
+                change_tags = "new_constant"
+                change_desc = "Replaced read-only module attribute '__name__' with constant value."
+            elif self.variable_name == "__doc__":
+                new_node = CPythonExpressionConstantRef(
+                    constant   = self.variable.getReferenced().getOwner().getDoc(),
+                    source_ref = self.getSourceReference()
+                )
+
+                change_tags = "new_constant"
+                change_desc = "Replaced read-only module attribute '__doc__' with constant value."
+            elif self.variable_name == "__package__":
+                new_node = CPythonExpressionConstantRef(
+                    constant   = self.variable.getReferenced().getOwner().getPackage(),
+                    source_ref = self.getSourceReference()
+                )
+
+                change_tags = "new_constant"
+                change_desc = "Replaced read-only module attribute '__package__' with constant value."
+            elif self.variable_name == "__file__":
+                # TODO: We have had talks of this becoming more dynamic, but currently it isn't so.
+                new_node = CPythonExpressionConstantRef(
+                    constant   = self.variable.getReferenced().getOwner().getFilename(),
+                    source_ref = self.getSourceReference()
+                )
+
+                change_tags = "new_constant"
+                change_desc = "Replaced read-only module attribute '__file__' with constant value."
             else:
                 # Probably should give a warning once about it.
                 new_node = self
@@ -112,7 +155,11 @@ class CPythonExpressionVariableRef( CPythonNodeBase ):
 
         return self, None, None
 
-class CPythonExpressionTempVariableRef( CPythonNodeBase ):
+    def isKnownToBeIterable( self, count ):
+        return None
+
+
+class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"
 
     def __init__( self, variable, source_ref ):
@@ -131,3 +178,43 @@ class CPythonExpressionTempVariableRef( CPythonNodeBase ):
 
     def getVariable( self ):
         return self.variable
+
+    def computeNode( self ):
+        # Nothing to do here.
+        return self, None, None
+
+
+class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "STATEMENT_TEMP_BLOCK"
+
+    named_children = ( "body", )
+
+    getBody = CPythonChildrenHaving.childGetter( "body" )
+    setBody = CPythonChildrenHaving.childSetter( "body" )
+
+    def __init__( self, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "body" : None
+            }
+        )
+
+        self.temp_variables = set()
+
+    def getTempVariable( self, name ):
+        assert name not in self.temp_variables
+
+        result = Variables.TempVariable(
+            owner         = self,
+            variable_name = "__tmp_%s" % name
+        )
+
+        self.temp_variables.add( result )
+
+        return result
+
+    def getTempVariables( self ):
+        return self.temp_variables
