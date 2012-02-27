@@ -75,6 +75,9 @@ New Optimizations
 - Added optimization for module attributes "__file__", "__doc__" and "__package__" if they
   are read only. It's the same as "__name__".
 
+- Added optimization for slices and subscripts of "compile time constant" values. These
+  will play a more important role, once value propagation makes them more frequent.
+
 Organizational
 --------------
 
