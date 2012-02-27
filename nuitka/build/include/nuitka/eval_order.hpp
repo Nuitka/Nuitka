@@ -30,7 +30,7 @@
 #define __NUITKA_EVAL_ORDER_H__
 
 // Macros for forcing evaluation order to be as given.
-#ifdef __arm__
+#if defined( __arm__) || defined(__clang__)
 #define NUITKA_REVERSED_ARGS 0
 #else
 #define NUITKA_REVERSED_ARGS 1
