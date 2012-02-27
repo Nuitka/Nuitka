@@ -345,6 +345,7 @@ def runScons( tree, quiet ):
         "optimize_mode"  : asBoolStr( Options.isOptimize() ),
         "python_version" : python_version,
         "lto_mode"       : asBoolStr( Options.isLto() ),
+        "clang_mode"     : asBoolStr( Options.isClang() )
     }
 
     if Options.isWindowsTarget():

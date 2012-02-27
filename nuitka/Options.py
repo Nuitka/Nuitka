@@ -350,6 +350,16 @@ Use link time optimizations if available and usable (g++ 4.6 and higher).
 Defaults to off."""
 )
 
+parser.add_option(
+    "--clang",
+    action  = "store_true",
+    dest    = "clang",
+    default = False,
+    help    = """\
+Enforce the use of clang (clang 3.0 or higher).
+Defaults to off."""
+)
+
 tracing_group = OptionGroup(
     parser,
     "Tracing features"
@@ -511,6 +521,9 @@ def getJobLimit():
 
 def isLto():
     return options.lto
+
+def isClang():
+    return options.clang
 
 def isWindowsTarget():
     return options.windows_target

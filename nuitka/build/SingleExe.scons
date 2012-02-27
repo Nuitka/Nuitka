@@ -91,6 +91,9 @@ x64_linux_target = getBoolOption( "x64_linux_target", "linux" in sys.platform an
 # Unstriped mode: Do not remove debug symbols.
 unstriped_mode = getBoolOption( "unstriped_mode", False )
 
+# Clang compiler mode, default on MacOS X, optional on Linux.
+clang_mode = getBoolOption( "clang_mode", False ) or sys.platform == "darwin"
+
 # The MingW compiler tool should be supported if targeting windows.
 if win_target:
     compiler_tools = [ "mingw" ]
@@ -109,8 +112,8 @@ env = Environment(
     SHLIBPREFIX = "",
 )
 
-if sys.platform == "darwin":
-    env['CXX'] = "clang"
+if clang_mode:
+    env[ "CXX" ] = "clang"
 
 # To work around Windows not supporting command lines of greater than 10K by default:
 
