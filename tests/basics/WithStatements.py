@@ -44,6 +44,11 @@ try:
 except Exception, e:
     print e
 
+l = range(3)
+
+with MyContextManager() as l[0]:
+    print "Complex assignment target works", l[0]
+
 class NonContextManager1:
     def __enter__( self ):
         return self
