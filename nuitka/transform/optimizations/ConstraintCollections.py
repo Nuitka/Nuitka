@@ -188,7 +188,7 @@ class ConstraintCollection:
         for target in targets:
             assert target.isAssignTargetSomething()
 
-        assert source.isExpression()
+        assert source is not None and source.isExpression(), ( targets, source )
 
         # Ask the source about iself, what does it give.
         source_friend = source.getValueFriend()
@@ -237,6 +237,9 @@ class ConstraintCollection:
         source = statement.getSource()
 
         self.onExpression( source )
+
+        assert statement.getSource() is not None, ( statement, source )
+
 
         # Note: The source may no longer be valid, can't use it anymore.
         del source

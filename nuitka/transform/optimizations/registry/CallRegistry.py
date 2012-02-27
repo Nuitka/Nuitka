@@ -56,6 +56,11 @@ def computeCall( call_node ):
     called = call_node.getCalled()
 
     if called.kind in _call_handlers:
-        return _call_handlers[ called.kind ]( call_node, called )
+        result = _call_handlers[ called.kind ]( call_node, called )
+
+        assert len( result ) == 3, call_node
+        assert result[0] is not None, called.kind
+
+        return result
     else:
         return call_node, None, None

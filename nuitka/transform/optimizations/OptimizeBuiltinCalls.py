@@ -510,6 +510,10 @@ def computeBuiltinExceptionCall( call_node, called ):
         )
     )
 
+    # TODO: Don't allow this to happen.
+    if new_node is None:
+        return call_node, None, None
+
     return new_node, "new_expression", "detected builtin exception making"
 
 
