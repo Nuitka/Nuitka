@@ -159,21 +159,8 @@ def dump( node ):
 def getKind( node ):
     return node.__class__.__name__.split( "." )[-1]
 
-
-def _buildConstantReferenceNode( constant, source_ref ):
-    return CPythonExpressionConstantRef(
-        constant   = constant,
-        source_ref = source_ref
-    )
-
-def _buildVariableReferenceNode( variable_name, source_ref ):
-    return CPythonExpressionVariableRef(
-        variable_name = variable_name,
-        source_ref    = source_ref
-    )
-
 def buildVariableReferenceNode( node, source_ref ):
-    return _buildVariableReferenceNode(
+    return CPythonExpressionVariableRef(
         variable_name = node.id,
         source_ref    = source_ref
     )
@@ -350,7 +337,6 @@ def buildFunctionNode( provider, node, source_ref ):
             source_ref        = source_ref,
         )
 
-
     return CPythonStatementAssignment(
         targets    = ( buildVariableRefAssignTarget( node.name, source_ref ), ),
         source     = decorated_body,
@@ -458,7 +444,7 @@ def buildFunctionCallNode( provider, node, source_ref ):
     # matter, so that makes sense.
     pairs = [
         CPythonExpressionKeyValuePair(
-            key        = _buildConstantReferenceNode(
+            key        = CPythonExpressionConstantRef(
                 constant   = keyword.arg,
                 source_ref = source_ref
             ),
@@ -502,7 +488,7 @@ def buildSequenceCreationNode( provider, node, source_ref ):
         else:
             assert False, sequence_kind
 
-        return _buildConstantReferenceNode(
+        return CPythonExpressionConstantRef(
             constant   = const_type( element.getConstant() for element in elements ),
             source_ref = source_ref
         )
@@ -562,7 +548,7 @@ def buildDictionaryNode( provider, node, source_ref ):
         for key, value in zip( keys, values ):
             constant_value[ key.getConstant() ] = value.getConstant()
 
-        return _buildConstantReferenceNode(
+        return CPythonExpressionConstantRef(
             constant   = constant_value,
             source_ref = source_ref
         )
@@ -578,7 +564,7 @@ def buildDictionaryNode( provider, node, source_ref ):
 
 def buildVariableRefAssignTarget( variable_name, source_ref ):
     return CPythonAssignTargetVariable(
-        variable_ref = _buildVariableReferenceNode(
+        variable_ref = CPythonExpressionVariableRef(
             variable_name = variable_name,
             source_ref    = source_ref
         ),
@@ -636,7 +622,7 @@ def buildSubscriptAssignTarget( provider, node, source_ref ):
     elif slice_kind == "Ellipsis":
         result = CPythonAssignTargetSubscript(
             expression = buildNode( provider, node.value, source_ref ),
-            subscript  = _buildConstantReferenceNode(
+            subscript  = CPythonExpressionConstantRef(
                 constant   = Ellipsis,
                 source_ref = source_ref
             ),
@@ -802,7 +788,7 @@ def buildBodyQuals( contraction_body, quals, source_ref ):
                     source_ref = source_ref
                 )
         else:
-            condition = _buildConstantReferenceNode(
+            condition = CPythonExpressionConstantRef(
                 constant   = True,
                 source_ref = source_ref
             )
@@ -1107,8 +1093,7 @@ def buildTryExceptionNode( provider, node, source_ref ):
         handlers.append(
             CPythonStatementExceptHandler(
                 exception_type = buildNode( provider, exception_expression, source_ref, True ),
-                target         = buildAssignTarget
-                ( provider, exception_assign, source_ref, True ),
+                target         = buildAssignTarget( provider, exception_assign, source_ref, True ),
                 body           = buildStatementsNode(
                     provider   = provider,
                     nodes      = exception_block,
@@ -1219,7 +1204,7 @@ def _buildExtSliceNode( provider, node, source_ref ):
                 source_ref = source_ref
             )
         elif dim_kind == "Ellipsis":
-            element = _buildConstantReferenceNode(
+            element = CPythonExpressionConstantRef(
                 constant   = Ellipsis,
                 source_ref = source_ref
             )
@@ -1292,7 +1277,7 @@ def buildSubscriptNode( provider, node, source_ref ):
     elif kind == "Ellipsis":
         return CPythonExpressionSubscriptLookup(
             expression = buildNode( provider, node.value, source_ref ),
-            subscript  = _buildConstantReferenceNode(
+            subscript  = CPythonExpressionConstantRef(
                 constant   = Ellipsis,
                 source_ref = source_ref
             ),
@@ -1564,7 +1549,7 @@ def buildGlobalDeclarationNode( provider, node, source_ref ):
 def buildStringNode( node, source_ref ):
     assert type( node.s ) in ( str, unicode )
 
-    return _buildConstantReferenceNode(
+    return CPythonExpressionConstantRef(
         constant   = node.s,
         source_ref = source_ref
     )
@@ -1572,7 +1557,7 @@ def buildStringNode( node, source_ref ):
 def buildNumberNode( node, source_ref ):
     assert type( node.n ) in ( int, long, float, complex ), type( node.n )
 
-    return _buildConstantReferenceNode(
+    return CPythonExpressionConstantRef(
         constant   = node.n,
         source_ref = source_ref
     )
@@ -1618,7 +1603,7 @@ def buildReturnNode( provider, node, source_ref ):
         )
     else:
         return CPythonStatementReturn(
-            expression = _buildConstantReferenceNode(
+            expression = CPythonExpressionConstantRef(
                 constant   = None,
                 source_ref = source_ref
             ),
@@ -1644,7 +1629,7 @@ def buildYieldNode( provider, node, source_ref ):
         )
     else:
         return CPythonExpressionYield(
-            expression = _buildConstantReferenceNode(
+            expression = CPythonExpressionConstantRef(
                 constant   = None,
                 source_ref = source_ref
             ),
