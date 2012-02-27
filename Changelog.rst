@@ -35,7 +35,11 @@ New Features
 
 - Enhanced Python3 support for syntax errors, these are now also compatible.
 
-- Support for using "clang" and MacOS X was added.
+- Support for MacOS X was added.
+
+- Support for using the "clang" compiler was added, it can be enforced via "--clang"
+  option. Currently this option is mainly intended to allow testing the "MacOS X" support
+  as good as possible under Linux.
 
 New Optimizations
 -----------------
