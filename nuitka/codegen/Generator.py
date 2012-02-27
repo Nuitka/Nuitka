@@ -1941,7 +1941,7 @@ def _getContractionLocalVarDecl( context, contraction_kind, provided_variables, 
         )
 
     return contraction_decl_template % {
-        "local_var_decl" : indented( local_var_decl )
+        "local_var_decl" : indented( local_var_decl, 0 )
     }
 
 def _getContractionLoopCode( contraction_kind, contraction_iterateds, \
