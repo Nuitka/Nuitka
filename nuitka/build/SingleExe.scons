@@ -75,7 +75,7 @@ optimize_mode = getBoolOption( "optimize_mode", True )
 lto_mode = getBoolOption( "lto_mode", False )
 
 # Windows target mode: Cross compile for Windows or compiling on windows.
-win_target = getBoolOption( "win_target", "win" in sys.platform )
+win_target = getBoolOption( "win_target", os.name == "nt" )
 
 # Windows subsystem mode: Disable console for windows builds.
 win_disable_console = getBoolOption( "win_disable_console", False )
@@ -108,6 +108,9 @@ env = Environment(
     # filename "module_name.so" to load it.
     SHLIBPREFIX = "",
 )
+
+if sys.platform == "darwin":
+    env['CXX'] = "clang"
 
 # To work around Windows not supporting command lines of greater than 10K by default:
 
@@ -149,7 +152,7 @@ def setupSpawn( env ):
     buf.ourenv = env
     env[ "SPAWN" ] = buf.spawn
 
-if "win" in sys.platform:
+if os.name == "nt":
     setupSpawn( env )
 
 # To support cross-compiling under Linux for a  windows target, a cross compiler linked or
@@ -180,6 +183,10 @@ if win_target and "linux" in sys.platform:
     env[ "CXXVERSION" ] = match.group(0)
 
 env[ "BUILD_DIR" ] = source_dir
+
+if "clang" in env[ "CXX" ]:
+    env.Append( CCFLAGS = [ "-std=c++0x", "-w", "-D _XOPEN_SOURCE" ] )
+    env.Append( LINKFLAGS = [ "-lstdc++" ])
 
 if "g++" in env[ "CXX" ]:
     # All Nuitka generated C++ is C++0X standard, so make that clear.
@@ -264,7 +271,7 @@ if win_target:
         variable in any case.
         """
 
-        if "win" in sys.platform:
+        if os.name == "nt":
             return os.path.dirname( sys.executable )
         else:
             return os.path.expanduser( "~/.wine/drive_c/Python" + python_version )
