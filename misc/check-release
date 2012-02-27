@@ -107,7 +107,7 @@ if positional_args:
 os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
 os.chdir( ".." )
 
-path_sep = ";" if "win" in sys.platform else ":"
+path_sep = ";" if os.name == "nt" in sys.platform else ":"
 
 # Add the local bin directory to search path start.
 os.environ[ "PATH" ] = os.path.join( os.getcwd(), "bin" ) + path_sep + os.environ[ "PATH" ]
@@ -126,7 +126,7 @@ def checkExecutableCommand( command ):
 
     path = os.environ[ "PATH" ]
 
-    suffixes = ( ".exe", ) if "win" in sys.platform else ( "", )
+    suffixes = ( ".exe", ) if os.name == "nt" else ( "", )
 
     for part in path.split( path_sep ):
         if not part:
@@ -154,7 +154,7 @@ def executeSubTest( command ):
 
     parts[0] = parts[0].replace( "/", os.path.sep )
 
-    if parts[0].endswith( ".py" ) and "win" in sys.platform:
+    if parts[0].endswith( ".py" ) and os.name == "nt":
         parts.insert( 0, r"C:\Python27\python.exe" )
 
     command = " ".join( parts )
@@ -176,7 +176,7 @@ def execute_tests( where, use_python, flags ):
         )
     )
 
-    if "win" in sys.platform:
+    if os.name == "nt":
         if use_python == "python2.6":
             os.environ[ "PYTHON" ] = r"C:\Python26\python.exe"
         elif use_python == "python2.7":

@@ -9,9 +9,9 @@ Requirements
 
 - C++ Compiler: You need a compiler with support for C++11
 
-    Currently this means, you need to use the GNU g++ compiler of at least version 4.5 or
-    else the compilation will fail. This is due to uses of C++11 "raw string" literals
-    only supported from that version on.
+    Currently this means, you need to use the GNU g++ compiler of at least version 4.5 on
+    Linux or the clang 3.0 compiler on MacOS X, or else the compilation will fail. This is
+    mostly due to uses of C++11 "raw string" literals only supported from that version on.
 
     On Windows the MinGW g++ compiler of at least version 4.5, the VC++ compiler is not
     currently supported, because it is too weak in its C++11 support.
@@ -28,7 +28,7 @@ No changes are required, you can call the "nuitka" and "nuitka-python" executabl
 directly without any changes to the environment. For convinience, it might be easier to
 add the directory with them to the PATH variable:
 
-Linux/MSYS shell:
+Linux/MacOS X/MSYS shell:
 
 .. code-block:: sh
 
@@ -529,6 +529,8 @@ The order is sorted by time.
 - Christopher Tott: Submitted patches for Windows, and general as well as structural
   cleanups, he is also attempting to support direct "ctypes" calls to be evaluated at
   compile time.
+
+- Pete Hunt: Submitted patches for MacOS X support.
 
 Projects used by Nuitka
 ~~~~~~~~~~~~~~~~~~~~~~~

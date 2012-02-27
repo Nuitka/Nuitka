@@ -39,7 +39,7 @@ exec_in_tmp = "exec_in_tmp" in sys.argv
 expect_success = "expect_success" in sys.argv
 expect_failure = "expect_failure" in sys.argv
 python_debug = "python_debug" in sys.argv
-two_step_execution = "two_step_execution" in sys.argv or "win" in sys.platform
+two_step_execution = "two_step_execution" in sys.argv or os.name == "nt"
 trace_command = "trace_command" in sys.argv
 
 if "PYTHON" not in os.environ:

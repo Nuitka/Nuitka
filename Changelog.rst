@@ -1,7 +1,9 @@
-Nuitka Release 0.3.20 (Draft)
-=============================
+Nuitka Release 0.3.20
+=====================
 
-This time there is a bug fix and one really major cleanup.
+This time there are a few bug fixes and some really major cleanups, lots of new
+optimizations and preparations for more. And then there is a new platform supported,
+MacOS X appears to work, thanks for the patches from Pete Hunt.
 
 Bug fixes
 ---------
@@ -32,6 +34,8 @@ New Features
   Michael H Kent.
 
 - Enhanced Python3 support for syntax errors, these are now also compatible.
+
+- Support for using "clang" and MacOS X was added.
 
 New Optimizations
 -----------------

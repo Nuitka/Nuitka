@@ -54,7 +54,7 @@ def runScons( options, quiet ):
     # unable to use __file__ for the task.
     os.environ[ "NUITKA_SCONS" ] = getSconsDataPath()
 
-    if "win" in sys.platform:
+    if os.name == "nt":
         # On Windows this Scons variable must be set by us.
         os.environ[ "SCONS_LIB_DIR" ] = Utils.joinpath( getSconsInlinePath(), "lib", "scons-2.0.1" )
 

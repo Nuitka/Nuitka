@@ -396,7 +396,7 @@ def executeMain( binary_filename, tree, clean_path ):
     else:
         name = Utils.basename( main_filename )
 
-    if not Options.isWindowsTarget() or "win" in sys.platform:
+    if not Options.isWindowsTarget() or os.name == "nt":
         args = ( binary_filename, name )
     else:
         args = ( "/usr/bin/wine", name, binary_filename )
