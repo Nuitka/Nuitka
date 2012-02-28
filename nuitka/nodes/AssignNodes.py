@@ -208,30 +208,25 @@ class CPythonExpressionAssignment( CPythonExpressionChildrenHavingBase ):
 class CPythonStatementAssignment( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_ASSIGNMENT"
 
-    named_children = ( "source", "targets" )
+    named_children = ( "source", "target" )
 
-    def __init__( self, targets, source, source_ref ):
+    def __init__( self, target, source, source_ref ):
+        assert target is not None
+
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
             values = {
-                "source"  : source,
-                "targets" : tuple( targets )
+                "source" : source,
+                "target" : target
             }
         )
 
     def getDetail( self ):
-        targets = self.getTargets()
+        return "%s from %s" % ( self.getTarget(), self.getSource() )
 
-        targets = [ target.getDetail() for target in targets ]
-
-        if len( targets ) == 1:
-            targets = targets[0]
-
-        return "%s from %s" % ( targets, self.getSource() )
-
-    getTargets = CPythonChildrenHaving.childGetter( "targets" )
+    getTarget = CPythonChildrenHaving.childGetter( "target" )
     getSource = CPythonChildrenHaving.childGetter( "source" )
 
 

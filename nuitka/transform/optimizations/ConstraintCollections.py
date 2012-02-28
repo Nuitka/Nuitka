@@ -45,15 +45,6 @@ from nuitka import Options, Utils, TreeRecursion, Importing
 
 from logging import debug
 
-# TODO: This is code duplication, assignments should have a helper module do deal with a
-# list of targets and/or generally the value of getTargets() should be able to do a few
-# things.
-def _isComplexAssignmentTarget( targets ):
-    if type( targets ) not in ( tuple, list ) and targets.isAssignTargetSomething():
-        targets = [ targets ]
-
-    return len( targets ) > 1 or targets[0].isAssignTargetTuple()
-
 # TODO: This code is only here while staging it, will live in a dedicated module later on
 class ConstraintCollection:
     def __init__( self, signal_change, copy_of = None ):
@@ -118,10 +109,9 @@ class ConstraintCollection:
             if target.getUpper() is not None:
                 self.onExpression( target.getUpper() )
         elif target.isAssignTargetTuple():
-            self.onAssignmentToTargetsFromSource(
-                targets = target.getElements(),
-                source  = value_friend
-            )
+            # TODO: Handle tuples too.
+            for target in target.getElements():
+                self.onAssignmentOfTargetFromUnknown( target )
         else:
             assert False, target
 
@@ -178,40 +168,35 @@ class ConstraintCollection:
 
 
     def onAssignmentToTargetFromSource( self, target, source ):
-        self.onAssignmentToTargetsFromSource(
-            targets = ( target, ),
-            source  = source
-        )
+        assert type( target ) is not tuple
+        assert target.isAssignTargetSomething()
 
-    def onAssignmentToTargetsFromSource( self, targets, source ):
-        assert type( targets ) is tuple
-        for target in targets:
-            assert target.isAssignTargetSomething()
-
-        assert source is not None and source.isExpression(), ( targets, source )
+        assert source is not None and source.isExpression(), ( target, source )
 
         # Ask the source about iself, what does it give.
         source_friend = source.getValueFriend()
 
         assert source_friend is not None, source
 
-        if _isComplexAssignmentTarget( targets ):
-            if source_friend.isKnownToBeIterable( len( targets ) ):
-                unpack_friends = source_friend.getUnpacked( len( targets ) )
+        if target.isAssignTargetTuple():
+            element_count = len( target.getElements() )
 
-                for target, unpack_friend in zip( targets, unpack_friends ):
+            if source_friend.isKnownToBeIterable( element_count ):
+                unpack_friends = source_friend.getUnpacked( element_count )
+
+                for target, unpack_friend in zip( target.getElements(), unpack_friends ):
                     self.onAssigmentToTargetFromValueFriend(
                         target       = target,
                         value_friend = unpack_friend
                     )
             else:
-                for target in targets:
+                for target in target.getElements():
                     self.onAssignmentOfTargetFromUnknown(
                         target = target
                     )
         else:
             self.onAssigmentToTargetFromValueFriend(
-                target       = targets[0],
+                target       = target,
                 value_friend = source_friend
             )
 
@@ -244,11 +229,9 @@ class ConstraintCollection:
         # Note: The source may no longer be valid, can't use it anymore.
         del source
 
-        targets = statement.getTargets()
-
-        self.onAssignmentToTargetsFromSource(
-            targets = targets,
-            source  = statement.getSource()
+        self.onAssignmentToTargetFromSource(
+            target = statement.getTarget(),
+            source = statement.getSource()
         )
 
         return statement

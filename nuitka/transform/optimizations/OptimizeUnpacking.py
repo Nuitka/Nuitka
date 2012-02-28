@@ -45,84 +45,81 @@ _unpack_error_length_indication = Utils.getPythonVersion() < 300
 class ReplaceUnpackingVisitor( OptimizationVisitorBase ):
     def onEnterNode( self, node ):
         if node.isStatementAssignment():
-            targets = node.getTargets()
+            target = node.getTarget()
 
-            if len( targets ) == 1:
-                target = targets[0]
+            if target.isAssignTargetTuple():
+                source = node.getSource()
 
-                if target.isAssignTargetTuple():
-                    source = node.getSource()
+                if source.isExpressionConstantRef():
+                    try:
+                        unpackable = iter( source.getConstant() )
+                    except TypeError:
+                        return
 
-                    if source.isExpressionConstantRef():
-                        try:
-                            unpackable = iter( source.getConstant() )
-                        except TypeError:
-                            return
+                    unpacked = list( unpackable )
+                    elements = target.getElements()
 
-                        unpacked = list( unpackable )
-                        elements = target.getElements()
+                    if len( unpacked ) == len( elements ):
+                        statements = []
 
-                        if len( unpacked ) == len( elements ):
-                            statements = []
-
-                            for value, element in zip( unpacked, elements ):
-                                statements.append(
-                                    CPythonStatementAssignment(
-                                        targets    = ( element, ),
-                                        source     = makeConstantReplacementNode(
-                                            constant = value,
-                                            node     = node
-                                        ),
-                                        source_ref = node.getSourceReference()
-                                    )
+                        for value, element in zip( unpacked, elements ):
+                            statements.append(
+                                CPythonStatementAssignment(
+                                    target     = element,
+                                    source     = makeConstantReplacementNode(
+                                        constant = value,
+                                        node     = node
+                                    ),
+                                    source_ref = node.getSourceReference()
                                 )
+                            )
+
+                        node.replaceWith(
+                            makeStatementsSequenceReplacementNode(
+                                statements = statements,
+                                node       = node
+                            )
+                        )
+
+                        self.signalChange(
+                            "new_statements",
+                            node.getSourceReference(),
+                            "Removed useless unpacking assignments."
+                        )
+                    else:
+                        if len( unpacked ) > len( elements ):
+                            if _unpack_error_length_indication:
+                                exception_value = "too many values to unpack"
+                            else:
+                                exception_value = "too many values to unpack (expected %d)" % len( elements )
 
                             node.replaceWith(
-                                makeStatementsSequenceReplacementNode(
-                                    statements = statements,
-                                    node       = node
+                                makeRaiseExceptionReplacementStatement(
+                                    statement       = node,
+                                    exception_type  = "ValueError",
+                                    exception_value = exception_value,
                                 )
                             )
-
-                            self.signalChange(
-                                "new_statements",
-                                node.getSourceReference(),
-                                "Removed useless unpacking assignments."
+                        elif len( unpacked ) == 1:
+                            node.replaceWith(
+                                makeRaiseExceptionReplacementStatement(
+                                    statement       = node,
+                                    exception_type  = "ValueError",
+                                    exception_value = "need more than 1 value to unpack",
+                                )
                             )
                         else:
-                            if len( unpacked ) > len( elements ):
-                                if _unpack_error_length_indication:
-                                    exception_value = "too many values to unpack"
-                                else:
-                                    exception_value = "too many values to unpack (expected %d)" % len( elements )
-
-                                node.replaceWith(
-                                    makeRaiseExceptionReplacementStatement(
-                                        statement       = node,
-                                        exception_type  = "ValueError",
-                                        exception_value = exception_value,
-                                    )
+                            node.replaceWith(
+                                makeRaiseExceptionReplacementStatement(
+                                    statement       = node,
+                                    exception_type  = "ValueError",
+                                    exception_value = "need more than %s values to unpack" % len( unpacked ),
                                 )
-                            elif len( unpacked ) == 1:
-                                node.replaceWith(
-                                    makeRaiseExceptionReplacementStatement(
-                                        statement       = node,
-                                        exception_type  = "ValueError",
-                                        exception_value = "need more than 1 value to unpack",
-                                    )
-                                )
-                            else:
-                                node.replaceWith(
-                                    makeRaiseExceptionReplacementStatement(
-                                        statement       = node,
-                                        exception_type  = "ValueError",
-                                        exception_value = "need more than %s values to unpack" % len( unpacked ),
-                                    )
-                                )
-
-
-                            self.signalChange(
-                                "new_raise",
-                                node.getSourceReference(),
-                                "Removed bound to fail unpacking assignments."
                             )
+
+
+                        self.signalChange(
+                            "new_raise",
+                            node.getSourceReference(),
+                            "Removed bound to fail unpacking assignments."
+                        )
