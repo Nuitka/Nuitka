@@ -43,7 +43,7 @@ source_dir = ARGUMENTS.get( "source_dir", source_name + ".build" )
 
 # The directory containing Nuitka provided C++ files to be built.
 nuitka_src = os.path.join( os.environ.get( "NUITKA_SCONS" ), "static_src" )
-static_src = source_dir + "/static"
+static_src = os.path.join( source_dir, "static" )
 
 # We tell Scons that it is a variant to be built, so object files don't end up inside that
 # directory which need not be writable.
@@ -187,10 +187,20 @@ if win_target and "linux" in sys.platform:
 
 env[ "BUILD_DIR" ] = source_dir
 
+# Store the file signatures database with the rest of the source files
+sconsign_dir = os.path.abspath( os.path.join( source_dir, '.sconsign' ) )
+
+if not os.path.exists( sconsign_dir ):
+    os.makedirs( sconsign_dir )
+
+env.SConsignFile( sconsign_dir )
+
+# Support for clang.
 if "clang" in env[ "CXX" ]:
     env.Append( CCFLAGS = [ "-std=c++0x", "-w", "-D _XOPEN_SOURCE" ] )
     env.Append( LINKFLAGS = [ "-lstdc++" ])
 
+# Support for g++.
 if "g++" in env[ "CXX" ]:
     # All Nuitka generated C++ is C++0X standard, so make that clear.
     env.Append( CCFLAGS = [ "-std=c++0x" ] )
@@ -362,18 +372,18 @@ def discoverSourceFiles():
 
     for filename in os.listdir( source_dir ):
         if filename.endswith( ".cpp" ):
-            result.append( source_dir + "/" + filename )
+            result.append( os.path.join( source_dir, filename ) )
 
     # Add the resource file for the manifest to be included in the executable.
     if win_target and not module_mode:
-        result.append( env.RES( source_dir + "/" + source_name + ".exe.rc" ) )
+        result.append( env.RES( os.path.join( source_dir, source_name + ".exe.rc" ) ) )
 
     return result
 
 # Prepare the use of a custom specs file for windows targets. We change the used specs for
 # linking to avoid the use of the wrong (for CPython) run time library.
 if win_target:
-    manifest_file = open( source_dir + "/" + source_name + ".exe.manifest", "w" )
+    manifest_file = open( os.path.join(source_dir, source_name + ".exe.manifest" ), "w" )
     manifest_file.write( r"""
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
@@ -399,8 +409,8 @@ if win_target:
     )
     manifest_file.close()
 
-    rc_file = open( source_dir + "/" + source_name + ".exe.rc", "w" )
-    rc_file.write( r"""\
+    rc_file = open( os.path.join( source_dir, source_name + ".exe.rc" ), "w" )
+    rc_file.write( r"""
 #include "winuser.h"
 1 RT_MANIFEST %s
 """ % ( source_name + ".exe.manifest" )

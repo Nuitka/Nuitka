@@ -627,7 +627,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
 
     if (unlikely( result == NULL ))
     {
-        if ( PyErr_Occurred() )
+        if ( !PyErr_Occurred() )
         {
             PyErr_SetNone( PyExc_StopIteration );
         }
