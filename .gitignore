@@ -12,7 +12,6 @@
 *.pyd
 *.exe
 *.build
-.sconsign.dblite
 tests/reflected/nuitka/
 dist
 MANIFEST
