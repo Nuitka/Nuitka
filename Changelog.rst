@@ -1,3 +1,109 @@
+Nuitka Release 0.3.21 (Draft)
+=============================
+
+This time there are some really major cleanups, all heading towards enabling value
+propagation inside Nuitka.
+
+Bug fixes
+---------
+
+- The builtin "next" could causes a program crash when iterating past the end of an
+  iterator. Issue#??. Fixed in 0.3.20.1 already.
+
+New Features
+------------
+
+- None
+
+New Optimizations
+-----------------
+
+- None
+
+Organizational
+--------------
+
+- Changed the Scons build file database to reside in the build directory as opposed to the
+  current directory, not polluting it anymore. Thanks for the patch go to Michael H Kent,
+  very much appreciated.
+
+- The "--experimental" option is no longer available outside of checkouts of git, and on
+  there not on stable branches. It only pollutes "--help" output otherwise as stable
+  releases have no experimental code options.
+
+Cleanups
+--------
+
+- Changed complex assignments, i.e. assignments with multiple targets to such using a
+  temporary variable and multiple simple assignments instead.
+
+  .. code-block:: python
+
+     a = b = c
+
+  .. code-block:: python
+
+     _tmp = c
+     b = _tmp
+     a = _tmp
+
+  In CPython, when one assignment raises an exception, the whole thing is aborted, so the
+  complexity of having multiple targets is no more needed, now that we have temporary
+  variables in a block.
+
+  All that was really needed, was to evaluate the complete source expression only once,
+  but that made code generation contain ugly loops that are no more needed.
+
+- Changed unpacking assignments to use temporary variables. Code like this:
+
+  .. code-block:: python
+
+     a, b = c
+
+  Is handled more like this:
+
+  .. code-block:: python
+
+     _tmp_iter = iter(c)
+     _tmp1 = next( _tmp_iter )
+     _tmp2 = next( _tmp_iter )
+     if not finished( _tmp_iter ):
+         raise ValueError( "too many values to unpack" )
+     a = _tmp1
+     b = _tmp2
+
+  In reality, not really "next" is used, as it wouldn't raise the correct exception for
+  unpacking, and the "finished" check is more condensed.
+
+  Generally this cleanup means that the "AssignTargetTuple" and associated code generation
+  could be removed, and now the value propagation needs to optimize these "next" and
+  "iter" calls away where possible. At this time, this is not done yet.
+
+New Tests
+---------
+
+- Added test to cover order of calls for complex assignments that unpack, to see that they
+  make a fresh iterator for each part of a complex assignment.
+
+- Added test that unpacks in an exception catch. It worked, due to the generic handling of
+  assignment targets by Nuitka, and I didn't even know it can be done, example:
+
+  .. code-block:: python
+
+     try:
+         raise ValueError(1,2)
+     except ValueError as (a,b):
+         print "Unpacking caught exception and unpacked", a, b
+
+  Will assign a=1, b=2.
+
+
+Summary
+-------
+
+This release is not complete yet.
+
+
 Nuitka Release 0.3.20
 =====================
 
