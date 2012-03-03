@@ -81,6 +81,10 @@ def diffRecursive( dir1, dir2 ):
         if filename.endswith( ".o" ) or filename.endswith( ".os" ):
             continue
 
+        # Skip scons build database
+        if filename == ".sconsign.dblite":
+            continue
+
         if not os.path.exists( path2 ):
             sys.exit( "Only in %s: %s" % ( dir1, filename ))
 
