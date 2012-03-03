@@ -1225,6 +1225,11 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = Generator.getBuiltinNext1Code(
             value = makeExpressionCode( expression.getValue() )
         )
+    elif expression.isExpressionSpecialUnpack():
+        identifier = Generator.getUnpackNextCode(
+            iterator_identifier = makeExpressionCode( expression.getValue() ),
+            count               = expression.getCount()
+        )
     elif expression.isExpressionBuiltinNext2():
         identifier = Generator.getBuiltinNext2Code(
             iterator_identifier = makeExpressionCode( expression.getIterator() ),
@@ -2186,7 +2191,13 @@ def _generateStatementCode( statement, context ):
             exec_def     = statement,
             context      = context
         )
+    elif statement.isStatementSpecialUnpackCheck():
+        code = Generator.getUnpackCheckCode(
+            iterator_identifier = makeExpressionCode( statement.getIterator() ),
+            count               = statement.getCount()
+        )
     elif statement.isStatementDeclareGlobal():
+        # TODO: Should not reach here
         code = ""
     else:
         assert False, statement.__class__

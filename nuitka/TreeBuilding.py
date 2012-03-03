@@ -57,7 +57,11 @@ from .nodes.BuiltinReferenceNodes import (
     CPythonExpressionBuiltinExceptionRef,
     CPythonExpressionBuiltinRef
 )
-from .nodes.BuiltinIteratorNodes import CPythonExpressionBuiltinIter1
+from .nodes.BuiltinIteratorNodes import (
+    CPythonStatementSpecialUnpackCheck,
+    CPythonExpressionSpecialUnpack,
+    CPythonExpressionBuiltinIter1,
+)
 from .nodes.BoolNodes import (
     CPythonExpressionBoolAND,
     CPythonExpressionBoolOR
@@ -633,6 +637,145 @@ def buildSubscriptAssignTarget( provider, node, source_ref ):
     return result
 
 
+def buildAssignmentStatements( provider, node, source, source_ref, allow_none = False ):
+    if node is None and allow_none:
+        return None
+
+    if hasattr( node, "ctx" ):
+        assert getKind( node.ctx ) == "Store"
+
+    kind = getKind( node )
+
+    if type( node ) is str:
+        # Python >= 3.x only
+        return CPythonStatementAssignment(
+            target     = buildVariableRefAssignTarget(
+                variable_name = node,
+                source_ref    = source_ref
+            ),
+            source     = source,
+            source_ref = source_ref
+        )
+    elif kind == "Name":
+        return CPythonStatementAssignment(
+            target     = buildVariableRefAssignTarget(
+                variable_name = node.id,
+                source_ref    = source_ref
+            ),
+            source     = source,
+            source_ref = source_ref
+        )
+    elif kind == "Attribute":
+        return CPythonStatementAssignment(
+            target     = buildAttributeAssignTarget(
+                provider       = provider,
+                value          = node.value,
+                attribute_name = node.attr,
+                source_ref     = source_ref
+            ),
+            source     = source,
+            source_ref = source_ref
+        )
+    elif kind == "Subscript":
+        return CPythonStatementAssignment(
+            target     = buildSubscriptAssignTarget(
+                provider   = provider,
+                node       = node,
+                source_ref = source_ref
+            ),
+            source     = source,
+            source_ref = source_ref
+        )
+    elif kind in ( "Tuple", "List" ):
+        result = CPythonStatementTempBlock(
+            source_ref = source_ref
+        )
+
+        source_iter_var = result.getTempVariable( "source_iter" )
+
+        statements = [
+            CPythonStatementAssignment(
+                target = CPythonAssignTargetVariable(
+                    variable_ref = CPythonExpressionTempVariableRef(
+                        variable   = source_iter_var.makeReference( result ),
+                        source_ref = source_ref
+                    ),
+                    source_ref   = source_ref
+                ),
+                source = CPythonExpressionBuiltinIter1(
+                    value      = source,
+                    source_ref = source_ref
+                ),
+                source_ref   = source_ref
+            )
+        ]
+
+        element_vars = [
+            result.getTempVariable( "element_%d" % ( element_index + 1 ) )
+            for element_index in
+            range( len( node.elts ))
+        ]
+
+        for element_index in range( len( node.elts )) :
+            statements.append(
+                CPythonStatementAssignment(
+                    target = CPythonAssignTargetVariable(
+                        variable_ref = CPythonExpressionTempVariableRef(
+                            variable   = element_vars[ element_index ].makeReference( result ),
+                            source_ref = source_ref
+                        ),
+                        source_ref   = source_ref
+                    ),
+                    # TODO: Should be special unpack variant.
+                    source = CPythonExpressionSpecialUnpack(
+                        value      = CPythonExpressionTempVariableRef(
+                            variable   = source_iter_var.makeReference( result ),
+                            source_ref = source_ref
+                        ),
+                        count      = len( node.elts ),
+                        source_ref = source_ref
+                    ),
+                    source_ref   = source_ref
+                )
+            )
+
+        statements.append(
+            CPythonStatementSpecialUnpackCheck(
+                iterator   = CPythonExpressionTempVariableRef(
+                    variable   = source_iter_var.makeReference( result ),
+                    source_ref = source_ref
+                ),
+                count      = len( node.elts ),
+                source_ref = source_ref
+            )
+        )
+
+        for element_index, element in enumerate( node.elts ):
+            statements.append(
+                buildAssignmentStatements(
+                    provider   = provider,
+                    node       = element,
+                    source     = CPythonExpressionTempVariableRef(
+                        variable   = element_vars[ element_index ].makeReference( result ),
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                )
+            )
+
+        result.setBody(
+            CPythonStatementsSequence(
+               statements = statements,
+               source_ref = source_ref
+            )
+        )
+
+        return result
+    else:
+        assert False, ( source_ref, ast.dump( node ) )
+
+    return result
+
 def buildAssignTarget( provider, node, source_ref, allow_none = False ):
     if node is None and allow_none:
         return None
@@ -687,12 +830,10 @@ def buildAssignNode( provider, node, source_ref ):
     # before the left hand side exists.
     source = buildNode( provider, node.value, source_ref )
 
-    # Only now the left hand side, so the right hand side is first.
-    targets = buildAssignTargets( provider, node.targets, source_ref )
-
-    if len( targets ) == 1:
-        return CPythonStatementAssignment(
-            target     = targets[0],
+    if len( node.targets ) == 1:
+        return buildAssignmentStatements(
+            provider   = provider,
+            node       = node.targets[0],
             source     = source,
             source_ref = source_ref
         )
@@ -717,10 +858,11 @@ def buildAssignNode( provider, node, source_ref ):
             )
         ]
 
-        for target in targets:
+        for target in node.targets:
             statements.append(
-                CPythonStatementAssignment(
-                    target     = target,
+                buildAssignmentStatements(
+                    provider   = provider,
+                    node       = target,
                     source     = CPythonExpressionTempVariableRef(
                         variable   = tmp_source.makeReference( result ),
                         source_ref = source_ref
@@ -738,26 +880,56 @@ def buildAssignNode( provider, node, source_ref ):
 
         return result
 
-
-
 def buildDeleteNode( provider, node, source_ref ):
-
     # Note: Each delete is sequential. It can succeed, and the failure of a later one does
     # not prevent the former to succeed. We can therefore have a sequence of del
     # statements that each only delete one thing therefore.
 
-    parsed_targets = buildAssignTargets( provider, node.targets, source_ref )
     targets = []
 
-    def check( target ):
-        if target.isAssignTargetTuple():
-            for target in target.getElements():
-                check( target )
-        else:
-            targets.append( target )
+    def handleTarget( node ):
+        kind = getKind( node )
 
-    for target in parsed_targets:
-        check( target )
+        if type( node ) is str:
+            # Python >= 3.x only
+            targets.append(
+                buildVariableRefAssignTarget(
+                    variable_name = node,
+                    source_ref    = source_ref
+                )
+            )
+        elif kind == "Name":
+            targets.append(
+                buildVariableRefAssignTarget(
+                    variable_name = node.id,
+                    source_ref    = source_ref
+                )
+            )
+        elif kind == "Attribute":
+            targets.append(
+                buildAttributeAssignTarget(
+                    provider       = provider,
+                    value          = node.value,
+                    attribute_name = node.attr,
+                    source_ref     = source_ref
+                )
+            )
+        elif kind == "Subscript":
+            targets.append(
+                buildSubscriptAssignTarget(
+                    provider   = provider,
+                    node       = node,
+                    source_ref = source_ref
+                )
+            )
+        elif kind in ( "Tuple", "List" ):
+            for sub_node in node.elts:
+                handleTarget( sub_node )
+        else:
+            assert False, ( source_ref, ast.dump( node ) )
+
+    for target in node.targets:
+        handleTarget( target )
 
     return _makeStatementsSequenceOrStatement(
         statements = [
@@ -1268,14 +1440,6 @@ def _buildExtSliceNode( provider, node, source_ref ):
     )
 
 def buildSubscriptNode( provider, node, source_ref ):
-    if getKind( node.ctx ) == "Del":
-        target = buildAssignTarget( provider, node, source_ref )
-
-        return CPythonStatementDel(
-            target     = target,
-            source_ref = source_ref
-        )
-
     assert getKind( node.ctx ) == "Load", source_ref
 
     kind = getKind( node.slice )

@@ -35,7 +35,9 @@ important optimization issue.
 
 from .NodeBases import (
     CPythonExpressionBuiltinSingleArgBase,
-    CPythonExpressionChildrenHavingBase
+    CPythonExpressionChildrenHavingBase,
+    CPythonChildrenHaving,
+    CPythonNodeBase
 )
 
 from nuitka.transform.optimizations import BuiltinOptimization
@@ -75,6 +77,54 @@ class CPythonExpressionBuiltinNext1( CPythonExpressionBuiltinSingleArgBase ):
     def computeNode( self ):
         return self, None, None
 
+
+class CPythonExpressionSpecialUnpack( CPythonExpressionBuiltinNext1 ):
+    kind = "EXPRESSION_SPECIAL_UNPACK"
+
+    def __init__( self, value, count, source_ref ):
+        CPythonExpressionBuiltinNext1.__init__(
+            self,
+            value      = value,
+            source_ref = source_ref
+        )
+
+        self.count = count
+
+    def getDetails( self ):
+        return {
+            "count" : self.getCount(),
+        }
+
+    def getCount( self ):
+        return self.count
+
+
+class CPythonStatementSpecialUnpackCheck( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "STATEMENT_SPECIAL_UNPACK_CHECK"
+
+    named_children = ( "iterator", )
+
+    def __init__( self, iterator, count, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "iterator" : iterator
+            }
+        )
+
+        self.count = count
+
+    def getDetails( self ):
+        return {
+            "count" : self.getCount(),
+        }
+
+    def getCount( self ):
+        return self.count
+
+    getIterator = CPythonExpressionChildrenHavingBase.childGetter( "iterator" )
 
 class CPythonExpressionBuiltinIter2( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_ITER2"

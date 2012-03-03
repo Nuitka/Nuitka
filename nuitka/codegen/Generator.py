@@ -423,12 +423,22 @@ def getIteratorCreationCode( iterated ):
         1
     )
 
-def getUnpackNextCode( iterator, element_count ):
+def getUnpackNextCode( iterator_identifier, count ):
     return Identifier(
-        "UNPACK_NEXT( %s, %d )" % ( iterator.getCodeTemporaryRef(), element_count-1 ),
+        "UNPACK_NEXT( %s, %d )" % (
+            iterator_identifier.getCodeTemporaryRef(),
+            count - 1
+        ),
         1
     )
 
+def getUnpackCheckCode( iterator_identifier, count ):
+    return "UNPACK_ITERATOR_CHECK( %s, %d );" % (
+        iterator_identifier.getCodeTemporaryRef(),
+        count
+    )
+
+# TODO: The below ought to be unused soon.
 def getUnpackTupleCode( assign_source, iterator_identifier, lvalue_identifiers ):
     result = "PyObjectTemporary %s( %s );\n" % (
         iterator_identifier.getCode(),
@@ -440,12 +450,12 @@ def getUnpackTupleCode( assign_source, iterator_identifier, lvalue_identifiers )
             lvalue_identifier.getClass(),
             lvalue_identifier.getCode(),
             getUnpackNextCode(
-                iterator      = iterator_identifier,
-                element_count = count+1
+                iterator_identifier = iterator_identifier,
+                count               = count+1
             ).getCodeExportRef()
         )
 
-    result += "UNPACK_ITERATOR_CHECK( %s );\n" % iterator_identifier.getCodeTemporaryRef()
+    result += getUnpackCheckCode( iterator_identifier, len( lvalue_identifiers ) ) + "\n"
 
     return result
 

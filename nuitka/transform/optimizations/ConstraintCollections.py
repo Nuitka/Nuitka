@@ -542,6 +542,9 @@ class ConstraintCollection:
             self.onStatementsSequence( statement.getBody() )
 
             return statement
+        elif statement.isStatementSpecialUnpackCheck():
+            # TODO: Not clear yet, what to do here.
+            return statement
         else:
             assert False, statement
 

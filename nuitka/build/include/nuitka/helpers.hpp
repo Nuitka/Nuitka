@@ -737,7 +737,12 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_PARAMETER_NEXT( PyObject *it
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static inline void UNPACK_ITERATOR_CHECK( PyObject *iterator )
+#if PYTHON_VERSION < 300
+#define UNPACK_ITERATOR_CHECK( iterator, count ) _UNPACK_ITERATOR_CHECK( iterator )
+NUITKA_MAY_BE_UNUSED static inline void _UNPACK_ITERATOR_CHECK( PyObject *iterator )
+#else
+NUITKA_MAY_BE_UNUSED static inline void UNPACK_ITERATOR_CHECK( PyObject *iterator, int count )
+#endif
 {
     assertObject( iterator );
     assert( PyIter_Check( iterator ) );
@@ -761,11 +766,15 @@ NUITKA_MAY_BE_UNUSED static inline void UNPACK_ITERATOR_CHECK( PyObject *iterato
     else
     {
         Py_DECREF( attempt );
-
+#if PYTHON_VERSION < 300
         PyErr_Format( PyExc_ValueError, "too many values to unpack" );
+#else
+        PyErr_Format( PyExc_ValueError, "too many values to unpack (expected %d)", count );
+#endif
         throw _PythonException();
     }
 }
+
 
 NUITKA_MAY_BE_UNUSED static inline bool UNPACK_PARAMETER_ITERATOR_CHECK( PyObject *iterator )
 {
