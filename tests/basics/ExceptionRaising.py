@@ -260,3 +260,11 @@ try:
     nestedExceptions( 1, 0 )
 except Exception, e:
     print "Nested exception gives", e
+
+def unpackingCatcher():
+    try:
+        raise ValueError(1,2)
+    except ValueError as (a,b):
+        print "Unpacking caught exception and unpacked", a, b
+
+unpackingCatcher()
