@@ -308,6 +308,109 @@ The "git flow" model
     being fully CPython compatible and pure Python, is considered the "Nuitka" way of
     creating extension modules that provide bindings.
 
+
+Running the Tests
+=================
+
+This section describes how to run Nuitka tests.
+
+Running all Tests
+-----------------
+
+The top level access to the tests is as simple as this:
+
+.. code-block:: shell
+
+   ./misc/check-release
+
+For fine grained control, it has the following options::
+
+  -h, --help            show this help message and exit
+  --skip-basic-tests    The basic tests, execute these to check if Nuitka is
+                        healthy. Default is True.
+  --skip-syntax-tests   The syntax tests, execute these to check if Nuitka
+                        handles Syntax errors fine. Default is True.
+  --skip-program-tests  The programs tests, execute these to check if Nuitka
+                        handles programs, e.g. import recursions, etc. fine.
+                        Default is True.
+  --skip-reflection-test
+                        The reflection test compiles Nuitka with Nuitka, and
+                        then Nuitka with the compile Nuitka and compares the
+                        outputs. Default is True.
+  --skip-cpython26      The standard CPython2.6 test suite. Execute this for
+                        all corner cases to be covered. With Python 2.7 this
+                        covers exception behavior quite well. Default is True.
+  --skip-cpython27      The standard CPython2.7 test suite. Execute this for
+                        all corner cases to be covered. With Python 2.6 these
+                        are not run. Default is True.
+
+
+You will only run the CPython 2.6 test suite, if you have the submodules of the Nuitka git
+repository checked out. Otherwise, these will be skipped automatically with a warning that
+they are not available.
+
+.. note::
+
+   The CPython 2.7 test suite is not even public yet as it should also first undergo a
+   "minimize diff" activity, before doing that. I didn't take the time for that yet, but I
+   intend to do it. This is of course important for set and dict contractions.
+
+The policy is generally, that "./misc/check-release" running and passing all tests shall
+be considered sufficient for a release.
+
+Basic Tests
+-----------
+
+You can run the "basic" tests like this:
+
+.. code-block:: shell
+
+   ./tests/basics/run_all.py search
+
+These tests normally give sufficient coverage to assume that a change is correct, if these
+tests pass. To control the Python version used for testing, you can set the "PYTHON"
+environment variable to e.g. "python3.2", or execute the "run_all.py" with the intended
+version, it is portable across all supported Python versions.
+
+Syntax Tests
+------------
+
+Then there are "syntax" tests, i.e. language constructs that need to give a syntax
+error.
+
+It sometimes happens that Nuitka must do this itself, because the "ast.parse" don't see
+the problem. Using "global" on a function argument is an example of this. These tests make
+sure that the errors of Nuitka and CPython are totally the same for this:
+
+.. code-block:: shell
+
+   ./tests/syntax/run_all.py search
+
+Program Tests
+-------------
+
+Then there are small programs tests, that exercise all kinds of import tricks and problems
+with inter-module behavior. These can be run like this:
+
+.. code-block:: shell
+
+   ./tests/programs/run_all.py search
+
+Compile Nuitka with Nuitka
+--------------------------
+
+And there is the "compile itself" or "reflected" test. This test makes Nuitka compile
+itself and compare the resulting C++, which helps to find indeterminism. The test compiles
+every module of Nuitka into an extension module and all of Nuitka into a single binary.
+
+That test case also gives good coverage of the "import" mechanisms, because Nuitka uses a
+lot of packages.
+
+.. code-block:: shell
+
+   ./tests/reflected/compile_itself.py
+
+
 Design Descriptions
 ===================
 
@@ -372,14 +475,14 @@ The "assert" statement
 
 Handling is:
 
-.. code-block:
+.. code-block:: python
 
    assert value, raise_arg
    # Absolutely the same as:
    if not value:
        raise AssertionError, raise_arg
 
-.. code-block:
+.. code-block:: python
 
    assert value
    # Absolutely the same as:
@@ -396,7 +499,7 @@ This transformation is performed at tree building already.
 The "comparison chain" expressions
 ----------------------------------
 
-.. code-block:
+.. code-block:: python
 
    a < b > c < d
    # With "temp variables" and "assignment expressions", absolutely the same as:
@@ -412,7 +515,7 @@ The "execfile" builtin
 
 Handling is:
 
-.. code-block:
+.. code-block:: python
 
    execfile( filename )
    # Basically the same as:
@@ -443,7 +546,7 @@ Decorators
 
 When one learns about decorators, you see that:
 
-.. code-block:
+.. code-block:: python
 
    @decorator
    def function():
@@ -465,25 +568,98 @@ two variants optimize equally well.
 Inplace Assignments
 -------------------
 
-Inplace assignments are be re-formulated to an expression using temporary variables.
+Inplace assignments are re-formulated to an expression using temporary variables.
 
 These are not as much a reformulation of "+=" to "+", but instead one which makes it
 explicit that the assign target may change its value.
 
-  .. code-block:: python
+.. code-block:: python
 
-     a += b
+   a += b
 
-  .. code-block:: python
+.. code-block:: python
 
-     _tmp = a.__iadd__( b )
+   _tmp = a.__iadd__( b )
 
-     if a is not _tmp:
-        a = _tmp
+   if a is not _tmp:
+       a = _tmp
 
 Using "__iadd__" here to express that not the "+", but the in-place variant "iadd" is used
 instead. The "is" check may be optimized away depending on type and value knowledge later
 on.
+
+
+Complex Assignments
+-------------------
+
+Complex assignments are defined as those with multiple targets to assign from a single
+source and are re-formulated to such using a temporary variable and multiple simple
+assignments instead.
+
+.. code-block:: python
+
+   a = b = c
+
+.. code-block:: python
+
+   _tmp = c
+   b = _tmp
+   a = _tmp
+   del _tmp
+
+
+This is possible, because in Python, if one assignment fails, it can just be interrupted,
+so in fact, they are sequential, and all that is required is to not calculate "c" twice,
+which the temporary variable expresses.
+
+
+Unpacking Assignments
+---------------------
+
+Unpacking assignments are re-formulated to use temporary variables as well.
+
+.. code-block:: python
+
+   a, b.attr, c[ind] = d = e, f, g = h()
+
+Becomes this:
+
+.. code-block:: python
+
+   _tmp = h()
+
+   _iter1 = iter( _tmp )
+   _tmp1 = unpack( _iter1, 3 )
+   _tmp2 = unpack( _iter1, 3 )
+   _tmp3 = unpack( _iter1, 3 )
+   unpack_check( _iter1 )
+   a = _tmp1
+   b.attr = _tmp2
+   c[ind] = _tmp3
+   d = _tmp
+   _iter2 = iter( _tmp )
+   _tmp4 = unpack( _iter2, 3 )
+   _tmp5 = unpack( _iter2, 3 )
+   _tmp6 = unpack( _iter2, 3 )
+   unpack_check( _iter1 )
+   e = _tmp4
+   f = _tmp5
+   g = _tmp6
+
+That way, the unpacking is decomposed into multiple simple assignments. It will be the
+job of optimizations to try and remove unnecessary unpacking, in case e.g. the source is
+a known tuple or list creation.
+
+.. note::
+
+   The "unpack" is a special node which is a form of "next" that will raise a "ValueError"
+   when it cannot get the next value, rather than a "StopIteration". The message text
+   contains the number of values to unpack, therefore the integer argument.
+
+.. note::
+
+   The "unpack_check" is a special node that raises a "ValueError" exception if the
+   iterator is not finished, i.e. there are more values to unpack.
 
 
 Plan to replace "python-qt" for the GUI
@@ -545,10 +721,10 @@ and that obviously to:
 
    c = 0
 
-This may be called (Constant) Value Propagation. But we are aiming for more. In order to
-fully benefit from type knowledge, the new type system must be able to be fully friends
-with existing builtin types.  The behavior of a type "long", "str", etc. ought to be
-implemented as far as possible with the builtin "long", "str" as well.
+This may be called "(Constant) Value Propagation". But we are aiming for even more. In
+order to fully benefit from type knowledge, the new type system must be able to be fully
+friends with existing builtin types.  The behavior of a type "long", "str", etc. ought to
+be implemented as far as possible with the builtin "long", "str" as well.
 
 .. note::
 
@@ -1332,6 +1508,13 @@ into action, which could be code changes, plan changes, issues created, etc.
   order is respected, we probably mean "conditions" here that are not conditional
   expressions or can be reduced to such.
 
+  Update: Currently the "building" of the dict, is not really treated like it. There is a
+  body of statements, whose "locals" become the dictionary at the end. There is currently
+  no way to generally say "cannot raise" for these statements, or to generally say, if
+  they could be transformed into a dictionary. If the dictionary building were pare of the
+  node tree, it may become possible to predict it as constant, or run time built, without
+  a function call at all.
+
 * The conditional expression needs to be handled like conditional statement for
   propagation.
 
@@ -1389,6 +1572,37 @@ into action, which could be code changes, plan changes, issues created, etc.
   for maximum efficiency. A structure will be needed that holds "tmp", much like a "with"
   block.
 
+* For loops should use normal assignments
+
+  .. code-block:: python
+
+     for x,y in iterable:
+         if something( x ):
+            break
+     else:
+         otherwise()
+
+  .. code-block:: python
+
+     _iter = iter( iterable )
+
+     while not finished( _iter ):
+        x, y = next( _iter ) # Normal assignment re-formulation should apply
+
+        if something( x ):
+           break
+     else:
+         otherwise()
+
+  .. note::
+
+     The "_iter" temporary variable is of course in a temp block and the "x, y" assignment
+     is the normal is of course re-formulation of an assignment that cannot fail. The
+     finished and next need to be friends.
+
+  This idea might be simpler and less radical, esp. since while loops to contain an else
+  formulation already.
+
 * With statements should become scoped
 
   The algorithm of "with" statements should be re-formulated in the node tree. The taking
@@ -1428,33 +1642,17 @@ into action, which could be code changes, plan changes, issues created, etc.
      else:
         tmp_exit( None, None, None )
 
-* Assignments unpacking should use scoped temporary variables
+* Exception handlers should use special references for assignments
 
-  .. code-block:: python
+  The exception handlers may assign attributes of the caught exception to the current name
+  space, and these are currently not accessible to optimization at all. The idea is that
+  these should become accessible via a special kind of variable reference, the name could
+  be "CaughtExceptionRef", and then it's assigned from there.
 
-     a, b.attr, c[ind] = d = e, f, g = h()
+  This would make it easier to access these attributes, esp. from code that needs it, like
+  e.g. the new "with" statement re-formulation, that needs to pass it along as arguments
+  to a function call.
 
-  Can become this:
-
-  .. code-block:: python
-
-     _tmp = h()
-
-     _iter1 = iter( tmp )
-     _tmp1, _tmp2, tmp3 = unpack_and_check( _iter1, 3 )
-     a = _tmp1
-     b.attr = _tmp2
-     c[ind] = _tmp3
-     d = _tmp
-     _iter2 = iter( tmp )
-     _tmp4, _tmp5, tmp6 = unpack_and_check( _iter2, 3 )
-     e = _tmp4
-     f = _tmp5
-     g = _tmp6
-
-  That will of course be a lot less inefficient, until we can value propagate as well as
-  in the past, which was working for constants. In these cases, the "iter" taking and the
-  and "unpack_and_check" calls can be optimized away again.
 
 * Code Templates may become objects.
 
