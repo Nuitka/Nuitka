@@ -233,6 +233,32 @@ def inOrderCheck():
 
     print searched() in container()
 
+def unpackOrderCheck():
+    class Iterable:
+        def __init__( self ):
+            self.consumed = 2
+
+        def __iter__( self ):
+            return Iterable()
+
+        def next( self ):
+            print "Next with", self.consumed
+
+            if self.consumed:
+                self.consumed -=1
+            else:
+                raise StopIteration
+
+            return self.consumed
+
+    iterable = Iterable()
+
+    try:
+        x, y = a, b = Iterable()
+    except Exception as e:
+        print "Caught", repr(e)
+
+
 dictOrderCheck()
 listOrderCheck()
 subscriptOrderCheck()
@@ -241,3 +267,4 @@ sliceOrderCheck()
 generatorOrderCheck()
 classOrderCheck()
 inOrderCheck()
+unpackOrderCheck()
