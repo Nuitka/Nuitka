@@ -186,13 +186,21 @@ if win_target and "linux" in sys.platform:
     env[ "CXXVERSION" ] = match.group(0)
 
 env[ "BUILD_DIR" ] = source_dir
-# Store the file signatures database with the rest of the source files
-env.SConsignFile( os.path.join( source_dir, '.sconsign' ) )
 
+# Store the file signatures database with the rest of the source files
+sconsign_dir = os.path.abspath( os.path.join( source_dir, '.sconsign' ) )
+
+if not os.path.exists( sconsign_dir ):
+    os.makedirs( sconsign_dir )
+
+env.SConsignFile( sconsign_dir )
+
+# Support for clang.
 if "clang" in env[ "CXX" ]:
     env.Append( CCFLAGS = [ "-std=c++0x", "-w", "-D _XOPEN_SOURCE" ] )
     env.Append( LINKFLAGS = [ "-lstdc++" ])
 
+# Support for g++.
 if "g++" in env[ "CXX" ]:
     # All Nuitka generated C++ is C++0X standard, so make that clear.
     env.Append( CCFLAGS = [ "-std=c++0x" ] )
