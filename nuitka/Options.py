@@ -36,7 +36,7 @@ from . import Utils
 
 from optparse import OptionParser, OptionGroup
 
-import sys, logging
+import os, sys, logging
 
 # Indicator if we were called as "nuitka-python" in which case we assume some other
 # defaults and work a bit different with parameters.
@@ -45,7 +45,7 @@ is_nuitka_python = Utils.basename( sys.argv[0] ).lower() == "nuitka-python"
 def getVersion():
     return version_string.split()[1][1:]
 
-if is_nuitka_python:
+if not is_nuitka_python:
     usage = "usage: %prog [--exe] [--execute] [options] main_module.py"
 else:
     usage = "usage: %prog [options] main_module.py"
@@ -328,15 +328,32 @@ Compile the would-be generated source file. Allows edition and translation with 
 options for quick debugging changes to the generated source. Defaults to off."""
 )
 
-debug_group.add_option(
-    "--experimental",
-    action  = "store_true",
-    dest    = "experimental",
-    default = False,
-    help    = """\
-Use features declared as "experimental". May have no effect if no experimental features
+def decideExperimental():
+    git_branch_name_filename = os.path.join( os.path.dirname( __file__ ), "..", ".git", "HEAD" )
+
+    if not os.path.exists( git_branch_name_filename ):
+        return False
+
+    branch_name = open( git_branch_name_filename ).read().strip()
+    branch_name = branch_name.split( "/" )[-1]
+
+    if branch_name == "master":
+        return os.path.exists( os.path.join( os.path.dirname( __file__ ), "..", "public-repo" ) )
+    elif branch_name.startswith( "hotfix/" ):
+        return False
+    else:
+        return True
+
+if decideExperimental():
+    debug_group.add_option(
+        "--experimental",
+        action  = "store_true",
+        dest    = "experimental",
+        default = False,
+        help    = """\
+Use features declared as 'experimental'. May have no effect if no experimental features
 are present in the code. Defaults to off."""
-)
+    )
 
 parser.add_option_group( debug_group )
 
@@ -437,9 +454,6 @@ if options.recurse_all and not options.executable:
 
 if options.recurse_stdlib and not options.executable:
     sys.exit( "Error, options '--recurse-stdlib' makes no sense without option '--exe'." )
-
-def useValuePropagation():
-    return options.experimental
 
 def shallTraceExecution():
     return options.trace_execution
