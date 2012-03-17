@@ -461,9 +461,7 @@ class ConstraintCollection:
             )
 
             return statement
-        elif statement.isStatementWhileLoop():
-            self.onExpression( statement.getCondition() )
-
+        elif statement.isStatementLoop():
             other_loop_run = ConstraintCollectionLoopOther( self.signalChange )
             other_loop_run.process( self, statement )
 
@@ -671,7 +669,7 @@ class ConstraintCollectionLoopOther( ConstraintCollection ):
                     source = loop.getIterator(),
                     target = loop.getLoopVariableAssignment()
                 )
-        elif loop.isStatementWhileLoop():
+        elif loop.isStatementLoop():
             pass
         else:
             assert False, loop

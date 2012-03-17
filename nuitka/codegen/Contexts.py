@@ -60,20 +60,10 @@ class PythonContextBase:
 
         return self.for_loop_count
 
-    def allocateWhileLoopNumber( self ):
-        self.while_loop_count += 1
-
-        return self.while_loop_count
-
     def allocateTryNumber( self ):
         self.try_count += 1
 
         return self.try_count
-
-    def allocateWithNumber( self ):
-        self.with_count += 1
-
-        return self.with_count
 
     def isClosureViaContext( self ):
         return True

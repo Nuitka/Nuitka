@@ -123,7 +123,7 @@ from .nodes.OperatorNodes import (
 from .nodes.LoopNodes import (
     CPythonStatementContinueLoop,
     CPythonStatementBreakLoop,
-    CPythonStatementWhileLoop,
+    CPythonStatementLoop,
     CPythonStatementForLoop
 )
 from .nodes.ConditionalNodes import (
@@ -578,13 +578,8 @@ def buildForLoopNode( provider, node, source_ref ):
             ),
             source_ref = source_ref
         ),
-        CPythonStatementWhileLoop(
-            condition = CPythonExpressionConstantRef(
-                constant   = True,
-                source_ref = source_ref
-            ),
+        CPythonStatementLoop(
             body       = loop_body,
-            no_break   = None,
             source_ref = source_ref
         )
     ]
@@ -620,21 +615,119 @@ def buildForLoopNode( provider, node, source_ref ):
     return result
 
 def buildWhileLoopNode( provider, node, source_ref ):
-    return CPythonStatementWhileLoop(
-        condition  = buildNode( provider, node.test, source_ref ),
-        body       = buildStatementsNode(
-            provider   = provider,
-            nodes      = node.body,
-            source_ref = source_ref
-        ),
-        no_break   = buildStatementsNode(
-            provider   = provider,
-            nodes      = node.orelse if node.orelse else None,
-            source_ref = source_ref
-        ),
+    else_block = buildStatementsNode(
+        provider   = provider,
+        nodes      = node.orelse if node.orelse else None,
         source_ref = source_ref
     )
 
+    if else_block is not None:
+        temp_block = CPythonStatementTempBlock(
+            source_ref = source_ref
+        )
+
+        tmp_break_indicator_variable = temp_block.getTempVariable( "break_indicator" )
+
+        statements = (
+            CPythonStatementAssignment(
+                target     = CPythonAssignTargetVariable(
+                    variable_ref = CPythonExpressionTempVariableRef(
+                        variable   = tmp_break_indicator_variable.makeReference( temp_block ),
+                        source_ref = source_ref
+                    ),
+                    source_ref   = source_ref
+                ),
+                source     = CPythonExpressionConstantRef(
+                    constant   = True,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            ),
+            CPythonStatementBreakLoop(
+                source_ref = source_ref
+            )
+        )
+    else:
+        statements = (
+            CPythonStatementBreakLoop(
+                source_ref = source_ref
+            ),
+        )
+
+    # The loop body contains a conditional statement at the start that breaks the loop if
+    # it fails.
+    loop_body = _makeStatementsSequence(
+        statements = (
+            CPythonStatementConditional(
+                condition = buildNode( provider, node.test, source_ref ),
+                no_branch = CPythonStatementsSequence(
+                    statements = statements,
+                    source_ref = source_ref
+                ),
+                yes_branch = None,
+                source_ref = source_ref
+            ),
+            buildStatementsNode(
+                provider   = provider,
+                nodes      = node.body,
+                source_ref = source_ref
+            )
+        ),
+        allow_none = True,
+        source_ref = source_ref
+    )
+
+    loop_statement = CPythonStatementLoop(
+        body       = loop_body,
+        source_ref = source_ref
+    )
+
+    if else_block is None:
+        return loop_statement
+    else:
+        statements = (
+            CPythonStatementAssignment(
+                target = CPythonAssignTargetVariable(
+                    variable_ref = CPythonExpressionTempVariableRef(
+                        variable   = tmp_break_indicator_variable.makeReference( temp_block ),
+                        source_ref = source_ref
+                    ),
+                    source_ref   = source_ref
+                ),
+                source = CPythonExpressionConstantRef(
+                    constant   = False,
+                    source_ref = source_ref
+                ),
+                source_ref   = source_ref
+            ),
+            loop_statement,
+            CPythonStatementConditional(
+                condition  = CPythonExpressionComparison(
+                    left = CPythonExpressionTempVariableRef(
+                        variable   = tmp_break_indicator_variable.makeReference( temp_block ),
+                        source_ref = source_ref
+                    ),
+                    right = CPythonExpressionConstantRef(
+                        constant   = True,
+                        source_ref = source_ref
+                    ),
+                    comparator = "Is",
+                    source_ref = source_ref
+                ),
+                yes_branch = else_block,
+                no_branch  = None,
+                source_ref = source_ref
+            )
+        )
+
+        temp_block.setBody(
+            CPythonStatementsSequence(
+               statements = statements,
+               source_ref = source_ref
+            )
+        )
+
+        return temp_block
 
 def buildFunctionCallNode( provider, node, source_ref ):
     positional_args = buildNodeList( provider, node.args, source_ref )
@@ -2814,7 +2907,7 @@ def buildNode( provider, node, source_ref, allow_none = False ):
         else:
             assert False, kind
 
-        assert isinstance( result, CPythonNodeBase )
+        assert isinstance( result, CPythonNodeBase ), result
 
         return result
     except SyntaxError:

@@ -1965,27 +1965,15 @@ def generateBranchCode( statement, context ):
         )
     )
 
-def generateWhileLoopCode( statement, context ):
+def generateLoopCode( statement, context ):
     loop_body_codes = generateStatementSequenceCode(
         statement_sequence = statement.getLoopBody(),
         allow_none         = True,
         context            = context
     )
 
-
-    loop_else_codes = generateStatementSequenceCode(
-        statement_sequence = statement.getNoBreak(),
-        allow_none         = True,
-        context            = context
-    )
-
-    return Generator.getWhileLoopCode(
-        condition        = generateConditionCode(
-            condition = statement.getCondition(),
-            context   = context
-        ),
+    return Generator.getLoopCode(
         loop_body_codes  = loop_body_codes,
-        loop_else_codes  = loop_else_codes,
         context          = context,
         needs_exceptions = statement.needsExceptionBreakContinue(),
     )
@@ -2165,8 +2153,8 @@ def _generateStatementCode( statement, context ):
             statement = statement,
             context   = context
         )
-    elif statement.isStatementWhileLoop():
-        code = generateWhileLoopCode(
+    elif statement.isStatementLoop():
+        code = generateLoopCode(
             statement = statement,
             context   = context
         )

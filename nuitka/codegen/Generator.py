@@ -1010,19 +1010,15 @@ def getForLoopCode( context, source_ref, iterator, iter_name, iter_value, iter_o
         "indicator_name"           : indicator_name
     }
 
-def getWhileLoopCode( context, condition, loop_body_codes, loop_else_codes, needs_exceptions ):
-    while_loop_template = CodeTemplates.getWhileLoopTemplate(
-        needs_exceptions = needs_exceptions,
-        has_else_codes   = loop_else_codes
+def getLoopCode( context, loop_body_codes, needs_exceptions ):
+    while_loop_template = CodeTemplates.getLoopTemplate(
+        needs_exceptions = needs_exceptions
     )
 
-    indicator_name = "_python_for_loop_indicator_%d" % context.allocateWhileLoopNumber()
-
     return while_loop_template % {
-        "condition"       : condition.getCode(),
-        "loop_body_codes" : indented( loop_body_codes if loop_body_codes is not None else "" ),
-        "loop_else_codes" : indented( loop_else_codes if loop_else_codes is not None else "" ),
-        "indicator_name"  : indicator_name
+        "loop_body_codes" : indented(
+            loop_body_codes if loop_body_codes is not None else ""
+        ),
     }
 
 def getVariableAssignmentCode( context, variable, identifier ):

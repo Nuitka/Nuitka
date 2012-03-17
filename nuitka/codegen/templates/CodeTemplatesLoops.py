@@ -176,32 +176,8 @@ def getForLoopTemplate( needs_exceptions, has_else_codes ):
             return _template_for_loop_break_continue_direct_no_else
 
 
-
-
-_template_while_loop_break_continue_catching_else = """\
-bool %(indicator_name)s = false;
-while ( %(condition)s )
-{
-    %(indicator_name)s = true;
-    try
-    {
-%(loop_body_codes)s
-    }
-    catch( ContinueException &e )
-    { /* Nothing to do */
-    }
-    catch ( BreakException &e )
-    { /* Break the loop */
-       break;
-    }
-}
-if (%(indicator_name)s == false)
-{
-%(loop_else_codes)s
-}"""
-
-_template_while_loop_break_continue_catching_no_else = """\
-while ( %(condition)s )
+_template_loop_break_continue_catching = """\
+while( true )
 {
     try
     {
@@ -216,32 +192,15 @@ while ( %(condition)s )
     }
 }"""
 
-_template_while_loop_break_continue_direct_else = """\
-bool %(indicator_name)s = false;
-while ( %(condition)s )
-{
-    %(indicator_name)s = true;
-%(loop_body_codes)s
-}
-if (%(indicator_name)s == false)
-{
-%(loop_else_codes)s
-}"""
-
-_template_while_loop_break_continue_direct_no_else = """\
-while ( %(condition)s )
+_template_loop_break_continue_direct = """\
+while( true )
 {
 %(loop_body_codes)s
 }"""
 
-def getWhileLoopTemplate( needs_exceptions, has_else_codes ):
+
+def getLoopTemplate( needs_exceptions ):
     if needs_exceptions:
-        if has_else_codes:
-            return _template_while_loop_break_continue_catching_else
-        else:
-            return _template_while_loop_break_continue_catching_no_else
+        return _template_loop_break_continue_catching
     else:
-        if has_else_codes:
-            return _template_while_loop_break_continue_direct_else
-        else:
-            return _template_while_loop_break_continue_direct_no_else
+        return _template_loop_break_continue_direct

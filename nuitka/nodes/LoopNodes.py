@@ -68,20 +68,18 @@ class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNodeBase, \
     setNoBreak = CPythonChildrenHaving.childSetter( "else" )
 
 
-class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNodeBase, \
-                                 MarkExceptionBreakContinueIndicator ):
-    kind = "STATEMENT_WHILE_LOOP"
+class CPythonStatementLoop( CPythonChildrenHaving, CPythonNodeBase, \
+                            MarkExceptionBreakContinueIndicator ):
+    kind = "STATEMENT_LOOP"
 
-    named_children = ( "condition", "frame", "else" )
+    named_children = ( "frame", )
 
-    def __init__( self, condition, body, no_break, source_ref ):
+    def __init__( self, body, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
             values = {
-                "condition" : condition,
-                "else"      : no_break,
                 "frame"     : body
             }
         )
@@ -89,9 +87,6 @@ class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNodeBase, \
         MarkExceptionBreakContinueIndicator.__init__( self )
 
     getLoopBody = CPythonChildrenHaving.childGetter( "frame" )
-    getCondition = CPythonChildrenHaving.childGetter( "condition" )
-    getNoBreak = CPythonChildrenHaving.childGetter( "else" )
-
 
 
 class CPythonStatementContinueLoop( CPythonNodeBase, MarkExceptionBreakContinueIndicator ):
