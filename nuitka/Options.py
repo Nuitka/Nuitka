@@ -197,8 +197,9 @@ parser.add_option(
     "--python-version",
     action  = "store",
     dest    = "python_version",
+    choices = ( "2.6", "2.7", "3.2" ),
     default = None,
-    help    = "Major version of Python to be used, something like 2.6 or 2.7."
+    help    = """Major version of Python to be used, one of '2.6', '2.7', or '3.2'."""
 )
 
 parser.add_option(
@@ -553,6 +554,9 @@ def isShowProgress():
 
 def isRemoveBuildDir():
     return options.remove_build
+
+def getIntendedPythonVersion():
+    return options.python_version
 
 def isExperimental():
     return hasattr( options, "experimental" ) and options.experimental

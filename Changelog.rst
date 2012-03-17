@@ -8,7 +8,7 @@ Bug fixes
 ---------
 
 - The builtin "next" could causes a program crash when iterating past the end of an
-  iterator. Issue#??. Fixed in 0.3.20.1 already.
+  iterator. Issue#34. Fixed in 0.3.20.1 already.
 
 New Features
 ------------
@@ -33,6 +33,11 @@ Organizational
 
 - The binary "bin/Nuitka.py" has been removed from the git repository. It was deprecated a
   while ago and served no good use, as it was a symbolic link only anyway.
+
+- The "--python-version" option is applied at Nuitka start time to re-launch Nuitka with
+  the given Python version, to make sure that the Python run time used for computations
+  and link time Python versions are the same. The allowed value are now checked (2.6, 2.7
+  and 3.2) and the user gets a nice error with wrong values.
 
 Cleanups
 --------
