@@ -36,7 +36,6 @@ from .OptimizeBase import (
     OptimizationVisitorScopedBase,
     OptimizationVisitorBase,
     TreeOperations,
-    makeConstantReplacementNode
 )
 
 from nuitka.nodes.UsageCheck import getVariableUsages

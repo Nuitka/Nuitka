@@ -54,6 +54,11 @@ def computeSlice( source_node ):
     lookup_source = source_node.getLookupSource()
 
     if lookup_source.kind in _slice_handlers:
-        return _slice_handlers[ lookup_source.kind ]( source_node, lookup_source, source_node.getLower(), source_node.getUpper() )
+        return _slice_handlers[ lookup_source.kind ](
+            source_node,
+            lookup_source,
+            source_node.getLower(),
+            source_node.getUpper()
+        )
     else:
         return source_node, None, None

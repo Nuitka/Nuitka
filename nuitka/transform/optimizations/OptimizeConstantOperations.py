@@ -32,7 +32,6 @@
 
 from .OptimizeBase import (
     OptimizationVisitorBase,
-    areConstants,
     makeConstantReplacementNode
 )
 
