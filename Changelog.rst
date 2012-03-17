@@ -31,6 +31,9 @@ Organizational
   there not on stable branches. It only pollutes "--help" output otherwise as stable
   releases have no experimental code options.
 
+- The binary "bin/Nuitka.py" has been removed from the git repository. It was deprecated a
+  while ago and served no good use, as it was a symbolic link only anyway.
+
 Cleanups
 --------
 
