@@ -14,7 +14,7 @@ Build-Depends: debhelper (>= 7.4.3),
 Vcs-Git: http://git.nuitka.net/Nuitka.git
 Vcs-browser: http://nuitka.net/gitweb/?p=Nuitka.git;a=summary
 Homepage: http://nuitka.net
-Standards-Version: 3.9.2
+Standards-Version: 3.9.3
 
 Package: nuitka
 Architecture: all
