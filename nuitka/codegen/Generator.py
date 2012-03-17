@@ -950,48 +950,6 @@ def getSliceDelCode( target, lower, upper ):
         "Py_None" if upper is None else upper.getCodeTemporaryRef()
     )
 
-def getWithNames( context ):
-    with_count = context.allocateWithNumber()
-
-    return (
-        TempVariableIdentifier( "_python_with_context_%d" % with_count ),
-        TempVariableIdentifier( "_python_with_value_%d" % with_count )
-    )
-
-
-def getWithCode( context, body_codes, assign_codes, source_identifier, with_manager_identifier, with_value_identifier ):
-
-    traceback_name = context.getTracebackName()
-    traceback_filename = context.getTracebackFilename()
-
-    if assign_codes is None:
-        assign_codes = "// No 'as' target variable for withed expression."
-
-    tb_making = getTracebackMakingIdentifier( context )
-
-    return CodeTemplates.with_template % {
-        "assign"              : indented( assign_codes ),
-        "body"                : indented( body_codes, 2 ),
-        "source"              : source_identifier.getCodeExportRef(),
-        "manager"             : with_manager_identifier.getCode(),
-        "value"               : with_value_identifier.getCode(),
-        "with_count"          : context.with_count,
-        "module_identifier"   : getModuleAccessCode( context = context ),
-        "tb_making"           : tb_making.getCodeExportRef(),
-        "triple_none_tuple"   : getConstantCode(
-            constant = ( None, None, None ),
-            context  = context
-        ),
-        "name_identifier"     : getConstantCode(
-            constant = traceback_name,
-            context = context
-        ),
-        "filename_identifier" : getConstantCode(
-            context  = context,
-            constant = traceback_filename
-        ),
-    }
-
 def getForLoopNames( context ):
     for_count = context.allocateForLoopNumber()
 
@@ -1002,16 +960,15 @@ def getForLoopNames( context ):
     )
 
 def getLineNumberCode( context, source_ref ):
-    if Options.shallHaveStatementLines():
-        line_number_code = getSetCurrentLineCode(
-            context    = context,
-            source_ref = source_ref
-        )
+    if source_ref.shallSetCurrentLine():
+        if context.hasFrameGuard():
+            template = """frame_guard.setLineNumber( %d );\n"""
+        else:
+            template = """generator->m_frame->f_lineno = %d;\n"""
+
+        return template % source_ref.getLineNumber()
     else:
-        line_number_code = ""
-
-    return line_number_code
-
+        return ""
 
 def getForLoopCode( context, source_ref, iterator, iter_name, iter_value, iter_object, \
                     loop_var_code, loop_body_codes, loop_else_codes, needs_exceptions ):
@@ -2689,12 +2646,6 @@ def getGeneratorExpressionCode( context, generator_identifier, generator_name, s
     }
 
     return result
-
-def getSetCurrentLineCode( context, source_ref ):
-    if context.hasFrameGuard():
-        return """frame_guard.setLineNumber( %d );\n""" % source_ref.getLineNumber()
-    else:
-        return """generator->m_frame->f_lineno = %d;\n""" % source_ref.getLineNumber()
 
 def getCurrentExceptionObjectCode():
     return Identifier( "_exception.getObject()", 0 )

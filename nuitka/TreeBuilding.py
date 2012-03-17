@@ -39,6 +39,7 @@ from .__past__ import long, unicode
 from . import (
     SourceCodeReferences,
     SyntaxErrors,
+    Options,
     Tracing,
     Utils
 )
@@ -2428,6 +2429,9 @@ def buildModuleTree( filename, package, is_main ):
     else:
         sys.stderr.write(  "Nuitka: can't open file '%s'.\n" % filename )
         sys.exit( 2 )
+
+    if not Options.shallHaveStatementLines():
+        source_ref = source_ref.atInternal()
 
     with open( source_filename, "rU" ) as source_file:
         buildParseTree(

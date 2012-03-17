@@ -2220,10 +2220,12 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
     last_ref = None
 
     for statement in statements:
+        source_ref = statement.getSourceReference()
+
         if Options.shallTraceExecution():
             codes.append(
                 Generator.getStatementTrace(
-                    statement.getSourceReference().getAsString(),
+                    source_ref.getAsString(),
                     repr( statement )
                 )
             )
@@ -2238,10 +2240,8 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
         if code == "":
             continue
 
-        source_ref = statement.getSourceReference()
-
-        if Options.shallHaveStatementLines() and source_ref != last_ref:
-            code = Generator.getSetCurrentLineCode(
+        if source_ref != last_ref:
+            code = Generator.getLineNumberCode(
                 context    = context,
                 source_ref = source_ref
             ) + code
