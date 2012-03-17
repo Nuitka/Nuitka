@@ -459,6 +459,15 @@ def getUnpackTupleCode( assign_source, iterator_identifier, lvalue_identifiers )
 
     return result
 
+def getSpecialAttributeLookupCode( attribute, source ):
+    return Identifier(
+        "LOOKUP_SPECIAL( %s, %s )" % (
+            source.getCodeTemporaryRef(),
+            attribute.getCodeTemporaryRef()
+        ),
+        1
+    )
+
 def getAttributeLookupCode( attribute, source ):
     return Identifier(
         "LOOKUP_ATTRIBUTE( %s, %s )" % (

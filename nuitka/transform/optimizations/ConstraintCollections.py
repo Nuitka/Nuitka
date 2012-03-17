@@ -527,17 +527,6 @@ class ConstraintCollection:
             # TODO: Not clear how to handle these, the statement sequence processing
             # should abort here.
             return statement
-        elif statement.isStatementWith():
-            if statement.getTarget() is not None:
-                self.onTarget( statement.getTarget() )
-            self.onExpression( statement.getExpression() )
-
-            with_body = statement.getWithBody()
-
-            if with_body is not None:
-                self.onStatementsSequence( with_body )
-
-            return statement
         elif statement.isStatementTempBlock():
             self.onStatementsSequence( statement.getBody() )
 

@@ -70,3 +70,11 @@ class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
     def isKnownToBeIterable( self, count ):
         # TODO: Should ask AttributeRegistry
         return None
+
+class CPythonExpressionSpecialAttributeLookup( CPythonExpressionAttributeLookup ):
+    kind = "EXPRESSION_SPECIAL_ATTRIBUTE_LOOKUP"
+
+    # TODO: Special lookups should be treated somehow different.
+    def computeNode( self ):
+        # There is a whole registry dedicated to this.
+        return self, None, None

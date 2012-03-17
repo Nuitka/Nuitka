@@ -67,11 +67,20 @@ from .nodes.BoolNodes import (
     CPythonExpressionBoolAND,
     CPythonExpressionBoolOR
 )
-from .nodes.ExceptionNodes import CPythonStatementRaiseException
+
+from .nodes.ExceptionNodes import (
+    CPythonExpressionCaughtExceptionTracebackRef,
+    CPythonExpressionCaughtExceptionValueRef,
+    CPythonExpressionCaughtExceptionTypeRef,
+    CPythonStatementRaiseException
+)
 from .nodes.ComparisonNode import CPythonExpressionComparison
 from .nodes.ExecEvalNodes import CPythonStatementExec
 from .nodes.CallNode import CPythonExpressionFunctionCall
-from .nodes.AttributeNode import CPythonExpressionAttributeLookup
+from .nodes.AttributeNode import (
+    CPythonExpressionSpecialAttributeLookup,
+    CPythonExpressionAttributeLookup
+)
 from .nodes.SubscriptNode import CPythonExpressionSubscriptLookup
 from .nodes.SliceNodes import (
     CPythonExpressionSliceLookup,
@@ -152,7 +161,6 @@ from .nodes.TryNodes import (
     CPythonStatementTryFinally,
     CPythonStatementTryExcept
 )
-from .nodes.WithNode import CPythonStatementWith
 
 import ast, sys
 
@@ -1508,6 +1516,19 @@ def _makeStatementsSequenceOrStatement( statements, source_ref ):
     else:
         return statements[0]
 
+def _makeStatementsSequence( statements, allow_none, source_ref ):
+    if allow_none:
+        statements = tuple( statement for statement in statements if statement is not None )
+
+    if statements:
+        return CPythonStatementsSequence(
+            statements = statements,
+            source_ref = source_ref
+        )
+    else:
+        return None
+
+
 def _buildImportModulesNode( import_names, source_ref ):
     import_nodes = []
 
@@ -1707,13 +1728,204 @@ def buildExecNode( provider, node, source_ref ):
         source_ref  = source_ref
     )
 
+
 def buildWithNode( provider, node, source_ref ):
-    return CPythonStatementWith(
-        source     = buildNode( provider, node.context_expr, source_ref ),
-        target     = buildAssignTarget( provider, node.optional_vars, source_ref, True ),
-        body       = buildStatementsNode( provider, node.body, source_ref ),
+    with_source = buildNode( provider, node.context_expr, source_ref )
+
+    result = CPythonStatementTempBlock(
         source_ref = source_ref
     )
+
+    tmp_source_variable = result.getTempVariable( "with_source" )
+    tmp_exit_variable = result.getTempVariable( "with_exit" )
+    tmp_enter_variable = result.getTempVariable( "with_enter" )
+
+    statements = (
+        buildAssignmentStatements(
+            provider   = provider,
+            node       = node.optional_vars,
+            allow_none = True,
+            source     = CPythonExpressionTempVariableRef(
+                variable   = tmp_enter_variable.makeReference( result ),
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        ),
+        buildStatementsNode( provider, node.body, source_ref )
+    )
+
+    with_body = _makeStatementsSequence(
+        statements = statements,
+        allow_none = True,
+        source_ref = source_ref
+    )
+
+    # The "__enter__" and "__exit__" were normal attribute lookups under Python2.6, but
+    # that changed later.
+    if Utils.getPythonVersion() < 270:
+        attribute_lookup_class = CPythonExpressionAttributeLookup
+    else:
+        attribute_lookup_class = CPythonExpressionSpecialAttributeLookup
+
+    statements = [
+        # First assign the with context to a temporary variable.
+        CPythonStatementAssignment(
+            target     = CPythonAssignTargetVariable(
+                variable_ref = CPythonExpressionTempVariableRef(
+                    variable   = tmp_source_variable.makeReference( result ),
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            ),
+            source     = with_source,
+            source_ref = source_ref
+        ),
+        # Next, assign "__enter__" and "__exit__" attributes to temporary variables.
+        CPythonStatementAssignment(
+            target     = CPythonAssignTargetVariable(
+                variable_ref = CPythonExpressionTempVariableRef(
+                    variable   = tmp_exit_variable.makeReference( result ),
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            ),
+            source     = attribute_lookup_class(
+                expression     = CPythonExpressionTempVariableRef(
+                    variable   = tmp_source_variable.makeReference( result ),
+                    source_ref = source_ref
+                ),
+                attribute_name = "__exit__",
+                source_ref     = source_ref
+            ),
+            source_ref = source_ref
+        ),
+        CPythonStatementAssignment(
+            target     = CPythonAssignTargetVariable(
+                variable_ref = CPythonExpressionTempVariableRef(
+                    variable   = tmp_enter_variable.makeReference( result ),
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            ),
+            source     = CPythonExpressionFunctionCall(
+                called_expression = attribute_lookup_class(
+                    expression     = CPythonExpressionTempVariableRef(
+                        variable   = tmp_source_variable.makeReference( result ),
+                        source_ref = source_ref
+                    ),
+                    attribute_name = "__enter__",
+                    source_ref     = source_ref
+                ),
+                positional_args   = (),
+                pairs             = (),
+                dict_star_arg     = None,
+                list_star_arg     = None,
+                source_ref     = source_ref
+            ),
+            source_ref = source_ref
+        )
+    ]
+
+    source_ref = source_ref.atInternal()
+
+    statements += [
+        CPythonStatementTryExcept(
+            tried      = with_body,
+            handlers   = (
+                CPythonStatementExceptHandler(
+                    exception_type = CPythonExpressionBuiltinExceptionRef(
+                        exception_name = "BaseException",
+                        source_ref     = source_ref
+                    ),
+                    target         = None,
+                    body           = CPythonStatementsSequence(
+                        statements = (
+                            CPythonStatementConditional(
+                                condition     = CPythonExpressionFunctionCall(
+                                    called_expression = CPythonExpressionTempVariableRef(
+                                        variable   = tmp_exit_variable.makeReference( result ),
+                                        source_ref = source_ref
+                                    ),
+                                    positional_args   = (
+                                        CPythonExpressionCaughtExceptionTypeRef(
+                                            source_ref = source_ref
+                                        ),
+                                        CPythonExpressionCaughtExceptionValueRef(
+                                            source_ref = source_ref
+                                        ),
+                                        CPythonExpressionCaughtExceptionTracebackRef(
+                                            source_ref = source_ref
+                                        ),
+                                    ),
+                                    pairs             = (),
+                                    list_star_arg     = None,
+                                    dict_star_arg     = None,
+                                    source_ref        = source_ref
+                                ),
+                                no_branch = CPythonStatementsSequence(
+                                    statements = (
+                                        CPythonStatementRaiseException(
+                                            exception_type  = None,
+                                            exception_value = None,
+                                            exception_trace = None,
+                                            source_ref      = source_ref
+                                        ),
+                                    ),
+                                    source_ref = source_ref
+                                ),
+                                yes_branch  = None,
+                                source_ref = source_ref
+                            ),
+                        ),
+                        source_ref     = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+            ),
+            no_raise   = CPythonStatementsSequence(
+                statements = (
+                    CPythonStatementExpressionOnly(
+                        expression     = CPythonExpressionFunctionCall(
+                            called_expression = CPythonExpressionTempVariableRef(
+                                variable   = tmp_exit_variable.makeReference( result ),
+                                source_ref = source_ref
+                            ),
+                            positional_args   = (
+                                CPythonExpressionConstantRef(
+                                    constant   = None,
+                                    source_ref = source_ref
+                                ),
+                                CPythonExpressionConstantRef(
+                                    constant   = None,
+                                    source_ref = source_ref
+                                ),
+                                CPythonExpressionConstantRef(
+                                    constant   = None,
+                                    source_ref = source_ref
+                                )
+                            ),
+                            pairs             = (),
+                            list_star_arg     = None,
+                            dict_star_arg     = None,
+                            source_ref = source_ref
+                        ),
+                        source_ref     = source_ref
+                    ),
+                ),
+                source_ref     = source_ref
+            ),
+            source_ref = source_ref
+        )
+    ]
+
+    result.setBody(
+        CPythonStatementsSequence(
+            statements = statements,
+            source_ref = source_ref
+        )
+    )
+
+    return result
 
 def buildNodeList( provider, nodes, source_ref, allow_none = False ):
     if nodes is not None:

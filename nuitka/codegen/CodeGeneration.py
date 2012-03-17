@@ -1021,6 +1021,12 @@ def generateExpressionCode( expression, context, allow_none = False ):
             attribute = context.getConstantHandle( attribute_name ),
             source    = makeExpressionCode( expression.getLookupSource() ),
         )
+    elif expression.isExpressionSpecialAttributeLookup():
+        identifier = Generator.getSpecialAttributeLookupCode(
+            attribute = context.getConstantHandle( expression.getAttributeName() ),
+            source    = makeExpressionCode( expression.getLookupSource() ),
+        )
+
     elif expression.isExpressionImportName():
         identifier = Generator.getImportNameCode(
             import_name = context.getConstantHandle( expression.getImportName() ),
@@ -2014,40 +2020,6 @@ def generateForLoopCode( statement, context ):
         context          = context
     )
 
-def generateWithCode( statement, context ):
-    body_codes = generateStatementSequenceCode(
-        statement_sequence = statement.getWithBody(),
-        allow_none         = True,
-        context            = context
-    )
-
-    body_codes = body_codes or []
-
-    with_manager_identifier, with_value_identifier = Generator.getWithNames(
-        context = context
-    )
-
-    if statement.getTarget() is not None:
-        assign_codes = generateAssignmentCode(
-            target  = statement.getTarget(),
-            value   = with_value_identifier,
-            context = context
-        )
-    else:
-        assign_codes = None
-
-    return Generator.getWithCode(
-        source_identifier       = generateExpressionCode(
-            expression = statement.getExpression(),
-            context    = context
-        ),
-        assign_codes            = assign_codes,
-        with_manager_identifier = with_manager_identifier,
-        with_value_identifier   = with_value_identifier,
-        body_codes              = body_codes,
-        context                 = context
-    )
-
 def generateTempBlock( statement, context ):
     body_codes = generateStatementSequenceCode(
         statement_sequence = statement.getBody(),
@@ -2129,11 +2101,6 @@ def _generateStatementCode( statement, context ):
         )
     elif statement.isStatementReturn():
         code = generateReturnCode(
-            statement = statement,
-            context   = context
-        )
-    elif statement.isStatementWith():
-        code = generateWithCode(
             statement = statement,
             context   = context
         )

@@ -50,7 +50,6 @@ from .templates.CodeTemplatesDicts import *
 from .templates.CodeTemplatesCalls import *
 from .templates.CodeTemplatesClass import *
 from .templates.CodeTemplatesLoops import *
-from .templates.CodeTemplatesWith import *
 
 from .templates.CodeTemplatesExecEval import *
 
