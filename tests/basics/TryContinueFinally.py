@@ -16,7 +16,23 @@
 #     limitations under the License.
 #
 
-def tryContinueFinallyTest():
+def tryWhileContinueFinallyTest():
+    print "Check if finally is executed in a continue using for loop:"
+
+    x = 0
+
+    while x < 10:
+        x += 1
+
+        try:
+            if x % 2 == 1:
+                continue
+        finally:
+            print x,
+
+    print
+
+def tryForContinueFinallyTest():
     print "Check if finally is executed in a continue using for loop:"
 
     for x in range(10):
@@ -28,7 +44,23 @@ def tryContinueFinallyTest():
 
     print
 
-def tryBreakFinallyTest():
+def tryWhileBreakFinallyTest():
+    print "Check if finally is executed in a break using while loop:"
+
+    x = 0
+
+    while x < 10:
+        x += 1
+
+        try:
+            if x == 5:
+                break
+        finally:
+            print x,
+
+    print
+
+def tryForBreakFinallyTest():
     print "Check if finally is executed in a break using for loop:"
 
     for x in range(10):
@@ -40,5 +72,8 @@ def tryBreakFinallyTest():
 
     print
 
-tryContinueFinallyTest()
-tryBreakFinallyTest()
+tryWhileContinueFinallyTest()
+tryWhileBreakFinallyTest()
+
+tryForContinueFinallyTest()
+tryForBreakFinallyTest()
