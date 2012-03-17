@@ -1703,25 +1703,18 @@ def generateExecCodeInline( exec_def, context ):
     )
 
 def generateTryExceptCode( statement, context ):
+    tried_block = statement.getBlockTry()
+
+    assert tried_block.mayRaiseException( BaseException )
+
     handler_codes = []
 
     for count, handler in enumerate( statement.getExceptionHandlers() ):
-        exception_identifier = generateExpressionCode(
-            expression = handler.getExceptionType(),
-            allow_none = True,
-            context    = context
+        exception_identifiers = generateExpressionsCode(
+            expressions = handler.getExceptionTypes(),
+            allow_none  = True,
+            context     = context
         )
-
-        exception_target = handler.getExceptionTarget()
-
-        if exception_target is not None:
-            exception_assignment = generateAssignmentCode(
-                target  = exception_target,
-                value   = Generator.getCurrentExceptionObjectCode(),
-                context = context
-            )
-        else:
-            exception_assignment = None
 
         handler_code = generateStatementSequenceCode(
             statement_sequence = handler.getExceptionBranch(),
@@ -1730,17 +1723,15 @@ def generateTryExceptCode( statement, context ):
         )
 
         handler_codes += Generator.getTryExceptHandlerCode(
-            exception_identifier = exception_identifier,
-            exception_assignment = exception_assignment,
-            handler_code         = handler_code,
-            first_handler        = count == 0
+            exception_identifiers = exception_identifiers,
+            handler_code          = handler_code,
+            first_handler         = count == 0
         )
 
     return Generator.getTryExceptCode(
         context       = context,
         code_tried    = generateStatementSequenceCode(
-            statement_sequence = statement.getBlockTry(),
-            allow_none         = True,
+            statement_sequence = tried_block,
             context            = context,
         ),
         handler_codes = handler_codes,

@@ -1314,16 +1314,43 @@ def buildTryExceptionNode( provider, node, source_ref ):
     for handler in node.handlers:
         exception_expression, exception_assign, exception_block = handler.type, handler.name, handler.body
 
+        statements = (
+            buildAssignmentStatements(
+                provider   = provider,
+                node       = exception_assign,
+                allow_none = True,
+                source     = CPythonExpressionCaughtExceptionValueRef(
+                    source_ref = source_ref.atInternal()
+                ),
+                source_ref = source_ref.atInternal()
+            ),
+            buildStatementsNode(
+                provider   = provider,
+                nodes      = exception_block,
+                source_ref = source_ref
+            )
+        )
+
+        handler_body = _makeStatementsSequence(
+            statements = statements,
+            allow_none = True,
+            source_ref = source_ref
+        )
+
+        exception_types = buildNode( provider, exception_expression, source_ref, True )
+
+        if exception_types is None:
+            exception_types = ()
+        elif exception_types.isExpressionMakeSequence():
+            exception_types = exception_types.getElements()
+        else:
+            exception_types = ( exception_types, )
+
         handlers.append(
             CPythonStatementExceptHandler(
-                exception_type = buildNode( provider, exception_expression, source_ref, True ),
-                target         = buildAssignTarget( provider, exception_assign, source_ref, True ),
-                body           = buildStatementsNode(
-                    provider   = provider,
-                    nodes      = exception_block,
-                    source_ref = source_ref
-                ),
-                source_ref     = source_ref
+                exception_types = exception_types,
+                body            = handler_body,
+                source_ref      = source_ref
             )
         )
 
@@ -1833,11 +1860,12 @@ def buildWithNode( provider, node, source_ref ):
             tried      = with_body,
             handlers   = (
                 CPythonStatementExceptHandler(
-                    exception_type = CPythonExpressionBuiltinExceptionRef(
-                        exception_name = "BaseException",
-                        source_ref     = source_ref
+                    exception_types = (
+                        CPythonExpressionBuiltinExceptionRef(
+                            exception_name = "BaseException",
+                            source_ref     = source_ref
+                        ),
                     ),
-                    target         = None,
                     body           = CPythonStatementsSequence(
                         statements = (
                             CPythonStatementConditional(

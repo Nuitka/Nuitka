@@ -58,22 +58,20 @@ class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
 class CPythonStatementExceptHandler( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_EXCEPT_HANDLER"
 
-    named_children = ( "exception_type", "target", "body" )
+    named_children = ( "exception_types", "body" )
 
-    def __init__( self, exception_type, target, body, source_ref ):
+    def __init__( self, exception_types, body, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
             values = {
-                "exception_type" : exception_type,
-                "target"         : target,
-                "body"           : body,
+                "exception_types" : tuple( exception_types ),
+                "body"            : body,
             }
         )
 
-    getExceptionType   = CPythonChildrenHaving.childGetter( "exception_type" )
-    getExceptionTarget = CPythonChildrenHaving.childGetter( "target" )
+    getExceptionTypes  = CPythonChildrenHaving.childGetter( "exception_types" )
     getExceptionBranch = CPythonChildrenHaving.childGetter( "body" )
 
 

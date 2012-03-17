@@ -273,13 +273,6 @@ public:
         this->exception_type = exception_type;
     }
 
-    inline PyObject *getObject()
-    {
-        PyErr_NormalizeException( &this->exception_type, &this->exception_value, &this->exception_tb );
-
-        return this->exception_value;
-    }
-
     void dump() const
     {
         PRINT_ITEMS( true, NULL, this->exception_type );

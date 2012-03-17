@@ -103,5 +103,7 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
         return False
 
     def mayRaiseException( self, exception_type ):
-        # Constants won't raise anything.
+        # Virtual method, pylint: disable=R0201,W0613
+
+        # Constants won't raise any kind of exception.
         return False

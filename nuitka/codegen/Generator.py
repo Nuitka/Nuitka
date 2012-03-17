@@ -561,7 +561,7 @@ def getStatementCode( identifier ):
     return identifier.getCodeDropRef() + ";"
 
 def getBlockCode( codes ):
-    if type( codes ) == str:
+    if type( codes ) is str:
         assert codes == codes.rstrip(), codes
 
     return "{\n%s\n}" % indented( codes )
@@ -1154,17 +1154,20 @@ def getTryFinallyCode( context, code_tried, code_final ):
         "tb_making"  : tb_making.getCodeExportRef(),
     }
 
-def getTryExceptHandlerCode( exception_identifier, exception_assignment, handler_code, \
-                             first_handler ):
+def getTryExceptHandlerCode( exception_identifiers, handler_code, first_handler ):
     exception_code = []
 
     cond_keyword = "if" if first_handler else "else if"
 
-    if exception_identifier is not None:
+    if exception_identifiers:
         exception_code.append(
-            "%s ( _exception.matches( %s ) )" % (
+            "%s ( %s )" % (
                 cond_keyword,
-                exception_identifier.getCodeTemporaryRef()
+                " || ".join(
+                    "_exception.matches( %s )" % exception_identifier.getCodeTemporaryRef()
+                    for exception_identifier in
+                    exception_identifiers
+                )
             )
         )
     else:
@@ -1172,15 +1175,9 @@ def getTryExceptHandlerCode( exception_identifier, exception_assignment, handler
             "%s (true)" % cond_keyword
         )
 
-    exception_code.append( "{" )
-
-    if exception_assignment is not None:
-        exception_code.append(
-            indented( exception_assignment, 1 )
-        )
-
-    exception_code += indented( handler_code or "", 1 ).split("\n")
-    exception_code.append( "}" )
+    exception_code += getBlockCode(
+        handler_code or ""
+    ).split( "\n" )
 
     return exception_code
 
@@ -2655,9 +2652,6 @@ def getGeneratorExpressionCode( context, generator_identifier, generator_name, s
     }
 
     return result
-
-def getCurrentExceptionObjectCode():
-    return Identifier( "_exception.getObject()", 0 )
 
 def getTupleUnpackIteratorCode( recursion ):
     return TempVariableIdentifier( "tuple_iterator_%d" % recursion )
