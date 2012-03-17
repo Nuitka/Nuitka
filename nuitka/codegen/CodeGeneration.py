@@ -1933,7 +1933,7 @@ def generateWhileLoopCode( statement, context ):
 
 
     loop_else_codes = generateStatementSequenceCode(
-        statement_sequence = statement.getNoEnter(),
+        statement_sequence = statement.getNoBreak(),
         allow_none         = True,
         context            = context
     )

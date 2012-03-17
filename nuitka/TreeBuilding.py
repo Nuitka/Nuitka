@@ -440,7 +440,7 @@ def buildWhileLoopNode( provider, node, source_ref ):
             nodes      = node.body,
             source_ref = source_ref
         ),
-        no_enter   = buildStatementsNode(
+        no_break   = buildStatementsNode(
             provider   = provider,
             nodes      = node.orelse if node.orelse else None,
             source_ref = source_ref

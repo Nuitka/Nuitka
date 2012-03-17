@@ -74,14 +74,14 @@ class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNodeBase, \
 
     named_children = ( "condition", "frame", "else" )
 
-    def __init__( self, condition, body, no_enter, source_ref ):
+    def __init__( self, condition, body, no_break, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
             values = {
                 "condition" : condition,
-                "else"      : no_enter,
+                "else"      : no_break,
                 "frame"     : body
             }
         )
@@ -90,8 +90,8 @@ class CPythonStatementWhileLoop( CPythonChildrenHaving, CPythonNodeBase, \
 
     getLoopBody = CPythonChildrenHaving.childGetter( "frame" )
     getCondition = CPythonChildrenHaving.childGetter( "condition" )
-    getNoEnter = CPythonChildrenHaving.childGetter( "else" )
-    setNoEnter = CPythonChildrenHaving.childSetter( "else" )
+    getNoBreak = CPythonChildrenHaving.childGetter( "else" )
+
 
 
 class CPythonStatementContinueLoop( CPythonNodeBase, MarkExceptionBreakContinueIndicator ):
