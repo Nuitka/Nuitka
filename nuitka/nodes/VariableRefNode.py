@@ -197,7 +197,7 @@ class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
     setBody = CPythonChildrenHaving.childSetter( "body" )
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        CPythonNodeBase.__init__( self, source_ref = source_ref.atInternal() )
 
         CPythonChildrenHaving.__init__(
             self,

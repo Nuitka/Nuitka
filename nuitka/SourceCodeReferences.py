@@ -112,10 +112,13 @@ class SourceCodeReference:
         return result
 
     def atInternal( self ):
-        result = self.clone( self.line )
-        result.set_line = False
+        if self.set_line:
+            result = self.clone( self.line )
+            result.set_line = False
 
-        return result
+            return result
+        else:
+            return self
 
 
 def fromFilename( filename, future_spec ):
