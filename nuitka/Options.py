@@ -553,3 +553,6 @@ def isShowProgress():
 
 def isRemoveBuildDir():
     return options.remove_build
+
+def isExperimental():
+    return hasattr( options, "experimental" ) and options.experimental
