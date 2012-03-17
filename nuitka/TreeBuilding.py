@@ -1911,6 +1911,8 @@ def buildImportFromNode( provider, node, source_ref ):
                 provider.getSourceReference()
             )
 
+        if provider.isExpressionFunctionBody():
+            provider.markAsStarImportContaining()
 
         return CPythonStatementImportStar(
             module_import = CPythonExpressionImportModule(

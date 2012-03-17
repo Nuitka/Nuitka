@@ -884,7 +884,7 @@ def generateFunctionCallCode( function, context ):
 def _decideLocalsMode( provider ):
     if provider.isExpressionClassBody():
         mode = "updated"
-    elif provider.isExpressionFunctionBody() and provider.isExecContaining():
+    elif provider.isExpressionFunctionBody() and provider.isUnoptimized():
         mode = "updated"
     else:
         mode = "copy"

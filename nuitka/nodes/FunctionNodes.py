@@ -42,10 +42,10 @@ from .NodeBases import (
 )
 
 from .IndicatorMixins import (
+    MarkUnoptimizedFunctionIndicator,
     MarkContainsTryExceptIndicator,
     MarkLocalsDictIndicator,
-    MarkGeneratorIndicator,
-    MarkExecContainingIndicator
+    MarkGeneratorIndicator
 )
 
 from . import OverflowCheck
@@ -55,7 +55,7 @@ from nuitka import Variables
 class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavingNodeBase, \
                                      CPythonClosureTaker, MarkContainsTryExceptIndicator, \
                                      CPythonExpressionMixin, MarkGeneratorIndicator, \
-                                     MarkLocalsDictIndicator, MarkExecContainingIndicator ):
+                                     MarkLocalsDictIndicator, MarkUnoptimizedFunctionIndicator ):
     # We really want these many ancestors, as per design, we add properties via base class
     # mixins a lot, pylint: disable=R0901
 
@@ -96,7 +96,7 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
 
         MarkLocalsDictIndicator.__init__( self )
 
-        MarkExecContainingIndicator.__init__( self )
+        MarkUnoptimizedFunctionIndicator.__init__( self )
 
         self.doc = doc
 

@@ -86,16 +86,20 @@ class MarkGeneratorIndicator:
         return self.is_generator
 
 
-class MarkExecContainingIndicator:
-    """ Mixin for indication that a function contains an exec.
+class MarkUnoptimizedFunctionIndicator:
+    """ Mixin for indication that a function contains an exec or star import.
 
+        These do not access global variables directly, but check a locals dictionary
+        first, because they do.
     """
 
     def __init__( self ):
-        self.contains_exec = False
+        self.unoptimized_locals = False
 
     def markAsExecContaining( self ):
-        self.contains_exec = True
+        self.unoptimized_locals = True
 
-    def isExecContaining( self ):
-        return self.contains_exec
+    markAsStarImportContaining = markAsExecContaining
+
+    def isUnoptimized( self ):
+        return self.unoptimized_locals
