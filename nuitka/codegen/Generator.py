@@ -3148,3 +3148,21 @@ def getDefaultValueAccess( variable ):
         )
 
     return default_access_identifier
+
+def getCurrentExceptionTypeCode():
+    return Identifier(
+        "_exception.getType()",
+        0
+    )
+
+def getCurrentExceptionValueCode():
+    return Identifier(
+        "_exception.getValue()",
+        0
+    )
+
+def getCurrentExceptionTracebackCode():
+    return Identifier(
+        "(PyObject *)_exception.getTraceback()",
+        0
+    )

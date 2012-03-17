@@ -1354,6 +1354,12 @@ def generateExpressionCode( expression, context, allow_none = False ):
             base       = makeExpressionCode( expression.getBase(), allow_none = True ),
             context    = context
         )
+    elif expression.isExpressionCaughtExceptionTypeRef():
+        identifier = Generator.getCurrentExceptionTypeCode()
+    elif expression.isExpressionCaughtExceptionValueRef():
+        identifier = Generator.getCurrentExceptionValueCode()
+    elif expression.isExpressionCaughtExceptionTracebackRef():
+        identifier = Generator.getCurrentExceptionTracebackCode()
     else:
         assert False, expression
 

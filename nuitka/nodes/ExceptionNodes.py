@@ -32,6 +32,7 @@
 
 from .NodeBases import (
     CPythonExpressionChildrenHavingBase,
+    CPythonExpressionMixin,
     CPythonChildrenHaving,
     CPythonNodeBase
 )
@@ -140,3 +141,47 @@ class CPythonExpressionBuiltinMakeException( CPythonExpressionChildrenHavingBase
 
     def computeNode( self ):
         return self, None, None
+
+
+class CPythonExpressionCaughtExceptionTypeRef( CPythonNodeBase, CPythonExpressionMixin ):
+    kind = "EXPRESSION_CAUGHT_EXCEPTION_TYPE_REF"
+
+    def __init__( self, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+    def computeNode( self ):
+        # TODO: Might be predictable based on the exception handler this is in.
+        return self, None, None
+
+    def mayHaveSideEffects( self ):
+        # Referencing the expression type has no side effect
+        return False
+
+
+class CPythonExpressionCaughtExceptionValueRef( CPythonNodeBase, CPythonExpressionMixin ):
+    kind = "EXPRESSION_CAUGHT_EXCEPTION_VALUE_REF"
+
+    def __init__( self, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+    def computeNode( self ):
+        # TODO: Might be predictable based on the exception handler this is in.
+        return self, None, None
+
+    def mayHaveSideEffects( self ):
+        # Referencing the expression type has no side effect
+        return False
+
+
+class CPythonExpressionCaughtExceptionTracebackRef( CPythonNodeBase, CPythonExpressionMixin ):
+    kind = "EXPRESSION_CAUGHT_EXCEPTION_TRACEBACK_REF"
+
+    def __init__( self, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+    def computeNode( self ):
+        return self, None, None
+
+    def mayHaveSideEffects( self ):
+        # Referencing the expression type has no side effect
+        return False

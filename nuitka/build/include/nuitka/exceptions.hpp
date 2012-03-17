@@ -221,6 +221,7 @@ public:
 
     inline PyObject *getType()
     {
+        // TODO: Why is the normalize needed for the value == NULL, and not type == NULL?
         if ( this->exception_value == NULL )
         {
             PyErr_NormalizeException( &this->exception_type, &this->exception_value, &this->exception_tb );
@@ -228,6 +229,18 @@ public:
 
         return this->exception_type;
     }
+
+    inline PyObject *getValue()
+    {
+        // TODO: Why is the normalize needed for the value == NULL, and not type == NULL?
+        if ( this->exception_value == NULL )
+        {
+            PyErr_NormalizeException( &this->exception_type, &this->exception_value, &this->exception_tb );
+        }
+
+        return this->exception_value;
+    }
+
 
     inline PyTracebackObject *getTraceback() const
     {
