@@ -183,6 +183,10 @@ class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin 
         # Nothing to do here.
         return self, None, None
 
+    def mayRaiseException( self, exception_type ):
+        # Can't happen
+        return False
+
 
 class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_TEMP_BLOCK"

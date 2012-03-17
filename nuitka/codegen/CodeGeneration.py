@@ -1699,6 +1699,64 @@ def generateTryExceptCode( statement, context ):
 
     assert tried_block.mayRaiseException( BaseException )
 
+    # Try to find "simple code" cases. TODO: this should be more general, but that's what
+    # is needed immediately.
+    tried_statements = tried_block.getStatements()
+
+    if len( tried_statements ) == 1:
+        tried_statement = tried_statements[0]
+
+        if tried_statement.isStatementAssignment():
+            target = tried_statement.getTarget()
+
+            if target.isAssignTargetVariable():
+                # Note: Now we know it's safe to assign to it.
+
+                source = tried_statement.getSource()
+
+                if source.isExpressionBuiltinNext1():
+                    if not source.getValue().mayRaiseException( BaseException ):
+                        # Note: Now we know the source lookup is the only thing that may
+                        # raise.
+
+                        handlers = statement.getExceptionHandlers()
+
+                        if len( handlers ) == 1:
+                            catched_types = handlers[0].getExceptionTypes()
+
+                            if len( catched_types ) == 1:
+                                catched_type = catched_types[0]
+                                if catched_type.isExpressionBuiltinExceptionRef():
+                                    if catched_type.getExceptionName() == "StopIteration":
+                                        if handlers[0].getExceptionBranch().isStatementAbortative():
+
+                                            temp_number = context.allocateForLoopNumber()
+
+                                            return """\
+PyObject *_tmp_unpack_%(tmp_count)d = ITERATOR_NEXT( %(source_identifier)s );
+
+if ( _tmp_unpack_%(tmp_count)d == NULL )
+{
+%(handler_code)s
+}
+%(assignment_code)s""" % {
+    "tmp_count" : temp_number,
+    "handler_code" : Generator.indented( generateStatementSequenceCode(
+        statement_sequence = handlers[0].getExceptionBranch(),
+        allow_none         = True,
+        context            = context
+     ) ),
+     "assignment_code" : Generator.indented( generateAssignmentCode(
+        target  = tried_statement.getTarget(),
+        value   = Generator.Identifier( "_tmp_unpack_%d" % temp_number, 1 ),
+        context = context
+     ) ),
+     "source_identifier" : generateExpressionCode(
+        expression = source.getValue(),
+        context    = context
+     ).getCodeTemporaryRef()
+}
+
     handler_codes = []
 
     for count, handler in enumerate( statement.getExceptionHandlers() ):
