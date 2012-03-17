@@ -76,6 +76,7 @@ typedef struct {
     PyObject *m_exception_type, *m_exception_value, *m_exception_tb;
 
     PyFrameObject *m_frame;
+    PyCodeObject *m_code_object;
 
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
@@ -86,7 +87,7 @@ extern PyTypeObject Nuitka_Generator_Type;
 
 typedef void (*yielder_func)( Nuitka_GeneratorObject * );
 
-extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, void *context, releaser cleanup );
+extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, void *context, releaser cleanup );
 
 static inline bool Nuitka_Generator_Check( PyObject *object )
 {

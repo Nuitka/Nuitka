@@ -263,9 +263,41 @@ static PyObject *Nuitka_Generator_get_name( Nuitka_GeneratorObject *generator )
     return INCREASE_REFCOUNT( generator->m_name );
 }
 
+static PyObject *Nuitka_Generator_get_code( Nuitka_GeneratorObject *object )
+{
+    return INCREASE_REFCOUNT( (PyObject *)object->m_code_object );
+}
+
+static int Nuitka_Generator_set_code( Nuitka_GeneratorObject *object, PyObject *value )
+{
+    PyErr_Format( PyExc_RuntimeError, "gi_code is not writable in Nuitka" );
+    return -1;
+}
+
+static PyObject *Nuitka_Generator_get_frame( Nuitka_GeneratorObject *object )
+{
+    if ( object->m_frame )
+    {
+        return INCREASE_REFCOUNT( (PyObject *)object->m_frame );
+    }
+    else
+    {
+        return INCREASE_REFCOUNT( Py_None );
+    }
+}
+
+static int Nuitka_Generator_set_frame( Nuitka_GeneratorObject *object, PyObject *value )
+{
+    PyErr_Format( PyExc_RuntimeError, "gi_frame is not writable in Nuitka" );
+    return -1;
+}
+
 static PyGetSetDef Nuitka_Generator_getsetlist[] =
 {
-    { (char * )"__name__", (getter)Nuitka_Generator_get_name, NULL, NULL },
+    { (char *)"__name__", (getter)Nuitka_Generator_get_name, NULL, NULL },
+    { (char *)"gi_code",  (getter)Nuitka_Generator_get_code, (setter)Nuitka_Generator_set_code, NULL },
+    { (char *)"gi_frame", (getter)Nuitka_Generator_get_frame, (setter)Nuitka_Generator_set_frame, NULL },
+
     { NULL }
 };
 
@@ -337,7 +369,7 @@ PyTypeObject Nuitka_Generator_Type =
     0                                                // tp_del
 };
 
-PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, void *context, releaser cleanup )
+PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, void *context, releaser cleanup )
 {
     Nuitka_GeneratorObject *result = PyObject_GC_New( Nuitka_GeneratorObject, &Nuitka_Generator_Type );
 
@@ -370,6 +402,7 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, void *context
     result->m_yielded = NULL;
 
     result->m_frame = NULL;
+    result->m_code_object = code_object;
 
     Nuitka_GC_Track( result );
     return (PyObject *)result;

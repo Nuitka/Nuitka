@@ -186,9 +186,12 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects
         _python_context->common_context = _python_common_context;
         _python_common_context->ref_count += 1;
 
+        assert( _CODEOBJ_%(function_identifier)s != NULL );
+
         PyObject *result = Nuitka_Generator_New(
             %(function_identifier)s_context,
             %(function_name_obj)s,
+            _CODEOBJ_%(function_identifier)s,
             _python_context,
             _context_generator_%(function_identifier)s_destructor
         );
