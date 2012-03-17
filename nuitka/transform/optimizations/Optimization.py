@@ -101,7 +101,7 @@ def optimizeTree( tree ):
         if tags.check( "new_code" ):
             optimizations_queue.add( ModuleVariableUsageAnalysisVisitor )
 
-        if tags.check( "var_usage new_builtin" ):
+        if tags.check( "new_code var_usage new_builtin" ):
             optimizations_queue.add( MaybeLocalVariableReductionVisitor )
 
         if tags.check( "new_code new_constant" ):

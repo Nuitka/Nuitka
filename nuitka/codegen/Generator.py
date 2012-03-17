@@ -1304,8 +1304,12 @@ def _getLocalVariableList( context, provider ):
                 start_part.append( variable )
 
         variables = start_part + end_part
+
+        include_closure = not provider.isUnoptimized()
     else:
         variables = provider.getVariables()
+
+        include_closure = True
 
     return [
         "&%s" % getVariableCode(
@@ -1316,6 +1320,7 @@ def _getLocalVariableList( context, provider ):
         variables
         if not variable.isModuleVariable()
         if not variable.isMaybeLocalVariable()
+        if ( not variable.isClosureReference() or include_closure )
     ]
 
 
