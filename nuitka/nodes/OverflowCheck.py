@@ -52,6 +52,9 @@ class OverflowCheckVisitor( TreeOperations.VisitorNoopMixin ):
 
         self.is_class = checked_node.getParent().isExpressionClassBody()
 
+        if checked_node.getParent().isExpressionFunctionBody():
+            self.result = checked_node.getParent().isExecContaining()
+
     def onEnterNode( self, node ):
         def declareOverflow():
             self.result = True

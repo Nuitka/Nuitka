@@ -98,12 +98,6 @@ class FinalizeMarkups( FinalizationVisitorBase ):
 
             parent.markAsTryExceptContaining()
 
-        if node.isStatementExec() or node.isExpressionBuiltinExec():
-            parent = node.getParentVariableProvider()
-
-            if parent.isExpressionFunctionBody():
-                parent.markAsExecContaining()
-
         if node.isExpressionBuiltinImport() and not Options.getShallFollowExtra():
             warning( """\
 Unresolved '__import__' call at '%s' may require use of '--recurse-directory'.""" % (

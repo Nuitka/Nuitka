@@ -23,7 +23,7 @@ def raiseExceptionClass():
 try:
     raiseExceptionClass()
 except Exception, e:
-    print e, repr(e), type(e)
+    print "Caught exception", e, repr(e), type(e)
 
 def raiseExceptionInstance():
     raise ValueError( "hallo" )
