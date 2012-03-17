@@ -71,6 +71,7 @@ class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
         # TODO: Should ask AttributeRegistry
         return None
 
+
 class CPythonExpressionSpecialAttributeLookup( CPythonExpressionAttributeLookup ):
     kind = "EXPRESSION_SPECIAL_ATTRIBUTE_LOOKUP"
 

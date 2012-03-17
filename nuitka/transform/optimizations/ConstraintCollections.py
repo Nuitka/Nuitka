@@ -200,24 +200,6 @@ class ConstraintCollection:
                 value_friend = source_friend
             )
 
-    def onDeleteTarget( self, target ):
-        if target.isAssignTargetVariable():
-            variable = target.getTargetVariableRef().getVariable()
-
-            if variable in self.variables:
-                del self.variables[ variable ]
-        elif target.isAssignTargetSlice():
-            # TODO: Handle it.
-            pass
-        elif target.isAssignTargetSubscript():
-            # TODO: Handle it.
-            pass
-        elif target.isAssignTargetAttribute():
-            # TODO: Handle it.
-            pass
-        else:
-            assert False, target
-
     def onStatementAssignment( self, statement ):
         source = statement.getSource()
 
@@ -233,11 +215,6 @@ class ConstraintCollection:
             target = statement.getTarget(),
             source = statement.getSource()
         )
-
-        return statement
-
-    def onStatementDel( self, statement ):
-        self.onDeleteTarget( statement.getTarget() )
 
         return statement
 
@@ -408,8 +385,22 @@ class ConstraintCollection:
 
         if statement.isStatementAssignment():
             return self.onStatementAssignment( statement )
-        elif statement.isStatementDel():
-            return self.onStatementDel( statement )
+        elif statement.isStatementDelVariable():
+            variable = statement.getTargetVariableRef()
+
+            if variable in self.variables:
+                del self.variables[ variable ]
+
+            return statement
+        elif statement.isStatementDelAttribute():
+            # TODO: Handle it
+            return statement
+        elif statement.isStatementDelSubscript():
+            # TODO: Handle it
+            return statement
+        elif statement.isStatementDelSlice():
+            # TODO: Handle it
+            return statement
         elif statement.isStatementExpressionOnly():
             expression = statement.getExpression()
 
@@ -547,6 +538,12 @@ class ConstraintCollectionHandler( ConstraintCollection ):
 
         if branch is not None:
             self.onStatementsSequence( branch )
+
+        exception_types = handler.getExceptionTypes()
+
+        if exception_types is not None:
+            for exception_type in exception_types:
+                self.onExpression( exception_type )
 
 class ConstraintCollectionBranch( ConstraintCollection ):
     def process( self, start_state, branch ):

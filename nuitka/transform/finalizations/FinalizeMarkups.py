@@ -90,16 +90,8 @@ class FinalizeMarkups( FinalizationVisitorBase ):
             if crossed_except:
                 node.markAsReraiseLocal()
 
-
-        if node.isAssignTargetVariable():
-            # TODO: Looks like a getParentStatement is missing.
-            parent = node
-
-            while not parent.isStatement():
-                parent = parent.getParent()
-
-            if parent.isStatementDel():
-                node.getTargetVariableRef().getVariable().setHasDelIndicator()
+        if node.isStatementDelVariable():
+            node.getTargetVariableRef().getVariable().setHasDelIndicator()
 
         if node.isStatementTryExcept():
             parent = node.getParentVariableProvider()

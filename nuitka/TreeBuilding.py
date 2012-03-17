@@ -133,7 +133,10 @@ from .nodes.YieldNode import CPythonExpressionYield
 from .nodes.ReturnNode import CPythonStatementReturn
 from .nodes.AssignNodes import (
     CPythonStatementAssignment,
-    CPythonStatementDel,
+    CPythonStatementDelAttribute,
+    CPythonStatementDelSubscript,
+    CPythonStatementDelVariable,
+    CPythonStatementDelSlice,
     CPythonExpressionAssignment,
     CPythonAssignTargetAttribute,
     CPythonAssignTargetSubscript,
@@ -894,43 +897,100 @@ def buildDeleteNode( provider, node, source_ref ):
     # not prevent the former to succeed. We can therefore have a sequence of del
     # statements that each only delete one thing therefore.
 
-    targets = []
+    statements = []
 
     def handleTarget( node ):
         kind = getKind( node )
 
         if type( node ) is str:
             # Python >= 3.x only
-            targets.append(
-                buildVariableRefAssignTarget(
-                    variable_name = node,
-                    source_ref    = source_ref
+            statements.append(
+                CPythonStatementDelVariable(
+                    variable_ref = CPythonExpressionVariableRef(
+                        variable_name = node,
+                        source_ref    = source_ref
+                    ),
+                    source_ref   = source_ref
                 )
             )
         elif kind == "Name":
-            targets.append(
-                buildVariableRefAssignTarget(
-                    variable_name = node.id,
-                    source_ref    = source_ref
+            statements.append(
+                CPythonStatementDelVariable(
+                    variable_ref = CPythonExpressionVariableRef(
+                        variable_name = node.id,
+                        source_ref    = source_ref
+                    ),
+                    source_ref   = source_ref
                 )
             )
         elif kind == "Attribute":
-            targets.append(
-                buildAttributeAssignTarget(
-                    provider       = provider,
-                    value          = node.value,
+            statements.append(
+                CPythonStatementDelAttribute(
+                    expression     = buildNode( provider, node.value, source_ref ),
                     attribute_name = node.attr,
                     source_ref     = source_ref
                 )
             )
         elif kind == "Subscript":
-            targets.append(
-                buildSubscriptAssignTarget(
-                    provider   = provider,
-                    node       = node,
-                    source_ref = source_ref
+            slice_kind = getKind( node.slice )
+
+            if slice_kind == "Index":
+                statements.append(
+                    CPythonStatementDelSubscript(
+                        expression = buildNode( provider, node.value, source_ref ),
+                        subscript  = buildNode( provider, node.slice.value, source_ref ),
+                        source_ref = source_ref
+                    )
                 )
-            )
+            elif slice_kind == "Slice":
+                lower = buildNode( provider, node.slice.lower, source_ref, True )
+                upper = buildNode( provider, node.slice.upper, source_ref, True )
+
+                if node.slice.step is not None:
+                    step = buildNode( provider, node.slice.step, source_ref )
+
+                    statements.append(
+                        CPythonStatementDelSubscript(
+                            expression = buildNode( provider, node.value, source_ref ),
+                            subscript  = CPythonExpressionSliceObject(
+                                lower      = lower,
+                                upper      = upper,
+                                step       = step,
+                                source_ref = source_ref
+                            ),
+                            source_ref = source_ref
+                        )
+                    )
+                else:
+                    statements.append(
+                        CPythonStatementDelSlice(
+                            expression = buildNode( provider, node.value, source_ref ),
+                            lower      = lower,
+                            upper      = upper,
+                            source_ref = source_ref
+                        )
+                    )
+            elif slice_kind == "ExtSlice":
+                statements.append(
+                    CPythonStatementDelSubscript(
+                        expression = buildNode( provider, node.value, source_ref ),
+                        subscript  = _buildExtSliceNode( provider, node, source_ref ),
+                        source_ref = source_ref
+                    )
+                )
+            elif slice_kind == "Ellipsis":
+                statements.append(
+                    CPythonStatementDelSubscript(
+                        expression = buildNode( provider, node.value, source_ref ),
+                        subscript  = CPythonExpressionConstantRef(
+                            constant   = Ellipsis,
+                            source_ref = source_ref
+                        ),
+                        source_ref = source_ref
+                    )
+                )
+            else:
+                assert False, kind
         elif kind in ( "Tuple", "List" ):
             for sub_node in node.elts:
                 handleTarget( sub_node )
@@ -941,14 +1001,7 @@ def buildDeleteNode( provider, node, source_ref ):
         handleTarget( target )
 
     return _makeStatementsSequenceOrStatement(
-        statements = [
-            CPythonStatementDel(
-                target     = target,
-                source_ref = source_ref
-            )
-            for target in
-            targets
-        ],
+        statements = statements,
         source_ref = source_ref
     )
 

@@ -1506,78 +1506,70 @@ def generateAssignmentCode( target, value, context, recursion = 1 ):
 
     return code
 
-def generateDelCode( target, context ):
-    def makeExpressionCode( expression, allow_none = False ):
-        if allow_none and expression is None:
-            return None
+def generateDelVariableCode( variable_ref, context ):
+    return Generator.getVariableDelCode(
+        variable = variable_ref.getVariable(),
+        context  = context
+    )
 
-        return generateExpressionCode(
-            expression = expression,
-            context    = context
+def generateDelSubscriptCode( subscribed, subscript ):
+    return Generator.getSubscriptDelCode(
+        subscribed = subscribed,
+        subscript  = subscript
+    )
+
+def generateDelSliceCode( statement, context ):
+    lower = statement.getLower()
+    upper = statement.getUpper()
+
+    if decideSlicing( lower, upper ):
+        target_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
+            sliced    = statement.getLookupSource(),
+            lower     = lower,
+            upper     = upper,
+            context   = context
         )
 
-    if target.isAssignTargetSubscript():
-        code = Generator.getSubscriptDelCode(
-            subscribed = makeExpressionCode( target.getSubscribed() ),
-            subscript  = makeExpressionCode( target.getSubscript() )
+        return Generator.getSliceDelCode(
+            target = target_identifier,
+            lower  = lower_identifier,
+            upper  = upper_identifier
         )
-    elif target.isAssignTargetAttribute():
-        attribute_name = mangleAttributeName(
-            attribute_name = target.getAttributeName(),
-            node           = target
-        )
-
-        code = Generator.getAttributeDelCode(
-            target    = makeExpressionCode( target.getLookupSource() ),
-            attribute = context.getConstantHandle( constant = attribute_name )
-        )
-    elif target.isAssignTargetVariable():
-        code = Generator.getVariableDelCode(
-            variable = target.getTargetVariableRef().getVariable(),
-            context  = context
-        )
-    elif target.isAssignTargetSlice():
-        lower = target.getLower()
-        upper = target.getUpper()
-
-        if decideSlicing( lower, upper ):
-            target_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
-                sliced    = target.getLookupSource(),
-                lower     = lower,
-                upper     = upper,
-                context   = context
-            )
-
-            code = Generator.getSliceDelCode(
-                target = target_identifier,
-                lower  = lower_identifier,
-                upper  = upper_identifier
-            )
-        else:
-            code = Generator.getSubscriptDelCode(
-                subscribed  = generateExpressionCode(
-                    expression = target.getLookupSource(),
+    else:
+        return Generator.getSubscriptDelCode(
+            subscribed  = generateExpressionCode(
+                expression = statement.getLookupSource(),
+                context    = context
+            ),
+            subscript = Generator.getSliceObjectCode(
+                lower = generateExpressionCode(
+                    expression = lower,
+                    allow_none = True,
                     context    = context
                 ),
-                subscript = Generator.getSliceObjectCode(
-                    lower = generateExpressionCode(
-                        expression = lower,
-                        allow_none = True,
-                        context    = context
-                    ),
-                    upper = generateExpressionCode(
-                        expression = upper,
-                        allow_none = True,
-                        context    = context
-                    ),
-                    step    = None
+                upper = generateExpressionCode(
+                    expression = upper,
+                    allow_none = True,
+                    context    = context
                 ),
-            )
+                step    = None
+            ),
+        )
 
-    else:
-        assert False, target
-
-    return code
+def generateDelAttributeCode( statement, context ):
+    attribute_name = mangleAttributeName(
+        attribute_name = statement.getAttributeName(),
+        node           = statement
+    )
+    return Generator.getAttributeDelCode(
+        target    = generateExpressionCode(
+            expression = statement.getLookupSource(),
+            context    = context
+        ),
+        attribute = context.getConstantHandle(
+            constant = attribute_name
+        )
+    )
 
 def _generateEvalCode( node, context ):
     globals_value = node.getGlobals()
@@ -2065,10 +2057,25 @@ def _generateStatementCode( statement, context ):
             value   = makeExpressionCode( statement.getSource() ),
             context = context
         )
-    elif statement.isStatementDel():
-        code = generateDelCode(
-            target  = statement.getTarget(),
-            context = context
+    elif statement.isStatementDelVariable():
+        code = generateDelVariableCode(
+            variable_ref = statement.getTargetVariableRef(),
+            context      = context
+        )
+    elif statement.isStatementDelSubscript():
+        code = generateDelSubscriptCode(
+            subscribed = makeExpressionCode( statement.getSubscribed() ),
+            subscript  = makeExpressionCode( statement.getSubscript() )
+        )
+    elif statement.isStatementDelSlice():
+        code = generateDelSliceCode(
+            statement = statement,
+            context   = context
+        )
+    elif statement.isStatementDelAttribute():
+        code = generateDelAttributeCode(
+            statement = statement,
+            context   = context
         )
     elif statement.isStatementTempBlock():
         code = generateTempBlock(
