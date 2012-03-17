@@ -101,6 +101,9 @@ class CPythonStatementContinueLoop( CPythonNodeBase, MarkExceptionBreakContinueI
         CPythonNodeBase.__init__( self, source_ref = source_ref )
         MarkExceptionBreakContinueIndicator.__init__( self )
 
+    def isStatementAbortative( self ):
+        return True
+
 
 class CPythonStatementBreakLoop( CPythonNodeBase, MarkExceptionBreakContinueIndicator ):
     kind = "STATEMENT_BREAK_LOOP"
@@ -108,3 +111,6 @@ class CPythonStatementBreakLoop( CPythonNodeBase, MarkExceptionBreakContinueIndi
     def __init__( self, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
         MarkExceptionBreakContinueIndicator.__init__( self )
+
+    def isStatementAbortative( self ):
+        return True

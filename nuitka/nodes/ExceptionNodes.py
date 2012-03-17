@@ -77,6 +77,8 @@ class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
     def markAsReraiseLocal( self ):
         self.reraise_local = True
 
+    def isStatementAbortative( self ):
+        return True
 
 class CPythonExpressionRaiseException( CPythonExpressionChildrenHavingBase ):
     """ This node type is only produced via optimization.

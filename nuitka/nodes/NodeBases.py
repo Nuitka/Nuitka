@@ -374,6 +374,11 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         return False
 
+    def isStatementAbortative( self ):
+        assert self.isStatement(), self.kind
+
+        return False
+
     def hasTag( self, tag ):
         return tag in self.__class__.tags
 

@@ -149,7 +149,7 @@ class ConstraintCollection:
         statements = statements_sequence.getStatements()
         assert statements, statements_sequence
 
-        for statement in statements_sequence.getStatements():
+        for count, statement in enumerate( statements ):
             new_statement = self.onStatement( statement )
 
             if new_statement is not None:
@@ -158,9 +158,18 @@ class ConstraintCollection:
                 else:
                     new_statements.append( new_statement )
 
-        if statements != new_statements:
-            # print statements, new_statements
+                if statement is not statements[-1] and new_statement.isStatementAbortative():
+                    self.signalChange(
+                        "new_statements",
+                        statements[ count + 1 ].getSourceReference(),
+                        "Removed dead statements."
+                    )
 
+                    break
+
+        new_statements = tuple( new_statements )
+
+        if statements != new_statements:
             if new_statements:
                 statements_sequence.setStatements( new_statements )
             else:
@@ -326,38 +335,6 @@ class ConstraintCollection:
 
         condition = statement.getCondition()
 
-        if condition.isExpressionConstantRef():
-            if condition.getConstant():
-                choice = "true"
-
-                new_statement = statement.getBranchYes()
-            else:
-                choice = "false"
-
-                new_statement = statement.getBranchNo()
-
-            self.signalChange(
-                "new_statements",
-                statement.getSourceReference(),
-                "Condition for branch was predicted to be always %s." % choice
-            )
-
-            return new_statement
-
-        if no_branch is None and yes_branch is None:
-            new_statement = makeStatementExpressionOnlyReplacementNode(
-                expression = condition,
-                node       = statement
-            )
-
-            self.signalChange(
-                "new_statements",
-                statement.getSourceReference(),
-                "Both branches have no effect, drop branch nature, only evaluate condition."
-            )
-
-            return new_statement
-
         # TODO: We now know that condition evaluates to true for the yes branch
         # and to not true for no branch
 
@@ -377,6 +354,37 @@ class ConstraintCollection:
             )
         else:
             self.mergeBranch( branch_yes_collection )
+
+        if statement.getBranchNo() is None and statement.getBranchYes() is None:
+            new_statement = makeStatementExpressionOnlyReplacementNode(
+                expression = statement.getCondition(),
+                node       = statement
+            )
+
+            self.signalChange(
+                "new_statements",
+                statement.getSourceReference(),
+                "Both branches have no effect, drop branch nature, only evaluate condition."
+            )
+
+            return new_statement
+        elif condition.isExpressionConstantRef():
+            if condition.getConstant():
+                choice = "true"
+
+                new_statement = statement.getBranchYes()
+            else:
+                choice = "false"
+
+                new_statement = statement.getBranchNo()
+
+            self.signalChange(
+                "new_statements",
+                statement.getSourceReference(),
+                "Condition for branch was predicted to be always %s." % choice
+            )
+
+            return new_statement
 
         return statement
 
@@ -465,32 +473,38 @@ class ConstraintCollection:
 
             return statement
         elif statement.isStatementTryFinally():
-            # The tried block can be processed normally.
+            # The tried block can be processed normally, if it is not empty already.
             tried_statement_sequence = statement.getBlockTry()
 
             if tried_statement_sequence is not None:
                 self.onStatementsSequence( tried_statement_sequence )
 
-            if statement.getBlockTry() is None:
-                result = statement.getBlockFinal()
-            else:
-                result = statement
+            final_statement_sequence = statement.getBlockFinal()
 
-            if statement.getBlockFinal() is not None:
+            if final_statement_sequence is not None:
                 # Then assuming no exception, the no raise block if present.
-                self.onStatementsSequence( statement.getBlockFinal() )
-            else:
+                self.onStatementsSequence( final_statement_sequence )
+
+            # Note: Need to query again, because the object may have changed in the
+            # "onStatementsSequence" calls.
+
+            if statement.getBlockTry() is None:
+                # If the tried block is empty, go to the final block directly, if any.
+                result = statement.getBlockFinal()
+            elif statement.getBlockFinal() is None:
+                # If the final block is empty, just need to execute the tried block then.
                 result = statement.getBlockTry()
+            else:
+                # Otherwise keep it as it.
+                result = statement
 
             return result
         elif statement.isStatementTryExcept():
             # The tried block can be processed normally.
             tried_statement_sequence = statement.getBlockTry()
 
-            if tried_statement_sequence is None:
-                return statement.getBlockNoRaise()
-
-            self.onStatementsSequence( tried_statement_sequence )
+            if tried_statement_sequence is not None:
+                self.onStatementsSequence( tried_statement_sequence )
 
             if statement.getBlockNoRaise() is not None:
                 # Then assuming no exception, the no raise block if present.
@@ -506,7 +520,10 @@ class ConstraintCollection:
             # Give up, merging this is too hard for now.
             self.variables = {}
 
-            return statement
+            if statement.getBlockTry() is None:
+                return statement.getBlockNoRaise()
+            else:
+                return statement
         elif statement.isStatementImportStar():
             # TODO: Need to invalidate everything, and everything could be assigned now.
             return self.onStatementUsingChildExpressions( statement )

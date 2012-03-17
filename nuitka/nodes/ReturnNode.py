@@ -50,3 +50,6 @@ class CPythonStatementReturn( CPythonExpressionChildrenHavingBase ):
         )
 
     getExpression = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
+
+    def isStatementAbortative( self ):
+        return True
