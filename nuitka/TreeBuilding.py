@@ -171,6 +171,12 @@ def dump( node ):
 def getKind( node ):
     return node.__class__.__name__.split( "." )[-1]
 
+def _fakeNameNode( name ):
+    result = lambda : name
+    result.id = name
+
+    return result
+
 def buildVariableReferenceNode( node, source_ref ):
     return CPythonExpressionVariableRef(
         variable_name = node.id,
@@ -928,19 +934,14 @@ def buildAssignmentStatements( provider, node, source, source_ref, allow_none = 
     if hasattr( node, "ctx" ):
         assert getKind( node.ctx ) == "Store"
 
-    kind = getKind( node )
-
     if type( node ) is str:
         # Python >= 3.x only
-        return CPythonStatementAssignment(
-            target     = buildVariableRefAssignTarget(
-                variable_name = node,
-                source_ref    = source_ref
-            ),
-            source     = source,
-            source_ref = source_ref
-        )
-    elif kind == "Name":
+        node = _fakeNameNode( node )
+        kind = "Name"
+    else:
+        kind = getKind( node )
+
+    if kind == "Name":
         return CPythonStatementAssignment(
             target     = buildVariableRefAssignTarget(
                 variable_name = node.id,
@@ -1071,11 +1072,10 @@ def buildAssignTarget( provider, node, source_ref, allow_none = False ):
 
     if type( node ) is str:
         # Python >= 3.x only
-        result = buildVariableRefAssignTarget(
-            variable_name = node,
-            source_ref    = source_ref
-        )
-    elif kind == "Name":
+        node = _fakeNameNode( kind )
+        kind = "Name"
+
+    if kind == "Name":
         result = buildVariableRefAssignTarget(
             variable_name = node.id,
             source_ref    = source_ref
@@ -1172,20 +1172,15 @@ def buildDeleteNode( provider, node, source_ref ):
     statements = []
 
     def handleTarget( node ):
-        kind = getKind( node )
-
         if type( node ) is str:
             # Python >= 3.x only
-            statements.append(
-                CPythonStatementDelVariable(
-                    variable_ref = CPythonExpressionVariableRef(
-                        variable_name = node,
-                        source_ref    = source_ref
-                    ),
-                    source_ref   = source_ref
-                )
-            )
-        elif kind == "Name":
+            node = _fakeNameNode( node )
+            kind = "Name"
+        else:
+            kind = getKind( node )
+
+
+        if kind == "Name":
             statements.append(
                 CPythonStatementDelVariable(
                     variable_ref = CPythonExpressionVariableRef(
