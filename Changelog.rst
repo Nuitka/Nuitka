@@ -1,8 +1,12 @@
 Nuitka Release 0.3.21 (Draft)
 =============================
 
-This time there are some really major cleanups, all heading towards enabling value
-propagation inside Nuitka.
+This releases contains some really major cleanups, all heading towards enabling value
+propagation inside Nuitka. Assignments are now all simple and explicit, and as such it
+should be easy to track them.
+
+Also there are a few bug fixes, and a bunch of organizational improvements, that make the
+release yet cleaner.
 
 Bug fixes
 ---------
@@ -10,15 +14,29 @@ Bug fixes
 - The builtin "next" could causes a program crash when iterating past the end of an
   iterator. Issue#34. Fixed in 0.3.20.1 already.
 
-New Features
-------------
+- Performance regression. Optimize expression for exception types caught as well again,
+  this was lost in last release.
 
-- None
+- Functions that contain exec, are designated to have a writable locals. When removing
+  that "exec" statement as part of optimizations, this property of the function must not
+  get lost.
+
+- Overflow functions are now handled correctly again. These once regressed and had not
+  been repaired until now. An overflow function is a nested function with an exec or a
+  star import.
 
 New Optimizations
 -----------------
 
-- None
+- Avoid tuple objects to be created when catching multiple exception types, instead call
+  exception match function multiple times.
+
+- Removal of dead code following "break", "continue", "return", and "raise". Code that
+  follows these, or conditional statements, where all branches end with it.
+
+  .. note:: These may not actually occur often in actual code, but optimizations may
+  produce them frequently, and their removal may in turn make other optimizations
+  possible.
 
 Organizational
 --------------
@@ -87,6 +105,18 @@ Cleanups
   could be removed, and now the value propagation needs to optimize these "next" and
   "iter" calls away where possible. At this time, this is not done yet.
 
+- Exception handlers assign caught exception value through assignment statement.
+
+  Previously the code generated for assigning from the caught exception was not considered
+  part of the handler. It now is the first statement of an exception handler or not
+  present, this way it may be optimized as well.
+
+- Exception handlers now explicitly catch more than one types
+
+  Catching multiple types worked by merits of the created tuple object working with the
+  Python C/API function called, but that was not explicit at all. Now every handler has a
+  tuple of exceptions it catches, which may only be one, or if None, it's all.
+
 New Tests
 ---------
 
@@ -103,13 +133,12 @@ New Tests
      except ValueError as (a,b):
          print "Unpacking caught exception and unpacked", a, b
 
-  Will assign a=1, b=2.
-
+  Will assign "a=1" and "b=2".
 
 Summary
 -------
 
-This release is not complete yet.
+Release not finished yet.
 
 
 Nuitka Release 0.3.20
@@ -336,9 +365,9 @@ For this release, there is only minimal progress on the Python3 front, despite t
 support, which is only miniscule progress. The remaining tasks appear all more or less
 difficult work that I don't want to touch now.
 
-But overall, it's fantastic progress that was made. There are still remaining steps, but I
-believe, we can foresee that a release may be done that finally actually does type
-inference and becomes the effective Python compiler this project is all about.
+There are still remaining steps, but we can foresee that a release may be done that
+finally actually does type inference and becomes the effective Python compiler this
+project is all about.
 
 
 Nuitka Release 0.3.19
