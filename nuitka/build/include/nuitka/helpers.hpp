@@ -1271,6 +1271,9 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *LOOKUP_WITH_EXIT( PyObject *source 
 
 NUITKA_MAY_BE_UNUSED static void APPEND_TO_LIST( PyObject *list, PyObject *item )
 {
+    assertObject( list );
+    assertObject( item );
+
     int status = PyList_Append( list, item );
 
     if (unlikely( status == -1 ))

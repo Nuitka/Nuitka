@@ -385,8 +385,8 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 class CPythonCodeNodeBase( CPythonNodeBase ):
     def __init__( self, name, code_prefix, source_ref ):
         assert name is not None
-        assert " " not in name
-        assert "<" not in name
+        assert " " not in name, name
+        assert "<" not in name, name
 
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 

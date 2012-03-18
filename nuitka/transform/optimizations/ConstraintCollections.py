@@ -128,12 +128,6 @@ class ConstraintCollection:
             collector = ConstraintCollectionFunction( self.signalChange )
         elif closure_taker.isExpressionClassBody():
             collector = ConstraintCollectionClass( self.signalChange )
-        elif closure_taker.isExpressionListContractionBody():
-            collector = ConstraintCollectionContraction( self.signalChange )
-        elif closure_taker.isExpressionDictContractionBody():
-            collector = ConstraintCollectionContraction( self.signalChange )
-        elif closure_taker.isExpressionSetContractionBody():
-            collector = ConstraintCollectionContraction( self.signalChange )
         elif closure_taker.isExpressionGeneratorBody():
             collector = ConstraintCollectionContraction( self.signalChange )
         else:
@@ -434,33 +428,6 @@ class ConstraintCollection:
             return self.onStatementUsingChildExpressions( statement )
         elif statement.isStatementConditional():
             return self._onStatementConditional( statement )
-        elif statement.isStatementForLoop():
-            # The iterator making is evaluated in any case here.
-            self.onExpression( statement.getIterator() )
-
-            # Note: Fetching again, my be replaced meanwhile.
-            iterator = statement.getIterator()
-
-            if iterator.isIteratorMaking():
-                pass
-
-            if False: # TODO: Must be done
-                # Do not accept any change signals, in the first run of the loop, we only want
-                # to collect knowledge about what we cannot trust from the start state.
-                def disallow_changes():
-                    assert False
-
-                first_loop_run = ConstraintCollectionLoopFirst( disallow_changes )
-                first_loop_run.process( self, statement )
-
-            other_loop_run = ConstraintCollectionLoopOther( self.signalChange )
-            other_loop_run.process( self, statement )
-
-            self.mergeBranch(
-                other_loop_run
-            )
-
-            return statement
         elif statement.isStatementLoop():
             other_loop_run = ConstraintCollectionLoopOther( self.signalChange )
             other_loop_run.process( self, statement )
@@ -562,7 +529,7 @@ class ConstraintCollectionHandler( ConstraintCollection ):
 
 class ConstraintCollectionBranch( ConstraintCollection ):
     def process( self, start_state, branch ):
-        assert branch.isStatementsSequence()
+        assert branch.isStatementsSequence(), branch
 
         self.onStatementsSequence( branch )
 
@@ -662,39 +629,9 @@ class ConstraintCollectionLoopOther( ConstraintCollection ):
         # for a start.
         self.start_state = start_state
 
-        if loop.isStatementForLoop():
-            # TODO: This should really be done from a next.
-            if False:
-                self.onAssignmentToTargetFromSource(
-                    source = loop.getIterator(),
-                    target = loop.getLoopVariableAssignment()
-                )
-        elif loop.isStatementLoop():
-            pass
-        else:
-            assert False, loop
+        assert loop.isStatementLoop()
 
         loop_body = loop.getLoopBody()
 
         if loop_body is not None:
             self.onStatementsSequence( loop_body )
-
-
-class ConstraintCollectionLoopFirst( ConstraintCollection ):
-    def process( self, start_state, loop ):
-        # TODO: Somehow should copy that start state over, assuming nothing won't be wrong
-        # for a start.
-        self.start_state = start_state
-
-        assert loop.isStatementForLoop()
-
-        if loop.isStatementForLoop():
-            # TODO: This should really be done from a next.
-            if False:
-                self.onAssignmentToTargetFromSource(
-                    source = loop.getIterator(),
-                    target = loop.getLoopVariableAssignment()
-                )
-
-
-        self.onStatementsSequence( loop.getBody() )

@@ -69,7 +69,6 @@ int main( int argc, char *argv[] )
     PyType_Ready( &Nuitka_Generator_Type );
     PyType_Ready( &Nuitka_Function_Type );
     PyType_Ready( &Nuitka_Method_Type );
-    PyType_Ready( &Nuitka_Genexpr_Type );
 
     enhancePythonTypes();
 
@@ -330,7 +329,6 @@ MOD_INIT( %(module_identifier)s )
     PyType_Ready( &Nuitka_Generator_Type );
     PyType_Ready( &Nuitka_Function_Type );
     PyType_Ready( &Nuitka_Method_Type );
-    PyType_Ready( &Nuitka_Genexpr_Type );
 #endif
 
     // puts( "in init%(module_identifier)s" );

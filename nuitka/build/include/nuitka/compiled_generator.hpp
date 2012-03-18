@@ -38,19 +38,17 @@
 // Another cornerstone of the integration into CPython. Try to behave as well as normal
 // generator function objects do or even better.
 
-// *** Nuitka_Generator/Nuitka_Genexpr shared begin
 
+// *** Nuitka_Generator type begin
+
+#include "fibers.hpp"
+
+// Status of the generator object.
 enum class Generator_Status {
     status_Unused,  // Not used so far
     status_Running, // Running, used but didn't stop yet
     status_Finished // Stoped, no more values to come
 };
-
-// *** Nuitka_Generator/Nuitka_Genexpr shared end
-
-// *** Nuitka_Generator type begin
-
-#include "fibers.hpp"
 
 // The Nuitka_GeneratorObject is the storage associated with a compiled generator object
 // instance of which there can be many for each code.

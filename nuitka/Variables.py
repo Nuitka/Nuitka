@@ -117,11 +117,8 @@ class Variable:
             top_owner = reference.getReferenced().getOwner()
             owner = reference.getOwner()
 
-            while owner != top_owner:
-                if not owner.isExpressionListContractionBody():
-                    return True
-
-                owner = owner.getParentVariableProvider()
+            # TODO: Check if this is necessary still.
+            return owner != top_owner
         else:
             return False
 
@@ -250,6 +247,8 @@ class LocalVariable( Variable ):
             owner         = owner,
             variable_name = variable_name
         )
+
+        assert not owner.isExpressionFunctionBody() or owner.local_locals or self.__class__ is not LocalVariable
 
     def __repr__( self ):
         return "<%s '%s' of '%s'>" % (

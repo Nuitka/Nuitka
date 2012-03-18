@@ -127,7 +127,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 extern PyObject *_sentinel_value;
 
 #include "nuitka/compiled_generator.hpp"
-#include "nuitka/compiled_genexpr.hpp"
 
 #include "nuitka/compiled_method.hpp"
 

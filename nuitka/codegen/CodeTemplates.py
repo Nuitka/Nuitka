@@ -35,9 +35,7 @@ from .templates.CodeTemplatesMain import *
 from .templates.CodeTemplatesConstants import *
 
 from .templates.CodeTemplatesFunction import *
-from .templates.CodeTemplatesGeneratorExpression import *
 from .templates.CodeTemplatesGeneratorFunction import *
-from .templates.CodeTemplatesContraction import *
 
 from .templates.CodeTemplatesParameterParsing import *
 

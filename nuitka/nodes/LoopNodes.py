@@ -39,35 +39,6 @@ from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
 from .IndicatorMixins import MarkExceptionBreakContinueIndicator
 
 
-class CPythonStatementForLoop( CPythonChildrenHaving, CPythonNodeBase, \
-                               MarkExceptionBreakContinueIndicator ):
-    kind = "STATEMENT_FOR_LOOP"
-
-    named_children = ( "iterator", "target", "body", "else" )
-
-    def __init__( self, iterator, target, body, no_break, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "iterator" : iterator,
-                "target"   : target,
-                "else"     : no_break,
-                "body"     : body
-            }
-        )
-
-        MarkExceptionBreakContinueIndicator.__init__( self )
-
-    getIterator = CPythonChildrenHaving.childGetter( "iterator" )
-    getLoopVariableAssignment = CPythonChildrenHaving.childGetter( "target" )
-    getLoopBody = CPythonChildrenHaving.childGetter( "body" )
-    setLoopBody = CPythonChildrenHaving.childSetter( "body" )
-    getNoBreak = CPythonChildrenHaving.childGetter( "else" )
-    setNoBreak = CPythonChildrenHaving.childSetter( "else" )
-
-
 class CPythonStatementLoop( CPythonChildrenHaving, CPythonNodeBase, \
                             MarkExceptionBreakContinueIndicator ):
     kind = "STATEMENT_LOOP"

@@ -117,6 +117,12 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
         {
             generator->m_status = Generator_Status::status_Finished;
 
+            if ( generator->m_context )
+            {
+                generator->m_cleanup( generator->m_context );
+                generator->m_context = NULL;
+            }
+
             return NULL;
         }
         else

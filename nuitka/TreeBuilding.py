@@ -103,6 +103,12 @@ from .nodes.ContainerMakingNodes import (
     CPythonExpressionMakeDict,
     CPythonExpressionMakeSet
 )
+from .nodes.ContainerOperationNodes import (
+    CPythonExpressionListOperationAppend,
+    CPythonExpressionDictOperationSet,
+    CPythonExpressionSetOperationAdd
+)
+
 from .nodes.StatementNodes import (
     CPythonStatementExpressionOnly,
     CPythonStatementDeclareGlobal,
@@ -123,8 +129,7 @@ from .nodes.OperatorNodes import (
 from .nodes.LoopNodes import (
     CPythonStatementContinueLoop,
     CPythonStatementBreakLoop,
-    CPythonStatementLoop,
-    CPythonStatementForLoop
+    CPythonStatementLoop
 )
 from .nodes.ConditionalNodes import (
     CPythonExpressionConditional,
@@ -149,16 +154,6 @@ from .nodes.PrintNodes import CPythonStatementPrint
 from .nodes.ModuleNodes import (
     CPythonPackage,
     CPythonModule
-)
-from .nodes.ContractionNodes import (
-    CPythonExpressionListContractionBuilder,
-    CPythonExpressionListContractionBody,
-    CPythonExpressionDictContractionBuilder,
-    CPythonExpressionDictContractionBody,
-    CPythonExpressionSetContractionBuilder,
-    CPythonExpressionSetContractionBody,
-    CPythonExpressionGeneratorBuilder,
-    CPythonExpressionGeneratorBody,
 )
 from .nodes.TryNodes import (
     CPythonStatementExceptHandler,
@@ -1282,235 +1277,297 @@ def buildDeleteNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-def buildTargetsFromQuals( provider, target_owner, quals, source_ref ):
-    assert len( quals ) >= 1
-
-    targets = []
-
-    for qual in quals:
-        assert getKind( qual ) == "comprehension"
-
-        targets.append(
-            buildAssignTarget(
-                provider   = provider,
-                node       = qual.target,
-                source_ref = source_ref
-            )
-        )
-
-    target_owner.setTargets( targets )
-
-def buildSourceFromQuals( provider, contraction_builder, quals, source_ref ):
-    assert len( quals ) >= 1
-
-    qual = quals[ 0 ]
-    assert getKind( qual ) == "comprehension"
-
-    contraction_builder.setSource0(
-        buildNode(
-            provider   = provider,
-            node       = qual.iter,
-            source_ref = source_ref
-        )
-    )
-
-def buildBodyQuals( contraction_body, quals, source_ref ):
-    assert len( quals ) >= 1
-
-    qual_conditions = []
-    qual_sources = []
-
-    for count, qual in enumerate( quals ):
-        assert getKind( qual ) == "comprehension"
-
-        if qual.ifs:
-            conditions = [
-                buildNode(
-                    provider   = contraction_body,
-                    node       = condition,
-                    source_ref = source_ref
-                )
-                for condition in
-                qual.ifs
-            ]
-
-            if len( conditions ) == 1:
-                condition = conditions[ 0 ]
-            else:
-                condition = CPythonExpressionBoolAND(
-                    operands   = conditions,
-                    source_ref = source_ref
-                )
-        else:
-            condition = CPythonExpressionConstantRef(
-                constant   = True,
-                source_ref = source_ref
-            )
-
-        # Different for list contractions and generator expressions
-        if count > 0:
-            qual_sources.append(
-                buildNode(
-                    provider   = contraction_body,
-                    node       = qual.iter,
-                    source_ref = source_ref
-                )
-            )
-
-        qual_conditions.append( condition )
-
-    contraction_body.setSources( qual_sources )
-    contraction_body.setConditions( qual_conditions )
-
-
-def _buildContractionNode( provider, node, builder_class, body_class, list_contraction, source_ref ):
+def _buildContractionNode( provider, node, name, emit_class, start_value, list_contraction, source_ref ):
     assert provider.isParentVariableProvider(), provider
 
-    result = builder_class(
+    function_body = CPythonExpressionFunctionBody(
+        provider   = provider,
+        name       = name,
+        doc        = None,
+        parameters = ParameterSpec(
+            name          = "contraction",
+            normal_args   = ( "__iterator", ),
+            list_star_arg = None,
+            dict_star_arg = None,
+            default_count = 0
+        ),
         source_ref = source_ref
     )
 
-    buildSourceFromQuals(
-        provider            = provider,
-        contraction_builder = result,
-        quals               = node.generators,
-        source_ref          = source_ref
+    temp_block = CPythonStatementTempBlock(
+        source_ref = source_ref
     )
 
-    contraction_body = body_class(
-        provider   = provider,
-        source_ref = source_ref,
-    )
+    if start_value is not None:
+        container_tmp = temp_block.getTempVariable( "result" )
 
-    result.setBody( contraction_body )
-
-    if hasattr( node, "elt" ):
-        contraction_body.setBody(
-            buildNode(
-                provider   = contraction_body,
-                node       = node.elt,
+        statements = [
+            CPythonStatementAssignment(
+                target = CPythonAssignTargetVariable(
+                    variable_ref = CPythonExpressionTempVariableRef(
+                        variable   = container_tmp.makeReference( temp_block ),
+                        source_ref = source_ref
+                    ),
+                    source_ref   = source_ref
+                ),
+                source     = start_value,
                 source_ref = source_ref
-            )
-        )
-    else:
-        key_node = buildNode(
-            provider   = contraction_body,
-            node       = node.key,
-            source_ref = source_ref,
-        )
-
-        value_node = buildNode(
-            provider   = contraction_body,
-            node       = node.value,
-            source_ref = source_ref,
-        )
-
-        contraction_body.setBody(
-            CPythonExpressionKeyValuePair(
-                key        = key_node,
-                value      = value_node,
-                source_ref = source_ref
-            )
-        )
-
-    buildTargetsFromQuals(
-        provider     = provider if list_contraction else contraction_body,
-        target_owner = contraction_body,
-        quals        = node.generators,
-        source_ref   = source_ref
-    )
-
-    buildBodyQuals(
-        contraction_body = contraction_body,
-        quals            = node.generators,
-        source_ref       = source_ref
-    )
-
-    # The horror hereafter transforms the result into something else if a yield
-    # expression was discovered. We take the lambda generator expression and convert
-    # it to a lambda generator function, something that does not exist in CPython, but
-    # for which we can generator code.
-    if contraction_body.isExpressionGeneratorBody() and contraction_body.isGenerator():
-        generator_function_body = CPythonExpressionFunctionBody(
-            provider   = provider,
-            name       = "pseudo",
-            doc        = None,
-            parameters = ParameterSpec(
-                name          = "pseudo",
-                normal_args   = ( "_iterated", ),
-                list_star_arg = None,
-                dict_star_arg = None,
-                default_count = 0
-            ),
-            source_ref = source_ref
-        )
-
-        body = CPythonStatementExpressionOnly(
-            expression = CPythonExpressionYield(
-                expression = contraction_body.getBody(),
-                for_return = False,
-                source_ref = source_ref
-            ),
-            source_ref = source_ref
-        )
-
-        body = CPythonStatementsSequence(
-            statements = ( body, ),
-            source_ref = source_ref
-        )
-
-        sources = [
-            CPythonExpressionVariableRef(
-                variable_name = "_iterated",
-                source_ref    = source_ref
             )
         ]
-        sources += contraction_body.getSources()
+    else:
+        statements = []
 
-        for target, source, condition in zip(
-            contraction_body.getTargets(),
-            sources,
-            contraction_body.getConditions() ):
-
-            body = CPythonStatementConditional(
-                condition  = condition,
-                yes_branch = body,
-                no_branch  = None,
-                source_ref = source_ref
-            )
-
-            body = CPythonStatementsSequence(
-                statements = ( body, ),
-                source_ref = source_ref
-            )
-
-            body = CPythonStatementForLoop(
-                iterator   = CPythonExpressionBuiltinIter1(
-                    value      = source,
-                    source_ref = source.getSourceReference()
+    if hasattr( node, "elt" ):
+        if start_value is not None:
+            current_body = emit_class(
+                CPythonExpressionTempVariableRef(
+                    variable   = container_tmp.makeReference( temp_block ),
+                    source_ref = source_ref
                 ),
-                target     = target,
-                body       = body,
-                no_break   = None,
-                source_ref = source_ref,
+                buildNode(
+                    provider   = function_body,
+                    node       = node.elt,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
             )
+        else:
+            assert emit_class is CPythonExpressionYield
 
-            body = CPythonStatementsSequence(
-                statements = ( body, ),
+            function_body.markAsGenerator()
+
+            current_body = emit_class(
+                buildNode(
+                    provider   = function_body,
+                    node       = node.elt,
+                    source_ref = source_ref
+                ),
+                for_return = False,
+                source_ref = source_ref
+            )
+    else:
+        assert emit_class is CPythonExpressionDictOperationSet
+
+        current_body = emit_class(
+            CPythonExpressionTempVariableRef(
+                variable   = container_tmp.makeReference( temp_block ),
+                source_ref = source_ref
+            ),
+            key = buildNode(
+                provider   = function_body,
+                node       = node.key,
+                source_ref = source_ref,
+            ),
+            value = buildNode(
+                provider   = function_body,
+                node       = node.value,
+                source_ref = source_ref,
+            ),
+            source_ref = source_ref
+        )
+
+    current_body = CPythonStatementExpressionOnly(
+        expression = current_body,
+        source_ref = source_ref
+    )
+
+    for qual in reversed( node.generators ):
+        nested_temp_block = CPythonStatementTempBlock(
+            source_ref = source_ref
+        )
+
+        tmp_iter_variable = nested_temp_block.getTempVariable( "contraction_iter" )
+
+        tmp_value_variable = nested_temp_block.getTempVariable( "iter_value" )
+
+        # The first iterated value is to be calculated outside of the function and
+        # will be given as a parameter "_iterated".
+        if qual is node.generators[0]:
+            value_iterator = CPythonExpressionVariableRef(
+                variable_name = "__iterator",
+                source_ref    = source_ref
+            )
+        else:
+            value_iterator = CPythonExpressionBuiltinIter1(
+                value      = buildNode(
+                    provider   = function_body,
+                    node       = qual.iter,
+                    source_ref = source_ref
+                ),
                 source_ref = source_ref
             )
 
-        generator_function_body.setBody( body )
-        generator_function_body.markAsGenerator()
+        # First create the iterator and store it, next should be loop body
+        nested_statements = [
+            CPythonStatementAssignment(
+                target     = CPythonAssignTargetVariable(
+                    variable_ref = CPythonExpressionTempVariableRef(
+                        variable   = tmp_iter_variable.makeReference( nested_temp_block ),
+                        source_ref = source_ref
+                    ),
+                    source_ref   = source_ref
+                ),
+                source     = value_iterator,
+                source_ref = source_ref
+            )
+        ]
 
-        result = CPythonExpressionFunctionCall(
-            called_expression = generator_function_body,
-            positional_args   = ( result.getSource0(), ),
-            pairs             = (),
-            list_star_arg     = None,
-            dict_star_arg     = None,
-            source_ref        = source_ref
+        loop_statements = [
+            CPythonStatementTryExcept(
+                tried      = CPythonStatementsSequence(
+                    statements = (
+                        CPythonStatementAssignment(
+                            target     = CPythonAssignTargetVariable(
+                                variable_ref = CPythonExpressionTempVariableRef(
+                                    variable   = tmp_value_variable.makeReference( nested_temp_block ),
+                                    source_ref = source_ref
+                                ),
+                                source_ref = source_ref
+                            ),
+                            source     = CPythonExpressionBuiltinNext1(
+                                value      = CPythonExpressionTempVariableRef(
+                                    variable   = tmp_iter_variable.makeReference( nested_temp_block ),
+                                    source_ref = source_ref
+                                ),
+                                source_ref = source_ref
+                            ),
+                            source_ref = source_ref
+                        ),
+                    ),
+                    source_ref = source_ref
+                ),
+                handlers   = (
+                    CPythonStatementExceptHandler(
+                        exception_types = (
+                            CPythonExpressionBuiltinExceptionRef(
+                                exception_name = "StopIteration",
+                                source_ref     = source_ref
+                            ),
+                        ),
+                        body           = CPythonStatementsSequence(
+                            statements = (
+                                CPythonStatementBreakLoop(
+                                    source_ref = source_ref.atInternal()
+                                ),
+                            ),
+                            source_ref = source_ref
+                        ),
+                        source_ref     = source_ref
+                    ),
+                ),
+                no_raise   = None,
+                source_ref = source_ref
+            ),
+            buildAssignmentStatements(
+                provider   = provider if list_contraction else function_body,
+                node       = qual.target,
+                source     = CPythonExpressionTempVariableRef(
+                    variable   = tmp_value_variable.makeReference( nested_temp_block ),
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            )
+        ]
+
+        conditions = buildNodeList(
+            provider   = function_body,
+            nodes      = qual.ifs,
+            source_ref = source_ref
         )
+
+        if len( conditions ) == 1:
+            loop_statements.append(
+                CPythonStatementConditional(
+                    condition  = conditions[0],
+                    yes_branch = CPythonStatementsSequence(
+                        statements = ( current_body, ),
+                        source_ref = source_ref
+                    ),
+                    no_branch  = None,
+                    source_ref = source_ref
+                )
+            )
+        elif len( conditions ) > 1:
+            loop_statements.append(
+                CPythonStatementConditional(
+                    condition = CPythonExpressionBoolAND(
+                        operands   = conditions,
+                        source_ref = source_ref
+                    ),
+                    yes_branch = CPythonStatementsSequence(
+                        statements = ( current_body, ),
+                        source_ref = source_ref
+                    ),
+                    no_branch  = None,
+                    source_ref = source_ref
+                )
+            )
+        else:
+            loop_statements.append( current_body )
+
+        nested_statements.append(
+            CPythonStatementLoop(
+                body       = CPythonStatementsSequence(
+                    statements = loop_statements,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            )
+        )
+
+        nested_temp_block.setBody(
+            CPythonStatementsSequence(
+                statements = nested_statements,
+                source_ref = source_ref
+            )
+        )
+
+        current_body = nested_temp_block
+
+    statements.append( current_body )
+
+    if start_value is not None:
+        statements.append(
+            CPythonStatementReturn(
+                expression = CPythonExpressionTempVariableRef(
+                    variable   = container_tmp.makeReference( temp_block ),
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            )
+        )
+
+    temp_block.setBody(
+        CPythonStatementsSequence(
+            statements = statements,
+            source_ref = source_ref
+        )
+    )
+
+    function_body.setBody(
+        CPythonStatementsSequence(
+            statements = [ temp_block ],
+            source_ref = source_ref
+        )
+    )
+
+    result = CPythonExpressionFunctionCall(
+        called_expression = function_body,
+        positional_args   = (
+            CPythonExpressionBuiltinIter1(
+                value      = buildNode(
+                    provider   = provider,
+                    node       = node.generators[0].iter,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            ),
+        ),
+        pairs             = (),
+        list_star_arg     = None,
+        dict_star_arg     = None,
+        source_ref        = source_ref
+    )
 
     return result
 
@@ -1518,8 +1575,12 @@ def buildListContractionNode( provider, node, source_ref ):
     return _buildContractionNode(
         provider         = provider,
         node             = node,
-        builder_class    = CPythonExpressionListContractionBuilder,
-        body_class       = CPythonExpressionListContractionBody,
+        name             = "<listcontraction>",
+        emit_class       = CPythonExpressionListOperationAppend,
+        start_value      = CPythonExpressionConstantRef(
+            constant   = [],
+            source_ref = source_ref
+        ),
         list_contraction = True,
         source_ref       = source_ref
     )
@@ -1528,8 +1589,12 @@ def buildSetContractionNode( provider, node, source_ref ):
     return _buildContractionNode(
         provider         = provider,
         node             = node,
-        builder_class    = CPythonExpressionSetContractionBuilder,
-        body_class       = CPythonExpressionSetContractionBody,
+        name             = "<setcontraction>",
+        emit_class       = CPythonExpressionSetOperationAdd,
+        start_value      = CPythonExpressionConstantRef(
+            constant   = set(),
+            source_ref = source_ref
+        ),
         list_contraction = False,
         source_ref       = source_ref
     )
@@ -1538,8 +1603,12 @@ def buildDictContractionNode( provider, node, source_ref ):
     return _buildContractionNode(
         provider         = provider,
         node             = node,
-        builder_class    = CPythonExpressionDictContractionBuilder,
-        body_class       = CPythonExpressionDictContractionBody,
+        name             = "<dictcontraction>",
+        emit_class       = CPythonExpressionDictOperationSet,
+        start_value      = CPythonExpressionConstantRef(
+            constant   = {},
+            source_ref = source_ref
+        ),
         list_contraction = False,
         source_ref       = source_ref
     )
@@ -1550,8 +1619,9 @@ def buildGeneratorExpressionNode( provider, node, source_ref ):
     return _buildContractionNode(
         provider         = provider,
         node             = node,
-        builder_class    = CPythonExpressionGeneratorBuilder,
-        body_class       = CPythonExpressionGeneratorBody,
+        name             = "<genexpr>",
+        emit_class       = CPythonExpressionYield,
+        start_value      = None,
         list_contraction = False,
         source_ref       = source_ref
     )

@@ -66,11 +66,39 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     named_children = ( "body", )
 
     def __init__( self, provider, name, doc, parameters, source_ref ):
+        code_prefix = "function"
+
         if name == "<lambda>":
-            self.is_lambda = True
             name = "lambda"
+            code_prefix = name
+
+            self.is_lambda = True
         else:
             self.is_lambda = False
+
+        if name == "<listcontraction>":
+            name = "listcontr"
+            code_prefix = name
+
+            self.local_locals = False
+        else:
+            self.local_locals = True
+
+        if name == "<setcontraction>":
+            name = "setcontraction"
+            code_prefix = name
+
+        if name == "<dictcontraction>":
+            name = "dictcontraction"
+            code_prefix = name
+
+        if name == "<genexpr>":
+            self.is_genexpr = True
+
+            name = "genexpr"
+            code_prefix = name
+        else:
+            self.is_genexpr = False
 
         CPythonClosureTaker.__init__(
             self,
@@ -80,7 +108,7 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         CPythonParameterHavingNodeBase.__init__(
             self,
             name        = name,
-            code_prefix = "function",
+            code_prefix = code_prefix,
             parameters  = parameters,
             source_ref  = source_ref
         )
@@ -112,6 +140,8 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     def getFunctionName( self ):
         if self.is_lambda:
             return "<lambda>"
+        elif self.is_genexpr:
+            return "<genexpr>"
         else:
             return self.name
 
@@ -180,10 +210,22 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
             return self.provider.getVariableForClosure( variable_name )
 
     def createProvidedVariable( self, variable_name ):
-        return Variables.LocalVariable(
-            owner         = self,
-            variable_name = variable_name
-        )
+        if self.local_locals:
+            return Variables.LocalVariable(
+                owner         = self,
+                variable_name = variable_name
+            )
+        else:
+            # Make sure the provider knows it has to provide a variable of this name for
+            # the assigment.
+            self.provider.getVariableForAssignment(
+                variable_name = variable_name
+            )
+
+            return self.getClosureVariable(
+                variable_name = variable_name
+            )
+
 
     def hasStaticLocals( self ):
         return not OverflowCheck.check( self.getBody() )

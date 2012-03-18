@@ -182,203 +182,13 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
 
     return result
 
-def _generatorContractionBodyCode( contraction, context ):
-    contraction_body = contraction.getBody()
+def getDirectFunctionCallCode( function_body, arguments, context ):
+    assert function_body.isExpressionFunctionBody()
 
-    # Dictionary contractions produce a tuple always.
-    if contraction.isExpressionDictContractionBody():
-        return (
-            generateExpressionCode(
-                context    = context,
-                expression = contraction_body.getKey()
-            ),
-            generateExpressionCode(
-                context    = context,
-                expression = contraction_body.getValue()
-            )
-        )
-    else:
-        return generateExpressionCode(
-            context    = context,
-            expression = contraction_body
-        )
-
-def generateContractionCode( contraction, context ):
-    # Contractions have many details, pylint: disable=R0914
-
-    loop_var_codes = []
-
-    for count, loop_var_assign in enumerate( contraction.getTargets() ):
-        loop_var_code = generateAssignmentCode(
-            target  = loop_var_assign,
-            value   = Generator.getContractionIterValueIdentifier(
-                index   = count + 1,
-                context = context
-            ),
-            context = context
-        )
-
-        loop_var_codes.append( loop_var_code )
-
-    contraction_code = _generatorContractionBodyCode(
-        contraction = contraction.getBody(),
-        context     = context
+    return Generator.getDirectionFunctionCallCode(
+        function_identifier = function_body.getCodeName(),
+        arguments           = arguments,
     )
-
-    iterated_identifier = generateExpressionCode(
-        expression = contraction.getSource0(),
-        context    = context.getParent()
-    )
-
-    sub_iterated_identifiers = generateExpressionsCode(
-        expressions = contraction.getInnerSources(),
-        context     = context
-    )
-
-    contraction_condition_identifiers = []
-
-    for condition in contraction.getConditions():
-        contraction_condition_identifier = generateConditionCode(
-            condition  = condition,
-            allow_none = True,
-            context    = context
-        )
-
-        contraction_condition_identifiers.append(
-            contraction_condition_identifier
-        )
-
-    contraction_identifier = contraction.getCodeName()
-
-    if contraction.isExpressionGeneratorBuilder():
-        assert len( contraction.getTargets() ) == len( sub_iterated_identifiers ) + 1
-
-        contraction_decl = Generator.getFunctionDecl(
-            function_identifier = contraction_identifier,
-            default_identifiers = (),
-            closure_variables   = contraction.getClosureVariables(),
-            is_genexpr          = True,
-            context             = context
-        )
-
-        contraction_code = Generator.getGeneratorExpressionCode(
-            context              = context,
-            generator_name       = "genexpr" if Options.isFullCompat() else contraction.getBody().getFullName(),
-            generator_identifier = contraction_identifier,
-            generator_code       = contraction_code,
-            generator_conditions = contraction_condition_identifiers,
-            generator_iterateds  = sub_iterated_identifiers,
-            loop_var_codes       = loop_var_codes,
-            source_ref           = contraction.getSourceReference(),
-            closure_variables    = contraction.getClosureVariables(),
-            provided_variables   = contraction.getProvidedVariables(),
-            tmp_variables        = contraction.getTempVariables()
-        )
-    else:
-        if contraction.isExpressionListContractionBuilder():
-            contraction_kind = "list"
-        elif contraction.isExpressionSetContractionBuilder():
-            contraction_kind = "set"
-        elif contraction.isExpressionDictContractionBuilder():
-            contraction_kind = "dict"
-        else:
-            assert False
-
-        contraction_decl = Generator.getContractionDecl(
-            contraction_identifier = contraction_identifier,
-            closure_variables      = contraction.getClosureVariables(),
-            context                = context
-        )
-
-        contraction_code = Generator.getContractionCode(
-            contraction_identifier = contraction_identifier,
-            contraction_kind       = contraction_kind,
-            contraction_code       = contraction_code,
-            contraction_conditions = contraction_condition_identifiers,
-            contraction_iterateds  = sub_iterated_identifiers,
-            loop_var_codes         = loop_var_codes,
-            closure_variables      = contraction.getClosureVariables(),
-            provided_variables     = contraction.getProvidedVariables(),
-            tmp_variables          = contraction.getTempVariables(),
-            context                = context
-        )
-
-    context.addContractionCodes(
-        code_name        = contraction.getCodeName(),
-        contraction_decl = contraction_decl,
-        contraction_code = contraction_code
-    )
-
-    return Generator.getContractionCallCode(
-        contraction_identifier = contraction_identifier,
-        is_genexpr             = contraction.isExpressionGeneratorBuilder(),
-        contraction_iterated   = iterated_identifier,
-        closure_var_codes      = Generator.getClosureVariableProvisionCode(
-            closure_variables = contraction.getClosureVariables(),
-            context           = context.getParent()
-        )
-    )
-
-def generateListContractionCode( contraction, context ):
-    # Have a separate context to create list contraction code.
-    contraction_context = Contexts.PythonListContractionContext(
-        parent      = context,
-        contraction = contraction
-    )
-
-    return generateContractionCode(
-        contraction = contraction,
-        context     = contraction_context
-    )
-
-def generateSetContractionCode( contraction, context ):
-    # Have a separate context to create list contraction code.
-    contraction_context = Contexts.PythonSetContractionContext(
-        parent      = context,
-        contraction = contraction
-    )
-
-    return generateContractionCode(
-        contraction = contraction,
-        context     = contraction_context
-    )
-
-def generateDictContractionCode( contraction, context ):
-    # Have a separate context to create list contraction code.
-    contraction_context = Contexts.PythonDictContractionContext(
-        parent      = context,
-        contraction = contraction
-    )
-
-    return generateContractionCode(
-        contraction = contraction,
-        context     = contraction_context
-    )
-
-def generateGeneratorExpressionCode( generator_expression, context ):
-    # Have a separate context to create generator expression code.
-    generator_context = Contexts.PythonGeneratorExpressionContext(
-        parent      = context,
-        contraction = generator_expression
-    )
-
-    return generateContractionCode(
-        contraction = generator_expression,
-        context     = generator_context
-    )
-
-def generateGeneratorExpressionBodyCode( generator_expression, context ):
-    context = Contexts.PythonGeneratorExpressionContext(
-        parent        = context,
-        generator_def = generator_expression
-    )
-
-    codes = generateExpressionCode(
-        expression = generator_expression.getBody(),
-        context    = context
-    )
-
-    return context, codes
 
 def _generateDefaultIdentifiers( parameters, default_expressions, sub_context, context ):
     default_access_identifiers = []
@@ -471,7 +281,6 @@ def generateFunctionBodyCode( function_body, defaults, context ):
         function_identifier = function_body.getCodeName(),
         default_identifiers = default_access_identifiers,
         closure_variables   = function_body.getClosureVariables(),
-        is_genexpr          = False,
         context             = context
     )
 
@@ -996,21 +805,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
             function = expression,
             context    = context
         )
-    elif expression.isExpressionListContractionBuilder():
-        identifier = generateListContractionCode(
-            contraction = expression,
-            context     = context
-        )
-    elif expression.isExpressionSetContractionBuilder():
-        identifier = generateSetContractionCode(
-            contraction = expression,
-            context     = context
-        )
-    elif expression.isExpressionDictContractionBuilder():
-        identifier = generateDictContractionCode(
-            contraction = expression,
-            context     = context
-        )
     elif expression.isExpressionAttributeLookup():
         attribute_name = mangleAttributeName(
             attribute_name = expression.getAttributeName(),
@@ -1166,11 +960,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
             class_body = expression.getClassBody(),
             bases      = expression.getBases(),
             context    = context
-        )
-    elif expression.isExpressionGeneratorBuilder():
-        identifier = generateGeneratorExpressionCode(
-            generator_expression = expression,
-            context              = context
         )
     elif expression.isExpressionComparison():
         identifier = generateComparisonExpressionCode(
@@ -1366,6 +1155,22 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = Generator.getCurrentExceptionValueCode()
     elif expression.isExpressionCaughtExceptionTracebackRef():
         identifier = Generator.getCurrentExceptionTracebackCode()
+    elif expression.isExpressionListOperationAppend():
+        identifier = Generator.getListOperationAppendCode(
+            list_identifier  = makeExpressionCode( expression.getList() ),
+            value_identifier = makeExpressionCode( expression.getValue() ),
+        )
+    elif expression.isExpressionSetOperationAdd():
+        identifier = Generator.getSetOperationAddCode(
+            set_identifier   = makeExpressionCode( expression.getSet() ),
+            value_identifier = makeExpressionCode( expression.getValue() ),
+        )
+    elif expression.isExpressionDictOperationSet():
+        identifier = Generator.getDictOperationSetCode(
+            dict_identifier  = makeExpressionCode( expression.getDict() ),
+            key_identifier   = makeExpressionCode( expression.getKey() ),
+            value_identifier = makeExpressionCode( expression.getValue() ),
+        )
     else:
         assert False, expression
 
@@ -1974,7 +1779,6 @@ def generateLoopCode( statement, context ):
 
     return Generator.getLoopCode(
         loop_body_codes  = loop_body_codes,
-        context          = context,
         needs_exceptions = statement.needsExceptionBreakContinue(),
     )
 
@@ -1994,60 +1798,6 @@ def mayRaise( targets ):
         return False
 
     return True
-
-def generateForLoopCode( statement, context ):
-    iter_name, iter_value, iter_object = Generator.getForLoopNames( context = context )
-
-    iterator = generateExpressionCode(
-        expression = statement.getIterator(),
-        context    = context
-    )
-
-    target = statement.getLoopVariableAssignment()
-
-    if target.isAssignTargetTuple() or mayRaise( target ):
-        iter_identifier = Generator.TempVariableIdentifier( iter_object )
-
-        assignment_code = "PyObjectTemporary %s( %s );\n" % (
-            iter_identifier.getCode(),
-            iter_value
-        )
-    else:
-        iter_identifier = Generator.Identifier( iter_value, 1 )
-
-        assignment_code = ""
-
-    assignment_code += generateAssignmentCode(
-        target  = target,
-        value   = iter_identifier,
-        context = context
-    )
-
-    loop_body_codes = generateStatementSequenceCode(
-        statement_sequence = statement.getLoopBody(),
-        allow_none         = True,
-        context            = context
-    )
-
-
-    loop_else_codes = generateStatementSequenceCode(
-        statement_sequence = statement.getNoBreak(),
-        allow_none         = True,
-        context            = context
-    )
-
-    return Generator.getForLoopCode(
-        iterator         = iterator,
-        iter_name        = iter_name,
-        iter_value       = iter_value,
-        iter_object      = iter_identifier,
-        loop_var_code    = assignment_code,
-        loop_body_codes  = loop_body_codes,
-        loop_else_codes  = loop_else_codes,
-        needs_exceptions = statement.needsExceptionBreakContinue(),
-        source_ref       = statement.getSourceReference(),
-        context          = context
-    )
 
 def generateTempBlock( statement, context ):
     body_codes = generateStatementSequenceCode(
@@ -2145,11 +1895,6 @@ def _generateStatementCode( statement, context ):
         )
     elif statement.isStatementReturn():
         code = generateReturnCode(
-            statement = statement,
-            context   = context
-        )
-    elif statement.isStatementForLoop():
-        code = generateForLoopCode(
             statement = statement,
             context   = context
         )

@@ -55,6 +55,9 @@ def getParameterEntryPointIdentifier( function_identifier, is_method ):
     else:
         return "_fparse_" + function_identifier
 
+def getDirectFunctionEntryPointIdentifier( function_identifier ):
+    return "impl_" + function_identifier
+
 def getParameterContextCode( default_access_identifiers ):
     context_decl = []
     context_copy = []
@@ -318,7 +321,7 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
     )
 
     parameter_entry_point_code = CodeTemplates.template_parameter_function_entry_point % {
-        "parameter_parsing_code" : _getParameterParsingCode(
+        "parameter_parsing_code"    : _getParameterParsingCode(
             context             = context,
             function_name       = function_name,
             parameters          = parameters,
@@ -329,10 +332,12 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
             function_identifier = function_identifier,
             is_method           = False
         ),
-        "impl_function_identifier"  : "impl_" + function_identifier,
-        "context_access"         : context_access,
-        "parameter_objects_list" : parameter_objects_list,
-        "parameter_release_code" : parameter_release_code,
+        "impl_function_identifier"  : getDirectFunctionEntryPointIdentifier(
+            function_identifier = function_identifier
+        ),
+        "context_access"            : context_access,
+        "parameter_objects_list"    : parameter_objects_list,
+        "parameter_release_code"    : parameter_release_code,
     }
 
     if function_parameter_variables and function_parameter_variables[0].getName() == "self":
@@ -342,7 +347,7 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
         )
 
         parameter_entry_point_code += CodeTemplates.template_parameter_method_entry_point % {
-            "parameter_parsing_code" : _getParameterParsingCode(
+            "parameter_parsing_code"    : _getParameterParsingCode(
                 context             = context,
                 function_name       = function_name,
                 parameters          = parameters,
@@ -350,10 +355,12 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
                 is_method           = True
             ),
             "parse_function_identifier" : mparse_identifier,
-            "impl_function_identifier"  : "impl_" + function_identifier,
-            "context_access"         : context_access,
-            "parameter_objects_list" : parameter_objects_list,
-            "parameter_release_code" : parameter_release_code
+            "impl_function_identifier"  : getDirectFunctionEntryPointIdentifier(
+                function_identifier = function_identifier
+            ),
+            "context_access"            : context_access,
+            "parameter_objects_list"    : parameter_objects_list,
+            "parameter_release_code"    : parameter_release_code
         }
     else:
         mparse_identifier = "NULL"

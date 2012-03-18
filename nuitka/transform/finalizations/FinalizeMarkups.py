@@ -63,7 +63,8 @@ class FinalizeMarkups( FinalizationVisitorBase ):
 
             crossed_try = False
 
-            while not search.isStatementForLoop() and not search.isStatementLoop():
+            # Search up to the containing loop.
+            while not search.isStatementLoop():
                 last_search = search
                 search = search.getParent()
 

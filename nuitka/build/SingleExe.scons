@@ -350,7 +350,6 @@ def discoverSourceFiles():
     result.append( static_src + "/CompiledFunctionType.cpp" )
     result.append( static_src + "/CompiledGeneratorType.cpp" )
     result.append( static_src + "/CompiledMethodType.cpp" )
-    result.append( static_src + "/CompiledGenexprType.cpp" )
     result.append( static_src + "/CompiledCodeHelpers.cpp" )
 
     if not module_mode:

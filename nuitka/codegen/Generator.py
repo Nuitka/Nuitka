@@ -62,6 +62,7 @@ from .SetCodes import getSetCreationCode # imported from here pylint: disable=W0
 from .DictCodes import getDictionaryCreationCode # imported from here pylint: disable=W0611
 
 from .ParameterParsing import (
+    getDirectFunctionEntryPointIdentifier,
     getParameterEntryPointIdentifier,
     getDefaultParameterDeclarations,
     getParameterParsingCode,
@@ -384,6 +385,20 @@ def _getFunctionCallBothStarArgsCode( function_identifier, argument_tuple, argum
             )
 
 
+def getDirectionFunctionCallCode( function_identifier, arguments ):
+    function_identifier = getDirectFunctionEntryPointIdentifier(
+        function_identifier = function_identifier
+    )
+
+    return Identifier(
+        "%s( %s )" % (
+            function_identifier,
+            ", ".join( getCodeExportRefs( arguments ) )
+        ),
+        1
+    )
+
+
 def getFunctionCallCode( function_identifier, argument_tuple, argument_dictionary, \
                          star_list_identifier, star_dict_identifier ):
     if star_dict_identifier is None:
@@ -671,17 +686,6 @@ def getClosureVariableProvisionCode( context, closure_variables ):
 
     return result
 
-def getContractionCallCode( is_genexpr, contraction_identifier, contraction_iterated, closure_var_codes ):
-    args = [ contraction_iterated.getCodeTemporaryRef() ] + closure_var_codes
-
-    return CallIdentifier(
-        called  = "%s%s" % (
-            "MAKE_FUNCTION_" if is_genexpr else "",
-            contraction_identifier
-        ),
-        args    = args
-    )
-
 def getConditionalExpressionCode( condition, codes_no, codes_yes ):
     if codes_yes.getCheapRefCount() == codes_no.getCheapRefCount():
         if codes_yes.getCheapRefCount == 0:
@@ -959,15 +963,6 @@ def getSliceDelCode( target, lower, upper ):
         "Py_None" if upper is None else upper.getCodeTemporaryRef()
     )
 
-def getForLoopNames( context ):
-    for_count = context.allocateForLoopNumber()
-
-    return (
-        "_python_for_loop_iterator_%d" % for_count,
-        "_python_for_loop_itervalue_%d" % for_count,
-        "itertemp_%d" % for_count
-    )
-
 def getLineNumberCode( context, source_ref ):
     if source_ref.shallSetCurrentLine():
         if context.hasFrameGuard():
@@ -979,38 +974,7 @@ def getLineNumberCode( context, source_ref ):
     else:
         return ""
 
-def getForLoopCode( context, source_ref, iterator, iter_name, iter_value, iter_object, \
-                    loop_var_code, loop_body_codes, loop_else_codes, needs_exceptions ):
-
-    loop_body_codes = loop_body_codes if loop_body_codes is not None else ""
-    loop_else_codes = loop_else_codes if loop_else_codes is not None else ""
-
-    # TODO: Make this true
-    # assert loop_else_codes or loop_body_codes
-
-    for_loop_template = CodeTemplates.getForLoopTemplate(
-        needs_exceptions = needs_exceptions,
-        has_else_codes   = loop_else_codes
-    )
-
-    indicator_name = "_python_for_loop_indicator_%d" % context.allocateForLoopNumber()
-
-    return for_loop_template % {
-        "body"                     : indented( loop_body_codes, 2 ),
-        "else_codes"               : indented( loop_else_codes ),
-        "iterator"                 : iterator.getCodeExportRef(),
-        "line_number_code"         : getLineNumberCode(
-            source_ref = source_ref,
-            context    = context
-        ),
-        "loop_iter_identifier"     : iter_name,
-        "loop_value_identifier"    : iter_value,
-        "loop_object_identifier"   : iter_object.getCode(),
-        "loop_var_assignment_code" : indented( loop_var_code, 3 ),
-        "indicator_name"           : indicator_name
-    }
-
-def getLoopCode( context, loop_body_codes, needs_exceptions ):
+def getLoopCode( loop_body_codes, needs_exceptions ):
     while_loop_template = CodeTemplates.getLoopTemplate(
         needs_exceptions = needs_exceptions
     )
@@ -1822,9 +1786,6 @@ def getMainCode( codes, other_module_names ):
 def getFunctionsCode( context ):
     result = ""
 
-    for _code_name, ( _contraction_decl, contraction_code ) in sorted( context.getContractionsCodes().items() ):
-        result += contraction_code
-
     for _code_name, ( _function_decl, function_code ) in sorted( context.getFunctionsCodes().items() ):
         result += function_code
 
@@ -1836,9 +1797,6 @@ def getFunctionsCode( context ):
 def getFunctionsDecl( context ):
     result = ""
 
-    for _code_name, ( contraction_decl, _contraction_code ) in sorted( context.getContractionsCodes().items() ):
-        result += contraction_decl
-
     for _code_name, ( function_decl, _function_code ) in sorted( context.getFunctionsCodes().items() ):
         result += function_decl
 
@@ -1847,155 +1805,8 @@ def getFunctionsDecl( context ):
 
     return result
 
-def _getContractionParameters( closure_variables ):
-    contraction_parameters = [ "PyObject *iterated" ]
-
-    for variable in closure_variables:
-        assert variable.isClosureReference()
-
-        contraction_parameters.append(
-            _getClosureVariableDecl(
-                variable     = variable
-            )
-        )
-
-    return contraction_parameters
-
-def getContractionDecl( context, contraction_identifier, closure_variables ):
-    contraction_creation_arg_spec = _getContractionParameters(
-        closure_variables = closure_variables
-    )
-
-    contraction_creation_arg_names = _extractArgNames( contraction_creation_arg_spec )
-
-    return CodeTemplates.template_contraction_declaration % {
-       "contraction_identifier"             : contraction_identifier,
-       "contraction_creation_arg_spec"      : getEvalOrderedCode(
-            context = context,
-            args    = contraction_creation_arg_spec
-        ),
-        "contraction_creation_arg_names"    : ", ".join( contraction_creation_arg_names ),
-        "contraction_creation_arg_reversal" : getEvalOrderedCode(
-            context = context,
-            args    = contraction_creation_arg_names
-        )
-    }
-
-def _getContractionLocalVarDecl( context, contraction_kind, provided_variables, tmp_variables ):
-    local_var_decl = []
-
-    if contraction_kind == "list":
-        contraction_decl_template = CodeTemplates.list_contration_var_decl
-    elif contraction_kind == "set":
-        contraction_decl_template = CodeTemplates.set_contration_var_decl
-    elif contraction_kind == "dict":
-        contraction_decl_template = CodeTemplates.dict_contration_var_decl
-    else:
-        assert False, contraction_kind
-
-    for variable in provided_variables:
-        if not variable.isClosureReference() and not variable.isModuleVariable():
-            local_var_decl.append(
-                _getLocalVariableInitCode(
-                    context    = context,
-                    variable   = variable,
-                    in_context = False
-                )
-            )
-
-    for variable in tmp_variables:
-        assert variable.isTempVariable()
-
-        local_var_decl.append(
-            _getLocalVariableInitCode(
-                context    = context,
-                variable   = variable,
-                in_context = False
-            )
-        )
-
-    return contraction_decl_template % {
-        "local_var_decl" : indented( local_var_decl, 0 )
-    }
-
-def _getContractionLoopCode( contraction_kind, contraction_iterateds, \
-                             contraction_conditions,  loop_var_codes, contraction_code ):
-    if contraction_kind == "list":
-        contraction_loop_code = CodeTemplates.list_contraction_loop_production % {
-            "contraction_body" : contraction_code.getCodeTemporaryRef(),
-        }
-    elif contraction_kind == "set":
-        contraction_loop_code = CodeTemplates.set_contraction_loop_production % {
-            "contraction_body" : contraction_code.getCodeTemporaryRef(),
-        }
-    elif contraction_kind == "dict":
-        contraction_loop_code = CodeTemplates.dict_contraction_loop_production % {
-            "key_identifier" : contraction_code[0].getCodeTemporaryRef(),
-            "value_identifier" : contraction_code[1].getCodeTemporaryRef()
-        }
-    else:
-        assert False, contraction_kind
-
-    contraction_iterateds = [ Identifier( "iterated", 0 ) ] + contraction_iterateds
-
-    for count, ( contraction_condition, contraction_iterated, loop_var_code ) in enumerate (
-        reversed( list( zip( contraction_conditions, contraction_iterateds, loop_var_codes ) ) )
-    ):
-        contraction_loop_code = CodeTemplates.contraction_loop_iterated % {
-            "contraction_loop"         : contraction_loop_code,
-            "iter_count"               : len( loop_var_codes ) - count,
-            "iterated"                 : contraction_iterated.getCodeTemporaryRef(),
-            "loop_var_assignment_code" : loop_var_code,
-            "contraction_condition"    : contraction_condition.getCode()
-        }
-
-
-    return contraction_loop_code
-
-def getContractionCode( context, contraction_identifier, contraction_kind, loop_var_codes, \
-                        contraction_code, contraction_conditions, contraction_iterateds, \
-                        closure_variables, provided_variables, tmp_variables ):
-
-    contraction_var_decl = _getContractionLocalVarDecl(
-        contraction_kind   = contraction_kind,
-        provided_variables = provided_variables,
-        tmp_variables      = tmp_variables,
-        context            = context
-    )
-
-    contraction_loop_code = _getContractionLoopCode(
-        contraction_kind       = contraction_kind,
-        contraction_iterateds  = contraction_iterateds,
-        contraction_conditions = contraction_conditions,
-        contraction_code       = contraction_code,
-        loop_var_codes         = loop_var_codes
-    )
-
-    return CodeTemplates.contraction_code_template % {
-        "contraction_identifier" : contraction_identifier,
-        "contraction_parameters" : getEvalOrderedCode(
-            args    = _getContractionParameters(
-                closure_variables = closure_variables
-            ),
-            context = context
-        ),
-        "contraction_body"       : contraction_loop_code,
-        "contraction_var_decl"   : indented( contraction_var_decl ),
-    }
-
-def getContractionIterValueIdentifier( context, index ):
-    if not context.isGeneratorExpression():
-        return Identifier( "_python_contraction_iter_value_%d" % index, 1 )
-    else:
-        return Identifier( "_python_genexpr_iter_value", 1 )
-
-def _getFunctionCreationArgs( default_identifiers, closure_variables, is_genexpr ):
-    if is_genexpr:
-        result = [ "PyObject *iterator" ]
-    else:
-        result = []
-
-    result += getDefaultParameterDeclarations(
+def _getFunctionCreationArgs( default_identifiers, closure_variables ):
+    result = getDefaultParameterDeclarations(
         default_identifiers = default_identifiers
     )
 
@@ -2022,12 +1833,10 @@ def _extractArgNames( args ):
     ]
 
 
-def getFunctionDecl( context, function_identifier, default_identifiers, \
-                     closure_variables, is_genexpr ):
+def getFunctionDecl( context, function_identifier, default_identifiers, closure_variables ):
     function_creation_arg_spec = _getFunctionCreationArgs(
         default_identifiers = default_identifiers,
-        closure_variables   = closure_variables,
-        is_genexpr          = is_genexpr
+        closure_variables   = closure_variables
     )
 
     function_creation_arg_names = _extractArgNames( function_creation_arg_spec )
@@ -2241,8 +2050,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 
     function_creation_args  = _getFunctionCreationArgs(
         default_identifiers = default_access_identifiers,
-        closure_variables   = closure_variables,
-        is_genexpr          = False
+        closure_variables   = closure_variables
     )
 
     function_doc = getConstantCode(
@@ -2392,8 +2200,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
 
     function_creation_args = _getFunctionCreationArgs(
         closure_variables   = closure_variables,
-        default_identifiers = default_access_identifiers,
-        is_genexpr          = False
+        default_identifiers = default_access_identifiers
     )
 
     # User local variable initializations
@@ -2526,131 +2333,6 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
             "defaults"                   : func_defaults.getCodeExportRef(),
             "module_identifier"          : getModuleAccessCode( context = context ),
         }
-
-    return result
-
-def getGeneratorExpressionCode( context, generator_identifier, generator_name, source_ref, \
-                                generator_code, generator_conditions, generator_iterateds, \
-                                loop_var_codes, closure_variables, provided_variables, \
-                                tmp_variables ):
-    function_name     = "<" + generator_name + ">"
-
-    context_decl = []
-    context_copy = []
-    function_context_release = []
-
-    function_creation_args = [ "PyObject *iterated" ]
-
-    # TODO: Why is this not using the _getLocalVariableInitCode as well ?
-
-    for closure_variable in closure_variables:
-        context_decl.append(
-            "PyObjectSharedLocalVariable python_closure_%s;" % closure_variable.getName()
-        )
-        context_copy.append(
-            "_python_context->python_closure_%s.shareWith( python_closure_%s );" % (
-                closure_variable.getName(),
-                closure_variable.getName()
-            )
-        )
-
-        function_creation_args.append(
-            "PyObjectSharedLocalVariable &python_closure_%s" % closure_variable.getName()
-        )
-
-    # TODO: Should only put into context for those actually shared
-
-    # Into the context the provided variables must go:
-    for provided_variable in provided_variables:
-        assert not provided_variable.isClosureReference()
-
-        context_decl.append(
-            "PyObjectLocalVariable python_var_%s;" % provided_variable.getName()
-        )
-
-        context_copy.append(
-            "_python_context->python_var_%s.setVariableName( %s );" % (
-                provided_variable.getName(),
-                getConstantCode(
-                    constant = provided_variable.getName(),
-                    context  = context
-                )
-            )
-        )
-
-    # TODO: Don't put these in context, not normally needed.
-    for tmp_variable in tmp_variables:
-        assert tmp_variable.isTempVariable()
-
-        context_decl.append(
-            _getLocalVariableInitCode(
-                context    = context,
-                variable   = tmp_variable,
-                in_context = True
-            )
-        )
-
-    result = CodeTemplates.genexpr_context_body_template % {
-        "function_identifier"      : generator_identifier,
-        "context_decl"             : indented( context_decl ),
-        "function_context_release" : indented( function_context_release ),
-    }
-
-    iterator_value_assign = ""
-
-    for count, ( loop_var_code, generator_condition ) in enumerate( zip( loop_var_codes, generator_conditions ) ):
-        iterator_value_assign += CodeTemplates.genexpr_iterator_value_assignment % {
-            "iterator_index"  : count,
-            "assignment_code" : loop_var_code,
-            "condition_code"  : generator_condition.getCode()
-        }
-
-    iterator_making = ""
-
-    for count, generator_iterated in enumerate( generator_iterateds ):
-        iterator_making += CodeTemplates.genexpr_iterator_making % {
-            "iterator_index"  : count + 1,
-            "iterated_code"   : generator_iterated.getCodeTemporaryRef()
-        }
-
-    function_name_obj = getConstantCode(
-        context  = context,
-        constant = generator_name
-    )
-
-    result += CodeTemplates.genexpr_function_template % {
-        "function_name"              : function_name,
-        "function_identifier"        : generator_identifier,
-        "context_decl"               : indented( context_decl ),
-        "context_copy"               : indented( context_copy ),
-        "function_context_release"   : indented( function_context_release ),
-        "iterator_count"             : len( generator_iterateds ) + 1,
-        "iterator_making"            : indented( iterator_making.split( "\n" ), 5 ),
-        "iterator_value_assign"      : indented( iterator_value_assign, 5 ),
-        "function_body"              : getReturnCode( identifier = generator_code ),
-        "module_identifier"          : getModuleAccessCode( context = context ),
-        "name_identifier"            : getConstantCode(
-            context  = context,
-            constant = function_name
-        ),
-        "line_number_code"           : getLineNumberCode(
-            source_ref = source_ref,
-            context    = context
-        ),
-    }
-
-    result += CodeTemplates.make_genexpr_with_context_template % {
-        "function_name_obj"          : function_name_obj,
-        "function_identifier"        : generator_identifier,
-        "function_creation_args"     : ", ".join( function_creation_args ),
-        "context_copy"               : indented( context_copy ),
-        "filename_identifier"        : getConstantCode(
-            context  = context,
-            constant = source_ref.getFilename()
-        ),
-        "line_number"                : source_ref.getLineNumber(),
-        "iterator_count"             : len( generator_iterateds ) + 1,
-    }
 
     return result
 
@@ -3168,5 +2850,33 @@ def getCurrentExceptionValueCode():
 def getCurrentExceptionTracebackCode():
     return Identifier(
         "(PyObject *)_exception.getTraceback()",
+        0
+    )
+
+def getListOperationAppendCode( list_identifier, value_identifier ):
+    return Identifier(
+        "APPEND_TO_LIST( %s, %s ), Py_None" % (
+            list_identifier.getCodeTemporaryRef(),
+            value_identifier.getCodeTemporaryRef()
+        ),
+        0
+    )
+
+def getSetOperationAddCode( set_identifier, value_identifier ):
+    return Identifier(
+        "ADD_TO_SET( %s, %s ), Py_None" % (
+            set_identifier.getCodeTemporaryRef(),
+            value_identifier.getCodeTemporaryRef()
+        ),
+        0
+    )
+
+def getDictOperationSetCode( dict_identifier, key_identifier, value_identifier ):
+    return Identifier(
+        "DICT_SET_ITEM( %s, %s, %s ), Py_None" % (
+            dict_identifier.getCodeTemporaryRef(),
+            key_identifier.getCodeTemporaryRef(),
+            value_identifier.getCodeTemporaryRef()
+        ),
         0
     )
