@@ -111,11 +111,17 @@ Cleanups
   part of the handler. It now is the first statement of an exception handler or not
   present, this way it may be optimized as well.
 
-- Exception handlers now explicitly catch more than one types
+- Exception handlers now explicitly catch more than one type.
 
   Catching multiple types worked by merits of the created tuple object working with the
   Python C/API function called, but that was not explicit at all. Now every handler has a
   tuple of exceptions it catches, which may only be one, or if None, it's all.
+
+- Contractions are now functions as well.
+
+  Contractions are now re-formulated as function bodies that contains for loops and
+  conditional statements. This allowed to remove a lot of special code that deal with them
+  and will make these easier for optimization and value propagation.
 
 New Tests
 ---------
