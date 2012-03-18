@@ -162,23 +162,6 @@ class CPythonAssignTargetSlice( CPythonExpressionChildrenHavingBase ):
         )
 
 
-class CPythonAssignTargetTuple( CPythonExpressionChildrenHavingBase ):
-    kind = "ASSIGN_TARGET_TUPLE"
-
-    named_children = ( "elements", )
-
-    def __init__( self, elements, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "elements" : tuple( elements ),
-            },
-            source_ref = source_ref
-        )
-
-    getElements = CPythonExpressionChildrenHavingBase.childGetter( "elements" )
-
-
 class CPythonExpressionAssignment( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_ASSIGNMENT"
 

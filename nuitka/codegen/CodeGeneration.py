@@ -1180,40 +1180,15 @@ def generateExpressionCode( expression, context, allow_none = False ):
     return identifier
 
 
-def generateAssignmentCode( target, value, context, recursion = 1 ):
+def generateAssignmentCode( target, value, context ):
     # This is a dispatching function with a branch per assignment node type.
     # pylint: disable=R0912,R0914
 
     assert type( target ) not in ( tuple, list )
     assert target.isAssignTargetSomething()
 
-    if not target.isAssignTargetTuple():
-        assign_source = value
-        code = ""
-
-        brace = False
-    else:
-        if value.getCheapRefCount() == 1:
-            assign_source = Generator.TempVariableIdentifier( "rvalue_%d" % recursion )
-
-            code = "PyObjectTemporary %s( %s );\n" % (
-                assign_source.getCode(),
-                value.getCodeExportRef()
-            )
-        else:
-            assign_source = Generator.Identifier( "_python_rvalue_%d" % recursion, 0 )
-            code = "PyObject *%s = %s;\n" % (
-                assign_source.getCode(),
-                value.getCodeTemporaryRef()
-            )
-
-
-        brace = True
-
-    iterator_identifier = None
-
     if target.isAssignTargetSubscript():
-        code += Generator.getSubscriptAssignmentCode(
+        code = Generator.getSubscriptAssignmentCode(
             subscribed    = generateExpressionCode(
                 expression = target.getSubscribed(),
                 context    = context
@@ -1222,17 +1197,15 @@ def generateAssignmentCode( target, value, context, recursion = 1 ):
                 expression = target.getSubscript(),
                 context    = context
             ),
-            identifier    = assign_source
+            identifier    = value
         )
-
-        code += "\n"
     elif target.isAssignTargetAttribute():
         attribute_name = mangleAttributeName(
             attribute_name = target.getAttributeName(),
             node           = target
         )
 
-        code += Generator.getAttributeAssignmentCode(
+        code = Generator.getAttributeAssignmentCode(
             target     = generateExpressionCode(
                 expression = target.getLookupSource(),
                 context    = context
@@ -1240,75 +1213,24 @@ def generateAssignmentCode( target, value, context, recursion = 1 ):
             attribute  = context.getConstantHandle(
                 constant = attribute_name
             ),
-            identifier = assign_source
+            identifier = value
         )
-
-        code += "\n"
     elif target.isAssignTargetSlice():
-        code += generateSliceAssignmentCode(
+        code = generateSliceAssignmentCode(
             target        = target,
-            assign_source = assign_source,
+            assign_source = value,
             context       = context
         )
-
-        code += "\n"
     elif target.isAssignTargetVariable():
-        code += Generator.getVariableAssignmentCode(
+        code = Generator.getVariableAssignmentCode(
             variable   = target.getTargetVariableRef().getVariable(),
-            identifier = assign_source,
+            identifier = value,
             context    = context
         )
-
-        code += "\n"
-    elif target.isAssignTargetTuple():
-        elements = target.getElements()
-
-        # Unpack if it's the first time.
-        if iterator_identifier is None:
-            iterator_identifier = Generator.getTupleUnpackIteratorCode( recursion )
-
-            lvalue_identifiers = [
-                Generator.getTupleUnpackLeftValueCode(
-                    recursion  = recursion,
-                    count      = count+1,
-                    # TODO: Should check for tuple assignments, this is a bit
-                    # too easy
-                    single_use = True
-                )
-                for count in
-                range( len( elements ))
-            ]
-
-            code += Generator.getUnpackTupleCode(
-                assign_source       = assign_source,
-                iterator_identifier = iterator_identifier,
-                lvalue_identifiers  = lvalue_identifiers,
-            )
-
-        # TODO: If an assigments goes to an increasing/decreasing length of elements
-        # raise an exception. For the time being, just ignore it.
-        for count, element in enumerate( elements ):
-            code += generateAssignmentCode(
-                target    = element,
-                value     = lvalue_identifiers[ count ],
-                context   = context,
-                recursion = recursion + 1
-            )
-
-        if not code.endswith( "\n" ):
-            code += "\n"
-
     else:
-        assert False, (target, target.getSourceReference())
+        assert False, target
 
-    assert code.endswith( "\n" ), repr( code )
-
-    if brace:
-        code = Generator.getBlockCode( code[:-1] )
-
-    if recursion == 1:
-        code = code.rstrip()
-
+    assert not code.endswith( "\n" )
     return code
 
 def generateDelVariableCode( variable_ref, context ):

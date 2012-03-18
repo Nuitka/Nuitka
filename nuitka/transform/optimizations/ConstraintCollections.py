@@ -108,10 +108,6 @@ class ConstraintCollection:
                 self.onExpression( target.getLower() )
             if target.getUpper() is not None:
                 self.onExpression( target.getUpper() )
-        elif target.isAssignTargetTuple():
-            # TODO: Handle tuples too.
-            for target in target.getElements():
-                self.onAssignmentOfTargetFromUnknown( target )
         else:
             assert False, target
 
@@ -181,27 +177,10 @@ class ConstraintCollection:
 
         assert source_friend is not None, source
 
-        if target.isAssignTargetTuple():
-            element_count = len( target.getElements() )
-
-            if source_friend.isKnownToBeIterable( element_count ):
-                unpack_friends = source_friend.getUnpacked( element_count )
-
-                for target, unpack_friend in zip( target.getElements(), unpack_friends ):
-                    self.onAssigmentToTargetFromValueFriend(
-                        target       = target,
-                        value_friend = unpack_friend
-                    )
-            else:
-                for target in target.getElements():
-                    self.onAssignmentOfTargetFromUnknown(
-                        target = target
-                    )
-        else:
-            self.onAssigmentToTargetFromValueFriend(
-                target       = target,
-                value_friend = source_friend
-            )
+        self.onAssigmentToTargetFromValueFriend(
+            target       = target,
+            value_friend = source_friend
+        )
 
     def onStatementAssignment( self, statement ):
         source = statement.getSource()
@@ -225,9 +204,6 @@ class ConstraintCollection:
         if target.isAssignTargetVariable():
             # Should invalidate it
             pass
-        elif target.isAssignTargetTuple():
-            for sub_target in target.getElements():
-                self.onTarget( sub_target )
         elif target.isAssignTargetAttribute():
             # Should invalidate it via attribute registry.
             pass

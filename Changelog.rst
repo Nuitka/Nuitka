@@ -101,9 +101,9 @@ Cleanups
   In reality, not really "next" is used, as it wouldn't raise the correct exception for
   unpacking, and the "finished" check is more condensed.
 
-  Generally this cleanup means that the "AssignTargetTuple" and associated code generation
-  could be removed, and now the value propagation needs to optimize these "next" and
-  "iter" calls away where possible. At this time, this is not done yet.
+  Generally this cleanup allowed that the "AssignTargetTuple" and associated code
+  generation was removed, and now the coming value propagation needs to optimize these
+  "next" and "iter" calls away where possible. At this time, this is not done yet.
 
 - Exception handlers assign caught exception value through assignment statement.
 

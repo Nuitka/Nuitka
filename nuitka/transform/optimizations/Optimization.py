@@ -41,7 +41,6 @@ from .OptimizeVariableClosure import (
     MaybeLocalVariableReductionVisitor
 )
 from .OptimizeConstantOperations import OptimizeFunctionCallArgsVisitor
-from .OptimizeUnpacking import ReplaceUnpackingVisitor
 from .OptimizeRaises import OptimizeRaisesVisitor
 from .OptimizeValuePropagation import ValuePropagationVisitor
 
@@ -94,9 +93,6 @@ def optimizeTree( tree ):
         # TODO: This ought to happen in computeNode clearly.
         if tags.check( "new_code new_constant" ):
             optimizations_queue.add( OptimizeFunctionCallArgsVisitor )
-
-        if tags.check( "new_code new_constant" ):
-            optimizations_queue.add( ReplaceUnpackingVisitor )
 
         if tags.check( "new_code" ):
             optimizations_queue.add( ModuleVariableUsageAnalysisVisitor )

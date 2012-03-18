@@ -349,7 +349,7 @@ class ModuleVariable( Variable ):
     reference_class = ModuleVariableReference
 
     def __init__( self, module, variable_name ):
-        assert type( variable_name ) is str
+        assert type( variable_name ) is str, variable_name
 
         Variable.__init__( self, owner = module, variable_name = variable_name )
         self.module = module

@@ -147,7 +147,6 @@ from .nodes.AssignNodes import (
     CPythonAssignTargetAttribute,
     CPythonAssignTargetSubscript,
     CPythonAssignTargetVariable,
-    CPythonAssignTargetTuple,
     CPythonAssignTargetSlice
 )
 from .nodes.PrintNodes import CPythonStatementPrint
@@ -244,7 +243,13 @@ def buildClassNode( provider, node, source_ref ):
         )
 
     return CPythonStatementAssignment(
-        target     = buildVariableRefAssignTarget( node.name, source_ref ),
+        target     = CPythonAssignTargetVariable(
+            variable_ref = CPythonExpressionVariableRef(
+                variable_name = node.name,
+                source_ref    = source_ref
+            ),
+            source_ref   = source_ref
+        ),
         source     = decorated_body,
         source_ref = source_ref
     )
@@ -355,7 +360,13 @@ def buildFunctionNode( provider, node, source_ref ):
         )
 
     return CPythonStatementAssignment(
-        target     = buildVariableRefAssignTarget( node.name, source_ref ),
+        target     = CPythonAssignTargetVariable(
+            variable_ref = CPythonExpressionVariableRef(
+                variable_name = node.name,
+                source_ref    = source_ref
+            ),
+            source_ref   = source_ref
+        ),
         source     = decorated_body,
         source_ref = source_ref
     )
@@ -864,114 +875,56 @@ def buildVariableRefAssignTarget( variable_name, source_ref ):
         source_ref   = source_ref
     )
 
-def buildAttributeAssignTarget( provider, attribute_name, value, source_ref ):
-    assert type( attribute_name ) is str
-
-    return CPythonAssignTargetAttribute(
-        expression      = buildNode( provider, value, source_ref ),
-        attribute_name  = attribute_name,
-        source_ref      = source_ref
-    )
-
-def buildSubscriptAssignTarget( provider, node, source_ref ):
-    slice_kind = getKind( node.slice )
-
-    if slice_kind == "Index":
-        result = CPythonAssignTargetSubscript(
-            expression = buildNode( provider, node.value, source_ref ),
-            subscript  = buildNode( provider, node.slice.value, source_ref ),
-            source_ref = source_ref
-        )
-    elif slice_kind == "Slice":
-        lower = buildNode( provider, node.slice.lower, source_ref, True )
-        upper = buildNode( provider, node.slice.upper, source_ref, True )
-
-        if node.slice.step is not None:
-            step = buildNode( provider, node.slice.step, source_ref )
-
-            result = CPythonAssignTargetSubscript(
-                expression = buildNode( provider, node.value, source_ref ),
-                subscript  = CPythonExpressionSliceObject(
-                    lower      = lower,
-                    upper      = upper,
-                    step       = step,
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref
-            )
-        else:
-            result = CPythonAssignTargetSlice(
-                expression = buildNode( provider, node.value, source_ref ),
-                lower      = lower,
-                upper      = upper,
-                source_ref = source_ref
-            )
-    elif slice_kind == "ExtSlice":
-        result = CPythonAssignTargetSubscript(
-            expression = buildNode( provider, node.value, source_ref ),
-            subscript  = _buildExtSliceNode( provider, node, source_ref ),
-            source_ref = source_ref
-        )
-    elif slice_kind == "Ellipsis":
-        result = CPythonAssignTargetSubscript(
-            expression = buildNode( provider, node.value, source_ref ),
-            subscript  = CPythonExpressionConstantRef(
-                constant   = Ellipsis,
-                source_ref = source_ref
-            ),
-            source_ref = source_ref
-        )
-    else:
-        assert False, node.slice
-
-    return result
-
-
-def buildAssignmentStatements( provider, node, source, source_ref, allow_none = False ):
-    if node is None and allow_none:
-        return None
-
-    if hasattr( node, "ctx" ):
-        assert getKind( node.ctx ) == "Store"
-
-    if type( node ) is str:
-        # Python >= 3.x only
-        node = _fakeNameNode( node )
-        kind = "Name"
-    else:
-        kind = getKind( node )
-
+def buildAssignmentStatementsFromDecoded( provider, kind, detail, source, source_ref ):
     if kind == "Name":
+        variable_ref = detail
+
         return CPythonStatementAssignment(
-            target     = buildVariableRefAssignTarget(
-                variable_name = node.id,
-                source_ref    = source_ref
+            target     = CPythonAssignTargetVariable(
+                variable_ref = variable_ref,
+                source_ref   = source_ref
             ),
             source     = source,
             source_ref = source_ref
         )
     elif kind == "Attribute":
+        lookup_source, attribute_name = detail
+
         return CPythonStatementAssignment(
-            target     = buildAttributeAssignTarget(
-                provider       = provider,
-                value          = node.value,
-                attribute_name = node.attr,
+            target     = CPythonAssignTargetAttribute(
+                expression     = lookup_source,
+                attribute_name = attribute_name,
                 source_ref     = source_ref
             ),
             source     = source,
             source_ref = source_ref
         )
     elif kind == "Subscript":
+        subscribed, subscript = detail
+
         return CPythonStatementAssignment(
-            target     = buildSubscriptAssignTarget(
-                provider   = provider,
-                node       = node,
+            target     = CPythonAssignTargetSubscript(
+                expression = subscribed,
+                subscript  = subscript,
                 source_ref = source_ref
             ),
             source     = source,
             source_ref = source_ref
         )
-    elif kind in ( "Tuple", "List" ):
+    elif kind == "Slice":
+        lookup_source, lower, upper = detail
+
+        return CPythonStatementAssignment(
+            target     = CPythonAssignTargetSlice(
+                expression = lookup_source,
+                lower      = lower,
+                upper      = upper,
+                source_ref = source_ref
+            ),
+            source     = source,
+            source_ref = source_ref
+        )
+    elif kind == "Tuple":
         result = CPythonStatementTempBlock(
             source_ref = source_ref
         )
@@ -998,10 +951,10 @@ def buildAssignmentStatements( provider, node, source, source_ref, allow_none = 
         element_vars = [
             result.getTempVariable( "element_%d" % ( element_index + 1 ) )
             for element_index in
-            range( len( node.elts ))
+            range( len( detail ) )
         ]
 
-        for element_index in range( len( node.elts )) :
+        for element_index in range( len( detail ) ):
             statements.append(
                 CPythonStatementAssignment(
                     target = CPythonAssignTargetVariable(
@@ -1017,7 +970,7 @@ def buildAssignmentStatements( provider, node, source, source_ref, allow_none = 
                             variable   = source_iter_var.makeReference( result ),
                             source_ref = source_ref
                         ),
-                        count      = len( node.elts ),
+                        count      = len( detail ),
                         source_ref = source_ref
                     ),
                     source_ref   = source_ref
@@ -1030,16 +983,17 @@ def buildAssignmentStatements( provider, node, source, source_ref, allow_none = 
                     variable   = source_iter_var.makeReference( result ),
                     source_ref = source_ref
                 ),
-                count      = len( node.elts ),
+                count      = len( detail ),
                 source_ref = source_ref
             )
         )
 
-        for element_index, element in enumerate( node.elts ):
+        for element_index, element in enumerate( detail ):
             statements.append(
-                buildAssignmentStatements(
+                buildAssignmentStatementsFromDecoded(
                     provider   = provider,
-                    node       = element,
+                    kind       = element[0],
+                    detail     = element[1],
                     source     = CPythonExpressionTempVariableRef(
                         variable   = element_vars[ element_index ].makeReference( result ),
                         source_ref = source_ref
@@ -1057,11 +1011,26 @@ def buildAssignmentStatements( provider, node, source, source_ref, allow_none = 
 
         return result
     else:
-        assert False, ( source_ref, ast.dump( node ) )
+        assert False, ( kind, source_ref, detail )
 
     return result
 
-def buildAssignTarget( provider, node, source_ref, allow_none = False ):
+def buildAssignmentStatements( provider, node, source, source_ref, allow_none = False ):
+    if node is None and allow_none:
+        return None
+
+    kind, detail = decodeAssignTarget( provider, node, source_ref )
+
+    return buildAssignmentStatementsFromDecoded(
+        provider   = provider,
+        kind       = kind,
+        detail     = detail,
+        source     = source,
+        source_ref = source_ref
+    )
+
+
+def decodeAssignTarget( provider, node, source_ref, allow_none = False ):
     if node is None and allow_none:
         return None
 
@@ -1071,41 +1040,73 @@ def buildAssignTarget( provider, node, source_ref, allow_none = False ):
     kind = getKind( node )
 
     if type( node ) is str:
-        # Python >= 3.x only
-        node = _fakeNameNode( kind )
-        kind = "Name"
-
-    if kind == "Name":
-        result = buildVariableRefAssignTarget(
+        return kind, CPythonExpressionVariableRef(
+            variable_name = node,
+            source_ref    = source_ref
+        )
+    elif kind == "Name":
+        return kind, CPythonExpressionVariableRef(
             variable_name = node.id,
             source_ref    = source_ref
         )
     elif kind == "Attribute":
-        result = buildAttributeAssignTarget(
-            provider       = provider,
-            value          = node.value,
-            attribute_name = node.attr,
-            source_ref     = source_ref
-        )
-    elif kind in ( "Tuple", "List" ):
-        result = CPythonAssignTargetTuple(
-            elements   = buildAssignTargets( provider, node.elts, source_ref ),
-            source_ref = source_ref
+        return kind, (
+            buildNode( provider, node.value, source_ref ),
+            node.attr
         )
     elif kind == "Subscript":
-        result = buildSubscriptAssignTarget(
-            provider   = provider,
-            node       = node,
-            source_ref = source_ref
+        slice_kind = getKind( node.slice )
+
+        if slice_kind == "Index":
+            return "Subscript", (
+                buildNode( provider, node.value, source_ref ),
+                buildNode( provider, node.slice.value, source_ref )
+            )
+        elif slice_kind == "Slice":
+            lower = buildNode( provider, node.slice.lower, source_ref, True )
+            upper = buildNode( provider, node.slice.upper, source_ref, True )
+
+            if node.slice.step is not None:
+                step = buildNode( provider, node.slice.step, source_ref )
+
+                return "Subscript", (
+                    buildNode( provider, node.value, source_ref ),
+                    CPythonExpressionSliceObject(
+                        lower      = lower,
+                        upper      = upper,
+                        step       = step,
+                        source_ref = source_ref
+                    )
+                )
+            else:
+                return "Slice", (
+                    buildNode( provider, node.value, source_ref ),
+                    lower,
+                    upper
+                )
+        elif slice_kind == "ExtSlice":
+            return "Subscript", (
+                buildNode( provider, node.value, source_ref ),
+                _buildExtSliceNode( provider, node, source_ref )
+            )
+        elif slice_kind == "Ellipsis":
+            return "Subscript", (
+                buildNode( provider, node.value, source_ref ),
+                CPythonExpressionConstantRef(
+                    constant   = Ellipsis,
+                    source_ref = source_ref
+                )
+            )
+        else:
+            assert False, slice_kind
+    elif kind in ( "Tuple", "List" ):
+        return "Tuple", tuple(
+            decodeAssignTarget( provider, sub_node, source_ref, False )
+            for sub_node in
+            node.elts
         )
     else:
-        assert False, ( source_ref, ast.dump( node ) )
-
-
-    return result
-
-def buildAssignTargets( provider, nodes, source_ref, allow_none = False ):
-    return [ buildAssignTarget( provider, node, source_ref, allow_none ) for node in nodes ]
+        assert False, ( source_ref, kind )
 
 def buildAssignNode( provider, node, source_ref ):
     assert len( node.targets ) >= 1, source_ref
@@ -1959,13 +1960,6 @@ def _buildImportModulesNode( import_names, source_ref ):
 
         module_topname = module_name.split(".")[0]
 
-        # If a name was given, use the one provided, otherwise the import gives the top
-        # level package name given for assignment of the imported module.
-        target = buildVariableRefAssignTarget(
-            variable_name = local_name if local_name is not None else module_topname,
-            source_ref    = source_ref
-        )
-
         if local_name:
             import_node = CPythonExpressionImportModule(
                 module_name = module_name,
@@ -1988,9 +1982,15 @@ def _buildImportModulesNode( import_names, source_ref ):
                 source_ref  = source_ref
             )
 
+        # If a name was given, use the one provided, otherwise the import gives the top
+        # level package name given for assignment of the imported module.
+
         import_nodes.append(
             CPythonStatementAssignment(
-                target     = target,
+                target     = buildVariableRefAssignTarget(
+                    variable_name = local_name if local_name is not None else module_topname,
+                    source_ref    = source_ref
+                ),
                 source     = import_node,
                 source_ref = source_ref
             )
@@ -2526,8 +2526,8 @@ def buildReprNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-def _buildInplaceAssignVariableNode( result, target, tmp_variable1, tmp_variable2, operator, \
-                                     expression, source_ref ):
+def _buildInplaceAssignVariableNode( result, variable_ref, tmp_variable1, tmp_variable2,
+                                     operator, expression, source_ref ):
     return (
         # First assign the target value to a temporary variable.
         CPythonStatementAssignment(
@@ -2538,7 +2538,7 @@ def _buildInplaceAssignVariableNode( result, target, tmp_variable1, tmp_variable
                 ),
                 source_ref = source_ref
             ),
-            source     = target.getTargetVariableRef().makeCloneAt( source_ref ),
+            source     = variable_ref.makeCloneAt( source_ref ),
             source_ref = source_ref
         ),
         # Second assign the inplace result to a temporary variable.
@@ -2578,7 +2578,10 @@ def _buildInplaceAssignVariableNode( result, target, tmp_variable1, tmp_variable
             yes_branch = CPythonStatementsSequence(
                 statements = (
                     CPythonStatementAssignment(
-                        target     = target.makeCloneAt( source_ref ),
+                        target     = CPythonAssignTargetVariable(
+                            variable_ref = variable_ref.makeCloneAt( source_ref ),
+                            source_ref   = source_ref
+                        ),
                         source     = CPythonExpressionTempVariableRef(
                             variable   = tmp_variable2.makeReference( result ),
                             source_ref = source_ref
@@ -2593,8 +2596,8 @@ def _buildInplaceAssignVariableNode( result, target, tmp_variable1, tmp_variable
         )
     )
 
-def _buildInplaceAssignAttributeNode( result, target, tmp_variable1, tmp_variable2, operator, \
-                                      expression, source_ref ):
+def _buildInplaceAssignAttributeNode( result, lookup_source, attribute_name, tmp_variable1, \
+                                      tmp_variable2, operator, expression, source_ref ):
     return (
         # First assign the target value to a temporary variable.
         CPythonStatementAssignment(
@@ -2606,8 +2609,8 @@ def _buildInplaceAssignAttributeNode( result, target, tmp_variable1, tmp_variabl
                 source_ref = source_ref
             ),
             source     = CPythonExpressionAttributeLookup(
-                expression     = target.getLookupSource(),
-                attribute_name = target.getAttributeName(),
+                expression     = lookup_source.makeCloneAt( source_ref ),
+                attribute_name = attribute_name,
                 source_ref     = source_ref
             ),
             source_ref = source_ref
@@ -2649,7 +2652,11 @@ def _buildInplaceAssignAttributeNode( result, target, tmp_variable1, tmp_variabl
             yes_branch = CPythonStatementsSequence(
                 statements = (
                     CPythonStatementAssignment(
-                        target     = target.makeCloneAt( source_ref ),
+                        target     = CPythonAssignTargetAttribute(
+                            expression = lookup_source.makeCloneAt( source_ref ),
+                            attribute_name = attribute_name,
+                            source_ref = source_ref
+                        ),
                         source     = CPythonExpressionTempVariableRef(
                             variable   = tmp_variable2.makeReference( result ),
                             source_ref = source_ref
@@ -2664,8 +2671,8 @@ def _buildInplaceAssignAttributeNode( result, target, tmp_variable1, tmp_variabl
         )
     )
 
-def _buildInplaceAssignSubscriptNode( result, target, tmp_variable1, tmp_variable2, operator, \
-                                      expression, source_ref ):
+def _buildInplaceAssignSubscriptNode( result, subscribed, subscript, tmp_variable1,
+                                      tmp_variable2, operator, expression, source_ref ):
     return (
         # First assign the target value and subscript to temporary variables.
         CPythonStatementAssignment(
@@ -2676,7 +2683,7 @@ def _buildInplaceAssignSubscriptNode( result, target, tmp_variable1, tmp_variabl
                 ),
                 source_ref = source_ref
             ),
-            source     =  target.getSubscribed(),
+            source     = subscribed,
             source_ref = source_ref
         ),
         CPythonStatementAssignment(
@@ -2687,7 +2694,7 @@ def _buildInplaceAssignSubscriptNode( result, target, tmp_variable1, tmp_variabl
                 ),
                 source_ref = source_ref
             ),
-            source     = target.getSubscript(),
+            source     = subscript,
             source_ref = source_ref
         ),
         # Second assign the inplace result over the original value.
@@ -2723,8 +2730,9 @@ def _buildInplaceAssignSubscriptNode( result, target, tmp_variable1, tmp_variabl
         )
     )
 
-def _buildInplaceAssignSliceNode( result, target, tmp_variable1, tmp_variable2, \
-                                  tmp_variable3, operator, expression, source_ref ):
+def _buildInplaceAssignSliceNode( result, lookup_source, lower, upper, tmp_variable1, \
+                                  tmp_variable2, tmp_variable3, operator, expression, \
+                                  source_ref ):
     return (
         # First assign the target value, lower and upper to temporary variables.
         CPythonStatementAssignment(
@@ -2735,7 +2743,7 @@ def _buildInplaceAssignSliceNode( result, target, tmp_variable1, tmp_variable2, 
                 ),
                 source_ref = source_ref
             ),
-            source     = target.getLookupSource(),
+            source     = lookup_source,
             source_ref = source_ref
         ),
         CPythonStatementAssignment(
@@ -2746,7 +2754,7 @@ def _buildInplaceAssignSliceNode( result, target, tmp_variable1, tmp_variable2, 
                 ),
                 source_ref = source_ref
             ),
-            source     = target.getLower(),
+            source     = lower,
             source_ref = source_ref
         ),
         CPythonStatementAssignment(
@@ -2757,7 +2765,7 @@ def _buildInplaceAssignSliceNode( result, target, tmp_variable1, tmp_variable2, 
                 ),
                 source_ref = source_ref
             ),
-            source     = target.getUpper(),
+            source     = upper,
             source_ref = source_ref
         ),
         # Second assign the inplace result over the original value.
@@ -2803,63 +2811,73 @@ def _buildInplaceAssignSliceNode( result, target, tmp_variable1, tmp_variable2, 
 
 def buildInplaceAssignNode( provider, node, source_ref ):
     operator   = getKind( node.op )
-    target     = buildAssignTarget( provider, node.target, source_ref )
     expression = buildNode( provider, node.value, source_ref )
 
     result = CPythonStatementTempBlock(
         source_ref = source_ref
     )
 
-    # PyLint doesn't understand the attributes added by the metaclass, but believes it
-    # has an idea about target, pylint: disable=E1103
+    kind, detail = decodeAssignTarget( provider, node.target, source_ref )
 
-    if target.isAssignTargetVariable():
+    if kind == "Name":
+        variable_ref = detail
+
         tmp_variable1 = result.getTempVariable( "inplace_start" )
         tmp_variable2 = result.getTempVariable( "inplace_end" )
 
         statements = _buildInplaceAssignVariableNode(
             result        = result,
-            target        = target,
+            variable_ref  = variable_ref,
             tmp_variable1 = tmp_variable1,
             tmp_variable2 = tmp_variable2,
             operator      = operator,
             expression    = expression,
             source_ref    = source_ref
         )
-    elif target.isAssignTargetAttribute():
+    elif kind == "Attribute":
+        lookup_source, attribute_name = detail
+
         tmp_variable1 = result.getTempVariable( "inplace_start" )
         tmp_variable2 = result.getTempVariable( "inplace_end" )
 
         statements = _buildInplaceAssignAttributeNode(
-            result        = result,
-            target        = target,
-            tmp_variable1 = tmp_variable1,
-            tmp_variable2 = tmp_variable2,
-            operator      = operator,
-            expression    = expression,
-            source_ref    = source_ref
+            result         = result,
+            lookup_source  = lookup_source,
+            attribute_name = attribute_name,
+            tmp_variable1  = tmp_variable1,
+            tmp_variable2  = tmp_variable2,
+            operator       = operator,
+            expression     = expression,
+            source_ref     = source_ref
         )
-    elif target.isAssignTargetSubscript():
+    elif kind == "Subscript":
+        subscribed, subscript = detail
+
         tmp_variable1 = result.getTempVariable( "inplace_target" )
         tmp_variable2 = result.getTempVariable( "inplace_subscript" )
 
         statements = _buildInplaceAssignSubscriptNode(
             result        = result,
-            target        = target,
+            subscribed    = subscribed,
+            subscript     = subscript,
             tmp_variable1 = tmp_variable1,
             tmp_variable2 = tmp_variable2,
             operator      = operator,
             expression    = expression,
             source_ref    = source_ref
         )
-    elif target.isAssignTargetSlice():
+    elif kind == "Slice":
+        lookup_source, lower, upper = detail
+
         tmp_variable1 = result.getTempVariable( "inplace_target" )
         tmp_variable2 = result.getTempVariable( "inplace_lower" )
         tmp_variable3 = result.getTempVariable( "inplace_upper" )
 
         statements = _buildInplaceAssignSliceNode(
             result        = result,
-            target        = target,
+            lookup_source = lookup_source,
+            lower         = lower,
+            upper         = upper,
             tmp_variable1 = tmp_variable1,
             tmp_variable2 = tmp_variable2,
             tmp_variable3 = tmp_variable3,
@@ -2868,7 +2886,7 @@ def buildInplaceAssignNode( provider, node, source_ref ):
             source_ref    = source_ref
         )
     else:
-        assert False, target
+        assert False, kind
 
     result.setBody(
         CPythonStatementsSequence(

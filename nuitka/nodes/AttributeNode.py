@@ -63,6 +63,14 @@ class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
 
     getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 
+    def makeCloneAt( self, source_ref ):
+        return CPythonExpressionAttributeLookup(
+            expression     = self.getLookupSource().makeCloneAt( source_ref ),
+            attribute_name = self.getAttributeName(),
+            source_ref     = source_ref
+        )
+
+
     def computeNode( self ):
         # There is a whole registry dedicated to this.
         return AttributeRegistry.computeAttribute( self )
