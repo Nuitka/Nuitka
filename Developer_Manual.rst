@@ -177,7 +177,7 @@ value per line:
 Here, "Identifier" will be so well known that the reader is expected to know the argument
 names and their meaning, but it would be still better to add them.
 
-Contractions may span across multiple lines for increased readability:
+Contractions should span across multiple lines for increased readability:
 
 .. code-block:: python
 
@@ -660,6 +660,171 @@ a known tuple or list creation.
 
    The "unpack_check" is a special node that raises a "ValueError" exception if the
    iterator is not finished, i.e. there are more values to unpack.
+
+With Statements
+---------------
+
+The "with" statements are re-formulated to use temporary variables as well. The taking and
+calling of "__enter__" and "__exit__" with arguments, is presented with standard
+operations instead. The promise to call "__exit__" is fulfilled by "try/except" clause
+instead.
+
+.. code-block:: python
+
+    with some_context as x:
+        something( x )
+
+.. code-block:: python
+
+    tmp_source = some_context
+
+    # Actually it needs to be "special lookup" for Python2.7, so attribute lookup won't
+    # be exactly it there.
+    tmp_exit = tmp_source.__exit__
+
+    # This one must be held for the whole with statement, it may be assigned or not, in
+    # our example it is. If an exception occurs when calling "__enter__", the "__exit__"
+    # should not be called.
+    tmp_enter_result = tmp_source.__enter__()
+
+    try:
+        # Now the assignment is to be done, if there is any name for the manager given,
+        # this may become multiple assignment statements and even unpacking ones.
+        x = tmp_enter_result
+
+        # Then the code of the "with" block.
+        something( x )
+    except Exception:
+
+        # Note: This part of the code must not set line numbers, which we indicate with
+        # special source code references, which we call "internal". Otherwise the line
+        # of the frame would get corrupted.
+
+        if not tmp_exit( *sys.exc_info() ):
+            raise
+    else:
+        # Call the exit if no exception occurred with all arguments as "None".
+        tmp_exit( None, None, None )
+
+.. note::
+
+   We don't refer really to "sys.exc_info()" at all, instead, we have references to the
+   current exception type, value and trace, taken directory from the C++ exception
+   object.
+
+   If we had the ability to optimize "sys.exc_info()" to do that, we could use the same
+   transformation, but right now we don't have it.
+
+For Loops
+=========
+
+The for loops should use normal assignments and handle the iterator that is implicit in
+the code explicitely.
+
+.. code-block:: python
+
+    for x,y in iterable:
+        if something( x ):
+            break
+    else:
+        otherwise()
+
+This is roughly equivalent to the following code:
+
+.. code-block:: python
+
+    _iter = iter( iterable )
+    _no_break_indicator = False
+
+    while True:
+        try:
+            _tmp_value = next( _iter )
+        except StopIteration:
+            # Set the indicator that the else branch may be executed.
+            _no_break_indicator = True
+
+            # Optimization should be able to tell that the else branch is run only once.
+            break
+
+         # Normal assignment re-formulation applies to this assignment of course.
+         x, y = _tmp_value
+         del _tmp_value
+
+         if something( x ):
+             break
+
+    if _no_break_indicator:
+        otherwise()
+
+.. note::
+
+   The "_iter" temporary variable is of course in a temp block and the "x, y" assignment
+   is the normal is of course re-formulation of an assignment that cannot fail.
+
+   The "try/exception" is detected to allow to use a variant of "next" that throws no C++
+   exception, but instead to use "ITERATOR_NEXT" and which returns NULL in that case, so
+   that the code doesn't really have any Python level exception handling going on.
+
+While Loops
+===========
+
+Loops in Nuitka have no condition attached anymore, so while loops are re-formulated like this:
+
+.. code-block:: python
+
+    while condition:
+        something()
+
+.. code-block:: python
+
+    while True:
+        if not condition:
+            break
+
+        something()
+
+
+This is to totally remove the specialization of loops, with the condition moved to the
+loop body in a conditional statement, which contains a break statement.
+
+That makes it clear, that only break statements exit the loop, and allow for optimization
+to remove always true loop conditions, without concerning code generation about it, and to
+detect such a situation, consider e.g. endless loops.
+
+.. note::
+
+   Loop analysis can therefore work on a reduced problem (which breaks are executed under
+   which conditions) and be very general, but it cannot take advantage of the knowledge
+   encoded directly anymore. The fact that the loop body may not be entered at all, if the
+   condition is not met, is something harder to discover.
+
+Exception Handler Values
+========================
+
+Exception handlers in Python may assign the caught exception value to a variable in the
+handler definition.
+
+.. code-block:: python
+
+    try:
+        something()
+    except Exception as e:
+        handle_it()
+
+That is equivalent to the following:
+
+.. code-block:: python
+
+    try:
+        something()
+    except Exception:
+        e = sys.exc_info()[1]
+        handle_it()
+
+
+Of course, the value of the current exception, use special references for assignments,
+that access the C++ and don't go via "sys.exc_info" at all, these are called
+"CaughtExceptionValueRef".
 
 
 Plan to replace "python-qt" for the GUI
@@ -1533,128 +1698,7 @@ into action, which could be code changes, plan changes, issues created, etc.
   at code generation time, we wouldn't have to carry them through optimizations anymore,
   so that idea is worth perusing.
 
-* For loops should probably become while loops.
-
-  Instead of treating for loops special, we could consider this:
-
-  .. code-block:: python
-
-     for x,y in iterable:
-         if something( x ):
-            break
-     else:
-         otherwise()
-
-  .. code-block:: python
-
-     _broken = False
-     while True: # forever
-         try:
-             _tmp = next( iterable )
-             x, y = _tmp
-         except StopIteration:
-             break
-
-         if something ( x ):
-            _broken = True
-            break
-
-     if not _broken:
-         otherwise()
-
-  It's a reduction of for loop to a while loop. But we would loose all chances to detect
-  the loop exit conditions, but did we have it? This is also very similar to the C++ code
-  we generate for them right now. The detection of "iterable", how often next will be
-  possible at max, would e.g. be more difficult, but also more general.
-
-  Not visible here, is how "_tmp" is released right after unpacking, and how the
-  "StopIteration" need not be a real exception, but is a "NULL" return of "ITERATOR_NEXT"
-  for maximum efficiency. A structure will be needed that holds "tmp", much like a "with"
-  block.
-
-* For loops should use normal assignments
-
-  .. code-block:: python
-
-     for x,y in iterable:
-         if something( x ):
-            break
-     else:
-         otherwise()
-
-  .. code-block:: python
-
-     _iter = iter( iterable )
-
-     while not finished( _iter ):
-        x, y = next( _iter ) # Normal assignment re-formulation should apply
-
-        if something( x ):
-           break
-     else:
-         otherwise()
-
-  .. note::
-
-     The "_iter" temporary variable is of course in a temp block and the "x, y" assignment
-     is the normal is of course re-formulation of an assignment that cannot fail. The
-     finished and next need to be friends.
-
-  This idea might be simpler and less radical, esp. since while loops to contain an else
-  formulation already.
-
-* With statements should become scoped
-
-  The algorithm of "with" statements should be re-formulated in the node tree. The taking
-  and calling of "__enter__" and "__exit__" with arguments, should be presented there in
-  order to be absolutely safe.
-
-  .. code-block:: python
-
-     with some_context as x:
-         something( x )
-
-  .. code-block:: python
-
-     tmp_source = some_context
-
-     # Actually it needs to be "special lookup" for Python2.7, so attribute lookup won't
-     # be exactly it there.
-     tmp_exit = tmp_source.__exit__
-     tmp_enter = tmp_source.__enter__
-
-     # Actually it's unclear for how long the result must be kept, might be possible to
-     # delete immediately. Current code holds it during the execution of the with statement.
-     tmp_enter_result = tmp_enter()
-
-     try:
-        # Now the assignment is to be done, if there is any name for the manager given.
-        x = tmp_enter_result
-
-        # Then the code of the block.
-        something( x )
-     except Exception as e, tb: # Catching tb is not allowed syntax.
-        # Note: This part of the code must not set line numbers, we don't have a way to
-        # say that yet. Maybe the source_ref can be improved to indicate with flags to
-        # not do it.
-        if not tmp_exit( type(e), e, tb ):
-           raise
-     else:
-        tmp_exit( None, None, None )
-
-* Exception handlers should use special references for assignments
-
-  The exception handlers may assign attributes of the caught exception to the current name
-  space, and these are currently not accessible to optimization at all. The idea is that
-  these should become accessible via a special kind of variable reference, the name could
-  be "CaughtExceptionRef", and then it's assigned from there.
-
-  This would make it easier to access these attributes, esp. from code that needs it, like
-  e.g. the new "with" statement re-formulation, that needs to pass it along as arguments
-  to a function call.
-
-
-* Code Templates may become objects.
+* Code Templates may become objects
 
   It should only wrap around the "%" operator and provide the ability to display the
   template name in tracebacks as well as in generated code. So one could optionally enable
@@ -1662,7 +1706,6 @@ into action, which could be code changes, plan changes, issues created, etc.
 
   Maybe they should overload "%" to start with it easily. And the code template could be
   the doc string of the class for simplicity.
-
 
 .. raw:: pdf
 
