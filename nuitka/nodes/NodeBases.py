@@ -303,9 +303,6 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
     def isExpressionOperationBool2( self ):
         return self.kind.startswith( "EXPRESSION_BOOL_" )
 
-    def isAssignTargetSomething( self ):
-        return self.kind.startswith( "ASSIGN_" )
-
     def isExpressionMakeSequence( self ):
         # Virtual method, pylint: disable=R0201,W0613
         return False

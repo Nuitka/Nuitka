@@ -86,46 +86,11 @@ class ConstraintCollection:
         for variable_name, variable_info in sorted( iterItems( self.variables ) ):
             debug( "%r: %r", variable_name, variable_info )
 
-    def onAssigmentToTargetFromValueFriend( self, target, value_friend ):
-        if target.isAssignTargetVariable():
-            if value_friend is None:
-                self.onAssignmentOfTargetFromUnknown( target )
-            else:
-                self.variables[ target.getTargetVariableRef().getVariable() ] = value_friend
-        elif target.isAssignTargetSubscript():
-            # TODO: We don't yet track subscripts, as those.
-            # TODO: onExpression should rather be "onTarget()" which should do less.
-            self.onTarget( target.getSubscribed() )
-            self.onExpression( target.getSubscript() )
-        elif target.isAssignTargetAttribute():
-            # TODO: We don't yet track attributes, as those.
-            self.onTarget( target.getLookupSource() )
-        elif target.isAssignTargetSlice():
-            # TODO: We don't yet track slices, as those.
-            self.onTarget( target.getLookupSource() )
-
-            if target.getLower() is not None:
-                self.onExpression( target.getLower() )
-            if target.getUpper() is not None:
-                self.onExpression( target.getUpper() )
-        else:
-            assert False, target
-
-    def onAssignmentOfTargetFromUnknown( self, target ):
-        if target.isAssignTargetVariable():
-            variable = target.getTargetVariableRef().getVariable()
-
-            if variable in self.variables:
-                del self.variables[ variable ]
-
-
     def onClosureTaker( self, closure_taker ):
         if closure_taker.isExpressionFunctionBody():
             collector = ConstraintCollectionFunction( self.signalChange )
         elif closure_taker.isExpressionClassBody():
             collector = ConstraintCollectionClass( self.signalChange )
-        elif closure_taker.isExpressionGeneratorBody():
-            collector = ConstraintCollectionContraction( self.signalChange )
         else:
             assert False, closure_taker
 
@@ -165,60 +130,10 @@ class ConstraintCollection:
             else:
                 statements_sequence.replaceWith( None )
 
+    def onExpression( self, expression, allow_none = False ):
+        if expression is None and allow_none:
+            return
 
-    def onAssignmentToTargetFromSource( self, target, source ):
-        assert type( target ) is not tuple
-        assert target.isAssignTargetSomething()
-
-        assert source is not None and source.isExpression(), ( target, source )
-
-        # Ask the source about iself, what does it give.
-        source_friend = source.getValueFriend()
-
-        assert source_friend is not None, source
-
-        self.onAssigmentToTargetFromValueFriend(
-            target       = target,
-            value_friend = source_friend
-        )
-
-    def onStatementAssignment( self, statement ):
-        source = statement.getSource()
-
-        self.onExpression( source )
-
-        assert statement.getSource() is not None, ( statement, source )
-
-
-        # Note: The source may no longer be valid, can't use it anymore.
-        del source
-
-        self.onAssignmentToTargetFromSource(
-            target = statement.getTarget(),
-            source = statement.getSource()
-        )
-
-        return statement
-
-    def onTarget( self, target ):
-        if target.isAssignTargetVariable():
-            # Should invalidate it
-            pass
-        elif target.isAssignTargetAttribute():
-            # Should invalidate it via attribute registry.
-            pass
-        elif target.isAssignTargetSubscript():
-            # Should invalidate it via subscript registry and wholly.
-            pass
-        elif target.isAssignTargetSomething():
-            assert False, target
-        elif target.isExpression():
-            self.onExpression( target )
-        else:
-            assert False, target
-
-
-    def onExpression( self, expression ):
         assert expression.isExpression(), expression
 
         # print( "CONSIDER", expression )
@@ -236,8 +151,6 @@ class ConstraintCollection:
                 change_desc
             )
         elif expression.isExpressionVariableRef() and False: # TODO: Not safe yet, disabled
-            assert not new_node.getParent().isAssignTargetSomething(), new_node.getParent()
-
             variable = expression.getVariable()
 
             friend = self.getVariableValueFriend( variable )
@@ -263,9 +176,15 @@ class ConstraintCollection:
         return statement
 
     def onSubExpressions( self, owner ):
-        if owner.isExpressionAssignment():
-            self.onTarget( owner.getTarget() )
+        if owner.isExpressionAssignmentVariable():
             self.onExpression( owner.getSource() )
+
+            variable_ref = owner.getTargetVariableRef()
+            value_friend = owner.getSource().getValueFriend()
+
+            assert value_friend is not None
+
+            self.variables[ variable_ref.getVariable() ] = value_friend
         elif not owner.hasTag( "closure_taker" ):
             sub_expressions = owner.getVisitableNodes()
 
@@ -361,8 +280,38 @@ class ConstraintCollection:
     def onStatement( self, statement ):
         assert statement.isStatement(), statement
 
-        if statement.isStatementAssignment():
-            return self.onStatementAssignment( statement )
+        if statement.isStatementAssignmentVariable():
+            self.onExpression( statement.getAssignSource() )
+
+            variable_ref = statement.getTargetVariableRef()
+            value_friend = statement.getAssignSource().getValueFriend()
+
+            assert value_friend is not None
+
+            self.variables[ variable_ref.getVariable() ] = value_friend
+
+            return statement
+        elif statement.isStatementAssignmentAttribute():
+            self.onExpression( statement.getAssignSource() )
+
+            self.onExpression( statement.getLookupSource() )
+
+            return statement
+        elif statement.isStatementAssignmentSubscript():
+            self.onExpression( statement.getAssignSource() )
+
+            self.onExpression( statement.getSubscribed() )
+            self.onExpression( statement.getSubscript() )
+
+            return statement
+        elif statement.isStatementAssignmentSlice():
+            self.onExpression( statement.getAssignSource() )
+
+            self.onExpression( statement.getLookupSource() )
+            self.onExpression( statement.getLower(), allow_none = True )
+            self.onExpression( statement.getUpper(), allow_none = True )
+
+            return statement
         elif statement.isStatementDelVariable():
             variable = statement.getTargetVariableRef()
 
@@ -371,13 +320,19 @@ class ConstraintCollection:
 
             return statement
         elif statement.isStatementDelAttribute():
-            # TODO: Handle it
+            self.onExpression( statement.getLookupSource() )
+
             return statement
         elif statement.isStatementDelSubscript():
-            # TODO: Handle it
+            self.onExpression( statement.getSubscribed() )
+            self.onExpression( statement.getSubscript() )
+
             return statement
         elif statement.isStatementDelSlice():
-            # TODO: Handle it
+            self.onExpression( statement.getLookupSource() )
+            self.onExpression( statement.getLower(), allow_none = True )
+            self.onExpression( statement.getUpper(), allow_none = True )
+
             return statement
         elif statement.isStatementExpressionOnly():
             expression = statement.getExpression()
@@ -528,22 +483,6 @@ class ConstraintCollectionClass( ConstraintCollection ):
 
         if statements_sequence is not None:
             self.onStatementsSequence( statements_sequence )
-
-
-class ConstraintCollectionContraction( ConstraintCollection ):
-    def process( self, contraction_body ):
-        # TODO: Contractions don't work at all in this structure.
-        for source in contraction_body.getSources():
-            self.onExpression( source )
-
-        for condition in contraction_body.getConditions():
-            self.onExpression( condition )
-
-        for target in contraction_body.getTargets():
-            self.onTarget( target )
-
-        # TODO: Do not call this body, it's the expression generated.
-        self.onExpression( contraction_body.getBody() )
 
 
 class ConstraintCollectionModule( ConstraintCollection ):

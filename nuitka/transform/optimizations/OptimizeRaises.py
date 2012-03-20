@@ -34,8 +34,6 @@ from .OptimizeBase import OptimizationVisitorBase
 
 from ..TreeOperations import RestartVisit
 
-from nuitka.nodes.AssignNodes import CPythonStatementAssignment
-
 from nuitka.nodes.NodeMakingHelpers import (
     convertRaiseExceptionExpressionRaiseExceptionStatement,
     makeStatementsSequenceReplacementNode
@@ -89,8 +87,9 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
                             )
 
                             if match is True:
-                                # TODO: Make this robust.
                                 return
+
+                                # TODO: Make this robust and working again.
 
                                 handler_target = handler.getExceptionTarget()
 

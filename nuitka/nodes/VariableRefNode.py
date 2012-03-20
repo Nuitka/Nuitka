@@ -72,7 +72,7 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
     def makeCloneAt( self, source_ref ):
         assert self.variable is None
 
-        return CPythonExpressionVariableRef(
+        return self.__class__(
             variable_name = self.variable_name,
             source_ref    = source_ref
         )
@@ -157,6 +157,10 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
 
     def isKnownToBeIterable( self, count ):
         return None
+
+
+class CPythonExpressionTargetVariableRef( CPythonExpressionVariableRef ):
+    kind = "EXPRESSION_TARGET_VARIABLE_REF"
 
 
 class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin ):

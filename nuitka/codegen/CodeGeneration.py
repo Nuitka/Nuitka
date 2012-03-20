@@ -581,67 +581,6 @@ def generateSliceLookupCode( expression, context ):
                 )
             )
 
-def generateSliceAssignmentCode( target, assign_source, context ):
-    lower = target.getLower()
-    upper = target.getUpper()
-
-    if decideSlicing( lower, upper ):
-        expression_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
-            sliced    = target.getLookupSource(),
-            lower     = lower,
-            upper     = upper,
-            context   = context
-        )
-
-        return Generator.getSliceAssignmentIndexesCode(
-            target     = expression_identifier,
-            upper      = upper_identifier,
-            lower      = lower_identifier,
-            identifier = assign_source
-        )
-    else:
-        if _slicing_available:
-            return Generator.getSliceAssignmentCode(
-                target     = generateExpressionCode(
-                    expression = target.getLookupSource(),
-                    context    = context
-                ),
-                identifier = assign_source,
-                lower   = generateExpressionCode(
-                    expression = lower,
-                    allow_none = True,
-                    context    = context
-                ),
-                upper   = generateExpressionCode(
-                    expression = upper,
-                    allow_none = True,
-                    context    = context
-                )
-            )
-        else:
-            return Generator.getSubscriptAssignmentCode(
-                subscribed = generateExpressionCode(
-                    expression = target.getLookupSource(),
-                    context    = context
-                ),
-                subscript = Generator.getSliceObjectCode(
-                    lower = generateExpressionCode(
-                        expression = lower,
-                        allow_none = True,
-                        context    = context
-                    ),
-                    upper = generateExpressionCode(
-                        expression = upper,
-                        allow_none = True,
-                        context    = context
-                    ),
-                    step    = None
-                ),
-                identifier = assign_source
-            )
-
-
-
 def generateFunctionCallNamedArgumentsCode( pairs, context ):
     if pairs:
         return generateDictionaryCreationCode(
@@ -1117,16 +1056,13 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = Generator.getExceptionRefCode(
             exception_type = expression.getExceptionName(),
         )
-    elif expression.isExpressionAssignment():
-        target = expression.getTarget()
-        assert target.isAssignTargetVariable(), target
-
+    elif expression.isExpressionAssignmentVariable():
         source_identifier = makeExpressionCode( expression.getSource() )
 
         identifier = Generator.Identifier(
             "( %s )" % (
                 Generator.getVariableAssignmentCode(
-                    variable   = target.getTargetVariableRef().getVariable(),
+                    variable   = expression.getTargetVariableRef().getVariable(),
                     identifier = source_identifier,
                     context    = context
                 )[:-1]
@@ -1180,58 +1116,87 @@ def generateExpressionCode( expression, context, allow_none = False ):
     return identifier
 
 
-def generateAssignmentCode( target, value, context ):
-    # This is a dispatching function with a branch per assignment node type.
-    # pylint: disable=R0912,R0914
+def generateAssignmentVariableCode( variable_ref, value, context ):
+    return Generator.getVariableAssignmentCode(
+        variable   = variable_ref.getVariable(),
+        identifier = value,
+        context    = context
+    )
 
-    assert type( target ) not in ( tuple, list )
-    assert target.isAssignTargetSomething()
+def generateAssignmentAttributeCode( lookup_source, attribute_name, value, context ):
+    return Generator.getAttributeAssignmentCode(
+        target     = lookup_source,
+        attribute  = context.getConstantHandle(
+            constant = attribute_name
+        ),
+        identifier = value
+    )
 
-    if target.isAssignTargetSubscript():
-        code = Generator.getSubscriptAssignmentCode(
-            subscribed    = generateExpressionCode(
-                expression = target.getSubscribed(),
-                context    = context
-            ),
-            subscript     = generateExpressionCode(
-                expression = target.getSubscript(),
-                context    = context
-            ),
-            identifier    = value
+def generateAssignmentSubscriptCode( subscribed, subscript, value ):
+    return Generator.getSubscriptAssignmentCode(
+        subscribed    = subscribed,
+        subscript     = subscript,
+        identifier    = value
+    )
+
+def generateAssignmentSliceCode( lookup_source, lower, upper, value, context ):
+    if decideSlicing( lower, upper ):
+        expression_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
+            sliced    = lookup_source,
+            lower     = lower,
+            upper     = upper,
+            context   = context
         )
-    elif target.isAssignTargetAttribute():
-        attribute_name = mangleAttributeName(
-            attribute_name = target.getAttributeName(),
-            node           = target
-        )
 
-        code = Generator.getAttributeAssignmentCode(
-            target     = generateExpressionCode(
-                expression = target.getLookupSource(),
-                context    = context
-            ),
-            attribute  = context.getConstantHandle(
-                constant = attribute_name
-            ),
+        return Generator.getSliceAssignmentIndexesCode(
+            target     = expression_identifier,
+            upper      = upper_identifier,
+            lower      = lower_identifier,
             identifier = value
         )
-    elif target.isAssignTargetSlice():
-        code = generateSliceAssignmentCode(
-            target        = target,
-            assign_source = value,
-            context       = context
-        )
-    elif target.isAssignTargetVariable():
-        code = Generator.getVariableAssignmentCode(
-            variable   = target.getTargetVariableRef().getVariable(),
-            identifier = value,
-            context    = context
-        )
     else:
-        assert False, target
+        if _slicing_available:
+            return Generator.getSliceAssignmentCode(
+                target     = generateExpressionCode(
+                    expression = lookup_source,
+                    context    = context
+                ),
+                lower      = generateExpressionCode(
+                    expression = lower,
+                    allow_none = True,
+                    context    = context
+                ),
+                upper      = generateExpressionCode(
+                    expression = upper,
+                    allow_none = True,
+                    context    = context
+                ),
+                identifier = value
+            )
+        else:
+            return Generator.getSubscriptAssignmentCode(
+                subscribed = generateExpressionCode(
+                    expression = lookup_source,
+                    context    = context
+                ),
+                subscript  = Generator.getSliceObjectCode(
+                    lower  = generateExpressionCode(
+                        expression = lower,
+                        allow_none = True,
+                        context    = context
+                    ),
+                    upper  = generateExpressionCode(
+                        expression = upper,
+                        allow_none = True,
+                        context    = context
+                    ),
+                    step   = None
+                ),
+                identifier = value
+            )
 
-    assert not code.endswith( "\n" )
-    return code
+
+
 
 def generateDelVariableCode( variable_ref, context ):
     return Generator.getVariableDelCode(
@@ -1245,13 +1210,10 @@ def generateDelSubscriptCode( subscribed, subscript ):
         subscript  = subscript
     )
 
-def generateDelSliceCode( statement, context ):
-    lower = statement.getLower()
-    upper = statement.getUpper()
-
+def generateDelSliceCode( lookup_source, lower, upper, context ):
     if decideSlicing( lower, upper ):
         target_identifier, lower_identifier, upper_identifier = generateSliceAccessIdentifiers(
-            sliced    = statement.getLookupSource(),
+            sliced    = lookup_source,
             lower     = lower,
             upper     = upper,
             context   = context
@@ -1265,7 +1227,7 @@ def generateDelSliceCode( statement, context ):
     else:
         return Generator.getSubscriptDelCode(
             subscribed  = generateExpressionCode(
-                expression = statement.getLookupSource(),
+                expression = lookup_source,
                 context    = context
             ),
             subscript = Generator.getSliceObjectCode(
@@ -1433,33 +1395,28 @@ def generateTryExceptCode( statement, context ):
     if len( tried_statements ) == 1:
         tried_statement = tried_statements[0]
 
-        if tried_statement.isStatementAssignment():
-            target = tried_statement.getTarget()
+        if tried_statement.isStatementAssignmentVariable():
+            source = tried_statement.getAssignSource()
 
-            if target.isAssignTargetVariable():
-                # Note: Now we know it's safe to assign to it.
+            if source.isExpressionBuiltinNext1():
+                if not source.getValue().mayRaiseException( BaseException ):
+                    # Note: Now we know the source lookup is the only thing that may
+                    # raise.
 
-                source = tried_statement.getSource()
+                    handlers = statement.getExceptionHandlers()
 
-                if source.isExpressionBuiltinNext1():
-                    if not source.getValue().mayRaiseException( BaseException ):
-                        # Note: Now we know the source lookup is the only thing that may
-                        # raise.
+                    if len( handlers ) == 1:
+                        catched_types = handlers[0].getExceptionTypes()
 
-                        handlers = statement.getExceptionHandlers()
+                        if len( catched_types ) == 1:
+                            catched_type = catched_types[0]
+                            if catched_type.isExpressionBuiltinExceptionRef():
+                                if catched_type.getExceptionName() == "StopIteration":
+                                    if handlers[0].getExceptionBranch().isStatementAbortative():
 
-                        if len( handlers ) == 1:
-                            catched_types = handlers[0].getExceptionTypes()
+                                        temp_number = context.allocateForLoopNumber()
 
-                            if len( catched_types ) == 1:
-                                catched_type = catched_types[0]
-                                if catched_type.isExpressionBuiltinExceptionRef():
-                                    if catched_type.getExceptionName() == "StopIteration":
-                                        if handlers[0].getExceptionBranch().isStatementAbortative():
-
-                                            temp_number = context.allocateForLoopNumber()
-
-                                            return """\
+                                        return """\
 PyObject *_tmp_unpack_%(tmp_count)d = ITERATOR_NEXT( %(source_identifier)s );
 
 if ( _tmp_unpack_%(tmp_count)d == NULL )
@@ -1473,11 +1430,13 @@ if ( _tmp_unpack_%(tmp_count)d == NULL )
         allow_none         = True,
         context            = context
      ) ),
-     "assignment_code" : Generator.indented( generateAssignmentCode(
-        target  = tried_statement.getTarget(),
-        value   = Generator.Identifier( "_tmp_unpack_%d" % temp_number, 1 ),
-        context = context
-     ) ),
+     "assignment_code" : Generator.indented(
+         generateAssignmentVariableCode(
+             variable_ref = tried_statement.getTargetVariableRef(),
+             value        = Generator.Identifier( "_tmp_unpack_%d" % temp_number, 1 ),
+             context      = context
+         )
+     ),
      "source_identifier" : generateExpressionCode(
         expression = source.getValue(),
         context    = context
@@ -1704,23 +1663,6 @@ def generateLoopCode( statement, context ):
         needs_exceptions = statement.needsExceptionBreakContinue(),
     )
 
-def mayRaise( targets ):
-    if type( targets ) not in ( tuple, list ) and targets.isAssignTargetSomething():
-        targets = [ targets ]
-
-    # TODO: Identify more things that cannot raise. Slices, etc. could be annotated
-    # in finalization if their lookup could fail at all.
-
-    for target in targets:
-        if target.isAssignTargetVariable():
-            pass
-        else:
-            break
-    else:
-        return False
-
-    return True
-
 def generateTempBlock( statement, context ):
     body_codes = generateStatementSequenceCode(
         statement_sequence = statement.getBody(),
@@ -1730,7 +1672,6 @@ def generateTempBlock( statement, context ):
     return Generator.getBlockCode(
         body_codes
     )
-
 
 def generateReturnCode( statement, context ):
     parent_function = statement.getParentFunction()
@@ -1769,11 +1710,35 @@ def _generateStatementCode( statement, context ):
             context     = context
         )
 
-    if statement.isStatementAssignment():
-        code = generateAssignmentCode(
-            target  = statement.getTarget(),
-            value   = makeExpressionCode( statement.getSource() ),
-            context = context
+    if statement.isStatementAssignmentVariable():
+        code = generateAssignmentVariableCode(
+            variable_ref  = statement.getTargetVariableRef(),
+            value         = makeExpressionCode( statement.getAssignSource() ),
+            context       = context
+        )
+    elif statement.isStatementAssignmentAttribute():
+        code = generateAssignmentAttributeCode(
+            lookup_source  = makeExpressionCode( statement.getLookupSource() ),
+            attribute_name = mangleAttributeName(
+                attribute_name = statement.getAttributeName(),
+                node           = statement
+            ),
+            value          = makeExpressionCode( statement.getAssignSource() ),
+            context        = context
+        )
+    elif statement.isStatementAssignmentSubscript():
+        code = generateAssignmentSubscriptCode(
+            subscribed     = makeExpressionCode( statement.getSubscribed() ),
+            subscript      = makeExpressionCode( statement.getSubscript() ),
+            value          = makeExpressionCode( statement.getAssignSource() ),
+        )
+    elif statement.isStatementAssignmentSlice():
+        code = generateAssignmentSliceCode(
+            lookup_source  = statement.getLookupSource(),
+            lower          = statement.getLower(),
+            upper          = statement.getUpper(),
+            value          = makeExpressionCode( statement.getAssignSource() ),
+            context        = context
         )
     elif statement.isStatementDelVariable():
         code = generateDelVariableCode(
@@ -1787,8 +1752,10 @@ def _generateStatementCode( statement, context ):
         )
     elif statement.isStatementDelSlice():
         code = generateDelSliceCode(
-            statement = statement,
-            context   = context
+            lookup_source = statement.getLookupSource(),
+            lower         = statement.getLower(),
+            upper         = statement.getUpper(),
+            context       = context
         )
     elif statement.isStatementDelAttribute():
         code = generateDelAttributeCode(

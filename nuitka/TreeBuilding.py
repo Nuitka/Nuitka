@@ -49,6 +49,7 @@ from .nodes.FutureSpec import FutureSpec
 
 from .nodes.NodeBases import CPythonNodeBase
 from .nodes.VariableRefNode import (
+    CPythonExpressionTargetVariableRef,
     CPythonExpressionVariableRef,
     CPythonExpressionTempVariableRef,
     CPythonStatementTempBlock
@@ -138,16 +139,15 @@ from .nodes.ConditionalNodes import (
 from .nodes.YieldNode import CPythonExpressionYield
 from .nodes.ReturnNode import CPythonStatementReturn
 from .nodes.AssignNodes import (
-    CPythonStatementAssignment,
+    CPythonStatementAssignmentVariable,
+    CPythonStatementAssignmentAttribute,
+    CPythonStatementAssignmentSubscript,
+    CPythonStatementAssignmentSlice,
     CPythonStatementDelAttribute,
     CPythonStatementDelSubscript,
     CPythonStatementDelVariable,
     CPythonStatementDelSlice,
-    CPythonExpressionAssignment,
-    CPythonAssignTargetAttribute,
-    CPythonAssignTargetSubscript,
-    CPythonAssignTargetVariable,
-    CPythonAssignTargetSlice
+    CPythonExpressionAssignmentVariable,
 )
 from .nodes.PrintNodes import CPythonStatementPrint
 from .nodes.ModuleNodes import (
@@ -169,12 +169,6 @@ def dump( node ):
 
 def getKind( node ):
     return node.__class__.__name__.split( "." )[-1]
-
-def _fakeNameNode( name ):
-    result = lambda : name
-    result.id = name
-
-    return result
 
 def buildVariableReferenceNode( node, source_ref ):
     return CPythonExpressionVariableRef(
@@ -242,13 +236,10 @@ def buildClassNode( provider, node, source_ref ):
             source_ref        = decorator.getSourceReference()
         )
 
-    return CPythonStatementAssignment(
-        target     = CPythonAssignTargetVariable(
-            variable_ref = CPythonExpressionVariableRef(
-                variable_name = node.name,
-                source_ref    = source_ref
-            ),
-            source_ref   = source_ref
+    return CPythonStatementAssignmentVariable(
+        variable_ref = CPythonExpressionTargetVariableRef(
+            variable_name = node.name,
+            source_ref    = source_ref
         ),
         source     = decorated_body,
         source_ref = source_ref
@@ -359,16 +350,13 @@ def buildFunctionNode( provider, node, source_ref ):
             source_ref        = source_ref,
         )
 
-    return CPythonStatementAssignment(
-        target     = CPythonAssignTargetVariable(
-            variable_ref = CPythonExpressionVariableRef(
-                variable_name = node.name,
-                source_ref    = source_ref
-            ),
-            source_ref   = source_ref
+    return CPythonStatementAssignmentVariable(
+        variable_ref = CPythonExpressionTargetVariableRef(
+            variable_name = node.name,
+            source_ref    = source_ref
         ),
-        source     = decorated_body,
-        source_ref = source_ref
+        source       = decorated_body,
+        source_ref   = source_ref
     )
 
 def buildLambdaNode( provider, node, source_ref ):
@@ -451,12 +439,9 @@ def buildForLoopNode( provider, node, source_ref ):
         tmp_break_indicator_variable = result.getTempVariable( "break_indicator" )
 
         statements = [
-            CPythonStatementAssignment(
-                target     = CPythonAssignTargetVariable(
-                    variable_ref = CPythonExpressionTempVariableRef(
-                        variable   = tmp_break_indicator_variable.makeReference( result ),
-                        source_ref = source_ref
-                    ),
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTempVariableRef(
+                    variable   = tmp_break_indicator_variable.makeReference( result ),
                     source_ref = source_ref
                 ),
                 source     = CPythonExpressionConstantRef(
@@ -486,12 +471,9 @@ def buildForLoopNode( provider, node, source_ref ):
         CPythonStatementTryExcept(
             tried      = CPythonStatementsSequence(
                 statements = (
-                    CPythonStatementAssignment(
-                        target     = CPythonAssignTargetVariable(
-                            variable_ref = CPythonExpressionTempVariableRef(
-                                variable   = tmp_value_variable.makeReference( iterate_tmp_block ),
-                                source_ref = source_ref
-                            ),
+                    CPythonStatementAssignmentVariable(
+                        variable_ref = CPythonExpressionTempVariableRef(
+                            variable   = tmp_value_variable.makeReference( iterate_tmp_block ),
                             source_ref = source_ref
                         ),
                         source     = CPythonExpressionBuiltinNext1(
@@ -556,12 +538,9 @@ def buildForLoopNode( provider, node, source_ref ):
 
     if else_block is not None:
         statements = [
-            CPythonStatementAssignment(
-                target     = CPythonAssignTargetVariable(
-                    variable_ref = CPythonExpressionTempVariableRef(
-                        variable   = tmp_break_indicator_variable.makeReference( result ),
-                        source_ref = source_ref
-                    ),
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTempVariableRef(
+                    variable   = tmp_break_indicator_variable.makeReference( result ),
                     source_ref = source_ref
                 ),
                 source     = CPythonExpressionConstantRef(
@@ -576,13 +555,10 @@ def buildForLoopNode( provider, node, source_ref ):
 
     statements += [
         # First create the iterator and store it.
-        CPythonStatementAssignment(
-            target     = CPythonAssignTargetVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
-                    variable   = tmp_iter_variable.makeReference( result ),
-                    source_ref = source_ref
-                ),
-                source_ref   = source_ref
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_iter_variable.makeReference( result ),
+                source_ref = source_ref
             ),
             source     = CPythonExpressionBuiltinIter1(
                 value       = source,
@@ -641,13 +617,10 @@ def buildWhileLoopNode( provider, node, source_ref ):
         tmp_break_indicator_variable = temp_block.getTempVariable( "break_indicator" )
 
         statements = (
-            CPythonStatementAssignment(
-                target     = CPythonAssignTargetVariable(
-                    variable_ref = CPythonExpressionTempVariableRef(
-                        variable   = tmp_break_indicator_variable.makeReference( temp_block ),
-                        source_ref = source_ref
-                    ),
-                    source_ref   = source_ref
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTempVariableRef(
+                    variable   = tmp_break_indicator_variable.makeReference( temp_block ),
+                    source_ref = source_ref
                 ),
                 source     = CPythonExpressionConstantRef(
                     constant   = True,
@@ -698,13 +671,10 @@ def buildWhileLoopNode( provider, node, source_ref ):
         return loop_statement
     else:
         statements = (
-            CPythonStatementAssignment(
-                target = CPythonAssignTargetVariable(
-                    variable_ref = CPythonExpressionTempVariableRef(
-                        variable   = tmp_break_indicator_variable.makeReference( temp_block ),
-                        source_ref = source_ref
-                    ),
-                    source_ref   = source_ref
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTempVariableRef(
+                    variable   = tmp_break_indicator_variable.makeReference( temp_block ),
+                    source_ref = source_ref
                 ),
                 source = CPythonExpressionConstantRef(
                     constant   = False,
@@ -866,61 +836,40 @@ def buildDictionaryNode( provider, node, source_ref ):
             source_ref = source_ref
         )
 
-def buildVariableRefAssignTarget( variable_name, source_ref ):
-    return CPythonAssignTargetVariable(
-        variable_ref = CPythonExpressionVariableRef(
-            variable_name = variable_name,
-            source_ref    = source_ref
-        ),
-        source_ref   = source_ref
-    )
-
 def buildAssignmentStatementsFromDecoded( provider, kind, detail, source, source_ref ):
     if kind == "Name":
         variable_ref = detail
 
-        return CPythonStatementAssignment(
-            target     = CPythonAssignTargetVariable(
-                variable_ref = variable_ref,
-                source_ref   = source_ref
-            ),
-            source     = source,
-            source_ref = source_ref
+        return CPythonStatementAssignmentVariable(
+            variable_ref = variable_ref,
+            source       = source,
+            source_ref   = source_ref
         )
     elif kind == "Attribute":
         lookup_source, attribute_name = detail
 
-        return CPythonStatementAssignment(
-            target     = CPythonAssignTargetAttribute(
-                expression     = lookup_source,
-                attribute_name = attribute_name,
-                source_ref     = source_ref
-            ),
+        return CPythonStatementAssignmentAttribute(
+            expression     = lookup_source,
+            attribute_name = attribute_name,
             source     = source,
             source_ref = source_ref
         )
     elif kind == "Subscript":
         subscribed, subscript = detail
 
-        return CPythonStatementAssignment(
-            target     = CPythonAssignTargetSubscript(
-                expression = subscribed,
-                subscript  = subscript,
-                source_ref = source_ref
-            ),
+        return CPythonStatementAssignmentSubscript(
+            expression = subscribed,
+            subscript  = subscript,
             source     = source,
             source_ref = source_ref
         )
     elif kind == "Slice":
         lookup_source, lower, upper = detail
 
-        return CPythonStatementAssignment(
-            target     = CPythonAssignTargetSlice(
-                expression = lookup_source,
-                lower      = lower,
-                upper      = upper,
-                source_ref = source_ref
-            ),
+        return CPythonStatementAssignmentSlice(
+            expression = lookup_source,
+            lower      = lower,
+            upper      = upper,
             source     = source,
             source_ref = source_ref
         )
@@ -932,13 +881,10 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source, source
         source_iter_var = result.getTempVariable( "source_iter" )
 
         statements = [
-            CPythonStatementAssignment(
-                target = CPythonAssignTargetVariable(
-                    variable_ref = CPythonExpressionTempVariableRef(
-                        variable   = source_iter_var.makeReference( result ),
-                        source_ref = source_ref
-                    ),
-                    source_ref   = source_ref
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTempVariableRef(
+                    variable   = source_iter_var.makeReference( result ),
+                    source_ref = source_ref
                 ),
                 source = CPythonExpressionBuiltinIter1(
                     value      = source,
@@ -956,13 +902,10 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source, source
 
         for element_index in range( len( detail ) ):
             statements.append(
-                CPythonStatementAssignment(
-                    target = CPythonAssignTargetVariable(
-                        variable_ref = CPythonExpressionTempVariableRef(
-                            variable   = element_vars[ element_index ].makeReference( result ),
-                            source_ref = source_ref
-                        ),
-                        source_ref   = source_ref
+                CPythonStatementAssignmentVariable(
+                    variable_ref = CPythonExpressionTempVariableRef(
+                        variable   = element_vars[ element_index ].makeReference( result ),
+                        source_ref = source_ref
                     ),
                     # TODO: Should be special unpack variant.
                     source = CPythonExpressionSpecialUnpack(
@@ -1040,12 +983,12 @@ def decodeAssignTarget( provider, node, source_ref, allow_none = False ):
     kind = getKind( node )
 
     if type( node ) is str:
-        return kind, CPythonExpressionVariableRef(
+        return kind, CPythonExpressionTargetVariableRef(
             variable_name = node,
             source_ref    = source_ref
         )
     elif kind == "Name":
-        return kind, CPythonExpressionVariableRef(
+        return kind, CPythonExpressionTargetVariableRef(
             variable_name = node.id,
             source_ref    = source_ref
         )
@@ -1130,13 +1073,10 @@ def buildAssignNode( provider, node, source_ref ):
         tmp_source = result.getTempVariable( "assign_source" )
 
         statements = [
-            CPythonStatementAssignment(
-                target = CPythonAssignTargetVariable(
-                    variable_ref = CPythonExpressionTempVariableRef(
-                        variable   = tmp_source.makeReference( result ),
-                        source_ref = source_ref
-                    ),
-                    source_ref   = source_ref
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTempVariableRef(
+                    variable   = tmp_source.makeReference( result ),
+                    source_ref = source_ref
                 ),
                 source     = source,
                 source_ref = source_ref
@@ -1172,101 +1112,57 @@ def buildDeleteNode( provider, node, source_ref ):
 
     statements = []
 
-    def handleTarget( node ):
-        if type( node ) is str:
-            # Python >= 3.x only
-            node = _fakeNameNode( node )
-            kind = "Name"
-        else:
-            kind = getKind( node )
-
-
+    def handleTarget( kind, detail ):
         if kind == "Name":
+            variable_ref = detail
+
             statements.append(
                 CPythonStatementDelVariable(
-                    variable_ref = CPythonExpressionVariableRef(
-                        variable_name = node.id,
-                        source_ref    = source_ref
-                    ),
+                    variable_ref = variable_ref,
                     source_ref   = source_ref
                 )
             )
         elif kind == "Attribute":
+            lookup_source, attribute_name = detail
+
             statements.append(
                 CPythonStatementDelAttribute(
-                    expression     = buildNode( provider, node.value, source_ref ),
-                    attribute_name = node.attr,
+                    expression     = lookup_source,
+                    attribute_name = attribute_name,
                     source_ref     = source_ref
                 )
             )
         elif kind == "Subscript":
-            slice_kind = getKind( node.slice )
+            subscribed, subscript = detail
 
-            if slice_kind == "Index":
-                statements.append(
-                    CPythonStatementDelSubscript(
-                        expression = buildNode( provider, node.value, source_ref ),
-                        subscript  = buildNode( provider, node.slice.value, source_ref ),
-                        source_ref = source_ref
-                    )
+            statements.append(
+                CPythonStatementDelSubscript(
+                    expression = subscribed,
+                    subscript  = subscript,
+                    source_ref = source_ref
                 )
-            elif slice_kind == "Slice":
-                lower = buildNode( provider, node.slice.lower, source_ref, True )
-                upper = buildNode( provider, node.slice.upper, source_ref, True )
+            )
+        elif kind == "Slice":
+            lookup_source, lower, upper = detail
 
-                if node.slice.step is not None:
-                    step = buildNode( provider, node.slice.step, source_ref )
-
-                    statements.append(
-                        CPythonStatementDelSubscript(
-                            expression = buildNode( provider, node.value, source_ref ),
-                            subscript  = CPythonExpressionSliceObject(
-                                lower      = lower,
-                                upper      = upper,
-                                step       = step,
-                                source_ref = source_ref
-                            ),
-                            source_ref = source_ref
-                        )
-                    )
-                else:
-                    statements.append(
-                        CPythonStatementDelSlice(
-                            expression = buildNode( provider, node.value, source_ref ),
-                            lower      = lower,
-                            upper      = upper,
-                            source_ref = source_ref
-                        )
-                    )
-            elif slice_kind == "ExtSlice":
-                statements.append(
-                    CPythonStatementDelSubscript(
-                        expression = buildNode( provider, node.value, source_ref ),
-                        subscript  = _buildExtSliceNode( provider, node, source_ref ),
-                        source_ref = source_ref
-                    )
+            statements.append(
+                CPythonStatementDelSlice(
+                    expression = lookup_source,
+                    lower      = lower,
+                    upper      = upper,
+                    source_ref = source_ref
                 )
-            elif slice_kind == "Ellipsis":
-                statements.append(
-                    CPythonStatementDelSubscript(
-                        expression = buildNode( provider, node.value, source_ref ),
-                        subscript  = CPythonExpressionConstantRef(
-                            constant   = Ellipsis,
-                            source_ref = source_ref
-                        ),
-                        source_ref = source_ref
-                    )
-                )
-            else:
-                assert False, kind
-        elif kind in ( "Tuple", "List" ):
-            for sub_node in node.elts:
-                handleTarget( sub_node )
+            )
+        elif kind == "Tuple":
+            for sub_node in detail:
+                handleTarget( sub_node[0], sub_node[1] )
         else:
             assert False, ( source_ref, ast.dump( node ) )
 
     for target in node.targets:
-        handleTarget( target )
+        kind, detail = decodeAssignTarget( provider, target, source_ref )
+
+        handleTarget( kind, detail )
 
     return _makeStatementsSequenceOrStatement(
         statements = statements,
@@ -1298,13 +1194,10 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, list_c
         container_tmp = temp_block.getTempVariable( "result" )
 
         statements = [
-            CPythonStatementAssignment(
-                target = CPythonAssignTargetVariable(
-                    variable_ref = CPythonExpressionTempVariableRef(
-                        variable   = container_tmp.makeReference( temp_block ),
-                        source_ref = source_ref
-                    ),
-                    source_ref   = source_ref
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTempVariableRef(
+                    variable   = container_tmp.makeReference( temp_block ),
+                    source_ref = source_ref
                 ),
                 source     = start_value,
                 source_ref = source_ref
@@ -1395,13 +1288,10 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, list_c
 
         # First create the iterator and store it, next should be loop body
         nested_statements = [
-            CPythonStatementAssignment(
-                target     = CPythonAssignTargetVariable(
-                    variable_ref = CPythonExpressionTempVariableRef(
-                        variable   = tmp_iter_variable.makeReference( nested_temp_block ),
-                        source_ref = source_ref
-                    ),
-                    source_ref   = source_ref
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTempVariableRef(
+                    variable   = tmp_iter_variable.makeReference( nested_temp_block ),
+                    source_ref = source_ref
                 ),
                 source     = value_iterator,
                 source_ref = source_ref
@@ -1412,12 +1302,9 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, list_c
             CPythonStatementTryExcept(
                 tried      = CPythonStatementsSequence(
                     statements = (
-                        CPythonStatementAssignment(
-                            target     = CPythonAssignTargetVariable(
-                                variable_ref = CPythonExpressionTempVariableRef(
-                                    variable   = tmp_value_variable.makeReference( nested_temp_block ),
-                                    source_ref = source_ref
-                                ),
+                        CPythonStatementAssignmentVariable(
+                            variable_ref = CPythonExpressionTempVariableRef(
+                                variable   = tmp_value_variable.makeReference( nested_temp_block ),
                                 source_ref = source_ref
                             ),
                             source     = CPythonExpressionBuiltinNext1(
@@ -1657,15 +1544,12 @@ def buildComparisonNode( provider, node, source_ref ):
             # to a temp variable to be shared with the next part.
             tmp_variable = provider.getTempVariable()
 
-            right = CPythonExpressionAssignment(
-                source     = right,
-                target     = CPythonAssignTargetVariable(
-                    variable_ref = CPythonExpressionTempVariableRef(
-                        variable   = tmp_variable.makeReference( provider ),
-                        source_ref = source_ref
-                    ),
-                    source_ref   = source_ref
+            right = CPythonExpressionAssignmentVariable(
+                variable_ref = CPythonExpressionTempVariableRef(
+                    variable   = tmp_variable.makeReference( provider ),
+                    source_ref = source_ref
                 ),
+                source     = right,
                 source_ref = source_ref
             )
 
@@ -1986,8 +1870,8 @@ def _buildImportModulesNode( import_names, source_ref ):
         # level package name given for assignment of the imported module.
 
         import_nodes.append(
-            CPythonStatementAssignment(
-                target     = buildVariableRefAssignTarget(
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTargetVariableRef(
                     variable_name = local_name if local_name is not None else module_topname,
                     source_ref    = source_ref
                 ),
@@ -2044,24 +1928,20 @@ def buildImportFromNode( provider, node, source_ref ):
                 future_spec = source_ref.getFutureSpec()
             )
 
-    targets = []
-    imports = []
+    target_names = []
+    import_names = []
 
     for import_desc in node.names:
         object_name, local_name = import_desc.name, import_desc.asname
 
         if object_name == "*":
-            target = None
+            target_names.append( None )
         else:
-            target = buildVariableRefAssignTarget(
-                variable_name = local_name if local_name is not None else object_name,
-                source_ref = source_ref
-            )
+            target_names.append( local_name if local_name is not None else object_name )
 
-        targets.append( target )
-        imports.append( object_name )
+        import_names.append( object_name )
 
-    if None in targets:
+    if None in target_names:
         # Python3 made this a syntax error unfortunately.
         if not provider.isModule() and Utils.getPythonVersion() >= 300:
             SyntaxErrors.raiseSyntaxError(
@@ -2075,6 +1955,8 @@ def buildImportFromNode( provider, node, source_ref ):
         return CPythonStatementImportStar(
             module_import = CPythonExpressionImportModule(
                 module_name = module_name,
+                # TODO: The import list may have to be the actual one, and give errors
+                # that this one skips.
                 import_list = ( "*", ),
                 level       = level,
                 source_ref  = source_ref
@@ -2084,14 +1966,17 @@ def buildImportFromNode( provider, node, source_ref ):
     else:
         import_nodes = []
 
-        for target, import_name in zip( targets, imports ):
+        for target_name, import_name in zip( target_names, import_names ):
             import_nodes.append(
-                CPythonStatementAssignment(
-                    target     = target,
+                CPythonStatementAssignmentVariable(
+                    variable_ref = CPythonExpressionTargetVariableRef(
+                        variable_name = target_name,
+                        source_ref    = source_ref
+                    ),
                     source     = CPythonExpressionImportName(
                         module      = CPythonExpressionImportModule(
                             module_name = module_name,
-                            import_list = imports,
+                            import_list = import_names,
                             level       = level,
                             source_ref  = source_ref
                         ),
@@ -2196,27 +2081,21 @@ def buildWithNode( provider, node, source_ref ):
 
     statements = [
         # First assign the with context to a temporary variable.
-        CPythonStatementAssignment(
-            target     = CPythonAssignTargetVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
-                    variable   = tmp_source_variable.makeReference( result ),
-                    source_ref = source_ref
-                ),
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_source_variable.makeReference( result ),
                 source_ref = source_ref
             ),
-            source     = with_source,
-            source_ref = source_ref
+            source       = with_source,
+            source_ref   = source_ref
         ),
         # Next, assign "__enter__" and "__exit__" attributes to temporary variables.
-        CPythonStatementAssignment(
-            target     = CPythonAssignTargetVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
-                    variable   = tmp_exit_variable.makeReference( result ),
-                    source_ref = source_ref
-                ),
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_exit_variable.makeReference( result ),
                 source_ref = source_ref
             ),
-            source     = attribute_lookup_class(
+            source       = attribute_lookup_class(
                 expression     = CPythonExpressionTempVariableRef(
                     variable   = tmp_source_variable.makeReference( result ),
                     source_ref = source_ref
@@ -2224,17 +2103,14 @@ def buildWithNode( provider, node, source_ref ):
                 attribute_name = "__exit__",
                 source_ref     = source_ref
             ),
-            source_ref = source_ref
+            source_ref   = source_ref
         ),
-        CPythonStatementAssignment(
-            target     = CPythonAssignTargetVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
-                    variable   = tmp_enter_variable.makeReference( result ),
-                    source_ref = source_ref
-                ),
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_enter_variable.makeReference( result ),
                 source_ref = source_ref
             ),
-            source     = CPythonExpressionFunctionCall(
+            source       = CPythonExpressionFunctionCall(
                 called_expression = attribute_lookup_class(
                     expression     = CPythonExpressionTempVariableRef(
                         variable   = tmp_source_variable.makeReference( result ),
@@ -2249,7 +2125,7 @@ def buildWithNode( provider, node, source_ref ):
                 list_star_arg     = None,
                 source_ref     = source_ref
             ),
-            source_ref = source_ref
+            source_ref   = source_ref
         )
     ]
 
@@ -2528,27 +2404,26 @@ def buildReprNode( provider, node, source_ref ):
 
 def _buildInplaceAssignVariableNode( result, variable_ref, tmp_variable1, tmp_variable2,
                                      operator, expression, source_ref ):
+    assert variable_ref.isExpressionTargetVariableRef(), variable_ref
+
     return (
         # First assign the target value to a temporary variable.
-        CPythonStatementAssignment(
-            target     = CPythonAssignTargetVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
-                    variable   = tmp_variable1.makeReference( result ),
-                    source_ref = source_ref
-                ),
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_variable1.makeReference( result ),
                 source_ref = source_ref
             ),
-            source     = variable_ref.makeCloneAt( source_ref ),
+            source     = CPythonExpressionVariableRef(
+                variable_name = variable_ref.getVariableName(),
+                source_ref    = source_ref
+            ),
             source_ref = source_ref
         ),
         # Second assign the inplace result to a temporary variable.
-        CPythonStatementAssignment(
-            target     = CPythonAssignTargetVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
-                    variable   = tmp_variable2.makeReference( result ),
-                    source_ref = source_ref
-                ),
-                source_ref   = source_ref
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_variable2.makeReference( result ),
+                source_ref = source_ref
             ),
             source     = CPythonExpressionOperationBinaryInplace(
                 operator   = operator,
@@ -2577,11 +2452,8 @@ def _buildInplaceAssignVariableNode( result, variable_ref, tmp_variable1, tmp_va
             ),
             yes_branch = CPythonStatementsSequence(
                 statements = (
-                    CPythonStatementAssignment(
-                        target     = CPythonAssignTargetVariable(
-                            variable_ref = variable_ref.makeCloneAt( source_ref ),
-                            source_ref   = source_ref
-                        ),
+                    CPythonStatementAssignmentVariable(
+                        variable_ref = variable_ref.makeCloneAt( source_ref ),
                         source     = CPythonExpressionTempVariableRef(
                             variable   = tmp_variable2.makeReference( result ),
                             source_ref = source_ref
@@ -2600,12 +2472,9 @@ def _buildInplaceAssignAttributeNode( result, lookup_source, attribute_name, tmp
                                       tmp_variable2, operator, expression, source_ref ):
     return (
         # First assign the target value to a temporary variable.
-        CPythonStatementAssignment(
-            target     = CPythonAssignTargetVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
-                    variable   = tmp_variable1.makeReference( result ),
-                    source_ref = source_ref
-                ),
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_variable1.makeReference( result ),
                 source_ref = source_ref
             ),
             source     = CPythonExpressionAttributeLookup(
@@ -2616,13 +2485,10 @@ def _buildInplaceAssignAttributeNode( result, lookup_source, attribute_name, tmp
             source_ref = source_ref
         ),
         # Second assign the inplace result to a temporary variable.
-        CPythonStatementAssignment(
-            target     = CPythonAssignTargetVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
-                    variable   = tmp_variable2.makeReference( result ),
-                    source_ref = source_ref
-                ),
-                source_ref   = source_ref
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_variable2.makeReference( result ),
+                source_ref = source_ref
             ),
             source     = CPythonExpressionOperationBinaryInplace(
                 operator   = operator,
@@ -2651,12 +2517,9 @@ def _buildInplaceAssignAttributeNode( result, lookup_source, attribute_name, tmp
             ),
             yes_branch = CPythonStatementsSequence(
                 statements = (
-                    CPythonStatementAssignment(
-                        target     = CPythonAssignTargetAttribute(
-                            expression = lookup_source.makeCloneAt( source_ref ),
-                            attribute_name = attribute_name,
-                            source_ref = source_ref
-                        ),
+                    CPythonStatementAssignmentAttribute(
+                        expression = lookup_source.makeCloneAt( source_ref ),
+                        attribute_name = attribute_name,
                         source     = CPythonExpressionTempVariableRef(
                             variable   = tmp_variable2.makeReference( result ),
                             source_ref = source_ref
@@ -2675,39 +2538,30 @@ def _buildInplaceAssignSubscriptNode( result, subscribed, subscript, tmp_variabl
                                       tmp_variable2, operator, expression, source_ref ):
     return (
         # First assign the target value and subscript to temporary variables.
-        CPythonStatementAssignment(
-            target     = CPythonAssignTargetVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
-                    variable   = tmp_variable1.makeReference( result ),
-                    source_ref = source_ref
-                ),
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_variable1.makeReference( result ),
                 source_ref = source_ref
             ),
             source     = subscribed,
             source_ref = source_ref
         ),
-        CPythonStatementAssignment(
-            target     = CPythonAssignTargetVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
-                    variable   = tmp_variable2.makeReference( result ),
-                    source_ref = source_ref
-                ),
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_variable2.makeReference( result ),
                 source_ref = source_ref
             ),
             source     = subscript,
             source_ref = source_ref
         ),
         # Second assign the inplace result over the original value.
-        CPythonStatementAssignment(
-            target     = CPythonAssignTargetSubscript(
-                expression = CPythonExpressionTempVariableRef(
-                    variable   = tmp_variable1.makeReference( result ),
-                    source_ref = source_ref
-                ),
-                subscript  = CPythonExpressionTempVariableRef(
-                    variable   = tmp_variable2.makeReference( result ),
-                    source_ref = source_ref
-                ),
+        CPythonStatementAssignmentSubscript(
+            expression = CPythonExpressionTempVariableRef(
+                variable   = tmp_variable1.makeReference( result ),
+                source_ref = source_ref
+            ),
+            subscript  = CPythonExpressionTempVariableRef(
+                variable   = tmp_variable2.makeReference( result ),
                 source_ref = source_ref
             ),
             source     = CPythonExpressionOperationBinaryInplace(
@@ -2735,55 +2589,43 @@ def _buildInplaceAssignSliceNode( result, lookup_source, lower, upper, tmp_varia
                                   source_ref ):
     return (
         # First assign the target value, lower and upper to temporary variables.
-        CPythonStatementAssignment(
-            target     = CPythonAssignTargetVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
-                    variable   = tmp_variable1.makeReference( result ),
-                    source_ref = source_ref
-                ),
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_variable1.makeReference( result ),
                 source_ref = source_ref
             ),
             source     = lookup_source,
             source_ref = source_ref
         ),
-        CPythonStatementAssignment(
-            target     = CPythonAssignTargetVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
-                    variable   = tmp_variable2.makeReference( result ),
-                    source_ref = source_ref
-                ),
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_variable2.makeReference( result ),
                 source_ref = source_ref
             ),
             source     = lower,
             source_ref = source_ref
         ),
-        CPythonStatementAssignment(
-            target     = CPythonAssignTargetVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
-                    variable   = tmp_variable3.makeReference( result ),
-                    source_ref = source_ref
-                ),
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_variable3.makeReference( result ),
                 source_ref = source_ref
             ),
             source     = upper,
             source_ref = source_ref
         ),
         # Second assign the inplace result over the original value.
-        CPythonStatementAssignment(
-            target     = CPythonAssignTargetSlice(
-                expression = CPythonExpressionTempVariableRef(
-                    variable   = tmp_variable1.makeReference( result ),
-                    source_ref = source_ref
-                ),
-                lower      = CPythonExpressionTempVariableRef(
-                    variable   = tmp_variable2.makeReference( result ),
-                    source_ref = source_ref
-                ),
-                upper      = CPythonExpressionTempVariableRef(
-                    variable   = tmp_variable3.makeReference( result ),
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref,
+        CPythonStatementAssignmentSlice(
+            expression = CPythonExpressionTempVariableRef(
+                variable   = tmp_variable1.makeReference( result ),
+                source_ref = source_ref
+            ),
+            lower      = CPythonExpressionTempVariableRef(
+                variable   = tmp_variable2.makeReference( result ),
+                source_ref = source_ref
+            ),
+            upper      = CPythonExpressionTempVariableRef(
+                variable   = tmp_variable3.makeReference( result ),
+                source_ref = source_ref
             ),
             source     = CPythonExpressionOperationBinaryInplace(
                 operator   = operator,

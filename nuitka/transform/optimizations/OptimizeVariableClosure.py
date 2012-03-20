@@ -123,28 +123,27 @@ class VariableClosureLookupVisitorPhase2( OptimizationVisitorScopedBase ):
     """
 
     def onEnterNode( self, node ):
-        if node.isAssignTargetVariable():
-            variable_ref = node.getTargetVariableRef()
-
-            if variable_ref.getVariable() is None:
+        if node.isExpressionTargetVariableRef():
+            if node.getVariable() is None:
                 provider = node.getParentVariableProvider()
 
-                variable_ref.setVariable(
+                node.setVariable(
                     provider.getVariableForAssignment(
-                        variable_name = variable_ref.getVariableName()
+                        variable_name = node.getVariableName()
                     )
                 )
         elif node.isExpressionVariableRef():
             if node.getVariable() is None:
-                if not node.getParent().isAssignTargetVariable():
-                    provider = node.getParentVariableProvider()
+                provider = node.getParentVariableProvider()
 
-                    if provider.isEarlyClosure():
-                        node.setVariable(
-                            provider.getVariableForReference(
-                                variable_name = node.getVariableName()
-                            )
+                if provider.isEarlyClosure():
+                    node.setVariable(
+                        provider.getVariableForReference(
+                            variable_name = node.getVariableName()
                         )
+                    )
+
+
 
 
 class VariableClosureLookupVisitorPhase3( OptimizationVisitorScopedBase ):
@@ -192,7 +191,7 @@ class MaybeLocalVariableReductionVisitor( OptimizationVisitorBase ):
                 )
 
                 for usage in usages:
-                    if usage.getParent().isAssignTargetVariable():
+                    if usage.getParent().isStatementAssignmentVariable():
                         has_assignment = True
                         break
                 else:
@@ -260,7 +259,7 @@ class ModuleVariableWriteCheck( TreeOperations.VisitorNoopMixin ):
         self.result = False
 
     def onEnterNode( self, node ):
-        if node.isAssignTargetVariable():
+        if node.isStatementAssignmentVariable():
             variable = node.getTargetVariableRef().getVariable()
 
             if variable.isModuleVariableReference():
