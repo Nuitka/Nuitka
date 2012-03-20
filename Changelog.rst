@@ -34,9 +34,11 @@ New Optimizations
 - Removal of dead code following "break", "continue", "return", and "raise". Code that
   follows these, or conditional statements, where all branches end with it.
 
-  .. note:: These may not actually occur often in actual code, but optimizations may
-  produce them frequently, and their removal may in turn make other optimizations
-  possible.
+  .. note::
+
+      These may not actually occur often in actual code, but future optimizations may
+      produce them frequently, and their removal may in turn make other optimizations
+      possible.
 
 Organizational
 --------------

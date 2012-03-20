@@ -983,7 +983,7 @@ def decodeAssignTarget( provider, node, source_ref, allow_none = False ):
     kind = getKind( node )
 
     if type( node ) is str:
-        return kind, CPythonExpressionTargetVariableRef(
+        return "Name", CPythonExpressionTargetVariableRef(
             variable_name = node,
             source_ref    = source_ref
         )
