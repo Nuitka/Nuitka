@@ -241,7 +241,7 @@ static PyObject *Nuitka_Generator_throw( Nuitka_GeneratorObject *generator, PyOb
     }
     else if ( !PyExceptionClass_Check( generator->m_exception_type ) )
     {
-        PyErr_Format( PyExc_TypeError, "exceptions must be classes, or instances, not %s", generator->m_exception_type->ob_type->tp_name );
+        PyErr_Format( PyExc_TypeError, "exceptions must be classes, or instances, not %s", Py_TYPE( generator->m_exception_type )->tp_name );
         return NULL;
     }
 

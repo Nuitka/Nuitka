@@ -108,7 +108,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
     }
     else
     {
-        return PyErr_Format( PyExc_TypeError, "'%s' object is unsubscriptable", source->ob_type->tp_name );
+        return PyErr_Format( PyExc_TypeError, "'%s' object is unsubscriptable", Py_TYPE( source )->tp_name );
         throw _PythonException();
     }
 
@@ -144,18 +144,18 @@ NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_SUBSCRIPT( EVAL_ORDERED_2( PyObjec
         }
         else if ( type->tp_as_sequence->sq_item )
         {
-            PyErr_Format( PyExc_TypeError, "sequence index must be integer, not '%s'", subscript->ob_type->tp_name );
+            PyErr_Format( PyExc_TypeError, "sequence index must be integer, not '%s'", Py_TYPE( subscript )->tp_name );
             throw _PythonException();
         }
         else
         {
-            return PyErr_Format( PyExc_TypeError, "'%s' object is unsubscriptable", source->ob_type->tp_name );
+            return PyErr_Format( PyExc_TypeError, "'%s' object is unsubscriptable", Py_TYPE( source )->tp_name );
             throw _PythonException();
         }
     }
     else
     {
-        return PyErr_Format( PyExc_TypeError, "'%s' object is unsubscriptable", source->ob_type->tp_name );
+        return PyErr_Format( PyExc_TypeError, "'%s' object is unsubscriptable", Py_TYPE( source )->tp_name );
         throw _PythonException();
     }
 

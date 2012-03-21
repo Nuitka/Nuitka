@@ -96,7 +96,7 @@ static char const *GET_INSTANCE_CLASS_NAME( PyObject *instance )
     if ( klass == NULL )
     {
         PyErr_Clear();
-        klass = INCREASE_REFCOUNT( (PyObject *)instance->ob_type );
+        klass = INCREASE_REFCOUNT( (PyObject *)Py_TYPE( instance ) );
     }
 
     char const *result = GET_CLASS_NAME( klass );
@@ -229,12 +229,12 @@ static PyObject *Nuitka_Method_tp_getattro( Nuitka_MethodObject *method, PyObjec
     {
         if (
 #if PYTHON_VERSION < 300
-            PyType_HasFeature( descr->ob_type, Py_TPFLAGS_HAVE_CLASS ) &&
+            PyType_HasFeature( Py_TYPE( descr ), Py_TPFLAGS_HAVE_CLASS ) &&
 #endif
-            ( descr->ob_type->tp_descr_get != NULL )
+            ( Py_TYPE( descr )->tp_descr_get != NULL )
            )
         {
-            return descr->ob_type->tp_descr_get(
+            return Py_TYPE( descr )->tp_descr_get(
                 descr,
                 (PyObject *)method,
                 (PyObject *)Py_TYPE( method )

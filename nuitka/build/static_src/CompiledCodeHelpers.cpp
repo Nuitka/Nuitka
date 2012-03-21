@@ -211,7 +211,7 @@ PyObject *BUILTIN_ORD( PyObject *value )
     }
     else
     {
-        PyErr_Format( PyExc_TypeError, "ord() expected string of length 1, but %s found", value->ob_type->tp_name );
+        PyErr_Format( PyExc_TypeError, "ord() expected string of length 1, but %s found", Py_TYPE( value )->tp_name );
         throw _PythonException();
     }
 
@@ -347,7 +347,7 @@ PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases,
         throw _PythonException();
     }
 
-    PyTypeObject *type = result->ob_type;
+    PyTypeObject *type = Py_TYPE( result );
 
     if (likely( PyType_IsSubtype( type, &PyType_Type ) ))
     {
@@ -440,7 +440,7 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
         return INCREASE_REFCOUNT( value );
     }
 
-    PyTypeObject *type = value->ob_type;
+    PyTypeObject *type = Py_TYPE( value );
     PyNumberMethods *tp_as_number = type->tp_as_number;
 
     // Everything that casts to int is allowed.

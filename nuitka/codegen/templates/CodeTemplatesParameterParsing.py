@@ -215,7 +215,7 @@ else
 
         if (unlikely( PyDict_Update( _python_par_%(dict_star_parameter_name)s, kw ) != 0 ))
         {
-            PyErr_Format( PyExc_TypeError, "after ** must be a mapping, not %%s", kw->ob_type->tp_name );
+            PyErr_Format( PyExc_TypeError, "after ** must be a mapping, not %%s", Py_TYPE( kw )->tp_name );
 
             goto error_exit;
         }

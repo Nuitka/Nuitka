@@ -107,7 +107,7 @@ static PyObject *STAR_LIST_ARG_AS_TUPLE( PyObject *function_object, PyObject *li
         {
             if ( PyErr_ExceptionMatches( PyExc_TypeError ) )
             {
-                PyErr_Format( PyExc_TypeError, "%s%s argument after * must be a sequence, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), list_star_arg->ob_type->tp_name );
+                PyErr_Format( PyExc_TypeError, "%s%s argument after * must be a sequence, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), Py_TYPE( list_star_arg )->tp_name );
             }
 
             throw _PythonException();
@@ -256,7 +256,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_STAR_DICT( EVAL_ORDERE
     // Check for mapping.
     if (unlikely( PyMapping_Check( dict_star_arg ) == 0 ))
     {
-        PyErr_Format( PyExc_TypeError, "%s%s argument after ** must be a mapping, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), dict_star_arg->ob_type->tp_name );
+        PyErr_Format( PyExc_TypeError, "%s%s argument after ** must be a mapping, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), Py_TYPE( dict_star_arg )->tp_name );
         throw _PythonException();
     }
 
@@ -275,7 +275,7 @@ static PyObject *_CALL_FUNCTION_WITH_POSARGS_STAR_DICT( EVAL_ORDERED_3( PyObject
 {
     if (unlikely( PyMapping_Check( dict_star_arg ) == 0 ))
     {
-        PyErr_Format( PyExc_TypeError, "%s%s argument after ** must be a mapping, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), dict_star_arg->ob_type->tp_name );
+        PyErr_Format( PyExc_TypeError, "%s%s argument after ** must be a mapping, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), Py_TYPE( dict_star_arg )->tp_name );
         throw _PythonException();
     }
 
@@ -314,7 +314,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_KEYARGS_STAR_DICT( EVA
 {
     if (unlikely( PyMapping_Check( dict_star_arg ) == 0 ))
     {
-        PyErr_Format( PyExc_TypeError, "%s%s argument after ** must be a mapping, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), dict_star_arg->ob_type->tp_name );
+        PyErr_Format( PyExc_TypeError, "%s%s argument after ** must be a mapping, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), Py_TYPE( dict_star_arg )->tp_name );
         throw _PythonException();
     }
 
@@ -339,7 +339,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_POSARGS_KEYARGS_STAR_D
 {
     if (unlikely( PyMapping_Check( dict_star_arg ) == 0 ))
     {
-        PyErr_Format( PyExc_TypeError, "%s%s argument after ** must be a mapping, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), dict_star_arg->ob_type->tp_name );
+        PyErr_Format( PyExc_TypeError, "%s%s argument after ** must be a mapping, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), Py_TYPE( dict_star_arg )->tp_name );
         throw _PythonException();
     }
 
@@ -366,7 +366,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_KEYARGS_STAR_LIST_STAR
 {
     if (unlikely( PyMapping_Check( dict_star_arg ) == 0 ))
     {
-        PyErr_Format( PyExc_TypeError, "%s%s argument after ** must be a mapping, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), dict_star_arg->ob_type->tp_name );
+        PyErr_Format( PyExc_TypeError, "%s%s argument after ** must be a mapping, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), Py_TYPE( dict_star_arg )->tp_name );
         throw _PythonException();
     }
 
@@ -520,7 +520,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_STAR_LIST_STAR_DICT( E
         {
             if ( PyErr_ExceptionMatches( PyExc_TypeError ) )
             {
-                PyErr_Format( PyExc_TypeError, "%s%s argument after * must be a sequence, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), list_star_arg->ob_type->tp_name );
+                PyErr_Format( PyExc_TypeError, "%s%s argument after * must be a sequence, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), Py_TYPE( list_star_arg )->tp_name );
             }
 
             throw _PythonException();

@@ -238,7 +238,7 @@ static char const *GET_CALLABLE_NAME( PyObject *object )
     }
     else
     {
-        return object->ob_type->tp_name;
+        return Py_TYPE( object )->tp_name;
     }
 }
 
@@ -540,23 +540,23 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
     getiterfunc tp_iter = NULL;
 
 #if PYTHON_VERSION < 300
-    if ( PyType_HasFeature( iterated->ob_type, Py_TPFLAGS_HAVE_ITER ))
+    if ( PyType_HasFeature( Py_TYPE( iterated ), Py_TPFLAGS_HAVE_ITER ))
     {
 #endif
-        tp_iter = iterated->ob_type->tp_iter;
+        tp_iter = Py_TYPE( iterated )->tp_iter;
 #if PYTHON_VERSION < 300
     }
 #endif
 
     if ( tp_iter )
     {
-        PyObject *result = (*iterated->ob_type->tp_iter)( iterated );
+        PyObject *result = (*Py_TYPE( iterated )->tp_iter)( iterated );
 
         if (likely( result != NULL ))
         {
             if (unlikely( !PyIter_Check( result )) )
             {
-                PyErr_Format( PyExc_TypeError, "iter() returned non-iterator of type '%s'", result->ob_type->tp_name);
+                PyErr_Format( PyExc_TypeError, "iter() returned non-iterator of type '%s'", Py_TYPE( result )->tp_name );
 
                 Py_DECREF( result );
                 throw _PythonException();
@@ -583,7 +583,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
     }
     else
     {
-        PyErr_Format( PyExc_TypeError, "'%s' object is not iterable", iterated->ob_type->tp_name );
+        PyErr_Format( PyExc_TypeError, "'%s' object is not iterable", Py_TYPE( iterated )->tp_name );
         throw _PythonException();
     }
 }
@@ -595,7 +595,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 {
     assertObject( iterator );
 
-    PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
+    PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
     if (unlikely( result == NULL ))
     {
@@ -623,7 +623,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
 {
     assertObject( iterator );
 
-    PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
+    PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
     if (unlikely( result == NULL ))
     {
@@ -648,7 +648,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObjec
     assertObject( iterator );
     assertObject( default_value );
 
-    PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
+    PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
     if (unlikely( result == NULL ))
     {
@@ -684,7 +684,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, in
     assertObject( iterator );
     assert( PyIter_Check( iterator ) );
 
-    PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
+    PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
     if (unlikely( result == NULL ))
     {
@@ -713,7 +713,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_PARAMETER_NEXT( PyObject *it
     assertObject( iterator );
     assert( PyIter_Check( iterator ) );
 
-    PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
+    PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
     if (unlikely( result == NULL ))
     {
@@ -747,7 +747,7 @@ NUITKA_MAY_BE_UNUSED static inline void UNPACK_ITERATOR_CHECK( PyObject *iterato
     assertObject( iterator );
     assert( PyIter_Check( iterator ) );
 
-    PyObject *attempt = (*iterator->ob_type->tp_iternext)( iterator );
+    PyObject *attempt = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
     if (likely( attempt == NULL ))
     {
@@ -781,7 +781,7 @@ NUITKA_MAY_BE_UNUSED static inline bool UNPACK_PARAMETER_ITERATOR_CHECK( PyObjec
     assertObject( iterator );
     assert( PyIter_Check( iterator ) );
 
-    PyObject *attempt = (*iterator->ob_type->tp_iternext)( iterator );
+    PyObject *attempt = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
     if (likely( attempt == NULL ))
     {

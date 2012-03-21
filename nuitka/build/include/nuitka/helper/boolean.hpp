@@ -49,17 +49,17 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_IF_TRUE( PyObject *object )
     {
         Py_ssize_t result;
 
-        if ( object->ob_type->tp_as_number != NULL && object->ob_type->tp_as_number->nb_nonzero != NULL )
+        if ( Py_TYPE( object )->tp_as_number != NULL && Py_TYPE( object )->tp_as_number->nb_nonzero != NULL )
         {
-            result = (*object->ob_type->tp_as_number->nb_nonzero)( object );
+            result = (*Py_TYPE( object )->tp_as_number->nb_nonzero)( object );
         }
-        else if ( object->ob_type->tp_as_mapping != NULL && object->ob_type->tp_as_mapping->mp_length != NULL )
+        else if ( Py_TYPE( object )->tp_as_mapping != NULL && Py_TYPE( object )->tp_as_mapping->mp_length != NULL )
         {
-            result = (*object->ob_type->tp_as_mapping->mp_length)( object );
+            result = (*Py_TYPE( object )->tp_as_mapping->mp_length)( object );
         }
-        else if ( object->ob_type->tp_as_sequence != NULL && object->ob_type->tp_as_sequence->sq_length != NULL )
+        else if ( Py_TYPE( object )->tp_as_sequence != NULL && Py_TYPE( object )->tp_as_sequence->sq_length != NULL )
         {
-            result = (*object->ob_type->tp_as_sequence->sq_length)( object );
+            result = (*Py_TYPE( object )->tp_as_sequence->sq_length)( object );
         }
         else
         {

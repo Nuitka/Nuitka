@@ -52,7 +52,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_SLICE( EVAL_ORDERED_3( PyObject *s
     assertObject( lower );
     assertObject( upper );
 
-    PySequenceMethods *tp_as_sequence = source->ob_type->tp_as_sequence;
+    PySequenceMethods *tp_as_sequence = Py_TYPE( source )->tp_as_sequence;
 
     if ( tp_as_sequence && tp_as_sequence->sq_slice && IS_INDEXABLE( lower ) && IS_INDEXABLE( upper ) )
     {
@@ -125,7 +125,7 @@ NUITKA_MAY_BE_UNUSED static void _SET_SLICE( EVAL_ORDERED_4( PyObject *value, Py
     assertObject( upper );
     assertObject( value );
 
-    PySequenceMethods *tp_as_sequence = target->ob_type->tp_as_sequence;
+    PySequenceMethods *tp_as_sequence = Py_TYPE( target )->tp_as_sequence;
 
     if ( tp_as_sequence && tp_as_sequence->sq_ass_slice && IS_INDEXABLE( lower ) && IS_INDEXABLE( upper ) )
     {
@@ -191,7 +191,7 @@ NUITKA_MAY_BE_UNUSED static void _DEL_SLICE( EVAL_ORDERED_3( PyObject *target, P
 {
     assertObject( target );
 
-    if ( target->ob_type->tp_as_sequence && target->ob_type->tp_as_sequence->sq_ass_slice )
+    if ( Py_TYPE( target )->tp_as_sequence && Py_TYPE( target )->tp_as_sequence->sq_ass_slice )
     {
         int status = PySequence_DelSlice( target, lower, upper );
 
