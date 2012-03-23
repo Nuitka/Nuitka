@@ -39,7 +39,6 @@ from .OptimizeVariableClosure import (
     VariableClosureLookupVisitors,
     ModuleVariableUsageAnalysisVisitor
 )
-from .OptimizeConstantOperations import OptimizeFunctionCallArgsVisitor
 from .OptimizeRaises import OptimizeRaisesVisitor
 from .OptimizeValuePropagation import ValuePropagationVisitor
 
@@ -88,10 +87,6 @@ def optimizeTree( tree ):
         if tags.check( "new_code new_import" ):
             if not Options.shallMakeModule():
                 optimizations_queue.add( ModuleRecursionVisitor )
-
-        # TODO: This ought to happen in computeNode clearly.
-        if tags.check( "new_code new_constant" ):
-            optimizations_queue.add( OptimizeFunctionCallArgsVisitor )
 
         if tags.check( "new_code" ):
             optimizations_queue.add( ModuleVariableUsageAnalysisVisitor )

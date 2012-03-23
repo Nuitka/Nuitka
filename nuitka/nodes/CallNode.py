@@ -39,6 +39,7 @@ from .NodeBases import CPythonExpressionChildrenHavingBase
 
 from nuitka.transform.optimizations.registry import CallRegistry
 
+from .ConstantRefNode import CPythonExpressionConstantRef
 
 class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_FUNCTION_CALL"
@@ -113,6 +114,41 @@ class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):
         return True
 
     def computeNode( self ):
+        star_list_arg = self.getStarListArg()
+
+        if star_list_arg is not None:
+            if star_list_arg.isExpressionMakeSequence():
+                positional_args = self.getPositionalArguments()
+
+                self.setPositionalArguments( positional_args + star_list_arg.getElements() )
+                self.setStarListArg( None )
+            elif star_list_arg.isExpressionConstantRef():
+                if star_list_arg.isKnownToBeIterable( count = None ):
+                    positional_args = self.getPositionalArguments()
+
+                    constant_nodes = []
+
+                    for constant in star_list_arg.getConstant():
+                        constant_nodes.append(
+                            CPythonExpressionConstantRef(
+                                constant   = constant,
+                                source_ref = star_list_arg.getSourceReference()
+                            )
+                        )
+
+                    self.setPositionalArguments( positional_args + tuple( constant_nodes ) )
+                    self.setStarListArg( None )
+
+            star_dict_arg = self.getStarDictArg()
+
+            if star_dict_arg is not None:
+                if star_dict_arg.isExpressionMakeDict():
+                    # TODO: Need to cleanup the named argument mess before it is possible.
+                    pass
+                elif star_dict_arg.isExpressionConstantRef():
+                    # TODO: Need to cleanup the named argument mess before it is possible.
+                    pass
+
         # There is a whole registry dedicated to this.
         return CallRegistry.computeCall( self )
 
