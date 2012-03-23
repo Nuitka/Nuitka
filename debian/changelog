@@ -2,8 +2,11 @@ nuitka (0.3.21~pre3+ds-1) UNRELEASED; urgency=low
 
   * New upstream pre-release, not for Debian.
   * Bump to Standards Version 3.9.3, no changes needed.
+  * In the alternative build dependencies, designed to make the
+    Python3 build dependency optional, put option that is going
+    to work on "unstable" first. (Closes: #665021)
 
- -- Kay Hayen <kayhayen@gmx.de>  Fri, 23 Mar 2012 03:59:16 +0100
+ -- Kay Hayen <kayhayen@gmx.de>  Fri, 23 Mar 2012 09:43:58 +0100
 
 nuitka (0.3.20.1+ds-1) unstable; urgency=low
 
