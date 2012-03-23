@@ -38,84 +38,10 @@ from .OptimizeBase import (
     TreeOperations,
 )
 
-from nuitka.nodes.UsageCheck import getVariableUsages
-
-from nuitka.nodes.NodeBases import CPythonClosureGiverNodeBase
-
-def _globalizeSingle( module, variable_names, provider ):
-    for variable_name in variable_names:
-        module_variable = module.getVariableForAssignment(
-            variable_name = variable_name
-        )
-
-        closure_variable = provider.addClosureVariable(
-            variable         = module_variable,
-            global_statement = True
-        )
-
-        if isinstance( provider, CPythonClosureGiverNodeBase ):
-            provider.registerProvidedVariable(
-                variable = closure_variable
-            )
-
-
-def _globalizeScope( module, variable_names, exec_inline_node ):
-    def visitorGlobalizeScope( node ):
-        if node.isParentVariableProvider():
-            _globalizeSingle(
-                module         = module,
-                variable_names = variable_names,
-                provider       = node
-            )
-
-
-    TreeOperations.visitTree(
-        tree    = exec_inline_node,
-        visitor = visitorGlobalizeScope
-    )
-
-
 # TODO: The variable closure thing looks like it should be collapsed into tree building,
 # this does not at all depend on completion of the node tree. Just the not early closure
 # kinds need to make an extra pass, once their body is complete, in order to assign the
 # variable.
-
-class VariableClosureLookupVisitorPhase1( OptimizationVisitorScopedBase ):
-    """ Variable closure phase 1: Find global statements and follow them.
-
-        Global statements outside an inlined exec statement need to be treated differently
-        than inside. They affect the upper level at least, or potentially all levels below
-        the exec.
-    """
-
-    def onEnterNode( self, node ):
-        if node.isStatementDeclareGlobal():
-            source_ref = node.getSourceReference()
-
-            if source_ref.isExecReference():
-                # Inside an exec, visit everything that provides and register the global
-                # module variable with it.
-
-                _globalizeScope(
-                    module           = node.getParentModule(),
-                    variable_names   = node.getVariableNames(),
-                    exec_inline_node = node.getParentExecInline()
-                )
-            else:
-                _globalizeSingle(
-                    module         = node.getParentModule(),
-                    variable_names = node.getVariableNames(),
-                    provider       = node.getParentVariableProvider()
-                )
-
-
-            # Remove the global statement, so we don't repeat this ever, the effect of
-            # above is permanent.
-            if len( node.getParent().getStatements() ) == 1:
-                node.getParent().replaceWith( None )
-            else:
-                node.getParent().removeStatement( node )
-
 
 class VariableClosureLookupVisitorPhase2( OptimizationVisitorScopedBase ):
     """ Variable closure phase 2: Find assignments and early closure references.
@@ -165,7 +91,6 @@ class VariableClosureLookupVisitorPhase3( OptimizationVisitorScopedBase ):
             )
 
 VariableClosureLookupVisitors = (
-    VariableClosureLookupVisitorPhase1,
     VariableClosureLookupVisitorPhase2,
     VariableClosureLookupVisitorPhase3
 )
@@ -249,16 +174,3 @@ class ModuleVariableUsageAnalysisVisitor( ModuleVariableVisitorBase ):
                 variable.getOwner().getSourceReference(),
                 "Determined variable '%s' is only read." % variable.getName()
             )
-
-def isModuleVariableReference( node, var_name, module_name ):
-    if node.isExpressionVariableRef():
-        variable = node.getVariable()
-
-        assert variable is not None, node
-
-        if variable.isModuleVariableReference() and variable.getOwner().getName() == module_name:
-            return variable.getName() == var_name
-        else:
-            return False
-    else:
-        return False

@@ -44,6 +44,8 @@ from . import (
     Utils
 )
 
+from .nodes.NodeBases import CPythonClosureGiverNodeBase
+
 from .nodes.ParameterSpec import ParameterSpec
 from .nodes.FutureSpec import FutureSpec
 
@@ -112,7 +114,6 @@ from .nodes.ContainerOperationNodes import (
 
 from .nodes.StatementNodes import (
     CPythonStatementExpressionOnly,
-    CPythonStatementDeclareGlobal,
     CPythonStatementsSequence,
     mergeStatements
 )
@@ -2263,6 +2264,8 @@ def buildNodeList( provider, nodes, source_ref, allow_none = False ):
         return []
 
 def buildGlobalDeclarationNode( provider, node, source_ref ):
+    # The source reference of the global really doesn't matter, pylint: disable=W0613
+
     # Need to catch the error of declaring a parameter variable as global ourselves
     # here. The AST parsing doesn't catch it.
     try:
@@ -2280,10 +2283,24 @@ def buildGlobalDeclarationNode( provider, node, source_ref ):
     except AttributeError:
         pass
 
-    return CPythonStatementDeclareGlobal(
-        variable_names = node.names,
-        source_ref     = source_ref
-    )
+    module = provider.getParentModule()
+
+    for variable_name in node.names:
+        module_variable = module.getVariableForAssignment(
+            variable_name = variable_name
+        )
+
+        closure_variable = provider.addClosureVariable(
+            variable         = module_variable,
+            global_statement = True
+        )
+
+        if isinstance( provider, CPythonClosureGiverNodeBase ):
+            provider.registerProvidedVariable(
+                variable = closure_variable
+            )
+
+    return None
 
 
 def buildStringNode( node, source_ref ):
@@ -2853,10 +2870,13 @@ def buildNode( provider, node, source_ref, allow_none = False ):
             result = _fast_path_args1[ kind ](
                 source_ref = source_ref
             )
-        elif kind == "Pass" and allow_none:
-            return None
+        elif kind == "Pass":
+            result = None
         else:
             assert False, kind
+
+        if result is None and allow_none:
+            return None
 
         assert isinstance( result, CPythonNodeBase ), result
 

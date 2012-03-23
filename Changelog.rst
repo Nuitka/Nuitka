@@ -95,7 +95,7 @@ Cleanups
 
   .. code-block:: python
 
-     _tmp_iter = iter(c)
+     _tmp_iter = iter( c )
      _tmp1 = next( _tmp_iter )
      _tmp2 = next( _tmp_iter )
      if not finished( _tmp_iter ):
@@ -104,11 +104,11 @@ Cleanups
      b = _tmp2
 
   In reality, not really "next" is used, as it wouldn't raise the correct exception for
-  unpacking, and the "finished" check is more condensed.
+  unpacking, and the "finished" check is more condensed into it.
 
   Generally this cleanup allowed that the "AssignTargetTuple" and associated code
-  generation was removed, and now the coming value propagation needs to optimize these
-  "next" and "iter" calls away where possible. At this time, this is not done yet.
+  generation was removed, and in the future value propagation should optimize these "next"
+  and "iter" calls away where possible. At this time, this is not done yet.
 
 - Exception handlers assign caught exception value through assignment statement.
 
@@ -127,6 +127,17 @@ Cleanups
   Contractions are now re-formulated as function bodies that contains for loops and
   conditional statements. This allowed to remove a lot of special code that deal with them
   and will make these easier for optimization and value propagation.
+
+- Global is handled during tree building.
+
+  Previously the global statement was its own node, which got removed during the
+  optimization phase in a dedicated early optimization that applied its effect, and then
+  removed the node.
+
+  It was determined, that there is no reason to not immediately apply the effect of the
+  global variable and take closure variables and add them to the provider of that "global"
+  statement, allowing to remove the node class.
+
 
 New Tests
 ---------

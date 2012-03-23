@@ -1838,9 +1838,6 @@ def _generateStatementCode( statement, context ):
             iterator_identifier = makeExpressionCode( statement.getIterator() ),
             count               = statement.getCount()
         )
-    elif statement.isStatementDeclareGlobal():
-        # TODO: Should not reach here
-        code = ""
     else:
         assert False, statement.__class__
 
