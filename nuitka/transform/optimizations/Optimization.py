@@ -37,8 +37,7 @@ from .OptimizeModuleRecursion import ModuleRecursionVisitor
 from .OptimizeConstantExec import OptimizeExecVisitor
 from .OptimizeVariableClosure import (
     VariableClosureLookupVisitors,
-    ModuleVariableUsageAnalysisVisitor,
-    MaybeLocalVariableReductionVisitor
+    ModuleVariableUsageAnalysisVisitor
 )
 from .OptimizeConstantOperations import OptimizeFunctionCallArgsVisitor
 from .OptimizeRaises import OptimizeRaisesVisitor
@@ -96,9 +95,6 @@ def optimizeTree( tree ):
 
         if tags.check( "new_code" ):
             optimizations_queue.add( ModuleVariableUsageAnalysisVisitor )
-
-        if tags.check( "new_code var_usage new_builtin" ):
-            optimizations_queue.add( MaybeLocalVariableReductionVisitor )
 
         if tags.check( "new_code new_constant" ):
             if Options.shallOptimizeStringExec():

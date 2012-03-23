@@ -48,8 +48,6 @@ from .IndicatorMixins import (
     MarkGeneratorIndicator
 )
 
-from . import OverflowCheck
-
 from nuitka import Variables
 
 class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavingNodeBase, \
@@ -225,10 +223,6 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
             return self.getClosureVariable(
                 variable_name = variable_name
             )
-
-
-    def hasStaticLocals( self ):
-        return not OverflowCheck.check( self.getBody() )
 
     getBody = CPythonChildrenHaving.childGetter( "body" )
     setBody = CPythonChildrenHaving.childSetter( "body" )

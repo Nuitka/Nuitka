@@ -75,6 +75,11 @@ def _globalizeScope( module, variable_names, exec_inline_node ):
     )
 
 
+# TODO: The variable closure thing looks like it should be collapsed into tree building,
+# this does not at all depend on completion of the node tree. Just the not early closure
+# kinds need to make an extra pass, once their body is complete, in order to assign the
+# variable.
+
 class VariableClosureLookupVisitorPhase1( OptimizationVisitorScopedBase ):
     """ Variable closure phase 1: Find global statements and follow them.
 
@@ -164,94 +169,6 @@ VariableClosureLookupVisitors = (
     VariableClosureLookupVisitorPhase2,
     VariableClosureLookupVisitorPhase3
 )
-
-class MaybeLocalVariableReductionVisitor( OptimizationVisitorBase ):
-    def onEnterNode( self, node ):
-        if node.isExpressionFunctionBody():
-            self._consider( node )
-
-    def _consider( self, function ):
-        for variable in function.getVariables():
-            if variable.isMaybeLocalVariable():
-                if function.hasStaticLocals():
-                    self._cleanup( function )
-
-                break
-
-    def _cleanup( self, function ):
-        #if function.getName() == "test_max":
-        # print "Cleanup needed", function
-        module = function.getParentModule()
-
-        for variable in function.getVariables():
-            if variable.isMaybeLocalVariable():
-                usages = getVariableUsages(
-                    node     = function,
-                    variable = variable
-                )
-
-                for usage in usages:
-                    if usage.getParent().isStatementAssignmentVariable():
-                        has_assignment = True
-                        break
-                else:
-                    has_assignment = False
-
-                if has_assignment:
-                    assert False
-                else:
-                    new_variable = module.getProvidedVariable(
-                        variable_name = variable.getName()
-                    )
-
-                    self._replace(
-                        node         = function,
-                        old_variable = variable,
-                        new_variable = new_variable
-                    )
-
-    def _replace( self, node, old_variable, new_variable ):
-        # print "REPLACE", node, old_variable, new_variable
-
-        assert new_variable.isModuleVariable()
-
-        for reference in old_variable.getReferences():
-            self._replace(
-                node         = reference.getOwner(),
-                old_variable = reference,
-                new_variable = new_variable
-            )
-
-        usages = getVariableUsages(
-            node     = node,
-            variable = old_variable
-        )
-
-        # print "USAGES", usages
-
-        new_variable = new_variable.makeReference( node )
-
-        for usage in usages:
-            usage.setVariable(
-                variable = new_variable,
-                replace  = True
-            )
-
-        if hasattr( node, "providing" ):
-            assert node.providing[ old_variable.getName() ] is old_variable
-            node.providing[ old_variable.getName() ] = new_variable
-
-        if hasattr( node, "closure" ) and old_variable.isClosureReference():
-            node.closure.remove( old_variable )
-
-        if hasattr( node, "taken" ):
-            if old_variable in node.taken:
-                node.taken.remove( old_variable )
-                node.taken.add( new_variable )
-
-        # print "Replaced in", node,":"
-        # print old_variable, "->", new_variable
-
 
 class ModuleVariableWriteCheck( TreeOperations.VisitorNoopMixin ):
     def __init__( self, variable_name ):
