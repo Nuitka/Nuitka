@@ -1286,6 +1286,7 @@ def _getLocalVariableList( context, provider ):
 
 def getLoadDirCode( context, provider ):
     if provider.isModule():
+        # TODO: Giving 1 for a temporary ref looks wrong.
         return Identifier(
             "PyDict_Keys( %s )" % getLoadGlobalsCode(
                 context = context
@@ -1300,7 +1301,7 @@ def getLoadDirCode( context, provider ):
 
         if context.hasLocalsDict():
             return Identifier(
-                "PyDict_Keys( UPDATED_LOCALS_DICT( locals.asObject() %s )" % (
+                "PyDict_Keys( UPDATED_LOCALS_DICT( locals.asObject()%s )" % (
                     "".join( ", %s" % x for x in local_list ),
                 ),
                 1
@@ -1353,7 +1354,7 @@ def getLoadLocalsCode( context, provider, mode ):
             )
 
             return Identifier(
-                "UPDATED_LOCALS_DICT( locals_dict.asObject() %s )" % (
+                "UPDATED_LOCALS_DICT( locals_dict.asObject()%s )" % (
                     "".join( ", %s" % x for x in local_list ),
                 ),
                 1
@@ -2419,8 +2420,8 @@ def getClassDecl( context, class_identifier, closure_variables ):
     }
 
 def getClassCode( context, source_ref, class_name, class_identifier, class_variables, \
-                  closure_variables, tmp_variables, module_name, \
-                  class_doc, class_codes, class_dict_codes, metaclass_variable ):
+                  closure_variables, tmp_variables, module_name, class_doc, class_codes, \
+                  metaclass_variable ):
     # We really need this many parameters here.
     # pylint: disable=R0913
 
@@ -2447,7 +2448,6 @@ def getClassCode( context, source_ref, class_name, class_identifier, class_varia
                 context       = context,
                 variable      = class_variable,
                 init_from     = init_from,
-                needs_no_free = True,
                 in_context    = False,
                 mangle_name   = class_name
             )
@@ -2507,7 +2507,6 @@ def getClassCode( context, source_ref, class_name, class_identifier, class_varia
             args    = class_creation_args
         ),
         "class_var_decl"        : indented( class_locals ),
-        "class_dict_creation"   : indented( class_dict_codes, 2 ),
         "class_body"            : indented( class_codes, 2 ),
         "module_identifier"     : getModuleAccessCode( context = context ),
         "metaclass_global_test" : getVariableTestCode(

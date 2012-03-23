@@ -334,14 +334,6 @@ def generateClassBodyCode( class_body, bases, context ):
         context           = context
     )
 
-    class_dict_codes = Generator.getReturnCode(
-        identifier = Generator.getLoadLocalsCode(
-            provider = class_body,
-            context  = class_context,
-            mode     = "updated"
-        )
-    )
-
     class_code = Generator.getClassCode(
         context            = class_context,
         source_ref         = class_body.getSourceReference(),
@@ -352,7 +344,6 @@ def generateClassBodyCode( class_body, bases, context ):
         tmp_variables      = class_body.getTempVariables(),
         module_name        = class_body.getParentModule().getName(),
         class_doc          = class_body.getDoc(),
-        class_dict_codes   = class_dict_codes,
         class_codes        = class_codes,
         metaclass_variable = class_body.getParentModule().getVariableForReference(
             variable_name = "__metaclass__"

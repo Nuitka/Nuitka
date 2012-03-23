@@ -73,8 +73,6 @@ static PyObject *%(class_identifier)s( %(class_dict_args)s )
     {
         // Actual class code.
 %(class_body)s
-
-%(class_dict_creation)s
     }
     catch ( _PythonException &_exception )
     {

@@ -1680,6 +1680,9 @@ into action, which could be code changes, plan changes, issues created, etc.
   node tree, it may become possible to predict it as constant, or run time built, without
   a function call at all.
 
+  See below idea: This is automatic, if the respective function call result predictions
+  are implemented and needs no focus, in fact it would be premature optimization to do it.
+
 * The conditional expression needs to be handled like conditional statement for
   propagation.
 
@@ -1697,6 +1700,59 @@ into action, which could be code changes, plan changes, issues created, etc.
   once we could recognize cases, where that optimization could be applied from the code
   at code generation time, we wouldn't have to carry them through optimizations anymore,
   so that idea is worth perusing.
+
+* Class definition should be reformulated as well.
+
+  We currently treat class creation very differently from other functions. Of course the
+  closure rules are different, but that is not a problem. The main issue is that the
+  taking and returning of the locals is transparent, and that the locals is not writable
+  to e.g. "execfile" easily.
+
+  This one currently uses exec, just because that takes care of the writing back of
+  values, whereas other stuff does not.
+
+  .. code-block:: python
+
+     class SomeClass(SomeBase,AnotherBase)
+         some_member = 3
+
+  .. code-block:: python
+
+     def _makeSomeClass:
+         some_member = 3
+
+         return locals()
+
+         # force locals to be a writable dictionary, will be optimized away, but that
+         # property will stick.
+         exec ""
+
+
+     SomeClass = make_class( "SomeClass", (SomeBase, AnotherBase), _makeSomeClass() )
+
+  That would roughly be the same, except that "_makeSomeClass" should still be not visible
+  to its child functions when it comes to closure taking, which we cannot expression in
+  Python language at all.
+
+  The benefit of the above is, that there is only one make_class, no more per class
+  "MAKE_CLASS_xxx" building functions would be there, and the normal function context with
+  "locals dict" could be used for "_makeSomeClass", and that should even solve an issue we
+  currently have ("MaybeLocalVariableReductionVisitor" should be pointless, but can't be
+  removed, or else our "execfile via exec statement" trick will break).
+
+  So this probably should even receive some priority as it will enhance the compatibility,
+  which is the defining factor for priority in Nuitka.
+
+* Make "MAKE_CLASS" transparent.
+
+  Looking at the above idea, having a "make_class" helper, as a node based thing, that
+  checks the base classes, and potentially the module global variable, if it is defined,
+  and only otherwise falls back to the builtin class type, would be needed to fully make
+  class creation possible to optimize.
+
+  This of course makes most sense, if we have the optimizations in place that will allow
+  this to actually happen. Currently we do not, and a "MAKE_CLASS" in C++ will be good, on
+  the other hand, it wouldn't need a handle to the global variable in that case.
 
 * Code Templates may become objects
 

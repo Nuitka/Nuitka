@@ -159,6 +159,7 @@ from .nodes.TryNodes import (
     CPythonStatementTryFinally,
     CPythonStatementTryExcept
 )
+from .nodes.GlobalsLocalsNodes import CPythonExpressionBuiltinLocals
 
 import ast, sys
 
@@ -214,6 +215,22 @@ def buildClassNode( provider, node, source_ref ):
         )
     else:
         body = None
+
+    # The class body is basically a function that implicitely, at the end returns its
+    # locals and cannot have other return statements contained.
+    body = _makeStatementsSequence(
+        statements = (
+            body,
+            CPythonStatementReturn(
+                expression = CPythonExpressionBuiltinLocals(
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref.atInternal()
+            )
+        ),
+        allow_none = True,
+        source_ref = source_ref
+    )
 
     class_body.setBody( body )
 
