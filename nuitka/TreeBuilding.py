@@ -855,6 +855,9 @@ def buildDictionaryNode( provider, node, source_ref ):
         )
 
 def buildAssignmentStatementsFromDecoded( provider, kind, detail, source, source_ref ):
+    # This is using many variable names on purpose, so as to give names to the unpacked
+    # detail values, pylint: disable=R0914
+
     if kind == "Name":
         variable_ref = detail
 
@@ -992,6 +995,9 @@ def buildAssignmentStatements( provider, node, source, source_ref, allow_none = 
 
 
 def decodeAssignTarget( provider, node, source_ref, allow_none = False ):
+    # Many cases to deal with, because of the different assign targets,
+    # pylint: disable=R0911,R0912
+
     if node is None and allow_none:
         return None
 
@@ -1188,6 +1194,11 @@ def buildDeleteNode( provider, node, source_ref ):
     )
 
 def _buildContractionNode( provider, node, name, emit_class, start_value, list_contraction, source_ref ):
+    # The contraction nodes are reformulated to loop style nodes, and use a lot of
+    # temporary names, nested blocks, etc. and so a lot of variable names. There is no
+    # good way around that, and we deal with many cases, due to having generator
+    # expressions sharing this code, pylint: disable=R0912,R0914
+
     assert provider.isParentVariableProvider(), provider
 
     function_body = CPythonExpressionFunctionBody(
@@ -2695,6 +2706,9 @@ def _buildInplaceAssignSliceNode( result, lookup_source, lower, upper, tmp_varia
     )
 
 def buildInplaceAssignNode( provider, node, source_ref ):
+    # There are many inplace assignment variables, and the detail is unpacked into names,
+    # so we end up with a lot of variables, which is on purpose, pylint: disable=R0914
+
     operator   = getKind( node.op )
     expression = buildNode( provider, node.value, source_ref )
 
