@@ -21,9 +21,12 @@ Bug fixes
   that "exec" statement as part of optimizations, this property of the function must not
   get lost.
 
-- Overflow functions are now handled correctly again. These once regressed and had not
-  been repaired until now. An overflow function is a nested function with an exec or a
-  star import.
+- Overflow functions are once again correctly handled. These once were left behind in some
+  refactoring and had not been repaired until now. An overflow function is a nested
+  function with an "exec" or a star import.
+
+- The syntax error for "return" outside of a function, was not given, instead the return
+  was executed at run time. Fixed to raise a "SyntaxError" at compile time.
 
 New Optimizations
 -----------------
@@ -142,6 +145,9 @@ New Tests
          print "Unpacking caught exception and unpacked", a, b
 
   Will assign "a=1" and "b=2".
+
+- Added test to cover return statements on module level and class level, they both must
+  give syntax errors.
 
 Summary
 -------

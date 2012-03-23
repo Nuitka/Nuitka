@@ -2319,6 +2319,15 @@ def buildAttributeNode( provider, node, source_ref ):
     )
 
 def buildReturnNode( provider, node, source_ref ):
+    if not provider.isExpressionFunctionBody():
+        SyntaxErrors.raiseSyntaxError(
+            "'return' outside function",
+            source_ref,
+            None if Utils.getPythonVersion() < 300 else (
+                node.col_offset if provider.isModule() else node.col_offset+4
+            )
+        )
+
     if node.value is not None:
         return CPythonStatementReturn(
             expression = buildNode( provider, node.value, source_ref ),
