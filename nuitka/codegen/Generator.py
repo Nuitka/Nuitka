@@ -177,6 +177,17 @@ def getPackageVariableCode( context ):
         package_var_identifier.getCodeTemporaryRef()
     )
 
+def getMetaclassVariableCode( context ):
+    package_var_identifier = ModuleVariableIdentifier(
+        var_name         = "__metaclass__",
+        module_code_name = context.getModuleCodeName()
+    )
+
+    return "( %s.isInitialized( false ) ? %s : NULL )" % (
+        package_var_identifier.getCode(),
+        package_var_identifier.getCodeTemporaryRef()
+    )
+
 def getBuiltinImportCode( module_identifier, globals_dict, locals_dict, import_list, level ):
     assert type( module_identifier ) is not str
     assert type( globals_dict ) is not str
@@ -2364,16 +2375,18 @@ def _getClosureVariableDecl( variable ):
 
     return "%s &_python_closure_%s" % ( kind, variable.getName() )
 
-def getClassCreationCode( context, code_name, dict_identifier, bases_identifier ):
-    args = [ bases_identifier, dict_identifier ]
+def getClassCreationCode( metaclass_code, name_identifier, dict_identifier, bases_identifier ):
+
+    args = (
+        metaclass_code,
+        name_identifier.getCodeTemporaryRef(),
+        bases_identifier.getCodeTemporaryRef(),
+        dict_identifier.getCodeTemporaryRef()
+    )
 
     return Identifier(
-        "MAKE_CLASS_%s( %s )" % (
-            code_name,
-            getEvalOrderedCode(
-                context = context,
-                args    = getCodeTemporaryRefs( args )
-            )
+        "MAKE_CLASS( %s )" % (
+            ", ".join( args )
         ),
         1
     )

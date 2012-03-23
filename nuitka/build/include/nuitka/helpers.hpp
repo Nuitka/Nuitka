@@ -1578,4 +1578,73 @@ extern void patchInspectModule( void );
 #define _DEBUG_UNFREEZER 0
 #define _DEBUG_REFRAME 0
 
+#define MAKE_CLASS( metaclass_global, class_name, bases, class_dict ) _MAKE_CLASS( EVAL_ORDERED_4( metaclass_global, class_name, bases, class_dict ) )
+
+
+NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_CLASS( EVAL_ORDERED_4( PyObject *metaclass_global, PyObject *class_name, PyObject *bases, PyObject *class_dict ) )
+{
+    // This selection is dynamic, although it is something that might be determined at
+    // compile time already in many cases, and therefore should be a function that is
+    // built of nodes.
+    PyObject *metaclass = PyDict_GetItemString( class_dict, "__metaclass__" );
+
+    // Prefer the metaclass entry of the new class, otherwise search the base classes for
+    // their metaclass.
+    if ( metaclass != NULL )
+    {
+        /* Hold a reference to the metaclass while we use it. */
+        Py_INCREF( metaclass );
+    }
+    else
+    {
+        assertObject( bases );
+
+        if ( PyTuple_GET_SIZE( bases ) > 0 )
+        {
+            PyObject *base = PyTuple_GET_ITEM( bases, 0 );
+
+            metaclass = PyObject_GetAttrString( base, "__class__" );
+
+            if ( metaclass == NULL )
+            {
+                PyErr_Clear();
+
+                metaclass = INCREASE_REFCOUNT( (PyObject *)Py_TYPE( base ) );
+            }
+        }
+        else if ( metaclass_global != NULL )
+        {
+            metaclass = INCREASE_REFCOUNT( metaclass_global );
+        }
+        else
+        {
+#if PYTHON_VERSION < 300
+            // Default to old style class.
+            metaclass = INCREASE_REFCOUNT( (PyObject *)&PyClass_Type );
+#else
+            // Default to old style class.
+            metaclass = INCREASE_REFCOUNT( (PyObject *)&PyType_Type );
+#endif
+        }
+    }
+
+    PyObject *result = PyObject_CallFunctionObjArgs(
+        metaclass,
+        class_name,
+        bases,
+        class_dict,
+        NULL
+    );
+
+    Py_DECREF( metaclass );
+
+    if ( result == NULL )
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+
 #endif

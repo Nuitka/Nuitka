@@ -32,9 +32,6 @@
 
 class_decl_template = """
 static PyObject *%(class_identifier)s( %(class_dict_args)s );
-
-static PyObject *MAKE_CLASS_%(class_identifier)s( %(class_creation_args)s );
-
 """
 
 class_dict_template = """
@@ -88,60 +85,4 @@ static PyObject *%(class_identifier)s( %(class_dict_args)s )
     }
 }
 
-static PyObject *MAKE_CLASS_%(class_identifier)s( %(class_creation_args)s )
-{
-    // TODO: This selection is dynamic, although it is something that
-    // might be determined at compile time already in many cases.
-    PyObject *metaclass = PyDict_GetItemString( dict, "__metaclass__" );
-
-    // Prefer the metaclass attribute of the new class, otherwise search the base
-    // classes for their metaclass.
-
-    if ( metaclass )
-    {
-        /* Hold a reference to the metaclass while we use it. */
-        Py_INCREF( metaclass );
-    }
-    else
-    {
-        if ( PyTuple_GET_SIZE( bases ) > 0 )
-        {
-            PyObject *base = PyTuple_GET_ITEM( bases, 0 );
-
-            metaclass = PyObject_GetAttrString( base, "__class__" );
-
-            if ( metaclass == NULL )
-            {
-                PyErr_Clear();
-
-                metaclass = INCREASE_REFCOUNT( (PyObject *)base->ob_type );
-            }
-        }
-        else if ( %(metaclass_global_test)s )
-        {
-            metaclass = INCREASE_REFCOUNT( %(metaclass_global_var)s );
-        }
-        else
-        {
-#if PYTHON_VERSION < 300
-            // Default to old style class.
-            metaclass = INCREASE_REFCOUNT( (PyObject *)&PyClass_Type );
-#else
-            // Default to old style class.
-            metaclass = INCREASE_REFCOUNT( (PyObject *)&PyType_Type );
-#endif
-        }
-    }
-
-    PyObject *result = PyObject_CallFunctionObjArgs( metaclass, %(name_identifier)s, bases, dict, NULL );
-
-    Py_DECREF( metaclass );
-
-    if ( result == NULL )
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
 """

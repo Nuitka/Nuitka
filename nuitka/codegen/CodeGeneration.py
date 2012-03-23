@@ -322,10 +322,15 @@ def generateClassBodyCode( class_body, bases, context ):
     )
 
     class_creation_identifier = Generator.getClassCreationCode(
-        code_name        = class_body.getCodeName(),
+        metaclass_code   = Generator.getMetaclassVariableCode(
+            context = context
+        ),
+        name_identifier  = Generator.getConstantHandle(
+            context  = context,
+            constant = class_body.getClassName()
+        ),
         bases_identifier = bases_identifier,
-        dict_identifier  = dict_identifier,
-        context          = context
+        dict_identifier  = dict_identifier
     )
 
     class_decl = Generator.getClassDecl(
