@@ -826,6 +826,70 @@ Of course, the value of the current exception, use special references for assign
 that access the C++ and don't go via "sys.exc_info" at all, these are called
 "CaughtExceptionValueRef".
 
+Classes Creation
+================
+
+Classes have a body that only serves to build the class dictionary and is a normal
+function otherwise. This is expressed with the following re-formulation:
+
+.. code-block:: python
+
+   class SomeClass(SomeBase,AnotherBase)
+       some_member = 3
+
+.. code-block:: python
+
+   def _makeSomeClass:
+       some_member = 3
+
+       return locals()
+
+       # force locals to be a writable dictionary, will be optimized away, but that
+       # property will stick.
+       exec ""
+
+   SomeClass = make_class( "SomeClass", (SomeBase, AnotherBase), _makeSomeClass() )
+
+That would roughly be the same, except that "_makeSomeClass" is be _not_ visible to its
+child functions when it comes to closure taking, which we cannot expression in Python
+language at all.
+
+List Contractions
+=================
+
+TODO.
+
+Set Contractions
+=================
+
+TODO.
+
+Dict Contractions
+=================
+
+TODO.
+
+Generator Expressions
+=====================
+
+There are re-formulated as functions.
+
+Generally they are turned into calls of function bodies with (potentially nested) for
+loops.
+
+.. code-block:: python
+
+    gen = ( x*2 for x in range(8) if cond() )
+
+.. code-block:: python
+
+    def _gen_helper( __iterator ):
+       for x in __iterator:
+          if cond():
+              yield x*2
+
+    gen = _gen_helper( range(8 ) )
+
 
 Plan to replace "python-qt" for the GUI
 =======================================
@@ -864,9 +928,9 @@ Part of the goal is to forward value knowledge. When you have "a = b", that mean
 and b now "alias". And if you know the value of "b" you can assume to know the value of
 "a".
 
-If that value is a constant, you will want to push it forward, because storing the
-constant has a cost and loading the variable as well. So, you want to be able collapse
-such code:
+When that value is a compile time constant, you will want to push it forward, because
+storing such a constant under a variable name has a cost and loading it back from the
+variable as well. So, you want to be able collapse such code:
 
 .. code-block:: python
 
@@ -898,9 +962,12 @@ be implemented as far as possible with the builtin "long", "str" as well.
    "ctypes.c_int" values would be an example of that. Of course that may not be possible
    for everything.
 
-This approach has well proven itself with builtin functions already, where we use real
-builtins where possible to make computations. We have the problem though that builtins may
-have problems to execute everything with reasonable compile time cost.
+   This approach has well proven itself with builtin functions already, where we use real
+   builtins where possible to make computations. We have the problem though that builtins may
+   have problems to execute everything with reasonable compile time cost.
+
+
+Consider the following code.
 
 .. code-block:: python
 
@@ -909,9 +976,9 @@ have problems to execute everything with reasonable compile time cost.
 To predict this code, calculating it at compile time using constant operations, while
 feasible, puts an unacceptable burden on the compilation.
 
-Esp. we wouldn't want to produce such a constant and stream it, the C++ code would be too
-huge. So, we need to stop the "\*" operator from being used at compile time and live with
-reduced knowledge, already here:
+Esp. we wouldn't want to produce such a huge constant and stream it, the C++ code would
+become too huge. So, we need to stop the "\*" operator from being used at compile time and
+live with reduced knowledge, already here:
 
 .. code-block:: python
 
@@ -921,8 +988,8 @@ Instead, we would probably say that for this expression:
 
    - The result is a "str" or "PyStringObject".
    - We know its length exactly, it's "10000000000000".
-   - Can predict every of its elements when index, sliced, etc., if need be, with a
-     function.
+   - Can predict every of its elements when subscripted, sliced, etc., if need be, with a
+     function we may create.
 
 Similar is true for this nice thing:
 
@@ -937,7 +1004,7 @@ So it's a rather general problem, this time we know:
    - Can predict every of its elements when index, sliced, etc., if need be, with a
      function.
 
-Again, we wouldn't want to create the list. Nuitka currently refuses to compile time
+Again, we wouldn't want to create the list. Nuitka e.g. currently refuses to compile time
 calculate lists with more than 256 elements, which is an arbitrary choice.
 
 .. note::
@@ -984,8 +1051,8 @@ Back to the original example:
 
    len( "a" * 1000000000000 )
 
-The theme here, is that when we can't pre-compute all intermediate expressions, and we
-sure can't always in the general case. But we can still, predict some of properties of an
+The theme here, is that when we can't compute all intermediate expressions, and we sure
+can't do it in the general case. But we can still, predict some of properties of an
 expression result, more or less.
 
 Here we have "len" to look at an argument that we know the size of. Great. We need to ask
@@ -1004,11 +1071,12 @@ follows:
 
    import ctypes
 
-This leads to Nuitka tree containing an "import module expression", that can be predicted
-by default to be a module object, and it can be better known as "ctypes" from standard
-library with more or less certainty. See the section about "Importing".
+This leads to Nuitka tree containing an "import module expression", that is re-formulated
+to an assignment statement from a module import expression. It can be predicted by default
+to be a module object, and even better, it can be known as "ctypes" from standard library
+with more or less certainty. See the section about "Importing".
 
-So that part is easy, and it's what should happen. During optimization, when the module
+So that part is easy, and it's what will happen. During optimization, when the module
 import expression is examined, it should say:
 
    - "ctypes" is a module
@@ -1032,11 +1100,9 @@ The assigned to object, simply gets the type inferred propagated, and the questi
 if the propagation should be done as soon as possible and to what, or later.
 
 For variables, we don't currently track at all any more than there usages read/write and
-that is it. And we are not good at it either.
-
-The problem with tracking it, is that such information may continuously become invalid at
-many instances, and it can be hard to notice mistakes due to it. But if do not have it
-fixed, how to we detect this:
+that is it. The problem with tracking it, is that such information may continuously become
+invalid at many instances, and it can be hard to notice mistakes due to it. But if do not
+have it correct, how to we detect this:
 
 .. code-block:: python
 
@@ -1114,14 +1180,14 @@ Excursion to Loops
    print a
 
 The handling of "for" (and "while") loops has its own problem. They are similar to that of
-function calls and their bodies. The "for" loop would have a start assumption that "a" is
+function calls and their bodies. The loop could start and have an assumption that "a" is
 constant, but that is only true for the first iteration. So, we can't pass knowledge from
 outside the for loop directly into the for loop body.
 
-We will do a first pass, where we collect invalidations of the outside knowledge. The
-assignment to "a" should make it an alternative with what we knew about "b". And we can't
-really assume to know anything about a to e.g. predict "b" due to that. That first pass
-needs to scan for assignments, and treat them as invalidations.
+We will do a first pass, where we need to collect invalidations of all of the outside
+knowledge. The assignment to "a" should make it an alternative with what we knew about
+"b". And we can't really assume to know anything about a to e.g. predict "b" due to
+that. That first pass needs to scan for assignments, and treat them as invalidations.
 
 
 Excursion to Conditions
@@ -1143,7 +1209,8 @@ variable "x" is constant, in the other too, but it's a different value.
 
 So for constants, we need to have the constraint collection know when it enters a
 conditional branch, and when it does, it must take special precautions, to preserve the
-existing state. When exiting all the branches, these branches must be merged, with new information.
+existing state. When exiting all the branches, these branches must be merged, with new
+information.
 
 In the above case:
 
@@ -1181,7 +1248,7 @@ For conditional statements optimization, the following is note-worthy:
      In this case, the knowledge that "a" is a list, could be used to generate better code
      and with definite knowledge that "a" is of type list. These is a lot more to do, until we understand "type checks" though.
 
-     - If 2 branches exist, or one makes a difference.
+   - If 2 branches exist, or one makes a difference.
 
        If both branches exist, both should fork existing state and continue it, and
        afterwards merge those 2 and replace the state before the statement.
@@ -1193,14 +1260,19 @@ For conditional statements optimization, the following is note-worthy:
 Excursion to return statements
 ------------------------------
 
-The return statement ought to be the last statement of inspected block, or else previous
-optimization steps have failed. With a conditional statement branch, in case it ends with
-a return statement, the merging of the constraint collection must consider it by not
-taking any knowledge from it at all.
+The return statement (like "break", "continue", "raise") is abortative to control flow. It
+becomes the last statement of inspected block. With a conditional statement branch, in
+case one branch has a return statement and the other not, the merging of the constraint
+collection must consider it by not taking any knowledge from such branch at all.
 
-If all branches of a conditional statement return, that should have an optimization to
-discover that, and remove the following statements. Currently no such optimization exists
-and it should be added, so value propagation can rely on it to be handled already.
+If all branches of a conditional statement return, that has have an optimization to
+discover that, and remove the following statements as well.
+
+.. note::
+
+   The removal of statements following abortative statements is implemented, and so is the
+   discovery of abortative conditional statements. It's not yet done for loops, temp
+   blocks, etc. though.
 
 
 Excursion to yield statements
@@ -1238,9 +1310,8 @@ tuple is a good way to express that something won't be changed later, as these a
 
    People don't do it, because they dislike the performance hit encountered by the
    generator expression being used to initialize the tuple. But it would be more
-   consistent, and so Nuitka is using it, and of course one day ought to be able to
-   evaluate the tuple call to the generator expression by the means of a "tuple
-   contraction".
+   consistent, and so Nuitka is using it, and of course one day Nuitka ought to be able to
+   make no difference in performance for it.
 
 To Nuitka though this means, that if "cond" is not predictable, after the conditional
 statement we may either have a "tuple" or a "list". In order to represent that without
@@ -1275,13 +1346,12 @@ The following is the intended interface
   the case of the later, optimizations may not be able do much about it. Lets call these
   values "tristate".
 
-  Part of the interface is a method "getComputation" which gives the node the chance to
-  return a tristate together with a lambda, that when executed, produces either an
-  exception or constant value.
+  Part of the interface is a method "computeNode" which gives the node the chance to
+  return another node instead, which may also be an exception.
 
-  The "getComputation" may be able to produce exceptions or constant even for non-constant
-  inputs depending on the operation being performed. For every computational step it will
-  be executed.
+  The "computeNode" may be able to produce exceptions or constants even for
+  non-constant inputs depending on the operation being performed. For every expression
+  it will be executed.
 
   In this sense, attribute lookup is also a computation, as its value might be computed as
   well. Most often an attribute lookup will produce a new value, which is not assigned,
@@ -1330,7 +1400,7 @@ The following is the intended interface
 
   - Updates to the collection should be done via methods
 
-      - "onAssigmentToTargetFromValueFriend( target, value_friend )"
+      - "onAssigment( variable, value_friend )"
       - "onAttributeLookup( source, attribute_name )"
       - "onOutsideCode()"
       - "passedByReference( var_name )"
@@ -1376,27 +1446,11 @@ The following examples:
    # "ValueFriend"s.
    a + b
 
-The walking of the tree is best done in "Optimization" and can be used to implement many
-optimizations in a more consistent and faster way. We currently check the tree for calls
-to builtins with constant arguments. But with the new way of walking, we reverse the order
-of the check.
-
-Now:
-
-   - Check all tree for suitable "builtin" function calls
-   - Check their arguments if they are constants
-   - Replace builtin call node with constant results or known exception
-
-Future:
-
-   - Walk the tree and enter arguments of builtin function calls
-   - Collect knowledge about the argument, including maybe that they are constant or known
-     length
-   - Ask the "BuiltinValueFriend" what it can say. If it says the value is of constant value,
-     replace the node with constant results or known exception
-
-It's really exciting to see, how this proposal cleans up the existing code and integrates
-with it.
+The walking of the tree is best done in a specialized optimization and can be used to
+implement optimizations in a consistent and fast way. It walks the tree and enters
+arguments of builtin function calls. After that, value friends can be queries for
+arguments, and these can be used for the builtins own "computeNode" or value friend
+decisions.
 
 
 Code Generation Impact
@@ -1432,7 +1486,7 @@ values throughout a function or part of it.
 Initial Implementation
 ----------------------
 
-The "ValueFriendBase" interface will be added to _all_ expressions nodes creation time,
+The "ValueFriendBase" interface will be added to *all* expressions nodes creation time,
 a node may either do it for itself (constant reference is an obvious example) or may
 delegate the task to an instantiated object of "ValueFriendBase" inheritance.
 
@@ -1462,7 +1516,7 @@ a later step.
 
 .. note::
 
-   This part is implemented.
+   This part is implemented, but not active for releases.
 
 Then second goal is to understand all of this:
 
@@ -1660,29 +1714,6 @@ Idea Bin
 This an area where to drop random ideas on our minds, to later sort it out, and out it
 into action, which could be code changes, plan changes, issues created, etc.
 
-* Faster/cheaper class creation for the normal case.
-
-  Right now for every class body, there is a "MAKE_CLASS_*" with frame guard, exception
-  keeper, etc. overhead, but for most classes that is not needed at all. Most often the
-  building of functions is all that happens, if at all. For these cases, a different
-  approach might be taken, that is to simply build the dictionary directly if possible and
-  no side-effect could happen.
-
-  A finalization step ought to markup classes whose dictionary elements only have things
-  without side effects, and building functions isn't that. Side effects may also be OK, if
-  order is respected, we probably mean "conditions" here that are not conditional
-  expressions or can be reduced to such.
-
-  Update: Currently the "building" of the dict, is not really treated like it. There is a
-  body of statements, whose "locals" become the dictionary at the end. There is currently
-  no way to generally say "cannot raise" for these statements, or to generally say, if
-  they could be transformed into a dictionary. If the dictionary building were pare of the
-  node tree, it may become possible to predict it as constant, or run time built, without
-  a function call at all.
-
-  See below idea: This is automatic, if the respective function call result predictions
-  are implemented and needs no focus, in fact it would be premature optimization to do it.
-
 * The conditional expression needs to be handled like conditional statement for
   propagation.
 
@@ -1693,66 +1724,15 @@ into action, which could be code changes, plan changes, issues created, etc.
   Is there any re-formulation of conditional expressions with "and" and "or" that is
   generally true?
 
-* Generator expressions should be re-formulated as functions.
+* Make "MAKE_CLASS" meta class selection transparent.
 
-  Generally they could be turned into nested creations of for loop function bodies with
-  the first iterator as an argument. Right now, that would loose their optimizations, but
-  once we could recognize cases, where that optimization could be applied from the code
-  at code generation time, we wouldn't have to carry them through optimizations anymore,
-  so that idea is worth perusing.
-
-* Class definition should be reformulated as well.
-
-  We currently treat class creation very differently from other functions. Of course the
-  closure rules are different, but that is not a problem. The main issue is that the
-  taking and returning of the locals is transparent, and that the locals is not writable
-  to e.g. "execfile" easily.
-
-  This one currently uses exec, just because that takes care of the writing back of
-  values, whereas other stuff does not.
-
-  .. code-block:: python
-
-     class SomeClass(SomeBase,AnotherBase)
-         some_member = 3
-
-  .. code-block:: python
-
-     def _makeSomeClass:
-         some_member = 3
-
-         return locals()
-
-         # force locals to be a writable dictionary, will be optimized away, but that
-         # property will stick.
-         exec ""
-
-
-     SomeClass = make_class( "SomeClass", (SomeBase, AnotherBase), _makeSomeClass() )
-
-  That would roughly be the same, except that "_makeSomeClass" should still be not visible
-  to its child functions when it comes to closure taking, which we cannot expression in
-  Python language at all.
-
-  The benefit of the above is, that there is only one make_class, no more per class
-  "MAKE_CLASS_xxx" building functions would be there, and the normal function context with
-  "locals dict" could be used for "_makeSomeClass", and that should even solve an issue we
-  currently have ("MaybeLocalVariableReductionVisitor" should be pointless, but can't be
-  removed, or else our "execfile via exec statement" trick will break).
-
-  So this probably should even receive some priority as it will enhance the compatibility,
-  which is the defining factor for priority in Nuitka.
-
-* Make "MAKE_CLASS" transparent.
-
-  Looking at the above idea, having a "make_class" helper, as a node based thing, that
-  checks the base classes, and potentially the module global variable, if it is defined,
-  and only otherwise falls back to the builtin class type, would be needed to fully make
-  class creation possible to optimize.
+  Looking at the "MAKE_CLASS" helper, one of the main tasks is to select the meta class,
+  which could also be done external to it, and as nodes. In that way, the optimization
+  process can remove choices at compile time, and e.g. inline the effect of a meta class,
+  if it is known.
 
   This of course makes most sense, if we have the optimizations in place that will allow
-  this to actually happen. Currently we do not, and a "MAKE_CLASS" in C++ will be good, on
-  the other hand, it wouldn't need a handle to the global variable in that case.
+  this to actually happen.
 
 * Code Templates may become objects
 
