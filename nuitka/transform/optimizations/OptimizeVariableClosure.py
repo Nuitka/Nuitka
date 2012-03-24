@@ -32,11 +32,7 @@ Run away, don't read it, quick. Heavily underdocumented rules are implemented he
 
 """
 
-from .OptimizeBase import (
-    OptimizationVisitorScopedBase,
-    OptimizationVisitorBase,
-    TreeOperations,
-)
+from .OptimizeBase import OptimizationVisitorScopedBase
 
 # TODO: The variable closure thing looks like it should be collapsed into tree building,
 # this does not at all depend on completion of the node tree. Just the not early closure
@@ -94,83 +90,3 @@ VariableClosureLookupVisitors = (
     VariableClosureLookupVisitorPhase2,
     VariableClosureLookupVisitorPhase3
 )
-
-class ModuleVariableWriteCheck( TreeOperations.VisitorNoopMixin ):
-    def __init__( self, variable_name ):
-        self.variable_name = variable_name
-        self.result = False
-
-    def onEnterNode( self, node ):
-        if node.isStatementAssignmentVariable():
-            variable = node.getTargetVariableRef().getVariable()
-
-            if variable.isModuleVariableReference():
-                if variable.getReferenced().getName() == self.variable_name:
-                    self.result = True
-                    raise TreeOperations.ExitVisit
-
-    def getResult( self ):
-        return self.result
-
-
-def doesWriteModuleVariable( node, variable_name ):
-    visitor = ModuleVariableWriteCheck(
-        variable_name = variable_name
-    )
-
-    body = node.getBody()
-
-    if body is not None:
-        TreeOperations.visitScope(
-            tree    = body,
-            visitor = visitor
-        )
-
-    return visitor.getResult()
-
-
-class ModuleVariableVisitorBase( OptimizationVisitorBase ):
-    def onEnterNode( self, node ):
-        if node.isModule():
-            variables = node.getVariables()
-
-            for variable in sorted( variables, key = lambda x : x.getName() ):
-                self.onModuleVariable( variable )
-
-            # This is a cheap way to only visit the module. TODO: Hide this away in a base
-            # class.
-            raise TreeOperations.ExitVisit
-
-    def onModuleVariable( self, variable ):
-        # Abstract method, pylint: disable=R0201,W0613
-        assert False
-
-
-class ModuleVariableUsageAnalysisVisitor( ModuleVariableVisitorBase ):
-    def onModuleVariable( self, variable ):
-        references = variable.getReferences()
-
-        write_count = 0
-
-        for reference in references:
-            # print "  REF by", reference, reference.getOwner()
-
-            does_write = doesWriteModuleVariable(
-                node          = reference.getOwner(),
-                variable_name = variable.getName()
-            )
-
-            if does_write:
-                write_count += 1
-
-        was_read_only = variable.getReadOnlyIndicator()
-        is_read_only = write_count == 0
-
-        variable.setReadOnlyIndicator( write_count == 0 )
-
-        if is_read_only and not was_read_only:
-            self.signalChange(
-                "read_only_mvar",
-                variable.getOwner().getSourceReference(),
-                "Determined variable '%s' is only read." % variable.getName()
-            )

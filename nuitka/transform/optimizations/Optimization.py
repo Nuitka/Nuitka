@@ -35,10 +35,7 @@ e.g. a new constant determined could make another optimization feasible.
 
 from .OptimizeModuleRecursion import ModuleRecursionVisitor
 from .OptimizeConstantExec import OptimizeExecVisitor
-from .OptimizeVariableClosure import (
-    VariableClosureLookupVisitors,
-    ModuleVariableUsageAnalysisVisitor
-)
+from .OptimizeVariableClosure import VariableClosureLookupVisitors
 from .OptimizeRaises import OptimizeRaisesVisitor
 from .OptimizeValuePropagation import ValuePropagationVisitor
 
@@ -88,9 +85,6 @@ def optimizeTree( tree ):
             if not Options.shallMakeModule():
                 optimizations_queue.add( ModuleRecursionVisitor )
 
-        if tags.check( "new_code new_statements" ):
-            optimizations_queue.add( ModuleVariableUsageAnalysisVisitor )
-
         if tags.check( "new_code new_constant" ):
             if Options.shallOptimizeStringExec():
                 optimizations_queue.add( OptimizeExecVisitor )
@@ -98,7 +92,7 @@ def optimizeTree( tree ):
         if tags.check( "new_code new_raise" ):
             optimizations_queue.add( OptimizeRaisesVisitor )
 
-        if tags.check( "new_code new_statements new_constant new_builtin" ):
+        if tags.check( "new_code new_statements new_constant new_builtin read_only_mvar" ):
             optimizations_queue.add( ValuePropagationVisitor )
 
         tags.clear()

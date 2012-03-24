@@ -32,6 +32,8 @@ Different kinds of variables represent different scopes and owners.
 
 """
 
+from .__past__ import iterItems
+
 class Variable:
     def __init__( self, owner, variable_name ):
         assert type( variable_name ) is str, variable_name
@@ -178,6 +180,7 @@ class VariableReferenceBase( Variable ):
     def __hash__( self ):
         return hash( self.getReferenced() )
 
+
 class ClosureVariableReference( VariableReferenceBase ):
     def __init__( self, owner, variable ):
         assert not variable.isModuleVariable()
@@ -260,6 +263,7 @@ class LocalVariable( Variable ):
     def isLocalVariable( self ):
         return True
 
+
 class MaybeLocalVariable( Variable ):
     reference_class = ClosureVariableReference
 
@@ -291,6 +295,7 @@ class ParameterVariable( LocalVariable ):
 
     def isParameterVariable( self ):
         return True
+
 
 class NestedParameterVariable( ParameterVariable ):
     def __init__( self, owner, parameter_name, parameter_spec ):
@@ -343,9 +348,10 @@ class ClassVariable( Variable ):
     def isClassVariable( self ):
         return True
 
-_module_variables = {}
 
 class ModuleVariable( Variable ):
+    module_variables = {}
+
     reference_class = ModuleVariableReference
 
     def __init__( self, module, variable_name ):
@@ -356,8 +362,8 @@ class ModuleVariable( Variable ):
 
         key = self._getKey()
 
-        assert key not in _module_variables, key
-        _module_variables[ key ] = self
+        assert key not in self.module_variables, key
+        self.module_variables[ key ] = self
 
     def __repr__( self ):
         return "<ModuleVariable '%s' of '%s'>" % (
@@ -366,7 +372,9 @@ class ModuleVariable( Variable ):
         )
 
     def _getKey( self ):
-        return self.getModuleName(), self.getName()
+        """ The module name and the variable name form the key."""
+
+        return self.getModule(), self.getName()
 
     def isModuleVariable( self ):
         return True
@@ -380,14 +388,23 @@ class ModuleVariable( Variable ):
     def _checkShared( self, variable ):
         assert False, variable
 
-def getNames( variables ):
-    return [ variable.getName() for variable in variables ]
+
+def getModuleVariables( module ):
+    result = []
+
+    for key, variable in iterItems( ModuleVariable.module_variables ):
+        if key[0] is module:
+            result.append( variable )
+
+    return result
+
 
 class TempVariableReference( VariableReferenceBase ):
 
     def isTempVariableReference( self ):
         # Virtual method, pylint: disable=R0201
         return True
+
 
 class TempVariable( Variable ):
     reference_class = TempVariableReference
@@ -422,3 +439,7 @@ class TempVariable( Variable ):
     def getDeclarationInitValueCode( self ):
         # Virtual method, pylint: disable=R0201
         return "NULL"
+
+
+def getNames( variables ):
+    return [ variable.getName() for variable in variables ]

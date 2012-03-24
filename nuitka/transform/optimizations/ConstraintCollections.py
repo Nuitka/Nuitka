@@ -46,14 +46,15 @@ from nuitka import Options, Utils, TreeRecursion, Importing
 from logging import debug
 
 # TODO: This code is only here while staging it, will live in a dedicated module later on
-class ConstraintCollection:
-    def __init__( self, signal_change, copy_of = None ):
+class ConstraintCollectionBase:
+    def __init__( self, parent, signal_change, copy_of = None ):
         self.signalChange = signal_change
+        self.parent = parent
 
         if copy_of is None:
             self.variables = {}
         else:
-            assert copy_of.__class__ is ConstraintCollection
+            assert copy_of.__class__ is ConstraintCollectionBase
 
             self.variables = dict( copy_of.variables )
 
@@ -88,9 +89,9 @@ class ConstraintCollection:
 
     def onClosureTaker( self, closure_taker ):
         if closure_taker.isExpressionFunctionBody():
-            collector = ConstraintCollectionFunction( self.signalChange )
+            collector = ConstraintCollectionFunction( self, self.signalChange )
         elif closure_taker.isExpressionClassBody():
-            collector = ConstraintCollectionClass( self.signalChange )
+            collector = ConstraintCollectionClass( self, self.signalChange )
         else:
             assert False, closure_taker
 
@@ -275,6 +276,12 @@ class ConstraintCollection:
 
         return statement
 
+    def onModuleVariableAssigned( self, variable, value_friend ):
+        self.parent.onModuleVariableAssigned( variable, value_friend )
+
+    def onLocalVariableAssigned( self, variable, value_friend ):
+        self.parent.onLocalVariableAssigned( variable, value_friend )
+
     def onStatement( self, statement ):
         assert statement.isStatement(), statement
 
@@ -286,7 +293,13 @@ class ConstraintCollection:
 
             assert value_friend is not None
 
-            self.variables[ variable_ref.getVariable() ] = value_friend
+            variable = variable_ref.getVariable()
+            self.variables[ variable  ] = value_friend
+
+            if variable.isModuleVariableReference():
+                self.onModuleVariableAssigned( variable, value_friend )
+            elif variable.isLocalVariable():
+                self.onLocalVariableAssigned( variable, value_friend )
 
             return statement
         elif statement.isStatementAssignmentAttribute():
@@ -358,7 +371,7 @@ class ConstraintCollection:
         elif statement.isStatementConditional():
             return self._onStatementConditional( statement )
         elif statement.isStatementLoop():
-            other_loop_run = ConstraintCollectionLoopOther( self.signalChange )
+            other_loop_run = ConstraintCollectionLoopOther( self, self.signalChange )
             other_loop_run.process( self, statement )
 
             self.mergeBranch(
@@ -408,7 +421,7 @@ class ConstraintCollection:
             # may have happened. A similar approach to loops should be taken to invalidate
             # the state before.
             for handler in statement.getExceptionHandlers():
-                exception_branch = ConstraintCollectionHandler( self.signalChange )
+                exception_branch = ConstraintCollectionHandler( self, self.signalChange )
                 exception_branch.process( handler )
 
             # Give up, merging this is too hard for now.
@@ -440,7 +453,7 @@ class ConstraintCollection:
             assert False, statement
 
 
-class ConstraintCollectionHandler( ConstraintCollection ):
+class ConstraintCollectionHandler( ConstraintCollectionBase ):
     def process( self, handler ):
         assert handler.isStatementExceptHandler()
 
@@ -456,14 +469,24 @@ class ConstraintCollectionHandler( ConstraintCollection ):
             for exception_type in exception_types:
                 self.onExpression( exception_type )
 
-class ConstraintCollectionBranch( ConstraintCollection ):
+
+class ConstraintCollectionBranch( ConstraintCollectionBase ):
     def process( self, start_state, branch ):
         assert branch.isStatementsSequence(), branch
 
         self.onStatementsSequence( branch )
 
 
-class ConstraintCollectionFunction( ConstraintCollection ):
+class ConstraintCollectionFunction( ConstraintCollectionBase ):
+    def __init__( self, parent, signal_change ):
+        ConstraintCollectionBase.__init__(
+            self,
+            parent        = parent,
+            signal_change = signal_change
+        )
+
+        self.written_local_variables = set()
+
     def process( self, function_body ):
         assert function_body.isExpressionFunctionBody()
 
@@ -472,8 +495,11 @@ class ConstraintCollectionFunction( ConstraintCollection ):
         if statements_sequence is not None:
             self.onStatementsSequence( statements_sequence )
 
+    def onLocalVariableAssigned( self, variable, value_friend ):
+        self.written_local_variables.add( variable )
 
-class ConstraintCollectionClass( ConstraintCollection ):
+
+class ConstraintCollectionClass( ConstraintCollectionBase ):
     def process( self, class_body ):
         assert class_body.isExpressionClassBody()
 
@@ -483,7 +509,12 @@ class ConstraintCollectionClass( ConstraintCollection ):
             self.onStatementsSequence( statements_sequence )
 
 
-class ConstraintCollectionModule( ConstraintCollection ):
+class ConstraintCollectionModule( ConstraintCollectionBase ):
+    def __init__( self, signal_change ):
+        ConstraintCollectionBase.__init__( self, None, signal_change )
+
+        self.written_module_variables = set()
+
     def process( self, module ):
         assert module.isModule()
 
@@ -536,7 +567,14 @@ class ConstraintCollectionModule( ConstraintCollection ):
                     )
 
 
-class ConstraintCollectionLoopOther( ConstraintCollection ):
+    def onModuleVariableAssigned( self, variable, value_friend ):
+        while variable.isModuleVariableReference():
+            variable = variable.getReferenced()
+
+        self.written_module_variables.add( variable )
+
+
+class ConstraintCollectionLoopOther( ConstraintCollectionBase ):
     def process( self, start_state, loop ):
         # TODO: Somehow should copy that start state over, assuming nothing won't be wrong
         # for a start.
