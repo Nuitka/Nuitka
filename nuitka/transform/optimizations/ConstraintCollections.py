@@ -222,18 +222,16 @@ class ConstraintCollection:
 
         self.onExpression( statement.getCondition() )
 
-        condition = statement.getCondition()
-
         # TODO: We now know that condition evaluates to true for the yes branch
         # and to not true for no branch
 
-        branch_yes_collection = ConstraintCollectionBranch( self.signalChange )
+        branch_yes_collection = ConstraintCollectionBranch( self, self.signalChange )
 
         if yes_branch is not None:
             branch_yes_collection.process( self, yes_branch )
 
         if no_branch is not None:
-            branch_no_collection = ConstraintCollectionBranch( self.signalChange )
+            branch_no_collection = ConstraintCollectionBranch( self, self.signalChange )
 
             branch_no_collection.process( self, statement.getBranchNo() )
 
@@ -257,8 +255,8 @@ class ConstraintCollection:
             )
 
             return new_statement
-        elif condition.isExpressionConstantRef():
-            if condition.getConstant():
+        elif statement.getCondition().isCompileTimeConstant():
+            if statement.getCondition().getCompileTimeConstant():
                 choice = "true"
 
                 new_statement = statement.getBranchYes()

@@ -778,7 +778,8 @@ class CPythonExpressionMixin:
         return False
 
     def getCompileTimeConstant( self ):
-        assert self.isCompileTimeConstant()
+        assert self.isCompileTimeConstant(), self
+
         assert False
 
     def isKnownToBeIterable( self, count ):
