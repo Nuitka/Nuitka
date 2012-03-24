@@ -88,7 +88,7 @@ def optimizeTree( tree ):
             if not Options.shallMakeModule():
                 optimizations_queue.add( ModuleRecursionVisitor )
 
-        if tags.check( "new_code" ):
+        if tags.check( "new_code new_statements" ):
             optimizations_queue.add( ModuleVariableUsageAnalysisVisitor )
 
         if tags.check( "new_code new_constant" ):
