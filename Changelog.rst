@@ -43,6 +43,13 @@ New Optimizations
       produce them frequently, and their removal may in turn make other optimizations
       possible.
 
+- Detect module variables as read only after writes have been pruned from it. Previously
+  the read-only indicator was checked for only once and then stayed the same, even it all
+  writes were found to not happen.
+
+- Expanded conditional statement optimization to detect cases, where condition is a
+  compile time constant, not just a constant value.
+
 Organizational
 --------------
 
