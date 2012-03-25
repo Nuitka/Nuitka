@@ -111,7 +111,7 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
         # with names we have.
 
         parameter_parsing_code += CodeTemplates.parse_argument_template_dict_star_copy % {
-            "dict_star_parameter_name" : parameters.getDictStarArgName(),
+            "dict_star_parameter_name" : parameters.getStarDictArgumentName(),
         }
 
         # Check for each variable.
@@ -124,7 +124,7 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
                         constant = variable.getName(),
                         context  = context
                     ),
-                    "dict_star_parameter_name" : parameters.getDictStarArgName(),
+                    "dict_star_parameter_name" : parameters.getStarDictArgumentName(),
                 }
     elif not parameters.isEmpty():
         quick_path_code = ""
@@ -172,7 +172,7 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
         else:
             check_template = CodeTemplates.parse_argument_template_check_counts_with_list_star_arg
 
-        required_parameter_count = len( top_level_parameters ) - parameters.getDefaultParameterCount()
+        required_parameter_count = len( top_level_parameters ) - parameters.getDefaultCount()
 
         parameter_parsing_code += check_template % {
             "function_name"             : function_name,
@@ -208,7 +208,7 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
             max_index = len( top_level_parameters ) - 1
 
         parameter_parsing_code += CodeTemplates.parse_argument_template_copy_list_star_args % {
-            "list_star_parameter_name"  : parameters.getListStarArgName(),
+            "list_star_parameter_name"  : parameters.getStarListArgumentName(),
             "top_level_parameter_count" : len( top_level_parameters ),
             "top_level_max_index"       : max_index
         }

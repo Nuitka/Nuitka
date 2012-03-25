@@ -181,7 +181,7 @@ def dict_extractor( node ):
     # The dict is a bit strange in that it accepts a position parameter, or not, but
     # won't have a default.
 
-    def wrapExpressionBuiltinDictCreation( positional_args, pairs, source_ref ):
+    def wrapExpressionBuiltinDictCreation( positional_args, dict_star_arg, source_ref ):
         if len( positional_args ) > 1:
             return CPythonExpressionFunctionCall(
                 called_expression = makeRaiseExceptionReplacementExpressionFromInstance(
@@ -193,13 +193,13 @@ def dict_extractor( node ):
                 positional_args   = positional_args,
                 list_star_arg     = None,
                 dict_star_arg     = None,
-                pairs             = pairs,
+                pairs             = dict_star_arg,
                 source_ref        = source_ref
             )
 
         return CPythonExpressionBuiltinDict(
             pos_arg    = positional_args[0] if positional_args else None,
-            pairs      = pairs,
+            pairs      = dict_star_arg,
             source_ref = node.getSourceReference()
         )
 
