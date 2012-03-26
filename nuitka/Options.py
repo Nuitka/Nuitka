@@ -151,7 +151,7 @@ is %s.""" %
 )
 
 execute_group.add_option(
-    "--execute-with-pythonpath",
+    "--execute-with-pythonpath", "--keep-pythonpath",
     action  = "store_true",
     dest    = "keep_pythonpath",
     default = False,
