@@ -166,7 +166,8 @@ def _pickSourceFilenames( source_dir, other_modules ):
     for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
         base_filename = Utils.joinpath( source_dir, other_module.getFullName() )
 
-        # TODO: Could detect if the filesystem is cases sensitive in source_dir or not.
+        # Note: Could detect if the filesystem is cases sensitive in source_dir or not,
+        # but that's probably not worth the effort.
         collision_filename = Utils.normcase( base_filename )
 
         if collision_filename in seen_filenames:

@@ -31,21 +31,14 @@
 
 #include "__helpers.hpp"
 
-// We do the reversal for function calls completely ourselves and here, so we don't have
-// to do it in generated code. For each CALL_FUNCTION variant there is a define that
-// includes a use of EVAL_ORDERED_x and a _CALL_FUNCTION implementation that does the
-// actual work.
+// Note: We do the reversal for function call arguments completely ourselves and here, so
+// we don't have to do it in generated code. For each CALL_FUNCTION variant there is a
+// define that includes a use of EVAL_ORDERED_x and a _CALL_FUNCTION implementation that
+// does the actual work.
 
 // Some helpers for common code.
 
-extern PyObject *_python_dict_empty;
 extern PyObject *_python_tuple_empty;
-
-// TODO: Move dict friendship things to its own header.
-static inline bool COULD_CONTAIN_NON_STRINGS( PyObject *dict )
-{
-    return ( ((PyDictObject *)( dict ))->ma_lookup != ((PyDictObject *)_python_dict_empty)->ma_lookup );
-}
 
 static char const *GET_CALLABLE_DESC( PyObject *object )
 {

@@ -48,7 +48,6 @@ def getVariableHandle( context, variable ):
             var_name = var_name
         )
     elif variable.isMaybeLocalVariable():
-        # TODO: This should depend on no known to hit closure existing
         context.addGlobalVariableNameUsage( var_name )
 
         assert context.hasLocalsDict(), context

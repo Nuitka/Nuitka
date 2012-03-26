@@ -166,17 +166,6 @@ def getYieldCode( identifier, for_return ):
 def getYieldTerminatorCode():
     return "throw ReturnException();"
 
-def getPackageVariableCode( context ):
-    package_var_identifier = ModuleVariableIdentifier(
-        var_name         = "__package__",
-        module_code_name = context.getModuleCodeName()
-    )
-
-    return "( %s.isInitialized( false ) ? %s : NULL )" % (
-        package_var_identifier.getCode(),
-        package_var_identifier.getCodeTemporaryRef()
-    )
-
 def getMetaclassVariableCode( context ):
     package_var_identifier = ModuleVariableIdentifier(
         var_name         = "__metaclass__",
@@ -443,12 +432,6 @@ def getFunctionCallCode( function_identifier, argument_tuple, argument_dictionar
                 star_dict_identifier = star_dict_identifier
             )
 
-def getIteratorCreationCode( iterated ):
-    return Identifier(
-        "MAKE_ITERATOR( %s )" % iterated.getCodeTemporaryRef(),
-        1
-    )
-
 def getUnpackNextCode( iterator_identifier, count ):
     return Identifier(
         "UNPACK_NEXT( %s, %d )" % (
@@ -463,27 +446,6 @@ def getUnpackCheckCode( iterator_identifier, count ):
         iterator_identifier.getCodeTemporaryRef(),
         count
     )
-
-# TODO: The below ought to be unused soon.
-def getUnpackTupleCode( assign_source, iterator_identifier, lvalue_identifiers ):
-    result = "PyObjectTemporary %s( %s );\n" % (
-        iterator_identifier.getCode(),
-        getIteratorCreationCode( iterated = assign_source ).getCodeExportRef()
-    )
-
-    for count, lvalue_identifier in enumerate( lvalue_identifiers ):
-        result += "%s %s( %s );\n" % (
-            lvalue_identifier.getClass(),
-            lvalue_identifier.getCode(),
-            getUnpackNextCode(
-                iterator_identifier = iterator_identifier,
-                count               = count+1
-            ).getCodeExportRef()
-        )
-
-    result += getUnpackCheckCode( iterator_identifier, len( lvalue_identifiers ) ) + "\n"
-
-    return result
 
 def getSpecialAttributeLookupCode( attribute, source ):
     return Identifier(
@@ -511,16 +473,6 @@ def getImportNameCode( import_name, module ):
         ),
         1
     )
-
-def getAttributeCheckCode( attribute, source ):
-    return Identifier(
-        "HAS_ATTRIBUTE( %s, %s )" % (
-            source.getCodeTemporaryRef(),
-            attribute.getCodeTemporaryRef()
-        ),
-        0
-    )
-
 
 def getSubscriptLookupCode( subscript, source ):
     if subscript.isConstantIdentifier():
@@ -861,13 +813,6 @@ def getComparisonExpressionBoolCode( comparator, left, right ):
 
     return comparison
 
-
-def getConditionNotCode( condition ):
-    return Identifier(
-        "UNARY_NOT( %s )" % condition.getCodeTemporaryRef(),
-        0
-    )
-
 def getConditionNotBoolCode( condition ):
     return Identifier(
         "(!( %s ))" % condition.getCodeTemporaryRef(),
@@ -1092,15 +1037,6 @@ def getVariableTestCode( context, variable ):
             variable = variable,
             context = context
         )
-
-def getSequenceElementCode( sequence, index ):
-    return Identifier(
-        "SEQUENCE_ELEMENT( %s, %d )" % (
-            sequence.getCodeTemporaryRef(),
-            index
-        ),
-        1
-    )
 
 def getSubscriptAssignmentCode( subscribed, subscript, identifier ):
     return "SET_SUBSCRIPT( %s, %s, %s );" % (
@@ -1566,8 +1502,8 @@ def getBuiltinIter1Code( value ):
 def getBuiltinIter2Code( callable_identifier, sentinel_identifier ):
     return Identifier(
         "BUILTIN_ITER2( %s, %s )" % (
-            callable_identifier.getCodeTemporaryRef(),
-            sentinel_identifier.getCodeTemporaryRef() # TODO: Export may be more useful.
+            callable_identifier.getCodeExportRef(),
+            sentinel_identifier.getCodeExportRef()
         ),
         1
     )
@@ -2348,15 +2284,6 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
 
     return result
 
-def getTupleUnpackIteratorCode( recursion ):
-    return TempVariableIdentifier( "tuple_iterator_%d" % recursion )
-
-def getTupleUnpackLeftValueCode( recursion, count, single_use ):
-    if single_use:
-        return HolderVariableIdentifier( "tuple_lvalue_%d_%d" % ( recursion, count ) )
-    else:
-        return TempVariableIdentifier( "tuple_lvalue_%d_%d" % ( recursion, count ) )
-
 def _getClosureVariableDecl( variable ):
     owner = variable.getOwner()
 
@@ -2527,12 +2454,6 @@ def getClassCode( context, source_ref, class_name, class_identifier, class_varia
             variable = metaclass_variable
         ),
         "metaclass_global_var"  : meta_class_identifier.getCodeTemporaryRef()
-    }
-
-def getDefineGuardedCode( code, define ):
-    return "#ifdef %(define)s\n%(code)s\n#endif" % {
-        "define" : define,
-        "code"   : code
     }
 
 def getRawStringLiteralCode( value ):

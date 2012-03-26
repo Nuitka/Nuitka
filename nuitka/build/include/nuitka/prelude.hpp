@@ -93,8 +93,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 #define Nuitka_StringObject PyStringObject
 #else
 #define Nuitka_String_AsString _PyUnicode_AsString
-// TODO: Clarify is there is something without checks.
-#define Nuitka_String_AsString_Unchecked Nuitka_String_AsString
+// Note: There seems to be no variant that does it without checks, so rolled our own.
+#define Nuitka_String_AsString_Unchecked _PyUnicode_AS_STRING
 #define Nuitka_String_Check PyUnicode_Check
 #define Nuitka_StringObject PyUnicodeObject
 #endif

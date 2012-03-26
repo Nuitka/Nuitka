@@ -73,13 +73,9 @@ static char const *GET_CLASS_NAME( PyObject *klass )
         }
         else
         {
-            // TODO: Is name a leaked reference?
-#if PYTHON_VERSION < 300
-            if ( !PyString_Check( name ) )
-#else
-            if ( !PyUnicode_Check( name ) )
-#endif
+            if ( !Nuitka_String_Check( name ) )
             {
+                Py_DECREF( name );
                 return "?";
             }
 

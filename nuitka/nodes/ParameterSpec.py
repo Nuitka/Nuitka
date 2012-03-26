@@ -295,6 +295,7 @@ def matchFunctionCall( func_name, args, star_list_arg, star_dict_arg, num_defaul
     for arg, value in zip( args, positional ):
         assign( arg, value )
 
+    # Python3 does this check earlier.
     if Utils.getPythonVersion() >= 300 and not star_dict_arg:
         for pair in pairs:
             if pair[0] not in args:

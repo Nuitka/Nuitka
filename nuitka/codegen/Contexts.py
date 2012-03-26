@@ -287,7 +287,7 @@ class PythonModuleContext( PythonContextBase ):
     getModuleName = getName
 
     def getModuleCodeName( self ):
-        return self.getCodeName()
+        return self.code_name
 
     # There cannot ne local variable in modules no need to consider the name.
     # pylint: disable=W0613
@@ -306,9 +306,6 @@ class PythonModuleContext( PythonContextBase ):
 
     def getGlobalVariableNames( self ):
         return self.global_var_names
-
-    def getCodeName( self ):
-        return self.code_name
 
     def getTracebackName( self ):
         return "<module>"
@@ -381,9 +378,6 @@ class PythonFunctionContext( PythonChildContextBase ):
         else:
             return TempObjectIdentifier( var_name, from_context = "" )
 
-    def getCodeName( self ):
-        return self.function.getCodeName()
-
     def getTracebackName( self ):
         return self.function.getName()
 
@@ -427,9 +421,6 @@ class PythonClassContext( PythonChildContextBase ):
 
     def getTracebackFilename( self ):
         return self.class_def.getParentModule().getFilename()
-
-    def getCodeName( self ):
-        return self.class_def.getCodeName()
 
     def hasLocalsDict( self ):
         return self.class_def.hasLocalsDict()

@@ -317,16 +317,29 @@ PyObject *BUILTIN_HEX( PyObject *value )
 #endif
 }
 
+// From CPython:
+typedef struct {
+    PyObject_HEAD
+    PyObject *it_callable;
+    PyObject *it_sentinel;
+} calliterobject;
+
 PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel )
 {
-    PyObject *result = PyCallIter_New( callable, sentinel );
+    calliterobject *result = PyObject_GC_New( calliterobject, &PyCallIter_Type );
 
     if (unlikely( result == NULL ))
     {
         throw _PythonException();
     }
 
-    return result;
+    // Note: References were taken at call site already.
+    result->it_callable = callable;
+    result->it_sentinel = sentinel;
+
+    Nuitka_GC_Track( result );
+
+    return (PyObject *)result;
 }
 
 PyObject *BUILTIN_TYPE1( PyObject *arg )
