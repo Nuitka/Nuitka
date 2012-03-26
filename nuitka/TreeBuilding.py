@@ -1972,6 +1972,10 @@ def buildImportFromNode( provider, node, source_ref ):
         import_names.append( object_name )
 
     if None in target_names:
+        # More than "*" is a syntax error in Python, need not care about this at
+        # all, it's only allowed value for import list in  this case.
+        assert target_names == [ None ]
+
         # Python3 made this a syntax error unfortunately.
         if not provider.isModule() and Utils.getPythonVersion() >= 300:
             SyntaxErrors.raiseSyntaxError(
@@ -1985,8 +1989,6 @@ def buildImportFromNode( provider, node, source_ref ):
         return CPythonStatementImportStar(
             module_import = CPythonExpressionImportModule(
                 module_name = module_name,
-                # TODO: The import list may have to be the actual one, and give errors
-                # that this one skips.
                 import_list = ( "*", ),
                 level       = level,
                 source_ref  = source_ref
