@@ -72,7 +72,7 @@ for filename in sorted( os.listdir( "." ) ):
         active = True
 
     if active:
-        if filename not in ( "module_exits", "package_missing_init" ):
+        if filename not in ( "module_exits", "package_missing_init", "main_raises", "main_raises2" ):
             extra_flags = [ "expect_success" ]
         else:
             extra_flags = [ "expect_failure" ]
@@ -96,7 +96,7 @@ for filename in sorted( os.listdir( "." ) ):
             if filename_main.endswith( "Main.py" ):
                 break
         else:
-            assert False, filename
+            sys.exit( "Error, no file ends with 'Main.py' in %s, incomplete test case" % filename )
 
         result = subprocess.call(
             "%s %s %s silent %s" % (
