@@ -928,7 +928,6 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source, source
                         variable   = element_vars[ element_index ].makeReference( result ),
                         source_ref = source_ref
                     ),
-                    # TODO: Should be special unpack variant.
                     source = CPythonExpressionSpecialUnpack(
                         value      = CPythonExpressionTempVariableRef(
                             variable   = source_iter_var.makeReference( result ),
@@ -1873,11 +1872,13 @@ def _buildImportModulesNode( import_names, source_ref ):
 
         module_topname = module_name.split(".")[0]
 
+        level = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1
+
         if local_name:
             import_node = CPythonExpressionImportModule(
                 module_name = module_name,
                 import_list = None,
-                level       = -1, # TODO: Correct?!
+                level       = level,
                 source_ref  = source_ref
             )
 
@@ -1891,7 +1892,7 @@ def _buildImportModulesNode( import_names, source_ref ):
             import_node = CPythonExpressionImportModule(
                 module_name = module_name,
                 import_list = None,
-                level       = -1, # TODO: Correct?!
+                level       = level,
                 source_ref  = source_ref
             )
 
