@@ -200,6 +200,12 @@ if "clang" in env[ "CXX" ]:
     env.Append( CCFLAGS = [ "-std=c++0x", "-w", "-D _XOPEN_SOURCE" ] )
     env.Append( LINKFLAGS = [ "-lstdc++" ])
 
+    # Allow clang to point out all kinds of inconsistency to us by raising an error. As for
+    # sequence points, we are abusing it, so we have to allow it.
+    if debug_mode:
+        env.Append( CCFLAGS = [ "-Wall", "-Werror" ] )
+
+
 # Support for g++.
 if "g++" in env[ "CXX" ]:
     # All Nuitka generated C++ is C++0X standard, so make that clear.
@@ -324,8 +330,11 @@ if debug_mode or unstriped_mode:
         env.Append( CCFLAGS = [ "-gstabs" ] )
         env.Append( ASFLAGS = [ "-gstabs" ] )
     else:
-        env.Append( CCFLAGS = [ "-g", "-feliminate-unused-debug-types" ] )
+        env.Append( CCFLAGS = [ "-g" ] )
         env.Append( ASFLAGS = [ "-g" ] )
+
+        if "g++" in env[ "CXX" ]:
+            env.Append( CCFLAGS = [ "-feliminate-unused-debug-types" ] )
 
 # When debugging, optimize less than when optimizing, when not remove assertions.
 if debug_mode:
