@@ -99,6 +99,8 @@ assert "int" in builtin_names
 assert "__doc__" not in builtin_names
 assert "sys" not in builtin_names
 
+builtin_all_names = builtin_names + builtin_exception_names
+
 # For PyLint to be happy.
 assert exceptions
 

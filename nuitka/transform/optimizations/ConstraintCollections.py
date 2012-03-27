@@ -41,7 +41,7 @@ from nuitka.nodes import ValueFriends
 
 from nuitka.nodes.NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
-from nuitka import Options, Utils, TreeRecursion, Importing
+from nuitka import Options, Utils, TreeRecursion, Importing, Builtins
 
 from logging import debug
 
@@ -244,18 +244,16 @@ class ConstraintCollectionBase:
             self.mergeBranch( branch_yes_collection )
 
         if statement.getBranchNo() is None and statement.getBranchYes() is None:
-            new_statement = makeStatementExpressionOnlyReplacementNode(
-                expression = statement.getCondition(),
-                node       = statement
-            )
-
             self.signalChange(
                 "new_statements",
                 statement.getSourceReference(),
                 "Both branches have no effect, drop branch nature, only evaluate condition."
             )
 
-            return new_statement
+            return makeStatementExpressionOnlyReplacementNode(
+                expression = statement.getCondition(),
+                node       = statement
+            )
         elif statement.getCondition().isCompileTimeConstant():
             if statement.getCondition().getCompileTimeConstant():
                 choice = "true"
@@ -282,6 +280,9 @@ class ConstraintCollectionBase:
     def onLocalVariableAssigned( self, variable, value_friend ):
         self.parent.onLocalVariableAssigned( variable, value_friend )
 
+    def onTempVariableAssigned( self, variable, value_friend ):
+        self.parent.onTempVariableAssigned( variable, value_friend )
+
     def onStatement( self, statement ):
         assert statement.isStatement(), statement
 
@@ -289,17 +290,35 @@ class ConstraintCollectionBase:
             self.onExpression( statement.getAssignSource() )
 
             variable_ref = statement.getTargetVariableRef()
+            variable = variable_ref.getVariable()
+
+            # Assigning from and to the same variable, can be optimized away immediately,
+            # there is no point in doing it.
+            if statement.getAssignSource().isExpressionVariableRef() and statement.getAssignSource().getVariable() == variable and (not variable.isModuleVariableReference() or variable.getName() not in Builtins.builtin_all_names):
+                self.signalChange(
+                    "new_statements",
+                    statement.getSourceReference(),
+                    "Reduced assignment of variable from itself to access of it."
+                )
+
+                return makeStatementExpressionOnlyReplacementNode(
+                    expression = statement.getAssignSource(),
+                    node       = statement
+                )
+
             value_friend = statement.getAssignSource().getValueFriend()
 
             assert value_friend is not None
 
-            variable = variable_ref.getVariable()
+
             self.variables[ variable  ] = value_friend
 
             if variable.isModuleVariableReference():
                 self.onModuleVariableAssigned( variable, value_friend )
             elif variable.isLocalVariable():
                 self.onLocalVariableAssigned( variable, value_friend )
+            elif variable.isTempVariableReference():
+                self.onTempVariableAssigned( variable, value_friend )
 
             return statement
         elif statement.isStatementAssignmentAttribute():
@@ -486,6 +505,7 @@ class ConstraintCollectionFunction( ConstraintCollectionBase ):
         )
 
         self.written_local_variables = set()
+        self.written_temp_variables = set()
 
     def process( self, function_body ):
         assert function_body.isExpressionFunctionBody()
@@ -497,6 +517,11 @@ class ConstraintCollectionFunction( ConstraintCollectionBase ):
 
     def onLocalVariableAssigned( self, variable, value_friend ):
         self.written_local_variables.add( variable )
+
+    def onTempVariableAssigned( self, variable, value_friend ):
+        variable = variable.getReferenced()
+
+        self.written_temp_variables.add( variable )
 
 
 class ConstraintCollectionClass( ConstraintCollectionBase ):
@@ -514,6 +539,7 @@ class ConstraintCollectionModule( ConstraintCollectionBase ):
         ConstraintCollectionBase.__init__( self, None, signal_change )
 
         self.written_module_variables = set()
+        self.written_temp_variables = set()
 
     def process( self, module ):
         assert module.isModule()
@@ -566,13 +592,16 @@ class ConstraintCollectionModule( ConstraintCollectionBase ):
                         "Recursed to module."
                     )
 
-
     def onModuleVariableAssigned( self, variable, value_friend ):
         while variable.isModuleVariableReference():
             variable = variable.getReferenced()
 
         self.written_module_variables.add( variable )
 
+    def onTempVariableAssigned( self, variable, value_friend ):
+        variable = variable.getReferenced()
+
+        self.written_temp_variables.add( variable )
 
 class ConstraintCollectionLoopOther( ConstraintCollectionBase ):
     def process( self, start_state, loop ):
