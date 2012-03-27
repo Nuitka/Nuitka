@@ -50,6 +50,17 @@ New Optimizations
 - Expanded conditional statement optimization to detect cases, where condition is a
   compile time constant, not just a constant value.
 
+- Optimize away assignments from a variable to the same variable, they have no effect. The
+  potential side effect of accessing the variable is left intact though, so exceptions
+  will be raised still.
+
+- Created Python3 variant of quick "unicode" string access, there was no such thing in the
+  API, but we make the distinction in the source code, so it makes sense to have it.
+
+- Created an optimized implementation for the builtin "iter" with 2 parameters as
+  well. This allows for slightly more efficient code to be created with regards to
+  reference handling, rather than using the CPython API.
+
 Organizational
 --------------
 
@@ -68,6 +79,9 @@ Organizational
   the given Python version, to make sure that the Python run time used for computations
   and link time Python versions are the same. The allowed value are now checked (2.6, 2.7
   and 3.2) and the user gets a nice error with wrong values.
+
+- Added "--keep-pythonpath" alias for "--execute-with-pythonpath" option, easier to
+  remember.
 
 Cleanups
 --------
@@ -145,6 +159,11 @@ Cleanups
   global variable and take closure variables and add them to the provider of that "global"
   statement, allowing to remove the node class.
 
+- Read only module variable detection integrated to constraint collection.
+
+  The detection of read only module variables was so far done as a separate step, which is
+  no more necessary as the constraint collection tracks the usages of module variables
+  anyway, so this separate and slow step could be removed.
 
 New Tests
 ---------
@@ -166,6 +185,11 @@ New Tests
 
 - Added test to cover return statements on module level and class level, they both must
   give syntax errors.
+
+- Cover exceptions from accessing unassigned global names.
+
+- Added test to show that star imports do not allow other names to be imported at the same
+  time as well.
 
 Summary
 -------
