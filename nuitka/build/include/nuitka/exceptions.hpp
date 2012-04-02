@@ -92,6 +92,8 @@ inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exceptio
     Py_XDECREF( old_tb );
 
     PySys_SetObject( (char *)"exc_type", exception_type );
+    PySys_SetObject( (char *)"exc_value", exception_value ? exception_value : Py_None );
+    PySys_SetObject( (char *)"exc_traceback", exception_tb ? exception_tb : Py_None );
     PySys_SetObject( (char *)"exc_value", exception_value );
     PySys_SetObject( (char *)"exc_traceback", exception_tb );
 }
@@ -419,6 +421,8 @@ class BreakException
 
 NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception, PyTracebackObject *traceback )
 {
+    assertObject( exception );
+
     if ( PyExceptionClass_Check( exception ) )
     {
         throw _PythonException( exception, traceback );
@@ -440,6 +444,8 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exc
 
 NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyTracebackObject *traceback )
 {
+    assertObject( exception_type );
+
     if ( PyExceptionClass_Check( exception_type ) )
     {
         PyErr_NormalizeException( &exception_type, &value, (PyObject **)&traceback );
@@ -463,7 +469,6 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exc
 NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static inline void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyObject *traceback )
 {
     // Check traceback
-
     assert( traceback == NULL || PyTraceBack_Check( traceback ) );
 
     RAISE_EXCEPTION( exception_type, value, (PyTracebackObject *)traceback );

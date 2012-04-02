@@ -72,6 +72,13 @@ public:
 
             this->object = object;
 
+#ifndef NDEBUG
+            if ( Py_REFCNT( old_object ) < 0 )
+            {
+                printf( "Bad at %s\n", Nuitka_String_AsString( this->var_name ) );
+            }
+#endif
+
             // Free old value if any available and owned.
             Py_DECREF( old_object );
         }

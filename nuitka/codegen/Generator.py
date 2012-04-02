@@ -38,8 +38,6 @@ this one and the templates, and otherwise nothing else.
 from .Identifiers import (
     Identifier,
     ModuleVariableIdentifier,
-    HolderVariableIdentifier,
-    TempVariableIdentifier,
     DefaultValueIdentifier,
     HelperCallIdentifier,
     CallIdentifier,
@@ -983,7 +981,7 @@ def getVariableAssignmentCode( context, variable, identifier ):
                 context    = context,
                 variable   = variable.getReferenced(),
                 in_context = False,
-                init_from  = identifier.getCodeExportRef()
+                init_from  = identifier
             )
         else:
             return "%s.assign( %s );" % (
@@ -1671,16 +1669,10 @@ def getModuleCode( context, module_name, package_name, codes, tmp_variables, \
         "version" : Options.getVersion()
     }
 
-    module_local_decl = []
-
-    for tmp_variable in tmp_variables:
-        module_local_decl.append(
-            _getLocalVariableInitCode(
-                context    = context,
-                variable   = tmp_variable,
-                in_context = False
-            )
-        )
+    module_local_decl = [
+        "PyObjectTempHolder %s;" % tmp_variable
+        for tmp_variable in tmp_variables
+    ]
 
     module_code = CodeTemplates.module_body_template % {
         "module_name"           : module_name,
@@ -1802,13 +1794,16 @@ def getFunctionDecl( context, function_identifier, default_identifiers, closure_
         )
     }
 
-def _getLocalVariableInitCode( context, variable, init_from = None, needs_no_free = False, \
-                               in_context = False, shared = False, mangle_name = None ):
+# TODO: Move this to VariableCodes, it's that subject.
+def _getLocalVariableInitCode( context, variable, init_from = None, in_context = False, \
+                               shared = False, mangle_name = None ):
     # This has many cases to deal with, so there need to be a lot of branches. It could
     # be cleaner a bit by solving the TODOs, but the fundamental problem renames.
     # pylint: disable=R0912
 
     assert not variable.isModuleVariable()
+
+    assert init_from is None or hasattr( init_from, "getCodeTemporaryRef" )
 
     var_name = variable.getName()
     shared = shared or variable.isShared()
@@ -1852,10 +1847,10 @@ def _getLocalVariableInitCode( context, variable, init_from = None, needs_no_fre
         if variable.isTempVariable():
             if init_from is None:
                 result += " = " + variable.getDeclarationInitValueCode()
+            elif not variable.getNeedsFree():
+                result += " = %s" % init_from.getCodeTemporaryRef()
             else:
-                assert variable.getOwner().isStatementTempBlock()
-
-                result += "( %s )" % init_from
+                result += "( %s )" % init_from.getCodeExportRef()
         else:
             result += "( "
 
@@ -1866,16 +1861,18 @@ def _getLocalVariableInitCode( context, variable, init_from = None, needs_no_fre
 
             if init_from is not None:
                 if context.hasLocalsDict():
-                    if needs_no_free:
-                        result += ", INCREASE_REFCOUNT( %s )"  % init_from
+                    if init_from.getCheapRefCount() == 0:
+                        result += ", %s" % init_from.getCodeTemporaryRef()
                     else:
-                        result += ", %s" % init_from
-                else:
-                    result += ", %s" % init_from
+                        result += ", %s" % init_from.getCodeExportRef()
 
-                    if not needs_no_free:
-                        if shared:
+                        if not variable.isParameterVariable():
                             result += ", true"
+                else:
+                    result += ", %s" % init_from.getCodeExportRef()
+
+                    if shared:
+                        result += ", true"
 
             result += " )"
 
@@ -1907,9 +1904,8 @@ def _getFuncDefaultValue( identifiers, context ):
         )
 
 def getGeneratorFunctionCode( context, function_name, function_identifier, parameters, \
-                              closure_variables, user_variables, tmp_variables, \
-                              default_access_identifiers, function_codes, \
-                              source_ref, function_doc ):
+                              closure_variables, user_variables, default_access_identifiers,
+                              tmp_variables, function_codes, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
 
@@ -1971,14 +1967,10 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
             )
         )
 
-    for tmp_variable in tmp_variables:
-        local_var_decl.append(
-            _getLocalVariableInitCode(
-                context    = context,
-                variable   = tmp_variable,
-                in_context = True
-            )
-        )
+    function_var_inits += [
+        "PyObjectTempHolder %s;" % tmp_variable
+        for tmp_variable in tmp_variables
+    ]
 
     for closure_variable in closure_variables:
         context_decl.append(
@@ -2129,7 +2121,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
             context    = context,
             variable   = variable,
             in_context = False,
-            init_from  = "_python_par_" + variable.getName()
+            init_from  = Identifier( "_python_par_" + variable.getName(), 1 )
         )
         for variable in
         parameter_variables
@@ -2158,7 +2150,12 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
             variable = variable
         )
         for variable in
-        user_variables + tmp_variables
+        user_variables
+    ]
+
+    local_var_inits += [
+        "PyObjectTempHolder %s;" % tmp_variable
+        for tmp_variable in tmp_variables
     ]
 
     function_doc = getConstantCode(
@@ -2371,12 +2368,12 @@ def getClassCode( context, source_ref, class_name, class_identifier, class_varia
 
     for class_variable in class_variables:
         if class_variable.getName() == "__module__":
-            init_from = getConstantCode(
+            init_from = getConstantHandle(
                 constant   = module_name,
                 context    = context,
             )
         elif class_variable.getName() == "__doc__":
-            init_from = getConstantCode(
+            init_from = getConstantHandle(
                 constant = class_doc,
                 context  = context
             )
@@ -2393,14 +2390,11 @@ def getClassCode( context, source_ref, class_name, class_identifier, class_varia
             )
         )
 
-    for tmp_variable in tmp_variables:
-        class_var_decl.append(
-            _getLocalVariableInitCode(
-                context    = context,
-                variable   = tmp_variable,
-                in_context = False
-            )
-        )
+
+    class_var_decl += [
+        "PyObjectTempHolder %s;" % tmp_variable
+        for tmp_variable in tmp_variables
+    ]
 
     if context.hasLocalsDict():
         class_locals = CodeTemplates.function_dict_setup.split("\n") + class_var_decl

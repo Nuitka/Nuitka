@@ -148,7 +148,10 @@ from .nodes.AssignNodes import (
     CPythonStatementDelSubscript,
     CPythonStatementDelVariable,
     CPythonStatementDelSlice,
-    CPythonExpressionAssignmentVariable,
+)
+from .nodes.KeeperNodes import (
+    CPythonExpressionAssignmentTempKeeper,
+    CPythonExpressionTempKeeperRef
 )
 from .nodes.PrintNodes import CPythonStatementPrint
 from .nodes.ModuleNodes import (
@@ -933,7 +936,7 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source, source
                             variable   = source_iter_var.makeReference( result ),
                             source_ref = source_ref
                         ),
-                        count      = len( detail ),
+                        count      = element_index + 1,
                         source_ref = source_ref
                     ),
                     source_ref   = source_ref
@@ -1553,33 +1556,30 @@ def buildComparisonNode( provider, node, source_ref ):
     result = []
 
     # For PyLint to like it, this will hold the previous one, normally.
-    tmp_variable = None
+    tmp_assign = None
 
     for comparator, right in zip( node.ops, rights ):
         if result:
             # Now we know it's not the only one, so we change the "left" to be a reference
             # to the previously saved right side.
-            left = CPythonExpressionTempVariableRef(
-                variable   = tmp_variable.makeReference( provider ),
+            left = CPythonExpressionTempKeeperRef(
+                linked     = tmp_assign,
                 source_ref = source_ref
             )
 
-            tmp_variable = None
+            tmp_assign = None
 
         if right is not rights[-1]:
             # Now we known it's not the last one, so we ought to preseve the "right" so it
             # can be referenced by the next part that will come. We do it by assining it
             # to a temp variable to be shared with the next part.
-            tmp_variable = provider.getTempVariable()
-
-            right = CPythonExpressionAssignmentVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
-                    variable   = tmp_variable.makeReference( provider ),
-                    source_ref = source_ref
-                ),
-                source     = right,
-                source_ref = source_ref
+            right = CPythonExpressionAssignmentTempKeeper(
+                variable_name = provider.allocateTempKeeperName(),
+                source        = right,
+                source_ref    = source_ref
             )
+
+            tmp_assign = right
 
         result.append(
             CPythonExpressionComparison(
@@ -1590,7 +1590,7 @@ def buildComparisonNode( provider, node, source_ref ):
             )
         )
 
-    assert tmp_variable is None
+    assert tmp_assign is None
 
     if len( result ) > 1:
         return CPythonExpressionBoolAND(

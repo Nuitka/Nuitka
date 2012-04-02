@@ -607,6 +607,8 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
     assert( Nuitka_String_Check( filename ) );
     assertObject( function_name );
     assert( Nuitka_String_Check( function_name ) );
+    assertObject( argnames );
+    assert( PyTuple_Check( argnames ) );
 
     int flags = 0;
 

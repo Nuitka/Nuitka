@@ -217,7 +217,7 @@ class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
 
         result = Variables.TempVariable(
             owner         = self,
-            variable_name = "__tmp_%s" % name
+            variable_name = name
         )
 
         self.temp_variables.add( result )

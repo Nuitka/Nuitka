@@ -40,33 +40,6 @@ from .NodeBases import (
 )
 
 
-class CPythonExpressionAssignmentVariable( CPythonExpressionChildrenHavingBase ):
-    kind = "EXPRESSION_ASSIGNMENT_VARIABLE"
-
-    named_children = ( "source", "variable_ref" )
-
-    def __init__( self, variable_ref, source, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "source"       : source,
-                "variable_ref" : variable_ref
-            },
-            source_ref = source_ref
-        )
-
-    def getDetail( self ):
-        return "%s from %s" % ( self.getTargetVariableRef(), self.getSource() )
-
-    getTargetVariableRef = CPythonChildrenHaving.childGetter( "variable_ref" )
-    getSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
-
-    def computeNode( self ):
-        # TODO: Nothing to do here? Maybe if the assignment target is unused, it could
-        # replace itself with source.
-        return self, None, None
-
-
 class CPythonStatementAssignmentVariable( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE"
 

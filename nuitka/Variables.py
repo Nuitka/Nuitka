@@ -52,6 +52,14 @@ class Variable:
     def getOwner( self ):
         return self.owner
 
+    def getRealOwner( self ):
+        result = self.owner
+
+        if result.isStatementTempBlock():
+            return result.getParentVariableProvider()
+        else:
+            return result
+
     def addReference( self, reference ):
         self.references.append( reference )
 
@@ -329,6 +337,8 @@ def makeParameterVariables( owner, parameter_names ):
         parameter_names
     ]
 
+
+# TODO: These will become obsolete.
 class ClassVariable( Variable ):
     reference_class = ClosureVariableReference
 
@@ -419,6 +429,8 @@ class TempVariable( Variable ):
         # For code generation.
         self.declared = False
 
+        self.needs_free = None
+
     def __repr__( self ):
         return "<TempVariable '%s' of '%s'>" % (
             self.getName(),
@@ -429,12 +441,21 @@ class TempVariable( Variable ):
         # Virtual method, pylint: disable=R0201
         return True
 
+    def getNeedsFree( self ):
+        return self.needs_free
+
+    def setNeedsFree( self, needs_free ):
+        assert needs_free is not None
+
+        self.needs_free = needs_free
+
     def getDeclarationTypeCode( self ):
-        # TODO: Derive more effective type from use analysis.
-        if self.getOwner().isClosureVariableTaker():
-            return "PyObject *"
-        else:
+        assert self.needs_free is not None, self
+
+        if self.needs_free:
             return "PyObjectTemporary"
+        else:
+            return "PyObject *"
 
     def getDeclarationInitValueCode( self ):
         # Virtual method, pylint: disable=R0201

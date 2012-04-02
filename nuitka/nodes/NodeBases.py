@@ -681,6 +681,7 @@ class CPythonClosureTaker:
 
         self.temp_variables = set()
 
+        self.temp_keeper_count = 0
 
     def getParentVariableProvider( self ):
         return self.provider
@@ -743,24 +744,13 @@ class CPythonClosureTaker:
     def isEarlyClosure( self ):
         return self.early_closure
 
-    def getTempVariable( self ):
-        result = Variables.TempVariable(
-            owner         = self,
-            variable_name = "__tmp_%d" % len( self.temp_variables )
-        )
-        self.temp_variables.add( result )
-        return result
+    def allocateTempKeeperName( self ):
+        self.temp_keeper_count += 1
 
-    def getTempVariables( self ):
-        return tuple( self.temp_variables )
+        return "keeper_%d" % self.temp_keeper_count
 
-    def setTempVariables( self, variables ):
-        for variable in variables:
-            assert variable.isTempVariable(), variable
-            assert variable.getOwner() is self
-
-        self.temp_variables = variables
-
+    def getTempKeeperNames( self ):
+        return tuple( "keeper_%d" % ( i+1 ) for i in range( self.temp_keeper_count ) )
 
 
 class CPythonExpressionMixin:
@@ -791,6 +781,15 @@ class CPythonExpressionMixin:
 
         # Virtual method, pylint: disable=R0201,W0613
         return False
+
+    def mayProvideReference( self ):
+        """ May at run time produce a reference.
+
+        This then would have to be consumed or released in a reliable way.
+        """
+
+        # Virtual method, pylint: disable=R0201
+        return True
 
 
 class CPythonExpressionSpecBasedComputationMixin( CPythonExpressionMixin ):

@@ -256,7 +256,7 @@ def generateFunctionBodyCode( function_body, defaults, context ):
             parameters                 = parameters,
             closure_variables          = function_body.getClosureVariables(),
             user_variables             = function_body.getUserLocalVariables(),
-            tmp_variables              = function_body.getTempVariables(),
+            tmp_variables              = function_body.getTempKeeperNames(),
             default_access_identifiers = default_access_identifiers,
             source_ref                 = function_body.getSourceReference(),
             function_codes             = function_codes,
@@ -270,7 +270,7 @@ def generateFunctionBodyCode( function_body, defaults, context ):
             parameters                 = parameters,
             closure_variables          = function_body.getClosureVariables(),
             user_variables             = function_body.getUserLocalVariables(),
-            tmp_variables              = function_body.getTempVariables(),
+            tmp_variables              = function_body.getTempKeeperNames(),
             default_access_identifiers = default_access_identifiers,
             source_ref                 = function_body.getSourceReference(),
             function_codes             = function_codes,
@@ -346,7 +346,7 @@ def generateClassBodyCode( class_body, bases, context ):
         class_name         = class_body.getClassName(),
         class_variables    = class_body.getClassVariables(),
         closure_variables  = class_body.getClosureVariables(),
-        tmp_variables      = class_body.getTempVariables(),
+        tmp_variables      = class_body.getTempKeeperNames(),
         module_name        = class_body.getParentModule().getName(),
         class_doc          = class_body.getDoc(),
         class_codes        = class_codes,
@@ -1052,18 +1052,16 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = Generator.getExceptionRefCode(
             exception_type = expression.getExceptionName(),
         )
-    elif expression.isExpressionAssignmentVariable():
-        source_identifier = makeExpressionCode( expression.getSource() )
+    elif expression.isExpressionAssignmentTempKeeper():
+        source_identifier = makeExpressionCode( expression.getAssignSource() )
 
+        # TODO: Use assign0 too
         identifier = Generator.Identifier(
-            "( %s )" % (
-                Generator.getVariableAssignmentCode(
-                    variable   = expression.getTargetVariableRef().getVariable(),
-                    identifier = source_identifier,
-                    context    = context
-                )[:-1]
+            "%s.assign1( %s )" % (
+                expression.getVariableName(),
+                source_identifier.getCodeExportRef()
             ),
-            source_identifier.getRefCount()
+            0
         )
     elif expression.isExpressionBuiltinInt():
         assert expression.getValue() is not None or expression.getBase() is not None
@@ -1102,6 +1100,11 @@ def generateExpressionCode( expression, context, allow_none = False ):
             dict_identifier  = makeExpressionCode( expression.getDict() ),
             key_identifier   = makeExpressionCode( expression.getKey() ),
             value_identifier = makeExpressionCode( expression.getValue() ),
+        )
+    elif expression.isExpressionTempKeeperRef():
+        identifier = Generator.Identifier(
+            "%s.asObject()" % expression.getVariableName(),
+            1
         )
     else:
         assert False, expression
@@ -1939,7 +1942,7 @@ def generateModuleCode( module, module_name, global_context ):
         ),
         path_identifier     = path_identifier,
         codes               = codes,
-        tmp_variables       = module.getTempVariables(),
+        tmp_variables       = module.getTempKeeperNames(),
         context             = context,
     )
 

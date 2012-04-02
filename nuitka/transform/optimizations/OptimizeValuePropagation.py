@@ -53,9 +53,11 @@ class ValuePropagationVisitor( OptimizationVisitorScopedBase ):
         if node.isModule():
             self.constraint_collection.process( module = node )
 
+            written_module_variables = self.constraint_collection.getWrittenModuleVariables()
+
             for variable in getModuleVariables( module = node ):
                 old_value = variable.getReadOnlyIndicator()
-                new_value = variable not in self.constraint_collection.written_module_variables
+                new_value = variable not in written_module_variables
 
                 if old_value is not new_value:
                     # Don't suddenly start to write.

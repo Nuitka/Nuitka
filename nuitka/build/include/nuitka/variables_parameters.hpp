@@ -123,6 +123,7 @@ public:
     }
 
 private:
+
     PyObjectLocalParameterVariableWithDel( const PyObjectLocalParameterVariableWithDel &other ) = delete;
 
     PyObject *var_name;
@@ -132,6 +133,7 @@ private:
 class PyObjectLocalParameterVariableNoDel
 {
 public:
+
     explicit PyObjectLocalParameterVariableNoDel( PyObject *var_name, PyObject *object )
     {
         assertObject( object );
@@ -204,6 +206,7 @@ public:
     }
 
 private:
+
     PyObjectLocalParameterVariableNoDel( const PyObjectLocalParameterVariableNoDel &other ) = delete;
 
     PyObject *var_name;

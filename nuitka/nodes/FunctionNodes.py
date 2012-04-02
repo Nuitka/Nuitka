@@ -235,6 +235,7 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         # TODO: It's actually pretty much compile time accessible mayhaps.
         return None
 
+
 class CPythonExpressionFunctionBodyDefaulted( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_FUNCTION_BODY_DEFAULTED"
 
