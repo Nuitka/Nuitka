@@ -213,13 +213,10 @@ class HolderVariableIdentifier( Identifier ):
 
 
 class TempObjectIdentifier( Identifier ):
-    def __init__( self, tempvar_name, from_context ):
+    def __init__( self, tempvar_name ):
         self.tempvar_name = tempvar_name
 
-        if from_context:
-            Identifier.__init__( self, from_context + "python_tmp_" + tempvar_name, 0 )
-        else:
-            Identifier.__init__( self, "_python_tmp_" + tempvar_name, 0 )
+        Identifier.__init__( self, "_python_tmp_" + tempvar_name, 0 )
 
     def getCodeTemporaryRef( self ):
         return self.code

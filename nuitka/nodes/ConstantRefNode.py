@@ -107,3 +107,6 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
 
         # Constants won't raise any kind of exception.
         return False
+
+    def mayProvideReference( self ):
+        return self.isMutable()

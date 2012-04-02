@@ -973,9 +973,11 @@ def getVariableAssignmentCode( context, variable, identifier ):
             ),
             identifier = identifier
         )
-    elif variable.isTempVariableReference() and not variable.getOwner().isClosureVariableTaker():
-        if not variable.getReferenced().declared:
-            variable.getReferenced().declared = True
+    elif variable.isTempVariableReference():
+        referenced = variable.getReferenced()
+
+        if not referenced.declared:
+            referenced.declared = True
 
             return _getLocalVariableInitCode(
                 context    = context,
@@ -984,13 +986,27 @@ def getVariableAssignmentCode( context, variable, identifier ):
                 init_from  = identifier
             )
         else:
-            return "%s.assign( %s );" % (
-                getVariableCode(
-                    variable = variable,
-                    context  = context
-                ),
-                identifier.getCodeExportRef()
-            )
+            if referenced.getNeedsFree():
+                return "%s.assign( %s );" % (
+                    getVariableCode(
+                        variable = variable,
+                        context  = context
+                    ),
+                    identifier.getCodeExportRef()
+                )
+            else:
+                # Don't care about the reference, but take none, or else it may get lost,
+                # which we don't want to happen.
+
+                assert identifier.getCheapRefCount() == 0
+
+                return "%s = %s;" % (
+                    getVariableCode(
+                        variable = variable,
+                        context  = context
+                    ),
+                    identifier.getCodeExportRef()
+                )
     else:
         return "%s = %s;" % (
             getVariableCode(

@@ -807,13 +807,6 @@ def buildSequenceCreationNode( provider, node, source_ref ):
             assert False, sequence_kind
 
 
-def _areConstants( expressions ):
-    for expression in expressions:
-        if not expression.isExpressionConstantRef():
-            return False
-    else:
-        return True
-
 def buildDictionaryNode( provider, node, source_ref ):
     keys = []
     values = []

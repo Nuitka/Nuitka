@@ -382,14 +382,11 @@ def generateComparisonExpressionCode( comparison_expression, context ):
         context    = context
     )
 
-    result = Generator.getComparisonExpressionCode(
+    return Generator.getComparisonExpressionCode(
         comparator        = comparison_expression.getComparator(),
         left              = left,
         right             = right
     )
-
-    return result
-
 
 def generateComparisonExpressionBoolCode( comparison_expression, context ):
     left = generateExpressionCode(

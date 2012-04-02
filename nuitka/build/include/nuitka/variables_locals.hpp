@@ -62,6 +62,7 @@ public:
         this->var_name = var_name;
     }
 
+    // TODO: Use assign0 and assign1 as well
     void operator=( PyObject *object )
     {
         assertObject( object );
@@ -135,6 +136,7 @@ public:
     }
 
 private:
+
     PyObjectLocalVariable( const PyObjectLocalVariable &other ) = delete;
 
     PyObject *var_name;

@@ -78,7 +78,7 @@ class PythonContextBase:
         return False
 
     def getTempObjectHandle( self, var_name ):
-        return TempObjectIdentifier( var_name, from_context = "" )
+        return TempObjectIdentifier( var_name )
 
     def getTempVarHandle( self, var_name ):
         return TempVariableIdentifier( var_name )
@@ -373,10 +373,7 @@ class PythonFunctionContext( PythonChildContextBase ):
             return ClosureVariableIdentifier( var_name, from_context = "_python_context->common_context->" )
 
     def getTempObjectHandle( self, var_name ):
-        if self.function.isGenerator():
-            return TempObjectIdentifier( var_name, from_context = "_python_context->" )
-        else:
-            return TempObjectIdentifier( var_name, from_context = "" )
+        return TempObjectIdentifier( var_name )
 
     def getTracebackName( self ):
         return self.function.getName()
