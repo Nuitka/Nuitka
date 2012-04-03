@@ -112,6 +112,9 @@ env = Environment(
     SHLIBPREFIX = "",
 )
 
+if "CXX" in os.environ:
+    env[ "CXX" ] = os.environ[ "CXX" ]
+
 if clang_mode:
     env[ "CXX" ] = "clang"
 
