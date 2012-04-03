@@ -112,7 +112,7 @@ def isMutable( constant ):
 
     if constant_type in ( str, unicode, complex, int, long, bool, float, NoneType, range ):
         return False
-    elif constant_type in ( dict, list ):
+    elif constant_type in ( dict, list, set ):
         return True
     elif constant_type is tuple:
         for value in constant:
