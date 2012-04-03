@@ -1,3 +1,14 @@
+nuitka (0.3.20.2+ds-1) unstable; urgency=low
+
+  * New upstream hotfix release.
+  * Corrects upstream Issue#35.
+  * Bump to Standards Version 3.9.3, no changes needed.
+  * In the alternative build dependencies, designed to make the
+    Python3 build dependency optional, put option that is going
+    to work on "unstable" first. (Closes: #665021)
+
+ -- Kay Hayen <kayhayen@gmx.de>  Tue, 03 Apr 2012 22:31:36 +0200
+
 nuitka (0.3.20.1+ds-1) unstable; urgency=low
 
   * New upstream hotfix release.
