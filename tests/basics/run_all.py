@@ -66,6 +66,10 @@ for filename in sorted( os.listdir( "." ) ):
     if not filename.endswith( ".py" ) or filename.startswith( "run_" ):
         continue
 
+    # Skip tests that require Python 2.7 at least.
+    if filename.endswith( "27.py" ) and python_version.startswith( b"2.6" ):
+        continue
+
     path = filename
 
     if not active and start_at in ( filename, path ):
