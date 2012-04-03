@@ -83,6 +83,12 @@ Organizational
 - Added "--keep-pythonpath" alias for "--execute-with-pythonpath" option, easier to
   remember.
 
+- Support "--debug" with clang, so it can also be used to check the generated code for all
+  warnings, and perform assertions. Didn't report anything new.
+
+- The contents environment variable "CXX" becomes the default C++ compiler when set, so
+  that checking with "CXX=g++-4.7 nuitka-python ..." becomes supported.
+
 Cleanups
 --------
 
