@@ -894,7 +894,7 @@ loops.
 Plan to replace "python-qt" for the GUI
 =======================================
 
-Porting the tree inspector available with "--dump-gui" to "wxwindows" is very much welcome
+Porting the tree inspector available with "--dump-gui" to "wxWindows" is very much welcome
 as the "python-qt4" bindings are severely under documented.
 
 
@@ -908,27 +908,28 @@ as if it were written manually with Python C-API or better.
 Goals/Allowances to the task
 ----------------------------
 
-1. Goal: Must not use any existing C/C++ language file headers, only generate declarations
-   in generated C++ code ourselves. We would rather write a C header to "ctypes"
-   declarations convert if it needs to be.
+1. Goal: Must not use any pre-existing C/C++ language file headers, only generate
+   declarations in generated C++ code ourselves. We would rather write a C header to
+   "ctypes" declarations convert if it needs to be, but not mix and use declarations from
+   existing header code.
 2. Allowance: May use "ctypes" module at compile time to ask things about "ctypes" and its
    types.
-3. Goal: We should make use that allowance to use "ctypes", to e.g. not hard code what
-   "ctypes.c_int()" gives, unless there is a specific benefit.
+3. Goal: Should make use of "ctypes", to e.g. not hard code what "ctypes.c_int()" gives on
+   the current platform, unless there is a specific benefit.
 4. Allowance: Not all "ctypes" usages must be supported immediately.
 5. Goal: Try and be as general as possible. For the compiler, "ctypes" support should be
    hidden behind a generic interface of some sort. Supporting "math" module should be the
    same thing.
 
 
-Type inference - The general Problem
+Type Inference - The general Problem
 ------------------------------------
 
 Part of the goal is to forward value knowledge. When you have "a = b", that means that a
 and b now "alias". And if you know the value of "b" you can assume to know the value of
-"a".
+"a". This is called "Aliasing".
 
-When that value is a compile time constant, you will want to push it forward, because
+When that value is a compile time constant, we will want to push it forward, because
 storing such a constant under a variable name has a cost and loading it back from the
 variable as well. So, you want to be able collapse such code:
 
@@ -1004,8 +1005,9 @@ So it's a rather general problem, this time we know:
    - Can predict every of its elements when index, sliced, etc., if need be, with a
      function.
 
-Again, we wouldn't want to create the list. Nuitka e.g. currently refuses to compile time
-calculate lists with more than 256 elements, which is an arbitrary choice.
+Again, we wouldn't want to create the list. Therefore Nuitka currently won't calculate
+lists constants with more than 256 elements from "range", which is an arbitrary choice
+which is not consistently enforced.
 
 .. note::
 
@@ -1028,10 +1030,10 @@ Now lets look at a use:
        doSomething()
 
 Looking at this example, one way to look at it, would be to turn "range" into "xrange",
-note that "x" is unused. But in fact, what would be best, is to notice that "range()"
-generated value is not really used, but only the length of the expression matters. And
-even if "x" were used, only the ability to predict the value from a function would be
-interesting, so we would use that computation function instead.
+note that "x" is unused. But what is better, is to notice that "range()" generated value
+is not really used, but only the length of the expression matters. And even if "x" were
+used, only the ability to predict the value from a function would be interesting, so we
+would use that computation function instead.
 
 Predict from a function could mean to have Python code to do it, as well as C++ code to do
 it. Then code for the loop can be generated without any CPython usage at all.
@@ -1041,9 +1043,9 @@ it. Then code for the loop can be generated without any CPython usage at all.
    Of course, it would only make sense where such calculations are "O(1)" complexity,
    i.e. do not require recursion like "n!" does.
 
-The other thing is that CPython appears to take length hints from objects for some
-operations, and there it would help too, to track length of objects, and provide it, to
-outside code.
+The other thing is that CPython appears to at run time take length hints from objects for
+some operations, and there it would help too, to track length of objects, and provide it,
+to outside code.
 
 Back to the original example:
 
@@ -1071,12 +1073,12 @@ follows:
 
    import ctypes
 
-This leads to Nuitka tree containing an "import module expression", that is re-formulated
-to an assignment statement from a module import expression. It can be predicted by default
-to be a module object, and even better, it can be known as "ctypes" from standard library
-with more or less certainty. See the section about "Importing".
+This leads to Nuitka tree an assignment from a "import module expression" to the variable
+"ctypes". It can be predicted by default to be a module object, and even better, it can be
+known as "ctypes" from standard library with more or less certainty. See the section about
+"Importing".
 
-So that part is easy, and it's what will happen. During optimization, when the module
+So that part is "easy", and it's what will happen. During optimization, when the module
 import expression is examined, it should say:
 
    - "ctypes" is a module
@@ -1179,10 +1181,9 @@ Excursion to Loops
 
    print a
 
-The handling of "for" (and "while") loops has its own problem. They are similar to that of
-function calls and their bodies. The loop could start and have an assumption that "a" is
-constant, but that is only true for the first iteration. So, we can't pass knowledge from
-outside the for loop directly into the for loop body.
+The handling of loops (both "for" and "while") has its own problem. The loop start and may
+have an assumption that "a" is constant, but that is only true for the first
+iteration. So, we can't pass knowledge from outside loop directly into the for loop body.
 
 We will do a first pass, where we need to collect invalidations of all of the outside
 knowledge. The assignment to "a" should make it an alternative with what we knew about
@@ -1265,8 +1266,8 @@ becomes the last statement of inspected block. With a conditional statement bran
 case one branch has a return statement and the other not, the merging of the constraint
 collection must consider it by not taking any knowledge from such branch at all.
 
-If all branches of a conditional statement return, that has have an optimization to
-discover that, and remove the following statements as well.
+If all branches of a conditional statement return, that is discovered, and leads to
+removing statements after it as dead code.
 
 .. note::
 
