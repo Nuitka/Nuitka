@@ -31,9 +31,9 @@
 """
 from nuitka.nodes.NodeMakingHelpers import makeRaiseExceptionReplacementExpressionFromInstance
 
-from nuitka.nodes.CallNode import CPythonExpressionFunctionCall
+from nuitka.nodes.CallNode import CPythonExpressionCall
 
-from nuitka.nodes.ParameterSpec import ParameterSpec, TooManyArguments, matchFunctionCall
+from nuitka.nodes.ParameterSpec import ParameterSpec, TooManyArguments, matchCall
 
 from nuitka.Utils import getPythonVersion
 
@@ -206,7 +206,7 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class ):
                 TypeError( builtin_spec.getKeywordRefusalText() )
             )
 
-        args_dict = matchFunctionCall(
+        args_dict = matchCall(
             func_name     = builtin_spec.getName(),
             args          = builtin_spec.getArgumentNames(),
             star_list_arg = builtin_spec.getStarListArgumentName(),
@@ -216,7 +216,7 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class ):
             pairs         = pairs
         )
     except TooManyArguments as e:
-        return CPythonExpressionFunctionCall(
+        return CPythonExpressionCall(
             called_expression = makeRaiseExceptionReplacementExpressionFromInstance(
                 expression     = node,
                 exception      = e.getRealException()

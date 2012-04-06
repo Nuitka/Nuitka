@@ -221,7 +221,7 @@ def getIndexCode( identifier ):
         0
     )
 
-def _getFunctionCallNoStarArgsCode( function_identifier, argument_tuple, argument_dictionary ):
+def _getCallNoStarArgsCode( function_identifier, argument_tuple, argument_dictionary ):
     if argument_dictionary is None:
         if argument_tuple is None:
             return Identifier(
@@ -257,7 +257,7 @@ def _getFunctionCallNoStarArgsCode( function_identifier, argument_tuple, argumen
                 1
             )
 
-def _getFunctionCallListStarArgsCode( function_identifier, argument_tuple, argument_dictionary, star_list_identifier ):
+def _getCallListStarArgsCode( function_identifier, argument_tuple, argument_dictionary, star_list_identifier ):
     if argument_dictionary is None:
         if argument_tuple is None:
             return Identifier(
@@ -297,7 +297,7 @@ def _getFunctionCallListStarArgsCode( function_identifier, argument_tuple, argum
                 1
             )
 
-def _getFunctionCallDictStarArgsCode( function_identifier, argument_tuple, argument_dictionary, star_dict_identifier ):
+def _getCallDictStarArgsCode( function_identifier, argument_tuple, argument_dictionary, star_dict_identifier ):
     if argument_dictionary is None:
         if argument_tuple is None:
             return Identifier(
@@ -337,7 +337,7 @@ def _getFunctionCallDictStarArgsCode( function_identifier, argument_tuple, argum
                 1
             )
 
-def _getFunctionCallBothStarArgsCode( function_identifier, argument_tuple, argument_dictionary, \
+def _getCallBothStarArgsCode( function_identifier, argument_tuple, argument_dictionary, \
                                       star_list_identifier, star_dict_identifier ):
     if argument_dictionary is None:
         if argument_tuple is None:
@@ -397,17 +397,17 @@ def getDirectionFunctionCallCode( function_identifier, arguments ):
     )
 
 
-def getFunctionCallCode( function_identifier, argument_tuple, argument_dictionary, \
+def getCallCode( function_identifier, argument_tuple, argument_dictionary, \
                          star_list_identifier, star_dict_identifier ):
     if star_dict_identifier is None:
         if star_list_identifier is None:
-            return _getFunctionCallNoStarArgsCode(
+            return _getCallNoStarArgsCode(
                 function_identifier = function_identifier,
                 argument_tuple      = argument_tuple,
                 argument_dictionary = argument_dictionary
             )
         else:
-            return _getFunctionCallListStarArgsCode(
+            return _getCallListStarArgsCode(
                 function_identifier  = function_identifier,
                 argument_tuple       = argument_tuple,
                 argument_dictionary  = argument_dictionary,
@@ -415,7 +415,7 @@ def getFunctionCallCode( function_identifier, argument_tuple, argument_dictionar
             )
     else:
         if star_list_identifier is not None:
-            return _getFunctionCallBothStarArgsCode(
+            return _getCallBothStarArgsCode(
                 function_identifier  = function_identifier,
                 argument_tuple       = argument_tuple,
                 argument_dictionary  = argument_dictionary,
@@ -423,7 +423,7 @@ def getFunctionCallCode( function_identifier, argument_tuple, argument_dictionar
                 star_dict_identifier = star_dict_identifier
             )
         else:
-            return _getFunctionCallDictStarArgsCode(
+            return _getCallDictStarArgsCode(
                 function_identifier  = function_identifier,
                 argument_tuple       = argument_tuple,
                 argument_dictionary  = argument_dictionary,
@@ -1156,7 +1156,7 @@ def getExceptionRefCode( exception_type ):
     )
 
 def getMakeBuiltinExceptionCode( context, exception_type, exception_args ):
-    return getFunctionCallCode(
+    return getCallCode(
         function_identifier = Identifier( "PyExc_%s" % exception_type, 0 ),
         argument_tuple      = getTupleCreationCode(
             element_identifiers = exception_args,

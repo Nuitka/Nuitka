@@ -50,7 +50,7 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
                 self.trimEvaluation(
                     node = node.parent
                 )
-            elif node.parent.isExpressionFunctionCall():
+            elif node.parent.isExpressionCall():
                 self.trimEvaluation(
                     node = node.parent
                 )

@@ -83,7 +83,7 @@ from nuitka.nodes.BuiltinVarsNode import CPythonExpressionBuiltinVars
 from nuitka.nodes.ImportNodes import CPythonExpressionBuiltinImport
 from nuitka.nodes.TypeNode import CPythonExpressionBuiltinType1
 from nuitka.nodes.ClassNodes import CPythonExpressionBuiltinType3
-from nuitka.nodes.CallNode import CPythonExpressionFunctionCall
+from nuitka.nodes.CallNode import CPythonExpressionCall
 from nuitka.nodes.AttributeNode import CPythonExpressionAttributeLookup
 
 from nuitka.nodes.NodeMakingHelpers import (
@@ -183,7 +183,7 @@ def dict_extractor( node ):
 
     def wrapExpressionBuiltinDictCreation( positional_args, dict_star_arg, source_ref ):
         if len( positional_args ) > 1:
-            return CPythonExpressionFunctionCall(
+            return CPythonExpressionCall(
                 called_expression = makeRaiseExceptionReplacementExpressionFromInstance(
                     expression     = node,
                     exception      = TypeError(
@@ -359,7 +359,7 @@ def execfile_extractor( node ):
             use_call = CPythonExpressionBuiltinExecfile
 
         return use_call(
-            source_code = CPythonExpressionFunctionCall(
+            source_code = CPythonExpressionCall(
                 called_expression = CPythonExpressionAttributeLookup(
                     expression     = CPythonExpressionBuiltinOpen(
                         filename   = filename,
@@ -475,7 +475,7 @@ def computeBuiltinCall( call_node, called ):
         elif new_node.isExpressionBuiltin() or new_node.isStatementExec():
             tags = "new_builtin"
             message = "Replaced call to builtin %s with builtin call." % new_node.kind
-        elif new_node.isExpressionFunctionCall():
+        elif new_node.isExpressionCall():
             tags = "new_raise"
             message = "Replaced call to builtin %s with exception raising call." % new_node.kind
         elif new_node.isExpressionOperationUnary():

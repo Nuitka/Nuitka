@@ -41,8 +41,8 @@ from nuitka.transform.optimizations.registry import CallRegistry
 
 from .ConstantRefNode import CPythonExpressionConstantRef
 
-class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):
-    kind = "EXPRESSION_FUNCTION_CALL"
+class CPythonExpressionCall( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_CALL"
 
     named_children = ( "called", "positional_args", "pairs", "list_star_arg", "dict_star_arg" )
 

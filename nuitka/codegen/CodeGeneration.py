@@ -573,7 +573,7 @@ def generateSliceLookupCode( expression, context ):
                 )
             )
 
-def generateFunctionCallNamedArgumentsCode( pairs, context ):
+def generateCallNamedArgumentsCode( pairs, context ):
     if pairs:
         return generateDictionaryCreationCode(
             pairs      = pairs,
@@ -582,7 +582,7 @@ def generateFunctionCallNamedArgumentsCode( pairs, context ):
     else:
         return None
 
-def generateFunctionCallCode( function, context ):
+def generateCallCode( function, context ):
     function_identifier = generateExpressionCode(
         expression = function.getCalled(),
         context    = context
@@ -596,7 +596,7 @@ def generateFunctionCallCode( function, context ):
     else:
         positional_args_identifier = None
 
-    kw_identifier = generateFunctionCallNamedArgumentsCode(
+    kw_identifier = generateCallNamedArgumentsCode(
         pairs   = function.getNamedArgumentPairs(),
         context = context
     )
@@ -613,7 +613,7 @@ def generateFunctionCallCode( function, context ):
         context    = context
     )
 
-    return Generator.getFunctionCallCode(
+    return Generator.getCallCode(
         function_identifier  = function_identifier,
         argument_tuple       = positional_args_identifier,
         argument_dictionary  = kw_identifier,
@@ -731,8 +731,8 @@ def generateExpressionCode( expression, context, allow_none = False ):
             pairs   = expression.getPairs(),
             context = context
         )
-    elif expression.isExpressionFunctionCall():
-        identifier = generateFunctionCallCode(
+    elif expression.isExpressionCall():
+        identifier = generateCallCode(
             function = expression,
             context    = context
         )
@@ -988,7 +988,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
                 expression.getPositionalArgument(),
                 allow_none = True
             ),
-            dict_identifier = generateFunctionCallNamedArgumentsCode(
+            dict_identifier = generateCallNamedArgumentsCode(
                 pairs    = expression.getNamedArgumentPairs(),
                 context  = context
             )

@@ -235,7 +235,7 @@ class ParameterSpec( ParameterSpecTuple ):
 
 
 # Note: Based loosley on "inspect.getcallargs" with corrections.
-def matchFunctionCall( func_name, args, star_list_arg, star_dict_arg, num_defaults, positional, pairs, improved = False  ):
+def matchCall( func_name, args, star_list_arg, star_dict_arg, num_defaults, positional, pairs, improved = False  ):
     assert type( positional ) is tuple
     assert type( pairs ) in ( tuple, list )
 

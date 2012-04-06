@@ -80,7 +80,7 @@ from .nodes.ExceptionNodes import (
 )
 from .nodes.ComparisonNode import CPythonExpressionComparison
 from .nodes.ExecEvalNodes import CPythonStatementExec
-from .nodes.CallNode import CPythonExpressionFunctionCall
+from .nodes.CallNode import CPythonExpressionCall
 from .nodes.AttributeNode import (
     CPythonExpressionSpecialAttributeLookup,
     CPythonExpressionAttributeLookup
@@ -248,7 +248,7 @@ def buildClassNode( provider, node, source_ref ):
         decorated_body = class_body
 
     for decorator in decorators:
-        decorated_body = CPythonExpressionFunctionCall(
+        decorated_body = CPythonExpressionCall(
             called_expression = decorator,
             positional_args   = ( decorated_body, ),
             pairs             = (),
@@ -345,7 +345,7 @@ def buildFunctionNode( provider, node, source_ref ):
         decorated_body = function_body
 
     for decorator in decorators:
-        decorated_body = CPythonExpressionFunctionCall(
+        decorated_body = CPythonExpressionCall(
             called_expression = decorator,
             positional_args   = ( decorated_body, ),
             pairs             = (),
@@ -359,7 +359,7 @@ def buildFunctionNode( provider, node, source_ref ):
     # CPython made these optional, but applies them to every class __new__. We better add
     # them early, so our analysis will see it
     if node.name == "__new__" and not decorators and provider.isExpressionClassBody():
-        decorated_body = CPythonExpressionFunctionCall(
+        decorated_body = CPythonExpressionCall(
             called_expression = CPythonExpressionBuiltinRef(
                 builtin_name = "staticmethod",
                 source_ref   = source_ref
@@ -732,7 +732,7 @@ def buildWhileLoopNode( provider, node, source_ref ):
 
         return temp_block
 
-def buildFunctionCallNode( provider, node, source_ref ):
+def buildCallNode( provider, node, source_ref ):
     positional_args = buildNodeList( provider, node.args, source_ref )
 
     # Only the values of keyword pairs have a real source ref, and those only really
@@ -750,7 +750,7 @@ def buildFunctionCallNode( provider, node, source_ref ):
         node.keywords
     ]
 
-    return CPythonExpressionFunctionCall(
+    return CPythonExpressionCall(
         called_expression = buildNode( provider, node.func, source_ref ),
         positional_args   = positional_args,
         pairs             = pairs,
@@ -1458,7 +1458,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, list_c
         )
     )
 
-    result = CPythonExpressionFunctionCall(
+    result = CPythonExpressionCall(
         called_expression = function_body,
         positional_args   = (
             CPythonExpressionBuiltinIter1(
@@ -2135,7 +2135,7 @@ def buildWithNode( provider, node, source_ref ):
                 variable   = tmp_enter_variable.makeReference( result ),
                 source_ref = source_ref
             ),
-            source       = CPythonExpressionFunctionCall(
+            source       = CPythonExpressionCall(
                 called_expression = attribute_lookup_class(
                     expression     = CPythonExpressionTempVariableRef(
                         variable   = tmp_source_variable.makeReference( result ),
@@ -2170,7 +2170,7 @@ def buildWithNode( provider, node, source_ref ):
                     body           = CPythonStatementsSequence(
                         statements = (
                             CPythonStatementConditional(
-                                condition     = CPythonExpressionFunctionCall(
+                                condition     = CPythonExpressionCall(
                                     called_expression = CPythonExpressionTempVariableRef(
                                         variable   = tmp_exit_variable.makeReference( result ),
                                         source_ref = source_ref
@@ -2214,7 +2214,7 @@ def buildWithNode( provider, node, source_ref ):
             no_raise   = CPythonStatementsSequence(
                 statements = (
                     CPythonStatementExpressionOnly(
-                        expression     = CPythonExpressionFunctionCall(
+                        expression     = CPythonExpressionCall(
                             called_expression = CPythonExpressionTempVariableRef(
                                 variable   = tmp_exit_variable.makeReference( result ),
                                 source_ref = source_ref
@@ -2830,7 +2830,7 @@ _fast_path_args3 = {
     "FunctionDef"  : buildFunctionNode,
     "ClassDef"     : buildClassNode,
     "Print"        : buildPrintNode,
-    "Call"         : buildFunctionCallNode,
+    "Call"         : buildCallNode,
     "Subscript"    : buildSubscriptNode,
     "BoolOp"       : buildBoolOpNode,
     "Attribute"    : buildAttributeNode,
