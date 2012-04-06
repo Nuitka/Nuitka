@@ -601,6 +601,20 @@ PyObject *BUILTIN_LEN( PyObject *value )
     return PyInt_FromSsize_t( res );
 }
 
+PyObject *BUILTIN_DIR1( PyObject *arg )
+{
+    assertObject( arg );
+
+    PyObject *result = PyObject_Dir( arg );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
 PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, bool is_generator )
 {
     assertObject( filename );

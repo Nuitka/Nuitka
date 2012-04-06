@@ -1435,6 +1435,8 @@ extern PyObject *BUILTIN_RANGE( PyObject *boundary );
 // For quicker builtin len() functionality.
 extern PyObject *BUILTIN_LEN( PyObject *boundary );
 
+extern PyObject *BUILTIN_DIR1( PyObject *arg );
+
 NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {
     if ( PyDict_Check( globals ) == 0 )

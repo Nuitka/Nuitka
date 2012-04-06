@@ -640,7 +640,7 @@ def generateBuiltinLocalsCode( locals_node, context ):
         mode     = _decideLocalsMode( provider )
     )
 
-def generateBuiltinDirCode( dir_node, context ):
+def generateBuiltinDir0Code( dir_node, context ):
     provider = dir_node.getParentVariableProvider()
 
     return Generator.getLoadDirCode(
@@ -648,6 +648,13 @@ def generateBuiltinDirCode( dir_node, context ):
         provider = provider
     )
 
+def generateBuiltinDir1Code( dir_node, context ):
+    return Generator.getBuiltinDir1Code(
+        identifier = generateExpressionCode(
+            expression = dir_node.getValue(),
+            context    = context
+        )
+    )
 
 def generateExpressionsCode( expressions, context, allow_none = False ):
     assert type( expressions ) in ( tuple, list )
@@ -828,7 +835,12 @@ def generateExpressionCode( expression, context, allow_none = False ):
             context     = context
         )
     elif expression.isExpressionBuiltinDir0():
-        identifier = generateBuiltinDirCode(
+        identifier = generateBuiltinDir0Code(
+            dir_node = expression,
+            context  = context
+        )
+    elif expression.isExpressionBuiltinDir1():
+        identifier = generateBuiltinDir1Code(
             dir_node = expression,
             context  = context
         )

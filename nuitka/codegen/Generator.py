@@ -1434,6 +1434,9 @@ def getBuiltinOpenCode( filename, mode, buffering ):
 def getBuiltinLenCode( identifier ):
     return Identifier( "BUILTIN_LEN( %s )" % identifier.getCodeTemporaryRef(), 1 )
 
+def getBuiltinDir1Code( identifier ):
+    return Identifier( "BUILTIN_DIR1( %s )" % identifier.getCodeTemporaryRef(), 1 )
+
 def getBuiltinRangeCode( low, high, step ):
     if step is not None:
         return HelperCallIdentifier(

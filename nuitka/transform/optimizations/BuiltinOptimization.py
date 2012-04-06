@@ -188,9 +188,14 @@ builtin_range_spec = BuiltinParameterSpecNoKeywords( "range", ( "start", "stop",
 builtin_repr_spec = BuiltinParameterSpecNoKeywords( "repr", ( "object", ), 0 )
 
 builtin_dir_spec = BuiltinParameterSpecNoKeywords( "dir", ( "object", ), 0 )
+builtin_vars_spec = BuiltinParameterSpecNoKeywords( "vars", ( "object", ), 0 )
+
+builtin_locals_spec = BuiltinParameterSpecNoKeywords( "locals", (), 0 )
+builtin_globals_spec = BuiltinParameterSpecNoKeywords( "globals", (), 0 )
+
 
 def extractBuiltinArgs( node, builtin_spec, builtin_class ):
-    # TODO: These could be handled too.
+    # These cannot be handled.
     if node.getStarListArg() is not None or node.getStarDictArg() is not None:
         return None
 

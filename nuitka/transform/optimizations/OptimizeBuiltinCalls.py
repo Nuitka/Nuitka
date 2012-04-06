@@ -68,7 +68,8 @@ from nuitka.nodes.ExecEvalNodes import (
 from nuitka.nodes.GlobalsLocalsNodes import (
     CPythonExpressionBuiltinGlobals,
     CPythonExpressionBuiltinLocals,
-    CPythonExpressionBuiltinDir0
+    CPythonExpressionBuiltinDir0,
+    CPythonExpressionBuiltinDir1
 )
 from nuitka.nodes.BuiltinReferenceNodes import (
     CPythonExpressionBuiltinExceptionRef,
@@ -97,17 +98,21 @@ from nuitka.Utils import getPythonVersion
 
 def dir_extractor( node ):
     # Only treat the empty dir() call, leave the others alone for now.
-    if not node.isEmptyCall():
-        return None
-
-    return CPythonExpressionBuiltinDir0(
-        source_ref = node.getSourceReference()
-    )
+    if node.isEmptyCall():
+        return CPythonExpressionBuiltinDir0(
+            source_ref = node.getSourceReference()
+        )
+    else:
+        return BuiltinOptimization.extractBuiltinArgs(
+            node          = node,
+            builtin_class = CPythonExpressionBuiltinDir1,
+            builtin_spec  = BuiltinOptimization.builtin_dir_spec
+        )
 
 def vars_extractor( node ):
     positional_args = node.getPositionalArguments()
 
-    if len( positional_args ) == 0:
+    if node.isEmptyCall():
         if node.getParentVariableProvider().isModule():
             return CPythonExpressionBuiltinGlobals(
                 source_ref = node.getSourceReference()
@@ -116,13 +121,12 @@ def vars_extractor( node ):
             return CPythonExpressionBuiltinLocals(
                 source_ref = node.getSourceReference()
             )
-    elif len( positional_args ) == 1:
-        return CPythonExpressionBuiltinVars(
-            source     = positional_args[ 0 ],
-            source_ref = node.getSourceReference()
-        )
     else:
-        assert False
+        return BuiltinOptimization.extractBuiltinArgs(
+            node          = node,
+            builtin_class = CPythonExpressionBuiltinVars,
+            builtin_spec  = BuiltinOptimization.builtin_vars_spec
+        )
 
 def import_extractor( node ):
     return BuiltinOptimization.extractBuiltinArgs(
@@ -325,27 +329,28 @@ if getPythonVersion() < 300:
         )
 
 def globals_extractor( node ):
-    assert node.isEmptyCall()
-
-    return CPythonExpressionBuiltinGlobals(
-        source_ref = node.getSourceReference()
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = CPythonExpressionBuiltinGlobals,
+        builtin_spec  = BuiltinOptimization.builtin_globals_spec
     )
 
 def locals_extractor( node ):
-    assert node.isEmptyCall()
-
     # Note: Locals on the module level is really globals.
     provider = node.getParentVariableProvider()
 
     if provider.isModule():
-        return CPythonExpressionBuiltinGlobals(
-            source_ref = node.getSourceReference()
+        return BuiltinOptimization.extractBuiltinArgs(
+            node          = node,
+            builtin_class = CPythonExpressionBuiltinGlobals,
+            builtin_spec  = BuiltinOptimization.builtin_locals_spec
         )
     else:
-        return CPythonExpressionBuiltinLocals(
-            source_ref = node.getSourceReference()
+        return BuiltinOptimization.extractBuiltinArgs(
+            node          = node,
+            builtin_class = CPythonExpressionBuiltinLocals,
+            builtin_spec  = BuiltinOptimization.builtin_locals_spec
         )
-
 
 def execfile_extractor( node ):
     def wrapExpressionBuiltinExecfileCreation( filename, globals_arg, locals_arg, source_ref ):
@@ -463,9 +468,6 @@ def computeBuiltinCall( call_node, called ):
 
         if new_node is None:
             return call_node, None, None
-
-            # TODO: Actually returning None should not be allowed at this point.
-            raise AssertionError( "None is not allowed to return", _dispatch_dict[ builtin_name ] )
 
         tags = set( [ "new_builtin" ] )
 
