@@ -335,8 +335,7 @@ def generateClassBodyCode( class_body, bases, context ):
 
     class_decl = Generator.getClassDecl(
         class_identifier  = class_body.getCodeName(),
-        closure_variables = class_body.getClosureVariables(),
-        context           = context
+        closure_variables = class_body.getClosureVariables()
     )
 
     class_code = Generator.getClassCode(

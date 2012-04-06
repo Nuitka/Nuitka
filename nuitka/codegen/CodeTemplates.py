@@ -127,3 +127,46 @@ else
 {
 %(branch_no_code)s
 }"""
+
+def enableDebug():
+    templates = dict( globals() )
+
+    class TemplateWrapper:
+        """ Wrapper around templates, to better trace and control template usage. """
+        def __init__( self, name, value ):
+            self.name = name
+            self.value = value
+
+        def __str__( self ):
+            return self.value
+
+        def __mod__( self, other ):
+            assert type( other ) is dict, self.name
+
+            for key in other.keys():
+                if "%%(%s)" % key not in self.value:
+                    from logging import warning
+
+                    warning( "Extra value '%s' provided to template '%s'.", key, self.name )
+
+            return self.value % other
+
+        def split( self, sep ):
+            return self.value.split( sep )
+
+    from nuitka.__past__ import iterItems
+
+    for template_name, template_value in iterItems( templates ):
+        if template_name.startswith( "_" ):
+            continue
+
+        if type( template_value ) is str:
+            globals()[ template_name ] = TemplateWrapper(
+                template_name,
+                template_value
+            )
+
+from nuitka.Options import isDebug
+
+if isDebug():
+    enableDebug()

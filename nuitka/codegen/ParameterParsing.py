@@ -101,7 +101,7 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
     top_level_parameters = parameters.getTopLevelVariables()
 
     if top_level_parameters and (not is_method or len( top_level_parameters ) > 1):
-        parameter_parsing_code += CodeTemplates.parse_argument_template_take_counts3
+        parameter_parsing_code += str( CodeTemplates.parse_argument_template_take_counts3 )
 
     if top_level_parameters:
         parameter_parsing_code += "// Copy given dictionary values to the the respective variables:\n"
@@ -118,7 +118,6 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
         for variable in top_level_parameters:
             if not variable.isNestedParameterVariable():
                 parameter_parsing_code += CodeTemplates.parse_argument_template_check_dict_parameter_with_star_dict % {
-                    "function_name"            : function_name,
                     "parameter_name"           : variable.getName(),
                     "parameter_name_object"    : getConstantCode(
                         constant = variable.getName(),
@@ -190,16 +189,18 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
                 continue
 
             if variable.isNestedParameterVariable():
-                parse_argument_template2 = CodeTemplates.argparse_template_nested_argument
+                parameter_parsing_code += CodeTemplates.argparse_template_nested_argument % {
+                    "parameter_name"       : variable.getName(),
+                    "parameter_position"   : count,
+                    "parameter_args_index" : count if not is_method else count-1
+                }
             else:
-                parse_argument_template2 = CodeTemplates.argparse_template_plain_argument
-
-            parameter_parsing_code += parse_argument_template2 % {
-                "function_name"        : function_name,
-                "parameter_name"       : variable.getName(),
-                "parameter_position"   : count,
-                "parameter_args_index" : count if not is_method else count-1
-            }
+                parameter_parsing_code += CodeTemplates.argparse_template_plain_argument % {
+                    "function_name"        : function_name,
+                    "parameter_name"       : variable.getName(),
+                    "parameter_position"   : count,
+                    "parameter_args_index" : count if not is_method else count-1
+                }
 
     if parameters.getListStarArgVariable() is not None:
         if not is_method:

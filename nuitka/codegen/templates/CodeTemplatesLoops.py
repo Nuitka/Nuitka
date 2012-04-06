@@ -30,7 +30,7 @@
 
 """
 
-_template_loop_break_continue_catching = """\
+template_loop_break_continue_catching = """\
 while( true )
 {
     try
@@ -46,15 +46,8 @@ while( true )
     }
 }"""
 
-_template_loop_break_continue_direct = """\
+template_loop_break_continue_direct = """\
 while( true )
 {
 %(loop_body_codes)s
 }"""
-
-
-def getLoopTemplate( needs_exceptions ):
-    if needs_exceptions:
-        return _template_loop_break_continue_catching
-    else:
-        return _template_loop_break_continue_direct
