@@ -46,7 +46,7 @@ import sys, os, subprocess
 os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
 os.chdir( ".." )
 
-options = """
+pylint_options = """
 --rcfile=/dev/null
 --include-ids=y
 --disable=I0011,W0232
@@ -67,8 +67,25 @@ options = """
 --max-parents=9
 """.split()
 
-if os.environ.get( "TODO", 0 ):
-    options.append( "--notes=" )
+
+from optparse import OptionParser
+
+
+parser = OptionParser()
+
+parser.add_option(
+    "--hide-todo", "--no-todo",
+    action  = "store_true",
+    dest    = "no_todos",
+    default = False,
+    help    = """\
+    Default is %default."""
+)
+
+options, positional_args = parser.parse_args()
+
+if os.environ.get( "TODO", 0 ) or options.no_todos:
+    pylint_options.append( "--notes=" )
 
 blacklist = (
     "oset.py",
@@ -79,7 +96,7 @@ blacklist = (
 
 def executePyLint( filename ):
     command = "pylint %s %s %s" % (
-        " ".join( options ),
+        " ".join( pylint_options ),
         os.environ.get( "PYLINT_EXTRA_OPTIONS", "" ),
         filename
     )
@@ -104,8 +121,9 @@ def executePyLint( filename ):
 if "PYTHONPATH" not in os.environ:
     os.environ[ "PYTHONPATH" ] = "."
 
-if len( sys.argv ) >= 2:
-    executePyLint( sys.argv[ 1 ] )
+if positional_args:
+    for positional_arg in positional_args:
+        executePyLint( positional_arg )
 else:
     executePyLint( "bin/nuitka" )
 
