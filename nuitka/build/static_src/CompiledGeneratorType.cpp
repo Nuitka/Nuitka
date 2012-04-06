@@ -413,3 +413,8 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject 
     Nuitka_GC_Track( result );
     return (PyObject *)result;
 }
+
+PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object )
+{
+    return Nuitka_Generator_New( code, name, code_object, NULL, NULL );
+}

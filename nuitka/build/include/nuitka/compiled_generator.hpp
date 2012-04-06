@@ -86,6 +86,7 @@ extern PyTypeObject Nuitka_Generator_Type;
 typedef void (*yielder_func)( Nuitka_GeneratorObject * );
 
 extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, void *context, releaser cleanup );
+extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object );
 
 static inline bool Nuitka_Generator_Check( PyObject *object )
 {
