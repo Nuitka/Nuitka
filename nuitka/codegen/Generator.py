@@ -942,38 +942,11 @@ def getLoopCode( loop_body_codes, needs_exceptions ):
 def getVariableAssignmentCode( context, variable, identifier ):
     assert isinstance( variable, Variables.Variable ), variable
 
-    if variable.isModuleVariable():
-        var_name = variable.getName()
+    # This ought to be impossible to happen, as an assignment to an overflow variable
+    # would have made it a local one.
+    assert not variable.isMaybeLocalVariable()
 
-        context.addGlobalVariableNameUsage( var_name )
-
-        if identifier.getCheapRefCount() == 0:
-            return "_mvar_%s_%s.assign0( %s );" % (
-                context.getModuleCodeName(),
-                var_name,
-                identifier.getCodeTemporaryRef()
-            )
-        else:
-            return "_mvar_%s_%s.assign( %s );" % (
-                context.getModuleCodeName(),
-                var_name,
-                identifier.getCodeExportRef()
-            )
-    elif variable.isMaybeLocalVariable():
-        # TODO: This branch ought to be impossible to take, as an assignment to an overflow
-        # variable would make it a local one.
-        assert False, variable
-
-        return getSubscriptAssignmentCode(
-            subscribed = Identifier( "locals_dict.asObject()", 0 ),
-            subscript  = getConstantCode(
-                context  = context,
-                constant = variable.getName(),
-
-            ),
-            identifier = identifier
-        )
-    elif variable.isTempVariableReference():
+    if variable.isTempVariableReference():
         referenced = variable.getReferenced()
 
         if not referenced.declared:
@@ -985,36 +958,36 @@ def getVariableAssignmentCode( context, variable, identifier ):
                 in_context = False,
                 init_from  = identifier
             )
-        else:
-            if referenced.getNeedsFree():
-                return "%s.assign( %s );" % (
-                    getVariableCode(
-                        variable = variable,
-                        context  = context
-                    ),
-                    identifier.getCodeExportRef()
-                )
-            else:
-                # Don't care about the reference, but take none, or else it may get lost,
-                # which we don't want to happen.
+        elif not referenced.getNeedsFree():
+            # So won't get a reference, and take none, or else it may get lost, which we
+            # don't want to happen.
 
-                assert identifier.getCheapRefCount() == 0
+            # This must be true, otherwise the needs no free statement was made in error.
+            assert identifier.getCheapRefCount() == 0
 
-                return "%s = %s;" % (
-                    getVariableCode(
-                        variable = variable,
-                        context  = context
-                    ),
-                    identifier.getCodeExportRef()
-                )
+            return "%s = %s;" % (
+                getVariableCode(
+                    variable = variable,
+                    context  = context
+                ),
+                identifier.getCodeTemporaryRef()
+            )
+
+    if identifier.getCheapRefCount() == 0:
+        identifier_code = identifier.getCodeTemporaryRef()
+        assign_code = "assign0"
     else:
-        return "%s = %s;" % (
-            getVariableCode(
-                variable = variable,
-                context  = context
-            ),
-            identifier.getCodeExportRef()
-        )
+        identifier_code = identifier.getCodeExportRef()
+        assign_code = "assign1"
+
+    return "%s.%s( %s );" % (
+        getVariableCode(
+            variable = variable,
+            context  = context
+        ),
+        assign_code,
+        identifier_code
+    )
 
 def getVariableDelCode( context, variable ):
     assert isinstance( variable, Variables.Variable ), variable

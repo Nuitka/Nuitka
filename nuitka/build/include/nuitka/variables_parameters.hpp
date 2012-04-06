@@ -66,7 +66,20 @@ public:
         Py_XDECREF( this->object );
     }
 
-    void operator=( PyObject *object )
+    void assign0( PyObject *object )
+    {
+        assertObject( object );
+
+        PyObject *old_object = this->object;
+
+        this->object = INCREASE_REFCOUNT( object );
+
+        // Free old value if any available and owned.
+        Py_XDECREF( old_object );
+    }
+
+
+    void assign1( PyObject *object )
     {
         assertObject( object );
 
@@ -169,7 +182,19 @@ public:
         Py_DECREF( this->object );
     }
 
-    void operator=( PyObject *object )
+    void assign0( PyObject *object )
+    {
+        assertObject( object );
+        assertObject( this->object );
+
+        PyObject *old_object = this->object;
+        this->object = INCREASE_REFCOUNT( object );
+
+        // Free old value if any available and owned.
+        Py_DECREF( old_object );
+    }
+
+    void assign1( PyObject *object )
     {
         assertObject( object );
         assertObject( this->object );

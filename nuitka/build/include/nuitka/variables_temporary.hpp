@@ -62,7 +62,7 @@ public:
         return this->object;
     }
 
-    void assign( PyObject *object )
+    void assign1( PyObject *object )
     {
         assertObject( this->object );
 
@@ -109,7 +109,7 @@ public:
         return this->object;
     }
 
-    inline PyObject *assign1( PyObject *value )
+    PyObject *assign1( PyObject *value )
     {
         assertObject( value );
 

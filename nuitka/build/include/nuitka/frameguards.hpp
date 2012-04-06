@@ -228,7 +228,9 @@ public:
     }
 
 private:
+
     PyFrameObject *frame_object;
+
 };
 
 class FrameGuardLight
@@ -279,7 +281,9 @@ public:
 
 
 private:
+
     PyFrameObject **frame_ptr;
+
 };
 
 

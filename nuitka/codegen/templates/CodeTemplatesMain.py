@@ -177,7 +177,26 @@ class PyObjectGlobalVariable_%(module_identifier)s
             }
         }
 
-        void assign( PyObject *value ) const
+        void assign0( PyObject *value ) const
+        {
+            PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
+
+            // Values are more likely set than not set, in that case speculatively try the
+            // quickest access method.
+            if (likely( entry->me_value != NULL ))
+            {
+                PyObject *old = entry->me_value;
+                entry->me_value = INCREASE_REFCOUNT( value );
+
+                Py_DECREF( old );
+            }
+            else
+            {
+                DICT_SET_ITEM( ((PyModuleObject *)_module_%(module_identifier)s)->md_dict, (PyObject *)*this->var_name, value );
+            }
+        }
+
+        void assign1( PyObject *value ) const
         {
             PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
 
@@ -195,25 +214,6 @@ class PyObjectGlobalVariable_%(module_identifier)s
                 DICT_SET_ITEM( ((PyModuleObject *)_module_%(module_identifier)s)->md_dict, (PyObject *)*this->var_name, value );
 
                 Py_DECREF( value );
-            }
-        }
-
-        void assign0( PyObject *value ) const
-        {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
-
-            // Values are more likely set than not set, in that case speculatively try the
-            // quickest access method.
-            if (likely( entry->me_value != NULL ))
-            {
-                PyObject *old = entry->me_value;
-                entry->me_value = INCREASE_REFCOUNT( value );
-
-                Py_DECREF( old );
-            }
-            else
-            {
-                DICT_SET_ITEM( ((PyModuleObject *)_module_%(module_identifier)s)->md_dict, (PyObject *)*this->var_name, value );
             }
         }
 
