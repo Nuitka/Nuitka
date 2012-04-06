@@ -36,7 +36,6 @@ These classes provide the generic base classes available for nodes.
 from nuitka.odict import OrderedDict
 
 from nuitka import (
-    Variables,
     Tracing,
     TreeXML
 )
@@ -555,15 +554,14 @@ class CPythonChildrenHaving:
                 pass
             elif type( value ) is tuple:
                 if old_node in value:
-                    new_value = []
-
-                    for val in value:
-                        if val is not old_node:
-                            new_value.append( val )
-                        else:
-                            new_value.append( new_node )
-
-                    self.setChild( key, tuple( new_value ) )
+                    self.setChild(
+                        key,
+                        tuple(
+                            (val if val is not old_node else new_node)
+                            for val in
+                            value
+                        )
+                    )
 
                     break
             elif isinstance( value, CPythonNodeBase ):

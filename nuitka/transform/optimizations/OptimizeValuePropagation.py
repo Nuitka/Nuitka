@@ -73,7 +73,7 @@ class ValuePropagationVisitor( OptimizationVisitorScopedBase ):
                     variable.setReadOnlyIndicator( new_value )
 
             if False:
-                print( self.constraint_collection.written_module_variables )
+                print( self.constraint_collection.getWrittenModuleVariables() )
                 node.dump()
 
             # This is a cheap way to only visit the module. TODO: Hide this away in a base
