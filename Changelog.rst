@@ -3,10 +3,10 @@ Nuitka Release 0.3.21 (Draft)
 
 This releases contains some really major cleanups, all heading towards enabling value
 propagation inside Nuitka. Assignments are now all simple and explicit, and as such it
-should be easy to track them.
+should be easy to track them. Contractions have become functions internally, etc.
 
-Also there are a few bug fixes, and a bunch of organizational improvements, that make the
-release yet cleaner.
+Also there are a few small bug fixes, and a bunch of organizational improvements, that
+make the release cleaner than ever.
 
 Bug fixes
 ---------
@@ -61,6 +61,15 @@ New Optimizations
   well. This allows for slightly more efficient code to be created with regards to
   reference handling, rather than using the CPython API.
 
+- For all types of variable assigned in the generated code, there are now methods that
+  accept already taken references or not, and the code generator picks the optimal
+  variant.
+
+- Don't use a "context" object for generator functions (and generator expressions) that
+  don't need one. And even if it does to store e.g. the given parameter values, avoid to
+  have a "common context" if there is no closure taken. This avoids useless "malloc" calls
+  and should speed up repeated generator object creation.
+
 Organizational
 --------------
 
@@ -73,7 +82,8 @@ Organizational
   releases have no experimental code options.
 
 - The binary "bin/Nuitka.py" has been removed from the git repository. It was deprecated a
-  while ago and served no good use, as it was a symbolic link only anyway.
+  while ago, not part of the distribution and served no good use, as it was a symbolic
+  link only anyway.
 
 - The "--python-version" option is applied at Nuitka start time to re-launch Nuitka with
   the given Python version, to make sure that the Python run time used for computations
@@ -88,6 +98,9 @@ Organizational
 
 - The contents environment variable "CXX" becomes the default C++ compiler when set, so
   that checking with "CXX=g++-4.7 nuitka-python ..." becomes supported.
+
+- The "check-with-pylint" script now has a real command line option to control the display
+  of "TODO" items.
 
 Cleanups
 --------
@@ -194,8 +207,8 @@ New Tests
 
 - Cover exceptions from accessing unassigned global names.
 
-- Added test to show that star imports do not allow other names to be imported at the same
-  time as well.
+- Added syntax test to show that star imports do not allow other names to be imported at
+  the same time as well.
 
 Summary
 -------
@@ -2438,7 +2451,7 @@ Cleanups
 - Twisted workarounds like "TransitiveProvider" are no longer needed, because class
   builder and class body were separated.
 
-- New packages "nuitka.transform.optimizations" and "nutika.transform.finalizations",
+- New packages "nuitka.transform.optimizations" and "nuitka.transform.finalizations",
   where the first was "nuitka.optimizations" before. There is also code in
   "nuitka.transform" that was previously in a dedicated module. This allowed to move a lot
   of displaced code.
