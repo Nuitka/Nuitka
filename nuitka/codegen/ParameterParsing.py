@@ -282,7 +282,7 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
     return indented( parameter_parsing_code )
 
 def getParameterParsingCode( context, function_identifier, function_name, parameters, \
-                             default_identifiers, context_access_template ):
+                             default_identifiers, context_access_template, needs_creation ):
     if getDefaultParameterDeclarations( default_identifiers ):
         context_access = context_access_template % {
             "function_identifier" : function_identifier
@@ -293,24 +293,24 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
     function_parameter_variables = parameters.getVariables()
 
     if function_parameter_variables:
-        parameter_objects_decl = ", " + ", ".join(
-            [
-                "PyObject *_python_par_" + variable.getName()
-                for variable in
-                function_parameter_variables
-            ]
-        )
+        parameter_objects_decl = [
+            "PyObject *_python_par_" + variable.getName()
+            for variable in
+            function_parameter_variables
+        ]
 
-        parameter_objects_list = ", " + ", ".join(
-            [
-                "_python_par_" + variable.getName()
-                for variable in
-                function_parameter_variables
-            ]
-        )
+        parameter_objects_list = [
+            "_python_par_" + variable.getName()
+            for variable in
+            function_parameter_variables
+        ]
     else:
-        parameter_objects_decl = ""
-        parameter_objects_list = ""
+        parameter_objects_decl = []
+        parameter_objects_list = []
+
+    if needs_creation:
+        parameter_objects_decl.insert( 0, "PyObject *self" )
+        parameter_objects_list.insert( 0, "self" )
 
     parameter_release_code = "".join(
         [
@@ -337,10 +337,12 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
             function_identifier = function_identifier
         ),
         "context_access"            : context_access,
-        "parameter_objects_list"    : parameter_objects_list,
+        "parameter_objects_list"    : ", ".join( parameter_objects_list ),
         "parameter_release_code"    : parameter_release_code,
     }
 
+    # Note: It's only a convention, but one generally adhered, so use the presence of a "self"
+    # to detect of a "method" entry point makes sense.
     if function_parameter_variables and function_parameter_variables[0].getName() == "self":
         mparse_identifier = getParameterEntryPointIdentifier(
             function_identifier = function_identifier,
@@ -360,7 +362,7 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
                 function_identifier = function_identifier
             ),
             "context_access"            : context_access,
-            "parameter_objects_list"    : parameter_objects_list,
+            "parameter_objects_list"    : ", ".join( parameter_objects_list ),
             "parameter_release_code"    : parameter_release_code
         }
     else:

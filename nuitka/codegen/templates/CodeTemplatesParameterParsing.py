@@ -40,7 +40,7 @@ static PyObject *%(parse_function_identifier)s( PyObject *self, PyObject *args, 
     Py_ssize_t args_given = args_size;
 %(parameter_parsing_code)s
 
-    return %(impl_function_identifier)s( self%(parameter_objects_list)s );
+    return %(impl_function_identifier)s( %(parameter_objects_list)s );
 
 error_exit:;
 
@@ -60,7 +60,7 @@ static PyObject *%(parse_function_identifier)s( PyObject *self, PyObject *_pytho
     Py_ssize_t args_given = args_size + 1; // Count the self parameter already given as well.
 %(parameter_parsing_code)s
 
-    return %(impl_function_identifier)s( self%(parameter_objects_list)s );
+    return %(impl_function_identifier)s( %(parameter_objects_list)s );
 
 error_exit:;
 

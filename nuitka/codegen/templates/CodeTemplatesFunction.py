@@ -30,10 +30,14 @@
 
 """
 
-template_function_declaration = """\
+template_function_make_declaration = """\
 #define MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg_names)s ) _MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg_reversal)s )
 
 static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg_spec)s );
+"""
+
+template_function_direct_declaration = """\
+static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s );
 """
 
 function_context_body_template = """
@@ -66,7 +70,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
         %(fparse_function_identifier)s,
         %(mparse_function_identifier)s,
         %(function_name_obj)s,
-        _CODEOBJ_%(function_identifier)s ? _CODEOBJ_%(function_identifier)s : ( _CODEOBJ_%(function_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(function_name_obj)s, %(line_number)d, %(arg_names)s, %(arg_count)d ) ),
+        _make_codeobj_%(function_identifier)s(),
         %(defaults)s,
         %(module_identifier)s,
         %(function_doc)s,
@@ -85,7 +89,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s()
         %(fparse_function_identifier)s,
         %(mparse_function_identifier)s,
         %(function_name_obj)s,
-        _CODEOBJ_%(function_identifier)s ? _CODEOBJ_%(function_identifier)s : ( _CODEOBJ_%(function_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(function_name_obj)s, %(line_number)d, %(arg_names)s, %(arg_count)d ) ),
+        _make_codeobj_%(function_identifier)s(),
         %(defaults)s,
         %(module_identifier)s,
         %(function_doc)s
@@ -95,11 +99,21 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s()
 }
 """
 
-function_body_template = """
+function_frame_body_template = """\
 static PyFrameObject *frame_%(function_identifier)s = NULL;
-static PyCodeObject *_CODEOBJ_%(function_identifier)s = NULL;
+static PyCodeObject *_codeobj_%(function_identifier)s = NULL;
 
-static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects_decl)s )
+static PyCodeObject *_make_codeobj_%(function_identifier)s( void )
+{
+    if ( _codeobj_%(function_identifier)s == NULL )
+    {
+        _codeobj_%(function_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(function_name_obj)s, %(line_number)d, %(arg_names)s, %(arg_count)d );
+    }
+
+    return _codeobj_%(function_identifier)s;
+}
+
+static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 {
 %(context_access_function_impl)s
     bool traceback = false;
@@ -114,7 +128,7 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects
             Py_DECREF( frame_%(function_identifier)s );
         }
 
-        frame_%(function_identifier)s = MAKE_FRAME( _CODEOBJ_%(function_identifier)s, %(module_identifier)s );
+        frame_%(function_identifier)s = MAKE_FRAME( _make_codeobj_%(function_identifier)s(), %(module_identifier)s );
     }
 
     FrameGuard frame_guard( frame_%(function_identifier)s );
@@ -140,8 +154,22 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects
         return NULL;
     }
 }
+"""
 
-%(parameter_entry_point_code)s
+function_noframe_body_template = """
+static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
+{
+%(context_access_function_impl)s
+    bool traceback = false;
+
+    // Local variable declarations.
+%(function_locals)s
+
+    // Actual function code.
+%(function_body)s
+
+     return INCREASE_REFCOUNT( Py_None );
+}
 """
 
 function_dict_setup = """\

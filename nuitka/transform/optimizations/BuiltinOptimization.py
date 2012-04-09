@@ -58,9 +58,6 @@ class BuiltinParameterSpec( ParameterSpec ):
     def getName( self ):
         return self.name
 
-    def getArgumentNames( self ):
-        return self.normal_args
-
     def simulateCall( self, given_values ):
         # Using star dict call for simulation and catch any exception as really fatal,
         # pylint: disable=W0142,W0703

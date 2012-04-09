@@ -103,7 +103,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
         %(fparse_function_identifier)s,
         %(mparse_function_identifier)s,
         %(function_name_obj)s,
-        _CODEOBJ_%(function_identifier)s ? _CODEOBJ_%(function_identifier)s : ( _CODEOBJ_%(function_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(function_name_obj)s, %(line_number)d, %(arg_names)s, %(arg_count)d, true ) ),
+        _make_codeobj_%(function_identifier)s(),
         %(defaults)s,
         %(module_identifier)s,
         %(function_doc)s,
@@ -120,7 +120,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
         %(fparse_function_identifier)s,
         %(mparse_function_identifier)s,
         %(function_name_obj)s,
-        _CODEOBJ_%(function_identifier)s ? _CODEOBJ_%(function_identifier)s : ( _CODEOBJ_%(function_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(function_name_obj)s, %(line_number)d, %(arg_names)s, %(arg_count)d, true ) ),
+        _make_codeobj_%(function_identifier)s(),
         %(defaults)s,
         %(module_identifier)s,
         %(function_doc)s
@@ -130,7 +130,17 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
 
 genfunc_yielder_template = """
 static PyFrameObject *frame_%(function_identifier)s = NULL;
-static PyCodeObject *_CODEOBJ_%(function_identifier)s = NULL;
+static PyCodeObject *_codeobj_%(function_identifier)s = NULL;
+
+static PyCodeObject *_make_codeobj_%(function_identifier)s( void )
+{
+    if ( _codeobj_%(function_identifier)s == NULL )
+    {
+        _codeobj_%(function_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(function_name_obj)s, %(line_number)d, %(arg_names)s, %(arg_count)d, true );
+    }
+
+    return _codeobj_%(function_identifier)s;
+}
 
 static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
@@ -147,9 +157,7 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
             Py_DECREF( frame_%(function_identifier)s );
         }
 
-        assertCodeObject( _CODEOBJ_%(function_identifier)s );
-
-        frame_%(function_identifier)s = MAKE_FRAME( _CODEOBJ_%(function_identifier)s, %(module_identifier)s );
+        frame_%(function_identifier)s = MAKE_FRAME( _make_codeobj_%(function_identifier)s(), %(module_identifier)s );
     }
 
     Py_INCREF( frame_%(function_identifier)s );
@@ -203,44 +211,52 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 }
 """
 
-genfunc_common_context_use_template = """
-    struct _context_common_%(function_identifier)s_t *_python_common_context = (struct _context_common_%(function_identifier)s_t *)self;
-    struct _context_generator_%(function_identifier)s_t *_python_context = new _context_generator_%(function_identifier)s_t;
+genfunc_common_context_use_template = """\
+struct _context_common_%(function_identifier)s_t *_python_common_context = (struct _context_common_%(function_identifier)s_t *)self;
+struct _context_generator_%(function_identifier)s_t *_python_context = new _context_generator_%(function_identifier)s_t;
 
-    _python_context->common_context = _python_common_context;
-    _python_common_context->ref_count += 1;
-"""
+_python_context->common_context = _python_common_context;
+_python_common_context->ref_count += 1;"""
 
-genfunc_local_context_use_template = """
-    struct _context_generator_%(function_identifier)s_t *_python_context = new _context_generator_%(function_identifier)s_t;
-"""
+genfunc_local_context_use_template = """\
+struct _context_generator_%(function_identifier)s_t *_python_context = new _context_generator_%(function_identifier)s_t;"""
 
-genfunc_function_with_context_template = """
-static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects_decl)s )
+
+genfunc_generator_without_context_making = """\
+        PyObject *result = Nuitka_Generator_New(
+            %(function_identifier)s_context,
+            %(function_name_obj)s,
+            _make_codeobj_%(function_identifier)s()
+        );"""
+
+genfunc_generator_with_context_making = """\
+        PyObject *result = Nuitka_Generator_New(
+            %(function_identifier)s_context,
+            %(function_name_obj)s,
+            _make_codeobj_%(function_identifier)s(),
+            _python_context,
+            _context_generator_%(function_identifier)s_destructor
+        );"""
+
+
+genfunc_function_maker_template = """
+static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 {
+    // Create context if any
 %(context_making)s
 
     try
     {
-        assert( _CODEOBJ_%(function_identifier)s != NULL );
-
-        PyObject *result = Nuitka_Generator_New(
-            %(function_identifier)s_context,
-            %(function_name_obj)s,
-            _CODEOBJ_%(function_identifier)s,
-            _python_context,
-            _context_generator_%(function_identifier)s_destructor
-        );
+%(generator_making)s
 
         if (unlikely( result == NULL ))
         {
-            delete _python_context;
-
             PyErr_Format( PyExc_RuntimeError, "cannot create function %(function_name)s" );
-            throw _PythonException();
+            return NULL;
         }
 
-%(parameter_context_assign)s
+        // Copy to context parameter values and closured variables if any.
+%(context_copy)s
 
         return result;
     }
@@ -251,44 +267,7 @@ static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects
         return NULL;
     }
 }
-
-%(parameter_entry_point_code)s
 """
-
-genfunc_function_without_context_template = """
-static PyObject *impl_%(function_identifier)s( PyObject *self%(parameter_objects_decl)s )
-{
-    try
-    {
-        assert( _CODEOBJ_%(function_identifier)s != NULL );
-
-        PyObject *result = Nuitka_Generator_New(
-            %(function_identifier)s_context,
-            %(function_name_obj)s,
-            _CODEOBJ_%(function_identifier)s
-        );
-
-        if (unlikely( result == NULL ))
-        {
-            PyErr_Format( PyExc_RuntimeError, "cannot create function %(function_name)s" );
-            throw _PythonException();
-        }
-
-%(parameter_context_assign)s
-
-        return result;
-    }
-    catch ( _PythonException &_exception )
-    {
-        _exception.toPython();
-
-        return NULL;
-    }
-}
-
-%(parameter_entry_point_code)s
-"""
-
 
 generator_context_access_template = """
 // The context of the generator.

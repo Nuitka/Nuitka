@@ -261,3 +261,27 @@ class CPythonExpressionFunctionBodyDefaulted( CPythonExpressionChildrenHavingBas
     def isCompileTimeConstant( self ):
         # TODO: It's actually pretty much compile time accessible mayhaps.
         return None
+
+
+class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_FUNCTION_CALL"
+
+    named_children = ( "function_body", "values" )
+
+    def __init__( self, called_expression, values, source_ref ):
+        assert called_expression.isExpressionFunctionBody()
+
+        CPythonExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "function_body" : called_expression,
+                "values"        : tuple( values ),
+            },
+            source_ref = source_ref
+        )
+
+    def computeNode( self ):
+        return self, None, None
+
+    getFunctionBody = CPythonExpressionChildrenHavingBase.childGetter( "function_body" )
+    getArgumentValues = CPythonExpressionChildrenHavingBase.childGetter( "values" )

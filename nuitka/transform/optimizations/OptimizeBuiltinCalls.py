@@ -110,8 +110,6 @@ def dir_extractor( node ):
         )
 
 def vars_extractor( node ):
-    positional_args = node.getPositionalArguments()
-
     if node.isEmptyCall():
         if node.getParentVariableProvider().isModule():
             return CPythonExpressionBuiltinGlobals(

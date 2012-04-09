@@ -383,15 +383,22 @@ def _getCallBothStarArgsCode( function_identifier, argument_tuple, argument_dict
             )
 
 
-def getDirectionFunctionCallCode( function_identifier, arguments ):
+def getDirectionFunctionCallCode( function_identifier, arguments, closure_variables, context ):
     function_identifier = getDirectFunctionEntryPointIdentifier(
         function_identifier = function_identifier
+    )
+
+    call_args = getCodeExportRefs( arguments )
+
+    call_args += getClosureVariableProvisionCode(
+        context           = context,
+        closure_variables = closure_variables
     )
 
     return Identifier(
         "%s( %s )" % (
             function_identifier,
-            ", ".join( getCodeExportRefs( arguments ) )
+            ", ".join( call_args )
         ),
         1
     )
@@ -920,9 +927,9 @@ def getSliceDelCode( target, lower, upper ):
 def getLineNumberCode( context, source_ref ):
     if source_ref.shallSetCurrentLine():
         if context.hasFrameGuard():
-            template = """frame_guard.setLineNumber( %d );\n"""
+            template = "frame_guard.setLineNumber( %d );\n"
         else:
-            template = """generator->m_frame->f_lineno = %d;\n"""
+            template = "generator->m_frame->f_lineno = %d;\n"
 
         return template % source_ref.getLineNumber()
     else:
@@ -1746,27 +1753,50 @@ def _extractArgNames( args ):
         args
     ]
 
+def getFunctionDecl( context, function_identifier, default_identifiers, closure_variables, \
+                     function_parameter_variables, needs_creation ):
+    if needs_creation:
+        # TODO: These two branches probably mean it's two different things.
 
-def getFunctionDecl( context, function_identifier, default_identifiers, closure_variables ):
-    function_creation_arg_spec = _getFunctionCreationArgs(
-        default_identifiers = default_identifiers,
-        closure_variables   = closure_variables
-    )
-
-    function_creation_arg_names = _extractArgNames( function_creation_arg_spec )
-
-    return CodeTemplates.template_function_declaration % {
-        "function_identifier"            : function_identifier,
-        "function_creation_arg_spec"     : getEvalOrderedCode(
-            context = context,
-            args    = function_creation_arg_spec
-        ),
-        "function_creation_arg_names"    : ", ".join( function_creation_arg_names ),
-        "function_creation_arg_reversal" : getEvalOrderedCode(
-            context = context,
-            args    = function_creation_arg_names
+        function_creation_arg_spec = _getFunctionCreationArgs(
+            default_identifiers = default_identifiers,
+            closure_variables   = closure_variables
         )
-    }
+
+        function_creation_arg_names = _extractArgNames( function_creation_arg_spec )
+
+        return CodeTemplates.template_function_make_declaration % {
+            "function_identifier"            : function_identifier,
+            "function_creation_arg_spec"     : getEvalOrderedCode(
+                context = context,
+                args    = function_creation_arg_spec
+            ),
+            "function_creation_arg_names"    : ", ".join( function_creation_arg_names ),
+            "function_creation_arg_reversal" : getEvalOrderedCode(
+                context = context,
+                args    = function_creation_arg_names
+            )
+        }
+    else:
+        parameter_objects_decl = [
+            "PyObject *_python_par_" + variable.getName()
+            for variable in
+            function_parameter_variables
+        ]
+
+        if not needs_creation:
+            for closure_variable in closure_variables:
+                parameter_objects_decl.append(
+                    closure_variable.getDeclarationCode(
+                        for_reference = True,
+                        for_local     = False
+                    )
+               )
+
+        return CodeTemplates.template_function_direct_declaration % {
+            "function_identifier"    : function_identifier,
+            "parameter_objects_decl" : ", ".join( parameter_objects_decl ),
+        }
 
 # TODO: Move this to VariableCodes, it's that subject.
 def _getLocalVariableInitCode( context, variable, init_from = None, in_context = False, \
@@ -1811,7 +1841,7 @@ def _getLocalVariableInitCode( context, variable, init_from = None, in_context =
 
     # TODO: Too much naming policy here.
     if variable.isClosureReference():
-        result += "python_closure_%s" % var_name
+        result += variable.getCodeName()
     elif variable.isTempVariable():
         result += "python_tmp_%s" % var_name
     else:
@@ -1879,7 +1909,8 @@ def _getFuncDefaultValue( identifiers, context ):
 
 def getGeneratorFunctionCode( context, function_name, function_identifier, parameters, \
                               closure_variables, user_variables, default_access_identifiers,
-                              tmp_variables, function_codes, source_ref, function_doc ):
+                              tmp_variables, function_codes, needs_creation, source_ref, \
+                              function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
 
@@ -1889,6 +1920,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         parameters              = parameters,
         default_identifiers     = default_access_identifiers,
         context_access_template = CodeTemplates.generator_context_access_template,
+        needs_creation          = needs_creation,
         context                 = context,
     )
 
@@ -1941,6 +1973,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
             )
         )
 
+    # TODO: I think there are no more
     function_var_inits += [
         "PyObjectTempHolder %s;" % tmp_variable
         for tmp_variable in tmp_variables
@@ -1979,6 +2012,10 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 
     instance_context_decl = function_parameter_decl + local_var_decl
 
+    if not needs_creation:
+        instance_context_decl = context_decl + instance_context_decl
+        context_decl = []
+
     if context_decl:
         result = CodeTemplates.genfunc_context_body_template % {
             "function_identifier"            : function_identifier,
@@ -2016,7 +2053,18 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         "function_body"       : indented( function_codes, 2 ),
         "function_var_inits"  : indented( function_locals, 2 ),
         "context_access"      : indented( context_access_instance, 2 ),
-        "module_identifier"   : getModuleAccessCode( context = context )
+        "module_identifier"   : getModuleAccessCode( context = context ),
+        "function_name_obj"   : function_name_obj,
+        "filename_identifier" : getConstantCode(
+            context  = context,
+            constant = source_ref.getFilename()
+        ),
+        "line_number"         : source_ref.getLineNumber(),
+        "arg_names"           : getConstantCode(
+            constant = _getCoArgNamesValue( parameters ),
+            context  = context
+        ),
+        "arg_count"           : parameters.getArgumentCount(),
     }
 
     if context_decl or instance_context_decl:
@@ -2029,102 +2077,100 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
                 "function_identifier"        : function_identifier,
             }
 
-        result += CodeTemplates.genfunc_function_with_context_template % {
-            "function_name"              : function_name,
+        context_making = context_making.split( "\n" )
+
+        if not needs_creation:
+            context_making += context_copy
+
+        generator_making = CodeTemplates.genfunc_generator_with_context_making  % {
             "function_name_obj"          : function_name_obj,
             "function_identifier"        : function_identifier,
-            "context_making"             : context_making,
-            "parameter_context_assign"   : indented( parameter_context_assign, 2 ),
-            "parameter_entry_point_code" : entry_point_code,
-            "parameter_objects_decl"     : parameter_objects_decl,
         }
     else:
-        result += CodeTemplates.genfunc_function_without_context_template % {
-            "function_name"              : function_name,
+        generator_making = CodeTemplates.genfunc_generator_without_context_making  % {
             "function_name_obj"          : function_name_obj,
             "function_identifier"        : function_identifier,
-            "parameter_context_assign"   : indented( parameter_context_assign, 2 ),
-            "parameter_entry_point_code" : entry_point_code,
-            "parameter_objects_decl"     : parameter_objects_decl,
         }
 
+        context_making = []
+
+    if not needs_creation:
+        for closure_variable in closure_variables:
+            parameter_objects_decl.append(
+                closure_variable.getDeclarationCode(
+                    for_reference = True,
+                    for_local     = False
+                )
+            )
+
+    result += CodeTemplates.genfunc_function_maker_template % {
+        "function_name"              : function_name,
+        "function_identifier"        : function_identifier,
+        "context_making"             : indented( context_making, 1 ),
+        "context_copy"               : indented( parameter_context_assign, 2 ),
+        "generator_making"           : generator_making,
+        "parameter_objects_decl"     : ", ".join( parameter_objects_decl ),
+    }
 
     func_defaults = _getFuncDefaultValue(
         identifiers = default_access_identifiers,
         context     = context
     )
 
-    if context_decl:
-        result += CodeTemplates.make_genfunc_with_context_template % {
-            "function_name_obj"          : getConstantCode(
-                context  = context,
-                constant = function_name
-            ),
-            "function_identifier"        : function_identifier,
-            "fparse_function_identifier" : getParameterEntryPointIdentifier(
-                function_identifier = function_identifier,
-                is_method           = False
-            ),
-            "mparse_function_identifier" : mparse_identifier,
-            "function_creation_args"     : getEvalOrderedCode(
-                context = context,
-                args    = function_creation_args
-            ),
-            "context_copy"               : indented( context_copy ),
-            "function_doc"               : function_doc,
-            "filename_identifier"        : getConstantCode(
-                context  = context,
-                constant = source_ref.getFilename()
-            ),
-            "line_number"                : source_ref.getLineNumber(),
-            "arg_names"                  : getConstantCode(
-                constant = _getCoArgNamesValue( parameters ),
-                context  = context
-            ),
-            "arg_count"                  : parameters.getArgumentCount(),
-            "defaults"                   : func_defaults.getCodeExportRef(),
-            "module_identifier"          : getModuleAccessCode(
-                context = context
-            )
-        }
-    else:
-        result += CodeTemplates.make_genfunc_without_context_template % {
-            "function_name_obj"          : getConstantCode(
-                context  = context,
-                constant = function_name
-            ),
-            "function_identifier"        : function_identifier,
-            "fparse_function_identifier" : getParameterEntryPointIdentifier(
-                function_identifier = function_identifier,
-                is_method           = False
-            ),
-            "mparse_function_identifier" : mparse_identifier,
-            "function_creation_args"     : getEvalOrderedCode(
-                context = context,
-                args    = function_creation_args
-            ),
-            "function_doc"               : function_doc,
-            "filename_identifier"        : getConstantCode(
-                context  = context,
-                constant = source_ref.getFilename()
-            ),
-            "line_number"                : source_ref.getLineNumber(),
-            "arg_names"                  : getConstantCode(
-                constant = _getCoArgNamesValue( parameters ),
-                context  = context
-            ),
-            "arg_count"                  : parameters.getArgumentCount(),
-            "defaults"                   : func_defaults.getCodeExportRef(),
-            "module_identifier"          : getModuleAccessCode(
-                context = context
-            ),
-        }
+    if needs_creation:
+        result += entry_point_code
+
+        if context_decl:
+            result += CodeTemplates.make_genfunc_with_context_template % {
+                "function_name_obj"          : getConstantCode(
+                    context  = context,
+                    constant = function_name
+                ),
+                "function_identifier"        : function_identifier,
+                "fparse_function_identifier" : getParameterEntryPointIdentifier(
+                    function_identifier = function_identifier,
+                    is_method           = False
+                ),
+                "mparse_function_identifier" : mparse_identifier,
+                "function_creation_args"     : getEvalOrderedCode(
+                    context = context,
+                    args    = function_creation_args
+                ),
+                "context_copy"               : indented( context_copy ),
+                "function_doc"               : function_doc,
+                "defaults"                   : func_defaults.getCodeExportRef(),
+                "module_identifier"          : getModuleAccessCode(
+                    context = context
+                )
+            }
+        else:
+            result += CodeTemplates.make_genfunc_without_context_template % {
+                "function_name_obj"          : getConstantCode(
+                    context  = context,
+                    constant = function_name
+                ),
+                "function_identifier"        : function_identifier,
+                "fparse_function_identifier" : getParameterEntryPointIdentifier(
+                    function_identifier = function_identifier,
+                    is_method           = False
+                ),
+                "mparse_function_identifier" : mparse_identifier,
+                "function_creation_args"     : getEvalOrderedCode(
+                    context = context,
+                    args    = function_creation_args
+                ),
+                "function_doc"               : function_doc,
+                "defaults"                   : func_defaults.getCodeExportRef(),
+                "module_identifier"          : getModuleAccessCode(
+                    context = context
+                ),
+            }
 
     return result
 
 def getFunctionCode( context, function_name, function_identifier, parameters, closure_variables, \
                      user_variables, tmp_variables, default_access_identifiers, \
-                     function_codes, source_ref, function_doc ):
+                     function_codes, needs_creation, needs_frame, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
 
@@ -2134,6 +2180,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         parameters              = parameters,
         default_identifiers     = default_access_identifiers,
         context_access_template = CodeTemplates.function_context_access_template,
+        needs_creation          = needs_creation,
         context                 = context,
     )
 
@@ -2199,19 +2246,28 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
 
     result = ""
 
-    if context_decl:
+    if context_decl and needs_creation:
         result += CodeTemplates.function_context_body_template % {
             "function_identifier" : function_identifier,
             "context_decl"        : indented( context_decl ),
             "context_free"        : indented( context_free ),
         }
 
-    if closure_variables:
+    if closure_variables and needs_creation:
         context_access_function_impl = CodeTemplates.function_context_access_template % {
             "function_identifier" : function_identifier,
         }
     else:
-        context_access_function_impl = CodeTemplates.function_context_unused_template
+        context_access_function_impl = str( CodeTemplates.function_context_unused_template )
+
+    if not needs_creation:
+        for closure_variable in closure_variables:
+            parameter_objects_decl.append(
+                closure_variable.getDeclarationCode(
+                    for_reference = True,
+                    for_local     = False
+                )
+            )
 
     module_identifier = getModuleAccessCode( context = context )
 
@@ -2220,72 +2276,77 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         constant = function_name
     )
 
-    result += CodeTemplates.function_body_template % {
-        "function_identifier"          : function_identifier,
-        "context_access_function_impl" : context_access_function_impl,
-        "parameter_entry_point_code"   : entry_point_code,
-        "parameter_objects_decl"       : parameter_objects_decl,
-        "function_locals"              : indented( function_locals, 2 ),
-        "function_body"                : indented( function_codes, 2 ),
-        "module_identifier"            : module_identifier,
-    }
+    # TODO: Detect this rather:
+    if needs_frame:
+        result += CodeTemplates.function_frame_body_template % {
+            "function_identifier"          : function_identifier,
+            "context_access_function_impl" : context_access_function_impl,
+            "parameter_objects_decl"       : ", ".join( parameter_objects_decl ),
+            "function_locals"              : indented( function_locals, 2 ),
+            "function_body"                : indented( function_codes, 2 ),
+            "function_name_obj"            : function_name_obj,
+            "arg_names"                    : getConstantCode(
+                constant = _getCoArgNamesValue( parameters ),
+                context  = context
+            ),
+                "arg_count"                : parameters.getArgumentCount(),
+            "filename_identifier"          : getConstantCode(
+                context  = context,
+                constant = source_ref.getFilename()
+            ),
+            "line_number"                  : source_ref.getLineNumber(),
+            "module_identifier"            : module_identifier,
+        }
+    else:
+        result += CodeTemplates.function_noframe_body_template % {
+            "function_identifier"          : function_identifier,
+            "context_access_function_impl" : context_access_function_impl,
+            "parameter_objects_decl"       : ", ".join( parameter_objects_decl ),
+            "function_locals"              : indented( function_locals, 1 ),
+            "function_body"                : indented( function_codes, 1 ),
+        }
+
+
+    if needs_creation:
+        result += entry_point_code
 
     func_defaults = _getFuncDefaultValue(
         identifiers = default_access_identifiers,
         context     = context
     )
 
-    if context_decl:
-        result += CodeTemplates.make_function_with_context_template % {
-            "function_name_obj"          : function_name_obj,
-            "function_identifier"        : function_identifier,
-            "fparse_function_identifier" : getParameterEntryPointIdentifier(
-                function_identifier = function_identifier,
-                is_method           = False
-            ),
-            "mparse_function_identifier" : mparse_identifier,
-            "function_creation_args"     : getEvalOrderedCode(
-                context = context,
-                args    = function_creation_args
-            ),
-            "context_copy"               : indented( context_copy ),
-            "function_doc"               : function_doc,
-            "filename_identifier"        : getConstantCode(
-                context  = context,
-                constant = source_ref.getFilename()
-            ),
-            "line_number"                : source_ref.getLineNumber(),
-            "arg_names"                  : getConstantCode(
-                constant = _getCoArgNamesValue( parameters ),
-                context  = context
-            ),
-            "arg_count"                  : parameters.getArgumentCount(),
-            "defaults"                   : func_defaults.getCodeExportRef(),
-            "module_identifier"          : getModuleAccessCode( context = context ),
-        }
-    else:
-        result += CodeTemplates.make_function_without_context_template % {
-            "function_name_obj"          : function_name_obj,
-            "function_identifier"        : function_identifier,
-            "fparse_function_identifier" : getParameterEntryPointIdentifier(
-                function_identifier = function_identifier,
-                is_method           = False
-            ),
-            "mparse_function_identifier" : mparse_identifier,
-            "function_doc"               : function_doc,
-            "filename_identifier"        : getConstantCode(
-                context  = context,
-                constant = source_ref.getFilename()
-            ),
-            "line_number"                : source_ref.getLineNumber(),
-            "arg_names"                  : getConstantCode(
-                constant = _getCoArgNamesValue( parameters ),
-                context  = context
-            ),
-            "arg_count"                  : parameters.getArgumentCount(),
-            "defaults"                   : func_defaults.getCodeExportRef(),
-            "module_identifier"          : getModuleAccessCode( context = context ),
-        }
+    if needs_creation:
+        if context_decl:
+            result += CodeTemplates.make_function_with_context_template % {
+                "function_name_obj"          : function_name_obj,
+                "function_identifier"        : function_identifier,
+                "fparse_function_identifier" : getParameterEntryPointIdentifier(
+                    function_identifier = function_identifier,
+                    is_method           = False
+                ),
+                "mparse_function_identifier" : mparse_identifier,
+                "function_creation_args"     : getEvalOrderedCode(
+                    context = context,
+                    args    = function_creation_args
+                ),
+                "context_copy"               : indented( context_copy ),
+                "function_doc"               : function_doc,
+                "defaults"                   : func_defaults.getCodeExportRef(),
+                "module_identifier"          : getModuleAccessCode( context = context ),
+            }
+        else:
+            result += CodeTemplates.make_function_without_context_template % {
+                "function_name_obj"          : function_name_obj,
+                "function_identifier"        : function_identifier,
+                "fparse_function_identifier" : getParameterEntryPointIdentifier(
+                    function_identifier = function_identifier,
+                    is_method           = False
+                ),
+                "mparse_function_identifier" : mparse_identifier,
+                "function_doc"               : function_doc,
+                "defaults"                   : func_defaults.getCodeExportRef(),
+                "module_identifier"          : getModuleAccessCode( context = context ),
+            }
 
     return result
 
@@ -2305,7 +2366,7 @@ def _getClosureVariableDecl( variable ):
     else:
         kind = "PyObjectLocalVariable"
 
-    return "%s &_python_closure_%s" % ( kind, variable.getName() )
+    return "%s &%s" % ( kind, variable.getCodeName() )
 
 def getClassCreationCode( metaclass_code, name_identifier, dict_identifier, bases_identifier ):
 

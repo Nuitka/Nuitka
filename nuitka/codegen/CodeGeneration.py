@@ -182,12 +182,24 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
 
     return result
 
-def getDirectFunctionCallCode( function_body, arguments, context ):
-    assert function_body.isExpressionFunctionBody()
+def generateFunctionCallCode( call_node, context ):
+    assert call_node.getFunctionBody().isExpressionFunctionBody()
+
+    function_identifier = generateFunctionBodyCode(
+        function_body  = call_node.getFunctionBody(),
+        defaults       = (), # TODO: Can't be right or needs check
+        needs_creation = False,
+        context        = context
+    )
 
     return Generator.getDirectionFunctionCallCode(
-        function_identifier = function_body.getCodeName(),
-        arguments           = arguments,
+        function_identifier = function_identifier,
+        arguments           = generateExpressionsCode(
+            expressions = call_node.getArgumentValues(),
+            context     = context
+        ),
+        closure_variables  = call_node.getFunctionBody().getClosureVariables(),
+        context            = context
     )
 
 def _generateDefaultIdentifiers( parameters, default_expressions, sub_context, context ):
@@ -218,10 +230,11 @@ def _generateDefaultIdentifiers( parameters, default_expressions, sub_context, c
 
     return default_access_identifiers, default_value_identifiers
 
-def generateFunctionBodyCode( function_body, defaults, context ):
+def generateFunctionBodyCode( function_body, defaults, needs_creation, context ):
     function_context = Contexts.PythonFunctionContext(
-        parent   = context,
-        function = function_body
+        parent         = context,
+        needs_creation = needs_creation,
+        function       = function_body
     )
 
     function_codes = generateStatementSequenceCode(
@@ -241,13 +254,6 @@ def generateFunctionBodyCode( function_body, defaults, context ):
         context             = context
     )
 
-    function_creation_identifier = Generator.getFunctionCreationCode(
-        function_identifier = function_body.getCodeName(),
-        default_identifiers = default_value_identifiers,
-        closure_variables   = function_body.getClosureVariables(),
-        context             = context
-    )
-
     if function_body.isGenerator():
         function_code = Generator.getGeneratorFunctionCode(
             context                    = function_context,
@@ -258,6 +264,7 @@ def generateFunctionBodyCode( function_body, defaults, context ):
             user_variables             = function_body.getUserLocalVariables(),
             tmp_variables              = function_body.getTempKeeperNames(),
             default_access_identifiers = default_access_identifiers,
+            needs_creation             = needs_creation,
             source_ref                 = function_body.getSourceReference(),
             function_codes             = function_codes,
             function_doc               = function_body.getDoc()
@@ -272,6 +279,9 @@ def generateFunctionBodyCode( function_body, defaults, context ):
             user_variables             = function_body.getUserLocalVariables(),
             tmp_variables              = function_body.getTempKeeperNames(),
             default_access_identifiers = default_access_identifiers,
+            needs_creation             = needs_creation,
+            # TODO: Detect this properly
+            needs_frame                = True or function_body.code_prefix == "listcontr",
             source_ref                 = function_body.getSourceReference(),
             function_codes             = function_codes,
             function_doc               = function_body.getDoc()
@@ -281,6 +291,8 @@ def generateFunctionBodyCode( function_body, defaults, context ):
         function_identifier = function_body.getCodeName(),
         default_identifiers = default_access_identifiers,
         closure_variables   = function_body.getClosureVariables(),
+        function_parameter_variables = function_body.getParameters().getVariables(),
+        needs_creation      = needs_creation,
         context             = context
     )
 
@@ -290,7 +302,15 @@ def generateFunctionBodyCode( function_body, defaults, context ):
         function_code = function_code
     )
 
-    return function_creation_identifier
+    if needs_creation:
+        return Generator.getFunctionCreationCode(
+            function_identifier = function_body.getCodeName(),
+            default_identifiers = default_value_identifiers,
+            closure_variables   = function_body.getClosureVariables(),
+            context             = context
+        )
+    else:
+        return function_body.getCodeName()
 
 
 
@@ -582,33 +602,34 @@ def generateCallNamedArgumentsCode( pairs, context ):
     else:
         return None
 
-def generateCallCode( function, context ):
+def generateCallCode( call_node, context ):
+    # TODO: Misnomer
     function_identifier = generateExpressionCode(
-        expression = function.getCalled(),
+        expression = call_node.getCalled(),
         context    = context
     )
 
-    if function.getPositionalArguments():
+    if call_node.getPositionalArguments():
         positional_args_identifier = generateTupleCreationCode(
-            elements = function.getPositionalArguments(),
+            elements = call_node.getPositionalArguments(),
             context  = context
         )
     else:
         positional_args_identifier = None
 
     kw_identifier = generateCallNamedArgumentsCode(
-        pairs   = function.getNamedArgumentPairs(),
+        pairs   = call_node.getNamedArgumentPairs(),
         context = context
     )
 
     star_list_identifier = generateExpressionCode(
-        expression = function.getStarListArg(),
+        expression = call_node.getStarListArg(),
         allow_none = True,
         context    = context
     )
 
     star_dict_identifier = generateExpressionCode(
-        expression = function.getStarDictArg(),
+        expression = call_node.getStarDictArg(),
         allow_none = True,
         context    = context
     )
@@ -740,8 +761,13 @@ def generateExpressionCode( expression, context, allow_none = False ):
         )
     elif expression.isExpressionCall():
         identifier = generateCallCode(
-            function = expression,
-            context    = context
+            call_node = expression,
+            context   = context
+        )
+    elif expression.isExpressionFunctionCall():
+        identifier = generateFunctionCallCode(
+            call_node = expression,
+            context   = context
         )
     elif expression.isExpressionAttributeLookup():
         attribute_name = mangleAttributeName(
@@ -881,16 +907,18 @@ def generateExpressionCode( expression, context, allow_none = False ):
         )
     elif expression.isExpressionFunctionBody():
         identifier = generateFunctionBodyCode(
-            function_body = expression,
-            defaults      = (),
-            context       = context
+            function_body  = expression,
+            defaults       = (),
+            needs_creation = True,
+            context        = context
         )
 
     elif expression.isExpressionFunctionBodyDefaulted():
         identifier = generateFunctionBodyCode(
-            function_body = expression.getFunctionBody(),
-            defaults      = expression.getDefaults(),
-            context       = context
+            function_body  = expression.getFunctionBody(),
+            defaults       = expression.getDefaults(),
+            needs_creation = True,
+            context        = context
         )
     elif expression.isExpressionClassBody():
         identifier = generateClassBodyCode(
@@ -1437,12 +1465,10 @@ if ( _tmp_unpack_%(tmp_count)d == NULL )
         allow_none         = True,
         context            = context
      ) ),
-     "assignment_code" : Generator.indented(
-         generateAssignmentVariableCode(
-             variable_ref = tried_statement.getTargetVariableRef(),
-             value        = Generator.Identifier( "_tmp_unpack_%d" % temp_number, 1 ),
-             context      = context
-         )
+     "assignment_code" : generateAssignmentVariableCode(
+        variable_ref = tried_statement.getTargetVariableRef(),
+        value        = Generator.Identifier( "_tmp_unpack_%d" % temp_number, 1 ),
+        context      = context
      ),
      "source_identifier" : generateExpressionCode(
         expression = source.getValue(),

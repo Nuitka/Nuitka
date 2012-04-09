@@ -233,6 +233,9 @@ class ParameterSpec( ParameterSpecTuple ):
     def getKeywordRefusalText( self ):
         return "%s() takes no keyword arguments" % self.name
 
+    def getArgumentNames( self ):
+        return self.normal_args
+
 
 # Note: Based loosley on "inspect.getcallargs" with corrections.
 def matchCall( func_name, args, star_list_arg, star_dict_arg, num_defaults, positional, pairs, improved = False  ):

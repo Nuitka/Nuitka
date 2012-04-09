@@ -327,10 +327,11 @@ class PythonModuleContext( PythonContextBase ):
 
 
 class PythonFunctionContext( PythonChildContextBase ):
-    def __init__( self, parent, function ):
+    def __init__( self, parent, function, needs_creation ):
         PythonChildContextBase.__init__( self, parent = parent )
 
         self.function = function
+        self.needs_creation = needs_creation
 
         # Make sure the local names are available as constants
         for local_name in function.getLocalVariableNames():
@@ -367,10 +368,16 @@ class PythonFunctionContext( PythonChildContextBase ):
         return LocalVariableIdentifier( var_name, from_context = self.function.isGenerator() )
 
     def getClosureHandle( self, var_name ):
-        if not self.function.isGenerator():
-            return ClosureVariableIdentifier( var_name, from_context = "_python_context->" )
+        if self.needs_creation:
+            if self.function.isGenerator():
+                return ClosureVariableIdentifier( var_name, from_context = "_python_context->common_context->" )
+            else:
+                return ClosureVariableIdentifier( var_name, from_context = "_python_context->" )
         else:
-            return ClosureVariableIdentifier( var_name, from_context = "_python_context->common_context->" )
+            if self.function.isGenerator():
+                return ClosureVariableIdentifier( var_name, from_context = "_python_context->" )
+            else:
+                return ClosureVariableIdentifier( var_name, from_context = "" )
 
     def getTempObjectHandle( self, var_name ):
         return TempObjectIdentifier( var_name )

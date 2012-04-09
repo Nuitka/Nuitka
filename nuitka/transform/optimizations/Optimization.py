@@ -42,6 +42,8 @@ from .OptimizeValuePropagation import ValuePropagationVisitor
 # Populate call registry.
 from . import OptimizeBuiltinCalls
 OptimizeBuiltinCalls.register()
+from . import OptimizeFunctionCalls
+OptimizeFunctionCalls.register()
 
 # Populate slice registry
 from . import OptimizeSlices

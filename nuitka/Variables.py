@@ -156,6 +156,16 @@ class Variable:
                 variable = self
             )
 
+    def getDeclarationCode( self, for_reference, for_local ):
+        if for_reference:
+            sep = " &"
+        elif for_local:
+            sep = " _"
+        else:
+            sep = " "
+
+        return self.getDeclarationTypeCode() + sep + self.getCodeName()
+
 
 class VariableReferenceBase( Variable ):
     def __init__( self, owner, variable ):
@@ -217,6 +227,16 @@ class ClosureVariableReference( VariableReferenceBase ):
             else:
                 assert False
 
+    def getDeclarationTypeCode( self ):
+        # TODO: If all uses of the closured variable are for direct calls, this is not
+        # necessary.
+
+        return "PyObjectSharedLocalVariable"
+
+    def getCodeName( self ):
+        return "python_closure_%s" % self.getName()
+
+
 
 class ModuleVariableReference( VariableReferenceBase ):
     def __init__( self, owner, variable ):
@@ -270,6 +290,9 @@ class LocalVariable( Variable ):
 
     def isLocalVariable( self ):
         return True
+
+    def getCodeName( self ):
+        return "_python_var_" + self.getName()
 
 
 class MaybeLocalVariable( Variable ):
