@@ -309,6 +309,28 @@ The "git flow" model
     creating extension modules that provide bindings.
 
 
+Checking the Source
+===================
+
+The checking for errors is currently done with "PyLint". In the future, Nuitka will gain
+the ability to present its findings in a similar way, but this is not a priority, and not
+there yet.
+
+So, we currently use "PyLint" with options defined in a script.
+
+.. code-block:: sh
+
+   ./misc/check-with-pylint --hide-todos
+
+Ideally the above command gives no warnings. This has not yet been reached. The existing
+warnings serve as a kind of "TODO" items. We are not white listing them, because they
+indicate a problem that should be solved.
+
+If you submit a patch, it would be good if you checked that it doesn't introduce new
+warnings, but that is not strictly required. it will happen before release, and that is
+considered enough. You probably are already aware of the beneficial effects.
+
+
 Running the Tests
 =================
 
@@ -1735,14 +1757,58 @@ into action, which could be code changes, plan changes, issues created, etc.
   This of course makes most sense, if we have the optimizations in place that will allow
   this to actually happen.
 
-* Code Templates may become objects
+* Frame stack guards should become statements.
 
-  It should only wrap around the "%" operator and provide the ability to display the
-  template name in tracebacks as well as in generated code. So one could optionally enable
-  things and know from what template a code snippet comes.
+  Currently frame guards are hard coded into function bodies and class bodies (which will
+  become function bodies later), and are therefore not seen by the optimization. Now some
+  re-formulated functions are not even allowed to have frame stack entries (list
+  contractions) and therefore it should become optional.
 
-  Maybe they should overload "%" to start with it easily. And the code template could be
-  the doc string of the class for simplicity.
+  Now the idea is the following.
+
+  .. code-block:: python
+
+     def f():
+        if someNotRaisingCall():
+           return somePotentiallyRaisingCall()
+        else:
+           return None
+
+  In this example, the frame guard is taken, even though the condition checked wouldn't
+  possibly raise at all. The idea is the make the frame guard explicit and then to move it
+  downwards in the tree, whenever possible.
+
+  .. code-block:: python
+
+      def f():
+         with frame_guard( "f" ):
+            if someNotRaisingCall():
+               return somePotentiallyRaisingCall()
+            else:
+               return None
+
+
+  This is to be optimized into:
+
+  .. code-block:: python
+
+      def f():
+         if someNotRaisingCall():
+            with frame_guard( "f" ):
+               return somePotentiallyRaisingCall()
+         else:
+            return None
+
+
+  Notice how the frame guard taking is now limited and may be avoided, or in good cases,
+  be removed completely. Also with making it explicit in the node tree, it will not be
+  forgotten when inlining happens, and it will be possible to not have it for some of the
+  re-formulation resulting function bodies.
+
+  This optimization might be extremely important for optimizations, where a function may
+  e.g. implement a cache in a way that we know it wouldn't raise in the cache hit case,
+  and only in cache miss, we need to prepare it.
+
 
 .. raw:: pdf
 
