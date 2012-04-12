@@ -156,22 +156,6 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 }
 """
 
-function_noframe_body_template = """
-static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
-{
-%(context_access_function_impl)s
-    bool traceback = false;
-
-    // Local variable declarations.
-%(function_locals)s
-
-    // Actual function code.
-%(function_body)s
-
-     return INCREASE_REFCOUNT( Py_None );
-}
-"""
-
 function_dict_setup = """\
 // Locals dictionary setup.
 PyObjectTemporary locals_dict( PyDict_New() );

@@ -227,6 +227,9 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     getBody = CPythonChildrenHaving.childGetter( "body" )
     setBody = CPythonChildrenHaving.childSetter( "body" )
 
+    def needsCreation( self ):
+        return not self.parent.isExpressionFunctionCall()
+
     def computeNode( self ):
         # Function body is quite irreplacable.
         return self, None, None

@@ -327,11 +327,12 @@ class PythonModuleContext( PythonContextBase ):
 
 
 class PythonFunctionContext( PythonChildContextBase ):
-    def __init__( self, parent, function, needs_creation ):
+    def __init__( self, parent, function ):
         PythonChildContextBase.__init__( self, parent = parent )
 
         self.function = function
-        self.needs_creation = needs_creation
+
+        self.needs_creation = function.needsCreation()
 
         # Make sure the local names are available as constants
         for local_name in function.getLocalVariableNames():

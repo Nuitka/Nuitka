@@ -188,7 +188,6 @@ def generateFunctionCallCode( call_node, context ):
     function_identifier = generateFunctionBodyCode(
         function_body  = call_node.getFunctionBody(),
         defaults       = (), # TODO: Can't be right or needs check
-        needs_creation = False,
         context        = context
     )
 
@@ -230,10 +229,9 @@ def _generateDefaultIdentifiers( parameters, default_expressions, sub_context, c
 
     return default_access_identifiers, default_value_identifiers
 
-def generateFunctionBodyCode( function_body, defaults, needs_creation, context ):
+def generateFunctionBodyCode( function_body, defaults, context ):
     function_context = Contexts.PythonFunctionContext(
         parent         = context,
-        needs_creation = needs_creation,
         function       = function_body
     )
 
@@ -264,7 +262,7 @@ def generateFunctionBodyCode( function_body, defaults, needs_creation, context )
             user_variables             = function_body.getUserLocalVariables(),
             tmp_variables              = function_body.getTempKeeperNames(),
             default_access_identifiers = default_access_identifiers,
-            needs_creation             = needs_creation,
+            needs_creation             = function_body.needsCreation(),
             source_ref                 = function_body.getSourceReference(),
             function_codes             = function_codes,
             function_doc               = function_body.getDoc()
@@ -279,9 +277,7 @@ def generateFunctionBodyCode( function_body, defaults, needs_creation, context )
             user_variables             = function_body.getUserLocalVariables(),
             tmp_variables              = function_body.getTempKeeperNames(),
             default_access_identifiers = default_access_identifiers,
-            needs_creation             = needs_creation,
-            # TODO: Detect this properly
-            needs_frame                = True or function_body.code_prefix == "listcontr",
+            needs_creation             = function_body.needsCreation(),
             source_ref                 = function_body.getSourceReference(),
             function_codes             = function_codes,
             function_doc               = function_body.getDoc()
@@ -292,7 +288,7 @@ def generateFunctionBodyCode( function_body, defaults, needs_creation, context )
         default_identifiers = default_access_identifiers,
         closure_variables   = function_body.getClosureVariables(),
         function_parameter_variables = function_body.getParameters().getVariables(),
-        needs_creation      = needs_creation,
+        needs_creation      = function_body.needsCreation(),
         context             = context
     )
 
@@ -302,7 +298,7 @@ def generateFunctionBodyCode( function_body, defaults, needs_creation, context )
         function_code = function_code
     )
 
-    if needs_creation:
+    if function_body.needsCreation():
         return Generator.getFunctionCreationCode(
             function_identifier = function_body.getCodeName(),
             default_identifiers = default_value_identifiers,
@@ -909,7 +905,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = generateFunctionBodyCode(
             function_body  = expression,
             defaults       = (),
-            needs_creation = True,
             context        = context
         )
 
@@ -917,7 +912,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = generateFunctionBodyCode(
             function_body  = expression.getFunctionBody(),
             defaults       = expression.getDefaults(),
-            needs_creation = True,
             context        = context
         )
     elif expression.isExpressionClassBody():

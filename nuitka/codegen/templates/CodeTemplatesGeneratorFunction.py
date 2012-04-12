@@ -219,7 +219,8 @@ _python_context->common_context = _python_common_context;
 _python_common_context->ref_count += 1;"""
 
 genfunc_local_context_use_template = """\
-struct _context_generator_%(function_identifier)s_t *_python_context = new _context_generator_%(function_identifier)s_t;"""
+struct _context_generator_%(function_identifier)s_t *_python_context = \
+new _context_generator_%(function_identifier)s_t;"""
 
 
 genfunc_generator_without_context_making = """\

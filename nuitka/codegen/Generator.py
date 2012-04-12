@@ -2170,7 +2170,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 
 def getFunctionCode( context, function_name, function_identifier, parameters, closure_variables, \
                      user_variables, tmp_variables, default_access_identifiers, \
-                     function_codes, needs_creation, needs_frame, source_ref, function_doc ):
+                     function_codes, needs_creation, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
 
@@ -2276,36 +2276,25 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         constant = function_name
     )
 
-    # TODO: Detect this rather:
-    if needs_frame:
-        result += CodeTemplates.function_frame_body_template % {
-            "function_identifier"          : function_identifier,
-            "context_access_function_impl" : context_access_function_impl,
-            "parameter_objects_decl"       : ", ".join( parameter_objects_decl ),
-            "function_locals"              : indented( function_locals, 2 ),
-            "function_body"                : indented( function_codes, 2 ),
-            "function_name_obj"            : function_name_obj,
-            "arg_names"                    : getConstantCode(
-                constant = _getCoArgNamesValue( parameters ),
-                context  = context
-            ),
-                "arg_count"                : parameters.getArgumentCount(),
-            "filename_identifier"          : getConstantCode(
-                context  = context,
-                constant = source_ref.getFilename()
-            ),
-            "line_number"                  : source_ref.getLineNumber(),
-            "module_identifier"            : module_identifier,
-        }
-    else:
-        result += CodeTemplates.function_noframe_body_template % {
-            "function_identifier"          : function_identifier,
-            "context_access_function_impl" : context_access_function_impl,
-            "parameter_objects_decl"       : ", ".join( parameter_objects_decl ),
-            "function_locals"              : indented( function_locals, 1 ),
-            "function_body"                : indented( function_codes, 1 ),
-        }
-
+    result += CodeTemplates.function_frame_body_template % {
+        "function_identifier"          : function_identifier,
+        "context_access_function_impl" : context_access_function_impl,
+        "parameter_objects_decl"       : ", ".join( parameter_objects_decl ),
+        "function_locals"              : indented( function_locals, 2 ),
+        "function_body"                : indented( function_codes, 2 ),
+        "function_name_obj"            : function_name_obj,
+        "arg_names"                    : getConstantCode(
+            constant = _getCoArgNamesValue( parameters ),
+            context  = context
+        ),
+        "arg_count"                : parameters.getArgumentCount(),
+        "filename_identifier"          : getConstantCode(
+            context  = context,
+            constant = source_ref.getFilename()
+        ),
+        "line_number"                  : source_ref.getLineNumber(),
+        "module_identifier"            : module_identifier,
+    }
 
     if needs_creation:
         result += entry_point_code
