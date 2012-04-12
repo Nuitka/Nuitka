@@ -127,8 +127,12 @@ class Variable:
             top_owner = reference.getReferenced().getOwner()
             owner = reference.getOwner()
 
+            while owner.isExpressionFunctionBody() and not owner.isGenerator() and not owner.needsCreation():
+                owner = owner.getParent().getParentVariableProvider()
+
             # TODO: Check if this is necessary still.
-            return owner != top_owner
+            if owner != top_owner:
+                return True
         else:
             return False
 
@@ -165,6 +169,15 @@ class Variable:
             sep = " "
 
         return self.getDeclarationTypeCode() + sep + self.getCodeName()
+
+    def getMangledName( self ):
+        return self.getName()
+
+    def getDeclarationTypeCode( self ):
+        assert False
+
+    def getCodeName( self ):
+        assert False
 
 
 class VariableReferenceBase( Variable ):
@@ -228,14 +241,13 @@ class ClosureVariableReference( VariableReferenceBase ):
                 assert False
 
     def getDeclarationTypeCode( self ):
-        # TODO: If all uses of the closured variable are for direct calls, this is not
-        # necessary.
-
-        return "PyObjectSharedLocalVariable"
+        if self.getReferenced().isShared():
+            return "PyObjectSharedLocalVariable"
+        else:
+            return self.getReferenced().getDeclarationTypeCode()
 
     def getCodeName( self ):
         return "python_closure_%s" % self.getName()
-
 
 
 class ModuleVariableReference( VariableReferenceBase ):
@@ -292,7 +304,13 @@ class LocalVariable( Variable ):
         return True
 
     def getCodeName( self ):
-        return "_python_var_" + self.getName()
+        return "python_var_" + self.getName()
+
+    def getDeclarationTypeCode( self ):
+        if self.isShared():
+            return "PyObjectSharedLocalVariable"
+        else:
+            return "PyObjectLocalVariable"
 
 
 class MaybeLocalVariable( Variable ):
@@ -326,6 +344,15 @@ class ParameterVariable( LocalVariable ):
 
     def isParameterVariable( self ):
         return True
+
+    def getDeclarationTypeCode( self ):
+        if self.isShared():
+            return "PyObjectSharedLocalVariable"
+        elif self.getHasDelIndicator():
+            return "PyObjectLocalParameterVariableWithDel"
+        else:
+            return "PyObjectLocalParameterVariableNoDel"
+
 
 
 class NestedParameterVariable( ParameterVariable ):
@@ -380,6 +407,22 @@ class ClassVariable( Variable ):
 
     def isClassVariable( self ):
         return True
+
+    def getDeclarationTypeCode( self ):
+        if self.isShared():
+            return "PyObjectSharedLocalVariable"
+        else:
+            return "PyObjectLocalVariable"
+
+    def getCodeName( self ):
+        return "python_var_" + self.getName()
+
+    def getMangledName( self ):
+        # Names like "__name__" are not mangled, only "__name" would be.
+        if not self.variable_name.startswith( "__" ) or self.variable_name.endswith( "__" ):
+            return self.variable_name
+        else:
+            return "_" + self.owner.getName() + self.variable_name
 
 
 class ModuleVariable( Variable ):
@@ -479,6 +522,9 @@ class TempVariable( Variable ):
             return "PyObjectTemporary"
         else:
             return "PyObject *"
+
+    def getCodeName( self ):
+        return "python_tmp_%s" % self.getName()
 
     def getDeclarationInitValueCode( self ):
         # Virtual method, pylint: disable=R0201
