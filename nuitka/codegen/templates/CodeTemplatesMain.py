@@ -69,7 +69,6 @@ int main( int argc, char *argv[] )
     PyType_Ready( &Nuitka_Generator_Type );
     PyType_Ready( &Nuitka_Function_Type );
     PyType_Ready( &Nuitka_Method_Type );
-    PyType_Ready( &Nuitka_Genexpr_Type );
 
     enhancePythonTypes();
 
@@ -178,7 +177,26 @@ class PyObjectGlobalVariable_%(module_identifier)s
             }
         }
 
-        void assign( PyObject *value ) const
+        void assign0( PyObject *value ) const
+        {
+            PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
+
+            // Values are more likely set than not set, in that case speculatively try the
+            // quickest access method.
+            if (likely( entry->me_value != NULL ))
+            {
+                PyObject *old = entry->me_value;
+                entry->me_value = INCREASE_REFCOUNT( value );
+
+                Py_DECREF( old );
+            }
+            else
+            {
+                DICT_SET_ITEM( ((PyModuleObject *)_module_%(module_identifier)s)->md_dict, (PyObject *)*this->var_name, value );
+            }
+        }
+
+        void assign1( PyObject *value ) const
         {
             PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
 
@@ -199,32 +217,13 @@ class PyObjectGlobalVariable_%(module_identifier)s
             }
         }
 
-        void assign0( PyObject *value ) const
-        {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
-
-            // Values are more likely set than not set, in that case speculatively try the
-            // quickest access method.
-            if (likely( entry->me_value != NULL ))
-            {
-                PyObject *old = entry->me_value;
-                entry->me_value = INCREASE_REFCOUNT( value );
-
-                Py_DECREF( old );
-            }
-            else
-            {
-                DICT_SET_ITEM( ((PyModuleObject *)_module_%(module_identifier)s)->md_dict, (PyObject *)*this->var_name, value );
-            }
-        }
-
         void del() const
         {
             int status = PyDict_DelItem( ((PyModuleObject *)_module_%(module_identifier)s)->md_dict, (PyObject *)*this->var_name );
 
             if (unlikely( status == -1 ))
             {
-                PyErr_Format( PyExc_NameError, "name '%%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
+                PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
                 throw _PythonException();
             }
         }
@@ -330,7 +329,6 @@ MOD_INIT( %(module_identifier)s )
     PyType_Ready( &Nuitka_Generator_Type );
     PyType_Ready( &Nuitka_Function_Type );
     PyType_Ready( &Nuitka_Method_Type );
-    PyType_Ready( &Nuitka_Genexpr_Type );
 #endif
 
     // puts( "in init%(module_identifier)s" );

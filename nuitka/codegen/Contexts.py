@@ -60,20 +60,10 @@ class PythonContextBase:
 
         return self.for_loop_count
 
-    def allocateWhileLoopNumber( self ):
-        self.while_loop_count += 1
-
-        return self.while_loop_count
-
     def allocateTryNumber( self ):
         self.try_count += 1
 
         return self.try_count
-
-    def allocateWithNumber( self ):
-        self.with_count += 1
-
-        return self.with_count
 
     def isClosureViaContext( self ):
         return True
@@ -88,7 +78,7 @@ class PythonContextBase:
         return False
 
     def getTempObjectHandle( self, var_name ):
-        return TempObjectIdentifier( var_name, from_context = "" )
+        return TempObjectIdentifier( var_name )
 
     def getTempVarHandle( self, var_name ):
         return TempVariableIdentifier( var_name )
@@ -120,9 +110,6 @@ class PythonChildContextBase( PythonContextBase ):
 
     def addFunctionCodes( self, code_name, function_decl, function_code ):
         self.parent.addFunctionCodes( code_name, function_decl, function_code )
-
-    def addContractionCodes( self, code_name, contraction_decl, contraction_code ):
-        self.parent.addContractionCodes( code_name, contraction_decl, contraction_code )
 
     def addClassCodes( self, code_name, class_decl, class_code ):
         self.parent.addClassCodes( code_name, class_decl, class_code )
@@ -259,7 +246,6 @@ class PythonModuleContext( PythonContextBase ):
 
         self.class_codes = {}
         self.function_codes = {}
-        self.contraction_codes = {}
 
         self.global_var_names = set()
         self.temp_var_names = set()
@@ -287,14 +273,6 @@ class PythonModuleContext( PythonContextBase ):
     def getFunctionsCodes( self ):
         return self.function_codes
 
-    def addContractionCodes( self, code_name, contraction_decl, contraction_code ):
-        assert code_name not in self.contraction_codes
-
-        self.contraction_codes[ code_name ] = ( contraction_decl, contraction_code )
-
-    def getContractionsCodes( self ):
-        return self.contraction_codes
-
     def addClassCodes( self, code_name, class_decl, class_code ):
         assert code_name not in self.class_codes
 
@@ -309,7 +287,7 @@ class PythonModuleContext( PythonContextBase ):
     getModuleName = getName
 
     def getModuleCodeName( self ):
-        return self.getCodeName()
+        return self.code_name
 
     # There cannot ne local variable in modules no need to consider the name.
     # pylint: disable=W0613
@@ -328,9 +306,6 @@ class PythonModuleContext( PythonContextBase ):
 
     def getGlobalVariableNames( self ):
         return self.global_var_names
-
-    def getCodeName( self ):
-        return self.code_name
 
     def getTracebackName( self ):
         return "<module>"
@@ -356,6 +331,8 @@ class PythonFunctionContext( PythonChildContextBase ):
         PythonChildContextBase.__init__( self, parent = parent )
 
         self.function = function
+
+        self.needs_creation = function.needsCreation()
 
         # Make sure the local names are available as constants
         for local_name in function.getLocalVariableNames():
@@ -392,19 +369,19 @@ class PythonFunctionContext( PythonChildContextBase ):
         return LocalVariableIdentifier( var_name, from_context = self.function.isGenerator() )
 
     def getClosureHandle( self, var_name ):
-        if not self.function.isGenerator():
-            return ClosureVariableIdentifier( var_name, from_context = "_python_context->" )
+        if self.needs_creation:
+            if self.function.isGenerator():
+                return ClosureVariableIdentifier( var_name, from_context = "_python_context->common_context->" )
+            else:
+                return ClosureVariableIdentifier( var_name, from_context = "_python_context->" )
         else:
-            return ClosureVariableIdentifier( var_name, from_context = "_python_context->common_context->" )
+            if self.function.isGenerator():
+                return ClosureVariableIdentifier( var_name, from_context = "_python_context->" )
+            else:
+                return ClosureVariableIdentifier( var_name, from_context = "" )
 
     def getTempObjectHandle( self, var_name ):
-        if self.function.isGenerator():
-            return TempObjectIdentifier( var_name, from_context = "_python_context->" )
-        else:
-            return TempObjectIdentifier( var_name, from_context = "" )
-
-    def getCodeName( self ):
-        return self.function.getCodeName()
+        return TempObjectIdentifier( var_name )
 
     def getTracebackName( self ):
         return self.function.getName()
@@ -416,94 +393,6 @@ class PythonFunctionContext( PythonChildContextBase ):
     def needsFrameExceptionKeeper( self ):
         return self.function.needsFrameExceptionKeeper()
 
-class PythonContractionBase( PythonChildContextBase ):
-    def __init__( self, parent, contraction ):
-        PythonChildContextBase.__init__( self, parent = parent )
-
-        self.contraction = contraction
-
-    def isClosureViaContext( self ):
-        return False
-
-    def isGeneratorExpression( self ):
-        return self.__class__ == PythonGeneratorExpressionContext
-
-    def getTracebackFilename( self ):
-        return self.contraction.getParentModule().getFilename()
-
-    def getTracebackName( self ):
-        return self.contraction.getName()
-
-class PythonListContractionContext( PythonContractionBase ):
-    def __init__( self, parent, contraction ):
-        PythonContractionBase.__init__(
-            self,
-            parent      = parent,
-            contraction = contraction
-        )
-
-    def getClosureHandle( self, var_name ):
-        return ClosureVariableIdentifier( var_name, from_context = "" )
-
-    def getLocalHandle( self, var_name ):
-        return self.getClosureHandle( var_name )
-
-    def hasFrameGuard( self ):
-        return True
-
-class PythonGeneratorExpressionContext( PythonContractionBase ):
-    def __init__( self, parent, contraction ):
-        PythonContractionBase.__init__(
-            self,
-            parent      = parent,
-            contraction = contraction
-        )
-
-    def getClosureHandle( self, var_name ):
-        return ClosureVariableIdentifier( var_name, from_context = "_python_context->" )
-
-    def getLocalHandle( self, var_name ):
-        return LocalVariableIdentifier( var_name, from_context = True )
-
-    def getTempObjectHandle( self, var_name ):
-        return TempObjectIdentifier( var_name, from_context = "_python_context->" )
-
-    def hasFrameGuard( self ):
-        return False
-
-class PythonSetContractionContext( PythonContractionBase ):
-    def __init__( self, parent, contraction ):
-        PythonContractionBase.__init__(
-            self,
-            parent      = parent,
-            contraction = contraction
-        )
-
-    def getClosureHandle( self, var_name ):
-        return ClosureVariableIdentifier( var_name, from_context = "" )
-
-    def getLocalHandle( self, var_name ):
-        return LocalVariableIdentifier( var_name, from_context = False )
-
-    def hasFrameGuard( self ):
-        return True
-
-class PythonDictContractionContext( PythonContractionBase ):
-    def __init__( self, parent, contraction ):
-        PythonContractionBase.__init__(
-            self,
-            parent      = parent,
-            contraction = contraction
-        )
-
-    def getClosureHandle( self, var_name ):
-        return ClosureVariableIdentifier( var_name, from_context = "" )
-
-    def getLocalHandle( self, var_name ):
-        return LocalVariableIdentifier( var_name, from_context = False )
-
-    def hasFrameGuard( self ):
-        return True
 
 class PythonClassContext( PythonChildContextBase ):
     def __init__( self, parent, class_def ):
@@ -537,9 +426,6 @@ class PythonClassContext( PythonChildContextBase ):
 
     def getTracebackFilename( self ):
         return self.class_def.getParentModule().getFilename()
-
-    def getCodeName( self ):
-        return self.class_def.getCodeName()
 
     def hasLocalsDict( self ):
         return self.class_def.hasLocalsDict()

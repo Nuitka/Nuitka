@@ -40,6 +40,8 @@ from .OptimizeBase import (
 
 from .ConstraintCollections import ConstraintCollectionModule
 
+from nuitka.Variables import getModuleVariables
+
 class ValuePropagationVisitor( OptimizationVisitorScopedBase ):
     def __init__( self ):
         self.constraint_collection = ConstraintCollectionModule( self.signalChange )
@@ -51,6 +53,29 @@ class ValuePropagationVisitor( OptimizationVisitorScopedBase ):
         if node.isModule():
             self.constraint_collection.process( module = node )
 
+            written_module_variables = self.constraint_collection.getWrittenModuleVariables()
+
+            for variable in getModuleVariables( module = node ):
+                old_value = variable.getReadOnlyIndicator()
+                new_value = variable not in written_module_variables
+
+                if old_value is not new_value:
+                    # Don't suddenly start to write.
+                    assert not (new_value is False and old_value is True)
+
+                    self.signalChange(
+                        "read_only_mvar",
+                        node.getSourceReference(),
+                        "Determined variable '%s' is only read." % variable.getName()
+                    )
+
+
+                    variable.setReadOnlyIndicator( new_value )
+
+            if False:
+                print( self.constraint_collection.getWrittenModuleVariables() )
+                node.dump()
+
             # This is a cheap way to only visit the module. TODO: Hide this away in a base
-            # class.
+            # class or don't use visiting.
             raise TreeOperations.ExitVisit

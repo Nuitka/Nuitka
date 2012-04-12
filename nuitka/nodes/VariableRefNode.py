@@ -72,7 +72,7 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
     def makeCloneAt( self, source_ref ):
         assert self.variable is None
 
-        return CPythonExpressionVariableRef(
+        return self.__class__(
             variable_name = self.variable_name,
             source_ref    = source_ref
         )
@@ -159,6 +159,10 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
         return None
 
 
+class CPythonExpressionTargetVariableRef( CPythonExpressionVariableRef ):
+    kind = "EXPRESSION_TARGET_VARIABLE_REF"
+
+
 class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"
 
@@ -183,6 +187,10 @@ class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin 
         # Nothing to do here.
         return self, None, None
 
+    def mayRaiseException( self, exception_type ):
+        # Can't happen
+        return False
+
 
 class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_TEMP_BLOCK"
@@ -193,7 +201,7 @@ class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
     setBody = CPythonChildrenHaving.childSetter( "body" )
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        CPythonNodeBase.__init__( self, source_ref = source_ref.atInternal() )
 
         CPythonChildrenHaving.__init__(
             self,
@@ -209,7 +217,7 @@ class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
 
         result = Variables.TempVariable(
             owner         = self,
-            variable_name = "__tmp_%s" % name
+            variable_name = name
         )
 
         self.temp_variables.add( result )

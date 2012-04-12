@@ -177,7 +177,7 @@ value per line:
 Here, "Identifier" will be so well known that the reader is expected to know the argument
 names and their meaning, but it would be still better to add them.
 
-Contractions may span across multiple lines for increased readability:
+Contractions should span across multiple lines for increased readability:
 
 .. code-block:: python
 
@@ -308,6 +308,131 @@ The "git flow" model
     being fully CPython compatible and pure Python, is considered the "Nuitka" way of
     creating extension modules that provide bindings.
 
+
+Checking the Source
+===================
+
+The checking for errors is currently done with "PyLint". In the future, Nuitka will gain
+the ability to present its findings in a similar way, but this is not a priority, and not
+there yet.
+
+So, we currently use "PyLint" with options defined in a script.
+
+.. code-block:: sh
+
+   ./misc/check-with-pylint --hide-todos
+
+Ideally the above command gives no warnings. This has not yet been reached. The existing
+warnings serve as a kind of "TODO" items. We are not white listing them, because they
+indicate a problem that should be solved.
+
+If you submit a patch, it would be good if you checked that it doesn't introduce new
+warnings, but that is not strictly required. it will happen before release, and that is
+considered enough. You probably are already aware of the beneficial effects.
+
+
+Running the Tests
+=================
+
+This section describes how to run Nuitka tests.
+
+Running all Tests
+-----------------
+
+The top level access to the tests is as simple as this:
+
+.. code-block:: shell
+
+   ./misc/check-release
+
+For fine grained control, it has the following options::
+
+  -h, --help            show this help message and exit
+  --skip-basic-tests    The basic tests, execute these to check if Nuitka is
+                        healthy. Default is True.
+  --skip-syntax-tests   The syntax tests, execute these to check if Nuitka
+                        handles Syntax errors fine. Default is True.
+  --skip-program-tests  The programs tests, execute these to check if Nuitka
+                        handles programs, e.g. import recursions, etc. fine.
+                        Default is True.
+  --skip-reflection-test
+                        The reflection test compiles Nuitka with Nuitka, and
+                        then Nuitka with the compile Nuitka and compares the
+                        outputs. Default is True.
+  --skip-cpython26      The standard CPython2.6 test suite. Execute this for
+                        all corner cases to be covered. With Python 2.7 this
+                        covers exception behavior quite well. Default is True.
+  --skip-cpython27      The standard CPython2.7 test suite. Execute this for
+                        all corner cases to be covered. With Python 2.6 these
+                        are not run. Default is True.
+
+
+You will only run the CPython 2.6 test suite, if you have the submodules of the Nuitka git
+repository checked out. Otherwise, these will be skipped automatically with a warning that
+they are not available.
+
+.. note::
+
+   The CPython 2.7 test suite is not even public yet as it should also first undergo a
+   "minimize diff" activity, before doing that. I didn't take the time for that yet, but I
+   intend to do it. This is of course important for set and dict contractions.
+
+The policy is generally, that "./misc/check-release" running and passing all tests shall
+be considered sufficient for a release.
+
+Basic Tests
+-----------
+
+You can run the "basic" tests like this:
+
+.. code-block:: shell
+
+   ./tests/basics/run_all.py search
+
+These tests normally give sufficient coverage to assume that a change is correct, if these
+tests pass. To control the Python version used for testing, you can set the "PYTHON"
+environment variable to e.g. "python3.2", or execute the "run_all.py" with the intended
+version, it is portable across all supported Python versions.
+
+Syntax Tests
+------------
+
+Then there are "syntax" tests, i.e. language constructs that need to give a syntax
+error.
+
+It sometimes happens that Nuitka must do this itself, because the "ast.parse" don't see
+the problem. Using "global" on a function argument is an example of this. These tests make
+sure that the errors of Nuitka and CPython are totally the same for this:
+
+.. code-block:: shell
+
+   ./tests/syntax/run_all.py search
+
+Program Tests
+-------------
+
+Then there are small programs tests, that exercise all kinds of import tricks and problems
+with inter-module behavior. These can be run like this:
+
+.. code-block:: shell
+
+   ./tests/programs/run_all.py search
+
+Compile Nuitka with Nuitka
+--------------------------
+
+And there is the "compile itself" or "reflected" test. This test makes Nuitka compile
+itself and compare the resulting C++, which helps to find indeterminism. The test compiles
+every module of Nuitka into an extension module and all of Nuitka into a single binary.
+
+That test case also gives good coverage of the "import" mechanisms, because Nuitka uses a
+lot of packages.
+
+.. code-block:: shell
+
+   ./tests/reflected/compile_itself.py
+
+
 Design Descriptions
 ===================
 
@@ -372,14 +497,14 @@ The "assert" statement
 
 Handling is:
 
-.. code-block:
+.. code-block:: python
 
    assert value, raise_arg
    # Absolutely the same as:
    if not value:
        raise AssertionError, raise_arg
 
-.. code-block:
+.. code-block:: python
 
    assert value
    # Absolutely the same as:
@@ -396,7 +521,7 @@ This transformation is performed at tree building already.
 The "comparison chain" expressions
 ----------------------------------
 
-.. code-block:
+.. code-block:: python
 
    a < b > c < d
    # With "temp variables" and "assignment expressions", absolutely the same as:
@@ -412,7 +537,7 @@ The "execfile" builtin
 
 Handling is:
 
-.. code-block:
+.. code-block:: python
 
    execfile( filename )
    # Basically the same as:
@@ -443,7 +568,7 @@ Decorators
 
 When one learns about decorators, you see that:
 
-.. code-block:
+.. code-block:: python
 
    @decorator
    def function():
@@ -465,31 +590,333 @@ two variants optimize equally well.
 Inplace Assignments
 -------------------
 
-Inplace assignments are be re-formulated to an expression using temporary variables.
+Inplace assignments are re-formulated to an expression using temporary variables.
 
 These are not as much a reformulation of "+=" to "+", but instead one which makes it
 explicit that the assign target may change its value.
 
-  .. code-block:: python
+.. code-block:: python
 
-     a += b
+   a += b
 
-  .. code-block:: python
+.. code-block:: python
 
-     _tmp = a.__iadd__( b )
+   _tmp = a.__iadd__( b )
 
-     if a is not _tmp:
-        a = _tmp
+   if a is not _tmp:
+       a = _tmp
 
 Using "__iadd__" here to express that not the "+", but the in-place variant "iadd" is used
 instead. The "is" check may be optimized away depending on type and value knowledge later
 on.
 
 
+Complex Assignments
+-------------------
+
+Complex assignments are defined as those with multiple targets to assign from a single
+source and are re-formulated to such using a temporary variable and multiple simple
+assignments instead.
+
+.. code-block:: python
+
+   a = b = c
+
+.. code-block:: python
+
+   _tmp = c
+   b = _tmp
+   a = _tmp
+   del _tmp
+
+
+This is possible, because in Python, if one assignment fails, it can just be interrupted,
+so in fact, they are sequential, and all that is required is to not calculate "c" twice,
+which the temporary variable expresses.
+
+
+Unpacking Assignments
+---------------------
+
+Unpacking assignments are re-formulated to use temporary variables as well.
+
+.. code-block:: python
+
+   a, b.attr, c[ind] = d = e, f, g = h()
+
+Becomes this:
+
+.. code-block:: python
+
+   _tmp = h()
+
+   _iter1 = iter( _tmp )
+   _tmp1 = unpack( _iter1, 3 )
+   _tmp2 = unpack( _iter1, 3 )
+   _tmp3 = unpack( _iter1, 3 )
+   unpack_check( _iter1 )
+   a = _tmp1
+   b.attr = _tmp2
+   c[ind] = _tmp3
+   d = _tmp
+   _iter2 = iter( _tmp )
+   _tmp4 = unpack( _iter2, 3 )
+   _tmp5 = unpack( _iter2, 3 )
+   _tmp6 = unpack( _iter2, 3 )
+   unpack_check( _iter1 )
+   e = _tmp4
+   f = _tmp5
+   g = _tmp6
+
+That way, the unpacking is decomposed into multiple simple assignments. It will be the
+job of optimizations to try and remove unnecessary unpacking, in case e.g. the source is
+a known tuple or list creation.
+
+.. note::
+
+   The "unpack" is a special node which is a form of "next" that will raise a "ValueError"
+   when it cannot get the next value, rather than a "StopIteration". The message text
+   contains the number of values to unpack, therefore the integer argument.
+
+.. note::
+
+   The "unpack_check" is a special node that raises a "ValueError" exception if the
+   iterator is not finished, i.e. there are more values to unpack.
+
+With Statements
+---------------
+
+The "with" statements are re-formulated to use temporary variables as well. The taking and
+calling of "__enter__" and "__exit__" with arguments, is presented with standard
+operations instead. The promise to call "__exit__" is fulfilled by "try/except" clause
+instead.
+
+.. code-block:: python
+
+    with some_context as x:
+        something( x )
+
+.. code-block:: python
+
+    tmp_source = some_context
+
+    # Actually it needs to be "special lookup" for Python2.7, so attribute lookup won't
+    # be exactly it there.
+    tmp_exit = tmp_source.__exit__
+
+    # This one must be held for the whole with statement, it may be assigned or not, in
+    # our example it is. If an exception occurs when calling "__enter__", the "__exit__"
+    # should not be called.
+    tmp_enter_result = tmp_source.__enter__()
+
+    try:
+        # Now the assignment is to be done, if there is any name for the manager given,
+        # this may become multiple assignment statements and even unpacking ones.
+        x = tmp_enter_result
+
+        # Then the code of the "with" block.
+        something( x )
+    except Exception:
+
+        # Note: This part of the code must not set line numbers, which we indicate with
+        # special source code references, which we call "internal". Otherwise the line
+        # of the frame would get corrupted.
+
+        if not tmp_exit( *sys.exc_info() ):
+            raise
+    else:
+        # Call the exit if no exception occurred with all arguments as "None".
+        tmp_exit( None, None, None )
+
+.. note::
+
+   We don't refer really to "sys.exc_info()" at all, instead, we have references to the
+   current exception type, value and trace, taken directory from the C++ exception
+   object.
+
+   If we had the ability to optimize "sys.exc_info()" to do that, we could use the same
+   transformation, but right now we don't have it.
+
+For Loops
+=========
+
+The for loops should use normal assignments and handle the iterator that is implicit in
+the code explicitely.
+
+.. code-block:: python
+
+    for x,y in iterable:
+        if something( x ):
+            break
+    else:
+        otherwise()
+
+This is roughly equivalent to the following code:
+
+.. code-block:: python
+
+    _iter = iter( iterable )
+    _no_break_indicator = False
+
+    while True:
+        try:
+            _tmp_value = next( _iter )
+        except StopIteration:
+            # Set the indicator that the else branch may be executed.
+            _no_break_indicator = True
+
+            # Optimization should be able to tell that the else branch is run only once.
+            break
+
+         # Normal assignment re-formulation applies to this assignment of course.
+         x, y = _tmp_value
+         del _tmp_value
+
+         if something( x ):
+             break
+
+    if _no_break_indicator:
+        otherwise()
+
+.. note::
+
+   The "_iter" temporary variable is of course in a temp block and the "x, y" assignment
+   is the normal is of course re-formulation of an assignment that cannot fail.
+
+   The "try/exception" is detected to allow to use a variant of "next" that throws no C++
+   exception, but instead to use "ITERATOR_NEXT" and which returns NULL in that case, so
+   that the code doesn't really have any Python level exception handling going on.
+
+While Loops
+===========
+
+Loops in Nuitka have no condition attached anymore, so while loops are re-formulated like this:
+
+.. code-block:: python
+
+    while condition:
+        something()
+
+.. code-block:: python
+
+    while True:
+        if not condition:
+            break
+
+        something()
+
+
+This is to totally remove the specialization of loops, with the condition moved to the
+loop body in a conditional statement, which contains a break statement.
+
+That makes it clear, that only break statements exit the loop, and allow for optimization
+to remove always true loop conditions, without concerning code generation about it, and to
+detect such a situation, consider e.g. endless loops.
+
+.. note::
+
+   Loop analysis can therefore work on a reduced problem (which breaks are executed under
+   which conditions) and be very general, but it cannot take advantage of the knowledge
+   encoded directly anymore. The fact that the loop body may not be entered at all, if the
+   condition is not met, is something harder to discover.
+
+Exception Handler Values
+========================
+
+Exception handlers in Python may assign the caught exception value to a variable in the
+handler definition.
+
+.. code-block:: python
+
+    try:
+        something()
+    except Exception as e:
+        handle_it()
+
+That is equivalent to the following:
+
+.. code-block:: python
+
+    try:
+        something()
+    except Exception:
+        e = sys.exc_info()[1]
+        handle_it()
+
+
+Of course, the value of the current exception, use special references for assignments,
+that access the C++ and don't go via "sys.exc_info" at all, these are called
+"CaughtExceptionValueRef".
+
+Classes Creation
+================
+
+Classes have a body that only serves to build the class dictionary and is a normal
+function otherwise. This is expressed with the following re-formulation:
+
+.. code-block:: python
+
+   class SomeClass(SomeBase,AnotherBase)
+       some_member = 3
+
+.. code-block:: python
+
+   def _makeSomeClass:
+       some_member = 3
+
+       return locals()
+
+       # force locals to be a writable dictionary, will be optimized away, but that
+       # property will stick.
+       exec ""
+
+   SomeClass = make_class( "SomeClass", (SomeBase, AnotherBase), _makeSomeClass() )
+
+That would roughly be the same, except that "_makeSomeClass" is be _not_ visible to its
+child functions when it comes to closure taking, which we cannot expression in Python
+language at all.
+
+List Contractions
+=================
+
+TODO.
+
+Set Contractions
+=================
+
+TODO.
+
+Dict Contractions
+=================
+
+TODO.
+
+Generator Expressions
+=====================
+
+There are re-formulated as functions.
+
+Generally they are turned into calls of function bodies with (potentially nested) for
+loops.
+
+.. code-block:: python
+
+    gen = ( x*2 for x in range(8) if cond() )
+
+.. code-block:: python
+
+    def _gen_helper( __iterator ):
+       for x in __iterator:
+          if cond():
+              yield x*2
+
+    gen = _gen_helper( range(8 ) )
+
+
 Plan to replace "python-qt" for the GUI
 =======================================
 
-Porting the tree inspector available with "--dump-gui" to "wxwindows" is very much welcome
+Porting the tree inspector available with "--dump-gui" to "wxWindows" is very much welcome
 as the "python-qt4" bindings are severely under documented.
 
 
@@ -503,29 +930,30 @@ as if it were written manually with Python C-API or better.
 Goals/Allowances to the task
 ----------------------------
 
-1. Goal: Must not use any existing C/C++ language file headers, only generate declarations
-   in generated C++ code ourselves. We would rather write a C header to "ctypes"
-   declarations convert if it needs to be.
+1. Goal: Must not use any pre-existing C/C++ language file headers, only generate
+   declarations in generated C++ code ourselves. We would rather write a C header to
+   "ctypes" declarations convert if it needs to be, but not mix and use declarations from
+   existing header code.
 2. Allowance: May use "ctypes" module at compile time to ask things about "ctypes" and its
    types.
-3. Goal: We should make use that allowance to use "ctypes", to e.g. not hard code what
-   "ctypes.c_int()" gives, unless there is a specific benefit.
+3. Goal: Should make use of "ctypes", to e.g. not hard code what "ctypes.c_int()" gives on
+   the current platform, unless there is a specific benefit.
 4. Allowance: Not all "ctypes" usages must be supported immediately.
 5. Goal: Try and be as general as possible. For the compiler, "ctypes" support should be
    hidden behind a generic interface of some sort. Supporting "math" module should be the
    same thing.
 
 
-Type inference - The general Problem
+Type Inference - The general Problem
 ------------------------------------
 
 Part of the goal is to forward value knowledge. When you have "a = b", that means that a
 and b now "alias". And if you know the value of "b" you can assume to know the value of
-"a".
+"a". This is called "Aliasing".
 
-If that value is a constant, you will want to push it forward, because storing the
-constant has a cost and loading the variable as well. So, you want to be able collapse
-such code:
+When that value is a compile time constant, we will want to push it forward, because
+storing such a constant under a variable name has a cost and loading it back from the
+variable as well. So, you want to be able collapse such code:
 
 .. code-block:: python
 
@@ -545,10 +973,10 @@ and that obviously to:
 
    c = 0
 
-This may be called (Constant) Value Propagation. But we are aiming for more. In order to
-fully benefit from type knowledge, the new type system must be able to be fully friends
-with existing builtin types.  The behavior of a type "long", "str", etc. ought to be
-implemented as far as possible with the builtin "long", "str" as well.
+This may be called "(Constant) Value Propagation". But we are aiming for even more. In
+order to fully benefit from type knowledge, the new type system must be able to be fully
+friends with existing builtin types.  The behavior of a type "long", "str", etc. ought to
+be implemented as far as possible with the builtin "long", "str" as well.
 
 .. note::
 
@@ -557,9 +985,12 @@ implemented as far as possible with the builtin "long", "str" as well.
    "ctypes.c_int" values would be an example of that. Of course that may not be possible
    for everything.
 
-This approach has well proven itself with builtin functions already, where we use real
-builtins where possible to make computations. We have the problem though that builtins may
-have problems to execute everything with reasonable compile time cost.
+   This approach has well proven itself with builtin functions already, where we use real
+   builtins where possible to make computations. We have the problem though that builtins may
+   have problems to execute everything with reasonable compile time cost.
+
+
+Consider the following code.
 
 .. code-block:: python
 
@@ -568,9 +999,9 @@ have problems to execute everything with reasonable compile time cost.
 To predict this code, calculating it at compile time using constant operations, while
 feasible, puts an unacceptable burden on the compilation.
 
-Esp. we wouldn't want to produce such a constant and stream it, the C++ code would be too
-huge. So, we need to stop the "\*" operator from being used at compile time and live with
-reduced knowledge, already here:
+Esp. we wouldn't want to produce such a huge constant and stream it, the C++ code would
+become too huge. So, we need to stop the "\*" operator from being used at compile time and
+live with reduced knowledge, already here:
 
 .. code-block:: python
 
@@ -580,8 +1011,8 @@ Instead, we would probably say that for this expression:
 
    - The result is a "str" or "PyStringObject".
    - We know its length exactly, it's "10000000000000".
-   - Can predict every of its elements when index, sliced, etc., if need be, with a
-     function.
+   - Can predict every of its elements when subscripted, sliced, etc., if need be, with a
+     function we may create.
 
 Similar is true for this nice thing:
 
@@ -596,8 +1027,9 @@ So it's a rather general problem, this time we know:
    - Can predict every of its elements when index, sliced, etc., if need be, with a
      function.
 
-Again, we wouldn't want to create the list. Nuitka currently refuses to compile time
-calculate lists with more than 256 elements, which is an arbitrary choice.
+Again, we wouldn't want to create the list. Therefore Nuitka currently won't calculate
+lists constants with more than 256 elements from "range", which is an arbitrary choice
+which is not consistently enforced.
 
 .. note::
 
@@ -620,10 +1052,10 @@ Now lets look at a use:
        doSomething()
 
 Looking at this example, one way to look at it, would be to turn "range" into "xrange",
-note that "x" is unused. But in fact, what would be best, is to notice that "range()"
-generated value is not really used, but only the length of the expression matters. And
-even if "x" were used, only the ability to predict the value from a function would be
-interesting, so we would use that computation function instead.
+note that "x" is unused. But what is better, is to notice that "range()" generated value
+is not really used, but only the length of the expression matters. And even if "x" were
+used, only the ability to predict the value from a function would be interesting, so we
+would use that computation function instead.
 
 Predict from a function could mean to have Python code to do it, as well as C++ code to do
 it. Then code for the loop can be generated without any CPython usage at all.
@@ -633,9 +1065,9 @@ it. Then code for the loop can be generated without any CPython usage at all.
    Of course, it would only make sense where such calculations are "O(1)" complexity,
    i.e. do not require recursion like "n!" does.
 
-The other thing is that CPython appears to take length hints from objects for some
-operations, and there it would help too, to track length of objects, and provide it, to
-outside code.
+The other thing is that CPython appears to at run time take length hints from objects for
+some operations, and there it would help too, to track length of objects, and provide it,
+to outside code.
 
 Back to the original example:
 
@@ -643,8 +1075,8 @@ Back to the original example:
 
    len( "a" * 1000000000000 )
 
-The theme here, is that when we can't pre-compute all intermediate expressions, and we
-sure can't always in the general case. But we can still, predict some of properties of an
+The theme here, is that when we can't compute all intermediate expressions, and we sure
+can't do it in the general case. But we can still, predict some of properties of an
 expression result, more or less.
 
 Here we have "len" to look at an argument that we know the size of. Great. We need to ask
@@ -663,11 +1095,12 @@ follows:
 
    import ctypes
 
-This leads to Nuitka tree containing an "import module expression", that can be predicted
-by default to be a module object, and it can be better known as "ctypes" from standard
-library with more or less certainty. See the section about "Importing".
+This leads to Nuitka tree an assignment from a "import module expression" to the variable
+"ctypes". It can be predicted by default to be a module object, and even better, it can be
+known as "ctypes" from standard library with more or less certainty. See the section about
+"Importing".
 
-So that part is easy, and it's what should happen. During optimization, when the module
+So that part is "easy", and it's what will happen. During optimization, when the module
 import expression is examined, it should say:
 
    - "ctypes" is a module
@@ -691,11 +1124,9 @@ The assigned to object, simply gets the type inferred propagated, and the questi
 if the propagation should be done as soon as possible and to what, or later.
 
 For variables, we don't currently track at all any more than there usages read/write and
-that is it. And we are not good at it either.
-
-The problem with tracking it, is that such information may continuously become invalid at
-many instances, and it can be hard to notice mistakes due to it. But if do not have it
-fixed, how to we detect this:
+that is it. The problem with tracking it, is that such information may continuously become
+invalid at many instances, and it can be hard to notice mistakes due to it. But if do not
+have it correct, how to we detect this:
 
 .. code-block:: python
 
@@ -772,15 +1203,14 @@ Excursion to Loops
 
    print a
 
-The handling of "for" (and "while") loops has its own problem. They are similar to that of
-function calls and their bodies. The "for" loop would have a start assumption that "a" is
-constant, but that is only true for the first iteration. So, we can't pass knowledge from
-outside the for loop directly into the for loop body.
+The handling of loops (both "for" and "while") has its own problem. The loop start and may
+have an assumption that "a" is constant, but that is only true for the first
+iteration. So, we can't pass knowledge from outside loop directly into the for loop body.
 
-We will do a first pass, where we collect invalidations of the outside knowledge. The
-assignment to "a" should make it an alternative with what we knew about "b". And we can't
-really assume to know anything about a to e.g. predict "b" due to that. That first pass
-needs to scan for assignments, and treat them as invalidations.
+We will do a first pass, where we need to collect invalidations of all of the outside
+knowledge. The assignment to "a" should make it an alternative with what we knew about
+"b". And we can't really assume to know anything about a to e.g. predict "b" due to
+that. That first pass needs to scan for assignments, and treat them as invalidations.
 
 
 Excursion to Conditions
@@ -802,7 +1232,8 @@ variable "x" is constant, in the other too, but it's a different value.
 
 So for constants, we need to have the constraint collection know when it enters a
 conditional branch, and when it does, it must take special precautions, to preserve the
-existing state. When exiting all the branches, these branches must be merged, with new information.
+existing state. When exiting all the branches, these branches must be merged, with new
+information.
 
 In the above case:
 
@@ -840,7 +1271,7 @@ For conditional statements optimization, the following is note-worthy:
      In this case, the knowledge that "a" is a list, could be used to generate better code
      and with definite knowledge that "a" is of type list. These is a lot more to do, until we understand "type checks" though.
 
-     - If 2 branches exist, or one makes a difference.
+   - If 2 branches exist, or one makes a difference.
 
        If both branches exist, both should fork existing state and continue it, and
        afterwards merge those 2 and replace the state before the statement.
@@ -852,14 +1283,19 @@ For conditional statements optimization, the following is note-worthy:
 Excursion to return statements
 ------------------------------
 
-The return statement ought to be the last statement of inspected block, or else previous
-optimization steps have failed. With a conditional statement branch, in case it ends with
-a return statement, the merging of the constraint collection must consider it by not
-taking any knowledge from it at all.
+The return statement (like "break", "continue", "raise") is abortative to control flow. It
+becomes the last statement of inspected block. With a conditional statement branch, in
+case one branch has a return statement and the other not, the merging of the constraint
+collection must consider it by not taking any knowledge from such branch at all.
 
-If all branches of a conditional statement return, that should have an optimization to
-discover that, and remove the following statements. Currently no such optimization exists
-and it should be added, so value propagation can rely on it to be handled already.
+If all branches of a conditional statement return, that is discovered, and leads to
+removing statements after it as dead code.
+
+.. note::
+
+   The removal of statements following abortative statements is implemented, and so is the
+   discovery of abortative conditional statements. It's not yet done for loops, temp
+   blocks, etc. though.
 
 
 Excursion to yield statements
@@ -897,9 +1333,8 @@ tuple is a good way to express that something won't be changed later, as these a
 
    People don't do it, because they dislike the performance hit encountered by the
    generator expression being used to initialize the tuple. But it would be more
-   consistent, and so Nuitka is using it, and of course one day ought to be able to
-   evaluate the tuple call to the generator expression by the means of a "tuple
-   contraction".
+   consistent, and so Nuitka is using it, and of course one day Nuitka ought to be able to
+   make no difference in performance for it.
 
 To Nuitka though this means, that if "cond" is not predictable, after the conditional
 statement we may either have a "tuple" or a "list". In order to represent that without
@@ -934,13 +1369,12 @@ The following is the intended interface
   the case of the later, optimizations may not be able do much about it. Lets call these
   values "tristate".
 
-  Part of the interface is a method "getComputation" which gives the node the chance to
-  return a tristate together with a lambda, that when executed, produces either an
-  exception or constant value.
+  Part of the interface is a method "computeNode" which gives the node the chance to
+  return another node instead, which may also be an exception.
 
-  The "getComputation" may be able to produce exceptions or constant even for non-constant
-  inputs depending on the operation being performed. For every computational step it will
-  be executed.
+  The "computeNode" may be able to produce exceptions or constants even for
+  non-constant inputs depending on the operation being performed. For every expression
+  it will be executed.
 
   In this sense, attribute lookup is also a computation, as its value might be computed as
   well. Most often an attribute lookup will produce a new value, which is not assigned,
@@ -989,7 +1423,7 @@ The following is the intended interface
 
   - Updates to the collection should be done via methods
 
-      - "onAssigmentToTargetFromValueFriend( target, value_friend )"
+      - "onAssigment( variable, value_friend )"
       - "onAttributeLookup( source, attribute_name )"
       - "onOutsideCode()"
       - "passedByReference( var_name )"
@@ -1035,27 +1469,11 @@ The following examples:
    # "ValueFriend"s.
    a + b
 
-The walking of the tree is best done in "Optimization" and can be used to implement many
-optimizations in a more consistent and faster way. We currently check the tree for calls
-to builtins with constant arguments. But with the new way of walking, we reverse the order
-of the check.
-
-Now:
-
-   - Check all tree for suitable "builtin" function calls
-   - Check their arguments if they are constants
-   - Replace builtin call node with constant results or known exception
-
-Future:
-
-   - Walk the tree and enter arguments of builtin function calls
-   - Collect knowledge about the argument, including maybe that they are constant or known
-     length
-   - Ask the "BuiltinValueFriend" what it can say. If it says the value is of constant value,
-     replace the node with constant results or known exception
-
-It's really exciting to see, how this proposal cleans up the existing code and integrates
-with it.
+The walking of the tree is best done in a specialized optimization and can be used to
+implement optimizations in a consistent and fast way. It walks the tree and enters
+arguments of builtin function calls. After that, value friends can be queries for
+arguments, and these can be used for the builtins own "computeNode" or value friend
+decisions.
 
 
 Code Generation Impact
@@ -1091,7 +1509,7 @@ values throughout a function or part of it.
 Initial Implementation
 ----------------------
 
-The "ValueFriendBase" interface will be added to _all_ expressions nodes creation time,
+The "ValueFriendBase" interface will be added to *all* expressions nodes creation time,
 a node may either do it for itself (constant reference is an obvious example) or may
 delegate the task to an instantiated object of "ValueFriendBase" inheritance.
 
@@ -1121,7 +1539,7 @@ a later step.
 
 .. note::
 
-   This part is implemented.
+   This part is implemented, but not active for releases.
 
 Then second goal is to understand all of this:
 
@@ -1319,19 +1737,6 @@ Idea Bin
 This an area where to drop random ideas on our minds, to later sort it out, and out it
 into action, which could be code changes, plan changes, issues created, etc.
 
-* Faster/cheaper class creation for the normal case.
-
-  Right now for every class body, there is a "MAKE_CLASS_*" with frame guard, exception
-  keeper, etc. overhead, but for most classes that is not needed at all. Most often the
-  building of functions is all that happens, if at all. For these cases, a different
-  approach might be taken, that is to simply build the dictionary directly if possible and
-  no side-effect could happen.
-
-  A finalization step ought to markup classes whose dictionary elements only have things
-  without side effects, and building functions isn't that. Side effects may also be OK, if
-  order is respected, we probably mean "conditions" here that are not conditional
-  expressions or can be reduced to such.
-
 * The conditional expression needs to be handled like conditional statement for
   propagation.
 
@@ -1342,129 +1747,84 @@ into action, which could be code changes, plan changes, issues created, etc.
   Is there any re-formulation of conditional expressions with "and" and "or" that is
   generally true?
 
-* Generator expressions should be re-formulated as functions.
+* Make "MAKE_CLASS" meta class selection transparent.
 
-  Generally they could be turned into nested creations of for loop function bodies with
-  the first iterator as an argument. Right now, that would loose their optimizations, but
-  once we could recognize cases, where that optimization could be applied from the code
-  at code generation time, we wouldn't have to carry them through optimizations anymore,
-  so that idea is worth perusing.
+  Looking at the "MAKE_CLASS" helper, one of the main tasks is to select the meta class,
+  which could also be done external to it, and as nodes. In that way, the optimization
+  process can remove choices at compile time, and e.g. inline the effect of a meta class,
+  if it is known.
 
-* For loops should probably become while loops.
+  This of course makes most sense, if we have the optimizations in place that will allow
+  this to actually happen.
 
-  Instead of treating for loops special, we could consider this:
+* Frame stack guards should become statements.
 
-  .. code-block:: python
+  Currently frame guards are hard coded into function bodies and class bodies (which will
+  become function bodies later), and are therefore not seen by the optimization. Now some
+  re-formulated functions are not even allowed to have frame stack entries (list
+  contractions) and therefore it should become optional.
 
-     for x,y in iterable:
-         if something( x ):
-            break
-     else:
-         otherwise()
-
-  .. code-block:: python
-
-     _broken = False
-     while True: # forever
-         try:
-             _tmp = next( iterable )
-             x, y = _tmp
-         except StopIteration:
-             break
-
-         if something ( x ):
-            _broken = True
-            break
-
-     if not _broken:
-         otherwise()
-
-  It's a reduction of for loop to a while loop. But we would loose all chances to detect
-  the loop exit conditions, but did we have it? This is also very similar to the C++ code
-  we generate for them right now. The detection of "iterable", how often next will be
-  possible at max, would e.g. be more difficult, but also more general.
-
-  Not visible here, is how "_tmp" is released right after unpacking, and how the
-  "StopIteration" need not be a real exception, but is a "NULL" return of "ITERATOR_NEXT"
-  for maximum efficiency. A structure will be needed that holds "tmp", much like a "with"
-  block.
-
-* With statements should become scoped
-
-  The algorithm of "with" statements should be re-formulated in the node tree. The taking
-  and calling of "__enter__" and "__exit__" with arguments, should be presented there in
-  order to be absolutely safe.
+  Now the idea is the following.
 
   .. code-block:: python
 
-     with some_context as x:
-         something( x )
+     def f():
+        if someNotRaisingCall():
+           return somePotentiallyRaisingCall()
+        else:
+           return None
+
+  In this example, the frame guard is taken, even though the condition checked wouldn't
+  possibly raise at all. The idea is the make the frame guard explicit and then to move it
+  downwards in the tree, whenever possible.
 
   .. code-block:: python
 
-     tmp_source = some_context
+      def f():
+         with frame_guard( "f" ):
+            if someNotRaisingCall():
+               return somePotentiallyRaisingCall()
+            else:
+               return None
 
-     # Actually it needs to be "special lookup" for Python2.7, so attribute lookup won't
-     # be exactly it there.
-     tmp_exit = tmp_source.__exit__
-     tmp_enter = tmp_source.__enter__
 
-     # Actually it's unclear for how long the result must be kept, might be possible to
-     # delete immediately. Current code holds it during the execution of the with statement.
-     tmp_enter_result = tmp_enter()
+  This is to be optimized into:
 
-     try:
-        # Now the assignment is to be done, if there is any name for the manager given.
-        x = tmp_enter_result
+  .. code-block:: python
 
-        # Then the code of the block.
+      def f():
+         if someNotRaisingCall():
+            with frame_guard( "f" ):
+               return somePotentiallyRaisingCall()
+         else:
+            return None
+
+
+  Notice how the frame guard taking is now limited and may be avoided, or in good cases,
+  be removed completely. Also with making it explicit in the node tree, it will not be
+  forgotten when inlining happens, and it will be possible to not have it for some of the
+  re-formulation resulting function bodies.
+
+  This optimization might be extremely important for optimizations, where a function may
+  e.g. implement a cache in a way that we know it wouldn't raise in the cache hit case,
+  and only in cache miss, we need to prepare it.
+
+* Accesses to list constants should be tuples constants.
+
+  .. code-block:: python
+
+     for x in [ 1, 2, 7 ]:
         something( x )
-     except Exception as e, tb: # Catching tb is not allowed syntax.
-        # Note: This part of the code must not set line numbers, we don't have a way to
-        # say that yet. Maybe the source_ref can be improved to indicate with flags to
-        # not do it.
-        if not tmp_exit( type(e), e, tb ):
-           raise
-     else:
-        tmp_exit( None, None, None )
 
-* Assignments unpacking should use scoped temporary variables
+  Should be optimized into this:
 
   .. code-block:: python
 
-     a, b.attr, c[ind] = d = e, f, g = h()
+     for x in ( 1, 2, 7 ):
+        something( x )
 
-  Can become this:
-
-  .. code-block:: python
-
-     _tmp = h()
-
-     _iter1 = iter( tmp )
-     _tmp1, _tmp2, tmp3 = unpack_and_check( _iter1, 3 )
-     a = _tmp1
-     b.attr = _tmp2
-     c[ind] = _tmp3
-     d = _tmp
-     _iter2 = iter( tmp )
-     _tmp4, _tmp5, tmp6 = unpack_and_check( _iter2, 3 )
-     e = _tmp4
-     f = _tmp5
-     g = _tmp6
-
-  That will of course be a lot less inefficient, until we can value propagate as well as
-  in the past, which was working for constants. In these cases, the "iter" taking and the
-  and "unpack_and_check" calls can be optimized away again.
-
-* Code Templates may become objects.
-
-  It should only wrap around the "%" operator and provide the ability to display the
-  template name in tracebacks as well as in generated code. So one could optionally enable
-  things and know from what template a code snippet comes.
-
-  Maybe they should overload "%" to start with it easily. And the code template could be
-  the doc string of the class for simplicity.
-
+  Otherwise, code generation suffers from assuming the list may be tuple and is making a
+  copy before using it.
 
 .. raw:: pdf
 

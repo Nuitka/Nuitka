@@ -34,8 +34,6 @@ from .OptimizeBase import OptimizationVisitorBase
 
 from ..TreeOperations import RestartVisit
 
-from nuitka.nodes.AssignNodes import CPythonStatementAssignment
-
 from nuitka.nodes.NodeMakingHelpers import (
     convertRaiseExceptionExpressionRaiseExceptionStatement,
     makeStatementsSequenceReplacementNode
@@ -52,7 +50,7 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
                 self.trimEvaluation(
                     node = node.parent
                 )
-            elif node.parent.isExpressionFunctionCall():
+            elif node.parent.isExpressionCall():
                 self.trimEvaluation(
                     node = node.parent
                 )
@@ -84,13 +82,14 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
                     if node is statements[0]:
                         for handler in node.parent.parent.getExceptionHandlers():
                             match = self.matchesException(
-                                catched_exception = handler.getExceptionType(),
-                                raised_exception  = node.getExceptionType()
+                                catched_exceptions = handler.getExceptionTypes(),
+                                raised_exception   = node.getExceptionType()
                             )
 
                             if match is True:
-                                # TODO: Make this robust.
                                 return
+
+                                # TODO: Make this robust and working again.
 
                                 handler_target = handler.getExceptionTarget()
 
@@ -182,25 +181,26 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
         else:
             assert False
 
-    def matchesException( self, catched_exception, raised_exception ):
-        if catched_exception is None:
+    def matchesException( self, catched_exceptions, raised_exception ):
+        if catched_exceptions is None:
             return True
 
         # TODO: Why can raised_exception be None at all?
         if raised_exception is not None:
-            # Both are builtin exception references of the same name
-            if catched_exception.isExpressionBuiltinExceptionRef() and \
-               raised_exception.isExpressionBuiltinExceptionRef():
-                # TODO: Could check run time objects from builtins for subclass relationship
-                if catched_exception.getExceptionName() == raised_exception.getExceptionName():
-                    return True
+            for catched_exception in catched_exceptions:
+                # Both are builtin exception references of the same name
+                if catched_exception.isExpressionBuiltinExceptionRef() and \
+                   raised_exception.isExpressionBuiltinExceptionRef():
+                    # TODO: Could check run time objects from builtins for subclass relationship
+                    if catched_exception.getExceptionName() == raised_exception.getExceptionName():
+                        return True
 
-            # Catched in builtin exception reference, and raised is an builtin one too.
-            if catched_exception.isExpressionBuiltinExceptionRef() and \
-                 raised_exception.isExpressionBuiltinMakeException():
-                # TODO: Could check run time objects from builtins for subclass relationship
-                if catched_exception.getExceptionName() == raised_exception.getExceptionName():
-                    return True
+                # Catched in builtin exception reference, and raised is an builtin one too.
+                if catched_exception.isExpressionBuiltinExceptionRef() and \
+                     raised_exception.isExpressionBuiltinMakeException():
+                    # TODO: Could check run time objects from builtins for subclass relationship
+                    if catched_exception.getExceptionName() == raised_exception.getExceptionName():
+                        return True
 
 
 

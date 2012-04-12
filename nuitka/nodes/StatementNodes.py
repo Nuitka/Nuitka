@@ -46,6 +46,7 @@ def mergeStatements( statements ):
 
     return merged_statements
 
+
 class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENTS_SEQUENCE"
 
@@ -120,6 +121,9 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
         else:
             return False
 
+    def isStatementAbortative( self ):
+        return self.getStatements()[-1].isStatementAbortative()
+
 
 class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_EXPRESSION_ONLY"
@@ -143,15 +147,3 @@ class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
         return self.getExpression().mayHaveSideEffects()
 
     getExpression = CPythonChildrenHaving.childGetter( "expression" )
-
-
-class CPythonStatementDeclareGlobal( CPythonNodeBase ):
-    kind = "STATEMENT_DECLARE_GLOBAL"
-
-    def __init__( self, variable_names, source_ref ):
-        self.variable_names = tuple( variable_names )
-
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-    def getVariableNames( self ):
-        return self.variable_names

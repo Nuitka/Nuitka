@@ -52,16 +52,16 @@ class OverflowCheckVisitor( TreeOperations.VisitorNoopMixin ):
 
         self.is_class = checked_node.getParent().isExpressionClassBody()
 
+        if checked_node.getParent().isExpressionFunctionBody():
+            self.result = checked_node.getParent().isUnoptimized()
+
     def onEnterNode( self, node ):
         def declareOverflow():
             self.result = True
 
             raise TreeOperations.ExitVisit
 
-        if node.isStatementImportStar():
-            declareOverflow()
-
-        if node.isStatementExec() or node.isExpressionBuiltinExec():
+        if node.isExpressionBuiltinExec():
             if _couldBeNone( node.getGlobals() ):
                 declareOverflow()
             elif node.getGlobals().isExpressionBuiltinLocals():

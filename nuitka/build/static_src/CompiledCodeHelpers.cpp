@@ -211,7 +211,7 @@ PyObject *BUILTIN_ORD( PyObject *value )
     }
     else
     {
-        PyErr_Format( PyExc_TypeError, "ord() expected string of length 1, but %s found", value->ob_type->tp_name );
+        PyErr_Format( PyExc_TypeError, "ord() expected string of length 1, but %s found", Py_TYPE( value )->tp_name );
         throw _PythonException();
     }
 
@@ -317,16 +317,29 @@ PyObject *BUILTIN_HEX( PyObject *value )
 #endif
 }
 
+// From CPython:
+typedef struct {
+    PyObject_HEAD
+    PyObject *it_callable;
+    PyObject *it_sentinel;
+} calliterobject;
+
 PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel )
 {
-    PyObject *result = PyCallIter_New( callable, sentinel );
+    calliterobject *result = PyObject_GC_New( calliterobject, &PyCallIter_Type );
 
     if (unlikely( result == NULL ))
     {
         throw _PythonException();
     }
 
-    return result;
+    // Note: References were taken at call site already.
+    result->it_callable = callable;
+    result->it_sentinel = sentinel;
+
+    Nuitka_GC_Track( result );
+
+    return (PyObject *)result;
 }
 
 PyObject *BUILTIN_TYPE1( PyObject *arg )
@@ -347,7 +360,7 @@ PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases,
         throw _PythonException();
     }
 
-    PyTypeObject *type = result->ob_type;
+    PyTypeObject *type = Py_TYPE( result );
 
     if (likely( PyType_IsSubtype( type, &PyType_Type ) ))
     {
@@ -440,7 +453,7 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
         return INCREASE_REFCOUNT( value );
     }
 
-    PyTypeObject *type = value->ob_type;
+    PyTypeObject *type = Py_TYPE( value );
     PyNumberMethods *tp_as_number = type->tp_as_number;
 
     // Everything that casts to int is allowed.
@@ -588,12 +601,28 @@ PyObject *BUILTIN_LEN( PyObject *value )
     return PyInt_FromSsize_t( res );
 }
 
+PyObject *BUILTIN_DIR1( PyObject *arg )
+{
+    assertObject( arg );
+
+    PyObject *result = PyObject_Dir( arg );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
 PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, bool is_generator )
 {
     assertObject( filename );
     assert( Nuitka_String_Check( filename ) );
     assertObject( function_name );
     assert( Nuitka_String_Check( function_name ) );
+    assertObject( argnames );
+    assert( PyTuple_Check( argnames ) );
 
     int flags = 0;
 

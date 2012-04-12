@@ -55,6 +55,9 @@ def getParameterEntryPointIdentifier( function_identifier, is_method ):
     else:
         return "_fparse_" + function_identifier
 
+def getDirectFunctionEntryPointIdentifier( function_identifier ):
+    return "impl_" + function_identifier
+
 def getParameterContextCode( default_access_identifiers ):
     context_decl = []
     context_copy = []
@@ -98,7 +101,7 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
     top_level_parameters = parameters.getTopLevelVariables()
 
     if top_level_parameters and (not is_method or len( top_level_parameters ) > 1):
-        parameter_parsing_code += CodeTemplates.parse_argument_template_take_counts3
+        parameter_parsing_code += str( CodeTemplates.parse_argument_template_take_counts3 )
 
     if top_level_parameters:
         parameter_parsing_code += "// Copy given dictionary values to the the respective variables:\n"
@@ -108,20 +111,19 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
         # with names we have.
 
         parameter_parsing_code += CodeTemplates.parse_argument_template_dict_star_copy % {
-            "dict_star_parameter_name" : parameters.getDictStarArgName(),
+            "dict_star_parameter_name" : parameters.getStarDictArgumentName(),
         }
 
         # Check for each variable.
         for variable in top_level_parameters:
             if not variable.isNestedParameterVariable():
                 parameter_parsing_code += CodeTemplates.parse_argument_template_check_dict_parameter_with_star_dict % {
-                    "function_name"            : function_name,
                     "parameter_name"           : variable.getName(),
                     "parameter_name_object"    : getConstantCode(
                         constant = variable.getName(),
                         context  = context
                     ),
-                    "dict_star_parameter_name" : parameters.getDictStarArgName(),
+                    "dict_star_parameter_name" : parameters.getStarDictArgumentName(),
                 }
     elif not parameters.isEmpty():
         quick_path_code = ""
@@ -169,7 +171,7 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
         else:
             check_template = CodeTemplates.parse_argument_template_check_counts_with_list_star_arg
 
-        required_parameter_count = len( top_level_parameters ) - parameters.getDefaultParameterCount()
+        required_parameter_count = len( top_level_parameters ) - parameters.getDefaultCount()
 
         parameter_parsing_code += check_template % {
             "function_name"             : function_name,
@@ -187,16 +189,18 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
                 continue
 
             if variable.isNestedParameterVariable():
-                parse_argument_template2 = CodeTemplates.argparse_template_nested_argument
+                parameter_parsing_code += CodeTemplates.argparse_template_nested_argument % {
+                    "parameter_name"       : variable.getName(),
+                    "parameter_position"   : count,
+                    "parameter_args_index" : count if not is_method else count-1
+                }
             else:
-                parse_argument_template2 = CodeTemplates.argparse_template_plain_argument
-
-            parameter_parsing_code += parse_argument_template2 % {
-                "function_name"        : function_name,
-                "parameter_name"       : variable.getName(),
-                "parameter_position"   : count,
-                "parameter_args_index" : count if not is_method else count-1
-            }
+                parameter_parsing_code += CodeTemplates.argparse_template_plain_argument % {
+                    "function_name"        : function_name,
+                    "parameter_name"       : variable.getName(),
+                    "parameter_position"   : count,
+                    "parameter_args_index" : count if not is_method else count-1
+                }
 
     if parameters.getListStarArgVariable() is not None:
         if not is_method:
@@ -205,7 +209,7 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
             max_index = len( top_level_parameters ) - 1
 
         parameter_parsing_code += CodeTemplates.parse_argument_template_copy_list_star_args % {
-            "list_star_parameter_name"  : parameters.getListStarArgName(),
+            "list_star_parameter_name"  : parameters.getStarListArgumentName(),
             "top_level_parameter_count" : len( top_level_parameters ),
             "top_level_max_index"       : max_index
         }
@@ -278,7 +282,7 @@ def _getParameterParsingCode( context, parameters, function_name, default_identi
     return indented( parameter_parsing_code )
 
 def getParameterParsingCode( context, function_identifier, function_name, parameters, \
-                             default_identifiers, context_access_template ):
+                             default_identifiers, context_access_template, needs_creation ):
     if getDefaultParameterDeclarations( default_identifiers ):
         context_access = context_access_template % {
             "function_identifier" : function_identifier
@@ -289,24 +293,24 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
     function_parameter_variables = parameters.getVariables()
 
     if function_parameter_variables:
-        parameter_objects_decl = ", " + ", ".join(
-            [
-                "PyObject *_python_par_" + variable.getName()
-                for variable in
-                function_parameter_variables
-            ]
-        )
+        parameter_objects_decl = [
+            "PyObject *_python_par_" + variable.getName()
+            for variable in
+            function_parameter_variables
+        ]
 
-        parameter_objects_list = ", " + ", ".join(
-            [
-                "_python_par_" + variable.getName()
-                for variable in
-                function_parameter_variables
-            ]
-        )
+        parameter_objects_list = [
+            "_python_par_" + variable.getName()
+            for variable in
+            function_parameter_variables
+        ]
     else:
-        parameter_objects_decl = ""
-        parameter_objects_list = ""
+        parameter_objects_decl = []
+        parameter_objects_list = []
+
+    if needs_creation:
+        parameter_objects_decl.insert( 0, "PyObject *self" )
+        parameter_objects_list.insert( 0, "self" )
 
     parameter_release_code = "".join(
         [
@@ -318,7 +322,7 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
     )
 
     parameter_entry_point_code = CodeTemplates.template_parameter_function_entry_point % {
-        "parameter_parsing_code" : _getParameterParsingCode(
+        "parameter_parsing_code"    : _getParameterParsingCode(
             context             = context,
             function_name       = function_name,
             parameters          = parameters,
@@ -329,12 +333,16 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
             function_identifier = function_identifier,
             is_method           = False
         ),
-        "impl_function_identifier"  : "impl_" + function_identifier,
-        "context_access"         : context_access,
-        "parameter_objects_list" : parameter_objects_list,
-        "parameter_release_code" : parameter_release_code,
+        "impl_function_identifier"  : getDirectFunctionEntryPointIdentifier(
+            function_identifier = function_identifier
+        ),
+        "context_access"            : context_access,
+        "parameter_objects_list"    : ", ".join( parameter_objects_list ),
+        "parameter_release_code"    : parameter_release_code,
     }
 
+    # Note: It's only a convention, but one generally adhered, so use the presence of a "self"
+    # to detect of a "method" entry point makes sense.
     if function_parameter_variables and function_parameter_variables[0].getName() == "self":
         mparse_identifier = getParameterEntryPointIdentifier(
             function_identifier = function_identifier,
@@ -342,7 +350,7 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
         )
 
         parameter_entry_point_code += CodeTemplates.template_parameter_method_entry_point % {
-            "parameter_parsing_code" : _getParameterParsingCode(
+            "parameter_parsing_code"    : _getParameterParsingCode(
                 context             = context,
                 function_name       = function_name,
                 parameters          = parameters,
@@ -350,10 +358,12 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
                 is_method           = True
             ),
             "parse_function_identifier" : mparse_identifier,
-            "impl_function_identifier"  : "impl_" + function_identifier,
-            "context_access"         : context_access,
-            "parameter_objects_list" : parameter_objects_list,
-            "parameter_release_code" : parameter_release_code
+            "impl_function_identifier"  : getDirectFunctionEntryPointIdentifier(
+                function_identifier = function_identifier
+            ),
+            "context_access"            : context_access,
+            "parameter_objects_list"    : ", ".join( parameter_objects_list ),
+            "parameter_release_code"    : parameter_release_code
         }
     else:
         mparse_identifier = "NULL"

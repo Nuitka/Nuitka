@@ -32,6 +32,8 @@ Different kinds of variables represent different scopes and owners.
 
 """
 
+from .__past__ import iterItems
+
 class Variable:
     def __init__( self, owner, variable_name ):
         assert type( variable_name ) is str, variable_name
@@ -49,6 +51,14 @@ class Variable:
 
     def getOwner( self ):
         return self.owner
+
+    def getRealOwner( self ):
+        result = self.owner
+
+        if result.isStatementTempBlock():
+            return result.getParentVariableProvider()
+        else:
+            return result
 
     def addReference( self, reference ):
         self.references.append( reference )
@@ -117,11 +127,12 @@ class Variable:
             top_owner = reference.getReferenced().getOwner()
             owner = reference.getOwner()
 
-            while owner != top_owner:
-                if not owner.isExpressionListContractionBody():
-                    return True
+            while owner.isExpressionFunctionBody() and not owner.isGenerator() and not owner.needsCreation():
+                owner = owner.getParent().getParentVariableProvider()
 
-                owner = owner.getParentVariableProvider()
+            # TODO: Check if this is necessary still.
+            if owner != top_owner:
+                return True
         else:
             return False
 
@@ -148,6 +159,25 @@ class Variable:
                 owner    = owner,
                 variable = self
             )
+
+    def getDeclarationCode( self, for_reference, for_local ):
+        if for_reference:
+            sep = " &"
+        elif for_local:
+            sep = " _"
+        else:
+            sep = " "
+
+        return self.getDeclarationTypeCode() + sep + self.getCodeName()
+
+    def getMangledName( self ):
+        return self.getName()
+
+    def getDeclarationTypeCode( self ):
+        assert False
+
+    def getCodeName( self ):
+        assert False
 
 
 class VariableReferenceBase( Variable ):
@@ -181,6 +211,7 @@ class VariableReferenceBase( Variable ):
     def __hash__( self ):
         return hash( self.getReferenced() )
 
+
 class ClosureVariableReference( VariableReferenceBase ):
     def __init__( self, owner, variable ):
         assert not variable.isModuleVariable()
@@ -208,6 +239,15 @@ class ClosureVariableReference( VariableReferenceBase ):
                     return variable
             else:
                 assert False
+
+    def getDeclarationTypeCode( self ):
+        if self.getReferenced().isShared():
+            return "PyObjectSharedLocalVariable"
+        else:
+            return self.getReferenced().getDeclarationTypeCode()
+
+    def getCodeName( self ):
+        return "python_closure_%s" % self.getName()
 
 
 class ModuleVariableReference( VariableReferenceBase ):
@@ -251,6 +291,8 @@ class LocalVariable( Variable ):
             variable_name = variable_name
         )
 
+        assert not owner.isExpressionFunctionBody() or owner.local_locals or self.__class__ is not LocalVariable
+
     def __repr__( self ):
         return "<%s '%s' of '%s'>" % (
             self.__class__.__name__,
@@ -260,6 +302,16 @@ class LocalVariable( Variable ):
 
     def isLocalVariable( self ):
         return True
+
+    def getCodeName( self ):
+        return "python_var_" + self.getName()
+
+    def getDeclarationTypeCode( self ):
+        if self.isShared():
+            return "PyObjectSharedLocalVariable"
+        else:
+            return "PyObjectLocalVariable"
+
 
 class MaybeLocalVariable( Variable ):
     reference_class = ClosureVariableReference
@@ -293,6 +345,16 @@ class ParameterVariable( LocalVariable ):
     def isParameterVariable( self ):
         return True
 
+    def getDeclarationTypeCode( self ):
+        if self.isShared():
+            return "PyObjectSharedLocalVariable"
+        elif self.getHasDelIndicator():
+            return "PyObjectLocalParameterVariableWithDel"
+        else:
+            return "PyObjectLocalParameterVariableNoDel"
+
+
+
 class NestedParameterVariable( ParameterVariable ):
     def __init__( self, owner, parameter_name, parameter_spec ):
         ParameterVariable.__init__(
@@ -325,6 +387,8 @@ def makeParameterVariables( owner, parameter_names ):
         parameter_names
     ]
 
+
+# TODO: These will become obsolete.
 class ClassVariable( Variable ):
     reference_class = ClosureVariableReference
 
@@ -344,21 +408,38 @@ class ClassVariable( Variable ):
     def isClassVariable( self ):
         return True
 
-_module_variables = {}
+    def getDeclarationTypeCode( self ):
+        if self.isShared():
+            return "PyObjectSharedLocalVariable"
+        else:
+            return "PyObjectLocalVariable"
+
+    def getCodeName( self ):
+        return "python_var_" + self.getName()
+
+    def getMangledName( self ):
+        # Names like "__name__" are not mangled, only "__name" would be.
+        if not self.variable_name.startswith( "__" ) or self.variable_name.endswith( "__" ):
+            return self.variable_name
+        else:
+            return "_" + self.owner.getName() + self.variable_name
+
 
 class ModuleVariable( Variable ):
+    module_variables = {}
+
     reference_class = ModuleVariableReference
 
     def __init__( self, module, variable_name ):
-        assert type( variable_name ) is str
+        assert type( variable_name ) is str, variable_name
 
         Variable.__init__( self, owner = module, variable_name = variable_name )
         self.module = module
 
         key = self._getKey()
 
-        assert key not in _module_variables, key
-        _module_variables[ key ] = self
+        assert key not in self.module_variables, key
+        self.module_variables[ key ] = self
 
     def __repr__( self ):
         return "<ModuleVariable '%s' of '%s'>" % (
@@ -367,7 +448,9 @@ class ModuleVariable( Variable ):
         )
 
     def _getKey( self ):
-        return self.getModuleName(), self.getName()
+        """ The module name and the variable name form the key."""
+
+        return self.getModule(), self.getName()
 
     def isModuleVariable( self ):
         return True
@@ -381,14 +464,23 @@ class ModuleVariable( Variable ):
     def _checkShared( self, variable ):
         assert False, variable
 
-def getNames( variables ):
-    return [ variable.getName() for variable in variables ]
+
+def getModuleVariables( module ):
+    result = []
+
+    for key, variable in iterItems( ModuleVariable.module_variables ):
+        if key[0] is module:
+            result.append( variable )
+
+    return result
+
 
 class TempVariableReference( VariableReferenceBase ):
 
     def isTempVariableReference( self ):
         # Virtual method, pylint: disable=R0201
         return True
+
 
 class TempVariable( Variable ):
     reference_class = TempVariableReference
@@ -403,6 +495,8 @@ class TempVariable( Variable ):
         # For code generation.
         self.declared = False
 
+        self.needs_free = None
+
     def __repr__( self ):
         return "<TempVariable '%s' of '%s'>" % (
             self.getName(),
@@ -413,13 +507,29 @@ class TempVariable( Variable ):
         # Virtual method, pylint: disable=R0201
         return True
 
+    def getNeedsFree( self ):
+        return self.needs_free
+
+    def setNeedsFree( self, needs_free ):
+        assert needs_free is not None
+
+        self.needs_free = needs_free
+
     def getDeclarationTypeCode( self ):
-        # TODO: Derive more effective type from use analysis.
-        if self.getOwner().isClosureVariableTaker():
-            return "PyObject *"
-        else:
+        assert self.needs_free is not None, self
+
+        if self.needs_free:
             return "PyObjectTemporary"
+        else:
+            return "PyObject *"
+
+    def getCodeName( self ):
+        return "python_tmp_%s" % self.getName()
 
     def getDeclarationInitValueCode( self ):
         # Virtual method, pylint: disable=R0201
         return "NULL"
+
+
+def getNames( variables ):
+    return [ variable.getName() for variable in variables ]

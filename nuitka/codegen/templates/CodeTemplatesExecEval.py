@@ -39,8 +39,8 @@ exec_local_template = """\
 
     if ( locals.asObject() == Py_None && globals.asObject() == Py_None )
     {
-        globals.assign( %(make_globals_identifier)s );
-        locals.assign( %(make_locals_identifier)s );
+        globals.assign1( %(make_globals_identifier)s );
+        locals.assign1( %(make_locals_identifier)s );
 
         own_locals = true;
     }
@@ -67,7 +67,7 @@ exec_global_template = """\
 
     if ( globals.asObject() == Py_None )
     {
-        globals.assign( %(make_globals_identifier)s );
+        globals.assign1( %(make_globals_identifier)s );
     }
 
     PyObjectTemporary code( COMPILE_CODE( %(source_identifier)s, %(filename_identifier)s, %(mode_identifier)s, %(future_flags)s ) );

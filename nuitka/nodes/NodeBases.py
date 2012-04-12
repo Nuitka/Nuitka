@@ -36,7 +36,6 @@ These classes provide the generic base classes available for nodes.
 from nuitka.odict import OrderedDict
 
 from nuitka import (
-    Variables,
     Tracing,
     TreeXML
 )
@@ -303,9 +302,6 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
     def isExpressionOperationBool2( self ):
         return self.kind.startswith( "EXPRESSION_BOOL_" )
 
-    def isAssignTargetSomething( self ):
-        return self.kind.startswith( "ASSIGN_" )
-
     def isExpressionMakeSequence( self ):
         # Virtual method, pylint: disable=R0201,W0613
         return False
@@ -374,14 +370,19 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         return False
 
+    def isStatementAbortative( self ):
+        assert self.isStatement(), self.kind
+
+        return False
+
     def hasTag( self, tag ):
         return tag in self.__class__.tags
 
 class CPythonCodeNodeBase( CPythonNodeBase ):
     def __init__( self, name, code_prefix, source_ref ):
         assert name is not None
-        assert " " not in name
-        assert "<" not in name
+        assert " " not in name, name
+        assert "<" not in name, name
 
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
@@ -431,7 +432,7 @@ class CPythonCodeNodeBase( CPythonNodeBase ):
 
             uid = "_%d" % search.getChildUID( self )
 
-            if isinstance( self, CPythonCodeNodeBase ):
+            if isinstance( self, CPythonCodeNodeBase ) and self.name:
                 name = uid + "_" + self.name
             else:
                 name = uid
@@ -553,15 +554,14 @@ class CPythonChildrenHaving:
                 pass
             elif type( value ) is tuple:
                 if old_node in value:
-                    new_value = []
-
-                    for val in value:
-                        if val is not old_node:
-                            new_value.append( val )
-                        else:
-                            new_value.append( new_node )
-
-                    self.setChild( key, tuple( new_value ) )
+                    self.setChild(
+                        key,
+                        tuple(
+                            (val if val is not old_node else new_node)
+                            for val in
+                            value
+                        )
+                    )
 
                     break
             elif isinstance( value, CPythonNodeBase ):
@@ -679,6 +679,7 @@ class CPythonClosureTaker:
 
         self.temp_variables = set()
 
+        self.temp_keeper_count = 0
 
     def getParentVariableProvider( self ):
         return self.provider
@@ -741,24 +742,13 @@ class CPythonClosureTaker:
     def isEarlyClosure( self ):
         return self.early_closure
 
-    def getTempVariable( self ):
-        result = Variables.TempVariable(
-            owner         = self,
-            variable_name = "__tmp_%d" % len( self.temp_variables )
-        )
-        self.temp_variables.add( result )
-        return result
+    def allocateTempKeeperName( self ):
+        self.temp_keeper_count += 1
 
-    def getTempVariables( self ):
-        return tuple( self.temp_variables )
+        return "keeper_%d" % self.temp_keeper_count
 
-    def setTempVariables( self, variables ):
-        for variable in variables:
-            assert variable.isTempVariable(), variable
-            assert variable.getOwner() is self
-
-        self.temp_variables = variables
-
+    def getTempKeeperNames( self ):
+        return tuple( "keeper_%d" % ( i+1 ) for i in range( self.temp_keeper_count ) )
 
 
 class CPythonExpressionMixin:
@@ -776,7 +766,8 @@ class CPythonExpressionMixin:
         return False
 
     def getCompileTimeConstant( self ):
-        assert self.isCompileTimeConstant()
+        assert self.isCompileTimeConstant(), self
+
         assert False
 
     def isKnownToBeIterable( self, count ):
@@ -788,6 +779,15 @@ class CPythonExpressionMixin:
 
         # Virtual method, pylint: disable=R0201,W0613
         return False
+
+    def mayProvideReference( self ):
+        """ May at run time produce a reference.
+
+        This then would have to be consumed or released in a reliable way.
+        """
+
+        # Virtual method, pylint: disable=R0201
+        return True
 
 
 class CPythonExpressionSpecBasedComputationMixin( CPythonExpressionMixin ):

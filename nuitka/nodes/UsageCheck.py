@@ -38,7 +38,7 @@ class VariableSearch( TreeOperations.VisitorNoopMixin ):
         self.found = []
 
     def onEnterNode( self, node ):
-        if node.isExpressionVariableRef():
+        if node.isExpressionVariableRef() or node.isExpressionTargetVariableRef():
             if node.getVariable() is self.search_for:
                 self.found.append( node )
 

@@ -41,28 +41,63 @@ from nuitka.nodes import ValueFriends
 
 from nuitka.nodes.NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
-from nuitka import Options, Utils, TreeRecursion, Importing
+from nuitka import Options, Utils, TreeRecursion, Importing, Builtins
 
 from logging import debug
 
-# TODO: This is code duplication, assignments should have a helper module do deal with a
-# list of targets and/or generally the value of getTargets() should be able to do a few
-# things.
-def _isComplexAssignmentTarget( targets ):
-    if type( targets ) not in ( tuple, list ) and targets.isAssignTargetSomething():
-        targets = [ targets ]
+class VariableUsageProfile:
+    def __init__( self, variable ):
+        self.variable = variable
 
-    return len( targets ) > 1 or targets[0].isAssignTargetTuple()
+        self.read_only = True
+        self.needs_free = False
+
+    def markAsWrittenTo( self, value_friend ):
+        self.read_only = False
+
+        # TODO: check for "may provide a reference"
+        if value_friend.mayProvideReference():
+            self.needs_free = True
+
+    def isReadOnly( self ):
+        return self.read_only
+
+    def setNeedsFree( self, needs_free ):
+        assert needs_free is not None
+
+        self.needs_free = needs_free
+
+    def getNeedsFree( self ):
+        return self.needs_free
+
+
+class VariableUsageTrackingMixin:
+    def __init__( self ):
+        self.variable_usages = {}
+
+    def _getVariableUsage( self, variable ):
+        if variable in self.variable_usages:
+            return self.variable_usages[ variable ]
+        else:
+            self.variable_usages[ variable ] = VariableUsageProfile( variable )
+
+            return self.variable_usages[ variable ]
+
+    def setTempNeedsFreeIndications( self ):
+        for variable, usage in iterItems( self.variable_usages ):
+            if variable.isTempVariable():
+                variable.setNeedsFree( usage.getNeedsFree() )
 
 # TODO: This code is only here while staging it, will live in a dedicated module later on
-class ConstraintCollection:
-    def __init__( self, signal_change, copy_of = None ):
+class ConstraintCollectionBase:
+    def __init__( self, parent, signal_change, copy_of = None ):
         self.signalChange = signal_change
+        self.parent = parent
 
         if copy_of is None:
             self.variables = {}
         else:
-            assert copy_of.__class__ is ConstraintCollection
+            assert copy_of.__class__ is ConstraintCollectionBase
 
             self.variables = dict( copy_of.variables )
 
@@ -95,57 +130,11 @@ class ConstraintCollection:
         for variable_name, variable_info in sorted( iterItems( self.variables ) ):
             debug( "%r: %r", variable_name, variable_info )
 
-    def onAssigmentToTargetFromValueFriend( self, target, value_friend ):
-        if target.isAssignTargetVariable():
-            if value_friend is None:
-                self.onAssignmentOfTargetFromUnknown( target )
-            else:
-                self.variables[ target.getTargetVariableRef().getVariable() ] = value_friend
-        elif target.isAssignTargetSubscript():
-            # TODO: We don't yet track subscripts, as those.
-            # TODO: onExpression should rather be "onTarget()" which should do less.
-            self.onTarget( target.getSubscribed() )
-            self.onExpression( target.getSubscript() )
-        elif target.isAssignTargetAttribute():
-            # TODO: We don't yet track attributes, as those.
-            self.onTarget( target.getLookupSource() )
-        elif target.isAssignTargetSlice():
-            # TODO: We don't yet track slices, as those.
-            self.onTarget( target.getLookupSource() )
-
-            if target.getLower() is not None:
-                self.onExpression( target.getLower() )
-            if target.getUpper() is not None:
-                self.onExpression( target.getUpper() )
-        elif target.isAssignTargetTuple():
-            self.onAssignmentToTargetsFromSource(
-                targets = target.getElements(),
-                source  = value_friend
-            )
-        else:
-            assert False, target
-
-    def onAssignmentOfTargetFromUnknown( self, target ):
-        if target.isAssignTargetVariable():
-            variable = target.getTargetVariableRef().getVariable()
-
-            if variable in self.variables:
-                del self.variables[ variable ]
-
-
     def onClosureTaker( self, closure_taker ):
         if closure_taker.isExpressionFunctionBody():
-            collector = ConstraintCollectionFunction( self.signalChange )
+            collector = ConstraintCollectionFunction( self, self.signalChange )
         elif closure_taker.isExpressionClassBody():
-            collector = ConstraintCollectionClass( self.signalChange )
-        elif closure_taker.isExpressionListContractionBody():
-            collector = ConstraintCollectionContraction( self.signalChange )
-        elif closure_taker.isExpressionDictContractionBody():
-            collector = ConstraintCollectionContraction( self.signalChange )
-        elif closure_taker.isExpressionSetContractionBody():
-            collector = ConstraintCollectionContraction( self.signalChange )
-        elif closure_taker.isExpressionGeneratorBody():
-            collector = ConstraintCollectionContraction( self.signalChange )
+            collector = ConstraintCollectionClass( self, self.signalChange )
         else:
             assert False, closure_taker
 
@@ -159,7 +148,7 @@ class ConstraintCollection:
         statements = statements_sequence.getStatements()
         assert statements, statements_sequence
 
-        for statement in statements_sequence.getStatements():
+        for count, statement in enumerate( statements ):
             new_statement = self.onStatement( statement )
 
             if new_statement is not None:
@@ -168,118 +157,27 @@ class ConstraintCollection:
                 else:
                     new_statements.append( new_statement )
 
-        if statements != new_statements:
-            # print statements, new_statements
+                if statement is not statements[-1] and new_statement.isStatementAbortative():
+                    self.signalChange(
+                        "new_statements",
+                        statements[ count + 1 ].getSourceReference(),
+                        "Removed dead statements."
+                    )
 
+                    break
+
+        new_statements = tuple( new_statements )
+
+        if statements != new_statements:
             if new_statements:
                 statements_sequence.setStatements( new_statements )
             else:
                 statements_sequence.replaceWith( None )
 
+    def onExpression( self, expression, allow_none = False ):
+        if expression is None and allow_none:
+            return
 
-    def onAssignmentToTargetFromSource( self, target, source ):
-        self.onAssignmentToTargetsFromSource(
-            targets = ( target, ),
-            source  = source
-        )
-
-    def onAssignmentToTargetsFromSource( self, targets, source ):
-        assert type( targets ) is tuple
-        for target in targets:
-            assert target.isAssignTargetSomething()
-
-        assert source is not None and source.isExpression(), ( targets, source )
-
-        # Ask the source about iself, what does it give.
-        source_friend = source.getValueFriend()
-
-        assert source_friend is not None, source
-
-        if _isComplexAssignmentTarget( targets ):
-            if source_friend.isKnownToBeIterable( len( targets ) ):
-                unpack_friends = source_friend.getUnpacked( len( targets ) )
-
-                for target, unpack_friend in zip( targets, unpack_friends ):
-                    self.onAssigmentToTargetFromValueFriend(
-                        target       = target,
-                        value_friend = unpack_friend
-                    )
-            else:
-                for target in targets:
-                    self.onAssignmentOfTargetFromUnknown(
-                        target = target
-                    )
-        else:
-            self.onAssigmentToTargetFromValueFriend(
-                target       = targets[0],
-                value_friend = source_friend
-            )
-
-    def onDeleteTarget( self, target ):
-        if target.isAssignTargetVariable():
-            variable = target.getTargetVariableRef().getVariable()
-
-            if variable in self.variables:
-                del self.variables[ variable ]
-        elif target.isAssignTargetSlice():
-            # TODO: Handle it.
-            pass
-        elif target.isAssignTargetSubscript():
-            # TODO: Handle it.
-            pass
-        elif target.isAssignTargetAttribute():
-            # TODO: Handle it.
-            pass
-        else:
-            assert False, target
-
-    def onStatementAssignment( self, statement ):
-        source = statement.getSource()
-
-        self.onExpression( source )
-
-        assert statement.getSource() is not None, ( statement, source )
-
-
-        # Note: The source may no longer be valid, can't use it anymore.
-        del source
-
-        targets = statement.getTargets()
-
-        self.onAssignmentToTargetsFromSource(
-            targets = targets,
-            source  = statement.getSource()
-        )
-
-        return statement
-
-    def onStatementDel( self, statement ):
-        self.onDeleteTarget( statement.getTarget() )
-
-        return statement
-
-    def onTarget( self, target ):
-        if target.isAssignTargetVariable():
-            # Should invalidate it
-            pass
-        elif target.isAssignTargetTuple():
-            for sub_target in target.getElements():
-                self.onTarget( sub_target )
-        elif target.isAssignTargetAttribute():
-            # Should invalidate it via attribute registry.
-            pass
-        elif target.isAssignTargetSubscript():
-            # Should invalidate it via subscript registry and wholly.
-            pass
-        elif target.isAssignTargetSomething():
-            assert False, target
-        elif target.isExpression():
-            self.onExpression( target )
-        else:
-            assert False, target
-
-
-    def onExpression( self, expression ):
         assert expression.isExpression(), expression
 
         # print( "CONSIDER", expression )
@@ -297,8 +195,6 @@ class ConstraintCollection:
                 change_desc
             )
         elif expression.isExpressionVariableRef() and False: # TODO: Not safe yet, disabled
-            assert not new_node.getParent().isAssignTargetSomething(), new_node.getParent()
-
             variable = expression.getVariable()
 
             friend = self.getVariableValueFriend( variable )
@@ -324,10 +220,7 @@ class ConstraintCollection:
         return statement
 
     def onSubExpressions( self, owner ):
-        if owner.isExpressionAssignment():
-            self.onTarget( owner.getTarget() )
-            self.onExpression( owner.getSource() )
-        elif not owner.hasTag( "closure_taker" ):
+        if not owner.hasTag( "closure_taker" ):
             sub_expressions = owner.getVisitableNodes()
 
             for sub_expression in sub_expressions:
@@ -364,10 +257,39 @@ class ConstraintCollection:
 
         self.onExpression( statement.getCondition() )
 
-        condition = statement.getCondition()
+        # TODO: We now know that condition evaluates to true for the yes branch
+        # and to not true for no branch
 
-        if condition.isExpressionConstantRef():
-            if condition.getConstant():
+        branch_yes_collection = ConstraintCollectionBranch( self, self.signalChange )
+
+        if yes_branch is not None:
+            branch_yes_collection.process( self, yes_branch )
+
+        if no_branch is not None:
+            branch_no_collection = ConstraintCollectionBranch( self, self.signalChange )
+
+            branch_no_collection.process( self, statement.getBranchNo() )
+
+            self.variables = self.mergeBranchVariables(
+                branch_yes_collection.variables,
+                branch_no_collection.variables
+            )
+        else:
+            self.mergeBranch( branch_yes_collection )
+
+        if statement.getBranchNo() is None and statement.getBranchYes() is None:
+            self.signalChange(
+                "new_statements",
+                statement.getSourceReference(),
+                "Both branches have no effect, drop branch nature, only evaluate condition."
+            )
+
+            return makeStatementExpressionOnlyReplacementNode(
+                expression = statement.getCondition(),
+                node       = statement
+            )
+        elif statement.getCondition().isCompileTimeConstant():
+            if statement.getCondition().getCompileTimeConstant():
                 choice = "true"
 
                 new_statement = statement.getBranchYes()
@@ -384,49 +306,96 @@ class ConstraintCollection:
 
             return new_statement
 
-        if no_branch is None and yes_branch is None:
-            new_statement = makeStatementExpressionOnlyReplacementNode(
-                expression = condition,
-                node       = statement
-            )
-
-            self.signalChange(
-                "new_statements",
-                statement.getSourceReference(),
-                "Both branches have no effect, drop branch nature, only evaluate condition."
-            )
-
-            return new_statement
-
-        # TODO: We now know that condition evaluates to true for the yes branch
-        # and to not true for no branch
-
-        branch_yes_collection = ConstraintCollectionBranch( self.signalChange )
-
-        if yes_branch is not None:
-            branch_yes_collection.process( self, yes_branch )
-
-        if no_branch is not None:
-            branch_no_collection = ConstraintCollectionBranch( self.signalChange )
-
-            branch_no_collection.process( self, statement.getBranchNo() )
-
-            self.variables = self.mergeBranchVariables(
-                branch_yes_collection.variables,
-                branch_no_collection.variables
-            )
-        else:
-            self.mergeBranch( branch_yes_collection )
-
         return statement
+
+    def onModuleVariableAssigned( self, variable, value_friend ):
+        self.parent.onModuleVariableAssigned( variable, value_friend )
+
+    def onLocalVariableAssigned( self, variable, value_friend ):
+        self.parent.onLocalVariableAssigned( variable, value_friend )
+
+    def onTempVariableAssigned( self, variable, value_friend ):
+        self.parent.onTempVariableAssigned( variable, value_friend )
 
     def onStatement( self, statement ):
         assert statement.isStatement(), statement
 
-        if statement.isStatementAssignment():
-            return self.onStatementAssignment( statement )
-        elif statement.isStatementDel():
-            return self.onStatementDel( statement )
+        if statement.isStatementAssignmentVariable():
+            self.onExpression( statement.getAssignSource() )
+
+            variable_ref = statement.getTargetVariableRef()
+            variable = variable_ref.getVariable()
+
+            # Assigning from and to the same variable, can be optimized away immediately,
+            # there is no point in doing it.
+            if statement.getAssignSource().isExpressionVariableRef() and statement.getAssignSource().getVariable() == variable and (not variable.isModuleVariableReference() or variable.getName() not in Builtins.builtin_all_names):
+                self.signalChange(
+                    "new_statements",
+                    statement.getSourceReference(),
+                    "Reduced assignment of variable from itself to access of it."
+                )
+
+                return makeStatementExpressionOnlyReplacementNode(
+                    expression = statement.getAssignSource(),
+                    node       = statement
+                )
+
+            value_friend = statement.getAssignSource().getValueFriend()
+            assert value_friend is not None
+
+            self.variables[ variable  ] = value_friend
+
+            if variable.isModuleVariableReference():
+                self.onModuleVariableAssigned( variable, value_friend )
+            elif variable.isLocalVariable():
+                self.onLocalVariableAssigned( variable, value_friend )
+            elif variable.isTempVariableReference():
+                self.onTempVariableAssigned( variable, value_friend )
+
+            return statement
+        elif statement.isStatementAssignmentAttribute():
+            self.onExpression( statement.getAssignSource() )
+
+            self.onExpression( statement.getLookupSource() )
+
+            return statement
+        elif statement.isStatementAssignmentSubscript():
+            self.onExpression( statement.getAssignSource() )
+
+            self.onExpression( statement.getSubscribed() )
+            self.onExpression( statement.getSubscript() )
+
+            return statement
+        elif statement.isStatementAssignmentSlice():
+            self.onExpression( statement.getAssignSource() )
+
+            self.onExpression( statement.getLookupSource() )
+            self.onExpression( statement.getLower(), allow_none = True )
+            self.onExpression( statement.getUpper(), allow_none = True )
+
+            return statement
+        elif statement.isStatementDelVariable():
+            variable = statement.getTargetVariableRef()
+
+            if variable in self.variables:
+                del self.variables[ variable ]
+
+            return statement
+        elif statement.isStatementDelAttribute():
+            self.onExpression( statement.getLookupSource() )
+
+            return statement
+        elif statement.isStatementDelSubscript():
+            self.onExpression( statement.getSubscribed() )
+            self.onExpression( statement.getSubscript() )
+
+            return statement
+        elif statement.isStatementDelSlice():
+            self.onExpression( statement.getLookupSource() )
+            self.onExpression( statement.getLower(), allow_none = True )
+            self.onExpression( statement.getUpper(), allow_none = True )
+
+            return statement
         elif statement.isStatementExpressionOnly():
             expression = statement.getExpression()
 
@@ -452,37 +421,8 @@ class ConstraintCollection:
             return self.onStatementUsingChildExpressions( statement )
         elif statement.isStatementConditional():
             return self._onStatementConditional( statement )
-        elif statement.isStatementForLoop():
-            # The iterator making is evaluated in any case here.
-            self.onExpression( statement.getIterator() )
-
-            # Note: Fetching again, my be replaced meanwhile.
-            iterator = statement.getIterator()
-
-            if iterator.isIteratorMaking():
-                pass
-
-            if False: # TODO: Must be done
-                # Do not accept any change signals, in the first run of the loop, we only want
-                # to collect knowledge about what we cannot trust from the start state.
-                def disallow_changes():
-                    assert False
-
-                first_loop_run = ConstraintCollectionLoopFirst( disallow_changes )
-                first_loop_run.process( self, statement )
-
-            other_loop_run = ConstraintCollectionLoopOther( self.signalChange )
-            other_loop_run.process( self, statement )
-
-            self.mergeBranch(
-                other_loop_run
-            )
-
-            return statement
-        elif statement.isStatementWhileLoop():
-            self.onExpression( statement.getCondition() )
-
-            other_loop_run = ConstraintCollectionLoopOther( self.signalChange )
+        elif statement.isStatementLoop():
+            other_loop_run = ConstraintCollectionLoopOther( self, self.signalChange )
             other_loop_run.process( self, statement )
 
             self.mergeBranch(
@@ -491,32 +431,38 @@ class ConstraintCollection:
 
             return statement
         elif statement.isStatementTryFinally():
-            # The tried block can be processed normally.
+            # The tried block can be processed normally, if it is not empty already.
             tried_statement_sequence = statement.getBlockTry()
 
             if tried_statement_sequence is not None:
                 self.onStatementsSequence( tried_statement_sequence )
 
-            if statement.getBlockTry() is None:
-                result = statement.getBlockFinal()
-            else:
-                result = statement
+            final_statement_sequence = statement.getBlockFinal()
 
-            if statement.getBlockFinal() is not None:
+            if final_statement_sequence is not None:
                 # Then assuming no exception, the no raise block if present.
-                self.onStatementsSequence( statement.getBlockFinal() )
-            else:
+                self.onStatementsSequence( final_statement_sequence )
+
+            # Note: Need to query again, because the object may have changed in the
+            # "onStatementsSequence" calls.
+
+            if statement.getBlockTry() is None:
+                # If the tried block is empty, go to the final block directly, if any.
+                result = statement.getBlockFinal()
+            elif statement.getBlockFinal() is None:
+                # If the final block is empty, just need to execute the tried block then.
                 result = statement.getBlockTry()
+            else:
+                # Otherwise keep it as it.
+                result = statement
 
             return result
         elif statement.isStatementTryExcept():
             # The tried block can be processed normally.
             tried_statement_sequence = statement.getBlockTry()
 
-            if tried_statement_sequence is None:
-                return statement.getBlockNoRaise()
-
-            self.onStatementsSequence( tried_statement_sequence )
+            if tried_statement_sequence is not None:
+                self.onStatementsSequence( tried_statement_sequence )
 
             if statement.getBlockNoRaise() is not None:
                 # Then assuming no exception, the no raise block if present.
@@ -526,13 +472,16 @@ class ConstraintCollection:
             # may have happened. A similar approach to loops should be taken to invalidate
             # the state before.
             for handler in statement.getExceptionHandlers():
-                exception_branch = ConstraintCollectionHandler( self.signalChange )
+                exception_branch = ConstraintCollectionHandler( self, self.signalChange )
                 exception_branch.process( handler )
 
             # Give up, merging this is too hard for now.
             self.variables = {}
 
-            return statement
+            if statement.getBlockTry() is None:
+                return statement.getBlockNoRaise()
+            else:
+                return statement
         elif statement.isStatementImportStar():
             # TODO: Need to invalidate everything, and everything could be assigned now.
             return self.onStatementUsingChildExpressions( statement )
@@ -544,26 +493,18 @@ class ConstraintCollection:
             # TODO: Not clear how to handle these, the statement sequence processing
             # should abort here.
             return statement
-        elif statement.isStatementWith():
-            if statement.getTarget() is not None:
-                self.onTarget( statement.getTarget() )
-            self.onExpression( statement.getExpression() )
-
-            with_body = statement.getWithBody()
-
-            if with_body is not None:
-                self.onStatementsSequence( with_body )
-
-            return statement
         elif statement.isStatementTempBlock():
             self.onStatementsSequence( statement.getBody() )
 
+            return statement
+        elif statement.isStatementSpecialUnpackCheck():
+            # TODO: Not clear yet, what to do here.
             return statement
         else:
             assert False, statement
 
 
-class ConstraintCollectionHandler( ConstraintCollection ):
+class ConstraintCollectionHandler( ConstraintCollectionBase ):
     def process( self, handler ):
         assert handler.isStatementExceptHandler()
 
@@ -573,57 +514,106 @@ class ConstraintCollectionHandler( ConstraintCollection ):
         if branch is not None:
             self.onStatementsSequence( branch )
 
-class ConstraintCollectionBranch( ConstraintCollection ):
+        exception_types = handler.getExceptionTypes()
+
+        if exception_types is not None:
+            for exception_type in exception_types:
+                self.onExpression( exception_type )
+
+
+class ConstraintCollectionBranch( ConstraintCollectionBase ):
     def process( self, start_state, branch ):
-        assert branch.isStatementsSequence()
+        assert branch.isStatementsSequence(), branch
 
         self.onStatementsSequence( branch )
 
 
-class ConstraintCollectionFunction( ConstraintCollection ):
+class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrackingMixin ):
+    def __init__( self, parent, signal_change ):
+        ConstraintCollectionBase.__init__(
+            self,
+            parent        = parent,
+            signal_change = signal_change
+        )
+
+        VariableUsageTrackingMixin.__init__( self )
+
+        self.function_body = None
+
     def process( self, function_body ):
         assert function_body.isExpressionFunctionBody()
+        self.function_body = function_body
 
         statements_sequence = function_body.getBody()
 
         if statements_sequence is not None:
             self.onStatementsSequence( statements_sequence )
 
+        self.setTempNeedsFreeIndications()
 
-class ConstraintCollectionClass( ConstraintCollection ):
+    def onLocalVariableAssigned( self, variable, value_friend ):
+        self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
+
+    def onTempVariableAssigned( self, variable, value_friend ):
+        variable = variable.getReferenced()
+
+        assert variable.getRealOwner() is self.function_body, variable.getOwner()
+
+        self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
+
+
+class ConstraintCollectionClass( ConstraintCollectionBase, VariableUsageTrackingMixin ):
+    def __init__( self, parent, signal_change ):
+        ConstraintCollectionBase.__init__(
+            self,
+            parent        = parent,
+            signal_change = signal_change
+        )
+
+        VariableUsageTrackingMixin.__init__( self )
+
+        self.class_body = None
+
     def process( self, class_body ):
         assert class_body.isExpressionClassBody()
+        self.class_body = class_body
 
         statements_sequence = class_body.getBody()
 
         if statements_sequence is not None:
             self.onStatementsSequence( statements_sequence )
 
+        self.setTempNeedsFreeIndications()
 
-class ConstraintCollectionContraction( ConstraintCollection ):
-    def process( self, contraction_body ):
-        # TODO: Contractions don't work at all in this structure.
-        for source in contraction_body.getSources():
-            self.onExpression( source )
+    def onLocalVariableAssigned( self, variable, value_friend ):
+        self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
 
-        for condition in contraction_body.getConditions():
-            self.onExpression( condition )
+    def onTempVariableAssigned( self, variable, value_friend ):
+        variable = variable.getReferenced()
 
-        for target in contraction_body.getTargets():
-            self.onTarget( target )
+        assert variable.getRealOwner() is self.class_body, variable.getOwner()
 
-        # TODO: Do not call this body, it's the expression generated.
-        self.onExpression( contraction_body.getBody() )
+        self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
 
 
-class ConstraintCollectionModule( ConstraintCollection ):
+class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackingMixin ):
+    def __init__( self, signal_change ):
+        ConstraintCollectionBase.__init__( self, None, signal_change )
+
+        VariableUsageTrackingMixin.__init__( self )
+
+        self.module = None
+
     def process( self, module ):
         assert module.isModule()
+        self.module = module
 
         module_body = module.getBody()
 
         if module_body is not None:
             self.onStatementsSequence( module_body )
+
+        self.setTempNeedsFreeIndications()
 
         self.attemptRecursion( module )
 
@@ -668,46 +658,37 @@ class ConstraintCollectionModule( ConstraintCollection ):
                         "Recursed to module."
                     )
 
+    def onModuleVariableAssigned( self, variable, value_friend ):
+        while variable.isModuleVariableReference():
+            variable = variable.getReferenced()
 
-class ConstraintCollectionLoopOther( ConstraintCollection ):
+        self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
+
+    def onTempVariableAssigned( self, variable, value_friend ):
+        variable = variable.getReferenced()
+
+        assert variable.getRealOwner() is self.module, variable.getOwner()
+
+        self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
+
+
+    def getWrittenModuleVariables( self ):
+        return [
+            variable
+            for variable, usage in iterItems( self.variable_usages )
+            if not usage.isReadOnly()
+        ]
+
+
+class ConstraintCollectionLoopOther( ConstraintCollectionBase ):
     def process( self, start_state, loop ):
         # TODO: Somehow should copy that start state over, assuming nothing won't be wrong
         # for a start.
         self.start_state = start_state
 
-        if loop.isStatementForLoop():
-            # TODO: This should really be done from a next.
-            if False:
-                self.onAssignmentToTargetFromSource(
-                    source = loop.getIterator(),
-                    target = loop.getLoopVariableAssignment()
-                )
-        elif loop.isStatementWhileLoop():
-            pass
-        else:
-            assert False, loop
+        assert loop.isStatementLoop()
 
         loop_body = loop.getLoopBody()
 
         if loop_body is not None:
             self.onStatementsSequence( loop_body )
-
-
-class ConstraintCollectionLoopFirst( ConstraintCollection ):
-    def process( self, start_state, loop ):
-        # TODO: Somehow should copy that start state over, assuming nothing won't be wrong
-        # for a start.
-        self.start_state = start_state
-
-        assert loop.isStatementForLoop()
-
-        if loop.isStatementForLoop():
-            # TODO: This should really be done from a next.
-            if False:
-                self.onAssignmentToTargetFromSource(
-                    source = loop.getIterator(),
-                    target = loop.getLoopVariableAssignment()
-                )
-
-
-        self.onStatementsSequence( loop.getBody() )

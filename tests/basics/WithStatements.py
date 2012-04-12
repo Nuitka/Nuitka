@@ -18,7 +18,11 @@
 
 x = 0
 
-class MyContextManager:
+class MyContextManager(object):
+    def __getattribute__( self, attribute_name ):
+        print "Asking context manager attribute", attribute_name
+        return object.__getattribute__( self, attribute_name )
+
     def __enter__( self ):
         global x
         x += 1
@@ -28,7 +32,7 @@ class MyContextManager:
         return x
 
     def __exit__( self, exc_type, exc_value, traceback ):
-        print exc_type, exc_value, traceback
+        print "Exit sees", exc_type, exc_value, traceback
 
         return False
 
@@ -42,12 +46,30 @@ try:
         raise Exception( "Lalala" )
         print x
 except Exception, e:
-    print e
+    print "Caught raised exception", e
 
 l = range(3)
 
 with MyContextManager() as l[0]:
     print "Complex assignment target works", l[0]
+
+try:
+    import sys
+    with MyContextManager():
+        sys.exit(9)
+except BaseException as e:
+    print "Caught base exception", e
+
+
+try:
+    import sys
+    with MyContextManager() as l.wontwork:
+        sys.exit(9)
+except BaseException as e:
+    print "Caught base exception", e
+
+with MyContextManager() as x:
+    pass
 
 class NonContextManager1:
     def __enter__( self ):
@@ -74,6 +96,19 @@ class NotAtAllContextManager:
 
 try:
     with NotAtAllContextManager() as x:
+        print x
+except Exception, e:
+    print e
+
+class MeanContextManager:
+    def __enter__( self ):
+        raise ValueError( "Nah, I won't play" )
+
+    def __exit__( self ):
+        print "Called exit, yes"
+
+try:
+    with MeanContextManager() as x:
         print x
 except Exception, e:
     print e

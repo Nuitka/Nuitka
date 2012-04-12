@@ -49,7 +49,7 @@ class CPythonExpressionComparison( CPythonExpressionChildrenHavingBase ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values = {
-                "left" : left,
+                "left"  : left,
                 "right" : right
             },
             source_ref = source_ref

@@ -30,10 +30,10 @@
 
 """
 
-def isExceptionName( value ):
-    if name.endswith( "Error" ) or name.endswith( "Exception" ):
+def isExceptionName( builtin_name ):
+    if builtin_name.endswith( "Error" ) or builtin_name.endswith( "Exception" ):
         return True
-    elif name in ( "StopIteration", "GeneratorExit" ):
+    elif builtin_name in ( "StopIteration", "GeneratorExit" ):
         return True
     else:
         return False
@@ -52,7 +52,7 @@ try:
     for key in builtin_exception_names:
         builtin_exception_values[ key ] = getattr( exceptions, key )
 
-    del name, key
+    del name, key # Remove names uses in branch, pylint: disable=W0631
 
 except ImportError:
     exceptions = {}
@@ -74,7 +74,7 @@ except ImportError:
     for key, value in exceptions.items():
         builtin_exception_values[ key ] = value
 
-    del name, key, value, x
+    del name, key, value, x # Remove names uses in branch, pylint: disable=W0631
 
 assert "ValueError" in builtin_exception_names
 assert "StopIteration" in builtin_exception_names
@@ -98,6 +98,8 @@ assert "int" in builtin_names
 
 assert "__doc__" not in builtin_names
 assert "sys" not in builtin_names
+
+builtin_all_names = builtin_names + builtin_exception_names
 
 # For PyLint to be happy.
 assert exceptions

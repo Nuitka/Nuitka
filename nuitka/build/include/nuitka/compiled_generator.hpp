@@ -38,19 +38,17 @@
 // Another cornerstone of the integration into CPython. Try to behave as well as normal
 // generator function objects do or even better.
 
-// *** Nuitka_Generator/Nuitka_Genexpr shared begin
 
+// *** Nuitka_Generator type begin
+
+#include "fibers.hpp"
+
+// Status of the generator object.
 enum class Generator_Status {
     status_Unused,  // Not used so far
     status_Running, // Running, used but didn't stop yet
     status_Finished // Stoped, no more values to come
 };
-
-// *** Nuitka_Generator/Nuitka_Genexpr shared end
-
-// *** Nuitka_Generator type begin
-
-#include "fibers.hpp"
 
 // The Nuitka_GeneratorObject is the storage associated with a compiled generator object
 // instance of which there can be many for each code.
@@ -76,6 +74,7 @@ typedef struct {
     PyObject *m_exception_type, *m_exception_value, *m_exception_tb;
 
     PyFrameObject *m_frame;
+    PyCodeObject *m_code_object;
 
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
@@ -86,7 +85,8 @@ extern PyTypeObject Nuitka_Generator_Type;
 
 typedef void (*yielder_func)( Nuitka_GeneratorObject * );
 
-extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, void *context, releaser cleanup );
+extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, void *context, releaser cleanup );
+extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object );
 
 static inline bool Nuitka_Generator_Check( PyObject *object )
 {

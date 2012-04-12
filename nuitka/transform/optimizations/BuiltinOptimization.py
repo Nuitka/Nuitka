@@ -31,9 +31,9 @@
 """
 from nuitka.nodes.NodeMakingHelpers import makeRaiseExceptionReplacementExpressionFromInstance
 
-from nuitka.nodes.CallNode import CPythonExpressionFunctionCall
+from nuitka.nodes.CallNode import CPythonExpressionCall
 
-from nuitka.nodes.ParameterSpec import ParameterSpec, TooManyArguments
+from nuitka.nodes.ParameterSpec import ParameterSpec, TooManyArguments, matchCall
 
 from nuitka.Utils import getPythonVersion
 
@@ -94,9 +94,13 @@ class BuiltinParameterSpec( ParameterSpec ):
             sys.exit( "Fatal problem: %r" % e )
 
         if given_list_star_args:
-            return self.builtin( *( value.getCompileTimeConstant() for value in given_list_star_args ), **arg_dict )
+            return self.builtin(
+                *( value.getCompileTimeConstant() for value in given_list_star_args ),
+                **arg_dict
+            )
         else:
             return self.builtin( **arg_dict )
+
 
 class BuiltinParameterSpecNoKeywords( BuiltinParameterSpec ):
 
@@ -160,45 +164,61 @@ builtin_int_spec = BuiltinParameterSpec( "int", ( "x", "base" ), 2 )
 # This builtin is only available for Python2
 if getPythonVersion() < 300:
     builtin_long_spec = BuiltinParameterSpec( "long", ( "x", "base" ), 2 )
+    builtin_execfile_spec = BuiltinParameterSpecNoKeywords( "execfile", ( "filename", "globals", "locals" ), 2 )
 
 builtin_bool_spec = BuiltinParameterSpec( "bool", ( "x", ), 1 )
 builtin_float_spec = BuiltinParameterSpec( "float", ( "x", ), 1 )
 builtin_str_spec = BuiltinParameterSpec( "str", ( "object", ), 1 )
 builtin_len_spec = BuiltinParameterSpecNoKeywords( "len", ( "object", ), 0 )
-builtin_dict_spec = BuiltinParameterSpec( "dict", (), 2, "list_args", "dict_args" )
+builtin_dict_spec = BuiltinParameterSpec( "dict", (), 0, "list_args", "dict_args" )
 builtin_len_spec = BuiltinParameterSpecNoKeywords( "len", ( "object", ), 0 )
 builtin_tuple_spec = BuiltinParameterSpec( "tuple", ( "sequence", ), 1 )
 builtin_list_spec = BuiltinParameterSpec( "list", ( "sequence", ), 1 )
-builtin_import_spec = BuiltinParameterSpec( "__import__", ( "name", "globals", "locals", "fromlist", "level" ), 1 )
-builtin_open_spec = BuiltinParameterSpec( "open", ( "name", "mode", "buffering" ), 1 )
-builtin_chr_spec = BuiltinParameterSpecNoKeywords( "chr", ( "i", ), 1 )
-builtin_ord_spec = BuiltinParameterSpecNoKeywords( "ord", ( "c", ), 1 )
-builtin_bin_spec = BuiltinParameterSpecNoKeywords( "bin", ( "number", ), 1 )
-builtin_oct_spec = BuiltinParameterSpecNoKeywords( "oct", ( "number", ), 1 )
-builtin_hex_spec = BuiltinParameterSpecNoKeywords( "hex", ( "number", ), 1 )
+builtin_import_spec = BuiltinParameterSpec( "__import__", ( "name", "globals", "locals", "fromlist", "level" ), 4 )
+builtin_open_spec = BuiltinParameterSpec( "open", ( "name", "mode", "buffering" ), 2 )
+builtin_chr_spec = BuiltinParameterSpecNoKeywords( "chr", ( "i", ), 0 )
+builtin_ord_spec = BuiltinParameterSpecNoKeywords( "ord", ( "c", ), 0 )
+builtin_bin_spec = BuiltinParameterSpecNoKeywords( "bin", ( "number", ), 0 )
+builtin_oct_spec = BuiltinParameterSpecNoKeywords( "oct", ( "number", ), 0 )
+builtin_hex_spec = BuiltinParameterSpecNoKeywords( "hex", ( "number", ), 0 )
 builtin_range_spec = BuiltinParameterSpecNoKeywords( "range", ( "start", "stop", "step" ), 2 )
 builtin_repr_spec = BuiltinParameterSpecNoKeywords( "repr", ( "object", ), 0 )
-builtin_execfile_spec = BuiltinParameterSpecNoKeywords( "repr", ( "filename", "globals", "locals" ), 1 )
+
 builtin_dir_spec = BuiltinParameterSpecNoKeywords( "dir", ( "object", ), 0 )
+builtin_vars_spec = BuiltinParameterSpecNoKeywords( "vars", ( "object", ), 0 )
+
+builtin_locals_spec = BuiltinParameterSpecNoKeywords( "locals", (), 0 )
+builtin_globals_spec = BuiltinParameterSpecNoKeywords( "globals", (), 0 )
+
 
 def extractBuiltinArgs( node, builtin_spec, builtin_class ):
-    # TODO: These could be handled too.
+    # These cannot be handled.
     if node.getStarListArg() is not None or node.getStarDictArg() is not None:
         return None
 
     try:
-        args = builtin_spec.matchCallSpec(
-            name      = builtin_spec.getName(),
-            call_spec = node
+        pairs = tuple(
+            ( pair.getKey().getConstant(), pair.getValue() )
+            for pair in
+            node.getNamedArgumentPairs()
         )
 
-        # Using list reference for passing the arguments without names, pylint: disable=W0142
-        return builtin_class(
-            *args,
-            source_ref = node.getSourceReference()
+        if pairs and not builtin_spec.allowsKeywords():
+            raise TooManyArguments(
+                TypeError( builtin_spec.getKeywordRefusalText() )
+            )
+
+        args_dict = matchCall(
+            func_name     = builtin_spec.getName(),
+            args          = builtin_spec.getArgumentNames(),
+            star_list_arg = builtin_spec.getStarListArgumentName(),
+            star_dict_arg = builtin_spec.getStarDictArgumentName(),
+            num_defaults  = builtin_spec.getDefaultCount(),
+            positional    = node.getPositionalArguments(),
+            pairs         = pairs
         )
     except TooManyArguments as e:
-        return CPythonExpressionFunctionCall(
+        return CPythonExpressionCall(
             called_expression = makeRaiseExceptionReplacementExpressionFromInstance(
                 expression     = node,
                 exception      = e.getRealException()
@@ -209,3 +229,20 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class ):
             pairs             = node.getNamedArgumentPairs(),
             source_ref        = node.getSourceReference()
         )
+
+    args_list = []
+
+    for argument_name in builtin_spec.getArgumentNames():
+        args_list.append( args_dict[ argument_name ] )
+
+    if builtin_spec.getStarListArgumentName() is not None:
+        args_list.append( args_dict[ builtin_spec.getStarListArgumentName() ] )
+
+    if builtin_spec.getStarDictArgumentName() is not None:
+        args_list.append( args_dict[ builtin_spec.getStarDictArgumentName() ] )
+
+    # Using list reference for passing the arguments without names, pylint: disable=W0142
+    return builtin_class(
+        source_ref = node.getSourceReference(),
+        *args_list
+    )

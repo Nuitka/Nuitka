@@ -66,7 +66,20 @@ public:
         Py_XDECREF( this->object );
     }
 
-    void operator=( PyObject *object )
+    void assign0( PyObject *object )
+    {
+        assertObject( object );
+
+        PyObject *old_object = this->object;
+
+        this->object = INCREASE_REFCOUNT( object );
+
+        // Free old value if any available and owned.
+        Py_XDECREF( old_object );
+    }
+
+
+    void assign1( PyObject *object )
     {
         assertObject( object );
 
@@ -123,6 +136,7 @@ public:
     }
 
 private:
+
     PyObjectLocalParameterVariableWithDel( const PyObjectLocalParameterVariableWithDel &other ) = delete;
 
     PyObject *var_name;
@@ -132,6 +146,7 @@ private:
 class PyObjectLocalParameterVariableNoDel
 {
 public:
+
     explicit PyObjectLocalParameterVariableNoDel( PyObject *var_name, PyObject *object )
     {
         assertObject( object );
@@ -167,7 +182,19 @@ public:
         Py_DECREF( this->object );
     }
 
-    void operator=( PyObject *object )
+    void assign0( PyObject *object )
+    {
+        assertObject( object );
+        assertObject( this->object );
+
+        PyObject *old_object = this->object;
+        this->object = INCREASE_REFCOUNT( object );
+
+        // Free old value if any available and owned.
+        Py_DECREF( old_object );
+    }
+
+    void assign1( PyObject *object )
     {
         assertObject( object );
         assertObject( this->object );
@@ -204,6 +231,7 @@ public:
     }
 
 private:
+
     PyObjectLocalParameterVariableNoDel( const PyObjectLocalParameterVariableNoDel &other ) = delete;
 
     PyObject *var_name;

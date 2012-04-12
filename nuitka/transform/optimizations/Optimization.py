@@ -35,19 +35,15 @@ e.g. a new constant determined could make another optimization feasible.
 
 from .OptimizeModuleRecursion import ModuleRecursionVisitor
 from .OptimizeConstantExec import OptimizeExecVisitor
-from .OptimizeVariableClosure import (
-    VariableClosureLookupVisitors,
-    ModuleVariableUsageAnalysisVisitor,
-    MaybeLocalVariableReductionVisitor
-)
-from .OptimizeConstantOperations import OptimizeFunctionCallArgsVisitor
-from .OptimizeUnpacking import ReplaceUnpackingVisitor
+from .OptimizeVariableClosure import VariableClosureLookupVisitors
 from .OptimizeRaises import OptimizeRaisesVisitor
 from .OptimizeValuePropagation import ValuePropagationVisitor
 
 # Populate call registry.
 from . import OptimizeBuiltinCalls
 OptimizeBuiltinCalls.register()
+from . import OptimizeFunctionCalls
+OptimizeFunctionCalls.register()
 
 # Populate slice registry
 from . import OptimizeSlices
@@ -91,19 +87,6 @@ def optimizeTree( tree ):
             if not Options.shallMakeModule():
                 optimizations_queue.add( ModuleRecursionVisitor )
 
-        # TODO: This ought to happen in computeNode clearly.
-        if tags.check( "new_code new_constant" ):
-            optimizations_queue.add( OptimizeFunctionCallArgsVisitor )
-
-        if tags.check( "new_code new_constant" ):
-            optimizations_queue.add( ReplaceUnpackingVisitor )
-
-        if tags.check( "new_code" ):
-            optimizations_queue.add( ModuleVariableUsageAnalysisVisitor )
-
-        if tags.check( "var_usage new_builtin" ):
-            optimizations_queue.add( MaybeLocalVariableReductionVisitor )
-
         if tags.check( "new_code new_constant" ):
             if Options.shallOptimizeStringExec():
                 optimizations_queue.add( OptimizeExecVisitor )
@@ -111,7 +94,7 @@ def optimizeTree( tree ):
         if tags.check( "new_code new_raise" ):
             optimizations_queue.add( OptimizeRaisesVisitor )
 
-        if tags.check( "new_code new_statements new_constant new_builtin" ):
+        if tags.check( "new_code new_statements new_constant new_builtin read_only_mvar" ):
             optimizations_queue.add( ValuePropagationVisitor )
 
         tags.clear()

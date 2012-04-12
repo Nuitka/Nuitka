@@ -50,7 +50,27 @@ public:
         }
     }
 
-    void operator=( PyObject *object )
+    void assign0( PyObject *object )
+    {
+        assertObject( object );
+
+        if ( this->free_value )
+        {
+            PyObject *old_object = this->object;
+
+            this->object = INCREASE_REFCOUNT( object );
+
+            // Free old value if any available and owned.
+            Py_DECREF( old_object );
+        }
+        else
+        {
+            this->object = INCREASE_REFCOUNT( object );
+            this->free_value = true;
+        }
+    }
+
+    void assign1( PyObject *object )
     {
         assertObject( object );
 
@@ -115,7 +135,7 @@ public:
     void setVariableNameAndValue( PyObject *var_name, PyObject *object )
     {
         this->setVariableName( var_name  );
-        *this = object;
+        this->assign1( object );
     }
 
     void setVariableName( PyObject *var_name )
@@ -134,9 +154,14 @@ public:
         this->storage->ref_count += 1;
     }
 
-    void operator=( PyObject *object )
+    void assign0( PyObject *object )
     {
-        this->storage->operator=( object );
+        this->storage->assign0( object );
+    }
+
+    void assign1( PyObject *object )
+    {
+        this->storage->assign1( object );
     }
 
     PyObject *asObject() const
@@ -175,6 +200,7 @@ public:
     }
 
 private:
+
     PyObjectSharedLocalVariable( const PyObjectSharedLocalVariable & ) = delete;
 
     PyObjectSharedStorage *storage;

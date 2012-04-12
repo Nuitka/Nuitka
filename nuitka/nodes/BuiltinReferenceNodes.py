@@ -134,6 +134,12 @@ class CPythonExpressionBuiltinAnonymousRef( CPythonExpressionBuiltinRefBase ):
         # Virtual method, pylint: disable=R0201
         return True
 
+    def mayProvideReference( self ):
+        # No reference provided from this, there are just a global identifiers, or
+        # accesses to them.
+
+        return False
+
     def getCompileTimeConstant( self ):
         return builtin_anon_names[ self.builtin_name ]
 
@@ -165,6 +171,11 @@ class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
     def isCompileTimeConstant( self ):
         # Virtual method, pylint: disable=R0201
         return True
+
+    def mayProvideReference( self ):
+        # No reference provided from this, it's just a global identifier.
+
+        return False
 
     def getCompileTimeConstant( self ):
         return builtin_exception_values[ self.builtin_name ]

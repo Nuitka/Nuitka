@@ -199,6 +199,21 @@ def complexDel():
     except UnboundLocalError, e:
         print "yes, del worked"
 
+def globalErrors():
+    global unassigned_1, unassigned_2
+
+    try:
+        unassigned_1 = unassigned_1
+    except NameError as e:
+        print "Accessing unassigned global gives", e
+
+
+    try:
+        del unassigned_2
+    except NameError as e:
+        print "Del on unassigned global gives", e
+
+
 someFunction()
 varargsFunction(1,2,3,4)
 otherFunction()
@@ -208,3 +223,4 @@ interuptedUnpack()
 multiTargetInterrupt()
 optimizeableTargets()
 complexDel()
+globalErrors()

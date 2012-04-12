@@ -42,20 +42,18 @@ from .NodeBases import (
 )
 
 from .IndicatorMixins import (
+    MarkUnoptimizedFunctionIndicator,
     MarkContainsTryExceptIndicator,
     MarkLocalsDictIndicator,
-    MarkGeneratorIndicator,
-    MarkExecContainingIndicator
+    MarkGeneratorIndicator
 )
-
-from . import OverflowCheck
 
 from nuitka import Variables
 
 class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavingNodeBase, \
                                      CPythonClosureTaker, MarkContainsTryExceptIndicator, \
                                      CPythonExpressionMixin, MarkGeneratorIndicator, \
-                                     MarkLocalsDictIndicator, MarkExecContainingIndicator ):
+                                     MarkLocalsDictIndicator, MarkUnoptimizedFunctionIndicator ):
     # We really want these many ancestors, as per design, we add properties via base class
     # mixins a lot, pylint: disable=R0901
 
@@ -66,11 +64,40 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     named_children = ( "body", )
 
     def __init__( self, provider, name, doc, parameters, source_ref ):
+        code_prefix = "function"
+
         if name == "<lambda>":
-            self.is_lambda = True
             name = "lambda"
+            code_prefix = name
+
+            self.is_lambda = True
         else:
             self.is_lambda = False
+
+        if name == "<listcontraction>":
+            code_prefix = "listcontr"
+            name = ""
+
+            self.local_locals = False
+        else:
+            self.local_locals = True
+
+        if name == "<setcontraction>":
+            code_prefix = "setcontr"
+            name = ""
+
+        if name == "<dictcontraction>":
+            code_prefix = "dictcontr"
+            name = ""
+
+        if name == "<genexpr>":
+            code_prefix = "genexpr"
+            name = ""
+
+            self.is_genexpr = True
+
+        else:
+            self.is_genexpr = False
 
         CPythonClosureTaker.__init__(
             self,
@@ -80,7 +107,7 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         CPythonParameterHavingNodeBase.__init__(
             self,
             name        = name,
-            code_prefix = "function",
+            code_prefix = code_prefix,
             parameters  = parameters,
             source_ref  = source_ref
         )
@@ -96,7 +123,7 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
 
         MarkLocalsDictIndicator.__init__( self )
 
-        MarkExecContainingIndicator.__init__( self )
+        MarkUnoptimizedFunctionIndicator.__init__( self )
 
         self.doc = doc
 
@@ -112,6 +139,8 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     def getFunctionName( self ):
         if self.is_lambda:
             return "<lambda>"
+        elif self.is_genexpr:
+            return "<genexpr>"
         else:
             return self.name
 
@@ -156,14 +185,16 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         if self.hasProvidedVariable( variable_name ):
             result = self.getProvidedVariable( variable_name )
         else:
-            if self.hasStaticLocals():
-                result = self.getClosureVariable(
-                    variable_name = variable_name
-                )
-            else:
+            # For exec containing/star import containing, get a closure variable and if it
+            # is a module variable, only then make it a maybe local variable.
+            result = self.getClosureVariable(
+                variable_name = variable_name
+            )
+
+            if self.isUnoptimized() and result.isModuleVariable():
                 result = Variables.MaybeLocalVariable(
-                    owner            = self,
-                    variable_name    = variable_name
+                    owner         = self,
+                    variable_name = variable_name
                 )
 
             # Remember that we need that closure for something.
@@ -178,16 +209,27 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
             return self.provider.getVariableForClosure( variable_name )
 
     def createProvidedVariable( self, variable_name ):
-        return Variables.LocalVariable(
-            owner         = self,
-            variable_name = variable_name
-        )
+        if self.local_locals:
+            return Variables.LocalVariable(
+                owner         = self,
+                variable_name = variable_name
+            )
+        else:
+            # Make sure the provider knows it has to provide a variable of this name for
+            # the assigment.
+            self.provider.getVariableForAssignment(
+                variable_name = variable_name
+            )
 
-    def hasStaticLocals( self ):
-        return not OverflowCheck.check( self.getBody() )
+            return self.getClosureVariable(
+                variable_name = variable_name
+            )
 
     getBody = CPythonChildrenHaving.childGetter( "body" )
     setBody = CPythonChildrenHaving.childSetter( "body" )
+
+    def needsCreation( self ):
+        return not self.parent.isExpressionFunctionCall()
 
     def computeNode( self ):
         # Function body is quite irreplacable.
@@ -196,6 +238,7 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     def isCompileTimeConstant( self ):
         # TODO: It's actually pretty much compile time accessible mayhaps.
         return None
+
 
 class CPythonExpressionFunctionBodyDefaulted( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_FUNCTION_BODY_DEFAULTED"
@@ -222,3 +265,27 @@ class CPythonExpressionFunctionBodyDefaulted( CPythonExpressionChildrenHavingBas
     def isCompileTimeConstant( self ):
         # TODO: It's actually pretty much compile time accessible mayhaps.
         return None
+
+
+class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_FUNCTION_CALL"
+
+    named_children = ( "function_body", "values" )
+
+    def __init__( self, function_body, values, source_ref ):
+        assert function_body.isExpressionFunctionBody()
+
+        CPythonExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "function_body" : function_body,
+                "values"        : tuple( values ),
+            },
+            source_ref = source_ref
+        )
+
+    def computeNode( self ):
+        return self, None, None
+
+    getFunctionBody = CPythonExpressionChildrenHavingBase.childGetter( "function_body" )
+    getArgumentValues = CPythonExpressionChildrenHavingBase.childGetter( "values" )

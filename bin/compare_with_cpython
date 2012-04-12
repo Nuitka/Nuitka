@@ -35,6 +35,7 @@ import os, sys, subprocess, difflib, re, tempfile
 filename = sys.argv[1]
 silent_mode = "silent" in sys.argv
 ignore_stderr = "ignore_stderr" in sys.argv
+ignore_warnings = "ignore_warnings" in sys.argv
 exec_in_tmp = "exec_in_tmp" in sys.argv
 expect_success = "expect_success" in sys.argv
 expect_failure = "expect_failure" in sys.argv
@@ -176,8 +177,6 @@ if not silent_mode:
     if stderr_nuitka:
         print( stderr_nuitka )
 
-
-
 ran_re = re.compile( r"^(Ran \d+ tests? in )\d+\.\d+s$" )
 instance_re = re.compile( r"at (?:0x)?[0-9a-fA-F]+" )
 compiled_function_re = re.compile( r"\<compiled function" )
@@ -199,6 +198,12 @@ def makeDiffable( output ):
 
         if line.endswith( "\r" ):
             line = line[:-1]
+
+        if ignore_warnings and line.startswith( "Nuitka:WARNING" ):
+            continue
+
+        if line.startswith( "Nuitka:WARNING:Cannot recurse to import" ):
+            continue
 
         line = instance_re.sub( r"at 0xxxxxxxxx", line )
         line = compiled_function_re.sub( r"<function", line )
@@ -222,9 +227,6 @@ def makeDiffable( output ):
         )
 
         line = ran_re.sub( r"\1x.xxxs", line )
-
-        if line.startswith( "Nuitka:WARNING:Cannot recurse to import" ):
-            continue
 
         # TODO: The C++ compiler may give this warning when modules become too big.
         if line.endswith( "note: variable tracking size limit exceeded with -fvar-tracking-assignments, retrying without" ):

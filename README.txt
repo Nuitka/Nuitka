@@ -121,6 +121,7 @@ feedback and patches are very welcome.
 Especially report it if you find that anything doesn't work, because the project is now at
 the stage that this should not happen.
 
+
 Join Nuitka
 ===========
 
@@ -189,6 +190,7 @@ Maybe someone will do it someday. Help is welcome.
 
 We can consider making the compatible behaviour optional, and use it for the tests only as
 the called expression clearly is more useful to see then the closing brace.
+
 
 Optimizations
 =============
@@ -585,6 +587,7 @@ windows installation at all.
 .. footer::
 
         © Kay Hayen, 2012 | Page ###Page### of ###Total### | Section ###Section###
+
 
 Updates for this Manual
 =======================

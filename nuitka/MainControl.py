@@ -166,7 +166,8 @@ def _pickSourceFilenames( source_dir, other_modules ):
     for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
         base_filename = Utils.joinpath( source_dir, other_module.getFullName() )
 
-        # TODO: Could detect if the filesystem is cases sensitive in source_dir or not.
+        # Note: Could detect if the filesystem is cases sensitive in source_dir or not,
+        # but that's probably not worth the effort.
         collision_filename = Utils.normcase( base_filename )
 
         if collision_filename in seen_filenames:
@@ -315,22 +316,19 @@ def makeSourceDirectory( main_module ):
     )
 
 def runScons( tree, quiet ):
-    if Options.options.python_version is not None:
-        python_version = Options.options.python_version
-    else:
-        python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
+    python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
 
-        if Utils.getPythonVersion() >= 320:
-            # The Python3 really has sys.abiflags pylint: disable=E1101
-            if Options.options.python_debug is not None or hasattr( sys, "getobjects" ):
-                if sys.abiflags.startswith( "d" ):
-                    python_version += sys.abiflags
-                else:
-                    python_version += "d" + sys.abiflags
-            else:
+    if Utils.getPythonVersion() >= 320:
+        # The Python3 really has sys.abiflags pylint: disable=E1101
+        if Options.options.python_debug is not None or hasattr( sys, "getobjects" ):
+            if sys.abiflags.startswith( "d" ):
                 python_version += sys.abiflags
-        elif Options.options.python_debug is not None or hasattr( sys, "getobjects" ):
-            python_version += "_d"
+            else:
+                python_version += "d" + sys.abiflags
+        else:
+            python_version += sys.abiflags
+    elif Options.options.python_debug is not None or hasattr( sys, "getobjects" ):
+        python_version += "_d"
 
     def asBoolStr( value ):
         return "true" if value else "false"

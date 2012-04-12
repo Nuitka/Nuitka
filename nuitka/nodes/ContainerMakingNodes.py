@@ -87,7 +87,7 @@ class CPythonExpressionMakeSequenceBase( CPythonExpressionChildrenHavingBase ):
             )
 
     def isKnownToBeIterable( self, count ):
-        return count == len( self.getElements() )
+        return count is None or count == len( self.getElements() )
 
     def getUnpacked( self, count ):
         # For every child except dictionaries, it's this easy.
@@ -212,5 +212,12 @@ class CPythonExpressionMakeDict( CPythonExpressionChildrenHavingBase ):
 
         return new_node, "new_constant", "Created dictionary found to be constant."
 
+    def isKnownToBeIterable( self, count ):
+        return count is None
+
+        # TODO: That's more true
+        # return count is None or count == len( self.getPairs() )
+
     def getUnpacked( self, count ):
+        # Virtual method, pylint: disable=R0201,W0613
         assert False

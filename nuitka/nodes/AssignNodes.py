@@ -40,18 +40,125 @@ from .NodeBases import (
 )
 
 
-class CPythonAssignTargetVariable( CPythonExpressionChildrenHavingBase ):
-    kind = "ASSIGN_TARGET_VARIABLE"
+class CPythonStatementAssignmentVariable( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "STATEMENT_ASSIGNMENT_VARIABLE"
+
+    named_children = ( "source", "variable_ref" )
+
+    def __init__( self, variable_ref, source, source_ref ):
+        assert variable_ref is not None
+        assert not variable_ref.isExpressionVariableRef()
+
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "source"       : source,
+                "variable_ref" : variable_ref
+            }
+        )
+
+    def getDetail( self ):
+        return "%s from %s" % ( self.getTargetVariableRef(), self.getAssignSource() )
+
+    getTargetVariableRef = CPythonChildrenHaving.childGetter( "variable_ref" )
+    getAssignSource = CPythonChildrenHaving.childGetter( "source" )
+
+
+class CPythonStatementAssignmentAttribute( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
+
+    named_children = ( "source", "expression" )
+
+    def __init__( self, expression, attribute_name, source, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values = {
+                "expression" : expression,
+                "source"     : source,
+            }
+        )
+
+        self.attribute_name = attribute_name
+
+    def getDetails( self ):
+        return { "attribute" : self.attribute_name }
+
+    def getDetail( self ):
+        return "to attribute %s" % self.attribute_name
+
+    def getAttributeName( self ):
+        return self.attribute_name
+
+    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
+    getAssignSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
+
+
+class CPythonStatementAssignmentSubscript( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "STATEMENT_ASSIGNMENT_SUBSCRIPT"
+
+    named_children = ( "source", "expression", "subscript" )
+
+    def __init__( self, expression, subscript, source, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values     = {
+                "source"     : source,
+                "expression" : expression,
+                "subscript"  : subscript
+            }
+        )
+
+    getSubscribed = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
+    getSubscript = CPythonExpressionChildrenHavingBase.childGetter( "subscript" )
+    getAssignSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
+
+
+class CPythonStatementAssignmentSlice( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "STATEMENT_ASSIGNMENT_SLICE"
+
+    named_children = ( "source", "expression", "lower", "upper" )
+
+    def __init__( self, expression, lower, upper, source, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values     = {
+                "source"     : source,
+                "expression" : expression,
+                "lower"      : lower,
+                "upper"      : upper
+            }
+        )
+
+    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
+    getLower = CPythonExpressionChildrenHavingBase.childGetter( "lower" )
+    getUpper = CPythonExpressionChildrenHavingBase.childGetter( "upper" )
+    getAssignSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
+
+
+class CPythonStatementDelVariable( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "STATEMENT_DEL_VARIABLE"
 
     named_children = ( "variable_ref", )
 
     def __init__( self, variable_ref, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        assert variable_ref is not None
+        assert not variable_ref.isExpressionVariableRef()
+
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
             self,
-            values     = {
-                "variable_ref" : variable_ref,
-            },
-            source_ref = source_ref
+            values = {
+                "variable_ref" : variable_ref
+            }
         )
 
     def getDetail( self ):
@@ -63,26 +170,22 @@ class CPythonAssignTargetVariable( CPythonExpressionChildrenHavingBase ):
         else:
             return "to variable %s" % self.getTargetVariableRef()
 
-    getTargetVariableRef = CPythonExpressionChildrenHavingBase.childGetter( "variable_ref" )
+    getTargetVariableRef = CPythonChildrenHaving.childGetter( "variable_ref" )
 
-    def makeCloneAt( self, source_ref ):
-        return CPythonAssignTargetVariable(
-            variable_ref = self.getTargetVariableRef().makeCloneAt( source_ref ),
-            source_ref   = source_ref
-        )
 
-class CPythonAssignTargetAttribute( CPythonExpressionChildrenHavingBase ):
-    kind = "ASSIGN_TARGET_ATTRIBUTE"
+class CPythonStatementDelAttribute( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "STATEMENT_DEL_ATTRIBUTE"
 
     named_children = ( "expression", )
 
     def __init__( self, expression, attribute_name, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
             self,
-            values     = {
-                "expression" : expression,
-            },
-            source_ref = source_ref
+            values = {
+                "expression" : expression
+            }
         )
 
         self.attribute_name = attribute_name
@@ -98,159 +201,44 @@ class CPythonAssignTargetAttribute( CPythonExpressionChildrenHavingBase ):
 
     getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 
-    def makeCloneAt( self, source_ref ):
-        return CPythonAssignTargetAttribute(
-            expression     = self.getLookupSource(),
-            attribute_name = self.getAttributeName(),
-            source_ref     = source_ref
-        )
 
-
-class CPythonAssignTargetSubscript( CPythonExpressionChildrenHavingBase ):
-    kind = "ASSIGN_TARGET_SUBSCRIPT"
+class CPythonStatementDelSubscript( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "STATEMENT_DEL_SUBSCRIPT"
 
     named_children = ( "expression", "subscript" )
 
     def __init__( self, expression, subscript, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
             self,
             values     = {
                 "expression" : expression,
                 "subscript"  : subscript
-            },
-            source_ref = source_ref
+            }
         )
 
     getSubscribed = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
     getSubscript = CPythonExpressionChildrenHavingBase.childGetter( "subscript" )
 
-    def makeCloneAt( self, source_ref ):
-        return CPythonAssignTargetSubscript(
-            expression = self.getSubscribed(),
-            subscript  = self.getSubscript(),
-            source_ref = source_ref
-        )
 
-
-class CPythonAssignTargetSlice( CPythonExpressionChildrenHavingBase ):
-    kind = "ASSIGN_TARGET_SLICE"
+class CPythonStatementDelSlice( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "STATEMENT_DEL_SLICE"
 
     named_children = ( "expression", "lower", "upper" )
 
     def __init__( self, expression, lower, upper, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
             self,
             values     = {
                 "expression" : expression,
                 "lower"      : lower,
                 "upper"      : upper
-            },
-            source_ref = source_ref
+            }
         )
 
     getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
     getLower = CPythonExpressionChildrenHavingBase.childGetter( "lower" )
     getUpper = CPythonExpressionChildrenHavingBase.childGetter( "upper" )
-
-    def makeCloneAt( self, source_ref ):
-        return CPythonAssignTargetSlice(
-            expression = self.getLookupSource(),
-            lower      = self.getLower(),
-            upper      = self.getUpper(),
-            source_ref = source_ref
-        )
-
-
-class CPythonAssignTargetTuple( CPythonExpressionChildrenHavingBase ):
-    kind = "ASSIGN_TARGET_TUPLE"
-
-    named_children = ( "elements", )
-
-    def __init__( self, elements, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "elements" : tuple( elements ),
-            },
-            source_ref = source_ref
-        )
-
-    getElements = CPythonExpressionChildrenHavingBase.childGetter( "elements" )
-
-
-class CPythonExpressionAssignment( CPythonExpressionChildrenHavingBase ):
-    kind = "EXPRESSION_ASSIGNMENT"
-
-    named_children = ( "source", "target" )
-
-    def __init__( self, target, source, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "source" : source,
-                "target" : target
-            },
-            source_ref = source_ref
-        )
-
-    def getDetail( self ):
-        return "%s from %s" % ( self.getTarget(), self.getSource() )
-
-    getTarget = CPythonExpressionChildrenHavingBase.childGetter( "target" )
-    getSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
-
-    def computeNode( self ):
-        # TODO: Nothing to do here? Maybe if the assignment target is unused, it could
-        # replace itself with source.
-        return self, None, None
-
-
-class CPythonStatementAssignment( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "STATEMENT_ASSIGNMENT"
-
-    named_children = ( "source", "targets" )
-
-    def __init__( self, targets, source, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "source"  : source,
-                "targets" : tuple( targets )
-            }
-        )
-
-    def getDetail( self ):
-        targets = self.getTargets()
-
-        targets = [ target.getDetail() for target in targets ]
-
-        if len( targets ) == 1:
-            targets = targets[0]
-
-        return "%s from %s" % ( targets, self.getSource() )
-
-    getTargets = CPythonChildrenHaving.childGetter( "targets" )
-    getSource = CPythonChildrenHaving.childGetter( "source" )
-
-
-class CPythonStatementDel( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "STATEMENT_DEL"
-
-    named_children = ( "target", )
-
-    def __init__( self, target, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "target" : target
-            }
-        )
-
-    def getDetail( self ):
-        return "Del of %s" % self.getTarget()
-
-    getTarget = CPythonChildrenHaving.childGetter( "target" )

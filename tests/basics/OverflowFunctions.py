@@ -37,8 +37,8 @@ def deepExec():
 
             print "Locals now", locals()
 
-            # print "Closure one level up was taken", for_closure_as_well
-            # print "Closure two levels up was taken", for_closure
+            print "Closure one level up was taken", for_closure_as_well
+            print "Closure two levels up was taken", for_closure
             print "Globals still work", starImporterFunction
             print "Added local from code", f
 

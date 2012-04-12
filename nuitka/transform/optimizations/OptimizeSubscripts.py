@@ -26,6 +26,10 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Optimize subscript of compile time constant nodes.
+
+This works via the subscript registry.
+"""
 
 from .registry import SubscriptRegistry
 
@@ -48,6 +52,8 @@ def computeConstantSubscript( subscript_node, lookup, subscript ):
 
 
 def register():
+    # TODO: Actually we should register for all compile time constant values, and know
+    # what kinds these are.
     SubscriptRegistry.registerSubscriptHandler(
         kind    = CPythonExpressionConstantRef.kind,
         handler = computeConstantSubscript

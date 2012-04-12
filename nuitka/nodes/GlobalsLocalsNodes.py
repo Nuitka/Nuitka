@@ -35,7 +35,11 @@ not know where their value goes.
 """
 
 
-from .NodeBases import CPythonNodeBase, CPythonExpressionMixin
+from .NodeBases import (
+    CPythonNodeBase,
+    CPythonExpressionMixin,
+    CPythonExpressionBuiltinSingleArgBase
+)
 
 
 class CPythonExpressionBuiltinGlobals( CPythonNodeBase, CPythonExpressionMixin ):
@@ -65,4 +69,11 @@ class CPythonExpressionBuiltinDir0( CPythonNodeBase, CPythonExpressionMixin ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
     def computeNode( self ):
+        return self, None, None
+
+class CPythonExpressionBuiltinDir1( CPythonExpressionBuiltinSingleArgBase ):
+    kind = "EXPRESSION_BUILTIN_DIR1"
+
+    def computeNode( self ):
+        # TODO: Quite some cases should be possible to predict.
         return self, None, None

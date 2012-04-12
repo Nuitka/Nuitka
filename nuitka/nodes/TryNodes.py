@@ -54,26 +54,27 @@ class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
     getBlockTry = CPythonChildrenHaving.childGetter( "tried" )
     getBlockFinal = CPythonChildrenHaving.childGetter( "final" )
 
+    def isStatementAbortative( self ):
+        return self.getBlockTry().isStatementAbortative()
+
 
 class CPythonStatementExceptHandler( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_EXCEPT_HANDLER"
 
-    named_children = ( "exception_type", "target", "body" )
+    named_children = ( "exception_types", "body" )
 
-    def __init__( self, exception_type, target, body, source_ref ):
+    def __init__( self, exception_types, body, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
             values = {
-                "exception_type" : exception_type,
-                "target"         : target,
-                "body"           : body,
+                "exception_types" : tuple( exception_types ),
+                "body"            : body,
             }
         )
 
-    getExceptionType   = CPythonChildrenHaving.childGetter( "exception_type" )
-    getExceptionTarget = CPythonChildrenHaving.childGetter( "target" )
+    getExceptionTypes  = CPythonChildrenHaving.childGetter( "exception_types" )
     getExceptionBranch = CPythonChildrenHaving.childGetter( "body" )
 
 
@@ -97,3 +98,17 @@ class CPythonStatementTryExcept( CPythonChildrenHaving, CPythonNodeBase ):
     getBlockTry = CPythonChildrenHaving.childGetter( "tried" )
     getBlockNoRaise = CPythonChildrenHaving.childGetter( "no_raise" )
     getExceptionHandlers = CPythonChildrenHaving.childGetter( "handlers" )
+
+    def isStatementAbortative( self ):
+        if not self.getBlockTry().isStatementAbortative():
+            return False
+
+        for handler in self.getExceptionHandlers():
+            if not handler.isStatementAbortative():
+                return False
+
+        no_raise = self.getBlockNoRaise()
+        if no_raise is not None and not no_raise.isStatementAbortative():
+            return False
+
+        return True

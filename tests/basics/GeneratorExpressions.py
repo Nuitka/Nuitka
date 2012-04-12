@@ -34,13 +34,15 @@ def iteratorCreationTiming():
             return self
 
         def next( self ):
-            print "Next of", self.x, self.count
+            print "Next of", self.x, "is", self.count
 
             if len( self.values ) > self.count:
                 self.count += 1
 
                 return self.values[ self.count - 1 ]
             else:
+                print "Raising StopIteration for", self.x
+
                 raise StopIteration
 
         def __del__( self ):
@@ -53,6 +55,8 @@ def iteratorCreationTiming():
     gen.next()
     res = tuple( gen )
     print res
+
+    print "*" * 20
 
     try:
         gen.next()

@@ -213,13 +213,10 @@ class HolderVariableIdentifier( Identifier ):
 
 
 class TempObjectIdentifier( Identifier ):
-    def __init__( self, tempvar_name, from_context ):
+    def __init__( self, tempvar_name ):
         self.tempvar_name = tempvar_name
 
-        if from_context:
-            Identifier.__init__( self, from_context + "python_tmp_" + tempvar_name, 0 )
-        else:
-            Identifier.__init__( self, "_python_tmp_" + tempvar_name, 0 )
+        Identifier.__init__( self, "_python_tmp_" + tempvar_name, 0 )
 
     def getCodeTemporaryRef( self ):
         return self.code
@@ -227,7 +224,7 @@ class TempObjectIdentifier( Identifier ):
 
 class ClosureVariableIdentifier( Identifier ):
     def __init__( self, var_name, from_context ):
-        assert type( from_context ) == str
+        assert type( from_context ) is str
 
         self.var_name = var_name
         self.from_context = from_context
@@ -235,7 +232,9 @@ class ClosureVariableIdentifier( Identifier ):
         if self.from_context:
             Identifier.__init__( self, self.from_context + "python_closure_" + self.var_name, 0 )
         else:
-            Identifier.__init__( self, "_python_closure_" + self.var_name, 0 )
+            # TODO: Use a variable object to decide naming policy
+
+            Identifier.__init__( self, "python_closure_" + self.var_name, 0 )
 
     def __repr__( self ):
         return "<ClosureVariableIdentifier %s >" % self.var_name

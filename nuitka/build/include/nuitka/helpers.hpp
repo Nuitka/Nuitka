@@ -110,6 +110,22 @@ NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 
 #include "nuitka/helper/boolean.hpp"
 
+#include "nuitka/helper/dictionaries.hpp"
+
+#if PYTHON_VERSION >= 300
+static char *_PyUnicode_AS_STRING( PyObject *unicode )
+{
+    PyObject *bytes = _PyUnicode_AsDefaultEncodedString( unicode, NULL );
+
+    if (unlikely( bytes == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return PyBytes_AS_STRING( bytes );
+}
+#endif
+
 typedef PyObject *(binary_api)( PyObject *, PyObject * );
 
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION( binary_api api, PyObject *operand1, PyObject *operand2 )
@@ -238,7 +254,7 @@ static char const *GET_CALLABLE_NAME( PyObject *object )
     }
     else
     {
-        return object->ob_type->tp_name;
+        return Py_TYPE( object )->tp_name;
     }
 }
 
@@ -389,100 +405,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE( PyObject *value )
     return result;
 }
 
-
-
-NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict_obj )
-{
-    PyObject *result = PyDict_New();
-
-    if ( seq_obj != NULL )
-    {
-        int res;
-
-        if ( PyObject_HasAttrString( seq_obj, "keys" ) )
-        {
-            res = PyDict_Merge( result, seq_obj, 1 );
-        }
-        else
-        {
-            res = PyDict_MergeFromSeq2( result, seq_obj, 1 );
-        }
-
-        if ( res == -1 )
-        {
-            throw _PythonException();
-        }
-    }
-
-    if ( dict_obj != NULL )
-    {
-        int res = PyDict_Merge( result, dict_obj, 1 );
-
-        if ( res == -1 )
-        {
-            throw _PythonException();
-        }
-
-    }
-
-    return result;
-}
-
-
-NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, PyObject *value )
-{
-    int status = PyDict_SetItem( dict, key, value );
-
-    if (unlikely( status == -1 ))
-    {
-        throw _PythonException();
-    }
-}
-
-static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, Nuitka_StringObject *key )
-{
-    assert( PyDict_CheckExact( dict ) );
-    assert( Nuitka_String_Check( key ) );
-
-#if PYTHON_VERSION < 300
-    long hash = key->ob_shash;
-#else
-    long hash = key->hash;
-#endif
-
-    // Only improvement would be to identify how to ensure that the hash is computed
-    // already. Calling hash early on could do that potentially.
-    if ( hash == -1 )
-    {
-#if PYTHON_VERSION < 300
-        hash = PyString_Type.tp_hash( (PyObject *)key );
-        key->ob_shash = hash;
-#else
-        hash = PyUnicode_Type.tp_hash( (PyObject *)key );
-        key->hash = hash;
-#endif
-    }
-
-    PyDictEntry *entry = dict->ma_lookup( dict, (PyObject *)key, hash );
-
-    // The "entry" cannot be NULL, it can only be empty for a string dict lookup, but at
-    // least assert it.
-    assert( entry != NULL );
-
-    return entry;
-}
-
-static PyDictEntry *GET_PYDICT_ENTRY( PyModuleObject *module, Nuitka_StringObject *key )
-{
-    // Idea similar to LOAD_GLOBAL in CPython. Because the variable name is a string, we
-    // can shortcut much of the dictionary code by using its hash and dictionary knowledge
-    // here.
-
-    PyDictObject *dict = (PyDictObject *)(module->md_dict);
-
-    return GET_PYDICT_ENTRY( dict, key );
-}
-
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SET()
 {
     PyObject *result = PySet_New( NULL );
@@ -540,23 +462,23 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
     getiterfunc tp_iter = NULL;
 
 #if PYTHON_VERSION < 300
-    if ( PyType_HasFeature( iterated->ob_type, Py_TPFLAGS_HAVE_ITER ))
+    if ( PyType_HasFeature( Py_TYPE( iterated ), Py_TPFLAGS_HAVE_ITER ))
     {
 #endif
-        tp_iter = iterated->ob_type->tp_iter;
+        tp_iter = Py_TYPE( iterated )->tp_iter;
 #if PYTHON_VERSION < 300
     }
 #endif
 
     if ( tp_iter )
     {
-        PyObject *result = (*iterated->ob_type->tp_iter)( iterated );
+        PyObject *result = (*Py_TYPE( iterated )->tp_iter)( iterated );
 
         if (likely( result != NULL ))
         {
             if (unlikely( !PyIter_Check( result )) )
             {
-                PyErr_Format( PyExc_TypeError, "iter() returned non-iterator of type '%s'", result->ob_type->tp_name);
+                PyErr_Format( PyExc_TypeError, "iter() returned non-iterator of type '%s'", Py_TYPE( result )->tp_name );
 
                 Py_DECREF( result );
                 throw _PythonException();
@@ -583,7 +505,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
     }
     else
     {
-        PyErr_Format( PyExc_TypeError, "'%s' object is not iterable", iterated->ob_type->tp_name );
+        PyErr_Format( PyExc_TypeError, "'%s' object is not iterable", Py_TYPE( iterated )->tp_name );
         throw _PythonException();
     }
 }
@@ -595,7 +517,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 {
     assertObject( iterator );
 
-    PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
+    PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
     if (unlikely( result == NULL ))
     {
@@ -623,7 +545,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
 {
     assertObject( iterator );
 
-    PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
+    PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
     if (unlikely( result == NULL ))
     {
@@ -648,7 +570,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObjec
     assertObject( iterator );
     assertObject( default_value );
 
-    PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
+    PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
     if (unlikely( result == NULL ))
     {
@@ -684,7 +606,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, in
     assertObject( iterator );
     assert( PyIter_Check( iterator ) );
 
-    PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
+    PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
     if (unlikely( result == NULL ))
     {
@@ -713,7 +635,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_PARAMETER_NEXT( PyObject *it
     assertObject( iterator );
     assert( PyIter_Check( iterator ) );
 
-    PyObject *result = (*iterator->ob_type->tp_iternext)( iterator );
+    PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
     if (unlikely( result == NULL ))
     {
@@ -737,12 +659,17 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_PARAMETER_NEXT( PyObject *it
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static inline void UNPACK_ITERATOR_CHECK( PyObject *iterator )
+#if PYTHON_VERSION < 300
+#define UNPACK_ITERATOR_CHECK( iterator, count ) _UNPACK_ITERATOR_CHECK( iterator )
+NUITKA_MAY_BE_UNUSED static inline void _UNPACK_ITERATOR_CHECK( PyObject *iterator )
+#else
+NUITKA_MAY_BE_UNUSED static inline void UNPACK_ITERATOR_CHECK( PyObject *iterator, int count )
+#endif
 {
     assertObject( iterator );
     assert( PyIter_Check( iterator ) );
 
-    PyObject *attempt = (*iterator->ob_type->tp_iternext)( iterator );
+    PyObject *attempt = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
     if (likely( attempt == NULL ))
     {
@@ -761,18 +688,22 @@ NUITKA_MAY_BE_UNUSED static inline void UNPACK_ITERATOR_CHECK( PyObject *iterato
     else
     {
         Py_DECREF( attempt );
-
+#if PYTHON_VERSION < 300
         PyErr_Format( PyExc_ValueError, "too many values to unpack" );
+#else
+        PyErr_Format( PyExc_ValueError, "too many values to unpack (expected %d)", count );
+#endif
         throw _PythonException();
     }
 }
+
 
 NUITKA_MAY_BE_UNUSED static inline bool UNPACK_PARAMETER_ITERATOR_CHECK( PyObject *iterator )
 {
     assertObject( iterator );
     assert( PyIter_Check( iterator ) );
 
-    PyObject *attempt = (*iterator->ob_type->tp_iternext)( iterator );
+    PyObject *attempt = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
     if (likely( attempt == NULL ))
     {
@@ -1262,6 +1193,9 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *LOOKUP_WITH_EXIT( PyObject *source 
 
 NUITKA_MAY_BE_UNUSED static void APPEND_TO_LIST( PyObject *list, PyObject *item )
 {
+    assertObject( list );
+    assertObject( item );
+
     int status = PyList_Append( list, item );
 
     if (unlikely( status == -1 ))
@@ -1501,6 +1435,8 @@ extern PyObject *BUILTIN_RANGE( PyObject *boundary );
 // For quicker builtin len() functionality.
 extern PyObject *BUILTIN_LEN( PyObject *boundary );
 
+extern PyObject *BUILTIN_DIR1( PyObject *arg );
+
 NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {
     if ( PyDict_Check( globals ) == 0 )
@@ -1565,5 +1501,73 @@ extern void patchInspectModule( void );
 
 #define _DEBUG_UNFREEZER 0
 #define _DEBUG_REFRAME 0
+
+#define MAKE_CLASS( metaclass_global, class_name, bases, class_dict ) _MAKE_CLASS( EVAL_ORDERED_4( metaclass_global, class_name, bases, class_dict ) )
+
+
+NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_CLASS( EVAL_ORDERED_4( PyObject *metaclass_global, PyObject *class_name, PyObject *bases, PyObject *class_dict ) )
+{
+    // This selection is dynamic, although it is something that might be determined at
+    // compile time already in many cases, and therefore should be a function that is
+    // built of nodes.
+    PyObject *metaclass = PyDict_GetItemString( class_dict, "__metaclass__" );
+
+    // Prefer the metaclass entry of the new class, otherwise search the base classes for
+    // their metaclass.
+    if ( metaclass != NULL )
+    {
+        /* Hold a reference to the metaclass while we use it. */
+        Py_INCREF( metaclass );
+    }
+    else
+    {
+        assertObject( bases );
+
+        if ( PyTuple_GET_SIZE( bases ) > 0 )
+        {
+            PyObject *base = PyTuple_GET_ITEM( bases, 0 );
+
+            metaclass = PyObject_GetAttrString( base, "__class__" );
+
+            if ( metaclass == NULL )
+            {
+                PyErr_Clear();
+
+                metaclass = INCREASE_REFCOUNT( (PyObject *)Py_TYPE( base ) );
+            }
+        }
+        else if ( metaclass_global != NULL )
+        {
+            metaclass = INCREASE_REFCOUNT( metaclass_global );
+        }
+        else
+        {
+#if PYTHON_VERSION < 300
+            // Default to old style class.
+            metaclass = INCREASE_REFCOUNT( (PyObject *)&PyClass_Type );
+#else
+            // Default to old style class.
+            metaclass = INCREASE_REFCOUNT( (PyObject *)&PyType_Type );
+#endif
+        }
+    }
+
+    PyObject *result = PyObject_CallFunctionObjArgs(
+        metaclass,
+        class_name,
+        bases,
+        class_dict,
+        NULL
+    );
+
+    Py_DECREF( metaclass );
+
+    if ( result == NULL )
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
 
 #endif

@@ -63,7 +63,8 @@ class FinalizeMarkups( FinalizationVisitorBase ):
 
             crossed_try = False
 
-            while not search.isStatementForLoop() and not search.isStatementWhileLoop():
+            # Search up to the containing loop.
+            while not search.isStatementLoop():
                 last_search = search
                 search = search.getParent()
 
@@ -90,27 +91,13 @@ class FinalizeMarkups( FinalizationVisitorBase ):
             if crossed_except:
                 node.markAsReraiseLocal()
 
-
-        if node.isAssignTargetVariable():
-            # TODO: Looks like a getParentStatement is missing.
-            parent = node
-
-            while not parent.isStatement():
-                parent = parent.getParent()
-
-            if parent.isStatementDel():
-                node.getTargetVariableRef().getVariable().setHasDelIndicator()
+        if node.isStatementDelVariable():
+            node.getTargetVariableRef().getVariable().setHasDelIndicator()
 
         if node.isStatementTryExcept():
             parent = node.getParentVariableProvider()
 
             parent.markAsTryExceptContaining()
-
-        if node.isStatementExec() or node.isExpressionBuiltinExec():
-            parent = node.getParentVariableProvider()
-
-            if parent.isExpressionFunctionBody():
-                parent.markAsExecContaining()
 
         if node.isExpressionBuiltinImport() and not Options.getShallFollowExtra():
             warning( """\

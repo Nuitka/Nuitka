@@ -62,7 +62,34 @@ public:
         this->var_name = var_name;
     }
 
-    void operator=( PyObject *object )
+    void assign0( PyObject *object )
+    {
+        assertObject( object );
+
+        if ( this->free_value )
+        {
+            PyObject *old_object = this->object;
+
+            this->object = INCREASE_REFCOUNT( object );
+
+#ifndef NDEBUG
+            if ( Py_REFCNT( old_object ) < 0 )
+            {
+                printf( "Bad at %s\n", Nuitka_String_AsString( this->var_name ) );
+            }
+#endif
+
+            // Free old value if any available and owned.
+            Py_DECREF( old_object );
+        }
+        else
+        {
+            this->object = INCREASE_REFCOUNT( object );
+            this->free_value = true;
+        }
+    }
+
+    void assign1( PyObject *object )
     {
         assertObject( object );
 
@@ -71,6 +98,13 @@ public:
             PyObject *old_object = this->object;
 
             this->object = object;
+
+#ifndef NDEBUG
+            if ( Py_REFCNT( old_object ) < 0 )
+            {
+                printf( "Bad at %s\n", Nuitka_String_AsString( this->var_name ) );
+            }
+#endif
 
             // Free old value if any available and owned.
             Py_DECREF( old_object );
@@ -128,6 +162,7 @@ public:
     }
 
 private:
+
     PyObjectLocalVariable( const PyObjectLocalVariable &other ) = delete;
 
     PyObject *var_name;

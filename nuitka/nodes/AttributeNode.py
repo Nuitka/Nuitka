@@ -63,6 +63,14 @@ class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
 
     getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 
+    def makeCloneAt( self, source_ref ):
+        return CPythonExpressionAttributeLookup(
+            expression     = self.getLookupSource().makeCloneAt( source_ref ),
+            attribute_name = self.getAttributeName(),
+            source_ref     = source_ref
+        )
+
+
     def computeNode( self ):
         # There is a whole registry dedicated to this.
         return AttributeRegistry.computeAttribute( self )
@@ -70,3 +78,12 @@ class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
     def isKnownToBeIterable( self, count ):
         # TODO: Should ask AttributeRegistry
         return None
+
+
+class CPythonExpressionSpecialAttributeLookup( CPythonExpressionAttributeLookup ):
+    kind = "EXPRESSION_SPECIAL_ATTRIBUTE_LOOKUP"
+
+    # TODO: Special lookups should be treated somehow different.
+    def computeNode( self ):
+        # There is a whole registry dedicated to this.
+        return self, None, None

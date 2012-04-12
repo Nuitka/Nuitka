@@ -49,7 +49,8 @@ class TooManyArguments( Exception ):
     def getRealException( self ):
         return self.real_exception
 
-from nuitka import Variables
+
+from nuitka import Variables, Utils
 
 class ParameterSpecTuple:
     def __init__( self, normal_args, nest_count = 1 ):
@@ -185,11 +186,11 @@ class ParameterSpec( ParameterSpecTuple ):
     def getDefaultParameterNames( self ):
         return self.normal_args[ len( self.normal_args ) - self.default_count : ]
 
-    def getDefaultParameterCount( self ):
+    def getDefaultCount( self ):
         return self.default_count
 
     def hasDefaultParameters( self ):
-        return self.getDefaultParameterCount() > 0
+        return self.getDefaultCount() > 0
 
     def getVariables( self ):
         result = ParameterSpecTuple.getVariables( self )
@@ -213,13 +214,13 @@ class ParameterSpec( ParameterSpecTuple ):
 
         return result
 
-    def getListStarArgName( self ):
+    def getStarListArgumentName( self ):
         return self.list_star_arg
 
     def getListStarArgVariable( self ):
         return self.list_star_variable
 
-    def getDictStarArgName( self ):
+    def getStarDictArgumentName( self ):
         return self.dict_star_arg
 
     def getDictStarArgVariable( self ):
@@ -232,127 +233,220 @@ class ParameterSpec( ParameterSpecTuple ):
     def getKeywordRefusalText( self ):
         return "%s() takes no keyword arguments" % self.name
 
-    def matchCallSpec( self, name, call_spec ):
-        result = [ None ] * len( self.normal_args )
+    def getArgumentNames( self ):
+        return self.normal_args
 
-        if self.list_star_arg:
-            result.append( [] )
-            list_star_arg_offset = len( result ) - 1
 
-        if self.dict_star_arg:
-            result.append( [] )
+# Note: Based loosley on "inspect.getcallargs" with corrections.
+def matchCall( func_name, args, star_list_arg, star_dict_arg, num_defaults, positional, pairs, improved = False  ):
+    # This is of incredible code complexity, but there really is no other way to express
+    # this with less statements, branches, or variables. pylint: disable=R0914,R0912,R0915
 
-        # Refuse named arguments if not allowed
-        pairs = call_spec.getNamedArgumentPairs()
+    assert type( positional ) is tuple
+    assert type( pairs ) in ( tuple, list )
 
-        if pairs and not self.allowsKeywords():
+    # Make a copy, we are going to modify it.
+    pairs = list( pairs )
+
+    result = {}
+
+    assigned_tuple_params = []
+
+    def assign( arg, value ):
+        if type( arg ) is str:
+            # Normal case:
+            result[ arg ] = value
+        else:
+            # Tuple argument case:
+
+            assigned_tuple_params.append( arg )
+            value = iter( value )
+
+            for i, subarg in enumerate( arg ):
+                try:
+                    subvalue = next( value )
+                except StopIteration:
+                    raise TooManyArguments(
+                        ValueError(
+                            "need more than %d %s to unpack" % (
+                                i,
+                                "values" if i > 1 else "value"
+                            )
+                        )
+                    )
+
+                # Recurse into tuple argument values, could be more tuples.
+                assign( subarg, subvalue )
+
+            # Check that not too many values we provided.
+            try:
+                next( value )
+            except StopIteration:
+                pass
+            else:
+                raise TooManyArguments(
+                    ValueError( "too many values to unpack" )
+                )
+
+    def isAssigned( arg ):
+        if type( arg ) is str:
+            return arg in result
+
+        return arg in assigned_tuple_params
+
+    num_pos = len( positional )
+    num_total = num_pos + len( pairs )
+    num_args = len( args )
+
+    for arg, value in zip( args, positional ):
+        assign( arg, value )
+
+    # Python3 does this check earlier.
+    if Utils.getPythonVersion() >= 300 and not star_dict_arg:
+        for pair in pairs:
+            if pair[0] not in args:
+                message = "'%s' is an invalid keyword argument for this function" % pair[0]
+
+                raise TooManyArguments(
+                    TypeError( message )
+                )
+
+    if star_list_arg:
+        if num_pos > num_args:
+            assign( star_list_arg, positional[ -(num_pos-num_args) : ] )
+        else:
+            assign( star_list_arg, () )
+    elif 0 < num_args < num_total:
+        if num_defaults == 0:
             raise TooManyArguments(
                 TypeError(
-                    self.getKeywordRefusalText()
+                    "%s() takes exactly %s (%d given)" % (
+                        func_name,
+                        "one argument" if num_args == 1 else "%d arguments" % num_args,
+                        num_total
+                    )
+                )
+            )
+        else:
+            raise TooManyArguments(
+                TypeError(
+                    "%s() takes at most %d %s (%d given)" % (
+                        func_name,
+                        num_args,
+                        "argument" if num_args == 1 else "arguments",
+                        num_total
+                    )
+                )
+            )
+    elif num_args == 0 and num_total:
+        if star_dict_arg:
+            if num_pos:
+                # Could use num_pos, but Python also uses num_total.
+                raise TooManyArguments(
+                    TypeError(
+                        "%s() takes exactly 0 arguments (%d given)" % (
+                            func_name,
+                            num_total
+                        )
+                    )
+                )
+        else:
+            raise TooManyArguments(
+                TypeError(
+                    "%s() takes no arguments (%d given)" % (
+                        func_name,
+                        num_total
+                    )
                 )
             )
 
-        # Assign the positional arguments.
-        call_positional = call_spec.getPositionalArguments()
+    named_argument_names = [
+        pair[0]
+        for pair in
+        pairs
+    ]
 
-        for count, value in enumerate( call_positional ):
-            if count >= len( self.normal_args ):
-                break
-
-            result[ count ] = value
-
-
-        # Check counts and give error messages matching keyword parsing.
-        if len( pairs ):
-            if len( call_positional ) + len( pairs ) > len( self.normal_args ):
-                if not self.list_star_arg and not self.dict_star_arg:
-                    if len( self.normal_args ) == 1:
-                        raise TooManyArguments(
-                            TypeError(
-                                "%s() takes at most 1 argument (%d given)" % (
-                                    name,
-                                    len( call_positional ) + len( pairs )
-                                )
-                            )
-                        )
-                    else:
-                        if self.default_count == 0:
-                            raise TooManyArguments(
-                                TypeError(
-                                    "%s() takes exactly %s arguments (%d given)" % (
-                                        name,
-                                        len( self.normal_args ),
-                                        len( call_positional ) + len( pairs )
-                                    )
-                                )
-                            )
-                        else:
-                            raise TooManyArguments(
-                                TypeError(
-                                    "%s() takes at most %s arguments (%d given)" % (
-                                        name,
-                                        len( self.normal_args ),
-                                        len( call_positional ) + len( pairs )
-                                    )
-                                )
-                            )
-
-
-        # Check counts and give error messages for non-keyword parsing.
-        if len( call_positional ) > len( self.normal_args ):
-            if self.list_star_arg:
-                result[ list_star_arg_offset ] = call_positional[ len( self.normal_args ) : ]
-            else:
-                if len( self.normal_args ) == 1:
-                    raise TooManyArguments(
-                        TypeError(
-                            "%s() takes exactly one argument (%d given)" % (
-                                name,
-                                len( call_positional )
-                            )
-                        )
-                    )
-                else:
-                    if self.default_count == 0:
-                        raise TooManyArguments(
-                            TypeError(
-                                "%s() takes exactly %s arguments (%d given)" % (
-                                    name,
-                                    len( self.normal_args ),
-                                    len( call_positional )
-                                )
-                            )
-                        )
-                    else:
-                        raise TooManyArguments(
-                            TypeError(
-                                "%s() takes at most %s arguments (%d given)" % (
-                                    name,
-                                    len( self.normal_args ),
-                                    len( call_positional )
-                                )
-                            )
-                        )
-
-
-        # Go over the named arguments and assign them.
-        for pair in pairs:
-            named_arg_name = pair.getKey().getConstant()
-            named_arg_value = pair.getValue()
-
-            if named_arg_name in self.normal_args:
-                result[ self.normal_args.index( named_arg_name ) ] = named_arg_value
-            elif self.dict_star_arg:
-                result[ -1 ].append(
-                    ( named_arg_name, named_arg_value )
-                )
-            else:
+    for arg in args:
+        if type( arg ) is str and arg in named_argument_names:
+            if isAssigned( arg ):
                 raise TooManyArguments(
                     TypeError(
-                        "'%s' is an invalid keyword argument for this function" % (
-                            named_arg_name,
+                        "%s() got multiple values for keyword argument '%s'" % (
+                            func_name,
+                            arg
                         )
                     )
                 )
+            else:
+                new_pairs = []
 
-        return result
+                for pair in pairs:
+                    if arg == pair[0]:
+                        assign( arg, pair[1] )
+                    else:
+                        new_pairs.append( pair )
+
+                assert len( new_pairs ) == len( pairs ) - 1
+
+                pairs = new_pairs
+
+    # Fill in any missing values with the None to indicate "default".
+    if num_defaults > 0:
+        for arg in args[ -num_defaults : ]:
+            if not isAssigned( arg ):
+                assign( arg, None )
+
+    if star_dict_arg:
+        assign( star_dict_arg, pairs )
+    elif pairs:
+        unexpected = next( iter( dict( pairs ) ) )
+
+        if improved:
+            message = "%s() got an unexpected keyword argument '%s'" % (
+                func_name,
+                unexpected
+            )
+        else:
+            message = "'%s' is an invalid keyword argument for this function" % unexpected
+
+        raise TooManyArguments(
+            TypeError( message )
+        )
+
+    unassigned = num_args - len(
+        [
+            arg
+            for arg in args
+            if isAssigned( arg )
+        ]
+    )
+
+    if unassigned:
+        num_required = num_args - num_defaults
+
+        if num_defaults == 0 or improved:
+            raise TooManyArguments(
+                TypeError(
+                    "%s() takes %s %s (%d given)" % (
+                        func_name,
+                        "at least" if num_defaults > 0 else "exactly",
+                        "one argument" if num_required == 1 else "%d arguments" % num_required,
+                        num_total
+                    )
+                )
+            )
+        else:
+            raise TooManyArguments(
+                TypeError(
+                    "%s expected %s%s, got %d" % (
+                        func_name,
+                        ( "at least " if Utils.getPythonVersion() < 300 else "" )
+                            if num_defaults > 0
+                        else "exactly ",
+                        "%d arguments" % num_required,
+                        num_total
+                    )
+                )
+            )
+
+    return result

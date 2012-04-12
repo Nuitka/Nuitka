@@ -26,6 +26,10 @@
 #
 #     Please leave the whole of this copyright notice intact.
 #
+""" Optimize slicing of compile time constant nodes.
+
+This works via the slice registry.
+"""
 
 from .registry import SliceRegistry
 
@@ -41,14 +45,18 @@ def computeConstantSlice( slice_node, lookup, lower, upper ):
             if lower.isCompileTimeConstant() and upper.isCompileTimeConstant():
                 return getComputationResult(
                     node        = slice_node,
-                    computation = lambda : lookup.getCompileTimeConstant()[ lower.getCompileTimeConstant() : upper.getCompileTimeConstant() ],
+                    computation = lambda : lookup.getCompileTimeConstant()[
+                        lower.getCompileTimeConstant() : upper.getCompileTimeConstant()
+                    ],
                     description = "Slicing of constant with constant indexes."
                 )
         else:
             if lower.isCompileTimeConstant():
                 return getComputationResult(
                     node        = slice_node,
-                    computation = lambda : lookup.getCompileTimeConstant()[ lower.getCompileTimeConstant() : ],
+                    computation = lambda : lookup.getCompileTimeConstant()[
+                        lower.getCompileTimeConstant() :
+                    ],
                     description = "Slicing of constant with constant indexes."
                 )
     else:
@@ -56,7 +64,9 @@ def computeConstantSlice( slice_node, lookup, lower, upper ):
             if upper.isCompileTimeConstant():
                 return getComputationResult(
                     node        = slice_node,
-                    computation = lambda : lookup.getCompileTimeConstant()[ : upper.getCompileTimeConstant() ],
+                    computation = lambda : lookup.getCompileTimeConstant()[
+                        : upper.getCompileTimeConstant()
+                    ],
                     description = "Slicing of constant with constant indexes."
                 )
         else:
@@ -68,9 +78,9 @@ def computeConstantSlice( slice_node, lookup, lower, upper ):
 
     return slice_node, None, None
 
-
-
 def register():
+    # TODO: Actually we should register for all compile time constant values, and know
+    # what kinds these are.
     SliceRegistry.registerSliceHandler(
         kind    = CPythonExpressionConstantRef.kind,
         handler = computeConstantSlice

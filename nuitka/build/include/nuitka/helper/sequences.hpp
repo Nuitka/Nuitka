@@ -109,18 +109,4 @@ NUITKA_MAY_BE_UNUSED static bool _SEQUENCE_CONTAINS_NOT_BOOL( EVAL_ORDERED_2( Py
     return result == 0;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_ELEMENT( PyObject *sequence, Py_ssize_t element )
-{
-    assertObject( sequence );
-
-    PyObject *result = PySequence_GetItem( sequence, element );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
 #endif

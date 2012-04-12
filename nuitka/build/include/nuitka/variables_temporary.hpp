@@ -62,7 +62,7 @@ public:
         return this->object;
     }
 
-    void assign( PyObject *object )
+    void assign1( PyObject *object )
     {
         assertObject( this->object );
 
@@ -82,11 +82,9 @@ private:
 class PyObjectTempHolder
 {
 public:
-    explicit PyObjectTempHolder( PyObject *object )
+    explicit PyObjectTempHolder()
     {
-        assertObject( object );
-
-        this->object = object;
+        this->object = NULL;
     }
 
     ~PyObjectTempHolder()
@@ -103,7 +101,24 @@ public:
         return result;
     }
 
+    PyObject *assign0( PyObject *value )
+    {
+        assertObject( value );
+
+        this->object = INCREASE_REFCOUNT( value );
+        return this->object;
+    }
+
+    PyObject *assign1( PyObject *value )
+    {
+        assertObject( value );
+
+        this->object = value;
+        return this->object;
+    }
+
 private:
+
     PyObjectTempHolder( const PyObjectTempHolder &other ) = delete;
 
     PyObject *object;

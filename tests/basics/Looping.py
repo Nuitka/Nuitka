@@ -131,10 +131,17 @@ def loopingFunction( a = 1*2 ):
         pass
     else:
         print "Executed else branch for no break for loop"
- 
+
     for x in range( 7 ):
         break
     else:
         print "Executed else branch despite break in for loop"
+
+    x = iter( range(5) )
+
+    while next( x ):
+        pass
+    else:
+        print "Executed else branch of while loop without break"
 
 loopingFunction()
