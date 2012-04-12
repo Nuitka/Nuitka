@@ -75,26 +75,27 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
             self.is_lambda = False
 
         if name == "<listcontraction>":
-            name = "listcontr"
-            code_prefix = name
+            code_prefix = "listcontr"
+            name = ""
 
             self.local_locals = False
         else:
             self.local_locals = True
 
         if name == "<setcontraction>":
-            name = "setcontraction"
-            code_prefix = name
+            code_prefix = "setcontr"
+            name = ""
 
         if name == "<dictcontraction>":
-            name = "dictcontraction"
-            code_prefix = name
+            code_prefix = "dictcontr"
+            name = ""
 
         if name == "<genexpr>":
+            code_prefix = "genexpr"
+            name = ""
+
             self.is_genexpr = True
 
-            name = "genexpr"
-            code_prefix = name
         else:
             self.is_genexpr = False
 

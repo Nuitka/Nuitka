@@ -432,7 +432,7 @@ class CPythonCodeNodeBase( CPythonNodeBase ):
 
             uid = "_%d" % search.getChildUID( self )
 
-            if isinstance( self, CPythonCodeNodeBase ):
+            if isinstance( self, CPythonCodeNodeBase ) and self.name:
                 name = uid + "_" + self.name
             else:
                 name = uid
