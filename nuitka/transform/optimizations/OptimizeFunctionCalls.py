@@ -48,7 +48,7 @@ from nuitka.nodes.FunctionNodes import (
 
 from nuitka.__past__ import iterItems
 
-def computeOwnedFunctionCall( call_node, function_node ):
+def computeOwnedFunctionCall( call_node, function_body ):
 
     # We can't handle these yet. TODO: In principle, if e.g. the called function node takes
     # only those, we could in fact do more, but that's off limits for now.
@@ -60,11 +60,11 @@ def computeOwnedFunctionCall( call_node, function_node ):
     if call_node.getNamedArgumentPairs():
         return None
 
-    call_spec = function_node.getParameters()
+    call_spec = function_body.getParameters()
 
     try:
         args_dict = matchCall(
-            func_name     = function_node.getName(),
+            func_name     = function_body.getName(),
             args          = call_spec.getArgumentNames(),
             star_list_arg = call_spec.getStarListArgumentName(),
             star_dict_arg = call_spec.getStarDictArgumentName(),
@@ -81,9 +81,9 @@ def computeOwnedFunctionCall( call_node, function_node ):
                     values.append( arg_value )
 
         result = CPythonExpressionFunctionCall(
-            called_expression = function_node,
-            values            = values,
-            source_ref        = call_node.getSourceReference()
+            function_body = function_body,
+            values        = values,
+            source_ref    = call_node.getSourceReference()
         )
 
         # TODO: More appropiate tag maybe.

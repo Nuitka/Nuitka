@@ -93,7 +93,8 @@ from .nodes.SliceNodes import (
 
 from .nodes.FunctionNodes import (
     CPythonExpressionFunctionBodyDefaulted,
-    CPythonExpressionFunctionBody
+    CPythonExpressionFunctionBody,
+    CPythonExpressionFunctionCall
 )
 from .nodes.ClassNodes import (
     CPythonExpressionClassBodyBased,
@@ -1458,9 +1459,9 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, list_c
         )
     )
 
-    result = CPythonExpressionCall(
-        called_expression = function_body,
-        positional_args   = (
+    return CPythonExpressionFunctionCall(
+        function_body = function_body,
+        values        = (
             CPythonExpressionBuiltinIter1(
                 value      = buildNode(
                     provider   = provider,
@@ -1470,13 +1471,8 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, list_c
                 source_ref = source_ref
             ),
         ),
-        pairs             = (),
-        list_star_arg     = None,
-        dict_star_arg     = None,
         source_ref        = source_ref
     )
-
-    return result
 
 def buildListContractionNode( provider, node, source_ref ):
     return _buildContractionNode(

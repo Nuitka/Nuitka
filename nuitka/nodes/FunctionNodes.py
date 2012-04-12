@@ -268,13 +268,13 @@ class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):
 
     named_children = ( "function_body", "values" )
 
-    def __init__( self, called_expression, values, source_ref ):
-        assert called_expression.isExpressionFunctionBody()
+    def __init__( self, function_body, values, source_ref ):
+        assert function_body.isExpressionFunctionBody()
 
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "function_body" : called_expression,
+                "function_body" : function_body,
                 "values"        : tuple( values ),
             },
             source_ref = source_ref

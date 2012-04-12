@@ -74,7 +74,7 @@ from optparse import OptionParser
 parser = OptionParser()
 
 parser.add_option(
-    "--hide-todo", "--no-todo",
+    "--hide-todos", "--no-todos",
     action  = "store_true",
     dest    = "no_todos",
     default = False,
