@@ -1809,6 +1809,22 @@ into action, which could be code changes, plan changes, issues created, etc.
   e.g. implement a cache in a way that we know it wouldn't raise in the cache hit case,
   and only in cache miss, we need to prepare it.
 
+* Accesses to list constants should be tuples constants.
+
+  .. code-block:: python
+
+     for x in [ 1, 2, 7 ]:
+        something( x )
+
+  Should be optimized into this:
+
+  .. code-block:: python
+
+     for x in ( 1, 2, 7 ):
+        something( x )
+
+  Otherwise, code generation suffers from assuming the list may be tuple and is making a
+  copy before using it.
 
 .. raw:: pdf
 
