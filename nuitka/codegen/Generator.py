@@ -961,10 +961,9 @@ def getVariableAssignmentCode( context, variable, identifier ):
             referenced.declared = True
 
             return _getLocalVariableInitCode(
-                context    = context,
-                variable   = variable.getReferenced(),
-                in_context = False,
-                init_from  = identifier
+                context   = context,
+                variable  = variable.getReferenced(),
+                init_from = identifier
             )
         elif not referenced.getNeedsFree():
             # So won't get a reference, and take none, or else it may get lost, which we
@@ -1799,8 +1798,7 @@ def getFunctionDecl( context, function_identifier, default_identifiers, closure_
         }
 
 # TODO: Move this to VariableCodes, it's that subject.
-def _getLocalVariableInitCode( context, variable, init_from = None, in_context = False, \
-                               shared = False, mangle_name = None ):
+def _getLocalVariableInitCode( context, variable, init_from = None, in_context = False ):
     # This has many cases to deal with, so there need to be a lot of branches. It could
     # be cleaner a bit by solving the TODOs, but the fundamental problem renames.
     # pylint: disable=R0912
@@ -1809,43 +1807,18 @@ def _getLocalVariableInitCode( context, variable, init_from = None, in_context =
 
     assert init_from is None or hasattr( init_from, "getCodeTemporaryRef" )
 
-    var_name = variable.getName()
-    shared = shared or variable.isShared()
+    result = variable.getDeclarationTypeCode()
 
-    # TODO: This selection of suitable variable class should be shared.
-    if shared:
-        result = "PyObjectSharedLocalVariable"
-    elif variable.isTempVariable():
-        result = variable.getDeclarationTypeCode()
-    elif variable.isParameterVariable():
-        if variable.getHasDelIndicator():
-            result = "PyObjectLocalParameterVariableWithDel"
-        else:
-            result = "PyObjectLocalParameterVariableNoDel"
-    else:
-        result = "PyObjectLocalVariable"
-
+    # For pointer types, we don't have to separate with spaces.
     if not result.endswith( "*" ):
         result += " "
 
-    def mangleName( name ):
-        if mangle_name is None or not name.startswith( "__" ) or name.endswith( "__" ):
-            return name
-        else:
-            return "_" + mangle_name + name
-
-    store_name = mangleName( var_name )
+    store_name = variable.getMangledName()
 
     if not in_context:
         result += "_"
 
-    # TODO: Too much naming policy here.
-    if variable.isClosureReference():
-        result += variable.getCodeName()
-    elif variable.isTempVariable():
-        result += "python_tmp_%s" % var_name
-    else:
-        result += "python_var_%s" % var_name
+    result += variable.getCodeName()
 
     if not in_context:
         if variable.isTempVariable():
@@ -1874,9 +1847,6 @@ def _getLocalVariableInitCode( context, variable, init_from = None, in_context =
                             result += ", true"
                 else:
                     result += ", %s" % init_from.getCodeExportRef()
-
-                    if shared:
-                        result += ", true"
 
             result += " )"
 
@@ -1973,19 +1943,20 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
             )
         )
 
-    # TODO: I think there are no more
+    # These are for keeping values during evaluation of comparison chains.
     function_var_inits += [
         "PyObjectTempHolder %s;" % tmp_variable
         for tmp_variable in tmp_variables
     ]
 
     for closure_variable in closure_variables:
+        assert closure_variable.isShared()
+
         context_decl.append(
             _getLocalVariableInitCode(
                 context    = context,
                 variable   = closure_variable,
-                in_context = True,
-                shared     = True
+                in_context = True
             )
         )
         context_copy.append(
@@ -2190,10 +2161,9 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
 
     function_parameter_decl = [
         _getLocalVariableInitCode(
-            context    = context,
-            variable   = variable,
-            in_context = False,
-            init_from  = Identifier( "_python_par_" + variable.getName(), 1 )
+            context   = context,
+            variable  = variable,
+            init_from = Identifier( "_python_par_" + variable.getName(), 1 )
         )
         for variable in
         parameter_variables
@@ -2201,8 +2171,13 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
 
     for closure_variable in closure_variables:
         context_decl.append(
-            "PyObjectSharedLocalVariable python_closure_%s;" % closure_variable.getName()
+            _getLocalVariableInitCode(
+                context    = context,
+                variable   = closure_variable,
+                in_context = True
+            )
         )
+
         context_copy.append(
             "_python_context->python_closure_%s.shareWith( python_closure_%s );" % (
                 closure_variable.getName(),
@@ -2435,11 +2410,9 @@ def getClassCode( context, source_ref, class_name, class_identifier, class_varia
 
         class_var_decl.append(
             _getLocalVariableInitCode(
-                context       = context,
-                variable      = class_variable,
-                init_from     = init_from,
-                in_context    = False,
-                mangle_name   = class_name
+                context   = context,
+                variable  = class_variable,
+                init_from = init_from
             )
         )
 
