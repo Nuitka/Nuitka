@@ -40,6 +40,7 @@ from .Identifiers import (
     ModuleVariableIdentifier,
     DefaultValueIdentifier,
     HelperCallIdentifier,
+    ThrowingIdentifier,
     CallIdentifier,
     getCodeTemporaryRefs,
     getCodeExportRefs
@@ -1115,16 +1116,14 @@ def getReRaiseExceptionCode( local ):
 def getRaiseExceptionExpressionCode( side_effects, exception_type_identifier, \
                                      exception_value_identifier, exception_tb_maker ):
     # TODO: Check out if the NUITKA_NO_RETURN avoids any temporary refcount to ever be
-    # created or else avoid it with special identifier class that uses code for reference
-    # counts 0 and both.
+    # created
 
-    result = Identifier(
+    result = ThrowingIdentifier(
         "THROW_EXCEPTION( %s, %s, %s, &traceback )" % (
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
-        ),
-        0
+        )
     )
 
     if side_effects:
