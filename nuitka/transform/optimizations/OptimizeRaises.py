@@ -62,6 +62,10 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
                 self.trimEvaluation(
                     node = node.parent
                 )
+            elif node.parent.isStatementReturn():
+                self.trimEvaluation(
+                    node = node.parent
+                )
         elif node.isStatementRaiseException():
             if node.parent.isStatementsSequence():
                 statements = node.parent.getStatements()
