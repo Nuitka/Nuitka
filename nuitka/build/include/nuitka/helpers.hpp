@@ -1230,7 +1230,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject 
 
 #include "nuitka/builtins.hpp"
 
-#include "nuitka/frameguards.hpp"
+#include "nuitka/frame_guards.hpp"
 
 #include "nuitka/variables_parameters.hpp"
 #include "nuitka/variables_locals.hpp"

@@ -26,8 +26,8 @@
 //
 //     Please leave the whole of this copyright notice intact.
 //
-#ifndef __NUITKA_FRAMEGUARDS_H__
-#define __NUITKA_FRAMEGUARDS_H__
+#ifndef __NUITKA_FRAME_GUARDS_H__
+#define __NUITKA_FRAME_GUARDS_H__
 
 inline static void assertCodeObject( PyCodeObject *code_object )
 {
