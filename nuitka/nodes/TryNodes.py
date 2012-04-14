@@ -76,27 +76,26 @@ class CPythonStatementExceptHandler( CPythonChildrenHaving, CPythonNodeBase ):
 
     getExceptionTypes  = CPythonChildrenHaving.childGetter( "exception_types" )
     getExceptionBranch = CPythonChildrenHaving.childGetter( "body" )
+    setExceptionBranch = CPythonChildrenHaving.childSetter( "body" )
 
 
 class CPythonStatementTryExcept( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_TRY_EXCEPT"
 
-    named_children = ( "tried", "handlers", "no_raise" )
+    named_children = ( "tried", "handlers" )
 
-    def __init__( self, tried, no_raise, handlers, source_ref ):
+    def __init__( self, tried, handlers, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         CPythonChildrenHaving.__init__(
             self,
             values = {
                 "tried"    : tried,
-                "handlers" : tuple( handlers ),
-                "no_raise" : no_raise
+                "handlers" : tuple( handlers )
             }
         )
 
     getBlockTry = CPythonChildrenHaving.childGetter( "tried" )
-    getBlockNoRaise = CPythonChildrenHaving.childGetter( "no_raise" )
     getExceptionHandlers = CPythonChildrenHaving.childGetter( "handlers" )
 
     def isStatementAbortative( self ):
@@ -106,9 +105,5 @@ class CPythonStatementTryExcept( CPythonChildrenHaving, CPythonNodeBase ):
         for handler in self.getExceptionHandlers():
             if not handler.isStatementAbortative():
                 return False
-
-        no_raise = self.getBlockNoRaise()
-        if no_raise is not None and not no_raise.isStatementAbortative():
-            return False
 
         return True

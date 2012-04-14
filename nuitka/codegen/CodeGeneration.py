@@ -1497,12 +1497,7 @@ if ( _tmp_unpack_%(tmp_count)d == NULL )
             statement_sequence = tried_block,
             context            = context,
         ),
-        handler_codes = handler_codes,
-        else_code     = generateStatementSequenceCode(
-            statement_sequence = statement.getBlockNoRaise(),
-            allow_none         = True,
-            context            = context
-        )
+        handler_codes = handler_codes
     )
 
 def generateRaiseCode( statement, context ):

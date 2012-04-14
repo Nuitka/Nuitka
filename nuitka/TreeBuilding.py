@@ -530,7 +530,6 @@ def buildForLoopNode( provider, node, source_ref ):
                     source_ref     = source_ref
                 ),
             ),
-            no_raise   = None,
             source_ref = source_ref
         ),
         buildAssignmentStatements(
@@ -1371,7 +1370,6 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, list_c
                         source_ref     = source_ref
                     ),
                 ),
-                no_raise   = None,
                 source_ref = source_ref
             ),
             buildAssignmentStatements(
@@ -1613,6 +1611,82 @@ def buildConditionNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
+def _makeTryExceptNoRaise( tried, handlers, no_raise, source_ref ):
+    assert no_raise is not None
+    assert len( handlers ) > 0
+
+    result = CPythonStatementTempBlock(
+        source_ref = source_ref
+    )
+
+    tmp_handler_indicator_variable = result.getTempVariable( "unhandled_indicator" )
+
+    for handler in handlers:
+        handler.setExceptionBranch(
+            _makeStatementsSequence(
+                statements = (
+                    CPythonStatementAssignmentVariable(
+                        variable_ref = CPythonExpressionTempVariableRef(
+                            variable   = tmp_handler_indicator_variable.makeReference( result ),
+                            source_ref = source_ref.atInternal()
+                        ),
+                        source     = CPythonExpressionConstantRef(
+                            constant   = False,
+                            source_ref = source_ref
+                        ),
+                        source_ref = no_raise.getSourceReference().atInternal()
+                    ),
+                    handler.getExceptionBranch()
+                ),
+                allow_none = True,
+                source_ref = source_ref
+            )
+        )
+
+    result.setBody(
+        CPythonStatementsSequence(
+            statements = (
+                CPythonStatementAssignmentVariable(
+                    variable_ref = CPythonExpressionTempVariableRef(
+                        variable   = tmp_handler_indicator_variable.makeReference( result ),
+                        source_ref = source_ref.atInternal()
+                    ),
+                    source     = CPythonExpressionConstantRef(
+                        constant   = True,
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+                CPythonStatementTryExcept(
+                    tried      = tried,
+                    handlers   = handlers,
+                    source_ref = source_ref
+                ),
+                CPythonStatementConditional(
+                    condition  = CPythonExpressionComparison(
+                        left = CPythonExpressionTempVariableRef(
+                            variable   = tmp_handler_indicator_variable.makeReference( result ),
+                            source_ref = source_ref
+                        ),
+                        right = CPythonExpressionConstantRef(
+                            constant   = True,
+                            source_ref = source_ref
+                        ),
+                        comparator = "Is",
+                        source_ref = source_ref
+                    ),
+                    yes_branch = no_raise,
+                    no_branch  = None,
+                    source_ref = source_ref
+                )
+            ),
+            source_ref = source_ref
+        )
+    )
+
+    return result
+
+
 def buildTryExceptionNode( provider, node, source_ref ):
     handlers = []
 
@@ -1659,20 +1733,31 @@ def buildTryExceptionNode( provider, node, source_ref ):
             )
         )
 
-    return CPythonStatementTryExcept(
-        tried      = buildStatementsNode(
-            provider   = provider,
-            nodes      = node.body,
-            source_ref = source_ref
-        ),
-        handlers   = handlers,
-        no_raise   = buildStatementsNode(
-            provider   = provider,
-            nodes      = node.orelse,
-            source_ref = source_ref
-        ),
+    tried = buildStatementsNode(
+        provider   = provider,
+        nodes      = node.body,
         source_ref = source_ref
     )
+
+    no_raise = buildStatementsNode(
+        provider   = provider,
+        nodes      = node.orelse,
+        source_ref = source_ref
+    )
+
+    if no_raise is None:
+        return CPythonStatementTryExcept(
+            handlers   = handlers,
+            tried      = tried,
+            source_ref = source_ref
+        )
+    else:
+        return _makeTryExceptNoRaise(
+            handlers   = handlers,
+            tried      = tried,
+            no_raise   = no_raise,
+            source_ref = source_ref
+        )
 
 def buildTryFinallyNode( provider, node, source_ref ):
     return CPythonStatementTryFinally(
@@ -2161,7 +2246,7 @@ def buildWithNode( provider, node, source_ref ):
     source_ref = source_ref.atInternal()
 
     statements += [
-        CPythonStatementTryExcept(
+        _makeTryExceptNoRaise(
             tried      = with_body,
             handlers   = (
                 CPythonStatementExceptHandler(

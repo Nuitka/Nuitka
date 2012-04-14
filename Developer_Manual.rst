@@ -484,6 +484,59 @@ previous approach of special casing imports to check if it's the included module
    optimization yet, it should be easy to add.
 
 
+Frame Stack
+===========
+
+In Python, every function, class, and module has a frame. It creates created when the
+scope it entered, and there is a stack of these at run time, which becomes visible in
+tracebacks in case of exceptions.
+
+The choice of Nuitka is to make this non-static elements of the node tree, that are as
+such subject to optimization. In cases, where they are not needed, they may be removed.
+
+
+Consider the following code.
+
+.. code-block:: python
+
+   def f():
+       if someNotRaisingCall():
+           return somePotentiallyRaisingCall()
+       else:
+           return None
+
+In this example, the frame is not needed for all the code, because the condition checked
+wouldn't possibly raise at all. The idea is the make the frame guard explicit and then to
+move it downwards in the tree, whenever possible.
+
+So we start out with code like this one:
+
+.. code-block:: python
+
+   def f():
+       with frame_guard( "f" ):
+           if someNotRaisingCall():
+               return somePotentiallyRaisingCall()
+           else:
+               return None
+
+This is to be optimized into:
+
+.. code-block:: python
+
+   def f():
+       if someNotRaisingCall():
+           with frame_guard( "f" ):
+               return somePotentiallyRaisingCall()
+       else:
+           return None
+
+
+Notice how the frame guard taking is limited and may be avoided, or in best cases, it
+might be removed completely. Also this will play a role when inling function, it will not
+be lost or need any extra care.
+
+
 Language Conversions to make things simpler
 ===========================================
 
@@ -1757,57 +1810,6 @@ into action, which could be code changes, plan changes, issues created, etc.
   This of course makes most sense, if we have the optimizations in place that will allow
   this to actually happen.
 
-* Frame stack guards should become statements.
-
-  Currently frame guards are hard coded into function bodies and class bodies (which will
-  become function bodies later), and are therefore not seen by the optimization. Now some
-  re-formulated functions are not even allowed to have frame stack entries (list
-  contractions) and therefore it should become optional.
-
-  Now the idea is the following.
-
-  .. code-block:: python
-
-     def f():
-        if someNotRaisingCall():
-           return somePotentiallyRaisingCall()
-        else:
-           return None
-
-  In this example, the frame guard is taken, even though the condition checked wouldn't
-  possibly raise at all. The idea is the make the frame guard explicit and then to move it
-  downwards in the tree, whenever possible.
-
-  .. code-block:: python
-
-      def f():
-         with frame_guard( "f" ):
-            if someNotRaisingCall():
-               return somePotentiallyRaisingCall()
-            else:
-               return None
-
-
-  This is to be optimized into:
-
-  .. code-block:: python
-
-      def f():
-         if someNotRaisingCall():
-            with frame_guard( "f" ):
-               return somePotentiallyRaisingCall()
-         else:
-            return None
-
-
-  Notice how the frame guard taking is now limited and may be avoided, or in good cases,
-  be removed completely. Also with making it explicit in the node tree, it will not be
-  forgotten when inlining happens, and it will be possible to not have it for some of the
-  re-formulation resulting function bodies.
-
-  This optimization might be extremely important for optimizations, where a function may
-  e.g. implement a cache in a way that we know it wouldn't raise in the cache hit case,
-  and only in cache miss, we need to prepare it.
 
 * Accesses to list constants should be tuples constants.
 
@@ -1825,6 +1827,29 @@ into action, which could be code changes, plan changes, issues created, etc.
 
   Otherwise, code generation suffers from assuming the list may be tuple and is making a
   copy before using it.
+
+* Functions with defaults should use temp variables for them.
+
+  .. code-block:: python
+
+     def f( a, b=2, b=3 ):
+         pass
+
+  Should be composed by a temp variable calculated outside, and then an assignment to the
+  defaults. That way, it becomes obvious that the defaults are an attribute that is
+  computed outside of the function. Previously defaults were children of the builder, but
+  that caused problems. Currently the defaults are wrapped outside, which has its own
+  problems too.
+
+  Lambdas have defaults too, so it's not always a statement, but has to happen inside an
+  expression.
+
+* Try/except/else should be reformulated to use indicator tmp variable
+
+  Much like "else" branches of loops, an indicator variable could be used to indicate the
+  entry into one if the exception handlers. That would expose it better to optimizations
+  and simplify their handling.
+
 
 .. raw:: pdf
 

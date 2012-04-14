@@ -1065,26 +1065,17 @@ def getTryExceptHandlerCode( exception_identifiers, handler_code, first_handler 
 
     return exception_code
 
-def getTryExceptCode( context, code_tried, handler_codes, else_code ):
+def getTryExceptCode( context, code_tried, handler_codes ):
     exception_code = handler_codes
     exception_code += CodeTemplates.try_except_reraise_unmatched_template.split( "\n" )
 
     tb_making = getTracebackMakingIdentifier( context )
 
-    if else_code is not None:
-        return CodeTemplates.try_except_else_template % {
-            "tried_code"     : indented( code_tried or "" ),
-            "exception_code" : indented( exception_code ),
-            "else_code"      : indented( else_code ),
-            "tb_making"      : tb_making.getCodeExportRef(),
-            "except_count"   : context.allocateTryNumber()
-        }
-    else:
-        return CodeTemplates.try_except_template % {
-            "tried_code"     : indented( code_tried or "" ),
-            "exception_code" : indented( exception_code ),
-            "tb_making"      : tb_making.getCodeExportRef(),
-        }
+    return CodeTemplates.try_except_template % {
+        "tried_code"     : indented( code_tried or "" ),
+        "exception_code" : indented( exception_code ),
+        "tb_making"      : tb_making.getCodeExportRef(),
+    }
 
 
 def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier, \

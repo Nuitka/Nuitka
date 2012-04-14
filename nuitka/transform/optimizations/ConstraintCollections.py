@@ -464,10 +464,6 @@ class ConstraintCollectionBase:
             if tried_statement_sequence is not None:
                 self.onStatementsSequence( tried_statement_sequence )
 
-            if statement.getBlockNoRaise() is not None:
-                # Then assuming no exception, the no raise block if present.
-                self.onStatementsSequence( statement.getBlockNoRaise() )
-
             # The exception branches triggers in unknown state, any amount of tried code
             # may have happened. A similar approach to loops should be taken to invalidate
             # the state before.
@@ -479,7 +475,7 @@ class ConstraintCollectionBase:
             self.variables = {}
 
             if statement.getBlockTry() is None:
-                return statement.getBlockNoRaise()
+                return None
             else:
                 return statement
         elif statement.isStatementImportStar():
