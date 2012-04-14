@@ -1,3 +1,51 @@
+Nuitka Release 0.3.22 (Draft)
+=============================
+
+This release is a continuation of the trend of previous releases.
+
+Bug fixes
+---------
+
+- List contractions produced extra entries on the call stack.
+
+New Optimizations
+-----------------
+
+- Avoid frame guards for functions that cannot raise exceptions, i.e. where they would not
+  be used. This avoids overhead for the simple functions. And example of this can be seen
+  here:
+
+  .. code-block:: python
+
+     def simple():
+        return 7
+
+
+Organizational
+--------------
+
+None
+
+Cleanups
+--------
+
+- Frame guards are now part of the node tree instead of part of the template for every
+  function, generator, class or module.
+
+- The try/except/else has been re-formulated to use an indicator variable visible in the
+  node tree, that tells if a handler has been executed or not.
+
+New Tests
+---------
+
+None
+
+Summary
+-------
+
+Not ready yet.
+
+
 Nuitka Release 0.3.21
 =====================
 
