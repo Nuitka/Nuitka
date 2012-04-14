@@ -160,3 +160,10 @@ function_dict_setup = """\
 // Locals dictionary setup.
 PyObjectTemporary locals_dict( PyDict_New() );
 """
+
+function_context_access_template = """\
+    // The context of the function.
+    struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)self;"""
+
+function_context_unused_template = """\
+    // No context is used."""

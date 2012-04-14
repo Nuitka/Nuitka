@@ -74,16 +74,6 @@ int args_usable_count;
 """
 
 
-function_context_access_template = """
-    // The context of the function.
-    struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)self;
-"""
-
-function_context_unused_template = """\
-    // No context is used.
-"""
-
-
 template_parameter_function_refuses = r"""
 if (unlikely( args_given + kw_size > 0 ))
 {
