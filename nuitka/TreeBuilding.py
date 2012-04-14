@@ -196,6 +196,8 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
     if frame:
         return CPythonStatementsFrame(
             statements = statements,
+            arg_names  = provider.getParameters().getCoArgNames(),
+            code_name  = provider.getFunctionName(),
             source_ref = source_ref
         )
     else:
@@ -430,6 +432,8 @@ def buildLambdaNode( provider, node, source_ref ):
 
     body = CPythonStatementsFrame(
         statements = ( body, ),
+        arg_names  = result.getParameters().getCoArgNames(),
+        code_name  = "<lambda>",
         source_ref = body.getSourceReference()
     )
 
@@ -1461,6 +1465,8 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, list_c
     function_body.setBody(
         CPythonStatementsFrame(
             statements = [ temp_block ],
+            arg_names  = (),
+            code_name  = "contraction",
             source_ref = source_ref
         )
     )

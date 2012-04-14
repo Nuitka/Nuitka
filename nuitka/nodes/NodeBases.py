@@ -378,6 +378,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
     def hasTag( self, tag ):
         return tag in self.__class__.tags
 
+
 class CPythonCodeNodeBase( CPythonNodeBase ):
     def __init__( self, name, code_prefix, source_ref ):
         assert name is not None

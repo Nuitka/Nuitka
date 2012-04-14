@@ -70,7 +70,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
         %(fparse_function_identifier)s,
         %(mparse_function_identifier)s,
         %(function_name_obj)s,
-        _make_codeobj_%(function_identifier)s(),
+        %(code_identifier)s,
         %(defaults)s,
         %(module_identifier)s,
         %(function_doc)s,
@@ -89,7 +89,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s()
         %(fparse_function_identifier)s,
         %(mparse_function_identifier)s,
         %(function_name_obj)s,
-        _make_codeobj_%(function_identifier)s(),
+        %(code_identifier)s,
         %(defaults)s,
         %(module_identifier)s,
         %(function_doc)s
@@ -100,19 +100,6 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s()
 """
 
 function_body_template = """\
-static PyCodeObject *_codeobj_%(function_identifier)s = NULL;
-
-// TODO: Not yet detected, if this is needed.
-NUITKA_MAY_BE_UNUSED static PyCodeObject *_make_codeobj_%(function_identifier)s( void )
-{
-    if ( _codeobj_%(function_identifier)s == NULL )
-    {
-        _codeobj_%(function_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(function_name_obj)s, %(line_number)d, %(arg_names)s, %(arg_count)d );
-    }
-
-    return _codeobj_%(function_identifier)s;
-}
-
 static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 {
 %(context_access_function_impl)s
@@ -147,7 +134,7 @@ if ( isFrameUnusable( frame_%(frame_identifier)s ) )
         Py_DECREF( frame_%(frame_identifier)s );
     }
 
-    frame_%(frame_identifier)s = MAKE_FRAME( _make_codeobj_%(frame_identifier)s(), %(module_identifier)s );
+    frame_%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
 }
 
 FrameGuard frame_guard( frame_%(frame_identifier)s );

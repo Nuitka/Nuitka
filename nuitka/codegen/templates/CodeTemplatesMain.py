@@ -392,7 +392,7 @@ MOD_INIT( %(module_identifier)s )
     }
 #endif
 
-    frame_%(module_identifier)s = MAKE_FRAME( MAKE_CODEOBJ( %(filename_identifier)s, %(module_name_obj)s, 0, _python_tuple_empty, 0 ), _module_%(module_identifier)s);
+    frame_%(module_identifier)s = MAKE_FRAME( MAKE_CODEOBJ( %(filename_identifier)s, %(module_name_obj)s, 0, _python_tuple_empty, 0, false ), _module_%(module_identifier)s);
 
     // Set module frame as the currently active one.
     FrameGuardLight frame_guard( &frame_%(module_identifier)s );

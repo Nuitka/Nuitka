@@ -128,6 +128,22 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
 class CPythonStatementsFrame( CPythonStatementsSequence ):
     kind = "STATEMENTS_FRAME"
 
+    def __init__( self, statements, code_name, arg_names, source_ref ):
+        CPythonStatementsSequence.__init__(
+            self,
+            statements = statements,
+            source_ref = source_ref
+        )
+
+        self.arg_names = tuple( arg_names )
+        self.code_name = code_name
+
+    def getArgNames( self ):
+        return self.arg_names
+
+    def getCodeObjectName( self ):
+        return self.code_name
+
 
 class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_EXPRESSION_ONLY"

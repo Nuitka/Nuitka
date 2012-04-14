@@ -1927,25 +1927,43 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
 
     if statement_sequence.isStatementsFrame():
         provider = statement_sequence.getParentVariableProvider()
+        source_ref = statement_sequence.getSourceReference()
 
         if provider.isExpressionFunctionBody():
             # TODO: Finalization should say this
 
             if provider.isGenerator():
-                mode = "light"
+                codes = Generator.getFrameGuardLightCode(
+                    frame_identifier = provider.getCodeName(),
+                    code_identifier  = context.getCodeObjectHandle(
+                        filename     = source_ref.getFilename(),
+                        arg_names    = statement_sequence.getArgNames(),
+                        line_number  = source_ref.getLineNumber(),
+                        code_name    = statement_sequence.getCodeObjectName(),
+                        is_generator = True
+                    ),
+                    codes            = codes,
+                    context          = context
+                )
             elif provider.code_prefix == "listcontr":
-                mode = "very_light"
+                codes = Generator.getFrameGuardVeryLightCode(
+                    codes = codes,
+                )
             else:
-                mode = "heavy"
+                codes = Generator.getFrameGuardHeavyCode(
+                    frame_identifier = provider.getCodeName(),
+                    code_identifier  = context.getCodeObjectHandle(
+                        filename     = source_ref.getFilename(),
+                        arg_names    = statement_sequence.getArgNames(),
+                        line_number  = source_ref.getLineNumber(),
+                        code_name    = statement_sequence.getCodeObjectName(),
+                        is_generator = False
+                    ),
+                    codes            = codes,
+                    context          = context
+                )
         else:
             assert False, provider
-
-        codes = Generator.getFrameGuardCode(
-            frame_identifier = provider.getCodeName(),
-            codes            = codes,
-            mode             = mode,
-            context          = context
-        )
 
     return codes
 

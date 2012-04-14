@@ -236,6 +236,18 @@ class ParameterSpec( ParameterSpecTuple ):
     def getArgumentNames( self ):
         return self.normal_args
 
+    def getCoArgNames( self ):
+        result = []
+
+        for count, variable in enumerate( self.getTopLevelVariables() ):
+            if variable.isNestedParameterVariable():
+                result.append( ".%d" % count )
+            else:
+                result.append( variable.getName() )
+
+        return tuple( result )
+
+
 
 # Note: Based loosley on "inspect.getcallargs" with corrections.
 def matchCall( func_name, args, star_list_arg, star_dict_arg, num_defaults, positional, pairs, improved = False  ):

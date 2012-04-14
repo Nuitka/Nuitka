@@ -41,7 +41,31 @@ from .Identifiers import (
 
 from .Namify import namifyConstant
 
-from ..Constants import HashableConstant
+from nuitka.Constants import HashableConstant
+
+from nuitka.__past__ import iterItems
+
+from nuitka.Utils import getPythonVersion
+
+# False alarms about "hashlib.md5" due to its strange way of defining what is
+# exported, pylint won't understand it. pylint: disable=E1101
+
+import hashlib
+
+if getPythonVersion() < 300:
+    def calcHash( key ):
+        hash_value = hashlib.md5(
+            "%s%s%d%s%s" % key
+        )
+
+        return hash_value.hexdigest()
+else:
+    def calcHash( key ):
+        hash_value = hashlib.md5(
+            ( "%s%s%d%s%s" % key ).encode( "utf-8" )
+        )
+
+        return hash_value.hexdigest()
 
 # Many methods won't use self, but it's the interface. pylint: disable=R0201
 
@@ -123,6 +147,9 @@ class PythonChildContextBase( PythonContextBase ):
     def getModuleName( self ):
         return self.parent.getModuleName()
 
+    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, is_generator ):
+        return self.parent.getCodeObjectHandle( filename, code_name, line_number, arg_names, is_generator )
+
 class PythonGlobalContext:
     def __init__( self ):
         self.constants = {}
@@ -175,6 +202,9 @@ class PythonGlobalContext:
 
         self.eval_orders_used = set( range( 0, 6 ) )
 
+        # Code objects needed.
+        self.code_objects = {}
+
     def getConstantHandle( self, constant ):
         if constant is None:
             return Identifier( "Py_None", 0 )
@@ -194,6 +224,24 @@ class PythonGlobalContext:
 
     def getConstants( self ):
         return sorted( self.constants.items(), key = lambda x: x[1] )
+
+    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, is_generator ):
+        key = ( filename, code_name, line_number, arg_names, is_generator )
+
+        if key not in self.code_objects:
+            self.code_objects[ key ] = Identifier(
+                "_codeobj_%s" % calcHash( key ),
+                0
+            )
+
+            self.getConstantHandle( filename )
+            self.getConstantHandle( code_name )
+            self.getConstantHandle( arg_names )
+
+        return self.code_objects[ key ]
+
+    def getCodeObjects( self ):
+        return sorted( iterItems( self.code_objects ) )
 
     def addEvalOrderUse( self, value ):
         assert type( value ) is int
@@ -264,6 +312,9 @@ class PythonModuleContext( PythonContextBase ):
 
     def getConstantHandle( self, constant ):
         return self.global_context.getConstantHandle( constant )
+
+    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, is_generator ):
+        return self.global_context.getCodeObjectHandle( filename, code_name, line_number, arg_names, is_generator )
 
     def addFunctionCodes( self, code_name, function_decl, function_code ):
         assert code_name not in self.function_codes

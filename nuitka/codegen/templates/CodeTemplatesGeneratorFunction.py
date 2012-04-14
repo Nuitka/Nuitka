@@ -103,7 +103,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
         %(fparse_function_identifier)s,
         %(mparse_function_identifier)s,
         %(function_name_obj)s,
-        _make_codeobj_%(function_identifier)s(),
+        %(code_identifier)s,
         %(defaults)s,
         %(module_identifier)s,
         %(function_doc)s,
@@ -120,7 +120,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
         %(fparse_function_identifier)s,
         %(mparse_function_identifier)s,
         %(function_name_obj)s,
-        _make_codeobj_%(function_identifier)s(),
+        %(code_identifier)s,
         %(defaults)s,
         %(module_identifier)s,
         %(function_doc)s
@@ -129,18 +129,6 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
 """
 
 genfunc_yielder_template = """
-static PyCodeObject *_codeobj_%(function_identifier)s = NULL;
-
-static PyCodeObject *_make_codeobj_%(function_identifier)s( void )
-{
-    if ( _codeobj_%(function_identifier)s == NULL )
-    {
-        _codeobj_%(function_identifier)s = MAKE_CODEOBJ( %(filename_identifier)s, %(function_name_obj)s, %(line_number)d, %(arg_names)s, %(arg_count)d, true );
-    }
-
-    return _codeobj_%(function_identifier)s;
-}
-
 static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
     try {
@@ -178,7 +166,7 @@ if ( isFrameUnusable( frame_%(frame_identifier)s ) )
         Py_DECREF( frame_%(frame_identifier)s );
     }
 
-    frame_%(frame_identifier)s = MAKE_FRAME( _make_codeobj_%(frame_identifier)s(), %(module_identifier)s );
+    frame_%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
 }
 
 Py_INCREF( frame_%(frame_identifier)s );
@@ -236,14 +224,14 @@ genfunc_generator_without_context_making = """\
         PyObject *result = Nuitka_Generator_New(
             %(function_identifier)s_context,
             %(function_name_obj)s,
-            _make_codeobj_%(function_identifier)s()
+            %(code_identifier)s
         );"""
 
 genfunc_generator_with_context_making = """\
         PyObject *result = Nuitka_Generator_New(
             %(function_identifier)s_context,
             %(function_name_obj)s,
-            _make_codeobj_%(function_identifier)s(),
+            %(code_identifier)s,
             _python_context,
             _context_generator_%(function_identifier)s_destructor
         );"""

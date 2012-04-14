@@ -174,9 +174,11 @@ class Variable:
         return self.getName()
 
     def getDeclarationTypeCode( self ):
+        # Abstract method, pylint: disable=R0201
         assert False
 
     def getCodeName( self ):
+        # Abstract method, pylint: disable=R0201
         assert False
 
 

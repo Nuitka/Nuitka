@@ -1844,17 +1844,6 @@ def _getLocalVariableInitCode( context, variable, init_from = None, in_context =
 
     return result
 
-def _getCoArgNamesValue( parameters ):
-    result = []
-
-    for count, variable in enumerate( parameters.getTopLevelVariables() ):
-        if variable.isNestedParameterVariable():
-            result.append( ".%d" % count )
-        else:
-            result.append( variable.getName() )
-
-    return tuple( result )
-
 def _getFuncDefaultValue( identifiers, context ):
     if len( identifiers ) > 0:
         return getTupleCreationCode(
@@ -2014,18 +2003,15 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         "function_body"       : indented( function_codes, 2 ),
         "function_var_inits"  : indented( function_locals, 2 ),
         "context_access"      : indented( context_access_instance, 2 ),
-        "function_name_obj"   : function_name_obj,
-        "filename_identifier" : getConstantCode(
-            context  = context,
-            constant = source_ref.getFilename()
-        ),
-        "line_number"         : source_ref.getLineNumber(),
-        "arg_names"           : getConstantCode(
-            constant = _getCoArgNamesValue( parameters ),
-            context  = context
-        ),
-        "arg_count"           : parameters.getArgumentCount(),
     }
+
+    code_identifier = context.getCodeObjectHandle(
+        filename     = source_ref.getFilename(),
+        arg_names    = parameters.getCoArgNames(),
+        line_number  = source_ref.getLineNumber(),
+        code_name    = function_name,
+        is_generator = True
+    )
 
     if context_decl or instance_context_decl:
         if context_decl:
@@ -2043,13 +2029,15 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
             context_making += context_copy
 
         generator_making = CodeTemplates.genfunc_generator_with_context_making  % {
-            "function_name_obj"          : function_name_obj,
-            "function_identifier"        : function_identifier,
+            "function_name_obj"   : function_name_obj,
+            "function_identifier" : function_identifier,
+            "code_identifier"     : code_identifier.getCodeTemporaryRef()
         }
     else:
         generator_making = CodeTemplates.genfunc_generator_without_context_making  % {
-            "function_name_obj"          : function_name_obj,
-            "function_identifier"        : function_identifier,
+            "function_name_obj"   : function_name_obj,
+            "function_identifier" : function_identifier,
+            "code_identifier"     : code_identifier.getCodeTemporaryRef()
         }
 
         context_making = []
@@ -2092,6 +2080,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
                     is_method           = False
                 ),
                 "mparse_function_identifier" : mparse_identifier,
+                "code_identifier"            : code_identifier.getCodeTemporaryRef(),
                 "function_creation_args"     : getEvalOrderedCode(
                     context = context,
                     args    = function_creation_args
@@ -2115,6 +2104,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
                     is_method           = False
                 ),
                 "mparse_function_identifier" : mparse_identifier,
+                "code_identifier"            : code_identifier.getCodeTemporaryRef(),
                 "function_creation_args"     : getEvalOrderedCode(
                     context = context,
                     args    = function_creation_args
@@ -2233,8 +2223,6 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                 )
             )
 
-    module_identifier = getModuleAccessCode( context = context )
-
     function_name_obj = getConstantCode(
         context  = context,
         constant = function_name
@@ -2246,17 +2234,6 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         "parameter_objects_decl"       : ", ".join( parameter_objects_decl ),
         "function_locals"              : indented( function_locals ),
         "function_body"                : indented( function_codes ),
-        "function_name_obj"            : function_name_obj,
-        "arg_names"                    : getConstantCode(
-            constant = _getCoArgNamesValue( parameters ),
-            context  = context
-        ),
-        "arg_count"                    : parameters.getArgumentCount(),
-        "filename_identifier"          : getConstantCode(
-            context  = context,
-            constant = source_ref.getFilename()
-        ),
-        "line_number"                  : source_ref.getLineNumber(),
     }
 
     if needs_creation:
@@ -2268,6 +2245,14 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
     )
 
     if needs_creation:
+        code_identifier = context.getCodeObjectHandle(
+            filename     = source_ref.getFilename(),
+            arg_names    = parameters.getCoArgNames(),
+            line_number  = source_ref.getLineNumber(),
+            code_name    = function_name,
+            is_generator = False
+        )
+
         if context_decl:
             result += CodeTemplates.make_function_with_context_template % {
                 "function_name_obj"          : function_name_obj,
@@ -2281,6 +2266,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                     context = context,
                     args    = function_creation_args
                 ),
+                "code_identifier"            : code_identifier.getCodeTemporaryRef(),
                 "context_copy"               : indented( context_copy ),
                 "function_doc"               : function_doc,
                 "defaults"                   : func_defaults.getCodeExportRef(),
@@ -2294,6 +2280,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                     function_identifier = function_identifier,
                     is_method           = False
                 ),
+                "code_identifier"            : code_identifier.getCodeTemporaryRef(),
                 "mparse_function_identifier" : mparse_identifier,
                 "function_doc"               : function_doc,
                 "defaults"                   : func_defaults.getCodeExportRef(),
@@ -2455,11 +2442,19 @@ def getStatementTrace( source_desc, statement_repr ):
 def _getConstantsDeclarationCode( context, for_header ):
     statements = []
 
-    for _constant_desc, constant_identifier in context.getConstants():
+    for _code_object_key, code_identifier in context.getCodeObjects():
+        declaration = "PyCodeObject *%s;" % code_identifier.getCode()
+
         if for_header:
-            declaration = 'extern PyObject *%s;' % constant_identifier
-        else:
-            declaration = 'PyObject *%s;' % constant_identifier
+            declaration = "extern " + declaration
+
+        statements.append( declaration )
+
+    for _constant_desc, constant_identifier in context.getConstants():
+        declaration = "PyObject *%s;" % constant_identifier
+
+        if for_header:
+            declaration = "extern " + declaration
 
         statements.append( declaration )
 
@@ -2484,6 +2479,9 @@ def _getUnstreamCode( constant_value, constant_identifier ):
     )
 
 def _getConstantsDefinitionCode( context ):
+    # There are many cases for constants to be created in the most efficient way,
+    # pylint: disable=R0912
+
     statements = []
 
     for constant_desc, constant_identifier in context.getConstants():
@@ -2570,6 +2568,28 @@ def _getConstantsDefinitionCode( context ):
             continue
 
         assert False, (type(constant_value), constant_value, constant_identifier)
+
+    for code_object_key, code_identifier in context.getCodeObjects():
+        code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (
+            code_identifier.getCode(),
+            getConstantCode(
+                constant = code_object_key[0],
+                context  = context
+            ),
+            getConstantCode(
+                constant = code_object_key[1],
+                context  = context
+            ),
+            code_object_key[2],
+            getConstantCode(
+                constant = code_object_key[3],
+                context  = context
+            ),
+            len( code_object_key[3] ),
+            "true" if code_object_key[4] else "false"
+        )
+
+        statements.append( code )
 
     return indented( statements )
 
@@ -2800,22 +2820,23 @@ def getDictOperationSetCode( dict_identifier, key_identifier, value_identifier )
         0
     )
 
-def getFrameGuardCode( frame_identifier, codes, mode, context ):
-    if mode == "heavy":
-        return CodeTemplates.frame_guard_full_template % {
-            "frame_identifier"  : frame_identifier,
-            "codes"             : indented( codes ),
-            "module_identifier" : getModuleAccessCode( context = context ),
-        }
-    elif mode == "light":
-        return CodeTemplates.frame_guard_genfunc_template % {
-            "frame_identifier"  : frame_identifier,
-            "codes"             : indented( codes ),
-            "module_identifier" : getModuleAccessCode( context = context ),
-        }
-    elif mode == "very_light":
-        return CodeTemplates.frame_guard_listcontr_template % {
-            "codes"             : indented( codes, 0 ),
-        }
-    else:
-        assert False, mode
+def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes, context ):
+    return CodeTemplates.frame_guard_full_template % {
+        "frame_identifier"  : frame_identifier,
+        "code_identifier"   : code_identifier.getCodeTemporaryRef(),
+        "codes"             : indented( codes ),
+        "module_identifier" : getModuleAccessCode( context = context ),
+    }
+
+def getFrameGuardLightCode( frame_identifier, code_identifier, codes, context ):
+    return CodeTemplates.frame_guard_genfunc_template % {
+        "frame_identifier"  : frame_identifier,
+        "code_identifier"   : code_identifier.getCodeTemporaryRef(),
+        "codes"             : indented( codes ),
+        "module_identifier" : getModuleAccessCode( context = context ),
+    }
+
+def getFrameGuardVeryLightCode( codes ):
+    return CodeTemplates.frame_guard_listcontr_template % {
+        "codes"             : indented( codes, 0 ),
+    }
