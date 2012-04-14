@@ -286,5 +286,25 @@ private:
 
 };
 
+class FrameGuardVeryLight
+{
+public:
+
+    explicit FrameGuardVeryLight() {}
+
+    void setLineNumber( int lineno ) const
+    {
+        PyFrameObject *frame_object = PyThreadState_GET()->frame;
+
+        assertFrameObject( frame_object );
+        assert( lineno >= 1 );
+
+        // Make sure f_lineno is the actually used information.
+        assert( frame_object->f_trace == Py_None );
+
+        frame_object->f_lineno = lineno;
+    }
+
+};
 
 #endif

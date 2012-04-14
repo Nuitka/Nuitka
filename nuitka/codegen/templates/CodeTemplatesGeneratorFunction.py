@@ -129,7 +129,6 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
 """
 
 genfunc_yielder_template = """
-static PyFrameObject *frame_%(function_identifier)s = NULL;
 static PyCodeObject *_codeobj_%(function_identifier)s = NULL;
 
 static PyCodeObject *_make_codeobj_%(function_identifier)s( void )
@@ -144,40 +143,7 @@ static PyCodeObject *_make_codeobj_%(function_identifier)s( void )
 
 static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
-    bool traceback;
-
-    // Must be inside block, or else its d-tor will not be run.
-    if ( isFrameUnusable( frame_%(function_identifier)s ) )
-    {
-        if ( frame_%(function_identifier)s )
-        {
-#if _DEBUG_REFRAME
-            puts( "reframe for %(function_identifier)s" );
-#endif
-            Py_DECREF( frame_%(function_identifier)s );
-        }
-
-        frame_%(function_identifier)s = MAKE_FRAME( _make_codeobj_%(function_identifier)s(), %(module_identifier)s );
-    }
-
-    Py_INCREF( frame_%(function_identifier)s );
-    generator->m_frame = frame_%(function_identifier)s;
-
-    Py_CLEAR( generator->m_frame->f_back );
-
-    generator->m_frame->f_back = PyThreadState_GET()->frame;
-    Py_INCREF( generator->m_frame->f_back );
-
-    PyThreadState_GET()->frame = generator->m_frame;
-
-    FrameGuardLight frame_guard( &generator->m_frame );
-
-    try
-    {
-        traceback = true;
-        CHECK_EXCEPTION( generator );
-        traceback = false;
-
+    try {
         // Make context accessible if one is used.
 %(context_access)s
 
@@ -186,30 +152,73 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 
         // Actual function code.
 %(function_body)s
-
-        PyErr_SetNone( PyExc_StopIteration );
-        generator->m_yielded = NULL;
     }
     catch ( ReturnException &e )
     {
         PyErr_SetNone( PyExc_StopIteration );
-        generator->m_yielded = NULL;
-    }
-    catch ( _PythonException &_exception )
-    {
-        if ( traceback == false )
-        {
-           _exception.addTraceback( INCREASE_REFCOUNT( generator->m_frame ) );
-        }
-
-        _exception.toPython();
-
-        generator->m_yielded = NULL;
     }
 
+    // TODO: Won't return, we should tell the compiler about that.
+    generator->m_yielded = NULL;
     swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
 }
 """
+
+frame_guard_genfunc_template = """\
+static PyFrameObject *frame_%(frame_identifier)s = NULL;
+
+// Must be inside block, or else its d-tor will not be run.
+if ( isFrameUnusable( frame_%(frame_identifier)s ) )
+{
+    if ( frame_%(frame_identifier)s )
+    {
+#if _DEBUG_REFRAME
+        puts( "reframe for %(frame_identifier)s" );
+#endif
+        Py_DECREF( frame_%(frame_identifier)s );
+    }
+
+    frame_%(frame_identifier)s = MAKE_FRAME( _make_codeobj_%(frame_identifier)s(), %(module_identifier)s );
+}
+
+Py_INCREF( frame_%(frame_identifier)s );
+generator->m_frame = frame_%(frame_identifier)s;
+
+Py_CLEAR( generator->m_frame->f_back );
+
+generator->m_frame->f_back = PyThreadState_GET()->frame;
+Py_INCREF( generator->m_frame->f_back );
+
+PyThreadState_GET()->frame = generator->m_frame;
+
+FrameGuardLight frame_guard( &generator->m_frame );
+
+bool traceback;
+
+try
+{
+    // TODO: In case we don't raise exceptions ourselves, we would still have to do this, so
+    // beware to not optimize this away for generators without a replacement.
+    traceback = true;
+    CHECK_EXCEPTION( generator );
+    traceback = false;
+
+%(codes)s
+
+    PyErr_SetNone( PyExc_StopIteration );
+}
+catch ( _PythonException &_exception )
+{
+    if ( traceback == false )
+    {
+       _exception.addTraceback( INCREASE_REFCOUNT( generator->m_frame ) );
+    }
+
+    _exception.toPython();
+
+    // TODO: Moving this code is not allowed yet.
+    generator->m_yielded = NULL;
+}"""
 
 genfunc_common_context_use_template = """\
 struct _context_common_%(function_identifier)s_t *_python_common_context = (struct _context_common_%(function_identifier)s_t *)self;

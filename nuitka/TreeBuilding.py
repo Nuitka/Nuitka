@@ -116,6 +116,7 @@ from .nodes.ContainerOperationNodes import (
 from .nodes.StatementNodes import (
     CPythonStatementExpressionOnly,
     CPythonStatementsSequence,
+    CPythonStatementsFrame,
     mergeStatements
 )
 from .nodes.ImportNodes import (
@@ -182,7 +183,7 @@ def buildVariableReferenceNode( node, source_ref ):
         source_ref    = source_ref
     )
 
-def buildStatementsNode( provider, nodes, source_ref ):
+def buildStatementsNode( provider, nodes, source_ref, frame = False ):
     if nodes is None:
         return None
 
@@ -192,10 +193,16 @@ def buildStatementsNode( provider, nodes, source_ref ):
     if not statements:
         return None
 
-    return CPythonStatementsSequence(
-        statements = statements,
-        source_ref = source_ref
-    )
+    if frame:
+        return CPythonStatementsFrame(
+            statements = statements,
+            source_ref = source_ref
+        )
+    else:
+        return CPythonStatementsSequence(
+            statements = statements,
+            source_ref = source_ref
+        )
 
 def buildClassNode( provider, node, source_ref ):
     assert getKind( node ) == "ClassDef"
@@ -331,6 +338,7 @@ def buildFunctionNode( provider, node, source_ref ):
     function_statements_body = buildStatementsNode(
         provider   = function_body,
         nodes      = function_statements,
+        frame      = True,
         source_ref = source_ref
     )
 
@@ -420,7 +428,7 @@ def buildLambdaNode( provider, node, source_ref ):
             source_ref = body.getSourceReference()
         )
 
-    body = CPythonStatementsSequence(
+    body = CPythonStatementsFrame(
         statements = ( body, ),
         source_ref = body.getSourceReference()
     )
@@ -1225,7 +1233,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, list_c
                     source_ref = source_ref
                 ),
                 source     = start_value,
-                source_ref = source_ref
+                source_ref = source_ref.atInternal()
             )
         ]
     else:
@@ -1453,7 +1461,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, list_c
     )
 
     function_body.setBody(
-        CPythonStatementsSequence(
+        CPythonStatementsFrame(
             statements = [ temp_block ],
             source_ref = source_ref
         )

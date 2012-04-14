@@ -125,6 +125,10 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
         return self.getStatements()[-1].isStatementAbortative()
 
 
+class CPythonStatementsFrame( CPythonStatementsSequence ):
+    kind = "STATEMENTS_FRAME"
+
+
 class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_EXPRESSION_ONLY"
 

@@ -591,6 +591,8 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step )
 
 PyObject *BUILTIN_LEN( PyObject *value )
 {
+    assertObject( value );
+
     Py_ssize_t res = PyObject_Size( value );
 
     if (unlikely( res < 0 && PyErr_Occurred() ))

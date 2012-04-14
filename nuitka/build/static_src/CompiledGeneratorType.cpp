@@ -123,6 +123,8 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
                 generator->m_context = NULL;
             }
 
+            assert( PyErr_Occurred() );
+
             return NULL;
         }
         else
@@ -153,19 +155,20 @@ static PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyOb
 
         PyObject *result = Nuitka_Generator_send( generator, Py_None );
 
-        if ( result )
+        if (unlikely( result ))
         {
             Py_DECREF( result );
 
             PyErr_Format( PyExc_RuntimeError, "generator ignored GeneratorExit" );
             return NULL;
-        } else if ( PyErr_ExceptionMatches( PyExc_StopIteration ) || PyErr_ExceptionMatches( PyExc_GeneratorExit ))
+        } else if ( PyErr_ExceptionMatches( PyExc_StopIteration ) || PyErr_ExceptionMatches( PyExc_GeneratorExit ) )
         {
             PyErr_Clear();
             return INCREASE_REFCOUNT( Py_None );
         }
         else
         {
+            assert( PyErr_Occurred() );
             return NULL;
         }
     }
@@ -178,9 +181,13 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
     assert( Py_REFCNT( generator ) == 0 );
     Py_REFCNT( generator ) = 1;
 
+    PyObject *saved_exception_type, *saved_exception_value, *saved_exception_tb;
+
+    PyErr_Fetch( &saved_exception_type, &saved_exception_value, &saved_exception_tb );
+
     PyObject *close_result = Nuitka_Generator_close( generator, NULL );
 
-    if ( close_result == NULL )
+    if (unlikely( close_result == NULL ))
     {
         PyErr_WriteUnraisable( (PyObject *)generator );
     }
@@ -188,6 +195,8 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
     {
         Py_DECREF( close_result );
     }
+
+    PyErr_Restore( saved_exception_type, saved_exception_value, saved_exception_tb );
 
     assert( Py_REFCNT( generator ) == 1 );
     Py_REFCNT( generator ) = 0;

@@ -236,9 +236,9 @@ def generateFunctionBodyCode( function_body, defaults, context ):
     )
 
     function_codes = generateStatementSequenceCode(
-        context            = function_context,
+        statement_sequence = function_body.getBody(),
         allow_none         = True,
-        statement_sequence = function_body.getBody()
+        context            = function_context
     )
 
     function_codes = function_codes or []
@@ -1915,7 +1915,7 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
         if code == "":
             continue
 
-        if source_ref != last_ref:
+        if source_ref != last_ref and statement.mayRaiseException( BaseException ):
             code = Generator.getLineNumberCode(
                 context    = context,
                 source_ref = source_ref
@@ -1929,6 +1929,28 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
         assert statement_codes[-1].strip() != "", ( "Code '%s'" % code, statement )
 
         codes += statement_codes
+
+    if statement_sequence.isStatementsFrame():
+        provider = statement_sequence.getParentVariableProvider()
+
+        if provider.isExpressionFunctionBody():
+            # TODO: Finalization should say this
+
+            if provider.isGenerator():
+                mode = "light"
+            elif provider.code_prefix == "listcontr":
+                mode = "very_light"
+            else:
+                mode = "heavy"
+        else:
+            assert False, provider
+
+        codes = Generator.getFrameGuardCode(
+            frame_identifier = provider.getCodeName(),
+            codes            = codes,
+            mode             = mode,
+            context          = context
+        )
 
     return codes
 

@@ -99,11 +99,11 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s()
 }
 """
 
-function_frame_body_template = """\
-static PyFrameObject *frame_%(function_identifier)s = NULL;
+function_body_template = """\
 static PyCodeObject *_codeobj_%(function_identifier)s = NULL;
 
-static PyCodeObject *_make_codeobj_%(function_identifier)s( void )
+// TODO: Not yet detected, if this is needed.
+NUITKA_MAY_BE_UNUSED static PyCodeObject *_make_codeobj_%(function_identifier)s( void )
 {
     if ( _codeobj_%(function_identifier)s == NULL )
     {
@@ -116,49 +116,61 @@ static PyCodeObject *_make_codeobj_%(function_identifier)s( void )
 static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 {
 %(context_access_function_impl)s
-    bool traceback = false;
 
-    if ( isFrameUnusable( frame_%(function_identifier)s ) )
-    {
-        if ( frame_%(function_identifier)s )
-        {
-#if _DEBUG_REFRAME
-            puts( "reframe for %(function_identifier)s" );
-#endif
-            Py_DECREF( frame_%(function_identifier)s );
-        }
-
-        frame_%(function_identifier)s = MAKE_FRAME( _make_codeobj_%(function_identifier)s(), %(module_identifier)s );
-    }
-
-    FrameGuard frame_guard( frame_%(function_identifier)s );
-
-    try
-    {
-        // Local variable declarations.
+    // Local variable declarations.
 %(function_locals)s
 
-        // Actual function code.
+    // Actual function code.
 %(function_body)s
 
-        return INCREASE_REFCOUNT( Py_None );
-    }
-    catch ( _PythonException &_exception )
-    {
-        if ( traceback == false )
-        {
-            _exception.addTraceback( frame_guard.getFrame() );
-        }
-
-        _exception.toPython();
-        return NULL;
-    }
+    return INCREASE_REFCOUNT( Py_None );
 }
 """
 
 function_dict_setup = """\
 // Locals dictionary setup.
 PyObjectTemporary locals_dict( PyDict_New() );
+"""
+
+frame_guard_full_template = """\
+bool traceback = false;
+
+static PyFrameObject *frame_%(frame_identifier)s = NULL;
+
+if ( isFrameUnusable( frame_%(frame_identifier)s ) )
+{
+    if ( frame_%(frame_identifier)s )
+    {
+#if _DEBUG_REFRAME
+        puts( "reframe for %(frame_identifier)s" );
+#endif
+        Py_DECREF( frame_%(frame_identifier)s );
+    }
+
+    frame_%(frame_identifier)s = MAKE_FRAME( _make_codeobj_%(frame_identifier)s(), %(module_identifier)s );
+}
+
+FrameGuard frame_guard( frame_%(frame_identifier)s );
+
+try
+{
+%(codes)s
+}
+catch ( _PythonException &_exception )
+{
+    if ( traceback == false )
+    {
+        _exception.addTraceback( frame_guard.getFrame() );
+    }
+
+    _exception.toPython();
+    return NULL;
+}
+"""
+frame_guard_listcontr_template = """\
+FrameGuardVeryLight frame_guard;
+
+%(codes)s
 """
 
 function_context_access_template = """\

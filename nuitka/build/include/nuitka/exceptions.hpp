@@ -202,6 +202,8 @@ public:
     {
         PyErr_Restore( this->exception_type, this->exception_value, this->exception_tb );
 
+        assert( this->exception_type );
+
 #ifndef __NUITKA_NO_ASSERT__
         PyThreadState *thread_state = PyThreadState_GET();
 #endif

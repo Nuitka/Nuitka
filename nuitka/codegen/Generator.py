@@ -2023,7 +2023,6 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         "function_body"       : indented( function_codes, 2 ),
         "function_var_inits"  : indented( function_locals, 2 ),
         "context_access"      : indented( context_access_instance, 2 ),
-        "module_identifier"   : getModuleAccessCode( context = context ),
         "function_name_obj"   : function_name_obj,
         "filename_identifier" : getConstantCode(
             context  = context,
@@ -2250,24 +2249,23 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         constant = function_name
     )
 
-    result += CodeTemplates.function_frame_body_template % {
+    result += CodeTemplates.function_body_template % {
         "function_identifier"          : function_identifier,
         "context_access_function_impl" : context_access_function_impl,
         "parameter_objects_decl"       : ", ".join( parameter_objects_decl ),
-        "function_locals"              : indented( function_locals, 2 ),
-        "function_body"                : indented( function_codes, 2 ),
+        "function_locals"              : indented( function_locals ),
+        "function_body"                : indented( function_codes ),
         "function_name_obj"            : function_name_obj,
         "arg_names"                    : getConstantCode(
             constant = _getCoArgNamesValue( parameters ),
             context  = context
         ),
-        "arg_count"                : parameters.getArgumentCount(),
+        "arg_count"                    : parameters.getArgumentCount(),
         "filename_identifier"          : getConstantCode(
             context  = context,
             constant = source_ref.getFilename()
         ),
         "line_number"                  : source_ref.getLineNumber(),
-        "module_identifier"            : module_identifier,
     }
 
     if needs_creation:
@@ -2810,3 +2808,23 @@ def getDictOperationSetCode( dict_identifier, key_identifier, value_identifier )
         ),
         0
     )
+
+def getFrameGuardCode( frame_identifier, codes, mode, context ):
+    if mode == "heavy":
+        return CodeTemplates.frame_guard_full_template % {
+            "frame_identifier"  : frame_identifier,
+            "codes"             : indented( codes ),
+            "module_identifier" : getModuleAccessCode( context = context ),
+        }
+    elif mode == "light":
+        return CodeTemplates.frame_guard_genfunc_template % {
+            "frame_identifier"  : frame_identifier,
+            "codes"             : indented( codes ),
+            "module_identifier" : getModuleAccessCode( context = context ),
+        }
+    elif mode == "very_light":
+        return CodeTemplates.frame_guard_listcontr_template % {
+            "codes"             : indented( codes, 0 ),
+        }
+    else:
+        assert False, mode
