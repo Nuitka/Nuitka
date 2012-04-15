@@ -356,6 +356,18 @@ MOD_INIT( %(module_identifier)s )
 
     assertObject( _module_%(module_identifier)s );
 
+#ifndef _NUITKA_MODULE
+// TODO: Seems to work for Python2.7 as well, and maybe even useful. To be
+// investigated in separate tests.
+#if PYTHON_VERSION >= 300
+    {
+        int r = PyObject_SetItem( PySys_GetObject( (char *)"modules" ), _python_str_plain___main__, _module_%(module_identifier)s );
+
+        assert( r != -1 );
+    }
+#endif
+#endif
+
     // For deep importing of a module we need to have "__builtins__", so we set it
     // ourselves in the same way than CPython does. Note: This must be done before
     // the frame object is allocated, or else it may fail.

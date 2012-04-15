@@ -194,6 +194,9 @@ class PythonGlobalContext:
         self.getConstantHandle( "read" )
         self.getConstantHandle( "strip" )
 
+        # Executables only
+        self.getConstantHandle( "__main__" )
+
         # Have EVAL_ORDER for 1..6 in any case, so we can use it in the C++ code freely
         # without concern.
         self.make_tuples_used = set( range( 1, 6 ) )
