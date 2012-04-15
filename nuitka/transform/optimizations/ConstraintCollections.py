@@ -328,7 +328,9 @@ class ConstraintCollectionBase:
 
             # Assigning from and to the same variable, can be optimized away immediately,
             # there is no point in doing it.
-            if statement.getAssignSource().isExpressionVariableRef() and statement.getAssignSource().getVariable() == variable and (not variable.isModuleVariableReference() or variable.getName() not in Builtins.builtin_all_names):
+            if statement.getAssignSource().isExpressionVariableRef() and \
+                 statement.getAssignSource().getVariable() == variable and \
+                 (not variable.isModuleVariableReference() or variable.getName() not in Builtins.builtin_all_names):
                 self.signalChange(
                     "new_statements",
                     statement.getSourceReference(),

@@ -65,6 +65,8 @@ class CPythonStatementAssignmentVariable( CPythonChildrenHaving, CPythonNodeBase
     getTargetVariableRef = CPythonChildrenHaving.childGetter( "variable_ref" )
     getAssignSource = CPythonChildrenHaving.childGetter( "source" )
 
+    def mayRaiseException( self, exception_type ):
+        return self.getAssignSource().mayRaiseException( exception_type )
 
 class CPythonStatementAssignmentAttribute( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
