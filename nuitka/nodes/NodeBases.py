@@ -42,6 +42,8 @@ from nuitka import (
 
 from . import UsageCheck
 
+from nuitka.__past__ import iterItems
+
 lxml = TreeXML.lxml
 
 class NodeCheckMetaClass( type ):
@@ -248,7 +250,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
             line = "%s" % self.getSourceReference().getLineNumber()
         )
 
-        for key, value in self.getDetails().iteritems():
+        for key, value in iterItems( self.getDetails() ):
             value = str( value )
 
             if value.startswith( "<" ) and value.endswith( ">" ):
@@ -325,7 +327,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         return ()
 
     def getVisitableNodesNamed( self ):
-        assert self.getVisitableNodes.im_class == self.getVisitableNodesNamed.im_class, self.getVisitableNodes.im_class
+        # assert self.getVisitableNodes.im_class == self.getVisitableNodesNamed.im_class, self.getVisitableNodes.im_class
 
         return ()
 
@@ -643,6 +645,7 @@ class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
 
                 if not usages:
                     del self.providing[ variable.getName() ]
+
 
 class CPythonParameterHavingNodeBase( CPythonClosureGiverNodeBase ):
     def __init__( self, name, code_prefix, parameters, source_ref ):

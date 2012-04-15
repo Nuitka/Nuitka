@@ -32,7 +32,7 @@ Means to create XML elements from Nuitka tree nodes and to convert the
 XML tree to ASCII or output it.
 """
 
-from nuitka import Tracing
+from nuitka import Tracing, Utils
 
 try:
     import lxml.etree
@@ -62,4 +62,9 @@ def toString( xml ):
     return lxml.etree.tostring( xml, pretty_print = True )
 
 def dump( xml  ):
-    Tracing.printLine( toString( xml ).rstrip() )
+    value = toString( xml ).rstrip()
+
+    if Utils.getPythonVersion() > 300:
+        value = value.decode( "utf-8" )
+
+    Tracing.printLine( value )

@@ -40,9 +40,11 @@ New Features
 
         CPythonNodeMetaClassBase = NodeCheckMetaClass( "CPythonNodeMetaClassBase", (object, ), {} )
 
+- The "--dump-xml" option works with Nuitka running under Python3. This was not previously
+  supported.
+
 - Python3 now also has compatible parameter errors and compatible exception error
   messages.
-
 
 New Optimizations
 -----------------
