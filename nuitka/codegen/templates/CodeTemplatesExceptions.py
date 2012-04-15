@@ -47,6 +47,10 @@ catch ( _PythonException &_exception )
         _exception.addTraceback( frame_guard.getFrame() );
     }
 
+#if PYTHON_VERSION > 300
+    PythonExceptionStacker exception_restorer;
+#endif
+
     _exception.toExceptionHandler();
 
     frame_guard.detachFrame();

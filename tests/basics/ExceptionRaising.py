@@ -78,21 +78,26 @@ except:
     assert False, "Error, new style class exception was not rejected"
 
 
-def raiseCustomError():
-    raise ClassicClassException()
-
 class ClassicClassException:
     pass
+
+def raiseCustomError():
+    raise ClassicClassException()
 
 print "*" * 20
 
 try:
-    raiseCustomError()
-except ClassicClassException:
-    print "Caught classic class exception"
-except:
-    print sys.exc_info()
-    assert False, "Error, old style class exception was not caught"
+    try:
+        raiseCustomError()
+    except ClassicClassException:
+        print "Caught classic class exception"
+    except:
+        print sys.exc_info()
+        assert False, "Error, old style class exception was not caught"
+except TypeError, e:
+    print "Python3 hates to even try and catch classic classes", e
+else:
+    print "Classic exception catching was considered fine."
 
 def checkTraceback():
     import sys, traceback
@@ -140,22 +145,35 @@ def checkExcInfoScope():
         assert sys.exc_info()[1] is not None
         assert sys.exc_info()[2] is not None
 
-    assert sys.exc_info()[0] is not None
-    assert sys.exc_info()[1] is not None
-    assert sys.exc_info()[2] is not None
+    if sys.version_info[0] < 3:
+        assert sys.exc_info()[0] is not None
+        assert sys.exc_info()[1] is not None
+        assert sys.exc_info()[2] is not None
 
     print "Exc_info remains visible after exception handler"
+
 
     def subFunction():
         assert sys.exc_info()[0] is not None
         assert sys.exc_info()[1] is not None
         assert sys.exc_info()[2] is not None
 
-    subFunction()
+    try:
+        raise "me"
+    except:
+        assert sys.exc_info()[0] is not None
+        assert sys.exc_info()[1] is not None
+        assert sys.exc_info()[2] is not None
+
+        subFunction()
+
+
+
 
 print "*" * 20
 
-sys.exc_clear()
+if sys.version_info[0] < 3:
+    sys.exc_clear()
 
 checkExcInfoScope()
 
@@ -166,10 +184,11 @@ assert sys.exc_info()[1] is None
 assert sys.exc_info()[2] is None
 
 def checkDerivedCatch():
-    class A:
+    class A( BaseException ):
         pass
-    class B(A):
-        pass
+    class B( A ):
+        def __init__( self ):
+            pass
 
     a = A()
     b = B()
@@ -178,6 +197,8 @@ def checkDerivedCatch():
         raise A, b
     except B, v:
         print "Caught B", v
+    except A, v:
+        print "Didn't catch as B, but as A, Python3 does that", v
     else:
         print "Not caught A class"
 

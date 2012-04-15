@@ -88,7 +88,7 @@ for filename in sorted( os.listdir( "." ) ):
     if active:
         # Temporary measure, until Python3 is better supported, disable some tests, so
         # this can be used to monitor the success of existing ones and have no regression for it.
-        if os.environ[ "PYTHON" ] == "python3.2" and filename[:-3] in ( "Builtins", "Classes", "ExceptionRaising", "ExecEval", "Functions", "Looping", "OverflowFunctions", "ParameterErrors", "Unicode", "GeneratorExpressions" ):
+        if os.environ[ "PYTHON" ] == "python3.2" and filename[:-3] in ( "ExecEval", "Functions", "Looping", "OverflowFunctions",  "Unicode", "GeneratorExpressions" ):
             print( "Skipping malfunctional test", filename )
             continue
 

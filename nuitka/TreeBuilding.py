@@ -214,10 +214,25 @@ def buildClassNode( provider, node, source_ref ):
     decorators = buildNodeList( provider, reversed( node.decorator_list ), source_ref )
     bases = buildNodeList( provider, node.bases, source_ref )
 
+    if Utils.getPythonVersion() >= 300:
+        if len( node.keywords ) == 1:
+            assert len( node.keywords ) == 1, node.keywords
+            assert node.keywords[0].arg == "metaclass", node.keywords[0].arg
+            metaclass = buildNode( provider, node.keywords[0].value, source_ref )
+        elif not node.keywords:
+            metaclass = None
+        else:
+            assert False, node.keywords
+    else:
+        # TODO: May be detected during compile time, but Python2 syntax does't
+        # make it as easy.
+        metaclass = None
+
     class_body = CPythonExpressionClassBody(
         provider   = provider,
         name       = node.name,
         doc        = class_doc,
+        metaclass  = metaclass,
         source_ref = source_ref
     )
 

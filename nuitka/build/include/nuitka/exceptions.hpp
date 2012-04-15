@@ -283,6 +283,7 @@ public:
     }
 
 private:
+
     friend class _PythonExceptionKeeper;
 
     // For the restore of saved ones.
@@ -399,9 +400,39 @@ public:
     }
 
 private:
+
     PyObject *frame_exc_type, *frame_exc_value, *frame_exc_traceback;
 
 };
+
+class PythonExceptionStacker
+{
+public:
+
+    PythonExceptionStacker()
+    {
+        PyThreadState *thread_state = PyThreadState_GET();
+
+        this->frame_exc_type = INCREASE_REFCOUNT_X( thread_state->exc_type );
+        this->frame_exc_value = INCREASE_REFCOUNT_X( thread_state->exc_value );
+        this->frame_exc_traceback = INCREASE_REFCOUNT_X( thread_state->exc_traceback );
+    }
+
+    ~PythonExceptionStacker()
+    {
+        _SET_CURRENT_EXCEPTION( this->frame_exc_type, this->frame_exc_value, this->frame_exc_traceback );
+
+        Py_XDECREF( this->frame_exc_type );
+        Py_XDECREF( this->frame_exc_value );
+        Py_XDECREF( this->frame_exc_traceback );
+    }
+
+private:
+
+    PyObject *frame_exc_type, *frame_exc_value, *frame_exc_traceback;
+
+};
+
 
 class ReturnException
 {
@@ -494,6 +525,14 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( void )
     PyObject *tb = tstate->exc_traceback;
 
     assertObject( type );
+
+#if PYTHON_VERSION >= 300
+    if ( type == Py_None )
+    {
+        PyErr_Format( PyExc_RuntimeError, "No active exception to reraise" );
+        throw _PythonException();
+    }
+#endif
 
     Py_INCREF( type );
     Py_XINCREF( value );

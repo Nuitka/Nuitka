@@ -1502,15 +1502,25 @@ extern void patchInspectModule( void );
 #define _DEBUG_UNFREEZER 0
 #define _DEBUG_REFRAME 0
 
-#define MAKE_CLASS( metaclass_global, class_name, bases, class_dict ) _MAKE_CLASS( EVAL_ORDERED_4( metaclass_global, class_name, bases, class_dict ) )
+#define MAKE_CLASS( metaclass_global, metaclass_class, class_name, bases, class_dict ) _MAKE_CLASS( EVAL_ORDERED_5( metaclass_global, metaclass_class, class_name, bases, class_dict ) )
 
 
-NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_CLASS( EVAL_ORDERED_4( PyObject *metaclass_global, PyObject *class_name, PyObject *bases, PyObject *class_dict ) )
+NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_CLASS( EVAL_ORDERED_5( PyObject *metaclass_global, PyObject *metaclass_class, PyObject *class_name, PyObject *bases, PyObject *class_dict ) )
 {
     // This selection is dynamic, although it is something that might be determined at
     // compile time already in many cases, and therefore should be a function that is
     // built of nodes.
-    PyObject *metaclass = PyDict_GetItemString( class_dict, "__metaclass__" );
+#if PYTHON_VERSION < 300
+    PyObject *metaclass;
+
+    if ( metaclass_class != NULL )
+    {
+        metaclass = metaclass_class;
+    }
+    else
+    {
+        metaclass = PyDict_GetItemString( class_dict, "__metaclass__" );
+    }
 
     // Prefer the metaclass entry of the new class, otherwise search the base classes for
     // their metaclass.
@@ -1520,6 +1530,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_CLASS( EVAL_ORDERED_4( PyObject *met
         Py_INCREF( metaclass );
     }
     else
+#else
+    PyObject *metaclass = metaclass_class;
+
+    if ( metaclass == NULL )
+#endif
     {
         assertObject( bases );
 
@@ -1562,7 +1577,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_CLASS( EVAL_ORDERED_4( PyObject *met
 
     Py_DECREF( metaclass );
 
-    if ( result == NULL )
+    if (unlikely( result == NULL ))
     {
         throw _PythonException();
     }

@@ -54,9 +54,9 @@ class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CP
 
     early_closure = True
 
-    named_children = ( "body", )
+    named_children = ( "body", "metaclass" )
 
-    def __init__( self, provider, name, doc, source_ref ):
+    def __init__( self, provider, name, metaclass, doc, source_ref ):
         CPythonCodeNodeBase.__init__(
             self,
             name        = name,
@@ -71,7 +71,10 @@ class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CP
 
         CPythonChildrenHaving.__init__(
             self,
-            values = {}
+            values = {
+                "body"      : None,
+                "metaclass" : metaclass
+            }
         )
 
         MarkContainsTryExceptIndicator.__init__( self )
@@ -91,6 +94,8 @@ class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CP
 
     getBody = CPythonChildrenHaving.childGetter( "body" )
     setBody = CPythonChildrenHaving.childSetter( "body" )
+
+    getMetaclass = CPythonChildrenHaving.childGetter( "metaclass" )
 
     def getClassName( self ):
         return self.getName()

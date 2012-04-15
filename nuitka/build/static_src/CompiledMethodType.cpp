@@ -262,14 +262,17 @@ static PyObject *Nuitka_Method_tp_repr( Nuitka_MethodObject *method )
     {
 #if PYTHON_VERSION < 300
         return PyString_FromFormat(
-#else
-        return PyUnicode_FromFormat(
-#endif
-
             "<unbound compiled_method %s.%s>",
             GET_CLASS_NAME( method->m_class ),
             Nuitka_String_AsString( method->m_function->m_name )
         );
+#else
+        return PyUnicode_FromFormat(
+            "<compiled function %s at %p>",
+            Nuitka_String_AsString( method->m_function->m_name ),
+            method->m_function
+        );
+#endif
     }
     else
     {

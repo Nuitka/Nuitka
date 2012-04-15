@@ -1,12 +1,48 @@
 Nuitka Release 0.3.22 (Draft)
 =============================
 
-This release is a continuation of the trend of previous releases.
+This release is a continuation of the trend of previous releases, added more
+re-formulations of Python that lower the burden on code generation and optimizations. It also improves Python3 support.
 
 Bug fixes
 ---------
 
 - List contractions produced extra entries on the call stack.
+
+New Features
+------------
+
+- New "metaclass" syntax for the "class" statement works, and the old "__metaclass__"
+  attribute is properly ignored.
+
+  .. code-block:: python
+
+     # Metaclass syntax in Python3, illegal in Python2
+     class X(metaclass = Y ):
+         pass
+
+  .. code-block:: python
+
+     # Metaclass syntax in Python2, no effect in Python3
+     class X:
+         __metaclass__ = Y
+
+  .. note::
+
+     The way to make a use of a metaclass in a portable way, is to create a based class
+     that has it and then inherit from it. Sad, isn' it. Surely, the support for
+     "__metaclass__" could still live.
+
+     .. code-block:: python
+
+        # For Python2/3 compatible source, we create a base class that has the metaclass
+        # used and doesn't require making a choice.
+
+        CPythonNodeMetaClassBase = NodeCheckMetaClass( "CPythonNodeMetaClassBase", (object, ), {} )
+
+- Python3 now also has compatible parameter errors and compatible exception error
+  messages.
+
 
 New Optimizations
 -----------------
@@ -24,7 +60,8 @@ New Optimizations
 Organizational
 --------------
 
-None
+- Enhanced Python3 support, enabling support for more basic tests.
+
 
 Cleanups
 --------
@@ -276,9 +313,8 @@ New Tests
 Summary
 -------
 
-From a user standpoint, Nuitka is *still* not very useful. But the progress made towards
-value propagation and type inference is *very* significant, and makes those appears as if
-they are achievable "relatively soon" now.
+The progress made towards value propagation and type inference is *very* significant, and
+makes those appears as if they are achievable.
 
 
 Nuitka Release 0.3.20

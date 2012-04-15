@@ -2307,9 +2307,11 @@ def _getClosureVariableDecl( variable ):
 
     return "%s &%s" % ( kind, variable.getCodeName() )
 
-def getClassCreationCode( metaclass_code, name_identifier, dict_identifier, bases_identifier ):
+def getClassCreationCode( metaclass_global_code, metaclass_class_code, \
+                          name_identifier, dict_identifier, bases_identifier ):
     args = (
-        metaclass_code,
+        metaclass_global_code,
+        metaclass_class_code,
         name_identifier.getCodeTemporaryRef(),
         bases_identifier.getCodeTemporaryRef(),
         dict_identifier.getCodeTemporaryRef()

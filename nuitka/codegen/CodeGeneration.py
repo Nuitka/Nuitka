@@ -337,16 +337,26 @@ def generateClassBodyCode( class_body, bases, context ):
         context           = context
     )
 
+    metaclass_class_code = generateExpressionCode(
+        expression = class_body.getMetaclass(),
+        allow_none  = True,
+        context    = context
+    )
+
+    if metaclass_class_code is None:
+        metaclass_class_code = Generator.Identifier( "NULL", 0 )
+
     class_creation_identifier = Generator.getClassCreationCode(
-        metaclass_code   = Generator.getMetaclassVariableCode(
+        metaclass_global_code = Generator.getMetaclassVariableCode(
             context = context
         ),
-        name_identifier  = Generator.getConstantHandle(
+        metaclass_class_code  = metaclass_class_code.getCodeTemporaryRef(),
+        name_identifier       = Generator.getConstantHandle(
             context  = context,
             constant = class_body.getClassName()
         ),
-        bases_identifier = bases_identifier,
-        dict_identifier  = dict_identifier
+        bases_identifier      = bases_identifier,
+        dict_identifier       = dict_identifier
     )
 
     class_decl = Generator.getClassDecl(
