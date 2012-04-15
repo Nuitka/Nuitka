@@ -46,6 +46,9 @@ New Features
 - Python3 now also has compatible parameter errors and compatible exception error
   messages.
 
+- For list contractions, the changed scope rule (assignments don't affect outside values)
+  is now respected as well.
+
 New Optimizations
 -----------------
 

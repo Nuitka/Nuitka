@@ -1015,7 +1015,6 @@ def buildAssignmentStatements( provider, node, source, source_ref, allow_none = 
         source_ref = source_ref
     )
 
-
 def decodeAssignTarget( provider, node, source_ref, allow_none = False ):
     # Many cases to deal with, because of the different assign targets,
     # pylint: disable=R0911,R0912
@@ -1215,7 +1214,7 @@ def buildDeleteNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-def _buildContractionNode( provider, node, name, emit_class, start_value, list_contraction, source_ref ):
+def _buildContractionNode( provider, node, name, emit_class, start_value, assign_provider, source_ref ):
     # The contraction nodes are reformulated to loop style nodes, and use a lot of
     # temporary names, nested blocks, etc. and so a lot of variable names. There is no
     # good way around that, and we deal with many cases, due to having generator
@@ -1392,7 +1391,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, list_c
                 source_ref = source_ref
             ),
             buildAssignmentStatements(
-                provider   = provider if list_contraction else function_body,
+                provider   = provider if assign_provider else function_body,
                 node       = qual.target,
                 source     = CPythonExpressionTempVariableRef(
                     variable   = tmp_value_variable.makeReference( nested_temp_block ),
@@ -1502,6 +1501,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, list_c
     )
 
 def buildListContractionNode( provider, node, source_ref ):
+
     return _buildContractionNode(
         provider         = provider,
         node             = node,
@@ -1511,7 +1511,8 @@ def buildListContractionNode( provider, node, source_ref ):
             constant   = [],
             source_ref = source_ref
         ),
-        list_contraction = True,
+        # Note: For Python3, the list contractions no longer assign to the outer scope.
+        assign_provider  = Utils.getPythonVersion() < 300,
         source_ref       = source_ref
     )
 
@@ -1525,7 +1526,7 @@ def buildSetContractionNode( provider, node, source_ref ):
             constant   = set(),
             source_ref = source_ref
         ),
-        list_contraction = False,
+        assign_provider  = False,
         source_ref       = source_ref
     )
 
@@ -1539,7 +1540,7 @@ def buildDictContractionNode( provider, node, source_ref ):
             constant   = {},
             source_ref = source_ref
         ),
-        list_contraction = False,
+        assign_provider  = False,
         source_ref       = source_ref
     )
 
@@ -1552,7 +1553,7 @@ def buildGeneratorExpressionNode( provider, node, source_ref ):
         name             = "<genexpr>",
         emit_class       = CPythonExpressionYield,
         start_value      = None,
-        list_contraction = False,
+        assign_provider  = False,
         source_ref       = source_ref
     )
 
