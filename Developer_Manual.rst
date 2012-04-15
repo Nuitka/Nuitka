@@ -896,10 +896,18 @@ That is equivalent to the following:
         e = sys.exc_info()[1]
         handle_it()
 
-
 Of course, the value of the current exception, use special references for assignments,
 that access the C++ and don't go via "sys.exc_info" at all, these are called
 "CaughtExceptionValueRef".
+
+try/except/else
+===============
+
+Much like "else" branches of loops, an indicator variable is used to indicate the entry
+into any of the exception handlers.
+
+Therefore, the "else" becomes a real conditional statement in the node tree, checking the
+indicator variable and guarding the execution of the "else" branch.xs
 
 Classes Creation
 ================
@@ -1843,12 +1851,6 @@ into action, which could be code changes, plan changes, issues created, etc.
 
   Lambdas have defaults too, so it's not always a statement, but has to happen inside an
   expression.
-
-* Try/except/else should be reformulated to use indicator tmp variable
-
-  Much like "else" branches of loops, an indicator variable could be used to indicate the
-  entry into one if the exception handlers. That would expose it better to optimizations
-  and simplify their handling.
 
 
 .. raw:: pdf
