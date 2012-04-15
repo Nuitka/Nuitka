@@ -109,7 +109,10 @@ static inline void CHECK_EXCEPTION( Nuitka_GeneratorObject *generator )
         Py_XINCREF( generator->m_exception_tb );
 
         PyErr_Restore( generator->m_exception_type, generator->m_exception_value, generator->m_exception_tb );
+
         generator->m_exception_type = NULL;
+        generator->m_exception_value = NULL;
+        generator->m_exception_tb = NULL;
 
         throw _PythonException();
     }

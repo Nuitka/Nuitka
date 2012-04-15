@@ -230,14 +230,34 @@ static PyObject *Nuitka_Generator_throw( Nuitka_GeneratorObject *generator, PyOb
 
     int res = PyArg_UnpackTuple( args, "throw", 1, 3, &generator->m_exception_type, &generator->m_exception_value, &generator->m_exception_tb );
 
+    if ( generator->m_exception_tb == Py_None )
+    {
+        generator->m_exception_tb = NULL;
+    }
+    else if ( generator->m_exception_tb != NULL && !PyTraceBack_Check( generator->m_exception_tb ) )
+    {
+        PyErr_Format( PyExc_TypeError, "throw() third argument must be a traceback object" );
+        return NULL;
+    }
+
     if (unlikely( res == 0 ))
     {
         generator->m_exception_type = NULL;
+        generator->m_exception_value = NULL;
+        generator->m_exception_tb = NULL;
 
         return NULL;
     }
 
-    if ( PyExceptionInstance_Check( generator->m_exception_type ) )
+    Py_INCREF( generator->m_exception_type );
+    Py_XINCREF( generator->m_exception_value );
+    Py_XINCREF( generator->m_exception_tb );
+
+    if ( PyExceptionClass_Check( generator->m_exception_type ))
+    {
+        PyErr_NormalizeException( &generator->m_exception_type, &generator->m_exception_value, &generator->m_exception_tb );
+    }
+    else if ( PyExceptionInstance_Check( generator->m_exception_type ) )
     {
         if ( generator->m_exception_value && generator->m_exception_value != Py_None )
         {
@@ -245,10 +265,11 @@ static PyObject *Nuitka_Generator_throw( Nuitka_GeneratorObject *generator, PyOb
             return NULL;
         }
 
+        Py_XDECREF( generator->m_exception_value );
         generator->m_exception_value = generator->m_exception_type;
         generator->m_exception_type = INCREASE_REFCOUNT( PyExceptionInstance_Class( generator->m_exception_type ) );
     }
-    else if ( !PyExceptionClass_Check( generator->m_exception_type ) )
+    else
     {
         PyErr_Format( PyExc_TypeError, "exceptions must be classes, or instances, not %s", Py_TYPE( generator->m_exception_type )->tp_name );
         return NULL;
@@ -260,11 +281,19 @@ static PyObject *Nuitka_Generator_throw( Nuitka_GeneratorObject *generator, PyOb
         return NULL;
     }
 
-    PyErr_NormalizeException( &generator->m_exception_type, &generator->m_exception_value, &generator->m_exception_tb );
+    PyObject *exception_type = generator->m_exception_type;
+    PyObject *exception_value = generator->m_exception_value;
+    PyObject *exception_tb = generator->m_exception_tb;
 
     if ( generator->m_status != Generator_Status::status_Finished )
     {
-        return Nuitka_Generator_send( generator, Py_None );
+        PyObject *result = Nuitka_Generator_send( generator, Py_None );
+
+        Py_DECREF( exception_type );
+        Py_XDECREF( exception_value );
+        Py_XDECREF( exception_tb );
+
+        return result;
     }
     else
     {
