@@ -885,17 +885,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
             context   = context,
             eval_node = expression
         )
-    elif expression.isExpressionBuiltinExec():
-        # exec builtin of Python3, as opposed to Python2 statement
-        identifier = generateEvalCode(
-            context   = context,
-            eval_node = expression
-        )
-    elif expression.isExpressionBuiltinExecfile():
-        identifier = generateExecfileCode(
-            context       = context,
-            execfile_node = expression
-        )
     elif expression.isExpressionBuiltinOpen():
         identifier = Generator.getBuiltinOpenCode(
             filename  = makeExpressionCode(
@@ -1146,6 +1135,17 @@ def generateExpressionCode( expression, context, allow_none = False ):
             "%s.asObject()" % expression.getVariableName(),
             1
         )
+    elif Utils.getPythonVersion() < 300 and expression.isExpressionBuiltinExecfile():
+        identifier = generateExecfileCode(
+            context       = context,
+            execfile_node = expression
+        )
+    elif Utils.getPythonVersion() >= 300 and expression.isExpressionBuiltinExec():
+        # exec builtin of Python3, as opposed to Python2 statement
+        identifier = generateEvalCode(
+            context   = context,
+            eval_node = expression
+        )
     else:
         assert False, expression
 
@@ -1326,7 +1326,8 @@ def _generateEvalCode( node, context ):
             context    = context
         )
 
-    if node.isExpressionBuiltinEval() or node.isExpressionBuiltinExec():
+    if node.isExpressionBuiltinEval() or \
+         ( Utils.getPythonVersion() >= 300 and node.isExpressionBuiltinExec() ):
         filename = "<string>"
     else:
         filename = "<execfile>"

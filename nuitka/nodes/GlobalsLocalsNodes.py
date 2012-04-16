@@ -61,6 +61,9 @@ class CPythonExpressionBuiltinLocals( CPythonNodeBase, CPythonExpressionMixin ):
     def computeNode( self ):
         return self, None, None
 
+    def needsLocalsDict( self ):
+        # TODO: Actually the class bodies already need it.
+        return self.getParentVariableProvider().isExpressionClassBody()
 
 class CPythonExpressionBuiltinDir0( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_BUILTIN_DIR0"

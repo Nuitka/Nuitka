@@ -34,6 +34,8 @@ supported builtin types.
 
 from .registry import CallRegistry
 
+from nuitka.Utils import getPythonVersion
+
 from nuitka.nodes.BuiltinIteratorNodes import (
     CPythonExpressionBuiltinNext1,
     CPythonExpressionBuiltinNext2,
@@ -61,10 +63,15 @@ from nuitka.nodes.BuiltinDecodingNodes import (
 )
 from nuitka.nodes.ExecEvalNodes import (
     CPythonExpressionBuiltinEval,
-    CPythonExpressionBuiltinExec,
-    CPythonExpressionBuiltinExecfile,
+
     CPythonStatementExec
 )
+
+if getPythonVersion() < 300:
+    from nuitka.nodes.ExecEvalNodes import CPythonExpressionBuiltinExecfile
+else:
+    from nuitka.nodes.ExecEvalNodes import CPythonExpressionBuiltinExec
+
 from nuitka.nodes.GlobalsLocalsNodes import (
     CPythonExpressionBuiltinGlobals,
     CPythonExpressionBuiltinLocals,
@@ -93,8 +100,6 @@ from nuitka.nodes.NodeMakingHelpers import (
 
 
 from nuitka.transform.optimizations import BuiltinOptimization
-
-from nuitka.Utils import getPythonVersion
 
 def dir_extractor( node ):
     # Only treat the empty dir() call, leave the others alone for now.
@@ -353,13 +358,18 @@ def locals_extractor( node ):
 def execfile_extractor( node ):
     def wrapExpressionBuiltinExecfileCreation( filename, globals_arg, locals_arg, source_ref ):
 
-        if node.getParentVariableProvider().isExpressionClassBody():
+        provider = node.getParentVariableProvider()
+
+        if provider.isExpressionClassBody():
             # In a case, the copy-back must be done and will only be done correctly by
             # the code for exec statements.
 
             use_call = CPythonStatementExec
         else:
             use_call = CPythonExpressionBuiltinExecfile
+
+        if provider.isExpressionFunctionBody():
+            provider.markAsExecContaining()
 
         return use_call(
             source_code = CPythonExpressionCall(

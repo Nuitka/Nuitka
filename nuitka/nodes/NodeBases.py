@@ -327,8 +327,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         return ()
 
     def getVisitableNodesNamed( self ):
-        # assert self.getVisitableNodes.im_class == self.getVisitableNodesNamed.im_class, self.getVisitableNodes.im_class
-
+        # Virtual method, pylint: disable=R0201
         return ()
 
     def getChildNodesNotTagged( self, tag ):
@@ -375,6 +374,12 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
     def isStatementAbortative( self ):
         assert self.isStatement(), self.kind
 
+        return False
+
+    def needsLocalsDict( self ):
+        """ Node requires a locals dictionary by provider. """
+
+        # Virtual method, pylint: disable=R0201,W0613
         return False
 
     def hasTag( self, tag ):

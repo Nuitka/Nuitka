@@ -43,7 +43,7 @@ from .NodeBases import (
 
 from .NodeMakingHelpers import convertNoneConstantToNone
 
-from nuitka import Variables
+from nuitka import Variables, Utils
 
 class CPythonExpressionBuiltinEval( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_EVAL"
@@ -71,18 +71,39 @@ class CPythonExpressionBuiltinEval( CPythonExpressionChildrenHavingBase ):
 
 
 # Note: Python3 only so far.
-class CPythonExpressionBuiltinExec( CPythonExpressionBuiltinEval ):
-    kind = "EXPRESSION_BUILTIN_EXEC"
+if Utils.getPythonVersion() >= 300:
+    class CPythonExpressionBuiltinExec( CPythonExpressionBuiltinEval ):
+        kind = "EXPRESSION_BUILTIN_EXEC"
+
+        def needsLocalsDict( self ):
+            return True
+
+# Note: Python2 only
+if Utils.getPythonVersion() < 300:
+    class CPythonExpressionBuiltinExecfile( CPythonExpressionBuiltinEval ):
+        kind = "EXPRESSION_BUILTIN_EXECFILE"
+
+        named_children = ( "source", "globals", "locals" )
+
+        def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
+            CPythonExpressionBuiltinEval.__init__( self, source_code, globals_arg, locals_arg, source_ref )
+
+        def needsLocalsDict( self ):
+            return True
 
 
-class CPythonExpressionBuiltinExecfile( CPythonExpressionBuiltinEval ):
-    kind = "EXPRESSION_BUILTIN_EXECFILE"
-
-    named_children = ( "source", "globals", "locals" )
-
-    def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
-        CPythonExpressionBuiltinEval.__init__( self, source_code, globals_arg, locals_arg, source_ref )
-
+# TODO: Find a place for this. Potentially as an attribute of nodes themselves.
+def _couldBeNone( node ):
+    if node is None:
+        return True
+    elif node.isExpressionMakeDict():
+        return False
+    elif node.isExpressionBuiltinGlobals() or node.isExpressionBuiltinLocals() or \
+           node.isExpressionBuiltinDir0() or node.isExpressionBuiltinVars():
+        return False
+    else:
+        # assert False, node
+        return True
 
 class CPythonStatementExec( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_EXEC"
@@ -110,6 +131,11 @@ class CPythonStatementExec( CPythonChildrenHaving, CPythonNodeBase ):
     getSourceCode = CPythonChildrenHaving.childGetter( "source" )
     getGlobals = CPythonChildrenHaving.childGetter( "globals" )
     getLocals = CPythonChildrenHaving.childGetter( "locals" )
+
+    def needsLocalsDict( self ):
+        return _couldBeNone( self.getGlobals() ) or \
+               self.getGlobals().isExpressionBuiltinLocals() or \
+               self.getLocals() is not None and self.getLocals().isExpressionBuiltinLocals()
 
 
 # TODO: This is totally bitrot
@@ -176,3 +202,6 @@ class CPythonStatementExecInline( CPythonChildrenHaving, CPythonClosureTaker, CP
                 owner         = self.provider,
                 variable_name = variable_name
             )
+
+    def needsLocalsDict( self ):
+        return True
