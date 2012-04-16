@@ -399,6 +399,47 @@ def simpleFunction50():
    for x in range( 2 ):
       r = list( f() )
 
+def simpleFunction51():
+   g = ( x for x in range(9) )
+
+   try:
+      g.throw( ValueError, 9 )
+   except ValueError, e:
+      pass
+
+def simpleFunction52():
+   g = ( x for x in range(9) )
+
+   try:
+      g.throw( ValueError( 9 ) )
+   except ValueError, e:
+      pass
+
+def simpleFunction53():
+   g = ( x for x in range(9) )
+
+   try:
+      g.send( 9 )
+   except TypeError, e:
+      pass
+
+def simpleFunction54():
+   g = ( x for x in range(9) )
+   g.next()
+
+   try:
+      g.send( 9 )
+   except TypeError, e:
+      pass
+
+
+def simpleFunction55():
+   g = ( x for x in range(9) )
+
+   try:
+      g.close()
+   except ValueError, e:
+      pass
 
 x = 17
 
@@ -486,3 +527,8 @@ checkReferenceCount( simpleFunction47 )
 checkReferenceCount( simpleFunction48 )
 checkReferenceCount( simpleFunction49 )
 checkReferenceCount( simpleFunction50 )
+checkReferenceCount( simpleFunction51 )
+checkReferenceCount( simpleFunction52 )
+checkReferenceCount( simpleFunction53 )
+checkReferenceCount( simpleFunction54 )
+checkReferenceCount( simpleFunction55 )
