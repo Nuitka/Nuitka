@@ -154,9 +154,16 @@ def checkExcInfoScope():
 
 
     def subFunction():
+        print sys.exc_info()
         assert sys.exc_info()[0] is not None
         assert sys.exc_info()[1] is not None
         assert sys.exc_info()[2] is not None
+
+        try:
+            print "Trying"
+        except:
+            pass
+
 
     try:
         raise "me"
@@ -165,6 +172,16 @@ def checkExcInfoScope():
         assert sys.exc_info()[1] is not None
         assert sys.exc_info()[2] is not None
 
+        subFunction()
+
+    try:
+        raise "me"
+    except:
+        assert sys.exc_info()[0] is not None
+        assert sys.exc_info()[1] is not None
+        assert sys.exc_info()[2] is not None
+
+        subFunction()
         subFunction()
 
 
