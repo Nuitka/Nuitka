@@ -83,7 +83,7 @@ inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exceptio
     PyObject *old_value = thread_state->exc_value;
     PyObject *old_tb    = thread_state->exc_traceback;
 
-    thread_state->exc_type = INCREASE_REFCOUNT( exception_type );
+    thread_state->exc_type = INCREASE_REFCOUNT_X( exception_type );
     thread_state->exc_value = INCREASE_REFCOUNT_X( exception_value );
     thread_state->exc_traceback = INCREASE_REFCOUNT_X( exception_tb );
 
@@ -91,11 +91,9 @@ inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exceptio
     Py_XDECREF( old_value );
     Py_XDECREF( old_tb );
 
-    PySys_SetObject( (char *)"exc_type", exception_type );
+    PySys_SetObject( (char *)"exc_type", exception_type ? exception_type : Py_None );
     PySys_SetObject( (char *)"exc_value", exception_value ? exception_value : Py_None );
     PySys_SetObject( (char *)"exc_traceback", exception_tb ? exception_tb : Py_None );
-    PySys_SetObject( (char *)"exc_value", exception_value );
-    PySys_SetObject( (char *)"exc_traceback", exception_tb );
 }
 
 class _PythonException
@@ -225,7 +223,6 @@ public:
 
     inline PyObject *getType()
     {
-        // TODO: Why is the normalize needed for the value == NULL, and not type == NULL?
         if ( this->exception_value == NULL )
         {
             PyErr_NormalizeException( &this->exception_type, &this->exception_value, &this->exception_tb );
@@ -236,7 +233,6 @@ public:
 
     inline PyObject *getValue()
     {
-        // TODO: Why is the normalize needed for the value == NULL, and not type == NULL?
         if ( this->exception_value == NULL )
         {
             PyErr_NormalizeException( &this->exception_type, &this->exception_value, &this->exception_tb );
@@ -365,26 +361,29 @@ public:
 
     FrameExceptionKeeper()
     {
+        this->active = false;
+
         this->frame_exc_type = NULL;
+        this->frame_exc_value = NULL;
+        this->frame_exc_traceback = NULL;
     }
 
     ~FrameExceptionKeeper()
     {
-        if ( this->frame_exc_type != NULL )
-        {
-            _SET_CURRENT_EXCEPTION( this->frame_exc_type, this->frame_exc_value, this->frame_exc_traceback );
-        }
+        _SET_CURRENT_EXCEPTION( this->frame_exc_type, this->frame_exc_value, this->frame_exc_traceback );
     }
 
     // Preserve the exception early before the exception handler is set up, so that it can later
     // at function exit be restored.
     void preserveExistingException()
     {
-        if ( this->frame_exc_type == NULL )
+        if ( this->active == false )
         {
+            this->active = true;
+
             PyThreadState *thread_state = PyThreadState_GET();
 
-            if ( this->frame_exc_type != NULL )
+            if ( thread_state->exc_type )
             {
                 this->frame_exc_type = INCREASE_REFCOUNT( thread_state->exc_type );
                 this->frame_exc_value = INCREASE_REFCOUNT_X( thread_state->exc_value );
@@ -392,7 +391,7 @@ public:
             }
             else
             {
-                this->frame_exc_type = Py_None;
+                this->frame_exc_type = NULL;
                 this->frame_exc_value = NULL;
                 this->frame_exc_traceback = NULL;
             }
@@ -402,6 +401,7 @@ public:
 private:
 
     PyObject *frame_exc_type, *frame_exc_value, *frame_exc_traceback;
+    bool active;
 
 };
 
