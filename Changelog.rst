@@ -9,6 +9,11 @@ Bug fixes
 
 - List contractions produced extra entries on the call stack.
 
+- Calling a compiled function an exception handler cleared the exception
+  on return, it no longer does.
+
+- Reference counter handling with generator "throw" method is now correct.
+
 New Features
 ------------
 
@@ -80,7 +85,13 @@ Cleanups
 New Tests
 ---------
 
-None
+- Expanded basic tests to work for Python3 as well.
+
+- Added reference count tests for generator functions "throw", "send", and "close"
+  methods.
+
+- Cover calling a function with "try/except" in an exception handler twice. No test was
+  previously doing that.
 
 Summary
 -------
