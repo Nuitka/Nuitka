@@ -443,9 +443,8 @@ def simpleFunction55():
 
 x = 17
 
-def checkReferenceCount( checked_function, max_rounds = 4 ):
-   if sys.version_info[0] < 3:
-      sys.exc_clear()
+def checkReferenceCount( checked_function, max_rounds = 10 ):
+   assert sys.exc_info() == ( None, None, None ), sys.exc_info()
 
    print checked_function.func_name + ":",
 
@@ -458,8 +457,7 @@ def checkReferenceCount( checked_function, max_rounds = 4 ):
 
       checked_function()
 
-      if sys.version_info[0] < 3:
-         sys.exc_clear()
+      assert sys.exc_info() == ( None, None, None ), sys.exc_info()
 
       gc.collect()
 
@@ -471,8 +469,7 @@ def checkReferenceCount( checked_function, max_rounds = 4 ):
    else:
       print "FAILED", ref_count1, ref_count2
 
-   if sys.version_info[0] < 3:
-      sys.exc_clear()
+   assert sys.exc_info() == ( None, None, None ), sys.exc_info()
 
    gc.collect()
 
