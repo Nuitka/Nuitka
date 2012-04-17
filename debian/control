@@ -3,7 +3,7 @@ Maintainer: Kay Hayen <kayhayen@gmx.de>
 Section: python
 Priority: optional
 Build-Depends: debhelper (>= 7.4.3),
-               g++-4.6 (>= 4.6.1) | g++-4.5,
+               g++-4.7 | g++-4.6 (>= 4.6.1) | g++-4.5,
                python (>= 2.6.6-2),
                python-all-dbg (>= 2.6.6-2),
                python-all-dev (>= 2.6.6-2),
