@@ -2437,6 +2437,11 @@ def buildNumberNode( node, source_ref ):
         source_ref = source_ref
     )
 
+def buildBytesNode( node, source_ref ):
+    return CPythonExpressionConstantRef(
+        constant   = node.s,
+        source_ref = source_ref
+    )
 
 def buildBoolOpNode( provider, node, source_ref ):
     bool_op = getKind( node.op )
@@ -2960,6 +2965,7 @@ _fast_path_args2 = {
     "Import"       : buildImportModulesNode,
     "Str"          : buildStringNode,
     "Num"          : buildNumberNode,
+    "Bytes"        : buildBytesNode
 }
 
 _fast_path_args1 = {
