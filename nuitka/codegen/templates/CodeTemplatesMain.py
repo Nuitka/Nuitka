@@ -41,7 +41,7 @@ global_copyright = """\
 """
 
 module_inittab_entry = """\
-{ (char *)"%(module_name)s", init%(module_identifier)s },"""
+{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ) },"""
 
 main_program = """\
 // Our own inittab for lookup of "frozen" modules, i.e. the ones included in this binary.
@@ -91,11 +91,9 @@ int main( int argc, char *argv[] )
 
     patchInspectModule();
 
-#if PYTHON_VERSION < 300
-    init__main__();
-#else
-    PyInit___main__();
-#endif
+
+    // Execute the "__main__" module init function.
+    MOD_INIT_NAME( __main__)();
 
     if ( PyErr_Occurred() )
     {
@@ -120,7 +118,7 @@ module_header_template = """\
 
 #include <nuitka/helpers.hpp>
 
-MOD_INIT( %(module_identifier)s );
+MOD_INIT_DECL( %(module_identifier)s );
 
 extern PyObject *_module_%(module_identifier)s;
 
@@ -304,7 +302,7 @@ static bool init_done = false;
 // The exported interface to CPython. On import of the module, this function gets
 // called. It has have that exact function name.
 
-MOD_INIT( %(module_identifier)s )
+MOD_INIT_DECL( %(module_identifier)s )
 {
 #ifdef _NUITKA_EXE
     // Packages can be imported recursively in deep executables.

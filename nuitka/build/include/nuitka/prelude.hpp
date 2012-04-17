@@ -110,13 +110,16 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 #define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC
 #endif
 
-#define MOD_INIT( name ) NUITKA_MODULE_INIT_FUNCTION init##name( void )
+#define MOD_INIT_NAME( name ) init##name
+#define MOD_INIT_DECL( name ) NUITKA_MODULE_INIT_FUNCTION init##name( void )
 #define MOD_RETURN_VALUE( value )
 
 #else
 
-#define MOD_INIT( name ) PyMODINIT_FUNC PyInit_##name( void )
+#define MOD_INIT_NAME( name ) PyInit_##name
+#define MOD_INIT_DECL( name ) PyMODINIT_FUNC PyInit_##name( void )
 #define MOD_RETURN_VALUE( value ) value
+
 #endif
 
 #include "nuitka/helpers.hpp"
