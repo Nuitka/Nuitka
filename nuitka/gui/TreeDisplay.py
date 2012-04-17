@@ -247,7 +247,7 @@ class InspectNodeTreeDialog( QtGui.QDialog ):
             if char == "\n":
                 line += 1
 
-        print "Line", line
+        # print "Line", line
 
         item = self.model.getItemFromSourceRef(
             self.displayed.atLineNumber(
@@ -271,9 +271,7 @@ class InspectNodeTreeDialog( QtGui.QDialog ):
                 index = index.child( parent._children().index( item )+1, 1 )
                 parent = item
 
-            print self.treeview_nodes.visualRect( index )
-        else:
-            print "Not present"
+            # print self.treeview_nodes.visualRect( index )
 
     def loadSource( self, filename ):
         self.moving = True
