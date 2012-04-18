@@ -51,8 +51,11 @@ New Features
 - Python3 now also has compatible parameter errors and compatible exception error
   messages.
 
-- For list contractions, the changed scope rule (assignments don't affect outside values)
-  is now respected as well.
+- Python3 has changed scope rules for list contractions (assignments don't affect outside
+  values) is now respected as well.
+
+- Recursive programs and stand alone extension modules are now both supported as well.
+
 
 New Optimizations
 -----------------
@@ -325,6 +328,8 @@ New Tests
 
 - Added syntax test to show that star imports do not allow other names to be imported at
   the same time as well.
+
+- Python3 is now also running the compile itself test successfully.
 
 Summary
 -------
