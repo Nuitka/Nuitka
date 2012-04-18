@@ -293,5 +293,8 @@ def _isWhiteListedNotExistingModule( module_name ):
         "test_zipped_doctest", "zip_pkg",
 
         # test/test_zipimport_support.py
-        "test.test_cmd_line_script"
+        "test.test_cmd_line_script",
+
+        # Python3 modules that no longer exist
+        "commands",
     )

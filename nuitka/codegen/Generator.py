@@ -1647,9 +1647,13 @@ def getModuleCode( context, module_name, package_name, codes, tmp_variables, \
 
     module_code = CodeTemplates.module_body_template % {
         "module_name"           : module_name,
-        "module_name_obj"       : getConstantCode(
+        "module_code_name_obj"  : getConstantCode(
             context  = context,
             constant = module_name if module_name != "__main__" else "<module>"
+        ),
+        "module_name_obj"       : getConstantCode(
+            context  = context,
+            constant = module_name
         ),
         "module_identifier"     : module_identifier,
         "module_functions_decl" : functions_decl,

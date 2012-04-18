@@ -354,7 +354,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 // investigated in separate tests.
 #if PYTHON_VERSION >= 300
     {
-        int r = PyObject_SetItem( PySys_GetObject( (char *)"modules" ), _python_str_plain___main__, _module_%(module_identifier)s );
+        int r = PyObject_SetItem( PySys_GetObject( (char *)"modules" ), %(module_name_obj)s, _module_%(module_identifier)s );
 
         assert( r != -1 );
     }
@@ -397,7 +397,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     }
 #endif
 
-    frame_%(module_identifier)s = MAKE_FRAME( MAKE_CODEOBJ( %(filename_identifier)s, %(module_name_obj)s, 0, _python_tuple_empty, 0, false ), _module_%(module_identifier)s);
+    frame_%(module_identifier)s = MAKE_FRAME( MAKE_CODEOBJ( %(filename_identifier)s, %(module_code_name_obj)s, 0, _python_tuple_empty, 0, false ), _module_%(module_identifier)s);
 
     // Set module frame as the currently active one.
     FrameGuardLight frame_guard( &frame_%(module_identifier)s );
