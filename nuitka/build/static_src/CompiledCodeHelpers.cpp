@@ -441,6 +441,7 @@ PyObject *BUILTIN_RANGE( long boundary )
     return BUILTIN_RANGE( 0, boundary );
 }
 
+#if PYTHON_VERSION < 300
 static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 {
     if (likely(
@@ -478,11 +479,13 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 
     return result;
 }
+#endif
 
 static PythonBuiltin _python_builtin_range( &_python_str_plain_range );
 
 PyObject *BUILTIN_RANGE( PyObject *boundary )
 {
+#if PYTHON_VERSION < 300
     PyObjectTemporary boundary_temp( TO_RANGE_ARG( boundary, "end" ) );
 
     long start = PyInt_AsLong( boundary_temp.asObject() );
@@ -495,10 +498,14 @@ PyObject *BUILTIN_RANGE( PyObject *boundary )
     }
 
     return BUILTIN_RANGE( start );
+#else
+    return _python_builtin_range.call1( boundary );
+#endif
 }
 
 PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high )
 {
+#if PYTHON_VERSION < 300
     PyObjectTemporary low_temp( TO_RANGE_ARG( low, "start" ) );
     PyObjectTemporary high_temp( TO_RANGE_ARG( high, "end" ) );
 
@@ -533,10 +540,16 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high )
     {
         return BUILTIN_RANGE( start, end );
     }
+#else
+    return _python_builtin_range.call_args(
+        MAKE_TUPLE2( low, high )
+    );
+#endif
 }
 
 PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step )
 {
+#if PYTHON_VERSION < 300
     PyObjectTemporary low_temp( TO_RANGE_ARG( low, "start" ) );
     PyObjectTemporary high_temp( TO_RANGE_ARG( high, "end" ) );
     PyObjectTemporary step_temp( TO_RANGE_ARG( step, "step" ) );
@@ -587,6 +600,11 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step )
 
         return BUILTIN_RANGE( start, end, step_long );
     }
+#else
+    return _python_builtin_range.call_args(
+        MAKE_TUPLE3( low, high, step )
+    );
+#endif
 }
 
 PyObject *BUILTIN_LEN( PyObject *value )

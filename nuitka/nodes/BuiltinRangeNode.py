@@ -151,6 +151,9 @@ class CPythonExpressionBuiltinRange( CPythonExpressionChildrenHavingBase ):
         return self, None, None
 
     def computeNode( self ):
+        if getPythonVersion() >= 300:
+            return self, None, None
+
         low  = self.getLow()
         high = self.getHigh()
         step = self.getStep()
