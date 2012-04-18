@@ -34,7 +34,7 @@ supported builtin types.
 
 from .registry import CallRegistry
 
-from nuitka.Utils import getPythonVersion
+from nuitka.Utils import python_version
 
 from nuitka.nodes.BuiltinIteratorNodes import (
     CPythonExpressionBuiltinNext1,
@@ -67,7 +67,7 @@ from nuitka.nodes.ExecEvalNodes import (
     CPythonStatementExec
 )
 
-if getPythonVersion() < 300:
+if python_version < 300:
     from nuitka.nodes.ExecEvalNodes import CPythonExpressionBuiltinExecfile
 else:
     from nuitka.nodes.ExecEvalNodes import CPythonExpressionBuiltinExec
@@ -321,7 +321,7 @@ def int_extractor( node ):
         builtin_spec  = BuiltinOptimization.builtin_int_spec
     )
 
-if getPythonVersion() < 300:
+if python_version < 300:
     from nuitka.nodes.BuiltinTypeNodes import CPythonExpressionBuiltinLong
 
     def long_extractor( node ):
@@ -464,7 +464,7 @@ _dispatch_dict = {
     "open"       : open_extractor
 }
 
-if getPythonVersion() < 300:
+if python_version < 300:
     _dispatch_dict[ "long" ] = long_extractor
 
 

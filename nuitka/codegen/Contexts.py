@@ -45,14 +45,14 @@ from nuitka.Constants import HashableConstant
 
 from nuitka.__past__ import iterItems
 
-from nuitka.Utils import getPythonVersion
+from nuitka.Utils import python_version
 
 # False alarms about "hashlib.md5" due to its strange way of defining what is
 # exported, pylint won't understand it. pylint: disable=E1101
 
 import hashlib
 
-if getPythonVersion() < 300:
+if python_version < 300:
     def calcHash( key ):
         hash_value = hashlib.md5(
             "%s%s%d%s%s" % key

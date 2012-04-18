@@ -536,7 +536,7 @@ def generateSliceAccessIdentifiers( sliced, lower, upper, context ):
 
     return sliced, lower, upper
 
-_slicing_available = Utils.getPythonVersion() < 300
+_slicing_available = Utils.python_version < 300
 
 def decideSlicing( lower, upper ):
     return _slicing_available and                       \
@@ -1100,7 +1100,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
             base       = makeExpressionCode( expression.getBase(), allow_none = True ),
             context    = context
         )
-    elif Utils.getPythonVersion() < 300 and expression.isExpressionBuiltinLong():
+    elif Utils.python_version < 300 and expression.isExpressionBuiltinLong():
         assert expression.getValue() is not None or expression.getBase() is not None
 
         identifier = Generator.getBuiltinLongCode(
@@ -1135,12 +1135,12 @@ def generateExpressionCode( expression, context, allow_none = False ):
             "%s.asObject()" % expression.getVariableName(),
             1
         )
-    elif Utils.getPythonVersion() < 300 and expression.isExpressionBuiltinExecfile():
+    elif Utils.python_version < 300 and expression.isExpressionBuiltinExecfile():
         identifier = generateExecfileCode(
             context       = context,
             execfile_node = expression
         )
-    elif Utils.getPythonVersion() >= 300 and expression.isExpressionBuiltinExec():
+    elif Utils.python_version >= 300 and expression.isExpressionBuiltinExec():
         # exec builtin of Python3, as opposed to Python2 statement
         identifier = generateEvalCode(
             context   = context,
@@ -1327,7 +1327,7 @@ def _generateEvalCode( node, context ):
         )
 
     if node.isExpressionBuiltinEval() or \
-         ( Utils.getPythonVersion() >= 300 and node.isExpressionBuiltinExec() ):
+         ( Utils.python_version >= 300 and node.isExpressionBuiltinExec() ):
         filename = "<string>"
     else:
         filename = "<execfile>"

@@ -214,7 +214,7 @@ def buildClassNode( provider, node, source_ref ):
     decorators = buildNodeList( provider, reversed( node.decorator_list ), source_ref )
     bases = buildNodeList( provider, node.bases, source_ref )
 
-    if Utils.getPythonVersion() >= 300:
+    if Utils.python_version >= 300:
         if len( node.keywords ) == 1:
             assert len( node.keywords ) == 1, node.keywords
             assert node.keywords[0].arg == "metaclass", node.keywords[0].arg
@@ -1512,7 +1512,7 @@ def buildListContractionNode( provider, node, source_ref ):
             source_ref = source_ref
         ),
         # Note: For Python3, the list contractions no longer assign to the outer scope.
-        assign_provider  = Utils.getPythonVersion() < 300,
+        assign_provider  = Utils.python_version < 300,
         source_ref       = source_ref
     )
 
@@ -1796,7 +1796,7 @@ def buildTryFinallyNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-_has_raise_value = Utils.getPythonVersion() < 300
+_has_raise_value = Utils.python_version < 300
 
 def buildRaiseNode( provider, node, source_ref ):
     if _has_raise_value:
@@ -2081,7 +2081,7 @@ def buildImportFromNode( provider, node, source_ref ):
         assert target_names == [ None ]
 
         # Python3 made this a syntax error unfortunately.
-        if not provider.isModule() and Utils.getPythonVersion() >= 300:
+        if not provider.isModule() and Utils.python_version >= 300:
             SyntaxErrors.raiseSyntaxError(
                 "import * only allowed at module level",
                 provider.getSourceReference()
@@ -2210,7 +2210,7 @@ def buildWithNode( provider, node, source_ref ):
 
     # The "__enter__" and "__exit__" were normal attribute lookups under Python2.6, but
     # that changed later.
-    if Utils.getPythonVersion() < 270:
+    if Utils.python_version < 270:
         attribute_lookup_class = CPythonExpressionAttributeLookup
     else:
         attribute_lookup_class = CPythonExpressionSpecialAttributeLookup
@@ -2394,7 +2394,7 @@ def buildGlobalDeclarationNode( provider, node, source_ref ):
                 SyntaxErrors.raiseSyntaxError(
                     "name '%s' is %s and global" % (
                         variable_name,
-                        "local" if Utils.getPythonVersion() < 300 else "parameter"
+                        "local" if Utils.python_version < 300 else "parameter"
                     ),
                     provider.getSourceReference()
                 )
@@ -2480,7 +2480,7 @@ def buildReturnNode( provider, node, source_ref ):
         SyntaxErrors.raiseSyntaxError(
             "'return' outside function",
             source_ref,
-            None if Utils.getPythonVersion() < 300 else (
+            None if Utils.python_version < 300 else (
                 node.col_offset if provider.isModule() else node.col_offset+4
             )
         )
@@ -2505,7 +2505,7 @@ def buildYieldNode( provider, node, source_ref ):
         SyntaxErrors.raiseSyntaxError(
             "'yield' outside function",
             source_ref,
-            None if Utils.getPythonVersion() < 300 else node.col_offset
+            None if Utils.python_version < 300 else node.col_offset
         )
 
     provider.markAsGenerator()

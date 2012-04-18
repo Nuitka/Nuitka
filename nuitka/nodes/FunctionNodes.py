@@ -78,7 +78,7 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
             code_prefix = "listcontr"
             name = ""
 
-            self.local_locals = Utils.getPythonVersion() >= 300
+            self.local_locals = Utils.python_version >= 300
         else:
             self.local_locals = True
 

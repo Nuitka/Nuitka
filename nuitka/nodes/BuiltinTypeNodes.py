@@ -43,7 +43,7 @@ from .NodeMakingHelpers import makeConstantReplacementNode
 
 from nuitka.transform.optimizations import BuiltinOptimization
 
-from nuitka.Utils import getPythonVersion
+from nuitka.Utils import python_version
 
 class CPythonExpressionBuiltinTypeBase( CPythonExpressionBuiltinSingleArgBase ):
     pass
@@ -128,7 +128,7 @@ class CPythonExpressionBuiltinInt( CPythonExpressionBuiltinIntLongBase ):
     builtin_spec = BuiltinOptimization.builtin_int_spec
 
 
-if getPythonVersion() < 300:
+if python_version < 300:
     class CPythonExpressionBuiltinLong( CPythonExpressionBuiltinIntLongBase ):
         kind = "EXPRESSION_BUILTIN_LONG"
 

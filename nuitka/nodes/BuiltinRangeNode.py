@@ -38,7 +38,7 @@ from .NodeBases import CPythonExpressionChildrenHavingBase
 
 from .NodeMakingHelpers import getComputationResult
 
-from nuitka.Utils import getPythonVersion
+from nuitka.Utils import python_version
 
 import math
 
@@ -75,7 +75,7 @@ class CPythonExpressionBuiltinRange( CPythonExpressionChildrenHavingBase ):
             constant = low.getConstant()
 
             # Avoid warnings before Python 2.7, in Python 2.7 it's an exception.
-            if type( constant ) is float and getPythonVersion() < 270:
+            if type( constant ) is float and python_version < 270:
                 constant = int( constant )
 
             # Negative values are empty, so don't check against < 0.
@@ -93,9 +93,9 @@ class CPythonExpressionBuiltinRange( CPythonExpressionChildrenHavingBase ):
             constant1 = low.getConstant()
             constant2 = high.getConstant()
 
-            if type( constant1 ) is float and getPythonVersion() < 270:
+            if type( constant1 ) is float and python_version < 270:
                 constant1 = int( constant1 )
-            if type( constant2 ) is float and getPythonVersion() < 270:
+            if type( constant2 ) is float and python_version < 270:
                 constant2 = int( constant2 )
 
             if constant2 - constant1 <= 256:
@@ -113,11 +113,11 @@ class CPythonExpressionBuiltinRange( CPythonExpressionChildrenHavingBase ):
             constant2 = high.getConstant()
             constant3 = step.getConstant()
 
-            if type( constant1 ) is float and getPythonVersion() < 270:
+            if type( constant1 ) is float and python_version < 270:
                 constant1 = int( constant1 )
-            if type( constant2 ) is float and getPythonVersion() < 270:
+            if type( constant2 ) is float and python_version < 270:
                 constant2 = int( constant2 )
-            if type( constant3 ) is float and getPythonVersion() < 270:
+            if type( constant3 ) is float and python_version < 270:
                 constant3 = int( constant3 )
 
             try:
@@ -151,7 +151,7 @@ class CPythonExpressionBuiltinRange( CPythonExpressionChildrenHavingBase ):
         return self, None, None
 
     def computeNode( self ):
-        if getPythonVersion() >= 300:
+        if python_version >= 300:
             return self, None, None
 
         low  = self.getLow()

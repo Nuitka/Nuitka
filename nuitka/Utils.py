@@ -35,10 +35,12 @@ fit nowhere else and don't deserve their own names.
 
 import sys, os
 
-def getPythonVersion():
+def _getPythonVersion():
     big, major, minor = sys.version_info[0:3]
 
     return big * 100 + major * 10 + minor
+
+python_version = _getPythonVersion()
 
 def relpath( path ):
     return os.path.relpath( path )

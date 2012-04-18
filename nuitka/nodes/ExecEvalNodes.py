@@ -71,7 +71,7 @@ class CPythonExpressionBuiltinEval( CPythonExpressionChildrenHavingBase ):
 
 
 # Note: Python3 only so far.
-if Utils.getPythonVersion() >= 300:
+if Utils.python_version >= 300:
     class CPythonExpressionBuiltinExec( CPythonExpressionBuiltinEval ):
         kind = "EXPRESSION_BUILTIN_EXEC"
 
@@ -79,7 +79,7 @@ if Utils.getPythonVersion() >= 300:
             return True
 
 # Note: Python2 only
-if Utils.getPythonVersion() < 300:
+if Utils.python_version < 300:
     class CPythonExpressionBuiltinExecfile( CPythonExpressionBuiltinEval ):
         kind = "EXPRESSION_BUILTIN_EXECFILE"
 

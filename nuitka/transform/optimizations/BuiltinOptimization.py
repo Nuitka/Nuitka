@@ -35,7 +35,7 @@ from nuitka.nodes.CallNode import CPythonExpressionCall
 
 from nuitka.nodes.ParameterSpec import ParameterSpec, TooManyArguments, matchCall
 
-from nuitka.Utils import getPythonVersion
+from nuitka.Utils import python_version
 
 import sys
 
@@ -162,7 +162,7 @@ class BuiltinParameterSpecExceptions( BuiltinParameterSpec ):
 
 builtin_int_spec = BuiltinParameterSpec( "int", ( "x", "base" ), 2 )
 # This builtin is only available for Python2
-if getPythonVersion() < 300:
+if python_version < 300:
     builtin_long_spec = BuiltinParameterSpec( "long", ( "x", "base" ), 2 )
     builtin_execfile_spec = BuiltinParameterSpecNoKeywords( "execfile", ( "filename", "globals", "locals" ), 2 )
 

@@ -35,7 +35,7 @@ statements with their own future imports, or inlining of code from other modules
 
 from nuitka import Utils
 
-_future_division_default = Utils.getPythonVersion() >= 300
+_future_division_default = Utils.python_version >= 300
 
 class FutureSpec:
     def __init__( self ):

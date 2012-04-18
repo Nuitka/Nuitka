@@ -33,11 +33,11 @@ of operations allowed.
 
 """
 
-from .Utils import getPythonVersion
+from .Utils import python_version
 
 import operator
 
-if getPythonVersion() >= 300:
+if python_version >= 300:
     operator.div = operator.truediv
     operator.idiv = operator.itruediv
 
