@@ -331,11 +331,6 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     // puts( "in init%(module_identifier)s" );
 
-#ifdef _NUITKA_MODULE
-    // Remember it here, Py_InitModule4 will clear it.
-    char const *qualified_name = _Py_PackageContext;
-#endif
-
     // Create the module object first. There are no methods initially, all are added
     // dynamically in actual code only.  Also no __doc__ is initially set, as it could not
     // contain 0 this way, added early in actual code.  No self for modules, we have no
@@ -452,20 +447,6 @@ module_init_no_package_template = """\
     _mvar_%(module_identifier)s___file__.assign0( %(filename_identifier)s );
 #if %(is_package)d
     _mvar_%(module_identifier)s___path__.assign0( %(path_identifier)s );
-#endif
-
-#ifdef _NUITKA_MODULE
-    // Set the package attribute from what the import mechanism provided. The package
-    // variable should be set for the module code already.
-    if ( qualified_name )
-    {
-        _mvar_%(module_identifier)s___package__.assign0(
-            PyString_FromStringAndSize(
-               qualified_name,
-               strrchr( qualified_name, '.' ) -  qualified_name
-            )
-        );
-    }
 #endif
 """
 
