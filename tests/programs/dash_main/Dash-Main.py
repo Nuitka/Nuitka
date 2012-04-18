@@ -16,4 +16,4 @@
 #     limitations under the License.
 #
 
-print "This is running from",__file__
+print( "This is running from",__file__ )

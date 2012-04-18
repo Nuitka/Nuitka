@@ -16,6 +16,6 @@
 #     limitations under the License.
 #
 
-print "*** Child3: Begin"
+print( "*** Child3: Begin" )
 
-print "*** Child3: End"
+print( "*** Child3: End" )

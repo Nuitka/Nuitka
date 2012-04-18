@@ -15,5 +15,5 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-print "*** some_package: Coming from '%s'" % __file__.replace( ".pyc", ".py" )
-print "*** some_package: Path is '%s'" % __path__
+print( "*** some_package: Coming from '%s'" % __file__.replace( ".pyc", ".py" ) )
+print( "*** some_package: Path is '%s'" % __path__ )

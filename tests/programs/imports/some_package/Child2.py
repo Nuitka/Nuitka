@@ -16,11 +16,11 @@
 #     limitations under the License.
 #
 
-print "*** Child2: Begin"
+print( "*** Child2: Begin" )
 
 import Child1
 
-print "*** Child2: Child2 is in", __package__
-print "*** Child2: Imported nearby child", Child1
+print( "*** Child2: Child2 is in", __package__ )
+print( "*** Child2: Imported nearby child", Child1 )
 
-print "*** Child2: End"
+print( "*** Child2: End" )

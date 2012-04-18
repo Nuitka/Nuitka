@@ -16,11 +16,11 @@
 #     limitations under the License.
 #
 
-print "*** Main: Importing"
+print( "*** Main: Importing" )
 
 import some_package.Child2
 
-print "*** Main: Imported"
+print( "*** Main: Imported" )
 
-print "*** Main: Some package", some_package
-print "*** Main: Imported package child", some_package.Child2
+print( "*** Main: Some package", some_package )
+print( "*** Main: Imported package child", some_package.Child2 )
