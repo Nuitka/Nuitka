@@ -53,3 +53,6 @@ class CPythonStatementReturn( CPythonExpressionChildrenHavingBase ):
 
     def isStatementAbortative( self ):
         return True
+
+    def mayRaiseException( self, exception_type ):
+        return self.getExpression().mayRaiseException( exception_type )
