@@ -199,14 +199,45 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION( EVAL_ORDERED_3( PyObject *
     assertObject( positional_args );
     assert( named_args == NULL || Py_REFCNT( named_args ) > 0 );
 
-    PyObject *result = PyObject_Call( function_object, positional_args, named_args );
+    ternaryfunc call_slot = function_object->ob_type->tp_call;
 
-    if (unlikely( result == NULL ))
+    if (unlikely( call_slot == NULL ))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "'%s' object is not callable",
+            function_object->ob_type->tp_name
+        );
+
+        throw _PythonException();
+    }
+
+    if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object") ))
     {
         throw _PythonException();
     }
 
-    return result;
+    PyObject *result = (*call_slot)( function_object, positional_args, named_args );
+
+    Py_LeaveRecursiveCall();
+
+    if ( result == NULL )
+    {
+        if (unlikely( !PyErr_Occurred() ))
+        {
+            PyErr_Format(
+                PyExc_SystemError,
+                "NULL result without error in PyObject_Call"
+            );
+
+        }
+
+        throw _PythonException();
+    }
+    else
+    {
+        return result;
+    }
 }
 
 // Function call variant with no arguments provided at all.

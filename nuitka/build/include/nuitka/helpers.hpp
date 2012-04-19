@@ -905,16 +905,11 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
         }
         else
         {
-            PyObject *result = PyObject_Call(
+            PyObject *result = CALL_FUNCTION(
                 source_instance->in_class->cl_getattr,
                 PyObjectTemporary( MAKE_TUPLE2( source, attr_name ) ).asObject(),
                 NULL
             );
-
-            if (unlikely( result == NULL ))
-            {
-                throw _PythonException();
-            }
 
             assertObject( result );
 
@@ -1033,16 +1028,11 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
     {
         if ( target_instance->in_class->cl_setattr != NULL )
         {
-            PyObject *result = PyObject_Call(
+            PyObject *result = CALL_FUNCTION(
                 target_instance->in_class->cl_setattr,
                 PyObjectTemporary( MAKE_TUPLE3( target, attr_name, value ) ).asObject(),
                 NULL
             );
-
-            if (unlikely( result == NULL ))
-            {
-                throw _PythonException();
-            }
 
             Py_DECREF( result );
         }
