@@ -19,4 +19,4 @@
 try:
     from sys import not_there, *
 except Exception as e:
-    print "Star import with extra stuff not present gave", e
+    print( "Star import with extra stuff not present gave", e )
