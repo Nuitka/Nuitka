@@ -1577,7 +1577,7 @@ def getPackageIdentifier( module_name ):
     return module_name.replace( ".", "__" )
 
 def getModuleCode( context, module_name, package_name, codes, tmp_variables, \
-                   doc_identifier, path_identifier, filename_identifier ):
+                   doc_identifier, path_identifier, source_ref ):
 
     # For the module code, lots of attributes come together. pylint: disable=R0914
 
@@ -1614,7 +1614,10 @@ def getModuleCode( context, module_name, package_name, codes, tmp_variables, \
     if package_name is None:
         module_inits = CodeTemplates.module_init_no_package_template % {
             "module_identifier"   : module_identifier,
-            "filename_identifier" : filename_identifier.getCode(),
+            "filename_identifier" : getConstantCode(
+                constant = source_ref.getFilename(),
+                context  = context
+            ),
             "doc_identifier"      : doc_identifier.getCode(),
             "is_package"          : 0 if path_identifier is None else 1,
             "path_identifier"     : path_identifier.getCode() if path_identifier else "",
@@ -1626,7 +1629,10 @@ def getModuleCode( context, module_name, package_name, codes, tmp_variables, \
                 constant = module_name.split(".")[-1],
                 context  = context
             ),
-            "filename_identifier"     : filename_identifier.getCode(),
+            "filename_identifier"     : getConstantCode(
+                constant = source_ref.getFilename(),
+                context  = context
+            ),
             "is_package"              : 0 if path_identifier is None else 1,
             "path_identifier"         : path_identifier.getCode() if path_identifier else "",
             "doc_identifier"          : doc_identifier.getCode(),
@@ -1645,22 +1651,26 @@ def getModuleCode( context, module_name, package_name, codes, tmp_variables, \
         for tmp_variable in tmp_variables
     ]
 
+    code_identifier = context.getCodeObjectHandle(
+        filename     = source_ref.getFilename(),
+        arg_names    = (),
+        line_number  = 0,
+        code_name    = module_name if module_name != "__main__" else "<module>",
+        is_generator = False
+    )
+
     module_code = CodeTemplates.module_body_template % {
         "module_name"           : module_name,
-        "module_code_name_obj"  : getConstantCode(
-            context  = context,
-            constant = module_name if module_name != "__main__" else "<module>"
-        ),
         "module_name_obj"       : getConstantCode(
             context  = context,
             constant = module_name
         ),
         "module_identifier"     : module_identifier,
+        "code_identifier"       : code_identifier.getCodeTemporaryRef(),
         "module_functions_decl" : functions_decl,
         "module_functions_code" : functions_code,
         "module_globals"        : module_globals,
         "module_inits"          : module_inits + indented( module_local_decl ),
-        "filename_identifier"   : filename_identifier.getCode(),
         "module_code"           : indented( codes, 2 )
     }
 

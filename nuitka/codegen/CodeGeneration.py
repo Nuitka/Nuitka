@@ -2006,18 +2006,16 @@ def generateModuleCode( module, module_name, global_context ):
         path_identifier = None
 
     return Generator.getModuleCode(
-        module_name         = module_name,
-        package_name        = module.getPackage(),
-        doc_identifier      = context.getConstantHandle(
+        module_name     = module_name,
+        package_name    = module.getPackage(),
+        doc_identifier  = context.getConstantHandle(
             constant = module.getDoc()
         ),
-        filename_identifier = context.getConstantHandle(
-            constant = module.getFilename()
-        ),
-        path_identifier     = path_identifier,
-        codes               = codes,
-        tmp_variables       = module.getTempKeeperNames(),
-        context             = context,
+        source_ref      = module.getSourceReference(),
+        path_identifier = path_identifier,
+        codes           = codes,
+        tmp_variables   = module.getTempKeeperNames(),
+        context         = context,
     )
 
 def generateModuleDeclarationCode( module_name ):
