@@ -1852,6 +1852,25 @@ into action, which could be code changes, plan changes, issues created, etc.
   Lambdas have defaults too, so it's not always a statement, but has to happen inside an
   expression.
 
+* For the defaults attribute, if all are constants that are not mutable, a constant should be used.
+
+  Currently we have code like this:
+
+  .. code-block:: python
+
+      PyObject *result = Nuitka_Function_New(
+        _fparse_function_1___init___of_class_1_Record_of_module___main__,
+        _mparse_function_1___init___of_class_1_Record_of_module___main__,
+        _python_str_plain___init__,
+        _codeobj_4396e68e0f2485e4f509e7f4e3338b92,
+        MAKE_TUPLE5( Py_None, _python_int_0, _python_int_0, _python_int_0, _python_int_0 ),
+        _module___main__,
+        Py_None
+      );
+
+
+  The call to MAKE_TUPLE is useless and could be optimized away. Minor space
+  savings would result.
 
 .. raw:: pdf
 
