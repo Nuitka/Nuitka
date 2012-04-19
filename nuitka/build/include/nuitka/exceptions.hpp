@@ -73,6 +73,8 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *fr
     return result;
 }
 
+extern PyObject *_python_str_plain_exc_type, *_python_str_plain_exc_value, *_python_str_plain_exc_traceback;
+
 // Helper that sets the current thread exception, releasing the current one, for use in this
 // file only.
 inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyObject * exception_tb )
@@ -91,9 +93,13 @@ inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exceptio
     Py_XDECREF( old_value );
     Py_XDECREF( old_tb );
 
-    PySys_SetObject( (char *)"exc_type", exception_type ? exception_type : Py_None );
-    PySys_SetObject( (char *)"exc_value", exception_value ? exception_value : Py_None );
-    PySys_SetObject( (char *)"exc_traceback", exception_tb ? exception_tb : Py_None );
+    // Set sys attributes in the fastest possible way.
+    PyObject *sys_dict = thread_state->interp->sysdict;
+
+    PyDict_SetItem( sys_dict, _python_str_plain_exc_type, exception_type ? exception_type : Py_None );
+    PyDict_SetItem( sys_dict, _python_str_plain_exc_value, exception_value ? exception_value : Py_None );
+    PyDict_SetItem( sys_dict, _python_str_plain_exc_traceback, exception_tb ? exception_tb : Py_None );
+
 }
 
 class _PythonException

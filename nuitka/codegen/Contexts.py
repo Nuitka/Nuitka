@@ -197,6 +197,11 @@ class PythonGlobalContext:
         # Executables only
         self.getConstantHandle( "__main__" )
 
+        # sys exception attributes
+        self.getConstantHandle( "exc_type" )
+        self.getConstantHandle( "exc_value" )
+        self.getConstantHandle( "exc_traceback" )
+
         # Have EVAL_ORDER for 1..6 in any case, so we can use it in the C++ code freely
         # without concern.
         self.make_tuples_used = set( range( 1, 6 ) )
