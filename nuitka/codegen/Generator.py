@@ -581,7 +581,7 @@ def getOperationCode( operator, identifiers ):
             ),
             1
         )
-    elif operator == "Mul":
+    elif operator == "Mult":
         return Identifier(
             "BINARY_OPERATION_MUL( %s, %s )" % (
                 identifier_refs[0],
