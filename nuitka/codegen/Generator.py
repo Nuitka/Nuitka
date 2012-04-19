@@ -2616,26 +2616,26 @@ def getReversionMacrosCode( context ):
     for value in sorted( context.getEvalOrdersUsed() ):
         assert type( value ) is int
 
-        reverse_macros.append(
-            CodeTemplates.template_reverse_macro % {
-                "count"    : value,
-                "args"     : ", ".join(
-                    "arg%s" % (d+1) for d in range( value )
-                ),
-                "expanded" : ", ".join(
-                    "arg%s" % (d+1) for d in reversed( range( value ) )
-                )
-            }
-        )
+        reverse_macro = CodeTemplates.template_reverse_macro % {
+            "count"    : value,
+            "args"     : ", ".join(
+                "arg%s" % (d+1) for d in range( value )
+            ),
+            "expanded" : ", ".join(
+                "arg%s" % (d+1) for d in reversed( range( value ) )
+            )
+        }
 
-        noreverse_macros.append(
-            CodeTemplates.template_noreverse_macro % {
-                "count"    : value,
-                "args"     : ", ".join(
-                    "arg%s" % (d+1) for d in range( value )
-                )
-            }
-        )
+        reverse_macros.append( reverse_macro.rstrip() )
+
+        noreverse_macro = CodeTemplates.template_noreverse_macro % {
+            "count"    : value,
+            "args"     : ", ".join(
+                "arg%s" % (d+1) for d in range( value )
+            )
+        }
+
+        noreverse_macros.append( noreverse_macro.rstrip() )
 
     reverse_macros_declaration = CodeTemplates.template_reverse_macros_declaration % {
         "reverse_macros"   : "\n".join( reverse_macros ),

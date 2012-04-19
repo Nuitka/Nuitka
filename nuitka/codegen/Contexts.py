@@ -203,6 +203,7 @@ class PythonGlobalContext:
         self.make_lists_used = set( range( 0, 1 ) )
         self.make_dicts_used = set( range( 0, 3 ) )
 
+        # Include 0, so list and tuple making can use it without being special.
         self.eval_orders_used = set( range( 0, 6 ) )
 
         # Code objects needed.
