@@ -33,10 +33,20 @@ These are mostly used to look up the Python C/API from operations or a wrapper u
 """
 
 binary_operator_codes = {
-    "Add"       : "PyNumber_Add",
+# Those commented out in this section have fully specialized variants already.
+
+#    "Add"       : "PyNumber_Add",
+
+# These have their own variants only to make sure the generic code is inlined
+# but the CPython code is not inlined.
+
+#    "Mult"      : "PyNumber_Multiply",
+#    "Pow"       : "PyNumber_Power",
+#    "IPow"      : "PyNumber_InPlacePower",
+
+# The others are generic code and would be faster if they had a specialized variant too.
     "Sub"       : "PyNumber_Subtract",
-    "Pow"       : "PyNumber_Power",
-    "Mult"      : "PyNumber_Multiply",
+
     "Div"       : "PyNumber_Divide",
     "FloorDiv"  : "PyNumber_FloorDivide",
     "TrueDiv"   : "PyNumber_TrueDivide",
@@ -48,7 +58,6 @@ binary_operator_codes = {
     "BitXor"    : "PyNumber_Xor",
     "IAdd"      : "PyNumber_InPlaceAdd",
     "ISub"      : "PyNumber_InPlaceSubtract",
-    "IPow"      : "PyNumber_InPlacePower",
     "IMult"     : "PyNumber_InPlaceMultiply",
     "IDiv"      : "PyNumber_InPlaceDivide",
     "IFloorDiv" : "PyNumber_InPlaceFloorDivide",
