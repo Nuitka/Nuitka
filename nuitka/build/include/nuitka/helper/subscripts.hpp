@@ -175,10 +175,60 @@ NUITKA_MAY_BE_UNUSED static void _SET_SUBSCRIPT( EVAL_ORDERED_3( PyObject *value
     assertObject( target );
     assertObject( subscript );
 
-    int status = PyObject_SetItem( target, subscript, value );
+    PyMappingMethods *mapping_methods = Py_TYPE( target )->tp_as_mapping;
 
-    if (unlikely( status == -1 ))
+    if ( mapping_methods != NULL && mapping_methods->mp_ass_subscript )
     {
+        int res = mapping_methods->mp_ass_subscript( target, subscript, value );
+
+        if (unlikely( res == -1 ))
+        {
+            throw _PythonException();
+        }
+    }
+    else if ( Py_TYPE( target )->tp_as_sequence )
+    {
+        if ( PyIndex_Check( subscript ) )
+        {
+            Py_ssize_t key_value = PyNumber_AsSsize_t( subscript, PyExc_IndexError );
+
+            if ( key_value == -1 )
+            {
+                THROW_IF_ERROR_OCCURED();
+            }
+
+            SEQUENCE_SETITEM( target, key_value, value );
+
+        }
+        else if ( Py_TYPE( target )->tp_as_sequence->sq_ass_item )
+        {
+            PyErr_Format(
+                PyExc_TypeError,
+                "sequence index must be integer, not '%s'",
+                Py_TYPE( subscript )->tp_name
+            );
+
+            throw _PythonException();
+        }
+        else
+        {
+            PyErr_Format(
+                PyExc_TypeError,
+                "'%s' object does not support item assignment",
+                Py_TYPE( target )->tp_name
+            );
+
+            throw _PythonException();
+        }
+    }
+    else
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "'%s' object does not support item assignment",
+            Py_TYPE( target )->tp_name
+        );
+
         throw _PythonException();
     }
 }
