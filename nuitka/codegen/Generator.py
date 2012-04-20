@@ -605,6 +605,14 @@ def getOperationCode( operator, identifiers ):
             ),
             1
         )
+    elif operator == "Mod":
+        return Identifier(
+            "BINARY_OPERATION_REMAINDER( %s, %s )" % (
+                identifier_refs[0],
+                identifier_refs[1]
+            ),
+            1
+        )
     elif len( identifiers ) == 2:
         return Identifier(
             "BINARY_OPERATION( %s, %s, %s )" % (

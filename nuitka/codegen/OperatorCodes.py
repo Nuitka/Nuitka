@@ -39,7 +39,7 @@ binary_operator_codes = {
 #    "Sub"       : "PyNumber_Subtract",
 #    "Div"       : "PyNumber_Divide",
 #    "Mult"      : "PyNumber_Multiply",
-
+#    "Mod"       : "PyNumber_Remainder",
 # These have their own variants only to make sure the generic code is inlined
 # but the CPython code is not inlined.
 
@@ -47,8 +47,6 @@ binary_operator_codes = {
 #    "IPow"      : "PyNumber_InPlacePower",
 
 # The others are generic code and would be faster if they had a specialized variant too.
-
-    "Mod"       : "PyNumber_Remainder",
     "FloorDiv"  : "PyNumber_FloorDivide",
     "TrueDiv"   : "PyNumber_TrueDivide",
     "LShift"    : "PyNumber_Lshift",
