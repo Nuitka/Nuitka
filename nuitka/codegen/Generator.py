@@ -581,6 +581,22 @@ def getOperationCode( operator, identifiers ):
             ),
             1
         )
+    elif operator == "Sub":
+        return Identifier(
+            "BINARY_OPERATION_SUB( %s, %s )" % (
+                identifier_refs[0],
+                identifier_refs[1]
+            ),
+            1
+        )
+    elif operator == "Div":
+        return Identifier(
+            "BINARY_OPERATION_DIV( %s, %s )" % (
+                identifier_refs[0],
+                identifier_refs[1]
+            ),
+            1
+        )
     elif operator == "Mult":
         return Identifier(
             "BINARY_OPERATION_MUL( %s, %s )" % (

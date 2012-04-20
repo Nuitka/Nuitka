@@ -145,20 +145,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION( binary_api api, PyObject
 
 #include "helper/operations.hpp"
 
-NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_MUL( PyObject *operand1, PyObject *operand2 )
-{
-    assertObject( operand1 );
-    assertObject( operand2 );
-
-    PyObject *result = PyNumber_Multiply( operand1, operand2 );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
 
 typedef PyObject *(unary_api)( PyObject * );
 

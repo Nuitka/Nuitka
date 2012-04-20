@@ -36,21 +36,21 @@ binary_operator_codes = {
 # Those commented out in this section have fully specialized variants already.
 
 #    "Add"       : "PyNumber_Add",
+#    "Sub"       : "PyNumber_Subtract",
+#    "Div"       : "PyNumber_Divide",
+#    "Mult"      : "PyNumber_Multiply",
 
 # These have their own variants only to make sure the generic code is inlined
 # but the CPython code is not inlined.
 
-#    "Mult"      : "PyNumber_Multiply",
 #    "Pow"       : "PyNumber_Power",
 #    "IPow"      : "PyNumber_InPlacePower",
 
 # The others are generic code and would be faster if they had a specialized variant too.
-    "Sub"       : "PyNumber_Subtract",
 
-    "Div"       : "PyNumber_Divide",
+    "Mod"       : "PyNumber_Remainder",
     "FloorDiv"  : "PyNumber_FloorDivide",
     "TrueDiv"   : "PyNumber_TrueDivide",
-    "Mod"       : "PyNumber_Remainder",
     "LShift"    : "PyNumber_Lshift",
     "RShift"    : "PyNumber_Rshift",
     "BitAnd"    : "PyNumber_And",
