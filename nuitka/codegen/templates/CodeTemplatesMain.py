@@ -95,7 +95,7 @@ int main( int argc, char *argv[] )
     // Execute the "__main__" module init function.
     MOD_INIT_NAME( __main__)();
 
-    if ( PyErr_Occurred() )
+    if ( ERROR_OCCURED() )
     {
         assertFrameObject( frame___main__ );
         assert( frame___main__->f_back == NULL );

@@ -199,9 +199,9 @@ static PyObject *SEQUENCE_REPEAT( ssizeargfunc repeatfunc, PyObject *seq, PyObje
     // TODO: Inlining this will make it much cheaper.
     Py_ssize_t count = PyNumber_AsSsize_t( n, PyExc_OverflowError );
 
-    if (unlikely( count == -1 && PyErr_Occurred() ))
+    if (unlikely( count == -1 ))
     {
-        throw _PythonException();
+        THROW_IF_ERROR_OCCURED();
     }
 
     PyObject *result = (*repeatfunc)( seq, count );

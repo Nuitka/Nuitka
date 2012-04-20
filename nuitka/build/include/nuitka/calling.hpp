@@ -223,13 +223,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION( EVAL_ORDERED_3( PyObject *
 
     if ( result == NULL )
     {
-        if (unlikely( !PyErr_Occurred() ))
+        if (unlikely( !ERROR_OCCURED() ))
         {
             PyErr_Format(
                 PyExc_SystemError,
                 "NULL result without error in PyObject_Call"
             );
-
         }
 
         throw _PythonException();

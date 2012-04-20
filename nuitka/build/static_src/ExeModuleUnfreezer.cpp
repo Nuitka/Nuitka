@@ -114,7 +114,7 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
 #endif
            current->initfunc();
 
-           if ( PyErr_Occurred() )
+           if (unlikely( ERROR_OCCURED() ))
            {
                return NULL;
            }

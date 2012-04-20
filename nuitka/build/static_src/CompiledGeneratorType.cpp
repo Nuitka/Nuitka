@@ -123,7 +123,7 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
                 generator->m_context = NULL;
             }
 
-            assert( PyErr_Occurred() );
+            assert( ERROR_OCCURED() );
 
             return NULL;
         }
@@ -168,7 +168,8 @@ static PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyOb
         }
         else
         {
-            assert( PyErr_Occurred() );
+            assert( ERROR_OCCURED() );
+
             return NULL;
         }
     }

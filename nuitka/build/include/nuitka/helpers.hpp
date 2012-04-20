@@ -237,9 +237,9 @@ NUITKA_MAY_BE_UNUSED static long FROM_LONG( PyObject *value )
 {
     long result = PyInt_AsLong( value );
 
-    if (unlikely( result == -1 && PyErr_Occurred() ))
+    if (unlikely( result == -1 ))
     {
-        throw _PythonException();
+        THROW_IF_ERROR_OCCURED();
     }
 
     return result;
@@ -289,9 +289,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT( PyObject *value, PyObject *base )
 {
     int base_int = PyInt_AsLong( base );
 
-    if (unlikely( base_int == -1 && PyErr_Occurred() ))
+    if (unlikely( base_int == -1 ))
     {
-        throw _PythonException();
+        THROW_IF_ERROR_OCCURED();
     }
 
     char *value_str = Nuitka_String_AsString( value );
@@ -327,9 +327,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG( PyObject *value, PyObject *base )
 {
     int base_int = PyInt_AsLong( base );
 
-    if (unlikely( base_int == -1 && PyErr_Occurred() ))
+    if (unlikely( base_int == -1 ))
     {
-        throw _PythonException();
+        THROW_IF_ERROR_OCCURED();
     }
 
     char *value_str = Nuitka_String_AsString( value );
@@ -494,17 +494,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 
     if (unlikely( result == NULL ))
     {
-        if ( PyErr_Occurred() )
-        {
-            if ( PyErr_ExceptionMatches( PyExc_StopIteration ))
-            {
-                PyErr_Clear();
-            }
-            else
-            {
-                throw _PythonException();
-            }
-        }
+        THROW_IF_ERROR_OCCURED_NOT( PyExc_StopIteration );
     }
     else
     {
@@ -522,7 +512,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
 
     if (unlikely( result == NULL ))
     {
-        if ( !PyErr_Occurred() )
+        // TODO: Throwing an error unless another exists, should be offered too.
+        if ( !ERROR_OCCURED() )
         {
             PyErr_SetNone( PyExc_StopIteration );
         }
@@ -547,7 +538,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObjec
 
     if (unlikely( result == NULL ))
     {
-        if ( PyErr_Occurred() )
+        if ( ERROR_OCCURED() )
         {
             if ( PyErr_ExceptionMatches( PyExc_StopIteration ))
             {
@@ -583,7 +574,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, in
 
     if (unlikely( result == NULL ))
     {
-        if (unlikely( !PyErr_Occurred() ))
+        if (unlikely( !ERROR_OCCURED() ))
         {
             if ( seq_size_so_far == 1 )
             {
@@ -612,7 +603,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_PARAMETER_NEXT( PyObject *it
 
     if (unlikely( result == NULL ))
     {
-        if (unlikely( !PyErr_Occurred() ))
+        if (unlikely( !ERROR_OCCURED() ))
         {
             if ( seq_size_so_far == 1 )
             {
@@ -646,17 +637,7 @@ NUITKA_MAY_BE_UNUSED static inline void UNPACK_ITERATOR_CHECK( PyObject *iterato
 
     if (likely( attempt == NULL ))
     {
-        if ( PyErr_Occurred() )
-        {
-            if (likely( PyErr_ExceptionMatches( PyExc_StopIteration ) ))
-            {
-                PyErr_Clear();
-            }
-            else
-            {
-                throw _PythonException();
-            }
-        }
+        THROW_IF_ERROR_OCCURED_NOT( PyExc_StopIteration );
     }
     else
     {
@@ -680,7 +661,7 @@ NUITKA_MAY_BE_UNUSED static inline bool UNPACK_PARAMETER_ITERATOR_CHECK( PyObjec
 
     if (likely( attempt == NULL ))
     {
-        if ( PyErr_Occurred() )
+        if ( ERROR_OCCURED() )
         {
             if (likely( PyErr_ExceptionMatches( PyExc_StopIteration ) ))
             {
@@ -864,10 +845,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
             }
         }
 
-        if (unlikely( PyErr_Occurred() && !PyErr_ExceptionMatches( PyExc_AttributeError ) ))
-        {
-            throw _PythonException();
-        }
+        THROW_IF_ERROR_OCCURED_NOT( PyExc_AttributeError );
 
         // Finally allow a __getattr__ to handle it or else it's an error.
         if ( source_instance->in_class->cl_getattr == NULL )

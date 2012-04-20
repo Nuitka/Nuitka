@@ -29,6 +29,14 @@
 #ifndef __NUITKA_EXCEPTIONS_H__
 #define __NUITKA_EXCEPTIONS_H__
 
+static bool ERROR_OCCURED( void )
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    return tstate->curexc_type != NULL;
+}
+
+
 #if PYTHON_VERSION < 300
 NUITKA_MAY_BE_UNUSED static void dumpTraceback( PyTracebackObject *traceback )
 {
@@ -552,6 +560,29 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static PyObject *THROW_EXCEPTION( PyObject
     *traceback_flag = true;
 
     RAISE_EXCEPTION( exception_type, exception_value, traceback );
+}
+
+static void THROW_IF_ERROR_OCCURED( void )
+{
+    if ( ERROR_OCCURED() )
+    {
+        throw _PythonException();
+    }
+}
+
+static void THROW_IF_ERROR_OCCURED_NOT( PyObject *ignored )
+{
+    if ( ERROR_OCCURED() )
+    {
+        if ( PyErr_ExceptionMatches( ignored ))
+        {
+            PyErr_Clear();
+        }
+        else
+        {
+            throw _PythonException();
+        }
+    }
 }
 
 #endif
