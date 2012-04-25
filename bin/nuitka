@@ -58,6 +58,11 @@ else:
 import logging
 logging.basicConfig( format = 'Nuitka:%(levelname)s:%(message)s' )
 
+# We don't care, and these are triggered by run time calculations of "range" and
+# others, while on python2.7 they are disabled by default.
+import warnings
+warnings.simplefilter( "ignore", DeprecationWarning )
+
 from nuitka import Options
 
 intended_version = Options.getIntendedPythonVersion()
