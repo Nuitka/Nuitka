@@ -1005,11 +1005,11 @@ Goals/Allowances to the task
    same thing.
 
 
-Type Inference - The general Problem
-------------------------------------
+Type Inference - The Discussion
+-------------------------------
 
-Part of the goal is to forward value knowledge. When you have "a = b", that means that a
-and b now "alias". And if you know the value of "b" you can assume to know the value of
+Main goal is to forward value knowledge. When you have "a = b", that means that a and b
+now "alias". And if you know the value of "b" you can assume to know the value of
 "a". This is called "Aliasing".
 
 When that value is a compile time constant, we will want to push it forward, because
@@ -1034,10 +1034,11 @@ and that obviously to:
 
    c = 0
 
-This may be called "(Constant) Value Propagation". But we are aiming for even more. In
-order to fully benefit from type knowledge, the new type system must be able to be fully
-friends with existing builtin types.  The behavior of a type "long", "str", etc. ought to
-be implemented as far as possible with the builtin "long", "str" as well.
+This may be called "(Constant) Value Propagation". But we are aiming for even more. We want to forward propagate abstract properties of the values.
+
+In order to fully benefit from type knowledge, the new type system must be able to be
+fully friends with existing builtin types.  The behavior of a type "long", "str",
+etc. ought to be implemented as far as possible with the builtin "long", "str" as well.
 
 .. note::
 
@@ -1205,8 +1206,8 @@ propagation should only be the special case of it.
 Excursion to Functions
 ----------------------
 
-In order to decide what is best, forward or backward, we consider functions. If we
-propagate forward, how to handle this:
+In order to decide what this means to functions, if we propagate forward, how to handle
+this:
 
 .. code-block:: python
 
@@ -1233,7 +1234,7 @@ all the node. This may be "Finalization" work.
 
    b = my_append( [], 3 )
 
-   assert b == [3] # Can be known now
+   assert b == [3] # Could be decided now
 
 Goal: The structure we use should make it easy to visit "my_append" and then have
 something that easily allows to plug in the given values and know things. We need to be
@@ -1244,8 +1245,9 @@ We should e.g. be able to make "my_append" tell, one or more of these:
    - Returns the first parameter value (unless it raises an exception)
    - The return value has the same type as "a" (unless it raises an exception)
 
-It would be nice, if "my_append" had information, we could instantiate with "list" and
-"int" from the parameters, and then e.g. know what it does in that case.
+It would be nice, if "my_append" had sufficient information, so we could instantiate with
+"list" and "int" from the parameters, and then e.g. know at least some things that it does
+in that case.
 
 Doing it "forward" appears to be best suited for functions and therefore long term. We
 will try it that way.
@@ -1265,12 +1267,13 @@ Excursion to Loops
    print a
 
 The handling of loops (both "for" and "while") has its own problem. The loop start and may
-have an assumption that "a" is constant, but that is only true for the first
-iteration. So, we can't pass knowledge from outside loop directly into the for loop body.
+have an assumption from before it started, that "a" is constant, but that is only true for
+the first iteration. So, we can't pass knowledge from outside loop forward directly into
+the for loop body.
 
-We will do a first pass, where we need to collect invalidations of all of the outside
-knowledge. The assignment to "a" should make it an alternative with what we knew about
-"b". And we can't really assume to know anything about a to e.g. predict "b" due to
+So we will have to do a first pass, where we need to collect invalidations of all of the
+outside knowledge. The assignment to "a" should make it an alternative with what we knew
+about "b". And we can't really assume to know anything about a to e.g. predict "b" due to
 that. That first pass needs to scan for assignments, and treat them as invalidations.
 
 
@@ -1363,7 +1366,7 @@ Excursion to yield statements
 -----------------------------
 
 The yield statement can be treated like a normal function call, and as such invalidates
-some known constraints.
+some known constraints just as much as they do.
 
 
 Mixed Types
@@ -1540,8 +1543,9 @@ decisions.
 Code Generation Impact
 ----------------------
 
-Right now, code generation assumes that everything is a Python object, and does not take
-"int" or these at all, and it should remain like that for some time to come.
+Right now, code generation assumes that everything is a "PyObject \*", i.e. a Python
+object, and does not take "int" or these at all, and it should remain like that for some
+time to come.
 
 Instead, "ctypes" value friend will be asked give "Identifiers", like other codes do too
 from calls. And these need to be able to convert themselves to objects to work with the
@@ -1843,11 +1847,11 @@ into action, which could be code changes, plan changes, issues created, etc.
      def f( a, b=2, b=3 ):
          pass
 
-  Should be composed by a temp variable calculated outside, and then an assignment to the
-  defaults. That way, it becomes obvious that the defaults are an attribute that is
-  computed outside of the function. Previously defaults were children of the builder, but
-  that caused problems. Currently the defaults are wrapped outside, which has its own
-  problems too.
+  Should be composed into a temp holder variable calculated outside, and then passed on to
+  the function creation. That way, it becomes obvious that the defaults are an attribute
+  that is computed outside of the function. Previously defaults were children of the
+  builder, but that caused problems. Currently the defaults are wrapped outside, which has
+  its own problems too.
 
   Lambdas have defaults too, so it's not always a statement, but has to happen inside an
   expression.
@@ -1869,8 +1873,23 @@ into action, which could be code changes, plan changes, issues created, etc.
       );
 
 
-  The call to MAKE_TUPLE is useless and could be optimized away. Minor space
-  savings would result.
+  The call to "MAKE_TUPLE" is useless and could be optimized away. Minor space savings
+  would result.
+
+* Terminal assignments without effect removal.
+
+  In order to optimize away unused assignments, Nuitka should not try and find variables
+  that are only assigned. It should instead for each assignment find the uses of the
+  value. Two cases then
+
+  1. No more read use before next assignment or end of scope.
+
+     Can remove the assignment nature and make it instead a temp variable of the scope, if
+     the release has an impact (will "__del__" have an effect?).
+
+  2. Value is read.
+
+     Keep it.
 
 .. raw:: pdf
 
