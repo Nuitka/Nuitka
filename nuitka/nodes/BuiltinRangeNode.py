@@ -107,6 +107,72 @@ class CPythonExpressionBuiltinRange( CPythonExpressionChildrenHavingBase ):
 
         return self, None, None
 
+    def getIterationLength( self, constraint_collection ):
+        return None
+
+        low  = self.getLow()
+        high = self.getHigh()
+        step = self.getStep()
+
+        if low is None and high is None and step is None:
+            return 0
+        elif high is None and step is None:
+            low = low.getIntegerValue( constraint_collection )
+
+            if low is None:
+                return None
+            else:
+                return max( 0, low )
+        elif step is None:
+            low = low.getIntegerValue( constraint_collection )
+
+            if low is None:
+                return None
+
+            high = high.getIntegerValue( constraint_collection )
+
+            if high is None:
+                return None
+
+            return max( 0, high - low )
+        else:
+            low = low.getIntegerValue( constraint_collection )
+
+            if low is None:
+                return None
+
+            high = high.getIntegerValue( constraint_collection )
+
+            if high is None:
+                return None
+
+            step = step.getIntegerValue( constraint_collection )
+
+            if step is None:
+                return None
+
+            # Give up on this, will raise ValueError.
+            if step == 0:
+                return None
+
+            if low < high:
+                if step < 0:
+                    estimate = 0
+                else:
+                    estimate = math.ceil( float( high - low ) / step )
+            else:
+                if step > 0:
+                    estimate = 0
+                else:
+                    estimate = math.ceil( float( high - low ) / step )
+
+            estimate = round( estimate )
+
+            assert not estimate < 0
+
+            return int( estimate )
+
+
     def isKnownToBeIterable( self, count ):
         # We are clearly iterable, but don't know exactly how much. TODO: Analysis could
         # be done to that end.

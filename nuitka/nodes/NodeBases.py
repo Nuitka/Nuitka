@@ -798,6 +798,17 @@ class CPythonExpressionMixin:
         # Virtual method, pylint: disable=R0201
         return True
 
+    def getIterationLength( self, constraint_collection ):
+        """ Value that "len" or "PyObject_Size" would give, if known.
+
+        Otherwise it's "None" to indicate unknown.
+        """
+
+        # Virtual method, pylint: disable=R0201
+        return None
+
+
+
 
 class CPythonExpressionSpecBasedComputationMixin( CPythonExpressionMixin ):
     builtin_spec = None
@@ -808,6 +819,9 @@ class CPythonExpressionSpecBasedComputationMixin( CPythonExpressionMixin ):
         for value in given_values:
             if not value.isCompileTimeConstant():
                 return self, None, None
+
+        if not self.builtin_spec.isCompileTimeComputable( given_values ):
+            return self, None, None
 
         from .NodeMakingHelpers import getComputationResult
 
@@ -826,6 +840,7 @@ class CPythonExpressionChildrenHavingBase( CPythonChildrenHaving, CPythonNodeBas
             self,
             values = values
         )
+
 
 class CPythonExpressionBuiltinSingleArgBase( CPythonExpressionChildrenHavingBase, \
                                              CPythonExpressionSpecBasedComputationMixin ):

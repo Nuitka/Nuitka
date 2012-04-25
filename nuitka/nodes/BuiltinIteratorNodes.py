@@ -40,13 +40,34 @@ from .NodeBases import (
     CPythonNodeBase
 )
 
-from nuitka.transform.optimizations import BuiltinOptimization
+from .NodeMakingHelpers import makeConstantReplacementNode
 
+from nuitka.transform.optimizations import BuiltinOptimization
 
 class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_LEN"
 
     builtin_spec = BuiltinOptimization.builtin_len_spec
+
+    def computeNode( self, constraint_collection ):
+        new_node, change_tags, change_desc = CPythonExpressionBuiltinSingleArgBase.computeNode(
+            self,
+            constraint_collection = constraint_collection
+        )
+
+        if new_node is self:
+            arg_length = self.getValue().getIterationLength( constraint_collection )
+
+            if arg_length is not None:
+                # TODO: Need to ask it to preserve side-effects, from e.g. a function
+                # call.
+                new_node = makeConstantReplacementNode( arg_length, self )
+                change_tags = "new_constant"
+                change_desc = "Predicted len argument"
+
+
+        return new_node, change_tags, change_desc
+
 
 
 class CPythonExpressionBuiltinIter1( CPythonExpressionBuiltinSingleArgBase ):

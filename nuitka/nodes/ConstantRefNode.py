@@ -110,3 +110,9 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
 
     def mayProvideReference( self ):
         return self.isMutable()
+
+    def getIntegerValue( self, constraint_collection ):
+        if self.isNumberConstant():
+            return int( self.constant )
+        else:
+            return None
