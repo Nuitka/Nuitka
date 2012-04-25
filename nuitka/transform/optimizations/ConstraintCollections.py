@@ -669,8 +669,7 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
 
         self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
 
-
-    def getWrittenModuleVariables( self ):
+    def getWrittenVariables( self ):
         return [
             variable
             for variable, usage in iterItems( self.variable_usages )
