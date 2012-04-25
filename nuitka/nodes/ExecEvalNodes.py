@@ -65,7 +65,7 @@ class CPythonExpressionBuiltinEval( CPythonExpressionChildrenHavingBase ):
     getGlobals = CPythonExpressionChildrenHavingBase.childGetter( "globals" )
     getLocals = CPythonExpressionChildrenHavingBase.childGetter( "locals" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # TODO: Attempt for constant values to do it.
         return self, None, None
 

@@ -45,7 +45,7 @@ from nuitka.Builtins import builtin_names
 class CPythonExpressionBuiltinType1( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_TYPE1"
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         value = self.getValue()
 
         if value.isCompileTimeConstant():

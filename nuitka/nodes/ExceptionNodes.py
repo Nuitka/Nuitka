@@ -113,7 +113,7 @@ class CPythonExpressionRaiseException( CPythonExpressionChildrenHavingBase ):
     def addSideEffects( self, side_effects ):
         self.setChild( "side_effects", tuple( side_effects ) + self.getSideEffects() )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         return self, None, None
 
 
@@ -141,7 +141,7 @@ class CPythonExpressionBuiltinMakeException( CPythonExpressionChildrenHavingBase
 
     getArgs = CPythonExpressionChildrenHavingBase.childGetter( "args" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         return self, None, None
 
 
@@ -151,7 +151,7 @@ class CPythonExpressionCaughtExceptionTypeRef( CPythonNodeBase, CPythonExpressio
     def __init__( self, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
@@ -166,7 +166,7 @@ class CPythonExpressionCaughtExceptionValueRef( CPythonNodeBase, CPythonExpressi
     def __init__( self, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
@@ -181,7 +181,7 @@ class CPythonExpressionCaughtExceptionTracebackRef( CPythonNodeBase, CPythonExpr
     def __init__( self, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         return self, None, None
 
     def mayHaveSideEffects( self ):

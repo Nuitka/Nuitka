@@ -150,7 +150,7 @@ class CPythonExpressionBuiltinRange( CPythonExpressionChildrenHavingBase ):
 
         return self, None, None
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         if python_version >= 300:
             return self, None, None
 

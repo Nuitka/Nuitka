@@ -87,7 +87,7 @@ class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
             source_ref = source_ref
         )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         operator = self.getOperator()
         operands = self.getOperands()
 
@@ -123,7 +123,7 @@ class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
             source_ref = source_ref
         )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         operator = self.getOperator()
         operand = self.getOperand()
 
@@ -171,6 +171,6 @@ class CPythonExpressionOperationBinaryInplace( CPythonExpressionOperationBinary 
             source_ref = source_ref
         )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # TODO: Inplace operation requires extra care to avoid corruption of values.
         return self, None, None

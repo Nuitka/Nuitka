@@ -58,7 +58,7 @@ class CPythonExpressionYield( CPythonExpressionChildrenHavingBase ):
 
     getExpression = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # Nothing possible really here.
 
         return self, None, None

@@ -56,7 +56,7 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
     def getDetail( self ):
         return repr( self.constant )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # Cannot compute any further.
         return self, None, None
 

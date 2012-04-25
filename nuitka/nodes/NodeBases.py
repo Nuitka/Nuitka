@@ -842,7 +842,7 @@ class CPythonExpressionBuiltinSingleArgBase( CPythonExpressionChildrenHavingBase
 
     getValue = CPythonExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         value = self.getValue()
 
         assert self.builtin_spec is not None, self

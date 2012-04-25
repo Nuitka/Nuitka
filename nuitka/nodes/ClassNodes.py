@@ -151,7 +151,7 @@ class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CP
 
     getVariables = getClassVariables
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # Class body is quite irreplacable. TODO: Not really, could be predictable as
         # a whole.
         return self, None, None
@@ -175,7 +175,7 @@ class CPythonExpressionClassBodyBased( CPythonExpressionChildrenHavingBase ):
     getClassBody = CPythonExpressionChildrenHavingBase.childGetter( "class_body" )
     getBases = CPythonExpressionChildrenHavingBase.childGetter( "bases" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # Class body is quite irreplacable. TODO: Not really, could be predictable as
         # a whole.
         return self, None, None
@@ -201,7 +201,7 @@ class CPythonExpressionBuiltinType3( CPythonExpressionChildrenHavingBase ):
     getBases = CPythonExpressionChildrenHavingBase.childGetter( "bases" )
     getDict = CPythonExpressionChildrenHavingBase.childGetter( "dict" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # TODO: Should be compile time computable if bases and dict are.
 
         return self, None, None

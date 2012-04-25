@@ -113,7 +113,7 @@ class CPythonExpressionCall( CPythonExpressionChildrenHavingBase ):
 
         return True
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         star_list_arg = self.getStarListArg()
 
         if star_list_arg is not None:

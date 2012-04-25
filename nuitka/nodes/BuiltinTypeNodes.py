@@ -103,7 +103,7 @@ class CPythonExpressionBuiltinIntLongBase( CPythonChildrenHaving, CPythonNodeBas
     getValue = CPythonChildrenHaving.childGetter( "value" )
     getBase = CPythonChildrenHaving.childGetter( "base" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         value = self.getValue()
         base = self.getBase()
 

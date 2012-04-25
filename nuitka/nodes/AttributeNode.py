@@ -71,7 +71,7 @@ class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
         )
 
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # There is a whole registry dedicated to this.
         return AttributeRegistry.computeAttribute( self )
 
@@ -84,6 +84,6 @@ class CPythonExpressionSpecialAttributeLookup( CPythonExpressionAttributeLookup 
     kind = "EXPRESSION_SPECIAL_ATTRIBUTE_LOOKUP"
 
     # TODO: Special lookups should be treated somehow different.
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # There is a whole registry dedicated to this.
         return self, None, None

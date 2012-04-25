@@ -65,7 +65,7 @@ class CPythonExpressionAssignmentTempKeeper( CPythonExpressionChildrenHavingBase
 
     getAssignSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # TODO: Nothing to do here? Maybe if the assignment target is unused, it could
         # replace itself with source.
         return self, None, None
@@ -91,7 +91,7 @@ class CPythonExpressionTempKeeperRef( CPythonNodeBase, CPythonExpressionMixin ):
     def getLinkedKeeperAssignment( self ):
         return self.linked
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # Nothing to do here.
         return self, None, None
 

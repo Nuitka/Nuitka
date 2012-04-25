@@ -59,7 +59,7 @@ class CPythonExpressionConditional( CPythonExpressionChildrenHavingBase ):
     getExpressionNo = CPythonExpressionChildrenHavingBase.childGetter( "expression_no" )
     getCondition = CPythonExpressionChildrenHavingBase.childGetter( "condition" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         condition = self.getCondition()
 
         # TODO: Actually really want to check the truth value only, not constant ness.

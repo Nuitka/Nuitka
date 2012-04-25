@@ -57,7 +57,7 @@ class CPythonExpressionSubscriptLookup( CPythonExpressionChildrenHavingBase ):
     getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
     getSubscript = CPythonExpressionChildrenHavingBase.childGetter( "subscript" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # There is a whole registry dedicated to this.
         return SubscriptRegistry.computeSubscript( self )
 

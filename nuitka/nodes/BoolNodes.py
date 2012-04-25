@@ -58,7 +58,7 @@ class CPythonExpressionBool2Base( CPythonExpressionChildrenHavingBase ):
 
     getOperands = CPythonExpressionChildrenHavingBase.childGetter( "operands" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         operands = self.getOperands()
         values = []
 

@@ -85,7 +85,7 @@ class CPythonExpressionImportModule( CPythonExpressionChildrenHavingBase ):
     getModule = CPythonExpressionChildrenHavingBase.childGetter( "module" )
     setModule = CPythonExpressionChildrenHavingBase.childSetter( "module" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # TODO: May return a module reference of some sort in the future with embedded
         # modules.
         return self, None, None
@@ -127,7 +127,7 @@ class CPythonExpressionBuiltinImport( CPythonExpressionChildrenHavingBase ):
     getLocals = CPythonExpressionChildrenHavingBase.childGetter( "locals" )
     getLevel = CPythonExpressionChildrenHavingBase.childGetter( "level" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         module_name = self.getImportName()
         fromlist = self.getFromList()
         level = self.getLevel()
@@ -196,7 +196,7 @@ class CPythonExpressionImportName( CPythonExpressionChildrenHavingBase ):
 
     getModule = CPythonExpressionChildrenHavingBase.childGetter( "module" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # TODO: May return a module or module variable reference of some sort in the
         # future with embedded modules.
         return self, None, None

@@ -184,7 +184,7 @@ class ConstraintCollectionBase:
 
         self.onSubExpressions( expression )
 
-        new_node, change_tags, change_desc = expression.computeNode()
+        new_node, change_tags, change_desc = expression.computeNode( self )
 
         if new_node is not expression:
             expression.replaceWith( new_node )

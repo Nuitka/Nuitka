@@ -235,7 +235,7 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     def needsCreation( self ):
         return not self.parent.isExpressionFunctionCall()
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # Function body is quite irreplacable.
         return self, None, None
 
@@ -262,7 +262,7 @@ class CPythonExpressionFunctionBodyDefaulted( CPythonExpressionChildrenHavingBas
     getFunctionBody = CPythonExpressionChildrenHavingBase.childGetter( "function_body" )
     getDefaults = CPythonExpressionChildrenHavingBase.childGetter( "defaults" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # Function body is quite irreplacable.
         return self, None, None
 
@@ -288,7 +288,7 @@ class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         return self, None, None
 
     getFunctionBody = CPythonExpressionChildrenHavingBase.childGetter( "function_body" )

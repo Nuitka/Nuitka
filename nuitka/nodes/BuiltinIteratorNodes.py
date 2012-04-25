@@ -52,7 +52,7 @@ class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
 class CPythonExpressionBuiltinIter1( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_ITER1"
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         value = self.getValue()
 
         if value.isIteratorMaking():
@@ -74,7 +74,7 @@ class CPythonExpressionBuiltinIter1( CPythonExpressionBuiltinSingleArgBase ):
 class CPythonExpressionBuiltinNext1( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_NEXT1"
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         return self, None, None
 
 
@@ -144,7 +144,7 @@ class CPythonExpressionBuiltinIter2( CPythonExpressionChildrenHavingBase ):
     getCallable = CPythonExpressionChildrenHavingBase.childGetter( "callable" )
     getSentinel = CPythonExpressionChildrenHavingBase.childGetter( "sentinel" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         return self, None, None
 
     def isIteratorMaking( self ):
@@ -169,5 +169,5 @@ class CPythonExpressionBuiltinNext2( CPythonExpressionChildrenHavingBase ):
     getIterator = CPythonExpressionChildrenHavingBase.childGetter( "iterator" )
     getDefault = CPythonExpressionChildrenHavingBase.childGetter( "default" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         return self, None, None

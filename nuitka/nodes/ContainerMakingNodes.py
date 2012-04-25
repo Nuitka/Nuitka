@@ -67,7 +67,7 @@ class CPythonExpressionMakeSequenceBase( CPythonExpressionChildrenHavingBase ):
         # Abstract method, pylint: disable=R0201,W0613
         return None
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         for element in self.getElements():
             if not element.isExpressionConstantRef() or element.isMutable():
                 return self, None, None
@@ -159,7 +159,7 @@ class CPythonExpressionKeyValuePair( CPythonExpressionChildrenHavingBase ):
     getKey = CPythonExpressionChildrenHavingBase.childGetter( "key" )
     getValue = CPythonExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         return self, None, None
 
 
@@ -179,7 +179,7 @@ class CPythonExpressionMakeDict( CPythonExpressionChildrenHavingBase ):
 
     getPairs = CPythonExpressionChildrenHavingBase.childGetter( "pairs" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         pairs = self.getPairs()
 
         for pair in pairs:
