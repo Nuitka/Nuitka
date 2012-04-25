@@ -38,6 +38,8 @@ from .NodeBases import CPythonExpressionChildrenHavingBase
 
 from .NodeMakingHelpers import getComputationResult
 
+from nuitka.transform.optimizations import BuiltinOptimization
+
 from nuitka.Utils import python_version
 
 import math
@@ -70,85 +72,21 @@ class CPythonExpressionBuiltinRange( CPythonExpressionChildrenHavingBase ):
             description = "No arg range builtin"
         )
 
-    def _computeNodeSimpleRange( self, low ):
-        if low.isNumberConstant():
-            constant = low.getConstant()
+    builtin_spec = BuiltinOptimization.builtin_range_spec
 
-            # Avoid warnings before Python 2.7, in Python 2.7 it's an exception.
-            if type( constant ) is float and python_version < 270:
-                constant = int( constant )
+    def computeBuiltinSpec( self, given_values ):
+        assert self.builtin_spec is not None, self
 
-            # Negative values are empty, so don't check against < 0.
-            if constant <= 256:
-                return getComputationResult(
-                    node        = self,
-                    computation = lambda : range( constant ),
-                    description = "Single arg range builtin"
-                )
+        if not self.builtin_spec.isCompileTimeComputable( given_values ):
+            return self, None, None
 
-        return self, None, None
+        from .NodeMakingHelpers import getComputationResult
 
-    def _computeNodeTwoValueRange( self, low, high ):
-        if low.isNumberConstant() and high.isNumberConstant():
-            constant1 = low.getConstant()
-            constant2 = high.getConstant()
-
-            if type( constant1 ) is float and python_version < 270:
-                constant1 = int( constant1 )
-            if type( constant2 ) is float and python_version < 270:
-                constant2 = int( constant2 )
-
-            if constant2 - constant1 <= 256:
-                return getComputationResult(
-                    node        = self,
-                    computation = lambda : range( constant1, constant2 ),
-                    description = "Two arg range builtin"
-                )
-
-        return self, None, None
-
-    def _computeNodeThreeValueRange( self, low, high, step ):
-        if low.isNumberConstant() and high.isNumberConstant() and step.isNumberConstant():
-            constant1 = low.getConstant()
-            constant2 = high.getConstant()
-            constant3 = step.getConstant()
-
-            if type( constant1 ) is float and python_version < 270:
-                constant1 = int( constant1 )
-            if type( constant2 ) is float and python_version < 270:
-                constant2 = int( constant2 )
-            if type( constant3 ) is float and python_version < 270:
-                constant3 = int( constant3 )
-
-            try:
-                if constant1 < constant2:
-                    if constant3 < 0:
-                        estimate = 0
-                    else:
-                        estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
-                else:
-                    if constant3 > 0:
-                        estimate = 0
-                    else:
-                        estimate = math.ceil( float( constant2 - constant1 ) / constant3 )
-            except (ValueError, TypeError, ZeroDivisionError):
-                estimate = -1
-
-            estimate = round( estimate )
-
-            if estimate <= 256:
-                try:
-                    assert len( range( constant1, constant2, constant3 ) ) == estimate, self.getSourceReference()
-                except (ValueError, TypeError, ZeroDivisionError):
-                    pass
-
-                return getComputationResult(
-                    node        = self,
-                    computation = lambda : range( constant1, constant2, constant3 ),
-                    description = "Three arg range builtin"
-                )
-
-        return self, None, None
+        return getComputationResult(
+            node        = self,
+            computation = lambda : self.builtin_spec.simulateCall( given_values ),
+            description = "Builtin call to %s precomputed." % self.builtin_spec.getName()
+        )
 
     def computeNode( self, constraint_collection ):
         if python_version >= 300:
@@ -160,12 +98,12 @@ class CPythonExpressionBuiltinRange( CPythonExpressionChildrenHavingBase ):
 
         if low is None and high is None and step is None:
             return self._computeNodeNoArgsRange()
-        if high is None and step is None:
-            return self._computeNodeSimpleRange( low )
+        elif high is None and step is None:
+            return self.computeBuiltinSpec( ( low, ) )
         elif step is None:
-            return self._computeNodeTwoValueRange( low, high )
+            return self.computeBuiltinSpec( ( low, high ) )
         else:
-            return self._computeNodeThreeValueRange( low, high, step )
+            return self.computeBuiltinSpec( ( low, high, step ) )
 
         return self, None, None
 
