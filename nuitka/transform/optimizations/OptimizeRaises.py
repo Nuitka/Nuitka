@@ -34,10 +34,8 @@ from .OptimizeBase import OptimizationVisitorBase
 
 from ..TreeOperations import RestartVisit
 
-from nuitka.nodes.NodeMakingHelpers import (
-    convertRaiseExceptionExpressionRaiseExceptionStatement,
-    makeStatementsSequenceReplacementNode
-)
+from nuitka.nodes.NodeMakingHelpers import convertRaiseExceptionExpressionRaiseExceptionStatement
+
 
 class OptimizeRaisesVisitor( OptimizationVisitorBase ):
     def onEnterNode( self, node ):
@@ -66,77 +64,6 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
                 self.trimEvaluation(
                     node = node.parent
                 )
-        elif node.isStatementRaiseException():
-            if node.parent.isStatementsSequence():
-                statements = node.parent.getStatements()
-
-                if node is not statements[-1]:
-                    node.parent.trimStatements( node )
-                    statements = node.parent.getStatements()
-
-                    self.signalChange(
-                        "new_raise new_statements",
-                        node.getSourceReference(),
-                        "Removed unreachable statements from statement sequence."
-                    )
-
-                    raise RestartVisit
-
-                if node.parent.parent.isStatementTryExcept():
-                    if node is statements[0]:
-                        for handler in node.parent.parent.getExceptionHandlers():
-                            match = self.matchesException(
-                                catched_exceptions = handler.getExceptionTypes(),
-                                raised_exception   = node.getExceptionType()
-                            )
-
-                            if match is True:
-                                return
-
-                                # TODO: Make this robust and working again.
-
-                                handler_target = handler.getExceptionTarget()
-
-                                if handler_target is not None:
-                                    exception_type = node.getExceptionType()
-
-                                    if exception_type.isExpressionBuiltinExceptionRef():
-                                        pass
-
-                                    assert exception_type is not None
-
-                                    assign_node = CPythonStatementAssignment(
-                                        expression = exception_type,
-                                        targets    = ( handler.getExceptionTarget(), ),
-                                        source_ref = handler.getSourceReference(),
-                                    )
-
-                                    new_node = makeStatementsSequenceReplacementNode(
-                                        statements = ( assign_node, ) + handler.getExceptionBranch().getStatements(),
-                                        node       = handler,
-                                    )
-                                else:
-                                    new_node = handler.getExceptionBranch()
-
-                                node.parent.parent.replaceWith( new_node )
-
-                                self.signalChange(
-                                    "new_raise new_statements",
-                                    node.getSourceReference(),
-                                    "Resolved known raise to exception branch execution."
-                                )
-
-                                raise RestartVisit
-
-                                # assert False
-                            elif match is False:
-                                assert False
-
-
-
-
-            else:
-                pass
 
     def trimEvaluation( self, node ):
         old_children = node.getVisitableNodes()
@@ -185,6 +112,7 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
         else:
             assert False
 
+    # TODO: Make use of this.
     def matchesException( self, catched_exceptions, raised_exception ):
         if catched_exceptions is None:
             return True
