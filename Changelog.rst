@@ -80,6 +80,9 @@ New Optimizations
      # The range isn't constructed at compile time, but we still know its length.
      len( range( 10000000 ) )
 
+     # The string isn't constructed at compile time, but we still know its length.
+     len( "*" * 1000 )
+
      # The tuple isn't constructed, instead it's known length is used, and side effects
      # are maintained.
      len( ( a(), b() ) )

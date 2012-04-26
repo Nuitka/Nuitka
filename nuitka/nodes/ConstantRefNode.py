@@ -35,6 +35,7 @@ from .NodeBases import CPythonNodeBase, CPythonExpressionMixin
 from nuitka.Constants import (
     getConstantIterationLength,
     isIterableConstant,
+    isIndexConstant,
     isNumberConstant,
     isMutable,
 )
@@ -74,6 +75,9 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
 
     def isNumberConstant( self ):
         return isNumberConstant( self.constant )
+
+    def isIndexConstant( self ):
+        return isIndexConstant( self.constant )
 
     def isIndexable( self ):
         return self.constant is None or self.isNumberConstant()

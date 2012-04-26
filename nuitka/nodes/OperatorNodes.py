@@ -38,6 +38,8 @@ from .NodeMakingHelpers import getComputationResult
 
 from nuitka import PythonOperators
 
+import math
+
 class CPythonExpressionOperationBase( CPythonExpressionChildrenHavingBase ):
     named_children = ( "operands", )
 
@@ -96,6 +98,23 @@ class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
             left_value = left.getCompileTimeConstant()
             right_value = right.getCompileTimeConstant()
+
+            if operator == "Mult" and right.isNumberConstant():
+                iter_length = left.getIterationLength( constraint_collection )
+
+                if iter_length is not None:
+                    if iter_length * right_value > 256:
+                        return self, None, None
+
+                if left.isNumberConstant():
+                    if left.isIndexConstant() and right.isIndexConstant():
+                        # Estimate with logarithm, if the result of number calculations is
+                        # computable with acceptable effort, otherwise, we will have to do
+                        # it at runtime.
+
+                        if left_value != 0 and right_value != 0:
+                            if math.log10( abs( left_value ) ) + math.log10( abs( right_value ) ) > 20:
+                                return self, None, None
 
             return getComputationResult(
                 node        = self,
