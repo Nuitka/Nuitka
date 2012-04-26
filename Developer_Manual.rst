@@ -1891,6 +1891,17 @@ into action, which could be code changes, plan changes, issues created, etc.
 
      Keep it.
 
+* Side effects.
+
+  Expressions that have side effects, must be modeled. We already have it for exception
+  raising expressions. But it's not a node of its own kind yet, but it could well be,
+  one that wraps another expression, but first evaluates a list of other things. If
+  that list becomes empty, it can be computed away.
+
+  The benefit would be "len( (a,b) )" to evaluate that to "side_effects( a, b, 2 )" where
+  that is a fictive function that returns only the last argument. It would be in the node
+  tree and have the code generation we have now for exception raising expressions.
+
 .. raw:: pdf
 
    PageBreak
