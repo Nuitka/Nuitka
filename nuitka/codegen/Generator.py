@@ -1130,9 +1130,6 @@ def getReRaiseExceptionCode( local ):
 
 def getRaiseExceptionExpressionCode( side_effects, exception_type_identifier, \
                                      exception_value_identifier, exception_tb_maker ):
-    # TODO: Check out if the NUITKA_NO_RETURN avoids any temporary refcount to ever be
-    # created
-
     result = ThrowingIdentifier(
         "THROW_EXCEPTION( %s, %s, %s, &traceback )" % (
             exception_type_identifier.getCodeExportRef(),
@@ -1141,16 +1138,37 @@ def getRaiseExceptionExpressionCode( side_effects, exception_type_identifier, \
         )
     )
 
-    if side_effects:
-        result = Identifier(
+    return getSideEffectsCode(
+        side_effects = side_effects,
+        identifier   = result
+    )
+
+def getSideEffectsCode( side_effects, identifier ):
+    if not side_effects:
+        return identifier
+
+    side_effects_code = ", ".join(
+        side_effect.getCodeTemporaryRef()
+        for side_effect in
+        side_effects
+    )
+
+    if identifier.getCheapRefCount() == 0:
+        return Identifier(
             "( %s, %s )" % (
-                ", ".join( side_effect.getCodeTemporaryRef() for side_effect in side_effects ),
-                result.getCodeTemporaryRef()
+                side_effects_code,
+                identifier.getCodeTemporaryRef()
             ),
             0
         )
-
-    return result
+    else:
+        return Identifier(
+            "( %s, %s )" % (
+                side_effects_code,
+                identifier.getCodeExportRef()
+            ),
+            1
+        )
 
 
 def getBuiltinRefCode( context, builtin_name ):
