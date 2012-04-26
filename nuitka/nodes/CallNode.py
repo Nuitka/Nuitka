@@ -156,3 +156,6 @@ class CPythonExpressionCall( CPythonExpressionChildrenHavingBase ):
         # Virtual method and unpredicted calls are unknown if they can be iterated at all,
         # pylint: disable=R0201,W0613
         return None
+
+    def extractSideEffects( self ):
+        return ( self, )

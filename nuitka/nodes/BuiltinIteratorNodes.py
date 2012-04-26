@@ -42,6 +42,8 @@ from .NodeBases import (
 
 from .NodeMakingHelpers import makeConstantReplacementNode
 
+from .SideEffectNode import CPythonExpressionSideEffects
+
 from nuitka.transform.optimizations import BuiltinOptimization
 
 class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
@@ -59,12 +61,22 @@ class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
             arg_length = self.getValue().getIterationLength( constraint_collection )
 
             if arg_length is not None:
+                side_effects = self.getValue().extractSideEffects()
+
                 # TODO: Need to ask it to preserve side-effects, from e.g. a function
                 # call.
                 new_node = makeConstantReplacementNode( arg_length, self )
                 change_tags = "new_constant"
                 change_desc = "Predicted len argument"
 
+                if side_effects:
+                    new_node = CPythonExpressionSideEffects(
+                        expression   = new_node,
+                        side_effects = side_effects,
+                        source_ref   = self.getSourceReference()
+                    )
+
+                    change_desc += " maintaining side effects"
 
         return new_node, change_tags, change_desc
 
@@ -93,6 +105,10 @@ class CPythonExpressionBuiltinIter1( CPythonExpressionBuiltinSingleArgBase ):
 
     def getIterationLength( self, constraint_collection ):
         return self.getValue().getIterationLength( constraint_collection )
+
+    def extractSideEffects( self ):
+        # Iterator making is the side effect itself.
+        return ( self, )
 
 
 class CPythonExpressionBuiltinNext1( CPythonExpressionBuiltinSingleArgBase ):

@@ -102,6 +102,10 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
         # Constants have no side effects
         return False
 
+    def extractSideEffects( self ):
+        # Constants have no side effects
+        return ()
+
     def mayRaiseException( self, exception_type ):
         # Virtual method, pylint: disable=R0201,W0613
 

@@ -359,6 +359,12 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         return True
 
+    def extractSideEffects( self ):
+        """ Unless defined otherwise, the expression is the side effect. """
+        # Virtual method, pylint: disable=R0201,W0613
+
+        return ( self, )
+
     def mayRaiseException( self, exception_type ):
         """ Unless we are told otherwise, everything may raise everything. """
         # Virtual method, pylint: disable=R0201,W0613
@@ -866,3 +872,22 @@ class CPythonExpressionBuiltinSingleArgBase( CPythonExpressionChildrenHavingBase
             return self.computeBuiltinSpec( () )
         else:
             return self.computeBuiltinSpec( ( value, ) )
+
+
+class CPythonSideEffectsFromChildrenMixin:
+    def mayHaveSideEffects( self ):
+        for child in self.getVisitableNodes():
+            if child.mayHaveSideEffects():
+                return True
+        else:
+            return False
+
+    def extractSideEffects( self ):
+        # No side effects at all but from the children.
+
+        result = []
+
+        for child in self.getVisitableNodes():
+            result.extend( child.extractSideEffects() )
+
+        return tuple( result )

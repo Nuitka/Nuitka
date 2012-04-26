@@ -34,7 +34,7 @@ predicted still, and these are interesting for warnings.
 
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import CPythonExpressionChildrenHavingBase, CPythonSideEffectsFromChildrenMixin
 
 from .NodeMakingHelpers import getComputationResult
 
@@ -44,7 +44,8 @@ from nuitka.Utils import python_version
 
 import math
 
-class CPythonExpressionBuiltinRange( CPythonExpressionChildrenHavingBase ):
+class CPythonExpressionBuiltinRange( CPythonSideEffectsFromChildrenMixin, \
+                                     CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_RANGE"
 
     named_children = ( "low", "high", "step" )

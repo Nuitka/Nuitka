@@ -61,7 +61,9 @@ New Optimizations
 -----------------
 
 - Avoid frame guards for functions that cannot raise exceptions, i.e. where they would not
-  be used. This avoids overhead for the simple functions. And example of this can be seen
+  be used.
+
+  This avoids overhead for the very simple functions. And example of this can be seen
   here:
 
   .. code-block:: python
@@ -69,6 +71,21 @@ New Optimizations
      def simple():
         return 7
 
+- Optimize "len" builtin for non-constant, but known length values.
+
+  An example can be seen here:
+
+  .. code-block:: python
+
+     # The range isn't constructed at compile time, but we still know its length.
+     len( range( 10000000 ) )
+
+     # The tuple isn't constructed, instead it's known length is used, and side effects
+     # are maintained.
+     len( ( a(), b() ) )
+
+  This new optimizations applies to all kinds of container creations and the "range"
+  builtin initially.
 
 Organizational
 --------------

@@ -200,6 +200,8 @@ class ConstraintCollectionBase:
             friend = self.getVariableValueFriend( variable )
 
             if friend is not None and not friend.mayHaveSideEffects() and friend.isNode():
+                assert hasattr( friend, "makeCloneAt" ), friend
+
                 new_node = friend.makeCloneAt(
                     source_ref = expression.getSourceReference(),
                 )
@@ -440,6 +442,9 @@ class ConstraintCollectionBase:
                 self.onStatementsSequence( tried_statement_sequence )
 
             final_statement_sequence = statement.getBlockFinal()
+
+            # TODO: The final must not assume that all of final was executed, instead it
+            # may have aborted after any part of it, which is a rather complex definition.
 
             if final_statement_sequence is not None:
                 # Then assuming no exception, the no raise block if present.

@@ -31,11 +31,12 @@
 """
 
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import CPythonExpressionChildrenHavingBase, CPythonSideEffectsFromChildrenMixin
 
 from .NodeMakingHelpers import getComputationResult, makeConstantReplacementNode
 
-class CPythonExpressionMakeSequenceBase( CPythonExpressionChildrenHavingBase ):
+class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
+                                         CPythonExpressionChildrenHavingBase ):
     named_children = ( "elements", )
 
     def __init__( self, sequence_kind, elements, source_ref ):
@@ -94,6 +95,9 @@ class CPythonExpressionMakeSequenceBase( CPythonExpressionChildrenHavingBase ):
         assert count == len( self.getElements() )
 
         return self.getElements()
+
+    def getIterationLength( self, constraint_collection ):
+        return len( self.getElements() )
 
 
 class CPythonExpressionMakeTuple( CPythonExpressionMakeSequenceBase ):
@@ -163,7 +167,8 @@ class CPythonExpressionKeyValuePair( CPythonExpressionChildrenHavingBase ):
         return self, None, None
 
 
-class CPythonExpressionMakeDict( CPythonExpressionChildrenHavingBase ):
+class CPythonExpressionMakeDict( CPythonSideEffectsFromChildrenMixin, \
+                                 CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_MAKE_DICT"
 
     named_children = ( "pairs", )
