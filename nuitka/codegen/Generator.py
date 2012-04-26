@@ -1128,19 +1128,14 @@ def getReRaiseExceptionCode( local ):
     else:
         return "traceback = true; RERAISE_EXCEPTION();"
 
-def getRaiseExceptionExpressionCode( side_effects, exception_type_identifier, \
-                                     exception_value_identifier, exception_tb_maker ):
-    result = ThrowingIdentifier(
+def getRaiseExceptionExpressionCode( exception_type_identifier, exception_value_identifier, \
+                                     exception_tb_maker ):
+    return ThrowingIdentifier(
         "THROW_EXCEPTION( %s, %s, %s, &traceback )" % (
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
         )
-    )
-
-    return getSideEffectsCode(
-        side_effects = side_effects,
-        identifier   = result
     )
 
 def getSideEffectsCode( side_effects, identifier ):

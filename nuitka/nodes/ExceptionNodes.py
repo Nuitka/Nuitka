@@ -93,26 +93,20 @@ class CPythonExpressionRaiseException( CPythonExpressionChildrenHavingBase ):
 
     kind = "EXPRESSION_RAISE_EXCEPTION"
 
-    named_children = ( "side_effects", "exception_type", "exception_value" )
+    named_children = ( "exception_type", "exception_value" )
 
-    def __init__( self, exception_type, exception_value, side_effects, source_ref ):
+    def __init__( self, exception_type, exception_value, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "exception_type"  : exception_type,
-                "exception_value" : exception_value,
-                "side_effects"    : tuple( side_effects )
+                "exception_value" : exception_value
             },
             source_ref = source_ref
         )
 
     getExceptionType = CPythonExpressionChildrenHavingBase.childGetter( "exception_type" )
     getExceptionValue = CPythonExpressionChildrenHavingBase.childGetter( "exception_value" )
-    getSideEffects = CPythonExpressionChildrenHavingBase.childGetter( "side_effects" )
-
-    def addSideEffects( self, side_effects ):
-        self.setChild( "side_effects", tuple( side_effects ) + self.getSideEffects() )
-
     def computeNode( self, constraint_collection ):
         return self, None, None
 

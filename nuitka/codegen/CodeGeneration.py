@@ -1044,10 +1044,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
         )
     elif expression.isExpressionRaiseException():
         identifier = Generator.getRaiseExceptionExpressionCode(
-            side_effects               = generateExpressionsCode(
-                expressions = expression.getSideEffects(),
-                context     = context
-            ),
             exception_type_identifier  = makeExpressionCode(
                 expression = expression.getExceptionType()
             ),
@@ -1134,6 +1130,14 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = Generator.Identifier(
             "%s.asObject()" % expression.getVariableName(),
             1
+        )
+    elif expression.isExpressionSideEffects():
+        identifier = Generator.getSideEffectsCode(
+            side_effects = generateExpressionsCode(
+                expressions = expression.getSideEffects(),
+                context     = context
+            ),
+            identifier   = makeExpressionCode( expression.getExpression() )
         )
     elif Utils.python_version < 300 and expression.isExpressionBuiltinExecfile():
         identifier = generateExecfileCode(

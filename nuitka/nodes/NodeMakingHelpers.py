@@ -81,7 +81,6 @@ def makeRaiseExceptionReplacementExpression( expression, exception_type, excepti
             constant = exception_value,
             node     = expression
         ),
-        side_effects    = (),
         source_ref      = source_ref
     )
 
@@ -146,34 +145,6 @@ def makeRaiseExceptionReplacementStatement( statement, exception_type, exception
     )
 
     return result
-
-def convertRaiseExceptionExpressionRaiseExceptionStatement( node ):
-    assert node.isExpressionRaiseException()
-
-    side_effects = node.getSideEffects()
-
-    raise_node = CPythonStatementRaiseException(
-        exception_type  = node.getExceptionType(),
-        exception_value = node.getExceptionValue(),
-        exception_trace = None,
-        source_ref      = node.getSourceReference()
-    )
-
-    if side_effects:
-        side_effects = tuple(
-            CPythonStatementExpressionOnly(
-                expression = side_effect,
-                source_ref = side_effect.getSourceReference()
-            )
-            for side_effect in side_effects
-        )
-
-        return makeStatementsSequenceReplacementNode(
-            statements = side_effects + ( raise_node, ),
-            node       = node
-        )
-    else:
-        return raise_node
 
 def makeStatementExpressionOnlyReplacementNode( expression, node ):
     return CPythonStatementExpressionOnly(

@@ -34,12 +34,21 @@ from .OptimizeBase import OptimizationVisitorBase
 
 from ..TreeOperations import RestartVisit
 
-from nuitka.nodes.NodeMakingHelpers import convertRaiseExceptionExpressionRaiseExceptionStatement
+from nuitka.nodes.SideEffectNode import CPythonExpressionSideEffects
+
+from nuitka.nodes.ExceptionNodes import CPythonStatementRaiseException
+
+from nuitka.nodes.StatementNodes import CPythonStatementExpressionOnly
+
+from nuitka.nodes.NodeMakingHelpers import makeStatementsSequenceReplacementNode
 
 
 class OptimizeRaisesVisitor( OptimizationVisitorBase ):
     def onEnterNode( self, node ):
         if node.isExpressionRaiseException():
+            while node.parent.isExpressionSideEffects():
+                node = node.parent
+
             if node.parent.isStatementPrint():
                 self.trimEvaluation(
                     node = node.parent
@@ -72,7 +81,9 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
         for child in old_children:
             new_children.append( child )
 
-            if child.isExpressionRaiseException():
+            if child.isExpressionRaiseException() or (
+                child.isExpressionSideEffects() and \
+                child.getExpression().isExpressionRaiseException() ):
                 break
         else:
             assert False
@@ -80,27 +91,63 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
         side_effects = [ new_child for new_child in new_children[:-1] if new_child.mayHaveSideEffects() ]
         raise_exception = new_children[-1]
 
-        if side_effects:
-            raise_exception.addSideEffects( side_effects )
+        if raise_exception.isExpressionSideEffects():
+            side_effects.extend( raise_exception.getSideEffects() )
+            raise_exception = raise_exception.getExpression()
+
 
         if node.isExpression():
-            node.replaceWith(
-                new_node = raise_exception
-            )
+            if side_effects:
+                node.replaceWith(
+                    new_node = CPythonExpressionSideEffects(
+                        side_effects = side_effects,
+                        expression   = raise_exception,
+                        source_ref   = raise_exception.getSourceReference()
+                    )
+                )
+
+                message = "Detected expression exception was propagated to expression upwards while maintaining side effects."
+            else:
+                node.replaceWith(
+                    new_node = raise_exception
+                )
+
+                message = "Detected expression exception was propagated to expression upwards."
 
             self.signalChange(
                 "new_raise",
                 node.getSourceReference(),
-                "Detected expression exception was propagated to expression upwards."
+                message
             )
 
             raise RestartVisit
         elif node.isStatement():
-            node.replaceWith(
-                new_node = convertRaiseExceptionExpressionRaiseExceptionStatement(
-                    node = raise_exception
-                )
+            raise_node = CPythonStatementRaiseException(
+                exception_type  = raise_exception.getExceptionType(),
+                exception_value = raise_exception.getExceptionValue(),
+                exception_trace = None,
+                source_ref      = raise_exception.getSourceReference()
             )
+
+            if side_effects:
+                side_effects = tuple(
+                    CPythonStatementExpressionOnly(
+                        expression = side_effect,
+                        source_ref = side_effect.getSourceReference()
+                    )
+                    for side_effect in side_effects
+                )
+
+                node.replaceWith(
+                    makeStatementsSequenceReplacementNode(
+                        statements = side_effects + ( raise_node, ),
+                        node       = node
+                    )
+                )
+            else:
+                node.replaceWith(
+                    new_node = raise_node
+                )
 
             self.signalChange(
                 "new_raise new_statements",
