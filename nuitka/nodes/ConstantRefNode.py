@@ -116,3 +116,9 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
             return int( self.constant )
         else:
             return None
+
+    def getIterationLength( self, constraint_collection ):
+        if isIterableConstant( self.constant ):
+            return getConstantIterationLength( self.constant )
+        else:
+            return None

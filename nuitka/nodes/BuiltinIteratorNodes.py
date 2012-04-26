@@ -91,6 +91,9 @@ class CPythonExpressionBuiltinIter1( CPythonExpressionBuiltinSingleArgBase ):
         # TODO: Should ask value if it is.
         return None
 
+    def getIterationLength( self, constraint_collection ):
+        return self.getValue().getIterationLength( constraint_collection )
+
 
 class CPythonExpressionBuiltinNext1( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_NEXT1"

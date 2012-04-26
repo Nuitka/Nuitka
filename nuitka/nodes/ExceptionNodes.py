@@ -174,6 +174,11 @@ class CPythonExpressionCaughtExceptionValueRef( CPythonNodeBase, CPythonExpressi
         # Referencing the expression type has no side effect
         return False
 
+    def makeCloneAt( self, source_ref ):
+        return CPythonExpressionCaughtExceptionValueRef(
+            source_ref = source_ref
+        )
+
 
 class CPythonExpressionCaughtExceptionTracebackRef( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_TRACEBACK_REF"

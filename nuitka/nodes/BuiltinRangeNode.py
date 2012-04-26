@@ -108,8 +108,6 @@ class CPythonExpressionBuiltinRange( CPythonExpressionChildrenHavingBase ):
         return self, None, None
 
     def getIterationLength( self, constraint_collection ):
-        return None
-
         low  = self.getLow()
         high = self.getHigh()
         step = self.getStep()
