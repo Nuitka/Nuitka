@@ -245,6 +245,11 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         # TODO: It's actually pretty much compile time accessible mayhaps.
         return None
 
+    def mayHaveSideEffects( self ):
+        # The function definition has no side effects, calculating the defaults would be,
+        # but that is done outside of this.
+        return False
+
     def makeCloneAt( self, source_ref ):
         result = self.__class__(
             provider   = self.provider,
