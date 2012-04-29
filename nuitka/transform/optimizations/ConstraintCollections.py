@@ -194,25 +194,6 @@ class ConstraintCollectionBase:
                 expression.getSourceReference(),
                 change_desc
             )
-        elif expression.isExpressionVariableRef() and False: # TODO: Not safe yet, disabled
-            variable = expression.getVariable()
-
-            friend = self.getVariableValueFriend( variable )
-
-            if friend is not None and not friend.mayHaveSideEffects() and friend.isNode():
-                assert hasattr( friend, "makeCloneAt" ), friend
-
-                new_node = friend.makeCloneAt(
-                    source_ref = expression.getSourceReference(),
-                )
-
-                expression.replaceWith( new_node )
-
-                self.signalChange(
-                    "new_constant",
-                    expression.getSourceReference(),
-                    "Assignment source of '%s' propagated, as it has no side effects." % variable.getName()
-                )
 
         return new_node
 

@@ -155,6 +155,25 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
 
             return new_node, change_tags, change_desc
 
+        # TODO: Enable the below, once we can trust that the corruption of mutable
+        # constants is detected.
+        if True:
+            return self, None, None
+
+        friend = constraint_collection.getVariableValueFriend( self.variable )
+
+        if friend is not None and not friend.mayHaveSideEffects() and friend.isNode():
+            assert hasattr( friend, "makeCloneAt" ), friend
+
+            new_node = friend.makeCloneAt(
+                source_ref = self.source_ref,
+            )
+
+            change_desc = "Assignment source of '%s' propagated, as it has no side effects." % self.variable.getName()
+
+            # TODO: The tag doesn't make much sense.
+            return new_node, "new_constant", change_desc
+
         return self, None, None
 
     def isKnownToBeIterable( self, count ):
@@ -164,6 +183,9 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
 class CPythonExpressionTargetVariableRef( CPythonExpressionVariableRef ):
     kind = "EXPRESSION_TARGET_VARIABLE_REF"
 
+
+    def computeNode( self, constraint_collection ):
+        assert False
 
 class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"
