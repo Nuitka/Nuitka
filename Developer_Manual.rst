@@ -791,7 +791,7 @@ instead.
    transformation, but right now we don't have it.
 
 For Loops
-=========
+---------
 
 The for loops should use normal assignments and handle the iterator that is implicit in
 the code explicitely.
@@ -841,7 +841,7 @@ This is roughly equivalent to the following code:
    that the code doesn't really have any Python level exception handling going on.
 
 While Loops
-===========
+-----------
 
 Loops in Nuitka have no condition attached anymore, so while loops are re-formulated like this:
 
@@ -874,7 +874,7 @@ detect such a situation, consider e.g. endless loops.
    condition is not met, is something harder to discover.
 
 Exception Handler Values
-========================
+------------------------
 
 Exception handlers in Python may assign the caught exception value to a variable in the
 handler definition.
@@ -901,7 +901,7 @@ that access the C++ and don't go via "sys.exc_info" at all, these are called
 "CaughtExceptionValueRef".
 
 try/except/else
-===============
+---------------
 
 Much like "else" branches of loops, an indicator variable is used to indicate the entry
 into any of the exception handlers.
@@ -910,7 +910,7 @@ Therefore, the "else" becomes a real conditional statement in the node tree, che
 indicator variable and guarding the execution of the "else" branch.xs
 
 Classes Creation
-================
+----------------
 
 Classes have a body that only serves to build the class dictionary and is a normal
 function otherwise. This is expressed with the following re-formulation:
@@ -938,22 +938,22 @@ child functions when it comes to closure taking, which we cannot expression in P
 language at all.
 
 List Contractions
-=================
+-----------------
 
 TODO.
 
 Set Contractions
-=================
+----------------
 
 TODO.
 
 Dict Contractions
-=================
+-----------------
 
 TODO.
 
 Generator Expressions
-=====================
+---------------------
 
 There are re-formulated as functions.
 
@@ -972,6 +972,59 @@ loops.
               yield x*2
 
     gen = _gen_helper( range(8 ) )
+
+Nodes that serve special purposes
+=================================
+
+Side Effects
+------------
+
+When an exception is bound to occur, and this can be determined at compile time, Nuitka
+will not generate the code the leads to the exception, but directly just raise it. But not
+in all cases, this is the full thing.
+
+Consider this code:
+
+.. code-block:: python
+
+   f( a(), 1 / 0 )
+
+The second argument will create a "ZeroDivisionError" exception, but before that "a()"
+must be executed, but the call to "f" will never happen and no code is needed for that,
+but the name lookup must still succeed. This then leads to code that is internally like
+this:
+
+.. code-block:: python
+
+   f( a(), raise ZeroDivisionError )
+
+which is then modeled as:
+
+.. code-block:: python
+
+   side_effect( a(), f, raise ZeroDivisionError )
+
+where you can consider side_effect a function that returns the last expression. Of course,
+if this is not part of another expression, but close to statement level, side effects, can
+be converted to multiple statements simply.
+
+Another use case, is that the value of an expression can be predicted, but that the
+language still requires things to happen, consider this:
+
+.. code-block:: python
+
+   a = len( ( f(), g() ) )
+
+We can tell that "a" will be 2, but the call to "f" and "g" must still be performed, so it becomes:
+
+.. code-block:: python
+
+   a = side_effects( f(), g(), 2 )
+
+Modelling side effects explicitely has the advantage of recognizing them easily and
+allowing to drop the call to the tuple building and checking its length, only to release
+it.
+
 
 
 Plan to replace "python-qt" for the GUI
@@ -1891,16 +1944,6 @@ into action, which could be code changes, plan changes, issues created, etc.
 
      Keep it.
 
-* Side effects.
-
-  Expressions that have side effects, must be modeled. We already have it for exception
-  raising expressions. But it's not a node of its own kind yet, but it could well be,
-  one that wraps another expression, but first evaluates a list of other things. If
-  that list becomes empty, it can be computed away.
-
-  The benefit would be "len( (a,b) )" to evaluate that to "side_effects( a, b, 2 )" where
-  that is a fictive function that returns only the last argument. It would be in the node
-  tree and have the code generation we have now for exception raising expressions.
 
 .. raw:: pdf
 
