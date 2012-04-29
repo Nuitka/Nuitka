@@ -180,7 +180,7 @@ class ConstraintCollectionBase:
 
         assert expression.isExpression(), expression
 
-        # print( "CONSIDER", expression )
+        # print( "CONSIDER expression", expression )
 
         self.onSubExpressions( expression )
 
@@ -310,7 +310,8 @@ class ConstraintCollectionBase:
             variable = variable_ref.getVariable()
 
             # Assigning from and to the same variable, can be optimized away immediately,
-            # there is no point in doing it.
+            # there is no point in doing it. Exceptions are of course module variables
+            # that collide with builtin names.
             if statement.getAssignSource().isExpressionVariableRef() and \
                  statement.getAssignSource().getVariable() == variable and \
                  (not variable.isModuleVariableReference() or variable.getName() not in Builtins.builtin_all_names):
@@ -325,7 +326,7 @@ class ConstraintCollectionBase:
                     node       = statement
                 )
 
-            value_friend = statement.getAssignSource().getValueFriend()
+            value_friend = statement.getAssignSource().getValueFriend( self )
             assert value_friend is not None
 
             self.variables[ variable  ] = value_friend
@@ -387,6 +388,8 @@ class ConstraintCollectionBase:
             # Workaround for possibilty of generating a statement here.
             if expression.isStatement():
                 return self.onStatement( expression )
+            elif expression.isExpressionSideEffects():
+                assert False, expression
             else:
                 self.onExpression( expression )
 
@@ -482,7 +485,12 @@ class ConstraintCollectionBase:
 
             return statement
         elif statement.isStatementSpecialUnpackCheck():
-            # TODO: Not clear yet, what to do here.
+            self.onExpression( statement.getIterator() )
+
+            # Remove the check if it can be decided at compile time.
+            if statement.getIterator().isKnownToBeIterableAtMax( 0, self ):
+                return None
+
             return statement
         else:
             assert False, statement

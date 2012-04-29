@@ -88,16 +88,18 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
         else:
             return False
 
-    def getUnpacked( self, count ):
-        assert getConstantIterationLength( self.constant ) == count
+    def isKnownToBeIterableAtMin( self, count, constraint_collection ):
+        length = self.getIterationLength( constraint_collection )
 
-        source_ref = self.getSourceReference()
+        return length is not None and length >= count
 
-        return [
-            CPythonExpressionConstantRef( value, source_ref )
-            for value in
-            self.constant
-        ]
+    def canPredictIterationValues( self, constraint_collection ):
+        return self.isKnownToBeIterable( None )
+
+    def getIterationValue( self, count, constraint_collection ):
+        assert count < len( self.constant )
+
+        return CPythonExpressionConstantRef( self.constant[ count ], self.source_ref )
 
     def isBoolConstant( self ):
         return type( self.constant ) is bool

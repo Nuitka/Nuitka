@@ -215,6 +215,38 @@ class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin 
         # Can't happen
         return False
 
+    def isKnownToBeIterableAtMin( self, count, constraint_collection ):
+        friend = constraint_collection.getVariableValueFriend( self.variable )
+
+        if friend is not None:
+            return friend.isKnownToBeIterableAtMin(
+                count                 = count,
+                constraint_collection = constraint_collection
+            )
+        else:
+            return None
+
+    def isKnownToBeIterableAtMax( self, count, constraint_collection ):
+        friend = constraint_collection.getVariableValueFriend( self.variable )
+
+        if friend is not None:
+            return friend.isKnownToBeIterableAtMax(
+                count                 = count,
+                constraint_collection = constraint_collection
+            )
+        else:
+            return None
+
+    def getIterationNext( self, constraint_collection ):
+        friend = constraint_collection.getVariableValueFriend( self.variable )
+
+        if friend is not None:
+            return friend.getIterationNext(
+                constraint_collection = constraint_collection
+            )
+        else:
+            return None
+
 
 class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_TEMP_BLOCK"

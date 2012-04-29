@@ -90,14 +90,14 @@ class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
     def isKnownToBeIterable( self, count ):
         return count is None or count == len( self.getElements() )
 
-    def getUnpacked( self, count ):
-        # For every child except dictionaries, it's this easy.
-        assert count == len( self.getElements() )
-
-        return self.getElements()
+    def getIterationValue( self, count, constraint_collection ):
+        return self.getElements()[ count ]
 
     def getIterationLength( self, constraint_collection ):
         return len( self.getElements() )
+
+    def canPredictIterationValues( self, constraint_collection ):
+        return True
 
 
 class CPythonExpressionMakeTuple( CPythonExpressionMakeSequenceBase ):

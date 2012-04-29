@@ -800,7 +800,7 @@ class CPythonClosureTaker:
 
 
 class CPythonExpressionMixin:
-    def getValueFriend( self ):
+    def getValueFriend( self, constraint_collection ):
         return self
 
     def isCompileTimeConstant( self ):
@@ -827,6 +827,18 @@ class CPythonExpressionMixin:
 
         # Virtual method, pylint: disable=R0201,W0613
         return False
+
+    def isKnownToBeIterableAtMin( self, count, constraint_collection ):
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
+    def isKnownToBeIterableAtMax( self, count, constraint_collection ):
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
+    def getIterationNext( self, constraint_collection ):
+        # Virtual method, pylint: disable=R0201,W0613
+        return None
 
     def mayProvideReference( self ):
         """ May at run time produce a reference.

@@ -171,6 +171,15 @@ class CPythonExpressionBuiltinRange( CPythonSideEffectsFromChildrenMixin, \
 
             return int( estimate )
 
+    def canPredictIterationValues( self, constraint_collection ):
+        # TODO: Could do better
+
+        return False
+
+    def getIterationValue( self, element_index, constraint_collection ):
+        # TODO: Could do better
+
+        return None
 
     def isKnownToBeIterable( self, count ):
         # We are clearly iterable, but don't know exactly how much. TODO: Analysis could

@@ -40,6 +40,8 @@ from .NodeBases import (
     CPythonNodeBase
 )
 
+from .ValueFriends import ValueFriendBase
+
 from .NodeMakingHelpers import makeConstantReplacementNode
 
 from .SideEffectNode import CPythonExpressionSideEffects
@@ -82,9 +84,55 @@ class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
         return new_node, change_tags, change_desc
 
 
+class ValueFriendBuiltinIter1( ValueFriendBase ):
+    def __init__( self, iterated ):
+        ValueFriendBase.__init__( self )
+
+        self.iterated = iterated
+        self.iter_length = None
+        self.consumed = 0
+
+    def __eq__( self, other ):
+        if self.__class__ is not other.__class__:
+            return False
+
+        return self.iterated == other.iterated and self.consumed == other.consumed
+
+    def mayProvideReference( self ):
+        return True
+
+    def isKnownToBeIterableAtMin( self, count, constraint_collection ):
+        if self.iter_length is None:
+            self.iter_length = self.iterated.getIterationLength(
+                constraint_collection = constraint_collection
+            )
+
+        return self.iter_length is not None and self.iter_length - self.consumed >= count
+
+    def isKnownToBeIterableAtMax( self, count, constraint_collection ):
+        if self.iter_length is None:
+            self.iter_length = self.iterated.getIterationLength(
+                constraint_collection = constraint_collection
+            )
+
+        return self.iter_length is not None and self.iter_length - self.consumed <= count
+
+    def getIterationNext( self, constraint_collection ):
+        if self.iterated.canPredictIterationValues( constraint_collection ):
+            result = self.iterated.getIterationValue( self.consumed, constraint_collection )
+        else:
+            result = None
+
+        self.consumed += 1
+
+        return result
+
 
 class CPythonExpressionBuiltinIter1( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_ITER1"
+
+    def getValueFriend( self, constraint_collection ):
+        return ValueFriendBuiltinIter1( self.getValue().getValueFriend( constraint_collection ) )
 
     def computeNode( self, constraint_collection ):
         value = self.getValue()
@@ -115,6 +163,11 @@ class CPythonExpressionBuiltinIter1( CPythonExpressionBuiltinSingleArgBase ):
 class CPythonExpressionBuiltinNext1( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_NEXT1"
 
+    def getDetails( self ):
+        return {
+            "iter" : self.getValue()
+        }
+
     def makeCloneAt( self, source_ref ):
         return self.__class__(
             value      = self.getValue(),
@@ -122,6 +175,32 @@ class CPythonExpressionBuiltinNext1( CPythonExpressionBuiltinSingleArgBase ):
         )
 
     def computeNode( self, constraint_collection ):
+        target = self.getValue().getValueFriend( constraint_collection )
+
+        if target.isKnownToBeIterableAtMin( 1, constraint_collection ):
+            value = target.getIterationNext( constraint_collection )
+
+            if value is not None:
+                if value.isNode() and not self.parent.isStatementExpressionOnly():
+                    # As a side effect, keep the iteration, later checks may depend on it,
+                    # or if absent, optimizations will remove it.
+                    if not self.parent.isExpressionSideEffects():
+                        value = CPythonExpressionSideEffects(
+                            expression   = value.makeCloneAt(
+                                source_ref = self.getSourceReference()
+                            ),
+                            side_effects = (
+                                self.makeCloneAt(
+                                    source_ref = self.getSourceReference()
+                                ),
+                            ),
+                            source_ref   = self.getSourceReference()
+                        )
+
+                    return value, "new_expression", "Predicted next iteration result"
+            else:
+                assert False, target
+
         return self, None, None
 
 

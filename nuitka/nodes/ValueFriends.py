@@ -54,6 +54,7 @@ class ValueFriendBase( object ):
         # Virtual method, pylint: disable=R0201
         return False
 
+
 class ValueFriendChooseOne( ValueFriendBase ):
     def __init__( self, *choices ):
         assert choices
