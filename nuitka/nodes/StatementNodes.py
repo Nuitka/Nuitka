@@ -138,6 +138,12 @@ class CPythonStatementsFrame( CPythonStatementsSequence ):
         self.arg_names = tuple( arg_names )
         self.code_name = code_name
 
+    def getDetails( self ):
+        return {
+            "code_name" : self.code_name,
+            "arg_names" : self.arg_names
+        }
+
     def getArgNames( self ):
         return self.arg_names
 

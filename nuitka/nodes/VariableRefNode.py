@@ -70,12 +70,14 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
             return repr( self.variable )
 
     def makeCloneAt( self, source_ref ):
-        assert self.variable is None
-
-        return self.__class__(
+        result = self.__class__(
             variable_name = self.variable_name,
             source_ref    = source_ref
         )
+
+        result.variable = self.variable
+
+        return result
 
     def getVariableName( self ):
         return self.variable_name

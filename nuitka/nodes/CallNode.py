@@ -46,8 +46,8 @@ class CPythonExpressionCall( CPythonExpressionChildrenHavingBase ):
 
     named_children = ( "called", "positional_args", "pairs", "list_star_arg", "dict_star_arg" )
 
-    def __init__( self, called_expression, positional_args, pairs, list_star_arg, dict_star_arg, source_ref ):
-        assert called_expression.isExpression()
+    def __init__( self, called, positional_args, pairs, list_star_arg, dict_star_arg, source_ref ):
+        assert called.isExpression()
 
         for positional_arg in positional_args:
             assert positional_arg.isExpression()
@@ -60,7 +60,7 @@ class CPythonExpressionCall( CPythonExpressionChildrenHavingBase ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "called"          : called_expression,
+                "called"          : called,
                 "positional_args" : tuple( positional_args ),
                 "pairs"           : tuple( pairs ),
                 "list_star_arg"   : list_star_arg,
@@ -68,8 +68,6 @@ class CPythonExpressionCall( CPythonExpressionChildrenHavingBase ):
             },
             source_ref = source_ref
         )
-
-        assert self.getChild( "called" ) is called_expression
 
     getCalled = CPythonExpressionChildrenHavingBase.childGetter( "called" )
     getPositionalArguments = CPythonExpressionChildrenHavingBase.childGetter( "positional_args" )

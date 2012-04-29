@@ -46,6 +46,7 @@ from .SideEffectNode import CPythonExpressionSideEffects
 
 from nuitka.transform.optimizations import BuiltinOptimization
 
+
 class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_LEN"
 
@@ -114,6 +115,12 @@ class CPythonExpressionBuiltinIter1( CPythonExpressionBuiltinSingleArgBase ):
 class CPythonExpressionBuiltinNext1( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_NEXT1"
 
+    def makeCloneAt( self, source_ref ):
+        return self.__class__(
+            value      = self.getValue(),
+            source_ref = source_ref
+        )
+
     def computeNode( self, constraint_collection ):
         return self, None, None
 
@@ -130,10 +137,18 @@ class CPythonExpressionSpecialUnpack( CPythonExpressionBuiltinNext1 ):
 
         self.count = count
 
+    def makeCloneAt( self, source_ref ):
+        return self.__class__(
+            value      = self.getValue(),
+            count      = self.getCount(),
+            source_ref = source_ref
+        )
+
     def getDetails( self ):
-        return {
-            "count" : self.getCount(),
-        }
+        result = CPythonExpressionBuiltinNext1.getDetails( self )
+        result[ "element_index" ] = self.getCount()
+
+        return result
 
     def getCount( self ):
         return self.count
@@ -165,6 +180,7 @@ class CPythonStatementSpecialUnpackCheck( CPythonChildrenHaving, CPythonNodeBase
         return self.count
 
     getIterator = CPythonExpressionChildrenHavingBase.childGetter( "iterator" )
+
 
 class CPythonExpressionBuiltinIter2( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_ITER2"

@@ -138,7 +138,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         except:
             detail = "detail raises exception"
 
-        if detail == "":
+        if not detail:
             return "<Node %s>" % self.getDescription()
         else:
             return "<Node %s %s>" % ( self.getDescription(), detail )
@@ -161,7 +161,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         """
         # Virtual method, pylint: disable=R0201
-        return ""
+        return self.getDetails()
 
     def getParent( self ):
         """ Parent of the node. Every node except modules have to have a parent.
@@ -595,6 +595,39 @@ class CPythonChildrenHaving:
 
         if new_node is not None:
             new_node.parent = old_node.parent
+
+    def makeCloneAt( self, source_ref ):
+        values = {}
+
+        for key, value in self.child_values.items():
+            assert type( value ) is not list, key
+
+            if value is None:
+                values[ key ] = None
+            elif type( value ) is tuple:
+                values[ key ] = tuple(
+                    v.makeCloneAt(
+                        source_ref = v.getSourceReference()
+                    )
+                    for v in
+                    value
+                )
+            else:
+                values[ key ] = value.makeCloneAt(
+                    value.getSourceReference()
+                )
+
+        values.update( self.getDetails() )
+
+        try:
+            return self.__class__(
+                source_ref = source_ref,
+                **values
+            )
+        except TypeError as e:
+            print( "Problem cloning", self.__class__ )
+
+            raise
 
 
 class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):

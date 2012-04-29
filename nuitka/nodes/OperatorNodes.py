@@ -41,14 +41,10 @@ from nuitka import PythonOperators
 import math
 
 class CPythonExpressionOperationBase( CPythonExpressionChildrenHavingBase ):
-    named_children = ( "operands", )
-
-    def __init__( self, operator, simulator, operands, source_ref ):
+    def __init__( self, operator, simulator, values, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
-            values     = {
-                "operands" : operands
-            },
+            values     = values,
             source_ref = source_ref
         )
 
@@ -68,8 +64,6 @@ class CPythonExpressionOperationBase( CPythonExpressionChildrenHavingBase ):
     def getSimulator( self ):
         return self.simulator
 
-    getOperands = CPythonExpressionChildrenHavingBase.childGetter( "operands" )
-
     def isKnownToBeIterable( self, count ):
         # TODO: Could be true, if the arguments said so
         return None
@@ -78,6 +72,8 @@ class CPythonExpressionOperationBase( CPythonExpressionChildrenHavingBase ):
 class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
     kind = "EXPRESSION_OPERATION_BINARY"
 
+    named_children = ( "left", "right" )
+
     def __init__( self, operator, left, right, source_ref ):
         assert left.isExpression() and right.isExpression, ( left, right )
 
@@ -85,7 +81,10 @@ class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
             self,
             operator   = operator,
             simulator  = PythonOperators.binary_operator_functions[ operator ],
-            operands   = ( left, right ),
+            values     = {
+                "left"  : left,
+                "right" : right
+            },
             source_ref = source_ref
         )
 
@@ -127,9 +126,17 @@ class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
         else:
             return self, None, None
 
+    def getOperands( self ):
+        return ( self.getLeft(), self.getRight() )
+
+    getLeft = CPythonExpressionChildrenHavingBase.childGetter( "left" )
+    getRight = CPythonExpressionChildrenHavingBase.childGetter( "right" )
+
 
 class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
     kind = "EXPRESSION_OPERATION_UNARY"
+
+    named_children = ( "operand", )
 
     def __init__( self, operator, operand, source_ref ):
         assert operand.isExpression(), operand
@@ -138,7 +145,9 @@ class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
             self,
             operator   = operator,
             simulator  = PythonOperators.unary_operator_functions[ operator ],
-            operands   = ( operand, ),
+            values     = {
+                "operand" : operand
+            },
             source_ref = source_ref
         )
 
@@ -158,11 +167,10 @@ class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
         else:
             return self, None, None
 
-    def getOperand( self ):
-        operands = self.getOperands()
+    getOperand = CPythonExpressionChildrenHavingBase.childGetter( "operand" )
 
-        assert len( operands ) == 1
-        return operands[ 0 ]
+    def getOperands( self ):
+        return ( self.getOperand(), )
 
 
 class CPythonExpressionOperationNOT( CPythonExpressionOperationUnary ):

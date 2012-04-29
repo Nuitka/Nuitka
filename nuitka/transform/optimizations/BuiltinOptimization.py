@@ -290,15 +290,15 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class ):
         )
     except TooManyArguments as e:
         return CPythonExpressionCall(
-            called_expression = makeRaiseExceptionReplacementExpressionFromInstance(
+            called          = makeRaiseExceptionReplacementExpressionFromInstance(
                 expression     = node,
                 exception      = e.getRealException()
             ),
-            positional_args   = node.getPositionalArguments(),
-            list_star_arg     = node.getStarListArg(),
-            dict_star_arg     = node.getStarDictArg(),
-            pairs             = node.getNamedArgumentPairs(),
-            source_ref        = node.getSourceReference()
+            positional_args = node.getPositionalArguments(),
+            list_star_arg   = node.getStarListArg(),
+            dict_star_arg   = node.getStarDictArg(),
+            pairs           = node.getNamedArgumentPairs(),
+            source_ref      = node.getSourceReference()
         )
 
     args_list = []

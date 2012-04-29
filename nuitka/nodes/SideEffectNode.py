@@ -84,5 +84,4 @@ class CPythonExpressionSideEffects( CPythonExpressionChildrenHavingBase ):
         if not new_side_effects:
             return self.getExpression(), "new_expression", "Removed empty side effects."
 
-
         return self, None, None

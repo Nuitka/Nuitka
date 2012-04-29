@@ -130,7 +130,9 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     def getDetails( self ):
         return {
             "name"       : self.getFunctionName(),
-            "parameters" : self.getParameters()
+            "parameters" : self.getParameters(),
+            "provider"   : self.provider,
+            "doc"        : self.doc
         }
 
     def getDetail( self ):
@@ -242,6 +244,22 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     def isCompileTimeConstant( self ):
         # TODO: It's actually pretty much compile time accessible mayhaps.
         return None
+
+    def makeCloneAt( self, source_ref ):
+        result = self.__class__(
+            provider   = self.provider,
+            name       = self.name,
+            doc        = self.name,
+            # TODO: Clone parameters too, when we start to mutate them.
+            parameters = self.parameters,
+            source_ref =  source_ref
+        )
+
+        result.setBody(
+            self.getBody().makeCloneAt( source_ref )
+        )
+
+        return result
 
 
 class CPythonExpressionFunctionBodyDefaulted( CPythonExpressionChildrenHavingBase ):
