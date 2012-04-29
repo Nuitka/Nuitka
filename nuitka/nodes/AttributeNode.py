@@ -73,7 +73,7 @@ class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
 
     def computeNode( self, constraint_collection ):
         # There is a whole registry dedicated to this.
-        return AttributeRegistry.computeAttribute( self )
+        return AttributeRegistry.computeAttribute( self, constraint_collection )
 
     def isKnownToBeIterable( self, count ):
         # TODO: Should ask AttributeRegistry
