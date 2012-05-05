@@ -75,7 +75,7 @@ class CPythonExpressionSideEffects( CPythonExpressionChildrenHavingBase ):
         new_side_effects = []
 
         for side_effect in side_effects:
-            if side_effect.mayHaveSideEffects():
+            if side_effect.mayHaveSideEffects( constraint_collection ):
                 new_side_effects.append( side_effect )
 
         if new_side_effects != side_effects:

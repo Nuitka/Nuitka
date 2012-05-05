@@ -113,10 +113,12 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
         self.setChild( "statements", new_statements )
 
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects( self, constraint_collection ):
+        assert constraint_collection is None
+
         # Statement sequences have a side effect if one of the statements does.
         for statement in self.getStatements():
-            if statement.mayHaveSideEffects():
+            if statement.mayHaveSideEffects( None ):
                 return True
         else:
             return False
@@ -169,7 +171,7 @@ class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
     def getDetail( self ):
         return "expression %s" % self.getExpression()
 
-    def mayHaveSideEffects( self ):
-        return self.getExpression().mayHaveSideEffects()
+    def mayHaveSideEffects( self, constraint_collection ):
+        return self.getExpression().mayHaveSideEffects( constraint_collection )
 
     getExpression = CPythonChildrenHaving.childGetter( "expression" )

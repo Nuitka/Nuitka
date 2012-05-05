@@ -179,10 +179,21 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
     def isKnownToBeIterable( self, count ):
         return None
 
+    def mayHaveSideEffects( self, constraint_collection ):
+        if constraint_collection is None:
+            return True
+
+        friend = constraint_collection.getVariableValueFriend( self.variable )
+
+        if friend is not None:
+            # TODO: There is no friend that say "known to not be defined"
+            return False
+        else:
+            return True
+
 
 class CPythonExpressionTargetVariableRef( CPythonExpressionVariableRef ):
     kind = "EXPRESSION_TARGET_VARIABLE_REF"
-
 
     def computeNode( self, constraint_collection ):
         assert False
@@ -257,7 +268,10 @@ class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
     setBody = CPythonChildrenHaving.childSetter( "body" )
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref.atInternal() )
+        CPythonNodeBase.__init__(
+            self,
+            source_ref = source_ref.atInternal()
+        )
 
         CPythonChildrenHaving.__init__(
             self,
@@ -282,3 +296,6 @@ class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
 
     def getTempVariables( self ):
         return self.temp_variables
+
+    def mayHaveSideEffects( self, constraint_collection ):
+        return self.getBody().mayHaveSideEffects( constraint_collection )

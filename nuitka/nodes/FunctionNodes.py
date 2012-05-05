@@ -245,7 +245,7 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         # TODO: It's actually pretty much compile time accessible mayhaps.
         return None
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects( self, constraint_collection ):
         # The function definition has no side effects, calculating the defaults would be,
         # but that is done outside of this.
         return False

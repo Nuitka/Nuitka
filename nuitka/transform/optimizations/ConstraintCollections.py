@@ -214,7 +214,7 @@ class ConstraintCollectionBase:
     def _onStatementConditional( self, statement ):
         no_branch = statement.getBranchNo()
 
-        if no_branch is not None and not no_branch.mayHaveSideEffects():
+        if no_branch is not None and not no_branch.mayHaveSideEffects( None ):
             self.signalChange(
                 "new_statements",
                 no_branch.getSourceReference(),
@@ -227,7 +227,7 @@ class ConstraintCollectionBase:
 
         yes_branch = statement.getBranchYes()
 
-        if yes_branch is not None and not yes_branch.mayHaveSideEffects():
+        if yes_branch is not None and not yes_branch.mayHaveSideEffects( None ):
             statement.setBranchYes( None )
 
             self.signalChange(
@@ -393,7 +393,7 @@ class ConstraintCollectionBase:
             else:
                 self.onExpression( expression )
 
-                if statement.mayHaveSideEffects():
+                if statement.mayHaveSideEffects( self ):
                     return statement
                 else:
                     return None

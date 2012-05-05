@@ -62,7 +62,7 @@ class CPythonExpressionBuiltinRefBase( CPythonNodeBase, CPythonExpressionMixin )
     def getBuiltinName( self ):
         return self.builtin_name
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects( self, constraint_collection ):
         # Referencing the builtin name has no side effect
         return False
 

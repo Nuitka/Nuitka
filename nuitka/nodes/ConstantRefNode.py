@@ -104,7 +104,7 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
     def isBoolConstant( self ):
         return type( self.constant ) is bool
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects( self, constraint_collection ):
         # Constants have no side effects
         return False
 

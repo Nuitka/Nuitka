@@ -353,7 +353,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         # Virtual method, pylint: disable=R0201,W0613
         return None
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects( self, constraint_collection ):
         """ Unless we are told otherwise, everything may have a side effect. """
         # Virtual method, pylint: disable=R0201,W0613
 
@@ -920,9 +920,9 @@ class CPythonExpressionBuiltinSingleArgBase( CPythonExpressionChildrenHavingBase
 
 
 class CPythonSideEffectsFromChildrenMixin:
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects( self, constraint_collection ):
         for child in self.getVisitableNodes():
-            if child.mayHaveSideEffects():
+            if child.mayHaveSideEffects( constraint_collection ):
                 return True
         else:
             return False

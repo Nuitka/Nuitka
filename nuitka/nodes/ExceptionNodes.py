@@ -149,7 +149,7 @@ class CPythonExpressionCaughtExceptionTypeRef( CPythonNodeBase, CPythonExpressio
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects( self, constraint_collection ):
         # Referencing the expression type has no side effect
         return False
 
@@ -164,7 +164,7 @@ class CPythonExpressionCaughtExceptionValueRef( CPythonNodeBase, CPythonExpressi
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects( self, constraint_collection ):
         # Referencing the expression type has no side effect
         return False
 
@@ -183,6 +183,6 @@ class CPythonExpressionCaughtExceptionTracebackRef( CPythonNodeBase, CPythonExpr
     def computeNode( self, constraint_collection ):
         return self, None, None
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects( self, constraint_collection ):
         # Referencing the expression type has no side effect
         return False

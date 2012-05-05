@@ -88,7 +88,13 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
         else:
             assert False
 
-        side_effects = [ new_child for new_child in new_children[:-1] if new_child.mayHaveSideEffects() ]
+        side_effects = [
+            new_child
+            for new_child in
+            new_children[:-1]
+            if new_child.mayHaveSideEffects( None )
+        ]
+
         raise_exception = new_children[-1]
 
         if raise_exception.isExpressionSideEffects():
