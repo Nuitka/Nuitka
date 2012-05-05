@@ -104,6 +104,16 @@ class ConstraintCollectionBase:
 
             self.variables = dict( copy_of.variables )
 
+    def removeKnowledge( self, value_friend ):
+        to_remove = []
+
+        for variable, value in iterItems( self.variables ):
+            if value is value_friend:
+                to_remove.append( variable )
+
+        for remove in to_remove:
+            self.variables[ remove ]
+
     @staticmethod
     def mergeBranchVariables( a, b ):
         result = {}

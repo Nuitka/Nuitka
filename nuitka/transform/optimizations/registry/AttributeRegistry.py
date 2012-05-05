@@ -60,4 +60,6 @@ def computeAttribute( source_node, constraint_collection ):
             constraint_collection
         )
     else:
+        constraint_collection.removeKnowledge( source_node )
+
         return source_node, None, None
