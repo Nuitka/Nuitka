@@ -338,16 +338,34 @@ class ConstraintCollectionBase:
 
                     return None
 
+            # If the assignment source has side effects, we can simply evaluate them
+            # beforehand, we have already visited and evaluated them before.
+            if statement.getAssignSource().isExpressionSideEffects():
+                statements = [
+                    makeStatementExpressionOnlyReplacementNode(
+                        side_effect,
+                        statement
+                    )
+                    for side_effect in
+                    statement.getAssignSource().getSideEffects()
+                ]
+
+                statements.append( statement )
+
+                result = makeStatementsSequenceReplacementNode(
+                    statements = statements,
+                    node       = statement,
+                )
+
+                statement.getAssignSource().replaceWith( statement.getAssignSource().getExpression() )
+
                 self.signalChange(
                     "new_statements",
                     statement.getSourceReference(),
-                    "Reduced assignment of variable from itself to access of it."
+                    "Side effects of assignments promoted to statements."
                 )
-
-                return makeStatementExpressionOnlyReplacementNode(
-                    expression = statement.getAssignSource(),
-                    node       = statement
-                )
+            else:
+                result = statement
 
             value_friend = statement.getAssignSource().getValueFriend( self )
             assert value_friend is not None
