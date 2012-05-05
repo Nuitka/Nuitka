@@ -1087,7 +1087,12 @@ and that obviously to:
 
    c = 0
 
-This may be called "(Constant) Value Propagation". But we are aiming for even more. We want to forward propagate abstract properties of the values.
+This may be called "(Constant) Value Propagation". But we are aiming for even more. We
+want to forward propagate abstract properties of the values.
+
+.. note::
+
+   Builtin exceptions, and builtin names are also compile time constants.
 
 In order to fully benefit from type knowledge, the new type system must be able to be
 fully friends with existing builtin types.  The behavior of a type "long", "str",
@@ -1095,8 +1100,8 @@ etc. ought to be implemented as far as possible with the builtin "long", "str" a
 
 .. note::
 
-   This "use the real thing" concept extends beyond builtin types, "ctypes.c_int()" should
-   also be used, but we must be aware of platform dependencies. The maximum size of
+   This "use the real thing" concept extends beyond builtin types, e.g. "ctypes.c_int()"
+   should also be used, but we must be aware of platform dependencies. The maximum size of
    "ctypes.c_int" values would be an example of that. Of course that may not be possible
    for everything.
 
@@ -1104,8 +1109,7 @@ etc. ought to be implemented as far as possible with the builtin "long", "str" a
    builtins where possible to make computations. We have the problem though that builtins may
    have problems to execute everything with reasonable compile time cost.
 
-
-Consider the following code.
+Another example, consider the following code:
 
 .. code-block:: python
 
@@ -1142,22 +1146,9 @@ So it's a rather general problem, this time we know:
    - Can predict every of its elements when index, sliced, etc., if need be, with a
      function.
 
-Again, we wouldn't want to create the list. Therefore Nuitka currently won't calculate
-lists constants with more than 256 elements from "range", which is an arbitrary choice
-which is not consistently enforced.
-
-.. note::
-
-   We could know, from use of the "range" result maybe, that we ought to prefer a
-   "xrange", but that's not as much useful except maybe at code generation time. But we
-   would rather benefit from knowing we need not have any such object at all to satisfy
-   e.g. loop conditions.
-
-.. note::
-
-   In our builtin code, we have specialized "range()" to check for the result size in a
-   prediction. This ought to be generalized and take the computation cost and result size
-   into account.
+Again, we wouldn't want to create the list. Therefore Nuitka avoids executing these
+calculation, when they result in constants larger than a treshold of 256. It's also done
+for large integers and more.
 
 Now lets look at a use:
 
@@ -1167,13 +1158,15 @@ Now lets look at a use:
        doSomething()
 
 Looking at this example, one way to look at it, would be to turn "range" into "xrange",
-note that "x" is unused. But what is better, is to notice that "range()" generated value
-is not really used, but only the length of the expression matters. And even if "x" were
-used, only the ability to predict the value from a function would be interesting, so we
-would use that computation function instead.
+note that "x" is unused. That would already perform better. But really better is to notice
+that "range()" generated values are not used, but only the length of the expression
+matters.
 
-Predict from a function could mean to have Python code to do it, as well as C++ code to do
-it. Then code for the loop can be generated without any CPython usage at all.
+And even if "x" were used, only the ability to predict the value from a function would be
+interesting, so we would use that computation function instead of having an iteration
+source. Being able to predict from a function could mean to have Python code to do it, as
+well as C++ code to do it. Then code for the loop can be generated without any CPython
+usage at all.
 
 .. note::
 
@@ -1198,6 +1191,11 @@ Here we have "len" to look at an argument that we know the size of. Great. We ne
 if there are any side effects, and if there are, we need to maintain them of course, but
 generally this appears feasible, and is already being done by existing optimizations if an
 operation generates an exception.
+
+.. note::
+
+   The optimization of "len" has been implemented and works for all kinds of container
+   building and ranges.
 
 
 Applying this to "ctypes"
@@ -1269,10 +1267,10 @@ this:
 
       return a
 
-We would notate that "a" is first a "PyObject parameter object", then something that has
-an "append" attribute, when returned. The type of "a" changes after "a.append" lookup
-succeeds. It might be an object, but e.g. it could have a higher probability of being a
-"PyListObject".
+We would notate that "a" is first a "unknown PyObject parameter object", then something
+that has an "append" attribute, when returned. The type of "a" changes after "a.append"
+lookup succeeds. It might be an object, but e.g. it could have a higher probability of
+being a "PyListObject".
 
 .. note::
 
@@ -1489,19 +1487,24 @@ The following is the intended interface
   Part of the interface is a method "computeNode" which gives the node the chance to
   return another node instead, which may also be an exception.
 
-  The "computeNode" may be able to produce exceptions or constants even for
-  non-constant inputs depending on the operation being performed. For every expression
-  it will be executed.
+  The "computeNode" may be able to produce exceptions or constants even for non-constant
+  inputs depending on the operation being performed. For every expression it will be
+  executed in the order in which the program control flow goes for a function or module.
 
   In this sense, attribute lookup is also a computation, as its value might be computed as
   well. Most often an attribute lookup will produce a new value, which is not assigned,
   but e.g. called. In this case, the call value friend may be able to query its called
   expression for the attribute call prediction.
 
+  By default, attribute lookup, should turn an expression to unknown, unless something in
+  the registry can say something about it. That way, "some_list.append" produces something
+  which when called, invalidates "some_list", but only then.
+
 - Name for module "ValueFriends" according to rules.
 
   These should live in a package of some sort and be split up into groups later on, but
-  for the start it's probably easier to keep them all in one file.
+  for the start it's probably easier to keep them all in one file or next to the node that
+  produces them.
 
 - Class for module import expression "ValueFriendImportModule".
 
@@ -1586,11 +1589,18 @@ The following examples:
    # "ValueFriend"s.
    a + b
 
-The walking of the tree is best done in a specialized optimization and can be used to
-implement optimizations in a consistent and fast way. It walks the tree and enters
-arguments of builtin function calls. After that, value friends can be queries for
-arguments, and these can be used for the builtins own "computeNode" or value friend
-decisions.
+The walking of the tree is done in a specialized optimization "value propagation" and can
+be used to implement optimizations in a consistent and fast way. It walks the tree and
+asks each node to compute. When it encounters assignments, it asks for value friends that
+can be queries for arguments, and these can be used for the builtins own "computeNode" or
+value friend decisions.
+
+.. note::
+
+   Assignments to attributes, indexes, slices, etc. will also need to follow the flow of
+   "append", so it cannot escape attention that a list may be modified. Usages of "append"
+   that we cannot be sure about, must be traced to exist, and disallow the list to be
+   considered known value again.
 
 
 Code Generation Impact
@@ -1627,20 +1637,24 @@ values throughout a function or part of it.
 Initial Implementation
 ----------------------
 
-The "ValueFriendBase" interface will be added to *all* expressions nodes creation time,
-a node may either do it for itself (constant reference is an obvious example) or may
-delegate the task to an instantiated object of "ValueFriendBase" inheritance.
+The "ValueFriendBase" interface will be added to *all* expressions and a node may offer it
+for itself (constant reference is an obvious example) or may delegate the task to an
+instantiated object of "ValueFriendBase" inheritance. This will e.g. be done, if a state
+is attached, e.g. the current iteration value.
 
-Initially most of them will only be able to give up on about anything. And it will be
-little more than a tool to do lookups.
+Goal 1
+++++++
 
-It will then be the first goal to turn the following code into better performing one:
+Initially most things will only be able to give up on about anything. And it will be
+little more than a tool to do simple lookups in a general form. It will then be the first
+goal to turn the following code into better performing one:
 
 .. code-block:: python
 
    a = 3
    b = 7
    c = a / b
+   return c
 
 to:
 
@@ -1649,15 +1663,87 @@ to:
    a = 3
    b = 7
    c = 3 / 7
+   return c
 
-The assignments to "a" and "b" might become prey to "unused" assignment analysis later on,
-but that is not important yet. Also "3 / 7" could be optimized while going through it, but
-there is already code that does this "OptimizeConstantOperations" easily. So that would be
-a later step.
+and then:
+
+.. code-block:: python
+
+   a = 3
+   b = 7
+   c = 0
+   return c
+
+and then:
+
+.. code-block:: python
+
+   a = 3
+   b = 7
+   c = 0
+   return 0
+
+The assignments to "a", "b", and "c" shall become prey to "unused" assignment analysis in
+the next step. Also "3 / 7" could be optimized while going through it, but there is
+already code that does this "OptimizeConstantOperations" easily. So that would be a later
+step.
 
 .. note::
 
-   This part is implemented, but not active for releases.
+   This is implemented, but not active for releases, because it's not yet safe, because we
+   are missing detections for mutable values, which later goals will give.
+
+Goal 2
+++++++
+
+It appears, that "dead value analysis" for "a" and "b" requires that we trace to the
+end of the scope, if a variable value is or might become used.
+
+For that, we trace the last assignment of each variable, or a new assignment, or "del"
+statement on it, we decide, if the original assignment to the name was needed or not. If
+the value wasn't used, but it did provide a reference, we remove the name from it. If it
+didn't provide a reference, we can make it an expression only.
+
+That would, starting with:
+
+.. code-block:: python
+
+   3
+   7
+   0
+   return 0
+
+give us:
+
+.. code-block:: python
+
+   return 0
+
+which is the perfect result.
+
+In order to be able to manipulate statements that made assignments to names later on, we
+need to track the exact node(s) that did it. It may be multiple in case of conditions.
+
+.. code-block:: python
+
+   if cond():
+       x = 1
+   elif other():
+       x = 3
+
+   # Not using "x".
+   return 0
+
+In the above case, the merge of the value friends, should say that "x" may be undefined,
+or one of "1" or "3", but since "x" is not used, apply the "dead value" trick to each
+branch.
+
+.. note::
+
+   This is totally unimplemented.
+
+Goal 3
+++++++
 
 Then second goal is to understand all of this:
 
@@ -1774,12 +1860,8 @@ analyzed at compile time.
 Limitations for now
 -------------------
 
-- The collection of value friends will not have a history and be mutated as the processing
-  goes.
-
-  We will see, if we need any better at all. One day we might have passes with more
-  expensive and history maintaining variants, that will be able to look at one variable
-  and decide "value is only written, never read" and make something out of it.
+- The collection of value friends will have a limited history only and be mutated as the
+  processing goes.
 
 - Only enough to trace "ctypes" information through the code
 
