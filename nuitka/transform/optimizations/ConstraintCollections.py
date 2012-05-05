@@ -380,6 +380,11 @@ class ConstraintCollectionBase:
             value_friend = statement.getAssignSource().getValueFriend( self )
             assert value_friend is not None
 
+            if variable in self.variables:
+                old_value_friend = self.variables[ variable  ]
+            else:
+                old_value_friend = None
+
             self.variables[ variable  ] = value_friend
 
             if variable.isModuleVariableReference():
@@ -389,7 +394,10 @@ class ConstraintCollectionBase:
             elif variable.isTempVariableReference():
                 self.onTempVariableAssigned( variable, value_friend )
 
-            return statement
+            if old_value_friend is not None:
+                old_value_friend.onRelease( self )
+
+            return result
         elif statement.isStatementAssignmentAttribute():
             self.onExpression( statement.getAssignSource() )
 
@@ -415,6 +423,8 @@ class ConstraintCollectionBase:
             variable = statement.getTargetVariableRef()
 
             if variable in self.variables:
+                self.variables[ variable ].onRelease( self )
+
                 del self.variables[ variable ]
 
             return statement

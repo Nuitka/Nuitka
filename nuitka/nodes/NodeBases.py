@@ -852,12 +852,15 @@ class CPythonExpressionMixin:
     def getIterationLength( self, constraint_collection ):
         """ Value that "len" or "PyObject_Size" would give, if known.
 
-        Otherwise it's "None" to indicate unknown.
+        Otherwise it is "None" to indicate unknown.
         """
 
         # Virtual method, pylint: disable=R0201
         return None
 
+    def onRelease( self, constraint_collection ):
+        # print "onRelease", self
+        pass
 
 
 
