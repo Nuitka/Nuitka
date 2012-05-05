@@ -39,7 +39,10 @@ from nuitka.__past__ import iterItems
 
 from nuitka.nodes import ValueFriends
 
-from nuitka.nodes.NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+from nuitka.nodes.NodeMakingHelpers import (
+    makeStatementExpressionOnlyReplacementNode,
+    makeStatementsSequenceReplacementNode
+)
 
 from nuitka import Options, Utils, TreeRecursion, Importing, Builtins
 
@@ -314,7 +317,27 @@ class ConstraintCollectionBase:
             # that collide with builtin names.
             if statement.getAssignSource().isExpressionVariableRef() and \
                  statement.getAssignSource().getVariable() == variable and \
-                 (not variable.isModuleVariableReference() or variable.getName() not in Builtins.builtin_all_names):
+                 not variable.isModuleVariableReference():
+                if statement.getAssignSource().mayHaveSideEffects( self ):
+                    self.signalChange(
+                        "new_statements",
+                        statement.getSourceReference(),
+                        "Reduced assignment of variable from itself to access of it."
+                    )
+
+                    return makeStatementExpressionOnlyReplacementNode(
+                        expression = statement.getAssignSource(),
+                        node       = statement
+                    )
+                else:
+                    self.signalChange(
+                        "new_statements",
+                        statement.getSourceReference(),
+                        "Removed assignment of variable from itself which is known to be defined."
+                    )
+
+                    return None
+
                 self.signalChange(
                     "new_statements",
                     statement.getSourceReference(),
