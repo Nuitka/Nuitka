@@ -141,7 +141,8 @@ class BuiltinParameterSpecNoKeywords( BuiltinParameterSpec ):
             if given_list_star_arg is not None:
                 arg_list += [ value.getCompileTimeConstant() for value in given_list_star_arg ]
         except Exception as e:
-            sys.exit( e )
+            print >>sys.stderr, "Fatal error: ",
+            sys.exit( repr( e ) )
 
         return self.builtin( *arg_list )
 

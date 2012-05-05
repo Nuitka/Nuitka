@@ -48,6 +48,9 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
 
         self.constant = constant
 
+    def __repr__( self ):
+        return "<Node %s value %s at %s>" % ( self.kind, self.constant, self.source_ref )
+
     def makeCloneAt( self, source_ref ):
         return self.__class__( self.constant, source_ref )
 

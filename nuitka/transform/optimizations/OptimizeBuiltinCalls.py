@@ -86,7 +86,13 @@ from nuitka.nodes.OperatorNodes import CPythonExpressionOperationUnary
 from nuitka.nodes.ConstantRefNode import CPythonExpressionConstantRef
 from nuitka.nodes.BuiltinDictNode import CPythonExpressionBuiltinDict
 from nuitka.nodes.BuiltinOpenNode import CPythonExpressionBuiltinOpen
-from nuitka.nodes.BuiltinRangeNode import CPythonExpressionBuiltinRange
+from nuitka.nodes.BuiltinRangeNode import (
+    CPythonExpressionBuiltinRange0,
+    CPythonExpressionBuiltinRange1,
+    CPythonExpressionBuiltinRange2,
+    CPythonExpressionBuiltinRange3
+)
+
 from nuitka.nodes.BuiltinVarsNode import CPythonExpressionBuiltinVars
 from nuitka.nodes.ImportNodes import CPythonExpressionBuiltinImport
 from nuitka.nodes.TypeNode import CPythonExpressionBuiltinType1
@@ -266,9 +272,19 @@ def repr_extractor( node ):
     )
 
 def range_extractor( node ):
+    def selectRangeBuiltin( low, high, step, source_ref ):
+        if low is None:
+            return CPythonExpressionBuiltinRange0( source_ref )
+        elif high is None:
+            return CPythonExpressionBuiltinRange1( low, source_ref )
+        elif step is None:
+            return CPythonExpressionBuiltinRange2( low, high, source_ref )
+        else:
+            return CPythonExpressionBuiltinRange3( low, high, step, source_ref )
+
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
-        builtin_class = CPythonExpressionBuiltinRange,
+        builtin_class = selectRangeBuiltin,
         builtin_spec  = BuiltinOptimization.builtin_range_spec
     )
 

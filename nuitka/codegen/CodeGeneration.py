@@ -851,11 +851,23 @@ def generateExpressionCode( expression, context, allow_none = False ):
             codes_yes = makeExpressionCode( expression.getExpressionYes() ),
             codes_no  = makeExpressionCode( expression.getExpressionNo() )
         )
-    elif expression.isExpressionBuiltinRange():
+    elif expression.isExpressionBuiltinRange1():
         identifier = Generator.getBuiltinRangeCode(
-            low  = makeExpressionCode( expression.getLow(), allow_none = False ),
-            high = makeExpressionCode( expression.getHigh(), allow_none = True ),
-            step = makeExpressionCode( expression.getStep(), allow_none = True )
+            low  = makeExpressionCode( expression.getLow() ),
+            high = None,
+            step = None
+        )
+    elif expression.isExpressionBuiltinRange2():
+        identifier = Generator.getBuiltinRangeCode(
+            low  = makeExpressionCode( expression.getLow() ),
+            high = makeExpressionCode( expression.getHigh() ),
+            step = None
+        )
+    elif expression.isExpressionBuiltinRange3():
+        identifier = Generator.getBuiltinRangeCode(
+            low  = makeExpressionCode( expression.getLow() ),
+            high = makeExpressionCode( expression.getHigh() ),
+            step = makeExpressionCode( expression.getStep() )
         )
     elif expression.isExpressionBuiltinGlobals():
         identifier = Generator.getLoadGlobalsCode(

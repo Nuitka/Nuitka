@@ -814,7 +814,7 @@ class CPythonExpressionMixin:
         return False
 
     def getCompileTimeConstant( self ):
-        assert self.isCompileTimeConstant(), self
+        assert self.isCompileTimeConstant(), ( self, "asked for compile time constant" )
 
         assert False
 

@@ -34,9 +34,17 @@ predicted still, and these are interesting for warnings.
 
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase, CPythonSideEffectsFromChildrenMixin
+from .NodeBases import (
+    CPythonExpressionChildrenHavingBase,
+    CPythonSideEffectsFromChildrenMixin,
+    CPythonExpressionMixin,
+    CPythonNodeBase
+)
 
-from .NodeMakingHelpers import getComputationResult
+from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
+    getComputationResult
+)
 
 from nuitka.transform.optimizations import BuiltinOptimization
 
@@ -44,16 +52,206 @@ from nuitka.Utils import python_version
 
 import math
 
-class CPythonExpressionBuiltinRange( CPythonSideEffectsFromChildrenMixin, \
-                                     CPythonExpressionChildrenHavingBase ):
-    kind = "EXPRESSION_BUILTIN_RANGE"
+class CPythonExpressionBuiltinRangeBase( CPythonSideEffectsFromChildrenMixin, \
+                                         CPythonExpressionChildrenHavingBase ):
+
+    def __init__( self, values, source_ref ):
+        CPythonExpressionChildrenHavingBase.__init__(
+            self,
+            values     = values,
+            source_ref = source_ref
+        )
+
+class CPythonExpressionBuiltinRange0( CPythonNodeBase, CPythonExpressionMixin ):
+    kind = "EXPRESSION_BUILTIN_RANGE0"
+
+    def __init__( self, source_ref ):
+        CPythonNodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+    def computeNode( self, constraint_collection ):
+        # Intentional to get exception, pylint: disable=W0108
+        return getComputationResult(
+            node        = self,
+            computation = lambda : range(),
+            description = "No arg range builtin"
+        )
+
+    def getIterationLength( self, constraint_collection ):
+        return None
+
+    def canPredictIterationValues( self, constraint_collection ):
+        return False
+
+    def getIterationValue( self, element_index, constraint_collection ):
+        return None
+
+    def isKnownToBeIterable( self, count ):
+        return False
+
+
+class CPythonExpressionBuiltinRange1( CPythonExpressionBuiltinRangeBase ):
+    kind = "EXPRESSION_BUILTIN_RANGE1"
+
+    named_children = ( "low", )
+
+    def __init__( self, low, source_ref ):
+        CPythonExpressionBuiltinRangeBase.__init__(
+            self,
+            values     = {
+                "low"  : low,
+            },
+            source_ref = source_ref
+        )
+
+    getLow = CPythonExpressionChildrenHavingBase.childGetter( "low" )
+
+    def computeNode( self, constraint_collection ):
+        # TODO: Support Python3 range objects too.
+        if python_version >= 300:
+            return self, None, None
+
+        given_values = ( self.getLow(), )
+
+        if not BuiltinOptimization.builtin_range_spec.isCompileTimeComputable( given_values ):
+            return self, None, None
+
+        return getComputationResult(
+            node        = self,
+            computation = lambda : BuiltinOptimization.builtin_range_spec.simulateCall( given_values ),
+            description = "Builtin call to range precomputed."
+        )
+
+    def getIterationLength( self, constraint_collection ):
+        low = self.getLow().getIntegerValue( constraint_collection )
+
+        if low is None:
+            return None
+
+        return max( 0, low )
+
+    def canPredictIterationValues( self, constraint_collection ):
+        return self.getIterationLength( constraint_collection ) is not None
+
+    def getIterationValue( self, element_index, constraint_collection ):
+        length = self.getIterationLength( constraint_collection )
+
+        if length is None:
+            return None
+
+        if element_index > length:
+            return None
+
+        # TODO: Make sure to cast element_index to what CPython will give, for now a
+        # downcast will do.
+        return makeConstantReplacementNode(
+            constant = int( element_index ),
+            node     = self
+        )
+
+    def isKnownToBeIterable( self, count ):
+        return count is None or count == self.getIterationLength()
+
+
+class CPythonExpressionBuiltinRange2( CPythonExpressionBuiltinRangeBase ):
+    kind = "EXPRESSION_BUILTIN_RANGE2"
+
+    named_children = ( "low", "high" )
+
+    def __init__( self, low, high, source_ref ):
+        CPythonExpressionBuiltinRangeBase.__init__(
+            self,
+            values     = {
+                "low"  : low,
+                "high" : high
+            },
+            source_ref = source_ref
+        )
+
+    getLow  = CPythonExpressionChildrenHavingBase.childGetter( "low" )
+    getHigh = CPythonExpressionChildrenHavingBase.childGetter( "high" )
+
+    builtin_spec = BuiltinOptimization.builtin_range_spec
+
+    def computeBuiltinSpec( self, given_values ):
+        assert self.builtin_spec is not None, self
+
+        if not self.builtin_spec.isCompileTimeComputable( given_values ):
+            return self, None, None
+
+        return getComputationResult(
+            node        = self,
+            computation = lambda : self.builtin_spec.simulateCall( given_values ),
+            description = "Builtin call to %s precomputed." % self.builtin_spec.getName()
+        )
+
+    def computeNode( self, constraint_collection ):
+        if python_version >= 300:
+            return self, None, None
+
+        low  = self.getLow()
+        high = self.getHigh()
+
+        return self.computeBuiltinSpec( ( low, high ) )
+
+    def getIterationLength( self, constraint_collection ):
+        low  = self.getLow()
+        high = self.getHigh()
+
+        low = low.getIntegerValue( constraint_collection )
+
+        if low is None:
+            return None
+
+        high = high.getIntegerValue( constraint_collection )
+
+        if high is None:
+            return None
+
+        return max( 0, high - low )
+
+    def canPredictIterationValues( self, constraint_collection ):
+        return self.getIterationLength( constraint_collection ) is not None
+
+    def getIterationValue( self, element_index, constraint_collection ):
+        low  = self.getLow()
+        high = self.getHigh()
+
+        low = low.getIntegerValue( constraint_collection )
+
+        if low is None:
+            return None
+
+        high = high.getIntegerValue( constraint_collection )
+
+        if high is None:
+            return None
+
+        result = low + element_index
+
+        if result >= high:
+            return None
+        else:
+            return makeConstantReplacementNode(
+                constant = result,
+                node     = self
+            )
+
+    def isKnownToBeIterable( self, count ):
+        return count is None or count == self.getIterationLength()
+
+
+class CPythonExpressionBuiltinRange3( CPythonExpressionBuiltinRangeBase ):
+    kind = "EXPRESSION_BUILTIN_RANGE3"
 
     named_children = ( "low", "high", "step" )
 
     def __init__( self, low, high, step, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        CPythonExpressionBuiltinRangeBase.__init__(
             self,
-            values = {
+            values     = {
                 "low"  : low,
                 "high" : high,
                 "step" : step
@@ -65,14 +263,6 @@ class CPythonExpressionBuiltinRange( CPythonSideEffectsFromChildrenMixin, \
     getHigh = CPythonExpressionChildrenHavingBase.childGetter( "high" )
     getStep = CPythonExpressionChildrenHavingBase.childGetter( "step" )
 
-    def _computeNodeNoArgsRange( self ):
-        # Intentional to get exception, pylint: disable=W0108
-        return getComputationResult(
-            node        = self,
-            computation = lambda : range(),
-            description = "No arg range builtin"
-        )
-
     builtin_spec = BuiltinOptimization.builtin_range_spec
 
     def computeBuiltinSpec( self, given_values ):
@@ -80,8 +270,6 @@ class CPythonExpressionBuiltinRange( CPythonSideEffectsFromChildrenMixin, \
 
         if not self.builtin_spec.isCompileTimeComputable( given_values ):
             return self, None, None
-
-        from .NodeMakingHelpers import getComputationResult
 
         return getComputationResult(
             node        = self,
@@ -97,91 +285,74 @@ class CPythonExpressionBuiltinRange( CPythonSideEffectsFromChildrenMixin, \
         high = self.getHigh()
         step = self.getStep()
 
-        if low is None and high is None and step is None:
-            return self._computeNodeNoArgsRange()
-        elif high is None and step is None:
-            return self.computeBuiltinSpec( ( low, ) )
-        elif step is None:
-            return self.computeBuiltinSpec( ( low, high ) )
-        else:
-            return self.computeBuiltinSpec( ( low, high, step ) )
-
-        return self, None, None
+        return self.computeBuiltinSpec( ( low, high, step ) )
 
     def getIterationLength( self, constraint_collection ):
         low  = self.getLow()
         high = self.getHigh()
         step = self.getStep()
 
-        if low is None and high is None and step is None:
-            return 0
-        elif high is None and step is None:
-            low = low.getIntegerValue( constraint_collection )
+        low = low.getIntegerValue( constraint_collection )
 
-            if low is None:
-                return None
+        if low is None:
+            return None
+
+        high = high.getIntegerValue( constraint_collection )
+
+        if high is None:
+            return None
+
+        step = step.getIntegerValue( constraint_collection )
+
+        if step is None:
+            return None
+
+        # Give up on this, will raise ValueError.
+        if step == 0:
+            return None
+
+        if low < high:
+            if step < 0:
+                estimate = 0
             else:
-                return max( 0, low )
-        elif step is None:
-            low = low.getIntegerValue( constraint_collection )
-
-            if low is None:
-                return None
-
-            high = high.getIntegerValue( constraint_collection )
-
-            if high is None:
-                return None
-
-            return max( 0, high - low )
+                estimate = math.ceil( float( high - low ) / step )
         else:
-            low = low.getIntegerValue( constraint_collection )
-
-            if low is None:
-                return None
-
-            high = high.getIntegerValue( constraint_collection )
-
-            if high is None:
-                return None
-
-            step = step.getIntegerValue( constraint_collection )
-
-            if step is None:
-                return None
-
-            # Give up on this, will raise ValueError.
-            if step == 0:
-                return None
-
-            if low < high:
-                if step < 0:
-                    estimate = 0
-                else:
-                    estimate = math.ceil( float( high - low ) / step )
+            if step > 0:
+                estimate = 0
             else:
-                if step > 0:
-                    estimate = 0
-                else:
-                    estimate = math.ceil( float( high - low ) / step )
+                estimate = math.ceil( float( high - low ) / step )
 
-            estimate = round( estimate )
+        estimate = round( estimate )
 
-            assert not estimate < 0
+        assert not estimate < 0
 
-            return int( estimate )
+        return int( estimate )
 
     def canPredictIterationValues( self, constraint_collection ):
-        # TODO: Could do better
-
-        return False
+        return self.getIterationLength( constraint_collection ) is not None
 
     def getIterationValue( self, element_index, constraint_collection ):
-        # TODO: Could do better
+        low  = self.getLow().getIntegerValue( constraint_collection )
 
-        return None
+        if low is None:
+            return None
+
+        high = self.getHigh().getIntegerValue( constraint_collection )
+
+        if high is None:
+            return None
+
+        step = self.getStep().getIntegerValue( constraint_collection )
+
+        result = low + step * element_index
+
+        if result >= high:
+            return None
+        else:
+            return makeConstantReplacementNode(
+                constant = result,
+                node     = self
+            )
 
     def isKnownToBeIterable( self, count ):
-        # We are clearly iterable, but don't know exactly how much. TODO: Analysis could
-        # be done to that end.
-        return count is None
+        return count is None or count == self.getIterationLength()
