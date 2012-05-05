@@ -544,7 +544,17 @@ class ConstraintCollectionBase:
         elif statement.isStatementTempBlock():
             self.onStatementsSequence( statement.getBody() )
 
-            return statement
+            for variable, friend in iterItems( dict( self.variables ) ):
+                if variable.getOwner() is statement:
+                    del self.variables[ variable ]
+
+                    # TODO: Back propagate now.
+                    friend.onRelease( self )
+
+            if statement.mayHaveSideEffects( None ):
+                return statement
+            else:
+                return None
         elif statement.isStatementSpecialUnpackCheck():
             self.onExpression( statement.getIterator() )
 
