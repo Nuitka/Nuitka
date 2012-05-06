@@ -49,6 +49,8 @@ from .StatementNodes import (
     CPythonStatementsSequence
 )
 
+from .SideEffectNode import CPythonExpressionSideEffects
+
 def makeConstantReplacementNode( constant, node ):
     return CPythonExpressionConstantRef(
         constant   = constant,
@@ -165,3 +167,45 @@ def convertNoneConstantToNone( node ):
         return None
     else:
         return node
+
+def wrapExpressionWithSideEffects( new_node, old_node ):
+    assert new_node.isExpression()
+
+    side_effects = old_node.extractSideEffects()
+
+
+    if side_effects:
+        new_node = CPythonExpressionSideEffects(
+            expression   = new_node,
+            side_effects = side_effects,
+            source_ref   = old_node.getSourceReference()
+        )
+
+    return new_node
+
+def wrapStatementWithSideEffects( new_node, old_node, allow_none = False ):
+    assert new_node is not None or allow_none
+
+    side_effects = old_node.extractSideEffects()
+
+    if side_effects:
+        side_effects = tuple(
+            CPythonStatementExpressionOnly(
+                expression = side_effect,
+                source_ref = side_effect.getSourceReference()
+            )
+            for side_effect in side_effects
+        )
+
+        if new_node is not None:
+            new_node = makeStatementsSequenceReplacementNode(
+                statements = side_effects + ( new_node, ),
+                node       = old_node
+            )
+        else:
+            new_node = makeStatementsSequenceReplacementNode(
+                statements = side_effects,
+                node       = old_node
+            )
+
+    return new_node

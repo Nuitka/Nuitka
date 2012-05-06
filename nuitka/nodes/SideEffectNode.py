@@ -64,6 +64,8 @@ class CPythonExpressionSideEffects( CPythonExpressionChildrenHavingBase ):
                     real_value.extend( child.getSideEffects() )
                     real_value.append( child.getExpression() )
                 else:
+                    assert child.isExpression()
+
                     real_value.append( child )
 
             value = real_value

@@ -99,6 +99,9 @@ class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
     def canPredictIterationValues( self, constraint_collection ):
         return True
 
+    def getTruthValue( self, constraint_collection ):
+        return self.getIterationLength( constraint_collection ) > 0
+
 
 class CPythonExpressionMakeTuple( CPythonExpressionMakeSequenceBase ):
     kind = "EXPRESSION_MAKE_TUPLE"

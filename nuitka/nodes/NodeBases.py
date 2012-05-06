@@ -818,6 +818,14 @@ class CPythonExpressionMixin:
 
         assert False
 
+    def getTruthValue( self, constraint_collection ):
+        """ Return known truth value. The "None" value indicates unknown. """
+
+        if self.isCompileTimeConstant():
+            return bool( self.getCompileTimeConstant() )
+        else:
+            return None
+
     def isKnownToBeIterable( self, count ):
         """ Can be iterated at all (count is None) or exactly count times.
 

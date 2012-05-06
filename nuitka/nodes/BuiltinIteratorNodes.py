@@ -42,7 +42,7 @@ from .NodeBases import (
 
 from .ValueFriends import ValueFriendBase
 
-from .NodeMakingHelpers import makeConstantReplacementNode
+from .NodeMakingHelpers import makeConstantReplacementNode, wrapExpressionWithSideEffects
 
 from .SideEffectNode import CPythonExpressionSideEffects
 
@@ -64,21 +64,16 @@ class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
             arg_length = self.getValue().getIterationLength( constraint_collection )
 
             if arg_length is not None:
-                side_effects = self.getValue().extractSideEffects()
-
-                # TODO: Need to ask it to preserve side-effects, from e.g. a function
-                # call.
-                new_node = makeConstantReplacementNode( arg_length, self )
                 change_tags = "new_constant"
                 change_desc = "Predicted len argument"
 
-                if side_effects:
-                    new_node = CPythonExpressionSideEffects(
-                        expression   = new_node,
-                        side_effects = side_effects,
-                        source_ref   = self.getSourceReference()
-                    )
+                new_node = wrapExpressionWithSideEffects(
+                    new_node = makeConstantReplacementNode( arg_length, self ),
+                    old_node = self.getValue()
 
+                )
+
+                if new_node.isExpressionSideEffects():
                     change_desc += " maintaining side effects"
 
         return new_node, change_tags, change_desc

@@ -36,6 +36,7 @@ from .NodeBases import CPythonExpressionChildrenHavingBase
 
 from nuitka.transform.optimizations.registry import AttributeRegistry
 
+
 class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP"
 

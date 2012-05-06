@@ -41,7 +41,8 @@ from nuitka.nodes import ValueFriends
 
 from nuitka.nodes.NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
-    makeStatementsSequenceReplacementNode
+    makeStatementsSequenceReplacementNode,
+    wrapStatementWithSideEffects
 )
 
 from nuitka import Options, Utils, TreeRecursion, Importing, Builtins
@@ -284,8 +285,12 @@ class ConstraintCollectionBase:
                 expression = statement.getCondition(),
                 node       = statement
             )
-        elif statement.getCondition().isCompileTimeConstant():
-            if statement.getCondition().getCompileTimeConstant():
+
+
+        truth_value = statement.getCondition().getTruthValue( self )
+
+        if truth_value is not None:
+            if truth_value is True:
                 choice = "true"
 
                 new_statement = statement.getBranchYes()
@@ -293,6 +298,12 @@ class ConstraintCollectionBase:
                 choice = "false"
 
                 new_statement = statement.getBranchNo()
+
+            new_statement = wrapStatementWithSideEffects(
+                new_node   = new_statement,
+                old_node   = statement.getCondition(),
+                allow_none = True # surviving branch may empty
+            )
 
             self.signalChange(
                 "new_statements",

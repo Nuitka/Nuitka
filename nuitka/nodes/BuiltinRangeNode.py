@@ -52,16 +52,6 @@ from nuitka.Utils import python_version
 
 import math
 
-class CPythonExpressionBuiltinRangeBase( CPythonSideEffectsFromChildrenMixin, \
-                                         CPythonExpressionChildrenHavingBase ):
-
-    def __init__( self, values, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
-            self,
-            values     = values,
-            source_ref = source_ref
-        )
-
 class CPythonExpressionBuiltinRange0( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_BUILTIN_RANGE0"
 
@@ -90,6 +80,25 @@ class CPythonExpressionBuiltinRange0( CPythonNodeBase, CPythonExpressionMixin ):
 
     def isKnownToBeIterable( self, count ):
         return False
+
+
+class CPythonExpressionBuiltinRangeBase( CPythonSideEffectsFromChildrenMixin, \
+                                         CPythonExpressionChildrenHavingBase ):
+
+    def __init__( self, values, source_ref ):
+        CPythonExpressionChildrenHavingBase.__init__(
+            self,
+            values     = values,
+            source_ref = source_ref
+        )
+
+    def getTruthValue( self, constraint_collection ):
+        length = self.getIterationLength( constraint_collection )
+
+        if length is None:
+            return None
+        else:
+            return length > 0
 
 
 class CPythonExpressionBuiltinRange1( CPythonExpressionBuiltinRangeBase ):

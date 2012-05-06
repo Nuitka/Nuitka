@@ -101,7 +101,6 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
             side_effects.extend( raise_exception.getSideEffects() )
             raise_exception = raise_exception.getExpression()
 
-
         if node.isExpression():
             if side_effects:
                 node.replaceWith(
