@@ -133,6 +133,8 @@ else:
         if "inline_copy" in dirnames:
             dirnames.remove( "inline_copy" )
 
+        filenames.sort()
+
         for filename in filenames:
             if not filename.endswith( ".py" ):
                 continue
