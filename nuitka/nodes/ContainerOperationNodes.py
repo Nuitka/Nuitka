@@ -32,6 +32,7 @@
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
 
+
 class CPythonExpressionListOperationAppend( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_LIST_OPERATION_APPEND"
 
@@ -54,7 +55,8 @@ class CPythonExpressionListOperationAppend( CPythonExpressionChildrenHavingBase 
     getValue = CPythonExpressionChildrenHavingBase.childGetter( "value" )
 
     def computeNode( self, constraint_collection ):
-        # TODO: Or would it raise due to list or value
+        constraint_collection.removeKnowledge( self.getList() )
+
         return self, None, None
 
 
@@ -80,7 +82,8 @@ class CPythonExpressionSetOperationAdd( CPythonExpressionChildrenHavingBase ):
     getValue = CPythonExpressionChildrenHavingBase.childGetter( "value" )
 
     def computeNode( self, constraint_collection ):
-        # TODO: Or would it raise due to set or value
+        constraint_collection.removeKnowledge( self.getSet() )
+
         return self, None, None
 
 
@@ -109,5 +112,6 @@ class CPythonExpressionDictOperationSet( CPythonExpressionChildrenHavingBase ):
     getValue = CPythonExpressionChildrenHavingBase.childGetter( "value" )
 
     def computeNode( self, constraint_collection ):
-        # TODO: Or would it raise due to dict, key or value
+        constraint_collection.removeKnowledge( self.getDict() )
+
         return self, None, None
