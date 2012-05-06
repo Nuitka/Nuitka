@@ -152,7 +152,17 @@ class CPythonExpressionBuiltinIter1( CPythonExpressionBuiltinSingleArgBase ):
 
     def extractSideEffects( self ):
         # Iterator making is the side effect itself.
-        return ( self, )
+        if self.getValue().isCompileTimeConstant():
+            return ()
+        else:
+            return ( self, )
+
+
+    def mayHaveSideEffects( self, constraint_collection ):
+        if self.getValue().isCompileTimeConstant():
+            return self.getValue().isKnownToBeIterable( None )
+
+        return None
 
 
 class CPythonExpressionBuiltinNext1( CPythonExpressionBuiltinSingleArgBase ):
