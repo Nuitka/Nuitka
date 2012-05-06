@@ -45,7 +45,7 @@ from nuitka.nodes.NodeMakingHelpers import (
     wrapStatementWithSideEffects
 )
 
-from nuitka import Options, Utils, TreeRecursion, Importing, Builtins
+from nuitka import Options, Utils, TreeRecursion, Importing
 
 from logging import debug
 

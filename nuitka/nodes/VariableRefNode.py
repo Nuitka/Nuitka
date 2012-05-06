@@ -162,7 +162,7 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
 
         friend = constraint_collection.getVariableValueFriend( self.variable )
 
-        if friend is not None and not friend.mayHaveSideEffects() and friend.isNode():
+        if friend is not None and not friend.mayHaveSideEffects( None ) and friend.isNode():
             assert hasattr( friend, "makeCloneAt" ), friend
 
             new_node = friend.makeCloneAt(
@@ -171,8 +171,7 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
 
             change_desc = "Assignment source of '%s' propagated, as it has no side effects." % self.variable.getName()
 
-            # TODO: The tag doesn't make much sense.
-            return new_node, "new_constant", change_desc
+            return new_node, "new_expression", change_desc
 
         return self, None, None
 

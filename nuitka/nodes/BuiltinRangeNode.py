@@ -62,7 +62,7 @@ class CPythonExpressionBuiltinRange0( CPythonNodeBase, CPythonExpressionMixin ):
         )
 
     def computeNode( self, constraint_collection ):
-        # Intentional to get exception, pylint: disable=W0108
+        # Intentional to get exception, pylint: disable=W0108,W0613
         return getComputationResult(
             node        = self,
             computation = lambda : range(),
@@ -70,15 +70,19 @@ class CPythonExpressionBuiltinRange0( CPythonNodeBase, CPythonExpressionMixin ):
         )
 
     def getIterationLength( self, constraint_collection ):
+        # Not state dependent, pylint: disable=W0613
         return None
 
     def canPredictIterationValues( self, constraint_collection ):
+        # Not state dependent, pylint: disable=W0613
         return False
 
     def getIterationValue( self, element_index, constraint_collection ):
+        # Not state dependent, pylint: disable=W0613
         return None
 
     def isKnownToBeIterable( self, count ):
+        # Not state dependent, pylint: disable=W0613
         return False
 
 
