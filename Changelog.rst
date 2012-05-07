@@ -1,16 +1,23 @@
 Nuitka Release 0.3.22 (Draft)
 =============================
 
-This release is a continuation of the trend of previous releases, added more
-re-formulations of Python that lower the burden on code generation and optimizations. It also improves Python3 support.
+This release is a continuation of the trend of previous releases, and added more
+re-formulations of Python that lower the burden on code generation and optimizations.
+
+It also improves Python3 support substantially. In fact this is the first release to not
+only run itself under Python3, but for Nuitka to compile itself with Nuitka under Python3,
+which previously only worked for Python2. For for the common language subset, it's quite
+fine now.
 
 Bug fixes
 ---------
 
-- List contractions produced extra entries on the call stack.
+- List contractions produced extra entries on the call stack, after they became functions,
+  these are no more existent. That was made possible my making frame stack entries an
+  optional element in the node tree, left out for list contractions.
 
-- Calling a compiled function an exception handler cleared the exception
-  on return, it no longer does.
+- Calling a compiled function in an exception handler cleared the exception on return, it
+  no longer does that.
 
 - Reference counter handling with generator "throw" method is now correct.
 
@@ -52,16 +59,16 @@ New Features
   messages.
 
 - Python3 has changed scope rules for list contractions (assignments don't affect outside
-  values) is now respected as well.
+  values) and this is now respected as well.
 
-- Recursive programs and stand alone extension modules are now both supported as well.
-
+- Python3 has gained support for recursive programs and stand alone extension modules,
+  these are now both possible as well.
 
 New Optimizations
 -----------------
 
-- Avoid frame guards for functions that cannot raise exceptions, i.e. where they would not
-  be used.
+- Avoid frame stack entries for functions that cannot raise exceptions, i.e. where they
+  would not be used.
 
   This avoids overhead for the very simple functions. And example of this can be seen
   here:
@@ -90,17 +97,56 @@ New Optimizations
   This new optimizations applies to all kinds of container creations and the "range"
   builtin initially.
 
+- Optimize conditions for non-constant, but known truth values.
+
+  At this time, known truth values of non-constants means "range" builtin calls with know
+  size and container creations.
+
+  An example can be seen here:
+
+  .. code-block:: python
+
+     if ( a, ):
+        print "In Branch"
+
+  It's clear, that the tuple will be true, we just need to maintain the side effect, which
+  we do.
+
+- Optimize "or" and "and" operators for known truth values.
+
+  See above for what has known truth values currently. This will be most useful to predict
+  conditions that need not be evaluated at all due to short circuit nature, and to avoid
+  checking against constant values. Previously this could not be optimized, but now it can:
+
+  .. code-block:: python
+
+     # The access and call to "something()" cannot possibly happen
+     0 and something()
+
+     # Can be replaced with "something()", as "1" is true. If it had a side effect, it
+     # would be maintained.
+     1 and something()
+
+     # The access and call to "something()" cannot possibly happen, the value is already
+     # decided, it's "1".
+     1 or something()
+
+     # Can be replaced with "something()", as "0" is false. If it had a side effect, it
+     # would be maintained.
+     0 or something()
+
 Organizational
 --------------
 
-- Enhanced Python3 support, enabling support for more basic tests.
+- Enhanced Python3 support, enabling support for most basic tests.
 
+- Check files with PyLint in deterministic (alphabetical) order.
 
 Cleanups
 --------
 
-- Frame guards are now part of the node tree instead of part of the template for every
-  function, generator, class or module.
+- Frame stack entries are now part of the node tree instead of part of the template for
+  every function, generator, class or module.
 
 - The try/except/else has been re-formulated to use an indicator variable visible in the
   node tree, that tells if a handler has been executed or not.
