@@ -221,11 +221,16 @@ class CPythonExpressionMakeDict( CPythonSideEffectsFromChildrenMixin, \
         return new_node, "new_constant", "Created dictionary found to be constant."
 
     def isKnownToBeIterable( self, count ):
-        return count is None
+        return count is None or count == len( self.getPairs() )
 
-        # TODO: That's more true
-        # return count is None or count == len( self.getPairs() )
+    def getIterationLength( self, constraint_collection ):
+        return len( self.getPairs() )
 
-    def getUnpacked( self, count ):
-        # Virtual method, pylint: disable=R0201,W0613
-        assert False
+    def canPredictIterationValues( self, constraint_collection ):
+        return True
+
+    def getIterationValue( self, count, constraint_collection ):
+        return self.getPairs()[ count ].getKey()
+
+    def getTruthValue( self, constraint_collection ):
+        return self.getIterationLength( constraint_collection ) > 0
