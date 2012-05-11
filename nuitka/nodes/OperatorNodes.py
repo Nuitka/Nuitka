@@ -184,6 +184,39 @@ class CPythonExpressionOperationNOT( CPythonExpressionOperationUnary ):
             source_ref = source_ref
         )
 
+    def getTruthValue( self, constraint_collection ):
+        result = self.getOperand().getTruthValue( constraint_collection )
+
+        return None if result is None else not result
+
+    def mayHaveSideEffects( self, constraint_collection ):
+        operand = self.getOperand()
+
+        if operand.mayHaveSideEffects( constraint_collection ):
+            return True
+
+        # TODO: Find the common ground of these, and make it an expression method.
+        if operand.isExpressionMakeSequence():
+            return False
+
+        if operand.isExpressionMakeDict():
+            return False
+
+        return True
+
+    def extractSideEffects( self ):
+        operand = self.getOperand()
+
+        # TODO: Find the common ground of these, and make it an expression method.
+        if operand.isExpressionMakeSequence():
+            return self.getOperand().extractSideEffects()
+
+        if operand.isExpressionMakeDict():
+            return self.getOperand().extractSideEffects()
+
+        return ( self, )
+
+
 class CPythonExpressionOperationBinaryInplace( CPythonExpressionOperationBinary ):
     kind = "EXPRESSION_OPERATION_BINARY_INPLACE"
 
