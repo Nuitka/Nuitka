@@ -48,6 +48,8 @@ from .SideEffectNode import CPythonExpressionSideEffects
 
 from nuitka.transform.optimizations import BuiltinOptimization
 
+from nuitka import Options
+
 
 class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_LEN"
@@ -180,6 +182,9 @@ class CPythonExpressionBuiltinNext1( CPythonExpressionBuiltinSingleArgBase ):
         )
 
     def computeNode( self, constraint_collection ):
+        if not Options.isExperimental():
+            return self, None, None
+
         target = self.getValue().getValueFriend( constraint_collection )
 
         if target.isKnownToBeIterableAtMin( 1, constraint_collection ):
