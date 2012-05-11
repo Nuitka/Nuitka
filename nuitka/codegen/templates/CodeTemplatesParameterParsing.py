@@ -150,7 +150,14 @@ if (unlikely( args_given + kw_size < %(required_parameter_count)d ))
         else
 #endif
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_size );
+            if ( %(top_level_parameter_count)d == %(required_parameter_count)d )
+            {
+                PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(required_parameter_count)d, args_given + kw_size );
+            }
+            else
+            {
+                PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(required_parameter_count)d, args_given + kw_size );
+            }
         }
     }
 
