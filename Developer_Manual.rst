@@ -548,7 +548,11 @@ or optimization time.
 The "assert" statement
 ----------------------
 
-Handling is:
+The assert statement is a special statement in Python, allowed by the syntax. It has two
+forms, with and without a second argument. The later is probably less known, as is the
+fact that raise statements can have multiple arguments too.
+
+The handling in Nuitka is:
 
 .. code-block:: python
 
@@ -565,10 +569,12 @@ Handling is:
        raise AssertionError
 
 
-This makes assertions the same as a branch guarded exception, what it really is, and
-removes the need for any special code or optimizations to concern with it.
+This makes assertions absolutely the same as a raise exception in a conditional statement.
 
-This transformation is performed at tree building already.
+This transformation is performed at tree building already, so Nuitka never knows about
+"assert" as an element and standard optimizations apply. If e.g. the truth value of the
+assertion can be predicted, the conditional statement will have the branch statically
+executed or removed.
 
 
 The "comparison chain" expressions
@@ -578,11 +584,15 @@ The "comparison chain" expressions
 
    a < b > c < d
    # With "temp variables" and "assignment expressions", absolutely the same as:
-   a < ( tmp_b = b ) and tmp_b > ( tmp_c = c) and ( tmp_c < d )
+   a < ( tmp_b = b ) and tmp_b > ( tmp_c = c ) and ( tmp_c < d )
 
-This transformation is performed at tree building already. The assignment expressions are
-not standard Python, but a useful addition that enables this transformation and to express
-the short circuit nature of comparison chains.
+This transformation is performed at tree building already. The temporary variables keep
+the value for a potentially read in the same expression. The syntax is not Python, and
+only pseudo language to expression the internal structure of the node tree after the
+transformation.
+
+This useful "keeper" variables that enable this transformation and allow to express the
+short circuit nature of comparison chains by using "and" operations.
 
 
 The "execfile" builtin
@@ -1683,15 +1693,20 @@ and then:
    c = 0
    return 0
 
+.. note::
+
+   This is implemented, but not active for releases, because it's not yet safe, because we
+   are missing detections for mutable values, which later goals will give.
+
 The assignments to "a", "b", and "c" shall become prey to "unused" assignment analysis in
 the next step. Also "3 / 7" could be optimized while going through it, but there is
 already code that does this "OptimizeConstantOperations" easily. So that would be a later
 step.
 
-.. note::
+.. code-block:: python
 
-   This is implemented, but not active for releases, because it's not yet safe, because we
-   are missing detections for mutable values, which later goals will give.
+   return 0
+
 
 Goal 2
 ++++++
