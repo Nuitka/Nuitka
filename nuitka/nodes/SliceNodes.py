@@ -74,7 +74,7 @@ class CPythonExpressionSliceLookup( CPythonExpressionChildrenHavingBase ):
 
     def computeNode( self, constraint_collection ):
         # There is a whole registry dedicated to this.
-        return SliceRegistry.computeSlice( self )
+        return SliceRegistry.computeSlice( self, constraint_collection )
 
     def isKnownToBeIterable( self, count ):
         # TODO: Should ask SlicetRegistry

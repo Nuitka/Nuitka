@@ -148,7 +148,7 @@ class CPythonExpressionCall( CPythonExpressionChildrenHavingBase ):
                     pass
 
         # There is a whole registry dedicated to this.
-        return CallRegistry.computeCall( self )
+        return CallRegistry.computeCall( self, constraint_collection )
 
     def isKnownToBeIterable( self, count ):
         # Virtual method and unpredicted calls are unknown if they can be iterated at all,
