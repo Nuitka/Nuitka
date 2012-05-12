@@ -39,7 +39,10 @@ from .NodeBases import (
     CPythonNodeBase
 )
 
-from .NodeMakingHelpers import makeConstantReplacementNode
+from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
+    wrapExpressionWithSideEffects
+)
 
 from nuitka.transform.optimizations import BuiltinOptimization
 
@@ -77,6 +80,26 @@ class CPythonExpressionBuiltinStr( CPythonExpressionBuiltinTypeBase ):
     kind = "EXPRESSION_BUILTIN_STR"
 
     builtin_spec = BuiltinOptimization.builtin_str_spec
+
+    def computeNode( self, constraint_collection ):
+        new_node, change_tags, change_desc = CPythonExpressionBuiltinTypeBase.computeNode(
+            self,
+            constraint_collection
+        )
+
+        if new_node is self:
+            str_value = self.getValue().getStrValue()
+
+            if str_value is not None:
+                new_node = wrapExpressionWithSideEffects(
+                    new_node = str_value,
+                    old_node = self.getValue()
+                )
+
+                change_tags = "new_expression"
+                change_desc = "Predicted str builtin result"
+
+        return new_node, change_tags, change_desc
 
 
 class CPythonExpressionBuiltinIntLongBase( CPythonChildrenHaving, CPythonNodeBase, \

@@ -135,3 +135,12 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
             return getConstantIterationLength( self.constant )
         else:
             return None
+
+    def getStrValue( self ):
+        if type( self.constant ) is str:
+            return self
+        else:
+            return CPythonExpressionConstantRef(
+                constant   = str( self.constant ),
+                source_ref = self.getSourceReference()
+            )

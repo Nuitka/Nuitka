@@ -470,7 +470,22 @@ class ConstraintCollectionBase:
                 else:
                     return None
         elif statement.isStatementPrint():
-            return self.onStatementUsingChildExpressions( statement )
+            self.onStatementUsingChildExpressions( statement )
+
+            for printed in statement.getValues():
+                new_node = printed.getStrValue()
+
+                if new_node is not None and new_node is not printed:
+                    printed.replaceWith( new_node )
+
+                    self.signalChange(
+                        "new_expression",
+                        printed.getSourceReference(),
+                        "Converted print argument to 'str' at compile time"
+                    )
+
+
+            return statement
         elif statement.isStatementReturn():
             # TODO: The merging will need to consider if merged branches really can exit
             # or not.

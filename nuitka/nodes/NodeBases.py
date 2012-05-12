@@ -866,6 +866,14 @@ class CPythonExpressionMixin:
         # Virtual method, pylint: disable=R0201
         return None
 
+    def getStrValue( self ):
+        """ Value that "str" or "PyObject_Str" would give, if known.
+
+        Otherwise it is "None" to indicate unknown.
+        """
+
+        return None
+
     def onRelease( self, constraint_collection ):
         # print "onRelease", self
         pass

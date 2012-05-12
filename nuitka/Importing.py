@@ -44,6 +44,8 @@ it's done in "isStandardLibraryPath" of this module.
 
 """
 
+# TODO: Above comment needs to take into account split of work with OptimizeModuleRecursion
+
 from . import Options, Utils
 
 import sys, os, imp

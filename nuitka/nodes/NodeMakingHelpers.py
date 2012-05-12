@@ -173,7 +173,6 @@ def wrapExpressionWithSideEffects( new_node, old_node ):
 
     side_effects = old_node.extractSideEffects()
 
-
     if side_effects:
         new_node = CPythonExpressionSideEffects(
             expression   = new_node,
