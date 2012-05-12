@@ -1177,7 +1177,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject 
 #include "nuitka/variables_locals.hpp"
 #include "nuitka/variables_shared.hpp"
 
-extern PyModuleObject *_module_builtin;
+extern PyModuleObject *module_builtin;
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LOCALS_DICT( void )
 {
@@ -1400,7 +1400,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
     // Set the __builtins__ in globals, it is expected to be present.
     if ( PyDict_GetItemString( globals, (char *)"__builtins__" ) == NULL )
     {
-        if ( PyDict_SetItemString( globals, (char *)"__builtins__", (PyObject *)_module_builtin ) == -1 )
+        if ( PyDict_SetItemString( globals, (char *)"__builtins__", (PyObject *)module_builtin ) == -1 )
         {
             throw _PythonException();
         }

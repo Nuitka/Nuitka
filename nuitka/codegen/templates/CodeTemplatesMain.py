@@ -143,7 +143,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
                 return entry->me_value;
             }
 
-            entry = GET_PYDICT_ENTRY( _module_builtin, *this->var_name );
+            entry = GET_PYDICT_ENTRY( module_builtin, *this->var_name );
 
             if (likely( entry->me_value != NULL ))
             {
@@ -237,7 +237,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
             if ( allow_builtins )
             {
-                entry = GET_PYDICT_ENTRY( _module_builtin, *this->var_name );
+                entry = GET_PYDICT_ENTRY( module_builtin, *this->var_name );
 
                 return entry->me_value != NULL;
             }
@@ -369,7 +369,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     if ( PyDict_GetItem( module_dict, _python_str_plain___builtins__ ) == NULL )
     {
-        PyObject *value = ( PyObject *)_module_builtin;
+        PyObject *value = ( PyObject *)module_builtin;
 
 #ifndef _NUITKA_MODULE
         if ( _module_%(module_identifier)s != _module___main__ )
