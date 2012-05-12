@@ -82,6 +82,9 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
     def isIndexConstant( self ):
         return isIndexConstant( self.constant )
 
+    def isStringConstant( self ):
+        return type( self.constant ) is str
+
     def isIndexable( self ):
         return self.constant is None or self.isNumberConstant()
 

@@ -42,6 +42,7 @@ from nuitka.nodes import ValueFriends
 from nuitka.nodes.NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
     makeStatementsSequenceReplacementNode,
+    makeConstantReplacementNode,
     wrapStatementWithSideEffects
 )
 
@@ -333,12 +334,14 @@ class ConstraintCollectionBase:
             variable_ref = statement.getTargetVariableRef()
             variable = variable_ref.getVariable()
 
+            assert variable is not None
+
             # Assigning from and to the same variable, can be optimized away immediately,
             # there is no point in doing it. Exceptions are of course module variables
             # that collide with builtin names.
-            if statement.getAssignSource().isExpressionVariableRef() and \
-                 statement.getAssignSource().getVariable() == variable and \
-                 not variable.isModuleVariableReference():
+            if not variable.isModuleVariableReference() and \
+                 statement.getAssignSource().isExpressionVariableRef() and \
+                 statement.getAssignSource().getVariable() == variable:
                 if statement.getAssignSource().mayHaveSideEffects( self ):
                     self.signalChange(
                         "new_statements",
@@ -484,6 +487,49 @@ class ConstraintCollectionBase:
                         "Converted print argument to 'str' at compile time"
                     )
 
+            printeds = statement.getValues()
+
+            for count in range( len( printeds ) - 1 ):
+                if printeds[ count ].isExpressionConstantRef():
+                    new_value = printeds[ count ].getConstant()
+                    assert type( new_value ) is str, statement
+
+                    stop_count = count + 1
+
+                    while True:
+                        candidate = printeds[ stop_count ]
+
+                        if candidate.isExpressionConstantRef() and candidate.isStringConstant():
+                            if not new_value.endswith( "\t" ):
+                                new_value += " "
+
+                            new_value += candidate.getConstant()
+
+                            stop_count += 1
+
+                            if stop_count >= len( printeds ):
+                                break
+
+                        else:
+                            break
+
+                    if stop_count != count + 1:
+                        new_node = makeConstantReplacementNode(
+                            constant = new_value,
+                            node     = printeds[ count ]
+                        )
+
+                        new_printeds = printeds[ : count ] + ( new_node, ) + printeds[ stop_count: ]
+
+                        statement.setValues( new_printeds )
+
+                        self.signalChange(
+                            "new_expression",
+                            printeds[ count ].getSourceReference(),
+                            "Combined print string arguments at compile time"
+                        )
+
+                        break
 
             return statement
         elif statement.isStatementReturn():

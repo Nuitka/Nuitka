@@ -62,3 +62,4 @@ class CPythonStatementPrint( CPythonChildrenHaving, CPythonNodeBase ):
 
     getDestination = CPythonChildrenHaving.childGetter( "dest" )
     getValues = CPythonChildrenHaving.childGetter( "values" )
+    setValues = CPythonChildrenHaving.childSetter( "values" )
