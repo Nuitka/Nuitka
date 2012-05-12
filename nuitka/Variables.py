@@ -206,9 +206,18 @@ class VariableReferenceBase( Variable ):
     def getReferenced( self ):
         return self.variable
 
-    # Compare like the referenced variable.
     def __cmp__( self, other ):
-        return cmp( self.getReferenced(), other.getReferenced() )
+        # Compare the referenced variable, so de-reference until it's no more possible.
+
+        while other.getReferenced() is not None:
+            other = other.getReferenced()
+
+        this = self
+
+        while this.getReferenced() is not None:
+            this = this.getReferenced()
+
+        return cmp( this, other )
 
     def __hash__( self ):
         return hash( self.getReferenced() )
