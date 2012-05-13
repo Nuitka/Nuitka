@@ -1,8 +1,8 @@
-nuitka (0.3.22~pre6+ds-1) UNRELEASED; urgency=low
+nuitka (0.3.22+ds-1) unstable; urgency=low
 
-  * New upstream pre-release.
+  * New upstream release.
 
- -- Kay Hayen <kayhayen@gmx.de>  Sun, 29 Apr 2012 12:56:12 +0200
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 13 May 2012 12:51:16 +0200
 
 nuitka (0.3.21+ds-1) unstable; urgency=low
 
