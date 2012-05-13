@@ -70,12 +70,14 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
             return repr( self.variable )
 
     def makeCloneAt( self, source_ref ):
-        assert self.variable is None
-
-        return self.__class__(
+        result = self.__class__(
             variable_name = self.variable_name,
             source_ref    = source_ref
         )
+
+        result.variable = self.variable
+
+        return result
 
     def getVariableName( self ):
         return self.variable_name
@@ -90,7 +92,7 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
 
         self.variable = variable
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         assert self.variable is not None
 
         if _isReadOnlyModuleVariable( self.variable ):
@@ -153,15 +155,47 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
 
             return new_node, change_tags, change_desc
 
+        # TODO: Enable the below, once we can trust that the corruption of mutable
+        # constants is detected.
+        if True:
+            return self, None, None
+
+        friend = constraint_collection.getVariableValueFriend( self.variable )
+
+        if friend is not None and not friend.mayHaveSideEffects( None ) and friend.isNode():
+            assert hasattr( friend, "makeCloneAt" ), friend
+
+            new_node = friend.makeCloneAt(
+                source_ref = self.source_ref,
+            )
+
+            change_desc = "Assignment source of '%s' propagated, as it has no side effects." % self.variable.getName()
+
+            return new_node, "new_expression", change_desc
+
         return self, None, None
 
     def isKnownToBeIterable( self, count ):
         return None
 
+    def mayHaveSideEffects( self, constraint_collection ):
+        if constraint_collection is None:
+            return True
+
+        friend = constraint_collection.getVariableValueFriend( self.variable )
+
+        if friend is not None:
+            # TODO: There is no friend that say "known to not be defined"
+            return False
+        else:
+            return True
+
 
 class CPythonExpressionTargetVariableRef( CPythonExpressionVariableRef ):
     kind = "EXPRESSION_TARGET_VARIABLE_REF"
 
+    def computeNode( self, constraint_collection ):
+        assert False
 
 class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"
@@ -183,13 +217,45 @@ class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin 
     def getVariable( self ):
         return self.variable
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # Nothing to do here.
         return self, None, None
 
     def mayRaiseException( self, exception_type ):
         # Can't happen
         return False
+
+    def isKnownToBeIterableAtMin( self, count, constraint_collection ):
+        friend = constraint_collection.getVariableValueFriend( self.variable )
+
+        if friend is not None:
+            return friend.isKnownToBeIterableAtMin(
+                count                 = count,
+                constraint_collection = constraint_collection
+            )
+        else:
+            return None
+
+    def isKnownToBeIterableAtMax( self, count, constraint_collection ):
+        friend = constraint_collection.getVariableValueFriend( self.variable )
+
+        if friend is not None:
+            return friend.isKnownToBeIterableAtMax(
+                count                 = count,
+                constraint_collection = constraint_collection
+            )
+        else:
+            return None
+
+    def getIterationNext( self, constraint_collection ):
+        friend = constraint_collection.getVariableValueFriend( self.variable )
+
+        if friend is not None:
+            return friend.getIterationNext(
+                constraint_collection = constraint_collection
+            )
+        else:
+            return None
 
 
 class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
@@ -201,7 +267,10 @@ class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
     setBody = CPythonChildrenHaving.childSetter( "body" )
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref.atInternal() )
+        CPythonNodeBase.__init__(
+            self,
+            source_ref = source_ref.atInternal()
+        )
 
         CPythonChildrenHaving.__init__(
             self,
@@ -226,3 +295,6 @@ class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
 
     def getTempVariables( self ):
         return self.temp_variables
+
+    def mayHaveSideEffects( self, constraint_collection ):
+        return self.getBody().mayHaveSideEffects( constraint_collection )

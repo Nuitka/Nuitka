@@ -29,6 +29,14 @@
 #ifndef __NUITKA_EXCEPTIONS_H__
 #define __NUITKA_EXCEPTIONS_H__
 
+static bool ERROR_OCCURED( void )
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    return tstate->curexc_type != NULL;
+}
+
+
 #if PYTHON_VERSION < 300
 NUITKA_MAY_BE_UNUSED static void dumpTraceback( PyTracebackObject *traceback )
 {
@@ -73,6 +81,8 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *fr
     return result;
 }
 
+extern PyObject *_python_str_plain_exc_type, *_python_str_plain_exc_value, *_python_str_plain_exc_traceback;
+
 // Helper that sets the current thread exception, releasing the current one, for use in this
 // file only.
 inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyObject * exception_tb )
@@ -83,7 +93,7 @@ inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exceptio
     PyObject *old_value = thread_state->exc_value;
     PyObject *old_tb    = thread_state->exc_traceback;
 
-    thread_state->exc_type = INCREASE_REFCOUNT( exception_type );
+    thread_state->exc_type = INCREASE_REFCOUNT_X( exception_type );
     thread_state->exc_value = INCREASE_REFCOUNT_X( exception_value );
     thread_state->exc_traceback = INCREASE_REFCOUNT_X( exception_tb );
 
@@ -91,11 +101,13 @@ inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exceptio
     Py_XDECREF( old_value );
     Py_XDECREF( old_tb );
 
-    PySys_SetObject( (char *)"exc_type", exception_type );
-    PySys_SetObject( (char *)"exc_value", exception_value ? exception_value : Py_None );
-    PySys_SetObject( (char *)"exc_traceback", exception_tb ? exception_tb : Py_None );
-    PySys_SetObject( (char *)"exc_value", exception_value );
-    PySys_SetObject( (char *)"exc_traceback", exception_tb );
+    // Set sys attributes in the fastest possible way.
+    PyObject *sys_dict = thread_state->interp->sysdict;
+
+    PyDict_SetItem( sys_dict, _python_str_plain_exc_type, exception_type ? exception_type : Py_None );
+    PyDict_SetItem( sys_dict, _python_str_plain_exc_value, exception_value ? exception_value : Py_None );
+    PyDict_SetItem( sys_dict, _python_str_plain_exc_traceback, exception_tb ? exception_tb : Py_None );
+
 }
 
 class _PythonException
@@ -202,6 +214,8 @@ public:
     {
         PyErr_Restore( this->exception_type, this->exception_value, this->exception_tb );
 
+        assert( this->exception_type );
+
 #ifndef __NUITKA_NO_ASSERT__
         PyThreadState *thread_state = PyThreadState_GET();
 #endif
@@ -223,7 +237,6 @@ public:
 
     inline PyObject *getType()
     {
-        // TODO: Why is the normalize needed for the value == NULL, and not type == NULL?
         if ( this->exception_value == NULL )
         {
             PyErr_NormalizeException( &this->exception_type, &this->exception_value, &this->exception_tb );
@@ -234,7 +247,6 @@ public:
 
     inline PyObject *getValue()
     {
-        // TODO: Why is the normalize needed for the value == NULL, and not type == NULL?
         if ( this->exception_value == NULL )
         {
             PyErr_NormalizeException( &this->exception_type, &this->exception_value, &this->exception_tb );
@@ -281,6 +293,7 @@ public:
     }
 
 private:
+
     friend class _PythonExceptionKeeper;
 
     // For the restore of saved ones.
@@ -362,26 +375,29 @@ public:
 
     FrameExceptionKeeper()
     {
+        this->active = false;
+
         this->frame_exc_type = NULL;
+        this->frame_exc_value = NULL;
+        this->frame_exc_traceback = NULL;
     }
 
     ~FrameExceptionKeeper()
     {
-        if ( this->frame_exc_type != NULL )
-        {
-            _SET_CURRENT_EXCEPTION( this->frame_exc_type, this->frame_exc_value, this->frame_exc_traceback );
-        }
+        _SET_CURRENT_EXCEPTION( this->frame_exc_type, this->frame_exc_value, this->frame_exc_traceback );
     }
 
     // Preserve the exception early before the exception handler is set up, so that it can later
     // at function exit be restored.
     void preserveExistingException()
     {
-        if ( this->frame_exc_type == NULL )
+        if ( this->active == false )
         {
+            this->active = true;
+
             PyThreadState *thread_state = PyThreadState_GET();
 
-            if ( this->frame_exc_type != NULL )
+            if ( thread_state->exc_type )
             {
                 this->frame_exc_type = INCREASE_REFCOUNT( thread_state->exc_type );
                 this->frame_exc_value = INCREASE_REFCOUNT_X( thread_state->exc_value );
@@ -389,7 +405,7 @@ public:
             }
             else
             {
-                this->frame_exc_type = Py_None;
+                this->frame_exc_type = NULL;
                 this->frame_exc_value = NULL;
                 this->frame_exc_traceback = NULL;
             }
@@ -397,9 +413,40 @@ public:
     }
 
 private:
+
+    PyObject *frame_exc_type, *frame_exc_value, *frame_exc_traceback;
+    bool active;
+
+};
+
+class PythonExceptionStacker
+{
+public:
+
+    PythonExceptionStacker()
+    {
+        PyThreadState *thread_state = PyThreadState_GET();
+
+        this->frame_exc_type = INCREASE_REFCOUNT_X( thread_state->exc_type );
+        this->frame_exc_value = INCREASE_REFCOUNT_X( thread_state->exc_value );
+        this->frame_exc_traceback = INCREASE_REFCOUNT_X( thread_state->exc_traceback );
+    }
+
+    ~PythonExceptionStacker()
+    {
+        _SET_CURRENT_EXCEPTION( this->frame_exc_type, this->frame_exc_value, this->frame_exc_traceback );
+
+        Py_XDECREF( this->frame_exc_type );
+        Py_XDECREF( this->frame_exc_value );
+        Py_XDECREF( this->frame_exc_traceback );
+    }
+
+private:
+
     PyObject *frame_exc_type, *frame_exc_value, *frame_exc_traceback;
 
 };
+
 
 class ReturnException
 {
@@ -493,6 +540,14 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( void )
 
     assertObject( type );
 
+#if PYTHON_VERSION >= 300
+    if ( type == Py_None )
+    {
+        PyErr_Format( PyExc_RuntimeError, "No active exception to reraise" );
+        throw _PythonException();
+    }
+#endif
+
     Py_INCREF( type );
     Py_XINCREF( value );
     Py_XINCREF( tb );
@@ -505,6 +560,29 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static PyObject *THROW_EXCEPTION( PyObject
     *traceback_flag = true;
 
     RAISE_EXCEPTION( exception_type, exception_value, traceback );
+}
+
+static void THROW_IF_ERROR_OCCURED( void )
+{
+    if ( ERROR_OCCURED() )
+    {
+        throw _PythonException();
+    }
+}
+
+static void THROW_IF_ERROR_OCCURED_NOT( PyObject *ignored )
+{
+    if ( ERROR_OCCURED() )
+    {
+        if ( PyErr_ExceptionMatches( ignored ))
+        {
+            PyErr_Clear();
+        }
+        else
+        {
+            throw _PythonException();
+        }
+    }
 }
 
 #endif

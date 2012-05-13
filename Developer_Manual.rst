@@ -484,6 +484,59 @@ previous approach of special casing imports to check if it's the included module
    optimization yet, it should be easy to add.
 
 
+Frame Stack
+===========
+
+In Python, every function, class, and module has a frame. It creates created when the
+scope it entered, and there is a stack of these at run time, which becomes visible in
+tracebacks in case of exceptions.
+
+The choice of Nuitka is to make this non-static elements of the node tree, that are as
+such subject to optimization. In cases, where they are not needed, they may be removed.
+
+
+Consider the following code.
+
+.. code-block:: python
+
+   def f():
+       if someNotRaisingCall():
+           return somePotentiallyRaisingCall()
+       else:
+           return None
+
+In this example, the frame is not needed for all the code, because the condition checked
+wouldn't possibly raise at all. The idea is the make the frame guard explicit and then to
+move it downwards in the tree, whenever possible.
+
+So we start out with code like this one:
+
+.. code-block:: python
+
+   def f():
+       with frame_guard( "f" ):
+           if someNotRaisingCall():
+               return somePotentiallyRaisingCall()
+           else:
+               return None
+
+This is to be optimized into:
+
+.. code-block:: python
+
+   def f():
+       if someNotRaisingCall():
+           with frame_guard( "f" ):
+               return somePotentiallyRaisingCall()
+       else:
+           return None
+
+
+Notice how the frame guard taking is limited and may be avoided, or in best cases, it
+might be removed completely. Also this will play a role when inling function, it will not
+be lost or need any extra care.
+
+
 Language Conversions to make things simpler
 ===========================================
 
@@ -495,7 +548,11 @@ or optimization time.
 The "assert" statement
 ----------------------
 
-Handling is:
+The assert statement is a special statement in Python, allowed by the syntax. It has two
+forms, with and without a second argument. The later is probably less known, as is the
+fact that raise statements can have multiple arguments too.
+
+The handling in Nuitka is:
 
 .. code-block:: python
 
@@ -512,10 +569,12 @@ Handling is:
        raise AssertionError
 
 
-This makes assertions the same as a branch guarded exception, what it really is, and
-removes the need for any special code or optimizations to concern with it.
+This makes assertions absolutely the same as a raise exception in a conditional statement.
 
-This transformation is performed at tree building already.
+This transformation is performed at tree building already, so Nuitka never knows about
+"assert" as an element and standard optimizations apply. If e.g. the truth value of the
+assertion can be predicted, the conditional statement will have the branch statically
+executed or removed.
 
 
 The "comparison chain" expressions
@@ -525,11 +584,15 @@ The "comparison chain" expressions
 
    a < b > c < d
    # With "temp variables" and "assignment expressions", absolutely the same as:
-   a < ( tmp_b = b ) and tmp_b > ( tmp_c = c) and ( tmp_c < d )
+   a < ( tmp_b = b ) and tmp_b > ( tmp_c = c ) and ( tmp_c < d )
 
-This transformation is performed at tree building already. The assignment expressions are
-not standard Python, but a useful addition that enables this transformation and to express
-the short circuit nature of comparison chains.
+This transformation is performed at tree building already. The temporary variables keep
+the value for a potentially read in the same expression. The syntax is not Python, and
+only pseudo language to expression the internal structure of the node tree after the
+transformation.
+
+This useful "keeper" variables that enable this transformation and allow to express the
+short circuit nature of comparison chains by using "and" operations.
 
 
 The "execfile" builtin
@@ -738,7 +801,7 @@ instead.
    transformation, but right now we don't have it.
 
 For Loops
-=========
+---------
 
 The for loops should use normal assignments and handle the iterator that is implicit in
 the code explicitely.
@@ -788,7 +851,7 @@ This is roughly equivalent to the following code:
    that the code doesn't really have any Python level exception handling going on.
 
 While Loops
-===========
+-----------
 
 Loops in Nuitka have no condition attached anymore, so while loops are re-formulated like this:
 
@@ -821,7 +884,7 @@ detect such a situation, consider e.g. endless loops.
    condition is not met, is something harder to discover.
 
 Exception Handler Values
-========================
+------------------------
 
 Exception handlers in Python may assign the caught exception value to a variable in the
 handler definition.
@@ -843,13 +906,21 @@ That is equivalent to the following:
         e = sys.exc_info()[1]
         handle_it()
 
-
 Of course, the value of the current exception, use special references for assignments,
 that access the C++ and don't go via "sys.exc_info" at all, these are called
 "CaughtExceptionValueRef".
 
+try/except/else
+---------------
+
+Much like "else" branches of loops, an indicator variable is used to indicate the entry
+into any of the exception handlers.
+
+Therefore, the "else" becomes a real conditional statement in the node tree, checking the
+indicator variable and guarding the execution of the "else" branch.xs
+
 Classes Creation
-================
+----------------
 
 Classes have a body that only serves to build the class dictionary and is a normal
 function otherwise. This is expressed with the following re-formulation:
@@ -877,22 +948,22 @@ child functions when it comes to closure taking, which we cannot expression in P
 language at all.
 
 List Contractions
-=================
+-----------------
 
 TODO.
 
 Set Contractions
-=================
+----------------
 
 TODO.
 
 Dict Contractions
-=================
+-----------------
 
 TODO.
 
 Generator Expressions
-=====================
+---------------------
 
 There are re-formulated as functions.
 
@@ -911,6 +982,59 @@ loops.
               yield x*2
 
     gen = _gen_helper( range(8 ) )
+
+Nodes that serve special purposes
+=================================
+
+Side Effects
+------------
+
+When an exception is bound to occur, and this can be determined at compile time, Nuitka
+will not generate the code the leads to the exception, but directly just raise it. But not
+in all cases, this is the full thing.
+
+Consider this code:
+
+.. code-block:: python
+
+   f( a(), 1 / 0 )
+
+The second argument will create a "ZeroDivisionError" exception, but before that "a()"
+must be executed, but the call to "f" will never happen and no code is needed for that,
+but the name lookup must still succeed. This then leads to code that is internally like
+this:
+
+.. code-block:: python
+
+   f( a(), raise ZeroDivisionError )
+
+which is then modeled as:
+
+.. code-block:: python
+
+   side_effect( a(), f, raise ZeroDivisionError )
+
+where you can consider side_effect a function that returns the last expression. Of course,
+if this is not part of another expression, but close to statement level, side effects, can
+be converted to multiple statements simply.
+
+Another use case, is that the value of an expression can be predicted, but that the
+language still requires things to happen, consider this:
+
+.. code-block:: python
+
+   a = len( ( f(), g() ) )
+
+We can tell that "a" will be 2, but the call to "f" and "g" must still be performed, so it becomes:
+
+.. code-block:: python
+
+   a = side_effects( f(), g(), 2 )
+
+Modelling side effects explicitely has the advantage of recognizing them easily and
+allowing to drop the call to the tuple building and checking its length, only to release
+it.
+
 
 
 Plan to replace "python-qt" for the GUI
@@ -944,11 +1068,11 @@ Goals/Allowances to the task
    same thing.
 
 
-Type Inference - The general Problem
-------------------------------------
+Type Inference - The Discussion
+-------------------------------
 
-Part of the goal is to forward value knowledge. When you have "a = b", that means that a
-and b now "alias". And if you know the value of "b" you can assume to know the value of
+Main goal is to forward value knowledge. When you have "a = b", that means that a and b
+now "alias". And if you know the value of "b" you can assume to know the value of
 "a". This is called "Aliasing".
 
 When that value is a compile time constant, we will want to push it forward, because
@@ -973,15 +1097,21 @@ and that obviously to:
 
    c = 0
 
-This may be called "(Constant) Value Propagation". But we are aiming for even more. In
-order to fully benefit from type knowledge, the new type system must be able to be fully
-friends with existing builtin types.  The behavior of a type "long", "str", etc. ought to
-be implemented as far as possible with the builtin "long", "str" as well.
+This may be called "(Constant) Value Propagation". But we are aiming for even more. We
+want to forward propagate abstract properties of the values.
 
 .. note::
 
-   This "use the real thing" concept extends beyond builtin types, "ctypes.c_int()" should
-   also be used, but we must be aware of platform dependencies. The maximum size of
+   Builtin exceptions, and builtin names are also compile time constants.
+
+In order to fully benefit from type knowledge, the new type system must be able to be
+fully friends with existing builtin types.  The behavior of a type "long", "str",
+etc. ought to be implemented as far as possible with the builtin "long", "str" as well.
+
+.. note::
+
+   This "use the real thing" concept extends beyond builtin types, e.g. "ctypes.c_int()"
+   should also be used, but we must be aware of platform dependencies. The maximum size of
    "ctypes.c_int" values would be an example of that. Of course that may not be possible
    for everything.
 
@@ -989,8 +1119,7 @@ be implemented as far as possible with the builtin "long", "str" as well.
    builtins where possible to make computations. We have the problem though that builtins may
    have problems to execute everything with reasonable compile time cost.
 
-
-Consider the following code.
+Another example, consider the following code:
 
 .. code-block:: python
 
@@ -1027,22 +1156,9 @@ So it's a rather general problem, this time we know:
    - Can predict every of its elements when index, sliced, etc., if need be, with a
      function.
 
-Again, we wouldn't want to create the list. Therefore Nuitka currently won't calculate
-lists constants with more than 256 elements from "range", which is an arbitrary choice
-which is not consistently enforced.
-
-.. note::
-
-   We could know, from use of the "range" result maybe, that we ought to prefer a
-   "xrange", but that's not as much useful except maybe at code generation time. But we
-   would rather benefit from knowing we need not have any such object at all to satisfy
-   e.g. loop conditions.
-
-.. note::
-
-   In our builtin code, we have specialized "range()" to check for the result size in a
-   prediction. This ought to be generalized and take the computation cost and result size
-   into account.
+Again, we wouldn't want to create the list. Therefore Nuitka avoids executing these
+calculation, when they result in constants larger than a treshold of 256. It's also done
+for large integers and more.
 
 Now lets look at a use:
 
@@ -1052,13 +1168,15 @@ Now lets look at a use:
        doSomething()
 
 Looking at this example, one way to look at it, would be to turn "range" into "xrange",
-note that "x" is unused. But what is better, is to notice that "range()" generated value
-is not really used, but only the length of the expression matters. And even if "x" were
-used, only the ability to predict the value from a function would be interesting, so we
-would use that computation function instead.
+note that "x" is unused. That would already perform better. But really better is to notice
+that "range()" generated values are not used, but only the length of the expression
+matters.
 
-Predict from a function could mean to have Python code to do it, as well as C++ code to do
-it. Then code for the loop can be generated without any CPython usage at all.
+And even if "x" were used, only the ability to predict the value from a function would be
+interesting, so we would use that computation function instead of having an iteration
+source. Being able to predict from a function could mean to have Python code to do it, as
+well as C++ code to do it. Then code for the loop can be generated without any CPython
+usage at all.
 
 .. note::
 
@@ -1083,6 +1201,11 @@ Here we have "len" to look at an argument that we know the size of. Great. We ne
 if there are any side effects, and if there are, we need to maintain them of course, but
 generally this appears feasible, and is already being done by existing optimizations if an
 operation generates an exception.
+
+.. note::
+
+   The optimization of "len" has been implemented and works for all kinds of container
+   building and ranges.
 
 
 Applying this to "ctypes"
@@ -1144,8 +1267,8 @@ propagation should only be the special case of it.
 Excursion to Functions
 ----------------------
 
-In order to decide what is best, forward or backward, we consider functions. If we
-propagate forward, how to handle this:
+In order to decide what this means to functions, if we propagate forward, how to handle
+this:
 
 .. code-block:: python
 
@@ -1154,10 +1277,10 @@ propagate forward, how to handle this:
 
       return a
 
-We would notate that "a" is first a "PyObject parameter object", then something that has
-an "append" attribute, when returned. The type of "a" changes after "a.append" lookup
-succeeds. It might be an object, but e.g. it could have a higher probability of being a
-"PyListObject".
+We would notate that "a" is first a "unknown PyObject parameter object", then something
+that has an "append" attribute, when returned. The type of "a" changes after "a.append"
+lookup succeeds. It might be an object, but e.g. it could have a higher probability of
+being a "PyListObject".
 
 .. note::
 
@@ -1172,7 +1295,7 @@ all the node. This may be "Finalization" work.
 
    b = my_append( [], 3 )
 
-   assert b == [3] # Can be known now
+   assert b == [3] # Could be decided now
 
 Goal: The structure we use should make it easy to visit "my_append" and then have
 something that easily allows to plug in the given values and know things. We need to be
@@ -1183,8 +1306,9 @@ We should e.g. be able to make "my_append" tell, one or more of these:
    - Returns the first parameter value (unless it raises an exception)
    - The return value has the same type as "a" (unless it raises an exception)
 
-It would be nice, if "my_append" had information, we could instantiate with "list" and
-"int" from the parameters, and then e.g. know what it does in that case.
+It would be nice, if "my_append" had sufficient information, so we could instantiate with
+"list" and "int" from the parameters, and then e.g. know at least some things that it does
+in that case.
 
 Doing it "forward" appears to be best suited for functions and therefore long term. We
 will try it that way.
@@ -1204,12 +1328,13 @@ Excursion to Loops
    print a
 
 The handling of loops (both "for" and "while") has its own problem. The loop start and may
-have an assumption that "a" is constant, but that is only true for the first
-iteration. So, we can't pass knowledge from outside loop directly into the for loop body.
+have an assumption from before it started, that "a" is constant, but that is only true for
+the first iteration. So, we can't pass knowledge from outside loop forward directly into
+the for loop body.
 
-We will do a first pass, where we need to collect invalidations of all of the outside
-knowledge. The assignment to "a" should make it an alternative with what we knew about
-"b". And we can't really assume to know anything about a to e.g. predict "b" due to
+So we will have to do a first pass, where we need to collect invalidations of all of the
+outside knowledge. The assignment to "a" should make it an alternative with what we knew
+about "b". And we can't really assume to know anything about a to e.g. predict "b" due to
 that. That first pass needs to scan for assignments, and treat them as invalidations.
 
 
@@ -1302,7 +1427,7 @@ Excursion to yield statements
 -----------------------------
 
 The yield statement can be treated like a normal function call, and as such invalidates
-some known constraints.
+some known constraints just as much as they do.
 
 
 Mixed Types
@@ -1372,19 +1497,24 @@ The following is the intended interface
   Part of the interface is a method "computeNode" which gives the node the chance to
   return another node instead, which may also be an exception.
 
-  The "computeNode" may be able to produce exceptions or constants even for
-  non-constant inputs depending on the operation being performed. For every expression
-  it will be executed.
+  The "computeNode" may be able to produce exceptions or constants even for non-constant
+  inputs depending on the operation being performed. For every expression it will be
+  executed in the order in which the program control flow goes for a function or module.
 
   In this sense, attribute lookup is also a computation, as its value might be computed as
   well. Most often an attribute lookup will produce a new value, which is not assigned,
   but e.g. called. In this case, the call value friend may be able to query its called
   expression for the attribute call prediction.
 
+  By default, attribute lookup, should turn an expression to unknown, unless something in
+  the registry can say something about it. That way, "some_list.append" produces something
+  which when called, invalidates "some_list", but only then.
+
 - Name for module "ValueFriends" according to rules.
 
   These should live in a package of some sort and be split up into groups later on, but
-  for the start it's probably easier to keep them all in one file.
+  for the start it's probably easier to keep them all in one file or next to the node that
+  produces them.
 
 - Class for module import expression "ValueFriendImportModule".
 
@@ -1469,18 +1599,26 @@ The following examples:
    # "ValueFriend"s.
    a + b
 
-The walking of the tree is best done in a specialized optimization and can be used to
-implement optimizations in a consistent and fast way. It walks the tree and enters
-arguments of builtin function calls. After that, value friends can be queries for
-arguments, and these can be used for the builtins own "computeNode" or value friend
-decisions.
+The walking of the tree is done in a specialized optimization "value propagation" and can
+be used to implement optimizations in a consistent and fast way. It walks the tree and
+asks each node to compute. When it encounters assignments, it asks for value friends that
+can be queries for arguments, and these can be used for the builtins own "computeNode" or
+value friend decisions.
+
+.. note::
+
+   Assignments to attributes, indexes, slices, etc. will also need to follow the flow of
+   "append", so it cannot escape attention that a list may be modified. Usages of "append"
+   that we cannot be sure about, must be traced to exist, and disallow the list to be
+   considered known value again.
 
 
 Code Generation Impact
 ----------------------
 
-Right now, code generation assumes that everything is a Python object, and does not take
-"int" or these at all, and it should remain like that for some time to come.
+Right now, code generation assumes that everything is a "PyObject \*", i.e. a Python
+object, and does not take "int" or these at all, and it should remain like that for some
+time to come.
 
 Instead, "ctypes" value friend will be asked give "Identifiers", like other codes do too
 from calls. And these need to be able to convert themselves to objects to work with the
@@ -1509,20 +1647,24 @@ values throughout a function or part of it.
 Initial Implementation
 ----------------------
 
-The "ValueFriendBase" interface will be added to *all* expressions nodes creation time,
-a node may either do it for itself (constant reference is an obvious example) or may
-delegate the task to an instantiated object of "ValueFriendBase" inheritance.
+The "ValueFriendBase" interface will be added to *all* expressions and a node may offer it
+for itself (constant reference is an obvious example) or may delegate the task to an
+instantiated object of "ValueFriendBase" inheritance. This will e.g. be done, if a state
+is attached, e.g. the current iteration value.
 
-Initially most of them will only be able to give up on about anything. And it will be
-little more than a tool to do lookups.
+Goal 1
+++++++
 
-It will then be the first goal to turn the following code into better performing one:
+Initially most things will only be able to give up on about anything. And it will be
+little more than a tool to do simple lookups in a general form. It will then be the first
+goal to turn the following code into better performing one:
 
 .. code-block:: python
 
    a = 3
    b = 7
    c = a / b
+   return c
 
 to:
 
@@ -1531,15 +1673,92 @@ to:
    a = 3
    b = 7
    c = 3 / 7
+   return c
 
-The assignments to "a" and "b" might become prey to "unused" assignment analysis later on,
-but that is not important yet. Also "3 / 7" could be optimized while going through it, but
-there is already code that does this "OptimizeConstantOperations" easily. So that would be
-a later step.
+and then:
+
+.. code-block:: python
+
+   a = 3
+   b = 7
+   c = 0
+   return c
+
+and then:
+
+.. code-block:: python
+
+   a = 3
+   b = 7
+   c = 0
+   return 0
 
 .. note::
 
-   This part is implemented, but not active for releases.
+   This is implemented, but not active for releases, because it's not yet safe, because we
+   are missing detections for mutable values, which later goals will give.
+
+The assignments to "a", "b", and "c" shall become prey to "unused" assignment analysis in
+the next step. Also "3 / 7" could be optimized while going through it, but there is
+already code that does this "OptimizeConstantOperations" easily. So that would be a later
+step.
+
+.. code-block:: python
+
+   return 0
+
+
+Goal 2
+++++++
+
+It appears, that "dead value analysis" for "a" and "b" requires that we trace to the
+end of the scope, if a variable value is or might become used.
+
+For that, we trace the last assignment of each variable, or a new assignment, or "del"
+statement on it, we decide, if the original assignment to the name was needed or not. If
+the value wasn't used, but it did provide a reference, we remove the name from it. If it
+didn't provide a reference, we can make it an expression only.
+
+That would, starting with:
+
+.. code-block:: python
+
+   3
+   7
+   0
+   return 0
+
+give us:
+
+.. code-block:: python
+
+   return 0
+
+which is the perfect result.
+
+In order to be able to manipulate statements that made assignments to names later on, we
+need to track the exact node(s) that did it. It may be multiple in case of conditions.
+
+.. code-block:: python
+
+   if cond():
+       x = 1
+   elif other():
+       x = 3
+
+   # Not using "x".
+   return 0
+
+In the above case, the merge of the value friends, should say that "x" may be undefined,
+or one of "1" or "3", but since "x" is not used, apply the "dead value" trick to each
+branch.
+
+.. note::
+
+   This is totally unimplemented.
+
+Goal 3
+++++++
 
 Then second goal is to understand all of this:
 
@@ -1656,12 +1875,8 @@ analyzed at compile time.
 Limitations for now
 -------------------
 
-- The collection of value friends will not have a history and be mutated as the processing
-  goes.
-
-  We will see, if we need any better at all. One day we might have passes with more
-  expensive and history maintaining variants, that will be able to look at one variable
-  and decide "value is only written, never read" and make something out of it.
+- The collection of value friends will have a limited history only and be mutated as the
+  processing goes.
 
 - Only enough to trace "ctypes" information through the code
 
@@ -1757,57 +1972,6 @@ into action, which could be code changes, plan changes, issues created, etc.
   This of course makes most sense, if we have the optimizations in place that will allow
   this to actually happen.
 
-* Frame stack guards should become statements.
-
-  Currently frame guards are hard coded into function bodies and class bodies (which will
-  become function bodies later), and are therefore not seen by the optimization. Now some
-  re-formulated functions are not even allowed to have frame stack entries (list
-  contractions) and therefore it should become optional.
-
-  Now the idea is the following.
-
-  .. code-block:: python
-
-     def f():
-        if someNotRaisingCall():
-           return somePotentiallyRaisingCall()
-        else:
-           return None
-
-  In this example, the frame guard is taken, even though the condition checked wouldn't
-  possibly raise at all. The idea is the make the frame guard explicit and then to move it
-  downwards in the tree, whenever possible.
-
-  .. code-block:: python
-
-      def f():
-         with frame_guard( "f" ):
-            if someNotRaisingCall():
-               return somePotentiallyRaisingCall()
-            else:
-               return None
-
-
-  This is to be optimized into:
-
-  .. code-block:: python
-
-      def f():
-         if someNotRaisingCall():
-            with frame_guard( "f" ):
-               return somePotentiallyRaisingCall()
-         else:
-            return None
-
-
-  Notice how the frame guard taking is now limited and may be avoided, or in good cases,
-  be removed completely. Also with making it explicit in the node tree, it will not be
-  forgotten when inlining happens, and it will be possible to not have it for some of the
-  re-formulation resulting function bodies.
-
-  This optimization might be extremely important for optimizations, where a function may
-  e.g. implement a cache in a way that we know it wouldn't raise in the cache hit case,
-  and only in cache miss, we need to prepare it.
 
 * Accesses to list constants should be tuples constants.
 
@@ -1825,6 +1989,58 @@ into action, which could be code changes, plan changes, issues created, etc.
 
   Otherwise, code generation suffers from assuming the list may be tuple and is making a
   copy before using it.
+
+* Functions with defaults should use temp variables for them.
+
+  .. code-block:: python
+
+     def f( a, b=2, b=3 ):
+         pass
+
+  Should be composed into a temp holder variable calculated outside, and then passed on to
+  the function creation. That way, it becomes obvious that the defaults are an attribute
+  that is computed outside of the function. Previously defaults were children of the
+  builder, but that caused problems. Currently the defaults are wrapped outside, which has
+  its own problems too.
+
+  Lambdas have defaults too, so it's not always a statement, but has to happen inside an
+  expression.
+
+* For the defaults attribute, if all are constants that are not mutable, a constant should be used.
+
+  Currently we have code like this:
+
+  .. code-block:: python
+
+      PyObject *result = Nuitka_Function_New(
+        _fparse_function_1___init___of_class_1_Record_of_module___main__,
+        _mparse_function_1___init___of_class_1_Record_of_module___main__,
+        _python_str_plain___init__,
+        _codeobj_4396e68e0f2485e4f509e7f4e3338b92,
+        MAKE_TUPLE5( Py_None, _python_int_0, _python_int_0, _python_int_0, _python_int_0 ),
+        _module___main__,
+        Py_None
+      );
+
+
+  The call to "MAKE_TUPLE" is useless and could be optimized away. Minor space savings
+  would result.
+
+* Terminal assignments without effect removal.
+
+  In order to optimize away unused assignments, Nuitka should not try and find variables
+  that are only assigned. It should instead for each assignment find the uses of the
+  value. Two cases then
+
+  1. No more read use before next assignment or end of scope.
+
+     Can remove the assignment nature and make it instead a temp variable of the scope, if
+     the release has an impact (will "__del__" have an effect?).
+
+  2. Value is read.
+
+     Keep it.
+
 
 .. raw:: pdf
 

@@ -112,7 +112,23 @@ options, positional_args = parser.parse_args()
 assert not positional_args, positional_args
 
 def checkAtHome():
-    assert os.path.isfile( "setup.py" ) and open( ".git/description" ).read().strip() == "Nuitka Staging"
+    assert os.path.isfile( "setup.py" )
+
+    if os.path.isdir( ".git" ):
+        git_dir = ".git"
+    else:
+        git_dir = open( ".git" )
+
+        with open( ".git" ) as f:
+            line = f.readline().strip()
+
+            assert line.startswith( "gitdir:" )
+
+            git_dir = line[ 8:]
+
+    git_description_filename = os.path.join( git_dir, "description" )
+
+    assert open( git_description_filename ).read().strip() == "Nuitka Staging"
 
 checkAtHome()
 

@@ -51,6 +51,6 @@ class CPythonExpressionBuiltinVars( CPythonExpressionChildrenHavingBase ):
 
     getSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # TODO: Should be possible.
         return self, None, None

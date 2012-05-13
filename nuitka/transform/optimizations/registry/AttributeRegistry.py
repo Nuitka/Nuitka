@@ -50,10 +50,16 @@ def registerAttributeHandler( kind, handler ):
     _attribute_handlers[ kind ] = handler
 
 
-def computeAttribute( source_node ):
+def computeAttribute( source_node, constraint_collection ):
     lookup_source = source_node.getLookupSource()
 
     if lookup_source.kind in _attribute_handlers:
-        return _attribute_handlers[ lookup_source.kind ]( source_node, lookup_source )
+        return _attribute_handlers[ lookup_source.kind ](
+            source_node,
+            lookup_source,
+            constraint_collection
+        )
     else:
+        constraint_collection.removeKnowledge( source_node )
+
         return source_node, None, None

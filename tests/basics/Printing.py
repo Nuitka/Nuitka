@@ -21,7 +21,7 @@
 
 print "Output with newline."
 print "Output", "with", "newline."
-print "Output ", "with ", "newline."
+print "Output trailing spaces ", "with ", "newline."
 print "Output ",
 print "with ",
 print "newline."

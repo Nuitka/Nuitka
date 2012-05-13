@@ -54,9 +54,9 @@ class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CP
 
     early_closure = True
 
-    named_children = ( "body", )
+    named_children = ( "body", "metaclass" )
 
-    def __init__( self, provider, name, doc, source_ref ):
+    def __init__( self, provider, name, metaclass, doc, source_ref ):
         CPythonCodeNodeBase.__init__(
             self,
             name        = name,
@@ -71,7 +71,10 @@ class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CP
 
         CPythonChildrenHaving.__init__(
             self,
-            values = {}
+            values = {
+                "body"      : None,
+                "metaclass" : metaclass
+            }
         )
 
         MarkContainsTryExceptIndicator.__init__( self )
@@ -91,6 +94,8 @@ class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CP
 
     getBody = CPythonChildrenHaving.childGetter( "body" )
     setBody = CPythonChildrenHaving.childSetter( "body" )
+
+    getMetaclass = CPythonChildrenHaving.childGetter( "metaclass" )
 
     def getClassName( self ):
         return self.getName()
@@ -146,7 +151,7 @@ class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CP
 
     getVariables = getClassVariables
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # Class body is quite irreplacable. TODO: Not really, could be predictable as
         # a whole.
         return self, None, None
@@ -170,7 +175,7 @@ class CPythonExpressionClassBodyBased( CPythonExpressionChildrenHavingBase ):
     getClassBody = CPythonExpressionChildrenHavingBase.childGetter( "class_body" )
     getBases = CPythonExpressionChildrenHavingBase.childGetter( "bases" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # Class body is quite irreplacable. TODO: Not really, could be predictable as
         # a whole.
         return self, None, None
@@ -196,7 +201,7 @@ class CPythonExpressionBuiltinType3( CPythonExpressionChildrenHavingBase ):
     getBases = CPythonExpressionChildrenHavingBase.childGetter( "bases" )
     getDict = CPythonExpressionChildrenHavingBase.childGetter( "dict" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # TODO: Should be compile time computable if bases and dict are.
 
         return self, None, None

@@ -55,6 +55,6 @@ class CPythonExpressionBuiltinOpen( CPythonExpressionChildrenHavingBase ):
     getMode = CPythonExpressionChildrenHavingBase.childGetter( "mode" )
     getBuffering = CPythonExpressionChildrenHavingBase.childGetter( "buffering" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # Note: Quite impossible to predict without further assumptions.
         return self, None, None

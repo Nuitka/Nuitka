@@ -35,7 +35,7 @@ the first one provides the truth value needed to determine the result.
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
 
-from .NodeMakingHelpers import getComputationResult
+from .NodeMakingHelpers import getComputationResult, wrapExpressionWithSideEffects
 
 class CPythonExpressionBool2Base( CPythonExpressionChildrenHavingBase ):
     """ The "and/or" are short circuit and is therefore are not plain operations.
@@ -50,7 +50,7 @@ class CPythonExpressionBool2Base( CPythonExpressionChildrenHavingBase ):
 
         CPythonExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "operands" : tuple( operands )
             },
             source_ref = source_ref
@@ -58,9 +58,76 @@ class CPythonExpressionBool2Base( CPythonExpressionChildrenHavingBase ):
 
     getOperands = CPythonExpressionChildrenHavingBase.childGetter( "operands" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         operands = self.getOperands()
         values = []
+
+        truth_value = operands[0].getTruthValue( constraint_collection )
+
+        # Known true value
+        if truth_value is True:
+            if self.kind == "EXPRESSION_BOOL_OR":
+                # In case "or", we can ignore the rest, the value is decided.
+
+                return (
+                    wrapExpressionWithSideEffects(
+                        new_node = operands[0],
+                        old_node = operands[0]
+                    ),
+                    "new_expression",
+                    "Remove 'or' others argument because first argument is known true"
+                )
+            else:
+                assert self.kind == "EXPRESSION_BOOL_AND"
+
+                if len( operands ) > 2:
+                    new_node = CPythonExpressionBoolAND(
+                        operands   = operands[1:],
+                        source_ref = self.getSourceReference()
+                    )
+                else:
+                    new_node = operands[1]
+
+                return (
+                    wrapExpressionWithSideEffects(
+                        new_node = new_node,
+                        old_node = operands[0]
+                    ),
+                    "new_expression",
+                    "Remove 'and' first argument because it is known true"
+                )
+
+
+        if truth_value is False:
+            if self.kind == "EXPRESSION_BOOL_OR":
+                if len( operands ) > 2:
+                    new_node = CPythonExpressionBoolOR(
+                        operands   = operands[1:],
+                        source_ref = self.getSourceReference()
+                    )
+                else:
+                    new_node = operands[1]
+
+                return (
+                    wrapExpressionWithSideEffects(
+                        new_node = new_node,
+                        old_node = operands[0]
+                    ),
+                    "new_expression",
+                    "Remove 'or' first argument because it is known false"
+                )
+            else:
+                assert self.kind == "EXPRESSION_BOOL_AND"
+
+                # In case "and", we can ignore the rest, the value is decided.
+                return (
+                    wrapExpressionWithSideEffects(
+                        new_node = operands[0],
+                        old_node = operands[0]
+                    ),
+                    "new_expression",
+                    "Remove 'and' others argument because first argument is known false"
+                )
 
         for operand in operands:
             if not operand.isCompileTimeConstant():
@@ -68,10 +135,12 @@ class CPythonExpressionBool2Base( CPythonExpressionChildrenHavingBase ):
 
             values.append( operand.getCompileTimeConstant() )
 
-        # TODO: Actually we want to query the "truth" value directory, in which case the
-        # preservation of side-effects would matter, also it should be possible to simply
-        # remove known-true, known-false values and then to strip useless conditions, and
-        # trim.
+        # Fall through, which normally should not happen anymore, because all compile time
+        # constants have known truth value, or should. In fact the default implementation
+        # of truth value uses just that. TODO: Assert this is not happening.
+
+        assert False, operands
+
         return getComputationResult(
             node        = self,
             # The simulator interface requires that we use star list calls,

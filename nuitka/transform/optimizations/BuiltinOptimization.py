@@ -35,9 +35,9 @@ from nuitka.nodes.CallNode import CPythonExpressionCall
 
 from nuitka.nodes.ParameterSpec import ParameterSpec, TooManyArguments, matchCall
 
-from nuitka.Utils import getPythonVersion
+from nuitka.Utils import python_version
 
-import sys
+import sys, math
 
 class BuiltinParameterSpec( ParameterSpec ):
     def __init__( self, name, arg_names, default_count, list_star_arg = None, dict_star_arg = None ):
@@ -57,6 +57,13 @@ class BuiltinParameterSpec( ParameterSpec ):
 
     def getName( self ):
         return self.name
+
+    def isCompileTimeComputable( self, values ):
+        for value in values:
+            if not value.isCompileTimeConstant():
+                return False
+        else:
+            return True
 
     def simulateCall( self, given_values ):
         # Using star dict call for simulation and catch any exception as really fatal,
@@ -134,7 +141,8 @@ class BuiltinParameterSpecNoKeywords( BuiltinParameterSpec ):
             if given_list_star_arg is not None:
                 arg_list += [ value.getCompileTimeConstant() for value in given_list_star_arg ]
         except Exception as e:
-            sys.exit( e )
+            print >> sys.stderr, "Fatal error: ",
+            sys.exit( repr( e ) )
 
         return self.builtin( *arg_list )
 
@@ -156,13 +164,13 @@ class BuiltinParameterSpecExceptions( BuiltinParameterSpec ):
     def getKeywordRefusalText( self ):
         return "exceptions.%s does not take keyword arguments" % self.name
 
-
     def getCallableName( self ):
         return "exceptions." + self.getName()
 
+
 builtin_int_spec = BuiltinParameterSpec( "int", ( "x", "base" ), 2 )
 # This builtin is only available for Python2
-if getPythonVersion() < 300:
+if python_version < 300:
     builtin_long_spec = BuiltinParameterSpec( "long", ( "x", "base" ), 2 )
     builtin_execfile_spec = BuiltinParameterSpecNoKeywords( "execfile", ( "filename", "globals", "locals" ), 2 )
 
@@ -181,7 +189,6 @@ builtin_ord_spec = BuiltinParameterSpecNoKeywords( "ord", ( "c", ), 0 )
 builtin_bin_spec = BuiltinParameterSpecNoKeywords( "bin", ( "number", ), 0 )
 builtin_oct_spec = BuiltinParameterSpecNoKeywords( "oct", ( "number", ), 0 )
 builtin_hex_spec = BuiltinParameterSpecNoKeywords( "hex", ( "number", ), 0 )
-builtin_range_spec = BuiltinParameterSpecNoKeywords( "range", ( "start", "stop", "step" ), 2 )
 builtin_repr_spec = BuiltinParameterSpecNoKeywords( "repr", ( "object", ), 0 )
 
 builtin_dir_spec = BuiltinParameterSpecNoKeywords( "dir", ( "object", ), 0 )
@@ -189,6 +196,71 @@ builtin_vars_spec = BuiltinParameterSpecNoKeywords( "vars", ( "object", ), 0 )
 
 builtin_locals_spec = BuiltinParameterSpecNoKeywords( "locals", (), 0 )
 builtin_globals_spec = BuiltinParameterSpecNoKeywords( "globals", (), 0 )
+
+
+class BuiltinRangeSpec( BuiltinParameterSpecNoKeywords ):
+    def __init__( self, *args ):
+        BuiltinParameterSpecNoKeywords.__init__( self, *args )
+
+    def isCompileTimeComputable( self, values ):
+        result = BuiltinParameterSpecNoKeywords.isCompileTimeComputable(
+            self,
+            values = values
+        )
+
+        if result:
+            arg_count = len( values )
+
+            if arg_count == 1:
+                low = values[0]
+
+                # If it's not a number constant, we can compute the exception that will be
+                # raised.
+                if not low.isNumberConstant():
+                    return True
+
+                return low.getConstant() < 256
+            elif arg_count == 2:
+                low, high = values
+
+                # If it's not a number constant, we can compute the exception that will be
+                # raised.
+                if not low.isNumberConstant() or not high.isNumberConstant():
+                    return True
+
+                return high.getConstant() - low.getConstant() < 256
+            elif arg_count == 3:
+                low, high, step = values
+
+                if not low.isNumberConstant() or not high.isNumberConstant() or \
+                     not step.isNumberConstant():
+                    return True
+
+                low = low.getConstant()
+                high = high.getConstant()
+                step = step.getConstant()
+
+                # It's going to give a ZeroDivisionError in this case.
+                if step == 0:
+                    return True
+
+                if low < high:
+                    if step < 0:
+                        return True
+                    else:
+                        return math.ceil( float( high - low ) / step ) < 256
+                else:
+                    if step > 0:
+                        return True
+                    else:
+                        return math.ceil( float( high - low ) / step ) < 256
+            else:
+                assert False
+        else:
+            return False
+
+
+builtin_range_spec = BuiltinRangeSpec( "range", ( "start", "stop", "step" ), 2 )
 
 
 def extractBuiltinArgs( node, builtin_spec, builtin_class ):
@@ -219,15 +291,15 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class ):
         )
     except TooManyArguments as e:
         return CPythonExpressionCall(
-            called_expression = makeRaiseExceptionReplacementExpressionFromInstance(
+            called          = makeRaiseExceptionReplacementExpressionFromInstance(
                 expression     = node,
                 exception      = e.getRealException()
             ),
-            positional_args   = node.getPositionalArguments(),
-            list_star_arg     = node.getStarListArg(),
-            dict_star_arg     = node.getStarDictArg(),
-            pairs             = node.getNamedArgumentPairs(),
-            source_ref        = node.getSourceReference()
+            positional_args = node.getPositionalArguments(),
+            list_star_arg   = node.getStarListArg(),
+            dict_star_arg   = node.getStarDictArg(),
+            pairs           = node.getNamedArgumentPairs(),
+            source_ref      = node.getSourceReference()
         )
 
     args_list = []

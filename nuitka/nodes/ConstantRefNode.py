@@ -35,6 +35,7 @@ from .NodeBases import CPythonNodeBase, CPythonExpressionMixin
 from nuitka.Constants import (
     getConstantIterationLength,
     isIterableConstant,
+    isIndexConstant,
     isNumberConstant,
     isMutable,
 )
@@ -47,6 +48,9 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
 
         self.constant = constant
 
+    def __repr__( self ):
+        return "<Node %s value %s at %s>" % ( self.kind, self.constant, self.source_ref )
+
     def makeCloneAt( self, source_ref ):
         return self.__class__( self.constant, source_ref )
 
@@ -56,7 +60,7 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
     def getDetail( self ):
         return repr( self.constant )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # Cannot compute any further.
         return self, None, None
 
@@ -75,6 +79,12 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
     def isNumberConstant( self ):
         return isNumberConstant( self.constant )
 
+    def isIndexConstant( self ):
+        return isIndexConstant( self.constant )
+
+    def isStringConstant( self ):
+        return type( self.constant ) is str
+
     def isIndexable( self ):
         return self.constant is None or self.isNumberConstant()
 
@@ -84,23 +94,29 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
         else:
             return False
 
-    def getUnpacked( self, count ):
-        assert getConstantIterationLength( self.constant ) == count
+    def isKnownToBeIterableAtMin( self, count, constraint_collection ):
+        length = self.getIterationLength( constraint_collection )
 
-        source_ref = self.getSourceReference()
+        return length is not None and length >= count
 
-        return [
-            CPythonExpressionConstantRef( value, source_ref )
-            for value in
-            self.constant
-        ]
+    def canPredictIterationValues( self, constraint_collection ):
+        return self.isKnownToBeIterable( None )
+
+    def getIterationValue( self, count, constraint_collection ):
+        assert count < len( self.constant )
+
+        return CPythonExpressionConstantRef( self.constant[ count ], self.source_ref )
 
     def isBoolConstant( self ):
         return type( self.constant ) is bool
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects( self, constraint_collection ):
         # Constants have no side effects
         return False
+
+    def extractSideEffects( self ):
+        # Constants have no side effects
+        return ()
 
     def mayRaiseException( self, exception_type ):
         # Virtual method, pylint: disable=R0201,W0613
@@ -110,3 +126,24 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
 
     def mayProvideReference( self ):
         return self.isMutable()
+
+    def getIntegerValue( self, constraint_collection ):
+        if self.isNumberConstant():
+            return int( self.constant )
+        else:
+            return None
+
+    def getIterationLength( self, constraint_collection ):
+        if isIterableConstant( self.constant ):
+            return getConstantIterationLength( self.constant )
+        else:
+            return None
+
+    def getStrValue( self ):
+        if type( self.constant ) is str:
+            return self
+        else:
+            return CPythonExpressionConstantRef(
+                constant   = str( self.constant ),
+                source_ref = self.getSourceReference()
+            )

@@ -109,4 +109,48 @@ NUITKA_MAY_BE_UNUSED static bool _SEQUENCE_CONTAINS_NOT_BOOL( EVAL_ORDERED_2( Py
     return result == 0;
 }
 
+NUITKA_MAY_BE_UNUSED static void SEQUENCE_SETITEM( PyObject *sequence, Py_ssize_t index, PyObject *value )
+{
+    assertObject( sequence );
+    assertObject( value );
+
+    PySequenceMethods *sequence_methods = Py_TYPE( sequence )->tp_as_sequence;
+
+    if ( sequence_methods != NULL && sequence_methods->sq_ass_item )
+    {
+        if ( index < 0 )
+        {
+            if ( sequence_methods->sq_length )
+            {
+                Py_ssize_t length = (*sequence_methods->sq_length)( sequence );
+
+                if ( length < 0 )
+                {
+                    throw _PythonException();
+                }
+
+                index += length;
+            }
+        }
+
+        int res = sequence_methods->sq_ass_item( sequence, index, value );
+
+        if (unlikely( res == -1 ))
+        {
+            throw _PythonException();
+        }
+    }
+    else
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "'%s' object does not support item assignment",
+            Py_TYPE( sequence )->tp_name
+        );
+
+        throw _PythonException();
+    }
+}
+
+
 #endif

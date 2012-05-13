@@ -48,7 +48,7 @@ class CPythonExpressionBuiltinGlobals( CPythonNodeBase, CPythonExpressionMixin )
     def __init__( self, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         return self, None, None
 
 
@@ -58,9 +58,12 @@ class CPythonExpressionBuiltinLocals( CPythonNodeBase, CPythonExpressionMixin ):
     def __init__( self, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         return self, None, None
 
+    def needsLocalsDict( self ):
+        # TODO: Actually the class bodies already need it.
+        return self.getParentVariableProvider().isExpressionClassBody()
 
 class CPythonExpressionBuiltinDir0( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_BUILTIN_DIR0"
@@ -68,12 +71,12 @@ class CPythonExpressionBuiltinDir0( CPythonNodeBase, CPythonExpressionMixin ):
     def __init__( self, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         return self, None, None
 
 class CPythonExpressionBuiltinDir1( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_DIR1"
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # TODO: Quite some cases should be possible to predict.
         return self, None, None

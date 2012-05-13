@@ -110,7 +110,7 @@ def compareConstants( a, b ):
 def isMutable( constant ):
     constant_type = type( constant )
 
-    if constant_type in ( str, unicode, complex, int, long, bool, float, NoneType, range ):
+    if constant_type in ( str, unicode, complex, int, long, bool, float, NoneType, range, bytes ):
         return False
     elif constant_type in ( dict, list, set ):
         return True

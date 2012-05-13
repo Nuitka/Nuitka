@@ -29,7 +29,7 @@
 #ifndef __NUITKA_BUILTINS_H__
 #define __NUITKA_BUILTINS_H__
 
-extern PyModuleObject *_module_builtin;
+extern PyModuleObject *module_builtin;
 
 #include "nuitka/calling.hpp"
 
@@ -39,7 +39,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN( PyObject *name )
     assert( Nuitka_String_Check( name ) );
 
     PyDictEntry *entry = GET_PYDICT_ENTRY(
-        _module_builtin,
+        module_builtin,
         (Nuitka_StringObject *)name
     );
 
@@ -64,7 +64,7 @@ class PythonBuiltin
             if ( this->value == NULL )
             {
                 PyDictEntry *entry = GET_PYDICT_ENTRY(
-                    _module_builtin,
+                    module_builtin,
                     *this->name
                 );
 
@@ -79,7 +79,7 @@ class PythonBuiltin
         void refresh( void )
         {
             PyDictEntry *entry = GET_PYDICT_ENTRY(
-                _module_builtin,
+                module_builtin,
                 *this->name
             );
 

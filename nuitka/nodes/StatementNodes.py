@@ -113,16 +113,44 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
         self.setChild( "statements", new_statements )
 
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects( self, constraint_collection ):
+        assert constraint_collection is None
+
         # Statement sequences have a side effect if one of the statements does.
         for statement in self.getStatements():
-            if statement.mayHaveSideEffects():
+            if statement.mayHaveSideEffects( None ):
                 return True
         else:
             return False
 
     def isStatementAbortative( self ):
         return self.getStatements()[-1].isStatementAbortative()
+
+
+class CPythonStatementsFrame( CPythonStatementsSequence ):
+    kind = "STATEMENTS_FRAME"
+
+    def __init__( self, statements, code_name, arg_names, source_ref ):
+        CPythonStatementsSequence.__init__(
+            self,
+            statements = statements,
+            source_ref = source_ref
+        )
+
+        self.arg_names = tuple( arg_names )
+        self.code_name = code_name
+
+    def getDetails( self ):
+        return {
+            "code_name" : self.code_name,
+            "arg_names" : self.arg_names
+        }
+
+    def getArgNames( self ):
+        return self.arg_names
+
+    def getCodeObjectName( self ):
+        return self.code_name
 
 
 class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
@@ -143,7 +171,7 @@ class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
     def getDetail( self ):
         return "expression %s" % self.getExpression()
 
-    def mayHaveSideEffects( self ):
-        return self.getExpression().mayHaveSideEffects()
+    def mayHaveSideEffects( self, constraint_collection ):
+        return self.getExpression().mayHaveSideEffects( constraint_collection )
 
     getExpression = CPythonChildrenHaving.childGetter( "expression" )

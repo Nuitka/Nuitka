@@ -91,6 +91,7 @@ class ConstantIdentifier( Identifier ):
     def getConstant( self ):
         return self.constant_value
 
+
 class ModuleVariableIdentifier:
     def __init__( self, var_name, module_code_name ):
         self.var_name = var_name
@@ -121,6 +122,7 @@ class ModuleVariableIdentifier:
 
     def getCode( self ):
         return "_mvar_%s_%s" % ( self.module_code_name, self.var_name )
+
 
 class MaybeModuleVariableIdentifier( Identifier ):
     def __init__( self, var_name, module_code_name ):
@@ -264,6 +266,25 @@ class DefaultValueIdentifier( Identifier ):
     def getCheapRefCount( self ):
         return 0
 
+
+class ThrowingIdentifier( Identifier ):
+    def __init__( self, code ):
+        Identifier.__init__(
+            self,
+            code      = code,
+            ref_count = 0
+        )
+
+    def getCodeExportRef( self ):
+        return self.getCodeObject()
+
+    def getCodeTemporaryRef( self ):
+        return self.getCodeObject()
+
+    def getCheapRefCount( self ):
+        return 0
+
+
 class CallIdentifier( Identifier ):
     def __init__( self, called, args ):
         Identifier.__init__(
@@ -282,6 +303,7 @@ class HelperCallIdentifier( CallIdentifier ):
             called = helper,
             args   = [ arg.getCodeTemporaryRef() for arg in args ]
         )
+
 
 def getCodeTemporaryRefs( identifiers ):
     """ Helper to create temporary reference code of many identifiers at once.

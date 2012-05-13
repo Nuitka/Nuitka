@@ -441,6 +441,7 @@ PyObject *BUILTIN_RANGE( long boundary )
     return BUILTIN_RANGE( 0, boundary );
 }
 
+#if PYTHON_VERSION < 300
 static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 {
     if (likely(
@@ -478,16 +479,18 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 
     return result;
 }
+#endif
 
 static PythonBuiltin _python_builtin_range( &_python_str_plain_range );
 
 PyObject *BUILTIN_RANGE( PyObject *boundary )
 {
+#if PYTHON_VERSION < 300
     PyObjectTemporary boundary_temp( TO_RANGE_ARG( boundary, "end" ) );
 
     long start = PyInt_AsLong( boundary_temp.asObject() );
 
-    if ( start == -1 && PyErr_Occurred() )
+    if ( start == -1 && ERROR_OCCURED() )
     {
         PyErr_Clear();
 
@@ -495,10 +498,14 @@ PyObject *BUILTIN_RANGE( PyObject *boundary )
     }
 
     return BUILTIN_RANGE( start );
+#else
+    return _python_builtin_range.call1( boundary );
+#endif
 }
 
 PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high )
 {
+#if PYTHON_VERSION < 300
     PyObjectTemporary low_temp( TO_RANGE_ARG( low, "start" ) );
     PyObjectTemporary high_temp( TO_RANGE_ARG( high, "end" ) );
 
@@ -506,7 +513,7 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high )
 
     long start = PyInt_AsLong( low_temp.asObject() );
 
-    if (unlikely( start == -1 && PyErr_Occurred() ))
+    if (unlikely( start == -1 && ERROR_OCCURED() ))
     {
         PyErr_Clear();
         fallback = true;
@@ -514,7 +521,7 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high )
 
     long end = PyInt_AsLong( high_temp.asObject() );
 
-    if (unlikely( end == -1 && PyErr_Occurred() ))
+    if (unlikely( end == -1 && ERROR_OCCURED() ))
     {
         PyErr_Clear();
         fallback = true;
@@ -533,10 +540,16 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high )
     {
         return BUILTIN_RANGE( start, end );
     }
+#else
+    return _python_builtin_range.call_args(
+        MAKE_TUPLE2( low, high )
+    );
+#endif
 }
 
 PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step )
 {
+#if PYTHON_VERSION < 300
     PyObjectTemporary low_temp( TO_RANGE_ARG( low, "start" ) );
     PyObjectTemporary high_temp( TO_RANGE_ARG( high, "end" ) );
     PyObjectTemporary step_temp( TO_RANGE_ARG( step, "step" ) );
@@ -545,7 +558,7 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step )
 
     long start = PyInt_AsLong( low_temp.asObject() );
 
-    if (unlikely( start == -1 && PyErr_Occurred() ))
+    if (unlikely( start == -1 && ERROR_OCCURED() ))
     {
         PyErr_Clear();
         fallback = true;
@@ -553,7 +566,7 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step )
 
     long end = PyInt_AsLong( high_temp.asObject() );
 
-    if (unlikely( end == -1 && PyErr_Occurred() ))
+    if (unlikely( end == -1 && ERROR_OCCURED() ))
     {
         PyErr_Clear();
         fallback = true;
@@ -561,7 +574,7 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step )
 
     long step_long = PyInt_AsLong( step_temp.asObject() );
 
-    if (unlikely( step_long == -1 && PyErr_Occurred() ))
+    if (unlikely( step_long == -1 && ERROR_OCCURED() ))
     {
         PyErr_Clear();
         fallback = true;
@@ -587,13 +600,20 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step )
 
         return BUILTIN_RANGE( start, end, step_long );
     }
+#else
+    return _python_builtin_range.call_args(
+        MAKE_TUPLE3( low, high, step )
+    );
+#endif
 }
 
 PyObject *BUILTIN_LEN( PyObject *value )
 {
+    assertObject( value );
+
     Py_ssize_t res = PyObject_Size( value );
 
-    if (unlikely( res < 0 && PyErr_Occurred() ))
+    if (unlikely( res < 0 && ERROR_OCCURED() ))
     {
         throw _PythonException();
     }
@@ -882,7 +902,7 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
             PyString_AsStringAndSize( str, &buffer, &length );
         assert( status != -1 );
 
-        softspace = length > 0 && buffer[length - 1 ] == '\t';
+        softspace = length > 0 && buffer[ length - 1 ] == '\t';
 
         print = str;
     }
@@ -1088,7 +1108,7 @@ PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
 #else
     PyObject *result = PyUnicode_FromStringAndSize( buffer, size );
 #endif
-    assert( !PyErr_Occurred() );
+    assert( !ERROR_OCCURED() );
     assertObject( result );
     assert( Nuitka_String_Check( result ) );
 

@@ -236,9 +236,9 @@ def generateFunctionBodyCode( function_body, defaults, context ):
     )
 
     function_codes = generateStatementSequenceCode(
-        context            = function_context,
+        statement_sequence = function_body.getBody(),
         allow_none         = True,
-        statement_sequence = function_body.getBody()
+        context            = function_context
     )
 
     function_codes = function_codes or []
@@ -337,16 +337,26 @@ def generateClassBodyCode( class_body, bases, context ):
         context           = context
     )
 
+    metaclass_class_code = generateExpressionCode(
+        expression = class_body.getMetaclass(),
+        allow_none  = True,
+        context    = context
+    )
+
+    if metaclass_class_code is None:
+        metaclass_class_code = Generator.Identifier( "NULL", 0 )
+
     class_creation_identifier = Generator.getClassCreationCode(
-        metaclass_code   = Generator.getMetaclassVariableCode(
+        metaclass_global_code = Generator.getMetaclassVariableCode(
             context = context
         ),
-        name_identifier  = Generator.getConstantHandle(
+        metaclass_class_code  = metaclass_class_code.getCodeTemporaryRef(),
+        name_identifier       = Generator.getConstantHandle(
             context  = context,
             constant = class_body.getClassName()
         ),
-        bases_identifier = bases_identifier,
-        dict_identifier  = dict_identifier
+        bases_identifier      = bases_identifier,
+        dict_identifier       = dict_identifier
     )
 
     class_decl = Generator.getClassDecl(
@@ -526,7 +536,7 @@ def generateSliceAccessIdentifiers( sliced, lower, upper, context ):
 
     return sliced, lower, upper
 
-_slicing_available = Utils.getPythonVersion() < 300
+_slicing_available = Utils.python_version < 300
 
 def decideSlicing( lower, upper ):
     return _slicing_available and                       \
@@ -841,11 +851,23 @@ def generateExpressionCode( expression, context, allow_none = False ):
             codes_yes = makeExpressionCode( expression.getExpressionYes() ),
             codes_no  = makeExpressionCode( expression.getExpressionNo() )
         )
-    elif expression.isExpressionBuiltinRange():
+    elif expression.isExpressionBuiltinRange1():
         identifier = Generator.getBuiltinRangeCode(
-            low  = makeExpressionCode( expression.getLow(), allow_none = False ),
-            high = makeExpressionCode( expression.getHigh(), allow_none = True ),
-            step = makeExpressionCode( expression.getStep(), allow_none = True )
+            low  = makeExpressionCode( expression.getLow() ),
+            high = None,
+            step = None
+        )
+    elif expression.isExpressionBuiltinRange2():
+        identifier = Generator.getBuiltinRangeCode(
+            low  = makeExpressionCode( expression.getLow() ),
+            high = makeExpressionCode( expression.getHigh() ),
+            step = None
+        )
+    elif expression.isExpressionBuiltinRange3():
+        identifier = Generator.getBuiltinRangeCode(
+            low  = makeExpressionCode( expression.getLow() ),
+            high = makeExpressionCode( expression.getHigh() ),
+            step = makeExpressionCode( expression.getStep() )
         )
     elif expression.isExpressionBuiltinGlobals():
         identifier = Generator.getLoadGlobalsCode(
@@ -874,17 +896,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = generateEvalCode(
             context   = context,
             eval_node = expression
-        )
-    elif expression.isExpressionBuiltinExec():
-        # exec builtin of Python3, as opposed to Python2 statement
-        identifier = generateEvalCode(
-            context   = context,
-            eval_node = expression
-        )
-    elif expression.isExpressionBuiltinExecfile():
-        identifier = generateExecfileCode(
-            context       = context,
-            execfile_node = expression
         )
     elif expression.isExpressionBuiltinOpen():
         identifier = Generator.getBuiltinOpenCode(
@@ -1045,10 +1056,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
         )
     elif expression.isExpressionRaiseException():
         identifier = Generator.getRaiseExceptionExpressionCode(
-            side_effects               = generateExpressionsCode(
-                expressions = expression.getSideEffects(),
-                context     = context
-            ),
             exception_type_identifier  = makeExpressionCode(
                 expression = expression.getExceptionType()
             ),
@@ -1101,7 +1108,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
             base       = makeExpressionCode( expression.getBase(), allow_none = True ),
             context    = context
         )
-    elif Utils.getPythonVersion() < 300 and expression.isExpressionBuiltinLong():
+    elif Utils.python_version < 300 and expression.isExpressionBuiltinLong():
         assert expression.getValue() is not None or expression.getBase() is not None
 
         identifier = Generator.getBuiltinLongCode(
@@ -1135,6 +1142,25 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = Generator.Identifier(
             "%s.asObject()" % expression.getVariableName(),
             1
+        )
+    elif expression.isExpressionSideEffects():
+        identifier = Generator.getSideEffectsCode(
+            side_effects = generateExpressionsCode(
+                expressions = expression.getSideEffects(),
+                context     = context
+            ),
+            identifier   = makeExpressionCode( expression.getExpression() )
+        )
+    elif Utils.python_version < 300 and expression.isExpressionBuiltinExecfile():
+        identifier = generateExecfileCode(
+            context       = context,
+            execfile_node = expression
+        )
+    elif Utils.python_version >= 300 and expression.isExpressionBuiltinExec():
+        # exec builtin of Python3, as opposed to Python2 statement
+        identifier = generateEvalCode(
+            context   = context,
+            eval_node = expression
         )
     else:
         assert False, expression
@@ -1316,7 +1342,8 @@ def _generateEvalCode( node, context ):
             context    = context
         )
 
-    if node.isExpressionBuiltinEval() or node.isExpressionBuiltinExec():
+    if node.isExpressionBuiltinEval() or \
+         ( Utils.python_version >= 300 and node.isExpressionBuiltinExec() ):
         filename = "<string>"
     else:
         filename = "<execfile>"
@@ -1497,12 +1524,7 @@ if ( _tmp_unpack_%(tmp_count)d == NULL )
             statement_sequence = tried_block,
             context            = context,
         ),
-        handler_codes = handler_codes,
-        else_code     = generateStatementSequenceCode(
-            statement_sequence = statement.getBlockNoRaise(),
-            allow_none         = True,
-            context            = context
-        )
+        handler_codes = handler_codes
     )
 
 def generateRaiseCode( statement, context ):
@@ -1915,7 +1937,7 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
         if code == "":
             continue
 
-        if source_ref != last_ref:
+        if source_ref != last_ref and statement.mayRaiseException( BaseException ):
             code = Generator.getLineNumberCode(
                 context    = context,
                 source_ref = source_ref
@@ -1929,6 +1951,46 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
         assert statement_codes[-1].strip() != "", ( "Code '%s'" % code, statement )
 
         codes += statement_codes
+
+    if statement_sequence.isStatementsFrame():
+        provider = statement_sequence.getParentVariableProvider()
+        source_ref = statement_sequence.getSourceReference()
+
+        if provider.isExpressionFunctionBody():
+            # TODO: Finalization should say this
+
+            if provider.isGenerator():
+                codes = Generator.getFrameGuardLightCode(
+                    frame_identifier = provider.getCodeName(),
+                    code_identifier  = context.getCodeObjectHandle(
+                        filename     = source_ref.getFilename(),
+                        arg_names    = statement_sequence.getArgNames(),
+                        line_number  = source_ref.getLineNumber(),
+                        code_name    = statement_sequence.getCodeObjectName(),
+                        is_generator = True
+                    ),
+                    codes            = codes,
+                    context          = context
+                )
+            elif provider.code_prefix == "listcontr":
+                codes = Generator.getFrameGuardVeryLightCode(
+                    codes = codes,
+                )
+            else:
+                codes = Generator.getFrameGuardHeavyCode(
+                    frame_identifier = provider.getCodeName(),
+                    code_identifier  = context.getCodeObjectHandle(
+                        filename     = source_ref.getFilename(),
+                        arg_names    = statement_sequence.getArgNames(),
+                        line_number  = source_ref.getLineNumber(),
+                        code_name    = statement_sequence.getCodeObjectName(),
+                        is_generator = False
+                    ),
+                    codes            = codes,
+                    context          = context
+                )
+        else:
+            assert False, provider
 
     return codes
 
@@ -1960,18 +2022,16 @@ def generateModuleCode( module, module_name, global_context ):
         path_identifier = None
 
     return Generator.getModuleCode(
-        module_name         = module_name,
-        package_name        = module.getPackage(),
-        doc_identifier      = context.getConstantHandle(
+        module_name     = module_name,
+        package_name    = module.getPackage(),
+        doc_identifier  = context.getConstantHandle(
             constant = module.getDoc()
         ),
-        filename_identifier = context.getConstantHandle(
-            constant = module.getFilename()
-        ),
-        path_identifier     = path_identifier,
-        codes               = codes,
-        tmp_variables       = module.getTempKeeperNames(),
-        context             = context,
+        source_ref      = module.getSourceReference(),
+        path_identifier = path_identifier,
+        codes           = codes,
+        tmp_variables   = module.getTempKeeperNames(),
+        context         = context,
     )
 
 def generateModuleDeclarationCode( module_name ):

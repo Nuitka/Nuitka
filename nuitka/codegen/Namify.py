@@ -42,7 +42,7 @@ from logging import warning
 
 import hashlib, re
 
-# False alarms about hashlib.md5 due to its strange way of defining what is
+# False alarms about "hashlib.md5" due to its strange way of defining what is
 # exported, pylint won't understand it. pylint: disable=E1101
 
 class ExceptionCannotNamify( Exception ):

@@ -147,3 +147,11 @@ try:
     functionPosBothStarArgs( 1,  *l, **d )
 except TypeError, e:
     print e
+
+def functionWithDefaults( a, b, c, d = 3 ):
+    print a, b, c, d
+
+try:
+    functionWithDefaults( 1 )
+except TypeError, e:
+    print e

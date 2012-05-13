@@ -39,9 +39,14 @@ from nuitka.__past__ import iterItems
 
 from nuitka.nodes import ValueFriends
 
-from nuitka.nodes.NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+from nuitka.nodes.NodeMakingHelpers import (
+    makeStatementExpressionOnlyReplacementNode,
+    makeStatementsSequenceReplacementNode,
+    makeConstantReplacementNode,
+    wrapStatementWithSideEffects
+)
 
-from nuitka import Options, Utils, TreeRecursion, Importing, Builtins
+from nuitka import Options, Utils, TreeRecursion, Importing
 
 from logging import debug
 
@@ -100,6 +105,16 @@ class ConstraintCollectionBase:
             assert copy_of.__class__ is ConstraintCollectionBase
 
             self.variables = dict( copy_of.variables )
+
+    def removeKnowledge( self, value_friend ):
+        to_remove = []
+
+        for variable, value in iterItems( self.variables ):
+            if value is value_friend:
+                to_remove.append( variable )
+
+        for remove in to_remove:
+            self.variables[ remove ]
 
     @staticmethod
     def mergeBranchVariables( a, b ):
@@ -180,11 +195,11 @@ class ConstraintCollectionBase:
 
         assert expression.isExpression(), expression
 
-        # print( "CONSIDER", expression )
+        # print( "CONSIDER expression", expression )
 
         self.onSubExpressions( expression )
 
-        new_node, change_tags, change_desc = expression.computeNode()
+        new_node, change_tags, change_desc = expression.computeNode( self )
 
         if new_node is not expression:
             expression.replaceWith( new_node )
@@ -194,23 +209,6 @@ class ConstraintCollectionBase:
                 expression.getSourceReference(),
                 change_desc
             )
-        elif expression.isExpressionVariableRef() and False: # TODO: Not safe yet, disabled
-            variable = expression.getVariable()
-
-            friend = self.getVariableValueFriend( variable )
-
-            if friend is not None and not friend.mayHaveSideEffects() and friend.isNode():
-                new_node = friend.makeCloneAt(
-                    source_ref = expression.getSourceReference(),
-                )
-
-                expression.replaceWith( new_node )
-
-                self.signalChange(
-                    "new_constant",
-                    expression.getSourceReference(),
-                    "Assignment source of '%s' propagated, as it has no side effects." % variable.getName()
-                )
 
         return new_node
 
@@ -231,7 +229,7 @@ class ConstraintCollectionBase:
     def _onStatementConditional( self, statement ):
         no_branch = statement.getBranchNo()
 
-        if no_branch is not None and not no_branch.mayHaveSideEffects():
+        if no_branch is not None and not no_branch.mayHaveSideEffects( None ):
             self.signalChange(
                 "new_statements",
                 no_branch.getSourceReference(),
@@ -244,7 +242,7 @@ class ConstraintCollectionBase:
 
         yes_branch = statement.getBranchYes()
 
-        if yes_branch is not None and not yes_branch.mayHaveSideEffects():
+        if yes_branch is not None and not yes_branch.mayHaveSideEffects( None ):
             statement.setBranchYes( None )
 
             self.signalChange(
@@ -288,8 +286,12 @@ class ConstraintCollectionBase:
                 expression = statement.getCondition(),
                 node       = statement
             )
-        elif statement.getCondition().isCompileTimeConstant():
-            if statement.getCondition().getCompileTimeConstant():
+
+
+        truth_value = statement.getCondition().getTruthValue( self )
+
+        if truth_value is not None:
+            if truth_value is True:
                 choice = "true"
 
                 new_statement = statement.getBranchYes()
@@ -297,6 +299,12 @@ class ConstraintCollectionBase:
                 choice = "false"
 
                 new_statement = statement.getBranchNo()
+
+            new_statement = wrapStatementWithSideEffects(
+                new_node   = new_statement,
+                old_node   = statement.getCondition(),
+                allow_none = True # surviving branch may empty
+            )
 
             self.signalChange(
                 "new_statements",
@@ -326,22 +334,70 @@ class ConstraintCollectionBase:
             variable_ref = statement.getTargetVariableRef()
             variable = variable_ref.getVariable()
 
+            assert variable is not None
+
             # Assigning from and to the same variable, can be optimized away immediately,
-            # there is no point in doing it.
-            if statement.getAssignSource().isExpressionVariableRef() and statement.getAssignSource().getVariable() == variable and (not variable.isModuleVariableReference() or variable.getName() not in Builtins.builtin_all_names):
+            # there is no point in doing it. Exceptions are of course module variables
+            # that collide with builtin names.
+            if not variable.isModuleVariableReference() and \
+                 statement.getAssignSource().isExpressionVariableRef() and \
+                 statement.getAssignSource().getVariable() == variable:
+                if statement.getAssignSource().mayHaveSideEffects( self ):
+                    self.signalChange(
+                        "new_statements",
+                        statement.getSourceReference(),
+                        "Reduced assignment of variable from itself to access of it."
+                    )
+
+                    return makeStatementExpressionOnlyReplacementNode(
+                        expression = statement.getAssignSource(),
+                        node       = statement
+                    )
+                else:
+                    self.signalChange(
+                        "new_statements",
+                        statement.getSourceReference(),
+                        "Removed assignment of variable from itself which is known to be defined."
+                    )
+
+                    return None
+
+            # If the assignment source has side effects, we can simply evaluate them
+            # beforehand, we have already visited and evaluated them before.
+            if statement.getAssignSource().isExpressionSideEffects():
+                statements = [
+                    makeStatementExpressionOnlyReplacementNode(
+                        side_effect,
+                        statement
+                    )
+                    for side_effect in
+                    statement.getAssignSource().getSideEffects()
+                ]
+
+                statements.append( statement )
+
+                result = makeStatementsSequenceReplacementNode(
+                    statements = statements,
+                    node       = statement,
+                )
+
+                statement.getAssignSource().replaceWith( statement.getAssignSource().getExpression() )
+
                 self.signalChange(
                     "new_statements",
                     statement.getSourceReference(),
-                    "Reduced assignment of variable from itself to access of it."
+                    "Side effects of assignments promoted to statements."
                 )
+            else:
+                result = statement
 
-                return makeStatementExpressionOnlyReplacementNode(
-                    expression = statement.getAssignSource(),
-                    node       = statement
-                )
-
-            value_friend = statement.getAssignSource().getValueFriend()
+            value_friend = statement.getAssignSource().getValueFriend( self )
             assert value_friend is not None
+
+            if variable in self.variables:
+                old_value_friend = self.variables[ variable  ]
+            else:
+                old_value_friend = None
 
             self.variables[ variable  ] = value_friend
 
@@ -352,7 +408,10 @@ class ConstraintCollectionBase:
             elif variable.isTempVariableReference():
                 self.onTempVariableAssigned( variable, value_friend )
 
-            return statement
+            if old_value_friend is not None:
+                old_value_friend.onRelease( self )
+
+            return result
         elif statement.isStatementAssignmentAttribute():
             self.onExpression( statement.getAssignSource() )
 
@@ -378,6 +437,8 @@ class ConstraintCollectionBase:
             variable = statement.getTargetVariableRef()
 
             if variable in self.variables:
+                self.variables[ variable ].onRelease( self )
+
                 del self.variables[ variable ]
 
             return statement
@@ -402,15 +463,75 @@ class ConstraintCollectionBase:
             # Workaround for possibilty of generating a statement here.
             if expression.isStatement():
                 return self.onStatement( expression )
+            elif expression.isExpressionSideEffects():
+                assert False, expression
             else:
                 self.onExpression( expression )
 
-                if statement.mayHaveSideEffects():
+                if statement.mayHaveSideEffects( self ):
                     return statement
                 else:
                     return None
         elif statement.isStatementPrint():
-            return self.onStatementUsingChildExpressions( statement )
+            self.onStatementUsingChildExpressions( statement )
+
+            for printed in statement.getValues():
+                new_node = printed.getStrValue()
+
+                if new_node is not None and new_node is not printed:
+                    printed.replaceWith( new_node )
+
+                    self.signalChange(
+                        "new_expression",
+                        printed.getSourceReference(),
+                        "Converted print argument to 'str' at compile time"
+                    )
+
+            printeds = statement.getValues()
+
+            for count in range( len( printeds ) - 1 ):
+                if printeds[ count ].isExpressionConstantRef():
+                    new_value = printeds[ count ].getConstant()
+                    assert type( new_value ) is str, statement
+
+                    stop_count = count + 1
+
+                    while True:
+                        candidate = printeds[ stop_count ]
+
+                        if candidate.isExpressionConstantRef() and candidate.isStringConstant():
+                            if not new_value.endswith( "\t" ):
+                                new_value += " "
+
+                            new_value += candidate.getConstant()
+
+                            stop_count += 1
+
+                            if stop_count >= len( printeds ):
+                                break
+
+                        else:
+                            break
+
+                    if stop_count != count + 1:
+                        new_node = makeConstantReplacementNode(
+                            constant = new_value,
+                            node     = printeds[ count ]
+                        )
+
+                        new_printeds = printeds[ : count ] + ( new_node, ) + printeds[ stop_count: ]
+
+                        statement.setValues( new_printeds )
+
+                        self.signalChange(
+                            "new_expression",
+                            printeds[ count ].getSourceReference(),
+                            "Combined print string arguments at compile time"
+                        )
+
+                        break
+
+            return statement
         elif statement.isStatementReturn():
             # TODO: The merging will need to consider if merged branches really can exit
             # or not.
@@ -439,6 +560,9 @@ class ConstraintCollectionBase:
 
             final_statement_sequence = statement.getBlockFinal()
 
+            # TODO: The final must not assume that all of final was executed, instead it
+            # may have aborted after any part of it, which is a rather complex definition.
+
             if final_statement_sequence is not None:
                 # Then assuming no exception, the no raise block if present.
                 self.onStatementsSequence( final_statement_sequence )
@@ -464,10 +588,6 @@ class ConstraintCollectionBase:
             if tried_statement_sequence is not None:
                 self.onStatementsSequence( tried_statement_sequence )
 
-            if statement.getBlockNoRaise() is not None:
-                # Then assuming no exception, the no raise block if present.
-                self.onStatementsSequence( statement.getBlockNoRaise() )
-
             # The exception branches triggers in unknown state, any amount of tried code
             # may have happened. A similar approach to loops should be taken to invalidate
             # the state before.
@@ -479,7 +599,7 @@ class ConstraintCollectionBase:
             self.variables = {}
 
             if statement.getBlockTry() is None:
-                return statement.getBlockNoRaise()
+                return None
             else:
                 return statement
         elif statement.isStatementImportStar():
@@ -496,9 +616,24 @@ class ConstraintCollectionBase:
         elif statement.isStatementTempBlock():
             self.onStatementsSequence( statement.getBody() )
 
-            return statement
+            for variable, friend in iterItems( dict( self.variables ) ):
+                if variable.getOwner() is statement:
+                    del self.variables[ variable ]
+
+                    # TODO: Back propagate now.
+                    friend.onRelease( self )
+
+            if statement.mayHaveSideEffects( None ):
+                return statement
+            else:
+                return None
         elif statement.isStatementSpecialUnpackCheck():
-            # TODO: Not clear yet, what to do here.
+            self.onExpression( statement.getIterator() )
+
+            # Remove the check if it can be decided at compile time.
+            if statement.getIterator().isKnownToBeIterableAtMax( 0, self ):
+                return None
+
             return statement
         else:
             assert False, statement
@@ -671,8 +806,7 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
 
         self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
 
-
-    def getWrittenModuleVariables( self ):
+    def getWrittenVariables( self ):
         return [
             variable
             for variable, usage in iterItems( self.variable_usages )

@@ -16,4 +16,4 @@
 #     limitations under the License.
 #
 
-print "This is deep brother module talking."
+print( "This is deep brother module talking." )

@@ -31,11 +31,12 @@
 """
 
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import CPythonExpressionChildrenHavingBase, CPythonSideEffectsFromChildrenMixin
 
 from .NodeMakingHelpers import getComputationResult, makeConstantReplacementNode
 
-class CPythonExpressionMakeSequenceBase( CPythonExpressionChildrenHavingBase ):
+class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
+                                         CPythonExpressionChildrenHavingBase ):
     named_children = ( "elements", )
 
     def __init__( self, sequence_kind, elements, source_ref ):
@@ -67,7 +68,7 @@ class CPythonExpressionMakeSequenceBase( CPythonExpressionChildrenHavingBase ):
         # Abstract method, pylint: disable=R0201,W0613
         return None
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         for element in self.getElements():
             if not element.isExpressionConstantRef() or element.isMutable():
                 return self, None, None
@@ -89,11 +90,17 @@ class CPythonExpressionMakeSequenceBase( CPythonExpressionChildrenHavingBase ):
     def isKnownToBeIterable( self, count ):
         return count is None or count == len( self.getElements() )
 
-    def getUnpacked( self, count ):
-        # For every child except dictionaries, it's this easy.
-        assert count == len( self.getElements() )
+    def getIterationValue( self, count, constraint_collection ):
+        return self.getElements()[ count ]
 
-        return self.getElements()
+    def getIterationLength( self, constraint_collection ):
+        return len( self.getElements() )
+
+    def canPredictIterationValues( self, constraint_collection ):
+        return True
+
+    def getTruthValue( self, constraint_collection ):
+        return self.getIterationLength( constraint_collection ) > 0
 
 
 class CPythonExpressionMakeTuple( CPythonExpressionMakeSequenceBase ):
@@ -159,11 +166,12 @@ class CPythonExpressionKeyValuePair( CPythonExpressionChildrenHavingBase ):
     getKey = CPythonExpressionChildrenHavingBase.childGetter( "key" )
     getValue = CPythonExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         return self, None, None
 
 
-class CPythonExpressionMakeDict( CPythonExpressionChildrenHavingBase ):
+class CPythonExpressionMakeDict( CPythonSideEffectsFromChildrenMixin, \
+                                 CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_MAKE_DICT"
 
     named_children = ( "pairs", )
@@ -179,7 +187,7 @@ class CPythonExpressionMakeDict( CPythonExpressionChildrenHavingBase ):
 
     getPairs = CPythonExpressionChildrenHavingBase.childGetter( "pairs" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         pairs = self.getPairs()
 
         for pair in pairs:
@@ -213,11 +221,16 @@ class CPythonExpressionMakeDict( CPythonExpressionChildrenHavingBase ):
         return new_node, "new_constant", "Created dictionary found to be constant."
 
     def isKnownToBeIterable( self, count ):
-        return count is None
+        return count is None or count == len( self.getPairs() )
 
-        # TODO: That's more true
-        # return count is None or count == len( self.getPairs() )
+    def getIterationLength( self, constraint_collection ):
+        return len( self.getPairs() )
 
-    def getUnpacked( self, count ):
-        # Virtual method, pylint: disable=R0201,W0613
-        assert False
+    def canPredictIterationValues( self, constraint_collection ):
+        return True
+
+    def getIterationValue( self, count, constraint_collection ):
+        return self.getPairs()[ count ].getKey()
+
+    def getTruthValue( self, constraint_collection ):
+        return self.getIterationLength( constraint_collection ) > 0

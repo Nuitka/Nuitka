@@ -91,15 +91,15 @@ def computeOwnedFunctionCall( call_node, function_body ):
 
     except TooManyArguments as e:
         return CPythonExpressionCall(
-            called_expression = makeRaiseExceptionReplacementExpressionFromInstance(
+            called          = makeRaiseExceptionReplacementExpressionFromInstance(
                 expression     = call_node,
                 exception      = e.getRealException()
             ),
-            list_star_arg     = call_spec.getStarListArg(),
-            dict_star_arg     = call_node.getStarDictArg(),
-            positional_args   = call_node.getPositionalArguments(),
-            pairs             = call_node.getNamedArgumentPairs(),
-            source_ref        = call_node.getSourceReference()
+            positional_args = call_node.getPositionalArguments(),
+            list_star_arg   = call_spec.getStarListArg(),
+            dict_star_arg   = call_node.getStarDictArg(),
+            pairs           = call_node.getNamedArgumentPairs(),
+            source_ref      = call_node.getSourceReference()
         )
 
 

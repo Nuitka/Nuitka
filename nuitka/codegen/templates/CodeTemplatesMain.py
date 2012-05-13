@@ -41,7 +41,7 @@ global_copyright = """\
 """
 
 module_inittab_entry = """\
-{ (char *)"%(module_name)s", init%(module_identifier)s },"""
+{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ) },"""
 
 main_program = """\
 // Our own inittab for lookup of "frozen" modules, i.e. the ones included in this binary.
@@ -91,13 +91,11 @@ int main( int argc, char *argv[] )
 
     patchInspectModule();
 
-#if PYTHON_VERSION < 300
-    init__main__();
-#else
-    PyInit___main__();
-#endif
 
-    if ( PyErr_Occurred() )
+    // Execute the "__main__" module init function.
+    MOD_INIT_NAME( __main__)();
+
+    if ( ERROR_OCCURED() )
     {
         assertFrameObject( frame___main__ );
         assert( frame___main__->f_back == NULL );
@@ -120,7 +118,7 @@ module_header_template = """\
 
 #include <nuitka/helpers.hpp>
 
-MOD_INIT( %(module_identifier)s );
+MOD_INIT_DECL( %(module_identifier)s );
 
 extern PyObject *_module_%(module_identifier)s;
 
@@ -145,7 +143,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
                 return entry->me_value;
             }
 
-            entry = GET_PYDICT_ENTRY( _module_builtin, *this->var_name );
+            entry = GET_PYDICT_ENTRY( module_builtin, *this->var_name );
 
             if (likely( entry->me_value != NULL ))
             {
@@ -239,7 +237,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
             if ( allow_builtins )
             {
-                entry = GET_PYDICT_ENTRY( _module_builtin, *this->var_name );
+                entry = GET_PYDICT_ENTRY( module_builtin, *this->var_name );
 
                 return entry->me_value != NULL;
             }
@@ -304,7 +302,7 @@ static bool init_done = false;
 // The exported interface to CPython. On import of the module, this function gets
 // called. It has have that exact function name.
 
-MOD_INIT( %(module_identifier)s )
+MOD_INIT_DECL( %(module_identifier)s )
 {
 #ifdef _NUITKA_EXE
     // Packages can be imported recursively in deep executables.
@@ -333,11 +331,6 @@ MOD_INIT( %(module_identifier)s )
 
     // puts( "in init%(module_identifier)s" );
 
-#ifdef _NUITKA_MODULE
-    // Remember it here, Py_InitModule4 will clear it.
-    char const *qualified_name = _Py_PackageContext;
-#endif
-
     // Create the module object first. There are no methods initially, all are added
     // dynamically in actual code only.  Also no __doc__ is initially set, as it could not
     // contain 0 this way, added early in actual code.  No self for modules, we have no
@@ -356,6 +349,18 @@ MOD_INIT( %(module_identifier)s )
 
     assertObject( _module_%(module_identifier)s );
 
+#ifndef _NUITKA_MODULE
+// TODO: Seems to work for Python2.7 as well, and maybe even useful. To be
+// investigated in separate tests.
+#if PYTHON_VERSION >= 300
+    {
+        int r = PyObject_SetItem( PySys_GetObject( (char *)"modules" ), %(module_name_obj)s, _module_%(module_identifier)s );
+
+        assert( r != -1 );
+    }
+#endif
+#endif
+
     // For deep importing of a module we need to have "__builtins__", so we set it
     // ourselves in the same way than CPython does. Note: This must be done before
     // the frame object is allocated, or else it may fail.
@@ -364,7 +369,7 @@ MOD_INIT( %(module_identifier)s )
 
     if ( PyDict_GetItem( module_dict, _python_str_plain___builtins__ ) == NULL )
     {
-        PyObject *value = ( PyObject *)_module_builtin;
+        PyObject *value = ( PyObject *)module_builtin;
 
 #ifndef _NUITKA_MODULE
         if ( _module_%(module_identifier)s != _module___main__ )
@@ -392,7 +397,7 @@ MOD_INIT( %(module_identifier)s )
     }
 #endif
 
-    frame_%(module_identifier)s = MAKE_FRAME( MAKE_CODEOBJ( %(filename_identifier)s, %(module_name_obj)s, 0, _python_tuple_empty, 0 ), _module_%(module_identifier)s);
+    frame_%(module_identifier)s = MAKE_FRAME( %(code_identifier)s, _module_%(module_identifier)s );
 
     // Set module frame as the currently active one.
     FrameGuardLight frame_guard( &frame_%(module_identifier)s );
@@ -442,20 +447,6 @@ module_init_no_package_template = """\
     _mvar_%(module_identifier)s___file__.assign0( %(filename_identifier)s );
 #if %(is_package)d
     _mvar_%(module_identifier)s___path__.assign0( %(path_identifier)s );
-#endif
-
-#ifdef _NUITKA_MODULE
-    // Set the package attribute from what the import mechanism provided. The package
-    // variable should be set for the module code already.
-    if ( qualified_name )
-    {
-        _mvar_%(module_identifier)s___package__.assign0(
-            PyString_FromStringAndSize(
-               qualified_name,
-               strrchr( qualified_name, '.' ) -  qualified_name
-            )
-        );
-    }
 #endif
 """
 

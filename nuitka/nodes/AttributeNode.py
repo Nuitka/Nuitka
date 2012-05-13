@@ -36,6 +36,7 @@ from .NodeBases import CPythonExpressionChildrenHavingBase
 
 from nuitka.transform.optimizations.registry import AttributeRegistry
 
+
 class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP"
 
@@ -71,9 +72,9 @@ class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
         )
 
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # There is a whole registry dedicated to this.
-        return AttributeRegistry.computeAttribute( self )
+        return AttributeRegistry.computeAttribute( self, constraint_collection )
 
     def isKnownToBeIterable( self, count ):
         # TODO: Should ask AttributeRegistry
@@ -84,6 +85,6 @@ class CPythonExpressionSpecialAttributeLookup( CPythonExpressionAttributeLookup 
     kind = "EXPRESSION_SPECIAL_ATTRIBUTE_LOOKUP"
 
     # TODO: Special lookups should be treated somehow different.
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # There is a whole registry dedicated to this.
         return self, None, None

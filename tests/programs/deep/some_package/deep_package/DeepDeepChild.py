@@ -16,6 +16,6 @@
 #     limitations under the License.
 #
 
-print "This is DeepDeepChild talking."
+print( "This is DeepDeepChild talking." )
 
 from .. import DeepBrother

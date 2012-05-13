@@ -144,3 +144,22 @@ def optimizationVictim():
 
 
 optimizationVictim()
+
+def dontOptimizeSideEffects():
+    print "Lets see, if conditional expression in known true values are correctly handled",
+
+    def returnTrue():
+        print "'returnTrue' should be called",
+
+        return True
+
+    def returnFalse():
+        print "'returnFalse' should not be called",
+        return False
+
+    if ( returnTrue() or returnFalse(), ):
+        print "Taken branch as expected"
+    else:
+        print "Bad2"
+
+dontOptimizeSideEffects()

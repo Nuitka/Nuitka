@@ -42,6 +42,8 @@ from nuitka import (
 
 from . import UsageCheck
 
+from nuitka.__past__ import iterItems
+
 lxml = TreeXML.lxml
 
 class NodeCheckMetaClass( type ):
@@ -136,7 +138,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         except:
             detail = "detail raises exception"
 
-        if detail == "":
+        if not detail:
             return "<Node %s>" % self.getDescription()
         else:
             return "<Node %s %s>" % ( self.getDescription(), detail )
@@ -159,7 +161,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         """
         # Virtual method, pylint: disable=R0201
-        return ""
+        return self.getDetails()
 
     def getParent( self ):
         """ Parent of the node. Every node except modules have to have a parent.
@@ -248,7 +250,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
             line = "%s" % self.getSourceReference().getLineNumber()
         )
 
-        for key, value in self.getDetails().iteritems():
+        for key, value in iterItems( self.getDetails() ):
             value = str( value )
 
             if value.startswith( "<" ) and value.endswith( ">" ):
@@ -325,8 +327,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         return ()
 
     def getVisitableNodesNamed( self ):
-        assert self.getVisitableNodes.im_class == self.getVisitableNodesNamed.im_class, self.getVisitableNodes.im_class
-
+        # Virtual method, pylint: disable=R0201
         return ()
 
     def getChildNodesNotTagged( self, tag ):
@@ -352,11 +353,17 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         # Virtual method, pylint: disable=R0201,W0613
         return None
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects( self, constraint_collection ):
         """ Unless we are told otherwise, everything may have a side effect. """
         # Virtual method, pylint: disable=R0201,W0613
 
         return True
+
+    def extractSideEffects( self ):
+        """ Unless defined otherwise, the expression is the side effect. """
+        # Virtual method, pylint: disable=R0201,W0613
+
+        return ( self, )
 
     def mayRaiseException( self, exception_type ):
         """ Unless we are told otherwise, everything may raise everything. """
@@ -375,8 +382,15 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         return False
 
+    def needsLocalsDict( self ):
+        """ Node requires a locals dictionary by provider. """
+
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
     def hasTag( self, tag ):
         return tag in self.__class__.tags
+
 
 class CPythonCodeNodeBase( CPythonNodeBase ):
     def __init__( self, name, code_prefix, source_ref ):
@@ -582,6 +596,39 @@ class CPythonChildrenHaving:
         if new_node is not None:
             new_node.parent = old_node.parent
 
+    def makeCloneAt( self, source_ref ):
+        values = {}
+
+        for key, value in self.child_values.items():
+            assert type( value ) is not list, key
+
+            if value is None:
+                values[ key ] = None
+            elif type( value ) is tuple:
+                values[ key ] = tuple(
+                    v.makeCloneAt(
+                        source_ref = v.getSourceReference()
+                    )
+                    for v in
+                    value
+                )
+            else:
+                values[ key ] = value.makeCloneAt(
+                    value.getSourceReference()
+                )
+
+        values.update( self.getDetails() )
+
+        try:
+            return self.__class__(
+                source_ref = source_ref,
+                **values
+            )
+        except TypeError as e:
+            print( "Problem cloning", self.__class__ )
+
+            raise
+
 
 class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
     """ Mixin for nodes that provide variables for closure takers. """
@@ -642,6 +689,7 @@ class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
 
                 if not usages:
                     del self.providing[ variable.getName() ]
+
 
 class CPythonParameterHavingNodeBase( CPythonClosureGiverNodeBase ):
     def __init__( self, name, code_prefix, parameters, source_ref ):
@@ -752,7 +800,7 @@ class CPythonClosureTaker:
 
 
 class CPythonExpressionMixin:
-    def getValueFriend( self ):
+    def getValueFriend( self, constraint_collection ):
         return self
 
     def isCompileTimeConstant( self ):
@@ -766,9 +814,17 @@ class CPythonExpressionMixin:
         return False
 
     def getCompileTimeConstant( self ):
-        assert self.isCompileTimeConstant(), self
+        assert self.isCompileTimeConstant(), ( self, "asked for compile time constant" )
 
         assert False
+
+    def getTruthValue( self, constraint_collection ):
+        """ Return known truth value. The "None" value indicates unknown. """
+
+        if self.isCompileTimeConstant():
+            return bool( self.getCompileTimeConstant() )
+        else:
+            return None
 
     def isKnownToBeIterable( self, count ):
         """ Can be iterated at all (count is None) or exactly count times.
@@ -780,6 +836,18 @@ class CPythonExpressionMixin:
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
+    def isKnownToBeIterableAtMin( self, count, constraint_collection ):
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
+    def isKnownToBeIterableAtMax( self, count, constraint_collection ):
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
+    def getIterationNext( self, constraint_collection ):
+        # Virtual method, pylint: disable=R0201,W0613
+        return None
+
     def mayProvideReference( self ):
         """ May at run time produce a reference.
 
@@ -788,6 +856,28 @@ class CPythonExpressionMixin:
 
         # Virtual method, pylint: disable=R0201
         return True
+
+    def getIterationLength( self, constraint_collection ):
+        """ Value that "len" or "PyObject_Size" would give, if known.
+
+        Otherwise it is "None" to indicate unknown.
+        """
+
+        # Virtual method, pylint: disable=R0201
+        return None
+
+    def getStrValue( self ):
+        """ Value that "str" or "PyObject_Str" would give, if known.
+
+        Otherwise it is "None" to indicate unknown.
+        """
+
+        return None
+
+    def onRelease( self, constraint_collection ):
+        # print "onRelease", self
+        pass
+
 
 
 class CPythonExpressionSpecBasedComputationMixin( CPythonExpressionMixin ):
@@ -799,6 +889,9 @@ class CPythonExpressionSpecBasedComputationMixin( CPythonExpressionMixin ):
         for value in given_values:
             if not value.isCompileTimeConstant():
                 return self, None, None
+
+        if not self.builtin_spec.isCompileTimeComputable( given_values ):
+            return self, None, None
 
         from .NodeMakingHelpers import getComputationResult
 
@@ -818,6 +911,7 @@ class CPythonExpressionChildrenHavingBase( CPythonChildrenHaving, CPythonNodeBas
             values = values
         )
 
+
 class CPythonExpressionBuiltinSingleArgBase( CPythonExpressionChildrenHavingBase, \
                                              CPythonExpressionSpecBasedComputationMixin ):
     named_children = ( "value", )
@@ -833,7 +927,7 @@ class CPythonExpressionBuiltinSingleArgBase( CPythonExpressionChildrenHavingBase
 
     getValue = CPythonExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         value = self.getValue()
 
         assert self.builtin_spec is not None, self
@@ -842,3 +936,22 @@ class CPythonExpressionBuiltinSingleArgBase( CPythonExpressionChildrenHavingBase
             return self.computeBuiltinSpec( () )
         else:
             return self.computeBuiltinSpec( ( value, ) )
+
+
+class CPythonSideEffectsFromChildrenMixin:
+    def mayHaveSideEffects( self, constraint_collection ):
+        for child in self.getVisitableNodes():
+            if child.mayHaveSideEffects( constraint_collection ):
+                return True
+        else:
+            return False
+
+    def extractSideEffects( self ):
+        # No side effects at all but from the children.
+
+        result = []
+
+        for child in self.getVisitableNodes():
+            result.extend( child.extractSideEffects() )
+
+        return tuple( result )

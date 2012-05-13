@@ -72,9 +72,9 @@ class CPythonExpressionSliceLookup( CPythonExpressionChildrenHavingBase ):
     getUpper = CPythonExpressionChildrenHavingBase.childGetter( "upper" )
     setUpper = CPythonExpressionChildrenHavingBase.childSetter( "upper" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # There is a whole registry dedicated to this.
-        return SliceRegistry.computeSlice( self )
+        return SliceRegistry.computeSlice( self, constraint_collection )
 
     def isKnownToBeIterable( self, count ):
         # TODO: Should ask SlicetRegistry
@@ -101,6 +101,6 @@ class CPythonExpressionSliceObject( CPythonExpressionChildrenHavingBase ):
     getUpper = CPythonExpressionChildrenHavingBase.childGetter( "upper" )
     getStep  = CPythonExpressionChildrenHavingBase.childGetter( "step" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # TODO: Not much to do, potentially simplify to slice instead?
         return self, None, None

@@ -39,11 +39,14 @@ from .NodeBases import (
     CPythonNodeBase
 )
 
-from .NodeMakingHelpers import makeConstantReplacementNode
+from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
+    wrapExpressionWithSideEffects
+)
 
 from nuitka.transform.optimizations import BuiltinOptimization
 
-from nuitka.Utils import getPythonVersion
+from nuitka.Utils import python_version
 
 class CPythonExpressionBuiltinTypeBase( CPythonExpressionBuiltinSingleArgBase ):
     pass
@@ -78,6 +81,26 @@ class CPythonExpressionBuiltinStr( CPythonExpressionBuiltinTypeBase ):
 
     builtin_spec = BuiltinOptimization.builtin_str_spec
 
+    def computeNode( self, constraint_collection ):
+        new_node, change_tags, change_desc = CPythonExpressionBuiltinTypeBase.computeNode(
+            self,
+            constraint_collection
+        )
+
+        if new_node is self:
+            str_value = self.getValue().getStrValue()
+
+            if str_value is not None:
+                new_node = wrapExpressionWithSideEffects(
+                    new_node = str_value,
+                    old_node = self.getValue()
+                )
+
+                change_tags = "new_expression"
+                change_desc = "Predicted str builtin result"
+
+        return new_node, change_tags, change_desc
+
 
 class CPythonExpressionBuiltinIntLongBase( CPythonChildrenHaving, CPythonNodeBase, \
                                            CPythonExpressionSpecBasedComputationMixin ):
@@ -103,7 +126,7 @@ class CPythonExpressionBuiltinIntLongBase( CPythonChildrenHaving, CPythonNodeBas
     getValue = CPythonChildrenHaving.childGetter( "value" )
     getBase = CPythonChildrenHaving.childGetter( "base" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         value = self.getValue()
         base = self.getBase()
 
@@ -128,7 +151,7 @@ class CPythonExpressionBuiltinInt( CPythonExpressionBuiltinIntLongBase ):
     builtin_spec = BuiltinOptimization.builtin_int_spec
 
 
-if getPythonVersion() < 300:
+if python_version < 300:
     class CPythonExpressionBuiltinLong( CPythonExpressionBuiltinIntLongBase ):
         kind = "EXPRESSION_BUILTIN_LONG"
 

@@ -74,16 +74,6 @@ int args_usable_count;
 """
 
 
-function_context_access_template = """
-    // The context of the function.
-    struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)self;
-"""
-
-function_context_unused_template = """\
-    // No context is used.
-"""
-
-
 template_parameter_function_refuses = r"""
 if (unlikely( args_given + kw_size > 0 ))
 {
@@ -125,11 +115,19 @@ if (unlikely( args_given > %(top_level_parameter_count)d ))
 {
     if ( %(top_level_parameter_count)d == 1 )
     {
+#if PYTHON_VERSION < 300
         PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_size );
+#else
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 positional argument (%%" PY_FORMAT_SIZE_T "d given)", args_given );
+#endif
     }
     else
     {
+#if PYTHON_VERSION < 300
         PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_size );
+#else
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d positional arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given );
+#endif
     }
 
     goto error_exit;
@@ -152,7 +150,14 @@ if (unlikely( args_given + kw_size < %(required_parameter_count)d ))
         else
 #endif
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_size );
+            if ( %(top_level_parameter_count)d == %(required_parameter_count)d )
+            {
+                PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(required_parameter_count)d, args_given + kw_size );
+            }
+            else
+            {
+                PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(required_parameter_count)d, args_given + kw_size );
+            }
         }
     }
 

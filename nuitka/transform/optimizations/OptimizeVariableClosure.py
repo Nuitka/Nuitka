@@ -71,8 +71,6 @@ class VariableClosureLookupVisitorPhase2( OptimizationVisitorScopedBase ):
                     )
 
 
-
-
 class VariableClosureLookupVisitorPhase3( OptimizationVisitorScopedBase ):
     def onEnterNode( self, node ):
         if node.isExpressionVariableRef() and node.getVariable() is None:

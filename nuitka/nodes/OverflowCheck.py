@@ -32,20 +32,6 @@
 
 from nuitka.transform import TreeOperations
 
-# TODO: Find a place for this. Potentially as an attribute of nodes themselves.
-def _couldBeNone( node ):
-    if node is None:
-        return True
-    elif node.isExpressionMakeDict():
-        return False
-    elif node.isExpressionBuiltinGlobals() or node.isExpressionBuiltinLocals() or \
-           node.isExpressionBuiltinDir0() or node.isExpressionBuiltinVars():
-        return False
-    else:
-        # assert False, node
-        return True
-
-
 class OverflowCheckVisitor( TreeOperations.VisitorNoopMixin ):
     def __init__( self, checked_node ):
         self.result = False
@@ -61,21 +47,7 @@ class OverflowCheckVisitor( TreeOperations.VisitorNoopMixin ):
 
             raise TreeOperations.ExitVisit
 
-        if node.isExpressionBuiltinExec():
-            if _couldBeNone( node.getGlobals() ):
-                declareOverflow()
-            elif node.getGlobals().isExpressionBuiltinLocals():
-                declareOverflow()
-            elif node.getLocals() is not None and node.getLocals().isExpressionBuiltinLocals():
-                declareOverflow()
-
-        if node.isExpressionBuiltinExecfile():
-            declareOverflow()
-
-        if node.isStatementExecInline():
-            declareOverflow()
-
-        if self.is_class and node.isExpressionBuiltinLocals():
+        if node.needsLocalsDict():
             declareOverflow()
 
     def getResult( self ):

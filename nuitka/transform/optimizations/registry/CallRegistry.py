@@ -52,7 +52,7 @@ def registerCallHandler( kind, handler ):
     _call_handlers[ kind ] = handler
 
 
-def computeCall( call_node ):
+def computeCall( call_node, constraint_collection ):
     called = call_node.getCalled()
 
     if called.kind in _call_handlers:
@@ -63,4 +63,7 @@ def computeCall( call_node ):
 
         return result
     else:
+        # TODO: Arguments if mutable, should be removed too.
+        constraint_collection.removeKnowledge( called )
+
         return call_node, None, None

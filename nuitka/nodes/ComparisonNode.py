@@ -75,7 +75,7 @@ class CPythonExpressionComparison( CPythonExpressionChildrenHavingBase ):
     def getSimulator( self ):
         return PythonOperators.all_comparison_functions[ self.comparator ]
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         left, right = self.getOperands()
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():

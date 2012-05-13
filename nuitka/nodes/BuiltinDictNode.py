@@ -82,7 +82,7 @@ class CPythonExpressionBuiltinDict( CPythonExpressionChildrenHavingBase ):
 
         return True
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         if self.hasOnlyConstantArguments():
             pos_arg = self.getPositionalArgument()
 

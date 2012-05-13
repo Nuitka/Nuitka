@@ -38,15 +38,13 @@ from .NodeMakingHelpers import getComputationResult
 
 from nuitka import PythonOperators
 
-class CPythonExpressionOperationBase( CPythonExpressionChildrenHavingBase ):
-    named_children = ( "operands", )
+import math
 
-    def __init__( self, operator, simulator, operands, source_ref ):
+class CPythonExpressionOperationBase( CPythonExpressionChildrenHavingBase ):
+    def __init__( self, operator, simulator, values, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
-            values     = {
-                "operands" : operands
-            },
+            values     = values,
             source_ref = source_ref
         )
 
@@ -66,8 +64,6 @@ class CPythonExpressionOperationBase( CPythonExpressionChildrenHavingBase ):
     def getSimulator( self ):
         return self.simulator
 
-    getOperands = CPythonExpressionChildrenHavingBase.childGetter( "operands" )
-
     def isKnownToBeIterable( self, count ):
         # TODO: Could be true, if the arguments said so
         return None
@@ -76,6 +72,8 @@ class CPythonExpressionOperationBase( CPythonExpressionChildrenHavingBase ):
 class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
     kind = "EXPRESSION_OPERATION_BINARY"
 
+    named_children = ( "left", "right" )
+
     def __init__( self, operator, left, right, source_ref ):
         assert left.isExpression() and right.isExpression, ( left, right )
 
@@ -83,11 +81,14 @@ class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
             self,
             operator   = operator,
             simulator  = PythonOperators.binary_operator_functions[ operator ],
-            operands   = ( left, right ),
+            values     = {
+                "left"  : left,
+                "right" : right
+            },
             source_ref = source_ref
         )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         operator = self.getOperator()
         operands = self.getOperands()
 
@@ -96,6 +97,23 @@ class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
             left_value = left.getCompileTimeConstant()
             right_value = right.getCompileTimeConstant()
+
+            if operator == "Mult" and right.isNumberConstant():
+                iter_length = left.getIterationLength( constraint_collection )
+
+                if iter_length is not None:
+                    if iter_length * right_value > 256:
+                        return self, None, None
+
+                if left.isNumberConstant():
+                    if left.isIndexConstant() and right.isIndexConstant():
+                        # Estimate with logarithm, if the result of number calculations is
+                        # computable with acceptable effort, otherwise, we will have to do
+                        # it at runtime.
+
+                        if left_value != 0 and right_value != 0:
+                            if math.log10( abs( left_value ) ) + math.log10( abs( right_value ) ) > 20:
+                                return self, None, None
 
             return getComputationResult(
                 node        = self,
@@ -108,9 +126,17 @@ class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
         else:
             return self, None, None
 
+    def getOperands( self ):
+        return ( self.getLeft(), self.getRight() )
+
+    getLeft = CPythonExpressionChildrenHavingBase.childGetter( "left" )
+    getRight = CPythonExpressionChildrenHavingBase.childGetter( "right" )
+
 
 class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
     kind = "EXPRESSION_OPERATION_UNARY"
+
+    named_children = ( "operand", )
 
     def __init__( self, operator, operand, source_ref ):
         assert operand.isExpression(), operand
@@ -119,11 +145,13 @@ class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
             self,
             operator   = operator,
             simulator  = PythonOperators.unary_operator_functions[ operator ],
-            operands   = ( operand, ),
+            values     = {
+                "operand" : operand
+            },
             source_ref = source_ref
         )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         operator = self.getOperator()
         operand = self.getOperand()
 
@@ -139,11 +167,10 @@ class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
         else:
             return self, None, None
 
-    def getOperand( self ):
-        operands = self.getOperands()
+    getOperand = CPythonExpressionChildrenHavingBase.childGetter( "operand" )
 
-        assert len( operands ) == 1
-        return operands[ 0 ]
+    def getOperands( self ):
+        return ( self.getOperand(), )
 
 
 class CPythonExpressionOperationNOT( CPythonExpressionOperationUnary ):
@@ -156,6 +183,39 @@ class CPythonExpressionOperationNOT( CPythonExpressionOperationUnary ):
             operand    = operand,
             source_ref = source_ref
         )
+
+    def getTruthValue( self, constraint_collection ):
+        result = self.getOperand().getTruthValue( constraint_collection )
+
+        return None if result is None else not result
+
+    def mayHaveSideEffects( self, constraint_collection ):
+        operand = self.getOperand()
+
+        if operand.mayHaveSideEffects( constraint_collection ):
+            return True
+
+        # TODO: Find the common ground of these, and make it an expression method.
+        if operand.isExpressionMakeSequence():
+            return False
+
+        if operand.isExpressionMakeDict():
+            return False
+
+        return True
+
+    def extractSideEffects( self ):
+        operand = self.getOperand()
+
+        # TODO: Find the common ground of these, and make it an expression method.
+        if operand.isExpressionMakeSequence():
+            return self.getOperand().extractSideEffects()
+
+        if operand.isExpressionMakeDict():
+            return self.getOperand().extractSideEffects()
+
+        return ( self, )
+
 
 class CPythonExpressionOperationBinaryInplace( CPythonExpressionOperationBinary ):
     kind = "EXPRESSION_OPERATION_BINARY_INPLACE"
@@ -171,6 +231,6 @@ class CPythonExpressionOperationBinaryInplace( CPythonExpressionOperationBinary 
             source_ref = source_ref
         )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # TODO: Inplace operation requires extra care to avoid corruption of values.
         return self, None, None

@@ -44,9 +44,9 @@ NUITKA_MAY_BE_UNUSED static Py_ssize_t CONVERT_TO_INDEX( PyObject *value )
     {
         Py_ssize_t result = PyNumber_AsSsize_t( value, NULL );
 
-        if (unlikely( result == -1 && PyErr_Occurred() ))
+        if (unlikely( result == -1 ))
         {
-            throw _PythonException();
+            THROW_IF_ERROR_OCCURED();
         }
 
         return result;

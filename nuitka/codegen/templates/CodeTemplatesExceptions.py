@@ -47,6 +47,10 @@ catch ( _PythonException &_exception )
         _exception.addTraceback( frame_guard.getFrame() );
     }
 
+#if PYTHON_VERSION > 300
+    PythonExceptionStacker exception_restorer;
+#endif
+
     _exception.toExceptionHandler();
 
     frame_guard.detachFrame();
@@ -54,36 +58,6 @@ catch ( _PythonException &_exception )
 %(exception_code)s
 }"""
 
-try_except_else_template = """\
-_frame_exception_keeper.preserveExistingException();
-bool _caught_%(except_count)d = false;
-try
-{
-%(tried_code)s
-}
-catch ( _PythonException &_exception )
-{
-    _caught_%(except_count)d = true;
-
-    if ( !_exception.hasTraceback() )
-    {
-        _exception.setTraceback( %(tb_making)s );
-    }
-    else if ( traceback == false )
-    {
-        _exception.addTraceback( frame_guard.getFrame() );
-    }
-
-    _exception.toExceptionHandler();
-
-    frame_guard.detachFrame();
-
-%(exception_code)s
-}
-if ( _caught_%(except_count)d == false )
-{
-%(else_code)s
-}"""
 
 try_except_reraise_unmatched_template = """\
 else

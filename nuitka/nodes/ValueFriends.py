@@ -46,6 +46,10 @@ class ValueFriendBase( object ):
     def __eq__( self, other ):
         raise AssertionError( self, other )
 
+    def onRelease( self, constraint_collection ):
+        # print "onRelease", self
+        pass
+
     def isKnownToBeIterable( self, count ):
         # Virtual method, pylint: disable=R0201,W0613
         return None
@@ -53,6 +57,8 @@ class ValueFriendBase( object ):
     def isBuiltinNameRef( self ):
         # Virtual method, pylint: disable=R0201
         return False
+
+
 
 class ValueFriendChooseOne( ValueFriendBase ):
     def __init__( self, *choices ):
@@ -63,7 +69,7 @@ class ValueFriendChooseOne( ValueFriendBase ):
 
         ValueFriendBase.__init__( self )
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects( self, constraint_collection ):
         for choice in self.choices:
             if choice.mayHaveSideEffects():
                 return True

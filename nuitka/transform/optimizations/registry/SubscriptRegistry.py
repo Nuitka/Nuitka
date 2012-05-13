@@ -51,10 +51,17 @@ def registerSubscriptHandler( kind, handler ):
     _subscript_handlers[ kind ] = handler
 
 
-def computeSubscript( source_node ):
+def computeSubscript( source_node, constraint_collection ):
     lookup_source = source_node.getLookupSource()
 
     if lookup_source.kind in _subscript_handlers:
-        return _subscript_handlers[ lookup_source.kind ]( source_node, lookup_source, source_node.getSubscript() )
+        return _subscript_handlers[ lookup_source.kind ](
+            source_node,
+            lookup_source,
+            source_node.getSubscript(),
+            constraint_collection
+        )
     else:
+        constraint_collection.removeKnowledge( source_node )
+
         return source_node, None, None

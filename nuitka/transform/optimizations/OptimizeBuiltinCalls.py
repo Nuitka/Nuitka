@@ -34,6 +34,8 @@ supported builtin types.
 
 from .registry import CallRegistry
 
+from nuitka.Utils import python_version
+
 from nuitka.nodes.BuiltinIteratorNodes import (
     CPythonExpressionBuiltinNext1,
     CPythonExpressionBuiltinNext2,
@@ -61,10 +63,15 @@ from nuitka.nodes.BuiltinDecodingNodes import (
 )
 from nuitka.nodes.ExecEvalNodes import (
     CPythonExpressionBuiltinEval,
-    CPythonExpressionBuiltinExec,
-    CPythonExpressionBuiltinExecfile,
+
     CPythonStatementExec
 )
+
+if python_version < 300:
+    from nuitka.nodes.ExecEvalNodes import CPythonExpressionBuiltinExecfile
+else:
+    from nuitka.nodes.ExecEvalNodes import CPythonExpressionBuiltinExec
+
 from nuitka.nodes.GlobalsLocalsNodes import (
     CPythonExpressionBuiltinGlobals,
     CPythonExpressionBuiltinLocals,
@@ -79,7 +86,13 @@ from nuitka.nodes.OperatorNodes import CPythonExpressionOperationUnary
 from nuitka.nodes.ConstantRefNode import CPythonExpressionConstantRef
 from nuitka.nodes.BuiltinDictNode import CPythonExpressionBuiltinDict
 from nuitka.nodes.BuiltinOpenNode import CPythonExpressionBuiltinOpen
-from nuitka.nodes.BuiltinRangeNode import CPythonExpressionBuiltinRange
+from nuitka.nodes.BuiltinRangeNode import (
+    CPythonExpressionBuiltinRange0,
+    CPythonExpressionBuiltinRange1,
+    CPythonExpressionBuiltinRange2,
+    CPythonExpressionBuiltinRange3
+)
+
 from nuitka.nodes.BuiltinVarsNode import CPythonExpressionBuiltinVars
 from nuitka.nodes.ImportNodes import CPythonExpressionBuiltinImport
 from nuitka.nodes.TypeNode import CPythonExpressionBuiltinType1
@@ -93,8 +106,6 @@ from nuitka.nodes.NodeMakingHelpers import (
 
 
 from nuitka.transform.optimizations import BuiltinOptimization
-
-from nuitka.Utils import getPythonVersion
 
 def dir_extractor( node ):
     # Only treat the empty dir() call, leave the others alone for now.
@@ -186,17 +197,17 @@ def dict_extractor( node ):
     def wrapExpressionBuiltinDictCreation( positional_args, dict_star_arg, source_ref ):
         if len( positional_args ) > 1:
             return CPythonExpressionCall(
-                called_expression = makeRaiseExceptionReplacementExpressionFromInstance(
+                called          = makeRaiseExceptionReplacementExpressionFromInstance(
                     expression     = node,
                     exception      = TypeError(
                         "dict expected at most 1 arguments, got %d" % len( positional_args )
                     )
                 ),
-                positional_args   = positional_args,
-                list_star_arg     = None,
-                dict_star_arg     = None,
-                pairs             = dict_star_arg,
-                source_ref        = source_ref
+                positional_args = positional_args,
+                list_star_arg   = None,
+                dict_star_arg   = None,
+                pairs           = dict_star_arg,
+                source_ref      = source_ref
             )
 
         return CPythonExpressionBuiltinDict(
@@ -261,9 +272,19 @@ def repr_extractor( node ):
     )
 
 def range_extractor( node ):
+    def selectRangeBuiltin( low, high, step, source_ref ):
+        if low is None:
+            return CPythonExpressionBuiltinRange0( source_ref )
+        elif high is None:
+            return CPythonExpressionBuiltinRange1( low, source_ref )
+        elif step is None:
+            return CPythonExpressionBuiltinRange2( low, high, source_ref )
+        else:
+            return CPythonExpressionBuiltinRange3( low, high, step, source_ref )
+
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
-        builtin_class = CPythonExpressionBuiltinRange,
+        builtin_class = selectRangeBuiltin,
         builtin_spec  = BuiltinOptimization.builtin_range_spec
     )
 
@@ -316,7 +337,7 @@ def int_extractor( node ):
         builtin_spec  = BuiltinOptimization.builtin_int_spec
     )
 
-if getPythonVersion() < 300:
+if python_version < 300:
     from nuitka.nodes.BuiltinTypeNodes import CPythonExpressionBuiltinLong
 
     def long_extractor( node ):
@@ -353,7 +374,9 @@ def locals_extractor( node ):
 def execfile_extractor( node ):
     def wrapExpressionBuiltinExecfileCreation( filename, globals_arg, locals_arg, source_ref ):
 
-        if node.getParentVariableProvider().isExpressionClassBody():
+        provider = node.getParentVariableProvider()
+
+        if provider.isExpressionClassBody():
             # In a case, the copy-back must be done and will only be done correctly by
             # the code for exec statements.
 
@@ -361,9 +384,12 @@ def execfile_extractor( node ):
         else:
             use_call = CPythonExpressionBuiltinExecfile
 
+        if provider.isExpressionFunctionBody():
+            provider.markAsExecContaining()
+
         return use_call(
             source_code = CPythonExpressionCall(
-                called_expression = CPythonExpressionAttributeLookup(
+                called          = CPythonExpressionAttributeLookup(
                     expression     = CPythonExpressionBuiltinOpen(
                         filename   = filename,
                         mode       = CPythonExpressionConstantRef(
@@ -376,11 +402,11 @@ def execfile_extractor( node ):
                     attribute_name = "read",
                     source_ref     = source_ref
                 ),
-                positional_args  = (),
-                pairs            = (),
-                list_star_arg    = None,
-                dict_star_arg    = None,
-                source_ref       = source_ref
+                positional_args = (),
+                pairs           = (),
+                list_star_arg   = None,
+                dict_star_arg   = None,
+                source_ref      = source_ref
             ),
             globals_arg = globals_arg,
             locals_arg  = locals_arg,
@@ -454,7 +480,7 @@ _dispatch_dict = {
     "open"       : open_extractor
 }
 
-if getPythonVersion() < 300:
+if python_version < 300:
     _dispatch_dict[ "long" ] = long_extractor
 
 

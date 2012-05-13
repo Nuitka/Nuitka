@@ -33,14 +33,22 @@ These are mostly used to look up the Python C/API from operations or a wrapper u
 """
 
 binary_operator_codes = {
-    "Add"       : "PyNumber_Add",
-    "Sub"       : "PyNumber_Subtract",
-    "Pow"       : "PyNumber_Power",
-    "Mult"      : "PyNumber_Multiply",
-    "Div"       : "PyNumber_Divide",
+# Those commented out in this section have fully specialized variants already.
+
+#    "Add"       : "PyNumber_Add",
+#    "Sub"       : "PyNumber_Subtract",
+#    "Div"       : "PyNumber_Divide",
+#    "Mult"      : "PyNumber_Multiply",
+#    "Mod"       : "PyNumber_Remainder",
+# These have their own variants only to make sure the generic code is inlined
+# but the CPython code is not inlined.
+
+#    "Pow"       : "PyNumber_Power",
+#    "IPow"      : "PyNumber_InPlacePower",
+
+# The others are generic code and would be faster if they had a specialized variant too.
     "FloorDiv"  : "PyNumber_FloorDivide",
     "TrueDiv"   : "PyNumber_TrueDivide",
-    "Mod"       : "PyNumber_Remainder",
     "LShift"    : "PyNumber_Lshift",
     "RShift"    : "PyNumber_Rshift",
     "BitAnd"    : "PyNumber_And",
@@ -48,7 +56,6 @@ binary_operator_codes = {
     "BitXor"    : "PyNumber_Xor",
     "IAdd"      : "PyNumber_InPlaceAdd",
     "ISub"      : "PyNumber_InPlaceSubtract",
-    "IPow"      : "PyNumber_InPlacePower",
     "IMult"     : "PyNumber_InPlaceMultiply",
     "IDiv"      : "PyNumber_InPlaceDivide",
     "IFloorDiv" : "PyNumber_InPlaceFloorDivide",

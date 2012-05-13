@@ -48,9 +48,7 @@ import pickletools
 
 from logging import warning
 
-python_version = Utils.getPythonVersion()
-
-if python_version >= 300:
+if Utils.python_version >= 300:
     # Python3: The protocol 2 outputs bytes that I don't know how to covert to "str",
     # which protocol 0 doesn't, so stay with it. TODO: Use more efficient protocol version
     # instead.

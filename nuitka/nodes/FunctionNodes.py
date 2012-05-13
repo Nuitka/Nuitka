@@ -48,7 +48,7 @@ from .IndicatorMixins import (
     MarkGeneratorIndicator
 )
 
-from nuitka import Variables
+from nuitka import Variables, Utils
 
 class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavingNodeBase, \
                                      CPythonClosureTaker, MarkContainsTryExceptIndicator, \
@@ -78,7 +78,7 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
             code_prefix = "listcontr"
             name = ""
 
-            self.local_locals = False
+            self.local_locals = Utils.python_version >= 300
         else:
             self.local_locals = True
 
@@ -130,7 +130,9 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     def getDetails( self ):
         return {
             "name"       : self.getFunctionName(),
-            "parameters" : self.getParameters()
+            "parameters" : self.getParameters(),
+            "provider"   : self.provider,
+            "doc"        : self.doc
         }
 
     def getDetail( self ):
@@ -203,12 +205,16 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         return result
 
     def getVariableForClosure( self, variable_name ):
+        # print( "createProvidedVariable", self, variable_name )
+
         if self.hasProvidedVariable( variable_name ):
             return self.getProvidedVariable( variable_name )
         else:
             return self.provider.getVariableForClosure( variable_name )
 
     def createProvidedVariable( self, variable_name ):
+        # print( "createProvidedVariable", self, variable_name )
+
         if self.local_locals:
             return Variables.LocalVariable(
                 owner         = self,
@@ -231,13 +237,34 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     def needsCreation( self ):
         return not self.parent.isExpressionFunctionCall()
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # Function body is quite irreplacable.
         return self, None, None
 
     def isCompileTimeConstant( self ):
         # TODO: It's actually pretty much compile time accessible mayhaps.
         return None
+
+    def mayHaveSideEffects( self, constraint_collection ):
+        # The function definition has no side effects, calculating the defaults would be,
+        # but that is done outside of this.
+        return False
+
+    def makeCloneAt( self, source_ref ):
+        result = self.__class__(
+            provider   = self.provider,
+            name       = self.name,
+            doc        = self.name,
+            # TODO: Clone parameters too, when we start to mutate them.
+            parameters = self.parameters,
+            source_ref =  source_ref
+        )
+
+        result.setBody(
+            self.getBody().makeCloneAt( source_ref )
+        )
+
+        return result
 
 
 class CPythonExpressionFunctionBodyDefaulted( CPythonExpressionChildrenHavingBase ):
@@ -258,7 +285,7 @@ class CPythonExpressionFunctionBodyDefaulted( CPythonExpressionChildrenHavingBas
     getFunctionBody = CPythonExpressionChildrenHavingBase.childGetter( "function_body" )
     getDefaults = CPythonExpressionChildrenHavingBase.childGetter( "defaults" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # Function body is quite irreplacable.
         return self, None, None
 
@@ -284,7 +311,7 @@ class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         return self, None, None
 
     getFunctionBody = CPythonExpressionChildrenHavingBase.childGetter( "function_body" )

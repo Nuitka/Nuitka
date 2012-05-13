@@ -174,9 +174,11 @@ class Variable:
         return self.getName()
 
     def getDeclarationTypeCode( self ):
+        # Abstract method, pylint: disable=R0201
         assert False
 
     def getCodeName( self ):
+        # Abstract method, pylint: disable=R0201
         assert False
 
 
@@ -204,9 +206,18 @@ class VariableReferenceBase( Variable ):
     def getReferenced( self ):
         return self.variable
 
-    # Compare like the referenced variable.
     def __cmp__( self, other ):
-        return cmp( self.getReferenced(), other.getReferenced() )
+        # Compare the referenced variable, so de-reference until it's no more possible.
+
+        while other.getReferenced() is not None:
+            other = other.getReferenced()
+
+        this = self
+
+        while this.getReferenced() is not None:
+            this = this.getReferenced()
+
+        return cmp( this, other )
 
     def __hash__( self ):
         return hash( self.getReferenced() )
@@ -431,7 +442,7 @@ class ModuleVariable( Variable ):
     reference_class = ModuleVariableReference
 
     def __init__( self, module, variable_name ):
-        assert type( variable_name ) is str, variable_name
+        assert type( variable_name ) is str, repr( variable_name )
 
         Variable.__init__( self, owner = module, variable_name = variable_name )
         self.module = module

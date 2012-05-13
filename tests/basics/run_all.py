@@ -70,10 +70,15 @@ for filename in sorted( os.listdir( "." ) ):
     if filename.endswith( "27.py" ) and python_version.startswith( b"2.6" ):
         continue
 
+    # The overflow functions test gives syntax error on Python 3.x and can be ignored.
+    if filename == "OverflowFunctions.py" and python_version.startswith( b"3" ):
+        continue
+
     path = filename
 
     if not active and start_at in ( filename, path ):
         active = True
+
 
     extra_flags = [ "expect_success" ]
 
@@ -88,7 +93,7 @@ for filename in sorted( os.listdir( "." ) ):
     if active:
         # Temporary measure, until Python3 is better supported, disable some tests, so
         # this can be used to monitor the success of existing ones and have no regression for it.
-        if os.environ[ "PYTHON" ] == "python3.2" and filename[:-3] in ( "Builtins", "Classes", "ExceptionRaising", "ExecEval", "Functions", "Looping", "OverflowFunctions", "ParameterErrors", "Unicode", "GeneratorExpressions" ):
+        if os.environ[ "PYTHON" ] == "python3.2" and filename[:-3] in ( "ExecEval", "Unicode", ):
             print( "Skipping malfunctional test", filename )
             continue
 

@@ -62,7 +62,7 @@ class CPythonExpressionBuiltinRefBase( CPythonNodeBase, CPythonExpressionMixin )
     def getBuiltinName( self ):
         return self.builtin_name
 
-    def mayHaveSideEffects( self ):
+    def mayHaveSideEffects( self, constraint_collection ):
         # Referencing the builtin name has no side effect
         return False
 
@@ -90,7 +90,7 @@ class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
     def getCompileTimeConstant( self ):
         return __builtins__[ self.builtin_name ]
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         quick_names = {
             "None"      : None,
             "True"      : True,
@@ -143,7 +143,7 @@ class CPythonExpressionBuiltinAnonymousRef( CPythonExpressionBuiltinRefBase ):
     def getCompileTimeConstant( self ):
         return builtin_anon_names[ self.builtin_name ]
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         return self, None, None
 
 
@@ -180,5 +180,5 @@ class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
     def getCompileTimeConstant( self ):
         return builtin_exception_values[ self.builtin_name ]
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         return self, None, None

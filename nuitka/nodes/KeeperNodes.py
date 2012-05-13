@@ -65,9 +65,12 @@ class CPythonExpressionAssignmentTempKeeper( CPythonExpressionChildrenHavingBase
 
     getAssignSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
 
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # TODO: Nothing to do here? Maybe if the assignment target is unused, it could
         # replace itself with source.
+
+        # TODO: A real variable should be the link, then we could tell if it's used at
+        # all.
         return self, None, None
 
 
@@ -77,10 +80,13 @@ class CPythonExpressionTempKeeperRef( CPythonNodeBase, CPythonExpressionMixin ):
     def __init__( self, linked, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
+        # TODO: A real variable should be the link.
         self.linked = linked
 
     def getDetails( self ):
-        return { "name" : self.getVariableName() }
+        return {
+            "name" : self.getVariableName()
+        }
 
     def getDetail( self ):
         return self.getVariableName()
@@ -88,10 +94,7 @@ class CPythonExpressionTempKeeperRef( CPythonNodeBase, CPythonExpressionMixin ):
     def getVariableName( self ):
         return self.linked.getVariableName()
 
-    def getLinkedKeeperAssignment( self ):
-        return self.linked
-
-    def computeNode( self ):
+    def computeNode( self, constraint_collection ):
         # Nothing to do here.
         return self, None, None
 

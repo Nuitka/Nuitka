@@ -50,7 +50,7 @@ def registerSliceHandler( kind, handler ):
     _slice_handlers[ kind ] = handler
 
 
-def computeSlice( source_node ):
+def computeSlice( source_node, constraint_collection ):
     lookup_source = source_node.getLookupSource()
 
     if lookup_source.kind in _slice_handlers:
@@ -61,4 +61,6 @@ def computeSlice( source_node ):
             source_node.getUpper()
         )
     else:
+        constraint_collection.removeKnowledge( source_node )
+
         return source_node, None, None

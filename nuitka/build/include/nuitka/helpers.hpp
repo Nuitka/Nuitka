@@ -143,35 +143,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION( binary_api api, PyObject
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD( PyObject *operand1, PyObject *operand2 )
-{
-    assertObject( operand1 );
-    assertObject( operand2 );
+#include "helper/operations.hpp"
 
-    PyObject *result = PyNumber_Add( operand1, operand2 );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_MUL( PyObject *operand1, PyObject *operand2 )
-{
-    assertObject( operand1 );
-    assertObject( operand2 );
-
-    PyObject *result = PyNumber_Multiply( operand1, operand2 );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
 
 typedef PyObject *(unary_api)( PyObject * );
 
@@ -264,9 +237,9 @@ NUITKA_MAY_BE_UNUSED static long FROM_LONG( PyObject *value )
 {
     long result = PyInt_AsLong( value );
 
-    if (unlikely( result == -1 && PyErr_Occurred() ))
+    if (unlikely( result == -1 ))
     {
-        throw _PythonException();
+        THROW_IF_ERROR_OCCURED();
     }
 
     return result;
@@ -316,9 +289,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT( PyObject *value, PyObject *base )
 {
     int base_int = PyInt_AsLong( base );
 
-    if (unlikely( base_int == -1 && PyErr_Occurred() ))
+    if (unlikely( base_int == -1 ))
     {
-        throw _PythonException();
+        THROW_IF_ERROR_OCCURED();
     }
 
     char *value_str = Nuitka_String_AsString( value );
@@ -354,9 +327,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG( PyObject *value, PyObject *base )
 {
     int base_int = PyInt_AsLong( base );
 
-    if (unlikely( base_int == -1 && PyErr_Occurred() ))
+    if (unlikely( base_int == -1 ))
     {
-        throw _PythonException();
+        THROW_IF_ERROR_OCCURED();
     }
 
     char *value_str = Nuitka_String_AsString( value );
@@ -521,17 +494,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 
     if (unlikely( result == NULL ))
     {
-        if ( PyErr_Occurred() )
-        {
-            if ( PyErr_ExceptionMatches( PyExc_StopIteration ))
-            {
-                PyErr_Clear();
-            }
-            else
-            {
-                throw _PythonException();
-            }
-        }
+        THROW_IF_ERROR_OCCURED_NOT( PyExc_StopIteration );
     }
     else
     {
@@ -549,7 +512,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
 
     if (unlikely( result == NULL ))
     {
-        if ( !PyErr_Occurred() )
+        // TODO: Throwing an error unless another exists, should be offered too.
+        if ( !ERROR_OCCURED() )
         {
             PyErr_SetNone( PyExc_StopIteration );
         }
@@ -574,7 +538,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObjec
 
     if (unlikely( result == NULL ))
     {
-        if ( PyErr_Occurred() )
+        if ( ERROR_OCCURED() )
         {
             if ( PyErr_ExceptionMatches( PyExc_StopIteration ))
             {
@@ -610,7 +574,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, in
 
     if (unlikely( result == NULL ))
     {
-        if (unlikely( !PyErr_Occurred() ))
+        if (unlikely( !ERROR_OCCURED() ))
         {
             if ( seq_size_so_far == 1 )
             {
@@ -639,7 +603,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_PARAMETER_NEXT( PyObject *it
 
     if (unlikely( result == NULL ))
     {
-        if (unlikely( !PyErr_Occurred() ))
+        if (unlikely( !ERROR_OCCURED() ))
         {
             if ( seq_size_so_far == 1 )
             {
@@ -673,17 +637,7 @@ NUITKA_MAY_BE_UNUSED static inline void UNPACK_ITERATOR_CHECK( PyObject *iterato
 
     if (likely( attempt == NULL ))
     {
-        if ( PyErr_Occurred() )
-        {
-            if (likely( PyErr_ExceptionMatches( PyExc_StopIteration ) ))
-            {
-                PyErr_Clear();
-            }
-            else
-            {
-                throw _PythonException();
-            }
-        }
+        THROW_IF_ERROR_OCCURED_NOT( PyExc_StopIteration );
     }
     else
     {
@@ -707,7 +661,7 @@ NUITKA_MAY_BE_UNUSED static inline bool UNPACK_PARAMETER_ITERATOR_CHECK( PyObjec
 
     if (likely( attempt == NULL ))
     {
-        if ( PyErr_Occurred() )
+        if ( ERROR_OCCURED() )
         {
             if (likely( PyErr_ExceptionMatches( PyExc_StopIteration ) ))
             {
@@ -891,10 +845,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
             }
         }
 
-        if (unlikely( PyErr_Occurred() && !PyErr_ExceptionMatches( PyExc_AttributeError ) ))
-        {
-            throw _PythonException();
-        }
+        THROW_IF_ERROR_OCCURED_NOT( PyExc_AttributeError );
 
         // Finally allow a __getattr__ to handle it or else it's an error.
         if ( source_instance->in_class->cl_getattr == NULL )
@@ -905,16 +856,11 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
         }
         else
         {
-            PyObject *result = PyObject_Call(
+            PyObject *result = CALL_FUNCTION(
                 source_instance->in_class->cl_getattr,
                 PyObjectTemporary( MAKE_TUPLE2( source, attr_name ) ).asObject(),
                 NULL
             );
-
-            if (unlikely( result == NULL ))
-            {
-                throw _PythonException();
-            }
 
             assertObject( result );
 
@@ -1033,16 +979,11 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
     {
         if ( target_instance->in_class->cl_setattr != NULL )
         {
-            PyObject *result = PyObject_Call(
+            PyObject *result = CALL_FUNCTION(
                 target_instance->in_class->cl_setattr,
                 PyObjectTemporary( MAKE_TUPLE3( target, attr_name, value ) ).asObject(),
                 NULL
             );
-
-            if (unlikely( result == NULL ))
-            {
-                throw _PythonException();
-            }
 
             Py_DECREF( result );
         }
@@ -1230,13 +1171,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject 
 
 #include "nuitka/builtins.hpp"
 
-#include "nuitka/frameguards.hpp"
+#include "nuitka/frame_guards.hpp"
 
 #include "nuitka/variables_parameters.hpp"
 #include "nuitka/variables_locals.hpp"
 #include "nuitka/variables_shared.hpp"
 
-extern PyModuleObject *_module_builtin;
+extern PyModuleObject *module_builtin;
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LOCALS_DICT( void )
 {
@@ -1459,7 +1400,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
     // Set the __builtins__ in globals, it is expected to be present.
     if ( PyDict_GetItemString( globals, (char *)"__builtins__" ) == NULL )
     {
-        if ( PyDict_SetItemString( globals, (char *)"__builtins__", (PyObject *)_module_builtin ) == -1 )
+        if ( PyDict_SetItemString( globals, (char *)"__builtins__", (PyObject *)module_builtin ) == -1 )
         {
             throw _PythonException();
         }
@@ -1483,7 +1424,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
 extern PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module );
 
 // Create a code object for the given filename and function name
-extern PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, bool is_generator = false );
+extern PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, bool is_generator );
 
 #include "nuitka/importing.hpp"
 
@@ -1502,15 +1443,25 @@ extern void patchInspectModule( void );
 #define _DEBUG_UNFREEZER 0
 #define _DEBUG_REFRAME 0
 
-#define MAKE_CLASS( metaclass_global, class_name, bases, class_dict ) _MAKE_CLASS( EVAL_ORDERED_4( metaclass_global, class_name, bases, class_dict ) )
+#define MAKE_CLASS( metaclass_global, metaclass_class, class_name, bases, class_dict ) _MAKE_CLASS( EVAL_ORDERED_5( metaclass_global, metaclass_class, class_name, bases, class_dict ) )
 
 
-NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_CLASS( EVAL_ORDERED_4( PyObject *metaclass_global, PyObject *class_name, PyObject *bases, PyObject *class_dict ) )
+NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_CLASS( EVAL_ORDERED_5( PyObject *metaclass_global, PyObject *metaclass_class, PyObject *class_name, PyObject *bases, PyObject *class_dict ) )
 {
     // This selection is dynamic, although it is something that might be determined at
     // compile time already in many cases, and therefore should be a function that is
     // built of nodes.
-    PyObject *metaclass = PyDict_GetItemString( class_dict, "__metaclass__" );
+#if PYTHON_VERSION < 300
+    PyObject *metaclass;
+
+    if ( metaclass_class != NULL )
+    {
+        metaclass = metaclass_class;
+    }
+    else
+    {
+        metaclass = PyDict_GetItemString( class_dict, "__metaclass__" );
+    }
 
     // Prefer the metaclass entry of the new class, otherwise search the base classes for
     // their metaclass.
@@ -1520,6 +1471,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_CLASS( EVAL_ORDERED_4( PyObject *met
         Py_INCREF( metaclass );
     }
     else
+#else
+    PyObject *metaclass = metaclass_class;
+
+    if ( metaclass == NULL )
+#endif
     {
         assertObject( bases );
 
@@ -1562,7 +1518,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_CLASS( EVAL_ORDERED_4( PyObject *met
 
     Py_DECREF( metaclass );
 
-    if ( result == NULL )
+    if (unlikely( result == NULL ))
     {
         throw _PythonException();
     }

@@ -34,14 +34,21 @@ from .OptimizeBase import OptimizationVisitorBase
 
 from ..TreeOperations import RestartVisit
 
-from nuitka.nodes.NodeMakingHelpers import (
-    convertRaiseExceptionExpressionRaiseExceptionStatement,
-    makeStatementsSequenceReplacementNode
-)
+from nuitka.nodes.SideEffectNode import CPythonExpressionSideEffects
+
+from nuitka.nodes.ExceptionNodes import CPythonStatementRaiseException
+
+from nuitka.nodes.StatementNodes import CPythonStatementExpressionOnly
+
+from nuitka.nodes.NodeMakingHelpers import makeStatementsSequenceReplacementNode
+
 
 class OptimizeRaisesVisitor( OptimizationVisitorBase ):
     def onEnterNode( self, node ):
         if node.isExpressionRaiseException():
+            while node.parent.isExpressionSideEffects():
+                node = node.parent
+
             if node.parent.isStatementPrint():
                 self.trimEvaluation(
                     node = node.parent
@@ -62,77 +69,10 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
                 self.trimEvaluation(
                     node = node.parent
                 )
-        elif node.isStatementRaiseException():
-            if node.parent.isStatementsSequence():
-                statements = node.parent.getStatements()
-
-                if node is not statements[-1]:
-                    node.parent.trimStatements( node )
-                    statements = node.parent.getStatements()
-
-                    self.signalChange(
-                        "new_raise new_statements",
-                        node.getSourceReference(),
-                        "Removed unreachable statements from statement sequence."
-                    )
-
-                    raise RestartVisit
-
-                if node.parent.parent.isStatementTryExcept():
-                    if node is statements[0]:
-                        for handler in node.parent.parent.getExceptionHandlers():
-                            match = self.matchesException(
-                                catched_exceptions = handler.getExceptionTypes(),
-                                raised_exception   = node.getExceptionType()
-                            )
-
-                            if match is True:
-                                return
-
-                                # TODO: Make this robust and working again.
-
-                                handler_target = handler.getExceptionTarget()
-
-                                if handler_target is not None:
-                                    exception_type = node.getExceptionType()
-
-                                    if exception_type.isExpressionBuiltinExceptionRef():
-                                        pass
-
-                                    assert exception_type is not None
-
-                                    assign_node = CPythonStatementAssignment(
-                                        expression = exception_type,
-                                        targets    = ( handler.getExceptionTarget(), ),
-                                        source_ref = handler.getSourceReference(),
-                                    )
-
-                                    new_node = makeStatementsSequenceReplacementNode(
-                                        statements = ( assign_node, ) + handler.getExceptionBranch().getStatements(),
-                                        node       = handler,
-                                    )
-                                else:
-                                    new_node = handler.getExceptionBranch()
-
-                                node.parent.parent.replaceWith( new_node )
-
-                                self.signalChange(
-                                    "new_raise new_statements",
-                                    node.getSourceReference(),
-                                    "Resolved known raise to exception branch execution."
-                                )
-
-                                raise RestartVisit
-
-                                # assert False
-                            elif match is False:
-                                assert False
-
-
-
-
-            else:
-                pass
+            elif node.parent.isStatementReturn():
+                self.trimEvaluation(
+                    node = node.parent
+                )
 
     def trimEvaluation( self, node ):
         old_children = node.getVisitableNodes()
@@ -141,35 +81,78 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
         for child in old_children:
             new_children.append( child )
 
-            if child.isExpressionRaiseException():
+            if child.isExpressionRaiseException() or (
+                child.isExpressionSideEffects() and \
+                child.getExpression().isExpressionRaiseException() ):
                 break
         else:
             assert False
 
-        side_effects = [ new_child for new_child in new_children[:-1] if new_child.mayHaveSideEffects() ]
+        side_effects = [
+            new_child
+            for new_child in
+            new_children[:-1]
+            if new_child.mayHaveSideEffects( None )
+        ]
+
         raise_exception = new_children[-1]
 
-        if side_effects:
-            raise_exception.addSideEffects( side_effects )
+        if raise_exception.isExpressionSideEffects():
+            side_effects.extend( raise_exception.getSideEffects() )
+            raise_exception = raise_exception.getExpression()
 
         if node.isExpression():
-            node.replaceWith(
-                new_node = raise_exception
-            )
+            if side_effects:
+                node.replaceWith(
+                    new_node = CPythonExpressionSideEffects(
+                        side_effects = side_effects,
+                        expression   = raise_exception,
+                        source_ref   = raise_exception.getSourceReference()
+                    )
+                )
+
+                message = "Detected expression exception was propagated to expression upwards while maintaining side effects."
+            else:
+                node.replaceWith(
+                    new_node = raise_exception
+                )
+
+                message = "Detected expression exception was propagated to expression upwards."
 
             self.signalChange(
                 "new_raise",
                 node.getSourceReference(),
-                "Detected expression exception was propagated to expression upwards."
+                message
             )
 
             raise RestartVisit
         elif node.isStatement():
-            node.replaceWith(
-                new_node = convertRaiseExceptionExpressionRaiseExceptionStatement(
-                    node = raise_exception
-                )
+            raise_node = CPythonStatementRaiseException(
+                exception_type  = raise_exception.getExceptionType(),
+                exception_value = raise_exception.getExceptionValue(),
+                exception_trace = None,
+                source_ref      = raise_exception.getSourceReference()
             )
+
+            if side_effects:
+                side_effects = tuple(
+                    CPythonStatementExpressionOnly(
+                        expression = side_effect,
+                        source_ref = side_effect.getSourceReference()
+                    )
+                    for side_effect in side_effects
+                )
+
+                node.replaceWith(
+                    makeStatementsSequenceReplacementNode(
+                        statements = side_effects + ( raise_node, ),
+                        node       = node
+                    )
+                )
+            else:
+                node.replaceWith(
+                    new_node = raise_node
+                )
 
             self.signalChange(
                 "new_raise new_statements",
@@ -181,6 +164,7 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
         else:
             assert False
 
+    # TODO: Make use of this.
     def matchesException( self, catched_exceptions, raised_exception ):
         if catched_exceptions is None:
             return True
