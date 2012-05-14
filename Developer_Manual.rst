@@ -2041,6 +2041,180 @@ into action, which could be code changes, plan changes, issues created, etc.
 
      Keep it.
 
+* Friends that keep track
+
+  The value friends should become the place, where variables or values track their
+  uses. The iterator should keep track of the "next()" calls made to it, and any other
+  use. The attribute registry should e.g. support "value friends" with calling a method
+  for them.
+
+  And then there is a destroy, once a value is released, which could then make the
+  iterator decide to tell its references, that they can be considered to have no effect.
+
+  That would solve the "iteration of constants" as a side effect and it would allow to
+  tell that they can be removed.
+
+  That would mean to go back in the tree and modify it long after.
+
+  .. code-block:: python
+
+     a = iter( ( 2, 3 ) )
+     b = next( a )
+     b = next( a )
+     del a
+
+  It would be sweet if we could recognize that:
+
+  .. code-block:: python
+
+     a = iter( ( 2, 3 ) )
+     b = side_effect( next( a ), 2 )
+     b = side_effect( next( a ), 3 )
+     del a
+
+  That trivially becomes:
+
+  .. code-block:: python
+
+     a = iter( ( 2, 3 ) )
+     next( a )
+     b = 2
+     next( a )
+     b = 3
+     del a
+
+
+  When the "del a" is happening (potentially end of scope, or another assignment to it),
+  we would have to know of the "next" uses, and retrofit that information that they had no
+  effect.
+
+  .. code-block:: python
+
+     a = iter( ( 2, 3 ) )
+     b = 2
+     b = 3
+     del a
+
+
+* Friends that link
+
+  .. code-block:: python
+
+     a = iter( ( 2, 3 ) )
+     b = next( a )
+     b = next( a )
+     del a
+
+  When "a" is assigned, it is receiving a value friend, "fresh iterator", for the unused
+  iterator, one that hasn't be used at all.
+
+  Then when next() is called on "a" value, it creates *another* value friend, and changes
+  the value friend in the collection for "a" to "used iterator 1 time". It is very
+  important to make a copy.
+
+  It is then asked for a value friend to be assigned to "b". It can tell which value that
+  would be, but it has to record, that before "a" can be used, it would have to execute a
+  "next" on it. This is delaying that action until we see if it's necessary at all. We
+  know it cannot fail, because the value friend said so.
+
+  This repeats and again a new "value friend" is created, this time "used iterator 2
+  times", which is asked for a value friend too. It will keep record of the need to
+  execute next 2 times (which we may have optimized code for).
+
+  .. code-block:: python
+
+     a = iter( ( 2, 3 ) )
+     b = 2
+     # Remember a has one delayed iteration
+     b = 3
+     # Remember b has two delayed iteration
+     del a
+
+  When then "a" is deleted, it's being told "onReleased". The value friend will then
+  decide through the value friend state "used iterator 2 times", that it may drop them.
+
+  .. code-block:: python
+
+     a = iter( ( 2, 3 ) )
+     b = 2
+     b = 3
+     del a
+
+  Then next round, "a" is assigned the "fresh iterator" again, which remains in that state
+  and at the time "del" is called, the "onReleased" may decide that the assignment to "a",
+  bearing no side effects, may be dropped. If there was a previous state of "a", it will
+  move up.
+
+  Also, and earlier, when "b" is assigned second time, the "onReleased" for the constant,
+  bearing no side effects, may also be dropped. Had it a side effect, it would become an
+  expression only.
+
+  .. code-block:: python
+
+     a = iter( ( f(), g() ) )
+     b = next( a )
+     b = next( a )
+     del a
+
+  .. code-block:: python
+
+     a = iter( ( f(), g() ) )
+     b = f()
+     b = g()
+     del a
+
+  .. code-block:: python
+
+     f()
+     b = g()
+
+  That may actually be workable. Difficult point, is how to maintain the trace. It seems
+  that per variable, a history of states is needed, where that history connects value
+  friends to nodes.
+
+
+  .. code-block:: python
+
+     a = iter(
+       (
+          f(),
+          g()
+       )
+     )
+     # 1. For the assignment, ask right hand side, for computation. Enter computeNode for
+     # iterator making, and decide that it gives a fresh iterator value, with a known
+     # "iterated" value.
+     # 2. Link the "a" assignment to the assignment node.
+     b = next( a )
+     # 1. ask the right hand side, for computation. Enter computeNode for next iterator
+     # value, which will look up a.
+     b = next( a )
+     del a
+
+* Aliasing
+
+  Each time an assignment is made, an alias is created. A value may have different names.
+
+  .. code-block:: python
+
+     a = iter( range(9 ))
+     b = a
+     c = next(b)
+     d = next(a)
+
+  If we fail to detect the aliasing nature, we will calculate "d" wrongly. We may incref
+  and decref values to trace it.
+
+* Value Life Time Analysis
+
+  A value may be assigned, or consumed directly. When consumed directly, it's life ends
+  immediately, and that's one thing. When assigned, it doesn't do that, but when the last
+  reference goes away, which may happen when the name is used for another value.
+
+  In the mean time, the value may be exposed through attribute lookup, call, etc. which
+  may modify what we can tell about it. An unknown usage must mark it as "exists, maybe"
+  and no more knowledge.
+
 
 .. raw:: pdf
 
