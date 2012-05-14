@@ -1,13 +1,13 @@
-Nuitka Release 0.3.22 (Draft)
-=============================
+Nuitka Release 0.3.22
+=====================
 
 This release is a continuation of the trend of previous releases, and added more
 re-formulations of Python that lower the burden on code generation and optimizations.
 
 It also improves Python3 support substantially. In fact this is the first release to not
-only run itself under Python3, but for Nuitka to compile itself with Nuitka under Python3,
-which previously only worked for Python2. For for the common language subset, it's quite
-fine now.
+only run itself under Python3, but for Nuitka to *compile itself* with Nuitka under
+Python3, which previously only worked for Python2. For the common language subset, it's
+quite fine now.
 
 Bug fixes
 ---------
@@ -20,6 +20,10 @@ Bug fixes
   no longer does that.
 
 - Reference counter handling with generator "throw" method is now correct.
+
+- A module "builtins" conflicted with the handling of the Python builtins module. Those
+  now use different identifiers.
+
 
 New Features
 ------------
@@ -135,6 +139,34 @@ New Optimizations
      # would be maintained.
      0 or something()
 
+- Optimize print arguments to become strings.
+
+  The arguments to "print" are now converted to strings at compile time.
+
+  .. code-block:: python
+
+     print 1
+
+  becomes:
+
+  .. code-block:: python
+
+     print "1"
+
+- Combine print arguments to single ones.
+
+  When multiple strings are printed, these are now combined.
+
+  .. code-block:: python
+
+     print "1+1=", 1+1
+
+  becomes:
+
+  .. code-block:: python
+
+     print "1+1= 2"
+
 Organizational
 --------------
 
@@ -151,10 +183,13 @@ Cleanups
 - The try/except/else has been re-formulated to use an indicator variable visible in the
   node tree, that tells if a handler has been executed or not.
 
+- Side effects are now a dedicated node, used in several optimizations to maintain the
+  effect of an expression with known value.
+
 New Tests
 ---------
 
-- Expanded basic tests to work for Python3 as well.
+- Expanded and adapted basic tests to work for Python3 as well.
 
 - Added reference count tests for generator functions "throw", "send", and "close"
   methods.
@@ -165,7 +200,14 @@ New Tests
 Summary
 -------
 
-Not ready yet.
+This release offers enhanced compatibility with Python3, as well as the solution to many
+structural problems. Calculating lengths of large non-constant values at compile time, is
+technically a break through, as is avoiding lengthy calculations. The frame guards as
+nodes is a huge improvement, making that costly operational possible to be optimized away.
+
+There still is more work ahead, before value propagation will be safe enough to enable,
+but we are seeing the glimpse of it already. Not for long, and looking at numbers will
+make sense.
 
 
 Nuitka Release 0.3.21
