@@ -25,30 +25,50 @@ os_path = os.path.normcase( os.path.dirname( os.__file__  ) )
 
 print "Using standard library path", os_path
 
+try:
+    import numpy
+
+    extra_path = os.path.normcase( os.path.dirname( os.path.dirname( numpy.__file__  ) ) )
+
+    print "Using extra library path", extra_path
+except ImportError:
+    extra_path = os_path
+
+
+
+os_path = os.path.normpath( os_path )
+extra_path = os.path.normpath( extra_path )
+
 stage_dir = os.path.join( tempfile.gettempdir(), "compile_library" )
 
 blacklist = (
     "__phello__.foo.py", # Triggers error for "." in module name
 )
 
-for root, dirnames, filenames in os.walk( os_path ):
-    dirnames.sort()
+def compilePath( path ):
+    for root, dirnames, filenames in os.walk( path ):
+        dirnames.sort()
 
-    filenames = [ filename for filename in filenames if filename.endswith( ".py" ) and not filename in blacklist ]
+        filenames = [ filename for filename in filenames if filename.endswith( ".py" ) and not filename in blacklist ]
 
-    if not filenames:
-        continue
+        if not filenames:
+            continue
 
-    for filename in sorted( filenames ):
-        path = os.path.join( root, filename )
+        for filename in sorted( filenames ):
+            path = os.path.join( root, filename )
 
-        command = "%s %s --output-dir %s --recurse-none %s" % (
-            sys.executable,
-            os.path.join( os.path.dirname( __file__ ), "..", "..", "bin", "nuitka" ),
-            stage_dir,
-            path,
-        )
+            command = "%s %s --output-dir %s --recurse-none %s" % (
+                sys.executable,
+                os.path.join( os.path.dirname( __file__ ), "..", "..", "bin", "nuitka" ),
+                stage_dir,
+                path,
+            )
 
-        print path
+            print path
 
-        subprocess.check_call( command.split() )
+            subprocess.check_call( command.split() )
+
+compilePath( os_path )
+
+if os_path != extra_path:
+    compilePath( extra_path )
