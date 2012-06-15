@@ -46,7 +46,9 @@ class CPythonStatementAssignmentVariable( CPythonChildrenHaving, CPythonNodeBase
     named_children = ( "source", "variable_ref" )
 
     def __init__( self, variable_ref, source, source_ref ):
-        assert variable_ref is not None
+        assert variable_ref is not None, source_ref
+        assert source is not None, source_ref
+
         assert not variable_ref.isExpressionVariableRef()
 
         CPythonNodeBase.__init__( self, source_ref = source_ref )
