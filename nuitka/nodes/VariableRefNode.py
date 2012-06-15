@@ -33,7 +33,7 @@ expressions, changing the meaning of course dramatically.
 
 """
 
-from nuitka import Variables, Builtins
+from nuitka import Variables, Builtins, Options
 
 from .NodeBases import CPythonChildrenHaving, CPythonNodeBase, CPythonExpressionMixin
 
@@ -157,7 +157,7 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
 
         # TODO: Enable the below, once we can trust that the corruption of mutable
         # constants is detected.
-        if True:
+        if not Options.isExperimental():
             return self, None, None
 
         friend = constraint_collection.getVariableValueFriend( self.variable )
