@@ -2753,8 +2753,9 @@ def _buildInplaceAssignSubscriptNode( result, subscribed, subscript, tmp_variabl
 def _buildInplaceAssignSliceNode( result, lookup_source, lower, upper, tmp_variable1, \
                                   tmp_variable2, tmp_variable3, operator, expression, \
                                   source_ref ):
-    return (
-        # First assign the target value, lower and upper to temporary variables.
+
+    # First assign the target value, lower and upper to temporary variables.
+    result = [
         CPythonStatementAssignmentVariable(
             variable_ref = CPythonExpressionTempVariableRef(
                 variable   = tmp_variable1.makeReference( result ),
@@ -2762,37 +2763,68 @@ def _buildInplaceAssignSliceNode( result, lookup_source, lower, upper, tmp_varia
             ),
             source     = lookup_source,
             source_ref = source_ref
-        ),
-        CPythonStatementAssignmentVariable(
-            variable_ref = CPythonExpressionTempVariableRef(
-                variable   = tmp_variable2.makeReference( result ),
+        )
+    ]
+
+    if lower is not None:
+        result.append(
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTempVariableRef(
+                    variable   = tmp_variable2.makeReference( result ),
+                    source_ref = source_ref
+                ),
+                source     = lower,
                 source_ref = source_ref
-            ),
-            source     = lower,
+            )
+        )
+
+        lower_ref1 = CPythonExpressionTempVariableRef(
+            variable   = tmp_variable2.makeReference( result ),
             source_ref = source_ref
-        ),
-        CPythonStatementAssignmentVariable(
-            variable_ref = CPythonExpressionTempVariableRef(
-                variable   = tmp_variable3.makeReference( result ),
+        )
+        lower_ref2 = CPythonExpressionTempVariableRef(
+            variable   = tmp_variable2.makeReference( result ),
+            source_ref = source_ref
+        )
+    else:
+        assert tmp_variable2 is None
+
+        lower_ref1 = lower_ref2 = None
+
+    if upper is not None:
+        result.append(
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTempVariableRef(
+                    variable   = tmp_variable3.makeReference( result ),
+                    source_ref = source_ref
+                ),
+                source     = upper,
                 source_ref = source_ref
-            ),
-            source     = upper,
+            )
+        )
+
+        upper_ref1 = CPythonExpressionTempVariableRef(
+            variable   = tmp_variable3.makeReference( result ),
             source_ref = source_ref
-        ),
-        # Second assign the inplace result over the original value.
+        )
+        upper_ref2 = CPythonExpressionTempVariableRef(
+            variable   = tmp_variable3.makeReference( result ),
+            source_ref = source_ref
+        )
+    else:
+        assert tmp_variable3 is None
+
+        upper_ref1 = upper_ref2 = None
+
+    # Second assign the inplace result over the original value.
+    result.append(
         CPythonStatementAssignmentSlice(
             expression = CPythonExpressionTempVariableRef(
                 variable   = tmp_variable1.makeReference( result ),
                 source_ref = source_ref
             ),
-            lower      = CPythonExpressionTempVariableRef(
-                variable   = tmp_variable2.makeReference( result ),
-                source_ref = source_ref
-            ),
-            upper      = CPythonExpressionTempVariableRef(
-                variable   = tmp_variable3.makeReference( result ),
-                source_ref = source_ref
-            ),
+            lower      = lower_ref1,
+            upper      = upper_ref1,
             source     = CPythonExpressionOperationBinaryInplace(
                 operator   = operator,
                 left       = CPythonExpressionSliceLookup(
@@ -2800,14 +2832,8 @@ def _buildInplaceAssignSliceNode( result, lookup_source, lower, upper, tmp_varia
                         variable   = tmp_variable1.makeReference( result ),
                         source_ref = source_ref
                     ),
-                    lower      = CPythonExpressionTempVariableRef(
-                        variable   = tmp_variable2.makeReference( result ),
-                        source_ref = source_ref
-                    ),
-                    upper      = CPythonExpressionTempVariableRef(
-                        variable   = tmp_variable3.makeReference( result ),
-                        source_ref = source_ref
-                    ),
+                    lower      = lower_ref2,
+                    upper      = upper_ref2,
                     source_ref = source_ref
                 ),
                 right      = expression,
@@ -2816,6 +2842,8 @@ def _buildInplaceAssignSliceNode( result, lookup_source, lower, upper, tmp_varia
             source_ref = source_ref
         )
     )
+
+    return result
 
 def buildInplaceAssignNode( provider, node, source_ref ):
     # There are many inplace assignment variables, and the detail is unpacked into names,
@@ -2881,8 +2909,8 @@ def buildInplaceAssignNode( provider, node, source_ref ):
         lookup_source, lower, upper = detail
 
         tmp_variable1 = result.getTempVariable( "inplace_target" )
-        tmp_variable2 = result.getTempVariable( "inplace_lower" )
-        tmp_variable3 = result.getTempVariable( "inplace_upper" )
+        tmp_variable2 = result.getTempVariable( "inplace_lower" ) if lower is not None else None
+        tmp_variable3 = result.getTempVariable( "inplace_upper" ) if upper is not None else None
 
         statements = _buildInplaceAssignSliceNode(
             result        = result,
