@@ -172,13 +172,13 @@ static PyObject *Nuitka_Function_get_dict( Nuitka_FunctionObject *object )
 
 static int Nuitka_Function_set_dict( Nuitka_FunctionObject *object, PyObject *value )
 {
-    if (value == NULL)
+    if (unlikely( value == NULL ))
     {
         PyErr_Format( PyExc_TypeError, "function's dictionary may not be deleted");
         return -1;
     }
 
-    if ( PyDict_Check(value) )
+    if (likely( PyDict_Check( value ) ))
     {
         PyObject *old = object->m_dict;
         object->m_dict = INCREASE_REFCOUNT( value );
@@ -281,6 +281,17 @@ static PyGetSetDef Nuitka_Function_getset[] =
    { NULL }
 };
 
+static PyObject *Nuitka_Function_reduce( Nuitka_FunctionObject *function )
+{
+    return INCREASE_REFCOUNT( function->m_name );
+}
+
+static PyMethodDef Nuitka_Generator_methods[] =
+{
+    { "__reduce__", (PyCFunction)Nuitka_Function_reduce, METH_NOARGS, NULL },
+    { NULL }
+};
+
 
 static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
 {
@@ -344,7 +355,7 @@ PyTypeObject Nuitka_Function_Type =
     offsetof( Nuitka_FunctionObject, m_weakrefs ),  // tp_weaklistoffset
     0,                                              // tp_iter
     0,                                              // tp_iternext
-    0,                                              // tp_methods
+    Nuitka_Generator_methods,                       // tp_methods
     0,                                              // tp_members
     Nuitka_Function_getset,                         // tp_getset
     0,                                              // tp_base
