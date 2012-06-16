@@ -40,4 +40,16 @@ print "Class attribute inplace:", B.a
 h = [ 1, 2, 3, 4 ]
 h[1:2] += (2,3)
 
-print "List sclice inplace", h
+print "List sclice inplace [x:y]", h
+
+h[:1] += (9,9)
+
+print "List sclice inplace [:y]", h
+
+h[2:] += (6,6)
+
+print "List sclice inplace [y:]", h
+
+h[:] += (5,5,5)
+
+print "List sclice inplace [:]", h
