@@ -1,4 +1,4 @@
-nuitka (0.3.22.2+ds-1) UNRELEASED; urgency=low
+nuitka (0.3.22.2+ds-1) unstable; urgency=low
 
   * New upstream hotfix release.
   * Corrects upstream Issue#37.
