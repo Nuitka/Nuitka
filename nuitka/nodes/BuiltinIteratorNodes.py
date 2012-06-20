@@ -56,6 +56,9 @@ class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
 
     builtin_spec = BuiltinOptimization.builtin_len_spec
 
+    def getIntegerValue( self, constraint_collection ):
+        return self.getValue().getIterationLength( constraint_collection )
+
     def computeNode( self, constraint_collection ):
         new_node, change_tags, change_desc = CPythonExpressionBuiltinSingleArgBase.computeNode(
             self,
@@ -63,7 +66,7 @@ class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
         )
 
         if new_node is self:
-            arg_length = self.getValue().getIterationLength( constraint_collection )
+            arg_length = self.getIntegerValue( constraint_collection )
 
             if arg_length is not None:
                 change_tags = "new_constant"
@@ -88,6 +91,8 @@ class ValueFriendBuiltinIter1( ValueFriendBase ):
         self.iterated = iterated
         self.iter_length = None
         self.consumed = 0
+
+        self.used = False
 
     def __eq__( self, other ):
         if self.__class__ is not other.__class__:
@@ -115,6 +120,8 @@ class ValueFriendBuiltinIter1( ValueFriendBase ):
         return self.iter_length is not None and self.iter_length - self.consumed <= count
 
     def getIterationNext( self, constraint_collection ):
+        # print self.iterated, self.consumed, self.iterated.getVisitableNodes()
+
         if self.iterated.canPredictIterationValues( constraint_collection ):
             result = self.iterated.getIterationValue( self.consumed, constraint_collection )
         else:
@@ -123,6 +130,13 @@ class ValueFriendBuiltinIter1( ValueFriendBase ):
         self.consumed += 1
 
         return result
+
+    def markAsUsed( self ):
+        self.used = True
+
+    def onRelease( self, constraint_collection ):
+        # print "onRelease", self
+        pass
 
 
 class CPythonExpressionBuiltinIter1( CPythonExpressionBuiltinSingleArgBase ):
