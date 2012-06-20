@@ -1,3 +1,49 @@
+Nuitka Release 0.3.23 (Draft)
+=============================
+
+This release contains only bug fixes.
+
+Bug fixes
+---------
+
+- The compiled functions could not be used with "multiprocessing" or
+  "copy.copy". Issue#19. Fixed in 0.3.22.1 already.
+
+- In-place operations for slices with not both bounds specified crashed the
+  compiler. Issue#36. Fixed in 0.3.22.1 already.
+
+- Cyclic imports could trigger an endless loop, because module import expressions became
+  the parent of the imported module object. Issue#37. Fixed in 0.3.22.2 already.
+
+- Modules named "proc" or "func" could not be compiled to modules or embedded due to a
+  collision with identifiers of Python2.7 includes. Fixed in 0.3.22.2 already.
+
+
+New Features
+------------
+
+- The fix for Issue#19 also makes pickling of compiled functions available. As it is the
+  case for non-compiled functions in CPython, no code objects are stored, only names of
+  module level variables.
+
+New Tests
+---------
+
+- Changed the CPython26 tests to no longer disable the parts that relied on copying of
+  functions to work, as Issue#19 is now supported.
+
+- Extended in-place assignment tests to cover error cases of Issue#36.
+
+- Extended compile library test to also try and compile the path where "numpy" lives. This
+  is apparently another path, where Debian installs some modules, and compiling this would
+  have revealed Issue#36 sooner.
+
+Summary
+-------
+
+The release is not yet done.
+
+
 Nuitka Release 0.3.22
 =====================
 
@@ -34,7 +80,7 @@ New Features
   .. code-block:: python
 
      # Metaclass syntax in Python3, illegal in Python2
-     class X(metaclass = Y ):
+     class X( metaclass = Y ):
          pass
 
   .. code-block:: python
