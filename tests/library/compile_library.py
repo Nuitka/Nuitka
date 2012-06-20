@@ -21,6 +21,15 @@
 
 import os, sys, tempfile, subprocess
 
+search_mode = len( sys.argv ) > 1 and sys.argv[1] == "search"
+
+start_at = sys.argv[2] if len( sys.argv ) > 2 else None
+
+if start_at:
+    active = False
+else:
+    active = True
+
 os_path = os.path.normcase( os.path.dirname( os.__file__  ) )
 
 print "Using standard library path", os_path
@@ -46,6 +55,8 @@ blacklist = (
 )
 
 def compilePath( path ):
+    global active
+
     for root, dirnames, filenames in os.walk( path ):
         dirnames.sort()
 
@@ -56,6 +67,12 @@ def compilePath( path ):
 
         for filename in sorted( filenames ):
             path = os.path.join( root, filename )
+
+            if not active and start_at in ( filename, path ):
+                active = True
+
+            if not active:
+                continue
 
             command = "%s %s --output-dir %s --recurse-none %s" % (
                 sys.executable,
