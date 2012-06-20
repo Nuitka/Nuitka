@@ -33,10 +33,31 @@
 #define NDEBUG
 #endif
 
+// Include the Python version numbers, and define our own take of what
+// versions should be
+#include "patchlevel.h"
+// This is needed or else we can't create modules name "proc" or "new". For
+// Python3, the name collision can't happen, so we can limit it to Python2.
+#define PYTHON_VERSION (PY_MAJOR_VERSION*100+PY_MINOR_VERSION*10+PY_MICRO_VERSION)
+
 // Include the Python C/API header files
+
+// This is needed or else we can't create modules name "proc" or "new". For
+// Python3, the name collision can't happen, so we can limit it to Python2.
+#define PYTHON_VERSION (PY_MAJOR_VERSION*100+PY_MINOR_VERSION*10+PY_MICRO_VERSION)
+#if PYTHON_VERSION < 300
+#define initproc python_initproc
+#define initfunc python_initfunc
+#endif
+
 #include "Python.h"
 #include "methodobject.h"
 #include "frameobject.h"
+
+#if PYTHON_VERSION < 300
+#undef initproc
+#undef initfunc
+#endif
 
 // Include the C header files most often used.
 #include <stdio.h>
@@ -71,7 +92,6 @@
 NUITKA_MAY_BE_UNUSED static PyObject *_eval_globals_tmp;
 NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 
-#define PYTHON_VERSION (PY_MAJOR_VERSION*100+PY_MINOR_VERSION*10+PY_MICRO_VERSION)
 
 #if PYTHON_VERSION >= 300
 // Python3 removed PyInt instead of renaming PyLong.

@@ -83,7 +83,13 @@ class CPythonExpressionImportModule( CPythonExpressionChildrenHavingBase ):
         self.attempted_recurse = True
 
     getModule = CPythonExpressionChildrenHavingBase.childGetter( "module" )
-    setModule = CPythonExpressionChildrenHavingBase.childSetter( "module" )
+    _setModule = CPythonExpressionChildrenHavingBase.childSetter( "module" )
+
+    def setModule( self, module ):
+        # Modules have no parent.
+        assert module.parent is None
+        self._setModule( module )
+        module.parent = None
 
     def computeNode( self, constraint_collection ):
         # TODO: May return a module reference of some sort in the future with embedded

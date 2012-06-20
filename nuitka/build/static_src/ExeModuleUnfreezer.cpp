@@ -112,7 +112,13 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
 #if _DEBUG_UNFREEZER
            printf( "Loading %s\n", name );
 #endif
+
+           // Check prelude on why this is necessary.
+#if PYTHON_VERSION < 300
+           current->python_initfunc();
+#else
            current->initfunc();
+#endif
 
            if (unlikely( ERROR_OCCURED() ))
            {
