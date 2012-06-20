@@ -587,7 +587,7 @@ The "comparison chain" expressions
    a < ( tmp_b = b ) and tmp_b > ( tmp_c = c ) and ( tmp_c < d )
 
 This transformation is performed at tree building already. The temporary variables keep
-the value for a potentially read in the same expression. The syntax is not Python, and
+the value for the potential read in the same expression. The syntax is not Python, and
 only pseudo language to expression the internal structure of the node tree after the
 transformation.
 
@@ -642,12 +642,13 @@ When one learns about decorators, you see that:
    function = decorator( function )
 
 The only difference is the assignment to function. In the "@decorator" case, if the
-decorator fails with an exception, the name "function" is not assigned. Internally in
-Nuitka this assignment is therefore from a "function body expression" and only the last
-decorator returned value is assigned to the function name.
+decorator fails with an exception, the name "function" is not assigned.
 
-This removes the need for code generation to support decorators. And it should make the
-two variants optimize equally well.
+Therefore in Nuitka this assignment is therefore from a "function body expression" and
+only the last decorator returned value is assigned to the function name.
+
+This removes the need for optimization and code generation to support decorators at
+all. And it should make the two variants optimize equally well.
 
 
 Inplace Assignments
@@ -695,7 +696,7 @@ assignments instead.
 
 This is possible, because in Python, if one assignment fails, it can just be interrupted,
 so in fact, they are sequential, and all that is required is to not calculate "c" twice,
-which the temporary variable expresses.
+which the temporary variable takes care of.
 
 
 Unpacking Assignments
@@ -731,7 +732,7 @@ Becomes this:
    f = _tmp5
    g = _tmp6
 
-That way, the unpacking is decomposed into multiple simple assignments. It will be the
+That way, the unpacking is decomposed into multiple simple statementy. It will be the
 job of optimizations to try and remove unnecessary unpacking, in case e.g. the source is
 a known tuple or list creation.
 
@@ -764,7 +765,7 @@ instead.
     tmp_source = some_context
 
     # Actually it needs to be "special lookup" for Python2.7, so attribute lookup won't
-    # be exactly it there.
+    # be exactly what is there.
     tmp_exit = tmp_source.__exit__
 
     # This one must be held for the whole with statement, it may be assigned or not, in
@@ -794,17 +795,18 @@ instead.
 .. note::
 
    We don't refer really to "sys.exc_info()" at all, instead, we have references to the
-   current exception type, value and trace, taken directory from the C++ exception
-   object.
+   current exception type, value and trace, taken directory from the caught exception
+   object on the C++ level.
 
    If we had the ability to optimize "sys.exc_info()" to do that, we could use the same
    transformation, but right now we don't have it.
 
+
 For Loops
 ---------
 
-The for loops should use normal assignments and handle the iterator that is implicit in
-the code explicitely.
+The for loops use normal assignments and handle the iterator that is implicit in the code
+explicitely.
 
 .. code-block:: python
 
@@ -850,6 +852,7 @@ This is roughly equivalent to the following code:
    exception, but instead to use "ITERATOR_NEXT" and which returns NULL in that case, so
    that the code doesn't really have any Python level exception handling going on.
 
+
 While Loops
 -----------
 
@@ -883,6 +886,7 @@ detect such a situation, consider e.g. endless loops.
    encoded directly anymore. The fact that the loop body may not be entered at all, if the
    condition is not met, is something harder to discover.
 
+
 Exception Handler Values
 ------------------------
 
@@ -910,6 +914,7 @@ Of course, the value of the current exception, use special references for assign
 that access the C++ and don't go via "sys.exc_info" at all, these are called
 "CaughtExceptionValueRef".
 
+
 try/except/else
 ---------------
 
@@ -918,6 +923,7 @@ into any of the exception handlers.
 
 Therefore, the "else" becomes a real conditional statement in the node tree, checking the
 indicator variable and guarding the execution of the "else" branch.xs
+
 
 Classes Creation
 ----------------
@@ -947,20 +953,24 @@ That would roughly be the same, except that "_makeSomeClass" is be _not_ visible
 child functions when it comes to closure taking, which we cannot expression in Python
 language at all.
 
+
 List Contractions
 -----------------
 
 TODO.
+
 
 Set Contractions
 ----------------
 
 TODO.
 
+
 Dict Contractions
 -----------------
 
 TODO.
+
 
 Generator Expressions
 ---------------------
@@ -982,6 +992,7 @@ loops.
               yield x*2
 
     gen = _gen_helper( range(8 ) )
+
 
 Nodes that serve special purposes
 =================================
@@ -2044,12 +2055,15 @@ into action, which could be code changes, plan changes, issues created, etc.
 * Friends that keep track
 
   The value friends should become the place, where variables or values track their
-  uses. The iterator should keep track of the "next()" calls made to it, and any other
-  use. The attribute registry should e.g. support "value friends" with calling a method
-  for them.
+  uses. The iterator should keep track of the "next()" calls made to it, so they can
+  tell which value to given in that case.
+
+  The attribute registry should e.g. support "value friends" with calling a method for
+  them.
 
   And then there is a destroy, once a value is released, which could then make the
-  iterator decide to tell its references, that they can be considered to have no effect.
+  iterator decide to tell its references, that they can be considered to have no effect,
+  or if they must not be released yet.
 
   That would solve the "iteration of constants" as a side effect and it would allow to
   tell that they can be removed.
