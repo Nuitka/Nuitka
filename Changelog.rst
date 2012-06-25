@@ -3366,6 +3366,7 @@ Cleanups
   inlined, as it won't be shared ever.
 
 Numbers
+-------
 
 python 2.6::
 
@@ -3561,7 +3562,7 @@ Bug Fixes
 ---------
 
 - Scope analysis is now done during the tree building instead of sometimes during code
-  generation, this fixed a few issues that didn¡¦t show up in tests previously.
+  generation, this fixed a few issues that didn't show up in tests previously.
 - Reference leaks of generator expressions that were not fishing, but then deleted are not
   more.
 - Inlining of exec is more correct now.
@@ -3575,7 +3576,7 @@ Bug Fixes
 Reduced Differences
 -------------------
 
-- With the enhanced scope analysis, ¡§UnboundLocalError¡¨ is now correctly supported.
+- With the enhanced scope analysis, "UnboundLocalError" is now correctly supported.
 - Generator expressions (but not yet functions) have a "throw()", "send()" and "close()"
   method.
 - Exec can now write to local function namespace even if "None" is provided at run time.
@@ -3628,7 +3629,7 @@ they have their own implementation. Now that this is done, I will repeat it with
 functions.
 
 Generator functions already work quite fine, but like generator expressions did before
-this release, they can leak references if not finished , and they don¡¦t have the "throw()"
+this release, they can leak references if not finished , and they don't have the "throw()"
 method, which seems very important to the correct operation of "contextlib". So I will
 introduce a decicated type for these too, possibly in the next release.
 
@@ -3768,7 +3769,8 @@ module, which should not be too challenging, but will take some time.
 I am aiming at it for a 0.2 release. Generating wrong code (Nuitka sees d[1] = None in
 both cases) is a show blocker and needs a solution.
 
-So, yeah. It's better, it's there, but still experimental. You will find its latest version here. Please try it out and let me know what you think in the comments section.
+So, yeah. It's better, it's there, but still experimental. You will find its latest
+version here. Please try it out and let me know what you think in the comments section.
 
 
 Nuitka Release 0.1 (Releasing Nuitka to the World)
