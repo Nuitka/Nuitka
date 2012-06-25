@@ -32,13 +32,13 @@ Linux/MacOS X/MSYS shell:
 
 .. code-block:: sh
 
-    eval `misc/create-environment`
+   eval `misc/create-environment`
 
 With some luck this also works:
 
 .. code-block:: sh
 
-    . misc/create-environment
+   . misc/create-environment
 
 Windows: Extend "PATH" with the directory containing Nuitka executables. Either have MinGW
 installed to "C:\MinGW" (then Nuitka will find and use it automatically) or also add it to
@@ -581,11 +581,11 @@ windows installation at all.
 
 .. header::
 
-        Nuitka - User Manual
+   Nuitka - User Manual
 
 .. footer::
 
-        © Kay Hayen, 2012 | Page ###Page### of ###Total### | Section ###Section###
+   © Kay Hayen, 2012 | Page ###Page### of ###Total### | Section ###Section###
 
 
 Updates for this Manual
