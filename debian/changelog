@@ -1,6 +1,12 @@
+nuitka (0.3.24~pre1+ds-1) UNRELEASED; urgency=low
+
+  * New upstream pre-release.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 01 Jul 2012 01:49:48 +0200
+
 nuitka (0.3.23+ds-1) unstable; urgency=low
 
-  * New upstream pre-release
+  * New upstream release.
   * License for Nuitka is now Apache License 2.0, no more GPLv3.
   * Corrects upstream Issue#37 and Issue#38.
 
