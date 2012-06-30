@@ -9,17 +9,17 @@ Requirements
 
 - C++ Compiler: You need a compiler with support for C++11
 
-    Currently this means, you need to use the GNU g++ compiler of at least version 4.5 on
-    Linux or the clang 3.0 compiler on MacOS X, or else the compilation will fail. This is
-    mostly due to uses of C++11 "raw string" literals only supported from that version on.
+  Currently this means, you need to use the GNU g++ compiler of at least version 4.5 on
+  Linux or the clang 3.0 compiler on MacOS X, or else the compilation will fail. This is
+  mostly due to uses of C++11 "raw string" literals only supported from that version on.
 
-    On Windows the MinGW g++ compiler of at least version 4.5, the VC++ compiler is not
-    currently supported, because it is too weak in its C++11 support.
+  On Windows the MinGW g++ compiler of at least version 4.5, the VC++ compiler is not
+  currently supported, because it is too weak in its C++11 support.
 
-- Python: Version 2.6 or 2.7 (3.x won't work yet though)
+- Python: Version 2.6 or 2.7 (3.2 works partially)
 
-    You need at least CPython to execute Nuitka and the created binary, because the
-    created executables will link against the CPython shared library at run time.
+  You need at least CPython to execute Nuitka and then also to execute the created binary,
+  because it uses the shared library of CPython.
 
 Environment
 ~~~~~~~~~~~
@@ -32,13 +32,13 @@ Linux/MacOS X/MSYS shell:
 
 .. code-block:: sh
 
-    eval `misc/create-environment`
+   eval `misc/create-environment`
 
 With some luck this also works:
 
 .. code-block:: sh
 
-    . misc/create-environment
+   . misc/create-environment
 
 Windows: Extend "PATH" with the directory containing Nuitka executables. Either have MinGW
 installed to "C:\MinGW" (then Nuitka will find and use it automatically) or also add it to
@@ -54,7 +54,7 @@ Nuitka has a "--help" option to output what it can do:
 
     nuitka --help
 
-The nuitka-python command is Nuitka.py, but with different defaults and tries to compile
+The "nuitka-python" command is "nuitka", but with different defaults and tries to compile
 and directly execute a script:
 
 .. code-block:: sh
@@ -84,8 +84,8 @@ also be included in the executable.
 
 .. note::
 
-   If you don't do any dynamic imports, your PYTHONPATH at compilation time will be
-   sufficient for all your needs normally. Use "--recurse-directory" only if you make
+   If you don't do any dynamic imports, setting your "PYTHONPATH" at compilation time will
+   be sufficient for all your needs normally. Use "--recurse-directory" only if you make
    "__import__()" calls that Nuitka cannot predict, because they e.g. depend on command
    line parameters.
 
@@ -118,8 +118,8 @@ Word of Warning
 Consider this a beta release quality, do not use it for anything important, but your
 feedback and patches are very welcome.
 
-Especially report it if you find that anything doesn't work, because the project is now at
-the stage that this should not happen.
+Especially report it please, if you find that anything doesn't work, because the project
+is now at the stage that this should not happen.
 
 
 Join Nuitka
@@ -132,7 +132,7 @@ The development of Nuitka occurs in git. We currently have these 2 branches:
 
 - `master <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/master>`_:
   This branch contains the stable release to which only hotfixes for bugs will be
-  done. It is supposed to work at all times and supported.
+  done. It is supposed to work at all times and is supported.
 
 - `develop <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/develop>`_:
   This branch contains the ongoing development. It may at times contain little
@@ -142,8 +142,8 @@ The development of Nuitka occurs in git. We currently have these 2 branches:
 .. note::
 
    I accept patch files, git formated patch queues, and git pull requests. I will do the
-   integration work. If you base your work on "master" at any given time, I will do any
-   re-basing required.
+   integration work. If you base your work on "master" or "develop" at any given time, I
+   will do any re-basing required and keep your authorship intact.
 
 .. note::
 
@@ -272,8 +272,8 @@ The builtin call prediction is considered implemented. We can simply during Nuit
 emulate the call and use its result or raised exception. But we may not cover all the
 builtins there are yet.
 
-Sometimes builtins should not be predicted when the result is big. A range() call e.g. may give
-too big values to include the result in the binary.
+Sometimes builtins should not be predicted when the result is big. A "range()" call
+e.g. may give too big values to include the result in the binary. Then it is not done.
 
 .. code-block:: python
 
@@ -341,8 +341,8 @@ To that end, Nuitka works with a special node that raises an exception and has s
 "side_effects" children, yet can be used in generated code as an expression.
 
 Status: The propagation of exceptions is implemented on a very basic level. It works, but
-exceptions will not propagate through many different expression and statement types. As work
-progresses or examples arise, these will be extended.
+exceptions will not propagate through all different expression and statement types. As
+work progresses or examples arise, these will be extended.
 
 Exception Scope Reduction
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -454,7 +454,6 @@ building the assignment targets.
 We do this now, but only for constants, because we currently have no ability to predict if
 an expression can raise an exception or not.
 
-
 Status: Not really implemented, and should use "mayHaveSideEffect()" to be actually good at things.
 
 Builtin Type Inference
@@ -546,8 +545,8 @@ The gcc project http://gcc.gnu.org/
 -----------------------------------
 
 Thanks for not only the best compiler suite, but also thanks for supporting C++11 which
-has made the generation of code much easier. Currently no other compiler is usable for
-Nuitka than yours.
+has made the generation of code much easier. Your compiler was the first usable for
+Nuitka.
 
 The Scons project http://www.scons.org/
 ---------------------------------------
@@ -582,11 +581,11 @@ windows installation at all.
 
 .. header::
 
-        Nuitka - User Manual
+   Nuitka - User Manual
 
 .. footer::
 
-        © Kay Hayen, 2012 | Page ###Page### of ###Total### | Section ###Section###
+   Â© Kay Hayen, 2012 | Page ###Page### of ###Total### | Section ###Section###
 
 
 Updates for this Manual

@@ -1,16 +1,17 @@
-nuitka (0.3.22.2+ds-1) unstable; urgency=low
+nuitka (0.3.23+ds-1) unstable; urgency=low
 
-  * New upstream hotfix release.
-  * Corrects upstream Issue#37.
+  * New upstream pre-release
+  * License for Nuitka is now Apache License 2.0, no more GPLv3.
+  * Corrects upstream Issue#37 and Issue#38.
 
- -- Kay Hayen <kayhayen@gmx.de>  Tue, 19 Jun 2012 09:54:58 +0200
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 01 Jul 2012 00:00:57 +0200
 
 nuitka (0.3.22.1+ds-1) unstable; urgency=low
 
   * New upstream hotfix release.
   * Corrected copyright file syntax error found by new lintian
     version.
-  * Corrects upstream Issue#19 and Issue#36.
+  * Corrects upstream Issue#19.
 
  -- Kay Hayen <kayhayen@gmx.de>  Sat, 16 Jun 2012 08:58:30 +0200
 

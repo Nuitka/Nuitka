@@ -1,13 +1,79 @@
-Nuitka Release 0.3.22 (Draft)
-=============================
+Nuitka Release 0.3.23
+=====================
+
+This release is the one that completes the Nuitka "sun rise phase".
+
+All of Nuitka is now released under `Apache License 2.0
+<http://www.apache.org/licenses/LICENSE-2.0>`_ which is a very liberal license, and
+compatible with basically all Free Software licenses there are. It's only asking to allow
+integration, of what you send back, and patent grants for the code.
+
+In the first phase of Nuitka development, I wanted to keep control over Nuitka, so it
+wouldn't repeat mistakes of other projects. This is no longer a concern for me, it's not
+going to happen anymore.
+
+I would like to thank Debian Legal team, for originally bringing to my attention, that
+this license will be better suited, than any copyright assignment could be.
+
+Bug fixes
+---------
+
+- The compiled functions could not be used with "multiprocessing" or
+  "copy.copy". Issue#19. Fixed in 0.3.22.1 already.
+
+- In-place operations for slices with not both bounds specified crashed the
+  compiler. Issue#36. Fixed in 0.3.22.1 already.
+
+- Cyclic imports could trigger an endless loop, because module import expressions became
+  the parent of the imported module object. Issue#37. Fixed in 0.3.22.2 already.
+
+- Modules named "proc" or "func" could not be compiled to modules or embedded due to a
+  collision with identifiers of Python2.7 includes. Fixed in 0.3.22.2 already.
+
+
+New Features
+------------
+
+- The fix for Issue#19 also makes pickling of compiled functions available. As it is the
+  case for non-compiled functions in CPython, no code objects are stored, only names of
+  module level variables.
+
+Organizational
+--------------
+
+- Using the Apache License 2.0 for all of Nuitka now.
+
+- `Speedcenter <http://speedcenter.nuitka.net>`_ has been re-activated.
+
+New Tests
+---------
+
+- Changed the CPython26 tests to no longer disable the parts that relied on copying of
+  functions to work, as Issue#19 is now supported.
+
+- Extended in-place assignment tests to cover error cases of Issue#36.
+
+- Extended compile library test to also try and compile the path where "numpy" lives. This
+  is apparently another path, where Debian installs some modules, and compiling this would
+  have revealed Issue#36 sooner.
+
+Summary
+-------
+
+The release contains bug fixes, and the huge step of changing the license. It is made in
+preparation to PyCON EU.
+
+
+Nuitka Release 0.3.22
+=====================
 
 This release is a continuation of the trend of previous releases, and added more
 re-formulations of Python that lower the burden on code generation and optimizations.
 
 It also improves Python3 support substantially. In fact this is the first release to not
-only run itself under Python3, but for Nuitka to compile itself with Nuitka under Python3,
-which previously only worked for Python2. For for the common language subset, it's quite
-fine now.
+only run itself under Python3, but for Nuitka to *compile itself* with Nuitka under
+Python3, which previously only worked for Python2. For the common language subset, it's
+quite fine now.
 
 Bug fixes
 ---------
@@ -21,6 +87,10 @@ Bug fixes
 
 - Reference counter handling with generator "throw" method is now correct.
 
+- A module "builtins" conflicted with the handling of the Python builtins module. Those
+  now use different identifiers.
+
+
 New Features
 ------------
 
@@ -30,7 +100,7 @@ New Features
   .. code-block:: python
 
      # Metaclass syntax in Python3, illegal in Python2
-     class X(metaclass = Y ):
+     class X( metaclass = Y ):
          pass
 
   .. code-block:: python
@@ -135,6 +205,34 @@ New Optimizations
      # would be maintained.
      0 or something()
 
+- Optimize print arguments to become strings.
+
+  The arguments to "print" are now converted to strings at compile time.
+
+  .. code-block:: python
+
+     print 1
+
+  becomes:
+
+  .. code-block:: python
+
+     print "1"
+
+- Combine print arguments to single ones.
+
+  When multiple strings are printed, these are now combined.
+
+  .. code-block:: python
+
+     print "1+1=", 1+1
+
+  becomes:
+
+  .. code-block:: python
+
+     print "1+1= 2"
+
 Organizational
 --------------
 
@@ -151,10 +249,13 @@ Cleanups
 - The try/except/else has been re-formulated to use an indicator variable visible in the
   node tree, that tells if a handler has been executed or not.
 
+- Side effects are now a dedicated node, used in several optimizations to maintain the
+  effect of an expression with known value.
+
 New Tests
 ---------
 
-- Expanded basic tests to work for Python3 as well.
+- Expanded and adapted basic tests to work for Python3 as well.
 
 - Added reference count tests for generator functions "throw", "send", and "close"
   methods.
@@ -165,7 +266,14 @@ New Tests
 Summary
 -------
 
-Not ready yet.
+This release offers enhanced compatibility with Python3, as well as the solution to many
+structural problems. Calculating lengths of large non-constant values at compile time, is
+technically a break through, as is avoiding lengthy calculations. The frame guards as
+nodes is a huge improvement, making that costly operational possible to be optimized away.
+
+There still is more work ahead, before value propagation will be safe enough to enable,
+but we are seeing the glimpse of it already. Not for long, and looking at numbers will
+make sense.
 
 
 Nuitka Release 0.3.21
@@ -1874,7 +1982,7 @@ Organizational
   to say now, that C++ leaves way too much things unspecified.
 
 - The Nuitka git repository now uses git flow. The new git policy will be detailed in
-  another `separate posting <http://nuitka.net/blog/2011/10/nuitka-git-flow/>`_.
+  another `separate posting <http://nuitka.net/posts/nuitka-git-flow.html>`_.
 
 - There is an unstable "develop" branch in which the development occurs. For this release
   ca. 40 commits were done to this branch, before merging it. I am also doing more fine
@@ -3278,6 +3386,7 @@ Cleanups
   inlined, as it won't be shared ever.
 
 Numbers
+-------
 
 python 2.6::
 
@@ -3473,7 +3582,7 @@ Bug Fixes
 ---------
 
 - Scope analysis is now done during the tree building instead of sometimes during code
-  generation, this fixed a few issues that didn¡¦t show up in tests previously.
+  generation, this fixed a few issues that didn't show up in tests previously.
 - Reference leaks of generator expressions that were not fishing, but then deleted are not
   more.
 - Inlining of exec is more correct now.
@@ -3487,7 +3596,7 @@ Bug Fixes
 Reduced Differences
 -------------------
 
-- With the enhanced scope analysis, ¡§UnboundLocalError¡¨ is now correctly supported.
+- With the enhanced scope analysis, "UnboundLocalError" is now correctly supported.
 - Generator expressions (but not yet functions) have a "throw()", "send()" and "close()"
   method.
 - Exec can now write to local function namespace even if "None" is provided at run time.
@@ -3540,7 +3649,7 @@ they have their own implementation. Now that this is done, I will repeat it with
 functions.
 
 Generator functions already work quite fine, but like generator expressions did before
-this release, they can leak references if not finished , and they don¡¦t have the "throw()"
+this release, they can leak references if not finished , and they don't have the "throw()"
 method, which seems very important to the correct operation of "contextlib". So I will
 introduce a decicated type for these too, possibly in the next release.
 
@@ -3616,8 +3725,8 @@ Project Management
   please submit the patches and a pull offer. When you make your clones of Nuitka public,
   use "nuitka-unofficial" or not the name "Nuitka" at all.
 
-- There is a now a `mailing list
-  <http://nuitka.net/blog/nuitka-a-python-compiler/nuitka-mailinglist/>`_ available too.
+- There is a now a `mailing list <http://nuitka.net/pages/mailinglist.html>`_ available
+  too.
 
 Reduced Differences
 -------------------
@@ -3638,7 +3747,7 @@ New Features
 - The "Python" binary provided and "Nuitka.py" are now capable of accepting parameters for
   the program executed, in order to make it even more of a dropin replacement to "python".
 
-- Inling of exec statements with constant expressions. These are now compiled at compile
+- Inlining of exec statements with constant expressions. These are now compiled at compile
   time, not at run time anymore. I observed that an increasing number of CPython tests use
   exec to do things in isolation or to avoid warnings, and many more these tests will now
   be more effective. I intend to do the same with eval expressions too, probably in a
@@ -3680,7 +3789,8 @@ module, which should not be too challenging, but will take some time.
 I am aiming at it for a 0.2 release. Generating wrong code (Nuitka sees d[1] = None in
 both cases) is a show blocker and needs a solution.
 
-So, yeah. It's better, it's there, but still experimental. You will find its latest version here. Please try it out and let me know what you think in the comments section.
+So, yeah. It's better, it's there, but still experimental. You will find its latest
+version here. Please try it out and let me know what you think in the comments section.
 
 
 Nuitka Release 0.1 (Releasing Nuitka to the World)

@@ -24,41 +24,40 @@ private conversations or discussions on the mailing list.
 Milestones
 ==========
 
-   1. Feature parity with Python, understand all the language construct and behave
-      absolutely compatible.
+1. Feature parity with Python, understand all the language construct and behave absolutely
+   compatible.
 
-      Feature parity has been reached for Python 2.6 and 2.7, we do not target any older
-      CPython release. For Python 3.2, things are still not complete. The Python 3.x is
-      not currently a high priority, but eventually we will get Nuitka going there too,
-      and some of the basic tests already pass. You are more than welcome to volunteer for
-      this task.
+   Feature parity has been reached for Python 2.6 and 2.7, we do not target any older
+   CPython release. For Python 3.2, things are still not complete. The Python 3.x is not
+   currently a high priority, but eventually we will get Nuitka going there too, and some
+   of the basic tests already pass. You are more than welcome to volunteer for this task.
 
-      This milestone is considered reached.
+   This milestone is considered reached.
 
-   2. Create the most efficient native code from this. This means to be fast with the
-      basic Python object handling.
+2. Create the most efficient native code from this. This means to be fast with the basic
+   Python object handling.
 
-      This milestone is considered mostly reached.
+   This milestone is considered mostly reached.
 
-   3. Then do constant propagation, determine as many values and useful constraints as
-      possible at compile time and create more efficient code.
+3. Then do constant propagation, determine as many values and useful constraints as
+   possible at compile time and create more efficient code.
 
-      This milestone is considered in progress.
+   This milestone is considered in progress.
 
-   4. Type inference, detect and special case the handling of strings, integers, lists in
-      the program.
+4. Type inference, detect and special case the handling of strings, integers, lists in
+   the program.
 
-      This milestone is started only.
+   This milestone is started only.
 
-   5. Add interfacing to C code, so Nuitka can turn a "ctypes" binding into an efficient
-      binding as written with C.
+5. Add interfacing to C code, so Nuitka can turn a "ctypes" binding into an efficient
+   binding as written with C.
 
-      This milestone is planned only.
+   This milestone is planned only.
 
-   6. Add hints module with a useful Python implementation that the compiler can use to
-      learn about types from the programmer.
+6. Add hints module with a useful Python implementation that the compiler can use to learn
+   about types from the programmer.
 
-      This milestone is planned only.
+   This milestone is planned only.
 
 
 Version Numbers
@@ -70,25 +69,25 @@ express which of these, we consider done.
 
 - So far:
 
-   Before milestone 1, we uses "0.1.x" version numbers. After reaching it, we used "0.2.x"
-   version numbers.
+  Before milestone 1, we used "0.1.x" version numbers. After reaching it, we used "0.2.x"
+  version numbers.
 
 - Now:
 
-   We currently use "0.3.x" version numbers as we still strive for milestone 2 and 3 to be
-   really completed.
+  We currently use "0.3.x" version numbers as we still strive for milestone 2 and 3 to be
+  really completed.
 
 - Future:
 
-   When we start to have sufficient amount of type inference in a stable release, that
-   will be "0.4.x" version numbers. With "ctypes" bindings in a sufficient state it will
-   be "0.5.x".
+  When we start to have sufficient amount of type inference in a stable release, that will
+  be "0.4.x" version numbers. With "ctypes" bindings in a sufficient state it will be
+  "0.5.x".
 
 - Final:
 
-   We will then round it up and call it "Nuitka 1.0" when this works as expected for a
-   bunch of people. The plan is to reach this goal during 2012. This is based on lots
-   of assumptions that may not hold up though.
+  We will then round it up and call it "Nuitka 1.0" when this works as expected for a
+  bunch of people. The plan is to reach this goal during 2012. This is based on lots of
+  assumptions that may not hold up though.
 
 Of course, this may be subject to change.
 
@@ -105,7 +104,9 @@ Nuitka top level works like this:
    - "Generator" knows how identifiers and code is constructed
    - "MainControl" keeps it all together
 
-This design is intended to last. Regarding Types, the state is:
+This design is intended to last.
+
+Regarding Types, the state is:
 
    - Types are always "PyObject \*", implicitly
    - The only more specific use of type is "constant", which can be used to predict some
@@ -587,7 +588,7 @@ The "comparison chain" expressions
    a < ( tmp_b = b ) and tmp_b > ( tmp_c = c ) and ( tmp_c < d )
 
 This transformation is performed at tree building already. The temporary variables keep
-the value for a potentially read in the same expression. The syntax is not Python, and
+the value for the potential read in the same expression. The syntax is not Python, and
 only pseudo language to expression the internal structure of the node tree after the
 transformation.
 
@@ -642,12 +643,13 @@ When one learns about decorators, you see that:
    function = decorator( function )
 
 The only difference is the assignment to function. In the "@decorator" case, if the
-decorator fails with an exception, the name "function" is not assigned. Internally in
-Nuitka this assignment is therefore from a "function body expression" and only the last
-decorator returned value is assigned to the function name.
+decorator fails with an exception, the name "function" is not assigned.
 
-This removes the need for code generation to support decorators. And it should make the
-two variants optimize equally well.
+Therefore in Nuitka this assignment is therefore from a "function body expression" and
+only the last decorator returned value is assigned to the function name.
+
+This removes the need for optimization and code generation to support decorators at
+all. And it should make the two variants optimize equally well.
 
 
 Inplace Assignments
@@ -695,7 +697,7 @@ assignments instead.
 
 This is possible, because in Python, if one assignment fails, it can just be interrupted,
 so in fact, they are sequential, and all that is required is to not calculate "c" twice,
-which the temporary variable expresses.
+which the temporary variable takes care of.
 
 
 Unpacking Assignments
@@ -731,7 +733,7 @@ Becomes this:
    f = _tmp5
    g = _tmp6
 
-That way, the unpacking is decomposed into multiple simple assignments. It will be the
+That way, the unpacking is decomposed into multiple simple statementy. It will be the
 job of optimizations to try and remove unnecessary unpacking, in case e.g. the source is
 a known tuple or list creation.
 
@@ -764,7 +766,7 @@ instead.
     tmp_source = some_context
 
     # Actually it needs to be "special lookup" for Python2.7, so attribute lookup won't
-    # be exactly it there.
+    # be exactly what is there.
     tmp_exit = tmp_source.__exit__
 
     # This one must be held for the whole with statement, it may be assigned or not, in
@@ -794,17 +796,18 @@ instead.
 .. note::
 
    We don't refer really to "sys.exc_info()" at all, instead, we have references to the
-   current exception type, value and trace, taken directory from the C++ exception
-   object.
+   current exception type, value and trace, taken directory from the caught exception
+   object on the C++ level.
 
    If we had the ability to optimize "sys.exc_info()" to do that, we could use the same
    transformation, but right now we don't have it.
 
+
 For Loops
 ---------
 
-The for loops should use normal assignments and handle the iterator that is implicit in
-the code explicitely.
+The for loops use normal assignments and handle the iterator that is implicit in the code
+explicitely.
 
 .. code-block:: python
 
@@ -850,6 +853,7 @@ This is roughly equivalent to the following code:
    exception, but instead to use "ITERATOR_NEXT" and which returns NULL in that case, so
    that the code doesn't really have any Python level exception handling going on.
 
+
 While Loops
 -----------
 
@@ -883,6 +887,7 @@ detect such a situation, consider e.g. endless loops.
    encoded directly anymore. The fact that the loop body may not be entered at all, if the
    condition is not met, is something harder to discover.
 
+
 Exception Handler Values
 ------------------------
 
@@ -910,6 +915,7 @@ Of course, the value of the current exception, use special references for assign
 that access the C++ and don't go via "sys.exc_info" at all, these are called
 "CaughtExceptionValueRef".
 
+
 try/except/else
 ---------------
 
@@ -918,6 +924,7 @@ into any of the exception handlers.
 
 Therefore, the "else" becomes a real conditional statement in the node tree, checking the
 indicator variable and guarding the execution of the "else" branch.xs
+
 
 Classes Creation
 ----------------
@@ -947,20 +954,24 @@ That would roughly be the same, except that "_makeSomeClass" is be _not_ visible
 child functions when it comes to closure taking, which we cannot expression in Python
 language at all.
 
+
 List Contractions
 -----------------
 
 TODO.
+
 
 Set Contractions
 ----------------
 
 TODO.
 
+
 Dict Contractions
 -----------------
 
 TODO.
+
 
 Generator Expressions
 ---------------------
@@ -982,6 +993,7 @@ loops.
               yield x*2
 
     gen = _gen_helper( range(8 ) )
+
 
 Nodes that serve special purposes
 =================================
@@ -2041,11 +2053,249 @@ into action, which could be code changes, plan changes, issues created, etc.
 
      Keep it.
 
+* Friends that keep track
+
+  The value friends should become the place, where variables or values track their
+  uses. The iterator should keep track of the "next()" calls made to it, so they can
+  tell which value to given in that case.
+
+  The attribute registry should e.g. support "value friends" with calling a method for
+  them.
+
+  And then there is a destroy, once a value is released, which could then make the
+  iterator decide to tell its references, that they can be considered to have no effect,
+  or if they must not be released yet.
+
+  That would solve the "iteration of constants" as a side effect and it would allow to
+  tell that they can be removed.
+
+  That would mean to go back in the tree and modify it long after.
+
+  .. code-block:: python
+
+     a = iter( ( 2, 3 ) )
+     b = next( a )
+     b = next( a )
+     del a
+
+  It would be sweet if we could recognize that:
+
+  .. code-block:: python
+
+     a = iter( ( 2, 3 ) )
+     b = side_effect( next( a ), 2 )
+     b = side_effect( next( a ), 3 )
+     del a
+
+  That trivially becomes:
+
+  .. code-block:: python
+
+     a = iter( ( 2, 3 ) )
+     next( a )
+     b = 2
+     next( a )
+     b = 3
+     del a
+
+
+  When the "del a" is happening (potentially end of scope, or another assignment to it),
+  we would have to know of the "next" uses, and retrofit that information that they had no
+  effect.
+
+  .. code-block:: python
+
+     a = iter( ( 2, 3 ) )
+     b = 2
+     b = 3
+     del a
+
+
+* Friends that link
+
+  .. code-block:: python
+
+     a = iter( ( 2, 3 ) )
+     b = next( a )
+     b = next( a )
+     del a
+
+  When "a" is assigned, it is receiving a value friend, "fresh iterator", for the unused
+  iterator, one that hasn't be used at all.
+
+  Then when next() is called on "a" value, it creates *another* value friend, and changes
+  the value friend in the collection for "a" to "used iterator 1 time". It is very
+  important to make a copy.
+
+  It is then asked for a value friend to be assigned to "b". It can tell which value that
+  would be, but it has to record, that before "a" can be used, it would have to execute a
+  "next" on it. This is delaying that action until we see if it's necessary at all. We
+  know it cannot fail, because the value friend said so.
+
+  This repeats and again a new "value friend" is created, this time "used iterator 2
+  times", which is asked for a value friend too. It will keep record of the need to
+  execute next 2 times (which we may have optimized code for).
+
+  .. code-block:: python
+
+     a = iter( ( 2, 3 ) )
+     b = 2
+     # Remember a has one delayed iteration
+     b = 3
+     # Remember b has two delayed iteration
+     del a
+
+  When then "a" is deleted, it's being told "onReleased". The value friend will then
+  decide through the value friend state "used iterator 2 times", that it may drop them.
+
+  .. code-block:: python
+
+     a = iter( ( 2, 3 ) )
+     b = 2
+     b = 3
+     del a
+
+  Then next round, "a" is assigned the "fresh iterator" again, which remains in that state
+  and at the time "del" is called, the "onReleased" may decide that the assignment to "a",
+  bearing no side effects, may be dropped. If there was a previous state of "a", it will
+  move up.
+
+  Also, and earlier, when "b" is assigned second time, the "onReleased" for the constant,
+  bearing no side effects, may also be dropped. Had it a side effect, it would become an
+  expression only.
+
+  .. code-block:: python
+
+     a = iter( ( f(), g() ) )
+     b = next( a )
+     b = next( a )
+     del a
+
+  .. code-block:: python
+
+     a = iter( ( f(), g() ) )
+     b = f()
+     b = g()
+     del a
+
+  .. code-block:: python
+
+     f()
+     b = g()
+
+  That may actually be workable. Difficult point, is how to maintain the trace. It seems
+  that per variable, a history of states is needed, where that history connects value
+  friends to nodes.
+
+
+  .. code-block:: python
+
+     a = iter(
+       (
+          f(),
+          g()
+       )
+     )
+     # 1. For the assignment, ask right hand side, for computation. Enter computeNode for
+     # iterator making, and decide that it gives a fresh iterator value, with a known
+     # "iterated" value.
+     # 2. Link the "a" assignment to the assignment node.
+     b = next( a )
+     # 1. ask the right hand side, for computation. Enter computeNode for next iterator
+     # value, which will look up a.
+     b = next( a )
+     del a
+
+* Aliasing
+
+  Each time an assignment is made, an alias is created. A value may have different names.
+
+  .. code-block:: python
+
+     a = iter( range(9 ))
+     b = a
+     c = next(b)
+     d = next(a)
+
+  If we fail to detect the aliasing nature, we will calculate "d" wrongly. We may incref
+  and decref values to trace it.
+
+  To trace aliasing and non-aliasing of values, it is a log(n**2) quadratic problem, that
+  we should address efficiently. For most things, it will happen that we fail to know if
+  an alias exists. In such cases, we will have to be pessimistic, and let go of knowledge
+  we thought we had.
+
+  If e.g. "x" is a list (read mutable value), and aliases to a module value "y", then if
+  we call unknown code, that may modify "y", we must assume that "x" is modified as well.
+
+  For an "x" that is a str (read non-mutable value), aliases are no concern at all, as
+  they can't change "x". So we can trust it rather.
+
+  The knowledge if "x" is mutable or not, is therefore important for preserving knowledge,
+  and of course, if external code, may access aliases or not.
+
+  To solve the issue, we should not only have "variables" in constraint collections, but
+  also "aliases". Where for each variable, module, or local, we track the aliasing. Of
+  course, such an alias can be broken by a new assignment. So, the "variable" would still
+  be the key, but the value would be list of other variables, and then a value, that all
+  of these hold. That list could be a shared set for ease of updating.
+
+  Values produce friends. Then they are assigned names, and can be referenced. When they
+  are assigned names, they should have a special value friend that can handle the alias.
+  They need to create links and destroy them, when something else is assigned.
+
+  When done properly, it ought to handle code like this one.
+
+  .. code-block:: python
+
+     def f():
+        a = [ 3 ]
+        b = a
+        a.append( 4 )
+        a = 3
+        return b[1]
+
+  For assignment of "a", the value friend of the list creation is taken, and then it is
+  stored under variable "a". That is already done with an "alias" structure, with only
+  the variable "a". Then when assigning to "b", it is assigned the same value friend and
+  another link is created to variable "b". Then, when looking up "a.append", that shared
+  value is looked up and potentially mutated.
+
+  If it doesn't get the meaning of ".append", it will discard the knowledge of both "a"
+  and "b", but still know that they alias.
+
+  The aliasing is only broken when a is assigned to a new value. And when then "b" is
+  subscribed, it may understand what that value is or not.
+
+
+
+* Value Life Time Analysis
+
+  A value may be assigned, or consumed directly. When consumed directly, it's life ends
+  immediately, and that's one thing. When assigned, it doesn't do that, but when the last
+  reference goes away, which may happen when the name is used for another value.
+
+  In the mean time, the value may be exposed through attribute lookup, call, etc. which
+  may modify what we can tell about it. An unknown usage must mark it as "exists, maybe"
+  and no more knowledge.
+
+* Shelve for caching
+
+  If we ever came to the conclusion to want and cache complex results of analysis, we
+  could do so with the shelve module. We would have to implement "__deepcopy__" and then
+  could store in there optimized node structures from start values after parsing.
+
+.. header::
+
+   Nuitka - Developer Manual
+
+.. footer::
+
+   © Kay Hayen, 2012 | Page ###Page### of ###Total### | Section ###Section###
 
 .. raw:: pdf
 
    PageBreak
-
 
 Updates for this Manual
 =======================
@@ -2054,7 +2304,7 @@ This document is written in REST. That is an ASCII format readable as ASCII, but
 generate a PDF or HTML document.
 
 You will find the current source under:
-http://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=Developer_Manual.txt
+http://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=Developer_Manual.rst
 
 And the current PDF under:
 http://nuitka.net/doc/Developer_Manual.pdf

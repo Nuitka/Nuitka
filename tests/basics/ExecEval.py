@@ -295,3 +295,6 @@ def makeAddPair(a, b):
     return "yes"
 
 print "Exec adds functions declares in explicit locals() given.", execDefinesFunctionToLocalsExplicity()
+
+import os
+os.unlink( tmp_filename )
