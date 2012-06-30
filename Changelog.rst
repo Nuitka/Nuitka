@@ -19,24 +19,26 @@ Bug fixes
 ---------
 
 - The compiled functions could not be used with "multiprocessing" or
-  "copy.copy". Issue#19. Fixed in 0.3.22.1 already.
+  "copy.copy". `Issue#19 <http://bugs.nuitka.net/issue19>`_. Fixed in 0.3.22.1 already.
 
 - In-place operations for slices with not both bounds specified crashed the
-  compiler. Issue#36. Fixed in 0.3.22.1 already.
+  compiler. `Issue#36 <http://bugs.nuitka.net/issue36>`_. Fixed in 0.3.22.1 already.
 
 - Cyclic imports could trigger an endless loop, because module import expressions became
-  the parent of the imported module object. Issue#37. Fixed in 0.3.22.2 already.
+  the parent of the imported module object. `Issue#37
+  <http://bugs.nuitka.net/issue37>`_. Fixed in 0.3.22.2 already.
 
 - Modules named "proc" or "func" could not be compiled to modules or embedded due to a
-  collision with identifiers of Python2.7 includes. Fixed in 0.3.22.2 already.
+  collision with identifiers of Python2.7 includes. `Issue#38
+  <http://bugs.nuitka.net/issue38>`_. Fixed in 0.3.22.2 already.
 
 
 New Features
 ------------
 
-- The fix for Issue#19 also makes pickling of compiled functions available. As it is the
-  case for non-compiled functions in CPython, no code objects are stored, only names of
-  module level variables.
+- The fix for `Issue#19 <http://bugs.nuitka.net/issue19>`_ also makes pickling of compiled
+  functions available. As it is the case for non-compiled functions in CPython, no code
+  objects are stored, only names of module level variables.
 
 Organizational
 --------------
@@ -49,13 +51,14 @@ New Tests
 ---------
 
 - Changed the CPython26 tests to no longer disable the parts that relied on copying of
-  functions to work, as Issue#19 is now supported.
+  functions to work, as `Issue#19 <http://bugs.nuitka.net/issue19>`_ is now supported.
 
-- Extended in-place assignment tests to cover error cases of Issue#36.
+- Extended in-place assignment tests to cover error cases of `Issue#36
+  <http://bugs.nuitka.net/issue36>`_.
 
 - Extended compile library test to also try and compile the path where "numpy" lives. This
   is apparently another path, where Debian installs some modules, and compiling this would
-  have revealed Issue#36 sooner.
+  have revealed `Issue#36 <http://bugs.nuitka.net/issue36>`_ sooner.
 
 Summary
 -------
@@ -293,7 +296,7 @@ Bug fixes
 ---------
 
 - The builtin "next" could causes a program crash when iterating past the end of an
-  iterator. Issue#34. Fixed in 0.3.20.1 already.
+  iterator. `Issue#34 <http://bugs.nuitka.net/issue34>`_. Fixed in 0.3.20.1 already.
 
 - The "set" constants could cause a compiler error, as that type was not considered in the
   "mutable" check yet. Fixed in 0.3.20.2 already.
@@ -524,13 +527,14 @@ Bug fixes
 
 - The use of a local variable name as an expression was not covered and lead to a compiler
   crash. Totally amazing, but true, nothing in the test suite of CPython covered
-  this. Issue#30. Fixed in release 0.3.19.1 already.
+  this. `Issue#30 <http://bugs.nuitka.net/issue30>`_. Fixed in release 0.3.19.1 already.
 
 - The use of a closure variable name as an expression was not covered as well. And in this
-  case corrupted the reference count. Issue#31. Fixed in release 0.3.19.1 already.
+  case corrupted the reference count. `Issue#31 <http://bugs.nuitka.net/issue31>`_. Fixed
+  in release 0.3.19.1 already.
 
-- The "from x import \*" attempted to respect "__all__" but failed to do
-  so. Issue#32. Fixed in release 0.3.19.2 already.
+- The "from x import \*" attempted to respect "__all__" but failed to do so. `Issue#32
+  <http://bugs.nuitka.net/issue32>`_. Fixed in release 0.3.19.2 already.
 
 - The "from x import \*" didn't give a "SyntaxError" when used on Python3. Fixed in release
   0.3.19.2 already.
@@ -761,14 +765,15 @@ Bug fixes
   one case, there was still a use of "/" instead of using a "joinpath" call. Released as
   0.3.18.3 already.
 
-- A call to the range built-in with no arguments would crash the compiler, see
-  Issue#29. Released as 0.3.18.4 already.
+- A call to the range built-in with no arguments would crash the compiler, see `Issue#29
+  <http://bugs.nuitka.net/issue29>`_. Released as 0.3.18.4 already.
 
 - Compatibility Fix: When rich comparison operators returned false value other "False",
   for comparison chains, these would not be used, but "False" instead, see .
 
 - The support for "__import__" didn't cover keyword arguments, these were simply
-  ignored. See Issue#28. Fixed, but no warning is given yet.
+  ignored. See `Issue#28 <http://bugs.nuitka.net/issue28>`_. Fixed, but no warning is
+  given yet.
 
 New Features
 ------------
@@ -834,7 +839,7 @@ Organizational
 
 - Made sure the test runners work under Windows as well. Required making them more
   portable. And a workaround for "os.execl" not propagating exit codes under Windows. See
-  Issue#26 for more information.
+  `Issue#26 <http://bugs.nuitka.net/issue26>`_ for more information.
 
 - For windows target the MinGW library is now linked statically. That means there is no
   requirement for MinGW to be in the "PATH" or even installed to execute the binary.
@@ -906,8 +911,8 @@ Bug fixes
 ---------
 
 - Conditional statements with both branches empty were not optimized away in all cases,
-  triggering an assertion of code generation. Issue#16. Released as 0.3.17a hotfix
-  already.
+  triggering an assertion of code generation. `Issue#16
+  <http://bugs.nuitka.net/issue16>`_. Released as 0.3.17a hotfix already.
 
 - Nuitka was considering directories to contain packages that had no "__init__.py" which
   could lead to errors when it couldn't find the package later in the compilation
@@ -973,9 +978,9 @@ Organizational
 --------------
 
 - The "Download" page is now finally updated for releases automatically. This closes
-  Issue#7 completely. Up to this release, I had to manually edit that page, but I now
-  mastered the art of upload via XMLRCP and a Python script, so that I don't loose as much
-  time with editing, checking it, etc.
+  `Issue#7 <http://bugs.nuitka.net/issue7>` completely. Up to this release, I had to
+  manually edit that page, but I now mastered the art of upload via XMLRCP and a Python
+  script, so that I don't loose as much time with editing, checking it, etc.
 
 - Added a "Developer Manual" to the release. It's incomplete, but it details some of the
   existing stuff, coding rules, plans for "type inference", etc.
