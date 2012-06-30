@@ -545,8 +545,8 @@ The gcc project http://gcc.gnu.org/
 -----------------------------------
 
 Thanks for not only the best compiler suite, but also thanks for supporting C++11 which
-has made the generation of code much easier. Currently no other compiler is usable for
-Nuitka than yours.
+has made the generation of code much easier. Your compiler was the first usable for
+Nuitka.
 
 The Scons project http://www.scons.org/
 ---------------------------------------

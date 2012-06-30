@@ -1,7 +1,19 @@
-Nuitka Release 0.3.23 (Draft)
-=============================
+Nuitka Release 0.3.23
+=====================
 
-This release contains only bug fixes.
+This release is the one that completes the Nuitka "sun rise phase".
+
+All of Nuitka is now released under `Apache License 2.0
+<http://www.apache.org/licenses/LICENSE-2.0>`_ which is a very liberal license, and
+compatible with basically all Free Software licenses there are. It's only asking to allow
+integration, of what you send back, and patent grants for the code.
+
+In the first phase of Nuitka development, I wanted to keep control over Nuitka, so it
+wouldn't repeat mistakes of other projects. This is no longer a concern for me, it's not
+going to happen anymore.
+
+I would like to thank Debian Legal team, for originally bringing to my attention, that
+this license will be better suited, than any copyright assignment could be.
 
 Bug fixes
 ---------
@@ -26,6 +38,13 @@ New Features
   case for non-compiled functions in CPython, no code objects are stored, only names of
   module level variables.
 
+Organizational
+--------------
+
+- Using the Apache License 2.0 for all of Nuitka now.
+
+- `Speedcenter <http://speedcenter.nuitka.net>`_ has been re-activated.
+
 New Tests
 ---------
 
@@ -41,7 +60,8 @@ New Tests
 Summary
 -------
 
-The release is not yet done.
+The release contains bug fixes, and the huge step of changing the license. It is made in
+preparation to PyCON EU.
 
 
 Nuitka Release 0.3.22
@@ -1962,7 +1982,7 @@ Organizational
   to say now, that C++ leaves way too much things unspecified.
 
 - The Nuitka git repository now uses git flow. The new git policy will be detailed in
-  another `separate posting <http://nuitka.net/blog/2011/10/nuitka-git-flow/>`_.
+  another `separate posting <http://nuitka.net/posts/nuitka-git-flow.html>`_.
 
 - There is an unstable "develop" branch in which the development occurs. For this release
   ca. 40 commits were done to this branch, before merging it. I am also doing more fine
@@ -3705,8 +3725,8 @@ Project Management
   please submit the patches and a pull offer. When you make your clones of Nuitka public,
   use "nuitka-unofficial" or not the name "Nuitka" at all.
 
-- There is a now a `mailing list
-  <http://nuitka.net/blog/nuitka-a-python-compiler/nuitka-mailinglist/>`_ available too.
+- There is a now a `mailing list <http://nuitka.net/pages/mailinglist.html>`_ available
+  too.
 
 Reduced Differences
 -------------------
@@ -3727,7 +3747,7 @@ New Features
 - The "Python" binary provided and "Nuitka.py" are now capable of accepting parameters for
   the program executed, in order to make it even more of a dropin replacement to "python".
 
-- Inling of exec statements with constant expressions. These are now compiled at compile
+- Inlining of exec statements with constant expressions. These are now compiled at compile
   time, not at run time anymore. I observed that an increasing number of CPython tests use
   exec to do things in isolation or to avoid warnings, and many more these tests will now
   be more effective. I intend to do the same with eval expressions too, probably in a

@@ -2220,6 +2220,55 @@ into action, which could be code changes, plan changes, issues created, etc.
   If we fail to detect the aliasing nature, we will calculate "d" wrongly. We may incref
   and decref values to trace it.
 
+  To trace aliasing and non-aliasing of values, it is a log(n**2) quadratic problem, that
+  we should address efficiently. For most things, it will happen that we fail to know if
+  an alias exists. In such cases, we will have to be pessimistic, and let go of knowledge
+  we thought we had.
+
+  If e.g. "x" is a list (read mutable value), and aliases to a module value "y", then if
+  we call unknown code, that may modify "y", we must assume that "x" is modified as well.
+
+  For an "x" that is a str (read non-mutable value), aliases are no concern at all, as
+  they can't change "x". So we can trust it rather.
+
+  The knowledge if "x" is mutable or not, is therefore important for preserving knowledge,
+  and of course, if external code, may access aliases or not.
+
+  To solve the issue, we should not only have "variables" in constraint collections, but
+  also "aliases". Where for each variable, module, or local, we track the aliasing. Of
+  course, such an alias can be broken by a new assignment. So, the "variable" would still
+  be the key, but the value would be list of other variables, and then a value, that all
+  of these hold. That list could be a shared set for ease of updating.
+
+  Values produce friends. Then they are assigned names, and can be referenced. When they
+  are assigned names, they should have a special value friend that can handle the alias.
+  They need to create links and destroy them, when something else is assigned.
+
+  When done properly, it ought to handle code like this one.
+
+  .. code-block:: python
+
+     def f():
+        a = [ 3 ]
+        b = a
+        a.append( 4 )
+        a = 3
+        return b[1]
+
+  For assignment of "a", the value friend of the list creation is taken, and then it is
+  stored under variable "a". That is already done with an "alias" structure, with only
+  the variable "a". Then when assigning to "b", it is assigned the same value friend and
+  another link is created to variable "b". Then, when looking up "a.append", that shared
+  value is looked up and potentially mutated.
+
+  If it doesn't get the meaning of ".append", it will discard the knowledge of both "a"
+  and "b", but still know that they alias.
+
+  The aliasing is only broken when a is assigned to a new value. And when then "b" is
+  subscribed, it may understand what that value is or not.
+
+
+
 * Value Life Time Analysis
 
   A value may be assigned, or consumed directly. When consumed directly, it's life ends
@@ -2230,6 +2279,11 @@ into action, which could be code changes, plan changes, issues created, etc.
   may modify what we can tell about it. An unknown usage must mark it as "exists, maybe"
   and no more knowledge.
 
+* Shelve for caching
+
+  If we ever came to the conclusion to want and cache complex results of analysis, we
+  could do so with the shelve module. We would have to implement "__deepcopy__" and then
+  could store in there optimized node structures from start values after parsing.
 
 .. header::
 
