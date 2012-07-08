@@ -451,7 +451,8 @@ for machine in machines:
                 )
             )
 
-
+# Remove the playground again from /tmp
+shutil.rmtree( playground_dir, True )
 
 if options.run_benchmarks:
     for task in tasks[ this_config ]:

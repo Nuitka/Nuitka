@@ -133,5 +133,8 @@ for filename in sorted( os.listdir( "." ) ):
         if result != 0 and search_mode:
             print("Error exit!", result)
             sys.exit( result )
+
+        if python_version.startswith( b"3" ):
+            os.unlink( new_path )
     else:
         print("Skipping", filename)

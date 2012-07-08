@@ -129,7 +129,13 @@ def checkExecutableCommand( command ):
 
 def setExtraFlags( where, name, flags ):
     if where is not None:
-        where = os.path.join( tempfile.gettempdir(), name, where )
+        tmp_dir = tempfile.gettempdir()
+
+        # Try to avoid RAM disk /tmp and use the disk one instead.
+        if tmp_dir == "/tmp" and os.path.exists( "/var/tmp" ):
+            tmp_dir = "/var/tmp"
+
+        where = os.path.join( tmp_dir, name, where )
 
         if not os.path.exists( where ):
             os.makedirs( where )
