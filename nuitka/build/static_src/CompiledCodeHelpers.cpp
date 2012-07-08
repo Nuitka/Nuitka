@@ -678,6 +678,8 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
     return result;
 }
 
+extern PyObject *_python_dict_empty;
+
 PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
 {
     assertCodeObject( code );
@@ -689,7 +691,7 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
         PyThreadState_GET(),                 // thread state
         code,                                // code
         ((PyModuleObject *)module)->md_dict, // globals (module dict)
-        NULL                                 // locals (we are not going to be compatible (yet?))
+        _python_dict_empty                   // locals (we are not going to be compatible (yet?))
     );
 
     assertCodeObject( code );
