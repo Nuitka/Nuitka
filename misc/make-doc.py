@@ -28,13 +28,6 @@ for document in ( "README.txt", "Developer_Manual.rst", "Changelog.rst" ):
         },
         shell = True
     )
-    assert 0 == subprocess.call(
-        "python ./misc/gist/rst2html.py %(document)s >%(doc_base)s.html" % {
-            "document" : document,
-            "doc_base" : document[:-4]
-        },
-        shell = True
-    )
 
 if not os.path.exists( "man" ):
     os.mkdir( "man" )

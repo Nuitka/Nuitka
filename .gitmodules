@@ -1,6 +1,3 @@
-[submodule "misc/gist"]
-	path = misc/gist
-	url = git://gist.github.com/1191442.git
 [submodule "tests/CPython26"]
 	path = tests/CPython26
 	url = http://git.nuitka.net/tests-Nuitka-CPython26.git
