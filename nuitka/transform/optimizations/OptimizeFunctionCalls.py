@@ -76,7 +76,7 @@ def computeOwnedFunctionCall( call_node, function_body ):
         )
 
         # TODO: More appropiate tag maybe.
-        return result, "new_statements", "Replaced call to created function body with direct function call"
+        return result, "new_statements", "Replaced call to created function body '%s' with direct function call" % function_body.getName()
 
     except TooManyArguments as e:
         return CPythonExpressionCall(
