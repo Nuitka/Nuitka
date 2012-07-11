@@ -41,7 +41,7 @@ class FinalizeMarkups( FinalizationVisitorBase ):
         # Record if a function or class has an overflow. TODO: The Overflow check
         # module and this should be united in a per tag finalization check on say
         # "callable_body" tag
-        if node.isExpressionFunctionBody() or node.isExpressionClassBody():
+        if node.isExpressionFunctionBody():
             body = node.getBody()
 
             if body is not None and OverflowCheck.check( body ):

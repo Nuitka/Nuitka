@@ -186,18 +186,6 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         return parent
 
-    def getParentClass( self ):
-        """ Return the parent that is a class body.
-
-        """
-
-        parent = self.getParent()
-
-        while parent is not None and not parent.isExpressionClassBody():
-            parent = parent.getParent()
-
-        return parent
-
     def getParentModule( self ):
         """ Return the parent that is module.
 
@@ -214,9 +202,9 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         return parent
 
     def isParentVariableProvider( self ):
-        # Check if it's a closure giver or a class, in which cases it can provide
-        # variables, pylint: disable=E1101
-        return isinstance( self, CPythonClosureGiverNodeBase ) or self.isExpressionClassBody()
+        # Check if it's a closure giver, in which cases it can provide variables,
+        # pylint: disable=E1101
+        return isinstance( self, CPythonClosureGiverNodeBase )
 
     def isClosureVariableTaker( self ):
         return self.hasTag( "closure_taker" )
@@ -705,12 +693,11 @@ class CPythonClosureTaker:
 
     tags = ( "closure_taker", )
 
-    def __init__( self, provider ):
-        assert self.__class__.early_closure is not None, self
-
+    def __init__( self, provider, early_closure ):
         assert provider.isParentVariableProvider(), provider
 
         self.provider = provider
+        self.early_closure = early_closure
 
         self.taken = set()
 
@@ -770,13 +757,14 @@ class CPythonClosureTaker:
         else:
             return None
 
-    # Normally it's good to lookup name references immediately, but in case of a function
-    # body it is not allowed to do that, because a later assignment needs to be queried
-    # first. Nodes need to indicate via this if they would like to resolve references at
-    # the same time as assignments.
-    early_closure = None
-
     def isEarlyClosure( self ):
+        """ Normally it's good to lookup name references immediately, but not for functions.
+
+        in case of a function body it is not allowed to do that, because a later
+        assignment needs to be queried first. Nodes need to indicate via this if they
+        would like to resolve references at the same time as assignments.
+        """
+
         return self.early_closure
 
     def allocateTempKeeperName( self ):

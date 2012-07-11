@@ -26,7 +26,7 @@ def mergeStatements( statements ):
     merged_statements = []
 
     for statement in statements:
-        if statement.isStatement():
+        if statement.isStatement() or statement.isStatementsFrame():
             merged_statements.append( statement )
         elif statement.isStatementsSequence():
             merged_statements.extend( mergeStatements( statement.getStatements() ) )

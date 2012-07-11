@@ -48,12 +48,13 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
 
     kind = "EXPRESSION_FUNCTION_BODY"
 
-    early_closure = False
-
     named_children = ( "body", )
 
-    def __init__( self, provider, name, doc, parameters, source_ref ):
-        code_prefix = "function"
+    def __init__( self, provider, name, doc, parameters, source_ref, is_class = False ):
+        if is_class:
+            code_prefix = "class"
+        else:
+            code_prefix = "function"
 
         if name == "<lambda>":
             name = "lambda"
@@ -90,7 +91,8 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
 
         CPythonClosureTaker.__init__(
             self,
-            provider = provider
+            provider      = provider,
+            early_closure = is_class
         )
 
         CPythonParameterHavingNodeBase.__init__(
@@ -114,6 +116,7 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
 
         MarkUnoptimizedFunctionIndicator.__init__( self )
 
+        self.is_class = is_class
         self.doc = doc
 
     def getDetails( self ):
@@ -123,6 +126,9 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
             "provider"   : self.provider,
             "doc"        : self.doc
         }
+
+    def isClassDictCreation( self ):
+        return self.is_class
 
     def getDetail( self ):
         return "named %s with %s" % ( self.name, self.parameters )
@@ -165,6 +171,15 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
 
         if self.hasTakenVariable( variable_name ):
             result = self.getTakenVariable( variable_name )
+
+            if self.isClassDictCreation():
+                if result.isModuleVariableReference() and not result.isFromGlobalStatement():
+                    result = self.getProvidedVariable( variable_name )
+
+                    if result.isModuleVariableReference():
+                        del self.providing[ variable_name ]
+
+                        result = self.getProvidedVariable( variable_name )
         else:
             result = self.getProvidedVariable( variable_name )
 
@@ -205,10 +220,16 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         # print( "createProvidedVariable", self, variable_name )
 
         if self.local_locals:
-            return Variables.LocalVariable(
-                owner         = self,
-                variable_name = variable_name
-            )
+            if self.isClassDictCreation():
+                return Variables.ClassVariable(
+                    owner         = self,
+                    variable_name = variable_name
+                )
+            else:
+                return Variables.LocalVariable(
+                    owner         = self,
+                    variable_name = variable_name
+                )
         else:
             # Make sure the provider knows it has to provide a variable of this name for
             # the assigment.

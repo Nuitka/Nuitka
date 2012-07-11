@@ -85,10 +85,8 @@ from .nodes.FunctionNodes import (
     CPythonExpressionFunctionBody,
     CPythonExpressionFunctionCall
 )
-from .nodes.ClassNodes import (
-    CPythonExpressionClassBodyBased,
-    CPythonExpressionClassBody
-)
+from .nodes.ClassNodes import CPythonExpressionClassCreation
+
 from .nodes.ContainerMakingNodes import (
     CPythonExpressionKeyValuePair,
     CPythonExpressionMakeTuple,
@@ -195,6 +193,14 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
             source_ref = source_ref
         )
 
+make_class_parameters = ParameterSpec(
+    name          = "class",
+    normal_args   = (),
+    list_star_arg = None,
+    dict_star_arg = None,
+    default_count = 0
+)
+
 def buildClassNode( provider, node, source_ref ):
     assert getKind( node ) == "ClassDef"
 
@@ -217,27 +223,52 @@ def buildClassNode( provider, node, source_ref ):
         # make it as easy.
         metaclass = None
 
-    class_body = CPythonExpressionClassBody(
+    class_dict_function = CPythonExpressionFunctionBody(
         provider   = provider,
+        is_class   = True,
+        parameters = make_class_parameters,
         name       = node.name,
         doc        = class_doc,
-        metaclass  = metaclass,
         source_ref = source_ref
     )
 
-    if class_statements:
-        body = buildStatementsNode(
-            provider   = class_body,
-            nodes      = class_statements,
-            source_ref = source_ref
-        )
-    else:
-        body = None
+    body = buildStatementsNode(
+        provider   = class_dict_function,
+        nodes      = class_statements,
+        frame      = True,
+        source_ref = source_ref
+    )
+
+    if body is not None:
+        # The frame guard has nothing to tell its line number to.
+        body.source_ref = source_ref.atInternal()
 
     # The class body is basically a function that implicitely, at the end returns its
     # locals and cannot have other return statements contained.
     body = _makeStatementsSequence(
         statements = (
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTargetVariableRef(
+                    variable_name = "__module__",
+                    source_ref    = source_ref
+                ),
+                source        = CPythonExpressionConstantRef(
+                    constant   = provider.getParentModule().getName(),
+                    source_ref = source_ref
+                ),
+                source_ref   = source_ref.atInternal()
+            ),
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTargetVariableRef(
+                    variable_name = "__doc__",
+                    source_ref    = source_ref
+                ),
+                source        = CPythonExpressionConstantRef(
+                    constant   = class_doc,
+                    source_ref = source_ref
+                ),
+                source_ref   = source_ref.atInternal()
+            ),
             body,
             CPythonStatementReturn(
                 expression = CPythonExpressionBuiltinLocals(
@@ -250,16 +281,24 @@ def buildClassNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-    class_body.setBody( body )
+    # The class body is basically a function that implicitely, at the end returns its
+    # locals and cannot have other return statements contained.
 
-    if bases:
-        decorated_body = CPythonExpressionClassBodyBased(
-            bases      = bases,
-            class_body = class_body,
-            source_ref = source_ref
-        )
-    else:
-        decorated_body = class_body
+    class_dict_function.setBody( body )
+
+    class_dict = CPythonExpressionFunctionCall(
+        function_body = class_dict_function,
+        values        = (),
+        source_ref    = source_ref
+    )
+
+    decorated_body = CPythonExpressionClassCreation(
+        class_name = node.name,
+        bases      = bases,
+        metaclass  = metaclass,
+        class_dict = class_dict,
+        source_ref = source_ref
+    )
 
     for decorator in decorators:
         decorated_body = CPythonExpressionCall(
@@ -330,7 +369,7 @@ def buildFunctionNode( provider, node, source_ref ):
 
     real_provider = provider
 
-    while real_provider.isExpressionClassBody():
+    while real_provider.isExpressionFunctionBody() and real_provider.isClassDictCreation():
         real_provider = real_provider.provider
 
     function_body = CPythonExpressionFunctionBody(
@@ -373,7 +412,7 @@ def buildFunctionNode( provider, node, source_ref ):
 
     # CPython made these optional, but applies them to every class __new__. We better add
     # them early, so our analysis will see it
-    if node.name == "__new__" and not decorators and provider.isExpressionClassBody():
+    if node.name == "__new__" and not decorators and provider.isExpressionFunctionBody() and provider.isClassDictCreation():
         decorated_body = CPythonExpressionCall(
             called          = CPythonExpressionBuiltinRef(
                 builtin_name = "staticmethod",
@@ -402,7 +441,7 @@ def buildLambdaNode( provider, node, source_ref ):
 
     real_provider = provider
 
-    while real_provider.isExpressionClassBody():
+    while real_provider.isExpressionFunctionBody() and real_provider.isClassDictCreation():
         real_provider = real_provider.provider
 
     result = CPythonExpressionFunctionBody(
@@ -1203,6 +1242,14 @@ def buildDeleteNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
+make_contraction_parameters = ParameterSpec(
+    name          = "contraction",
+    normal_args   = ( "__iterator", ),
+    list_star_arg = None,
+    dict_star_arg = None,
+    default_count = 0
+)
+
 def _buildContractionNode( provider, node, name, emit_class, start_value, assign_provider, source_ref ):
     # The contraction nodes are reformulated to loop style nodes, and use a lot of
     # temporary names, nested blocks, etc. and so a lot of variable names. There is no
@@ -1215,13 +1262,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
         provider   = provider,
         name       = name,
         doc        = None,
-        parameters = ParameterSpec(
-            name          = "contraction",
-            normal_args   = ( "__iterator", ),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = 0
-        ),
+        parameters = make_contraction_parameters,
         source_ref = source_ref
     )
 
@@ -2465,7 +2506,7 @@ def buildAttributeNode( provider, node, source_ref ):
     )
 
 def buildReturnNode( provider, node, source_ref ):
-    if not provider.isExpressionFunctionBody():
+    if not provider.isExpressionFunctionBody() or provider.isClassDictCreation():
         SyntaxErrors.raiseSyntaxError(
             "'return' outside function",
             source_ref,

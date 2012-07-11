@@ -278,7 +278,7 @@ public:
 
     void dump() const
     {
-        PRINT_ITEMS( true, NULL, this->exception_type );
+        PRINT_ITEM_TO( NULL, this->exception_type );
     }
 
 private:

@@ -313,6 +313,16 @@ class LocalVariable( Variable ):
             return "PyObjectLocalVariable"
 
 
+class ClassVariable( LocalVariable ):
+
+    def getMangledName( self ):
+        # Names like "__name__" are not mangled, only "__name" would be.
+        if not self.variable_name.startswith( "__" ) or self.variable_name.endswith( "__" ):
+            return self.variable_name
+        else:
+            return "_" + self.owner.getName() + self.variable_name
+
+
 class MaybeLocalVariable( Variable ):
     reference_class = ClosureVariableReference
 
@@ -386,44 +396,6 @@ def makeParameterVariables( owner, parameter_names ):
         for parameter_name in
         parameter_names
     ]
-
-
-# TODO: These will become obsolete.
-class ClassVariable( Variable ):
-    reference_class = ClosureVariableReference
-
-    def __init__( self, owner, variable_name ):
-        Variable.__init__(
-            self,
-            owner         = owner,
-            variable_name = variable_name
-        )
-
-    def __repr__( self ):
-        return "<ClassVariable '%s' of '%s'>" % (
-            self.variable_name,
-            self.owner.getName()
-        )
-
-    def isClassVariable( self ):
-        return True
-
-    def getDeclarationTypeCode( self ):
-        if self.isShared():
-            return "PyObjectSharedLocalVariable"
-        else:
-            return "PyObjectLocalVariable"
-
-    def getCodeName( self ):
-        return "python_var_" + self.getName()
-
-    def getMangledName( self ):
-        # Names like "__name__" are not mangled, only "__name" would be.
-        if not self.variable_name.startswith( "__" ) or self.variable_name.endswith( "__" ):
-            return self.variable_name
-        else:
-            return "_" + self.owner.getName() + self.variable_name
-
 
 class ModuleVariable( Variable ):
     module_variables = {}

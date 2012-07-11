@@ -47,7 +47,7 @@ def someFunctionWritingLocalsContainingExec():
     try:
         z
     except Exception, e:
-        print "Accessing z writing to locals gives Exception", e
+        print "Accessing z writing to locals in exec function gives Exception", e
 
     return r, y
 

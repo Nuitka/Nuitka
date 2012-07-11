@@ -365,7 +365,7 @@ def execfile_extractor( node ):
 
         provider = node.getParentVariableProvider()
 
-        if provider.isExpressionClassBody():
+        if provider.isExpressionFunctionBody() and provider.isClassDictCreation():
             # In a case, the copy-back must be done and will only be done correctly by
             # the code for exec statements.
 

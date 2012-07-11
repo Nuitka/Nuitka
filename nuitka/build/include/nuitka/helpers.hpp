@@ -33,8 +33,7 @@ typedef struct {
     PyObject *md_dict;
 } PyModuleObject;
 
-template<typename... P>
-static void PRINT_ITEMS( bool new_line, PyObject *file, P...eles );
+extern void PRINT_ITEM_TO( PyObject *file, PyObject *object );
 static PyObject *INCREASE_REFCOUNT( PyObject *object );
 static PyObject *INCREASE_REFCOUNT_X( PyObject *object );
 

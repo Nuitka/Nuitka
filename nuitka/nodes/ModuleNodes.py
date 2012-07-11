@@ -45,8 +45,6 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureG
 
     kind = "MODULE"
 
-    early_closure = True
-
     named_children = ( "body", )
 
     def __init__( self, name, package, source_ref ):
@@ -63,7 +61,8 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureG
 
         CPythonClosureTaker.__init__(
             self,
-            provider = self
+            provider      = self,
+            early_closure = True
         )
 
         CPythonChildrenHaving.__init__(

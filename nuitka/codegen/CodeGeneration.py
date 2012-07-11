@@ -49,7 +49,7 @@ def mangleAttributeName( attribute_name, node ):
         if node is None:
             break
 
-        if node.isExpressionClassBody():
+        if node.isExpressionFunctionBody() and node.isClassDictCreation():
             if seen_function:
                 return "_" + node.getName() + attribute_name
             else:
@@ -296,86 +296,6 @@ def generateFunctionBodyCode( function_body, defaults, context ):
         )
     else:
         return function_body.getCodeName()
-
-
-
-def generateClassBodyCode( class_body, bases, context ):
-    assert class_body.isExpressionClassBody()
-
-    bases_identifier = generateTupleCreationCode(
-        elements = bases,
-        context  = context
-    )
-
-    class_context = Contexts.PythonClassContext(
-        parent    = context,
-        class_def = class_body
-    )
-
-    class_codes = generateStatementSequenceCode(
-        statement_sequence = class_body.getBody(),
-        allow_none         = True,
-        context            = class_context
-    )
-
-    class_codes = class_codes or []
-
-    dict_identifier = Generator.getClassDictCreationCode(
-        class_identifier  = class_body.getCodeName(),
-        closure_variables = class_body.getClosureVariables(),
-        context           = context
-    )
-
-    metaclass_class_code = generateExpressionCode(
-        expression = class_body.getMetaclass(),
-        allow_none  = True,
-        context    = context
-    )
-
-    if metaclass_class_code is None:
-        metaclass_class_code = Generator.Identifier( "NULL", 0 )
-
-    class_creation_identifier = Generator.getClassCreationCode(
-        metaclass_global_code = Generator.getMetaclassVariableCode(
-            context = context
-        ),
-        metaclass_class_code  = metaclass_class_code.getCodeTemporaryRef(),
-        name_identifier       = Generator.getConstantHandle(
-            context  = context,
-            constant = class_body.getClassName()
-        ),
-        bases_identifier      = bases_identifier,
-        dict_identifier       = dict_identifier
-    )
-
-    class_decl = Generator.getClassDecl(
-        class_identifier  = class_body.getCodeName(),
-        closure_variables = class_body.getClosureVariables()
-    )
-
-    class_code = Generator.getClassCode(
-        context            = class_context,
-        source_ref         = class_body.getSourceReference(),
-        class_identifier   = class_body.getCodeName(),
-        class_name         = class_body.getClassName(),
-        class_variables    = class_body.getClassVariables(),
-        closure_variables  = class_body.getClosureVariables(),
-        tmp_variables      = class_body.getTempKeeperNames(),
-        module_name        = class_body.getParentModule().getName(),
-        class_doc          = class_body.getDoc(),
-        class_codes        = class_codes,
-        metaclass_variable = class_body.getParentModule().getVariableForReference(
-            variable_name = "__metaclass__"
-        )
-    )
-
-    context.addClassCodes(
-        code_name  = class_body.getCodeName(),
-        class_decl = class_decl,
-        class_code = class_code
-    )
-
-    return class_creation_identifier
 
 def generateOperationCode( operator, operands, context ):
     return Generator.getOperationCode(
@@ -638,9 +558,7 @@ def generateCallCode( call_node, context ):
     )
 
 def _decideLocalsMode( provider ):
-    if provider.isExpressionClassBody():
-        mode = "updated"
-    elif provider.isExpressionFunctionBody() and provider.isUnoptimized():
+    if provider.isExpressionFunctionBody() and ( provider.isEarlyClosure() or provider.isUnoptimized() ):
         mode = "updated"
     else:
         mode = "copy"
@@ -914,17 +832,29 @@ def generateExpressionCode( expression, context, allow_none = False ):
             defaults       = expression.getDefaults(),
             context        = context
         )
-    elif expression.isExpressionClassBody():
-        identifier = generateClassBodyCode(
-            class_body = expression,
-            bases      = (),
-            context    = context
-        )
-    elif expression.isExpressionClassBodyBased():
-        identifier = generateClassBodyCode(
-            class_body = expression.getClassBody(),
-            bases      = expression.getBases(),
-            context    = context
+    elif expression.isExpressionClassCreation():
+        context.addGlobalVariableNameUsage( "__metaclass__" )
+
+        identifier = Generator.getClassCreationCode(
+            metaclass_global_code = Generator.getMetaclassVariableCode(
+                context = context
+            ),
+            metaclass_class_code  = generateExpressionCode(
+                expression = expression.getMetaclass(),
+                allow_none = True,
+                context    = context
+            ),
+            name_identifier       = Generator.getConstantHandle(
+                context  = context,
+                constant = expression.getClassName()
+            ),
+            bases_identifier      = generateTupleCreationCode(
+                elements = expression.getBases(),
+                context  = context
+            ),
+            dict_identifier       = makeExpressionCode(
+                expression = expression.getClassDict()
+            )
         )
     elif expression.isExpressionComparison():
         identifier = generateComparisonExpressionCode(
@@ -1916,10 +1846,18 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
                 )
             )
 
-        code = generateStatementCode(
-            statement = statement,
-            context   = context
-        )
+        if statement.isStatementsSequence():
+            code = generateStatementSequenceCode(
+                statement_sequence = statement,
+                context            = context
+            )
+
+            code = code.strip()
+        else:
+            code = generateStatementCode(
+                statement = statement,
+                context   = context
+            )
 
         # Can happen for "global" declarations, these are still in the node tree and yield
         # no code.
@@ -1973,8 +1911,9 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
                         arg_names    = statement_sequence.getArgNames(),
                         line_number  = source_ref.getLineNumber(),
                         code_name    = statement_sequence.getCodeObjectName(),
-                        is_generator = False
+                        is_generator = False,
                     ),
+                    is_class         = provider.isExpressionFunctionBody() and provider.isClassDictCreation(),
                     codes            = codes,
                     context          = context
                 )

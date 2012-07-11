@@ -25,8 +25,6 @@ class OverflowCheckVisitor( TreeOperations.VisitorNoopMixin ):
     def __init__( self, checked_node ):
         self.result = False
 
-        self.is_class = checked_node.getParent().isExpressionClassBody()
-
         if checked_node.getParent().isExpressionFunctionBody():
             self.result = checked_node.getParent().isUnoptimized()
 

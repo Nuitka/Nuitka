@@ -21,148 +21,38 @@ The classes are are at the core of the language and have their complexities.
 
 """
 
-from .NodeBases import (
-    CPythonExpressionChildrenHavingBase,
-    CPythonExpressionMixin,
-    CPythonChildrenHaving,
-    CPythonCodeNodeBase,
-    CPythonClosureTaker
-)
-
-from .IndicatorMixins import (
-    MarkContainsTryExceptIndicator,
-    MarkLocalsDictIndicator,
-)
-
-from nuitka import Variables
-
-class CPythonExpressionClassBody( CPythonChildrenHaving, CPythonClosureTaker, CPythonCodeNodeBase, \
-                                  MarkContainsTryExceptIndicator, MarkLocalsDictIndicator, \
-                                  CPythonExpressionMixin ):
-    kind = "EXPRESSION_CLASS_BODY"
-
-    early_closure = True
-
-    named_children = ( "body", "metaclass" )
-
-    def __init__( self, provider, name, metaclass, doc, source_ref ):
-        CPythonCodeNodeBase.__init__(
-            self,
-            name        = name,
-            code_prefix = "class",
-            source_ref  = source_ref
-        )
-
-        CPythonClosureTaker.__init__(
-            self,
-            provider = provider,
-        )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
-                "body"      : None,
-                "metaclass" : metaclass
-            }
-        )
-
-        MarkContainsTryExceptIndicator.__init__( self )
-
-        MarkLocalsDictIndicator.__init__( self )
-
-        self.doc = doc
-
-        self.variables = {}
-
-        self._addClassVariable(
-            variable_name = "__module__"
-        )
-        self._addClassVariable(
-            variable_name = "__doc__"
-        )
-
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
-
-    getMetaclass = CPythonChildrenHaving.childGetter( "metaclass" )
-
-    def getClassName( self ):
-        return self.getName()
-
-    def getDoc( self ):
-        return self.doc
-
-    def _addClassVariable( self, variable_name ):
-        result = Variables.ClassVariable(
-            owner         = self,
-            variable_name = variable_name
-        )
-
-        self.variables[ variable_name ] = result
-
-        return result
-
-    def getVariableForAssignment( self, variable_name ):
-        # print( "ASS class", variable_name, self )
-
-        if self.hasTakenVariable( variable_name ):
-            result = self.getTakenVariable( variable_name )
-
-            if result.isClassVariable() and result.getOwner() == self:
-                return result
-
-            if result.isModuleVariableReference() and result.isFromGlobalStatement():
-                return result
-
-        return self._addClassVariable(
-            variable_name = variable_name
-        )
-
-    def getVariableForReference( self, variable_name ):
-        # print( "REF class", variable_name, self )
-
-        if variable_name in self.variables:
-            return self.variables[ variable_name ]
-        else:
-            return self.getClosureVariable( variable_name )
-
-    def getVariableForClosure( self, variable_name ):
-        if variable_name in self.variables:
-            return self.variables[ variable_name ]
-        else:
-            return self.provider.getVariableForClosure( variable_name )
-
-    def reconsiderVariable( self, variable ):
-        pass
-
-    def getClassVariables( self ):
-        return self.variables.values()
-
-    getVariables = getClassVariables
-
-    def computeNode( self, constraint_collection ):
-        # Class body is quite irreplacable. TODO: Not really, could be predictable as
-        # a whole.
-        return self, None, None
+from .NodeBases import CPythonExpressionChildrenHavingBase
 
 
-class CPythonExpressionClassBodyBased( CPythonExpressionChildrenHavingBase ):
-    kind = "EXPRESSION_CLASS_BODY_BASED"
+class CPythonExpressionClassCreation( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_CLASS_CREATION"
 
-    named_children = ( "bases", "class_body", )
+    named_children = ( "metaclass", "bases", "class_dict", )
 
-    def __init__( self, bases, class_body, source_ref ):
+    def __init__( self, class_name, metaclass, bases, class_dict, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values = {
-                "class_body" : class_body,
+                "metaclass"  : metaclass,
                 "bases"      : tuple( bases ),
+                "class_dict" : class_dict
             },
             source_ref = source_ref
         )
 
-    getClassBody = CPythonExpressionChildrenHavingBase.childGetter( "class_body" )
+        self.class_name = class_name
+
+    def getDetails( self ):
+        return {
+            "class_name" : self.class_name
+        }
+
+    getClassDict = CPythonExpressionChildrenHavingBase.childGetter( "class_dict" )
     getBases = CPythonExpressionChildrenHavingBase.childGetter( "bases" )
+    getMetaclass = CPythonExpressionChildrenHavingBase.childGetter( "metaclass" )
+
+    def getClassName( self ):
+        return self.class_name
 
     def computeNode( self, constraint_collection ):
         # Class body is quite irreplacable. TODO: Not really, could be predictable as
