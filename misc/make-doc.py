@@ -62,11 +62,17 @@ def getFile( filename ):
 contents = getFile( "doc/man-nuitka.html" )
 new_contents = contents[ : contents.rfind( "<HR>" ) ] + contents[ contents.rfind( "</BODY>" ) : ]
 assert new_contents != contents
-
+contents = new_contents
+new_contents = contents[ : contents.rfind( '<A HREF="#index">Index</A>' ) ] + contents[ contents.rfind( '</A><HR>' ) : ]
+assert new_contents != contents
 open( "doc/man-nuitka.html", "w" ).write( new_contents )
 
 contents = getFile( "doc/man-nuitka-python.html" )
 new_contents = contents[ : contents.rfind( "<HR>" ) ] + contents[ contents.rfind( "</BODY>" ) : ]
 assert new_contents != contents
+contents = new_contents
+new_contents = contents[ : contents.rfind( '<A HREF="#index">Index</A>' ) ] + contents[ contents.rfind( '</A><HR>' ) : ]
+assert new_contents != contents
+
 
 open( "doc/man-nuitka-python.html", "w" ).write( new_contents )
