@@ -608,21 +608,14 @@ in a simpler or more general way, and where we choose to do that at either tree 
 or optimization time.
 
 
-The "assert" statement
-----------------------
+The ``assert`` statement
+------------------------
 
-The assert statement is a special statement in Python, allowed by the syntax. It has two
+The ``assert`` statement is a special statement in Python, allowed by the syntax. It has two
 forms, with and without a second argument. The later is probably less known, as is the
 fact that raise statements can have multiple arguments too.
 
 The handling in Nuitka is:
-
-.. code-block:: python
-
-   assert value, raise_arg
-   # Absolutely the same as:
-   if not value:
-       raise AssertionError, raise_arg
 
 .. code-block:: python
 
@@ -631,11 +624,17 @@ The handling in Nuitka is:
    if not value:
        raise AssertionError
 
+.. code-block:: python
+
+   assert value, raise_arg
+   # Absolutely the same as:
+   if not value:
+       raise AssertionError, raise_arg
 
 This makes assertions absolutely the same as a raise exception in a conditional statement.
 
 This transformation is performed at tree building already, so Nuitka never knows about
-"assert" as an element and standard optimizations apply. If e.g. the truth value of the
+``assert`` as an element and standard optimizations apply. If e.g. the truth value of the
 assertion can be predicted, the conditional statement will have the branch statically
 executed or removed.
 
@@ -658,8 +657,8 @@ This useful "keeper" variables that enable this transformation and allow to expr
 short circuit nature of comparison chains by using ``and`` operations.
 
 
-The "execfile" builtin
-----------------------
+The ``execfile`` builtin
+------------------------
 
 Handling is:
 
@@ -678,8 +677,8 @@ This transformation is performed when the ``execfile`` builtin is detected as su
 optimization.
 
 
-Generator expressions with yields
----------------------------------
+Generator expressions with ``yield``
+------------------------------------
 
 These are converted at tree building time into a generator function body that yields the
 iterator given, which is the put into a for loop to iterate, created a lambda function of
@@ -1516,11 +1515,11 @@ removing statements after it as dead code.
    blocks, etc. though.
 
 
-Excursion to yield statements
------------------------------
+Excursion to ``yield`` expressions
+----------------------------------
 
-The yield statement can be treated like a normal function call, and as such invalidates
-some known constraints just as much as they do.
+The ``yield`` expression can be treated like a normal function call, and as such
+invalidates some known constraints just as much as they do.
 
 
 Mixed Types
@@ -2356,8 +2355,6 @@ into action, which could be code changes, plan changes, issues created, etc.
   The aliasing is only broken when a is assigned to a new value. And when then "b" is
   subscribed, it may understand what that value is or not.
 
-
-
 * Value Life Time Analysis
 
   A value may be assigned, or consumed directly. When consumed directly, it's life ends
@@ -2373,6 +2370,12 @@ into action, which could be code changes, plan changes, issues created, etc.
   If we ever came to the conclusion to want and cache complex results of analysis, we
   could do so with the shelve module. We would have to implement "__deepcopy__" and then
   could store in there optimized node structures from start values after parsing.
+
+
+* Tail recursion optimization.
+
+  Functions that return the results of calls, can be optimized. The Stackless Python does
+  it already.
 
 .. header::
 
