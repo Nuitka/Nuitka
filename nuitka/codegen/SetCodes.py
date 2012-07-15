@@ -32,5 +32,5 @@ def getSetCreationCode( context, element_identifiers ):
 
     return CallIdentifier(
         called  = "MAKE_SET",
-        args    = ( tuple_identifier, )
+        args    = ( tuple_identifier.getCodeTemporaryRef(), )
     )

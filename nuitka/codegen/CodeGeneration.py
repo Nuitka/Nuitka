@@ -746,7 +746,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
         )
     elif expression.isExpressionMakeSet():
         identifier = generateSetCreationCode(
-            elements = expression.getValues(),
+            elements = expression.getElements(),
             context  = context
         )
     elif expression.isExpressionMakeDict():
