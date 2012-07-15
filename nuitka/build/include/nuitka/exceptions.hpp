@@ -455,21 +455,36 @@ class BreakException
 #define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must derive from BaseException"
 #endif
 
-NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception, PyTracebackObject *traceback )
+NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception_type, PyTracebackObject *traceback )
 {
-    assertObject( exception );
+    assertObject( exception_type );
 
-    if ( PyExceptionClass_Check( exception ) )
+    if ( PyExceptionClass_Check( exception_type ) )
     {
-        throw _PythonException( exception, traceback );
+        PyObject *value = NULL;
+        PyErr_NormalizeException( &exception_type, &value, (PyObject **)&traceback );
+
+        if (unlikely( !PyExceptionInstance_Check( value ) ))
+        {
+            PyErr_Format(
+                PyExc_TypeError,
+                "calling %s() should have returned an instance of BaseException, not '%s'",
+                ((PyTypeObject *)exception_type)->tp_name,
+                Py_TYPE( value )->tp_name
+            );
+
+            throw _PythonException();
+        }
+
+        throw _PythonException( exception_type, value, traceback );
     }
-    else if ( PyExceptionInstance_Check( exception ) )
+    else if ( PyExceptionInstance_Check( exception_type ) )
     {
-        throw _PythonException( INCREASE_REFCOUNT( PyExceptionInstance_Class( exception ) ), exception, traceback );
+        throw _PythonException( INCREASE_REFCOUNT( PyExceptionInstance_Class( exception_type ) ), exception_type, traceback );
     }
     else
     {
-        PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception )->tp_name );
+        PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
 
         _PythonException to_throw;
         to_throw.setTraceback( traceback );
@@ -482,9 +497,27 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exc
 {
     assertObject( exception_type );
 
+    // Non-empty tuple exceptions are the first element.
+    while (unlikely( PyTuple_Check( exception_type ) && PyTuple_Size( exception_type ) > 0 ))
+    {
+        PyObjectTemporary old( exception_type );
+        exception_type = INCREASE_REFCOUNT( PyTuple_GET_ITEM( exception_type, 0 ) );
+    }
+
     if ( PyExceptionClass_Check( exception_type ) )
     {
         PyErr_NormalizeException( &exception_type, &value, (PyObject **)&traceback );
+        if (unlikely( !PyExceptionInstance_Check( value ) ))
+        {
+            PyErr_Format(
+                PyExc_TypeError,
+                "calling %s() should have returned an instance of BaseException, not '%s'",
+                ((PyTypeObject *)exception_type)->tp_name,
+                Py_TYPE( value )->tp_name
+            );
+
+            throw _PythonException();
+        }
     }
     else if ( PyExceptionInstance_Check( exception_type ) )
     {
