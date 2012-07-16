@@ -45,6 +45,26 @@ static PyMemberDef Nuitka_Method_members[] =
     { NULL }
 };
 
+static PyObject *Nuitka_Method_reduce( Nuitka_MethodObject *method )
+{
+
+    return MAKE_TUPLE2(
+        (PyObject *)Py_TYPE( method ),
+        PyObjectTemporary(
+            MAKE_TUPLE2(
+                (PyObject *)method->m_function,
+                method->m_object
+            )
+        ).asObject()
+    );
+}
+
+static PyMethodDef Nuitka_Method_methods[] =
+{
+    { "__reduce__", (PyCFunction)Nuitka_Method_reduce, METH_NOARGS, NULL },
+    { NULL }
+};
+
 static char const *GET_CLASS_NAME( PyObject *klass )
 {
     if ( klass == NULL )
@@ -449,7 +469,7 @@ PyTypeObject Nuitka_Method_Type =
     offsetof( Nuitka_MethodObject, m_weakrefs ), // tp_weaklistoffset
     0,                                           // tp_iter
     0,                                           // tp_iternext
-    0,                                           // tp_methods
+    Nuitka_Method_methods,                       // tp_methods
     Nuitka_Method_members,                       // tp_members
     Nuitka_Method_getsets,                       // tp_getset
     0,                                           // tp_base
