@@ -1856,6 +1856,39 @@ def buildAssertNode( provider, node, source_ref ):
     #
     # Therefore assert statements are really just conditional statements with a static
     # raise contained.
+    #
+    # Starting with CPython2.7, it is:
+    # if not x:
+    #     raise AssertionError( y )
+
+    if Utils.python_version < 270 or node.msg is None:
+        raise_statement = CPythonStatementRaiseException(
+            exception_type = CPythonExpressionBuiltinExceptionRef(
+                exception_name = "AssertionError",
+                source_ref     = source_ref
+                ),
+            exception_value = buildNode( provider, node.msg, source_ref, True ),
+            exception_trace = None,
+            source_ref      = source_ref
+        )
+    else:
+        raise_statement = CPythonStatementRaiseException(
+            exception_type =  CPythonExpressionCall(
+                called          = CPythonExpressionBuiltinExceptionRef(
+                    exception_name = "AssertionError",
+                    source_ref     = source_ref
+                ),
+                positional_args = ( buildNode( provider, node.msg, source_ref, True ), ),
+                pairs           = (),
+                list_star_arg   = None,
+                dict_star_arg   = None,
+                source_ref      = source_ref
+            ),
+            exception_value = None,
+            exception_trace = None,
+            source_ref      = source_ref
+        )
+
     return CPythonStatementConditional(
         condition = CPythonExpressionOperationNOT(
             operand    = buildNode( provider, node.test, source_ref ),
@@ -1863,15 +1896,7 @@ def buildAssertNode( provider, node, source_ref ):
         ),
         yes_branch = CPythonStatementsSequence(
             statements = (
-                CPythonStatementRaiseException(
-                    exception_type = CPythonExpressionBuiltinExceptionRef(
-                        exception_name = "AssertionError",
-                        source_ref     = source_ref
-                    ),
-                    exception_value = buildNode( provider, node.msg, source_ref, True ),
-                    exception_trace = None,
-                    source_ref      = source_ref
-                ),
+                raise_statement,
             ),
             source_ref = source_ref
         ),
