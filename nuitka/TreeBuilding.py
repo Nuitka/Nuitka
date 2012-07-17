@@ -65,6 +65,7 @@ from .nodes.ExceptionNodes import (
     CPythonExpressionCaughtExceptionTracebackRef,
     CPythonExpressionCaughtExceptionValueRef,
     CPythonExpressionCaughtExceptionTypeRef,
+    CPythonExpressionBuiltinMakeException,
     CPythonStatementRaiseException
 )
 from .nodes.ComparisonNode import CPythonExpressionComparison
@@ -1873,16 +1874,10 @@ def buildAssertNode( provider, node, source_ref ):
         )
     else:
         raise_statement = CPythonStatementRaiseException(
-            exception_type =  CPythonExpressionCall(
-                called          = CPythonExpressionBuiltinExceptionRef(
-                    exception_name = "AssertionError",
-                    source_ref     = source_ref
-                ),
-                positional_args = ( buildNode( provider, node.msg, source_ref, True ), ),
-                pairs           = (),
-                list_star_arg   = None,
-                dict_star_arg   = None,
-                source_ref      = source_ref
+            exception_type =  CPythonExpressionBuiltinMakeException(
+                exception_name = "AssertionError",
+                args           = ( buildNode( provider, node.msg, source_ref, True ), ),
+                source_ref     = source_ref
             ),
             exception_value = None,
             exception_trace = None,
