@@ -115,7 +115,7 @@ class ValgrindBenchmarkBase:
 
         binary = os.path.join( "bin", binary )
 
-        # Used by benchmark.sh
+        # Used by run_valgrind.py
         os.environ[ "NUITKA_BINARY" ] = "python%s %s" % ( python_version, binary )
 
         # Very old Nuitka needs that.
@@ -128,9 +128,9 @@ class ValgrindBenchmarkBase:
 
         os.environ[ "NUITKA_EXTRA_OPTIONS" ] = self.getExtraArguments()
 
-        output = subprocess.check_output( ( os.path.join( start_dir, "bin", "benchmark.sh" ), benchmark_path, "number" ) ).strip()
+        output = subprocess.check_output( ( os.path.join( start_dir, "misc", "run-valgrind.py" ), benchmark_path, "number" ) ).strip()
 
-        self.result[ "EXE_SIZE" ] = int( output.split( "\n" )[0].split("=")[1] )
+        self.result[ "EXE_SIZE" ] = int( output.split( "\n" )[-2].split("=")[1] )
         self.result[ "CPU_TICKS" ] = int( output.split( "\n" )[-1].split("=")[1] )
 
     def getResults( self ):

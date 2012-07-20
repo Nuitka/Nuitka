@@ -1483,7 +1483,7 @@ Organizational
 - There are now man pages of ``nuitka`` and ``nuitka-python`` with examples for the most
   common use cases. They are of course included in the Debian package.
 
-- Don't strip the binary when executing "benchmark.sh" to analyse compiled binary with
+- Don't strip the binary when executing it to analyse compiled binary with
   ``valgrind``. It will give better information that way, without changing the code.
 
 Optimizations
@@ -2666,12 +2666,12 @@ New Tests
 Organizational
 --------------
 
-- The "benchmark.sh" script now starts "kcachegrind" to display the valgrind result
-  directly.
+- A new script "benchmark.sh" (now called "run-valgrind.py") script now starts
+  "kcachegrind" to display the valgrind result directly.
 
-  One can now use "benchmark.sh" to execute a test and inspect valgrind information right
-  away, then improve it. Very useful to discover methods for improvements, test them, then
-  refine some more.
+  One can now use it to execute a test and inspect valgrind information right away, then
+  improve it. Very useful to discover methods for improvements, test them, then refine
+  some more.
 
 - The "check-release.sh" script needs to unset ``NUITKA_EXTRA_OPTIONS`` or else the
   reflection test will trip over the changed output paths.
