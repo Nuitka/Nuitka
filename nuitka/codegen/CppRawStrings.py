@@ -34,8 +34,6 @@ def _pickRawDelimiter( value ):
 
     return delimiter
 
-_paranoid_debug = False
-
 def encodeString( value ):
     """ Encode a string, so that it gives a C++ raw string literal.
 
@@ -64,27 +62,4 @@ def encodeString( value ):
         else:
             return end + r' "\\" ' + start
 
-    result = re.sub( "\n|\r|\0|\\\\|\\?\\?", decide, result )
-
-    # If paranoid mode is enabled, the C++ raw literals are verified by putting them
-    # through a compile and checking if a test program outputs the same value.
-    if _paranoid_debug:
-        source_file = open( "/tmp/raw_test.cpp", "w" )
-
-        source_file.write( """
-#include <stdio.h>
-int main( int argc, char *argv[] )
-{
-    puts( %s );
-}
-""" % result )
-
-        source_file.close()
-
-        os.system( "g++ -std=c++0x /tmp/raw_test.cpp -o /tmp/raw_test" )
-
-        check = commands.getoutput( "/tmp/raw_test" )
-
-        assert check == value
-
-    return result
+    return re.sub( "\n|\r|\0|\\\\|\\?\\?", decide, result )
