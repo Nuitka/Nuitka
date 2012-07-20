@@ -2197,6 +2197,8 @@ def buildExecNode( provider, node, source_ref ):
     exec_locals = node.locals
     body = node.body
 
+    orig_globals = exec_globals
+
     # Allow exec(a,b,c) to be same as exec a, b, c
     if exec_locals is None and exec_globals is None and getKind( body ) == "Tuple":
         parts = body.elts
@@ -2224,15 +2226,18 @@ def buildExecNode( provider, node, source_ref ):
     globals_node = buildNode( provider, exec_globals, source_ref, True )
     locals_node = buildNode( provider, exec_locals, source_ref, True )
 
+    if provider.isExpressionFunctionBody():
+        provider.markAsExecContaining()
+
+        if orig_globals is None:
+            provider.markAsUnqualifiedExecContaining( source_ref )
+
     if locals_node is not None and locals_node.isExpressionConstantRef() and locals_node.getConstant() is None:
         locals_node = None
 
     if locals_node is None and globals_node is not None:
         if globals_node.isExpressionConstantRef() and globals_node.getConstant() is None:
             globals_node = None
-
-    if provider.isExpressionFunctionBody():
-        provider.markAsExecContaining()
 
     return CPythonStatementExec(
         source_code = buildNode( provider, body, source_ref ),

@@ -96,6 +96,9 @@ class Variable:
     def isModuleVariableReference( self ):
         return False
 
+    def isReference( self ):
+        return self.isClosureReference() or self.isModuleVariableReference()
+
     def isModuleVariable( self ):
         return False
 

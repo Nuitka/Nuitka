@@ -36,6 +36,7 @@ class MarkExceptionBreakContinueIndicator:
     def needsExceptionBreakContinue( self ):
         return self.break_continue_exception
 
+
 class MarkContainsTryExceptIndicator:
     """ Mixin for indication that a module, class or function contains a try/except.
 
@@ -50,6 +51,7 @@ class MarkContainsTryExceptIndicator:
     def needsFrameExceptionKeeper( self ):
         return self.try_except_containing
 
+
 class MarkLocalsDictIndicator:
     def __init__( self ):
         self.needs_locals_dict = False
@@ -59,6 +61,7 @@ class MarkLocalsDictIndicator:
 
     def markAsLocalsDict( self ):
         self.needs_locals_dict = True
+
 
 class MarkGeneratorIndicator:
     """ Mixin for indication that a function/lambda is a generator.
@@ -84,11 +87,26 @@ class MarkUnoptimizedFunctionIndicator:
 
     def __init__( self ):
         self.unoptimized_locals = False
+        self.unqualified_exec = False
+        self.exec_source_ref = None
 
     def markAsExecContaining( self ):
         self.unoptimized_locals = True
+
+    def markAsUnqualifiedExecContaining( self, source_ref ):
+        self.unqualified_exec = True
+
+        # Let the first one win.
+        if self.exec_source_ref is None:
+            self.exec_source_ref = source_ref
 
     markAsStarImportContaining = markAsExecContaining
 
     def isUnoptimized( self ):
         return self.unoptimized_locals
+
+    def isUnqualifiedExec( self ):
+        return self.unoptimized_locals and self.unqualified_exec
+
+    def getExecSourceRef( self ):
+        return self.exec_source_ref
