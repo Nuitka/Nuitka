@@ -175,7 +175,7 @@ unbound_method_re = re.compile( r"bound compiled_method " )
 compiled_type_re = re.compile( r"type 'compiled_" )
 global_name_error_re = re.compile( r"global (name ')(.*?)(' is not defined)" )
 module_repr_re = re.compile( r"(\<module '.*?' from ').*?('\>)" )
-
+non_ascii_error_rt = re.compile( r"(SyntaxError: Non-ASCII character.*? on line) \d+" )
 fromdate = None
 todate = None
 
@@ -202,6 +202,7 @@ def makeDiffable( output ):
         line = compiled_type_re.sub( r"type '", line )
         line = global_name_error_re.sub( r"\1\2\3", line )
         line = module_repr_re.sub( r"\1xxxxx\2", line )
+        line = non_ascii_error_rt.sub( r"\1 xxxx", line )
 
         # Windows has a different os.path, update according to it.
         line = line.replace( "ntpath", "posixpath" )
