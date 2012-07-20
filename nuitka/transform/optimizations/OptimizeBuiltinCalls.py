@@ -84,7 +84,10 @@ from nuitka.nodes.BuiltinRangeNode import (
 
 from nuitka.nodes.BuiltinVarsNode import CPythonExpressionBuiltinVars
 from nuitka.nodes.ImportNodes import CPythonExpressionBuiltinImport
-from nuitka.nodes.TypeNode import CPythonExpressionBuiltinType1
+from nuitka.nodes.TypeNode import (
+    CPythonExpressionBuiltinSuper,
+    CPythonExpressionBuiltinType1,
+)
 from nuitka.nodes.ClassNodes import CPythonExpressionBuiltinType3
 from nuitka.nodes.CallNode import CPythonExpressionCall
 from nuitka.nodes.AttributeNode import CPythonExpressionAttributeLookup
@@ -439,6 +442,13 @@ def open_extractor( node ):
         builtin_spec  = BuiltinOptimization.builtin_open_spec
     )
 
+def super_extractor( node ):
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = CPythonExpressionBuiltinSuper,
+        builtin_spec  = BuiltinOptimization.builtin_super_spec
+    )
+
 _dispatch_dict = {
     "globals"    : globals_extractor,
     "locals"     : locals_extractor,
@@ -466,7 +476,8 @@ _dispatch_dict = {
     "int"        : int_extractor,
     "repr"       : repr_extractor,
     "len"        : len_extractor,
-    "open"       : open_extractor
+    "open"       : open_extractor,
+    "super"      : super_extractor
 }
 
 if python_version < 300:

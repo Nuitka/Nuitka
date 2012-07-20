@@ -1364,7 +1364,12 @@ extern PyObject *BUILTIN_RANGE( PyObject *boundary );
 // For quicker builtin len() functionality.
 extern PyObject *BUILTIN_LEN( PyObject *boundary );
 
+// For quicker builtin dir(arg) functionality.
 extern PyObject *BUILTIN_DIR1( PyObject *arg );
+
+// For quicker builtin super() functionality.
+extern PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object );
+
 
 NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {

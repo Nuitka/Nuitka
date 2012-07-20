@@ -355,6 +355,8 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         return False
 
     def isStatementAbortative( self ):
+        """ Is the node abortative, control flow doesn't continue after this node.  """
+        # Virtual method, pylint: disable=R0201
         assert self.isStatement(), self.kind
 
         return False
@@ -367,6 +369,10 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
     def hasTag( self, tag ):
         return tag in self.__class__.tags
+
+    def getIntegerValue( self, constraint_collection ):
+        """ Node as integer value, if possible."""
+        # Virtual method, pylint: disable=R0201,W0613
 
 
 class CPythonCodeNodeBase( CPythonNodeBase ):

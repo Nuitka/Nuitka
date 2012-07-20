@@ -1408,3 +1408,77 @@ void setCommandLineParameters( int argc, char *argv[] )
     PySys_SetArgv( argc, argv_copy );
 #endif
 }
+
+typedef struct {
+    PyObject_HEAD
+    PyTypeObject *type;
+    PyObject *obj;
+    PyTypeObject *obj_type;
+} superobject;
+
+extern PyObject *_python_str_plain___class__;
+
+PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
+{
+    assertObject( type );
+    assert( PyType_Check( type ));
+
+    superobject *result = PyObject_GC_New( superobject, &PySuper_Type );
+    assert( result );
+
+    result->type = (PyTypeObject *)INCREASE_REFCOUNT( type );
+    if ( object )
+    {
+        result->obj = INCREASE_REFCOUNT( object );
+
+        if ( PyType_Check( object ) && PyType_IsSubtype( (PyTypeObject *)object, (PyTypeObject *)type ))
+        {
+            result->obj_type = (PyTypeObject *)INCREASE_REFCOUNT( object );
+        }
+        else if ( PyType_IsSubtype( Py_TYPE(object ), (PyTypeObject *)type) )
+        {
+            result->obj_type = (PyTypeObject *)INCREASE_REFCOUNT( (PyObject *)Py_TYPE( object ) );
+        }
+        else
+        {
+            PyObject *class_attr = PyObject_GetAttr( object, _python_str_plain___class__);
+
+            if ( class_attr != NULL && PyType_Check( class_attr ) && (PyTypeObject *)class_attr != Py_TYPE( object ) )
+            {
+                result->obj_type = (PyTypeObject *)class_attr;
+            }
+            else
+            {
+                if ( class_attr == NULL )
+                {
+                    PyErr_Clear();
+                }
+                else
+                {
+                    Py_DECREF( class_attr );
+                }
+
+                PyErr_Format(
+                    PyExc_TypeError,
+                    "super(type, obj): obj must be an instance or subtype of type"
+                );
+
+                throw _PythonException();
+            }
+        }
+    }
+    else
+    {
+        result->obj = NULL;
+        result->obj_type = NULL;
+    }
+
+    Nuitka_GC_Track( result );
+
+    assertObject( (PyObject *)result );
+
+    assert( Py_TYPE( result ) == &PySuper_Type );
+    Py_INCREF( result );
+
+    return (PyObject *)result;
+}

@@ -1070,6 +1070,19 @@ def generateExpressionCode( expression, context, allow_none = False ):
             ),
             identifier   = makeExpressionCode( expression.getExpression() )
         )
+    elif expression.isExpressionBuiltinSuper():
+        type_identifier = makeExpressionCode( expression.getType(), allow_none = True )
+
+        if type_identifier is None:
+            type_identifier = None
+
+        object_identifier = makeExpressionCode( expression.getObject(), allow_none = True )
+
+
+        identifier = Generator.getBuiltinSuperCode(
+            type_identifier   = type_identifier,
+            object_identifier = object_identifier
+        )
     elif Utils.python_version < 300 and expression.isExpressionBuiltinExecfile():
         identifier = generateExecfileCode(
             context       = context,

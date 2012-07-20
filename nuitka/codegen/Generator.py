@@ -1439,6 +1439,18 @@ def getExecCode( context, exec_code, globals_identifier, locals_identifier, futu
             )
         }
 
+def getBuiltinSuperCode( type_identifier, object_identifier ):
+    super_type = type_identifier.getCodeTemporaryRef() if type_identifier is not None else "NULL"
+    super_object = object_identifier.getCodeTemporaryRef() if object_identifier is not None else "NULL"
+
+    return Identifier(
+        "BUILTIN_SUPER( %s, %s )" % (
+            super_type,
+            super_object
+        ),
+        1
+    )
+
 def getBuiltinOpenCode( filename, mode, buffering ):
     filename = filename.getCodeTemporaryRef() if filename is not None else "NULL"
     mode = mode.getCodeTemporaryRef() if mode is not None else "NULL"

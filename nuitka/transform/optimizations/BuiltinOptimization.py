@@ -186,6 +186,8 @@ builtin_vars_spec = BuiltinParameterSpecNoKeywords( "vars", ( "object", ), 0 )
 builtin_locals_spec = BuiltinParameterSpecNoKeywords( "locals", (), 0 )
 builtin_globals_spec = BuiltinParameterSpecNoKeywords( "globals", (), 0 )
 
+builtin_super_spec = BuiltinParameterSpecNoKeywords( "super", ("type", "object" ), 1 if python_version < 300 else 2 )
+
 
 class BuiltinRangeSpec( BuiltinParameterSpecNoKeywords ):
     def __init__( self, *args ):
