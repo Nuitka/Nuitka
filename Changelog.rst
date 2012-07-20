@@ -918,7 +918,7 @@ Bug fixes
   triggering an assertion of code generation. `Issue#16
   <http://bugs.nuitka.net/issue16>`_. Released as 0.3.17a hotfix already.
 
-- Nuitka was considering directories to contain packages that had no ``__init__.py`` which
+- Nuitka was considering directories to contain packages that had no "__init__.py" which
   could lead to errors when it couldn't find the package later in the compilation
   process. Released as 0.3.17a hotfix already.
 
@@ -1690,7 +1690,7 @@ Bug fixes
 - The code generated for the ``__import__`` builtin with constant values was doing relative
   imports only. It should attempt relative and absolut imports. Fixed in 0.3.12c already.
 
-- The code in ``__init__.py`` believed it was outside of the package, giving problems for
+- The code in "__init__.py" believed it was outside of the package, giving problems for
   package local imports. Fixed in 0.3.12d already.
 
 - It appears that "Scons", which Nuitka uses internally and transparent to you, to execute
@@ -1739,7 +1739,7 @@ New Tests
 
 - New test to cover evaluation order of ``in`` and ``not in`` comparisons.
 
-- New test to cover package local imports made by  the ``__init__.py`` of the package.
+- New test to cover package local imports made by  the "__init__.py" of the package.
 
 Organizational
 --------------
@@ -2000,8 +2000,9 @@ Organizational
 
 - Unlike previously, there is ``master`` branch for the stable release.
 
-- There is a script "make-dependency-graph.sh" to produce a dependency graphs of Nuitka. I
-  detected a couple of strange things through this.
+- There is a script "make-dependency-graph.sh" (now called "make-dependency-graph.py") to
+  produce a dependency graphs of Nuitka. I detected a couple of strange things through
+  this.
 
 - The Python3 ``__pycache__`` directories get removed too by the cleanup script.
 
@@ -2847,7 +2848,7 @@ Bug fixes
 New Features
 ------------
 
-- Modules and packages have been unified. Packages can now also have code in ``__init__.py``
+- Modules and packages have been unified. Packages can now also have code in "__init__.py"
   and then it will be executed when the package is imported.
 - Nicolas added the ability to create deep output directory structures without having to
   create them beforehand. This makes ``--output-dir=some/deep/path`` usable.
