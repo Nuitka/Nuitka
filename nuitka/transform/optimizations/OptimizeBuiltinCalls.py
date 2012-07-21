@@ -48,7 +48,8 @@ from nuitka.nodes.BuiltinFormatNodes import (
 )
 from nuitka.nodes.BuiltinDecodingNodes import (
     CPythonExpressionBuiltinChr,
-    CPythonExpressionBuiltinOrd
+    CPythonExpressionBuiltinOrd,
+    CPythonExpressionBuiltinOrd0
 )
 from nuitka.nodes.ExecEvalNodes import (
     CPythonExpressionBuiltinEval,
@@ -223,9 +224,10 @@ def chr_extractor( node ):
 
 def ord_extractor( node ):
     return BuiltinOptimization.extractBuiltinArgs(
-        node          = node,
-        builtin_class = CPythonExpressionBuiltinOrd,
-        builtin_spec  = BuiltinOptimization.builtin_ord_spec
+        node                = node,
+        builtin_class       = CPythonExpressionBuiltinOrd,
+        builtin_spec        = BuiltinOptimization.builtin_ord_spec,
+        empty_special_class = CPythonExpressionBuiltinOrd0
     )
 
 def bin_extractor( node ):
@@ -265,9 +267,7 @@ def repr_extractor( node ):
 
 def range_extractor( node ):
     def selectRangeBuiltin( low, high, step, source_ref ):
-        if low is None:
-            return CPythonExpressionBuiltinRange0( source_ref )
-        elif high is None:
+        if high is None:
             return CPythonExpressionBuiltinRange1( low, source_ref )
         elif step is None:
             return CPythonExpressionBuiltinRange2( low, high, source_ref )
@@ -275,9 +275,10 @@ def range_extractor( node ):
             return CPythonExpressionBuiltinRange3( low, high, step, source_ref )
 
     return BuiltinOptimization.extractBuiltinArgs(
-        node          = node,
-        builtin_class = selectRangeBuiltin,
-        builtin_spec  = BuiltinOptimization.builtin_range_spec
+        node                = node,
+        builtin_class       = selectRangeBuiltin,
+        empty_special_class = CPythonExpressionBuiltinRange0,
+        builtin_spec        = BuiltinOptimization.builtin_range_spec
     )
 
 def len_extractor( node ):

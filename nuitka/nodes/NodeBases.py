@@ -895,6 +895,25 @@ class CPythonExpressionChildrenHavingBase( CPythonChildrenHaving, CPythonNodeBas
         )
 
 
+class CPythonExpressionBuiltinNoArgBase( CPythonNodeBase, CPythonExpressionMixin ):
+    def __init__( self, builtin_function, source_ref ):
+        CPythonNodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        self.builtin_function = builtin_function
+
+    def computeNode( self, constraint_collection ):
+        from .NodeMakingHelpers import getComputationResult
+
+        return getComputationResult(
+            node        = self,
+            computation = lambda : self.builtin_function(),
+            description = "No arg %s builtin" % self.builtin_function.__name__
+        )
+
+
 class CPythonExpressionBuiltinSingleArgBase( CPythonExpressionChildrenHavingBase, \
                                              CPythonExpressionSpecBasedComputationMixin ):
     named_children = ( "value", )

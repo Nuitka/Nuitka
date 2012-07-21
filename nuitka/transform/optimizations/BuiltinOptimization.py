@@ -254,7 +254,7 @@ class BuiltinRangeSpec( BuiltinParameterSpecNoKeywords ):
 builtin_range_spec = BuiltinRangeSpec( "range", ( "start", "stop", "step" ), 2 )
 
 
-def extractBuiltinArgs( node, builtin_spec, builtin_class ):
+def extractBuiltinArgs( node, builtin_spec, builtin_class, empty_special_class = None ):
     # These cannot be handled.
     if node.getStarListArg() is not None or node.getStarDictArg() is not None:
         return None
@@ -271,13 +271,18 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class ):
                 TypeError( builtin_spec.getKeywordRefusalText() )
             )
 
+        positional = node.getPositionalArguments()
+
+        if not positional and not pairs and empty_special_class is not None:
+            return empty_special_class( source_ref = node.getSourceReference() )
+
         args_dict = matchCall(
             func_name     = builtin_spec.getName(),
             args          = builtin_spec.getArgumentNames(),
             star_list_arg = builtin_spec.getStarListArgumentName(),
             star_dict_arg = builtin_spec.getStarDictArgumentName(),
             num_defaults  = builtin_spec.getDefaultCount(),
-            positional    = node.getPositionalArguments(),
+            positional    = positional,
             pairs         = pairs
         )
     except TooManyArguments as e:

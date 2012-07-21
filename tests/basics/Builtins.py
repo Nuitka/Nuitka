@@ -171,6 +171,11 @@ d = { "x" : "12", "base" : 8 }
 print "Dict call of int", int( **d )
 
 try:
+    print chr()
+except Exception, e:
+    print "Disallowed without args", repr(e)
+
+try:
     print ord()
 except Exception, e:
     print "Disallowed without args", repr(e)
