@@ -42,6 +42,9 @@ module_inittab_entry = """\
 { (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ) },"""
 
 main_program = """\
+#define _MODULE_UNFREEZER %(use_unfreezer)d
+
+#if _MODULE_UNFREEZER
 // Our own inittab for lookup of "frozen" modules, i.e. the ones included in this binary.
 static struct _inittab _frozes_modules[] =
 {
@@ -51,6 +54,7 @@ static struct _inittab _frozes_modules[] =
 
 // For embedded modules, to be unpacked. Used by main program only
 extern void registerMetaPathBasedUnfreezer( struct _inittab *_frozes_modules );
+#endif
 
 // The main program for C++. It needs to prepare the interpreter and then calls the
 // initialization code of the __main__ module.
@@ -81,14 +85,15 @@ int main( int argc, char *argv[] )
 #endif
     );
 
+#if _MODULE_UNFREEZER
     // Register the initialization functions for modules included in the binary if any
     int res = PyImport_ExtendInittab( _frozes_modules );
     assert( res != -1 );
 
     registerMetaPathBasedUnfreezer( _frozes_modules );
+#endif
 
     patchInspectModule();
-
 
     // Execute the "__main__" module init function.
     MOD_INIT_NAME( __main__)();
@@ -325,6 +330,8 @@ MOD_INIT_DECL( %(module_identifier)s )
     PyType_Ready( &Nuitka_Generator_Type );
     PyType_Ready( &Nuitka_Function_Type );
     PyType_Ready( &Nuitka_Method_Type );
+
+    patchInspectModule();
 #endif
 
     // puts( "in init%(module_identifier)s" );

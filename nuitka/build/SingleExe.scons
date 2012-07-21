@@ -384,10 +384,7 @@ def discoverSourceFiles():
     result.append( static_src + "/CompiledGeneratorType.cpp" )
     result.append( static_src + "/CompiledMethodType.cpp" )
     result.append( static_src + "/CompiledCodeHelpers.cpp" )
-
-    if not module_mode:
-        result.append( static_src + "/ExeModuleUnfreezer.cpp" )
-        result.append( static_src + "/InspectPatcher.cpp" )
+    result.append( static_src + "/InspectPatcher.cpp" )
 
     if win_target:
         result.append( static_src + "/win32_ucontext_src/fibers_win32.cpp" )
@@ -402,9 +399,18 @@ def discoverSourceFiles():
         # Variant based on getcontext/setcontext/swapcontext/makecontext
         result.append( static_src + "/gen_ucontext_src/fibers_gen.cpp" )
 
+    module_count = 0
+
     for filename in os.listdir( source_dir ):
         if filename.endswith( ".cpp" ):
             result.append( os.path.join( source_dir, filename ) )
+
+            if filename.startswith( "module." ):
+                module_count += 1
+
+    # If more than one module is included, we need the unfreezer.
+    if module_count > 1:
+        result.append( static_src + "/ExeModuleUnfreezer.cpp" )
 
     # Add the resource file for the manifest to be included in the executable.
     if win_target and not module_mode:

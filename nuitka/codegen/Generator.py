@@ -1739,7 +1739,8 @@ def getMainCode( codes, other_module_names ):
         "module_inittab" : indented( sorted( module_inittab ) ),
         "sys_executable" : CppRawStrings.encodeString(
             "python.exe" if Options.isWindowsTarget() else sys.executable
-        )
+        ),
+        "use_unfreezer"  : 1 if other_module_names else 0
     }
 
     return codes + main_code

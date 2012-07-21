@@ -169,7 +169,10 @@ def _pickSourceFilenames( source_dir, other_modules ):
     module_filenames = {}
 
     for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
-        base_filename = Utils.joinpath( source_dir, other_module.getFullName() )
+        base_filename = Utils.joinpath(
+            source_dir,
+            "module." + other_module.getFullName()
+        )
 
         collision_filename = Utils.normcase( base_filename )
 
@@ -181,8 +184,8 @@ def _pickSourceFilenames( source_dir, other_modules ):
 
         base_filename += hash_suffix
 
-        cpp_filename = "module." + base_filename + ".cpp"
-        hpp_filename = "module." + base_filename + ".hpp"
+        cpp_filename = base_filename + ".cpp"
+        hpp_filename = base_filename + ".hpp"
 
         module_filenames[ other_module ] = ( cpp_filename, hpp_filename )
 
