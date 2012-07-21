@@ -181,8 +181,8 @@ def _pickSourceFilenames( source_dir, other_modules ):
 
         base_filename += hash_suffix
 
-        cpp_filename = base_filename + ".cpp"
-        hpp_filename = base_filename + ".hpp"
+        cpp_filename = "module." + base_filename + ".cpp"
+        hpp_filename = "module." + base_filename + ".hpp"
 
         module_filenames[ other_module ] = ( cpp_filename, hpp_filename )
 
@@ -242,8 +242,8 @@ def makeSourceDirectory( main_module ):
 
     main_module_name = main_module.getName()
 
-    cpp_filename = Utils.joinpath( source_dir, "__main__.cpp" )
-    hpp_filename = Utils.joinpath( source_dir, "__main__.hpp" )
+    cpp_filename = Utils.joinpath( source_dir, "module.__main__.cpp" )
+    hpp_filename = Utils.joinpath( source_dir, "module.__main__.hpp" )
 
     # Create code for the main module.
     source_code = CodeGeneration.generateModuleCode(
@@ -270,7 +270,7 @@ def makeSourceDirectory( main_module ):
         )
     )
 
-    module_hpps.append( "__main__.hpp" )
+    module_hpps.append( "module.__main__.hpp" )
 
     writeSourceCode(
         filename    = Utils.joinpath( source_dir, "__constants.cpp" ),
