@@ -18,7 +18,9 @@
 
 #include "nuitka/prelude.hpp"
 
-#include "__constants.hpp"
+extern PyObject *_python_str_plain_compile;
+extern PyObject *_python_str_plain_strip;
+extern PyObject *_python_str_plain_read;
 
 static PythonBuiltin _python_builtin_compile( &_python_str_plain_compile );
 
@@ -78,6 +80,8 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
         )
     );
 }
+
+extern PyObject *_python_str_plain_open;
 
 static PythonBuiltin _python_builtin_open( &_python_str_plain_open );
 
@@ -336,6 +340,8 @@ PyObject *BUILTIN_TYPE1( PyObject *arg )
     return INCREASE_REFCOUNT( (PyObject *)Py_TYPE( arg ) );
 }
 
+extern PyObject *_python_str_plain___module__;
+
 PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict )
 {
     PyObject *result = PyType_Type.tp_new(
@@ -469,6 +475,8 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
     return result;
 }
 #endif
+
+extern PyObject *_python_str_plain_range;
 
 static PythonBuiltin _python_builtin_range( &_python_str_plain_range );
 
@@ -624,6 +632,9 @@ PyObject *BUILTIN_DIR1( PyObject *arg )
     return result;
 }
 
+extern PyObject *_python_str_empty;
+extern PyObject *_python_bytes_empty;
+
 PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, bool is_generator )
 {
     assertObject( filename );
@@ -771,6 +782,8 @@ PyFrameObject *detachCurrentFrame()
     return new_frame;
 }
 
+extern PyObject *_python_str_plain___import__;
+
 static PythonBuiltin _python_builtin_import( &_python_str_plain___import__ );
 
 PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
@@ -851,6 +864,10 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 }
 
 // Helper functions for print. Need to play nice with Python softspace behaviour.
+
+extern PyObject *_python_str_plain_print;
+extern PyObject *_python_str_plain_end;
+extern PyObject *_python_str_plain_file;
 
 static PythonBuiltin _python_builtin_print( &_python_str_plain_print );
 
