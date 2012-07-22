@@ -147,6 +147,7 @@ class PythonGlobalContext:
         # Python mechanics.
         self.getConstantHandle( "__module__" )
         self.getConstantHandle( "__class__" )
+        self.getConstantHandle( "__metaclass__" )
         self.getConstantHandle( "__dict__" )
         self.getConstantHandle( "__doc__" )
         self.getConstantHandle( "__file__" )
