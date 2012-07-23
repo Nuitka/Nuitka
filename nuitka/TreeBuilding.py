@@ -2082,7 +2082,7 @@ def buildImportModulesNode( node, source_ref ):
         source_ref     = source_ref
     )
 
-def enableFutureFeature( object_name, future_spec ):
+def enableFutureFeature( object_name, future_spec, source_ref ):
     if object_name == "unicode_literals":
         future_spec.enableUnicodeLiterals()
     elif object_name == "absolute_import":
@@ -2091,11 +2091,20 @@ def enableFutureFeature( object_name, future_spec ):
         future_spec.enableFutureDivision()
     elif object_name == "print_function":
         future_spec.enableFuturePrint()
+    elif object_name == 'barry_as_FLUFL' and Utils.python_version >= 300:
+        future_spec.enableBarry()
+    elif object_name == 'braces':
+        SyntaxErrors.raiseSyntaxError(
+            "not a chance",
+            source_ref
+        )
     elif object_name in ( "nested_scopes", "generators", "with_statement" ):
         pass
     else:
-        warning( "Ignoring unkown future directive '%s'" % object_name )
-
+        SyntaxErrors.raiseSyntaxError(
+            "future feature %s is not defined" % object_name,
+            source_ref
+        )
 
 def buildImportFromNode( provider, node, source_ref ):
     module_name = node.module if node.module is not None else ""
@@ -2109,7 +2118,8 @@ def buildImportFromNode( provider, node, source_ref ):
 
             enableFutureFeature(
                 object_name = object_name,
-                future_spec = source_ref.getFutureSpec()
+                future_spec = source_ref.getFutureSpec(),
+                source_ref  = source_ref
             )
 
     target_names = []
