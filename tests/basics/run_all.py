@@ -70,6 +70,10 @@ for filename in sorted( os.listdir( "." ) ):
     if filename.endswith( "27.py" ) and python_version.startswith( b"2.6" ):
         continue
 
+    # Skip tests that require Python 3.2 at least.
+    if filename.endswith( "32.py" ) and not python_version.startswith( b"3.2" ):
+        continue
+
     # The overflow functions test gives syntax error on Python 3.x and can be ignored.
     if filename == "OverflowFunctions.py" and python_version.startswith( b"3" ):
         continue
@@ -100,7 +104,7 @@ for filename in sorted( os.listdir( "." ) ):
         # Apply 2to3 conversion if necessary.
         assert type( python_version ) is bytes
 
-        if python_version.startswith( b"3" ):
+        if python_version.startswith( b"3" ) and not filename.endswith( "32.py" ):
             new_path = os.path.join( tempfile.gettempdir(), filename )
             shutil.copy( path, new_path )
 
@@ -134,7 +138,7 @@ for filename in sorted( os.listdir( "." ) ):
             print("Error exit!", result)
             sys.exit( result )
 
-        if python_version.startswith( b"3" ):
+        if python_version.startswith( b"3" ) and not filename.endswith( "32.py" ):
             os.unlink( new_path )
     else:
         print("Skipping", filename)
