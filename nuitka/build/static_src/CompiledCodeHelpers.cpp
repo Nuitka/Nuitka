@@ -1460,7 +1460,7 @@ PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
         {
             PyObject *class_attr = PyObject_GetAttr( object, _python_str_plain___class__);
 
-            if ( class_attr != NULL && PyType_Check( class_attr ) && (PyTypeObject *)class_attr != Py_TYPE( object ) )
+            if (likely( class_attr != NULL && PyType_Check( class_attr ) && (PyTypeObject *)class_attr != Py_TYPE( object ) ))
             {
                 result->obj_type = (PyTypeObject *)class_attr;
             }
