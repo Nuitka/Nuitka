@@ -184,7 +184,8 @@ def makeDiffable( output ):
     result = []
 
     for line in output.split( b"\n" ):
-        line = str( line )
+        if type( line ) is not str:
+            line = line.decode( "utf-8" )
 
         if line.endswith( "\r" ):
             line = line[:-1]
