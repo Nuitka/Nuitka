@@ -119,6 +119,10 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         self.is_class = is_class
         self.doc = doc
 
+        # Indicator, if this is a function that uses "super", because if it does, it would
+        # like to get the final "__class__" attached.
+        self.has_super = False
+
     def getDetails( self ):
         return {
             "name"       : self.getFunctionName(),
@@ -259,6 +263,12 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         # The function definition has no side effects, calculating the defaults would be,
         # but that is done outside of this.
         return False
+
+    def markAsClassClosureTaker( self ):
+        self.has_super = True
+
+    def isClassClosureTaker( self ):
+        return self.has_super
 
     def makeCloneAt( self, source_ref ):
         result = self.__class__(

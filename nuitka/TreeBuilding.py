@@ -165,7 +165,10 @@ def dump( node ):
 def getKind( node ):
     return node.__class__.__name__.split( "." )[-1]
 
-def buildVariableReferenceNode( node, source_ref ):
+def buildVariableReferenceNode( provider, node, source_ref ):
+    if Utils.python_version >= 300 and node.id == "super" and provider.isExpressionFunctionBody():
+        provider.markAsClassClosureTaker()
+
     return CPythonExpressionVariableRef(
         variable_name = node.id,
         source_ref    = source_ref
@@ -3028,6 +3031,7 @@ def buildConditionalExpressionNode( provider, node, source_ref ):
 
 
 _fast_path_args3 = {
+    "Name"         : buildVariableReferenceNode,
     "Assign"       : buildAssignNode,
     "Delete"       : buildDeleteNode,
     "Lambda"       : buildLambdaNode,
@@ -3069,7 +3073,6 @@ _fast_path_args3 = {
 }
 
 _fast_path_args2 = {
-    "Name"         : buildVariableReferenceNode,
     "Import"       : buildImportModulesNode,
     "Str"          : buildStringNode,
     "Num"          : buildNumberNode,
