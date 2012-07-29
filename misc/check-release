@@ -21,8 +21,8 @@ from __future__ import print_function
 
 import os, sys, tempfile, subprocess
 
-if os.environ.get( "NUITKA_SKIP_TESTS", 0 ):
-    print( "Skiped all tests as per NUITKA_SKIP_TESTS environment." )
+if "nocheck" in os.environ.get( "DEB_BUILD_OPTIONS", "" ).split():
+    print( "Skiped all tests as per DEB_BUILD_OPTIONS environment." )
     sys.exit( 0 )
 
 from optparse import OptionParser
