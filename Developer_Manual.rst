@@ -502,8 +502,10 @@ shortened some debugging sessions quite some. But building the Python C-API bind
 our own, and potentially incorrectly, would have eaten that up.
 
 
-nuitka.Importing Module
------------------------
+Locating Modules and Packages
+------------------------------
+
+The search for of modules used is driven by ``nuitka.Importing`` module.
 
 * From the module documentation
 
@@ -528,15 +530,15 @@ nuitka.Importing Module
   warnings are controlled by a while list inside the module.
 
 
-Hooking for module import process
----------------------------------
+Hooking for module ``import`` process
+-------------------------------------
 
 Currently, in created code, for every ``import`` variable a normal ``__import__()`` call
 is executed. The "ExeModuleUnfreezer.cpp" (located in "nuitka/build/static_src") provides
 the implementation of a ``sys.meta_path`` hook.
 
 This one allows us to have the Nuitka provided module imported even when imported by
-non-compiled code. Kay learned this at PyCON DE conference, from a presentation by the
+non-compiled code. Kay had learned this at PyCON DE conference, from a presentation by the
 implementer of that PEP, and it's very useful, as it increased compatibility over the
 previous approach of special casing imports to check if it's the included module.
 
@@ -546,9 +548,85 @@ previous approach of special casing imports to check if it's the included module
    imported and then to make it directly. At this time, we don't have this inter-module
    optimization yet, it should be easy to add.
 
+Supporting ``__class__`` of Python3
+-----------------------------------
+
+In Python3 the handling of ``__class__`` and ``super`` is different from Python2. It used
+to be a normal variable, and now the following things have changed.
+
+* The use of the ``super`` variable name triggers the addition of a closure variable
+  ``__class__``, as can be witnessed by the following code:
+
+  .. code-block:: python
+
+     class X:
+        def f1( self ):
+           print( locals() )
+
+        def f2( self ):
+           print( locals() )
+           super
+
+     x = X()
+     x.f1()
+     x.f2()
+
+  .. code-block:: python
+
+     {'self': <__main__.X object at 0x7f1773762390>}
+     {'self': <__main__.X object at 0x7f1773762390>, '__class__': <class '__main__.X'>}
+
+
+* This value of ``__class__`` is also available in the child functions.
+
+* The parser marks up code objects usage of "super". It doesn't have to be a call, it can
+  also be a local variable. If the ``super`` builtin is assigned to another name and that
+  is used without arguments, it won't work unless ``__class__`` is taken as a closure
+  variable.
+
+* As can be seen in the CPython3.2 code, the closure value is added after the class
+  creation is performed.
+
+* It appears, that only functions locally defined to the class are affected and take the
+  closure.
+
+This left Nuitka with the strange problem, of how to emulate that.
+
+The solution is this:
+
+* Under Python3, usage of ``__class__`` as a reference in a function body that is not a
+  class dictionary creation, marks it up via ``markAsClassClosureTaker``.
+
+* Functions that are marked up, will be forced to reference variable to
+  ``__class__``.
+
+  .. note::
+
+     This one should be optimized away later if not used. Currently we have "no unused
+     closure variable" detection, but it would cover it.
+
+* When recognizing calls to ``super`` without arguments, make the arguments into variable
+  reference to ``__class__`` and potentially ``self`` (actually first argument name).
+
+* Class dictionary definitions are added.
+
+  These are special direct function calls, ready to propagate also "bases" and "metaclass"
+  values, which need to be calculated outside.
+
+  The function bodies used for classes will automatically store ``__class__`` as a shared
+  local variable, if anything uses it. And if it's not assigned by user code, it doesn't
+  show up in the "locals()" used for dictionary creation.
+
+  Existing "__class__" local variable values are in fact provided as closure, and
+  overridden with the built class , but they should be used for the closure giving, before
+  the class is finished.
+
+  So "__class__" will be local variable of the class body, until the class is built, then
+  it will be the "__class__" itself.
+
 
 Frame Stack
-===========
+-----------
 
 In Python, every function, class, and module has a frame. It creates created when the
 scope it entered, and there is a stack of these at run time, which becomes visible in
@@ -2376,6 +2454,10 @@ into action, which could be code changes, plan changes, issues created, etc.
 
   Functions that return the results of calls, can be optimized. The Stackless Python does
   it already.
+
+* Integrate with "upx" compression.
+
+  Calling "upx" on the created binaries, would be easy.
 
 .. header::
 
