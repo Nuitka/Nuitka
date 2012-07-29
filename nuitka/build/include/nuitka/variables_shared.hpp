@@ -79,6 +79,20 @@ public:
         }
     }
 
+#if PYTHON_VERSION >= 300
+    void del()
+    {
+        if ( this->free_value )
+        {
+            // Free old value if any available and owned.
+            Py_DECREF( this->object );
+        }
+
+        this->object = NULL;
+        this->free_value = false;
+    }
+#endif
+
     inline PyObject *getVarName() const
     {
         return this->var_name;
@@ -90,6 +104,7 @@ public:
     int ref_count;
 
 private:
+
     PyObjectSharedStorage( const PyObjectSharedStorage & ) = delete;
 
 };
@@ -102,10 +117,9 @@ public:
         this->storage = new PyObjectSharedStorage( var_name, object, free_value );
     }
 
-    explicit PyObjectSharedLocalVariable()
-    {
+    explicit PyObjectSharedLocalVariable() {
         this->storage = NULL;
-    }
+    };
 
     ~PyObjectSharedLocalVariable()
     {
@@ -143,15 +157,22 @@ public:
         this->storage->ref_count += 1;
     }
 
-    void assign0( PyObject *object )
+    void assign0( PyObject *object ) const
     {
         this->storage->assign0( object );
     }
 
-    void assign1( PyObject *object )
+    void assign1( PyObject *object ) const
     {
         this->storage->assign1( object );
     }
+
+#if PYTHON_VERSION >= 300
+    void del() const
+    {
+        this->storage->del();
+    }
+#endif
 
     PyObject *asObject() const
     {
@@ -159,14 +180,23 @@ public:
 
         if ( this->storage->object == NULL )
         {
-            PyErr_Format( PyExc_UnboundLocalError, "free variable '%s' referenced before assignment in enclosing scope", Nuitka_String_AsString( this->storage->getVarName() ) );
-            throw _PythonException();
+            PyErr_Format(
+                PyExc_UnboundLocalError,
+                "free variable '%s' referenced before assignment in enclosing scope",
+                Nuitka_String_AsString( this->storage->getVarName() )
+            );
 
+            throw _PythonException();
         }
 
         if ( Py_REFCNT( this->storage->object ) == 0 )
         {
-            PyErr_Format( PyExc_UnboundLocalError, "free variable '%s' referenced after its finalization in enclosing scope", Nuitka_String_AsString( this->storage->getVarName() ) );
+            PyErr_Format(
+                PyExc_UnboundLocalError,
+                "free variable '%s' referenced after its finalization in enclosing scope",
+                Nuitka_String_AsString( this->storage->getVarName() )
+            );
+
             throw _PythonException();
         }
 
@@ -188,11 +218,54 @@ public:
         return this->storage->var_name;
     }
 
-private:
+protected:
+
+    PyObjectSharedStorage *storage;
 
     PyObjectSharedLocalVariable( const PyObjectSharedLocalVariable & ) = delete;
 
-    PyObjectSharedStorage *storage;
+};
+
+class PyObjectClosureVariable : public PyObjectSharedLocalVariable
+{
+public:
+    explicit PyObjectClosureVariable()
+    {
+        this->storage = NULL;
+    }
+
+    PyObject *asObject() const
+    {
+        assert( this->storage );
+
+        if ( this->storage->object == NULL )
+        {
+            PyErr_Format(
+                PyExc_NameError,
+                "free variable '%s' referenced before assignment in enclosing scope",
+                Nuitka_String_AsString( this->storage->getVarName() )
+            );
+
+            throw _PythonException();
+        }
+
+        if ( Py_REFCNT( this->storage->object ) == 0 )
+        {
+            PyErr_Format(
+                PyExc_UnboundLocalError,
+                "free variable '%s' referenced after its finalization in enclosing scope",
+                Nuitka_String_AsString( this->storage->getVarName() )
+            );
+
+            throw _PythonException();
+        }
+
+        return this->storage->object;
+    }
+
+protected:
+
+    PyObjectClosureVariable( const PyObjectClosureVariable & ) = delete;
 };
 
 #endif

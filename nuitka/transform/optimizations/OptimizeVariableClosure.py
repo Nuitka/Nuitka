@@ -77,6 +77,8 @@ class VariableClosureLookupVisitorPhase3( OptimizationVisitorScopedBase ):
                 variable
             )
 
+            assert not (node.getParent().isStatementDelVariable())
+
             if python_version < 300 and provider.isExpressionFunctionBody() and \
                variable.isReference() and \
                  (not variable.isModuleVariableReference() or \
@@ -109,7 +111,24 @@ class VariableClosureLookupVisitorPhase3( OptimizationVisitorScopedBase ):
                     variable_name = "__class__"
                 )
 
+class VariableClosureLookupVisitorPhase4( OptimizationVisitorScopedBase ):
+    def onEnterNode( self, node ):
+        if python_version < 300:
+            if node.isStatementDelVariable() and \
+                 node.getTargetVariableRef().getVariable().isShared():
+                raise SyntaxError(
+                        "can not delete variable '%s' referenced in nested scope" % node.getTargetVariableRef().getVariableName(),
+                        (
+                            None, # TODO: Could easily provide the line number and file
+                            None,
+                            None,
+                            None
+                        )
+                    )
+
+
 VariableClosureLookupVisitors = (
     VariableClosureLookupVisitorPhase2,
-    VariableClosureLookupVisitorPhase3
+    VariableClosureLookupVisitorPhase3,
+    VariableClosureLookupVisitorPhase4
 )

@@ -1834,10 +1834,7 @@ def getFunctionDecl( context, function_identifier, default_identifiers, closure_
 
         for closure_variable in closure_variables:
             parameter_objects_decl.append(
-                closure_variable.getDeclarationCode(
-                    for_reference = True,
-                    for_local     = False
-                )
+                closure_variable.getDeclarationCode()
             )
 
         return CodeTemplates.template_function_direct_declaration % {
@@ -1855,7 +1852,7 @@ def _getLocalVariableInitCode( context, variable, init_from = None, in_context =
 
     assert init_from is None or hasattr( init_from, "getCodeTemporaryRef" )
 
-    result = variable.getDeclarationTypeCode()
+    result = variable.getDeclarationTypeCode( in_context )
 
     # For pointer types, we don't have to separate with spaces.
     if not result.endswith( "*" ):
@@ -2103,10 +2100,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
     if not needs_creation:
         for closure_variable in closure_variables:
             parameter_objects_decl.append(
-                closure_variable.getDeclarationCode(
-                    for_reference = True,
-                    for_local     = False
-                )
+                closure_variable.getDeclarationCode()
             )
 
     result += CodeTemplates.genfunc_function_maker_template % {
@@ -2274,10 +2268,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
     if not needs_creation:
         for closure_variable in closure_variables:
             parameter_objects_decl.append(
-                closure_variable.getDeclarationCode(
-                    for_reference = True,
-                    for_local     = False
-                )
+                closure_variable.getDeclarationCode()
             )
 
     if context.function.isClassDictCreation():

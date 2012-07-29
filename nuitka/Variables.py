@@ -152,15 +152,8 @@ class Variable:
                 variable = self
             )
 
-    def getDeclarationCode( self, for_reference, for_local ):
-        if for_reference:
-            sep = " &"
-        elif for_local:
-            sep = " _"
-        else:
-            sep = " "
-
-        return self.getDeclarationTypeCode() + sep + self.getCodeName()
+    def getDeclarationCode( self ):
+        return self.getDeclarationTypeCode( False ) + " &" + self.getCodeName()
 
     def getMangledName( self ):
         return self.getName()
@@ -243,11 +236,14 @@ class ClosureVariableReference( VariableReferenceBase ):
             else:
                 assert False
 
-    def getDeclarationTypeCode( self ):
+    def getDeclarationTypeCode( self, in_context ):
         if self.getReferenced().isShared():
-            return "PyObjectSharedLocalVariable"
+            if in_context:
+                return "PyObjectClosureVariable"
+            else:
+                return "PyObjectSharedLocalVariable"
         else:
-            return self.getReferenced().getDeclarationTypeCode()
+            return self.getReferenced().getDeclarationTypeCode( in_context )
 
     def getCodeName( self ):
         return "python_closure_%s" % self.getName()
@@ -309,7 +305,7 @@ class LocalVariable( Variable ):
     def getCodeName( self ):
         return "python_var_" + self.getName()
 
-    def getDeclarationTypeCode( self ):
+    def getDeclarationTypeCode( self, in_context ):
         if self.isShared():
             return "PyObjectSharedLocalVariable"
         else:
@@ -358,7 +354,7 @@ class ParameterVariable( LocalVariable ):
     def isParameterVariable( self ):
         return True
 
-    def getDeclarationTypeCode( self ):
+    def getDeclarationTypeCode( self, in_context ):
         if self.isShared():
             return "PyObjectSharedLocalVariable"
         elif self.getHasDelIndicator():
@@ -490,7 +486,7 @@ class TempVariable( Variable ):
 
         self.needs_free = needs_free
 
-    def getDeclarationTypeCode( self ):
+    def getDeclarationTypeCode( self, in_context ):
         assert self.needs_free is not None, self
 
         if self.needs_free:
