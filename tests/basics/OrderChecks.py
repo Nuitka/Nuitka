@@ -259,6 +259,12 @@ def unpackOrderCheck():
         print "Caught", repr(e)
 
 
+def superOrderCheck():
+    try:
+        super( zzz, xxx )
+    except Exception as e:
+        print "Caught", repr(e)
+
 dictOrderCheck()
 listOrderCheck()
 subscriptOrderCheck()
@@ -268,3 +274,4 @@ generatorOrderCheck()
 classOrderCheck()
 inOrderCheck()
 unpackOrderCheck()
+superOrderCheck()

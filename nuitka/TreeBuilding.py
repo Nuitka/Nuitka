@@ -86,8 +86,10 @@ from .nodes.FunctionNodes import (
     CPythonExpressionFunctionBody,
     CPythonExpressionFunctionCall
 )
-from .nodes.ClassNodes import CPythonExpressionClassCreation
-
+from .nodes.ClassNodes import (
+    CPythonExpressionClassDefinition,
+    CPythonExpressionClassCreation
+)
 from .nodes.ContainerMakingNodes import (
     CPythonExpressionKeyValuePair,
     CPythonExpressionMakeTuple,
@@ -227,7 +229,7 @@ def buildClassNode( provider, node, source_ref ):
         # make it as easy.
         metaclass = None
 
-    class_dict_function = CPythonExpressionFunctionBody(
+    class_creation_function = CPythonExpressionFunctionBody(
         provider   = provider,
         is_class   = True,
         parameters = make_class_parameters,
@@ -237,7 +239,7 @@ def buildClassNode( provider, node, source_ref ):
     )
 
     body = buildStatementsNode(
-        provider   = class_dict_function,
+        provider   = class_creation_function,
         nodes      = class_statements,
         frame      = True,
         source_ref = source_ref
@@ -274,9 +276,24 @@ def buildClassNode( provider, node, source_ref ):
                 source_ref   = source_ref.atInternal()
             ),
             body,
-            CPythonStatementReturn(
-                expression = CPythonExpressionBuiltinLocals(
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTargetVariableRef(
+                    variable_name = "__class__",
+                    source_ref    = source_ref
+                ),
+                source       = CPythonExpressionClassCreation(
+                    class_name = node.name,
+                    class_dict = CPythonExpressionBuiltinLocals(
+                        source_ref = source_ref
+                    ),
                     source_ref = source_ref
+                ),
+                source_ref   = source_ref.atInternal()
+            ),
+            CPythonStatementReturn(
+                expression = CPythonExpressionVariableRef(
+                    variable_name = "__class__",
+                    source_ref    = source_ref
                 ),
                 source_ref = source_ref.atInternal()
             )
@@ -288,20 +305,13 @@ def buildClassNode( provider, node, source_ref ):
     # The class body is basically a function that implicitely, at the end returns its
     # locals and cannot have other return statements contained.
 
-    class_dict_function.setBody( body )
+    class_creation_function.setBody( body )
 
-    class_dict = CPythonExpressionFunctionCall(
-        function_body = class_dict_function,
-        values        = (),
-        source_ref    = source_ref
-    )
-
-    decorated_body = CPythonExpressionClassCreation(
-        class_name = node.name,
-        bases      = bases,
-        metaclass  = metaclass,
-        class_dict = class_dict,
-        source_ref = source_ref
+    decorated_body = CPythonExpressionClassDefinition(
+        class_definition = class_creation_function,
+        bases            = buildNodeList( provider, node.bases, source_ref ),
+        metaclass        = metaclass,
+        source_ref       = source_ref
     )
 
     for decorator in decorators:
@@ -371,13 +381,8 @@ def buildFunctionNode( provider, node, source_ref ):
     decorators = buildNodeList( provider, reversed( node.decorator_list ), source_ref )
     defaults = buildNodeList( provider, node.args.defaults, source_ref )
 
-    real_provider = provider
-
-    while real_provider.isExpressionFunctionBody() and real_provider.isClassDictCreation():
-        real_provider = real_provider.provider
-
     function_body = CPythonExpressionFunctionBody(
-        provider   = real_provider,
+        provider   = provider,
         name       = node.name,
         doc        = function_doc,
         parameters = buildParameterSpec( node.name, node, source_ref ),
@@ -443,13 +448,8 @@ def buildLambdaNode( provider, node, source_ref ):
 
     defaults = buildNodeList( provider, node.args.defaults, source_ref )
 
-    real_provider = provider
-
-    while real_provider.isExpressionFunctionBody() and real_provider.isClassDictCreation():
-        real_provider = real_provider.provider
-
     result = CPythonExpressionFunctionBody(
-        provider   = real_provider,
+        provider   = provider,
         name       = "<lambda>",
         doc        = None,
         parameters = buildParameterSpec( "<lambda>", node, source_ref ),

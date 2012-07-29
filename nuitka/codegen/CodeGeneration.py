@@ -180,6 +180,24 @@ def generateFunctionCallCode( call_node, context ):
         context        = context
     )
 
+    extra_arguments = []
+
+    if call_node.isExpressionClassDefinition():
+        extra_arguments.append(
+            generateExpressionCode(
+                expression = call_node.getMetaclass(),
+                allow_none = True,
+                context    = context
+            )
+        )
+
+        extra_arguments.append(
+            generateTupleCreationCode(
+                elements = call_node.getBases(),
+                context  = context
+            )
+        )
+
     return Generator.getDirectionFunctionCallCode(
         function_identifier = function_identifier,
         arguments           = generateExpressionsCode(
@@ -187,6 +205,7 @@ def generateFunctionCallCode( call_node, context ):
             context     = context
         ),
         closure_variables  = call_node.getFunctionBody().getClosureVariables(),
+        extra_arguments    = extra_arguments,
         context            = context
     )
 
@@ -273,12 +292,11 @@ def generateFunctionBodyCode( function_body, defaults, context ):
         )
 
     function_decl = Generator.getFunctionDecl(
-        function_identifier = function_body.getCodeName(),
-        default_identifiers = default_access_identifiers,
-        closure_variables   = function_body.getClosureVariables(),
+        function_identifier          = function_body.getCodeName(),
+        default_identifiers          = default_access_identifiers,
+        closure_variables            = function_body.getClosureVariables(),
         function_parameter_variables = function_body.getParameters().getVariables(),
-        needs_creation      = function_body.needsCreation(),
-        context             = context
+        context                      = function_context
     )
 
     context.addFunctionCodes(
@@ -677,7 +695,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
             call_node = expression,
             context   = context
         )
-    elif expression.isExpressionFunctionCall():
+    elif expression.isExpressionFunctionCall() or expression.isExpressionClassDefinition():
         identifier = generateFunctionCallCode(
             call_node = expression,
             context   = context
@@ -839,18 +857,15 @@ def generateExpressionCode( expression, context, allow_none = False ):
             metaclass_global_code = Generator.getMetaclassVariableCode(
                 context = context
             ),
-            metaclass_class_code  = generateExpressionCode(
-                expression = expression.getMetaclass(),
-                allow_none = True,
-                context    = context
+            metaclass_class_code  = Generator.getMetaclassAccessCode(
+                context = context
+            ),
+            bases_identifier      = Generator.getBasesAccessCode(
+                context = context
             ),
             name_identifier       = Generator.getConstantHandle(
                 context  = context,
                 constant = expression.getClassName()
-            ),
-            bases_identifier      = generateTupleCreationCode(
-                elements = expression.getBases(),
-                context  = context
             ),
             dict_identifier       = makeExpressionCode(
                 expression = expression.getClassDict()

@@ -1368,8 +1368,9 @@ extern PyObject *BUILTIN_LEN( PyObject *boundary );
 extern PyObject *BUILTIN_DIR1( PyObject *arg );
 
 // For quicker builtin super() functionality.
-extern PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object );
+#define BUILTIN_SUPER( type, object) _BUILTIN_SUPER( EVAL_ORDERED_2( type, object ) )
 
+extern PyObject *_BUILTIN_SUPER( EVAL_ORDERED_2( PyObject *type, PyObject *object ) );
 
 NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {

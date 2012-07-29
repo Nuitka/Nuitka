@@ -1435,7 +1435,7 @@ typedef struct {
 
 extern PyObject *_python_str_plain___class__;
 
-PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
+PyObject *_BUILTIN_SUPER( EVAL_ORDERED_2( PyObject *type, PyObject *object ) )
 {
     assertObject( type );
     assert( PyType_Check( type ));

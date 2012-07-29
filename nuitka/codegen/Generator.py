@@ -373,12 +373,18 @@ def _getCallBothStarArgsCode( function_identifier, argument_tuple, argument_dict
             )
 
 
-def getDirectionFunctionCallCode( function_identifier, arguments, closure_variables, context ):
+def getDirectionFunctionCallCode( function_identifier, arguments, closure_variables, extra_arguments, context ):
     function_identifier = getDirectFunctionEntryPointIdentifier(
         function_identifier = function_identifier
     )
 
-    call_args = getCodeExportRefs( arguments )
+    call_args = [
+        extra_argument.getCodeTemporaryRef() if extra_argument is not None else "NULL"
+        for extra_argument in
+        extra_arguments
+    ]
+
+    call_args += getCodeExportRefs( arguments )
 
     call_args += getClosureVariableProvisionCode(
         context           = context,
@@ -1790,8 +1796,9 @@ def _extractArgNames( args ):
     ]
 
 def getFunctionDecl( context, function_identifier, default_identifiers, closure_variables, \
-                     function_parameter_variables, needs_creation ):
-    if needs_creation:
+                     function_parameter_variables ):
+
+    if context.function.needsCreation():
         # TODO: These two branches probably mean it's two different things.
 
         function_creation_arg_spec = _getFunctionCreationArgs(
@@ -1814,20 +1821,24 @@ def getFunctionDecl( context, function_identifier, default_identifiers, closure_
             )
         }
     else:
-        parameter_objects_decl = [
+        parameter_objects_decl = []
+
+        if context.function.isClassDictCreation():
+            parameter_objects_decl += [ "PyObject *metaclass", "PyObject *bases" ]
+
+        parameter_objects_decl += [
             "PyObject *_python_par_" + variable.getName()
             for variable in
             function_parameter_variables
         ]
 
-        if not needs_creation:
-            for closure_variable in closure_variables:
-                parameter_objects_decl.append(
-                    closure_variable.getDeclarationCode(
-                        for_reference = True,
-                        for_local     = False
-                    )
-               )
+        for closure_variable in closure_variables:
+            parameter_objects_decl.append(
+                closure_variable.getDeclarationCode(
+                    for_reference = True,
+                    for_local     = False
+                )
+            )
 
         return CodeTemplates.template_function_direct_declaration % {
             "function_identifier"    : function_identifier,
@@ -2212,8 +2223,8 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         )
 
     function_creation_args = _getFunctionCreationArgs(
+        default_identifiers = default_access_identifiers,
         closure_variables   = closure_variables,
-        default_identifiers = default_access_identifiers
     )
 
     # User local variable initializations
@@ -2235,7 +2246,6 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         context  = context,
         constant = function_doc
     )
-
 
     function_locals = function_parameter_decl + local_var_inits
 
@@ -2269,6 +2279,9 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                     for_local     = False
                 )
             )
+
+    if context.function.isClassDictCreation():
+        parameter_objects_decl = [ "PyObject *metaclass", "PyObject *bases" ] + parameter_objects_decl
 
     function_name_obj = getConstantCode(
         context  = context,
@@ -2336,6 +2349,12 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
 
     return result
 
+
+def getMetaclassAccessCode( context ):
+    return Identifier( "metaclass", 0 )
+
+def getBasesAccessCode( context ):
+    return Identifier( "bases", 0 )
 
 def getClassCreationCode( metaclass_global_code, metaclass_class_code, \
                           name_identifier, dict_identifier, bases_identifier ):

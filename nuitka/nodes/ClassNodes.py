@@ -23,18 +23,40 @@ The classes are are at the core of the language and have their complexities.
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
 
+from .FunctionNodes import CPythonExpressionFunctionCall
+
+class CPythonExpressionClassDefinition( CPythonExpressionFunctionCall ):
+    kind = "EXPRESSION_CLASS_DEFINITION"
+
+    named_children = CPythonExpressionFunctionCall.named_children + \
+                     ( "metaclass", "bases" )
+
+    def __init__( self, class_definition, metaclass, bases, source_ref ):
+        CPythonExpressionFunctionCall.__init__(
+            self,
+            function_body  = class_definition,
+            values         = (),
+            source_ref     = source_ref
+        )
+
+        self.setMetaclass( metaclass )
+        self.setBases( bases )
+
+    getBases = CPythonExpressionChildrenHavingBase.childGetter( "bases" )
+    setBases = CPythonExpressionChildrenHavingBase.childSetter( "bases" )
+    getMetaclass = CPythonExpressionChildrenHavingBase.childGetter( "metaclass" )
+    setMetaclass = CPythonExpressionChildrenHavingBase.childSetter( "metaclass" )
+
 
 class CPythonExpressionClassCreation( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_CLASS_CREATION"
 
-    named_children = ( "metaclass", "bases", "class_dict", )
+    named_children = ( "class_dict", )
 
-    def __init__( self, class_name, metaclass, bases, class_dict, source_ref ):
+    def __init__( self, class_name, class_dict, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values = {
-                "metaclass"  : metaclass,
-                "bases"      : tuple( bases ),
                 "class_dict" : class_dict
             },
             source_ref = source_ref
@@ -48,8 +70,6 @@ class CPythonExpressionClassCreation( CPythonExpressionChildrenHavingBase ):
         }
 
     getClassDict = CPythonExpressionChildrenHavingBase.childGetter( "class_dict" )
-    getBases = CPythonExpressionChildrenHavingBase.childGetter( "bases" )
-    getMetaclass = CPythonExpressionChildrenHavingBase.childGetter( "metaclass" )
 
     def getClassName( self ):
         return self.class_name

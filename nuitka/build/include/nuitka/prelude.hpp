@@ -25,17 +25,16 @@
 // Include the Python version numbers, and define our own take of what
 // versions should be
 #include "patchlevel.h"
-// This is needed or else we can't create modules name "proc" or "new". For
-// Python3, the name collision can't happen, so we can limit it to Python2.
 #define PYTHON_VERSION (PY_MAJOR_VERSION*100+PY_MINOR_VERSION*10+PY_MICRO_VERSION)
 
-// Include the Python C/API header files
-
+// This is needed or else we can't create modules name "proc" or "new". For
+// Python3, the name collision can't happen, so we can limit it to Python2.
 #if PYTHON_VERSION < 300
 #define initproc python_initproc
 #define initfunc python_initfunc
 #endif
 
+// Include the Python C/API header files
 #include "Python.h"
 #include "methodobject.h"
 #include "frameobject.h"

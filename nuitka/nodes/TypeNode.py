@@ -74,7 +74,7 @@ class CPythonExpressionBuiltinSuper( CPythonExpressionChildrenHavingBase ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "type"    : super_type,
+                "type"   : super_type,
                 "object" : super_object
 
             },

@@ -102,6 +102,13 @@ class VariableClosureLookupVisitorPhase3( OptimizationVisitorScopedBase ):
 
                     )
 
+    if python_version >= 300:
+        def onLeaveNode( self, node ):
+            if node.isExpressionFunctionBody() and node.isClassClosureTaker():
+                node.getVariableForReference(
+                    variable_name = "__class__"
+                )
+
 VariableClosureLookupVisitors = (
     VariableClosureLookupVisitorPhase2,
     VariableClosureLookupVisitorPhase3

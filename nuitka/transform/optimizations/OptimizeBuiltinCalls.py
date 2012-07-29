@@ -62,6 +62,8 @@ if python_version < 300:
 else:
     from nuitka.nodes.ExecEvalNodes import CPythonExpressionBuiltinExec
 
+from nuitka.nodes.VariableRefNode import CPythonExpressionVariableRef
+
 from nuitka.nodes.GlobalsLocalsNodes import (
     CPythonExpressionBuiltinGlobals,
     CPythonExpressionBuiltinLocals,
@@ -95,6 +97,7 @@ from nuitka.nodes.AttributeNode import CPythonExpressionAttributeLookup
 
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,
+    makeRaiseExceptionReplacementExpression
 )
 
 
@@ -444,9 +447,62 @@ def open_extractor( node ):
     )
 
 def super_extractor( node ):
+
+    def wrapSuperBuiltin( type, object, source_ref ):
+        if type is None and python_version >= 300:
+            provider = node.getParentVariableProvider()
+
+            type = CPythonExpressionVariableRef(
+                variable_name = "__class__",
+                source_ref    = source_ref
+            )
+
+            # Ought to be already closure taken.
+            type.setVariable(
+                provider.getVariableForReference(
+                    variable_name = "__class__"
+                )
+            )
+
+            if not type.getVariable().isClosureReference():
+                return makeRaiseExceptionReplacementExpression(
+                    expression      = node,
+                    exception_type  = "SystemError",
+                    exception_value = "super(): __class__ cell not found",
+                )
+
+            if object is None and provider.getParameters().getArgumentCount() > 0:
+                par1_name = provider.getParameters().getArgumentNames()[0]
+                # TODO: Nested first argument would kill us here, need a test for that.
+
+                object = CPythonExpressionVariableRef(
+                    variable_name = par1_name,
+                    source_ref    = source_ref
+                )
+
+                object.setVariable(
+                    node.getParentVariableProvider().getVariableForReference(
+                        variable_name = par1_name
+                    )
+                )
+
+                if not object.getVariable().isParameterVariable():
+                    return makeRaiseExceptionReplacementExpression(
+                        expression      = node,
+                        exception_type  = "SystemError",
+                        exception_value = "super(): __class__ cell not found",
+                    )
+
+
+        return CPythonExpressionBuiltinSuper(
+            super_type   = type,
+            super_object = object,
+            source_ref   = source_ref
+        )
+
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
-        builtin_class = CPythonExpressionBuiltinSuper,
+        builtin_class = wrapSuperBuiltin,
         builtin_spec  = BuiltinOptimization.builtin_super_spec
     )
 
@@ -502,7 +558,7 @@ def computeBuiltinCall( call_node, called ):
         elif new_node.isExpressionBuiltin() or new_node.isStatementExec():
             tags = "new_builtin"
             message = "Replaced call to builtin %s with builtin call." % new_node.kind
-        elif new_node.isExpressionCall():
+        elif new_node.isExpressionCall() or new_node.isExpressionRaiseException():
             tags = "new_raise"
             message = "Replaced call to builtin %s with exception raising call." % new_node.kind
         elif new_node.isExpressionOperationUnary():
