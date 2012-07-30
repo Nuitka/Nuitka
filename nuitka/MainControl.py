@@ -351,8 +351,12 @@ def writeSourceCode( filename, source_code ):
     # something else has failed.
     assert not Utils.isFile( filename ), filename
 
-    with open( filename, "w" ) as output_file:
-        output_file.write( source_code )
+    if Utils.python_version >= 300:
+        with open( filename, "wb" ) as output_file:
+            output_file.write( source_code.encode( "latin1" ) )
+    else:
+        with open( filename, "w" ) as output_file:
+            output_file.write( source_code )
 
 
 def callExec( args, clean_path, add_path ):

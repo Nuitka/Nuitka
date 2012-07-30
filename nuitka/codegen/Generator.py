@@ -2473,7 +2473,7 @@ def _getConstantsDefinitionCode( context ):
 
             continue
 
-        if constant_type is str:
+        if constant_type is str and str is not unicode:
             statements.append(
                 '%s = UNSTREAM_STRING( %s, %d, %d );assert( %s );' % (
                     constant_identifier,
