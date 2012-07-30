@@ -144,15 +144,15 @@ PyObject *BUILTIN_CHR( PyObject *value )
         throw _PythonException();
     }
 
+#if PYTHON_VERSION < 300
     // TODO: A switch statement might be faster, because no object needs to be created at
     // all, this is how CPython does it.
     char s[1];
     s[0] = (char)x;
 
-#if PYTHON_VERSION < 300
     return PyString_FromStringAndSize( s, 1 );
 #else
-    return PyUnicode_FromStringAndSize( s, 1 );
+    return PyUnicode_FromOrdinal( x );
 #endif
 }
 
