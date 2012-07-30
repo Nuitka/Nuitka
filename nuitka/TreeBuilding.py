@@ -2933,6 +2933,10 @@ def buildInplaceAssignNode( provider, node, source_ref ):
     # so we end up with a lot of variables, which is on purpose, pylint: disable=R0914
 
     operator   = getKind( node.op )
+
+    if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
+        operator = "TrueDiv"
+
     expression = buildNode( provider, node.value, source_ref )
 
     result = CPythonStatementTempBlock(
