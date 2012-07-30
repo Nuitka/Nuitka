@@ -1,6 +1,12 @@
 nuitka (0.3.24~pre3+ds-1) UNRELEASED; urgency=low
 
   * New upstream pre-release.
+  * Detect the absence of "g++" and gracefully fallback to the
+    compiler depended on. (Closes: #682146)
+  * Changed usage of "temp" files in developer scripts to be
+    secure. (Closes: #682145)
+  * Added support for "DEB_BUILD_OPTIONS=nocheck" to skip the
+    test runs. (Closes: #683090)
 
  -- Kay Hayen <kayhayen@gmx.de>  Sun, 01 Jul 2012 01:49:48 +0200
 
