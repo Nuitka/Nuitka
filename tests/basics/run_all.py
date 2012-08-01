@@ -36,6 +36,9 @@ else:
 if "PYTHON" not in os.environ:
     os.environ[ "PYTHON" ] = "python"
 
+if "PYTHONIOENCODING" not in os.environ:
+    os.environ[ "PYTHONIOENCODING" ] = "utf-8"
+
 def check_output(*popenargs, **kwargs):
     from subprocess import Popen, PIPE, CalledProcessError
 
