@@ -112,11 +112,14 @@ process = subprocess.Popen(
 stdout_cpython, stderr_cpython = process.communicate()
 exit_cpython = process.returncode
 
-if not silent_mode:
+def displayCPython():
     print( stdout_cpython, end=' ' )
 
     if stderr_cpython:
         print( stderr_cpython )
+
+if not silent_mode:
+    displayCPython()
 
 if not silent_mode:
     print( "*******************************************************" )
@@ -277,6 +280,9 @@ if not silent_mode:
     print( "OK, same outputs." )
 
 if expect_success and exit_cpython != 0:
+    if silent_mode:
+        displayCPython()
+
     sys.exit( "Unexpected error exit from CPython." )
 
 if expect_failure and exit_cpython == 0:
