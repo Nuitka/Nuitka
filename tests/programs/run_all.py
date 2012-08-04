@@ -95,8 +95,11 @@ for filename in sorted( os.listdir( "." ) ):
         for filename_main in os.listdir( filename ):
             if filename_main.endswith( "Main.py" ):
                 break
+
+            if filename_main.endswith( "Main" ):
+                break
         else:
-            sys.exit( "Error, no file ends with 'Main.py' in %s, incomplete test case" % filename )
+            sys.exit( "Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case" % filename )
 
         result = subprocess.call(
             "%s %s %s silent %s" % (

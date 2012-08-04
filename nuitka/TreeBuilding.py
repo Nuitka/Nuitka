@@ -3180,6 +3180,20 @@ def buildReplacementTree( provider, source_code, source_ref ):
 def buildModuleTree( filename, package, is_main ):
     assert package is None or type( package ) is str
 
+    if is_main and Utils.isDir( filename ):
+        source_filename = Utils.joinpath( filename, "__main__.py" )
+
+        if not Utils.isFile( source_filename ):
+            sys.stderr.write(
+                "%s: can't find '__main__' module in '%s'\n" % (
+                    Utils.basename( sys.argv[0] ),
+                    filename
+                )
+            )
+            sys.exit( 2 )
+
+        filename = source_filename
+
     if Utils.isFile( filename ):
         source_filename = filename
 
@@ -3201,7 +3215,7 @@ def buildModuleTree( filename, package, is_main ):
             package    = package,
             source_ref = source_ref
         )
-    elif Utils.isDir( filename ) and Utils.joinpath( filename, "__init__.py" ):
+    elif not is_main and Utils.isDir( filename ) and Utils.joinpath( filename, "__init__.py" ):
         source_filename = Utils.joinpath( filename, "__init__.py" )
 
         source_ref = SourceCodeReferences.fromFilename(
@@ -3215,7 +3229,12 @@ def buildModuleTree( filename, package, is_main ):
             source_ref = source_ref
         )
     else:
-        sys.stderr.write(  "Nuitka: can't open file '%s'.\n" % filename )
+        sys.stderr.write(
+            "%s: can't open file '%s'.\n" % (
+                Utils.basename( sys.argv[0] ),
+                filename
+            )
+        )
         sys.exit( 2 )
 
     if not Options.shallHaveStatementLines():
