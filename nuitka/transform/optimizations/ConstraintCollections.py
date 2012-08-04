@@ -717,21 +717,6 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
 
     def attemptRecursion( self, module ):
         if not Options.shallMakeModule():
-            module_filename = module.getFilename()
-
-            # Make sure, we are known to the tree recursion. TODO: Why isn't this done at
-            # creation time already? This whole function should be executed at the time
-            # the module came into existence, i.e. long before optimization kicks in.
-            if module_filename not in TreeRecursion.imported_modules:
-                if Utils.basename( module_filename ) == "__init__.py":
-                    module_relpath = Utils.dirname( module_filename )
-                else:
-                    module_relpath = module_filename
-
-                module_relpath = Utils.relpath( module_relpath )
-
-                TreeRecursion.imported_modules[ Utils.relpath( module_relpath ) ] = module
-
             # Make sure the package is recursed to.
             module_package = module.getPackage()
 

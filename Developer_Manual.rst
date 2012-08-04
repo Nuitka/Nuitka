@@ -534,8 +534,8 @@ Hooking for module ``import`` process
 -------------------------------------
 
 Currently, in created code, for every ``import`` variable a normal ``__import__()`` call
-is executed. The "ExeModuleUnfreezer.cpp" (located in "nuitka/build/static_src") provides
-the implementation of a ``sys.meta_path`` hook.
+is executed. The "ModuleUnfreezer.cpp" (located in "nuitka/build/static_src") provides the
+implementation of a ``sys.meta_path`` hook.
 
 This one allows us to have the Nuitka provided module imported even when imported by
 non-compiled code. Kay had learned this at PyCON DE conference, from a presentation by the

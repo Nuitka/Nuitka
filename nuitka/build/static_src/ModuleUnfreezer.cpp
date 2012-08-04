@@ -150,7 +150,19 @@ static PyMethodDef _method_def_loader_load_module
 
 void registerMetaPathBasedUnfreezer( struct _inittab *_frozes_modules )
 {
+    // Do it only once.
+    if ( frozes_modules )
+    {
+        assert( _frozes_modules == frozes_modules );
+
+        return;
+    }
+
     frozes_modules = _frozes_modules;
+
+    // Register the initialization functions for modules included in the traditional way.
+    int res = PyImport_ExtendInittab( _frozes_modules );
+    assert( res != -1 );
 
     PyObject *method_dict = PyDict_New();
 
@@ -178,7 +190,6 @@ void registerMetaPathBasedUnfreezer( struct _inittab *_frozes_modules )
 
     assertObject( loader_frozen_modules );
 
-    int res = PyList_Insert( PySys_GetObject( ( char *)"meta_path" ), 0, loader_frozen_modules );
-
+    res = PyList_Insert( PySys_GetObject( ( char *)"meta_path" ), 0, loader_frozen_modules );
     assert( res == 0 );
 }

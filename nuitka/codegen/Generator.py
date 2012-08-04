@@ -1621,7 +1621,7 @@ def getPackageIdentifier( module_name ):
     return module_name.replace( ".", "__" )
 
 def getModuleCode( context, module_name, package_name, codes, tmp_variables, \
-                   doc_identifier, path_identifier, source_ref ):
+                   doc_identifier, path_identifier, other_module_names, source_ref ):
 
     # For the module code, lots of attributes come together. pylint: disable=R0914
 
@@ -1703,6 +1703,17 @@ def getModuleCode( context, module_name, package_name, codes, tmp_variables, \
         is_generator = False
     )
 
+    # Create for for "inittab" to use in unfreezing of modules if that is used.
+    module_inittab = []
+
+    for other_module_name in other_module_names:
+        module_inittab.append (
+            CodeTemplates.module_inittab_entry % {
+                "module_name"       : other_module_name,
+                "module_identifier" : getModuleIdentifier( other_module_name ),
+            }
+        )
+
     module_code = CodeTemplates.module_body_template % {
         "module_name"           : module_name,
         "module_name_obj"       : getConstantCode(
@@ -1715,7 +1726,9 @@ def getModuleCode( context, module_name, package_name, codes, tmp_variables, \
         "module_functions_code" : functions_code,
         "module_globals"        : module_globals,
         "module_inits"          : module_inits + indented( module_local_decl ),
-        "module_code"           : indented( codes, 2 )
+        "module_code"           : indented( codes, 2 ),
+        "module_inittab"        : indented( sorted( module_inittab ) ),
+        "use_unfreezer"         : 1 if other_module_names else 0
     }
 
     return header + module_code
@@ -1730,27 +1743,14 @@ def getModuleDeclarationCode( module_name ):
         "header_body"       : module_header_code
     }
 
-def getMainCode( codes, other_module_names ):
-    module_inittab = []
-
-    for other_module_name in other_module_names:
-        module_inittab.append (
-            CodeTemplates.module_inittab_entry % {
-                "module_name"       : other_module_name,
-                "module_identifier" : getModuleIdentifier( other_module_name ),
-            }
-        )
-
+def getMainCode( codes ):
     main_code = CodeTemplates.main_program % {
-        "module_inittab" : indented( sorted( module_inittab ) ),
         "sys_executable" : CppRawStrings.encodeString(
             "python.exe" if Options.isWindowsTarget() else sys.executable
         ),
-        "use_unfreezer"  : 1 if other_module_names else 0
     }
 
     return codes + main_code
-
 
 def getFunctionsCode( context ):
     result = ""

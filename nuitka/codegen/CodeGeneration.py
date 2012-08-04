@@ -1950,7 +1950,7 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
 
     return codes
 
-def generateModuleCode( module, module_name, global_context ):
+def generateModuleCode( global_context, module, module_name, other_modules ):
     assert module.isModule(), module
 
     context = Contexts.PythonModuleContext(
@@ -1978,16 +1978,21 @@ def generateModuleCode( module, module_name, global_context ):
         path_identifier = None
 
     return Generator.getModuleCode(
-        module_name     = module_name,
-        package_name    = module.getPackage(),
-        doc_identifier  = context.getConstantHandle(
+        module_name        = module_name,
+        package_name       = module.getPackage(),
+        doc_identifier     = context.getConstantHandle(
             constant = module.getDoc()
         ),
-        source_ref      = module.getSourceReference(),
-        path_identifier = path_identifier,
-        codes           = codes,
-        tmp_variables   = module.getTempKeeperNames(),
-        context         = context,
+        source_ref         = module.getSourceReference(),
+        path_identifier    = path_identifier,
+        codes              = codes,
+        tmp_variables      = module.getTempKeeperNames(),
+        other_module_names = [
+            other_module.getFullName()
+            for other_module in
+            other_modules
+        ],
+        context             = context,
     )
 
 def generateModuleDeclarationCode( module_name ):
@@ -1997,12 +2002,7 @@ def generateModuleDeclarationCode( module_name ):
 
 def generateMainCode( codes, other_modules ):
     return Generator.getMainCode(
-        codes              = codes,
-        other_module_names = [
-            other_module.getFullName()
-            for other_module in
-            other_modules
-        ]
+        codes = codes
     )
 
 def generateConstantsDeclarationCode( context ):

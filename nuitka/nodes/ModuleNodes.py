@@ -141,6 +141,8 @@ class CPythonPackage( CPythonModule ):
     kind = "PACKAGE"
 
     def __init__( self, name, package, source_ref ):
+        assert name
+
         CPythonModule.__init__(
             self,
             name       = name,

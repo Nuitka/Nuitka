@@ -44,7 +44,7 @@ OptimizeSubscripts.register()
 
 from .Tags import TagSet
 
-from nuitka import Options, TreeRecursion
+from nuitka import Options, TreeBuilding
 
 from nuitka.oset import OrderedSet
 
@@ -102,8 +102,8 @@ def optimizeTree( tree ):
 
     return tree
 
-def getOtherModules():
-    return list( TreeRecursion.imported_modules.values() )
+def getImportedModules():
+    return TreeBuilding.getImportedModules()
 
 def optimizeWhole( main_module ):
     done_modules = set()
@@ -112,21 +112,21 @@ def optimizeWhole( main_module ):
     done_modules.add( main_module )
 
     if _progress:
-        printLine( "Finished. %d more modules to go." % len( getOtherModules() ) )
+        printLine( "Finished. %d more modules to go." % len( getImportedModules() ) )
 
     finished = False
 
     while not finished:
         finished = True
 
-        for other_module in getOtherModules():
-            if other_module not in done_modules:
-                optimizeTree( other_module )
+        for module in list( getImportedModules() ):
+            if module not in done_modules:
+                optimizeTree( module )
 
-                done_modules.add( other_module )
+                done_modules.add( module )
 
                 if _progress:
-                    printLine( "Finished. %d more modules to go." % ( len( getOtherModules() ) - len( done_modules ) ) )
+                    printLine( "Finished. %d more modules to go." % ( len( getImportedModules() ) - len( done_modules ) ) )
 
                 finished = False
 

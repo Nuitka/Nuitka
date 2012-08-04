@@ -3177,7 +3177,21 @@ def buildReplacementTree( provider, source_code, source_ref ):
         replacement = True
     )
 
-def buildModuleTree( filename, package, is_main ):
+imported_modules = {}
+
+def addImportedModule( module_relpath, imported_module ):
+    imported_modules[ module_relpath ] = imported_module
+
+def isImportedPath( module_relpath ):
+    return module_relpath not in imported_modules
+
+def getImportedModule( module_relpath ):
+    return imported_modules[ module_relpath ]
+
+def getImportedModules():
+    return imported_modules.values()
+
+def buildModuleTree( filename, package, is_top, is_main ):
     assert package is None or type( package ) is str
 
     if is_main and Utils.isDir( filename ):
@@ -3215,16 +3229,26 @@ def buildModuleTree( filename, package, is_main ):
             package    = package,
             source_ref = source_ref
         )
-    elif not is_main and Utils.isDir( filename ) and Utils.joinpath( filename, "__init__.py" ):
+    elif Utils.isDir( filename ) and Utils.joinpath( filename, "__init__.py" ):
         source_filename = Utils.joinpath( filename, "__init__.py" )
 
-        source_ref = SourceCodeReferences.fromFilename(
-            filename    = Utils.abspath( source_filename ),
-            future_spec = FutureSpec()
-        )
+        if is_top:
+            source_ref = SourceCodeReferences.fromFilename(
+                filename    = Utils.abspath( source_filename ),
+                future_spec = FutureSpec()
+            )
+
+            package_name = Utils.splitpath( filename )[-1]
+        else:
+            source_ref = SourceCodeReferences.fromFilename(
+                filename    = Utils.abspath( source_filename ),
+                future_spec = FutureSpec()
+            )
+
+            package_name = Utils.basename( filename )
 
         result = CPythonPackage(
-            name       = Utils.basename( filename ),
+            name       = package_name,
             package    = package,
             source_ref = source_ref
         )
@@ -3300,5 +3324,7 @@ def buildModuleTree( filename, package, is_main ):
             source_ref  = source_ref,
             replacement = False,
         )
+
+    addImportedModule( Utils.relpath( filename ), result )
 
     return result

@@ -410,7 +410,7 @@ def discoverSourceFiles():
 
     # If more than one module is included, we need the unfreezer.
     if module_count > 1:
-        result.append( static_src + "/ExeModuleUnfreezer.cpp" )
+        result.append( static_src + "/ModuleUnfreezer.cpp" )
 
     # Add the resource file for the manifest to be included in the executable.
     if win_target and not module_mode:

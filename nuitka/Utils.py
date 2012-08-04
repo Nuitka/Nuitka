@@ -40,6 +40,9 @@ def abspath( path ):
 def joinpath( *parts ):
     return os.path.join( *parts )
 
+def splitpath( path ):
+    return tuple( element for element in os.path.split( path ) if element )
+
 def basename( path ):
     return os.path.basename( path )
 
