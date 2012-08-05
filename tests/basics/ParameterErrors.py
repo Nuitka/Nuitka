@@ -24,14 +24,14 @@ print "Call a function with no parameters with a plain argument:"
 try:
     functionNoParameters( 1 )
 except TypeError, e:
-    print e
+    print repr(e)
 
 print "Call a function with no parameters with a keyword argument:"
 
 try:
     functionNoParameters( z = 1 )
 except TypeError, e:
-    print e
+    print repr(e)
 
 def functionOneParameter( a ):
     print a
@@ -41,7 +41,7 @@ print "Call a function with one parameter with two plain arguments:"
 try:
     functionOneParameter( 1, 1 )
 except TypeError, e:
-    print e
+    print repr(e)
 
 print "Call a function with two parameters with three plain arguments:"
 
@@ -51,28 +51,28 @@ def functionTwoParameters( a, b ):
 try:
     functionTwoParameters( 1, 2, 3 )
 except TypeError, e:
-    print e
+    print repr(e)
 
 print "Call a function with two parameters with one plain argument:"
 
 try:
     functionTwoParameters( 1 )
 except TypeError, e:
-    print e
+    print repr(e)
 
 print "Call a function with two parameters with one keyword argument:"
 
 try:
     functionTwoParameters( a = 1 )
 except TypeError, e:
-    print e
+    print repr(e)
 
 print "Call a function with two parameters with three keyword arguments:"
 
 try:
     functionTwoParameters( a = 1, b = 2, c = 3 )
 except TypeError, e:
-    print e
+    print repr(e)
 
 class MethodContainer:
     def methodNoParameters( self ):
@@ -91,49 +91,49 @@ print "Call a method with no parameters with a plain argument:"
 try:
     obj.methodNoParameters( 1 )
 except TypeError, e:
-    print e
+    print repr(e)
 
 print "Call a method with no parameters with a keyword argument:"
 
 try:
     obj.methodNoParameters( z = 1 )
 except TypeError, e:
-    print e
+    print repr(e)
 
 print "Call a method with one parameter with two plain arguments:"
 
 try:
     obj.methodOneParameter( 1, 1 )
 except TypeError, e:
-    print e
+    print repr(e)
 
 print "Call a method with two parameters with three plain arguments:"
 
 try:
     obj.methodTwoParameters( 1, 2, 3 )
 except TypeError, e:
-    print e
+    print repr(e)
 
 print "Call a method with two parameters with one plain argument:"
 
 try:
     obj.methodTwoParameters( 1 )
 except TypeError, e:
-    print e
+    print repr(e)
 
 print "Call a method with two parameters with one keyword argument:"
 
 try:
     obj.methodTwoParameters( a = 1 )
 except TypeError, e:
-    print e
+    print repr(e)
 
 print "Call a method with two parameters with three keyword arguments:"
 
 try:
     obj.methodTwoParameters( a = 1, b = 2, c = 3 )
 except TypeError, e:
-    print e
+    print repr(e)
 
 def functionPosBothStarArgs( a, b, c, *l, **d ):
     print a, b, c, l, d
@@ -146,7 +146,7 @@ print "Call a function with both star arguments and too little arguments:"
 try:
     functionPosBothStarArgs( 1,  *l, **d )
 except TypeError, e:
-    print e
+    print repr(e)
 
 def functionWithDefaults( a, b, c, d = 3 ):
     print a, b, c, d
@@ -154,4 +154,4 @@ def functionWithDefaults( a, b, c, d = 3 ):
 try:
     functionWithDefaults( 1 )
 except TypeError, e:
-    print e
+    print repr(e)

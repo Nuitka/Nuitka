@@ -57,7 +57,7 @@ def scopeTest4():
 
         d = 1
     except UnboundLocalError, e:
-        return e
+        return repr(e)
 
 
 print "Test closure where value is overwritten:", closureTest1()
@@ -85,8 +85,8 @@ def ClosureLocalizerFunction():
         function = function
 
         print "Function didn't give unbound local error"
-    except UnboundLocalError:
-        print "Function gave unbound local error when accessing function before assignment."
+    except UnboundLocalError, e:
+        print "Function gave unbound local error when accessing function before assignment.", repr(e)
 
 ClosureLocalizerFunction()
 

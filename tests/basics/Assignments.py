@@ -64,7 +64,7 @@ def otherFunction():
     try:
         f, g = 1,
     except Exception, e:
-        print "gave", type(e), e
+        print "gave", type(e), repr(e)
 
         try:
             print f
@@ -81,7 +81,7 @@ def otherFunction():
     try:
         d, j = 1, 2, 3
     except Exception, e:
-        print "gave", type(e), e
+        print "gave", type(e), repr(e)
 
         try:
             print d
@@ -127,12 +127,12 @@ def interuptedUnpack():
 
         c, d = s
     except ValueError, e:
-        print "gives ValueError", e,
+        print "gives ValueError", repr(e),
 
         try:
             print c
         except UnboundLocalError, e:
-            print "and then nothing is assigned", e
+            print "and then nothing is assigned", repr(e)
 
     del a, b
 
@@ -197,7 +197,7 @@ def complexDel():
     try:
         print c
     except UnboundLocalError, e:
-        print "yes, del worked"
+        print "yes, del worked", repr(e)
 
 def globalErrors():
     global unassigned_1, unassigned_2
@@ -205,13 +205,13 @@ def globalErrors():
     try:
         unassigned_1 = unassigned_1
     except NameError as e:
-        print "Accessing unassigned global gives", e
+        print "Accessing unassigned global gives", repr(e)
 
 
     try:
         del unassigned_2
     except NameError as e:
-        print "Del on unassigned global gives", e
+        print "Del on unassigned global gives", repr(e)
 
 
 someFunction()

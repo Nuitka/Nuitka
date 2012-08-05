@@ -41,7 +41,7 @@ def tryScope2( x, someExceptionClass ):
     try:
         x += 1
     except someExceptionClass, e:
-        print "Exception class from argument occured:", someExceptionClass, e
+        print "Exception class from argument occured:", someExceptionClass, repr(e)
     else:
         print "No exception occured"
 
