@@ -964,7 +964,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
 
         identifier = Generator.getBuiltinDictCode(
             seq_identifier  = makeExpressionCode(
-                expression.getPositionalArgument(),
+                expression = expression.getPositionalArgument(),
                 allow_none = True
             ),
             dict_identifier = generateCallNamedArgumentsCode(
@@ -972,13 +972,23 @@ def generateExpressionCode( expression, context, allow_none = False ):
                 context  = context
             )
         )
-    elif expression.isExpressionBuiltinStr():
+    elif Utils.python_version < 300 and expression.isExpressionBuiltinStr():
         identifier = Generator.getBuiltinStrCode(
             identifier = makeExpressionCode( expression.getValue() )
         )
-    elif expression.isExpressionBuiltinUnicode():
+    elif Utils.python_version < 300 and expression.isExpressionBuiltinUnicode() or Utils.python_version >= 300 and expression.isExpressionBuiltinStr():
         identifier = Generator.getBuiltinUnicodeCode(
-            identifier = makeExpressionCode( expression.getValue() )
+            identifier = makeExpressionCode(
+                expression = expression.getValue()
+            ),
+            encoding   = makeExpressionCode(
+                expression = expression.getEncoding(),
+                allow_none = True
+            ),
+            errors     = makeExpressionCode(
+                expression = expression.getErrors(),
+                allow_none = True
+            )
         )
     elif expression.isExpressionBuiltinFloat():
         identifier = Generator.getBuiltinFloatCode(

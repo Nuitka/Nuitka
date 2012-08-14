@@ -870,7 +870,7 @@ class CPythonExpressionSpecBasedComputationMixin( CPythonExpressionMixin ):
         assert self.builtin_spec is not None, self
 
         for value in given_values:
-            if not value.isCompileTimeConstant():
+            if value is not None and not value.isCompileTimeConstant():
                 return self, None, None
 
         if not self.builtin_spec.isCompileTimeComputable( given_values ):

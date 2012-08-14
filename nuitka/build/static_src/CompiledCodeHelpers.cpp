@@ -138,13 +138,13 @@ PyObject *BUILTIN_CHR( PyObject *value )
 {
     long x = PyInt_AsLong( value );
 
+#if PYTHON_VERSION < 300
     if ( x < 0 || x >= 256 )
     {
         PyErr_Format( PyExc_ValueError, "chr() arg not in range(256)" );
         throw _PythonException();
     }
 
-#if PYTHON_VERSION < 300
     // TODO: A switch statement might be faster, because no object needs to be created at
     // all, this is how CPython does it.
     char s[1];
@@ -152,7 +152,16 @@ PyObject *BUILTIN_CHR( PyObject *value )
 
     return PyString_FromStringAndSize( s, 1 );
 #else
-    return PyUnicode_FromOrdinal( x );
+    PyObject *result = PyUnicode_FromOrdinal( x );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    assert( PyUnicode_Check( result ));
+
+    return result;
 #endif
 }
 

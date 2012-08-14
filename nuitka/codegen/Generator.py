@@ -1591,8 +1591,19 @@ def getBuiltinIntCode( context, identifier, base ):
 def getBuiltinStrCode( identifier ):
     return HelperCallIdentifier( "TO_STR", identifier )
 
-def getBuiltinUnicodeCode( identifier ):
-    return HelperCallIdentifier( "TO_UNICODE", identifier )
+def getBuiltinUnicodeCode( identifier, encoding, errors ):
+    if encoding is None and errors is None:
+        return HelperCallIdentifier(
+            "TO_UNICODE",
+            identifier
+        )
+    else:
+        return HelperCallIdentifier(
+            "TO_UNICODE3",
+            identifier,
+            encoding,
+            errors,
+        )
 
 def getBuiltinBoolCode( identifier ):
     return Identifier(

@@ -33,7 +33,6 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     CPythonExpressionBuiltinLen
 )
 from nuitka.nodes.BuiltinTypeNodes import (
-#    CPythonExpressionBuiltinUnicode, TODO: Missing from here actually
     CPythonExpressionBuiltinFloat,
     CPythonExpressionBuiltinTuple,
     CPythonExpressionBuiltinList,
@@ -319,6 +318,17 @@ def str_extractor( node ):
         builtin_spec  = BuiltinOptimization.builtin_str_spec
     )
 
+if python_version < 300:
+    from nuitka.nodes.BuiltinTypeNodes import CPythonExpressionBuiltinUnicode
+
+    def unicode_extractor( node ):
+        return BuiltinOptimization.extractBuiltinArgs(
+            node          = node,
+            builtin_class = CPythonExpressionBuiltinUnicode,
+            builtin_spec  = BuiltinOptimization.builtin_unicode_spec
+        )
+
+
 def bool_extractor( node ):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
@@ -539,6 +549,7 @@ _dispatch_dict = {
 
 if python_version < 300:
     _dispatch_dict[ "long" ] = long_extractor
+    _dispatch_dict[ "unicode" ] = unicode_extractor
 
 
 def computeBuiltinCall( call_node, called ):

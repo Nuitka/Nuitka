@@ -49,7 +49,7 @@ class BuiltinParameterSpec( ParameterSpec ):
 
     def isCompileTimeComputable( self, values ):
         for value in values:
-            if not value.isCompileTimeConstant():
+            if value is not None and not value.isCompileTimeConstant():
                 return False
         else:
             return True
@@ -158,14 +158,21 @@ class BuiltinParameterSpecExceptions( BuiltinParameterSpec ):
 
 
 builtin_int_spec = BuiltinParameterSpec( "int", ( "x", "base" ), 2 )
-# This builtin is only available for Python2
+# These builtins are only available for Python2
 if python_version < 300:
     builtin_long_spec = BuiltinParameterSpec( "long", ( "x", "base" ), 2 )
     builtin_execfile_spec = BuiltinParameterSpecNoKeywords( "execfile", ( "filename", "globals", "locals" ), 2 )
+    builtin_unicode_spec = BuiltinParameterSpec( "unicode", ( "string", "encoding", "errors" ), 3 )
 
 builtin_bool_spec = BuiltinParameterSpec( "bool", ( "x", ), 1 )
 builtin_float_spec = BuiltinParameterSpec( "float", ( "x", ), 1 )
-builtin_str_spec = BuiltinParameterSpec( "str", ( "object", ), 1 )
+
+# This builtin have variable parameters for Python2/3
+if python_version < 300:
+    builtin_str_spec = BuiltinParameterSpec( "str", ( "object", ), 1 )
+else:
+    builtin_str_spec = BuiltinParameterSpec( "str", ( "object", "encoding", "errors" ), 3 )
+
 builtin_len_spec = BuiltinParameterSpecNoKeywords( "len", ( "object", ), 0 )
 builtin_dict_spec = BuiltinParameterSpec( "dict", (), 0, "list_args", "dict_args" )
 builtin_len_spec = BuiltinParameterSpecNoKeywords( "len", ( "object", ), 0 )
