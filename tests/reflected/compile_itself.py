@@ -55,6 +55,10 @@ print( "Using concrete python", python_version )
 
 tmp_dir = tempfile.gettempdir()
 
+# Try to avoid RAM disk /tmp and use the disk one instead.
+if tmp_dir == "/tmp" and os.path.exists( "/var/tmp" ):
+    tmp_dir = "/var/tmp"
+
 # Could detect this more automatic.
 PACKAGE_LIST = (
     'nuitka',
