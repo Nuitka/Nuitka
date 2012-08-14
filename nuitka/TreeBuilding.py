@@ -1830,6 +1830,28 @@ def buildTryFinallyNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
+def buildTryNode( provider, node, source_ref ):
+    # Note: This variant is used for Python3.3 or higher only, older stuff uses the above ones.
+    return CPythonStatementTryFinally(
+        tried      = CPythonStatementsSequence(
+            statements = (
+                buildTryExceptionNode(
+                    provider   = provider,
+                    node       = node,
+                    source_ref = source_ref
+                ),
+            ),
+            source_ref = source_ref
+        ),
+        final      = buildStatementsNode(
+            provider   = provider,
+            nodes      = node.finalbody,
+            source_ref = source_ref
+        ),
+        source_ref = source_ref
+    )
+
+
 _has_raise_value = Utils.python_version < 300
 
 def buildRaiseNode( provider, node, source_ref ):
@@ -3054,6 +3076,7 @@ _fast_path_args3 = {
     "Global"       : buildGlobalDeclarationNode,
     "TryExcept"    : buildTryExceptionNode,
     "TryFinally"   : buildTryFinallyNode,
+    "Try"          : buildTryNode,
     "Raise"        : buildRaiseNode,
     "ImportFrom"   : buildImportFromNode,
     "Assert"       : buildAssertNode,
