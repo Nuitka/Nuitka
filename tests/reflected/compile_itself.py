@@ -304,9 +304,33 @@ def executePASS4():
 
     print( "OK." )
 
+def executePASS5():
+    print( "PASS 5: Compiling the compiler 'nuitka' package to a single '.so' file." )
+
+    path = os.path.join( "..", "..", "nuitka" )
+
+    result = subprocess.call(
+        "%s %s %s --output-dir %s --recurse-dir=%s" % (
+            os.environ[ "PYTHON" ],
+            nuitka_main_path,
+            path,
+            tmp_dir,
+            path
+        ),
+        shell = True
+    )
+
+    if result != 0:
+        sys.exit( result )
+
+    os.unlink( os.path.join( tmp_dir, "nuitka.so" ) )
+    shutil.rmtree( os.path.join( tmp_dir, "nuitka.build" ) )
+
 executePASS1()
 executePASS2()
 executePASS3()
 executePASS4()
 
 shutil.rmtree( "nuitka" )
+
+executePASS5()
