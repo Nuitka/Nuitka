@@ -342,6 +342,22 @@ if not os.path.exists( os.path.join( python_header_path, "Python.h" ) ):
     sys.exit( "Error, no 'Python.h' development headers can be found at '%s', dependency not satisfied!" % python_header_path )
 
 env.Append( CCFLAGS = [ "-I" + python_header_path ] )
+
+def detectHostMultiarch():
+    import commands
+
+    for line in commands.getoutput( "dpkg-architecture" ).split("\n"):
+        if line.startswith( "DEB_HOST_MULTIARCH=" ):
+            return line.split( "=", 1 )[1]
+    else:
+        return None
+
+if python_version.startswith( "3.3" ):
+    host_multiarch = detectHostMultiarch()
+
+    if host_multiarch is not None:
+        env.Append( CCFLAGS = [ "-I/usr/include/" + host_multiarch + "/python" + python_version ] )
+
 env.Append( LIBS = [ "python" + python_version ] )
 
 nuitka_include = os.path.join( os.environ[ "NUITKA_SCONS" ], "include" )
