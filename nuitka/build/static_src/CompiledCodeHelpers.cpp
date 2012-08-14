@@ -85,7 +85,7 @@ extern PyObject *_python_str_plain_open;
 
 static PythonBuiltin _python_builtin_open( &_python_str_plain_open );
 
-PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
+PyObject *_OPEN_FILE( EVAL_ORDERED_3( PyObject *file_name, PyObject *mode, PyObject *buffering ) )
 {
     if ( file_name == NULL )
     {
@@ -317,7 +317,7 @@ typedef struct {
     PyObject *it_sentinel;
 } calliterobject;
 
-PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel )
+PyObject *_BUILTIN_ITER2( EVAL_ORDERED_2( PyObject *callable, PyObject *sentinel ) )
 {
     calliterobject *result = PyObject_GC_New( calliterobject, &PyCallIter_Type );
 
@@ -342,7 +342,7 @@ PyObject *BUILTIN_TYPE1( PyObject *arg )
 
 extern PyObject *_python_str_plain___module__;
 
-PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict )
+PyObject *_BUILTIN_TYPE3( EVAL_ORDERED_4( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict ) )
 {
     PyObject *result = PyType_Type.tp_new(
         &PyType_Type,
@@ -398,7 +398,8 @@ Py_ssize_t ESTIMATE_RANGE( long low, long high, long step )
     }
 }
 
-PyObject *BUILTIN_RANGE( long low, long high, long step )
+#if PYTHON_VERSION < 300
+static PyObject *_BUILTIN_RANGE_INT3( long low, long high, long step )
 {
     assert( step != 0 );
 
@@ -426,17 +427,16 @@ PyObject *BUILTIN_RANGE( long low, long high, long step )
     return result;
 }
 
-PyObject *BUILTIN_RANGE( long low, long high )
+static PyObject *_BUILTIN_RANGE_INT2( long low, long high )
 {
-    return BUILTIN_RANGE( low, high, 1 );
+    return _BUILTIN_RANGE_INT3( low, high, 1 );
 }
 
-PyObject *BUILTIN_RANGE( long boundary )
+static PyObject *_BUILTIN_RANGE_INT( long boundary )
 {
-    return BUILTIN_RANGE( 0, boundary );
+    return _BUILTIN_RANGE_INT2( 0, boundary );
 }
 
-#if PYTHON_VERSION < 300
 static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 {
     if (likely(
@@ -494,13 +494,13 @@ PyObject *BUILTIN_RANGE( PyObject *boundary )
         return _python_builtin_range.call1( boundary_temp.asObject() );
     }
 
-    return BUILTIN_RANGE( start );
+    return _BUILTIN_RANGE_INT( start );
 #else
     return _python_builtin_range.call1( boundary );
 #endif
 }
 
-PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high )
+PyObject *_BUILTIN_RANGE2( EVAL_ORDERED_2( PyObject *low, PyObject *high ) )
 {
 #if PYTHON_VERSION < 300
     PyObjectTemporary low_temp( TO_RANGE_ARG( low, "start" ) );
@@ -535,7 +535,7 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high )
     }
     else
     {
-        return BUILTIN_RANGE( start, end );
+        return _BUILTIN_RANGE_INT2( start, end );
     }
 #else
     return _python_builtin_range.call_args(
@@ -544,7 +544,7 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high )
 #endif
 }
 
-PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step )
+PyObject *_BUILTIN_RANGE3( EVAL_ORDERED_3( PyObject *low, PyObject *high, PyObject *step ) )
 {
 #if PYTHON_VERSION < 300
     PyObjectTemporary low_temp( TO_RANGE_ARG( low, "start" ) );
@@ -595,7 +595,7 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step )
             throw _PythonException();
         }
 
-        return BUILTIN_RANGE( start, end, step_long );
+        return _BUILTIN_RANGE_INT3( start, end, step_long );
     }
 #else
     return _python_builtin_range.call_args(
@@ -852,7 +852,7 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
         // TODO: Check if the reference is handled correctly
         if ( is_module )
         {
-            SET_ATTRIBUTE( target, item, LOOKUP_ATTRIBUTE( module, item ) );
+            SET_ATTRIBUTE( LOOKUP_ATTRIBUTE( module, item ), target, item );
         }
         else
         {

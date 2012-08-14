@@ -140,6 +140,12 @@ def subscriptOrderCheck():
     del lvalue()[ subscript() ]
     print d
 
+def attributeOrderCheck():
+    try:
+        zzz.xxx = yyy
+    except Exception as e:
+        print "Caught", repr(e)
+
 def compareOrderCheck():
     def lvalue():
         print "lvalue",
@@ -265,9 +271,57 @@ def superOrderCheck():
     except Exception as e:
         print "Caught", repr(e)
 
+def rangeOrderCheck():
+    try:
+        range( zzz, yyy, xxx )
+    except Exception as e:
+        print "Caught", repr(e)
+
+    try:
+        range( zzz, xxx )
+    except Exception as e:
+        print "Caught", repr(e)
+
+def typeOrderCheck():
+    try:
+        type( zzz, yyy, xxx )
+    except Exception as e:
+        print "Caught", repr(e)
+
+def iterOrderCheck():
+    try:
+        iter( zzz, xxx )
+    except Exception as e:
+        print "Caught", repr(e)
+
+def openOrderCheck():
+    try:
+        open( zzz, yyy, xxx )
+    except Exception as e:
+        print "Caught", repr(e)
+
+def longOrderCheck():
+    try:
+        long( zzz, xxx )
+    except Exception as e:
+        print "Caught", repr(e)
+
+def intOrderCheck():
+    try:
+        int( zzz, xxx )
+    except Exception as e:
+        print "Caught", repr(e)
+
+def nextOrderCheck():
+    try:
+        next( zzz, xxx )
+    except Exception as e:
+        print "Caught", repr(e)
+
 dictOrderCheck()
 listOrderCheck()
 subscriptOrderCheck()
+attributeOrderCheck()
 compareOrderCheck()
 sliceOrderCheck()
 generatorOrderCheck()
@@ -275,3 +329,10 @@ classOrderCheck()
 inOrderCheck()
 unpackOrderCheck()
 superOrderCheck()
+rangeOrderCheck()
+typeOrderCheck()
+iterOrderCheck()
+openOrderCheck()
+nextOrderCheck()
+longOrderCheck()
+intOrderCheck()

@@ -273,7 +273,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT( PyObject *value )
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *TO_INT( PyObject *value, PyObject *base )
+#define TO_INT2( value, base ) _TO_INT2( EVAL_ORDERED_2( value, base ) )
+NUITKA_MAY_BE_UNUSED static PyObject *_TO_INT2( EVAL_ORDERED_2( PyObject *value, PyObject *base ) )
 {
     int base_int = PyInt_AsLong( base );
 
@@ -311,7 +312,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG( PyObject *value )
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG( PyObject *value, PyObject *base )
+#define TO_LONG2( value, base ) _TO_LONG2( EVAL_ORDERED_2( value, base ) )
+NUITKA_MAY_BE_UNUSED static PyObject *_TO_LONG2( EVAL_ORDERED_2( PyObject *value, PyObject *base ) )
 {
     int base_int = PyInt_AsLong( base );
 
@@ -517,7 +519,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
 }
 
 
-NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObject *default_value )
+#define BUILTIN_NEXT2( iterator, default_value ) _BUILTIN_NEXT2( EVAL_ORDERED_2( iterator, default_value ) )
+NUITKA_MAY_BE_UNUSED static PyObject *_BUILTIN_NEXT2( EVAL_ORDERED_2( PyObject *iterator, PyObject *default_value ) )
 {
     assertObject( iterator );
     assertObject( default_value );
@@ -988,7 +991,8 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
 }
 #endif
 
-NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *target, PyObject *attr_name, PyObject *value )
+#define SET_ATTRIBUTE( value, target, attr_name ) _SET_ATTRIBUTE( EVAL_ORDERED_3( value, target, attr_name ) )
+NUITKA_MAY_BE_UNUSED static void _SET_ATTRIBUTE( EVAL_ORDERED_3( PyObject *value, PyObject *target, PyObject *attr_name ) )
 {
     assertObject( target );
     assertObject( attr_name );
@@ -1330,7 +1334,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 extern PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags );
 
 // For quicker builtin open() functionality.
-extern PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering );
+#define OPEN_FILE( file_name, mode, buffer ) _OPEN_FILE( EVAL_ORDERED_3( file_name, mode, buffer ) )
+extern PyObject *_OPEN_FILE( EVAL_ORDERED_3( PyObject *file_name, PyObject *mode, PyObject *buffering ) );
 
 // For quicker builtin chr() functionality.
 extern PyObject *BUILTIN_CHR( PyObject *value );
@@ -1348,17 +1353,21 @@ extern PyObject *BUILTIN_OCT( PyObject *value );
 extern PyObject *BUILTIN_HEX( PyObject *value );
 
 // For quicker iter() functionality if 2 arguments arg given.
-extern PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel );
+#define BUILTIN_ITER2( callable, sentinel ) _BUILTIN_ITER2( EVAL_ORDERED_2( callable, sentinel ) )
+extern PyObject *_BUILTIN_ITER2( EVAL_ORDERED_2( PyObject *callable, PyObject *sentinel ) );
 
 // For quicker type() functionality if 1 argument is given.
 extern PyObject *BUILTIN_TYPE1( PyObject *arg );
 
 // For quicker type() functionality if 3 arguments are given (to build a new type).
-extern PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict );
+#define BUILTIN_TYPE3( module_name, name, bases, dict ) _BUILTIN_TYPE3( EVAL_ORDERED_4( module_name, name, bases, dict ) )
+extern PyObject *_BUILTIN_TYPE3( EVAL_ORDERED_4( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict ) );
 
 // For quicker builtin range() functionality.
-extern PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step );
-extern PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high );
+#define BUILTIN_RANGE3( low, high, step ) _BUILTIN_RANGE3( EVAL_ORDERED_3( low, high, step ) )
+extern PyObject *_BUILTIN_RANGE3( EVAL_ORDERED_3( PyObject *low, PyObject *high, PyObject *step ) );
+#define BUILTIN_RANGE2( low, high ) _BUILTIN_RANGE2( EVAL_ORDERED_2( low, high ) )
+extern PyObject *_BUILTIN_RANGE2( EVAL_ORDERED_2( PyObject *low, PyObject *high ) );
 extern PyObject *BUILTIN_RANGE( PyObject *boundary );
 
 // For quicker builtin len() functionality.
@@ -1369,7 +1378,6 @@ extern PyObject *BUILTIN_DIR1( PyObject *arg );
 
 // For quicker builtin super() functionality.
 #define BUILTIN_SUPER( type, object) _BUILTIN_SUPER( EVAL_ORDERED_2( type, object ) )
-
 extern PyObject *_BUILTIN_SUPER( EVAL_ORDERED_2( PyObject *type, PyObject *object ) );
 
 NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )

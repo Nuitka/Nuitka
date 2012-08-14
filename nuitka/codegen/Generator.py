@@ -910,9 +910,9 @@ def getSelectionAndCode( conditions ):
 
 def getAttributeAssignmentCode( target, attribute, identifier ):
     return "SET_ATTRIBUTE( %s, %s, %s );" % (
+        identifier.getCodeTemporaryRef(),
         target.getCodeTemporaryRef(),
         attribute.getCodeTemporaryRef(),
-        identifier.getCodeTemporaryRef()
     )
 
 def getAttributeDelCode( target, attribute ):
@@ -1480,11 +1480,11 @@ def getBuiltinDir1Code( identifier ):
 def getBuiltinRangeCode( low, high, step ):
     if step is not None:
         return HelperCallIdentifier(
-            "BUILTIN_RANGE", low, high, step
+            "BUILTIN_RANGE3", low, high, step
         )
     elif high is not None:
         return HelperCallIdentifier(
-            "BUILTIN_RANGE", low, high
+            "BUILTIN_RANGE2", low, high
         )
     else:
         return HelperCallIdentifier(
@@ -1577,7 +1577,7 @@ def getBuiltinLongCode( context, identifier, base ):
     if base is None:
         return HelperCallIdentifier( "TO_LONG", identifier )
     else:
-        return HelperCallIdentifier( "TO_LONG", identifier, base )
+        return HelperCallIdentifier( "TO_LONG2", identifier, base )
 
 def getBuiltinIntCode( context, identifier, base ):
     if identifier is None:
@@ -1586,7 +1586,7 @@ def getBuiltinIntCode( context, identifier, base ):
     if base is None:
         return HelperCallIdentifier( "TO_INT", identifier )
     else:
-        return HelperCallIdentifier( "TO_INT", identifier, base )
+        return HelperCallIdentifier( "TO_INT2", identifier, base )
 
 def getBuiltinStrCode( identifier ):
     return HelperCallIdentifier( "TO_STR", identifier )

@@ -462,9 +462,9 @@ module_init_in_package_template = """\
     assertObject( _module_%(package_identifier)s );
 
     SET_ATTRIBUTE(
+        _module_%(module_identifier)s,
         _module_%(package_identifier)s,
-        %(module_name)s,
-        _module_%(module_identifier)s
+        %(module_name)s
     );
 """
 
