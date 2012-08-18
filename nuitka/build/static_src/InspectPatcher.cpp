@@ -117,19 +117,45 @@ void patchInspectModule( void )
     PyObject *module_inspect = IMPORT_MODULE( _python_str_plain_inspect, Py_None, Py_None, _python_tuple_empty, _python_int_0 );
     assertObject( module_inspect );
 
-    PyObject *inspect_isfunction_replacement = PyCFunction_New( &_method_def_inspect_isfunction_replacement, NULL );
-    assertObject( inspect_isfunction_replacement );
+    // Patch "inspect.isfunction" unless it is already patched.
+    PyObject *old_isfunction = PyObject_GetAttrString( module_inspect, "isfunction" );
+    assertObject( old_isfunction );
 
-    PyObject_SetAttrString( module_inspect, "isfunction", inspect_isfunction_replacement );
+    if (PyFunction_Check( old_isfunction ))
+    {
+        PyObject *inspect_isfunction_replacement = PyCFunction_New( &_method_def_inspect_isfunction_replacement, NULL );
+        assertObject( inspect_isfunction_replacement );
 
-    PyObject *inspect_ismethod_replacement = PyCFunction_New( &_method_def_inspect_ismethod_replacement, NULL );
-    assertObject( inspect_ismethod_replacement );
+        PyObject_SetAttrString( module_inspect, "isfunction", inspect_isfunction_replacement );
+    }
 
-    PyObject_SetAttrString( module_inspect, "ismethod", inspect_ismethod_replacement );
+    Py_DECREF( old_isfunction );
 
-    PyObject *inspect_isgenerator_replacement = PyCFunction_New( &_method_def_inspect_isgenerator_replacement, NULL );
-    assertObject( inspect_isgenerator_replacement );
+    // Patch "inspect.ismethod" unless it is already patched.
+    PyObject *old_ismethod = PyObject_GetAttrString( module_inspect, "ismethod" );
+    assertObject( old_ismethod );
 
-    PyObject_SetAttrString( module_inspect, "isgenerator", inspect_isgenerator_replacement );
+    if (PyFunction_Check( old_ismethod ))
+    {
+        PyObject *inspect_ismethod_replacement = PyCFunction_New( &_method_def_inspect_ismethod_replacement, NULL );
+        assertObject( inspect_ismethod_replacement );
 
+        PyObject_SetAttrString( module_inspect, "ismethod", inspect_ismethod_replacement );
+    }
+
+    Py_DECREF( old_ismethod );
+
+    // Patch "inspect.isgenerator" unless it is already patched.
+    PyObject *old_isgenerator = PyObject_GetAttrString( module_inspect, "isgenerator" );
+    assertObject( old_isgenerator );
+
+    if (PyFunction_Check( old_isgenerator ))
+    {
+        PyObject *inspect_isgenerator_replacement = PyCFunction_New( &_method_def_inspect_isgenerator_replacement, NULL );
+        assertObject( inspect_isgenerator_replacement );
+
+        PyObject_SetAttrString( module_inspect, "isgenerator", inspect_isgenerator_replacement );
+    }
+
+    Py_DECREF( old_isgenerator );
 }

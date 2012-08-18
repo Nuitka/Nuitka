@@ -186,18 +186,6 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         return parent
 
-    def getParentClass( self ):
-        """ Return the parent that is a class body.
-
-        """
-
-        parent = self.getParent()
-
-        while parent is not None and not parent.isExpressionClassBody():
-            parent = parent.getParent()
-
-        return parent
-
     def getParentModule( self ):
         """ Return the parent that is module.
 
@@ -214,9 +202,9 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         return parent
 
     def isParentVariableProvider( self ):
-        # Check if it's a closure giver or a class, in which cases it can provide
-        # variables, pylint: disable=E1101
-        return isinstance( self, CPythonClosureGiverNodeBase ) or self.isExpressionClassBody()
+        # Check if it's a closure giver, in which cases it can provide variables,
+        # pylint: disable=E1101
+        return isinstance( self, CPythonClosureGiverNodeBase )
 
     def isClosureVariableTaker( self ):
         return self.hasTag( "closure_taker" )
@@ -367,6 +355,8 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         return False
 
     def isStatementAbortative( self ):
+        """ Is the node abortative, control flow doesn't continue after this node.  """
+        # Virtual method, pylint: disable=R0201
         assert self.isStatement(), self.kind
 
         return False
@@ -379,6 +369,10 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
     def hasTag( self, tag ):
         return tag in self.__class__.tags
+
+    def getIntegerValue( self, constraint_collection ):
+        """ Node as integer value, if possible."""
+        # Virtual method, pylint: disable=R0201,W0613
 
 
 class CPythonCodeNodeBase( CPythonNodeBase ):
@@ -705,12 +699,11 @@ class CPythonClosureTaker:
 
     tags = ( "closure_taker", )
 
-    def __init__( self, provider ):
-        assert self.__class__.early_closure is not None, self
-
+    def __init__( self, provider, early_closure ):
         assert provider.isParentVariableProvider(), provider
 
         self.provider = provider
+        self.early_closure = early_closure
 
         self.taken = set()
 
@@ -770,13 +763,14 @@ class CPythonClosureTaker:
         else:
             return None
 
-    # Normally it's good to lookup name references immediately, but in case of a function
-    # body it is not allowed to do that, because a later assignment needs to be queried
-    # first. Nodes need to indicate via this if they would like to resolve references at
-    # the same time as assignments.
-    early_closure = None
-
     def isEarlyClosure( self ):
+        """ Normally it's good to lookup name references immediately, but not for functions.
+
+        in case of a function body it is not allowed to do that, because a later
+        assignment needs to be queried first. Nodes need to indicate via this if they
+        would like to resolve references at the same time as assignments.
+        """
+
         return self.early_closure
 
     def allocateTempKeeperName( self ):
@@ -876,7 +870,7 @@ class CPythonExpressionSpecBasedComputationMixin( CPythonExpressionMixin ):
         assert self.builtin_spec is not None, self
 
         for value in given_values:
-            if not value.isCompileTimeConstant():
+            if value is not None and not value.isCompileTimeConstant():
                 return self, None, None
 
         if not self.builtin_spec.isCompileTimeComputable( given_values ):
@@ -898,6 +892,25 @@ class CPythonExpressionChildrenHavingBase( CPythonChildrenHaving, CPythonNodeBas
         CPythonChildrenHaving.__init__(
             self,
             values = values
+        )
+
+
+class CPythonExpressionBuiltinNoArgBase( CPythonNodeBase, CPythonExpressionMixin ):
+    def __init__( self, builtin_function, source_ref ):
+        CPythonNodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        self.builtin_function = builtin_function
+
+    def computeNode( self, constraint_collection ):
+        from .NodeMakingHelpers import getComputationResult
+
+        return getComputationResult(
+            node        = self,
+            computation = lambda : self.builtin_function(),
+            description = "No arg %s builtin" % self.builtin_function.__name__
         )
 
 

@@ -24,7 +24,10 @@ fact.
 
 """
 
-from .NodeBases import CPythonExpressionBuiltinSingleArgBase
+from .NodeBases import (
+    CPythonExpressionBuiltinSingleArgBase,
+    CPythonExpressionChildrenHavingBase
+)
 
 from . import BuiltinReferenceNodes
 
@@ -59,4 +62,27 @@ class CPythonExpressionBuiltinType1( CPythonExpressionBuiltinSingleArgBase ):
                 "Replaced predictable type lookup with builtin type '%s'." % type_name
             )
 
+        return self, None, None
+
+
+class CPythonExpressionBuiltinSuper( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_BUILTIN_SUPER"
+
+    named_children = ( "type", "object" )
+
+    def __init__( self, super_type, super_object, source_ref ):
+        CPythonExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "type"   : super_type,
+                "object" : super_object
+
+            },
+            source_ref = source_ref )
+
+    getType = CPythonExpressionChildrenHavingBase.childGetter( "type" )
+    getObject = CPythonExpressionChildrenHavingBase.childGetter( "object" )
+
+    def computeNode( self, constraint_collection ):
+        # TODO: Quite some cases should be possible to predict.
         return self, None, None

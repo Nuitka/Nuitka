@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Python tests originally created or extracted from other peoples work. The
@@ -16,29 +15,17 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+def deletingClosure():
+    a = 1
 
-# All of these should be identical with correct software behaviour.
+    def closureTaker():
+        return a
 
-print "Output with newline."
-print "Output", "with", "newline."
-print "Output trailing spaces ", "with ", "newline."
-print "Output ",
-print "with ",
-print "newline."
-print "Output\twith tab"
-print "Output\t",
-print "with tab"
+    del a
 
-# These ones gave errors with previos literal bugs:
-print "changed 2"
-print "foo%sbar%sfred%sbob?????"
+    try:
+        x = closureTaker()
+    except Exception as e:
+        print "Occured %r" % e
 
-a = "partial print"
-# b doesn't exist
-
-try:
-    print a, b
-except Exception, e:
-    print "then occured", repr(e)
-
-print "No newline at the end",
+deletingClosure()

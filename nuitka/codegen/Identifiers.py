@@ -290,7 +290,11 @@ class HelperCallIdentifier( CallIdentifier ):
         CallIdentifier.__init__(
             self,
             called = helper,
-            args   = [ arg.getCodeTemporaryRef() for arg in args ]
+            args   = [
+                arg.getCodeTemporaryRef() if arg is not None else "NULL"
+                for arg in
+                args
+            ]
         )
 
 

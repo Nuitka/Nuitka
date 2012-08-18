@@ -58,9 +58,9 @@ from .ParameterParsing import (
 )
 
 from . import (
-    CppRawStrings,
     CodeTemplates,
-    OperatorCodes
+    OperatorCodes,
+    CppStrings
 )
 
 from nuitka import (
@@ -373,12 +373,18 @@ def _getCallBothStarArgsCode( function_identifier, argument_tuple, argument_dict
             )
 
 
-def getDirectionFunctionCallCode( function_identifier, arguments, closure_variables, context ):
+def getDirectionFunctionCallCode( function_identifier, arguments, closure_variables, extra_arguments, context ):
     function_identifier = getDirectFunctionEntryPointIdentifier(
         function_identifier = function_identifier
     )
 
-    call_args = getCodeExportRefs( arguments )
+    call_args = [
+        extra_argument.getCodeTemporaryRef() if extra_argument is not None else "NULL"
+        for extra_argument in
+        extra_arguments
+    ]
+
+    call_args += getCodeExportRefs( arguments )
 
     call_args += getClosureVariableProvisionCode(
         context           = context,
@@ -904,9 +910,9 @@ def getSelectionAndCode( conditions ):
 
 def getAttributeAssignmentCode( target, attribute, identifier ):
     return "SET_ATTRIBUTE( %s, %s, %s );" % (
+        identifier.getCodeTemporaryRef(),
         target.getCodeTemporaryRef(),
         attribute.getCodeTemporaryRef(),
-        identifier.getCodeTemporaryRef()
     )
 
 def getAttributeDelCode( target, attribute ):
@@ -1204,7 +1210,7 @@ def _getLocalVariableList( context, provider ):
 
         variables = start_part + end_part
 
-        include_closure = not provider.isUnoptimized()
+        include_closure = not provider.isUnoptimized() and not provider.isClassDictCreation()
     else:
         variables = provider.getVariables()
 
@@ -1439,6 +1445,18 @@ def getExecCode( context, exec_code, globals_identifier, locals_identifier, futu
             )
         }
 
+def getBuiltinSuperCode( type_identifier, object_identifier ):
+    super_type = type_identifier.getCodeTemporaryRef() if type_identifier is not None else "NULL"
+    super_object = object_identifier.getCodeTemporaryRef() if object_identifier is not None else "NULL"
+
+    return Identifier(
+        "BUILTIN_SUPER( %s, %s )" % (
+            super_type,
+            super_object
+        ),
+        1
+    )
+
 def getBuiltinOpenCode( filename, mode, buffering ):
     filename = filename.getCodeTemporaryRef() if filename is not None else "NULL"
     mode = mode.getCodeTemporaryRef() if mode is not None else "NULL"
@@ -1462,11 +1480,11 @@ def getBuiltinDir1Code( identifier ):
 def getBuiltinRangeCode( low, high, step ):
     if step is not None:
         return HelperCallIdentifier(
-            "BUILTIN_RANGE", low, high, step
+            "BUILTIN_RANGE3", low, high, step
         )
     elif high is not None:
         return HelperCallIdentifier(
-            "BUILTIN_RANGE", low, high
+            "BUILTIN_RANGE2", low, high
         )
     else:
         return HelperCallIdentifier(
@@ -1559,7 +1577,7 @@ def getBuiltinLongCode( context, identifier, base ):
     if base is None:
         return HelperCallIdentifier( "TO_LONG", identifier )
     else:
-        return HelperCallIdentifier( "TO_LONG", identifier, base )
+        return HelperCallIdentifier( "TO_LONG2", identifier, base )
 
 def getBuiltinIntCode( context, identifier, base ):
     if identifier is None:
@@ -1568,13 +1586,24 @@ def getBuiltinIntCode( context, identifier, base ):
     if base is None:
         return HelperCallIdentifier( "TO_INT", identifier )
     else:
-        return HelperCallIdentifier( "TO_INT", identifier, base )
+        return HelperCallIdentifier( "TO_INT2", identifier, base )
 
 def getBuiltinStrCode( identifier ):
     return HelperCallIdentifier( "TO_STR", identifier )
 
-def getBuiltinUnicodeCode( identifier ):
-    return HelperCallIdentifier( "TO_UNICODE", identifier )
+def getBuiltinUnicodeCode( identifier, encoding, errors ):
+    if encoding is None and errors is None:
+        return HelperCallIdentifier(
+            "TO_UNICODE",
+            identifier
+        )
+    else:
+        return HelperCallIdentifier(
+            "TO_UNICODE3",
+            identifier,
+            encoding,
+            errors,
+        )
 
 def getBuiltinBoolCode( identifier ):
     return Identifier(
@@ -1603,7 +1632,7 @@ def getPackageIdentifier( module_name ):
     return module_name.replace( ".", "__" )
 
 def getModuleCode( context, module_name, package_name, codes, tmp_variables, \
-                   doc_identifier, path_identifier, source_ref ):
+                   doc_identifier, path_identifier, other_module_names, source_ref ):
 
     # For the module code, lots of attributes come together. pylint: disable=R0914
 
@@ -1685,6 +1714,17 @@ def getModuleCode( context, module_name, package_name, codes, tmp_variables, \
         is_generator = False
     )
 
+    # Create for for "inittab" to use in unfreezing of modules if that is used.
+    module_inittab = []
+
+    for other_module_name in other_module_names:
+        module_inittab.append (
+            CodeTemplates.module_inittab_entry % {
+                "module_name"       : other_module_name,
+                "module_identifier" : getModuleIdentifier( other_module_name ),
+            }
+        )
+
     module_code = CodeTemplates.module_body_template % {
         "module_name"           : module_name,
         "module_name_obj"       : getConstantCode(
@@ -1697,7 +1737,9 @@ def getModuleCode( context, module_name, package_name, codes, tmp_variables, \
         "module_functions_code" : functions_code,
         "module_globals"        : module_globals,
         "module_inits"          : module_inits + indented( module_local_decl ),
-        "module_code"           : indented( codes, 2 )
+        "module_code"           : indented( codes, 2 ),
+        "module_inittab"        : indented( sorted( module_inittab ) ),
+        "use_unfreezer"         : 1 if other_module_names else 0
     }
 
     return header + module_code
@@ -1712,35 +1754,21 @@ def getModuleDeclarationCode( module_name ):
         "header_body"       : module_header_code
     }
 
-def getMainCode( codes, other_module_names ):
-    module_inittab = []
-
-    for other_module_name in other_module_names:
-        module_inittab.append (
-            CodeTemplates.module_inittab_entry % {
-                "module_name"       : other_module_name,
-                "module_identifier" : getModuleIdentifier( other_module_name ),
-            }
-        )
-
+def getMainCode( codes, context ):
     main_code = CodeTemplates.main_program % {
-        "module_inittab" : indented( sorted( module_inittab ) ),
-        "sys_executable" : CppRawStrings.encodeString(
-            "python.exe" if Options.isWindowsTarget() else sys.executable
+        "sys_executable" : getConstantCode(
+            constant = "python.exe" if Options.isWindowsTarget() else sys.executable,
+            context  = context
         )
     }
 
     return codes + main_code
-
 
 def getFunctionsCode( context ):
     result = ""
 
     for _code_name, ( _function_decl, function_code ) in sorted( context.getFunctionsCodes().items() ):
         result += function_code
-
-    for _code_name, ( _class_decl, class_code ) in sorted( context.getClassesCodes().items() ):
-        result += class_code
 
     return result
 
@@ -1749,9 +1777,6 @@ def getFunctionsDecl( context ):
 
     for _code_name, ( function_decl, _function_code ) in sorted( context.getFunctionsCodes().items() ):
         result += function_decl
-
-    for _code_name, ( class_decl, _class_code ) in sorted( context.getClassesCodes().items() ):
-        result += class_decl
 
     return result
 
@@ -1783,8 +1808,9 @@ def _extractArgNames( args ):
     ]
 
 def getFunctionDecl( context, function_identifier, default_identifiers, closure_variables, \
-                     function_parameter_variables, needs_creation ):
-    if needs_creation:
+                     function_parameter_variables ):
+
+    if context.function.needsCreation():
         # TODO: These two branches probably mean it's two different things.
 
         function_creation_arg_spec = _getFunctionCreationArgs(
@@ -1807,20 +1833,21 @@ def getFunctionDecl( context, function_identifier, default_identifiers, closure_
             )
         }
     else:
-        parameter_objects_decl = [
+        parameter_objects_decl = []
+
+        if context.function.isClassDictCreation():
+            parameter_objects_decl += [ "PyObject *metaclass", "PyObject *bases" ]
+
+        parameter_objects_decl += [
             "PyObject *_python_par_" + variable.getName()
             for variable in
             function_parameter_variables
         ]
 
-        if not needs_creation:
-            for closure_variable in closure_variables:
-                parameter_objects_decl.append(
-                    closure_variable.getDeclarationCode(
-                        for_reference = True,
-                        for_local     = False
-                    )
-               )
+        for closure_variable in closure_variables:
+            parameter_objects_decl.append(
+                closure_variable.getDeclarationCode()
+            )
 
         return CodeTemplates.template_function_direct_declaration % {
             "function_identifier"    : function_identifier,
@@ -1837,7 +1864,7 @@ def _getLocalVariableInitCode( context, variable, init_from = None, in_context =
 
     assert init_from is None or hasattr( init_from, "getCodeTemporaryRef" )
 
-    result = variable.getDeclarationTypeCode()
+    result = variable.getDeclarationTypeCode( in_context )
 
     # For pointer types, we don't have to separate with spaces.
     if not result.endswith( "*" ):
@@ -2085,10 +2112,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
     if not needs_creation:
         for closure_variable in closure_variables:
             parameter_objects_decl.append(
-                closure_variable.getDeclarationCode(
-                    for_reference = True,
-                    for_local     = False
-                )
+                closure_variable.getDeclarationCode()
             )
 
     result += CodeTemplates.genfunc_function_maker_template % {
@@ -2205,8 +2229,8 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         )
 
     function_creation_args = _getFunctionCreationArgs(
+        default_identifiers = default_access_identifiers,
         closure_variables   = closure_variables,
-        default_identifiers = default_access_identifiers
     )
 
     # User local variable initializations
@@ -2228,7 +2252,6 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         context  = context,
         constant = function_doc
     )
-
 
     function_locals = function_parameter_decl + local_var_inits
 
@@ -2257,11 +2280,11 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
     if not needs_creation:
         for closure_variable in closure_variables:
             parameter_objects_decl.append(
-                closure_variable.getDeclarationCode(
-                    for_reference = True,
-                    for_local     = False
-                )
+                closure_variable.getDeclarationCode()
             )
+
+    if context.function.isClassDictCreation():
+        parameter_objects_decl = [ "PyObject *metaclass", "PyObject *bases" ] + parameter_objects_decl
 
     function_name_obj = getConstantCode(
         context  = context,
@@ -2329,31 +2352,13 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
 
     return result
 
-def _getClosureVariableDecl( variable ):
-    owner = variable.getOwner()
 
-    if not owner.isParentVariableProvider():
-        owner = owner.getParentVariableProvider()
-
-    if variable.getReferenced().isShared():
-        kind = "PyObjectSharedLocalVariable"
-    elif variable.getReferenced().isParameterVariable():
-        if variable.getReferenced().getHasDelIndicator():
-            kind = "PyObjectLocalParameterVariableWithDel"
-        else:
-            kind = "PyObjectLocalParameterVariableNoDel"
-    else:
-        kind = "PyObjectLocalVariable"
-
-    return "%s &%s" % ( kind, variable.getCodeName() )
-
-def getClassCreationCode( metaclass_global_code, metaclass_class_code, \
-                          name_identifier, dict_identifier, bases_identifier ):
+def getClassCreationCode( metaclass_global_code, name_identifier, dict_identifier ):
     args = (
         metaclass_global_code,
-        metaclass_class_code,
+         "metaclass",
         name_identifier.getCodeTemporaryRef(),
-        bases_identifier.getCodeTemporaryRef(),
+        "bases",
         dict_identifier.getCodeTemporaryRef()
     )
 
@@ -2364,120 +2369,10 @@ def getClassCreationCode( metaclass_global_code, metaclass_class_code, \
         1
     )
 
-def getClassDictCreationCode( context, class_identifier, closure_variables ):
-    args = getClosureVariableProvisionCode(
-        context           = context,
-        closure_variables = closure_variables
-    )
-
-    return Identifier(
-        "%s( %s )" % (
-            class_identifier,
-            ", ".join( args )
-        ),
-        1
-    )
-
-def _getClassCreationArgs( closure_variables ):
-    class_dict_args = []
-
-    for closure_variable in closure_variables:
-        class_dict_args.append(
-            _getClosureVariableDecl(
-                variable     = closure_variable
-            )
-        )
-
-    return class_dict_args
-
-def getClassDecl( class_identifier, closure_variables ):
-    class_dict_args = _getClassCreationArgs(
-        closure_variables = closure_variables
-    )
-
-    return CodeTemplates.class_decl_template % {
-        "class_identifier" : class_identifier,
-        "class_dict_args"  : ", ".join( class_dict_args )
-    }
-
-def getClassCode( context, source_ref, class_name, class_identifier, class_variables, \
-                  closure_variables, tmp_variables, module_name, class_doc, class_codes, \
-                  metaclass_variable ):
-    # We really need this many parameters here.
-    # pylint: disable=R0913
-
-    assert metaclass_variable.isModuleVariable()
-
-    class_var_decl = []
-
-    for class_variable in class_variables:
-        if class_variable.getName() == "__module__":
-            init_from = getConstantHandle(
-                constant   = module_name,
-                context    = context,
-            )
-        elif class_variable.getName() == "__doc__":
-            init_from = getConstantHandle(
-                constant = class_doc,
-                context  = context
-            )
-        else:
-            init_from = None
-
-        class_var_decl.append(
-            _getLocalVariableInitCode(
-                context   = context,
-                variable  = class_variable,
-                init_from = init_from
-            )
-        )
-
-
-    class_var_decl += [
-        "PyObjectTempHolder %s;" % tmp_variable
-        for tmp_variable in tmp_variables
-    ]
-
-    if context.hasLocalsDict():
-        class_locals = CodeTemplates.function_dict_setup.split("\n") + class_var_decl
-    else:
-        class_locals = class_var_decl
-
-    if context.needsFrameExceptionKeeper():
-        class_locals = CodeTemplates.frame_exceptionkeeper_setup.split("\n") + class_locals
-
-    class_dict_args = _getClassCreationArgs(
-        closure_variables = closure_variables
-    )
-
-    context.addGlobalVariableNameUsage(
-        var_name = metaclass_variable.getName()
-    )
-
-    return CodeTemplates.class_dict_template % {
-        "class_identifier"      : class_identifier,
-        "name_identifier"       : getConstantCode(
-            context  = context,
-            constant = class_name
-        ),
-        "filename_identifier"   : getConstantCode(
-            constant = source_ref.getFilename(),
-            context  = context
-        ),
-        "line_number"           : source_ref.getLineNumber(),
-        "class_dict_args"       : ", ".join( class_dict_args ),
-        "class_var_decl"        : indented( class_locals ),
-        "class_body"            : indented( class_codes, 2 ),
-        "module_identifier"     : getModuleAccessCode( context = context ),
-    }
-
-def getRawStringLiteralCode( value ):
-    return CppRawStrings.encodeString( value )
-
 def getStatementTrace( source_desc, statement_repr ):
-    return 'puts( "Execute: %s "%s );' % (
+    return 'puts( "Execute: %s " %s );' % (
         source_desc,
-        getRawStringLiteralCode( statement_repr )
+        CppStrings.encodeString( statement_repr )
     )
 
 
@@ -2514,9 +2409,11 @@ def _getUnstreamCode( constant_value, constant_identifier ):
         constant_value = constant_value
     )
 
+    assert type( saved ) is bytes
+
     return "%s = UNSTREAM_CONSTANT( %s, %d );" % (
         constant_identifier,
-        CppRawStrings.encodeString( saved ),
+        CppStrings.encodeString( saved ),
         len( saved )
     )
 
@@ -2581,17 +2478,35 @@ def _getConstantsDefinitionCode( context ):
             continue
 
         if constant_type is str:
-            statements.append(
-                '%s = UNSTREAM_STRING( %s, %d, %d );assert( %s );' % (
-                    constant_identifier,
-                    CppRawStrings.encodeString( constant_value ),
-                    len(constant_value),
-                    1 if _isAttributeName( constant_value ) else 0,
-                    constant_identifier
+            if str is not unicode:
+                statements.append(
+                    '%s = UNSTREAM_STRING( %s, %d, %d );assert( %s );' % (
+                        constant_identifier,
+                        CppStrings.encodeString( constant_value ),
+                        len( constant_value ),
+                        1 if _isAttributeName( constant_value ) else 0,
+                        constant_identifier
+                    )
                 )
-            )
 
-            continue
+                continue
+            else:
+                try:
+                    encoded = constant_value.encode( "utf-8" )
+
+                    statements.append(
+                        '%s = UNSTREAM_STRING( %s, %d, %d );assert( %s );' % (
+                            constant_identifier,
+                            CppStrings.encodeString( encoded ),
+                            len( encoded ),
+                            1 if _isAttributeName( constant_value ) else 0,
+                            constant_identifier
+                        )
+                    )
+
+                    continue
+                except UnicodeEncodeError:
+                    pass
 
         if constant_value is None:
             continue
@@ -2862,12 +2777,15 @@ def getDictOperationSetCode( dict_identifier, key_identifier, value_identifier )
         0
     )
 
-def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes, context ):
+def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes, is_class, context ):
+    return_code = CodeTemplates.frame_guard_cpp_return if is_class else CodeTemplates.frame_guard_python_return
+
     return CodeTemplates.frame_guard_full_template % {
         "frame_identifier"  : frame_identifier,
         "code_identifier"   : code_identifier.getCodeTemporaryRef(),
         "codes"             : indented( codes ),
         "module_identifier" : getModuleAccessCode( context = context ),
+        "return_code"       : return_code
     }
 
 def getFrameGuardLightCode( frame_identifier, code_identifier, codes, context ):

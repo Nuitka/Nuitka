@@ -52,6 +52,7 @@ def createNodeTree( filename ):
     result = TreeBuilding.buildModuleTree(
         filename = filename,
         package  = None,
+        is_top   = True,
         is_main  = not Options.shallMakeModule()
     )
 
@@ -93,24 +94,14 @@ def displayTree( tree ):
 
     TreeDisplay.displayTreeInspector( tree )
 
-def _prepareCodeGeneration( tree ):
-    Finalization.prepareCodeGeneration( tree )
-
-def makeModuleSource( tree ):
-    _prepareCodeGeneration( tree )
-
-    source_code = CodeGeneration.generateModuleCode(
-        module         = tree,
-        module_name    = tree.getName(),
-        global_context = CodeGeneration.makeGlobalContext()
-    )
-
-    return source_code
-
 def getTreeFilenameWithSuffix( tree, suffix ):
     main_filename = tree.getFilename()
 
-    if main_filename.endswith( ".py" ):
+    assert os.path.exists( main_filename )
+
+    if tree.isPackage():
+        return Utils.dirname( main_filename ) + suffix
+    elif main_filename.endswith( ".py" ):
         return main_filename[:-3] + suffix
     else:
         return main_filename + suffix
@@ -148,12 +139,12 @@ def _cleanSourceDirectory( source_dir ):
             if Utils.getExtension( path ) in ( ".o", ".os" ):
                 Utils.deleteFile( path, True )
 
-def _pickSourceFilenames( source_dir, other_modules ):
+def _pickSourceFilenames( source_dir, modules ):
     collision_filenames = set()
     seen_filenames = set()
 
-    for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
-        base_filename = Utils.joinpath( source_dir, other_module.getFullName() )
+    for module in sorted( modules, key = lambda x : x.getFullName() ):
+        base_filename = Utils.joinpath( source_dir, module.getFullName() )
 
         # Note: Could detect if the filesystem is cases sensitive in source_dir or not,
         # but that's probably not worth the effort.
@@ -168,8 +159,11 @@ def _pickSourceFilenames( source_dir, other_modules ):
 
     module_filenames = {}
 
-    for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
-        base_filename = Utils.joinpath( source_dir, other_module.getFullName() )
+    for module in sorted( modules, key = lambda x : x.getFullName() ):
+        base_filename = Utils.joinpath(
+            source_dir,
+            "module." + module.getFullName()
+        )
 
         collision_filename = Utils.normcase( base_filename )
 
@@ -184,7 +178,7 @@ def _pickSourceFilenames( source_dir, other_modules ):
         cpp_filename = base_filename + ".cpp"
         hpp_filename = base_filename + ".hpp"
 
-        module_filenames[ other_module ] = ( cpp_filename, hpp_filename )
+        module_filenames[ module ] = ( cpp_filename, hpp_filename )
 
     return module_filenames
 
@@ -199,78 +193,55 @@ def makeSourceDirectory( main_module ):
     # The global context used to generate code.
     global_context = CodeGeneration.makeGlobalContext()
 
-    other_modules = Optimization.getOtherModules()
+    # Get the full list of modules imported, create code for all of them.
+    modules = TreeBuilding.getImportedModules()
+    assert main_module in modules
 
-    if main_module in other_modules:
-        other_modules.remove( main_module )
+    # Sometimes we need to talk about all modules except main module.
+    other_modules = tuple( m for m in modules if m is not main_module )
 
-    for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
-        _prepareCodeGeneration( other_module )
+    # Prepare code generation, i.e. execute finalization for it.
+    for module in sorted( modules, key = lambda x : x.getFullName() ):
+        Finalization.prepareCodeGeneration( module )
+
+    # Pick filenames.
+    module_filenames = _pickSourceFilenames(
+        source_dir = source_dir,
+        modules    = modules
+    )
 
     module_hpps = []
 
+    for module in sorted( modules, key = lambda x : x.getFullName() ):
+        cpp_filename, hpp_filename = module_filenames[ module ]
 
-    module_filenames = _pickSourceFilenames(
-        source_dir     = source_dir,
-        other_modules = other_modules
-    )
-
-    for other_module in sorted( other_modules, key = lambda x : x.getFullName() ):
-        cpp_filename, hpp_filename = module_filenames[ other_module ]
-
-        other_module_code = CodeGeneration.generateModuleCode(
+        source_code = CodeGeneration.generateModuleCode(
             global_context = global_context,
-            module         = other_module,
-            module_name    = other_module.getFullName()
+            module         = module,
+            module_name    = module.getFullName(),
+            other_modules  = other_modules if module is main_module else ()
         )
+
+        # The main of an executable module gets a bit different code.
+        if module is main_module and not Options.shallMakeModule():
+            source_code = CodeGeneration.generateMainCode(
+                context = global_context,
+                codes   = source_code
+            )
 
         module_hpps.append( hpp_filename )
 
         writeSourceCode(
             filename     = cpp_filename,
-            source_code  = other_module_code
+            source_code  = source_code
         )
 
         writeSourceCode(
             filename     = hpp_filename,
             source_code  = CodeGeneration.generateModuleDeclarationCode(
-                module_name = other_module.getFullName()
+                module_name = module.getFullName()
             )
         )
-
-    _prepareCodeGeneration( main_module )
-
-    main_module_name = main_module.getName()
-
-    cpp_filename = Utils.joinpath( source_dir, "__main__.cpp" )
-    hpp_filename = Utils.joinpath( source_dir, "__main__.hpp" )
-
-    # Create code for the main module.
-    source_code = CodeGeneration.generateModuleCode(
-        module         = main_module,
-        module_name    = main_module_name,
-        global_context = global_context
-    )
-
-    if not Options.shallMakeModule():
-        source_code = CodeGeneration.generateMainCode(
-            codes         = source_code,
-            other_modules = other_modules
-        )
-
-    writeSourceCode(
-        filename    = cpp_filename,
-        source_code = source_code
-    )
-
-    writeSourceCode(
-        filename    = hpp_filename,
-        source_code = CodeGeneration.generateModuleDeclarationCode(
-            module_name = main_module_name
-        )
-    )
-
-    module_hpps.append( "__main__.hpp" )
 
     writeSourceCode(
         filename    = Utils.joinpath( source_dir, "__constants.cpp" ),
@@ -348,8 +319,12 @@ def writeSourceCode( filename, source_code ):
     # something else has failed.
     assert not Utils.isFile( filename ), filename
 
-    with open( filename, "w" ) as output_file:
-        output_file.write( source_code )
+    if Utils.python_version >= 300:
+        with open( filename, "wb" ) as output_file:
+            output_file.write( source_code.encode( "latin1" ) )
+    else:
+        with open( filename, "w" ) as output_file:
+            output_file.write( source_code )
 
 
 def callExec( args, clean_path, add_path ):

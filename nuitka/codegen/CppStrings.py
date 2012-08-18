@@ -1,4 +1,3 @@
-#!/bin/bash -e
 #     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -16,36 +15,35 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" C++ string encoding
 
-MODULE=$1
+This contains the code to create string literals for C++ to represent the given values and
+little more.
+"""
 
-if [ "$NUITKA_BINARY" = "" ]
-then
-    NUITKA_BINARY=nuitka
-fi
+from nuitka.__past__ import unicode # pylint: disable=W0622
 
-OUTPUT="/tmp/`basename $MODULE .py`.exe"
-rm -f $OUTPUT
+def encodeString( value ):
+    """ Encode a string, so that it gives a C++ string literal.
 
-$NUITKA_BINARY --exe --output-dir=/tmp/ --unstriped $NUITKA_EXTRA_OPTIONS $1
+    """
+    assert type( value ) is bytes, type( value )
 
-if [ ! -f $OUTPUT ]
-then
-    echo "Seeming failure of Nuitka to compile."
-fi
+    result = ""
 
-LOGFILE="/tmp/`basename $MODULE .py`.log"
-VALGRIND_OPTIONS="-q --tool=callgrind --callgrind-out-file=$LOGFILE --zero-before=init__main__"
+    for c in value:
+        if str is not unicode:
+            cv = ord( c )
+        else:
+            cv = c
 
-echo -n "SIZE="
-du -b $OUTPUT | sed 's/\t.*//'
+        if c in b'\\\t\r\n"?':
+            result += r'\%o" "' % cv
+        elif cv >= 32 and cv <= 127:
+            result += chr( cv )
+        else:
+            result += r'\%o" "' % cv
 
-valgrind $VALGRIND_OPTIONS $OUTPUT
+    result = result.replace( '" "\\', "\\" )
 
-if [ "$2" = "number" ]
-then
-    echo -n "TICKS="
-    grep $LOGFILE  -e '^summary: ' | cut -d' ' -f2
-else
-    kcachegrind 2>/dev/null 1>/dev/null $LOGFILE &
-fi
+    return '"%s"' % result

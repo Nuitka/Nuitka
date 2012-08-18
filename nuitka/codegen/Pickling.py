@@ -41,7 +41,7 @@ if Utils.python_version >= 300:
     # Python3: The protocol 2 outputs bytes that I don't know how to covert to "str",
     # which protocol 0 doesn't, so stay with it. TODO: Use more efficient protocol version
     # instead.
-    pickle_protocol = 0
+    pickle_protocol = 3
 else:
     pickle_protocol = 2
 
@@ -79,9 +79,5 @@ def getStreamedConstant( constant_value ):
             type( constant_value ),
             type( restored )
         )
-
-    # If we have Python3, we need to make sure, we use UTF8 or else we get into trouble.
-    if str is unicode:
-        saved = saved.decode( "utf_8" )
 
     return saved

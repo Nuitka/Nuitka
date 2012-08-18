@@ -19,19 +19,10 @@
 
 import os, subprocess
 
-assert 0 == subprocess.call( "git submodule update misc/gist", shell = True )
-
 for document in ( "README.txt", "Developer_Manual.rst", "Changelog.rst" ):
     assert 0 == subprocess.call(
         "rst2pdf %(document)s" % {
             "document" : document
-        },
-        shell = True
-    )
-    assert 0 == subprocess.call(
-        "python ./misc/gist/rst2html.py %(document)s >%(doc_base)s.html" % {
-            "document" : document,
-            "doc_base" : document[:-4]
         },
         shell = True
     )
@@ -71,11 +62,17 @@ def getFile( filename ):
 contents = getFile( "doc/man-nuitka.html" )
 new_contents = contents[ : contents.rfind( "<HR>" ) ] + contents[ contents.rfind( "</BODY>" ) : ]
 assert new_contents != contents
-
+contents = new_contents
+new_contents = contents[ : contents.rfind( '<A HREF="#index">Index</A>' ) ] + contents[ contents.rfind( '</A><HR>' ) : ]
+assert new_contents != contents
 open( "doc/man-nuitka.html", "w" ).write( new_contents )
 
 contents = getFile( "doc/man-nuitka-python.html" )
 new_contents = contents[ : contents.rfind( "<HR>" ) ] + contents[ contents.rfind( "</BODY>" ) : ]
 assert new_contents != contents
+contents = new_contents
+new_contents = contents[ : contents.rfind( '<A HREF="#index">Index</A>' ) ] + contents[ contents.rfind( '</A><HR>' ) : ]
+assert new_contents != contents
+
 
 open( "doc/man-nuitka-python.html", "w" ).write( new_contents )

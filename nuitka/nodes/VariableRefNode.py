@@ -37,6 +37,7 @@ def _isReadOnlyModuleVariable( variable ):
     return ( variable.isModuleVariable() and variable.getReadOnlyIndicator() is True ) or \
            variable.isMaybeLocalVariable()
 
+
 class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_VARIABLE_REF"
 
@@ -185,6 +186,7 @@ class CPythonExpressionTargetVariableRef( CPythonExpressionVariableRef ):
 
     def computeNode( self, constraint_collection ):
         assert False
+
 
 class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"

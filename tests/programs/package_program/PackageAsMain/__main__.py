@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
 #     Python tests originally created or extracted from other peoples work. The
@@ -17,28 +16,6 @@
 #     limitations under the License.
 #
 
-# All of these should be identical with correct software behaviour.
 
-print "Output with newline."
-print "Output", "with", "newline."
-print "Output trailing spaces ", "with ", "newline."
-print "Output ",
-print "with ",
-print "newline."
-print "Output\twith tab"
-print "Output\t",
-print "with tab"
-
-# These ones gave errors with previos literal bugs:
-print "changed 2"
-print "foo%sbar%sfred%sbob?????"
-
-a = "partial print"
-# b doesn't exist
-
-try:
-    print a, b
-except Exception, e:
-    print "then occured", repr(e)
-
-print "No newline at the end",
+import sys
+print( "Hello world!", __name__, sys.modules[ __name__ ] )

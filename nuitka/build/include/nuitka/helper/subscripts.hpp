@@ -97,7 +97,15 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
     }
     else
     {
-        return PyErr_Format( PyExc_TypeError, "'%s' object is unsubscriptable", Py_TYPE( source )->tp_name );
+        PyErr_Format(
+            PyExc_TypeError,
+#if PYTHON_VERSION < 270
+            "'%s' object is unsubscriptable",
+#else
+            "'%s' object has no attribute '__getitem__'",
+#endif
+            Py_TYPE( source )->tp_name
+        );
         throw _PythonException();
     }
 
@@ -138,13 +146,30 @@ NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_SUBSCRIPT( EVAL_ORDERED_2( PyObjec
         }
         else
         {
-            return PyErr_Format( PyExc_TypeError, "'%s' object is unsubscriptable", Py_TYPE( source )->tp_name );
+            PyErr_Format(
+                PyExc_TypeError,
+#if PYTHON_VERSION < 270
+                "'%s' object is unsubscriptable",
+#else
+                "'%s' object has no attribute '__getitem__'",
+#endif
+                Py_TYPE( source )->tp_name
+            );
             throw _PythonException();
         }
     }
     else
     {
-        return PyErr_Format( PyExc_TypeError, "'%s' object is unsubscriptable", Py_TYPE( source )->tp_name );
+        PyErr_Format(
+            PyExc_TypeError,
+#if PYTHON_VERSION < 270
+            "'%s' object is unsubscriptable",
+#else
+            "'%s' object has no attribute '__getitem__'",
+#endif
+            Py_TYPE( source )->tp_name
+        );
+
         throw _PythonException();
     }
 

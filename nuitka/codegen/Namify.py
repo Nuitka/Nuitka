@@ -177,4 +177,5 @@ def _digest( value ):
         if type( value ) is bytes:
             return hashlib.md5( value ).hexdigest()
         else:
-            return hashlib.md5( value.encode( "utf_8" ) ).hexdigest()
+            # Do the hash not in UTF-8 as that won't allow "surrogates".
+            return hashlib.md5( value.encode( "utf-16" ) ).hexdigest()

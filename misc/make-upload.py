@@ -23,4 +23,4 @@ assert os.path.isfile( "setup.py" ) and open( ".git/description" ).read().strip(
 
 assert 0 == os.system( "rsync -rvlpt --exclude=deb_dist dist/ root@nuitka.net:/var/www/releases/" )
 
-assert 0 == os.system( "scp README.pdf README.html Changelog.pdf Changelog.html Developer_Manual.pdf Developer_Manual.html doc/man-nuitka.html doc/man-nuitka-python.html root@nuitka.net:/var/www/doc/" )
+assert 0 == os.system( "scp README.pdf Changelog.pdf Developer_Manual.pdf doc/man-nuitka.html doc/man-nuitka-python.html root@nuitka.net:/var/www/doc/" )

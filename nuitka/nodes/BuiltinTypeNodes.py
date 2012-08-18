@@ -65,30 +65,6 @@ class CPythonExpressionBuiltinBool( CPythonExpressionBuiltinTypeBase ):
     builtin_spec = BuiltinOptimization.builtin_bool_spec
 
 
-class CPythonExpressionBuiltinStr( CPythonExpressionBuiltinTypeBase ):
-    kind = "EXPRESSION_BUILTIN_STR"
-
-    builtin_spec = BuiltinOptimization.builtin_str_spec
-
-    def computeNode( self, constraint_collection ):
-        new_node, change_tags, change_desc = CPythonExpressionBuiltinTypeBase.computeNode(
-            self,
-            constraint_collection
-        )
-
-        if new_node is self:
-            str_value = self.getValue().getStrValue()
-
-            if str_value is not None:
-                new_node = wrapExpressionWithSideEffects(
-                    new_node = str_value,
-                    old_node = self.getValue()
-                )
-
-                change_tags = "new_expression"
-                change_desc = "Predicted str builtin result"
-
-        return new_node, change_tags, change_desc
 
 
 class CPythonExpressionBuiltinIntLongBase( CPythonChildrenHaving, CPythonNodeBase, \
@@ -139,17 +115,8 @@ class CPythonExpressionBuiltinInt( CPythonExpressionBuiltinIntLongBase ):
 
     builtin_spec = BuiltinOptimization.builtin_int_spec
 
-
-if python_version < 300:
-    class CPythonExpressionBuiltinLong( CPythonExpressionBuiltinIntLongBase ):
-        kind = "EXPRESSION_BUILTIN_LONG"
-
-        builtin_spec = BuiltinOptimization.builtin_long_spec
-
-
-class CPythonExpressionBuiltinUnicode( CPythonChildrenHaving, CPythonNodeBase ):
-    kind = "EXPRESSION_BUILTIN_UNICODE"
-
+class CPythonExpressionBuiltinUnicodeBase( CPythonChildrenHaving, CPythonNodeBase, \
+                                           CPythonExpressionSpecBasedComputationMixin ):
     named_children = ( "value", "encoding", "errors" )
 
     def __init__( self, value, encoding, errors, source_ref ):
@@ -165,3 +132,61 @@ class CPythonExpressionBuiltinUnicode( CPythonChildrenHaving, CPythonNodeBase ):
         )
 
     getValue = CPythonChildrenHaving.childGetter( "value" )
+    getEncoding = CPythonChildrenHaving.childGetter( "encoding" )
+    getErrors = CPythonChildrenHaving.childGetter( "errors" )
+
+    def computeNode( self, constraint_collection ):
+        args = [
+            self.getValue(),
+            self.getEncoding(),
+            self.getErrors()
+        ]
+
+        while args and args[-1] is None:
+            del args[-1]
+
+        return self.computeBuiltinSpec( tuple( args ) )
+
+
+if python_version < 300:
+    class CPythonExpressionBuiltinStr( CPythonExpressionBuiltinTypeBase ):
+        kind = "EXPRESSION_BUILTIN_STR"
+
+        builtin_spec = BuiltinOptimization.builtin_str_spec
+
+        def computeNode( self, constraint_collection ):
+            new_node, change_tags, change_desc = CPythonExpressionBuiltinTypeBase.computeNode(
+                self,
+                constraint_collection
+            )
+
+            if new_node is self:
+                str_value = self.getValue().getStrValue()
+
+                if str_value is not None:
+                    new_node = wrapExpressionWithSideEffects(
+                        new_node = str_value,
+                        old_node = self.getValue()
+                    )
+
+                    change_tags = "new_expression"
+                    change_desc = "Predicted str builtin result"
+
+            return new_node, change_tags, change_desc
+
+
+    class CPythonExpressionBuiltinLong( CPythonExpressionBuiltinIntLongBase ):
+        kind = "EXPRESSION_BUILTIN_LONG"
+
+        builtin_spec = BuiltinOptimization.builtin_long_spec
+
+
+    class CPythonExpressionBuiltinUnicode( CPythonExpressionBuiltinUnicodeBase ):
+        kind = "EXPRESSION_BUILTIN_UNICODE"
+
+        builtin_spec = BuiltinOptimization.builtin_unicode_spec
+else:
+    class CPythonExpressionBuiltinStr( CPythonExpressionBuiltinUnicodeBase ):
+        kind = "EXPRESSION_BUILTIN_STR"
+
+        builtin_spec = BuiltinOptimization.builtin_str_spec

@@ -23,10 +23,23 @@ answer quite a few questions at compile time.
 
 """
 
-from .NodeBases import CPythonExpressionBuiltinSingleArgBase
+from .NodeBases import (
+    CPythonExpressionBuiltinSingleArgBase,
+    CPythonExpressionBuiltinNoArgBase
+)
 
 from nuitka.transform.optimizations import BuiltinOptimization
 
+
+class CPythonExpressionBuiltinOrd0( CPythonExpressionBuiltinNoArgBase ):
+    kind = "EXPRESSION_BUILTIN_ORD0"
+
+    def __init__( self, source_ref ):
+        CPythonExpressionBuiltinNoArgBase.__init__(
+            self,
+            builtin_function = ord,
+            source_ref       = source_ref
+        )
 
 class CPythonExpressionBuiltinOrd( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_ORD"

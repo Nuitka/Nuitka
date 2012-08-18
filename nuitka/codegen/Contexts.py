@@ -78,12 +78,6 @@ class PythonContextBase:
 
         return self.try_count
 
-    def isClosureViaContext( self ):
-        return True
-
-    def isParametersViaContext( self ):
-        return False
-
     def hasLocalsDict( self ):
         return False
 
@@ -124,9 +118,6 @@ class PythonChildContextBase( PythonContextBase ):
     def addFunctionCodes( self, code_name, function_decl, function_code ):
         self.parent.addFunctionCodes( code_name, function_decl, function_code )
 
-    def addClassCodes( self, code_name, class_decl, class_code ):
-        self.parent.addClassCodes( code_name, class_decl, class_code )
-
     def addGlobalVariableNameUsage( self, var_name ):
         self.parent.addGlobalVariableNameUsage( var_name )
 
@@ -156,6 +147,7 @@ class PythonGlobalContext:
         # Python mechanics.
         self.getConstantHandle( "__module__" )
         self.getConstantHandle( "__class__" )
+        self.getConstantHandle( "__metaclass__" )
         self.getConstantHandle( "__dict__" )
         self.getConstantHandle( "__doc__" )
         self.getConstantHandle( "__file__" )
@@ -290,7 +282,6 @@ class PythonModuleContext( PythonContextBase ):
 
         self.global_context = global_context
 
-        self.class_codes = {}
         self.function_codes = {}
 
         self.global_var_names = set()
@@ -322,14 +313,6 @@ class PythonModuleContext( PythonContextBase ):
     def getFunctionsCodes( self ):
         return self.function_codes
 
-    def addClassCodes( self, code_name, class_decl, class_code ):
-        assert code_name not in self.class_codes
-
-        self.class_codes[ code_name ] = ( class_decl, class_code )
-
-    def getClassesCodes( self ):
-        return self.class_codes
-
     def getName( self ):
         return self.name
 
@@ -347,20 +330,11 @@ class PythonModuleContext( PythonContextBase ):
         return False
     # pylint: enable=W0613
 
-    def canHaveLocalVariables( self ):
-        return False
-
     def addGlobalVariableNameUsage( self, var_name ):
         self.global_var_names.add( var_name )
 
     def getGlobalVariableNames( self ):
         return self.global_var_names
-
-    def getTracebackName( self ):
-        return "<module>"
-
-    def getTracebackFilename( self ):
-        return self.filename
 
     def addEvalOrderUse( self, value ):
         self.global_context.addEvalOrderUse( value )
@@ -388,7 +362,10 @@ class PythonFunctionContext( PythonChildContextBase ):
             self.getConstantHandle( constant = local_name )
 
     def __repr__( self ):
-        return "<PythonFunctionContext for function '%s'>" % self.function.getName()
+        return "<PythonFunctionContext for %s '%s'>" % (
+            "function" if not self.function.isClassDictCreation() else "class",
+            self.function.getName()
+        )
 
     def hasLocalsDict( self ):
         return self.function.hasLocalsDict()
@@ -398,12 +375,6 @@ class PythonFunctionContext( PythonChildContextBase ):
 
     def hasClosureVariable( self, var_name ):
         return var_name in self.function.getClosureVariableNames()
-
-    def canHaveLocalVariables( self ):
-        return True
-
-    def isParametersViaContext( self ):
-        return self.function.isGenerator()
 
     def getFrameHandle( self ):
         if self.function.isGenerator():
@@ -432,63 +403,13 @@ class PythonFunctionContext( PythonChildContextBase ):
     def getTempObjectHandle( self, var_name ):
         return TempObjectIdentifier( var_name )
 
-    def getTracebackName( self ):
-        return self.function.getName()
-
-    # TODO: Memoize would do wonders for these things mayhaps.
-    def getTracebackFilename( self ):
-        return self.function.getParentModule().getFilename()
-
     def needsFrameExceptionKeeper( self ):
         return self.function.needsFrameExceptionKeeper()
-
-
-class PythonClassContext( PythonChildContextBase ):
-    def __init__( self, parent, class_def ):
-        PythonChildContextBase.__init__( self, parent = parent )
-
-        self.class_def = class_def
-
-    def hasLocalVariable( self, var_name ):
-        return var_name in self.class_def.getClassVariableNames()
-
-    def hasClosureVariable( self, var_name ):
-        return var_name in self.class_def.getClosureVariableNames()
-
-    def getFrameHandle( self ):
-        return Identifier( "frame_guard.getFrame()", 1 )
-
-    def hasFrameGuard( self ):
-        return True
-
-    def getLocalHandle( self, var_name ):
-        return LocalVariableIdentifier( var_name )
-
-    def getClosureHandle( self, var_name ):
-        return ClosureVariableIdentifier( var_name, from_context = "" )
-
-    def isClosureViaContext( self ):
-        return False
-
-    def getTracebackName( self ):
-        return self.class_def.getName()
-
-    def getTracebackFilename( self ):
-        return self.class_def.getParentModule().getFilename()
-
-    def hasLocalsDict( self ):
-        return self.class_def.hasLocalsDict()
-
-    def needsFrameExceptionKeeper( self ):
-        return self.class_def.needsFrameExceptionKeeper()
 
 
 class PythonExecInlineContext( PythonChildContextBase ):
     def __init__( self, parent ):
         PythonChildContextBase.__init__( self, parent = parent )
-
-    def canHaveLocalVariables( self ):
-        return self.parent.canHaveLocalVariables()
 
     def getClosureHandle( self, var_name ):
         return self.parent.getLocalHandle( var_name )

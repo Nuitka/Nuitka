@@ -236,8 +236,6 @@ class ParameterSpec( ParameterSpecTuple ):
 
         return tuple( result )
 
-
-
 # Note: Based loosley on "inspect.getcallargs" with corrections.
 def matchCall( func_name, args, star_list_arg, star_dict_arg, num_defaults, positional, pairs, improved = False  ):
     # This is of incredible code complexity, but there really is no other way to express
@@ -425,13 +423,18 @@ def matchCall( func_name, args, star_list_arg, star_dict_arg, num_defaults, posi
     if unassigned:
         num_required = num_args - num_defaults
 
-        if num_defaults == 0 or improved:
+        if num_required > 0 or improved:
+            if num_required == 1:
+                arg_desc = "1 argument"
+            else:
+                arg_desc = "%d arguments" % num_required
+
             raise TooManyArguments(
                 TypeError(
                     "%s() takes %s %s (%d given)" % (
                         func_name,
                         "at least" if num_defaults > 0 else "exactly",
-                        "one argument" if num_required == 1 else "%d arguments" % num_required,
+                        arg_desc,
                         num_total
                     )
                 )

@@ -49,7 +49,7 @@ Milestones
 
    This milestone is started only.
 
-5. Add interfacing to C code, so Nuitka can turn a "ctypes" binding into an efficient
+5. Add interfacing to C code, so Nuitka can turn a ``ctypes`` binding into an efficient
    binding as written with C.
 
    This milestone is planned only.
@@ -80,7 +80,7 @@ express which of these, we consider done.
 - Future:
 
   When we start to have sufficient amount of type inference in a stable release, that will
-  be "0.4.x" version numbers. With "ctypes" bindings in a sufficient state it will be
+  be "0.4.x" version numbers. With ``ctypes`` bindings in a sufficient state it will be
   "0.5.x".
 
 - Final:
@@ -97,21 +97,21 @@ Current State
 
 Nuitka top level works like this:
 
-   - "TreeBuilding" outputs node tree
-   - "Optimization" enhances it as best as it can
-   - "Finalization" marks the tree for code generation
-   - "CodeGeneration" creates identifier objects and code snippets
-   - "Generator" knows how identifiers and code is constructed
-   - "MainControl" keeps it all together
+   - ``TreeBuilding`` outputs node tree
+   - ``Optimization`` enhances it as best as it can
+   - ``Finalization`` marks the tree for code generation
+   - ``CodeGeneration`` creates identifier objects and code snippets
+   - ``Generator`` knows how identifiers and code is constructed
+   - ``MainControl`` keeps it all together
 
 This design is intended to last.
 
 Regarding Types, the state is:
 
-   - Types are always "PyObject \*", implicitly
+   - Types are always ``PyObject *``, implicitly
    - The only more specific use of type is "constant", which can be used to predict some
      operations, conditions, etc.
-   - Every operation is expected to have "PyObject \*" as result, if it is not a constant,
+   - Every operation is expected to have ``PyObject *`` as result, if it is not a constant,
      then we know nothing about it.
 
 
@@ -147,9 +147,9 @@ readability. Variables and parameters are lower case with "_" as a separator.
    class SomeClass:
 
       def doSomething( some_parameter ):
-         some_var = ( "lala", "lele" )
+         some_var = ( "foo", "bar" )
 
-Base classes that are abstract end in "Base", so that a meta class can use that
+Base classes that are abstract end in ``Base``, so that a meta class can use that
 convention.
 
 Function calls use keyword argument preferably. These are slower in CPython, but more
@@ -175,7 +175,7 @@ value per line:
         0
     )
 
-Here, "Identifier" will be so well known that the reader is expected to know the argument
+Here, ``Identifier`` will be so well known that the reader is expected to know the argument
 names and their meaning, but it would be still better to add them.
 
 Contractions should span across multiple lines for increased readability:
@@ -197,29 +197,29 @@ singleton classes. The difference between a module and a class is small enough a
 source code they are also used similarly.
 
 For the packages, no real code is allowed in them and they must be lower case, like
-e.g. "nuitka" or "codegen". This is to distinguish them from the modules.
+e.g. ``nuitka`` or ``codegen``. This is to distinguish them from the modules.
 
-Packages shall only be used to group packages. In "nuitka.codegen" the code generation
-packages are located, while the main interface is "nuitka.codegen.CodeGeneration" and may
+Packages shall only be used to group packages. In ``nuitka.codegen`` the code generation
+packages are located, while the main interface is ``nuitka.codegen.CodeGeneration`` and may
 then use most of the entries as local imports.
 
-The use of a global package "nuitka", originally introduced by Nicolas, makes the
-packaging of Nuitka with "distutils" etc. easier and lowers the requirements on changes to
-the "sys.path" if necessary.
+The use of a global package ``nuitka``, originally introduced by Nicolas, makes the
+packaging of Nuitka with ``distutils`` etc. easier and lowers the requirements on changes to
+the ``sys.path`` if necessary.
 
 .. note::
 
    There are not yet enough packages inside Nuitka, feel free to propose changes as you
    see fit.
 
-Names of modules should be plurals if they contain classes. Example is "Nodes" contains
-"Node" classes.
+Names of modules should be plurals if they contain classes. Example is ``Nodes`` contains
+``Node`` classes.
 
 
-Prefer list contractions over "map", "filter", and "apply"
-----------------------------------------------------------
+Prefer list contractions over ``map``, ``filter``, and ``apply``
+----------------------------------------------------------------
 
-Using "map" and friends is considered worth a warning by "PyLint" e.g. "Used builtin
+Using ``map`` and friends is considered worth a warning by "PyLint" e.g. "Used builtin
 function 'map'". We should use list comprehensions instead, because they are more
 readable.
 
@@ -229,7 +229,7 @@ as a compiler will there won't be any performance difference at all.
 I can imagine that there are cases where list comprehensions are faster because you can
 avoid to make a function call. And there may be cases, where map is faster, if a function
 must be called. These calls can be very expensive, and if you introduce a function, just
-for "map", then it might be slower.
+for ``map``, then it might be slower.
 
 But of course, Nuitka is the project to free us from what is faster and to allow us to use
 what is more readable, so whatever is faster, we don't care. We make all options equally
@@ -254,10 +254,10 @@ Look at this code examples from Python:
    A().x == 1 # True
    B().x == 1 # True (!)
 
-This pretty much is what makes properties bad. One would hope B().x to be "2", but instead
-it's not changed. Because of the way properties take the functions and not members,
-because they are not part of the class, they cannot be overloaded without re-declaring
-them.
+This pretty much is what makes properties bad. One would hope ``B().x`` to be ``2``, but
+instead it's not changed. Because of the way properties take the functions and not
+members, because they are not part of the class, they cannot be overloaded without
+re-declaring them.
 
 Overloading is then not at all obvious anymore. Now imagine having a setter and only
 overloading the getter. How to you easily update the property?
@@ -267,7 +267,7 @@ too. Properties try and hide the fact that code needs to run and may do things. 
 not use them.
 
 For an external API you may exactly want to hide things, but internally that has no use,
-and in Nuitka, every API is internal API. One exception may be the "hints" module, which
+and in Nuitka, every API is internal API. One exception may be the ``hints`` module, which
 will gladly use such tricks for easier write syntax.
 
 
@@ -299,12 +299,7 @@ The "git flow" model
 
   Current Feature branches:
 
-  - "feature/minimize_CPython26_tests_diff": Maximizing compatibility, we minimize the
-    differences to baseline CPython2.6 tests. Currently stuck at "test_inspect.py" and
-    recently fallen behind, to be continued once Kay is free from preparatory works for
-    "feature/ctypes_annotation" branch work.
-
-  - "feature/ctypes_annotation": Achieve the inlining of ctypes calls, so they become
+  - ``feature/ctypes_annotation``: Achieve the inlining of ctypes calls, so they become
     executed at no speed penalty compared to direct calls via extension modules. This
     being fully CPython compatible and pure Python, is considered the "Nuitka" way of
     creating extension modules that provide bindings.
@@ -391,7 +386,7 @@ You can run the "basic" tests like this:
    ./tests/basics/run_all.py search
 
 These tests normally give sufficient coverage to assume that a change is correct, if these
-tests pass. To control the Python version used for testing, you can set the "PYTHON"
+tests pass. To control the Python version used for testing, you can set the ``PYTHON``
 environment variable to e.g. "python3.2", or execute the "run_all.py" with the intended
 version, it is portable across all supported Python versions.
 
@@ -401,8 +396,8 @@ Syntax Tests
 Then there are "syntax" tests, i.e. language constructs that need to give a syntax
 error.
 
-It sometimes happens that Nuitka must do this itself, because the "ast.parse" don't see
-the problem. Using "global" on a function argument is an example of this. These tests make
+It sometimes happens that Nuitka must do this itself, because the ``ast.parse`` don't see
+the problem. Using ``global`` on a function argument is an example of this. These tests make
 sure that the errors of Nuitka and CPython are totally the same for this:
 
 .. code-block:: shell
@@ -426,7 +421,7 @@ And there is the "compile itself" or "reflected" test. This test makes Nuitka co
 itself and compare the resulting C++, which helps to find indeterminism. The test compiles
 every module of Nuitka into an extension module and all of Nuitka into a single binary.
 
-That test case also gives good coverage of the "import" mechanisms, because Nuitka uses a
+That test case also gives good coverage of the ``import`` mechanisms, because Nuitka uses a
 lot of packages.
 
 .. code-block:: shell
@@ -440,24 +435,93 @@ Design Descriptions
 These should be a lot more and contain graphics from presentations given. It will be
 filled in, but not now.
 
-nuitka.Importing Module
------------------------
+Choice of the Target Language
+-----------------------------
+
+* Choosing the target language, is an important decision
+
+  * The portability of Nuitka is decided here
+
+* Other factors:
+
+  * How difficult is it to generate the code?
+  * Does the Python C-API have bindings?
+  * Is that language known?
+  * Does the language help to find bugs`
+
+* These candidates were considered
+
+  * C++03, C++11, Ada
+
+.. table:: Requirement to Language matrix:
+
+   =====================  ======  =========   =========
+   Requirement\\Language  C++03   C++11       Ada
+   =====================  ======  =========   =========
+   Portable               Yes     No [1]_     Yes
+   ---------------------  ------  ---------   ---------
+   Knowledge              Yes     No [2]_     Yes
+   ---------------------  ------  ---------   ---------
+   Python C-API           Yes     Yes         No [3]_
+   ---------------------  ------  ---------   ---------
+   Runtime checks         No      No          Yes [4]_
+   ---------------------  ------  ---------   ---------
+   Code Generation        Hard    Easy        Harder
+   =====================  ======  =========   =========
+
+
+_`1`:: C++11 is not fully supported from any compiler
+(temporary problem)
+
+_`2`:: Not a whole lot of people have C++11 knowledge. My *only* C++11 Code is that in
+Nuitka and the one generated by Nuitka.
+
+_`3`:: The Python C-API for Ada would have to be created by us, possible just big project
+by itself.
+
+_`4`:: Runtime checks exist only for Ada in that quality. I miss automatic
+``CONSTRAINT_ERROR`` exceptions, for data structures with validity indicators, where in
+other languages, I need to check myself.
+
+The decision for C++11 is ultimately:
+
+  * against portability
+  * against language knowledge
+
+All of these are important drawbacks.
+
+For C++11 spoke easy code generation.
+
+   * variadic templates
+   * raw strings
+
+With C++03 that would have required Boost, which also achieves a lot of C++11. But then there are still things like "raw strings", which save a lot of work.
+
+For Ada would have spoken the time savings through run time checks, which would have
+shortened some debugging sessions quite some. But building the Python C-API bindings on
+our own, and potentially incorrectly, would have eaten that up.
+
+
+Locating Modules and Packages
+------------------------------
+
+The search for of modules used is driven by ``nuitka.Importing`` module.
 
 * From the module documentation
 
-   The actual import of a module may already execute code that changes things. Imagine a
-   module that does "os.system()", it will be done. People often connect to databases,
-   and these kind of things, at import time. Not a good style, but it's being done.
+  The actual import of a module may already execute code that changes things. Imagine a
+  module that does ``os.system()``, it will be done. People often connect to databases,
+  and these kind of things, at import time. Not a good style, but it's being done.
 
-   Therefore CPython exhibits the interfaces in an "imp" module in standard library,
-   which one can use those to know ahead of time, what file import would load. For us
-   unfortunately there is nothing in CPython that is easily accessible and gives us this
-   functionality for packages and search paths exactly like CPython does, so we implement
-   here a multi step search process that is compatible.
+  Therefore CPython exhibits the interfaces in an ``imp`` module in standard library,
+  which one can use those to know ahead of time, what file import would load. For us
+  unfortunately there is nothing in CPython that is easily accessible and gives us this
+  functionality for packages and search paths exactly like CPython does, so we implement
+  here a multi step search process that is compatible.
 
-   This approach is much safer of course and there is no loss. To determine if it's from
-   the standard library, one can abuse the attribute "__file__" of the "os" module like
-   it's done in "isStandardLibraryPath" of this module.
+  This approach is much safer of course and there is no loss. To determine if it's from
+  the standard library, one can abuse the attribute ``__file__`` of the ``os`` module like
+  it's done in ``isStandardLibraryPath`` of this module.
 
 * Role
 
@@ -466,15 +530,15 @@ nuitka.Importing Module
   warnings are controlled by a while list inside the module.
 
 
-Hooking for module import process
----------------------------------
+Hooking for module ``import`` process
+-------------------------------------
 
-Currently, in created code, for every "import" variable a normal "__import__()" call is
-executed. The "ExeModuleUnfreezer.cpp" (located in "nuitka/build/static_src") provides the
-implementation of a "sys.meta_path" hook.
+Currently, in created code, for every ``import`` variable a normal ``__import__()`` call
+is executed. The "ModuleUnfreezer.cpp" (located in "nuitka/build/static_src") provides the
+implementation of a ``sys.meta_path`` hook.
 
 This one allows us to have the Nuitka provided module imported even when imported by
-non-compiled code. Kay learned this at PyCON DE conference, from a presentation by the
+non-compiled code. Kay had learned this at PyCON DE conference, from a presentation by the
 implementer of that PEP, and it's very useful, as it increased compatibility over the
 previous approach of special casing imports to check if it's the included module.
 
@@ -484,9 +548,85 @@ previous approach of special casing imports to check if it's the included module
    imported and then to make it directly. At this time, we don't have this inter-module
    optimization yet, it should be easy to add.
 
+Supporting ``__class__`` of Python3
+-----------------------------------
+
+In Python3 the handling of ``__class__`` and ``super`` is different from Python2. It used
+to be a normal variable, and now the following things have changed.
+
+* The use of the ``super`` variable name triggers the addition of a closure variable
+  ``__class__``, as can be witnessed by the following code:
+
+  .. code-block:: python
+
+     class X:
+        def f1( self ):
+           print( locals() )
+
+        def f2( self ):
+           print( locals() )
+           super
+
+     x = X()
+     x.f1()
+     x.f2()
+
+  .. code-block:: python
+
+     {'self': <__main__.X object at 0x7f1773762390>}
+     {'self': <__main__.X object at 0x7f1773762390>, '__class__': <class '__main__.X'>}
+
+
+* This value of ``__class__`` is also available in the child functions.
+
+* The parser marks up code objects usage of "super". It doesn't have to be a call, it can
+  also be a local variable. If the ``super`` builtin is assigned to another name and that
+  is used without arguments, it won't work unless ``__class__`` is taken as a closure
+  variable.
+
+* As can be seen in the CPython3.2 code, the closure value is added after the class
+  creation is performed.
+
+* It appears, that only functions locally defined to the class are affected and take the
+  closure.
+
+This left Nuitka with the strange problem, of how to emulate that.
+
+The solution is this:
+
+* Under Python3, usage of ``__class__`` as a reference in a function body that is not a
+  class dictionary creation, marks it up via ``markAsClassClosureTaker``.
+
+* Functions that are marked up, will be forced to reference variable to
+  ``__class__``.
+
+  .. note::
+
+     This one should be optimized away later if not used. Currently we have "no unused
+     closure variable" detection, but it would cover it.
+
+* When recognizing calls to ``super`` without arguments, make the arguments into variable
+  reference to ``__class__`` and potentially ``self`` (actually first argument name).
+
+* Class dictionary definitions are added.
+
+  These are special direct function calls, ready to propagate also "bases" and "metaclass"
+  values, which need to be calculated outside.
+
+  The function bodies used for classes will automatically store ``__class__`` as a shared
+  local variable, if anything uses it. And if it's not assigned by user code, it doesn't
+  show up in the "locals()" used for dictionary creation.
+
+  Existing "__class__" local variable values are in fact provided as closure, and
+  overridden with the built class , but they should be used for the closure giving, before
+  the class is finished.
+
+  So "__class__" will be local variable of the class body, until the class is built, then
+  it will be the "__class__" itself.
+
 
 Frame Stack
-===========
+-----------
 
 In Python, every function, class, and module has a frame. It creates created when the
 scope it entered, and there is a stack of these at run time, which becomes visible in
@@ -546,21 +686,14 @@ in a simpler or more general way, and where we choose to do that at either tree 
 or optimization time.
 
 
-The "assert" statement
-----------------------
+The ``assert`` statement
+------------------------
 
-The assert statement is a special statement in Python, allowed by the syntax. It has two
+The ``assert`` statement is a special statement in Python, allowed by the syntax. It has two
 forms, with and without a second argument. The later is probably less known, as is the
 fact that raise statements can have multiple arguments too.
 
 The handling in Nuitka is:
-
-.. code-block:: python
-
-   assert value, raise_arg
-   # Absolutely the same as:
-   if not value:
-       raise AssertionError, raise_arg
 
 .. code-block:: python
 
@@ -569,11 +702,17 @@ The handling in Nuitka is:
    if not value:
        raise AssertionError
 
+.. code-block:: python
+
+   assert value, raise_arg
+   # Absolutely the same as:
+   if not value:
+       raise AssertionError, raise_arg
 
 This makes assertions absolutely the same as a raise exception in a conditional statement.
 
 This transformation is performed at tree building already, so Nuitka never knows about
-"assert" as an element and standard optimizations apply. If e.g. the truth value of the
+``assert`` as an element and standard optimizations apply. If e.g. the truth value of the
 assertion can be predicted, the conditional statement will have the branch statically
 executed or removed.
 
@@ -593,11 +732,11 @@ only pseudo language to expression the internal structure of the node tree after
 transformation.
 
 This useful "keeper" variables that enable this transformation and allow to express the
-short circuit nature of comparison chains by using "and" operations.
+short circuit nature of comparison chains by using ``and`` operations.
 
 
-The "execfile" builtin
-----------------------
+The ``execfile`` builtin
+------------------------
 
 Handling is:
 
@@ -612,12 +751,12 @@ Handling is:
    This allows optimizations to discover the file opening nature easily and apply file
    embedding or whatever we will have there one day.
 
-This transformation is performed when the "execfile" builtin is detected as such during
+This transformation is performed when the ``execfile`` builtin is detected as such during
 optimization.
 
 
-Generator expressions with yields
----------------------------------
+Generator expressions with ``yield``
+------------------------------------
 
 These are converted at tree building time into a generator function body that yields the
 iterator given, which is the put into a for loop to iterate, created a lambda function of
@@ -642,10 +781,10 @@ When one learns about decorators, you see that:
       pass
    function = decorator( function )
 
-The only difference is the assignment to function. In the "@decorator" case, if the
-decorator fails with an exception, the name "function" is not assigned.
+The only difference is the assignment to function. In the ``@decorator`` case, if the
+decorator fails with an exception, the name ``function`` is not assigned.
 
-Therefore in Nuitka this assignment is therefore from a "function body expression" and
+Therefore in Nuitka this assignment is from a "function body expression" and
 only the last decorator returned value is assigned to the function name.
 
 This removes the need for optimization and code generation to support decorators at
@@ -657,7 +796,7 @@ Inplace Assignments
 
 Inplace assignments are re-formulated to an expression using temporary variables.
 
-These are not as much a reformulation of "+=" to "+", but instead one which makes it
+These are not as much a reformulation of ``+=`` to ``+``, but instead one which makes it
 explicit that the assign target may change its value.
 
 .. code-block:: python
@@ -671,8 +810,8 @@ explicit that the assign target may change its value.
    if a is not _tmp:
        a = _tmp
 
-Using "__iadd__" here to express that not the "+", but the in-place variant "iadd" is used
-instead. The "is" check may be optimized away depending on type and value knowledge later
+Using ``__iadd__`` here to express that not the ``+``, but the in-place variant ``iadd`` is used
+instead. The ``is`` check may be optimized away depending on type and value knowledge later
 on.
 
 
@@ -696,7 +835,7 @@ assignments instead.
 
 
 This is possible, because in Python, if one assignment fails, it can just be interrupted,
-so in fact, they are sequential, and all that is required is to not calculate "c" twice,
+so in fact, they are sequential, and all that is required is to not calculate ``c`` twice,
 which the temporary variable takes care of.
 
 
@@ -739,21 +878,21 @@ a known tuple or list creation.
 
 .. note::
 
-   The "unpack" is a special node which is a form of "next" that will raise a "ValueError"
-   when it cannot get the next value, rather than a "StopIteration". The message text
+   The ``unpack`` is a special node which is a form of ``next`` that will raise a ``ValueError``
+   when it cannot get the next value, rather than a ``StopIteration``. The message text
    contains the number of values to unpack, therefore the integer argument.
 
 .. note::
 
-   The "unpack_check" is a special node that raises a "ValueError" exception if the
+   The ``unpack_check`` is a special node that raises a ``ValueError`` exception if the
    iterator is not finished, i.e. there are more values to unpack.
 
 With Statements
 ---------------
 
-The "with" statements are re-formulated to use temporary variables as well. The taking and
-calling of "__enter__" and "__exit__" with arguments, is presented with standard
-operations instead. The promise to call "__exit__" is fulfilled by "try/except" clause
+The ``with`` statements are re-formulated to use temporary variables as well. The taking and
+calling of ``__enter__`` and ``__exit__`` with arguments, is presented with standard
+operations instead. The promise to call ``__exit__`` is fulfilled by ``try``/``except`` clause
 instead.
 
 .. code-block:: python
@@ -795,11 +934,11 @@ instead.
 
 .. note::
 
-   We don't refer really to "sys.exc_info()" at all, instead, we have references to the
+   We don't refer really to ``sys.exc_info()`` at all, instead, we have references to the
    current exception type, value and trace, taken directory from the caught exception
    object on the C++ level.
 
-   If we had the ability to optimize "sys.exc_info()" to do that, we could use the same
+   If we had the ability to optimize ``sys.exc_info()`` to do that, we could use the same
    transformation, but right now we don't have it.
 
 
@@ -846,18 +985,19 @@ This is roughly equivalent to the following code:
 
 .. note::
 
-   The "_iter" temporary variable is of course in a temp block and the "x, y" assignment
+   The ``_iter`` temporary variable is of course in a temp block and the ``x, y`` assignment
    is the normal is of course re-formulation of an assignment that cannot fail.
 
-   The "try/exception" is detected to allow to use a variant of "next" that throws no C++
-   exception, but instead to use "ITERATOR_NEXT" and which returns NULL in that case, so
+   The ``try``/``except`` is detected to allow to use a variant of ``next`` that throws no C++
+   exception, but instead to use ``ITERATOR_NEXT`` and which returns NULL in that case, so
    that the code doesn't really have any Python level exception handling going on.
 
 
 While Loops
 -----------
 
-Loops in Nuitka have no condition attached anymore, so while loops are re-formulated like this:
+Loops in Nuitka have no condition attached anymore, so while loops are re-formulated like
+this:
 
 .. code-block:: python
 
@@ -912,18 +1052,18 @@ That is equivalent to the following:
         handle_it()
 
 Of course, the value of the current exception, use special references for assignments,
-that access the C++ and don't go via "sys.exc_info" at all, these are called
-"CaughtExceptionValueRef".
+that access the C++ and don't go via ``sys.exc_info`` at all, these are called
+``CaughtExceptionValueRef``.
 
 
 try/except/else
 ---------------
 
-Much like "else" branches of loops, an indicator variable is used to indicate the entry
+Much like ``else`` branches of loops, an indicator variable is used to indicate the entry
 into any of the exception handlers.
 
-Therefore, the "else" becomes a real conditional statement in the node tree, checking the
-indicator variable and guarding the execution of the "else" branch.xs
+Therefore, the ``else`` becomes a real conditional statement in the node tree, checking the
+indicator variable and guarding the execution of the ``else`` branch.xs
 
 
 Classes Creation
@@ -934,25 +1074,42 @@ function otherwise. This is expressed with the following re-formulation:
 
 .. code-block:: python
 
+   # in module "SomeModule"
+   # ...
+
    class SomeClass(SomeBase,AnotherBase)
+       """ This is the class documentation. """
+
        some_member = 3
 
 .. code-block:: python
 
    def _makeSomeClass:
+       # The module name becomes a normal local variable too.
+       __module__ = "SomeModule"
+
+       # The doc string becomes a normal local variable.
+       __doc__ = """ This is the class documentation. """
+
        some_member = 3
 
        return locals()
 
        # force locals to be a writable dictionary, will be optimized away, but that
-       # property will stick.
+       # property will stick. This is only to express, that locals(), where used will
+       # be writable to.
        exec ""
 
    SomeClass = make_class( "SomeClass", (SomeBase, AnotherBase), _makeSomeClass() )
 
-That would roughly be the same, except that "_makeSomeClass" is be _not_ visible to its
-child functions when it comes to closure taking, which we cannot expression in Python
-language at all.
+That is roughly the same, except that ``_makeSomeClass`` is *not* visible to its child
+functions when it comes to closure taking, which we cannot express in Python language at
+all.
+
+Therefore, class bodies are just special function bodies that create a dictionary for use
+in class creation. They don't really appear after the tree building stage anymore. The
+type inference will of course have to become able to understand ``make_class`` quite well,
+so it can recognize the created class again.
 
 
 List Contractions
@@ -1011,8 +1168,8 @@ Consider this code:
 
    f( a(), 1 / 0 )
 
-The second argument will create a "ZeroDivisionError" exception, but before that "a()"
-must be executed, but the call to "f" will never happen and no code is needed for that,
+The second argument will create a ``ZeroDivisionError`` exception, but before that ``a()``
+must be executed, but the call to ``f`` will never happen and no code is needed for that,
 but the name lookup must still succeed. This then leads to code that is internally like
 this:
 
@@ -1037,7 +1194,8 @@ language still requires things to happen, consider this:
 
    a = len( ( f(), g() ) )
 
-We can tell that "a" will be 2, but the call to "f" and "g" must still be performed, so it becomes:
+We can tell that ``a`` will be 2, but the call to ``f`` and ``g`` must still be performed,
+so it becomes:
 
 .. code-block:: python
 
@@ -1052,14 +1210,14 @@ it.
 Plan to replace "python-qt" for the GUI
 =======================================
 
-Porting the tree inspector available with "--dump-gui" to "wxWindows" is very much welcome
+Porting the tree inspector available with ``--dump-gui`` to "wxWindows" is very much welcome
 as the "python-qt4" bindings are severely under documented.
 
 
 Plan to add "ctypes" support
 ============================
 
-Add interfacing to C code, so Nuitka can turn a "ctypes" binding into an efficient binding
+Add interfacing to C code, so Nuitka can turn a ``ctypes`` binding into an efficient binding
 as if it were written manually with Python C-API or better.
 
 
@@ -1068,24 +1226,24 @@ Goals/Allowances to the task
 
 1. Goal: Must not use any pre-existing C/C++ language file headers, only generate
    declarations in generated C++ code ourselves. We would rather write a C header to
-   "ctypes" declarations convert if it needs to be, but not mix and use declarations from
+   ``ctypes`` declarations convert if it needs to be, but not mix and use declarations from
    existing header code.
-2. Allowance: May use "ctypes" module at compile time to ask things about "ctypes" and its
+2. Allowance: May use ``ctypes`` module at compile time to ask things about ``ctypes`` and its
    types.
-3. Goal: Should make use of "ctypes", to e.g. not hard code what "ctypes.c_int()" gives on
+3. Goal: Should make use of ``ctypes``, to e.g. not hard code what ``ctypes.c_int()`` gives on
    the current platform, unless there is a specific benefit.
-4. Allowance: Not all "ctypes" usages must be supported immediately.
-5. Goal: Try and be as general as possible. For the compiler, "ctypes" support should be
-   hidden behind a generic interface of some sort. Supporting "math" module should be the
+4. Allowance: Not all ``ctypes`` usages must be supported immediately.
+5. Goal: Try and be as general as possible. For the compiler, ``ctypes`` support should be
+   hidden behind a generic interface of some sort. Supporting ``math`` module should be the
    same thing.
 
 
 Type Inference - The Discussion
 -------------------------------
 
-Main goal is to forward value knowledge. When you have "a = b", that means that a and b
-now "alias". And if you know the value of "b" you can assume to know the value of
-"a". This is called "Aliasing".
+Main goal is to forward value knowledge. When you have ``a = b``, that means that a and b
+now "alias". And if you know the value of ``b`` you can assume to know the value of
+``a``. This is called "Aliasing".
 
 When that value is a compile time constant, we will want to push it forward, because
 storing such a constant under a variable name has a cost and loading it back from the
@@ -1117,14 +1275,14 @@ want to forward propagate abstract properties of the values.
    Builtin exceptions, and builtin names are also compile time constants.
 
 In order to fully benefit from type knowledge, the new type system must be able to be
-fully friends with existing builtin types.  The behavior of a type "long", "str",
-etc. ought to be implemented as far as possible with the builtin "long", "str" as well.
+fully friends with existing builtin types.  The behavior of a type ``long``, ``str``,
+etc. ought to be implemented as far as possible with the builtin ``long``, ``str`` as well.
 
 .. note::
 
-   This "use the real thing" concept extends beyond builtin types, e.g. "ctypes.c_int()"
+   This "use the real thing" concept extends beyond builtin types, e.g. ``ctypes.c_int()``
    should also be used, but we must be aware of platform dependencies. The maximum size of
-   "ctypes.c_int" values would be an example of that. Of course that may not be possible
+   ``ctypes.c_int`` values would be an example of that. Of course that may not be possible
    for everything.
 
    This approach has well proven itself with builtin functions already, where we use real
@@ -1141,7 +1299,7 @@ To predict this code, calculating it at compile time using constant operations, 
 feasible, puts an unacceptable burden on the compilation.
 
 Esp. we wouldn't want to produce such a huge constant and stream it, the C++ code would
-become too huge. So, we need to stop the "\*" operator from being used at compile time and
+become too huge. So, we need to stop the ``*`` operator from being used at compile time and
 live with reduced knowledge, already here:
 
 .. code-block:: python
@@ -1150,8 +1308,8 @@ live with reduced knowledge, already here:
 
 Instead, we would probably say that for this expression:
 
-   - The result is a "str" or "PyStringObject".
-   - We know its length exactly, it's "10000000000000".
+   - The result is a ``str`` or ``PyStringObject``.
+   - We know its length exactly, it's ``10000000000000``.
    - Can predict every of its elements when subscripted, sliced, etc., if need be, with a
      function we may create.
 
@@ -1163,8 +1321,8 @@ Similar is true for this nice thing:
 
 So it's a rather general problem, this time we know:
 
-   - The result is a "list" or "PyListObject"
-   - We know its length exactly, "10000000000000"
+   - The result is a ``list`` or ``PyListObject``
+   - We know its length exactly, ``10000000000000``
    - Can predict every of its elements when index, sliced, etc., if need be, with a
      function.
 
@@ -1179,12 +1337,12 @@ Now lets look at a use:
    for x in range( 10000000000000 ):
        doSomething()
 
-Looking at this example, one way to look at it, would be to turn "range" into "xrange",
-note that "x" is unused. That would already perform better. But really better is to notice
-that "range()" generated values are not used, but only the length of the expression
+Looking at this example, one way to look at it, would be to turn ``range`` into ``xrange``,
+note that ``x`` is unused. That would already perform better. But really better is to notice
+that ``range()`` generated values are not used, but only the length of the expression
 matters.
 
-And even if "x" were used, only the ability to predict the value from a function would be
+And even if ``x`` were used, only the ability to predict the value from a function would be
 interesting, so we would use that computation function instead of having an iteration
 source. Being able to predict from a function could mean to have Python code to do it, as
 well as C++ code to do it. Then code for the loop can be generated without any CPython
@@ -1209,21 +1367,21 @@ The theme here, is that when we can't compute all intermediate expressions, and 
 can't do it in the general case. But we can still, predict some of properties of an
 expression result, more or less.
 
-Here we have "len" to look at an argument that we know the size of. Great. We need to ask
+Here we have ``len`` to look at an argument that we know the size of. Great. We need to ask
 if there are any side effects, and if there are, we need to maintain them of course, but
 generally this appears feasible, and is already being done by existing optimizations if an
 operation generates an exception.
 
 .. note::
 
-   The optimization of "len" has been implemented and works for all kinds of container
+   The optimization of ``len`` has been implemented and works for all kinds of container
    building and ranges.
 
 
 Applying this to "ctypes"
 -------------------------
 
-The not so specific problem to be solved to understand "ctypes" declarations is maybe as
+The not so specific problem to be solved to understand ``ctypes`` declarations is maybe as
 follows:
 
 .. code-block:: python
@@ -1231,21 +1389,21 @@ follows:
    import ctypes
 
 This leads to Nuitka tree an assignment from a "import module expression" to the variable
-"ctypes". It can be predicted by default to be a module object, and even better, it can be
-known as "ctypes" from standard library with more or less certainty. See the section about
+``ctypes``. It can be predicted by default to be a module object, and even better, it can be
+known as ``ctypes`` from standard library with more or less certainty. See the section about
 "Importing".
 
 So that part is "easy", and it's what will happen. During optimization, when the module
 import expression is examined, it should say:
 
-   - "ctypes" is a module
-   - "ctypes" is from standard library (if it is, may not be true)
-   - "ctypes" has a "ModuleFriend" that knows things about it attributes, that should be
+   - ``ctypes`` is a module
+   - ``ctypes`` is from standard library (if it is, may not be true)
+   - ``ctypes`` has a ``ModuleFriend`` that knows things about it attributes, that should be
      asked.
 
 The later is the generic interface, and the optimization should connect the two, of course
-via package and module full names. It will need a "ModuleFriendRegistry", from which it
-can be pulled. It would be nice if we can avoid "ctypes" to be loaded into Nuitka unless
+via package and module full names. It will need a ``ModuleFriendRegistry``, from which it
+can be pulled. It would be nice if we can avoid ``ctypes`` to be loaded into Nuitka unless
 necessary, so these need to be more like a plug-in, loaded only if necessary.
 
 Coming back to the original expression, it also contains an assignment expression, because
@@ -1267,11 +1425,11 @@ have it correct, how to we detect this:
 
    ctypes.c_int()
 
-How do we tell that "ctypes" is at that point a variable of module object or even the
-ctypes module, and that we know what it's "c_int" attribute is, and what it's call result
+How do we tell that ``ctypes`` is at that point a variable of module object or even the
+ctypes module, and that we know what it's ``c_int`` attribute is, and what it's call result
 is.
 
-We should therefore, forward the usage of all we know and see if we hit any "ctypes.c_int"
+We should therefore, forward the usage of all we know and see if we hit any ``ctypes.c_int``
 alike. This is more like a value forward propagation than anything else. In fact, constant
 propagation should only be the special case of it.
 
@@ -1289,19 +1447,19 @@ this:
 
       return a
 
-We would notate that "a" is first a "unknown PyObject parameter object", then something
-that has an "append" attribute, when returned. The type of "a" changes after "a.append"
+We would notate that ``a`` is first a "unknown PyObject parameter object", then something
+that has an ``append`` attribute, when returned. The type of ``a`` changes after ``a.append``
 lookup succeeds. It might be an object, but e.g. it could have a higher probability of
-being a "PyListObject".
+being a ``PyListObject``.
 
 .. note::
 
-   If classes in the program have an "append" attribute, it should play a role too, there
+   If classes in the program have an ``append`` attribute, it should play a role too, there
    needs to be a way to plug-in to this decisions.
 
-This is a more global property of "a" value, and true even before the append succeeds, but
+This is a more global property of ``a`` value, and true even before the append succeeds, but
 not as much maybe, so it would make sense to apply that information after an analysis of
-all the node. This may be "Finalization" work.
+all the node. This may be ``Finalization`` work.
 
 .. code-block:: python
 
@@ -1309,17 +1467,17 @@ all the node. This may be "Finalization" work.
 
    assert b == [3] # Could be decided now
 
-Goal: The structure we use should make it easy to visit "my_append" and then have
+Goal: The structure we use should make it easy to visit ``my_append`` and then have
 something that easily allows to plug in the given values and know things. We need to be
-able to tell, if evaluating "my_append" makes sense with given parameters or not.
+able to tell, if evaluating ``my_append`` makes sense with given parameters or not.
 
-We should e.g. be able to make "my_append" tell, one or more of these:
+We should e.g. be able to make ``my_append`` tell, one or more of these:
 
    - Returns the first parameter value (unless it raises an exception)
-   - The return value has the same type as "a" (unless it raises an exception)
+   - The return value has the same type as ``a`` (unless it raises an exception)
 
-It would be nice, if "my_append" had sufficient information, so we could instantiate with
-"list" and "int" from the parameters, and then e.g. know at least some things that it does
+It would be nice, if ``my_append`` had sufficient information, so we could instantiate with
+``list`` and ``int`` from the parameters, and then e.g. know at least some things that it does
 in that case.
 
 Doing it "forward" appears to be best suited for functions and therefore long term. We
@@ -1345,7 +1503,7 @@ the first iteration. So, we can't pass knowledge from outside loop forward direc
 the for loop body.
 
 So we will have to do a first pass, where we need to collect invalidations of all of the
-outside knowledge. The assignment to "a" should make it an alternative with what we knew
+outside knowledge. The assignment to "a" should make it an alternative to what we knew
 about "b". And we can't really assume to know anything about a to e.g. predict "b" due to
 that. That first pass needs to scan for assignments, and treat them as invalidations.
 
@@ -1374,12 +1532,12 @@ information.
 
 In the above case:
 
-   - The "yes" branch knows variable "x" is an "int" of constant value "1"
-   - The "no" branch knows variable "x" is an "int" of constant value "2"
+   - The "yes" branch knows variable ``x`` is an ``int`` of constant value ``1``
+   - The "no" branch knows variable ``x`` is an ``int`` of constant value ``2``
 
 That should be collapsed to:
 
-   - The variable "x" is an integer of value in "(1,2)"
+   - The variable ``x`` is an integer of value in ``(1,2)``
 
 When should allow to precompute the value of this:
 
@@ -1390,7 +1548,7 @@ When should allow to precompute the value of this:
 The comparison operator can work on the function that provides all values in see if the
 result is always the same. Because if it is, and it is, then it can tell:
 
-    - The variable "b" is a boolean of constant value "True".
+    - The variable ``b`` is a boolean of constant value ``True``.
 
 For conditional statements optimization, the following is note-worthy:
 
@@ -1405,8 +1563,8 @@ For conditional statements optimization, the following is note-worthy:
          else:
              a += ( x, )
 
-     In this case, the knowledge that "a" is a list, could be used to generate better code
-     and with definite knowledge that "a" is of type list. These is a lot more to do, until we understand "type checks" though.
+     In this case, the knowledge that ``a`` is a list, could be used to generate better code
+     and with definite knowledge that ``a`` is of type list. These is a lot more to do, until we understand ``type checks`` though.
 
    - If 2 branches exist, or one makes a difference.
 
@@ -1420,7 +1578,7 @@ For conditional statements optimization, the following is note-worthy:
 Excursion to return statements
 ------------------------------
 
-The return statement (like "break", "continue", "raise") is abortative to control flow. It
+The return statement (like ``break``, ``continue``, ``raise``) is abortative to control flow. It
 becomes the last statement of inspected block. With a conditional statement branch, in
 case one branch has a return statement and the other not, the merging of the constraint
 collection must consider it by not taking any knowledge from such branch at all.
@@ -1435,11 +1593,11 @@ removing statements after it as dead code.
    blocks, etc. though.
 
 
-Excursion to yield statements
------------------------------
+Excursion to ``yield`` expressions
+----------------------------------
 
-The yield statement can be treated like a normal function call, and as such invalidates
-some known constraints just as much as they do.
+The ``yield`` expression can be treated like a normal function call, and as such
+invalidates some known constraints just as much as they do.
 
 
 Mixed Types
@@ -1454,7 +1612,7 @@ Consider the following inside a function or module:
    else:
       a = ()
 
-A programmer will often not make a difference between "list" and "tuple". In fact, using a
+A programmer will often not make a difference between ``list`` and ``tuple``. In fact, using a
 tuple is a good way to express that something won't be changed later, as these are mutable.
 
 .. note::
@@ -1473,9 +1631,9 @@ tuple is a good way to express that something won't be changed later, as these a
    consistent, and so Nuitka is using it, and of course one day Nuitka ought to be able to
    make no difference in performance for it.
 
-To Nuitka though this means, that if "cond" is not predictable, after the conditional
-statement we may either have a "tuple" or a "list". In order to represent that without
-resorting to "I know nothing about it", we need a kind of "min/max" operating mechanism
+To Nuitka though this means, that if ``cond`` is not predictable, after the conditional
+statement we may either have a ``tuple`` or a ``list``. In order to represent that without
+resorting to "I know nothing about it", we need a kind of ``min``/``max`` operating mechanism
 that is capable of say what is common with multiple alternative values.
 
 
@@ -1486,8 +1644,8 @@ Back to "ctypes"
 
    v = ctypes.c_int()
 
-Coming back to this example, we needed to propagate "ctypes", then we can propagate
-"something" from "ctypes.int" and then known what this gives with a call and no arguments,
+Coming back to this example, we needed to propagate ``ctypes``, then we can propagate
+"something" from ``ctypes.int`` and then known what this gives with a call and no arguments,
 so the walk of the nodes, and diverse operations should be addressed by a module friend.
 
 In case a module friend doesn't know what to do, it needs to say so by default. This
@@ -1499,17 +1657,17 @@ Now to the interface
 
 The following is the intended interface
 
-- Base class "ValueFriendBase" according to rules.
+- Base class ``ValueFriendBase`` according to rules.
 
   The base class offers methods that allow to check if certain operations are supported or
-  not. These can always return "True" (yes), "False" (no), and "None" (cannot decide). In
+  not. These can always return ``True`` (yes), ``False`` (no), and ``None`` (cannot decide). In
   the case of the later, optimizations may not be able do much about it. Lets call these
   values "tristate".
 
-  Part of the interface is a method "computeNode" which gives the node the chance to
+  Part of the interface is a method ``computeNode`` which gives the node the chance to
   return another node instead, which may also be an exception.
 
-  The "computeNode" may be able to produce exceptions or constants even for non-constant
+  The ``computeNode`` may be able to produce exceptions or constants even for non-constant
   inputs depending on the operation being performed. For every expression it will be
   executed in the order in which the program control flow goes for a function or module.
 
@@ -1519,59 +1677,59 @@ The following is the intended interface
   expression for the attribute call prediction.
 
   By default, attribute lookup, should turn an expression to unknown, unless something in
-  the registry can say something about it. That way, "some_list.append" produces something
-  which when called, invalidates "some_list", but only then.
+  the registry can say something about it. That way, ``some_list.append`` produces something
+  which when called, invalidates ``some_list``, but only then.
 
-- Name for module "ValueFriends" according to rules.
+- Name for module ``ValueFriends`` according to rules.
 
   These should live in a package of some sort and be split up into groups later on, but
   for the start it's probably easier to keep them all in one file or next to the node that
   produces them.
 
-- Class for module import expression "ValueFriendImportModule".
+- Class for module import expression ``ValueFriendImportModule``.
 
   This one just knows that something is imported and not how or what it is assigned to, it
   will be able in a recursive compile, to provide the module as an assignment source, or
   the module variables or submodules as an attribute source.
 
-- Class for module value friend "ValueFriendModule".
+- Class for module value friend ``ValueFriendModule``.
 
-  The concrete module, e.g. "ctypes" or "math" from standard library.
+  The concrete module, e.g. ``ctypes`` or ``math`` from standard library.
 
-- Base class for module and module friend "ValueFriendModuleBase".
+- Base class for module and module friend ``ValueFriendModuleBase``.
 
-  This is intended to provide something to overload, which e.g. can handle "math" in a
+  This is intended to provide something to overload, which e.g. can handle ``math`` in a
   better way.
 
-- Module "ModuleFriendRegistry"
+- Module ``ModuleFriendRegistry``
 
-  Provides a register function with "name" and instances of "ValueFriendModuleBase" to be
+  Provides a register function with ``name`` and instances of ``ValueFriendModuleBase`` to be
   registered. Recursed to modules should integrate with that too. The registry could well
   be done with a metaclass approach.
 
 - The module friends should each live in a module of their own.
 
   With a naming policy to be determined. These modules should add themselves via above
-  mechanism to "ModuleFriendRegistry" and all shall be imported and register. Importing of
-  e.g. "ctypes" should be delayed to when the friend is actually used. A meta class should
+  mechanism to ``ModuleFriendRegistry`` and all shall be imported and register. Importing of
+  e.g. ``ctypes`` should be delayed to when the friend is actually used. A meta class should
   aid this task.
 
   The delay will avoid unnecessary blot of the compiler at run time, if no such module is
   used. For "qt" and other complex stuff, this will be a must.
 
-- A collection of "ValueFriend" instances expresses the current data flow state.
+- A collection of ``ValueFriend`` instances expresses the current data flow state.
 
-  - This collection should carry the name "ConstraintCollection"
+  - This collection should carry the name ``ConstraintCollection``
 
   - Updates to the collection should be done via methods
 
-      - "onAssigment( variable, value_friend )"
-      - "onAttributeLookup( source, attribute_name )"
-      - "onOutsideCode()"
-      - "passedByReference( var_name )"
+      - ``onAssigment( variable, value_friend )``
+      - ``onAttributeLookup( source, attribute_name )``
+      - ``onOutsideCode()``
+      - ``passedByReference( var_name )``
       - etc. (will decide the actual interface of this when implementing its use)
 
-  - This collection is the input to walking the tree by "execute", i.e. per module body,
+  - This collection is the input to walking the tree by ``execute``, i.e. per module body,
     per function body, per loop body, etc.
 
   - The walk should initially be single pass, that means it does not maintain the history.
@@ -1943,8 +2101,8 @@ Kay will attempt to provide the framework parts that provide the interface and C
 will work on the "ctypes" as an example.
 
 The work is likely to happen on a git feature branch named "ctypes_annotation". It will
-likely be long lived, and Kay will move usable bits out of it for releases, and
-occasional "git flow feature rebase" at agreed times.
+likely be long lived, and Kay will move usable bits out of it for releases, and an
+occasional ``git flow feature rebase`` at agreed times.
 
 .. note::
 
@@ -1984,8 +2142,7 @@ into action, which could be code changes, plan changes, issues created, etc.
   This of course makes most sense, if we have the optimizations in place that will allow
   this to actually happen.
 
-
-* Accesses to list constants should be tuples constants.
+* Accesses to list constants sometimes chould become tuple constants.
 
   .. code-block:: python
 
@@ -1999,8 +2156,17 @@ into action, which could be code changes, plan changes, issues created, etc.
      for x in ( 1, 2, 7 ):
         something( x )
 
-  Otherwise, code generation suffers from assuming the list may be tuple and is making a
-  copy before using it.
+  Otherwise, code generation suffers from assuming the list may be mutated and is making a
+  copy before using it. Instead, it would be needed to track, if that list becomes writable, and if it's used as a list.
+
+  .. code-block:: python
+
+     # Examples, where lists need to be maintained, even if not written to
+     print [ 1,2 ]
+     print type( [ 1,2 ] )
+
+  The best approach is probably to track down ``in`` and other potential users, that don't
+  use the list nature and just convert then.
 
 * Functions with defaults should use temp variables for them.
 
@@ -2267,8 +2433,6 @@ into action, which could be code changes, plan changes, issues created, etc.
   The aliasing is only broken when a is assigned to a new value. And when then "b" is
   subscribed, it may understand what that value is or not.
 
-
-
 * Value Life Time Analysis
 
   A value may be assigned, or consumed directly. When consumed directly, it's life ends
@@ -2284,6 +2448,16 @@ into action, which could be code changes, plan changes, issues created, etc.
   If we ever came to the conclusion to want and cache complex results of analysis, we
   could do so with the shelve module. We would have to implement "__deepcopy__" and then
   could store in there optimized node structures from start values after parsing.
+
+
+* Tail recursion optimization.
+
+  Functions that return the results of calls, can be optimized. The Stackless Python does
+  it already.
+
+* Integrate with "upx" compression.
+
+  Calling "upx" on the created binaries, would be easy.
 
 .. header::
 

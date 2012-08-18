@@ -42,16 +42,6 @@ module_inittab_entry = """\
 { (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ) },"""
 
 main_program = """\
-// Our own inittab for lookup of "frozen" modules, i.e. the ones included in this binary.
-static struct _inittab _frozes_modules[] =
-{
-%(module_inittab)s
-    { NULL, NULL }
-};
-
-// For embedded modules, to be unpacked. Used by main program only
-extern void registerMetaPathBasedUnfreezer( struct _inittab *_frozes_modules );
-
 // The main program for C++. It needs to prepare the interpreter and then calls the
 // initialization code of the __main__ module.
 
@@ -74,21 +64,10 @@ int main( int argc, char *argv[] )
     // or to python.exe on Windows.
     PySys_SetObject(
         (char *)"executable",
-#if PYTHON_VERSION < 300
-        PyString_FromString( %(sys_executable)s )
-#else
-        PyUnicode_FromString( %(sys_executable)s )
-#endif
+        %(sys_executable)s
     );
 
-    // Register the initialization functions for modules included in the binary if any
-    int res = PyImport_ExtendInittab( _frozes_modules );
-    assert( res != -1 );
-
-    registerMetaPathBasedUnfreezer( _frozes_modules );
-
     patchInspectModule();
-
 
     // Execute the "__main__" module init function.
     MOD_INIT_NAME( __main__)();
@@ -293,6 +272,20 @@ static struct PyModuleDef _moduledef =
   };
 #endif
 
+#define _MODULE_UNFREEZER %(use_unfreezer)d
+
+#if _MODULE_UNFREEZER
+// For embedded modules, to be unpacked. Used by main program/package only
+extern void registerMetaPathBasedUnfreezer( struct _inittab *_frozes_modules );
+
+// Our own inittab for lookup of "frozen" modules, i.e. the ones included in this binary.
+static struct _inittab _frozes_modules[] =
+{
+%(module_inittab)s
+    { NULL, NULL }
+};
+#endif
+
 #ifdef _NUITKA_EXE
 static bool init_done = false;
 #endif
@@ -325,6 +318,12 @@ MOD_INIT_DECL( %(module_identifier)s )
     PyType_Ready( &Nuitka_Generator_Type );
     PyType_Ready( &Nuitka_Function_Type );
     PyType_Ready( &Nuitka_Method_Type );
+
+    patchInspectModule();
+#endif
+
+#if _MODULE_UNFREEZER
+    registerMetaPathBasedUnfreezer( _frozes_modules );
 #endif
 
     // puts( "in init%(module_identifier)s" );
@@ -459,9 +458,9 @@ module_init_in_package_template = """\
     assertObject( _module_%(package_identifier)s );
 
     SET_ATTRIBUTE(
+        _module_%(module_identifier)s,
         _module_%(package_identifier)s,
-        %(module_name)s,
-        _module_%(module_identifier)s
+        %(module_name)s
     );
 """
 

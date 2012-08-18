@@ -1,8 +1,7 @@
-#!/bin/sh
 #     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
 #
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
+#     Python tests originally created or extracted from other peoples work. The
+#     parts were too small to be protected.
 #
 #     Licensed under the Apache License, Version 2.0 (the "License");
 #     you may not use this file except in compliance with the License.
@@ -16,5 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import barry_as_FLUFL
 
-( sfood nuitka | egrep -v "'(sys|signal|math|os.py|re.py|nuitka/(oset|odict).py)'" | sfood-graph | dot -Tps >/tmp/out.ps ) && evince /tmp/out.ps
+print( eval( "1 <> 2" ) )
+print( eval( '"a"<>"b"' ) )
+print( eval( 'range(7) <> range(7)' ) )

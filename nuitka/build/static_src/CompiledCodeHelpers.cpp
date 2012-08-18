@@ -18,7 +18,9 @@
 
 #include "nuitka/prelude.hpp"
 
-#include "__constants.hpp"
+extern PyObject *_python_str_plain_compile;
+extern PyObject *_python_str_plain_strip;
+extern PyObject *_python_str_plain_read;
 
 static PythonBuiltin _python_builtin_compile( &_python_str_plain_compile );
 
@@ -79,9 +81,11 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
     );
 }
 
+extern PyObject *_python_str_plain_open;
+
 static PythonBuiltin _python_builtin_open( &_python_str_plain_open );
 
-PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
+PyObject *_OPEN_FILE( EVAL_ORDERED_3( PyObject *file_name, PyObject *mode, PyObject *buffering ) )
 {
     if ( file_name == NULL )
     {
@@ -134,6 +138,7 @@ PyObject *BUILTIN_CHR( PyObject *value )
 {
     long x = PyInt_AsLong( value );
 
+#if PYTHON_VERSION < 300
     if ( x < 0 || x >= 256 )
     {
         PyErr_Format( PyExc_ValueError, "chr() arg not in range(256)" );
@@ -145,10 +150,18 @@ PyObject *BUILTIN_CHR( PyObject *value )
     char s[1];
     s[0] = (char)x;
 
-#if PYTHON_VERSION < 300
     return PyString_FromStringAndSize( s, 1 );
 #else
-    return PyUnicode_FromStringAndSize( s, 1 );
+    PyObject *result = PyUnicode_FromOrdinal( x );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    assert( PyUnicode_Check( result ));
+
+    return result;
 #endif
 }
 
@@ -313,7 +326,7 @@ typedef struct {
     PyObject *it_sentinel;
 } calliterobject;
 
-PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel )
+PyObject *_BUILTIN_ITER2( EVAL_ORDERED_2( PyObject *callable, PyObject *sentinel ) )
 {
     calliterobject *result = PyObject_GC_New( calliterobject, &PyCallIter_Type );
 
@@ -336,7 +349,9 @@ PyObject *BUILTIN_TYPE1( PyObject *arg )
     return INCREASE_REFCOUNT( (PyObject *)Py_TYPE( arg ) );
 }
 
-PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict )
+extern PyObject *_python_str_plain___module__;
+
+PyObject *_BUILTIN_TYPE3( EVAL_ORDERED_4( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict ) )
 {
     PyObject *result = PyType_Type.tp_new(
         &PyType_Type,
@@ -392,7 +407,8 @@ Py_ssize_t ESTIMATE_RANGE( long low, long high, long step )
     }
 }
 
-PyObject *BUILTIN_RANGE( long low, long high, long step )
+#if PYTHON_VERSION < 300
+static PyObject *_BUILTIN_RANGE_INT3( long low, long high, long step )
 {
     assert( step != 0 );
 
@@ -420,17 +436,16 @@ PyObject *BUILTIN_RANGE( long low, long high, long step )
     return result;
 }
 
-PyObject *BUILTIN_RANGE( long low, long high )
+static PyObject *_BUILTIN_RANGE_INT2( long low, long high )
 {
-    return BUILTIN_RANGE( low, high, 1 );
+    return _BUILTIN_RANGE_INT3( low, high, 1 );
 }
 
-PyObject *BUILTIN_RANGE( long boundary )
+static PyObject *_BUILTIN_RANGE_INT( long boundary )
 {
-    return BUILTIN_RANGE( 0, boundary );
+    return _BUILTIN_RANGE_INT2( 0, boundary );
 }
 
-#if PYTHON_VERSION < 300
 static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 {
     if (likely(
@@ -470,6 +485,8 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 }
 #endif
 
+extern PyObject *_python_str_plain_range;
+
 static PythonBuiltin _python_builtin_range( &_python_str_plain_range );
 
 PyObject *BUILTIN_RANGE( PyObject *boundary )
@@ -486,13 +503,13 @@ PyObject *BUILTIN_RANGE( PyObject *boundary )
         return _python_builtin_range.call1( boundary_temp.asObject() );
     }
 
-    return BUILTIN_RANGE( start );
+    return _BUILTIN_RANGE_INT( start );
 #else
     return _python_builtin_range.call1( boundary );
 #endif
 }
 
-PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high )
+PyObject *_BUILTIN_RANGE2( EVAL_ORDERED_2( PyObject *low, PyObject *high ) )
 {
 #if PYTHON_VERSION < 300
     PyObjectTemporary low_temp( TO_RANGE_ARG( low, "start" ) );
@@ -527,7 +544,7 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high )
     }
     else
     {
-        return BUILTIN_RANGE( start, end );
+        return _BUILTIN_RANGE_INT2( start, end );
     }
 #else
     return _python_builtin_range.call_args(
@@ -536,7 +553,7 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high )
 #endif
 }
 
-PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step )
+PyObject *_BUILTIN_RANGE3( EVAL_ORDERED_3( PyObject *low, PyObject *high, PyObject *step ) )
 {
 #if PYTHON_VERSION < 300
     PyObjectTemporary low_temp( TO_RANGE_ARG( low, "start" ) );
@@ -587,7 +604,7 @@ PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step )
             throw _PythonException();
         }
 
-        return BUILTIN_RANGE( start, end, step_long );
+        return _BUILTIN_RANGE_INT3( start, end, step_long );
     }
 #else
     return _python_builtin_range.call_args(
@@ -623,6 +640,9 @@ PyObject *BUILTIN_DIR1( PyObject *arg )
 
     return result;
 }
+
+extern PyObject *_python_str_empty;
+extern PyObject *_python_bytes_empty;
 
 PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, bool is_generator )
 {
@@ -678,6 +698,8 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
     return result;
 }
 
+extern PyObject *_python_dict_empty;
+
 PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
 {
     assertCodeObject( code );
@@ -689,7 +711,7 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
         PyThreadState_GET(),                 // thread state
         code,                                // code
         ((PyModuleObject *)module)->md_dict, // globals (module dict)
-        NULL                                 // locals (we are not going to be compatible (yet?))
+        _python_dict_empty                   // locals (we are not going to be compatible (yet?))
     );
 
     assertCodeObject( code );
@@ -769,6 +791,8 @@ PyFrameObject *detachCurrentFrame()
     return new_frame;
 }
 
+extern PyObject *_python_str_plain___import__;
+
 static PythonBuiltin _python_builtin_import( &_python_str_plain___import__ );
 
 PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
@@ -837,7 +861,7 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
         // TODO: Check if the reference is handled correctly
         if ( is_module )
         {
-            SET_ATTRIBUTE( target, item, LOOKUP_ATTRIBUTE( module, item ) );
+            SET_ATTRIBUTE( LOOKUP_ATTRIBUTE( module, item ), target, item );
         }
         else
         {
@@ -849,6 +873,10 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 }
 
 // Helper functions for print. Need to play nice with Python softspace behaviour.
+
+extern PyObject *_python_str_plain_print;
+extern PyObject *_python_str_plain_end;
+extern PyObject *_python_str_plain_file;
 
 static PythonBuiltin _python_builtin_print( &_python_str_plain_print );
 
@@ -1069,12 +1097,14 @@ void UNSTREAM_INIT( void )
 
 PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size )
 {
+    assert( buffer );
+
     PyObject *result = PyObject_CallFunction(
         _module_cPickle_function_loads,
 #if PYTHON_VERSION < 300
-        (char *)"(s#)",
+        (char *)"(s#)", // TODO: Why the ()
 #else
-        (char *)"(y#)",
+        (char *)"y#",
 #endif
         buffer,
         size
@@ -1097,14 +1127,13 @@ PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
 #else
     PyObject *result = PyUnicode_FromStringAndSize( buffer, size );
 #endif
+
     assert( !ERROR_OCCURED() );
     assertObject( result );
     assert( Nuitka_String_Check( result ) );
 
 #if PYTHON_VERSION < 300
     assert( PyString_Size( result ) == size );
-#else
-    assert( PyUnicode_GET_SIZE( result ) == size );
 #endif
 
     if ( intern )
@@ -1405,4 +1434,166 @@ void setCommandLineParameters( int argc, char *argv[] )
 
     PySys_SetArgv( argc, argv_copy );
 #endif
+}
+
+typedef struct {
+    PyObject_HEAD
+    PyTypeObject *type;
+    PyObject *obj;
+    PyTypeObject *obj_type;
+} superobject;
+
+extern PyObject *_python_str_plain___class__;
+
+PyObject *_BUILTIN_SUPER( EVAL_ORDERED_2( PyObject *type, PyObject *object ) )
+{
+    assertObject( type );
+    assert( PyType_Check( type ));
+
+    superobject *result = PyObject_GC_New( superobject, &PySuper_Type );
+    assert( result );
+
+    result->type = (PyTypeObject *)INCREASE_REFCOUNT( type );
+    if ( object )
+    {
+        result->obj = INCREASE_REFCOUNT( object );
+
+        if ( PyType_Check( object ) && PyType_IsSubtype( (PyTypeObject *)object, (PyTypeObject *)type ))
+        {
+            result->obj_type = (PyTypeObject *)INCREASE_REFCOUNT( object );
+        }
+        else if ( PyType_IsSubtype( Py_TYPE(object ), (PyTypeObject *)type) )
+        {
+            result->obj_type = (PyTypeObject *)INCREASE_REFCOUNT( (PyObject *)Py_TYPE( object ) );
+        }
+        else
+        {
+            PyObject *class_attr = PyObject_GetAttr( object, _python_str_plain___class__);
+
+            if (likely( class_attr != NULL && PyType_Check( class_attr ) && (PyTypeObject *)class_attr != Py_TYPE( object ) ))
+            {
+                result->obj_type = (PyTypeObject *)class_attr;
+            }
+            else
+            {
+                if ( class_attr == NULL )
+                {
+                    PyErr_Clear();
+                }
+                else
+                {
+                    Py_DECREF( class_attr );
+                }
+
+                PyErr_Format(
+                    PyExc_TypeError,
+                    "super(type, obj): obj must be an instance or subtype of type"
+                );
+
+                throw _PythonException();
+            }
+        }
+    }
+    else
+    {
+        result->obj = NULL;
+        result->obj_type = NULL;
+    }
+
+    Nuitka_GC_Track( result );
+
+    assertObject( (PyObject *)result );
+
+    assert( Py_TYPE( result ) == &PySuper_Type );
+    Py_INCREF( result );
+
+    return (PyObject *)result;
+}
+
+extern PyObject *_python_str_plain___metaclass__;
+extern PyObject *_python_str_plain___class__;
+
+PyObject *_MAKE_CLASS( EVAL_ORDERED_5( PyObject *metaclass_global, PyObject *metaclass_class, PyObject *class_name, PyObject *bases, PyObject *class_dict ) )
+{
+    // This selection is dynamic, although it is something that might be determined at
+    // compile time already in many cases, and therefore should be a function that is
+    // built of nodes.
+#if PYTHON_VERSION < 300
+    PyObject *metaclass;
+
+    if ( metaclass_class != NULL )
+    {
+        metaclass = metaclass_class;
+    }
+    else
+    {
+        metaclass = PyDict_GetItem( class_dict, _python_str_plain___metaclass__ );
+    }
+
+    // Prefer the metaclass entry of the new class, otherwise search the base classes for
+    // their metaclass.
+    if ( metaclass != NULL )
+    {
+        /* Hold a reference to the metaclass while we use it. */
+        Py_INCREF( metaclass );
+    }
+    else
+#else
+    PyObject *metaclass = metaclass_class;
+
+    if ( metaclass == NULL )
+#endif
+    {
+        assertObject( bases );
+
+        if ( PyTuple_GET_SIZE( bases ) > 0 )
+        {
+            PyObject *base = PyTuple_GET_ITEM( bases, 0 );
+
+            metaclass = PyObject_GetAttr( base, _python_str_plain___class__ );
+
+            if ( metaclass == NULL )
+            {
+                PyErr_Clear();
+
+                metaclass = INCREASE_REFCOUNT( (PyObject *)Py_TYPE( base ) );
+            }
+        }
+        else if ( metaclass_global != NULL )
+        {
+            metaclass = INCREASE_REFCOUNT( metaclass_global );
+        }
+        else
+        {
+#if PYTHON_VERSION < 300
+            // Default to old style class.
+            metaclass = INCREASE_REFCOUNT( (PyObject *)&PyClass_Type );
+#else
+            // Default to new style class.
+            metaclass = INCREASE_REFCOUNT( (PyObject *)&PyType_Type );
+#endif
+        }
+    }
+
+    PyObject *result = PyObject_CallFunctionObjArgs(
+        metaclass,
+        class_name,
+        bases,
+        class_dict,
+        NULL
+    );
+
+    Py_DECREF( metaclass );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    return result;
+}
+
+PyObject *BUILTIN_CALLABLE( PyObject *value )
+{
+    return PyBool_FromLong( (long)PyCallable_Check( value ) );
 }

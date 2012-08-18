@@ -46,7 +46,7 @@ try:
         raise Exception( "Lalala" )
         print x
 except Exception, e:
-    print "Caught raised exception", e
+    print "Caught raised exception", repr(e)
 
 l = range(3)
 
@@ -58,7 +58,7 @@ try:
     with MyContextManager():
         sys.exit(9)
 except BaseException as e:
-    print "Caught base exception", e
+    print "Caught base exception", repr(e)
 
 
 try:
@@ -66,7 +66,7 @@ try:
     with MyContextManager() as l.wontwork:
         sys.exit(9)
 except BaseException as e:
-    print "Caught base exception", e
+    print "Caught base exception", repr(e)
 
 with MyContextManager() as x:
     pass
@@ -83,13 +83,13 @@ try:
     with NonContextManager1() as x:
         print x
 except Exception, e:
-    print e
+    print repr(e)
 
 try:
     with NonContextManager2() as x:
         print x
 except Exception, e:
-    print e
+    print repr(e)
 
 class NotAtAllContextManager:
     pass
@@ -98,7 +98,7 @@ try:
     with NotAtAllContextManager() as x:
         print x
 except Exception, e:
-    print e
+    print repr(e)
 
 class MeanContextManager:
     def __enter__( self ):
@@ -111,4 +111,4 @@ try:
     with MeanContextManager() as x:
         print x
 except Exception, e:
-    print e
+    print repr(e)

@@ -33,8 +33,7 @@ typedef struct {
     PyObject *md_dict;
 } PyModuleObject;
 
-template<typename... P>
-static void PRINT_ITEMS( bool new_line, PyObject *file, P...eles );
+extern void PRINT_ITEM_TO( PyObject *file, PyObject *object );
 static PyObject *INCREASE_REFCOUNT( PyObject *object );
 static PyObject *INCREASE_REFCOUNT_X( PyObject *object );
 
@@ -274,7 +273,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT( PyObject *value )
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *TO_INT( PyObject *value, PyObject *base )
+#define TO_INT2( value, base ) _TO_INT2( EVAL_ORDERED_2( value, base ) )
+NUITKA_MAY_BE_UNUSED static PyObject *_TO_INT2( EVAL_ORDERED_2( PyObject *value, PyObject *base ) )
 {
     int base_int = PyInt_AsLong( base );
 
@@ -312,7 +312,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG( PyObject *value )
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG( PyObject *value, PyObject *base )
+#define TO_LONG2( value, base ) _TO_LONG2( EVAL_ORDERED_2( value, base ) )
+NUITKA_MAY_BE_UNUSED static PyObject *_TO_LONG2( EVAL_ORDERED_2( PyObject *value, PyObject *base ) )
 {
     int base_int = PyInt_AsLong( base );
 
@@ -366,6 +367,80 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE( PyObject *value )
 
     return result;
 }
+
+#define TO_UNICODE3( value, encoding, errors ) _TO_UNICODE3( EVAL_ORDERED_3( value, encoding, errors ) )
+NUITKA_MAY_BE_UNUSED static PyObject *_TO_UNICODE3( EVAL_ORDERED_3( PyObject *value, PyObject *encoding, PyObject *errors ) )
+{
+    char *encoding_str;
+
+    PyObject *uarg2 = NULL;
+    PyObject *uarg3 = NULL;
+
+    if ( encoding == NULL )
+    {
+        encoding_str = NULL;
+    }
+    else if ( Nuitka_String_Check( encoding ) )
+    {
+        encoding_str = Nuitka_String_AsString_Unchecked( encoding );
+    }
+#if PYTHON_VERSION < 300
+    else if ( PyUnicode_Check( encoding ) )
+    {
+        uarg2 = _PyUnicode_AsDefaultEncodedString( encoding, NULL );
+        assertObject( uarg2 );
+
+        encoding_str = Nuitka_String_AsString_Unchecked( uarg2 );
+    }
+#endif
+    else
+    {
+        PyErr_Format( PyExc_TypeError, "unicode() argument 2 must be string, not %s", Py_TYPE( encoding )->tp_name );
+        throw _PythonException();
+    }
+
+    char *errors_str;
+
+    if ( errors == NULL )
+    {
+        errors_str = NULL;
+    }
+    else if ( Nuitka_String_Check( errors ) )
+    {
+        errors_str = Nuitka_String_AsString_Unchecked( errors );
+    }
+#if PYTHON_VERSION < 300
+    else if ( PyUnicode_Check( errors ) )
+    {
+        uarg3 = _PyUnicode_AsDefaultEncodedString( errors, NULL );
+        assertObject( uarg3 );
+
+        errors_str = Nuitka_String_AsString_Unchecked( uarg3 );
+    }
+#endif
+    else
+    {
+        Py_XDECREF( uarg2 );
+
+        PyErr_Format( PyExc_TypeError, "unicode() argument 3 must be string, not %s", Py_TYPE( errors )->tp_name );
+        throw _PythonException();
+    }
+
+    PyObject *result = PyUnicode_FromEncodedObject( value, encoding_str, errors_str );
+
+    Py_XDECREF( uarg2 );
+    Py_XDECREF( uarg3 );
+
+    if (unlikely( result == NULL ))
+    {
+        throw _PythonException();
+    }
+
+    assert( PyUnicode_Check( result ) );
+
+    return result;
+}
+
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SET()
 {
@@ -518,7 +593,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
 }
 
 
-NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObject *default_value )
+#define BUILTIN_NEXT2( iterator, default_value ) _BUILTIN_NEXT2( EVAL_ORDERED_2( iterator, default_value ) )
+NUITKA_MAY_BE_UNUSED static PyObject *_BUILTIN_NEXT2( EVAL_ORDERED_2( PyObject *iterator, PyObject *default_value ) )
 {
     assertObject( iterator );
     assertObject( default_value );
@@ -989,7 +1065,8 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
 }
 #endif
 
-NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *target, PyObject *attr_name, PyObject *value )
+#define SET_ATTRIBUTE( value, target, attr_name ) _SET_ATTRIBUTE( EVAL_ORDERED_3( value, target, attr_name ) )
+NUITKA_MAY_BE_UNUSED static void _SET_ATTRIBUTE( EVAL_ORDERED_3( PyObject *value, PyObject *target, PyObject *attr_name ) )
 {
     assertObject( target );
     assertObject( attr_name );
@@ -1331,7 +1408,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 extern PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags );
 
 // For quicker builtin open() functionality.
-extern PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering );
+#define OPEN_FILE( file_name, mode, buffer ) _OPEN_FILE( EVAL_ORDERED_3( file_name, mode, buffer ) )
+extern PyObject *_OPEN_FILE( EVAL_ORDERED_3( PyObject *file_name, PyObject *mode, PyObject *buffering ) );
 
 // For quicker builtin chr() functionality.
 extern PyObject *BUILTIN_CHR( PyObject *value );
@@ -1348,24 +1426,36 @@ extern PyObject *BUILTIN_OCT( PyObject *value );
 // For quicker builtin hex() functionality.
 extern PyObject *BUILTIN_HEX( PyObject *value );
 
+// For quicker callable() functionality.
+extern PyObject *BUILTIN_CALLABLE( PyObject *value );
+
 // For quicker iter() functionality if 2 arguments arg given.
-extern PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel );
+#define BUILTIN_ITER2( callable, sentinel ) _BUILTIN_ITER2( EVAL_ORDERED_2( callable, sentinel ) )
+extern PyObject *_BUILTIN_ITER2( EVAL_ORDERED_2( PyObject *callable, PyObject *sentinel ) );
 
 // For quicker type() functionality if 1 argument is given.
 extern PyObject *BUILTIN_TYPE1( PyObject *arg );
 
 // For quicker type() functionality if 3 arguments are given (to build a new type).
-extern PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict );
+#define BUILTIN_TYPE3( module_name, name, bases, dict ) _BUILTIN_TYPE3( EVAL_ORDERED_4( module_name, name, bases, dict ) )
+extern PyObject *_BUILTIN_TYPE3( EVAL_ORDERED_4( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict ) );
 
 // For quicker builtin range() functionality.
-extern PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high, PyObject *step );
-extern PyObject *BUILTIN_RANGE( PyObject *low, PyObject *high );
+#define BUILTIN_RANGE3( low, high, step ) _BUILTIN_RANGE3( EVAL_ORDERED_3( low, high, step ) )
+extern PyObject *_BUILTIN_RANGE3( EVAL_ORDERED_3( PyObject *low, PyObject *high, PyObject *step ) );
+#define BUILTIN_RANGE2( low, high ) _BUILTIN_RANGE2( EVAL_ORDERED_2( low, high ) )
+extern PyObject *_BUILTIN_RANGE2( EVAL_ORDERED_2( PyObject *low, PyObject *high ) );
 extern PyObject *BUILTIN_RANGE( PyObject *boundary );
 
 // For quicker builtin len() functionality.
 extern PyObject *BUILTIN_LEN( PyObject *boundary );
 
+// For quicker builtin dir(arg) functionality.
 extern PyObject *BUILTIN_DIR1( PyObject *arg );
+
+// For quicker builtin super() functionality.
+#define BUILTIN_SUPER( type, object) _BUILTIN_SUPER( EVAL_ORDERED_2( type, object ) )
+extern PyObject *_BUILTIN_SUPER( EVAL_ORDERED_2( PyObject *type, PyObject *object ) );
 
 NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {
@@ -1435,84 +1525,6 @@ extern void patchInspectModule( void );
 #define MAKE_CLASS( metaclass_global, metaclass_class, class_name, bases, class_dict ) _MAKE_CLASS( EVAL_ORDERED_5( metaclass_global, metaclass_class, class_name, bases, class_dict ) )
 
 
-NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_CLASS( EVAL_ORDERED_5( PyObject *metaclass_global, PyObject *metaclass_class, PyObject *class_name, PyObject *bases, PyObject *class_dict ) )
-{
-    // This selection is dynamic, although it is something that might be determined at
-    // compile time already in many cases, and therefore should be a function that is
-    // built of nodes.
-#if PYTHON_VERSION < 300
-    PyObject *metaclass;
-
-    if ( metaclass_class != NULL )
-    {
-        metaclass = metaclass_class;
-    }
-    else
-    {
-        metaclass = PyDict_GetItemString( class_dict, "__metaclass__" );
-    }
-
-    // Prefer the metaclass entry of the new class, otherwise search the base classes for
-    // their metaclass.
-    if ( metaclass != NULL )
-    {
-        /* Hold a reference to the metaclass while we use it. */
-        Py_INCREF( metaclass );
-    }
-    else
-#else
-    PyObject *metaclass = metaclass_class;
-
-    if ( metaclass == NULL )
-#endif
-    {
-        assertObject( bases );
-
-        if ( PyTuple_GET_SIZE( bases ) > 0 )
-        {
-            PyObject *base = PyTuple_GET_ITEM( bases, 0 );
-
-            metaclass = PyObject_GetAttrString( base, "__class__" );
-
-            if ( metaclass == NULL )
-            {
-                PyErr_Clear();
-
-                metaclass = INCREASE_REFCOUNT( (PyObject *)Py_TYPE( base ) );
-            }
-        }
-        else if ( metaclass_global != NULL )
-        {
-            metaclass = INCREASE_REFCOUNT( metaclass_global );
-        }
-        else
-        {
-#if PYTHON_VERSION < 300
-            // Default to old style class.
-            metaclass = INCREASE_REFCOUNT( (PyObject *)&PyClass_Type );
-#else
-            // Default to old style class.
-            metaclass = INCREASE_REFCOUNT( (PyObject *)&PyType_Type );
-#endif
-        }
-    }
-
-    PyObject *result = PyObject_CallFunctionObjArgs(
-        metaclass,
-        class_name,
-        bases,
-        class_dict,
-        NULL
-    );
-
-    Py_DECREF( metaclass );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
+extern PyObject *_MAKE_CLASS( EVAL_ORDERED_5( PyObject *metaclass_global, PyObject *metaclass_class, PyObject *class_name, PyObject *bases, PyObject *class_dict ) );
 
 #endif

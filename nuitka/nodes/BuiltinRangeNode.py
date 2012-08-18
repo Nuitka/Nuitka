@@ -26,8 +26,7 @@ predicted still, and these are interesting for warnings.
 from .NodeBases import (
     CPythonExpressionChildrenHavingBase,
     CPythonSideEffectsFromChildrenMixin,
-    CPythonExpressionMixin,
-    CPythonNodeBase
+    CPythonExpressionBuiltinNoArgBase
 )
 
 from .NodeMakingHelpers import (
@@ -41,38 +40,15 @@ from nuitka.Utils import python_version
 
 import math
 
-class CPythonExpressionBuiltinRange0( CPythonNodeBase, CPythonExpressionMixin ):
+class CPythonExpressionBuiltinRange0( CPythonExpressionBuiltinNoArgBase ):
     kind = "EXPRESSION_BUILTIN_RANGE0"
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__(
+        CPythonExpressionBuiltinNoArgBase.__init__(
             self,
-            source_ref = source_ref
+            builtin_function = range,
+            source_ref       = source_ref
         )
-
-    def computeNode( self, constraint_collection ):
-        # Intentional to get exception, pylint: disable=W0108,W0613
-        return getComputationResult(
-            node        = self,
-            computation = lambda : range(),
-            description = "No arg range builtin"
-        )
-
-    def getIterationLength( self, constraint_collection ):
-        # Not state dependent, pylint: disable=W0613
-        return None
-
-    def canPredictIterationValues( self, constraint_collection ):
-        # Not state dependent, pylint: disable=W0613
-        return False
-
-    def getIterationValue( self, element_index, constraint_collection ):
-        # Not state dependent, pylint: disable=W0613
-        return None
-
-    def isKnownToBeIterable( self, count ):
-        # Not state dependent, pylint: disable=W0613
-        return False
 
 
 class CPythonExpressionBuiltinRangeBase( CPythonSideEffectsFromChildrenMixin, \
@@ -100,6 +76,8 @@ class CPythonExpressionBuiltinRange1( CPythonExpressionBuiltinRangeBase ):
     named_children = ( "low", )
 
     def __init__( self, low, source_ref ):
+        assert low is not None
+
         CPythonExpressionBuiltinRangeBase.__init__(
             self,
             values     = {

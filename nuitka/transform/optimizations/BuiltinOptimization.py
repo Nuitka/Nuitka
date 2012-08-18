@@ -49,7 +49,7 @@ class BuiltinParameterSpec( ParameterSpec ):
 
     def isCompileTimeComputable( self, values ):
         for value in values:
-            if not value.isCompileTimeConstant():
+            if value is not None and not value.isCompileTimeConstant():
                 return False
         else:
             return True
@@ -158,14 +158,21 @@ class BuiltinParameterSpecExceptions( BuiltinParameterSpec ):
 
 
 builtin_int_spec = BuiltinParameterSpec( "int", ( "x", "base" ), 2 )
-# This builtin is only available for Python2
+# These builtins are only available for Python2
 if python_version < 300:
     builtin_long_spec = BuiltinParameterSpec( "long", ( "x", "base" ), 2 )
     builtin_execfile_spec = BuiltinParameterSpecNoKeywords( "execfile", ( "filename", "globals", "locals" ), 2 )
+    builtin_unicode_spec = BuiltinParameterSpec( "unicode", ( "string", "encoding", "errors" ), 3 )
 
 builtin_bool_spec = BuiltinParameterSpec( "bool", ( "x", ), 1 )
 builtin_float_spec = BuiltinParameterSpec( "float", ( "x", ), 1 )
-builtin_str_spec = BuiltinParameterSpec( "str", ( "object", ), 1 )
+
+# This builtin have variable parameters for Python2/3
+if python_version < 300:
+    builtin_str_spec = BuiltinParameterSpec( "str", ( "object", ), 1 )
+else:
+    builtin_str_spec = BuiltinParameterSpec( "str", ( "object", "encoding", "errors" ), 3 )
+
 builtin_len_spec = BuiltinParameterSpecNoKeywords( "len", ( "object", ), 0 )
 builtin_dict_spec = BuiltinParameterSpec( "dict", (), 0, "list_args", "dict_args" )
 builtin_len_spec = BuiltinParameterSpecNoKeywords( "len", ( "object", ), 0 )
@@ -185,6 +192,8 @@ builtin_vars_spec = BuiltinParameterSpecNoKeywords( "vars", ( "object", ), 0 )
 
 builtin_locals_spec = BuiltinParameterSpecNoKeywords( "locals", (), 0 )
 builtin_globals_spec = BuiltinParameterSpecNoKeywords( "globals", (), 0 )
+
+builtin_super_spec = BuiltinParameterSpecNoKeywords( "super", ("type", "object" ), 1 if python_version < 300 else 2 )
 
 
 class BuiltinRangeSpec( BuiltinParameterSpecNoKeywords ):
@@ -252,7 +261,7 @@ class BuiltinRangeSpec( BuiltinParameterSpecNoKeywords ):
 builtin_range_spec = BuiltinRangeSpec( "range", ( "start", "stop", "step" ), 2 )
 
 
-def extractBuiltinArgs( node, builtin_spec, builtin_class ):
+def extractBuiltinArgs( node, builtin_spec, builtin_class, empty_special_class = None ):
     # These cannot be handled.
     if node.getStarListArg() is not None or node.getStarDictArg() is not None:
         return None
@@ -269,13 +278,18 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class ):
                 TypeError( builtin_spec.getKeywordRefusalText() )
             )
 
+        positional = node.getPositionalArguments()
+
+        if not positional and not pairs and empty_special_class is not None:
+            return empty_special_class( source_ref = node.getSourceReference() )
+
         args_dict = matchCall(
             func_name     = builtin_spec.getName(),
             args          = builtin_spec.getArgumentNames(),
             star_list_arg = builtin_spec.getStarListArgumentName(),
             star_dict_arg = builtin_spec.getStarDictArgumentName(),
             num_defaults  = builtin_spec.getDefaultCount(),
-            positional    = node.getPositionalArguments(),
+            positional    = positional,
             pairs         = pairs
         )
     except TooManyArguments as e:

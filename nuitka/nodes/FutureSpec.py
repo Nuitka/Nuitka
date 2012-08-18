@@ -32,6 +32,7 @@ class FutureSpec:
         self._unicode_literals  = False
         self._absolute_import   = False
         self._future_print      = False
+        self._barry_bdfl        = False
 
     def clone( self ):
         result = FutureSpec()
@@ -40,6 +41,7 @@ class FutureSpec:
         result._unicode_literals  = self._unicode_literals
         result._absolute_import   = self._absolute_import
         result._future_print      = self._future_print
+        result._barry_bdfl        = self._barry_bdfl
 
         return result
 
@@ -58,6 +60,9 @@ class FutureSpec:
     def enableAbsoluteImport( self ):
         self._absolute_import = True
 
+    def enableBarry( self ):
+        self._barry_bdfl = True
+
     def isAbsoluteImport( self ):
         return self._absolute_import
 
@@ -75,5 +80,8 @@ class FutureSpec:
 
         if self._future_print:
             result.append( "CO_FUTURE_PRINT_FUNCTION" )
+
+        if self._barry_bdfl and Utils.python_version >= 300:
+            result.append( "CO_FUTURE_BARRY_AS_BDFL" )
 
         return result

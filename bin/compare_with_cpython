@@ -112,11 +112,14 @@ process = subprocess.Popen(
 stdout_cpython, stderr_cpython = process.communicate()
 exit_cpython = process.returncode
 
-if not silent_mode:
+def displayCPython():
     print( stdout_cpython, end=' ' )
 
     if stderr_cpython:
         print( stderr_cpython )
+
+if not silent_mode:
+    displayCPython()
 
 if not silent_mode:
     print( "*******************************************************" )
@@ -173,9 +176,10 @@ compiled_genexpr_re = re.compile( r"\<compiled generator object \<(.*?)\>" )
 compiled_generator_re = re.compile( r"\<compiled generator object (.*?) at" )
 unbound_method_re = re.compile( r"bound compiled_method " )
 compiled_type_re = re.compile( r"type 'compiled_" )
+compiled_generator_object_re = re.compile( r"'compiled_generator' object" )
 global_name_error_re = re.compile( r"global (name ')(.*?)(' is not defined)" )
 module_repr_re = re.compile( r"(\<module '.*?' from ').*?('\>)" )
-
+non_ascii_error_rt = re.compile( r"(SyntaxError: Non-ASCII character.*? on line) \d+" )
 fromdate = None
 todate = None
 
@@ -183,7 +187,8 @@ def makeDiffable( output ):
     result = []
 
     for line in output.split( b"\n" ):
-        line = str( line )
+        if type( line ) is not str:
+            line = line.decode( "utf-8" )
 
         if line.endswith( "\r" ):
             line = line[:-1]
@@ -200,8 +205,10 @@ def makeDiffable( output ):
         line = compiled_generator_re.sub( r"<generator object \1 at", line )
         line = unbound_method_re.sub( r"bound method ", line )
         line = compiled_type_re.sub( r"type '", line )
+        line = compiled_generator_object_re.sub( r"'generator' object", line )
         line = global_name_error_re.sub( r"\1\2\3", line )
         line = module_repr_re.sub( r"\1xxxxx\2", line )
+        line = non_ascii_error_rt.sub( r"\1 xxxx", line )
 
         # Windows has a different os.path, update according to it.
         line = line.replace( "ntpath", "posixpath" )
@@ -273,6 +280,9 @@ if not silent_mode:
     print( "OK, same outputs." )
 
 if expect_success and exit_cpython != 0:
+    if silent_mode:
+        displayCPython()
+
     sys.exit( "Unexpected error exit from CPython." )
 
 if expect_failure and exit_cpython == 0:

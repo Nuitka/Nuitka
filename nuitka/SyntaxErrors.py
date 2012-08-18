@@ -39,7 +39,7 @@ def formatOutput( e ):
             e.__class__.__name__,
             reason
          )
-    else:
+    elif message is not None:
         return """\
   File "%s", line %d
     %s
@@ -50,6 +50,22 @@ def formatOutput( e ):
             e.__class__.__name__,
             reason
          )
+    elif filename is not None:
+        return """\
+  File "%s", line %s
+%s: %s""" % (
+            filename,
+            lineno,
+            e.__class__.__name__,
+            reason
+         )
+    else:
+        return """\
+%s: %s""" % (
+            e.__class__.__name__,
+            reason
+         )
+
 
 def raiseSyntaxError( reason, source_ref, col_offset = None ):
     source = open( source_ref.getFilename(), 'rU' ).readlines()

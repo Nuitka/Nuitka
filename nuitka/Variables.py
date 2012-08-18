@@ -96,6 +96,9 @@ class Variable:
     def isModuleVariableReference( self ):
         return False
 
+    def isReference( self ):
+        return self.isClosureReference() or self.isModuleVariableReference()
+
     def isModuleVariable( self ):
         return False
 
@@ -149,21 +152,14 @@ class Variable:
                 variable = self
             )
 
-    def getDeclarationCode( self, for_reference, for_local ):
-        if for_reference:
-            sep = " &"
-        elif for_local:
-            sep = " _"
-        else:
-            sep = " "
-
-        return self.getDeclarationTypeCode() + sep + self.getCodeName()
+    def getDeclarationCode( self ):
+        return self.getDeclarationTypeCode( in_context = False ) + " &" + self.getCodeName()
 
     def getMangledName( self ):
         return self.getName()
 
-    def getDeclarationTypeCode( self ):
-        # Abstract method, pylint: disable=R0201
+    def getDeclarationTypeCode( self, in_context ):
+        # Abstract method, pylint: disable=R0201,W0613
         assert False
 
     def getCodeName( self ):
@@ -240,11 +236,16 @@ class ClosureVariableReference( VariableReferenceBase ):
             else:
                 assert False
 
-    def getDeclarationTypeCode( self ):
+    def getDeclarationTypeCode( self, in_context ):
         if self.getReferenced().isShared():
-            return "PyObjectSharedLocalVariable"
+            if in_context:
+                return "PyObjectClosureVariable"
+            else:
+                return "PyObjectSharedLocalVariable"
         else:
-            return self.getReferenced().getDeclarationTypeCode()
+            return self.getReferenced().getDeclarationTypeCode(
+                in_context = in_context
+            )
 
     def getCodeName( self ):
         return "python_closure_%s" % self.getName()
@@ -306,11 +307,21 @@ class LocalVariable( Variable ):
     def getCodeName( self ):
         return "python_var_" + self.getName()
 
-    def getDeclarationTypeCode( self ):
+    def getDeclarationTypeCode( self, in_context ):
         if self.isShared():
             return "PyObjectSharedLocalVariable"
         else:
             return "PyObjectLocalVariable"
+
+
+class ClassVariable( LocalVariable ):
+
+    def getMangledName( self ):
+        # Names like "__name__" are not mangled, only "__name" would be.
+        if not self.variable_name.startswith( "__" ) or self.variable_name.endswith( "__" ):
+            return self.variable_name
+        else:
+            return "_" + self.owner.getName() + self.variable_name
 
 
 class MaybeLocalVariable( Variable ):
@@ -345,7 +356,7 @@ class ParameterVariable( LocalVariable ):
     def isParameterVariable( self ):
         return True
 
-    def getDeclarationTypeCode( self ):
+    def getDeclarationTypeCode( self, in_context ):
         if self.isShared():
             return "PyObjectSharedLocalVariable"
         elif self.getHasDelIndicator():
@@ -386,44 +397,6 @@ def makeParameterVariables( owner, parameter_names ):
         for parameter_name in
         parameter_names
     ]
-
-
-# TODO: These will become obsolete.
-class ClassVariable( Variable ):
-    reference_class = ClosureVariableReference
-
-    def __init__( self, owner, variable_name ):
-        Variable.__init__(
-            self,
-            owner         = owner,
-            variable_name = variable_name
-        )
-
-    def __repr__( self ):
-        return "<ClassVariable '%s' of '%s'>" % (
-            self.variable_name,
-            self.owner.getName()
-        )
-
-    def isClassVariable( self ):
-        return True
-
-    def getDeclarationTypeCode( self ):
-        if self.isShared():
-            return "PyObjectSharedLocalVariable"
-        else:
-            return "PyObjectLocalVariable"
-
-    def getCodeName( self ):
-        return "python_var_" + self.getName()
-
-    def getMangledName( self ):
-        # Names like "__name__" are not mangled, only "__name" would be.
-        if not self.variable_name.startswith( "__" ) or self.variable_name.endswith( "__" ):
-            return self.variable_name
-        else:
-            return "_" + self.owner.getName() + self.variable_name
-
 
 class ModuleVariable( Variable ):
     module_variables = {}
@@ -515,7 +488,7 @@ class TempVariable( Variable ):
 
         self.needs_free = needs_free
 
-    def getDeclarationTypeCode( self ):
+    def getDeclarationTypeCode( self, in_context ):
         assert self.needs_free is not None, self
 
         if self.needs_free:

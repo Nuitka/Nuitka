@@ -137,8 +137,6 @@ class ConstraintCollectionBase:
     def onClosureTaker( self, closure_taker ):
         if closure_taker.isExpressionFunctionBody():
             collector = ConstraintCollectionFunction( self, self.signalChange )
-        elif closure_taker.isExpressionClassBody():
-            collector = ConstraintCollectionClass( self, self.signalChange )
         else:
             assert False, closure_taker
 
@@ -153,10 +151,14 @@ class ConstraintCollectionBase:
         assert statements, statements_sequence
 
         for count, statement in enumerate( statements ):
-            new_statement = self.onStatement( statement )
+            # May be frames embedded.
+            if statement.isStatementsFrame():
+                new_statement = self.onStatementsSequence( statement )
+            else:
+                new_statement = self.onStatement( statement )
 
             if new_statement is not None:
-                if new_statement.isStatementsSequence():
+                if new_statement.isStatementsSequence() and not new_statement.isStatementsFrame():
                     new_statements.extend( new_statement.getStatements() )
                 else:
                     new_statements.append( new_statement )
@@ -175,8 +177,14 @@ class ConstraintCollectionBase:
         if statements != new_statements:
             if new_statements:
                 statements_sequence.setStatements( new_statements )
+
+                return statements_sequence
             else:
                 statements_sequence.replaceWith( None )
+
+                return None
+        else:
+            return statements_sequence
 
     def onExpression( self, expression, allow_none = False ):
         if expression is None and allow_none:
@@ -686,40 +694,6 @@ class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrack
         self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
 
 
-class ConstraintCollectionClass( ConstraintCollectionBase, VariableUsageTrackingMixin ):
-    def __init__( self, parent, signal_change ):
-        ConstraintCollectionBase.__init__(
-            self,
-            parent        = parent,
-            signal_change = signal_change
-        )
-
-        VariableUsageTrackingMixin.__init__( self )
-
-        self.class_body = None
-
-    def process( self, class_body ):
-        assert class_body.isExpressionClassBody()
-        self.class_body = class_body
-
-        statements_sequence = class_body.getBody()
-
-        if statements_sequence is not None:
-            self.onStatementsSequence( statements_sequence )
-
-        self.setTempNeedsFreeIndications()
-
-    def onLocalVariableAssigned( self, variable, value_friend ):
-        self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
-
-    def onTempVariableAssigned( self, variable, value_friend ):
-        variable = variable.getReferenced()
-
-        assert variable.getRealOwner() is self.class_body, variable.getOwner()
-
-        self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
-
-
 class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackingMixin ):
     def __init__( self, signal_change ):
         ConstraintCollectionBase.__init__( self, None, signal_change )
@@ -743,21 +717,6 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
 
     def attemptRecursion( self, module ):
         if not Options.shallMakeModule():
-            module_filename = module.getFilename()
-
-            # Make sure, we are known to the tree recursion. TODO: Why isn't this done at
-            # creation time already? This whole function should be executed at the time
-            # the module came into existence, i.e. long before optimization kicks in.
-            if module_filename not in TreeRecursion.imported_modules:
-                if Utils.basename( module_filename ) == "__init__.py":
-                    module_relpath = Utils.dirname( module_filename )
-                else:
-                    module_relpath = module_filename
-
-                module_relpath = Utils.relpath( module_relpath )
-
-                TreeRecursion.imported_modules[ Utils.relpath( module_relpath ) ] = module
-
             # Make sure the package is recursed to.
             module_package = module.getPackage()
 

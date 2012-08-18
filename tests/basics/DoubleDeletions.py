@@ -23,7 +23,7 @@ del a
 try:
     del a
 except NameError, e:
-    print "Raised expected exception:", e
+    print "Raised expected exception:", repr(e)
 
 def someFunction( b, c ):
    b = 1
@@ -33,6 +33,6 @@ def someFunction( b, c ):
    try:
        del b
    except UnboundLocalError, e:
-       print "Raised expected exception:", e
+       print "Raised expected exception:", repr(e)
 
 someFunction( 3, 4 )

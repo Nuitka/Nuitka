@@ -33,7 +33,6 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     CPythonExpressionBuiltinLen
 )
 from nuitka.nodes.BuiltinTypeNodes import (
-#    CPythonExpressionBuiltinUnicode, TODO: Missing from here actually
     CPythonExpressionBuiltinFloat,
     CPythonExpressionBuiltinTuple,
     CPythonExpressionBuiltinList,
@@ -48,7 +47,8 @@ from nuitka.nodes.BuiltinFormatNodes import (
 )
 from nuitka.nodes.BuiltinDecodingNodes import (
     CPythonExpressionBuiltinChr,
-    CPythonExpressionBuiltinOrd
+    CPythonExpressionBuiltinOrd,
+    CPythonExpressionBuiltinOrd0
 )
 from nuitka.nodes.ExecEvalNodes import (
     CPythonExpressionBuiltinEval,
@@ -60,6 +60,8 @@ if python_version < 300:
     from nuitka.nodes.ExecEvalNodes import CPythonExpressionBuiltinExecfile
 else:
     from nuitka.nodes.ExecEvalNodes import CPythonExpressionBuiltinExec
+
+from nuitka.nodes.VariableRefNode import CPythonExpressionVariableRef
 
 from nuitka.nodes.GlobalsLocalsNodes import (
     CPythonExpressionBuiltinGlobals,
@@ -84,13 +86,17 @@ from nuitka.nodes.BuiltinRangeNode import (
 
 from nuitka.nodes.BuiltinVarsNode import CPythonExpressionBuiltinVars
 from nuitka.nodes.ImportNodes import CPythonExpressionBuiltinImport
-from nuitka.nodes.TypeNode import CPythonExpressionBuiltinType1
+from nuitka.nodes.TypeNode import (
+    CPythonExpressionBuiltinSuper,
+    CPythonExpressionBuiltinType1,
+)
 from nuitka.nodes.ClassNodes import CPythonExpressionBuiltinType3
 from nuitka.nodes.CallNode import CPythonExpressionCall
 from nuitka.nodes.AttributeNode import CPythonExpressionAttributeLookup
 
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,
+    makeRaiseExceptionReplacementExpression
 )
 
 
@@ -220,9 +226,10 @@ def chr_extractor( node ):
 
 def ord_extractor( node ):
     return BuiltinOptimization.extractBuiltinArgs(
-        node          = node,
-        builtin_class = CPythonExpressionBuiltinOrd,
-        builtin_spec  = BuiltinOptimization.builtin_ord_spec
+        node                = node,
+        builtin_class       = CPythonExpressionBuiltinOrd,
+        builtin_spec        = BuiltinOptimization.builtin_ord_spec,
+        empty_special_class = CPythonExpressionBuiltinOrd0
     )
 
 def bin_extractor( node ):
@@ -262,9 +269,7 @@ def repr_extractor( node ):
 
 def range_extractor( node ):
     def selectRangeBuiltin( low, high, step, source_ref ):
-        if low is None:
-            return CPythonExpressionBuiltinRange0( source_ref )
-        elif high is None:
+        if high is None:
             return CPythonExpressionBuiltinRange1( low, source_ref )
         elif step is None:
             return CPythonExpressionBuiltinRange2( low, high, source_ref )
@@ -272,9 +277,10 @@ def range_extractor( node ):
             return CPythonExpressionBuiltinRange3( low, high, step, source_ref )
 
     return BuiltinOptimization.extractBuiltinArgs(
-        node          = node,
-        builtin_class = selectRangeBuiltin,
-        builtin_spec  = BuiltinOptimization.builtin_range_spec
+        node                = node,
+        builtin_class       = selectRangeBuiltin,
+        empty_special_class = CPythonExpressionBuiltinRange0,
+        builtin_spec        = BuiltinOptimization.builtin_range_spec
     )
 
 def len_extractor( node ):
@@ -311,6 +317,17 @@ def str_extractor( node ):
         builtin_class = CPythonExpressionBuiltinStr,
         builtin_spec  = BuiltinOptimization.builtin_str_spec
     )
+
+if python_version < 300:
+    from nuitka.nodes.BuiltinTypeNodes import CPythonExpressionBuiltinUnicode
+
+    def unicode_extractor( node ):
+        return BuiltinOptimization.extractBuiltinArgs(
+            node          = node,
+            builtin_class = CPythonExpressionBuiltinUnicode,
+            builtin_spec  = BuiltinOptimization.builtin_unicode_spec
+        )
+
 
 def bool_extractor( node ):
     return BuiltinOptimization.extractBuiltinArgs(
@@ -365,7 +382,7 @@ def execfile_extractor( node ):
 
         provider = node.getParentVariableProvider()
 
-        if provider.isExpressionClassBody():
+        if provider.isExpressionFunctionBody() and provider.isClassDictCreation():
             # In a case, the copy-back must be done and will only be done correctly by
             # the code for exec statements.
 
@@ -439,6 +456,69 @@ def open_extractor( node ):
         builtin_spec  = BuiltinOptimization.builtin_open_spec
     )
 
+def super_extractor( node ):
+
+
+    # Need to accept type and object as keyword argument, that is just the API of super,
+    # pylint: disable=W0622
+    def wrapSuperBuiltin( type, object, source_ref ):
+        if type is None and python_version >= 300:
+            provider = node.getParentVariableProvider()
+
+            type = CPythonExpressionVariableRef(
+                variable_name = "__class__",
+                source_ref    = source_ref
+            )
+
+            # Ought to be already closure taken.
+            type.setVariable(
+                provider.getVariableForReference(
+                    variable_name = "__class__"
+                )
+            )
+
+            if not type.getVariable().isClosureReference():
+                return makeRaiseExceptionReplacementExpression(
+                    expression      = node,
+                    exception_type  = "SystemError",
+                    exception_value = "super(): __class__ cell not found",
+                )
+
+            if object is None and provider.getParameters().getArgumentCount() > 0:
+                par1_name = provider.getParameters().getArgumentNames()[0]
+                # TODO: Nested first argument would kill us here, need a test for that.
+
+                object = CPythonExpressionVariableRef(
+                    variable_name = par1_name,
+                    source_ref    = source_ref
+                )
+
+                object.setVariable(
+                    node.getParentVariableProvider().getVariableForReference(
+                        variable_name = par1_name
+                    )
+                )
+
+                if not object.getVariable().isParameterVariable():
+                    return makeRaiseExceptionReplacementExpression(
+                        expression      = node,
+                        exception_type  = "SystemError",
+                        exception_value = "super(): __class__ cell not found",
+                    )
+
+
+        return CPythonExpressionBuiltinSuper(
+            super_type   = type,
+            super_object = object,
+            source_ref   = source_ref
+        )
+
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = wrapSuperBuiltin,
+        builtin_spec  = BuiltinOptimization.builtin_super_spec
+    )
+
 _dispatch_dict = {
     "globals"    : globals_extractor,
     "locals"     : locals_extractor,
@@ -466,11 +546,13 @@ _dispatch_dict = {
     "int"        : int_extractor,
     "repr"       : repr_extractor,
     "len"        : len_extractor,
-    "open"       : open_extractor
+    "open"       : open_extractor,
+    "super"      : super_extractor
 }
 
 if python_version < 300:
     _dispatch_dict[ "long" ] = long_extractor
+    _dispatch_dict[ "unicode" ] = unicode_extractor
 
 
 def computeBuiltinCall( call_node, called ):
@@ -490,7 +572,7 @@ def computeBuiltinCall( call_node, called ):
         elif new_node.isExpressionBuiltin() or new_node.isStatementExec():
             tags = "new_builtin"
             message = "Replaced call to builtin %s with builtin call." % new_node.kind
-        elif new_node.isExpressionCall():
+        elif new_node.isExpressionCall() or new_node.isExpressionRaiseException():
             tags = "new_raise"
             message = "Replaced call to builtin %s with exception raising call." % new_node.kind
         elif new_node.isExpressionOperationUnary():

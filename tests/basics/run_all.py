@@ -36,6 +36,9 @@ else:
 if "PYTHON" not in os.environ:
     os.environ[ "PYTHON" ] = "python"
 
+if "PYTHONIOENCODING" not in os.environ:
+    os.environ[ "PYTHONIOENCODING" ] = "utf-8"
+
 def check_output(*popenargs, **kwargs):
     from subprocess import Popen, PIPE, CalledProcessError
 
@@ -70,6 +73,10 @@ for filename in sorted( os.listdir( "." ) ):
     if filename.endswith( "27.py" ) and python_version.startswith( b"2.6" ):
         continue
 
+    # Skip tests that require Python 3.2 at least.
+    if filename.endswith( "32.py" ) and not python_version.startswith( b"3.2" ):
+        continue
+
     # The overflow functions test gives syntax error on Python 3.x and can be ignored.
     if filename == "OverflowFunctions.py" and python_version.startswith( b"3" ):
         continue
@@ -93,14 +100,14 @@ for filename in sorted( os.listdir( "." ) ):
     if active:
         # Temporary measure, until Python3 is better supported, disable some tests, so
         # this can be used to monitor the success of existing ones and have no regression for it.
-        if os.environ[ "PYTHON" ] == "python3.2" and filename[:-3] in ( "ExecEval", "Unicode", ):
+        if python_version.startswith( b"3.2" ) and filename[:-3] in ( "ExecEval",  ):
             print( "Skipping malfunctional test", filename )
             continue
 
         # Apply 2to3 conversion if necessary.
         assert type( python_version ) is bytes
 
-        if python_version.startswith( b"3" ):
+        if python_version.startswith( b"3" ) and not filename.endswith( "32.py" ):
             new_path = os.path.join( tempfile.gettempdir(), filename )
             shutil.copy( path, new_path )
 
@@ -133,5 +140,8 @@ for filename in sorted( os.listdir( "." ) ):
         if result != 0 and search_mode:
             print("Error exit!", result)
             sys.exit( result )
+
+        if python_version.startswith( b"3" ) and not filename.endswith( "32.py" ):
+            os.unlink( new_path )
     else:
         print("Skipping", filename)

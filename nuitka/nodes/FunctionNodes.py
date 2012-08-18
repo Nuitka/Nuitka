@@ -48,12 +48,13 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
 
     kind = "EXPRESSION_FUNCTION_BODY"
 
-    early_closure = False
-
     named_children = ( "body", )
 
-    def __init__( self, provider, name, doc, parameters, source_ref ):
-        code_prefix = "function"
+    def __init__( self, provider, name, doc, parameters, source_ref, is_class = False ):
+        if is_class:
+            code_prefix = "class"
+        else:
+            code_prefix = "function"
 
         if name == "<lambda>":
             name = "lambda"
@@ -90,7 +91,8 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
 
         CPythonClosureTaker.__init__(
             self,
-            provider = provider
+            provider      = provider,
+            early_closure = is_class
         )
 
         CPythonParameterHavingNodeBase.__init__(
@@ -114,7 +116,12 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
 
         MarkUnoptimizedFunctionIndicator.__init__( self )
 
+        self.is_class = is_class
         self.doc = doc
+
+        # Indicator, if this is a function that uses "super", because if it does, it would
+        # like to get the final "__class__" attached.
+        self.has_super = False
 
     def getDetails( self ):
         return {
@@ -123,6 +130,9 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
             "provider"   : self.provider,
             "doc"        : self.doc
         }
+
+    def isClassDictCreation( self ):
+        return self.is_class
 
     def getDetail( self ):
         return "named %s with %s" % ( self.name, self.parameters )
@@ -165,6 +175,15 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
 
         if self.hasTakenVariable( variable_name ):
             result = self.getTakenVariable( variable_name )
+
+            if self.isClassDictCreation():
+                if result.isModuleVariableReference() and not result.isFromGlobalStatement():
+                    result = self.getProvidedVariable( variable_name )
+
+                    if result.isModuleVariableReference():
+                        del self.providing[ variable_name ]
+
+                        result = self.getProvidedVariable( variable_name )
         else:
             result = self.getProvidedVariable( variable_name )
 
@@ -196,6 +215,12 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     def getVariableForClosure( self, variable_name ):
         # print( "createProvidedVariable", self, variable_name )
 
+        # The class bodies provide no closure, except under CPython3, "__class__" and
+        # nothing else.
+
+        if self.isClassDictCreation() and ( variable_name != "__class__" or Utils.python_version < 300 ):
+            return self.provider.getVariableForReference( variable_name )
+
         if self.hasProvidedVariable( variable_name ):
             return self.getProvidedVariable( variable_name )
         else:
@@ -205,10 +230,16 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         # print( "createProvidedVariable", self, variable_name )
 
         if self.local_locals:
-            return Variables.LocalVariable(
-                owner         = self,
-                variable_name = variable_name
-            )
+            if self.isClassDictCreation():
+                return Variables.ClassVariable(
+                    owner         = self,
+                    variable_name = variable_name
+                )
+            else:
+                return Variables.LocalVariable(
+                    owner         = self,
+                    variable_name = variable_name
+                )
         else:
             # Make sure the provider knows it has to provide a variable of this name for
             # the assigment.
@@ -224,7 +255,7 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     setBody = CPythonChildrenHaving.childSetter( "body" )
 
     def needsCreation( self ):
-        return not self.parent.isExpressionFunctionCall()
+        return not self.parent.isExpressionFunctionCall() and not self.isClassDictCreation()
 
     def computeNode( self, constraint_collection ):
         # Function body is quite irreplacable.
@@ -238,6 +269,12 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         # The function definition has no side effects, calculating the defaults would be,
         # but that is done outside of this.
         return False
+
+    def markAsClassClosureTaker( self ):
+        self.has_super = True
+
+    def isClassClosureTaker( self ):
+        return self.has_super
 
     def makeCloneAt( self, source_ref ):
         result = self.__class__(

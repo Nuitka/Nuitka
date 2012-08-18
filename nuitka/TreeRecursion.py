@@ -27,16 +27,15 @@ from logging import info, warning
 
 _warned_about = set()
 
-imported_modules = {}
-
 def recurseTo( module_package, module_filename, module_relpath ):
-    if module_relpath not in imported_modules:
+    if TreeBuilding.isImportedPath( module_relpath ):
         info( "Recurse to import %s", module_relpath )
 
         try:
-            imported_module = TreeBuilding.buildModuleTree(
+            _imported_module = TreeBuilding.buildModuleTree(
                 filename = module_filename,
                 package  = module_package,
+                is_top   = False,
                 is_main  = False
             )
         except ( SyntaxError, IndentationError ) as e:
@@ -54,11 +53,9 @@ def recurseTo( module_package, module_filename, module_relpath ):
 
         assert not module_relpath.endswith( "/__init__.py" )
 
-        imported_modules[ module_relpath ] = imported_module
-
-        return imported_modules[ module_relpath ], True
+        return TreeBuilding.getImportedModule( module_relpath ), True
     else:
-        return imported_modules[ module_relpath ], False
+        return TreeBuilding.getImportedModule( module_relpath ), False
 
 
 def considerFilename( module_filename, module_package ):
@@ -92,7 +89,12 @@ def checkPluginPath( plugin_filename, module_package ):
 
         if module:
             if not added:
-                warning( "Recursed to module at '%s' twice.", plugin_info[0] )
+                warning(
+                    "Recursed to %s '%s' at '%s' twice.",
+                    "package" if module.isPackage() else "module",
+                    module.getName(),
+                    plugin_info[0]
+                )
 
             if module.isPackage():
                 package_dir = Utils.dirname( module.getFilename() )
@@ -100,6 +102,8 @@ def checkPluginPath( plugin_filename, module_package ):
                 for sub_path, sub_filename in Utils.listDir( package_dir ):
                     if sub_filename == "__init__.py":
                         continue
+
+                    assert sub_path != plugin_filename, package_dir
 
                     if Importing.isPackageDir( sub_path ) or sub_path.endswith( ".py" ):
                         checkPluginPath( sub_path, module.getFullName() )

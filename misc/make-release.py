@@ -201,7 +201,7 @@ for line in subprocess.check_output( "licensecheck -r .", shell = True ).strip()
 
 # Build the debian package, but disable the running of tests, will be done later in the
 # pbuilder test steps.
-assert 0 == os.system( "debuild --set-envvar=NUITKA_SKIP_TESTS=1" )
+assert 0 == os.system( "debuild --set-envvar=DEB_BUILD_OPTIONS=nocheck" )
 
 os.chdir( "../../.." )
 

@@ -47,7 +47,7 @@ def someFunctionWritingLocalsContainingExec():
     try:
         z
     except Exception, e:
-        print "Accessing z writing to locals gives Exception", e
+        print "Accessing z writing to locals in exec function gives Exception", e
 
     return r, y
 
@@ -169,6 +169,11 @@ print "Unoptimized call of int", int( "0" * f, base = 16 )
 
 d = { "x" : "12", "base" : 8 }
 print "Dict call of int", int( **d )
+
+try:
+    print chr()
+except Exception, e:
+    print "Disallowed without args", repr(e)
 
 try:
     print ord()

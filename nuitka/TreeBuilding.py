@@ -65,6 +65,7 @@ from .nodes.ExceptionNodes import (
     CPythonExpressionCaughtExceptionTracebackRef,
     CPythonExpressionCaughtExceptionValueRef,
     CPythonExpressionCaughtExceptionTypeRef,
+    CPythonExpressionBuiltinMakeException,
     CPythonStatementRaiseException
 )
 from .nodes.ComparisonNode import CPythonExpressionComparison
@@ -86,8 +87,8 @@ from .nodes.FunctionNodes import (
     CPythonExpressionFunctionCall
 )
 from .nodes.ClassNodes import (
-    CPythonExpressionClassBodyBased,
-    CPythonExpressionClassBody
+    CPythonExpressionClassDefinition,
+    CPythonExpressionClassCreation
 )
 from .nodes.ContainerMakingNodes import (
     CPythonExpressionKeyValuePair,
@@ -156,7 +157,7 @@ from .nodes.TryNodes import (
 )
 from .nodes.GlobalsLocalsNodes import CPythonExpressionBuiltinLocals
 
-import ast, sys
+import ast, sys, re
 
 from logging import warning
 
@@ -166,7 +167,10 @@ def dump( node ):
 def getKind( node ):
     return node.__class__.__name__.split( "." )[-1]
 
-def buildVariableReferenceNode( node, source_ref ):
+def buildVariableReferenceNode( provider, node, source_ref ):
+    if Utils.python_version >= 300 and node.id == "super" and provider.isExpressionFunctionBody():
+        provider.markAsClassClosureTaker()
+
     return CPythonExpressionVariableRef(
         variable_name = node.id,
         source_ref    = source_ref
@@ -195,6 +199,14 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
             source_ref = source_ref
         )
 
+make_class_parameters = ParameterSpec(
+    name          = "class",
+    normal_args   = (),
+    list_star_arg = None,
+    dict_star_arg = None,
+    default_count = 0
+)
+
 def buildClassNode( provider, node, source_ref ):
     assert getKind( node ) == "ClassDef"
 
@@ -217,31 +229,71 @@ def buildClassNode( provider, node, source_ref ):
         # make it as easy.
         metaclass = None
 
-    class_body = CPythonExpressionClassBody(
+    class_creation_function = CPythonExpressionFunctionBody(
         provider   = provider,
+        is_class   = True,
+        parameters = make_class_parameters,
         name       = node.name,
         doc        = class_doc,
-        metaclass  = metaclass,
         source_ref = source_ref
     )
 
-    if class_statements:
-        body = buildStatementsNode(
-            provider   = class_body,
-            nodes      = class_statements,
-            source_ref = source_ref
-        )
-    else:
-        body = None
+    body = buildStatementsNode(
+        provider   = class_creation_function,
+        nodes      = class_statements,
+        frame      = True,
+        source_ref = source_ref
+    )
+
+    if body is not None:
+        # The frame guard has nothing to tell its line number to.
+        body.source_ref = source_ref.atInternal()
 
     # The class body is basically a function that implicitely, at the end returns its
     # locals and cannot have other return statements contained.
     body = _makeStatementsSequence(
         statements = (
-            body,
-            CPythonStatementReturn(
-                expression = CPythonExpressionBuiltinLocals(
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTargetVariableRef(
+                    variable_name = "__module__",
+                    source_ref    = source_ref
+                ),
+                source        = CPythonExpressionConstantRef(
+                    constant   = provider.getParentModule().getName(),
                     source_ref = source_ref
+                ),
+                source_ref   = source_ref.atInternal()
+            ),
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTargetVariableRef(
+                    variable_name = "__doc__",
+                    source_ref    = source_ref
+                ),
+                source        = CPythonExpressionConstantRef(
+                    constant   = class_doc,
+                    source_ref = source_ref
+                ),
+                source_ref   = source_ref.atInternal()
+            ),
+            body,
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTargetVariableRef(
+                    variable_name = "__class__",
+                    source_ref    = source_ref
+                ),
+                source       = CPythonExpressionClassCreation(
+                    class_name = node.name,
+                    class_dict = CPythonExpressionBuiltinLocals(
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+                source_ref   = source_ref.atInternal()
+            ),
+            CPythonStatementReturn(
+                expression = CPythonExpressionVariableRef(
+                    variable_name = "__class__",
+                    source_ref    = source_ref
                 ),
                 source_ref = source_ref.atInternal()
             )
@@ -250,16 +302,17 @@ def buildClassNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-    class_body.setBody( body )
+    # The class body is basically a function that implicitely, at the end returns its
+    # locals and cannot have other return statements contained.
 
-    if bases:
-        decorated_body = CPythonExpressionClassBodyBased(
-            bases      = bases,
-            class_body = class_body,
-            source_ref = source_ref
-        )
-    else:
-        decorated_body = class_body
+    class_creation_function.setBody( body )
+
+    decorated_body = CPythonExpressionClassDefinition(
+        class_definition = class_creation_function,
+        bases            = bases,
+        metaclass        = metaclass,
+        source_ref       = source_ref
+    )
 
     for decorator in decorators:
         decorated_body = CPythonExpressionCall(
@@ -328,13 +381,8 @@ def buildFunctionNode( provider, node, source_ref ):
     decorators = buildNodeList( provider, reversed( node.decorator_list ), source_ref )
     defaults = buildNodeList( provider, node.args.defaults, source_ref )
 
-    real_provider = provider
-
-    while real_provider.isExpressionClassBody():
-        real_provider = real_provider.provider
-
     function_body = CPythonExpressionFunctionBody(
-        provider   = real_provider,
+        provider   = provider,
         name       = node.name,
         doc        = function_doc,
         parameters = buildParameterSpec( node.name, node, source_ref ),
@@ -373,7 +421,8 @@ def buildFunctionNode( provider, node, source_ref ):
 
     # CPython made these optional, but applies them to every class __new__. We better add
     # them early, so our analysis will see it
-    if node.name == "__new__" and not decorators and provider.isExpressionClassBody():
+    if node.name == "__new__" and not decorators and \
+         provider.isExpressionFunctionBody() and provider.isClassDictCreation():
         decorated_body = CPythonExpressionCall(
             called          = CPythonExpressionBuiltinRef(
                 builtin_name = "staticmethod",
@@ -400,13 +449,8 @@ def buildLambdaNode( provider, node, source_ref ):
 
     defaults = buildNodeList( provider, node.args.defaults, source_ref )
 
-    real_provider = provider
-
-    while real_provider.isExpressionClassBody():
-        real_provider = real_provider.provider
-
     result = CPythonExpressionFunctionBody(
-        provider   = real_provider,
+        provider   = provider,
         name       = "<lambda>",
         doc        = None,
         parameters = buildParameterSpec( "<lambda>", node, source_ref ),
@@ -1203,6 +1247,14 @@ def buildDeleteNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
+make_contraction_parameters = ParameterSpec(
+    name          = "contraction",
+    normal_args   = ( "__iterator", ),
+    list_star_arg = None,
+    dict_star_arg = None,
+    default_count = 0
+)
+
 def _buildContractionNode( provider, node, name, emit_class, start_value, assign_provider, source_ref ):
     # The contraction nodes are reformulated to loop style nodes, and use a lot of
     # temporary names, nested blocks, etc. and so a lot of variable names. There is no
@@ -1215,13 +1267,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
         provider   = provider,
         name       = name,
         doc        = None,
-        parameters = ParameterSpec(
-            name          = "contraction",
-            normal_args   = ( "__iterator", ),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = 0
-        ),
+        parameters = make_contraction_parameters,
         source_ref = source_ref
     )
 
@@ -1785,6 +1831,28 @@ def buildTryFinallyNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
+def buildTryNode( provider, node, source_ref ):
+    # Note: This variant is used for Python3.3 or higher only, older stuff uses the above ones.
+    return CPythonStatementTryFinally(
+        tried      = CPythonStatementsSequence(
+            statements = (
+                buildTryExceptionNode(
+                    provider   = provider,
+                    node       = node,
+                    source_ref = source_ref
+                ),
+            ),
+            source_ref = source_ref
+        ),
+        final      = buildStatementsNode(
+            provider   = provider,
+            nodes      = node.finalbody,
+            source_ref = source_ref
+        ),
+        source_ref = source_ref
+    )
+
+
 _has_raise_value = Utils.python_version < 300
 
 def buildRaiseNode( provider, node, source_ref ):
@@ -1832,16 +1900,10 @@ def buildAssertNode( provider, node, source_ref ):
         )
     else:
         raise_statement = CPythonStatementRaiseException(
-            exception_type =  CPythonExpressionCall(
-                called          = CPythonExpressionBuiltinExceptionRef(
-                    exception_name = "AssertionError",
-                    source_ref     = source_ref
-                ),
-                positional_args = ( buildNode( provider, node.msg, source_ref, True ), ),
-                pairs           = (),
-                list_star_arg   = None,
-                dict_star_arg   = None,
-                source_ref      = source_ref
+            exception_type =  CPythonExpressionBuiltinMakeException(
+                exception_name = "AssertionError",
+                args           = ( buildNode( provider, node.msg, source_ref, True ), ),
+                source_ref     = source_ref
             ),
             exception_value = None,
             exception_trace = None,
@@ -2046,7 +2108,7 @@ def buildImportModulesNode( node, source_ref ):
         source_ref     = source_ref
     )
 
-def enableFutureFeature( object_name, future_spec ):
+def enableFutureFeature( object_name, future_spec, source_ref ):
     if object_name == "unicode_literals":
         future_spec.enableUnicodeLiterals()
     elif object_name == "absolute_import":
@@ -2055,11 +2117,20 @@ def enableFutureFeature( object_name, future_spec ):
         future_spec.enableFutureDivision()
     elif object_name == "print_function":
         future_spec.enableFuturePrint()
+    elif object_name == 'barry_as_FLUFL' and Utils.python_version >= 300:
+        future_spec.enableBarry()
+    elif object_name == 'braces':
+        SyntaxErrors.raiseSyntaxError(
+            "not a chance",
+            source_ref
+        )
     elif object_name in ( "nested_scopes", "generators", "with_statement" ):
         pass
     else:
-        warning( "Ignoring unkown future directive '%s'" % object_name )
-
+        SyntaxErrors.raiseSyntaxError(
+            "future feature %s is not defined" % object_name,
+            source_ref
+        )
 
 def buildImportFromNode( provider, node, source_ref ):
     module_name = node.module if node.module is not None else ""
@@ -2073,7 +2144,8 @@ def buildImportFromNode( provider, node, source_ref ):
 
             enableFutureFeature(
                 object_name = object_name,
-                future_spec = source_ref.getFutureSpec()
+                future_spec = source_ref.getFutureSpec(),
+                source_ref  = source_ref
             )
 
     target_names = []
@@ -2161,17 +2233,40 @@ def buildExecNode( provider, node, source_ref ):
     exec_locals = node.locals
     body = node.body
 
+    orig_globals = exec_globals
+
     # Allow exec(a,b,c) to be same as exec a, b, c
     if exec_locals is None and exec_globals is None and getKind( body ) == "Tuple":
         parts = body.elts
         body  = parts[0]
-        exec_globals = parts[1]
 
-        if len( parts ) > 2:
-            exec_locals = parts[2]
+        if len( parts ) > 1:
+            exec_globals = parts[1]
+
+            if len( parts ) > 2:
+                exec_locals = parts[2]
+        else:
+            return CPythonStatementRaiseException(
+                exception_type = CPythonExpressionBuiltinExceptionRef(
+                    exception_name = "TypeError",
+                    source_ref     = source_ref
+                ),
+                exception_value = CPythonExpressionConstantRef(
+                    constant   = "exec: arg 1 must be a string, file, or code object",
+                    source_ref = source_ref
+                ),
+                exception_trace = None,
+                source_ref      = source_ref
+            )
 
     globals_node = buildNode( provider, exec_globals, source_ref, True )
     locals_node = buildNode( provider, exec_locals, source_ref, True )
+
+    if provider.isExpressionFunctionBody():
+        provider.markAsExecContaining()
+
+        if orig_globals is None:
+            provider.markAsUnqualifiedExecContaining( source_ref )
 
     if locals_node is not None and locals_node.isExpressionConstantRef() and locals_node.getConstant() is None:
         locals_node = None
@@ -2179,9 +2274,6 @@ def buildExecNode( provider, node, source_ref ):
     if locals_node is None and globals_node is not None:
         if globals_node.isExpressionConstantRef() and globals_node.getConstant() is None:
             globals_node = None
-
-    if provider.isExpressionFunctionBody():
-        provider.markAsExecContaining()
 
     return CPythonStatementExec(
         source_code = buildNode( provider, body, source_ref ),
@@ -2457,6 +2549,12 @@ def buildBytesNode( node, source_ref ):
         source_ref = source_ref
     )
 
+def buildEllipsisNode( source_ref ):
+    return CPythonExpressionConstantRef(
+        constant   = Ellipsis,
+        source_ref = source_ref
+    )
+
 def buildBoolOpNode( provider, node, source_ref ):
     bool_op = getKind( node.op )
 
@@ -2490,7 +2588,7 @@ def buildAttributeNode( provider, node, source_ref ):
     )
 
 def buildReturnNode( provider, node, source_ref ):
-    if not provider.isExpressionFunctionBody():
+    if not provider.isExpressionFunctionBody() or provider.isClassDictCreation():
         SyntaxErrors.raiseSyntaxError(
             "'return' outside function",
             source_ref,
@@ -2864,6 +2962,10 @@ def buildInplaceAssignNode( provider, node, source_ref ):
     # so we end up with a lot of variables, which is on purpose, pylint: disable=R0914
 
     operator   = getKind( node.op )
+
+    if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
+        operator = "TrueDiv"
+
     expression = buildNode( provider, node.value, source_ref )
 
     result = CPythonStatementTempBlock(
@@ -2962,6 +3064,7 @@ def buildConditionalExpressionNode( provider, node, source_ref ):
 
 
 _fast_path_args3 = {
+    "Name"         : buildVariableReferenceNode,
     "Assign"       : buildAssignNode,
     "Delete"       : buildDeleteNode,
     "Lambda"       : buildLambdaNode,
@@ -2980,6 +3083,7 @@ _fast_path_args3 = {
     "Global"       : buildGlobalDeclarationNode,
     "TryExcept"    : buildTryExceptionNode,
     "TryFinally"   : buildTryFinallyNode,
+    "Try"          : buildTryNode,
     "Raise"        : buildRaiseNode,
     "ImportFrom"   : buildImportFromNode,
     "Assert"       : buildAssertNode,
@@ -3003,16 +3107,17 @@ _fast_path_args3 = {
 }
 
 _fast_path_args2 = {
-    "Name"         : buildVariableReferenceNode,
     "Import"       : buildImportModulesNode,
     "Str"          : buildStringNode,
     "Num"          : buildNumberNode,
-    "Bytes"        : buildBytesNode
+    "Bytes"        : buildBytesNode,
+
 }
 
 _fast_path_args1 = {
-    "Continue" : CPythonStatementContinueLoop,
-    "Break"    : CPythonStatementBreakLoop,
+    "Ellipsis"     : buildEllipsisNode,
+    "Continue"     : CPythonStatementContinueLoop,
+    "Break"        : CPythonStatementBreakLoop,
 }
 
 def buildNode( provider, node, source_ref, allow_none = False ):
@@ -3104,8 +3209,36 @@ def buildReplacementTree( provider, source_code, source_ref ):
         replacement = True
     )
 
-def buildModuleTree( filename, package, is_main ):
+imported_modules = {}
+
+def addImportedModule( module_relpath, imported_module ):
+    imported_modules[ module_relpath ] = imported_module
+
+def isImportedPath( module_relpath ):
+    return module_relpath not in imported_modules
+
+def getImportedModule( module_relpath ):
+    return imported_modules[ module_relpath ]
+
+def getImportedModules():
+    return imported_modules.values()
+
+def buildModuleTree( filename, package, is_top, is_main ):
     assert package is None or type( package ) is str
+
+    if is_main and Utils.isDir( filename ):
+        source_filename = Utils.joinpath( filename, "__main__.py" )
+
+        if not Utils.isFile( source_filename ):
+            sys.stderr.write(
+                "%s: can't find '__main__' module in '%s'\n" % (
+                    Utils.basename( sys.argv[0] ),
+                    filename
+                )
+            )
+            sys.exit( 2 )
+
+        filename = source_filename
 
     if Utils.isFile( filename ):
         source_filename = filename
@@ -3131,29 +3264,102 @@ def buildModuleTree( filename, package, is_main ):
     elif Utils.isDir( filename ) and Utils.joinpath( filename, "__init__.py" ):
         source_filename = Utils.joinpath( filename, "__init__.py" )
 
-        source_ref = SourceCodeReferences.fromFilename(
-            filename    = Utils.abspath( source_filename ),
-            future_spec = FutureSpec()
-        )
+        if is_top:
+            source_ref = SourceCodeReferences.fromFilename(
+                filename    = Utils.abspath( source_filename ),
+                future_spec = FutureSpec()
+            )
+
+            package_name = Utils.splitpath( filename )[-1]
+        else:
+            source_ref = SourceCodeReferences.fromFilename(
+                filename    = Utils.abspath( source_filename ),
+                future_spec = FutureSpec()
+            )
+
+            package_name = Utils.basename( filename )
 
         result = CPythonPackage(
-            name       = Utils.basename( filename ),
+            name       = package_name,
             package    = package,
             source_ref = source_ref
         )
     else:
-        sys.stderr.write(  "Nuitka: can't open file '%s'.\n" % filename )
+        sys.stderr.write(
+            "%s: can't open file '%s'.\n" % (
+                Utils.basename( sys.argv[0] ),
+                filename
+            )
+        )
         sys.exit( 2 )
 
     if not Options.shallHaveStatementLines():
         source_ref = source_ref.atInternal()
 
+    # Detect the encoding.
+    encoding = "ascii"
+
+    with open( source_filename, "rb" ) as source_file:
+        line1 = source_file.readline()
+
+        if line1.startswith( b'\xef\xbb\xbf' ):
+            encoding = "utf-8"
+        else:
+            line1_match = re.search( b"coding[:=]\s*([-\w.]+)", line1 )
+
+            if line1_match:
+                encoding = line1_match.group(1)
+            else:
+                line2 = source_file.readline()
+
+                line2_match = re.search( b"coding[:=]\s*([-\w.]+)", line2 )
+
+                if line2_match:
+                    encoding = line2_match.group(1)
+
     with open( source_filename, "rU" ) as source_file:
+        source_code = source_file.read()
+
+        # Try and detect SyntaxError from missing or wrong encodings.
+        if type( source_code ) is not unicode and encoding == "ascii":
+            try:
+                source_code = source_code.decode( encoding )
+            except UnicodeDecodeError as e:
+                lines = source_code.split( "\n" )
+                so_far = 0
+
+                for count, line in enumerate( lines ):
+                    so_far += len( line ) + 1
+
+                    if so_far > e.args[2]:
+                        break
+                else:
+                    # Cannot happen, decode error implies non-empty.
+                    count = -1
+
+                wrong_byte = re.search( "byte 0x([a-f0-9]{2}) in position", str( e ) ).group( 1 )
+
+                raise SyntaxError(
+                    "Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; see http://www.python.org/peps/pep-0263.html for details" % ( # pylint: disable=C0301
+                        wrong_byte,
+                        source_filename,
+                        count+1,
+                    ),
+                    (
+                        source_filename,
+                        count+1,
+                        None,
+                        None
+                    )
+                )
+
         buildParseTree(
             provider    = result,
-            source_code = source_file.read(),
+            source_code = source_code,
             source_ref  = source_ref,
             replacement = False,
         )
+
+    addImportedModule( Utils.relpath( filename ), result )
 
     return result

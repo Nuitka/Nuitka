@@ -67,7 +67,7 @@ class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
 
                 )
 
-                if new_node.isExpressionSideEffects():
+                if new_node.isExpressionSideEffects(): # pylint: disable=E1101 false alarm
                     change_desc += " maintaining side effects"
 
         return new_node, change_tags, change_desc

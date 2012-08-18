@@ -54,7 +54,7 @@ def localImportFailure():
     try:
         from os import path, lala, listdir
     except Exception as e:
-        print type(e), e
+        print type(e), repr(e)
 
     try:
         print listdir

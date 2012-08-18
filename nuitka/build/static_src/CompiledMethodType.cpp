@@ -354,6 +354,48 @@ static int Nuitka_Method_tp_compare( Nuitka_MethodObject *a, Nuitka_MethodObject
 }
 #endif
 
+static PyObject *Nuitka_Method_tp_richcompare( Nuitka_MethodObject *a, Nuitka_MethodObject *b, int op )
+{
+    if ( op != Py_EQ && op != Py_NE )
+    {
+        return INCREASE_REFCOUNT( Py_NotImplemented );
+    }
+
+
+    if ( Nuitka_Method_Check( (PyObject *)a ) == false || Nuitka_Method_Check( (PyObject *)b ) == false )
+    {
+        return INCREASE_REFCOUNT( Py_NotImplemented );
+    }
+
+    bool result = PyObject_RichCompareBool( (PyObject *)a->m_function, (PyObject *)b->m_function, Py_EQ );
+
+    if ( result )
+    {
+        if ( a->m_object == NULL )
+        {
+            result = b->m_object == NULL;
+        }
+        else if ( b->m_object == NULL )
+        {
+            result = false;
+        }
+        else
+        {
+            result = PyObject_RichCompareBool( a->m_object, b->m_object, Py_EQ );
+        }
+    }
+
+    if ( op == Py_EQ )
+    {
+        return INCREASE_REFCOUNT( result ? Py_True : Py_False );
+    }
+    else
+    {
+        return INCREASE_REFCOUNT( result ? Py_False : Py_True );
+    }
+}
+
+
 static long Nuitka_Method_tp_hash( Nuitka_MethodObject *method )
 {
     // Just give the hash of the method function, that ought to be good enough.
@@ -465,7 +507,7 @@ PyTypeObject Nuitka_Method_Type =
     0,                                           // tp_doc
     (traverseproc)Nuitka_Method_tp_traverse,     // tp_traverse
     0,                                           // tp_clear
-    0,                                           // tp_richcompare
+    (richcmpfunc)Nuitka_Method_tp_richcompare,   // tp_richcompare
     offsetof( Nuitka_MethodObject, m_weakrefs ), // tp_weaklistoffset
     0,                                           // tp_iter
     0,                                           // tp_iternext
