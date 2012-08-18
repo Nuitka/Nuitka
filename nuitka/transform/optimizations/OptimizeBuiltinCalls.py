@@ -546,13 +546,15 @@ _dispatch_dict = {
     "int"        : int_extractor,
     "repr"       : repr_extractor,
     "len"        : len_extractor,
-    "open"       : open_extractor,
     "super"      : super_extractor
 }
 
 if python_version < 300:
     _dispatch_dict[ "long" ] = long_extractor
     _dispatch_dict[ "unicode" ] = unicode_extractor
+
+    # The handling of 'open' built-in for Python3 is not yet correct.
+    _dispatch_dict[ "open" ] = open_extractor
 
 
 def computeBuiltinCall( call_node, called ):
