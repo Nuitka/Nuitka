@@ -2498,11 +2498,11 @@ def buildGlobalDeclarationNode( provider, node, source_ref ):
         for variable_name in node.names:
             if variable_name in parameters.getParameterNames():
                 SyntaxErrors.raiseSyntaxError(
-                    "name '%s' is %s and global" % (
+                    reason     = "name '%s' is %s and global" % (
                         variable_name,
                         "local" if Utils.python_version < 300 else "parameter"
                     ),
-                    provider.getSourceReference()
+                    source_ref = provider.getSourceReference()
                 )
     except AttributeError:
         pass
@@ -3339,18 +3339,13 @@ def buildModuleTree( filename, package, is_top, is_main ):
 
                 wrong_byte = re.search( "byte 0x([a-f0-9]{2}) in position", str( e ) ).group( 1 )
 
-                raise SyntaxError(
-                    "Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; see http://www.python.org/peps/pep-0263.html for details" % ( # pylint: disable=C0301
+                SyntaxErrors.raiseSyntaxError(
+                    reason     = "Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; see http://www.python.org/peps/pep-0263.html for details" % ( # pylint: disable=C0301
                         wrong_byte,
                         source_filename,
                         count+1,
                     ),
-                    (
-                        source_filename,
-                        count+1,
-                        None,
-                        None
-                    )
+                    source_ref = SourceCodeReferences.fromFilename( source_filename, None ).atLineNumber( count+1 )
                 )
 
         buildParseTree(
