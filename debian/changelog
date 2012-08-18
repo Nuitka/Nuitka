@@ -1,6 +1,12 @@
-nuitka (0.3.24+ds-1) unstable; urgency=low
+nuitka (0.3.25~pre1+ds-1) UNRELEASED; urgency=low
 
   * New upstream pre-release.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 19 Aug 2012 00:43:13 +0200
+
+nuitka (0.3.24+ds-1) unstable; urgency=low
+
+  * New upstream release.
   * Detect the absence of "g++" and gracefully fallback to the
     compiler depended on. (Closes: #682146)
   * Changed usage of "temp" files in developer scripts to be
