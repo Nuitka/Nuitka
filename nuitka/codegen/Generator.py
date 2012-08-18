@@ -2785,12 +2785,14 @@ def getDictOperationSetCode( dict_identifier, key_identifier, value_identifier )
     )
 
 def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes, is_class, context ):
+    return_code = CodeTemplates.frame_guard_cpp_return if is_class else CodeTemplates.frame_guard_python_return
+
     return CodeTemplates.frame_guard_full_template % {
         "frame_identifier"  : frame_identifier,
         "code_identifier"   : code_identifier.getCodeTemporaryRef(),
         "codes"             : indented( codes ),
         "module_identifier" : getModuleAccessCode( context = context ),
-        "return_code"       : CodeTemplates.frame_guard_cpp_return if is_class else CodeTemplates.frame_guard_python_return
+        "return_code"       : return_code
     }
 
 def getFrameGuardLightCode( frame_identifier, code_identifier, codes, context ):

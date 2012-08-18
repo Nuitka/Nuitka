@@ -309,7 +309,7 @@ def buildClassNode( provider, node, source_ref ):
 
     decorated_body = CPythonExpressionClassDefinition(
         class_definition = class_creation_function,
-        bases            = buildNodeList( provider, node.bases, source_ref ),
+        bases            = bases,
         metaclass        = metaclass,
         source_ref       = source_ref
     )
@@ -421,7 +421,8 @@ def buildFunctionNode( provider, node, source_ref ):
 
     # CPython made these optional, but applies them to every class __new__. We better add
     # them early, so our analysis will see it
-    if node.name == "__new__" and not decorators and provider.isExpressionFunctionBody() and provider.isClassDictCreation():
+    if node.name == "__new__" and not decorators and \
+         provider.isExpressionFunctionBody() and provider.isClassDictCreation():
         decorated_body = CPythonExpressionCall(
             called          = CPythonExpressionBuiltinRef(
                 builtin_name = "staticmethod",
@@ -3324,11 +3325,14 @@ def buildModuleTree( filename, package, is_top, is_main ):
 
                     if so_far > e.args[2]:
                         break
+                else:
+                    # Cannot happen, decode error implies non-empty.
+                    count = -1
 
                 wrong_byte = re.search( "byte 0x([a-f0-9]{2}) in position", str( e ) ).group( 1 )
 
                 raise SyntaxError(
-                    "Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; see http://www.python.org/peps/pep-0263.html for details" % (
+                    "Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; see http://www.python.org/peps/pep-0263.html for details" % ( # pylint: disable=C0301
                         wrong_byte,
                         source_filename,
                         count+1,

@@ -126,7 +126,11 @@ def optimizeWhole( main_module ):
                 done_modules.add( module )
 
                 if _progress:
-                    printLine( "Finished. %d more modules to go." % ( len( getImportedModules() ) - len( done_modules ) ) )
+                    printLine(
+                        "Finished. %d more modules to go." % (
+                            len( getImportedModules() ) - len( done_modules )
+                        )
+                    )
 
                 finished = False
 

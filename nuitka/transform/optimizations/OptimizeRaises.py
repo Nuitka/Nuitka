@@ -100,7 +100,7 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
                     )
                 )
 
-                message = "Detected expression exception was propagated to expression upwards while maintaining side effects."
+                message = "Detected expression exception was propagated to expression upwards while maintaining side effects." # pylint: disable=C0301
             else:
                 node.replaceWith(
                     new_node = raise_exception

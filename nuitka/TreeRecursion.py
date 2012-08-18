@@ -32,7 +32,7 @@ def recurseTo( module_package, module_filename, module_relpath ):
         info( "Recurse to import %s", module_relpath )
 
         try:
-            imported_module = TreeBuilding.buildModuleTree(
+            _imported_module = TreeBuilding.buildModuleTree(
                 filename = module_filename,
                 package  = module_package,
                 is_top   = False,

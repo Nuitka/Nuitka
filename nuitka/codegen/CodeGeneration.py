@@ -976,7 +976,8 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = Generator.getBuiltinStrCode(
             identifier = makeExpressionCode( expression.getValue() )
         )
-    elif Utils.python_version < 300 and expression.isExpressionBuiltinUnicode() or Utils.python_version >= 300 and expression.isExpressionBuiltinStr():
+    elif Utils.python_version < 300 and expression.isExpressionBuiltinUnicode() or \
+         Utils.python_version >= 300 and expression.isExpressionBuiltinStr():
         identifier = Generator.getBuiltinUnicodeCode(
             identifier = makeExpressionCode(
                 expression = expression.getValue()
@@ -1885,9 +1886,11 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
             )
 
         if statement.isStatementsSequence():
-            code = generateStatementSequenceCode(
-                statement_sequence = statement,
-                context            = context
+            code = "\n".join(
+                generateStatementSequenceCode(
+                    statement_sequence = statement,
+                    context            = context
+                )
             )
 
             code = code.strip()
@@ -1925,7 +1928,7 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
             # TODO: Finalization should say this
 
             if provider.isGenerator():
-                codes = Generator.getFrameGuardLightCode(
+                code = Generator.getFrameGuardLightCode(
                     frame_identifier = provider.getCodeName(),
                     code_identifier  = context.getCodeObjectHandle(
                         filename     = source_ref.getFilename(),
@@ -1938,11 +1941,11 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
                     context          = context
                 )
             elif provider.code_prefix == "listcontr":
-                codes = Generator.getFrameGuardVeryLightCode(
+                code = Generator.getFrameGuardVeryLightCode(
                     codes = codes,
                 )
             else:
-                codes = Generator.getFrameGuardHeavyCode(
+                code = Generator.getFrameGuardHeavyCode(
                     frame_identifier = provider.getCodeName(),
                     code_identifier  = context.getCodeObjectHandle(
                         filename     = source_ref.getFilename(),
@@ -1957,6 +1960,10 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
                 )
         else:
             assert False, provider
+
+        codes = [ code ]
+
+    assert type( codes ) is list, type( codes )
 
     return codes
 
@@ -2010,9 +2017,10 @@ def generateModuleDeclarationCode( module_name ):
         module_name = module_name
     )
 
-def generateMainCode( codes, other_modules ):
+def generateMainCode( context, codes ):
     return Generator.getMainCode(
-        codes = codes
+        context = context,
+        codes   = codes
     )
 
 def generateConstantsDeclarationCode( context ):

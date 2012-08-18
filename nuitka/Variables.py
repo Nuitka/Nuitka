@@ -153,13 +153,13 @@ class Variable:
             )
 
     def getDeclarationCode( self ):
-        return self.getDeclarationTypeCode( False ) + " &" + self.getCodeName()
+        return self.getDeclarationTypeCode( in_context = False ) + " &" + self.getCodeName()
 
     def getMangledName( self ):
         return self.getName()
 
-    def getDeclarationTypeCode( self ):
-        # Abstract method, pylint: disable=R0201
+    def getDeclarationTypeCode( self, in_context ):
+        # Abstract method, pylint: disable=R0201,W0613
         assert False
 
     def getCodeName( self ):
@@ -243,7 +243,9 @@ class ClosureVariableReference( VariableReferenceBase ):
             else:
                 return "PyObjectSharedLocalVariable"
         else:
-            return self.getReferenced().getDeclarationTypeCode( in_context )
+            return self.getReferenced().getDeclarationTypeCode(
+                in_context = in_context
+            )
 
     def getCodeName( self ):
         return "python_closure_%s" % self.getName()

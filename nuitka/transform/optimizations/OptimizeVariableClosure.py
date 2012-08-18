@@ -94,7 +94,7 @@ class VariableClosureLookupVisitorPhase3( OptimizationVisitorScopedBase ):
                     exec_line_number = parent_provider.getExecSourceRef().getLineNumber()
 
                     raise SyntaxError(
-                        "unqualified exec is not allowed in function '%s' it contains a nested function with free variables" % parent_provider.getName(),
+                        "unqualified exec is not allowed in function '%s' it contains a nested function with free variables" % parent_provider.getName(), # pylint: disable=C0301
                         (
                             node.source_ref.getFilename(),
                             exec_line_number,
@@ -117,7 +117,7 @@ class VariableClosureLookupVisitorPhase4( OptimizationVisitorScopedBase ):
             if node.isStatementDelVariable() and \
                  node.getTargetVariableRef().getVariable().isShared():
                 raise SyntaxError(
-                        "can not delete variable '%s' referenced in nested scope" % node.getTargetVariableRef().getVariableName(),
+                        "can not delete variable '%s' referenced in nested scope" % node.getTargetVariableRef().getVariableName(), # pylint: disable=C0301
                         (
                             None, # TODO: Could easily provide the line number and file
                             None,

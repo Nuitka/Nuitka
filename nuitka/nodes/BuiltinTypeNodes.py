@@ -115,7 +115,8 @@ class CPythonExpressionBuiltinInt( CPythonExpressionBuiltinIntLongBase ):
 
     builtin_spec = BuiltinOptimization.builtin_int_spec
 
-class CPythonExpressionBuiltinUnicodeBase( CPythonChildrenHaving, CPythonNodeBase, CPythonExpressionSpecBasedComputationMixin ):
+class CPythonExpressionBuiltinUnicodeBase( CPythonChildrenHaving, CPythonNodeBase, \
+                                           CPythonExpressionSpecBasedComputationMixin ):
     named_children = ( "value", "encoding", "errors" )
 
     def __init__( self, value, encoding, errors, source_ref ):

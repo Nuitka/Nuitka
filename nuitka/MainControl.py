@@ -225,8 +225,8 @@ def makeSourceDirectory( main_module ):
         # The main of an executable module gets a bit different code.
         if module is main_module and not Options.shallMakeModule():
             source_code = CodeGeneration.generateMainCode(
-                codes         = source_code,
-                other_modules = other_modules
+                context = global_context,
+                codes   = source_code
             )
 
         module_hpps.append( hpp_filename )
