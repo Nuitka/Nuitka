@@ -1592,3 +1592,8 @@ PyObject *_MAKE_CLASS( EVAL_ORDERED_5( PyObject *metaclass_global, PyObject *met
 
     return result;
 }
+
+PyObject *BUILTIN_CALLABLE( PyObject *value )
+{
+    return PyBool_FromLong( (long)PyCallable_Check( value ) );
+}

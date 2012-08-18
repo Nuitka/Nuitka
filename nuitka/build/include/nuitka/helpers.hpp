@@ -1426,6 +1426,9 @@ extern PyObject *BUILTIN_OCT( PyObject *value );
 // For quicker builtin hex() functionality.
 extern PyObject *BUILTIN_HEX( PyObject *value );
 
+// For quicker callable() functionality.
+extern PyObject *BUILTIN_CALLABLE( PyObject *value );
+
 // For quicker iter() functionality if 2 arguments arg given.
 #define BUILTIN_ITER2( callable, sentinel ) _BUILTIN_ITER2( EVAL_ORDERED_2( callable, sentinel ) )
 extern PyObject *_BUILTIN_ITER2( EVAL_ORDERED_2( PyObject *callable, PyObject *sentinel ) );
