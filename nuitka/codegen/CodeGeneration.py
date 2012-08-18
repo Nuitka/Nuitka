@@ -857,12 +857,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
             metaclass_global_code = Generator.getMetaclassVariableCode(
                 context = context
             ),
-            metaclass_class_code  = Generator.getMetaclassAccessCode(
-                context = context
-            ),
-            bases_identifier      = Generator.getBasesAccessCode(
-                context = context
-            ),
             name_identifier       = Generator.getConstantHandle(
                 context  = context,
                 constant = expression.getClassName()

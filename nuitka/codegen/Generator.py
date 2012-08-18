@@ -2353,19 +2353,12 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
     return result
 
 
-def getMetaclassAccessCode( context ):
-    return Identifier( "metaclass", 0 )
-
-def getBasesAccessCode( context ):
-    return Identifier( "bases", 0 )
-
-def getClassCreationCode( metaclass_global_code, metaclass_class_code, \
-                          name_identifier, dict_identifier, bases_identifier ):
+def getClassCreationCode( metaclass_global_code, name_identifier, dict_identifier ):
     args = (
         metaclass_global_code,
-        metaclass_class_code.getCodeTemporaryRef() if metaclass_class_code is not None else "NULL",
+         "metaclass",
         name_identifier.getCodeTemporaryRef(),
-        bases_identifier.getCodeTemporaryRef(),
+        "bases",
         dict_identifier.getCodeTemporaryRef()
     )
 
