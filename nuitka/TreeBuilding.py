@@ -2549,6 +2549,12 @@ def buildBytesNode( node, source_ref ):
         source_ref = source_ref
     )
 
+def buildEllipsisNode( source_ref ):
+    return CPythonExpressionConstantRef(
+        constant   = Ellipsis,
+        source_ref = source_ref
+    )
+
 def buildBoolOpNode( provider, node, source_ref ):
     bool_op = getKind( node.op )
 
@@ -3104,12 +3110,14 @@ _fast_path_args2 = {
     "Import"       : buildImportModulesNode,
     "Str"          : buildStringNode,
     "Num"          : buildNumberNode,
-    "Bytes"        : buildBytesNode
+    "Bytes"        : buildBytesNode,
+
 }
 
 _fast_path_args1 = {
-    "Continue" : CPythonStatementContinueLoop,
-    "Break"    : CPythonStatementBreakLoop,
+    "Ellipsis"     : buildEllipsisNode,
+    "Continue"     : CPythonStatementContinueLoop,
+    "Break"        : CPythonStatementBreakLoop,
 }
 
 def buildNode( provider, node, source_ref, allow_none = False ):
