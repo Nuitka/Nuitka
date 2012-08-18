@@ -389,6 +389,9 @@ def buildFunctionNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
+    # Hack:
+    function_body.parent = provider
+
     function_statements_body = buildStatementsNode(
         provider   = function_body,
         nodes      = function_statements,
@@ -2487,7 +2490,7 @@ def buildNodeList( provider, nodes, source_ref, allow_none = False ):
     else:
         return []
 
-def buildGlobalDeclarationNode( provider, node, source_ref ):
+def handleGlobalDeclarationNode( provider, node, source_ref ):
     # The source reference of the global really doesn't matter, pylint: disable=W0613
 
     # Need to catch the error of declaring a parameter variable as global ourselves
@@ -2516,6 +2519,45 @@ def buildGlobalDeclarationNode( provider, node, source_ref ):
 
         closure_variable = provider.addClosureVariable(
             variable         = module_variable,
+            global_statement = True
+        )
+
+        if isinstance( provider, CPythonClosureGiverNodeBase ):
+            provider.registerProvidedVariable(
+                variable = closure_variable
+            )
+
+    return None
+
+def handleNonlocalDeclarationNode( provider, node, source_ref ):
+    # The source reference of the nonlocal really doesn't matter, pylint: disable=W0613
+
+    # Need to catch the error of declaring a parameter variable as global ourselves
+    # here. The AST parsing doesn't catch it.
+    try:
+        parameters = provider.getParameters()
+
+        for variable_name in node.names:
+            if variable_name in parameters.getParameterNames():
+                SyntaxErrors.raiseSyntaxError(
+                    reason         = "name '%s' is parameter and nonlocal" % (
+                        variable_name
+                    ),
+                    source_ref     = None,
+                    display_source = False
+                )
+    except AttributeError:
+        raise
+
+    parent_provider = provider.getParentVariableProvider()
+
+    for variable_name in node.names:
+        parent_variable = parent_provider.getVariableForAssignment(
+            variable_name = variable_name
+        )
+
+        closure_variable = provider.addClosureVariable(
+            variable         = parent_variable,
             global_statement = True
         )
 
@@ -3080,7 +3122,8 @@ _fast_path_args3 = {
     "Set"          : buildSequenceCreationNode,
     "Tuple"        : buildSequenceCreationNode,
     "List"         : buildSequenceCreationNode,
-    "Global"       : buildGlobalDeclarationNode,
+    "Global"       : handleGlobalDeclarationNode,
+    "Nonlocal"     : handleNonlocalDeclarationNode,
     "TryExcept"    : buildTryExceptionNode,
     "TryFinally"   : buildTryFinallyNode,
     "Try"          : buildTryNode,
