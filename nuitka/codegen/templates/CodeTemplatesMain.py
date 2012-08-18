@@ -64,11 +64,7 @@ int main( int argc, char *argv[] )
     // or to python.exe on Windows.
     PySys_SetObject(
         (char *)"executable",
-#if PYTHON_VERSION < 300
-        PyString_FromString( %(sys_executable)s )
-#else
-        PyUnicode_FromString( %(sys_executable)s )
-#endif
+        %(sys_executable)s
     );
 
     patchInspectModule();

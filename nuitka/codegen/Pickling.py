@@ -80,8 +80,4 @@ def getStreamedConstant( constant_value ):
             type( restored )
         )
 
-    # If we have Python3, we need to make sure, we use UTF-8 or else we get into trouble.
-    if str is unicode:
-        saved = saved.decode( "latin1" )
-
     return saved

@@ -1097,12 +1097,14 @@ void UNSTREAM_INIT( void )
 
 PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size )
 {
+    assert( buffer );
+
     PyObject *result = PyObject_CallFunction(
         _module_cPickle_function_loads,
 #if PYTHON_VERSION < 300
-        (char *)"(s#)",
+        (char *)"(s#)", // TODO: Why the ()
 #else
-        (char *)"(y#)",
+        (char *)"y#",
 #endif
         buffer,
         size
@@ -1125,14 +1127,13 @@ PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
 #else
     PyObject *result = PyUnicode_FromStringAndSize( buffer, size );
 #endif
+
     assert( !ERROR_OCCURED() );
     assertObject( result );
     assert( Nuitka_String_Check( result ) );
 
 #if PYTHON_VERSION < 300
     assert( PyString_Size( result ) == size );
-#else
-    assert( PyUnicode_GET_SIZE( result ) == size );
 #endif
 
     if ( intern )

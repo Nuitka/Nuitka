@@ -58,9 +58,9 @@ from .ParameterParsing import (
 )
 
 from . import (
-    CppRawStrings,
     CodeTemplates,
-    OperatorCodes
+    OperatorCodes,
+    CppStrings
 )
 
 from nuitka import (
@@ -1754,11 +1754,12 @@ def getModuleDeclarationCode( module_name ):
         "header_body"       : module_header_code
     }
 
-def getMainCode( codes ):
+def getMainCode( codes, context ):
     main_code = CodeTemplates.main_program % {
-        "sys_executable" : CppRawStrings.encodeString(
-            "python.exe" if Options.isWindowsTarget() else sys.executable
-        ),
+        "sys_executable" : getConstantCode(
+            constant = "python.exe" if Options.isWindowsTarget() else sys.executable,
+            context  = context
+        )
     }
 
     return codes + main_code
@@ -2375,13 +2376,10 @@ def getClassCreationCode( metaclass_global_code, metaclass_class_code, \
         1
     )
 
-def getRawStringLiteralCode( value ):
-    return CppRawStrings.encodeString( value )
-
 def getStatementTrace( source_desc, statement_repr ):
     return 'puts( "Execute: %s " %s );' % (
         source_desc,
-        getRawStringLiteralCode( statement_repr )
+        CppStrings.encodeString( statement_repr )
     )
 
 
@@ -2418,9 +2416,11 @@ def _getUnstreamCode( constant_value, constant_identifier ):
         constant_value = constant_value
     )
 
+    assert type( saved ) is bytes
+
     return "%s = UNSTREAM_CONSTANT( %s, %d );" % (
         constant_identifier,
-        CppRawStrings.encodeString( saved ),
+        CppStrings.encodeString( saved ),
         len( saved )
     )
 
@@ -2484,18 +2484,36 @@ def _getConstantsDefinitionCode( context ):
 
             continue
 
-        if constant_type is str and str is not unicode:
-            statements.append(
-                '%s = UNSTREAM_STRING( %s, %d, %d );assert( %s );' % (
-                    constant_identifier,
-                    CppRawStrings.encodeString( constant_value ),
-                    len(constant_value),
-                    1 if _isAttributeName( constant_value ) else 0,
-                    constant_identifier
+        if constant_type is str:
+            if str is not unicode:
+                statements.append(
+                    '%s = UNSTREAM_STRING( %s, %d, %d );assert( %s );' % (
+                        constant_identifier,
+                        CppStrings.encodeString( constant_value ),
+                        len( constant_value ),
+                        1 if _isAttributeName( constant_value ) else 0,
+                        constant_identifier
+                    )
                 )
-            )
 
-            continue
+                continue
+            else:
+                try:
+                    encoded = constant_value.encode( "utf-8" )
+
+                    statements.append(
+                        '%s = UNSTREAM_STRING( %s, %d, %d );assert( %s );' % (
+                            constant_identifier,
+                            CppStrings.encodeString( encoded ),
+                            len( encoded ),
+                            1 if _isAttributeName( constant_value ) else 0,
+                            constant_identifier
+                        )
+                    )
+
+                    continue
+                except UnicodeEncodeError:
+                    pass
 
         if constant_value is None:
             continue
