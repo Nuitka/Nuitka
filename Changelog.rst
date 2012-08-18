@@ -1,3 +1,171 @@
+Nuitka Release 0.3.24
+=====================
+
+This release contains progress on many fronts, except performance.
+
+The extended coverage from running the CPython 2.7 and CPython 3.2 (partially) test suites
+shows in a couple of bug fixes and general improvements in compatibility.
+
+Then there is a promised new feature that allows to compile whole packages.
+
+Also there is more Python3 compatibility, the CPython 3.2 test suite now succeeds up to
+"test_builtin.py", where it finds that ``str`` doesn't support the new parameters it has
+gained, future releases will improve on this.
+
+And then of course, more re-formulation work, in this case, class definitions are now mere
+simple functions. This and later function references, is the important and only progress
+towards type inference.
+
+Bug fixes
+---------
+
+- The compiled method type can now be used with ``copy`` module. That means, instances
+  with methods can now be copied too. `Issue#40 <http://bugs.nuitka.net/issue40>`_. Fixed
+  in 0.3.23.1 already.
+
+- The ``assert`` statement as of Python2.7 creates the ``AssertionError`` object from a
+  given value immediately, instead of delayed as it was with Python2.6. This makes a
+  difference for the form with 2 arguments, and if the value is a tuple. `Issue#41
+  <http://bugs.nuitka.net/issue41>`_. Fixed in 0.3.23.1 already.
+
+- Sets written like this didn't work unless they were predicted at compile time:
+
+  .. code-block:: python
+
+     { value }
+
+  This apparently rarely used Python2.7 syntax didn't have code generation yet and crashed
+  the compiler. `Issue#42 <http://bugs.nuitka.net/issue42>`_. Fixed in 0.3.23.1 already.
+
+- For Python2, the default encoding for source files is ``ascii``, and it is now enforced
+  by Nuitka as well, with the same ``SyntaxError``.
+
+- Corner cases of ``exec`` statements with nested functions now give proper
+  ``SyntaxError`` exceptions under Python2.
+
+- The ``exec`` statement with a tuple of length 1 as argument, now also gives a
+  ``TypeError`` exception under Python2.
+
+- For Python2, the ``del`` of a closure variable is a ``SyntaxError``.
+
+New Features
+------------
+
+- Added support creating compiled packages. If you give Nuitka a directory with an
+  "__init__.py" file, it will compile that package into a ".so" file. Adding the package
+  contents with ``--recurse-dir`` allows to compile complete packages now. Later there
+  will be a cleaner interface likely, where the later is automatic.
+
+- Added support for providing directories as main programs. It's OK if they contain a
+  "__main__.py" file, then it's used instead, otherwise give compatible error message.
+
+- Added support for optimizing the ``super`` built-in. It was already working correctly,
+  but not optimized on CPython2. But for CPython3, the variant without any arguments
+  required dedicated code.
+
+- Added support for optimizing the ``unicode`` built-in under Python2. It was already
+  working, but will become the basis for the ``str`` built-in of Python3 in future
+  releases.
+
+- For Python3, lots of compatibility work has been done. The Unicode issues appear to be
+  ironed out now. The ``del`` of closure variables is allowed and supported now. Built-ins
+  like ``ord`` and ``chr`` work more correctly and attributes are now interned strings, so
+  that monkey patching classes works.
+
+Organizational
+--------------
+
+- Migrated "bin/benchmark.sh" to Python as "misc/run-valgrind.py" and made it a bit more
+  portable that way. Prefers "/var/tmp" if it exists and creates temporary files in a
+  secure manner. Triggered by the Debian "insecure temp file" bug.
+
+- Migrated "bin/make-dependency-graph.sh" to Python as "misc/make-dependency-graph.py" and
+  made a more portable and powerful that way.
+
+  The filtering is done a more robust way. Also it creates temporary files in a secure
+  manner, also triggered by the Debian "insecure temp file" bug.
+
+  And it creates SVG files and no longer PostScript as the first one is more easily
+  rendered these days.
+
+Cleanups
+--------
+
+- The creation of the class dictionaries is now done with normal function bodies, that
+  only needed to learn how to throw an exception when directly called, instead of
+  returning ``NULL``.
+
+  Also the assignment of ``__module__`` and ``__doc__`` in these has become visible in the
+  node tree, allowing their proper optimization.
+
+  These re-formulation changes allowed to remove all sorts of special treatment of
+  ``class`` code in the code generation phase, making things a lot simpler.
+
+- There was still a declaration of ``PRINT_ITEMS`` and uses of it, but no definition of
+  it.
+
+- Code generation for "main" module and "other" modules are now merged, and no longer
+  special.
+
+- The use of raw strings was found unnecessary and potentially still buggy and has been
+  removed. The dependence on C++11 is getting less and less.
+
+Organizational
+--------------
+
+- Removed the "misc/gist" git sub-module, which was previously used by "misc/make-doc.py"
+  to generate HTML from User Manual and Developer Manual. These are now done with Nikola,
+  which is much better at it and it integrates with the web site.
+
+- Lots of formatting improvements to the change log, and manuals:
+
+  * Marking identifiers with better suited ReStructured Text markup.
+  * Added links to the bug tracker all Issues.
+  * Unified wordings, quotation, across the documents.
+
+New Tests
+---------
+
+- Updated CPython2.6 test suite "tests/CPython26" to 2.6.8, adding tests for recent bug
+  fixes in CPython. No changes to Nuitka were needed in order to pass, which is always
+  good news.
+
+- Added CPython2.7 test suite as "tests/CPython27" from 2.7.3, making it public for the
+  first time. Previously a private copy of some age, with many no longer needed changes
+  had been used by me. Now it is up to par with what was done before for
+  "tests/CPython26", so this pending action is finally done.
+
+- Added test to cover Python2 syntax error of having a function with closure variables
+  nested inside a function that is an overflow function.
+
+- Added test "BuiltinSuper" to cover ``super`` usage details.
+
+- Added test to cover ``del`` on nested scope as syntax error.
+
+- Added test to cover ``exec`` with a tuple argument of length 1.
+
+- Added test to cover ``barry_as_FLUFL`` future import to work.
+
+- Removed "Unicode" from known error cases for CPython3.2, it's now working.
+
+Summary
+-------
+
+This release brought forward the most important remaining re-formulation changes needed
+for Nuitka. Removing class bodies, makes optimization yet again simpler. Still, making
+function references, so they can be copied, is missing for value propagation to progress.
+
+Generally, as usual, a focus has been laid on correctness. This is also the first time, I
+am release with a known bug though: That is `Issue#39 <http://bugs.nuitka.net/issue39>`_
+which I believe now, may be the root cause of the mercurial tests not yet passing.
+
+The solution will be involved and take a bit of time. It will be about "compiled frames"
+and be a (invasive) solution. It likely will make Nuitka faster too. But this release
+includes lots of tiny improvements, for Python3 and also for Python2. So I wanted to get
+this out now.
+
+As usual, please check it out, and let me know how you fare.
+
 Nuitka Release 0.3.23
 =====================
 
@@ -92,8 +260,8 @@ Bug fixes
 
 - Reference counter handling with generator ``throw`` method is now correct.
 
-- A module ``builtins`` conflicted with the handling of the Python builtins module. Those
-  now use different identifiers.
+- A module "builtins" conflicted with the handling of the Python ``builtins``
+  module. Those now use different identifiers.
 
 
 New Features
@@ -153,7 +321,7 @@ New Optimizations
      def simple():
         return 7
 
-- Optimize ``len`` builtin for non-constant, but known length values.
+- Optimize ``len`` built-in for non-constant, but known length values.
 
   An example can be seen here:
 
@@ -170,11 +338,11 @@ New Optimizations
      len( ( a(), b() ) )
 
   This new optimizations applies to all kinds of container creations and the ``range``
-  builtin initially.
+  built-in initially.
 
 - Optimize conditions for non-constant, but known truth values.
 
-  At this time, known truth values of non-constants means ``range`` builtin calls with know
+  At this time, known truth values of non-constants means ``range`` built-in calls with know
   size and container creations.
 
   An example can be seen here:
@@ -298,7 +466,7 @@ that make the release complete.
 Bug fixes
 ---------
 
-- The builtin ``next`` could causes a program crash when iterating past the end of an
+- The built-in ``next`` could causes a program crash when iterating past the end of an
   iterator. `Issue#34 <http://bugs.nuitka.net/issue34>`_. Fixed in 0.3.20.1 already.
 
 - The ``set`` constants could cause a compiler error, as that type was not considered in the
@@ -354,7 +522,7 @@ New Optimizations
   the CPython C/API, but we make the distinction in the source code, so it makes sense to
   have it.
 
-- Created an optimized implementation for the builtin ``iter`` with 2 parameters as
+- Created an optimized implementation for the built-in ``iter`` with 2 parameters as
   well. This allows for slightly more efficient code to be created with regards to
   reference handling, rather than using the CPython C/API.
 
@@ -568,37 +736,37 @@ New Optimizations
 
 - Enhanced all optimizations that previously worked on "constants" to work on "compile
   time constants" instead. A "compile time constant" can currently also be any form of a
-  builtin name or exception reference. It is intended to expand this in the future.
+  built-in name or exception reference. It is intended to expand this in the future.
 
-- Added support for builtins ``bin``, ``oct``, and ``hex``, which also can be computed at
+- Added support for built-ins ``bin``, ``oct``, and ``hex``, which also can be computed at
   compile time, if their arguments are compile time constant.
 
-- Added support for the ``iter`` builtin in both forms, one and two arguments. These cannot
+- Added support for the ``iter`` built-in in both forms, one and two arguments. These cannot
   be computed at compile time, but now will execute faster.
 
-- Added support for the ``next`` builtin, also in its both forms, one and two
+- Added support for the ``next`` built-in, also in its both forms, one and two
   arguments. These also cannot be computed at compile time, but now will execute faster as
   well.
 
-- Added support the the ``open`` builtin in all its form. We intend for future releases to
+- Added support the the ``open`` built-in in all its form. We intend for future releases to
   be able to track file opens for including them into the executable if data files.
 
-- Optimize the ``__debug__`` builtin constant as well. It cannot be assigned, yet code can
+- Optimize the ``__debug__`` built-in constant as well. It cannot be assigned, yet code can
   determine a mode of operation from it, and apparently some code does. When compiling the
   mode is decided.
 
-- Optimize the ``Ellipsis`` builtin constant as well. It falls in the same category as
-  ``True``, ``False``, ``None``, i.e. names of builtin constants that a singletons.
+- Optimize the ``Ellipsis`` built-in constant as well. It falls in the same category as
+  ``True``, ``False``, ``None``, i.e. names of built-in constants that a singletons.
 
-- Added support for anonymous builtin references, i.e. builtins which have names that are
+- Added support for anonymous built-in references, i.e. built-ins which have names that are
   not normally accessible. An example is ``type(None)`` which is not accessible from
   anywhere. Other examples of such names are ``compiled_method_or_function``. Having these
   as represented internally, and flagged as "compile time constants", allows the compiler
   to make more compile time optimizations and to generate more efficient C++ code for it
-  that won't e.g. call the ``type`` builtin with ``None`` as an argument.
+  that won't e.g. call the ``type`` built-in with ``None`` as an argument.
 
-- All builtin names used in the program are now converted to "builtin name references" in
-  a first step. Unsupported builtins like e.g. ``zip``, for which Nuitka has no
+- All built-in names used in the program are now converted to "built-in name references" in
+  a first step. Unsupported built-ins like e.g. ``zip``, for which Nuitka has no
   own code or understanding yet, remained as "module variables", which made access to them
   slow, and difficult to recognize.
 
@@ -713,7 +881,7 @@ Cleanups
 - Added new bases classes and mix-in classes dedicated to expressions, giving a place for
   some defaults.
 
-- Made the builtin code more reusable.
+- Made the built-in code more reusable.
 
 New Tests
 ---------
@@ -936,7 +1104,7 @@ New Optimizations
 - If the condition of assert statements can be predicted, these are now optimized in a
   static raise or removed.
 
-- For builtin name references, there is now dedicated code to look them up, that doesn't
+- For built-in name references, there is now dedicated code to look them up, that doesn't
   check the module level at all. Currently these are used in only a few cases though.
 
 - Cleaner code is generated for the simple case of ``print`` statements. This is not only
@@ -954,7 +1122,7 @@ Cleanups
   This allowed to remove code and complexity from the subsequent stetps of Nuitka, and
   enabled existing optimizations to work on assert statements as well.
 
-- Moved builtin exception names and builtin names to a new module ``nuitka.Builtins``
+- Moved built-in exception names and built-in names to a new module ``nuitka.Builtins``
   instead of having in other places. This was previously a bit spread-out and misplaced.
 
 - Added cumulative ``tags`` to node classes for use in checks. Use it annotate which node
@@ -973,7 +1141,7 @@ Cleanups
 - Consistently use ``nuitka`` in test scripts, as there isn't a ``Nuitka.py`` on all
   platforms. The later is scheduled for removal.
 
-- New node for builtin name loopups, which allowed to remove tricks played with adding
+- New node for built-in name loopups, which allowed to remove tricks played with adding
   module variable lookups for ``staticmethod`` when adding them for ``__new__`` or module
   variable lookups for ``str`` when predicting the result of ``type( 'a' )``, which was
   unlikely to cause a problem, but an important TODO item still.
@@ -1683,11 +1851,11 @@ Bug fixes
   Python2, but that should not be considered an error. These modules are now skipped with
   a warning. Fixed in 0.3.12b already.
 
-- The code to import modules wasn't using the ``__import__`` builtin, which prevented
-  ``__import__`` overriding code to work. Changed import to use the builtin. Fixed in
+- The code to import modules wasn't using the ``__import__`` built-in, which prevented
+  ``__import__`` overriding code to work. Changed import to use the built-in. Fixed in
   0.3.12c already.
 
-- The code generated for the ``__import__`` builtin with constant values was doing relative
+- The code generated for the ``__import__`` built-in with constant values was doing relative
   imports only. It should attempt relative and absolut imports. Fixed in 0.3.12c already.
 
 - The code in "__init__.py" believed it was outside of the package, giving problems for
@@ -1710,7 +1878,7 @@ Bug fixes
 New Optimizations
 -----------------
 
-- The builtins ``GeneratorExit`` and ``StopIteration`` are optimized to their Python C/API
+- The built-ins ``GeneratorExit`` and ``StopIteration`` are optimized to their Python C/API
   names where possible as well.
 
 Cleanups
@@ -2079,11 +2247,11 @@ New Optimizations
   This is brand new and doesn't do everything possible yet. Most notable, the matching of
   raised exception to handlers is not yet performed.
 
-- Builtin exception name references and creation of instances of them are now optimized as
+- Built-in exception name references and creation of instances of them are now optimized as
   well, which should lead to faster exception raising/catching for these cases.
 
-- More kinds of calls to builtins are handled, positional parameters are checked and more
-  builtins are covered.
+- More kinds of calls to built-ins are handled, positional parameters are checked and more
+  built-ins are covered.
 
   Notable is that now checks are performed if you didn't potentially overload e.g. the
   ``len`` with your own version in the module. Locally it was always detected already. So
@@ -2106,7 +2274,7 @@ Cleanups
 
 - Large cleanup of the operation/comparison code. There is now only use of a simulator
   function, which exists for every operator and comparison. This one is then used in a
-  prediction call, shared with the builtin predictions.
+  prediction call, shared with the built-in predictions.
 
 - Added a ``Tracing`` module to avoid future imports of ``print_function``, which annoyed me
   many times by causing syntax failures for when I quickly added a print statement, not
@@ -2143,7 +2311,7 @@ New Tests
 - Enhanced ``ComparisonChains`` test to demonstrate that the order of evaluations is done
   right and that side effects are maintained.
 
-- Added ``BuiltinOverload`` test to show that overloaded builtins are actually called and
+- Added ``BuiltinOverload`` test to show that overloaded built-ins are actually called and
   not the optimized version. So code like this has to print 2 lines:
 
   .. code-block:: python
@@ -2192,7 +2360,7 @@ improvement.
 
 This new release is major milestone 2 work, enhancing practically all areas of Nuitka. The
 main focus was on faster function calls, faster class attributes (not instance), faster
-unpacking, and more builtins detected and more thoroughly optimizing them.
+unpacking, and more built-ins detected and more thoroughly optimizing them.
 
 Bug fixes
 ---------
@@ -2322,22 +2490,22 @@ Iteration
 - The unpack check got simlar code to the next iterator, it also has simpler code flow now
   and avoids double checks.
 
-Builtins
-~~~~~~~~
+Built-ins
+~~~~~~~~~
 
-- Added support for the ``list``, ``tuple``, ``dict``, ``str``, ``float`` and ``bool`` builtins along
+- Added support for the ``list``, ``tuple``, ``dict``, ``str``, ``float`` and ``bool`` built-ins along
   with optimizing their use with constant parameter.
 
-- Added support for the ``int`` and ``long`` builtins, based on a new "call spec" object, that
+- Added support for the ``int`` and ``long`` built-ins, based on a new "call spec" object, that
   detects parameter errors at compile time and raises appropriate exceptions as required,
   plus it deals with keyword arguments just as well.
 
   So, to Nuitka it doesn't matter now it you write ``int( value ) ``or ``int( x = value )``
-  anymore. The ``base`` parameter of these builtins is also supported.
+  anymore. The ``base`` parameter of these built-ins is also supported.
 
   The use of this call spec mechanism will the expanded, currently it is not applied to
-  the builtins that take only one parameter. This is a work in progress as is the whole
-  builtins business as not all the builtins are covered yet.
+  the built-ins that take only one parameter. This is a work in progress as is the whole
+  built-ins business as not all the built-ins are covered yet.
 
 Cleanups
 ~~~~~~~~
@@ -2653,7 +2821,7 @@ Cleanups
 - Parameter parsing code has been unified even further, now the whole entry point is
   generated by one of the function in the new ``nuitka.codegen.ParameterParsing`` module.
 
-- Split variable, exception, builtin helper classes into separate header files.
+- Split variable, exception, built-in helper classes into separate header files.
 
 New Tests
 ---------
@@ -2723,7 +2891,7 @@ Bug fixes
   absolute or relative imports, it will be attempted in the same way than CPython
   does. This can make a difference with compatibility.
 
-- Functions with a "locals dict" (using ``locals`` builtin or ``exec`` statement) were not
+- Functions with a "locals dict" (using ``locals`` built-in or ``exec`` statement) were not
   100% compatible in the way the locals dictionary was updated, this got fixed. It seems
   that directly updating a dict is not what CPython does at all, instead it only pushes
   things to the dictionary, when it believes it has to. Nuitka now does the same thing,
@@ -2742,7 +2910,7 @@ New Features
 New Optimizations
 -----------------
 
-- Exceptions raised by pre-computed builtins, unpacking, etc. are now transformed to
+- Exceptions raised by pre-computed built-ins, unpacking, etc. are now transformed to
   raising the exception statically.
 
 Cleanups
@@ -2870,15 +3038,15 @@ New Features
 New Optimizations
 -----------------
 
-- Added optimization for the builtin ``range()`` which otherwise requires a module and
-  builtin module lookup, then parameter parsing. Now this is much faster with Nuitka and
-  small ranges (less than 256 values) are converted to constants directly, avoiding run
-  time overhead entirely.
+- Added optimization for the built-in ``range()`` which otherwise requires a module and
+  ``builtin`` module lookup, then parameter parsing. Now this is much faster with Nuitka
+  and small ranges (less than 256 values) are converted to constants directly, avoiding
+  run time overhead entirely.
 - Code for re-raise statements now use a simple re-throw of the exception where possible,
   and only do the hard work where the re-throw is not inside an exception handler.
 - Constant folding of operations and comparisons is now performed if the operands are
   constants.
-- Values of some builtins are pre-computed if the operands are constants.
+- Values of some built-ins are pre-computed if the operands are constants.
 - The value of module attribute ``__name__`` is replaced by a constant unless it is assigned
   to. This is the first sign of upcoming constant propagation, even if only a weak one.
 - Conditional statement and/or their branches are eliminated where constant conditions
@@ -2913,7 +3081,7 @@ Cleanups
   and improving the logic. Very much appreciated.
 - Nicolas also documented a things in the Nuitka source code or got me to document things
   that looked strange, but have reasons behind it.
-- Nicolas solved the TODO related to builtin module accesses. These will now be way faster
+- Nicolas solved the TODO related to built-in module accesses. These will now be way faster
   than before.
 - Nicolas also solved the TODO related to the performance of "locals dict" variable
   accesses.
@@ -3023,7 +3191,7 @@ Bug fixes
 - Set and dict contractions (Python 2.7 features) declared local variables for global
   variables used. This went unnoticed, because list contractions don't generate code for
   local variables at all, as they cannot have such.
-- Using the ``type()`` builtin to create a new class could attribute it to the wrong module,
+- Using the ``type()`` built-in to create a new class could attribute it to the wrong module,
   this is now corrected.
 
 New Features
@@ -3038,11 +3206,11 @@ New Features
 New Optimizations
 -----------------
 
-- Added optimization for the builtins ``ord()`` and ``chr()``, these require a module and
-  builtin module lookup, then parameter parsing. Now these are really quick with Nuitka.
-- Added optimization for the ``type()`` builtin with one parameter. As above, using from
+- Added optimization for the built-ins ``ord()`` and ``chr()``, these require a module and
+  built-in module lookup, then parameter parsing. Now these are really quick with Nuitka.
+- Added optimization for the ``type()`` built-in with one parameter. As above, using from
   builtin module can be very slow. Now it is instantaneous.
-- Added optimization for the ``type()`` builtin with three parameters. It's rarely used, but
+- Added optimization for the ``type()`` built-in with three parameters. It's rarely used, but
   providing our own variant, allowed to fix the bug mentioned above.
 
 Cleanups
@@ -3067,7 +3235,7 @@ New Tests
 - Added ExtremeClosure from my Python quiz, it was not covered by existing tests.
 - Added test case for program that imports a module with a dash in its name.
 - Added test case for main program that starts with a dash.
-- Extended the builtin tests to cover ``type()`` as well.
+- Extended the built-in tests to cover ``type()`` as well.
 
 Organizational
 --------------
@@ -3140,7 +3308,7 @@ Function Calls
 Classes
 ~~~~~~~
 
-- The "locals()" builtin when used in the class scope (not in a method) now is correctly
+- The "locals()" built-in when used in the class scope (not in a method) now is correctly
   writable and writes to it change the resulting class.
 - Name mangling for private identifiers was not always done entirely correct.
 
@@ -3645,7 +3813,7 @@ Optimizations / New Features
   can now be queries with ``--version``
 - More complete test of generator expressions.
 - Added test program for packages with relative imports inside the package.
-- The builtin ``dir()`` in a function was not having fully deterministic output list, now it
+- The built-in ``dir()`` in a function was not having fully deterministic output list, now it
   does.
 
 Summary
