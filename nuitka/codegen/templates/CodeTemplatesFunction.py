@@ -138,19 +138,16 @@ catch ( _PythonException &_exception )
     {
         _exception.addTraceback( frame_guard.getFrame() );
     }
-
-%(return_code)s;
+%(return_code)s
 }
 """
 
-frame_guard_python_return = """\
+frame_guard_python_return = """
     _exception.toPython();
-    return NULL;
-"""
+    return NULL;"""
 
-frame_guard_cpp_return = """\
-    throw;
-"""
+frame_guard_cpp_return = """
+    throw;"""
 
 frame_guard_listcontr_template = """\
 FrameGuardVeryLight frame_guard;
