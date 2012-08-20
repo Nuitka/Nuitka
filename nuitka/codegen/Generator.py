@@ -1246,8 +1246,10 @@ def getLoadDirCode( context, provider ):
 
         if context.hasLocalsDict():
             return Identifier(
-                "PyDict_Keys( UPDATED_LOCALS_DICT( locals.asObject()%s )" % (
-                    "".join( ", %s" % x for x in local_list ),
+                "PyDict_Keys( %s )" % getLoadLocalsCode(
+                    context  = context,
+                    provider = provider,
+                    mode     = "updated"
                 ),
                 1
             )
