@@ -64,18 +64,24 @@ These options with different defaults are "--exe" and "--execute", so it is some
 similar to what plain "python" will do. Note: In the future, the intention is to support
 CPython's "python" command lines in a compatible way, but currently it isn't so.
 
-If you want to compile recursively, and not only a single file, do it like this:
+Use Case 1 - Program compilation with all modules embedded
+----------------------------------------------------------
+
+If you want to compile a whole program recursively, and not only the single file that is
+the main program, do it like this:
 
 .. code-block:: sh
 
     nuitka-python --recurse-all program.py
 
-Note: The is more fine grained control that "--recurse-all" available. Consider the output
-of "--help".
+.. note::
+
+   The is more fine grained control than "--recurse-all" available. Consider the output of
+   "nuitka-python --help".
 
 In case you have a plugin directory, i.e. one which is not found by recursing after normal
 import statements (recommended way), you can always require that a given directory shall
-also be included in the executable.
+also be included in the executable:
 
 .. code-block:: sh
 
@@ -88,6 +94,35 @@ also be included in the executable.
    "__import__()" calls that Nuitka cannot predict, because they e.g. depend on command
    line parameters.
 
+.. note::
+
+   The resulting binary still depends on Python and used C extension modules being
+   installed. Sorry about that, it's not yet a "py2exe" replacement. Please come and help
+   to add that functionality if you would like to see it in Nuitka.
+
+Use Case 3 - Extension Module compilation
+-----------------------------------------
+
+If you want to compile a single extension module, all you have to do is this:
+
+.. code-block:: sh
+
+    nuitka some_module.py
+
+The resulting "some_module.so" can then be used instead of "some_module.py".
+
+Use Case 3 - Package compilation with all modules embedded
+----------------------------------------------------------
+
+If you need to compile a whole package and embedded all modules, that is also feasible,
+use it like this:
+
+    nuitka some_package --recurse-directory=some_package
+
+.. note::
+
+   The recursion into the package directory needs to be provided manually, otherwise the
+   package is empty. Data files located inside the package will not be embedded yet.
 
 Where to go next
 ~~~~~~~~~~~~~~~~
@@ -99,23 +134,25 @@ while. Try it out.
 Subscribe to its mailing lists
 ------------------------------
 
-   http://nuitka.net/blog/nuitka-a-python-compiler/nuitka-mailinglist/
+Please visit the `mailing list page <http://www.nuitka.net/pages/mailinglist.html>`_ in
+order to subscribe the relatively low volume mailing list. All Nuitka issues can be
+discussed there.
 
 Report issues or bugs
 ---------------------
 
-    http://bugs.nuitka.net
+Should you encounter and issues or bugs, please visit the `Nuitka bug tracker
+<http://bugs.nuitka.net>`_ and report them.
 
 Contact me via email with your questions
 ----------------------------------------
 
-   mailto:kayhayen@gmx.de
+You are welcome to `contact me via email <mailto:kayhayen@gmx.de>`_ with your questions.
 
 Word of Warning
 ~~~~~~~~~~~~~~~
 
-Consider this a beta release quality, do not use it for anything important, but your
-feedback and patches are very welcome.
+Consider using this software with caution. Your feedback and patches are very welcome.
 
 Especially report it please, if you find that anything doesn't work, because the project
 is now at the stage that this should not happen.
@@ -130,10 +167,12 @@ all minor and major ways.
 The development of Nuitka occurs in git. We currently have these 2 branches:
 
 - `master <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/master>`_:
+
   This branch contains the stable release to which only hotfixes for bugs will be
   done. It is supposed to work at all times and is supported.
 
 - `develop <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/develop>`_:
+
   This branch contains the ongoing development. It may at times contain little
   regressions, but also new features. On this branch the integration work is done, whereas
   new features might be developed on feature branches.
