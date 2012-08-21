@@ -7,14 +7,13 @@ Usage
 Requirements
 ~~~~~~~~~~~~~
 
-- C++ Compiler: You need a compiler with support for C++11
+- C++ Compiler: You need a compiler with support for C++03
 
-  Currently this means, you need to use the GNU g++ compiler of at least version 4.5 on
-  Linux or the clang 3.0 compiler on MacOS X, or else the compilation will fail. This is
-  mostly due to uses of C++11 "raw string" literals only supported from that version on.
+  Currently this means, you need to use the GNU g++ compiler of at least version 4.4 on
+  Linux or the clang 3.0 compiler on MacOS X, or else the compilation may fail.
 
-  On Windows the MinGW g++ compiler of at least version 4.5, the VC++ compiler is not
-  currently supported, because it is too weak in its C++11 support.
+  On Windows the MinGW g++ compiler is known to work start with at least version 4.5, the
+  VC++ compiler is not known at this time.
 
 - Python: Version 2.6 or 2.7 (3.2 works partially)
 
@@ -545,8 +544,8 @@ The gcc project http://gcc.gnu.org/
 -----------------------------------
 
 Thanks for not only the best compiler suite, but also thanks for supporting C++11 which
-has made the generation of code much easier. Your compiler was the first usable for
-Nuitka.
+helped to get Nuitka off the ground. Your compiler was the first usable for Nuitka and
+with little effort.
 
 The Scons project http://www.scons.org/
 ---------------------------------------

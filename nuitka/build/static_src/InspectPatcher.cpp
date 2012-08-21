@@ -88,7 +88,7 @@ static PyObject *_inspect_isgenerator_replacement( PyObject *self, PyObject *arg
     }
 }
 
-static PyMethodDef _method_def_inspect_isfunction_replacement
+static PyMethodDef _method_def_inspect_isfunction_replacement =
 {
     "isfunction",
     (PyCFunction)_inspect_isfunction_replacement,
@@ -96,7 +96,7 @@ static PyMethodDef _method_def_inspect_isfunction_replacement
     NULL
 };
 
-static PyMethodDef _method_def_inspect_ismethod_replacement
+static PyMethodDef _method_def_inspect_ismethod_replacement =
 {
     "ismethod",
     (PyCFunction)_inspect_ismethod_replacement,
@@ -104,7 +104,7 @@ static PyMethodDef _method_def_inspect_ismethod_replacement
     NULL
 };
 
-static PyMethodDef _method_def_inspect_isgenerator_replacement
+static PyMethodDef _method_def_inspect_isgenerator_replacement =
 {
     "isgenerator",
     (PyCFunction)_inspect_isgenerator_replacement,

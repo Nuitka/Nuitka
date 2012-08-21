@@ -190,12 +190,12 @@ orig_cxx_version = env.get( "CXXVERSION", None )
 if "g++" in env[ "CXX" ]:
     gpp_version = getGccVersion()
 
-    if gpp_version is None or int( getGccVersion().replace( ".", "" ) ) < 450:
+    if gpp_version is None or int( getGccVersion().replace( ".", "" ) ) < 440:
         del env[ "CXX" ]
 
 # Detect compiler to be used from supported ones, if there is no usable g++ link.
 if "linux" in sys.platform and "CXX" not in env:
-    for candidate in ( "g++-4.7", "g++-4.6", "g++-4.5", "clang++" ):
+    for candidate in ( "g++-4.7", "g++-4.6", "g++-4.5", "g++-4.4", "clang++" ):
         if os.path.exists( os.path.join( "/usr/bin", candidate ) ):
             env[ "CXX" ] = candidate
 
@@ -218,7 +218,7 @@ env.SConsignFile( sconsign_dir )
 
 # Support for clang.
 if "clang" in env[ "CXX" ]:
-    env.Append( CCFLAGS = [ "-std=c++0x", "-w", "-D _XOPEN_SOURCE" ] )
+    env.Append( CCFLAGS = [ "-w", "-D _XOPEN_SOURCE" ] )
     env.Append( LINKFLAGS = [ "-lstdc++" ])
 
     # Allow clang to point out all kinds of inconsistency to us by raising an error. As for
@@ -229,8 +229,9 @@ if "clang" in env[ "CXX" ]:
 
 # Support for g++.
 if "g++" in env[ "CXX" ]:
-    # All Nuitka generated C++ is C++0X standard, so make that clear.
-    env.Append( CCFLAGS = [ "-std=c++0x" ] )
+    # Older g++ complains about aliasing with Py_True and Py_False, but we don't care.
+    if gpp_version < 450:
+        env.Append( CCFLAGS = [ "-fno-strict-aliasing" ] )
 
     # Don't export anything by default, this should create smaller executables.
     if not win_target:
@@ -250,12 +251,8 @@ if "g++" in env[ "CXX" ]:
     # Enforce the minimum version, selecting a potentially existing g++-4.5 binary if it's
     # not high enough. This is esp. useful under Debian which allows all compiler to exist
     # next to  each other and where g++ might not be good enough, but g++-4.5 would be.
-    if gpp_version < 450:
-        if not win_target and os.path.exists( "/usr/bin/g++-4.5" ):
-            env[ "CXX" ] = "g++-4.5"
-            gpp_version = 450
-        else:
-            sys.exit( "The g++ compiler %s (version %s) doesn't have the sufficient version (>= 4.5)." % ( env[ "CXX" ], env[ "CXXVERSION" ] ) )
+    if gpp_version < 440:
+        sys.exit( "The g++ compiler %s (version %s) doesn't have the sufficient version (>= 4.5)." % ( env[ "CXX" ], env[ "CXXVERSION" ] ) )
 
     # For LTO mode, the version requirement is even higher, so try that too.
     if lto_mode and gpp_version < 460 and not win_target and os.path.exists( "/usr/bin/g++-4.6" ):

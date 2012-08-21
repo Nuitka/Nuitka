@@ -63,7 +63,8 @@ public:
     }
 
 private:
-    PyObjectTemporary( const PyObjectTemporary &object ) = delete;
+
+    PyObjectTemporary( const PyObjectTemporary &object ) { assert( false ); }
 
     PyObject *object;
 };
@@ -108,7 +109,7 @@ public:
 
 private:
 
-    PyObjectTempHolder( const PyObjectTempHolder &other ) = delete;
+    PyObjectTempHolder( const PyObjectTempHolder &other ) { assert( false ); }
 
     PyObject *object;
 };

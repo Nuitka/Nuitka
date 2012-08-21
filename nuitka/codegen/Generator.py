@@ -1217,7 +1217,7 @@ def _getLocalVariableList( context, provider ):
         include_closure = True
 
     return [
-        "&%s" % getVariableCode(
+        "%s" % getVariableCode(
             variable = variable,
             context = context
         )
@@ -1239,11 +1239,6 @@ def getLoadDirCode( context, provider ):
             1
         )
     else:
-        local_list = _getLocalVariableList(
-            context  = context,
-            provider = provider
-        )
-
         if context.hasLocalsDict():
             return Identifier(
                 "PyDict_Keys( %s )" % getLoadLocalsCode(
@@ -1254,12 +1249,26 @@ def getLoadDirCode( context, provider ):
                 1
             )
         else:
-            return Identifier(
-                "MAKE_LOCALS_DIR( %s )" % (
-                    ", ".join( local_list ),
-                ),
-                1
+            local_list = _getLocalVariableList(
+                context  = context,
+                provider = provider
             )
+
+            result = getListCreationCode(
+                context             = context,
+                element_identifiers = (),
+            )
+
+            for local_var in local_list:
+                result = Identifier(
+                    "%s.updateLocalsDir( %s )" % (
+                        local_var,
+                        result.getCodeTemporaryRef()
+                    ),
+                    0
+                )
+
+            return result
 
 def getLoadVarsCode( identifier ):
     return Identifier(
@@ -1284,10 +1293,21 @@ def getLoadLocalsCode( context, provider, mode ):
             context  = context
         )
 
-        return Identifier(
-            "MAKE_LOCALS_DICT( %s )" % ", ".join( local_list ),
+        result = Identifier(
+            "PyDict_New()",
             1
         )
+
+        for local_var in local_list:
+            result = Identifier(
+                "%s.updateLocalsDict( %s )" % (
+                    local_var,
+                    result.getCodeTemporaryRef()
+                ),
+                0
+            )
+
+        return result
     else:
         if mode == "copy":
             return Identifier(
@@ -1300,12 +1320,21 @@ def getLoadLocalsCode( context, provider, mode ):
                 context  = context
             )
 
-            return Identifier(
-                "UPDATED_LOCALS_DICT( locals_dict.asObject()%s )" % (
-                    "".join( ", %s" % x for x in local_list ),
-                ),
-                1
+            result = Identifier(
+                "locals_dict.asObject()",
+                0
             )
+
+            for local_var in local_list:
+                result = Identifier(
+                    "%s.updateLocalsDict( %s )" % (
+                        local_var,
+                        result.getCodeTemporaryRef()
+                    ),
+                    0
+                )
+
+            return result
         else:
             assert False
 

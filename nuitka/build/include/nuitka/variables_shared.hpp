@@ -105,7 +105,7 @@ public:
 
 private:
 
-    PyObjectSharedStorage( const PyObjectSharedStorage & ) = delete;
+    PyObjectSharedStorage( const PyObjectSharedStorage & ) { assert( false ); };
 
 };
 
@@ -218,11 +218,52 @@ public:
         return this->storage->var_name;
     }
 
+    PyObject *updateLocalsDict( PyObject *locals_dict ) const
+    {
+        if ( this->isInitialized() )
+        {
+            int status = PyDict_SetItem(
+                locals_dict,
+                this->getVariableName(),
+                this->asObject()
+            );
+
+            if (unlikely( status == -1 ))
+            {
+                throw _PythonException();
+            }
+        }
+
+        return locals_dict;
+    }
+
+    PyObject *updateLocalsDir( PyObject *locals_list ) const
+    {
+        assert( PyList_Check( locals_list ) );
+
+        if ( this->isInitialized() )
+        {
+            int status = PyList_Append(
+                locals_list,
+                this->getVariableName()
+            );
+
+            if (unlikely( status == -1 ))
+            {
+                throw _PythonException();
+            }
+        }
+
+        return locals_list;
+    }
+
 protected:
 
     PyObjectSharedStorage *storage;
 
-    PyObjectSharedLocalVariable( const PyObjectSharedLocalVariable & ) = delete;
+private:
+
+    PyObjectSharedLocalVariable( const PyObjectSharedLocalVariable & ) {  assert( false ); };
 
 };
 
@@ -265,7 +306,7 @@ public:
 
 protected:
 
-    PyObjectClosureVariable( const PyObjectClosureVariable & ) = delete;
+    PyObjectClosureVariable( const PyObjectClosureVariable & ) {  assert( false ); }
 };
 
 #endif

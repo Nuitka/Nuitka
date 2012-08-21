@@ -132,7 +132,7 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
 }
 
 
-static PyMethodDef _method_def_loader_find_module
+static PyMethodDef _method_def_loader_find_module =
 {
     "find_module",
     (PyCFunction)_path_unfreezer_find_module,
@@ -140,7 +140,7 @@ static PyMethodDef _method_def_loader_find_module
     NULL
 };
 
-static PyMethodDef _method_def_loader_load_module
+static PyMethodDef _method_def_loader_load_module =
 {
     "load_module",
     (PyCFunction)_path_unfreezer_load_module,

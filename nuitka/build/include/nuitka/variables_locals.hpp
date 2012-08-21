@@ -150,9 +150,50 @@ public:
         return this->var_name;
     }
 
+    PyObject *updateLocalsDict( PyObject *locals_dict ) const
+    {
+        assert( PyDict_Check( locals_dict ) );
+
+        if ( this->isInitialized() )
+        {
+            int status = PyDict_SetItem(
+                locals_dict,
+                this->getVariableName(),
+                this->asObject()
+            );
+
+            if (unlikely( status == -1 ))
+            {
+                throw _PythonException();
+            }
+        }
+
+        return locals_dict;
+    }
+
+    PyObject *updateLocalsDir( PyObject *locals_list ) const
+    {
+        assert( PyList_Check( locals_list ) );
+
+        if ( this->isInitialized() )
+        {
+            int status = PyList_Append(
+                locals_list,
+                this->getVariableName()
+            );
+
+            if (unlikely( status == -1 ))
+            {
+                throw _PythonException();
+            }
+        }
+
+        return locals_list;
+    }
+
 private:
 
-    PyObjectLocalVariable( const PyObjectLocalVariable &other ) = delete;
+    PyObjectLocalVariable( const PyObjectLocalVariable &other ) { assert( false ); }
 
     PyObject *var_name;
     PyObject *object;

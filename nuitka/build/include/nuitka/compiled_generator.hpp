@@ -33,7 +33,7 @@
 #include "fibers.hpp"
 
 // Status of the generator object.
-enum class Generator_Status {
+enum Generator_Status {
     status_Unused,  // Not used so far
     status_Running, // Running, used but didn't stop yet
     status_Finished // Stoped, no more values to come
