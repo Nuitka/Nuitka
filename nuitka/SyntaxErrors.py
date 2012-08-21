@@ -67,8 +67,8 @@ def formatOutput( e ):
          )
 
 
-def raiseSyntaxError( reason, source_ref, col_offset = None, display_source = True ):
-    if display_source:
+def raiseSyntaxError( reason, source_ref, col_offset = None, display_file = True, display_line = True ):
+    if display_file and display_line:
         source = open( source_ref.getFilename(), 'rU' ).readlines()
 
         raise SyntaxError(
@@ -88,7 +88,7 @@ def raiseSyntaxError( reason, source_ref, col_offset = None, display_source = Tr
                     source_ref.getFilename(),
                     source_ref.getLineNumber(),
                     None,
-                    None
+                    source[ source_ref.getLineNumber() - 1 ] if display_line else None,
                 )
             )
         else:

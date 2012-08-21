@@ -2540,11 +2540,12 @@ def handleNonlocalDeclarationNode( provider, node, source_ref ):
         for variable_name in node.names:
             if variable_name in parameters.getParameterNames():
                 SyntaxErrors.raiseSyntaxError(
-                    reason         = "name '%s' is parameter and nonlocal" % (
+                    reason       = "name '%s' is parameter and nonlocal" % (
                         variable_name
                     ),
-                    source_ref     = None,
-                    display_source = False
+                    source_ref   = None,
+                    display_file = False,
+                    display_line = False
                 )
     except AttributeError:
         raise
@@ -3388,7 +3389,8 @@ def buildModuleTree( filename, package, is_top, is_main ):
                         source_filename,
                         count+1,
                     ),
-                    source_ref = SourceCodeReferences.fromFilename( source_filename, None ).atLineNumber( count+1 )
+                    source_ref = SourceCodeReferences.fromFilename( source_filename, None ).atLineNumber( count+1 ),
+                    display_line = False
                 )
 
         buildParseTree(
