@@ -204,7 +204,7 @@ if "linux" in sys.platform and "CXX" not in env:
 
             break
     else:
-        sys.exit( "The g++ compiler '%s' (version %s) doesn't have the sufficient version (>= 4.5)." % ( orig_cxx, orig_cxx_version ) )
+        sys.exit( "The g++ compiler '%s' (version %s) doesn't have the sufficient version (>= 4.4)." % ( orig_cxx, orig_cxx_version ) )
 
 env[ "BUILD_DIR" ] = source_dir
 
@@ -229,10 +229,6 @@ if "clang" in env[ "CXX" ]:
 
 # Support for g++.
 if "g++" in env[ "CXX" ]:
-    # Older g++ complains about aliasing with Py_True and Py_False, but we don't care.
-    if gpp_version < 450:
-        env.Append( CCFLAGS = [ "-fno-strict-aliasing" ] )
-
     # Don't export anything by default, this should create smaller executables.
     if not win_target:
         env.Append( CCFLAGS = [ "-fvisibility=hidden", "-fvisibility-inlines-hidden" ] )
@@ -253,6 +249,10 @@ if "g++" in env[ "CXX" ]:
     # next to  each other and where g++ might not be good enough, but g++-4.5 would be.
     if gpp_version < 440:
         sys.exit( "The g++ compiler %s (version %s) doesn't have the sufficient version (>= 4.5)." % ( env[ "CXX" ], env[ "CXXVERSION" ] ) )
+
+    # Older g++ complains about aliasing with Py_True and Py_False, but we don't care.
+    if gpp_version < 450:
+        env.Append( CCFLAGS = [ "-fno-strict-aliasing" ] )
 
     # For LTO mode, the version requirement is even higher, so try that too.
     if lto_mode and gpp_version < 460 and not win_target and os.path.exists( "/usr/bin/g++-4.6" ):
