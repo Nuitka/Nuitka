@@ -30,6 +30,7 @@ def encodeString( value ):
     assert type( value ) is bytes, type( value )
 
     result = ""
+    octal = False
 
     for c in value:
         if str is not unicode:
@@ -38,11 +39,20 @@ def encodeString( value ):
             cv = c
 
         if c in b'\\\t\r\n"?':
-            result += r'\%o" "' % cv
+            result += r'\%o' % cv
+
+            octal = True
         elif cv >= 32 and cv <= 127:
+            if octal and c in b'01234567':
+                result += '" "'
+
             result += chr( cv )
+
+            octal = False
         else:
-            result += r'\%o" "' % cv
+            result += r'\%o' % cv
+
+            octal = True
 
     result = result.replace( '" "\\', "\\" )
 
