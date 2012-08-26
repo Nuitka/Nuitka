@@ -170,6 +170,16 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     def getVariables( self ):
         return self.providing.values()
 
+    def removeVariable( self, variable ):
+        assert variable.getOwner() is self
+        assert variable in self.providing.values(), ( self.providing, variable )
+        assert not variable.getReferences()
+
+        del self.providing[ variable.getName() ]
+
+        assert not variable.isParameterVariable()
+        self.taken.remove( variable )
+
     def getVariableForAssignment( self, variable_name ):
         # print ( "ASS func", self, variable_name )
 
