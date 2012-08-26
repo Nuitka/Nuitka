@@ -31,6 +31,7 @@ expect_failure = "expect_failure" in sys.argv
 python_debug = "python_debug" in sys.argv
 two_step_execution = "two_step_execution" in sys.argv or os.name == "nt"
 trace_command = "trace_command" in sys.argv
+remove_output = "remove_output" in sys.argv
 
 if "PYTHON" not in os.environ:
     os.environ[ "PYTHON" ] = "python"
@@ -67,6 +68,14 @@ extra_options = os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
 if python_debug:
     extra_options += " --python-debug"
 
+if remove_output:
+    extra_options += " --remove-output"
+
+exe_filename = os.path.basename( filename )
+
+if filename.endswith( ".py" ):
+    exe_filename = exe_filename[:-3] + ".exe"
+
 if not two_step_execution:
     nuitka_cmd = "%s %s --exe --execute %s" % (
         nuitka_call,
@@ -85,11 +94,6 @@ else:
 
     dir_match = re.search( r"--output-dir=(.*?)(\s|$)", extra_options )
 
-    exe_filename = os.path.basename( filename )
-
-    if filename.endswith( ".py" ):
-        exe_filename = exe_filename[:-3] + ".exe"
-
     if dir_match:
         nuitka_cmd2 = os.path.join( dir_match.group( 1 ), exe_filename )
     else:
@@ -100,7 +104,13 @@ else:
         print( "Nuitka command 2:", nuitka_cmd2 )
 
 if exec_in_tmp:
-    os.chdir( tempfile.gettempdir() )
+    tmp_dir = tempfile.gettempdir()
+
+    # Try to avoid RAM disk /tmp and use the disk one instead.
+    if tmp_dir == "/tmp" and os.path.exists( "/var/tmp" ):
+        tmp_dir = "/var/tmp"
+
+    os.chdir( tmp_dir )
 
 process = subprocess.Popen(
     args   = cpython_cmd,
@@ -279,9 +289,6 @@ exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
 if exit_code:
     sys.exit( "Error, outputs differed." )
 
-if not silent_mode:
-    print( "OK, same outputs." )
-
 if expect_success and exit_cpython != 0:
     if silent_mode:
         displayCPython()
@@ -290,3 +297,9 @@ if expect_success and exit_cpython != 0:
 
 if expect_failure and exit_cpython == 0:
     sys.exit( "Unexpected success exit from CPython." )
+
+if remove_output and os.path.exists( exe_filename ):
+    os.unlink( exe_filename )
+
+if not silent_mode:
+    print( "OK, same outputs." )
