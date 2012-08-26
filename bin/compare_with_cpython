@@ -193,6 +193,9 @@ def makeDiffable( output ):
         if line.endswith( "\r" ):
             line = line[:-1]
 
+        if line.startswith( "[" ) and line.endswith( "refs]" ):
+            continue
+
         if ignore_warnings and line.startswith( "Nuitka:WARNING" ):
             continue
 
