@@ -81,7 +81,7 @@ int main( int argc, char *argv[] )
         Py_INCREF( frame___main__ );
         PyThreadState_GET()->frame = frame___main__;
 
-        PyErr_Print();
+        PyErr_PrintEx( 0 );
         Py_Exit( 1 );
     }
     else
