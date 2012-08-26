@@ -693,7 +693,7 @@ class CPythonParameterHavingNodeBase( CPythonClosureGiverNodeBase ):
     def getParameters( self ):
         return self.parameters
 
-
+# TODO: Basically only functions do this now, so move it to there.
 class CPythonClosureTaker:
     """ Mixin for nodes that accept variables from closure givers. """
 
