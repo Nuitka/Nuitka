@@ -1,3 +1,4 @@
+
 Nuitka Release 0.3.24
 =====================
 
@@ -88,6 +89,17 @@ Organizational
   And it creates SVG files and no longer PostScript as the first one is more easily
   rendered these days.
 
+- Removed the "misc/gist" git sub-module, which was previously used by "misc/make-doc.py"
+  to generate HTML from `User Manual <http://nuitka.net/doc/user-manual.html>`_ and
+  `Developer Manual <http://nuitka.net/doc/developer-manual.html>`_. These are now done
+  with Nikola, which is much better at it and it integrates with the web site.
+
+- Lots of formatting improvements to the change log, and manuals:
+
+  * Marking identifiers with better suited ReStructured Text markup.
+  * Added links to the bug tracker all Issues.
+  * Unified wordings, quotation, across the documents.
+
 Cleanups
 --------
 
@@ -109,19 +121,6 @@ Cleanups
 
 - The use of raw strings was found unnecessary and potentially still buggy and has been
   removed. The dependence on C++11 is getting less and less.
-
-Organizational
---------------
-
-- Removed the "misc/gist" git sub-module, which was previously used by "misc/make-doc.py"
-  to generate HTML from User Manual and Developer Manual. These are now done with Nikola,
-  which is much better at it and it integrates with the web site.
-
-- Lots of formatting improvements to the change log, and manuals:
-
-  * Marking identifiers with better suited ReStructured Text markup.
-  * Added links to the bug tracker all Issues.
-  * Unified wordings, quotation, across the documents.
 
 New Tests
 ---------
@@ -455,7 +454,7 @@ Nuitka Release 0.3.21
 
 This releases contains some really major enhancements, all heading towards enabling value
 propagation inside Nuitka. Assignments of all forms are now all simple and explicit, and
-as a result, now it should be easy to track them.
+as a result, now it will be easy to start tracking them.
 
 Contractions have become functions internally, with statements use temporary variables,
 complex unpacking statement were reduced to more simple ones, etc.
@@ -533,8 +532,8 @@ New Optimizations
 
 - Don't use a "context" object for generator functions (and generator expressions) that
   don't need one. And even if it does to store e.g. the given parameter values, avoid to
-  have a "common context" if there is no closure taken. This avoids useless ``malloc`` calls
-  and should speed up repeated generator object creation.
+  have a "common context" if there is no closure taken. This avoids useless ``malloc``
+  calls and speeds up repeated generator object creation.
 
 Organizational
 --------------
@@ -614,7 +613,7 @@ Cleanups
   unpacking, and the ``finished`` check is more condensed into it.
 
   Generally this cleanup allowed that the ``AssignTargetTuple`` and associated code
-  generation was removed, and in the future value propagation should optimize these ``next``
+  generation was removed, and in the future value propagation may optimize these ``next``
   and ``iter`` calls away where possible. At this time, this is not done yet.
 
 - Exception handlers assign caught exception value through assignment statement.
@@ -854,8 +853,8 @@ Cleanups
 
      C = some_classdecorator( C )
 
-  It's only similar, because the assignment to an intermediate value of ``C`` and ``f`` is not
-  done, and should an exception be raised by the decoration, that name could persist. For
+  It's only similar, because the assignment to an intermediate value of ``C`` and ``f`` is
+  not done, and if an exception was raised by the decoration, that name could persist. For
   Nuitka, the function and class body, before having a name, are an expression, and so can
   of course be passed to decorators already.
 
@@ -888,7 +887,7 @@ New Tests
 
 - Added some more diagnostic tests about complex assignment and ``del`` statements.
 
-- Added syntax test for star import on function level, that should fail on Python3.
+- Added syntax test for star import on function level, that must fail on Python3.
 
 - Added syntax test for duplicate argument name.
 
@@ -905,7 +904,7 @@ standard assignment code, the built functions and classes are now assigned to na
 assignment statements, much *more* consistency there.
 
 Yet, even more work will be needed in the same direction. There may e.g. be work required
-to cover ``with`` statements as well. And assignments should never be any more complex than
+to cover ``with`` statements as well. And assignments will become no more complex than
 unpacking from a temporary variable.
 
 For this release, there is only minimal progress on the Python3 front, despite the syntax
@@ -983,7 +982,7 @@ Cleanups
   gives more readable code, because no ``EVAL_ORDERED_xx`` is needed at call site anymore.
 
 - Many node classes have moved to new modules in ``nuitka.nodes`` and grouped by theme. That
-  should make them more accessible.
+  makes them more accessible.
 
 - The choosing of the debug python has moved from Scons to Nuitka itself. That way it can
   respect the ``sys.abiflags`` and works with Python3.
@@ -1000,7 +999,8 @@ Cleanups
 Organizational
 --------------
 
-- Added more information to the "Developer Manual", e.g. documenting the tree changes for
+- Added more information to the "`Developer Manual
+  <http://nuitka.net/doc/developer-manual.html>`_", e.g. documenting the tree changes for
   ``assert`` to become a conditional statement with a raise statement, etc.
 
 - The Debian package is as of this version verified to be installable and functional on to
@@ -1136,7 +1136,7 @@ Cleanups
 
 - More white listing work for imports. As recursion is now the default, and leads to
   warnings for non-existent modules, the CPython tests gave a lot of good candidates for
-  import errors that should be white listed.
+  import errors that were white listed.
 
 - Consistently use ``nuitka`` in test scripts, as there isn't a ``Nuitka.py`` on all
   platforms. The later is scheduled for removal.
@@ -1154,9 +1154,6 @@ Organizational
   this release, I had to manually edit that page, but I now mastered the art of upload via
   XMLRCP and a Python script, so that I don't loose as much time with editing, checking
   it, etc.
-
-- Added a "Developer Manual" to the release. It's incomplete, but it details some of the
-  existing stuff, coding rules, plans for "type inference", etc.
 
 - The Debian package is backportable to Ubuntu Natty, Maverick, Oneiric, I expect to make
   a separate announcement with links to packages.
@@ -1260,14 +1257,15 @@ New Optimizations
 Organizational
 --------------
 
-- Added a "Developer Manual" to the release. It's incomplete, but it details some of the
-  existing stuff, coding rules, plans for "type inference", etc.
+- Added a "`Developer Manual <http://nuitka.net/doc/developer-manual.html>`_" to the
+  release. It's incomplete, but it details some of the existing stuff, coding rules, plans
+  for "type inference", etc.
 
 - Improved the ``--help`` output to use ``metavar`` where applicable. This makes it more
   readable for some options.
 
-- Instead of error message, give help output when no module/program file name was
-  given. This should make Nuitka help more convenient.
+- Instead of error message, give help output when no module or program file name was
+  given. This makes Nuitka help out more convenient.
 
 - Consistently use ``#!/usr/bin/env python`` for all scripts, this was previously only done
   for some of them.
@@ -1283,21 +1281,22 @@ Organizational
   option groups to combine related options together.
 
 - Make the tests run without any dependence on ``PATH`` to contain the executables of
-  Nuitka. This should make it easier to use.
+  Nuitka. This makes it easier to use.
 
 - Add license texts to 3rd party file that were missing them, apply ``licensecheck`` results
   to cleanup Nuitka. Also removed own copyright statement from inline copy of Scons, it
   had been added by accident only.
 
 - Release the tests that I own as well as the Debian packaging I created under "Apache
-  License 2.0" which is very liberal, meaning every project should be able to use it.
+  License 2.0" which is very liberal, meaning every project will be able to use it.
 
 - Don't require copyright assignment for contributions anymore, instead only "Apache
   License 2.0", the future Nuitka license, so that the code won't be a problem when
   changing the license of all of Nuitka to that license.
 
-- Give contributors listed in the user manual an exception to the GPL terms until Nuitka
-  is licensed under "Apache License 2.0" as well.
+- Give contributors listed in the `User Manual <http://nuitka.net/doc/user-manual.html>`_
+  an exception to the GPL terms until Nuitka is licensed under "Apache License 2.0" as
+  well.
 
 - Added an ``--experimental`` option which can be used to control experimental features,
   like the one currently being added on ``feature/ctypes_annotation``, where "type
@@ -1327,7 +1326,7 @@ Cleanups
 
 - More white listing work for imports. As recursion is now the default, and leads to
   warnings for non-existent modules, the CPython tests gave a lot of good candidates for
-  import errors that should be white listed.
+  import errors that were  white listed.
 
 - Consistently use ``nuitka`` in test scripts, as there isn't a ``Nuitka.py`` on all
   platforms. The later is scheduled for removal.
@@ -1526,7 +1525,7 @@ New Tests
 - Cover the type of ``__builtins__`` in the main program and in imported modules in tests
   too. It's funny and differs between module and dict in CPython2.
 
-- Cover a final print without newline in the test. Should still receive a newline, which
+- Cover a final print without newline in the test. Must still receive a newline, which
   only happens when ``Py_Finalize()`` is called.
 
 - Added test with functions that makes a ``raise`` without an exception set.
@@ -1591,7 +1590,7 @@ the frame object.
 Bug fixes
 ---------
 
-- The main module was using ``__main__`` in tracebacks, but it should be
+- The main module was using ``__main__`` in tracebacks, but it must be
   ``<module>``. Released as 0.3.14a hotfix already.
 
 - Workaround for "execfile cannot be used as an expression". It wasn't possible to use
@@ -1609,7 +1608,7 @@ Bug fixes
   compatibility.
 
 - Handle "yield outside of function" syntax error in compiled source correctly. This one
-  was giving a Nuitka backtrace, now it gives a ``SyntaxError`` as it should.
+  was giving a Nuitka backtrace, now it gives a ``SyntaxError`` as it needs to.
 
 - Made syntax/indentation error output absolutely identical to CPython.
 
@@ -1848,15 +1847,16 @@ Bug fixes
 
 - In ``--deep`` mode, a module may contain a syntax error. This is e.g. true of "PyQt"
   with ``port_v3`` included. These files contain Python3 syntax and fail to be imported in
-  Python2, but that should not be considered an error. These modules are now skipped with
-  a warning. Fixed in 0.3.12b already.
+  Python2, but that is not to be considered an error. These modules are now skipped with a
+  warning. Fixed in 0.3.12b already.
 
 - The code to import modules wasn't using the ``__import__`` built-in, which prevented
   ``__import__`` overriding code to work. Changed import to use the built-in. Fixed in
   0.3.12c already.
 
-- The code generated for the ``__import__`` built-in with constant values was doing relative
-  imports only. It should attempt relative and absolut imports. Fixed in 0.3.12c already.
+- The code generated for the ``__import__`` built-in with constant values was doing
+  relative imports only. It needs to attempt relative and absolut imports. Fixed in
+  0.3.12c already.
 
 - The code in "__init__.py" believed it was outside of the package, giving problems for
   package local imports. Fixed in 0.3.12d already.
@@ -1935,9 +1935,10 @@ Nuitka Release 0.3.12
 =====================
 
 This is to inform you about the new release of Nuitka many bug fixes, and substantial
-improvements especially in the organizational area. There is a new User Manual (PDF), with
-much improved content, a ``sys.meta_path`` based import mechanism for ``--deep`` mode, git
-flow goodness.
+improvements especially in the organizational area. There is a new `User Manual
+<http://nuitka.net/doc/user-manual.html>`_ (`PDF
+<http://nuitka.net/doc/user-manual.pdf>`_), with much improved content, a
+``sys.meta_path`` based import mechanism for ``--deep`` mode, git flow goodness.
 
 This release is generally also the result of working towards compilation of a real
 programs (Mercurial) and to get things work more nicely on Windows by default. Thanks go
@@ -2019,7 +2020,7 @@ Cleanups
 - The ``sys.meta_path`` based import from the ``meta_path_import`` feature branch allowed the
   cleanup the way importing is done. It's a lot less code now.
 
-- Removed some unused code. We should aim at making Nuitka the tool to detect dead code
+- Removed some unused code. We will aim at making Nuitka the tool to detect dead code
   really.
 
 - Moved ``nuitka.Nodes`` to ``nuitka.nodes.Nodes``, that is what the package is intended for,
@@ -2042,7 +2043,8 @@ Organizational
 --------------
 
 - Migrated the "README.txt" from org-mode to ReStructured Text, which allows for a more
-  readable document, and to generate a nice user manual in PDF form.
+  readable document, and to generate a nice `User Manual
+  <http://nuitka.net/doc/user-manual.html>`_ in PDF form.
 
 - The amount of information in "README.txt" was increased, with many more subjects are now
   covered, e.g. "git flow" and how to join Nuitka development. It's also impressive to see
@@ -2111,7 +2113,7 @@ Bug fixes
 
 - The ``print`` statement worked like a ``print`` function, i.e. it first evaluated all
   printed expressions, and did the output only then. That is incompatible in case of
-  exceptions, where partial outputs should be done, and so that got fixed.
+  exceptions, where partial outputs need to be done, and so that got fixed.
 
 New Optimizations
 -----------------
@@ -2248,7 +2250,7 @@ New Optimizations
   raised exception to handlers is not yet performed.
 
 - Built-in exception name references and creation of instances of them are now optimized as
-  well, which should lead to faster exception raising/catching for these cases.
+  well, which leads to faster exception raising/catching for these cases.
 
 - More kinds of calls to built-ins are handled, positional parameters are checked and more
   built-ins are covered.
@@ -2463,7 +2465,7 @@ Constants
 - For string constants that are usable as attributes (i.e. match the identifier regular
   expression), these are now interned, directly after creation. With this, the check for
   identical value of pointers for parameters has a bigger chance to succeed, and this
-  should save some memory too.
+  saves some memory too.
 
 - For empty containers (set, dict, list, tuple) the constants created are now are not
   unstreamed, but created with the dedicated API calls, saving a bit of code and being
@@ -2481,7 +2483,7 @@ Iteration
 ~~~~~~~~~
 
 - The creation of iterators got our own code. This avoids a function call and is otherwise
-  only a small gain for anything but sequence iterators. These should be much faster to
+  only a small gain for anything but sequence iterators. These may be much faster to
   create now, as it avoids another call and repeated checks.
 
 - The next on iterator got our own code too, which has simpler code flow, because it
@@ -2543,8 +2545,8 @@ Cleanups
 - Moved some helpers to dedicated files. There is now ``calling.hpp`` for function calls, an
   ``importing.cpp`` for import related stuff.
 
-- Moved the manifest generation to the scons file, which should now produce more ready to
-  use executables.
+- Moved the manifest generation to the scons file, which now produces ready to use
+  executables.
 
 New Tests
 ---------
@@ -2609,8 +2611,8 @@ happen. I clearly didn't make it easy. He found a good way around ``ucontext``, 
 clashes, and a very tricky symbol problems where the CPython library under Windows exports
 less than under Linux. Thanks a whole lot.
 
-Currently the Windows support should be considered experimental and works with MinGW 4.5
-or higher only.
+Currently the Windows support is considered experimental and works with MinGW 4.5 or
+higher only.
 
 Otherwise there have been the usual round of performance improvements and more
 cleanups. This release is otherwise milestone 2 work only, which will have to continue for
