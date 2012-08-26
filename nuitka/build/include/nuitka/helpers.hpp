@@ -18,6 +18,9 @@
 #ifndef __NUITKA_HELPERS_H__
 #define __NUITKA_HELPERS_H__
 
+#define _DEBUG_UNFREEZER 0
+#define _DEBUG_REFRAME 0
+
 #include "nuitka/eval_order.hpp"
 
 extern PyObject *_python_tuple_empty;
@@ -838,7 +841,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *kl
     {
         Py_ssize_t base_count = PyTuple_Size( klass->cl_bases );
 
-        for( Py_ssize_t i = 0; i < base_count; i++ )
+        for ( Py_ssize_t i = 0; i < base_count; i++ )
         {
             result = FIND_ATTRIBUTE_IN_CLASS( (PyClassObject *)PyTuple_GetItem( klass->cl_bases, i ), attr_name );
 
@@ -1406,9 +1409,6 @@ extern void enhancePythonTypes( void );
 extern void setCommandLineParameters( int argc, char *argv[] );
 
 extern void patchInspectModule( void );
-
-#define _DEBUG_UNFREEZER 0
-#define _DEBUG_REFRAME 0
 
 #define MAKE_CLASS( metaclass_global, metaclass_class, class_name, bases, class_dict ) _MAKE_CLASS( EVAL_ORDERED_5( metaclass_global, metaclass_class, class_name, bases, class_dict ) )
 

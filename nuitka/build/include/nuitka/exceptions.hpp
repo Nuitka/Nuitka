@@ -92,11 +92,11 @@ inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exceptio
 
     // Set sys attributes in the fastest possible way.
     PyObject *sys_dict = thread_state->interp->sysdict;
+    assertObject( sys_dict );
 
     PyDict_SetItem( sys_dict, _python_str_plain_exc_type, exception_type ? exception_type : Py_None );
     PyDict_SetItem( sys_dict, _python_str_plain_exc_value, exception_value ? exception_value : Py_None );
     PyDict_SetItem( sys_dict, _python_str_plain_exc_traceback, exception_tb ? exception_tb : Py_None );
-
 }
 
 class _PythonException
@@ -323,13 +323,9 @@ public:
 
     void save( const _PythonException &e )
     {
-        this->exception_type  = e.exception_type;
-        this->exception_value = e.exception_value;
-        this->exception_tb    = e.exception_tb;
-
-        Py_XINCREF( this->exception_type );
-        Py_XINCREF( this->exception_value );
-        Py_XINCREF( this->exception_tb );
+        this->exception_type  = INCREASE_REFCOUNT_X( e.exception_type );
+        this->exception_value = INCREASE_REFCOUNT_X( e.exception_value );
+        this->exception_tb    = INCREASE_REFCOUNT_X( e.exception_tb );
 
         this->keeping = true;
     }

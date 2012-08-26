@@ -427,7 +427,7 @@ static PyObject *_BUILTIN_RANGE_INT3( long low, long high, long step )
 
     long current = low;
 
-    for( int i = 0; i < size; i++ )
+    for ( int i = 0; i < size; i++ )
     {
         PyList_SET_ITEM( result, i, PyInt_FromLong( current ) );
         current += step;
