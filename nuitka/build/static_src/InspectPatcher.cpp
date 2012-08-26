@@ -88,6 +88,25 @@ static PyObject *_inspect_isgenerator_replacement( PyObject *self, PyObject *arg
     }
 }
 
+static PyObject *_inspect_isframe_replacement( PyObject *self, PyObject *args, PyObject *kwds )
+{
+    PyObject *object;
+
+    if ( !PyArg_ParseTupleAndKeywords( args, kwds, "O:isframe", kwlist, &object, NULL ))
+    {
+        return NULL;
+    }
+
+    if ( Nuitka_Frame_Check( object ) || PyFrame_Check( object ) )
+    {
+        return INCREASE_REFCOUNT( Py_True );
+    }
+    else
+    {
+        return INCREASE_REFCOUNT( Py_False );
+    }
+}
+
 static PyMethodDef _method_def_inspect_isfunction_replacement =
 {
     "isfunction",
@@ -108,6 +127,14 @@ static PyMethodDef _method_def_inspect_isgenerator_replacement =
 {
     "isgenerator",
     (PyCFunction)_inspect_isgenerator_replacement,
+    METH_VARARGS | METH_KEYWORDS,
+    NULL
+};
+
+static PyMethodDef _method_def_inspect_isframe_replacement =
+{
+    "isframe",
+    (PyCFunction)_inspect_isframe_replacement,
     METH_VARARGS | METH_KEYWORDS,
     NULL
 };
@@ -158,4 +185,19 @@ void patchInspectModule( void )
     }
 
     Py_DECREF( old_isgenerator );
+
+    // Patch "inspect.isframe" unless it is already patched.
+    PyObject *old_isframe = PyObject_GetAttrString( module_inspect, "isframe" );
+    assertObject( old_isframe );
+
+    if (PyFunction_Check( old_isframe ))
+    {
+        PyObject *inspect_isframe_replacement = PyCFunction_New( &_method_def_inspect_isframe_replacement, NULL );
+        assertObject( inspect_isframe_replacement );
+
+        PyObject_SetAttrString( module_inspect, "isframe", inspect_isframe_replacement );
+    }
+
+    Py_DECREF( old_isframe );
+
 }

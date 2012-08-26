@@ -431,7 +431,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     // Pop the frame from the frame stack, we are done here.
     assert( PyThreadState_GET()->frame == frame_%(module_identifier)s );
-    PyThreadState_GET()->frame = PyThreadState_GET()->frame->f_back;
+    PyThreadState_GET()->frame = INCREASE_REFCOUNT_X( PyThreadState_GET()->frame->f_back );
 
     // puts( "out init%(module_identifier)s" );
 

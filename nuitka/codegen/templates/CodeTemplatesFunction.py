@@ -127,9 +127,9 @@ if ( isFrameUnusable( frame_%(frame_identifier)s ) )
 }
 
 FrameGuard frame_guard( frame_%(frame_identifier)s );
-
 try
 {
+    assert( Py_REFCNT( frame_%(frame_identifier)s ) == 2 ); // Frame stack
 %(codes)s
 }
 catch ( _PythonException &_exception )

@@ -1390,9 +1390,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
     return result;
 }
 
-// Create a frame object for the given code object and module
-extern PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module );
-
 // Create a code object for the given filename and function name
 extern PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, bool is_generator );
 

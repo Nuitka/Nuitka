@@ -68,6 +68,10 @@ inline static void popFrameStack( void )
 #endif
 
     tstate->frame = old->f_back;
+    old->f_back = NULL;
+
+    // We might be very top level, e.g. in a thread, and therefore do not insist on value.
+    Py_XDECREF( tstate->frame );
 
 #if _DEBUG_REFRAME
     printf( "Now at top frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)tstate->frame ) ), PyString_AsString( PyObject_Repr( (PyObject *)tstate->frame->f_code ) ) );
@@ -176,10 +180,6 @@ public:
 
         // Should still be good.
         assertFrameObject( this->frame_object );
-
-        // Release the back reference immediately.
-        Py_XDECREF( this->frame_object->f_back );
-        this->frame_object->f_back = NULL;
 
         // Now release our frame object reference.
         Py_DECREF( this->frame_object );

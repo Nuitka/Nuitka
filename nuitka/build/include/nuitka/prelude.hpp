@@ -138,4 +138,6 @@ extern PyObject *_sentinel_value;
 
 #include "nuitka/compiled_method.hpp"
 
+#include "nuitka/compiled_frame.hpp"
+
 #endif
