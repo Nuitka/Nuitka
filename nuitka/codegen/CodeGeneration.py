@@ -1955,7 +1955,7 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
         else:
             assert False, provider
 
-        codes = [ code ]
+        codes = code.split( "\n" )
 
     assert type( codes ) is list, type( codes )
 
