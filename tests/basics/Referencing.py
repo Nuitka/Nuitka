@@ -441,6 +441,15 @@ def simpleFunction55():
    except ValueError, e:
       pass
 
+def simpleFunction56():
+   def f():
+      f()
+
+   try:
+      f()
+   except RuntimeError:
+      pass
+
 x = 17
 
 def checkReferenceCount( checked_function, max_rounds = 10 ):
@@ -452,8 +461,12 @@ def checkReferenceCount( checked_function, max_rounds = 10 ):
    ref_count2 = 17
 
    for count in range( max_rounds ):
+      x1 = 0
+      x2 = 0
+
       gc.collect()
       ref_count1 = sys.gettotalrefcount()
+      x1 = len( gc.get_objects() )
 
       checked_function()
 
@@ -466,6 +479,13 @@ def checkReferenceCount( checked_function, max_rounds = 10 ):
       if ref_count1 == ref_count2:
          print "PASSED"
          break
+
+      x2 = len( gc.get_objects() )
+
+      if False and count == max_rounds - 1:
+         print gc.get_objects()[ x1 : x2 ][0].f_code
+
+      # print count, ref_count1, ref_count2
    else:
       print "FAILED", ref_count1, ref_count2
 
@@ -529,3 +549,7 @@ checkReferenceCount( simpleFunction52 )
 checkReferenceCount( simpleFunction53 )
 checkReferenceCount( simpleFunction54 )
 checkReferenceCount( simpleFunction55 )
+
+# TODO: The function taking a closure of itself, causes a reference leak, that
+# we accept for now.
+# checkReferenceCount( simpleFunction56 )
