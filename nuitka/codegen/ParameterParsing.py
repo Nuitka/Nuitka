@@ -298,7 +298,7 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
         parameter_objects_list = []
 
     if needs_creation:
-        parameter_objects_decl.insert( 0, "PyObject *self" )
+        parameter_objects_decl.insert( 0, "Nuitka_FunctionObject *self" )
         parameter_objects_list.insert( 0, "self" )
 
     parameter_release_code = "".join(

@@ -198,7 +198,7 @@ catch ( _PythonException &_exception )
 }"""
 
 genfunc_common_context_use_template = """\
-struct _context_common_%(function_identifier)s_t *_python_common_context = (struct _context_common_%(function_identifier)s_t *)self;
+struct _context_common_%(function_identifier)s_t *_python_common_context = (struct _context_common_%(function_identifier)s_t *)self->m_context;
 struct _context_generator_%(function_identifier)s_t *_python_context = new _context_generator_%(function_identifier)s_t;
 
 _python_context->common_context = _python_common_context;
@@ -258,7 +258,7 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 
 generator_context_access_template = """
 // The context of the generator.
-struct _context_common_%(function_identifier)s_t *_python_context = (struct _context_common_%(function_identifier)s_t *)self;
+struct _context_common_%(function_identifier)s_t *_python_context = (struct _context_common_%(function_identifier)s_t *)self->m_context;
 """
 
 generator_context_unused_template = """\

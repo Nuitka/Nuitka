@@ -29,15 +29,17 @@
 // Cleanup function to be called when the function object is released.
 typedef void (*releaser)( void * );
 
+struct Nuitka_FunctionObject;
+
 // Method argument parsing function.
-typedef PyObject *(*method_arg_parser)( PyObject *, PyObject *, PyObject *, PyObject *);
-typedef PyObject *(*function_arg_parser)(PyObject *, PyObject *, PyObject * );
+typedef PyObject *(*method_arg_parser)( Nuitka_FunctionObject *, PyObject *, PyObject *, PyObject *);
+typedef PyObject *(*function_arg_parser)( Nuitka_FunctionObject *, PyObject *, PyObject * );
 
 typedef PyObject *(*argless_code)(PyObject *);
 
 // The Nuitka_FunctionObject is the storage associated with a compiled function instance
 // of which there can be many for each code.
-typedef struct {
+struct Nuitka_FunctionObject {
     PyObject_HEAD
 
     PyObject *m_name;
@@ -62,7 +64,7 @@ typedef struct {
     PyObject *m_defaults;
 
     long m_counter;
-} Nuitka_FunctionObject;
+};
 
 extern PyTypeObject Nuitka_Function_Type;
 

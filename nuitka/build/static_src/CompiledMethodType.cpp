@@ -190,7 +190,7 @@ static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *a
             assert( method->m_function->m_has_args );
 
             return method->m_function->m_method_arg_parser(
-                (PyObject *)method->m_function->m_context,
+                method->m_function,
                 method->m_object,
                 args,
                 kw

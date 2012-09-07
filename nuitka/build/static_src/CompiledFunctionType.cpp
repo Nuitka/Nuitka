@@ -57,7 +57,7 @@ static PyObject *Nuitka_Function_tp_call( Nuitka_FunctionObject *function, PyObj
 {
     if ( function->m_has_args )
     {
-       return ((PyCFunctionWithKeywords)function->m_code)( (PyObject *)function->m_context, args, kw );
+        return ((function_arg_parser)function->m_code)( function, args, kw );
     }
     else
     {

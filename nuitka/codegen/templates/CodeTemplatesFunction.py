@@ -32,7 +32,8 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s );
 function_context_body_template = """
 // This structure is for attachment as self of %(function_identifier)s.
 // It is allocated at the time the function object is created.
-struct _context_%(function_identifier)s_t {
+struct _context_%(function_identifier)s_t
+{
     // The function can access a read-only closure of the creator.
 %(context_decl)s
 };
@@ -155,7 +156,7 @@ FrameGuardVeryLight frame_guard;
 
 function_context_access_template = """\
     // The context of the function.
-    struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)self;"""
+    struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)self->m_context;"""
 
 function_context_unused_template = """\
     // No context is used."""
