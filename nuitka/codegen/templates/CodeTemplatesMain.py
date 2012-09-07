@@ -230,7 +230,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
 """
 
-module_body_template = """\
+module_body_template = """
 #include "nuitka/prelude.hpp"
 
 #include "__modules.hpp"
