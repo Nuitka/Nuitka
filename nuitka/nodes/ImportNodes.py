@@ -61,7 +61,7 @@ class CPythonExpressionImportModule( CPythonExpressionChildrenHavingBase ):
         else:
             return self.level
 
-    # TODO: visitForest should see the module if any.
+    # Prevent normal recursion from entering the module.
     def getVisitableNodes( self ):
         return ()
 

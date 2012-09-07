@@ -41,13 +41,6 @@ from logging import warning, debug, info
 class OptimizationVisitorBase( TreeOperations.VisitorNoopMixin ):
     on_signal = None
 
-    # Type of visit, by default all the tree is visited, but can also visit scopes only or
-    # only nodes of given "kinds"
-    visit_type = "tree"
-
-    # Override this with the kind of nodes to be visited
-    visit_kinds = None
-
     def signalChange( self, tags, source_ref, message ):
         """ Indicate a change to the optimization framework.
 
@@ -60,18 +53,10 @@ class OptimizationVisitorBase( TreeOperations.VisitorNoopMixin ):
     def execute( self, tree, on_signal = None ):
         self.on_signal = on_signal
 
-        if self.visit_type == "tree":
-            TreeOperations.visitTree(
-                tree    = tree,
-                visitor = self
-            )
-        elif self.visit_type == "scopes":
-            TreeOperations.visitScopes(
-                tree    = tree,
-                visitor = self
-            )
-        else:
-            raise AssertionError( self, self.visit_type )
+        TreeOperations.visitScopes(
+            tree    = tree,
+            visitor = self
+        )
 
     def replaceWithComputationResult( self, node, computation, description ):
         # Try and turn raised exceptions into static raises. pylint: disable=W0703
@@ -119,9 +104,6 @@ class OptimizationDispatchingVisitorBase( OptimizationVisitorBase ):
     def getKey( self, node ):
         # Abstract method, pylint: disable=R0201,W0613
         assert False
-
-class OptimizationVisitorScopedBase( OptimizationVisitorBase ):
-    visit_type = "scopes"
 
 
 def areConstants( expressions ):

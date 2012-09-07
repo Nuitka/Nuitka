@@ -206,9 +206,6 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         # pylint: disable=E1101
         return isinstance( self, CPythonClosureGiverNodeBase )
 
-    def isClosureVariableTaker( self ):
-        return self.hasTag( "closure_taker" )
-
     def getParentVariableProvider( self ):
         parent = self.getParent()
 

@@ -193,7 +193,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                                     module_package  = module_package
                                 )
 
-
+        # Mark as attempted, do not retry.
         node.setAttemptedRecurse()
 
     def onEnterNode( self, node ):

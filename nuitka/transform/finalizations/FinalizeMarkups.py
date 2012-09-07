@@ -26,7 +26,7 @@ Set a flag on re-raises of exceptions if they can be simple throws or if they ar
 in another context.
 
 """
-from nuitka.nodes import OverflowCheck
+
 from nuitka import Options
 
 from .FinalizeBase import FinalizationVisitorBase
@@ -37,15 +37,15 @@ class FinalizeMarkups( FinalizationVisitorBase ):
     def onEnterNode( self, node ):
         # This has many different things it deals with, so there need to be a lot of
         # branches. pylint: disable=R0912
-
-        # Record if a function or class has an overflow. TODO: The Overflow check
-        # module and this should be united in a per tag finalization check on say
-        # "callable_body" tag
         if node.isExpressionFunctionBody():
-            body = node.getBody()
-
-            if body is not None and OverflowCheck.check( body ):
+            if node.isUnoptimized():
                 node.markAsLocalsDict()
+
+        if node.needsLocalsDict():
+            provider = node.getParentVariableProvider()
+
+            if provider.isExpressionFunctionBody():
+                provider.markAsLocalsDict()
 
         if node.isStatementBreakLoop() or node.isStatementContinueLoop():
             search = node.getParent()
@@ -84,9 +84,9 @@ class FinalizeMarkups( FinalizationVisitorBase ):
             node.getTargetVariableRef().getVariable().setHasDelIndicator()
 
         if node.isStatementTryExcept():
-            parent = node.getParentVariableProvider()
+            provider = node.getParentVariableProvider()
 
-            parent.markAsTryExceptContaining()
+            provider.markAsTryExceptContaining()
 
         if node.isExpressionBuiltinImport() and not Options.getShallFollowExtra():
             warning( """\

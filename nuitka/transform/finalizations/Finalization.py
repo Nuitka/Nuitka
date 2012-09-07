@@ -30,7 +30,7 @@ from .. import TreeOperations
 
 def prepareCodeGeneration( tree ):
     visitor = FinalizeMarkups()
-    TreeOperations.visitTree( tree, visitor )
+    TreeOperations.visitScopes( tree, visitor )
 
     visitor = FinalizeClosureTaking()
-    TreeOperations.visitTagHaving( tree, visitor, "closure_taker" )
+    TreeOperations.visitFunctions( tree, visitor )

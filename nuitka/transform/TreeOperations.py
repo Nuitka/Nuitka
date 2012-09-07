@@ -60,25 +60,16 @@ def visitTree( tree, visitor, limit_tag = None ):
 def visitScope( tree, visitor ):
     visitTree( tree, visitor, "closure_taker" )
 
-
 def visitScopes( tree, visitor ):
-    class VisitEverything( VisitorNoopMixin ):
-        def onEnterNode( self, node ):
-            if node.hasTag( "closure_taker" ):
-                visitor.onEnterScope( node )
-                visitTree( node, visitor, "closure_taker" )
-                visitor.onLeaveScope( node )
+    visitTree( tree, visitor, None )
 
-    _visitTree( tree, VisitEverything(), None )
+    for function in tree.getFunctions():
+        visitTree( function, visitor, None )
 
-def visitTagHaving( tree, visitor, tag ):
-    class VisitEverything( VisitorNoopMixin ):
-        def onEnterNode( self, node ):
-            if node.hasTag( tag ):
-                visitor.onEnterNode( node )
-
-    _visitTree( tree, VisitEverything(), None )
-
+def visitFunctions( tree, visitor ):
+    for function in tree.getFunctions():
+        visitor.onEnterNode( function )
+        visitor.onLeaveNode( function )
 
 class VisitorNoopMixin:
     def onEnterNode( self, node ):

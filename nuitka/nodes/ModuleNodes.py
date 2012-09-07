@@ -34,6 +34,7 @@ from nuitka import (
     Utils
 )
 
+from nuitka.oset import OrderedSet
 
 class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureGiverNodeBase, \
                      MarkContainsTryExceptIndicator ):
@@ -76,6 +77,9 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureG
         self.doc = None
 
         self.variables = set()
+
+        # The list functions contained in that module.
+        self.functions = OrderedSet()
 
     def getDetails( self ):
         return { "filename" : self.source_ref.getFilename()  }
@@ -136,6 +140,13 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureG
     def getCodeName( self ):
         return "module_" + self.getFullName().replace( ".", "__" ).replace( "-", "_" )
 
+    def addFunction( self, function_body ):
+        assert function_body not in self.functions
+
+        self.functions.add( function_body )
+
+    def getFunctions( self ):
+        return self.functions
 
 class CPythonPackage( CPythonModule ):
     kind = "PACKAGE"

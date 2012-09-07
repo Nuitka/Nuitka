@@ -17,20 +17,25 @@
 #
 """ Variable closure taking.
 
-Run away, don't read it, quick. Heavily underdocumented rules are implemented here.
+This is not an actual optimization. It is rather the completion of early stages. The
+variables are not immediately resolved to be bound to actual scopes, but only during these
+steps.
 
 """
 
-from .OptimizeBase import OptimizationVisitorScopedBase
+from .OptimizeBase import OptimizationVisitorBase
 
 from nuitka.Utils import python_version
 
-# TODO: The variable closure thing looks like it should be collapsed into tree building,
-# this does not at all depend on completion of the node tree. Just the not early closure
-# kinds need to make an extra pass, once their body is complete, in order to assign the
-# variable.
+# Note: We do the variable scope assignment, as an extra step from tree building, because
+# it will build the tree without any consideration of evaluation order. And only the way
+# these visitors are entered, will ensure this order.
 
-class VariableClosureLookupVisitorPhase2( OptimizationVisitorScopedBase ):
+# The main complexity is that there are two ways of visiting. One where variable lookups
+# are to be done immediately, and one where it is delayed. This is basically class vs.
+# function.
+
+class VariableClosureLookupVisitorPhase2( OptimizationVisitorBase ):
     """ Variable closure phase 2: Find assignments and early closure references.
 
         In class context, a reference to a variable must be obeyed immediately, so
@@ -62,7 +67,7 @@ class VariableClosureLookupVisitorPhase2( OptimizationVisitorScopedBase ):
                     )
 
 
-class VariableClosureLookupVisitorPhase3( OptimizationVisitorScopedBase ):
+class VariableClosureLookupVisitorPhase3( OptimizationVisitorBase ):
     def onEnterNode( self, node ):
         if node.isExpressionVariableRef() and node.getVariable() is None:
             provider = node.getParentVariableProvider()
@@ -111,7 +116,7 @@ class VariableClosureLookupVisitorPhase3( OptimizationVisitorScopedBase ):
                     variable_name = "__class__"
                 )
 
-class VariableClosureLookupVisitorPhase4( OptimizationVisitorScopedBase ):
+class VariableClosureLookupVisitorPhase4( OptimizationVisitorBase ):
     def onEnterNode( self, node ):
         if python_version < 300:
             if node.isStatementDelVariable() and \

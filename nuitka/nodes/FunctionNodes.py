@@ -51,6 +51,9 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     named_children = ( "body", )
 
     def __init__( self, provider, name, doc, parameters, source_ref, is_class = False ):
+        # Register ourselves immediately with the module.
+        provider.getParentModule().addFunction( self )
+
         if is_class:
             code_prefix = "class"
         else:
@@ -265,7 +268,8 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     setBody = CPythonChildrenHaving.childSetter( "body" )
 
     def needsCreation( self ):
-        return not self.parent.isExpressionFunctionCall() and not self.isClassDictCreation()
+        # TODO: This looks kind of arbitrary, the users should decide, if they need it.
+        return not self.parent.parent.isExpressionFunctionCall() and not self.isClassDictCreation()
 
     def computeNode( self, constraint_collection ):
         # Function body is quite irreplacable.
@@ -303,12 +307,12 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         return result
 
 
-class CPythonExpressionFunctionBodyDefaulted( CPythonExpressionChildrenHavingBase ):
-    kind = "EXPRESSION_FUNCTION_BODY_DEFAULTED"
+class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_FUNCTION_CREATION"
 
-    named_children = ( "defaults", "function_body", )
+    named_children = ( "function_body", "defaults" )
 
-    def __init__( self, defaults, function_body, source_ref ):
+    def __init__( self, function_body, defaults, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -318,31 +322,32 @@ class CPythonExpressionFunctionBodyDefaulted( CPythonExpressionChildrenHavingBas
             source_ref = source_ref
         )
 
-    getFunctionBody = CPythonExpressionChildrenHavingBase.childGetter( "function_body" )
-    getDefaults = CPythonExpressionChildrenHavingBase.childGetter( "defaults" )
+    # Prevent normal recursion from entering the function.
+    def getVisitableNodes( self ):
+        return self.getDefaults()
+
 
     def computeNode( self, constraint_collection ):
-        # Function body is quite irreplacable.
+        # TODO: Function body may know something.
         return self, None, None
 
-    def isCompileTimeConstant( self ):
-        # TODO: It's actually pretty much compile time accessible mayhaps.
-        return None
+    getFunctionBody = CPythonExpressionChildrenHavingBase.childGetter( "function_body" )
+    getDefaults = CPythonExpressionChildrenHavingBase.childGetter( "defaults" )
 
 
 class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_FUNCTION_CALL"
 
-    named_children = ( "function_body", "values" )
+    named_children = ( "function", "values" )
 
-    def __init__( self, function_body, values, source_ref ):
-        assert function_body.isExpressionFunctionBody()
+    def __init__( self, function, values, source_ref ):
+        assert function.isExpressionFunctionCreation()
 
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "function_body" : function_body,
-                "values"        : tuple( values ),
+                "function" : function,
+                "values"   : tuple( values ),
             },
             source_ref = source_ref
         )
@@ -350,5 +355,5 @@ class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):
     def computeNode( self, constraint_collection ):
         return self, None, None
 
-    getFunctionBody = CPythonExpressionChildrenHavingBase.childGetter( "function_body" )
+    getFunction = CPythonExpressionChildrenHavingBase.childGetter( "function" )
     getArgumentValues = CPythonExpressionChildrenHavingBase.childGetter( "values" )

@@ -172,10 +172,12 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
     return result
 
 def generateFunctionCallCode( call_node, context ):
-    assert call_node.getFunctionBody().isExpressionFunctionBody()
+    assert call_node.getFunction().isExpressionFunctionCreation()
+
+    function_body = call_node.getFunction().getFunctionBody()
 
     function_identifier = generateFunctionBodyCode(
-        function_body  = call_node.getFunctionBody(),
+        function_body  = function_body,
         defaults       = (), # TODO: Can't be right or needs check
         context        = context
     )
@@ -204,7 +206,7 @@ def generateFunctionCallCode( call_node, context ):
             expressions = call_node.getArgumentValues(),
             context     = context
         ),
-        closure_variables  = call_node.getFunctionBody().getClosureVariables(),
+        closure_variables  = function_body.getClosureVariables(),
         extra_arguments    = extra_arguments,
         context            = context
     )
@@ -837,14 +839,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
                 allow_none = True
             )
         )
-    elif expression.isExpressionFunctionBody():
-        identifier = generateFunctionBodyCode(
-            function_body  = expression,
-            defaults       = (),
-            context        = context
-        )
-
-    elif expression.isExpressionFunctionBodyDefaulted():
+    elif expression.isExpressionFunctionCreation():
         identifier = generateFunctionBodyCode(
             function_body  = expression.getFunctionBody(),
             defaults       = expression.getDefaults(),

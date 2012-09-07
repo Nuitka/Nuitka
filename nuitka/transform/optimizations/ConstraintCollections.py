@@ -43,18 +43,27 @@ class VariableUsageProfile:
     def __init__( self, variable ):
         self.variable = variable
 
-        self.read_only = True
+        self.written_to = False
+        self.read_from  = False
+
+        # Indicator, if the variable may contain a reference.
         self.needs_free = False
 
     def markAsWrittenTo( self, value_friend ):
-        self.read_only = False
+        self.written_to = True
 
         # TODO: check for "may provide a reference"
         if value_friend.mayProvideReference():
             self.needs_free = True
 
+    def markAsReadFrom( self ):
+        self.read_from = True
+
     def isReadOnly( self ):
-        return self.read_only
+        return not self.written_to
+
+    def isUnused( self ):
+        return not self.written_to and not self.read_from
 
     def setNeedsFree( self, needs_free ):
         assert needs_free is not None
@@ -134,14 +143,6 @@ class ConstraintCollectionBase:
         for variable_name, variable_info in sorted( iterItems( self.variables ) ):
             debug( "%r: %r", variable_name, variable_info )
 
-    def onClosureTaker( self, closure_taker ):
-        if closure_taker.isExpressionFunctionBody():
-            collector = ConstraintCollectionFunction( self, self.signalChange )
-        else:
-            assert False, closure_taker
-
-        collector.process( closure_taker )
-
     def onStatementsSequence( self, statements_sequence ):
         assert statements_sequence.isStatementsSequence()
 
@@ -207,6 +208,10 @@ class ConstraintCollectionBase:
                 change_desc
             )
 
+            if new_node.isExpressionVariableRef() and \
+                 not new_node.getVariable().isModuleVariableReference():
+                self.onLocalVariableRead( new_node.getVariable() )
+
         return new_node
 
     def onStatementUsingChildExpressions( self, statement ):
@@ -215,13 +220,16 @@ class ConstraintCollectionBase:
         return statement
 
     def onSubExpressions( self, owner ):
-        if not owner.hasTag( "closure_taker" ):
+        if owner.isExpressionFunctionCreation():
+            collector = ConstraintCollectionFunction( self, self.signalChange )
+            collector.process( owner.getFunctionBody() )
+        elif owner.isExpressionFunctionBody():
+            assert False, owner
+        else:
             sub_expressions = owner.getVisitableNodes()
 
             for sub_expression in sub_expressions:
                 self.onExpression( sub_expression )
-        else:
-            self.onClosureTaker( owner )
 
     def _onStatementConditional( self, statement ):
         no_branch = statement.getBranchNo()
@@ -318,6 +326,9 @@ class ConstraintCollectionBase:
 
     def onLocalVariableAssigned( self, variable, value_friend ):
         self.parent.onLocalVariableAssigned( variable, value_friend )
+
+    def onLocalVariableRead( self, variable ):
+        self.parent.onLocalVariableRead( variable )
 
     def onTempVariableAssigned( self, variable, value_friend ):
         self.parent.onTempVariableAssigned( variable, value_friend )
@@ -685,6 +696,9 @@ class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrack
 
     def onLocalVariableAssigned( self, variable, value_friend ):
         self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
+
+    def onLocalVariableRead( self, variable ):
+        self._getVariableUsage( variable ).markAsReadFrom()
 
     def onTempVariableAssigned( self, variable, value_friend ):
         variable = variable.getReferenced()

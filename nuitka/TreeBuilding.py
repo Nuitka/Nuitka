@@ -60,7 +60,6 @@ from .nodes.BoolNodes import (
     CPythonExpressionBoolAND,
     CPythonExpressionBoolOR
 )
-
 from .nodes.ExceptionNodes import (
     CPythonExpressionCaughtExceptionTracebackRef,
     CPythonExpressionCaughtExceptionValueRef,
@@ -80,11 +79,10 @@ from .nodes.SliceNodes import (
     CPythonExpressionSliceLookup,
     CPythonExpressionSliceObject
 )
-
 from .nodes.FunctionNodes import (
-    CPythonExpressionFunctionBodyDefaulted,
+    CPythonExpressionFunctionCreation,
     CPythonExpressionFunctionBody,
-    CPythonExpressionFunctionCall
+    CPythonExpressionFunctionCall,
 )
 from .nodes.ClassNodes import (
     CPythonExpressionClassDefinition,
@@ -308,7 +306,11 @@ def buildClassNode( provider, node, source_ref ):
     class_creation_function.setBody( body )
 
     decorated_body = CPythonExpressionClassDefinition(
-        class_definition = class_creation_function,
+        class_definition = CPythonExpressionFunctionCreation(
+            function_body = class_creation_function,
+            defaults      = (),
+            source_ref    = source_ref
+        ),
         bases            = bases,
         metaclass        = metaclass,
         source_ref       = source_ref
@@ -401,14 +403,11 @@ def buildFunctionNode( provider, node, source_ref ):
 
     function_body.setBody( function_statements_body )
 
-    if defaults:
-        decorated_body = CPythonExpressionFunctionBodyDefaulted(
-            function_body = function_body,
-            defaults      = defaults,
-            source_ref    = source_ref
-        )
-    else:
-        decorated_body = function_body
+    decorated_body = CPythonExpressionFunctionCreation(
+        function_body = function_body,
+        defaults      = defaults,
+        source_ref    = source_ref
+    )
 
     for decorator in decorators:
         decorated_body = CPythonExpressionCall(
@@ -452,7 +451,7 @@ def buildLambdaNode( provider, node, source_ref ):
 
     defaults = buildNodeList( provider, node.args.defaults, source_ref )
 
-    result = CPythonExpressionFunctionBody(
+    function_body = CPythonExpressionFunctionBody(
         provider   = provider,
         name       = "<lambda>",
         doc        = None,
@@ -461,12 +460,12 @@ def buildLambdaNode( provider, node, source_ref ):
     )
 
     body = buildNode(
-        provider   = result,
+        provider   = function_body,
         node       = node.body,
         source_ref = source_ref,
     )
 
-    if result.isGenerator():
+    if function_body.isGenerator():
         body = CPythonStatementExpressionOnly(
             expression = CPythonExpressionYield(
                 expression = body,
@@ -483,21 +482,18 @@ def buildLambdaNode( provider, node, source_ref ):
 
     body = CPythonStatementsFrame(
         statements = ( body, ),
-        arg_names  = result.getParameters().getCoArgNames(),
+        arg_names  = function_body.getParameters().getCoArgNames(),
         code_name  = "<lambda>",
         source_ref = body.getSourceReference()
     )
 
-    result.setBody( body )
+    function_body.setBody( body )
 
-    if defaults:
-        result = CPythonExpressionFunctionBodyDefaulted(
-            function_body = result,
-            defaults      = defaults,
-            source_ref    = source_ref
-        )
-
-    return result
+    return CPythonExpressionFunctionCreation(
+        function_body = function_body,
+        defaults      = defaults,
+        source_ref    = source_ref
+    )
 
 def buildForLoopNode( provider, node, source_ref ):
     source = buildNode( provider, node.iter, source_ref )
@@ -1524,8 +1520,12 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
     )
 
     return CPythonExpressionFunctionCall(
-        function_body = function_body,
-        values        = (
+        function   = CPythonExpressionFunctionCreation(
+            function_body = function_body,
+            defaults      = (),
+            source_ref    = source_ref
+        ),
+        values     = (
             CPythonExpressionBuiltinIter1(
                 value      = buildNode(
                     provider   = provider,
@@ -1535,7 +1535,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
                 source_ref = source_ref
             ),
         ),
-        source_ref        = source_ref
+        source_ref = source_ref
     )
 
 def buildListContractionNode( provider, node, source_ref ):
