@@ -38,7 +38,7 @@ from .codegen import CodeGeneration
 from .transform.optimizations import Optimization
 from .transform.finalizations import Finalization
 
-import sys, os, shutil
+import sys, os
 
 def createNodeTree( filename ):
     """ Create a node tree.
@@ -397,24 +397,4 @@ def compileTree( tree ):
         quiet = not Options.isShowScons()
     )
 
-    # Exit if compilation failed.
-    if not result:
-        sys.exit( 1 )
-
-    # Remove the source directory (now build directory too) if asked to.
-    if Options.isRemoveBuildDir():
-        shutil.rmtree( getSourceDirectoryPath( tree ) )
-
-    # Execute the module immediately if option was given.
-    if Options.shallExecuteImmediately():
-        if Options.shallMakeModule():
-            executeModule(
-                tree       = tree,
-                clean_path = Options.shallClearPythonPathEnvironment()
-            )
-        else:
-            executeMain(
-                binary_filename = options[ "result_file" ] + ".exe",
-                tree            = tree,
-                clean_path      = Options.shallClearPythonPathEnvironment()
-            )
+    return result, options
