@@ -450,6 +450,17 @@ def simpleFunction56():
    except RuntimeError:
       pass
 
+def simpleFunction57():
+   x = 1
+   y = 2
+
+   def f( a = x, b = y):
+      return a, b
+
+   f()
+   f(2)
+   f(3,4)
+
 x = 17
 
 def checkReferenceCount( checked_function, max_rounds = 10 ):
@@ -549,7 +560,7 @@ checkReferenceCount( simpleFunction52 )
 checkReferenceCount( simpleFunction53 )
 checkReferenceCount( simpleFunction54 )
 checkReferenceCount( simpleFunction55 )
-
 # TODO: The function taking a closure of itself, causes a reference leak, that
 # we accept for now.
 # checkReferenceCount( simpleFunction56 )
+checkReferenceCount( simpleFunction57 )
