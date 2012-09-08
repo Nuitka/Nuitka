@@ -148,6 +148,7 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureG
     def getFunctions( self ):
         return self.functions
 
+
 class CPythonPackage( CPythonModule ):
     kind = "PACKAGE"
 

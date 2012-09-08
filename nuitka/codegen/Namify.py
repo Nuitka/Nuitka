@@ -77,7 +77,7 @@ def namifyConstant( constant ):
     elif type( constant ) is float:
         return "float_%s" % repr( constant ).replace( ".", "_" ).replace( "-", "_minus_" ).replace( "+", "" )
     elif type( constant ) is complex:
-        value = str( constant ).replace( "+", "p" ).replace( "-", "m" ).replace(".","_")
+        value = str( constant ).replace( "+", "p" ).replace( "-", "m" ).replace( ".", "_" )
 
         if value.startswith( "(" ) and value.endswith( ")" ):
             value = value[1:-1]
