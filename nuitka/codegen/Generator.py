@@ -125,6 +125,11 @@ def getConstantAccess( context, constant ):
             constant = constant
         )
 
+def _defaultToNullIdentifier( identifier ):
+    if identifier is not None:
+        return identifier
+    else:
+        return NullIdentifier()
 
 def getReturnCode( identifier ):
     if identifier is not None:
@@ -372,7 +377,7 @@ def getDirectionFunctionCallCode( function_identifier, arguments, closure_variab
     )
 
     call_args = [
-        extra_argument.getCodeTemporaryRef() if extra_argument is not None else "NULL"
+        _defaultToNullIdentifier( extra_argument ).getCodeTemporaryRef()
         for extra_argument in
         extra_arguments
     ]
@@ -643,7 +648,7 @@ def getPrintCode( newline, identifiers, target_file ):
 
     if target_file is not None:
         return CodeTemplates.template_print_statement % {
-            "target_file"         : target_file.getCodeExportRef() if target_file is not None else "NULL",
+            "target_file"         : _defaultToNullIdentifier( target_file ).getCodeExportRef(),
             "print_elements_code" : indented( print_elements_code )
         }
     else:
@@ -1473,27 +1478,20 @@ def getExecCode( context, exec_code, globals_identifier, locals_identifier, futu
         }
 
 def getBuiltinSuperCode( type_identifier, object_identifier ):
-    super_type = type_identifier.getCodeTemporaryRef() if type_identifier is not None else "NULL"
-    super_object = object_identifier.getCodeTemporaryRef() if object_identifier is not None else "NULL"
-
     return Identifier(
         "BUILTIN_SUPER( %s, %s )" % (
-            super_type,
-            super_object
+            _defaultToNullIdentifier( type_identifier ).getCodeTemporaryRef(),
+            _defaultToNullIdentifier( object_identifier ).getCodeTemporaryRef()
         ),
         1
     )
 
 def getBuiltinOpenCode( filename, mode, buffering ):
-    filename = filename.getCodeTemporaryRef() if filename is not None else "NULL"
-    mode = mode.getCodeTemporaryRef() if mode is not None else "NULL"
-    buffering = buffering.getCodeTemporaryRef() if buffering is not None else "NULL"
-
     return Identifier(
         "OPEN_FILE( %s, %s, %s )" % (
-            filename,
-            mode,
-            buffering
+            _defaultToNullIdentifier( filename ).getCodeTemporaryRef(),
+            _defaultToNullIdentifier( mode ).getCodeTemporaryRef(),
+            _defaultToNullIdentifier( buffering ).getCodeTemporaryRef()
         ),
         1
     )
@@ -1587,7 +1585,7 @@ def getBuiltinDictCode( seq_identifier, dict_identifier ):
         return Identifier(
             "TO_DICT( %s, %s )" % (
                 seq_identifier.getCodeTemporaryRef(),
-                dict_identifier.getCodeTemporaryRef() if dict_identifier is not None else "NULL"
+                _defaultToNullIdentifier( dict_identifier ).getCodeTemporaryRef()
             ),
             1
         )
