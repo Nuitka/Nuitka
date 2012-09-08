@@ -73,7 +73,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
 """
 
 make_function_without_context_template = """
-static PyObject *_MAKE_FUNCTION_%(function_identifier)s()
+static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     PyObject *result = Nuitka_Function_New(
         %(fparse_function_identifier)s,

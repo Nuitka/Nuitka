@@ -211,34 +211,6 @@ def generateFunctionCallCode( call_node, context ):
         context            = context
     )
 
-def _generateDefaultIdentifiers( parameters, default_expressions, sub_context, context ):
-    default_access_identifiers = []
-    default_value_identifiers = []
-
-    assert len( default_expressions ) == len( parameters.getDefaultParameterVariables() )
-
-    for default_parameter_value, variable in zip( default_expressions, parameters.getDefaultParameterVariables() ):
-        if default_parameter_value.isExpressionConstantRef() and not default_parameter_value.isMutable():
-            default_access_identifiers.append(
-                generateExpressionCode(
-                    expression = default_parameter_value,
-                    context    = sub_context
-                )
-            )
-        else:
-            default_value_identifiers.append(
-                generateExpressionCode(
-                    expression = default_parameter_value,
-                    context    = context
-                )
-            )
-
-            default_access_identifiers.append(
-                Generator.getDefaultValueAccess( variable )
-            )
-
-    return default_access_identifiers, default_value_identifiers
-
 def generateFunctionBodyCode( function_body, defaults, context ):
     function_context = Contexts.PythonFunctionContext(
         parent         = context,
@@ -255,47 +227,50 @@ def generateFunctionBodyCode( function_body, defaults, context ):
 
     parameters = function_body.getParameters()
 
-    default_access_identifiers, default_value_identifiers = _generateDefaultIdentifiers(
-        parameters          = parameters,
-        default_expressions = defaults,
-        sub_context         = function_context,
-        context             = context
-    )
+    assert len( defaults ) == len( parameters.getDefaultParameterVariables() )
+
+    if defaults:
+        defaults_identifier = generateTupleCreationCode(
+            elements = defaults,
+            context  = context
+        )
+    else:
+        defaults_identifier = Generator.NullIdentifier()
 
     if function_body.isGenerator():
         function_code = Generator.getGeneratorFunctionCode(
-            context                    = function_context,
-            function_name              = function_body.getFunctionName(),
-            function_identifier        = function_body.getCodeName(),
-            parameters                 = parameters,
-            closure_variables          = function_body.getClosureVariables(),
-            user_variables             = function_body.getUserLocalVariables(),
-            tmp_variables              = function_body.getTempKeeperNames(),
-            default_access_identifiers = default_access_identifiers,
-            needs_creation             = function_body.needsCreation(),
-            source_ref                 = function_body.getSourceReference(),
-            function_codes             = function_codes,
-            function_doc               = function_body.getDoc()
+            context             = function_context,
+            function_name       = function_body.getFunctionName(),
+            function_identifier = function_body.getCodeName(),
+            parameters          = parameters,
+            closure_variables   = function_body.getClosureVariables(),
+            user_variables      = function_body.getUserLocalVariables(),
+            tmp_variables       = function_body.getTempKeeperNames(),
+            defaults_identifier = defaults_identifier,
+            needs_creation      = function_body.needsCreation(),
+            source_ref          = function_body.getSourceReference(),
+            function_codes      = function_codes,
+            function_doc        = function_body.getDoc()
         )
     else:
         function_code = Generator.getFunctionCode(
-            context                    = function_context,
-            function_name              = function_body.getFunctionName(),
-            function_identifier        = function_body.getCodeName(),
-            parameters                 = parameters,
-            closure_variables          = function_body.getClosureVariables(),
-            user_variables             = function_body.getUserLocalVariables(),
-            tmp_variables              = function_body.getTempKeeperNames(),
-            default_access_identifiers = default_access_identifiers,
-            needs_creation             = function_body.needsCreation(),
-            source_ref                 = function_body.getSourceReference(),
-            function_codes             = function_codes,
-            function_doc               = function_body.getDoc()
+            context             = function_context,
+            function_name       = function_body.getFunctionName(),
+            function_identifier = function_body.getCodeName(),
+            parameters          = parameters,
+            closure_variables   = function_body.getClosureVariables(),
+            user_variables      = function_body.getUserLocalVariables(),
+            tmp_variables       = function_body.getTempKeeperNames(),
+            defaults_identifier = defaults_identifier,
+            needs_creation      = function_body.needsCreation(),
+            source_ref          = function_body.getSourceReference(),
+            function_codes      = function_codes,
+            function_doc        = function_body.getDoc()
         )
 
     function_decl = Generator.getFunctionDecl(
         function_identifier          = function_body.getCodeName(),
-        default_identifiers          = default_access_identifiers,
+        defaults_identifier          = defaults_identifier,
         closure_variables            = function_body.getClosureVariables(),
         function_parameter_variables = function_body.getParameters().getVariables(),
         context                      = function_context
@@ -310,7 +285,7 @@ def generateFunctionBodyCode( function_body, defaults, context ):
     if function_body.needsCreation():
         return Generator.getFunctionCreationCode(
             function_identifier = function_body.getCodeName(),
-            default_identifiers = default_value_identifiers,
+            defaults_identifier = defaults_identifier,
             closure_variables   = function_body.getClosureVariables(),
             context             = context
         )
@@ -652,12 +627,12 @@ def generateExpressionCode( expression, context, allow_none = False ):
             expression.dump()
             assert False, ( expression.getSourceReference(), expression.getVariableName() )
 
-        identifier = Generator.getVariableAccess(
+        identifier = Generator.getVariableHandle(
             variable = expression.getVariable(),
             context  = context
         )
     elif expression.isExpressionTempVariableRef():
-        identifier = Generator.getVariableAccess(
+        identifier = Generator.getVariableHandle(
             variable = expression.getVariable(),
             context  = context
         )

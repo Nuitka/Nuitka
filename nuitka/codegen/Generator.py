@@ -27,10 +27,10 @@ this one and the templates, and otherwise nothing else.
 from .Identifiers import (
     Identifier,
     ModuleVariableIdentifier,
-    DefaultValueIdentifier,
     HelperCallIdentifier,
     ThrowingIdentifier,
     CallIdentifier,
+    NullIdentifier,
     getCodeTemporaryRefs,
     getCodeExportRefs
 )
@@ -52,9 +52,7 @@ from .DictCodes import getDictionaryCreationCode # imported from here pylint: di
 from .ParameterParsing import (
     getDirectFunctionEntryPointIdentifier,
     getParameterEntryPointIdentifier,
-    getDefaultParameterDeclarations,
     getParameterParsingCode,
-    getParameterContextCode,
 )
 
 from . import (
@@ -127,11 +125,6 @@ def getConstantAccess( context, constant ):
             constant = constant
         )
 
-def getVariableAccess( variable, context ):
-    return getVariableHandle(
-        variable = variable,
-        context  = context
-    )
 
 def getReturnCode( identifier ):
     if identifier is not None:
@@ -704,8 +697,11 @@ def getConditionalExpressionCode( condition, codes_no, codes_yes ):
             1
         )
 
-def getFunctionCreationCode( context, function_identifier, default_identifiers, closure_variables ):
-    args = getCodeExportRefs( default_identifiers )
+def getFunctionCreationCode( context, function_identifier, defaults_identifier, closure_variables ):
+    args = []
+
+    if not defaults_identifier.isConstantIdentifier():
+        args.append( defaults_identifier.getCodeExportRef() )
 
     args += getClosureVariableProvisionCode(
         context           = context,
@@ -1811,10 +1807,11 @@ def getFunctionsDecl( context ):
 
     return result
 
-def _getFunctionCreationArgs( default_identifiers, closure_variables ):
-    result = getDefaultParameterDeclarations(
-        default_identifiers = default_identifiers
-    )
+def _getFunctionCreationArgs( defaults_identifier, closure_variables ):
+    result = []
+
+    if not defaults_identifier.isConstantIdentifier():
+        result.append( "PyObject *defaults" )
 
     for closure_variable in closure_variables:
         result.append( "PyObjectSharedLocalVariable &python_closure_%s" % closure_variable.getName() )
@@ -1838,14 +1835,14 @@ def _extractArgNames( args ):
         args
     ]
 
-def getFunctionDecl( context, function_identifier, default_identifiers, closure_variables, \
+def getFunctionDecl( context, function_identifier, defaults_identifier, closure_variables, \
                      function_parameter_variables ):
 
     if context.function.needsCreation():
         # TODO: These two branches probably mean it's two different things.
 
         function_creation_arg_spec = _getFunctionCreationArgs(
-            default_identifiers = default_identifiers,
+            defaults_identifier = defaults_identifier,
             closure_variables   = closure_variables
         )
 
@@ -1942,20 +1939,14 @@ def _getLocalVariableInitCode( context, variable, init_from = None, in_context =
 
     return result
 
-def _getFuncDefaultValue( identifiers, context ):
-    if len( identifiers ) > 0:
-        return getTupleCreationCode(
-            element_identifiers = identifiers,
-            context             = context
-        )
+def _getFuncDefaultValue( defaults_identifier, context ):
+    if defaults_identifier.isConstantIdentifier():
+        return defaults_identifier
     else:
-        return getConstantHandle(
-            constant = None,
-            context  = context
-        )
+        return Identifier( "defaults", 1 )
 
 def getGeneratorFunctionCode( context, function_name, function_identifier, parameters, \
-                              closure_variables, user_variables, default_access_identifiers,
+                              closure_variables, user_variables, defaults_identifier,
                               tmp_variables, function_codes, needs_creation, source_ref, \
                               function_doc ):
     # We really need this many parameters here.
@@ -1965,15 +1956,13 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         function_identifier     = function_identifier,
         function_name           = function_name,
         parameters              = parameters,
-        default_identifiers     = default_access_identifiers,
-        context_access_template = CodeTemplates.generator_context_access_template,
         needs_creation          = needs_creation,
         context                 = context,
     )
 
-    context_decl, context_copy, context_free = getParameterContextCode(
-        default_access_identifiers = default_access_identifiers
-    )
+    context_decl = []
+    context_copy = []
+    context_free = []
 
     function_parameter_decl = [
         _getLocalVariableInitCode(
@@ -2044,7 +2033,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         )
 
     function_creation_args  = _getFunctionCreationArgs(
-        default_identifiers = default_access_identifiers,
+        defaults_identifier = defaults_identifier,
         closure_variables   = closure_variables
     )
 
@@ -2156,8 +2145,8 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
     }
 
     func_defaults = _getFuncDefaultValue(
-        identifiers = default_access_identifiers,
-        context     = context
+        defaults_identifier = defaults_identifier,
+        context             = context
     )
 
     if needs_creation:
@@ -2214,8 +2203,8 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
     return result
 
 def getFunctionCode( context, function_name, function_identifier, parameters, closure_variables, \
-                     user_variables, tmp_variables, default_access_identifiers, \
-                     function_codes, needs_creation, source_ref, function_doc ):
+                     user_variables, tmp_variables, defaults_identifier, function_codes, \
+                     needs_creation, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
 
@@ -2223,15 +2212,13 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         function_identifier     = function_identifier,
         function_name           = function_name,
         parameters              = parameters,
-        default_identifiers     = default_access_identifiers,
-        context_access_template = CodeTemplates.function_context_access_template,
         needs_creation          = needs_creation,
         context                 = context,
     )
 
-    context_decl, context_copy, context_free = getParameterContextCode(
-        default_access_identifiers = default_access_identifiers
-    )
+    context_decl = []
+    context_copy = []
+    context_free = []
 
     function_parameter_decl = [
         _getLocalVariableInitCode(
@@ -2260,7 +2247,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         )
 
     function_creation_args = _getFunctionCreationArgs(
-        default_identifiers = default_access_identifiers,
+        defaults_identifier = defaults_identifier,
         closure_variables   = closure_variables,
     )
 
@@ -2334,8 +2321,8 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         result += entry_point_code
 
     func_defaults = _getFuncDefaultValue(
-        identifiers = default_access_identifiers,
-        context     = context
+        defaults_identifier = defaults_identifier,
+        context             = context
     )
 
     if needs_creation:
@@ -2374,8 +2361,12 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                     function_identifier = function_identifier,
                     is_method           = False
                 ),
-                "code_identifier"            : code_identifier.getCodeTemporaryRef(),
                 "mparse_function_identifier" : mparse_identifier,
+                "function_creation_args"     : getEvalOrderedCode(
+                    context = context,
+                    args    = function_creation_args
+                ),
+                "code_identifier"            : code_identifier.getCodeTemporaryRef(),
                 "function_doc"               : function_doc,
                 "defaults"                   : func_defaults.getCodeExportRef(),
                 "module_identifier"          : getModuleAccessCode( context = context ),
@@ -2747,20 +2738,6 @@ def getConstantsDefinitionCode( context ):
             for_header = False
         )
     }
-
-def getDefaultValueAccess( variable ):
-    if variable.isNestedParameterVariable():
-        default_access_identifier = DefaultValueIdentifier(
-            var_name = "__".join( variable.getParameterNames() ),
-            nested   = True
-        )
-    else:
-        default_access_identifier = DefaultValueIdentifier(
-            var_name = variable.getName(),
-            nested   = False
-        )
-
-    return default_access_identifier
 
 def getCurrentExceptionTypeCode():
     return Identifier(

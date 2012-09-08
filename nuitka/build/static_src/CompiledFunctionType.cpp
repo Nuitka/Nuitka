@@ -384,6 +384,13 @@ static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, Py
     result->m_context = context;
     result->m_cleanup = cleanup;
 
+    if ( defaults == NULL )
+    {
+        defaults = INCREASE_REFCOUNT( Py_None );
+    }
+
+    assertObject( defaults );
+    assert( defaults == Py_None || ( PyTuple_Check( defaults ) && PyTuple_Size( defaults ) > 0 ) );
     result->m_defaults = defaults;
 
     result->m_code_object = code_object;
