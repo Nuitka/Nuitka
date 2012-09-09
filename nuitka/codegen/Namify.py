@@ -110,7 +110,7 @@ def namifyConstant( constant ):
                 for value in constant:
                     parts.append( namifyConstant( value ) )
 
-                return result + "_".join( parts )
+                return result + "_".join( parts ) + "_tuple"
             except ExceptionCannotNamify:
                 warning( "Couldn't namify '%r'" % value )
 
@@ -127,7 +127,7 @@ def namifyConstant( constant ):
                 for value in constant:
                     parts.append( namifyConstant( value ) )
 
-                return result + "_".join( parts )
+                return result + "_".join( parts )  + "_list"
             except ExceptionCannotNamify:
                 warning( "Couldn't namify '%r'" % value )
 

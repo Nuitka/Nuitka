@@ -1,4 +1,4 @@
-nuitka (0.3.25~pre2+ds-1) UNRELEASED; urgency=low
+nuitka (0.3.25~pre3+ds-1) UNRELEASED; urgency=low
 
   * New upstream pre-release.
   * Added crosscompiler usable with "--windows-target" option as
@@ -6,6 +6,13 @@ nuitka (0.3.25~pre2+ds-1) UNRELEASED; urgency=low
   * Register the User Manual with "doc-base".
 
  -- Kay Hayen <kayhayen@gmx.de>  Sun, 26 Aug 2012 14:46:43 +0000
+
+nuitka (0.3.24.1+ds-1) unstable; urgency=low
+
+  * New upstream hotfix release.
+  * Corrects upstream Issue#46.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sat, 08 Sep 2012 22:30:11 +0000
 
 nuitka (0.3.24+ds-1) unstable; urgency=low
 
