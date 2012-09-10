@@ -56,3 +56,10 @@ print defaultValueTest5("unused")
 
 print defaultValueTest6("unused"),
 print defaultValueTest6("unused")
+
+print defaultValueTest6.func_defaults
+
+defaultValueTest6.func_defaults = ( [1,2,3], )
+print defaultValueTest6.func_defaults
+
+print defaultValueTest6(1)
