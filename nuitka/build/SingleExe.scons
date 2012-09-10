@@ -17,8 +17,8 @@
 #     limitations under the License.
 #
 
-# The Nuitka scons file. If you have Scons knowledge, please feel free and contribute
-# improvements, to do it the proper way.
+# The Nuitka scons file. If you have Scons or platform knowledge, please feel free and
+# contribute improvements, to do it the proper way.
 #
 # This file is used to build an executable or shared library. Nuitka needs no build
 # process for itself, although it can be compiled using the same method.
@@ -83,32 +83,39 @@ unstriped_mode = getBoolOption( "unstriped_mode", False )
 # Clang compiler mode, default on MacOS X, optional on Linux.
 clang_mode = getBoolOption( "clang_mode", False ) or sys.platform == "darwin"
 
-# The MingW compiler tool should be supported if targeting windows.
-if win_target:
-    compiler_tools = [ "mingw" ]
-else:
-    compiler_tools = None
+def createEnvironment( compiler_tools ):
+    return Environment(
+        # We want the outside environment to be passed through.
+        ENV = os.environ,
 
-env = Environment(
-    # We want the outside environment to be passed through.
-    ENV = os.environ,
+        # Extra tools configuration for scons.
+        tools = compiler_tools,
 
-    # Extra tools configuration for scons.
-    tools = compiler_tools,
+        # The shared libraries should not be named "lib...", because CPython requires the
+        # filename "module_name.so" to load it.
+        SHLIBPREFIX = "",
+    )
 
-    # The shared libraries should not be named "lib...", because CPython requires the
-    # filename "module_name.so" to load it.
-    SHLIBPREFIX = "",
+
+# Create Scons environment, the main control tool. Don't include "mingw" on Windows immediately,
+# we will default to MSVC if available.
+env = createEnvironment(
+    compiler_tools = None if os.name == "nt" or not win_target else [ "mingw" ]
 )
-
-if "CXX" in os.environ:
-    env[ "CXX" ] = os.environ[ "CXX" ]
 
 if clang_mode:
     env[ "CXX" ] = "clang"
 
-# To work around Windows not supporting command lines of greater than 10K by default:
+if "CXX" in os.environ:
+    env[ "CXX" ] = os.environ[ "CXX" ]
 
+if not env[ "CXX" ]:
+    # The MingW compiler is attemted if not C++ compiler was found.
+    env = createEnvironment(
+        compiler_tools = [ "mingw" ]
+    )
+
+# To work around Windows not supporting command lines of greater than 10K by default:
 class CustomSpawn( object ):
 
     def spawn( self, sh, escape, cmd, args, env ):
@@ -186,7 +193,7 @@ if win_target and "linux" in sys.platform:
 orig_cxx = env[ "CXX" ]
 orig_cxx_version = env.get( "CXXVERSION", None )
 
-# Remove "g++" as the compile, if it's not really existing or not good enough.
+# Remove "g++" as the compiler, if it's not really existing or not good enough.
 if "g++" in env[ "CXX" ]:
     gpp_version = getGccVersion()
 
@@ -206,6 +213,9 @@ if "linux" in sys.platform and "CXX" not in env:
     else:
         sys.exit( "The g++ compiler '%s' (version %s) doesn't have the sufficient version (>= 4.4)." % ( orig_cxx, orig_cxx_version ) )
 
+gcc_mode = "g++" in env[ "CXX" ] or "clang" in env[ "CXX" ]
+msvc_mode = win_target and not gcc_mode
+
 env[ "BUILD_DIR" ] = source_dir
 
 # Store the file signatures database with the rest of the source files
@@ -221,22 +231,12 @@ if "clang" in env[ "CXX" ]:
     env.Append( CCFLAGS = [ "-w", "-D _XOPEN_SOURCE" ] )
     env.Append( LINKFLAGS = [ "-lstdc++" ])
 
-    # Allow clang to point out all kinds of inconsistency to us by raising an error. As for
-    # sequence points, we are abusing it, so we have to allow it.
-    if debug_mode:
-        env.Append( CCFLAGS = [ "-Wall", "-Werror" ] )
-
 
 # Support for g++.
 if "g++" in env[ "CXX" ]:
     # Don't export anything by default, this should create smaller executables.
     if not win_target:
         env.Append( CCFLAGS = [ "-fvisibility=hidden", "-fvisibility-inlines-hidden" ] )
-
-    # Allow g++ to point out all kinds of inconsistency to us by raising an error. As for
-    # sequence points, we are abusing it, so we have to allow it.
-    if debug_mode:
-        env.Append( CCFLAGS = [ "-Wall", "-Werror", "-Wno-sequence-point" ] )
 
     if "CXXVERSION" not in env:
         env[ "CXXVERSION" ] = getGccVersion()
@@ -294,6 +294,17 @@ if "g++" in env[ "CXX" ]:
     if lto_mode and gpp_version < 460:
         print >> sys.stderr, "Warning, LTO mode specified, but not available."
 
+if debug_mode:
+    env.Append( CCFLAGS = [ "-Wall" ] )
+
+    if gcc_mode:
+        # Allow g++/clang to point out all kinds of inconsistency to us by raising an error.
+        env.Append( CCFLAGS = [ "-Werror" ] )
+
+    # As for sequence points, we are abusing it, so we have to allow it.
+    if "g++" in env[ "CXX" ]:
+        env.Append( CCFLAGS = [ "-Wno-sequence-point" ] )
+
 # Python version, use the scons one if not given.
 python_version = ARGUMENTS.get( "python_version", None )
 
@@ -349,11 +360,12 @@ def detectHostMultiarch():
     else:
         return None
 
-if python_version.startswith( "3.3" ):
-    host_multiarch = detectHostMultiarch()
+if gcc_mode and "linux" in sys.platform:
+    if python_version.startswith( "3.3" ):
+        host_multiarch = detectHostMultiarch()
 
-    if host_multiarch is not None:
-        env.Append( CCFLAGS = [ "-I/usr/include/" + host_multiarch + "/python" + python_version ] )
+        if host_multiarch is not None:
+            env.Append( CCFLAGS = [ "-I/usr/include/" + host_multiarch + "/python" + python_version ] )
 
 env.Append( LIBS = [ "python" + python_version ] )
 
@@ -363,27 +375,40 @@ env.Append( CPPPATH = [ source_dir, nuitka_include ] )
 if debug_mode or unstriped_mode:
     # On crosscompile, use debug format that wine understands, so we get good tracebacks
     # from it.
-    if win_target and "linux" in sys.platform:
-        env.Append( CCFLAGS = [ "-gstabs" ] )
-        env.Append( ASFLAGS = [ "-gstabs" ] )
-    else:
-        env.Append( CCFLAGS = [ "-g" ] )
-        env.Append( ASFLAGS = [ "-g" ] )
+    if gcc_mode:
+        if win_target and "linux" in sys.platform:
+            env.Append( CCFLAGS = [ "-gstabs" ] )
+            env.Append( ASFLAGS = [ "-gstabs" ] )
+        else:
+            env.Append( CCFLAGS = [ "-g" ] )
+            env.Append( ASFLAGS = [ "-g" ] )
 
-        if "g++" in env[ "CXX" ]:
-            env.Append( CCFLAGS = [ "-feliminate-unused-debug-types" ] )
+            if "g++" in env[ "CXX" ]:
+                env.Append( CCFLAGS = [ "-feliminate-unused-debug-types" ] )
+    elif msvc_mode:
+        env.Append( CCFLAGS = [ "-Yd" ] )
 
 # When debugging, optimize less than when optimizing, when not remove assertions.
 if debug_mode:
-    env.Append( CCFLAGS = [ "-O2" ] )
+    if not optimize_mode:
+        if gcc_mode or msvc_mode:
+            env.Append( CCFLAGS = [ "-O2" ] )
 else:
     env.Append( CPPDEFINES = [ "__NUITKA_NO_ASSERT__" ] )
 
 if optimize_mode:
-    env.Append( CCFLAGS = [ "-O3" ] )
+    if gcc_mode:
+        env.Append( CCFLAGS = [ "-O3" ] )
+    elif msvc_mode:
+        env.Append( CCFLAGS = [ "-Ox" ] )
 
 if module_mode:
-    env.Append( CCFLAGS = [ "-shared" ] )
+    if gcc_mode:
+        env.Append( CCFLAGS = [ "-shared" ] )
+    elif msvc_mode:
+        env.Append( CCFLAGS = [ "-LD" ] )
+    else:
+        assert False
 
 if module_mode:
     env.Append( CPPDEFINES = [ "_NUITKA_MODULE" ] )
@@ -480,7 +505,7 @@ if module_mode:
     target = env.SharedLibrary( result_file, discoverSourceFiles() )
 else:
     # Avoid dependency on MinGW libraries.
-    if win_target:
+    if win_target and gcc_mode:
         env.Append( LINKFLAGS = [ "-static-libgcc",  "-static-libstdc++" ] )
 
     target = env.Program( result_file + ".exe", discoverSourceFiles() )
