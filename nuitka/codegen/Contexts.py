@@ -60,18 +60,7 @@ else:
 
 class PythonContextBase:
     def __init__( self ):
-        self.while_loop_count = 0
-        self.for_loop_count = 0
-
         self.try_count = 0
-        self.with_count = 0
-
-        self.preservations = {}
-
-    def allocateForLoopNumber( self ):
-        self.for_loop_count += 1
-
-        return self.for_loop_count
 
     def allocateTryNumber( self ):
         self.try_count += 1
@@ -83,12 +72,6 @@ class PythonContextBase:
 
     def needsFrameExceptionKeeper( self ):
         return False
-
-    def getTempObjectHandle( self, var_name ):
-        return TempObjectIdentifier( var_name )
-
-    def getTempVarHandle( self, var_name ):
-        return TempVariableIdentifier( var_name )
 
 
 class PythonChildContextBase( PythonContextBase ):
@@ -399,9 +382,6 @@ class PythonFunctionContext( PythonChildContextBase ):
                 return ClosureVariableIdentifier( var_name, from_context = "_python_context->" )
             else:
                 return ClosureVariableIdentifier( var_name, from_context = "" )
-
-    def getTempObjectHandle( self, var_name ):
-        return TempObjectIdentifier( var_name )
 
     def needsFrameExceptionKeeper( self ):
         return self.function.needsFrameExceptionKeeper()

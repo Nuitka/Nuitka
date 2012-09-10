@@ -733,7 +733,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = Generator.getSelectionOrCode(
             conditions = generateExpressionsCode(
                 expressions = expression.getOperands(),
-                context = context
+                context     = context
             )
         )
 
@@ -741,7 +741,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = Generator.getSelectionAndCode(
             conditions = generateExpressionsCode(
                 expressions = expression.getOperands(),
-                context = context
+                context     = context
             )
         )
     elif expression.isExpressionConditional():
@@ -1392,7 +1392,7 @@ def generateTryExceptCode( statement, context ):
                                 if catched_type.getExceptionName() == "StopIteration":
                                     if handlers[0].getExceptionBranch().isStatementAbortative():
 
-                                        temp_number = context.allocateForLoopNumber()
+                                        temp_number = context.allocateTryNumber()
 
                                         return """\
 PyObject *_tmp_unpack_%(tmp_count)d = ITERATOR_NEXT( %(source_identifier)s );

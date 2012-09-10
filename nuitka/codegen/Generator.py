@@ -42,7 +42,7 @@ from .Pickling import getStreamedConstant
 from .OrderedEvaluation import getEvalOrderedCode
 
 from .ConstantCodes import getConstantHandle, getConstantCode
-from .VariableCodes import getVariableHandle, getVariableCode
+from .VariableCodes import getVariableHandle, getVariableCode  # imported from here pylint: disable=W0611
 
 from .TupleCodes import getTupleCreationCode
 from .ListCodes import getListCreationCode # imported from here pylint: disable=W0611
@@ -1937,7 +1937,7 @@ def _getLocalVariableInitCode( context, variable, init_from = None, in_context =
 
     return result
 
-def _getFuncDefaultValue( defaults_identifier, context ):
+def _getFuncDefaultValue( defaults_identifier ):
     if defaults_identifier.isConstantIdentifier():
         return defaults_identifier
     else:
@@ -2143,8 +2143,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
     }
 
     func_defaults = _getFuncDefaultValue(
-        defaults_identifier = defaults_identifier,
-        context             = context
+        defaults_identifier = defaults_identifier
     )
 
     if needs_creation:
@@ -2319,8 +2318,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         result += entry_point_code
 
     func_defaults = _getFuncDefaultValue(
-        defaults_identifier = defaults_identifier,
-        context             = context
+        defaults_identifier = defaults_identifier
     )
 
     if needs_creation:

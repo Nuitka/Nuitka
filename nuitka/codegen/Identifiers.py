@@ -163,10 +163,10 @@ class LocalVariableIdentifier:
 
 
 class TempVariableIdentifier( Identifier ):
-    def __init__( self, tempvar_name ):
-        self.tempvar_name = tempvar_name
+    def __init__( self, var_name ):
+        self.tempvar_name = var_name
 
-        Identifier.__init__( self, "_python_tmp_" + tempvar_name, 0 )
+        Identifier.__init__( self, "_python_tmp_" + var_name, 0 )
 
     def __repr__( self ):
         return "<TempVariableIdentifier %s >" % self.tempvar_name
@@ -204,10 +204,10 @@ class HolderVariableIdentifier( Identifier ):
 
 
 class TempObjectIdentifier( Identifier ):
-    def __init__( self, tempvar_name ):
-        self.tempvar_name = tempvar_name
+    def __init__( self, var_name ):
+        self.tempvar_name = var_name
 
-        Identifier.__init__( self, "_python_tmp_" + tempvar_name, 0 )
+        Identifier.__init__( self, "_python_tmp_" + var_name, 0 )
 
     def getCodeTemporaryRef( self ):
         return self.code
