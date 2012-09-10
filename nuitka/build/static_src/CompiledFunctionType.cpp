@@ -200,8 +200,29 @@ static PyObject *Nuitka_Function_get_defaults( Nuitka_FunctionObject *object )
 
 static int Nuitka_Function_set_defaults( Nuitka_FunctionObject *object, PyObject *value )
 {
-    PyErr_Format( PyExc_RuntimeError, "__defaults__ is not writable in Nuitka" );
-    return -1;
+    if (unlikely( value != Py_None && PyTuple_Check( value ) == false ))
+    {
+        PyErr_Format( PyExc_TypeError, "__defaults__ must be set to a tuple object" );
+        return -1;
+    }
+
+    if ( object->m_defaults == Py_None && value != Py_None )
+    {
+        PyErr_Format( PyExc_TypeError, "Nuitka doesn't support __defaults__ size changes" );
+        return -1;
+    }
+
+    if ( object->m_defaults != Py_None && ( value == Py_None || PyTuple_Size( object->m_defaults ) != PyTuple_Size( value ) ) )
+    {
+        PyErr_Format( PyExc_TypeError, "Nuitka doesn't support __defaults__ size changes" );
+        return -1;
+    }
+
+    PyObject *old = object->m_defaults;
+    object->m_defaults = INCREASE_REFCOUNT( value );
+    Py_DECREF( old );
+
+    return 0;
 }
 
 static int Nuitka_Function_set_globals( Nuitka_FunctionObject *object, PyObject *value )
