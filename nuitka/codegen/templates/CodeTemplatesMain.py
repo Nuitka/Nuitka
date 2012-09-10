@@ -57,6 +57,7 @@ int main( int argc, char *argv[] )
     PyType_Ready( &Nuitka_Generator_Type );
     PyType_Ready( &Nuitka_Function_Type );
     PyType_Ready( &Nuitka_Method_Type );
+    PyType_Ready( &Nuitka_Frame_Type );
 
     enhancePythonTypes();
 
@@ -318,6 +319,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     PyType_Ready( &Nuitka_Generator_Type );
     PyType_Ready( &Nuitka_Function_Type );
     PyType_Ready( &Nuitka_Method_Type );
+    PyType_Ready( &Nuitka_Frame_Type );
 
     patchInspectModule();
 #endif
