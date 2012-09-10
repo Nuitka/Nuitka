@@ -92,13 +92,14 @@ else:
         filename
     )
 
-    dir_match = re.search( r"--output-dir=(.*?)(\s|$)", extra_options )
+dir_match = re.search( r"--output-dir=(.*?)(\s|$)", extra_options )
 
-    if dir_match:
-        nuitka_cmd2 = os.path.join( dir_match.group( 1 ), exe_filename )
-    else:
-        nuitka_cmd2 = os.path.join( ".", exe_filename )
+if dir_match:
+    nuitka_cmd2 = os.path.join( dir_match.group( 1 ), exe_filename )
+else:
+    nuitka_cmd2 = os.path.join( ".", exe_filename )
 
+if two_step_execution:
     if trace_command:
         print( "Nuitka command 1:", nuitka_cmd1 )
         print( "Nuitka command 2:", nuitka_cmd2 )
@@ -191,8 +192,6 @@ compiled_generator_object_re = re.compile( r"'compiled_generator' object" )
 global_name_error_re = re.compile( r"global (name ')(.*?)(' is not defined)" )
 module_repr_re = re.compile( r"(\<module '.*?' from ').*?('\>)" )
 non_ascii_error_rt = re.compile( r"(SyntaxError: Non-ASCII character.*? on line) \d+" )
-fromdate = None
-todate = None
 
 def makeDiffable( output ):
     result = []
@@ -254,6 +253,9 @@ def makeDiffable( output ):
 
 
 def compareOutput( kind, out_cpython, out_nuitka ):
+    fromdate = None
+    todate = None
+
     diff = difflib.unified_diff(
         makeDiffable( out_cpython ),
         makeDiffable( out_nuitka ),
@@ -300,8 +302,8 @@ if expect_success and exit_cpython != 0:
 if expect_failure and exit_cpython == 0:
     sys.exit( "Unexpected success exit from CPython." )
 
-if remove_output and os.path.exists( exe_filename ):
-    os.unlink( exe_filename )
+if remove_output and os.path.exists( nuitka_cmd2 ):
+    os.unlink( nuitka_cmd2 )
 
 if not silent_mode:
     print( "OK, same outputs." )
