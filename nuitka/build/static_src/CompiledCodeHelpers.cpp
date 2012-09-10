@@ -448,12 +448,7 @@ static PyObject *_BUILTIN_RANGE_INT( long boundary )
 
 static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 {
-    if (likely(
-#if PYTHON_VERSION < 300
-            PyInt_Check( value ) ||
-#endif
-            PyLong_Check( value )
-       ))
+    if (likely( PyInt_Check( value ) || PyLong_Check( value ) ))
     {
         return INCREASE_REFCOUNT( value );
     }
