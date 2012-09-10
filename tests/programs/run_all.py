@@ -80,6 +80,8 @@ for filename in sorted( os.listdir( "." ) ):
         if filename in ( "package_missing_init", "dash_import", ):
             extra_flags.append( "ignore_stderr" )
 
+        extra_flags.append( "remove_output" )
+
         os.environ[ "PYTHONPATH" ] = os.path.abspath( filename )
 
         if filename == "syntax_errors":

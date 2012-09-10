@@ -73,9 +73,9 @@ for filename in sorted( os.listdir( "." ) ):
 
     # Some syntax errors are for Python3 only.
     if filename == "Importing2.py" and python_version < "3":
-        extra_flags = [ "" ]
+        extra_flags = [ "remove_output" ]
     else:
-        extra_flags = [ "expect_failure" ]
+        extra_flags = [ "expect_failure",  "remove_output" ]
 
     if active:
         result = subprocess.call(

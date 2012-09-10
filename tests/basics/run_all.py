@@ -86,7 +86,7 @@ for filename in sorted( os.listdir( "." ) ):
     if not active and start_at in ( filename, path ):
         active = True
 
-    extra_flags = [ "expect_success" ]
+    extra_flags = [ "expect_success", "remove_output" ]
 
     if active:
         if filename == "Referencing.py":
