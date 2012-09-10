@@ -54,7 +54,7 @@ static inline void assertObject( PyTracebackObject *value )
 
 // Due to ABI issues, it seems that on Windows the symbols used by _PyObject_GC_TRACK are
 // not exported and we need to use a function that does it instead.
-#if defined (__WIN32__)
+#if defined( _WIN32 )
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #else

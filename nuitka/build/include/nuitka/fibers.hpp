@@ -18,7 +18,7 @@
 #ifndef __NUITKA_FIBERS_H__
 #define __NUITKA_FIBERS_H__
 
-#ifdef __WIN32__
+#if defined( _WIN32 )
 #include <windows.h>
 #else
 #include <ucontext.h>
@@ -26,7 +26,7 @@
 
 typedef struct _Fiber
 {
-#if defined __WIN32__
+#if defined( _WIN32 )
     void *ss_sp;
     size_t ss_size;
 
