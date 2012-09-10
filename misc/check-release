@@ -212,7 +212,7 @@ def execute_tests( where, use_python, flags ):
         setExtraFlags( None, "reflected", flags )
         executeSubTest( "./tests/reflected/compile_itself.py search" )
 
-    if use_python != "python3.2":
+    if use_python != "python3.2" and not "--windows-target" in flags:
         if os.path.exists( "./tests/CPython26/run_all.py" ):
             if options.cpython26:
                 print( "Running the CPython 2.6 tests with options '%s' with %s:" % ( flags, use_python ) )
@@ -279,6 +279,10 @@ if checkExecutableCommand( "python3.2" ):
 else:
     print( "Cannot execute Python 3.2 tests, not installed." )
 
+if "linux" in sys.platform and checkExecutableCommand( "wine" ) :
+    execute_tests( "python-wine", "python", "--windows-target" )
+else:
+    print( "Cannot execute Windows cross-compile tests, no wine installed." )
 
 if checkExecutableCommand( "cppcheck" ):
     command = "cppcheck -q --error-exitcode=1 --enable=all --check-config nuitka/build/ -I nuitka/build/include/ -I /usr/include/python2.7"
