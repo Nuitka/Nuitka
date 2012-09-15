@@ -109,8 +109,8 @@ if clang_mode:
 if "CXX" in os.environ:
     env[ "CXX" ] = os.environ[ "CXX" ]
 
-if not env[ "CXX" ]:
-    # The MingW compiler is attemted if not C++ compiler was found.
+if not env[ "CXX" ] and windows_mode:
+    # The MingW compiler is attemted if no C++ compiler was found.
     env = createEnvironment(
         compiler_tools = [ "mingw" ]
     )
@@ -153,9 +153,6 @@ def setupSpawn( env ):
     buf = CustomSpawn()
     buf.ourenv = env
     env[ "SPAWN" ] = buf.spawn
-
-if os.name == "nt":
-    setupSpawn( env )
 
 def getGccVersion():
     # Update CXXVERSION in env, after we changed it.
@@ -215,6 +212,9 @@ if "linux" in sys.platform and "CXX" not in env:
 
 gcc_mode = "g++" in env[ "CXX" ] or "clang" in env[ "CXX" ]
 msvc_mode = win_target and not gcc_mode
+
+if os.name == "nt" and not msvc_mode:
+    setupSpawn( env )
 
 env[ "BUILD_DIR" ] = source_dir
 
@@ -294,6 +294,9 @@ if "g++" in env[ "CXX" ]:
     if lto_mode and gpp_version < 460:
         print >> sys.stderr, "Warning, LTO mode specified, but not available."
 
+if msvc_mode:
+    env.Append( CCFLAGS = [ "/EHsc", "/J", "/Gd" ] )
+
 if debug_mode:
     env.Append( CCFLAGS = [ "-Wall" ] )
 
@@ -329,14 +332,15 @@ if win_target:
 
     python_home = os.environ.get( "PYTHON_HOME", guessPythonHome() )
 
-    env.Append( LIBPATH = [ python_home + "/libs" ] )
+    env.Append( LIBPATH = [ os.path.join( python_home, "libs" ) ] )
 
-    env.Append( LINKFLAGS = [ "-Wl,--enable-auto-import" ] )
+    if gcc_mode:
+        env.Append( LINKFLAGS = [ "-Wl,--enable-auto-import" ] )
 
     if win_disable_console:
         env.Append( LINKFLAGS = [ "-Wl,--subsystem,windows" ] )
 
-    python_header_path = python_home + "/include"
+    python_header_path = os.path.join( python_home, "include" )
 
     # Might be required for native current MinGW to not have a link time issue.
     # -D__MSVCRT_VERSION__=0x0800 -DWINVER=0x0800
@@ -349,7 +353,7 @@ else:
 if not os.path.exists( os.path.join( python_header_path, "Python.h" ) ):
     sys.exit( "Error, no 'Python.h' development headers can be found at '%s', dependency not satisfied!" % python_header_path )
 
-env.Append( CCFLAGS = [ "-I" + python_header_path ] )
+env.Append( CPPPATH  = [ python_header_path ] )
 
 def detectHostMultiarch():
     import commands
@@ -386,7 +390,8 @@ if debug_mode or unstriped_mode:
             if "g++" in env[ "CXX" ]:
                 env.Append( CCFLAGS = [ "-feliminate-unused-debug-types" ] )
     elif msvc_mode:
-        env.Append( CCFLAGS = [ "-Yd" ] )
+        env.Append( CCFLAGS = [ "/Yd", "/Zi" ] )
+        env.Append( LINKFLAGS = [ "/DEBUG" ] )
 
 # When debugging, optimize less than when optimizing, when not remove assertions.
 if debug_mode:
@@ -400,7 +405,7 @@ if optimize_mode:
     if gcc_mode:
         env.Append( CCFLAGS = [ "-O3" ] )
     elif msvc_mode:
-        env.Append( CCFLAGS = [ "-Ox" ] )
+        env.Append( CCFLAGS = [ "/Ox" ] )
 
 if module_mode:
     if gcc_mode:
@@ -418,25 +423,28 @@ else:
 def discoverSourceFiles():
     result = []
 
-    result.append( static_src + "/CompiledFunctionType.cpp" )
-    result.append( static_src + "/CompiledGeneratorType.cpp" )
-    result.append( static_src + "/CompiledMethodType.cpp" )
-    result.append( static_src + "/CompiledFrameType.cpp" )
-    result.append( static_src + "/CompiledCodeHelpers.cpp" )
-    result.append( static_src + "/InspectPatcher.cpp" )
+    def getStatic( sub_path):
+       return os.path.join( static_src, sub_path.replace( "/", os.path.sep ) )
+
+    result.append( getStatic( "CompiledFunctionType.cpp" ) )
+    result.append( getStatic( "CompiledGeneratorType.cpp" ) )
+    result.append( getStatic( "CompiledMethodType.cpp" ) )
+    result.append( getStatic( "CompiledFrameType.cpp" ) )
+    result.append( getStatic( "CompiledCodeHelpers.cpp" ) )
+    result.append( getStatic( "InspectPatcher.cpp" ) )
 
     if win_target:
-        result.append( static_src + "/win32_ucontext_src/fibers_win32.cpp" )
+        result.append( getStatic( "win32_ucontext_src/fibers_win32.cpp" ) )
     elif x64_linux_target:
-        result.append( static_src + "/x64_ucontext_src/fibers_x64.cpp" )
-        result.append( static_src + "/x64_ucontext_src/swapfiber.S" )
+        result.append( getStatic( "x64_ucontext_src/fibers_x64.cpp" ) )
+        result.append( getStatic( "x64_ucontext_src/swapfiber.S" ) )
     elif arm_linux_target:
-        result.append( static_src + "/arm_ucontext_src/fibers_arm.cpp" )
-        result.append( static_src + "/arm_ucontext_src/ucontext.cpp" )
-        result.append( static_src + "/arm_ucontext_src/getcontext.asm" )
+        result.append( getStatic( "arm_ucontext_src/fibers_arm.cpp" ) )
+        result.append( getStatic( "arm_ucontext_src/ucontext.cpp" ) )
+        result.append( getStatic( "arm_ucontext_src/getcontext.asm"  ) )
     else:
         # Variant based on getcontext/setcontext/swapcontext/makecontext
-        result.append( static_src + "/gen_ucontext_src/fibers_gen.cpp" )
+        result.append( getStatic(  "gen_ucontext_src/fibers_gen.cpp" ) )
 
     module_count = 0
 
@@ -459,7 +467,7 @@ def discoverSourceFiles():
 
 # Prepare the use of a custom specs file for windows targets. We change the used specs for
 # linking to avoid the use of the wrong (for CPython) run time library.
-if win_target:
+if win_target and not module_mode:
     manifest_file = open( os.path.join(source_dir, source_name + ".exe.manifest" ), "w" )
     manifest_file.write( r"""
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
