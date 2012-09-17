@@ -109,7 +109,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 
 // With the idea to reduce the amount of exported symbols, make it clear that the module
 // init function should of course be exported.
-#ifdef __GNUC__
+#if defined( _NUITKA_EXE )
+#define NUITKA_MODULE_INIT_FUNCTION void
+#elif defined( __GNUC__ )
 #define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__((visibility( "default" )))
 #else
 #define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC
@@ -122,7 +124,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 #else
 
 #define MOD_INIT_NAME( name ) PyInit_##name
+#if defined( _NUITKA_EXE )
+#define MOD_INIT_DECL( name ) PyObject *PyInit_##name( void )
+#else
 #define MOD_INIT_DECL( name ) PyMODINIT_FUNC PyInit_##name( void )
+#endif
 #define MOD_RETURN_VALUE( value ) value
 
 #endif
