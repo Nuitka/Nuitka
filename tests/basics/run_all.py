@@ -34,7 +34,7 @@ else:
     active = True
 
 if "PYTHON" not in os.environ:
-    os.environ[ "PYTHON" ] = "python"
+    os.environ[ "PYTHON" ] = "python" if os.name != "nt" else sys.executable
 
 if "PYTHONIOENCODING" not in os.environ:
     os.environ[ "PYTHONIOENCODING" ] = "utf-8"
