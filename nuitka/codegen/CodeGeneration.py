@@ -514,7 +514,7 @@ def generateCallNamedArgumentsCode( pairs, context ):
 
 def generateCallCode( call_node, context ):
     # TODO: Misnomer
-    function_identifier = generateExpressionCode(
+    called_identifier = generateExpressionCode(
         expression = call_node.getCalled(),
         context    = context
     )
@@ -545,7 +545,7 @@ def generateCallCode( call_node, context ):
     )
 
     return Generator.getCallCode(
-        function_identifier  = function_identifier,
+        called_identifier    = called_identifier,
         argument_tuple       = positional_args_identifier,
         argument_dictionary  = kw_identifier,
         star_list_identifier = star_list_identifier,
