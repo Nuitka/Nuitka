@@ -875,40 +875,6 @@ def getTrueExpressionCode():
 def getFalseExpressionCode():
     return Identifier( "false", 0 )
 
-def getSelectionOrCode( conditions ):
-    result = " ?: ".join(
-        [
-            "SELECT_IF_TRUE( %s )" % condition.getCodeExportRef()
-            for condition in
-            conditions[:-1]
-        ]
-    )
-
-    return Identifier(
-        "(%s ?: %s)" % (
-            result,
-            conditions[-1].getCodeExportRef()
-        ),
-        1
-    )
-
-def getSelectionAndCode( conditions ):
-    result = " ?: ".join(
-        [
-            "SELECT_IF_FALSE( %s )" % condition.getCodeExportRef()
-            for condition in
-            conditions[:-1]
-        ]
-    )
-
-    return Identifier(
-        "(%s ?: %s)" % (
-            result,
-            conditions[-1].getCodeExportRef()
-        ),
-        1
-    )
-
 def getAttributeAssignmentCode( target, attribute, identifier ):
     return "SET_ATTRIBUTE( %s, %s, %s );" % (
         identifier.getCodeTemporaryRef(),

@@ -56,10 +56,6 @@ from .nodes.BuiltinIteratorNodes import (
     CPythonExpressionBuiltinNext1,
     CPythonExpressionBuiltinIter1,
 )
-from .nodes.BoolNodes import (
-    CPythonExpressionBoolAND,
-    CPythonExpressionBoolOR
-)
 from .nodes.ExceptionNodes import (
     CPythonExpressionCaughtExceptionTracebackRef,
     CPythonExpressionCaughtExceptionValueRef,
@@ -1456,8 +1452,9 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
         elif len( conditions ) > 1:
             loop_statements.append(
                 CPythonStatementConditional(
-                    condition = CPythonExpressionBoolAND(
-                        operands   = conditions,
+                    condition = _buildAndNode(
+                        provider   = function_body,
+                        values     = conditions,
                         source_ref = source_ref
                     ),
                     yes_branch = CPythonStatementsSequence(
@@ -1647,13 +1644,11 @@ def buildComparisonNode( provider, node, source_ref ):
 
     assert tmp_assign is None
 
-    if len( result ) > 1:
-        return CPythonExpressionBoolAND(
-            operands   = result,
-            source_ref = source_ref
-        )
-    else:
-        return result[ 0 ]
+    return _buildAndNode(
+        provider = provider,
+        values   = result,
+        source_ref = source_ref
+    )
 
 def buildConditionNode( provider, node, source_ref ):
     return CPythonStatementConditional(
@@ -2598,20 +2593,69 @@ def buildEllipsisNode( source_ref ):
         source_ref = source_ref
     )
 
+def _buildAndNode( provider, values, source_ref ):
+    result = values[ -1 ]
+    del values[ -1 ]
+
+    while values:
+        tmp_assign = CPythonExpressionAssignmentTempKeeper(
+            variable_name = provider.allocateTempKeeperName(),
+            source        = values[ -1 ],
+            source_ref    = source_ref
+        )
+        del values[ -1 ]
+
+        result = CPythonExpressionConditional(
+            condition      = tmp_assign,
+            no_expression = CPythonExpressionTempKeeperRef(
+                linked     = tmp_assign,
+                source_ref = source_ref
+            ),
+            yes_expression  = result,
+            source_ref      = source_ref
+        )
+
+    return result
+
+
 def buildBoolOpNode( provider, node, source_ref ):
     bool_op = getKind( node.op )
 
     if bool_op == "Or":
         # The "or" may be short circuit and is therefore not a plain operation
-        return CPythonExpressionBoolOR(
-            operands   = buildNodeList( provider, node.values, source_ref ),
-            source_ref = source_ref
-        )
+        values = buildNodeList( provider, node.values, source_ref )
+
+        result = values[ -1 ]
+        del values[ -1 ]
+
+        while True:
+            tmp_assign = CPythonExpressionAssignmentTempKeeper(
+                variable_name = provider.allocateTempKeeperName(),
+                source        = values[ -1 ],
+                source_ref    = source_ref
+            )
+            del values[ -1 ]
+
+            result = CPythonExpressionConditional(
+                condition      = tmp_assign,
+                yes_expression = CPythonExpressionTempKeeperRef(
+                    linked     = tmp_assign,
+                    source_ref = source_ref
+                ),
+                no_expression  = result,
+                source_ref      = source_ref
+            )
+
+            if not values:
+                break
+
+        return result
     elif bool_op == "And":
         # The "and" may be short circuit and is therefore not a plain operation
-        return CPythonExpressionBoolAND(
-            operands    = buildNodeList( provider, node.values, source_ref ),
-            source_ref  = source_ref
+        return _buildAndNode(
+            provider   = provider,
+            values     = buildNodeList( provider, node.values, source_ref ),
+            source_ref = source_ref
         )
     elif bool_op == "Not":
         # The "not" is really only a unary operation and no special.

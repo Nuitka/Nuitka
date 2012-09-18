@@ -121,26 +121,6 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
             result = Generator.getConditionNotBoolCode(
                 condition = result
             )
-    elif condition.isExpressionOperationBool2():
-        parts = []
-
-        for expression in condition.getOperands():
-            parts.append(
-                generateConditionCode(
-                    condition = expression,
-                    context   = context
-                )
-            )
-
-        if condition.isExpressionBoolOR():
-            result = Generator.getConditionOrCode( parts )
-        else:
-            result = Generator.getConditionAndCode( parts )
-
-        if inverted:
-            result = Generator.getConditionNotBoolCode(
-                condition = result
-            )
     elif condition.isExpressionOperationNOT():
         if not inverted:
             result = Generator.getConditionNotBoolCode(
@@ -153,6 +133,61 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
             result = generateConditionCode(
                 condition = condition.getOperand(),
                 context   = context
+            )
+    elif condition.isExpressionConditional():
+        expression_yes = condition.getExpressionYes()
+        expression_no = condition.getExpressionNo()
+
+        condition = condition.getCondition()
+
+        if condition.isExpressionAssignmentTempKeeper():
+            if expression_yes.isExpressionTempKeeperRef() and \
+               expression_yes.getVariableName() == condition.getVariableName():
+                result = Generator.getConditionOrCode(
+                    identifiers = (
+                        generateConditionCode(
+                            condition = condition.getAssignSource(),
+                            context   = context,
+                        ),
+                        generateConditionCode(
+                            condition = expression_no,
+                            context   = context,
+                        )
+                    )
+                )
+            elif expression_no.isExpressionTempKeeperRef() and \
+               expression_no.getVariableName() == condition.getVariableName():
+                result = Generator.getConditionAndCode(
+                    identifiers = (
+                        generateConditionCode(
+                            condition = condition.getAssignSource(),
+                            context   = context,
+                        ),
+                        generateConditionCode(
+                            condition = expression_yes,
+                            context   = context,
+                        )
+                    )
+                )
+            else:
+                assert False
+        else:
+            result = Generator.Identifier(
+                "(%s) ? (%s) : (%s)" % (
+                    generateConditionCode(
+                        condition = condition,
+                        context   = context
+                    ).getCodeTemporaryRef(),
+                    generateConditionCode(
+                        condition = expression_yes,
+                        context   = context
+                    ).getCodeTemporaryRef(),
+                    generateConditionCode(
+                        condition = expression_no,
+                        context   = context
+                    ).getCodeTemporaryRef()
+                ),
+                0
             )
     else:
         condition_identifier = generateExpressionCode(
@@ -727,21 +762,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
             step  = makeExpressionCode(
                 expression = expression.getStep(),
                 allow_none = True
-            )
-        )
-    elif expression.isExpressionBoolOR():
-        identifier = Generator.getSelectionOrCode(
-            conditions = generateExpressionsCode(
-                expressions = expression.getOperands(),
-                context     = context
-            )
-        )
-
-    elif expression.isExpressionBoolAND():
-        identifier = Generator.getSelectionAndCode(
-            conditions = generateExpressionsCode(
-                expressions = expression.getOperands(),
-                context     = context
             )
         )
     elif expression.isExpressionConditional():

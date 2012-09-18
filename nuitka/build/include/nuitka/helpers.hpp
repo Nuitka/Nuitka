@@ -752,39 +752,6 @@ NUITKA_MAY_BE_UNUSED static inline bool UNPACK_PARAMETER_ITERATOR_CHECK( PyObjec
     }
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *SELECT_IF_TRUE( PyObject *object )
-{
-    assertObject( object );
-
-    if ( CHECK_IF_TRUE( object ) )
-    {
-        return object;
-    }
-    else
-    {
-        Py_DECREF( object );
-
-        return NULL;
-    }
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *SELECT_IF_FALSE( PyObject *object )
-{
-    assertObject( object );
-
-    if ( CHECK_IF_FALSE( object ) )
-    {
-        return object;
-    }
-    else
-    {
-        Py_DECREF( object );
-
-        return NULL;
-    }
-}
-
-
 NUITKA_MAY_BE_UNUSED static bool HAS_KEY( PyObject *source, PyObject *key )
 {
     assertObject( source );
