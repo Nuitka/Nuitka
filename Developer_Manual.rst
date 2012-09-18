@@ -1059,8 +1059,8 @@ that access the C++ and don't go via ``sys.exc_info`` at all, these are called
 ``CaughtExceptionValueRef``.
 
 
-try/except/else
----------------
+Statement ``try``/``except`` with ``else``
+------------------------------------------
 
 Much like ``else`` branches of loops, an indicator variable is used to indicate the entry
 into any of the exception handlers.
@@ -1139,7 +1139,7 @@ Generator Expressions
 There are re-formulated as functions.
 
 Generally they are turned into calls of function bodies with (potentially nested) for
-loops.
+loops:
 
 .. code-block:: python
 
@@ -1153,6 +1153,35 @@ loops.
               yield x*2
 
     gen = _gen_helper( range(8 ) )
+
+Boolean expressions ``and`` and ``or``
+--------------------------------------
+
+The short circuit operators ``or`` and ``and`` tend to be only less general that the
+``if``/``else`` expressions and are therefore re-formulated as such:
+
+.. code-block:: python
+
+    expr1() or expr2()
+
+.. code-block:: python
+
+   _tmp if ( _tmp = expr1() ) else expr2()
+
+.. code-block:: python
+
+    expr1() and expr2()
+
+.. code-block:: python
+
+   expr2() if ( _tmp = expr1() ) else expr1()
+
+In this form, the differences between these two operators becomes very apparent, the
+operands are simply switching sides.
+
+With this the branch that the "short-circuit" expresses, becomes obvious, at the expense
+of having the assignment expression to the temporary variable, that one needs to create
+anyway.
 
 
 Nodes that serve special purposes
@@ -2129,11 +2158,8 @@ into action, which could be code changes, plan changes, issues created, etc.
   propagation.
 
   We branch conditional statements for value propagation, and we likely need to do the
-  same for conditional expressions too. May apply to "or" as well, and "and", because
+  same for conditional expressions too. May apply to ``or`` as well, and ``and``, because
   there also only conditionally code is executed.
-
-  Is there any re-formulation of conditional expressions with "and" and "or" that is
-  generally true?
 
 * Make "MAKE_CLASS" meta class selection transparent.
 
