@@ -371,11 +371,16 @@ def executeMain( binary_filename, tree, clean_path ):
     )
 
 def executeModule( tree, clean_path ):
+    python_command = "__import__( '%s' )" % tree.getName()
+
+    if os.name == "nt":
+        python_command = '"%s"' % python_command
+
     args = (
         sys.executable,
         "python",
         "-c",
-        "__import__( '%s' )" % tree.getName(),
+        python_command,
     )
 
     callExec(
