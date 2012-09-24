@@ -280,7 +280,7 @@ def generateFunctionBodyCode( function_body, defaults, context ):
             parameters          = parameters,
             closure_variables   = function_body.getClosureVariables(),
             user_variables      = function_body.getUserLocalVariables(),
-            tmp_variables       = function_body.getTempKeeperNames(),
+            tmp_keepers         = function_context.getTempKeeperUsages(),
             defaults_identifier = defaults_identifier,
             needs_creation      = function_body.needsCreation(),
             source_ref          = function_body.getSourceReference(),
@@ -295,7 +295,7 @@ def generateFunctionBodyCode( function_body, defaults, context ):
             parameters          = parameters,
             closure_variables   = function_body.getClosureVariables(),
             user_variables      = function_body.getUserLocalVariables(),
-            tmp_variables       = function_body.getTempKeeperNames(),
+            tmp_keepers         = function_context.getTempKeeperUsages(),
             defaults_identifier = defaults_identifier,
             needs_creation      = function_body.needsCreation(),
             source_ref          = function_body.getSourceReference(),
@@ -1021,14 +1021,17 @@ def generateExpressionCode( expression, context, allow_none = False ):
     elif expression.isExpressionAssignmentTempKeeper():
         source_identifier = makeExpressionCode( expression.getAssignSource() )
 
-        # TODO: Use assign0 too
+        ref_count = source_identifier.getCheapRefCount()
+
         identifier = Generator.Identifier(
-            "%s.assign1( %s )" % (
+            "%s.assign( %s )" % (
                 expression.getVariableName(),
                 source_identifier.getCodeExportRef()
             ),
-            0
+            ref_count
         )
+
+        context.addTempKeeperUsage( expression.getVariableName(), ref_count )
     elif expression.isExpressionBuiltinInt():
         assert expression.getValue() is not None or expression.getBase() is not None
 
@@ -1987,7 +1990,7 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
         source_ref         = module.getSourceReference(),
         path_identifier    = path_identifier,
         codes              = codes,
-        tmp_variables      = module.getTempKeeperNames(),
+        tmp_keepers        = context.getTempKeeperUsages(),
         other_module_names = [
             other_module.getFullName()
             for other_module in

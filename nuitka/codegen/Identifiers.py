@@ -181,28 +181,6 @@ class TempVariableIdentifier( Identifier ):
         return "PyObjectTemporary"
 
 
-class HolderVariableIdentifier( Identifier ):
-    def __init__( self, tempvar_name ):
-        self.tempvar_name = tempvar_name
-
-        Identifier.__init__( self, "_python_holder_" + tempvar_name, 0 )
-
-    def __repr__( self ):
-        return "<HolderVariableIdentifier %s >" % self.tempvar_name
-
-    def getRefCount( self ):
-        return 1
-
-    def getCheapRefCount( self ):
-        return 1
-
-    def getCodeObject( self ):
-        return "%s.asObject()" % self.getCode()
-
-    def getClass( self ):
-        return "PyObjectTempHolder"
-
-
 class TempObjectIdentifier( Identifier ):
     def __init__( self, var_name ):
         self.tempvar_name = var_name

@@ -775,9 +775,6 @@ class CPythonClosureTaker:
 
         return "keeper_%d" % self.temp_keeper_count
 
-    def getTempKeeperNames( self ):
-        return tuple( "keeper_%d" % ( i+1 ) for i in range( self.temp_keeper_count ) )
-
 
 class CPythonExpressionMixin:
     def getValueFriend( self, constraint_collection ):

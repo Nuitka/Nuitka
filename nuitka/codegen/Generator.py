@@ -69,7 +69,7 @@ from nuitka import (
 )
 
 # pylint: disable=W0622
-from ..__past__ import long, unicode
+from ..__past__ import long, unicode, iterItems
 # pylint: enable=W0622
 
 import re, sys
@@ -1622,7 +1622,7 @@ def getModuleIdentifier( module_name ):
 def getPackageIdentifier( module_name ):
     return module_name.replace( ".", "__" )
 
-def getModuleCode( context, module_name, package_name, codes, tmp_variables, \
+def getModuleCode( context, module_name, package_name, codes, tmp_keepers, \
                    doc_identifier, path_identifier, other_module_names, source_ref ):
 
     # For the module code, lots of attributes come together. pylint: disable=R0914
@@ -1692,9 +1692,10 @@ def getModuleCode( context, module_name, package_name, codes, tmp_variables, \
         "version" : Options.getVersion()
     }
 
+    # These are for keeping values during evaluation.
     module_local_decl = [
-        "PyObjectTempHolder %s;" % tmp_variable
-        for tmp_variable in tmp_variables
+        "PyObjectTempKeeper%s %s;" % ( ref_count, tmp_variable )
+        for tmp_variable, ref_count in sorted( iterItems( tmp_keepers ) )
     ]
 
     code_identifier = context.getCodeObjectHandle(
@@ -1911,7 +1912,7 @@ def _getFuncDefaultValue( defaults_identifier ):
 
 def getGeneratorFunctionCode( context, function_name, function_identifier, parameters, \
                               closure_variables, user_variables, defaults_identifier,
-                              tmp_variables, function_codes, needs_creation, source_ref, \
+                              tmp_keepers, function_codes, needs_creation, source_ref, \
                               function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
@@ -1973,10 +1974,10 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
             )
         )
 
-    # These are for keeping values during evaluation of comparison chains.
+    # These are for keeping values during evaluation.
     function_var_inits += [
-        "PyObjectTempHolder %s;" % tmp_variable
-        for tmp_variable in tmp_variables
+        "PyObjectTempKeeper%s %s;" % ( ref_count, tmp_variable )
+        for tmp_variable, ref_count in sorted( iterItems( tmp_keepers ) )
     ]
 
     for closure_variable in closure_variables:
@@ -2166,7 +2167,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
     return result
 
 def getFunctionCode( context, function_name, function_identifier, parameters, closure_variables, \
-                     user_variables, tmp_variables, defaults_identifier, function_codes, \
+                     user_variables, tmp_keepers, defaults_identifier, function_codes, \
                      needs_creation, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
@@ -2224,9 +2225,10 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         user_variables
     ]
 
+    # These are for keeping values during evaluation.
     local_var_inits += [
-        "PyObjectTempHolder %s;" % tmp_variable
-        for tmp_variable in tmp_variables
+        "PyObjectTempKeeper%s %s;" % ( ref_count, tmp_variable )
+        for tmp_variable, ref_count in sorted( iterItems( tmp_keepers ) )
     ]
 
     function_doc = getConstantCode(
