@@ -94,7 +94,7 @@ for filename in sorted( os.listdir( "." ) ):
             if not debug_python.endswith( "-dbg" ):
                 debug_python += "-dbg"
 
-            if not os.path.join( "/usr/bin", debug_python ):
+            if not os.path.exists( os.path.join( "/usr/bin", debug_python ) ):
                 print( "Skip reference count test, CPython debug version not found." )
                 continue
 
