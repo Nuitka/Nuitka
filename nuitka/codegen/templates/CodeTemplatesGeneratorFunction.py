@@ -130,7 +130,7 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
         // Actual function code.
 %(function_body)s
     }
-    catch ( ReturnException &e )
+    catch ( ReturnException & )
     {
         PyErr_SetNone( PyExc_StopIteration );
     }

@@ -68,15 +68,15 @@ catch ( _PythonException &_exception )
 
     frame_guard.detachFrame();
 }
-catch ( ContinueException &e )
+catch ( ContinueException & )
 {
     _continue_%(try_count)d = true;
 }
-catch ( BreakException &e )
+catch ( BreakException & )
 {
     _break_%(try_count)d = true;
 }
-catch ( ReturnException &e )
+catch ( ReturnException & )
 {
     _return_%(try_count)d = true;
 }

@@ -367,9 +367,9 @@ static PyObject *Nuitka_Method_tp_richcompare( Nuitka_MethodObject *a, Nuitka_Me
         return INCREASE_REFCOUNT( Py_NotImplemented );
     }
 
-    bool result = PyObject_RichCompareBool( (PyObject *)a->m_function, (PyObject *)b->m_function, Py_EQ );
+    int result = PyObject_RichCompareBool( (PyObject *)a->m_function, (PyObject *)b->m_function, Py_EQ );
 
-    if ( result )
+    if ( result != 0 )
     {
         if ( a->m_object == NULL )
         {
@@ -377,7 +377,7 @@ static PyObject *Nuitka_Method_tp_richcompare( Nuitka_MethodObject *a, Nuitka_Me
         }
         else if ( b->m_object == NULL )
         {
-            result = false;
+            result = 0;
         }
         else
         {

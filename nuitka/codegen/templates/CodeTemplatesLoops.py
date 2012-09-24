@@ -26,10 +26,10 @@ while( true )
     {
 %(loop_body_codes)s
     }
-    catch( ContinueException &e )
+    catch( ContinueException & )
     { /* Nothing to do */
     }
-    catch ( BreakException &e )
+    catch ( BreakException & )
     { /* Break the loop */
        break;
     }
