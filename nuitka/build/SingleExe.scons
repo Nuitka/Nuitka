@@ -96,6 +96,21 @@ def createEnvironment( compiler_tools ):
         SHLIBPREFIX = "",
     )
 
+def isExecutable( filename ):
+    if filename.startswith( "$" ):
+        filename = env[ filename[1:] ]
+
+    if os.name == "nt" and not filename.lower().endswith( ".exe" ):
+        filename += ".exe"
+
+    for path_element in os.environ[ "PATH" ].split( ";" if os.name == "nt" else ":" ):
+        full = os.path.join( path_element, filename )
+
+        if os.path.exists( full ):
+            return True
+    else:
+        return False
+
 
 # Create Scons environment, the main control tool. Don't include "mingw" on Windows immediately,
 # we will default to MSVC if available.
@@ -105,20 +120,19 @@ env = createEnvironment(
 
 if clang_mode:
     env[ "CXX" ] = "clang"
-
-if "CXX" in os.environ:
+elif "CXX" in os.environ:
     env[ "CXX" ] = os.environ[ "CXX" ]
-
-if not env[ "CXX" ] and windows_mode:
+elif win_target and not isExecutable( env[ "CXX" ] ):
     # The MingW compiler is attemted if no C++ compiler was found.
     env = createEnvironment(
         compiler_tools = [ "mingw" ]
     )
 
 # To work around Windows not supporting command lines of greater than 10K by default:
-class CustomSpawn( object ):
 
-    def spawn( self, sh, escape, cmd, args, env ):
+
+def setupSpawn( env ):
+    def spawn( sh, escape, cmd, args, env ):
         newargs = ' '.join(args[1:])
         cmdline = cmd + " " + newargs
         startupinfo = subprocess.STARTUPINFO()
@@ -144,15 +158,23 @@ class CustomSpawn( object ):
         data, err = proc.communicate()
         rv = proc.wait()
 
+        if cmd == "cl":
+            data = data[ data.find( "\r\n" ) + 2 : ]
+        elif cmd == "rc":
+            data = data[ data.find( "reserved.\r" ) + 13 : ]
+        elif cmd == "link" and module_mode:
+            data = "\r\n".join( line for line in data.split( "\r\n" ) if "   Creating library" not in line )
+
+        if data.rstrip():
+            print cmdline
+            print data,
+
         if rv:
             raise RuntimeError( err )
 
         return rv
 
-def setupSpawn( env ):
-    buf = CustomSpawn()
-    buf.ourenv = env
-    env[ "SPAWN" ] = buf.spawn
+    env[ "SPAWN" ] = spawn
 
 def getGccVersion():
     # Update CXXVERSION in env, after we changed it.
@@ -213,7 +235,7 @@ if "linux" in sys.platform and "CXX" not in env:
 gcc_mode = "g++" in env[ "CXX" ] or "clang" in env[ "CXX" ]
 msvc_mode = win_target and not gcc_mode
 
-if os.name == "nt" and not msvc_mode:
+if os.name == "nt":
     setupSpawn( env )
 
 env[ "BUILD_DIR" ] = source_dir
@@ -296,13 +318,17 @@ if "g++" in env[ "CXX" ]:
 
 if msvc_mode:
     env.Append( CCFLAGS = [ "/EHsc", "/J", "/Gd" ] )
+    env.Append( LINKFLAGS = [ "/INCREMENTAL:NO" ] )
 
 if debug_mode:
-    env.Append( CCFLAGS = [ "-Wall" ] )
 
     if gcc_mode:
         # Allow g++/clang to point out all kinds of inconsistency to us by raising an error.
-        env.Append( CCFLAGS = [ "-Werror" ] )
+        env.Append( CCFLAGS = [ "-Wall", "-Werror" ] )
+    elif msvc_mode:
+        # Disable warnings that system headers already show
+        env.Append( CCFLAGS = [ "/W4", "/wd4505", "/wd4127", "/wd4100", "/wd4702", "/wd4189" ] )
+
 
     # As for sequence points, we are abusing it, so we have to allow it.
     if "g++" in env[ "CXX" ]:
@@ -337,8 +363,8 @@ if win_target:
     if gcc_mode:
         env.Append( LINKFLAGS = [ "-Wl,--enable-auto-import" ] )
 
-    if win_disable_console:
-        env.Append( LINKFLAGS = [ "-Wl,--subsystem,windows" ] )
+        if win_disable_console:
+            env.Append( LINKFLAGS = [ "-Wl,--subsystem,windows" ] )
 
     python_header_path = os.path.join( python_home, "include" )
 
@@ -390,7 +416,7 @@ if debug_mode or unstriped_mode:
             if "g++" in env[ "CXX" ]:
                 env.Append( CCFLAGS = [ "-feliminate-unused-debug-types" ] )
     elif msvc_mode:
-        env.Append( CCFLAGS = [ "/Yd", "/Zi" ] )
+        env.Append( CCFLAGS = [ "/Zi" ] )
         env.Append( LINKFLAGS = [ "/DEBUG" ] )
 
 # When debugging, optimize less than when optimizing, when not remove assertions.
@@ -411,9 +437,12 @@ if module_mode:
     if gcc_mode:
         env.Append( CCFLAGS = [ "-shared" ] )
     elif msvc_mode:
-        env.Append( CCFLAGS = [ "-LD" ] )
+        env.Append( CCFLAGS = [ "/LD" ] )
     else:
         assert False
+else:
+    if msvc_mode:
+        env.Append( CCFLAGS = [ "/MT" ])
 
 if module_mode:
     env.Append( CPPDEFINES = [ "_NUITKA_MODULE" ] )
