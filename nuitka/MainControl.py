@@ -275,7 +275,7 @@ def makeSourceDirectory( main_module ):
         source_code = "".join( module_hpp_include )
     )
 
-def runScons( tree, quiet ):
+def runScons( main_module, quiet ):
     python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
 
     if Utils.python_version >= 320:
@@ -294,9 +294,9 @@ def runScons( tree, quiet ):
         return "true" if value else "false"
 
     options = {
-        "name"           : Utils.basename( getTreeFilenameWithSuffix( tree, "" ) ),
-        "result_file"    : getResultPath( tree ),
-        "source_dir"     : getSourceDirectoryPath( tree ),
+        "name"           : Utils.basename( getTreeFilenameWithSuffix( main_module, "" ) ),
+        "result_file"    : getResultPath( main_module ),
+        "source_dir"     : getSourceDirectoryPath( main_module ),
         "debug_mode"     : asBoolStr( Options.isDebug() ),
         "unstriped_mode" : asBoolStr( Options.isUnstriped() ),
         "module_mode"    : asBoolStr( Options.shallMakeModule() ),
@@ -389,17 +389,23 @@ def executeModule( tree, clean_path ):
         args       = args
     )
 
-def compileTree( tree ):
+def compileTree( main_module ):
     if not Options.shallOnlyExecGcc():
         # Now build the target language code for the whole tree.
         makeSourceDirectory(
-            main_module = tree
+            main_module = main_module
         )
+    else:
+        source_dir = getSourceDirectoryPath( main_module )
+
+        if not Utils.isFile( Utils.joinpath( source_dir, "__helpers.hpp" ) ):
+            sys.exit( "Error, no previous build directory exists." )
+
 
     # Run the Scons to build things.
     result, options = runScons(
-        tree  = tree,
-        quiet = not Options.isShowScons()
+        main_module  = main_module,
+        quiet        = not Options.isShowScons()
     )
 
     return result, options
