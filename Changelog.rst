@@ -1,3 +1,136 @@
+Nuitka Release 0.3.25 (Draft)
+=============================
+
+This release brings about changes on all fronts, bug fixes, new features. Also very
+importantly Nuitka no longer uses C++11 for its code, but mere C++03. There is new
+re-formulation work, and re-factoring of functions.
+
+Bug fixes
+---------
+
+
+- Identifiers of nested tuples and lists could collide.
+
+  .. code-block:: python
+
+     a = ( ( 1, 2 ), 3 )
+     b = ( ( 1, ), 2, 3 )
+
+  Both tuples had the same name previously, not the end of the tuple is marked too. Fixed
+  in 0.3.24.1 already.
+
+New Features
+------------
+
+- Compiled frames support. Before, Nuitka was creating frames with the standard CPython
+  C/API functions, and tried its best to cache them. This involved some difficulties, but
+  as it turns out, it is actually possible to instead provide a compatible type of our
+  own, that we have full control over.
+
+  This will become the base of enhanced compatibility. Keeping references to local
+  variables attached to exception tracebacks is something we may be able to solve now.
+
+- Enhanced Python3 support, added support for ``nonlocal`` declarations and many small
+  corrections for it.
+
+- Writable "__defaults__" attribute for compiled functions, actually changes the default
+  value used at call time. Not supported is changing the amount of default parameters.
+
+Cleanups
+--------
+
+- Keep the functions along with the module and added "FunctionRef" node kind to point to
+  them.
+
+- Reformulated ``or`` and ``and`` operators with the conditional expression construct
+  which makes the "short-circuit" branch.
+
+- Define "self" as compiled function object instead of pointer to context object, making
+  it possible to access it.
+
+- Removed "OverflowCheck" module and its usage, avoids one useless scan per function to
+  determine the need for "locals dictionary".
+
+- Make "compileTree" of "MainControl" module to only do what the name says and moved the
+  rest out, making the top level control clearer.
+
+- Don't export module entry points when building executable and not modules. These exports
+  cause MinGW and MSVC compilers to create export libraries.
+
+New Optimizations
+-----------------
+
+- More efficient code for conditional expressions in conditions:
+
+.. code-block:: python
+
+   if a if b else c
+
+  See above, this code is now the typical pattern for each ``or`` and ``and``, so this was
+  much needed now.
+
+
+Organizational
+--------------
+
+- The remaining uses of C++11 have been removed. Code generated with Nuitka and
+  complementary C++ code now compile with standard C++03 compilers. This lowers the Nuitka
+  requirements and enables at least g++ 4.4 to work with Nuitka.
+
+- The usages of the GNU extension operation ``a ?: b`` have replaced with standard C++
+  constructs. This is needed to support MSVC which doesn't have this.
+
+- Added examples for the typical use cases to the `User Manual
+  <http://nuitka.net/doc/user-manual.html>`_.
+
+- The "compare_with_cpython" script has gained an option to immediately remove the Nuitka
+  outputs (build directory and binary) if successful. Also the temporary files are now put
+  under "/var/tmp" if available.
+
+- Debian package improvements, registering with "doc-base" the `User Manual
+  <http://nuitka.net/doc/user-manual.html>`_ so it is easier to discover. Also suggest
+  "mingw32" package which provides the cross compiler to Windows.
+
+- Partial support for MSVC (Visual Studio 2008 to be exact, the version that works with
+  CPython2.6 and CPython2.7).
+
+  All basic tests that do not use generators are working now, but those will currently
+  cause crashes.
+
+- Renamed the ``--g++-only`` option to ``--c++-only``.
+
+  The old name is no longer correct after clang and MSVC have gained support, and it could
+  be misunderstood to influence compiler selection, rather than causing the C++ source
+  code to not be updated, so manual changes will the used. This solves `Issue#47
+  <http://bugs.nuitka.net/issue47>`_.
+
+New Tests
+---------
+
+- Added CPython3.2 test suite as "tests/CPython32" from 3.2.3 and run it with CPython2.7
+  to check that Nuitka gives compatible error messages. It is not expected to pass yet on
+  Python3.2, but work will be done towards this goal.
+
+- Make CPython2.7 test suite runner also execute the generated "doctest" modules.
+
+- Enabled tests for default parameters and their reference counts.
+
+Summary
+-------
+
+This releases contains lots of progress. The compiled frames are exciting new technology,
+that will allow even better integration with CPython, while improving speed. Lowering the
+requirements to C++03 means, we will become usable on Android and with MSVC, which will
+make adoption of Nuitka on Windows easier for many.
+
+Structurally the outstanding part is the function as references cleanup. This was a
+blocker for value propagation, because now functions references can be copied, whereas
+previously this was duplicating the whole function body, which didn't work, and wasn't
+acceptable. Now, work can resume in this domain.
+
+Also very exciting when it comes to optimization is the remove of special code for ``or``
+and ``and`` operators, as these are now only mere conditional expressions. Again, this
+will make value propagation easier with two special cases less.
 
 Nuitka Release 0.3.24
 =====================
@@ -1119,27 +1252,14 @@ Cleanups
   conditional statements with the asserted condition result inverted and a raise statement
   with ``AssertionError`` and the assertion argument.
 
-  This allowed to remove code and complexity from the subsequent stetps of Nuitka, and
-  enabled existing optimizations to work on assert statements as well.
+  This allowed to remove code and complexity from the subsequent steps of Nuitka, and
+  enabled existing optimization to work on assert statements as well.
 
 - Moved built-in exception names and built-in names to a new module ``nuitka.Builtins``
   instead of having in other places. This was previously a bit spread-out and misplaced.
 
 - Added cumulative ``tags`` to node classes for use in checks. Use it annotate which node
   kinds to visit in e.g. per scope finalization steps. That avoids kinds and class checks.
-
-- Enhanced the "visitor" interface to provide more kinds of callbacks, enhanced the way
-  "each scope" visiting is achieved by generalizing is as "child has not tag
-  'closure_taker'" and that for every "node that has tag 'closure_taker'".
-
-- Moved ``SyntaxHighlighting`` module to ``nuitka.gui`` package where it belongs.
-
-- More white listing work for imports. As recursion is now the default, and leads to
-  warnings for non-existent modules, the CPython tests gave a lot of good candidates for
-  import errors that were white listed.
-
-- Consistently use ``nuitka`` in test scripts, as there isn't a ``Nuitka.py`` on all
-  platforms. The later is scheduled for removal.
 
 - New node for built-in name loopups, which allowed to remove tricks played with adding
   module variable lookups for ``staticmethod`` when adding them for ``__new__`` or module
@@ -3952,13 +4072,13 @@ Nuitka Release 0.1.1
 I just have just updated Nuitka to version 0.1.1 which is a bug fix release to 0.1, which
 corrects many of the small things:
 
-- Updated the CPython test suite to 2.6.6rc, minimized much of existing differences
-- Compile standalone executables that includes modules (with --deep option), but packages
+- Updated the CPython test suite to 2.6.6rc, minimized much of existing differences.
+- Compiles standalone executable that includes modules (with --deep option), but packages
   are not yet included successfully.
-- Reference leaks with exceptions are no more
-- sys.exc_info() works now mostly as expected (it's not a stack of exceptions)
-- More readable generated code, better organisation of C++ template code
-- Restored debug option --g++-only
+- Reference leaks with exceptions are no more.
+- sys.exc_info() works now mostly as expected (it's not a stack of exceptions).
+- More readable generated code, better organisation of C++ template code.
+- Restored debug option ``--g++-only``.
 
 The biggest thing probably is the progress with exception tracebacks objects in exception
 handlers, which were not there before (always ``None``). Having these in place will make it
@@ -3968,10 +4088,10 @@ now be more correct to the line.
 On a bad news, I discovered that the ``compiler`` module that I use to create the AST from
 Python source code, is not only deprecated, but also broken. I created the `CPython bug
 <http://bugs.python.org/issue9656>`_ about it, basically it cannot distinguish some code
-of the form d[1,] = None from d[1] = None. This will require a migration of the ``ast``
-module, which should not be too challenging, but will take some time.
+of the form ``d[1,] = None`` from ``d[1] = None``. This will require a migration of the
+``ast`` module, which should not be too challenging, but will take some time.
 
-I am aiming at it for a 0.2 release. Generating wrong code (Nuitka sees d[1] = None in
+I am aiming at it for a 0.2 release. Generating wrong code (Nuitka sees ``d[1] = None`` in
 both cases) is a show blocker and needs a solution.
 
 So, yeah. It's better, it's there, but still experimental. You will find its latest
