@@ -672,35 +672,29 @@ def getClosureVariableProvisionCode( context, closure_variables ):
 
     return result
 
-def getConditionalExpressionCode( condition, codes_no, codes_yes ):
-    if codes_yes.getCheapRefCount() == codes_no.getCheapRefCount():
-        if codes_yes.getCheapRefCount == 0:
-            return Identifier(
-                "( %s ? %s : %s )" % (
-                    condition.getCode(),
-                    codes_yes.getCodeTemporaryRef(),
-                    codes_no.getCodeTemporaryRef()
-                ),
-                0
-            )
+def getConditionalExpressionCode( condition, identifier_no, identifier_yes ):
+    if identifier_yes.getCheapRefCount() == identifier_no.getCheapRefCount():
+        if identifier_yes.getCheapRefCount == 0:
+            codes_yes = identifier_yes.getCodeTemporaryRef()
+            codes_no  = identifier_no.getCodeTemporaryRef()
+            ref_count = 0
         else:
-            return Identifier(
-                "( %s ? %s : %s )" % (
-                    condition.getCode(),
-                    codes_yes.getCodeExportRef(),
-                    codes_no.getCodeExportRef()
-                ),
-                1
-            )
+            codes_yes = identifier_yes.getCodeExportRef()
+            codes_no  = identifier_no.getCodeExportRef()
+            ref_count = 1
     else:
-        return Identifier(
-            "( %s ? %s : %s )" % (
-                condition.getCode(),
-                codes_yes.getCodeExportRef(),
-                codes_no.getCodeExportRef()
-            ),
-            1
-        )
+        codes_yes = identifier_yes.getCodeExportRef()
+        codes_no  = identifier_no.getCodeExportRef()
+        ref_count = 1
+
+    return Identifier(
+        CodeTemplates.template_conditional_expression % {
+            "condition" : condition.getCode(), # TODO: Why is code passed as identifier
+            "yes"       : codes_yes,
+            "no"        : codes_no
+        },
+        ref_count
+    )
 
 def getFunctionCreationCode( context, function_identifier, defaults_identifier, closure_variables ):
     args = []

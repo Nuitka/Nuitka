@@ -766,12 +766,12 @@ def generateExpressionCode( expression, context, allow_none = False ):
         )
     elif expression.isExpressionConditional():
         identifier = Generator.getConditionalExpressionCode(
-            condition = generateConditionCode(
+            condition      = generateConditionCode(
                 condition = expression.getCondition(),
                 context   = context
             ),
-            codes_yes = makeExpressionCode( expression.getExpressionYes() ),
-            codes_no  = makeExpressionCode( expression.getExpressionNo() )
+            identifier_yes = makeExpressionCode( expression.getExpressionYes() ),
+            identifier_no  = makeExpressionCode( expression.getExpressionNo() )
         )
     elif expression.isExpressionBuiltinRange1():
         identifier = Generator.getBuiltinRangeCode(

@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Templates for raising exceptions and making assertions.
+""" Templates for raising exceptions, making assertions, and try/finally construct.
 
 """
 
@@ -53,6 +53,63 @@ else
 {
     traceback = true;
     throw;
+}"""
+
+try_finally_template = """\
+_PythonExceptionKeeper _caught_%(try_count)d;
+bool _continue_%(try_count)d = false;
+bool _break_%(try_count)d = false;
+bool _return_%(try_count)d = false;
+
+try
+{
+%(tried_code)s
+}
+catch ( _PythonException &_exception )
+{
+    if ( !_exception.hasTraceback() )
+    {
+        _exception.setTraceback( %(tb_making)s );
+    }
+    else if ( traceback == false )
+    {
+        _exception.addTraceback( frame_guard.getFrame() );
+    }
+    traceback = true;
+
+    _caught_%(try_count)d.save( _exception );
+
+    frame_guard.detachFrame();
+}
+catch ( ContinueException & )
+{
+    _continue_%(try_count)d = true;
+}
+catch ( BreakException & )
+{
+    _break_%(try_count)d = true;
+}
+catch ( ReturnException & )
+{
+    _return_%(try_count)d = true;
+}
+
+// Final code:
+%(final_code)s
+
+_caught_%(try_count)d.rethrow();
+
+if ( _continue_%(try_count)d )
+{
+    throw ContinueException();
+}
+if ( _break_%(try_count)d )
+{
+    throw BreakException();
+}
+if ( _return_%(try_count)d )
+{
+    throw ReturnException();
 }"""
 
 frame_exceptionkeeper_setup = """\
