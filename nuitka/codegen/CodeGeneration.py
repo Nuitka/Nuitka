@@ -144,7 +144,7 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
             if expression_yes.isExpressionTempKeeperRef() and \
                expression_yes.getVariableName() == condition.getVariableName():
                 result = Generator.getConditionOrCode(
-                    identifiers = (
+                    operands = (
                         generateConditionCode(
                             condition = condition.getAssignSource(),
                             context   = context,
@@ -158,7 +158,7 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
             elif expression_no.isExpressionTempKeeperRef() and \
                expression_no.getVariableName() == condition.getVariableName():
                 result = Generator.getConditionAndCode(
-                    identifiers = (
+                    operands = (
                         generateConditionCode(
                             condition = condition.getAssignSource(),
                             context   = context,
@@ -172,22 +172,19 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
             else:
                 assert False
         else:
-            result = Generator.Identifier(
-                "(%s) ? (%s) : (%s)" % (
-                    generateConditionCode(
-                        condition = condition,
-                        context   = context
-                    ).getCodeTemporaryRef(),
-                    generateConditionCode(
-                        condition = expression_yes,
-                        context   = context
-                    ).getCodeTemporaryRef(),
-                    generateConditionCode(
-                        condition = expression_no,
-                        context   = context
-                    ).getCodeTemporaryRef()
+            result = Generator.getConditionSelectionCode(
+                condition_code = generateConditionCode(
+                    condition = condition,
+                    context   = context
                 ),
-                0
+                yes_code       = generateConditionCode(
+                    condition = expression_yes,
+                    context   = context
+                ),
+                no_code        = generateConditionCode(
+                    condition = expression_no,
+                    context   = context
+                )
             )
     else:
         condition_identifier = generateExpressionCode(
@@ -203,6 +200,8 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
             result = Generator.getConditionCheckTrueCode(
                 condition = condition_identifier
             )
+
+    assert type( result ) is str, result
 
     return result
 
@@ -347,9 +346,9 @@ def generateComparisonExpressionCode( comparison_expression, context ):
     )
 
     return Generator.getComparisonExpressionCode(
-        comparator        = comparison_expression.getComparator(),
-        left              = left,
-        right             = right
+        comparator = comparison_expression.getComparator(),
+        left       = left,
+        right      = right
     )
 
 def generateComparisonExpressionBoolCode( comparison_expression, context ):
@@ -363,9 +362,9 @@ def generateComparisonExpressionBoolCode( comparison_expression, context ):
     )
 
     return Generator.getComparisonExpressionBoolCode(
-        comparator        = comparison_expression.getComparator(),
-        left              = left,
-        right             = right
+        comparator = comparison_expression.getComparator(),
+        left       = left,
+        right      = right
     )
 
 
@@ -766,7 +765,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
         )
     elif expression.isExpressionConditional():
         identifier = Generator.getConditionalExpressionCode(
-            condition      = generateConditionCode(
+            condition_code = generateConditionCode(
                 condition = expression.getCondition(),
                 context   = context
             ),
@@ -1629,16 +1628,16 @@ def generatePrintCode( statement, target_file, context ):
 
 def generateBranchCode( statement, context ):
     return Generator.getBranchCode(
-        condition      = generateConditionCode(
+        condition_code = generateConditionCode(
             condition = statement.getCondition(),
             context   = context
         ),
-        yes_codes = generateStatementSequenceCode(
+        yes_codes      = generateStatementSequenceCode(
             statement_sequence = statement.getBranchYes(),
             allow_none         = True,
             context            = context
         ),
-        no_codes = generateStatementSequenceCode(
+        no_codes       = generateStatementSequenceCode(
             statement_sequence = statement.getBranchNo(),
             allow_none         = True,
             context            = context

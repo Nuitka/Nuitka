@@ -672,7 +672,7 @@ def getClosureVariableProvisionCode( context, closure_variables ):
 
     return result
 
-def getConditionalExpressionCode( condition, identifier_no, identifier_yes ):
+def getConditionalExpressionCode( condition_code, identifier_no, identifier_yes ):
     if identifier_yes.getCheapRefCount() == identifier_no.getCheapRefCount():
         if identifier_yes.getCheapRefCount == 0:
             codes_yes = identifier_yes.getCodeTemporaryRef()
@@ -689,7 +689,7 @@ def getConditionalExpressionCode( condition, identifier_no, identifier_yes ):
 
     return Identifier(
         CodeTemplates.template_conditional_expression % {
-            "condition" : condition.getCode(), # TODO: Why is code passed as identifier
+            "condition" : condition_code,
             "yes"       : codes_yes,
             "no"        : codes_no
         },
@@ -712,19 +712,19 @@ def getFunctionCreationCode( context, function_identifier, defaults_identifier, 
         args    = args
     )
 
-def getBranchCode( condition, yes_codes, no_codes ):
+def getBranchCode( condition_code, yes_codes, no_codes ):
     assert yes_codes or no_codes
 
     if no_codes is None:
         return CodeTemplates.template_branch_one % {
-            "condition"   : condition.getCode(),
+            "condition"   : condition_code,
             "branch_code" : indented( yes_codes if yes_codes is not None else "" )
         }
     else:
         assert no_codes, no_codes
 
         return CodeTemplates.template_branch_two % {
-            "condition"       : condition.getCode(),
+            "condition"       : condition_code,
             "branch_yes_code" : indented( yes_codes if yes_codes is not None else "" ),
             "branch_no_code"  : indented( no_codes )
         }
@@ -795,38 +795,26 @@ def getComparisonExpressionBoolCode( comparator, left, right ):
 
         assert py_api.startswith( "SEQUENCE_CONTAINS" )
 
-        comparison = Identifier(
-            "%s_BOOL( %s, %s )" % (
-                py_api,
-                left.getCodeTemporaryRef(),
-                right.getCodeTemporaryRef()
-            ),
-            0
+        comparison = "%s_BOOL( %s, %s )" % (
+            py_api,
+            left.getCodeTemporaryRef(),
+            right.getCodeTemporaryRef()
         )
     elif comparator in OperatorCodes.rich_comparison_codes:
-        comparison = Identifier(
-            "RICH_COMPARE_BOOL_%s( %s, %s )" % (
-                OperatorCodes.rich_comparison_codes[ comparator ],
-                left.getCodeTemporaryRef(),
-                right.getCodeTemporaryRef()
-            ),
-            0
+        comparison = "RICH_COMPARE_BOOL_%s( %s, %s )" % (
+            OperatorCodes.rich_comparison_codes[ comparator ],
+            left.getCodeTemporaryRef(),
+            right.getCodeTemporaryRef()
         )
     elif comparator == "Is":
-        comparison = Identifier(
-            "( %s == %s )" % (
-                left.getCodeTemporaryRef(),
-                right.getCodeTemporaryRef()
-            ),
-            0
+        comparison = "( %s == %s )" % (
+            left.getCodeTemporaryRef(),
+            right.getCodeTemporaryRef()
         )
     elif comparator == "IsNot":
-        comparison = Identifier(
-            "( %s != %s )" % (
-                left.getCodeTemporaryRef(),
-                right.getCodeTemporaryRef()
-            ),
-            0
+        comparison = "( %s != %s )" % (
+            left.getCodeTemporaryRef(),
+            right.getCodeTemporaryRef()
         )
     else:
         assert False, comparator
@@ -834,40 +822,32 @@ def getComparisonExpressionBoolCode( comparator, left, right ):
     return comparison
 
 def getConditionNotBoolCode( condition ):
-    return Identifier(
-        "(!( %s ))" % condition.getCodeTemporaryRef(),
-        0
-    )
+    return "(!( %s ))" % condition
 
-def getConditionAndCode( identifiers ):
-    return Identifier(
-        "( %s )" % " && ".join( [ identifier.getCode() for identifier in identifiers ] ),
-        0
-    )
+def getConditionAndCode( operands ):
+    return "( %s )" % " && ".join( operands )
 
-def getConditionOrCode( identifiers ):
-    return Identifier(
-        "( %s )" % " || ".join( [ identifier.getCode() for identifier in identifiers ] ),
-        0
+def getConditionOrCode( operands ):
+    return "( %s )" % " || ".join( operands )
+
+def getConditionSelectionCode( condition_code, yes_code, no_code ):
+    return "( %s ) ? ( %s ) : ( %s )" % (
+        condition_code,
+        yes_code,
+        no_code
     )
 
 def getConditionCheckTrueCode( condition ):
-    return Identifier(
-        "CHECK_IF_TRUE( %s )" % condition.getCodeTemporaryRef(),
-        0
-    )
+    return "CHECK_IF_TRUE( %s )" % condition.getCodeTemporaryRef()
 
 def getConditionCheckFalseCode( condition ):
-    return Identifier(
-        "CHECK_IF_FALSE( %s )" % condition.getCodeTemporaryRef(),
-        0
-    )
+    return "CHECK_IF_FALSE( %s )" % condition.getCodeTemporaryRef()
 
 def getTrueExpressionCode():
-    return Identifier( "true", 0 )
+    return "true"
 
 def getFalseExpressionCode():
-    return Identifier( "false", 0 )
+    return "false"
 
 def getAttributeAssignmentCode( target, attribute, identifier ):
     return "SET_ATTRIBUTE( %s, %s, %s );" % (
