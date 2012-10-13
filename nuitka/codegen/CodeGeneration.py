@@ -1891,7 +1891,7 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
         if code == "":
             continue
 
-        if source_ref != last_ref and statement.mayRaiseException( BaseException ):
+        if source_ref != last_ref and statement.needsLineNumber():
             code = Generator.getLineNumberCode(
                 context    = context,
                 source_ref = source_ref

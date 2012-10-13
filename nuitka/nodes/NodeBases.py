@@ -345,6 +345,9 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         return True
 
+    def needsLineNumber( self ):
+        return self.mayRaiseException( BaseException )
+
     def isIndexable( self ):
         """ Unless we are told otherwise, it's not indexable. """
         # Virtual method, pylint: disable=R0201,W0613
