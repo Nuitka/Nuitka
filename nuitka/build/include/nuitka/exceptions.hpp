@@ -369,7 +369,14 @@ public:
 
     ~FrameExceptionKeeper()
     {
-        _SET_CURRENT_EXCEPTION( this->frame_exc_type, this->frame_exc_value, this->frame_exc_traceback );
+        if ( this->active )
+        {
+            _SET_CURRENT_EXCEPTION( this->frame_exc_type, this->frame_exc_value, this->frame_exc_traceback );
+
+            Py_XDECREF( this->frame_exc_type );
+            Py_XDECREF( this->frame_exc_value );
+            Py_XDECREF( this->frame_exc_traceback );
+        }
     }
 
     // Preserve the exception early before the exception handler is set up, so that it can later
