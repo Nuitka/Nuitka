@@ -711,7 +711,7 @@ static PyFrameObject *duplicateFrame( PyFrameObject *old_frame )
     Py_XINCREF( new_frame->f_code );
 
     // Copy attributes.
-    new_frame->f_locals = INCREASE_REFCOUNT( old_frame->f_locals );
+    new_frame->f_locals = NULL;
     new_frame->f_globals = INCREASE_REFCOUNT( old_frame->f_globals );
     new_frame->f_builtins = INCREASE_REFCOUNT( old_frame->f_builtins );
 
