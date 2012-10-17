@@ -258,18 +258,17 @@ static PyObject *Nuitka_Function_get_module( Nuitka_FunctionObject *object )
         }
     }
 
-    int res = Nuitka_Function_set_module(
-        object,
+    char const *module_name = PyModule_GetName( object->m_module );
+
 #if PYTHON_VERSION < 300
-        PyString_FromString( PyModule_GetName( object->m_module ) )
+    PyObject *result = PyString_FromString( module_name );
+    PyString_InternInPlace( &result );
+    return result;
 #else
-        PyUnicode_FromString( PyModule_GetName( object->m_module ) )
+    PyObject *result = PyUnicode_FromString( module_name );
+    PyUnicode_InternInPlace( &result );
+    return result;
 #endif
-    );
-
-    assert( res == 0 );
-
-    return PyDict_GetItemString( object->m_dict, (char * )"__module__" );
 }
 
 
