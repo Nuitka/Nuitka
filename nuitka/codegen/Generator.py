@@ -544,6 +544,9 @@ def getBlockCode( codes ):
     return "{\n%s\n}" % indented( codes )
 
 def getOperationCode( operator, identifiers ):
+    # This needs to have one return per operation of Python, and there are many of these,
+    # pylint: disable=R0911
+
     identifier_refs = getCodeTemporaryRefs( identifiers )
 
     if operator == "Pow":

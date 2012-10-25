@@ -22,8 +22,6 @@
 from .Identifiers import (
     Identifier,
     ConstantIdentifier,
-    TempObjectIdentifier,
-    TempVariableIdentifier,
     LocalVariableIdentifier,
     ClosureVariableIdentifier
 )

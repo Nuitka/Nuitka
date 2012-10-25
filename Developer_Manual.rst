@@ -122,7 +122,7 @@ These rules should generally be adhered when working on Nuitka code. It's not li
 and it's optimized for readability, and avoids all performance optimizations for itself.
 
 
-Line length
+Line Length
 -----------
 
 No more than 120 characters. Screens are wider these days, but most of the rules aim at
