@@ -1,4 +1,4 @@
-nuitka (0.3.25~pre4+ds-1) UNRELEASED; urgency=low
+nuitka (0.3.25~pre5+ds-1) UNRELEASED; urgency=low
 
   * New upstream pre-release.
   * Added crosscompiler usable with "--windows-target" option as
