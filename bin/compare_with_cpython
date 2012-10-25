@@ -74,7 +74,10 @@ if remove_output:
 exe_filename = os.path.basename( filename )
 
 if filename.endswith( ".py" ):
-    exe_filename = exe_filename[:-3] + ".exe"
+    exe_filename = exe_filename[:-3]
+
+exe_filename += ".exe"
+
 
 if not two_step_execution:
     nuitka_cmd = "%s %s --exe --execute %s" % (
