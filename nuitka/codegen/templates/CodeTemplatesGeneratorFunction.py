@@ -170,6 +170,9 @@ PyThreadState_GET()->frame = generator->m_frame;
 
 FrameGuardLight frame_guard( &generator->m_frame );
 
+// TODO: The inject of the exception through C++ is very non-optimal, this flag
+// now indicates only if the exception occurs initially as supposed, or during
+// life, this could and should be shortcut.
 bool traceback;
 
 try
@@ -186,11 +189,14 @@ try
 }
 catch ( _PythonException &_exception )
 {
-    if ( traceback == false )
+    if ( !_exception.hasTraceback() )
     {
-       _exception.addTraceback( INCREASE_REFCOUNT( generator->m_frame ) );
+        _exception.setTraceback( %(tb_making)s );
     }
-
+    else if ( traceback == false )
+    {
+        _exception.addTraceback( generator->m_frame );
+    }
     _exception.toPython();
 
     // TODO: Moving this code is not allowed yet.

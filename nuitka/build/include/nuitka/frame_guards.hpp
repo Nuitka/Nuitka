@@ -190,6 +190,11 @@ public:
         return INCREASE_REFCOUNT( this->frame_object );
     }
 
+    PyFrameObject *getFrame0() const
+    {
+        return this->frame_object;
+    }
+
     // Use this to set the current line of the frame
     void setLineNumber( int lineno ) const
     {
@@ -255,6 +260,11 @@ public:
     PyFrameObject *getFrame() const
     {
         return INCREASE_REFCOUNT( *this->frame_ptr );
+    }
+
+    PyFrameObject *getFrame0() const
+    {
+        return *this->frame_ptr;
     }
 
     // Use this to set the current line of the frame

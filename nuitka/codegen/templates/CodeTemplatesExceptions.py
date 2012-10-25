@@ -31,9 +31,9 @@ catch ( _PythonException &_exception )
     {
         _exception.setTraceback( %(tb_making)s );
     }
-    else if ( traceback == false )
+    else
     {
-        _exception.addTraceback( frame_guard.getFrame() );
+        _exception.addTraceback( frame_guard.getFrame0() );
     }
 
 #if PYTHON_VERSION > 300
@@ -42,16 +42,30 @@ catch ( _PythonException &_exception )
 
     _exception.toExceptionHandler();
 
-    frame_guard.detachFrame();
-
 %(exception_code)s
 }"""
 
+template_setup_except_handler_detaching = """\
+frame_guard.detachFrame();"""
+
+try_except_reraise_template = """\
+{
+    PyTracebackObject *tb = _exception.getTraceback();
+    frame_guard.setLineNumber( tb->tb_lineno );
+    _exception.setTraceback( tb->tb_next );
+    tb->tb_next = NULL;
+
+    throw;
+}"""
 
 try_except_reraise_unmatched_template = """\
 else
 {
-    traceback = true;
+    PyTracebackObject *tb = _exception.getTraceback();
+    frame_guard.setLineNumber( tb->tb_lineno );
+    _exception.setTraceback( tb->tb_next );
+    tb->tb_next = NULL;
+
     throw;
 }"""
 
@@ -71,15 +85,16 @@ catch ( _PythonException &_exception )
     {
         _exception.setTraceback( %(tb_making)s );
     }
-    else if ( traceback == false )
+    else
     {
-        _exception.addTraceback( frame_guard.getFrame() );
+        _exception.addTraceback( frame_guard.getFrame0() );
     }
-    traceback = true;
 
     _caught_%(try_count)d.save( _exception );
 
-    frame_guard.detachFrame();
+#if PYTHON_VERSION > 300
+    _exception.toExceptionHandler();
+#endif
 }
 catch ( ContinueException & )
 {

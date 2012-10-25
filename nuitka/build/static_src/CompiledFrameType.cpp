@@ -324,15 +324,15 @@ PyTypeObject Nuitka_Frame_Type =
     0,                                          // tp_dict
 };
 
-static void tb_dealloc(PyTracebackObject *tb)
+static void tb_dealloc( PyTracebackObject *tb )
 {
     // printf( "dealloc TB %ld %lx FR %ld %lx\n", Py_REFCNT( tb ), (long)tb, Py_REFCNT( tb->tb_frame ), (long)tb->tb_frame );
 
     PyObject_GC_UnTrack(tb);
     //    Py_TRASHCAN_SAFE_BEGIN(tb)
-    Py_XDECREF(tb->tb_next);
-    Py_XDECREF(tb->tb_frame);
-    PyObject_GC_Del(tb);
+    Py_XDECREF( tb->tb_next );
+    Py_XDECREF( tb->tb_frame );
+    PyObject_GC_Del( tb );
     // Py_TRASHCAN_SAFE_END(tb)
 }
 

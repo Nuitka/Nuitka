@@ -110,8 +110,6 @@ PyObjectTemporary locals_dict( PyDict_New() );
 """
 
 frame_guard_full_template = """\
-bool traceback = false;
-
 static PyFrameObject *frame_%(frame_identifier)s = NULL;
 
 if ( isFrameUnusable( frame_%(frame_identifier)s ) )
@@ -135,9 +133,22 @@ try
 }
 catch ( _PythonException &_exception )
 {
-    if ( traceback == false )
+    if ( !_exception.hasTraceback() )
     {
-        _exception.addTraceback( frame_guard.getFrame() );
+        _exception.setTraceback( %(tb_making)s );
+    }
+    else
+    {
+        _exception.addTraceback( frame_guard.getFrame0() );
+    }
+
+    Py_XDECREF( frame_guard.getFrame0()->f_locals );
+    frame_guard.getFrame0()->f_locals = %(frame_locals)s;
+
+    if ( frame_guard.getFrame0() == frame_%(frame_identifier)s )
+    {
+       Py_DECREF( frame_%(frame_identifier)s );
+       frame_%(frame_identifier)s = NULL;
     }
 %(return_code)s
 }"""

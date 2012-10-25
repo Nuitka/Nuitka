@@ -1450,8 +1450,10 @@ if ( _tmp_unpack_%(tmp_count)d == NULL )
             context     = context
         )
 
+        exception_branch = handler.getExceptionBranch()
+
         handler_code = generateStatementSequenceCode(
-            statement_sequence = handler.getExceptionBranch(),
+            statement_sequence = exception_branch,
             allow_none         = True,
             context            = context
         )
@@ -1459,7 +1461,8 @@ if ( _tmp_unpack_%(tmp_count)d == NULL )
         handler_codes += Generator.getTryExceptHandlerCode(
             exception_identifiers = exception_identifiers,
             handler_code          = handler_code,
-            first_handler         = count == 0
+            first_handler         = count == 0,
+            needs_frame_detach    = exception_branch is not None # TODO: Check if the code may access traceback or not.
         )
 
     return Generator.getTryExceptCode(
@@ -1932,7 +1935,7 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
                 )
             else:
                 code = Generator.getFrameGuardHeavyCode(
-                    frame_identifier = provider.getCodeName(),
+                    frame_identifier  = provider.getCodeName(),
                     code_identifier  = context.getCodeObjectHandle(
                         filename     = source_ref.getFilename(),
                         arg_names    = statement_sequence.getArgNames(),
@@ -1940,9 +1943,14 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
                         code_name    = statement_sequence.getCodeObjectName(),
                         is_generator = False,
                     ),
-                    is_class         = provider.isExpressionFunctionBody() and provider.isClassDictCreation(),
-                    codes            = codes,
-                    context          = context
+                    locals_identifier = Generator.getLoadLocalsCode(
+                        context = context,
+                        provider = provider,
+                        mode     = "updated"
+                    ),
+                    is_class          = provider.isExpressionFunctionBody() and provider.isClassDictCreation(),
+                    codes             = codes,
+                    context           = context
                 )
         else:
             assert False, provider

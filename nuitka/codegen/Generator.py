@@ -998,7 +998,7 @@ def getTryFinallyCode( context, code_tried, code_final ):
         "tb_making"  : tb_making.getCodeExportRef(),
     }
 
-def getTryExceptHandlerCode( exception_identifiers, handler_code, first_handler ):
+def getTryExceptHandlerCode( exception_identifiers, handler_code, needs_frame_detach, first_handler ):
     exception_code = []
 
     cond_keyword = "if" if first_handler else "else if"
@@ -1019,8 +1019,14 @@ def getTryExceptHandlerCode( exception_identifiers, handler_code, first_handler 
             "%s (true)" % cond_keyword
         )
 
+    if handler_code is None:
+        handler_code = []
+
+    if needs_frame_detach:
+        handler_code.insert( 0, CodeTemplates.template_setup_except_handler_detaching % {} )
+
     exception_code += getBlockCode(
-        handler_code or ""
+        handler_code
     ).split( "\n" )
 
     return exception_code
@@ -1041,18 +1047,18 @@ def getTryExceptCode( context, code_tried, handler_codes ):
 def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier, \
                            exception_tb_identifier, exception_tb_maker ):
     if exception_value_identifier is None and exception_tb_identifier is None:
-        return "traceback = true; RAISE_EXCEPTION( %s, %s );" % (
+        return "RAISE_EXCEPTION( %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
         )
     elif exception_tb_identifier is None:
-        return "traceback = true; RAISE_EXCEPTION( %s, %s, %s );" % (
+        return "RAISE_EXCEPTION( %s, %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
         )
     else:
-        return "traceback = true; RAISE_EXCEPTION( %s, %s, %s );" % (
+        return "RAISE_EXCEPTION( %s, %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
             exception_tb_identifier.getCodeExportRef()
@@ -1060,14 +1066,14 @@ def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier
 
 def getReRaiseExceptionCode( local ):
     if local:
-        return "traceback = true; throw;"
+        return CodeTemplates.try_except_reraise_template % {}
     else:
-        return "traceback = true; RERAISE_EXCEPTION();"
+        return "RERAISE_EXCEPTION();"
 
 def getRaiseExceptionExpressionCode( exception_type_identifier, exception_value_identifier, \
                                      exception_tb_maker ):
     return ThrowingIdentifier(
-        "THROW_EXCEPTION( %s, %s, %s, &traceback )" % (
+        "THROW_EXCEPTION( %s, %s, %s )" % (
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
@@ -1243,9 +1249,9 @@ def getLoadLocalsCode( context, provider, mode ):
             result = Identifier(
                 "%s.updateLocalsDict( %s )" % (
                     local_var,
-                    result.getCodeTemporaryRef()
+                    result.getCodeExportRef()
                 ),
-                0
+                1
             )
 
         return result
@@ -2723,23 +2729,30 @@ def getDictOperationSetCode( dict_identifier, key_identifier, value_identifier )
         0
     )
 
-def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes, is_class, context ):
+def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes, locals_identifier, \
+                            is_class, context ):
     return_code = CodeTemplates.frame_guard_cpp_return if is_class else CodeTemplates.frame_guard_python_return
+    tb_making = getTracebackMakingIdentifier( context )
 
     return CodeTemplates.frame_guard_full_template % {
         "frame_identifier"  : frame_identifier,
         "code_identifier"   : code_identifier.getCodeTemporaryRef(),
         "codes"             : indented( codes ),
         "module_identifier" : getModuleAccessCode( context = context ),
+        "frame_locals"      : locals_identifier.getCodeExportRef(),
+        "tb_making"         : tb_making.getCodeExportRef(),
         "return_code"       : return_code
     }
 
 def getFrameGuardLightCode( frame_identifier, code_identifier, codes, context ):
+    tb_making = getTracebackMakingIdentifier( context )
+
     return CodeTemplates.frame_guard_genfunc_template % {
         "frame_identifier"  : frame_identifier,
         "code_identifier"   : code_identifier.getCodeTemporaryRef(),
         "codes"             : indented( codes ),
         "module_identifier" : getModuleAccessCode( context = context ),
+        "tb_making"         : tb_making.getCodeExportRef(),
     }
 
 def getFrameGuardVeryLightCode( codes ):

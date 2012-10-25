@@ -408,8 +408,6 @@ MOD_INIT_DECL( %(module_identifier)s )
 %(module_inits)s
 
     // Module code
-    bool traceback = false;
-
     try
     {
         // To restore the initial exception, could be made dependent on actual try/except statement
@@ -423,9 +421,9 @@ MOD_INIT_DECL( %(module_identifier)s )
         {
             _exception.setTraceback( MAKE_TRACEBACK( frame_guard.getFrame() ) );
         }
-        else if ( traceback == false )
+        else
         {
-            _exception.addTraceback( frame_guard.getFrame() );
+            _exception.addTraceback( frame_guard.getFrame0() );
         }
 
         _exception.toPython();
