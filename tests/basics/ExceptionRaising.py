@@ -306,3 +306,15 @@ def unpackingCatcher():
         print "Unpacking caught exception and unpacked", a, b
 
 unpackingCatcher()
+
+def unraisableExceptionInDel():
+    class C:
+        def __del__( self ):
+            c = 1 / 0
+
+    def f():
+        C()
+
+    f()
+
+unraisableExceptionInDel()
