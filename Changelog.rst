@@ -8,6 +8,9 @@ re-formulation work, and re-factoring of functions.
 Bug fixes
 ---------
 
+- Local variables were released when an exception was raised that escaped the local
+  function. They should only be released, after another exception was raised
+  somewhere. `Issue#39 <http://bugs.nuitka.net/issue39>`_.
 
 - Identifiers of nested tuples and lists could collide.
 
@@ -18,6 +21,11 @@ Bug fixes
 
   Both tuples had the same name previously, not the end of the tuple is marked too. Fixed
   in 0.3.24.1 already.
+
+- The ``__name__`` when used read-only in modules in packages was optimized to a string
+  value that didn't contain the package name.
+
+- Exceptions set when entering compiled functions were unset at function exit.
 
 New Features
 ------------
