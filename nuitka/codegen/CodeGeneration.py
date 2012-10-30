@@ -1673,13 +1673,16 @@ def generateReturnCode( statement, context ):
     parent_function = statement.getParentFunction()
 
     if parent_function is not None and parent_function.isGenerator():
+        assert statement.getExpression().getConstant() is None
+
         return Generator.getYieldTerminatorCode()
     else:
         return Generator.getReturnCode(
-            identifier = generateExpressionCode(
+            identifier    = generateExpressionCode(
                 expression = statement.getExpression(),
                 context    = context
-            )
+            ),
+            via_exception = statement.needsExceptionBreakContinue(),
         )
 
 def generateStatementCode( statement, context ):

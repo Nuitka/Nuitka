@@ -151,6 +151,10 @@ catch ( _PythonException &_exception )
        frame_%(frame_identifier)s = NULL;
     }
 %(return_code)s
+}
+catch( ReturnValueException &_exception )
+{
+    return _exception.getValue();
 }"""
 
 frame_guard_python_return = """

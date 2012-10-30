@@ -71,9 +71,11 @@ else
 
 try_finally_template = """\
 _PythonExceptionKeeper _caught_%(try_count)d;
+
 bool _continue_%(try_count)d = false;
 bool _break_%(try_count)d = false;
 bool _return_%(try_count)d = false;
+PyObject *_return_value_%(try_count)d = NULL;
 
 try
 {
@@ -108,6 +110,10 @@ catch ( ReturnException & )
 {
     _return_%(try_count)d = true;
 }
+catch ( ReturnValueException &e )
+{
+    _return_value_%(try_count)d = e.getValue();
+}
 
 // Final code:
 %(final_code)s
@@ -118,13 +124,17 @@ if ( _continue_%(try_count)d )
 {
     throw ContinueException();
 }
-if ( _break_%(try_count)d )
+else if ( _break_%(try_count)d )
 {
     throw BreakException();
 }
-if ( _return_%(try_count)d )
+else if ( _return_%(try_count)d )
 {
     throw ReturnException();
+}
+else if ( _return_value_%(try_count)d != NULL )
+{
+    throw ReturnValueException( _return_value_%(try_count)d );
 }"""
 
 frame_exceptionkeeper_setup = """\

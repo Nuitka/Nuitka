@@ -491,6 +491,24 @@ class BreakException
 {
 };
 
+class ReturnValueException
+{
+public:
+    explicit ReturnValueException( PyObject *value )
+    {
+        this->value = value;
+    }
+
+    PyObject *getValue() const
+    {
+        return this->value;
+    }
+
+private:
+    PyObject *value;
+
+};
+
 #if PYTHON_VERSION < 300
 #define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must be old-style classes or derived from BaseException, not %s"
 #else

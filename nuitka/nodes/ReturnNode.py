@@ -23,8 +23,10 @@ value, if no return is done.
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
 
+from .IndicatorMixins import MarkExceptionBreakContinueIndicator
 
-class CPythonStatementReturn( CPythonExpressionChildrenHavingBase ):
+
+class CPythonStatementReturn( CPythonExpressionChildrenHavingBase, MarkExceptionBreakContinueIndicator ):
     kind = "STATEMENT_RETURN"
 
     named_children = ( "expression", )
@@ -37,6 +39,7 @@ class CPythonStatementReturn( CPythonExpressionChildrenHavingBase ):
             },
             source_ref = source_ref
         )
+        MarkExceptionBreakContinueIndicator.__init__( self )
 
     getExpression = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 

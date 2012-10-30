@@ -22,6 +22,7 @@ use properties instead) are determined once or from a default and then used like
 
 """
 
+# TODO: Misnomer, should be more general name.
 class MarkExceptionBreakContinueIndicator:
     """ Mixin for indication that a break and continue could be real exceptions.
 

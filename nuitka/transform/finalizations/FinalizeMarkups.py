@@ -47,13 +47,13 @@ class FinalizeMarkups( FinalizationVisitorBase ):
             if provider.isExpressionFunctionBody():
                 provider.markAsLocalsDict()
 
-        if node.isStatementBreakLoop() or node.isStatementContinueLoop():
+        if node.isStatementBreakLoop() or node.isStatementContinueLoop() or node.isStatementReturn():
             search = node.getParent()
 
             crossed_try = False
 
             # Search up to the containing loop.
-            while not search.isStatementLoop():
+            while not search.isStatementLoop() and not search.isExpressionFunctionBody():
                 last_search = search
                 search = search.getParent()
 
@@ -61,7 +61,9 @@ class FinalizeMarkups( FinalizationVisitorBase ):
                     crossed_try = True
 
             if crossed_try:
-                search.markAsExceptionBreakContinue()
+                # TODO: Optimize if functions need to catch return value too.
+                if not search.isExpressionFunctionBody():
+                    search.markAsExceptionBreakContinue()
                 node.markAsExceptionBreakContinue()
 
         if node.isStatementRaiseException() and node.isReraiseException():

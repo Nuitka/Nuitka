@@ -131,11 +131,20 @@ def _defaultToNullIdentifier( identifier ):
     else:
         return NullIdentifier()
 
-def getReturnCode( identifier ):
-    if identifier is not None:
-        return "return %s;" % identifier.getCodeExportRef()
+def getReturnCode( identifier, via_exception ):
+    if via_exception:
+        if identifier is None:
+            identifier = getConstantHandle(
+                context  = context,
+                constant = None
+            )
+
+        return "throw ReturnValueException( %s );" % identifier.getCodeExportRef()
     else:
-        return "return;"
+        if identifier is not None:
+            return "return %s;" % identifier.getCodeExportRef()
+        else:
+            return "return;"
 
 def getYieldCode( identifier, for_return ):
     if for_return:
