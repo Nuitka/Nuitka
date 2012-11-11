@@ -94,6 +94,10 @@ for filename in sorted( os.listdir( "." ) ):
             if not debug_python.endswith( "-dbg" ):
                 debug_python += "-dbg"
 
+            if os.name == "nt" or "--windows-target" in os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ):
+                print( "Skip reference count test, CPython debug not on Windows." )
+                continue
+
             if not os.path.exists( os.path.join( "/usr/bin", debug_python ) ):
                 print( "Skip reference count test, CPython debug version not found." )
                 continue
