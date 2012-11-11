@@ -72,11 +72,7 @@ else
 try_finally_template = """\
 _PythonExceptionKeeper _caught_%(try_count)d;
 
-bool _continue_%(try_count)d = false;
-bool _break_%(try_count)d = false;
-bool _return_%(try_count)d = false;
-PyObject *_return_value_%(try_count)d = NULL;
-
+%(rethrow_setups)s
 try
 {
 %(tried_code)s
@@ -98,44 +94,83 @@ catch ( _PythonException &_exception )
     _exception.toExceptionHandler();
 #endif
 }
+%(rethrow_catchers)s
+// Final code:
+%(final_code)s
+_caught_%(try_count)d.rethrow();
+%(rethrow_raisers)s"""
+
+try_finally_template_setup_continue = """\
+bool _continue_%(try_count)d = false;
+"""
+
+try_finally_template_setup_break = """\
+bool _break_%(try_count)d = false;
+"""
+
+try_finally_template_setup_generator_return = """\
+bool _return_%(try_count)d = false;
+"""
+
+try_finally_template_setup_return_value = """\
+PyObject *_return_value_%(try_count)d = NULL;
+"""
+
+try_finally_template_catch_continue = """\
 catch ( ContinueException & )
 {
     _continue_%(try_count)d = true;
 }
+"""
+
+try_finally_template_catch_break = """\
 catch ( BreakException & )
 {
     _break_%(try_count)d = true;
 }
-catch ( ReturnException & )
+"""
+
+try_finally_template_catch_generator_return = """\
+catch ( GeneratorReturnException & )
 {
     _return_%(try_count)d = true;
 }
+"""
+
+try_finally_template_catch_return_value = """\
 catch ( ReturnValueException &e )
 {
     _return_value_%(try_count)d = e.getValue();
 }
+"""
 
-// Final code:
-%(final_code)s
-
-_caught_%(try_count)d.rethrow();
-
+try_finally_template_reraise_continue = """\
 if ( _continue_%(try_count)d )
 {
     throw ContinueException();
 }
-else if ( _break_%(try_count)d )
+"""
+
+try_finally_template_reraise_break = """\
+if ( _break_%(try_count)d )
 {
     throw BreakException();
 }
-else if ( _return_%(try_count)d )
+"""
+
+try_finally_template_reraise_generator_return = """\
+if ( _return_%(try_count)d )
 {
-    throw ReturnException();
+    throw GeneratorReturnException();
 }
-else if ( _return_value_%(try_count)d != NULL )
+"""
+
+try_finally_template_reraise_return_value = """\
+if ( _return_value_%(try_count)d != NULL )
 {
     throw ReturnValueException( _return_value_%(try_count)d );
 }"""
+
 
 frame_exceptionkeeper_setup = """\
 FrameExceptionKeeper _frame_exception_keeper;"""

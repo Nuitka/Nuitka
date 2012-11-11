@@ -479,7 +479,7 @@ private:
 };
 
 
-class ReturnException
+class GeneratorReturnException
 {
 };
 
