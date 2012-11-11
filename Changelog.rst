@@ -1,5 +1,5 @@
-Nuitka Release 0.3.25 (Draft)
-=============================
+Nuitka Release 0.3.25
+=====================
 
 This release brings about changes on all fronts, bug fixes, new features. Also very
 importantly Nuitka no longer uses C++11 for its code, but mere C++03. There is new
@@ -111,6 +111,10 @@ Organizational
   be misunderstood to influence compiler selection, rather than causing the C++ source
   code to not be updated, so manual changes will the used. This solves `Issue#47
   <http://bugs.nuitka.net/issue47>`_.
+
+- Catch exceptions for ``continue``, ``break``, and ``return`` only where needed for
+  ``try``/``finally`` and loop constructs.
+
 
 New Tests
 ---------
