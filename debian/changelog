@@ -1,8 +1,6 @@
 nuitka (0.3.25~pre5+ds-1) UNRELEASED; urgency=low
 
   * New upstream pre-release.
-  * Added crosscompiler usable with "--windows-target" option as
-    a Suggests.
   * Register the User Manual with "doc-base".
 
  -- Kay Hayen <kayhayen@gmx.de>  Tue, 18 Sep 2012 08:49:48 +0200
