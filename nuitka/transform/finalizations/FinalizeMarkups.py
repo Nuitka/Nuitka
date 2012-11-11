@@ -88,7 +88,11 @@ class FinalizeMarkups( FinalizationVisitorBase ):
                 search = search.getParent()
 
                 if search.isStatementTryFinally() and last_search == search.getBlockTry():
-                    search.markAsExceptionReturnValue()
+                    if node.getExpression() is None:
+                        search.markAsExceptionGeneratorReturn()
+                    else:
+                        search.markAsExceptionReturnValue()
+
                     node.markAsExceptionDriven()
 
             if search.isGenerator():
