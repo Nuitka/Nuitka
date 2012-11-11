@@ -158,8 +158,8 @@ def getYieldCode( identifier, for_return ):
             0
         )
 
-def getYieldTerminatorCode():
-    return "throw ReturnException();"
+def getGeneratorReturnCode():
+    return CodeTemplates.genfunc_yielder_return_template % {}
 
 def getMetaclassVariableCode( context ):
     package_var_identifier = ModuleVariableIdentifier(
@@ -908,15 +908,24 @@ def getLineNumberCode( context, source_ref ):
     else:
         return ""
 
-def getLoopCode( loop_body_codes, needs_exceptions ):
-    if needs_exceptions:
+def getLoopCode( loop_body_codes, needs_break_exception, needs_continue_exception ):
+    if needs_break_exception and needs_continue_exception:
         while_loop_template = CodeTemplates.template_loop_break_continue_catching
+        indentation = 2
+    elif needs_break_exception:
+        while_loop_template = CodeTemplates.template_loop_break_catching
+        indentation = 2
+    elif needs_continue_exception:
+        while_loop_template = CodeTemplates.template_loop_continue_catching
+        indentation = 2
     else:
-        while_loop_template = CodeTemplates.template_loop_break_continue_direct
+        while_loop_template = CodeTemplates.template_loop_simple
+        indentation = 1
 
     return while_loop_template % {
         "loop_body_codes" : indented(
-            loop_body_codes if loop_body_codes is not None else ""
+            loop_body_codes if loop_body_codes is not None else "",
+            indentation
         ),
     }
 
@@ -1000,14 +1009,47 @@ def getSubscriptDelCode( subscribed, subscript ):
         subscript.getCodeTemporaryRef()
     )
 
-def getTryFinallyCode( context, code_tried, code_final ):
+def getTryFinallyCode( context, needs_continue, needs_break, needs_generator_return, \
+                       needs_return_value, code_tried, code_final ):
     tb_making = getTracebackMakingIdentifier( context )
 
+    rethrow_setups = ""
+    rethrow_catchers = ""
+    rethrow_raisers = ""
+
+    try_count = context.allocateTryNumber()
+    values = {
+        "try_count" : try_count
+    }
+
+    if needs_continue:
+        rethrow_setups += CodeTemplates.try_finally_template_setup_continue % values
+        rethrow_catchers += CodeTemplates.try_finally_template_catch_continue % values
+        rethrow_raisers += CodeTemplates.try_finally_template_reraise_continue % values
+
+    if needs_break:
+        rethrow_setups += CodeTemplates.try_finally_template_setup_break  % values
+        rethrow_catchers += CodeTemplates.try_finally_template_catch_break % values
+        rethrow_raisers += CodeTemplates.try_finally_template_reraise_break % values
+
+    if needs_generator_return:
+        rethrow_setups += CodeTemplates.try_finally_template_setup_generator_return % values
+        rethrow_catchers += CodeTemplates.try_finally_template_catch_generator_return % values
+        rethrow_raisers += CodeTemplates.try_finally_template_reraise_generator_return % values
+
+    if needs_return_value:
+        rethrow_setups += CodeTemplates.try_finally_template_setup_return_value % values
+        rethrow_catchers += CodeTemplates.try_finally_template_catch_return_value % values
+        rethrow_raisers += CodeTemplates.try_finally_template_reraise_return_value % values
+
     return CodeTemplates.try_finally_template % {
-        "try_count"  : context.allocateTryNumber(),
-        "tried_code" : indented( code_tried ),
-        "final_code" : indented( code_final, 0 ),
-        "tb_making"  : tb_making.getCodeExportRef(),
+        "try_count"        : try_count,
+        "tried_code"       : indented( code_tried ),
+        "final_code"       : indented( code_final, 0 ),
+        "tb_making"        : tb_making.getCodeExportRef(),
+        "rethrow_setups"   : rethrow_setups,
+        "rethrow_catchers" : rethrow_catchers,
+        "rethrow_raisers"  : rethrow_raisers,
     }
 
 def getTryExceptHandlerCode( exception_identifiers, handler_code, needs_frame_detach, first_handler ):
@@ -1904,8 +1946,8 @@ def _getFuncDefaultValue( defaults_identifier ):
 
 def getGeneratorFunctionCode( context, function_name, function_identifier, parameters, \
                               closure_variables, user_variables, defaults_identifier,
-                              tmp_keepers, function_codes, needs_creation, source_ref, \
-                              function_doc ):
+                              tmp_keepers, function_codes, needs_creation, needs_return,
+                              source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
 
@@ -2042,7 +2084,12 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 
     function_locals += function_var_inits
 
-    result += CodeTemplates.genfunc_yielder_template % {
+    if needs_return:
+        template = CodeTemplates.genfunc_yielder_with_return_template
+    else:
+        template = CodeTemplates.genfunc_yielder_without_return_template
+
+    result += template % {
         "function_identifier" : function_identifier,
         "function_body"       : indented( function_codes, 2 ),
         "function_var_inits"  : indented( function_locals, 2 ),

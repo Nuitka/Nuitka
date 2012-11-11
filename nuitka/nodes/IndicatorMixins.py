@@ -22,21 +22,6 @@ use properties instead) are determined once or from a default and then used like
 
 """
 
-# TODO: Misnomer, should be more general name.
-class MarkExceptionBreakContinueIndicator:
-    """ Mixin for indication that a break and continue could be real exceptions.
-
-    """
-
-    def __init__( self ):
-        self.break_continue_exception = False
-
-    def markAsExceptionBreakContinue( self ):
-        self.break_continue_exception = True
-
-    def needsExceptionBreakContinue( self ):
-        return self.break_continue_exception
-
 
 class MarkContainsTryExceptIndicator:
     """ Mixin for indication that a module, class or function contains a try/except.

@@ -25,11 +25,8 @@ which is more general, the 'Forever' loop, with breaks
 
 from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
 
-from .IndicatorMixins import MarkExceptionBreakContinueIndicator
 
-
-class CPythonStatementLoop( CPythonChildrenHaving, CPythonNodeBase, \
-                            MarkExceptionBreakContinueIndicator ):
+class CPythonStatementLoop( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_LOOP"
 
     named_children = ( "frame", )
@@ -44,28 +41,55 @@ class CPythonStatementLoop( CPythonChildrenHaving, CPythonNodeBase, \
             }
         )
 
-        MarkExceptionBreakContinueIndicator.__init__( self )
+        self.break_exception = False
+        self.continue_exception = False
 
     getLoopBody = CPythonChildrenHaving.childGetter( "frame" )
 
+    def markAsExceptionContinue( self ):
+        self.continue_exception = True
 
-class CPythonStatementContinueLoop( CPythonNodeBase, MarkExceptionBreakContinueIndicator ):
+    def markAsExceptionBreak( self ):
+        self.break_exception = True
+
+    def needsExceptionContinue( self ):
+        return self.continue_exception
+
+    def needsExceptionBreak( self ):
+        return self.break_exception
+
+
+class CPythonStatementContinueLoop( CPythonNodeBase ):
     kind = "STATEMENT_CONTINUE_LOOP"
 
     def __init__( self, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
-        MarkExceptionBreakContinueIndicator.__init__( self )
+
+        self.exception_driven = False
 
     def isStatementAbortative( self ):
         return True
 
+    def markAsExceptionDriven( self ):
+        self.exception_driven = True
 
-class CPythonStatementBreakLoop( CPythonNodeBase, MarkExceptionBreakContinueIndicator ):
+    def isExceptionDriven( self ):
+        return self.exception_driven
+
+
+class CPythonStatementBreakLoop( CPythonNodeBase ):
     kind = "STATEMENT_BREAK_LOOP"
 
     def __init__( self, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
-        MarkExceptionBreakContinueIndicator.__init__( self )
+
+        self.exception_driven = False
 
     def isStatementAbortative( self ):
         return True
+
+    def markAsExceptionDriven( self ):
+        self.exception_driven = True
+
+    def isExceptionDriven( self ):
+        return self.exception_driven

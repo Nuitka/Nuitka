@@ -19,11 +19,14 @@
 
 Set flags on functions and classes to indicate if a locals dict is really needed.
 
-Set a flag on loops if they really need to catch Continue and Break exceptions or
-if it can be more simple code.
+Set a flag on loops if they really need to catch Continue and Break exceptions or if it
+can be more simple code.
 
-Set a flag on re-raises of exceptions if they can be simple throws or if they are
-in another context.
+Set a flag on return statements and functions that require the use of ReturnValue
+exceptions, or if it can be more simple code.
+
+Set a flag on re-raises of exceptions if they can be simple throws or if they are in
+another context.
 
 """
 
@@ -47,40 +50,70 @@ class FinalizeMarkups( FinalizationVisitorBase ):
             if provider.isExpressionFunctionBody():
                 provider.markAsLocalsDict()
 
-        if node.isStatementBreakLoop() or node.isStatementContinueLoop() or node.isStatementReturn():
+        if node.isStatementBreakLoop():
             search = node.getParent()
 
-            crossed_try = False
-
             # Search up to the containing loop.
-            while not search.isStatementLoop() and not search.isExpressionFunctionBody():
+            while not search.isStatementLoop():
                 last_search = search
                 search = search.getParent()
 
                 if search.isStatementTryFinally() and last_search == search.getBlockTry():
-                    crossed_try = True
+                    search.markAsExceptionBreak()
+                    node.markAsExceptionDriven()
 
-            if crossed_try:
-                # TODO: Optimize if functions need to catch return value too.
-                if not search.isExpressionFunctionBody():
-                    search.markAsExceptionBreakContinue()
-                node.markAsExceptionBreakContinue()
+            search.markAsExceptionBreak()
+
+        if node.isStatementContinueLoop():
+            search = node.getParent()
+
+            # Search up to the containing loop.
+            while not search.isStatementLoop():
+                last_search = search
+                search = search.getParent()
+
+                if search.isStatementTryFinally() and last_search == search.getBlockTry():
+                    search.markAsExceptionContinue()
+                    node.markAsExceptionDriven()
+
+            search.markAsExceptionContinue()
+
+        if node.isStatementReturn():
+            search = node.getParent()
+
+            # Search up to the containing function, and check for a try/finally
+            # containing the "return" statement.
+            while not search.isExpressionFunctionBody():
+                last_search = search
+                search = search.getParent()
+
+                if search.isStatementTryFinally() and last_search == search.getBlockTry():
+                    if node.getExpression() is None:
+                        search.markAsExceptionGeneratorReturn()
+                    else:
+                        search.markAsExceptionReturnValue()
+
+                    node.markAsExceptionDriven()
+
+            if search.isGenerator():
+                node.markAsExceptionDriven()
+
+            if node.isExceptionDriven():
+                if search.isGenerator():
+                    search.markAsExceptionGeneratorReturn()
+                else:
+                    search.markAsExceptionReturnValue()
 
         if node.isStatementRaiseException() and node.isReraiseException():
             search = node.getParent()
 
-            crossed_except = False
-
             while not search.isParentVariableProvider():
                 if search.isStatementsSequence():
                     if search.getParent().isStatementExceptHandler():
-                        crossed_except = True
+                        node.markAsReraiseLocal()
                         break
 
                 search = search.getParent()
-
-            if crossed_except:
-                node.markAsReraiseLocal()
 
         if node.isStatementDelVariable():
             node.getTargetVariableRef().getVariable().setHasDelIndicator()

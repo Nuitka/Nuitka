@@ -35,7 +35,32 @@ while( true )
     }
 }"""
 
-template_loop_break_continue_direct = """\
+template_loop_break_catching = """\
+while( true )
+{
+    try
+    {
+%(loop_body_codes)s
+    }
+    catch ( BreakException & )
+    { /* Break the loop */
+       break;
+    }
+}"""
+
+template_loop_continue_catching = """\
+while( true )
+{
+    try
+    {
+%(loop_body_codes)s
+    }
+    catch( ContinueException & )
+    { /* Nothing to do */
+    }
+}"""
+
+template_loop_simple = """\
 while( true )
 {
 %(loop_body_codes)s

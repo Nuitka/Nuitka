@@ -282,6 +282,7 @@ def generateFunctionBodyCode( function_body, defaults, context ):
             tmp_keepers         = function_context.getTempKeeperUsages(),
             defaults_identifier = defaults_identifier,
             needs_creation      = function_body.needsCreation(),
+            needs_return        = function_body.needsExceptionGeneratorReturn(),
             source_ref          = function_body.getSourceReference(),
             function_codes      = function_codes,
             function_doc        = function_body.getDoc()
@@ -1655,8 +1656,9 @@ def generateLoopCode( statement, context ):
     )
 
     return Generator.getLoopCode(
-        loop_body_codes  = loop_body_codes,
-        needs_exceptions = statement.needsExceptionBreakContinue(),
+        loop_body_codes          = loop_body_codes,
+        needs_break_exception    = statement.needsExceptionBreak(),
+        needs_continue_exception = statement.needsExceptionContinue()
     )
 
 def generateTempBlock( statement, context ):
@@ -1675,14 +1677,14 @@ def generateReturnCode( statement, context ):
     if parent_function is not None and parent_function.isGenerator():
         assert statement.getExpression().getConstant() is None
 
-        return Generator.getYieldTerminatorCode()
+        return Generator.getGeneratorReturnCode()
     else:
         return Generator.getReturnCode(
             identifier    = generateExpressionCode(
                 expression = statement.getExpression(),
                 context    = context
             ),
-            via_exception = statement.needsExceptionBreakContinue(),
+            via_exception = statement.isExceptionDriven(),
         )
 
 def generateStatementCode( statement, context ):
@@ -1798,11 +1800,11 @@ def _generateStatementCode( statement, context ):
         )
     elif statement.isStatementContinueLoop():
         code = Generator.getLoopContinueCode(
-            needs_exceptions = statement.needsExceptionBreakContinue()
+            needs_exceptions = statement.isExceptionDriven()
         )
     elif statement.isStatementBreakLoop():
         code = Generator.getLoopBreakCode(
-            needs_exceptions = statement.needsExceptionBreakContinue()
+            needs_exceptions = statement.isExceptionDriven()
         )
     elif statement.isStatementImportStar():
         code = generateImportStarCode(
@@ -1819,7 +1821,11 @@ def _generateStatementCode( statement, context ):
             code_final = generateStatementSequenceCode(
                 statement_sequence = statement.getBlockFinal(),
                 context            = context
-            )
+            ),
+            needs_break = statement.needsExceptionBreak(),
+            needs_continue = statement.needsExceptionContinue(),
+            needs_generator_return = statement.needsExceptionGeneratorReturn(),
+            needs_return_value     = statement.needsExceptionReturnValue()
         )
     elif statement.isStatementTryExcept():
         code = generateTryExceptCode(

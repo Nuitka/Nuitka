@@ -126,6 +126,12 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         # like to get the final "__class__" attached.
         self.has_super = False
 
+        # Indicator if the return value exception might be required.
+        self.return_exception = False
+
+        # Indicator if the generator return exception might be required.
+        self.generator_return_exception = False
+
     def getDetails( self ):
         return {
             "name"       : self.getFunctionName(),
@@ -305,6 +311,18 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         )
 
         return result
+
+    def markAsExceptionReturnValue( self ):
+        self.return_exception = True
+
+    def needsExceptionReturnValue( self ):
+        return self.return_exception
+
+    def markAsExceptionGeneratorReturn( self ):
+        self.generator_return_exception = True
+
+    def needsExceptionGeneratorReturn( self ):
+        return self.generator_return_exception
 
 
 class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
