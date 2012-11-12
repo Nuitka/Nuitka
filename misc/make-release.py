@@ -61,6 +61,15 @@ Check the created Debian package in a Debian Sid pbuilder. Default %default."""
 )
 
 parser.add_option(
+    "--check-debian-squeeze",
+    action  = "store_true",
+    dest    = "debian_squeeze",
+    default = False,
+    help    = """\
+Check the created Debian package in a Debian Sid pbuilder. Default %default."""
+)
+
+parser.add_option(
     "--check-ubuntu-maverick",
     action  = "store_true",
     dest    = "ubuntu_maverick",
@@ -222,6 +231,9 @@ basetgz_list = []
 
 if options.debian_sid:
     basetgz_list.append( "base.tgz" )
+
+if options.debian_squeeze:
+    basetgz_list.append( "squeeze.tgz" )
 
 if options.ubuntu_oneiric or options.ubuntu_all:
     basetgz_list.append( "oneiric.tgz" )
