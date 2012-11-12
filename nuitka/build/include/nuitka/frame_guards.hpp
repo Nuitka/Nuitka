@@ -37,6 +37,12 @@ NUITKA_MAY_BE_UNUSED static PyFrameObject *INCREASE_REFCOUNT( PyFrameObject *fra
     return frame_object;
 }
 
+NUITKA_MAY_BE_UNUSED static PyFrameObject *INCREASE_REFCOUNT_X( PyFrameObject *frame_object )
+{
+    Py_XINCREF( frame_object );
+    return frame_object;
+}
+
 NUITKA_MAY_BE_UNUSED static bool isFrameUnusable( PyFrameObject *frame_object )
 {
     return
@@ -58,25 +64,36 @@ inline static void popFrameStack( void )
     PyFrameObject *old = tstate->frame;
 
 #if _DEBUG_REFRAME
-    printf( "Taking off frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)old ) ), PyString_AsString( PyObject_Str( (PyObject *)old->f_code ) ) );
+    printf( "Taking off frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)old ) ), PyString_AsString( PyObject_Repr( (PyObject *)old->f_code ) ) );
 #endif
 
     tstate->frame = old->f_back;
+    old->f_back = NULL;
+
+    // We might be very top level, e.g. in a thread, and therefore do not insist on value.
+    Py_XDECREF( tstate->frame );
 
 #if _DEBUG_REFRAME
-    printf( "Now at top frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)tstate->frame ) ), PyString_AsString( PyObject_Str( (PyObject *)tstate->frame->f_code ) ) );
+    printf( "Now at top frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)tstate->frame ) ), PyString_AsString( PyObject_Repr( (PyObject *)tstate->frame->f_code ) ) );
 #endif
 }
 
 inline static void pushFrameStack( PyFrameObject *frame_object )
 {
+    assertFrameObject( frame_object );
+
     PyThreadState *tstate = PyThreadState_GET();
 
     // Look at current frame.
     PyFrameObject *old = tstate->frame;
 
 #if _DEBUG_REFRAME
-    printf( "Upstacking to frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)old ) ), PyString_AsString( PyObject_Str( (PyObject *)old->f_code ) ) );
+    if ( old )
+    {
+        assertCodeObject( old->f_code );
+
+        printf( "Upstacking to frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)old ) ), PyString_AsString( PyObject_Repr( (PyObject *)old->f_code ) ) );
+    }
 #endif
 
     // No recursion allowed of course, assert against it.
@@ -95,7 +112,7 @@ inline static void pushFrameStack( PyFrameObject *frame_object )
     }
 
 #if _DEBUG_REFRAME
-    printf( "Now at top frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)tstate->frame ) ), PyString_AsString( PyObject_Str( (PyObject *)tstate->frame->f_code ) ) );
+    printf( "Now at top frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)tstate->frame ) ), PyString_AsString( PyObject_Repr( (PyObject *)tstate->frame->f_code ) ) );
 #endif
 }
 
@@ -147,7 +164,7 @@ public:
         Py_INCREF( frame_object );
 
 #if _DEBUG_REFRAME
-        dumpFrameStack();
+        // dumpFrameStack();
 #endif
     }
 
@@ -164,10 +181,6 @@ public:
         // Should still be good.
         assertFrameObject( this->frame_object );
 
-        // Release the back reference immediately.
-        Py_XDECREF( this->frame_object->f_back );
-        this->frame_object->f_back = NULL;
-
         // Now release our frame object reference.
         Py_DECREF( this->frame_object );
     }
@@ -175,6 +188,11 @@ public:
     PyFrameObject *getFrame() const
     {
         return INCREASE_REFCOUNT( this->frame_object );
+    }
+
+    PyFrameObject *getFrame0() const
+    {
+        return this->frame_object;
     }
 
     // Use this to set the current line of the frame
@@ -242,6 +260,11 @@ public:
     PyFrameObject *getFrame() const
     {
         return INCREASE_REFCOUNT( *this->frame_ptr );
+    }
+
+    PyFrameObject *getFrame0() const
+    {
+        return *this->frame_ptr;
     }
 
     // Use this to set the current line of the frame

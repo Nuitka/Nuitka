@@ -117,7 +117,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
 }
 """
 
-genfunc_yielder_template = """
+genfunc_yielder_with_return_template = """
 static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
     try {
@@ -130,7 +130,7 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
         // Actual function code.
 %(function_body)s
     }
-    catch ( ReturnException &e )
+    catch ( GeneratorReturnException & )
     {
         PyErr_SetNone( PyExc_StopIteration );
     }
@@ -140,6 +140,29 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
     swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
 }
 """
+
+genfunc_yielder_without_return_template = """
+static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
+{
+    {
+        // Make context accessible if one is used.
+%(context_access)s
+
+        // Local variable inits
+%(function_var_inits)s
+
+        // Actual function code.
+%(function_body)s
+    }
+
+    // TODO: Won't return, we should tell the compiler about that.
+    generator->m_yielded = NULL;
+    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
+}
+"""
+
+genfunc_yielder_return_template = """\
+throw GeneratorReturnException();"""
 
 frame_guard_genfunc_template = """\
 static PyFrameObject *frame_%(frame_identifier)s = NULL;
@@ -170,6 +193,9 @@ PyThreadState_GET()->frame = generator->m_frame;
 
 FrameGuardLight frame_guard( &generator->m_frame );
 
+// TODO: The inject of the exception through C++ is very non-optimal, this flag
+// now indicates only if the exception occurs initially as supposed, or during
+// life, this could and should be shortcut.
 bool traceback;
 
 try
@@ -186,11 +212,14 @@ try
 }
 catch ( _PythonException &_exception )
 {
-    if ( traceback == false )
+    if ( !_exception.hasTraceback() )
     {
-       _exception.addTraceback( INCREASE_REFCOUNT( generator->m_frame ) );
+        _exception.setTraceback( %(tb_making)s );
     }
-
+    else if ( traceback == false )
+    {
+        _exception.addTraceback( generator->m_frame );
+    }
     _exception.toPython();
 
     // TODO: Moving this code is not allowed yet.
@@ -198,7 +227,7 @@ catch ( _PythonException &_exception )
 }"""
 
 genfunc_common_context_use_template = """\
-struct _context_common_%(function_identifier)s_t *_python_common_context = (struct _context_common_%(function_identifier)s_t *)self;
+struct _context_common_%(function_identifier)s_t *_python_common_context = (struct _context_common_%(function_identifier)s_t *)self->m_context;
 struct _context_generator_%(function_identifier)s_t *_python_context = new _context_generator_%(function_identifier)s_t;
 
 _python_context->common_context = _python_common_context;
@@ -258,7 +287,7 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 
 generator_context_access_template = """
 // The context of the generator.
-struct _context_common_%(function_identifier)s_t *_python_context = (struct _context_common_%(function_identifier)s_t *)self;
+struct _context_common_%(function_identifier)s_t *_python_context = (struct _context_common_%(function_identifier)s_t *)self->m_context;
 """
 
 generator_context_unused_template = """\

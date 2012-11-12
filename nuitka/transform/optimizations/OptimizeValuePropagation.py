@@ -23,7 +23,7 @@ constraint collections.
 """
 
 from .OptimizeBase import (
-    OptimizationVisitorScopedBase,
+    OptimizationVisitorBase,
     TreeOperations
 )
 
@@ -31,7 +31,7 @@ from .ConstraintCollections import ConstraintCollectionModule
 
 from nuitka.Variables import getModuleVariables
 
-class ValuePropagationVisitor( OptimizationVisitorScopedBase ):
+class ValuePropagationVisitor( OptimizationVisitorBase ):
     def __init__( self ):
         self.constraint_collection = ConstraintCollectionModule( self.signalChange )
 

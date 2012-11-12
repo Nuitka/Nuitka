@@ -63,20 +63,22 @@ public:
     }
 
 private:
-    PyObjectTemporary( const PyObjectTemporary &object ) = delete;
+
+    PyObjectTemporary( const PyObjectTemporary &object ) { assert( false ); }
 
     PyObject *object;
 };
 
-class PyObjectTempHolder
+
+class PyObjectTempKeeper1
 {
 public:
-    explicit PyObjectTempHolder()
+    explicit PyObjectTempKeeper1()
     {
         this->object = NULL;
     }
 
-    ~PyObjectTempHolder()
+    ~PyObjectTempKeeper1()
     {
         Py_XDECREF( this->object );
     }
@@ -90,7 +92,7 @@ public:
         return result;
     }
 
-    PyObject *assign0( PyObject *value )
+    PyObject *assign( PyObject *value )
     {
         assertObject( value );
 
@@ -98,7 +100,35 @@ public:
         return this->object;
     }
 
-    PyObject *assign1( PyObject *value )
+private:
+
+    PyObjectTempKeeper1( const PyObjectTempKeeper1 &other ) { assert( false ); }
+
+    PyObject *object;
+};
+
+
+class PyObjectTempKeeper0
+{
+public:
+    explicit PyObjectTempKeeper0()
+    {
+        this->object = NULL;
+    }
+
+    ~PyObjectTempKeeper0()
+    {}
+
+    PyObject *asObject()
+    {
+        assertObject( this->object );
+
+        PyObject *result = this->object;
+        this->object = NULL;
+        return result;
+    }
+
+    PyObject *assign( PyObject *value )
     {
         assertObject( value );
 
@@ -108,7 +138,7 @@ public:
 
 private:
 
-    PyObjectTempHolder( const PyObjectTempHolder &other ) = delete;
+    PyObjectTempKeeper0( const PyObjectTempKeeper0 &other ) { assert( false ); }
 
     PyObject *object;
 };

@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.3.24.1
+Nuitka V0.3.25
 Copyright (C) 2012 Kay Hayen."""
 
 from . import Utils
@@ -309,13 +309,13 @@ Defaults to off."""
 )
 
 debug_group.add_option(
-    "--g++-only",
+    "--c++-only",
     action  = "store_true",
     dest    = "cpp_only",
     default = False,
     help    = """\
-Compile the would-be generated source file. Allows edition and translation with same
-options for quick debugging changes to the generated source. Defaults to off."""
+Compile the would-be regenerated source file. Allows compiling edited C++ files with the
+C++ compiler for quick debugging changes to the generated source. Defaults to off."""
 )
 
 def decideExperimental():

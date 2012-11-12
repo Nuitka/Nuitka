@@ -69,6 +69,10 @@ class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
     def isStatementAbortative( self ):
         return True
 
+    def needsLineNumber( self ):
+        return not self.isReraiseException()
+
+
 class CPythonExpressionRaiseException( CPythonExpressionChildrenHavingBase ):
     """ This node type is only produced via optimization.
 

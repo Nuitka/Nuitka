@@ -32,7 +32,8 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s );
 function_context_body_template = """
 // This structure is for attachment as self of %(function_identifier)s.
 // It is allocated at the time the function object is created.
-struct _context_%(function_identifier)s_t {
+struct _context_%(function_identifier)s_t
+{
     // The function can access a read-only closure of the creator.
 %(context_decl)s
 };
@@ -72,7 +73,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
 """
 
 make_function_without_context_template = """
-static PyObject *_MAKE_FUNCTION_%(function_identifier)s()
+static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     PyObject *result = Nuitka_Function_New(
         %(fparse_function_identifier)s,
@@ -109,8 +110,6 @@ PyObjectTemporary locals_dict( PyDict_New() );
 """
 
 frame_guard_full_template = """\
-bool traceback = false;
-
 static PyFrameObject *frame_%(frame_identifier)s = NULL;
 
 if ( isFrameUnusable( frame_%(frame_identifier)s ) )
@@ -127,40 +126,52 @@ if ( isFrameUnusable( frame_%(frame_identifier)s ) )
 }
 
 FrameGuard frame_guard( frame_%(frame_identifier)s );
-
 try
 {
+    assert( Py_REFCNT( frame_%(frame_identifier)s ) == 2 ); // Frame stack
 %(codes)s
 }
 catch ( _PythonException &_exception )
 {
-    if ( traceback == false )
+    if ( !_exception.hasTraceback() )
     {
-        _exception.addTraceback( frame_guard.getFrame() );
+        _exception.setTraceback( %(tb_making)s );
+    }
+    else
+    {
+        _exception.addTraceback( frame_guard.getFrame0() );
     }
 
-%(return_code)s;
+    Py_XDECREF( frame_guard.getFrame0()->f_locals );
+    frame_guard.getFrame0()->f_locals = %(frame_locals)s;
+
+    if ( frame_guard.getFrame0() == frame_%(frame_identifier)s )
+    {
+       Py_DECREF( frame_%(frame_identifier)s );
+       frame_%(frame_identifier)s = NULL;
+    }
+%(return_code)s
 }
-"""
+catch( ReturnValueException &_exception )
+{
+    return _exception.getValue();
+}"""
 
-frame_guard_python_return = """\
+frame_guard_python_return = """
     _exception.toPython();
-    return NULL;
-"""
+    return NULL;"""
 
-frame_guard_cpp_return = """\
-    throw;
-"""
+frame_guard_cpp_return = """
+    throw;"""
 
 frame_guard_listcontr_template = """\
 FrameGuardVeryLight frame_guard;
 
-%(codes)s
-"""
+%(codes)s"""
 
 function_context_access_template = """\
     // The context of the function.
-    struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)self;"""
+    struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)self->m_context;"""
 
 function_context_unused_template = """\
     // No context is used."""

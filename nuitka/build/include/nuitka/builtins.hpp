@@ -41,31 +41,16 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN( PyObject *name )
 
 class PythonBuiltin
 {
-    public:
-        explicit PythonBuiltin( PyObject **name )
-        {
-            this->name = (Nuitka_StringObject **)name;
-            this->value = NULL;
-        }
+public:
+    explicit PythonBuiltin( PyObject **name )
+    {
+        this->name = (Nuitka_StringObject **)name;
+        this->value = NULL;
+    }
 
-        PyObject *asObject()
-        {
-            if ( this->value == NULL )
-            {
-                PyDictEntry *entry = GET_PYDICT_ENTRY(
-                    module_builtin,
-                    *this->name
-                );
-
-                this->value = entry->me_value;
-            }
-
-            assertObject( this->value );
-
-            return this->value;
-        }
-
-        void refresh( void )
+    PyObject *asObject()
+    {
+        if ( this->value == NULL )
         {
             PyDictEntry *entry = GET_PYDICT_ENTRY(
                 module_builtin,
@@ -75,54 +60,69 @@ class PythonBuiltin
             this->value = entry->me_value;
         }
 
-        PyObject *call()
-        {
-            return CALL_FUNCTION_NO_ARGS(
-                this->asObject()
-            );
-        }
+        assertObject( this->value );
+
+        return this->value;
+    }
+
+    void refresh( void )
+    {
+        PyDictEntry *entry = GET_PYDICT_ENTRY(
+            module_builtin,
+            *this->name
+        );
+
+        this->value = entry->me_value;
+    }
+
+    PyObject *call()
+    {
+        return CALL_FUNCTION_NO_ARGS(
+            this->asObject()
+        );
+    }
 
 
-        PyObject *call1( PyObject *arg )
-        {
-            return CALL_FUNCTION_WITH_POSARGS(
-                this->asObject(),
-                PyObjectTemporary( MAKE_TUPLE1( arg ) ).asObject()
-            );
-        }
+    PyObject *call1( PyObject *arg )
+    {
+        return CALL_FUNCTION_WITH_POSARGS(
+            this->asObject(),
+            PyObjectTemporary( MAKE_TUPLE1( arg ) ).asObject()
+        );
+    }
 
-        PyObject *call_args( PyObject *args )
-        {
-            return CALL_FUNCTION_WITH_POSARGS(
-                this->asObject(),
-                PyObjectTemporary( args ).asObject()
-            );
-        }
+    PyObject *call_args( PyObject *args )
+    {
+        return CALL_FUNCTION_WITH_POSARGS(
+            this->asObject(),
+            PyObjectTemporary( args ).asObject()
+        );
+    }
 
-        PyObject *call_kw( PyObject *kw )
-        {
-            return CALL_FUNCTION_WITH_KEYARGS(
-                this->asObject(),
-                kw
-            );
-        }
+    PyObject *call_kw( PyObject *kw )
+    {
+        return CALL_FUNCTION_WITH_KEYARGS(
+            this->asObject(),
+            kw
+        );
+    }
 
-        PyObject *call_args_kw( PyObject *args, PyObject *kw )
-        {
-            return CALL_FUNCTION(
-                this->asObject(),
-                args,
-                kw
-            );
-        }
+    PyObject *call_args_kw( PyObject *args, PyObject *kw )
+    {
+        return CALL_FUNCTION(
+            this->asObject(),
+            args,
+            kw
+        );
+    }
 
 
-    private:
+private:
 
-        PythonBuiltin( PythonBuiltin const &  ) = delete;
+    PythonBuiltin( PythonBuiltin const &  ) { assert( false );  }
 
-        Nuitka_StringObject **name;
-        PyObject *value;
+    Nuitka_StringObject **name;
+    PyObject *value;
 };
 
 #endif

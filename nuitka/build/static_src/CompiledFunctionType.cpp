@@ -57,7 +57,7 @@ static PyObject *Nuitka_Function_tp_call( Nuitka_FunctionObject *function, PyObj
 {
     if ( function->m_has_args )
     {
-       return ((PyCFunctionWithKeywords)function->m_code)( (PyObject *)function->m_context, args, kw );
+        return ((function_arg_parser)function->m_code)( function, args, kw );
     }
     else
     {
@@ -200,8 +200,29 @@ static PyObject *Nuitka_Function_get_defaults( Nuitka_FunctionObject *object )
 
 static int Nuitka_Function_set_defaults( Nuitka_FunctionObject *object, PyObject *value )
 {
-    PyErr_Format( PyExc_RuntimeError, "__defaults__ is not writable in Nuitka" );
-    return -1;
+    if (unlikely( value != Py_None && PyTuple_Check( value ) == false ))
+    {
+        PyErr_Format( PyExc_TypeError, "__defaults__ must be set to a tuple object" );
+        return -1;
+    }
+
+    if ( object->m_defaults == Py_None && value != Py_None )
+    {
+        PyErr_Format( PyExc_TypeError, "Nuitka doesn't support __defaults__ size changes" );
+        return -1;
+    }
+
+    if ( object->m_defaults != Py_None && ( value == Py_None || PyTuple_Size( object->m_defaults ) != PyTuple_Size( value ) ) )
+    {
+        PyErr_Format( PyExc_TypeError, "Nuitka doesn't support __defaults__ size changes" );
+        return -1;
+    }
+
+    PyObject *old = object->m_defaults;
+    object->m_defaults = INCREASE_REFCOUNT( value );
+    Py_DECREF( old );
+
+    return 0;
 }
 
 static int Nuitka_Function_set_globals( Nuitka_FunctionObject *object, PyObject *value )
@@ -237,18 +258,17 @@ static PyObject *Nuitka_Function_get_module( Nuitka_FunctionObject *object )
         }
     }
 
-    int res = Nuitka_Function_set_module(
-        object,
+    char const *module_name = PyModule_GetName( object->m_module );
+
 #if PYTHON_VERSION < 300
-        PyString_FromString( PyModule_GetName( object->m_module ) )
+    PyObject *result = PyString_FromString( module_name );
+    PyString_InternInPlace( &result );
+    return result;
 #else
-        PyUnicode_FromString( PyModule_GetName( object->m_module ) )
+    PyObject *result = PyUnicode_FromString( module_name );
+    PyUnicode_InternInPlace( &result );
+    return result;
 #endif
-    );
-
-    assert( res == 0 );
-
-    return PyDict_GetItemString( object->m_dict, (char * )"__module__" );
 }
 
 
@@ -384,6 +404,13 @@ static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, Py
     result->m_context = context;
     result->m_cleanup = cleanup;
 
+    if ( defaults == NULL )
+    {
+        defaults = INCREASE_REFCOUNT( Py_None );
+    }
+
+    assertObject( defaults );
+    assert( defaults == Py_None || ( PyTuple_Check( defaults ) && PyTuple_Size( defaults ) > 0 ) );
     result->m_defaults = defaults;
 
     result->m_code_object = code_object;

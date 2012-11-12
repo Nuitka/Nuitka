@@ -23,8 +23,4 @@ Provides a class that all finalization visitors should inherit from.
 from nuitka.transform import TreeOperations
 
 class FinalizationVisitorBase( TreeOperations.VisitorNoopMixin ):
-    visit_type = "tree"
-
-
-class FinalizationVisitorScopedBase( TreeOperations.VisitorNoopMixin ):
-    visit_type = "scopes"
+    pass

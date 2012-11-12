@@ -21,7 +21,12 @@
 
 from nuitka import Variables
 
-from .Identifiers import ModuleVariableIdentifier, MaybeModuleVariableIdentifier
+from .Identifiers import (
+    ModuleVariableIdentifier,
+    MaybeModuleVariableIdentifier,
+    TempVariableIdentifier,
+    TempObjectIdentifier
+)
 
 def getVariableHandle( context, variable ):
     assert isinstance( variable, Variables.Variable ), variable
@@ -56,11 +61,11 @@ def getVariableHandle( context, variable ):
         )
     elif variable.isTempVariableReference():
         if not variable.getReferenced().getNeedsFree():
-            return context.getTempObjectHandle(
+            return TempObjectIdentifier(
                 var_name = var_name
             )
         else:
-            return context.getTempVarHandle(
+            return TempVariableIdentifier(
                 var_name = var_name
             )
     else:

@@ -206,9 +206,6 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         # pylint: disable=E1101
         return isinstance( self, CPythonClosureGiverNodeBase )
 
-    def isClosureVariableTaker( self ):
-        return self.hasTag( "closure_taker" )
-
     def getParentVariableProvider( self ):
         parent = self.getParent()
 
@@ -347,6 +344,9 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         # Virtual method, pylint: disable=R0201,W0613
 
         return True
+
+    def needsLineNumber( self ):
+        return self.mayRaiseException( BaseException )
 
     def isIndexable( self ):
         """ Unless we are told otherwise, it's not indexable. """
@@ -777,9 +777,6 @@ class CPythonClosureTaker:
         self.temp_keeper_count += 1
 
         return "keeper_%d" % self.temp_keeper_count
-
-    def getTempKeeperNames( self ):
-        return tuple( "keeper_%d" % ( i+1 ) for i in range( self.temp_keeper_count ) )
 
 
 class CPythonExpressionMixin:

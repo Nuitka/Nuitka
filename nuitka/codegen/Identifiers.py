@@ -163,10 +163,10 @@ class LocalVariableIdentifier:
 
 
 class TempVariableIdentifier( Identifier ):
-    def __init__( self, tempvar_name ):
-        self.tempvar_name = tempvar_name
+    def __init__( self, var_name ):
+        self.tempvar_name = var_name
 
-        Identifier.__init__( self, "_python_tmp_" + tempvar_name, 0 )
+        Identifier.__init__( self, "_python_tmp_" + var_name, 0 )
 
     def __repr__( self ):
         return "<TempVariableIdentifier %s >" % self.tempvar_name
@@ -181,33 +181,11 @@ class TempVariableIdentifier( Identifier ):
         return "PyObjectTemporary"
 
 
-class HolderVariableIdentifier( Identifier ):
-    def __init__( self, tempvar_name ):
-        self.tempvar_name = tempvar_name
-
-        Identifier.__init__( self, "_python_holder_" + tempvar_name, 0 )
-
-    def __repr__( self ):
-        return "<HolderVariableIdentifier %s >" % self.tempvar_name
-
-    def getRefCount( self ):
-        return 1
-
-    def getCheapRefCount( self ):
-        return 1
-
-    def getCodeObject( self ):
-        return "%s.asObject()" % self.getCode()
-
-    def getClass( self ):
-        return "PyObjectTempHolder"
-
-
 class TempObjectIdentifier( Identifier ):
-    def __init__( self, tempvar_name ):
-        self.tempvar_name = tempvar_name
+    def __init__( self, var_name ):
+        self.tempvar_name = var_name
 
-        Identifier.__init__( self, "_python_tmp_" + tempvar_name, 0 )
+        Identifier.__init__( self, "_python_tmp_" + var_name, 0 )
 
     def getCodeTemporaryRef( self ):
         return self.code
@@ -238,22 +216,27 @@ class ClosureVariableIdentifier( Identifier ):
 
 
 class DefaultValueIdentifier( Identifier ):
-    def __init__( self, var_name, nested ):
-        if nested:
-            Identifier.__init__(
-                self,
-                code      = "_python_context->default_values_" + var_name,
-                ref_count = 0
-            )
-        else:
-            Identifier.__init__(
-                self,
-                code      = "_python_context->default_value_" + var_name,
-                ref_count = 0
-            )
+    def __init__( self, count ):
+        Identifier.__init__(
+            self,
+            code      = "PyTuple_GET_ITEM( self->m_defaults, %d )" % count,
+            ref_count = 0
+        )
 
     def getCheapRefCount( self ):
         return 0
+
+
+class NullIdentifier( Identifier ):
+    def __init__( self ):
+        Identifier.__init__(
+            self,
+            code      = "NULL",
+            ref_count = 0
+        )
+
+    def getCodeExportRef( self ):
+        return "NULL"
 
 
 class ThrowingIdentifier( Identifier ):

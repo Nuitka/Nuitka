@@ -48,7 +48,13 @@ except ImportError:
 os_path = os.path.normpath( os_path )
 extra_path = os.path.normpath( extra_path )
 
-stage_dir = os.path.join( tempfile.gettempdir(), "compile_library" )
+tmp_dir = tempfile.gettempdir()
+
+# Try to avoid RAM disk /tmp and use the disk one instead.
+if tmp_dir == "/tmp" and os.path.exists( "/var/tmp" ):
+    tmp_dir = "/var/tmp"
+
+stage_dir = os.path.join( tmp_dir, "compile_library" )
 
 blacklist = (
     "__phello__.foo.py", # Triggers error for "." in module name
@@ -74,7 +80,7 @@ def compilePath( path ):
             if not active:
                 continue
 
-            command = "%s %s --output-dir %s --recurse-none %s" % (
+            command = "%s %s --output-dir %s --recurse-none --remove-output %s" % (
                 sys.executable,
                 os.path.join( os.path.dirname( __file__ ), "..", "..", "bin", "nuitka" ),
                 stage_dir,
@@ -84,6 +90,8 @@ def compilePath( path ):
             print path
 
             subprocess.check_call( command.split() )
+
+            os.unlink( os.path.join( stage_dir, os.path.basename( path ).replace( ".py", ".so" ) ) )
 
 compilePath( os_path )
 

@@ -34,9 +34,9 @@ class CPythonExpressionClassDefinition( CPythonExpressionFunctionCall ):
     def __init__( self, class_definition, metaclass, bases, source_ref ):
         CPythonExpressionFunctionCall.__init__(
             self,
-            function_body  = class_definition,
-            values         = (),
-            source_ref     = source_ref
+            function   = class_definition,
+            values     = (),
+            source_ref = source_ref
         )
 
         self.setMetaclass( metaclass )

@@ -20,9 +20,8 @@
 """
 
 template_parameter_function_entry_point = """\
-static PyObject *%(parse_function_identifier)s( PyObject *self, PyObject *args, PyObject *kw )
+static PyObject *%(parse_function_identifier)s( Nuitka_FunctionObject *self, PyObject *args, PyObject *kw )
 {
-%(context_access)s
     Py_ssize_t args_size = PyTuple_GET_SIZE( args );
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_found = 0;
@@ -39,10 +38,10 @@ error_exit:;
 """
 
 template_parameter_method_entry_point = """\
-static PyObject *%(parse_function_identifier)s( PyObject *self, PyObject *_python_par_self, PyObject *args, PyObject *kw )
+static PyObject *%(parse_function_identifier)s( Nuitka_FunctionObject *self, PyObject *_python_par_self, PyObject *args, PyObject *kw )
 {
     Py_INCREF( _python_par_self );
-%(context_access)s
+
     Py_ssize_t args_size = PyTuple_GET_SIZE( args );
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_found = 0;
@@ -250,7 +249,7 @@ if ( kw_size > 0 )
 }
 """
 
-argparse_template_assign_from_dict_parameters = """
+argparse_template_assign_from_dict_parameters = """\
 if ( kw_size > 0 )
 {
     Py_ssize_t ppos = 0;
@@ -331,6 +330,7 @@ parse_argument_template_copy_default_value = """\
 if ( _python_par_%(parameter_name)s == NULL )
 {
     _python_par_%(parameter_name)s = %(default_identifier)s;
+    assertObject( _python_par_%(parameter_name)s );
 }
 """
 

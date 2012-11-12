@@ -80,3 +80,17 @@ def tryScope4( x ):
 
 tryScope4( 1 )
 tryScope4( [ 1 ] )
+
+def tryScope5():
+    import sys
+
+    print "Exception info is initially", sys.exc_info()
+    try:
+        try:
+            X += 1
+        finally:
+            print "Exception info in 'finally' clause is", sys.exc_info()
+    except:
+        pass
+
+tryScope5()

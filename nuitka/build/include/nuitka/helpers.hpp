@@ -18,6 +18,9 @@
 #ifndef __NUITKA_HELPERS_H__
 #define __NUITKA_HELPERS_H__
 
+#define _DEBUG_UNFREEZER 0
+#define _DEBUG_REFRAME 0
+
 #include "nuitka/eval_order.hpp"
 
 extern PyObject *_python_tuple_empty;
@@ -51,7 +54,7 @@ static inline void assertObject( PyTracebackObject *value )
 
 // Due to ABI issues, it seems that on Windows the symbols used by _PyObject_GC_TRACK are
 // not exported and we need to use a function that does it instead.
-#if defined (__WIN32__)
+#if defined( _WIN32 )
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #else
@@ -749,39 +752,6 @@ NUITKA_MAY_BE_UNUSED static inline bool UNPACK_PARAMETER_ITERATOR_CHECK( PyObjec
     }
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *SELECT_IF_TRUE( PyObject *object )
-{
-    assertObject( object );
-
-    if ( CHECK_IF_TRUE( object ) )
-    {
-        return object;
-    }
-    else
-    {
-        Py_DECREF( object );
-
-        return NULL;
-    }
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *SELECT_IF_FALSE( PyObject *object )
-{
-    assertObject( object );
-
-    if ( CHECK_IF_FALSE( object ) )
-    {
-        return object;
-    }
-    else
-    {
-        Py_DECREF( object );
-
-        return NULL;
-    }
-}
-
-
 NUITKA_MAY_BE_UNUSED static bool HAS_KEY( PyObject *source, PyObject *key )
 {
     assertObject( source );
@@ -838,7 +808,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *kl
     {
         Py_ssize_t base_count = PyTuple_Size( klass->cl_bases );
 
-        for( Py_ssize_t i = 0; i < base_count; i++ )
+        for ( Py_ssize_t i = 0; i < base_count; i++ )
         {
             result = FIND_ATTRIBUTE_IN_CLASS( (PyClassObject *)PyTuple_GetItem( klass->cl_bases, i ), attr_name );
 
@@ -1245,118 +1215,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject 
 
 extern PyModuleObject *module_builtin;
 
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LOCALS_DICT( void )
-{
-    return MAKE_DICT0();
-}
-
-template<typename T>
-static void FILL_LOCALS_DICT( PyObject *dict, T variable )
-{
-    if ( variable->isInitialized() )
-    {
-        int status = PyDict_SetItem(
-            dict,
-            variable->getVariableName(),
-            variable->asObject()
-        );
-
-        if (unlikely( status == -1 ))
-        {
-            throw _PythonException();
-        }
-    }
-}
-
-template<typename T, typename... P>
-static void FILL_LOCALS_DICT( PyObject *dict, T variable, P... variables )
-{
-    if ( variable->isInitialized() )
-    {
-        int status = PyDict_SetItem(
-            dict,
-            variable->getVariableName(),
-            variable->asObject()
-        );
-
-        if (unlikely( status == -1 ))
-        {
-            throw _PythonException();
-        }
-    }
-
-    FILL_LOCALS_DICT( dict, variables... );
-}
-
-template<typename... P>
-static PyObject *MAKE_LOCALS_DICT( P...variables )
-{
-    PyObject *result = MAKE_LOCALS_DICT();
-
-    FILL_LOCALS_DICT( result, variables... );
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *UPDATED_LOCALS_DICT( PyObject *locals_dict )
-{
-    return INCREASE_REFCOUNT( locals_dict );
-}
-
-template<typename... P>
-static PyObject *UPDATED_LOCALS_DICT( PyObject *locals_dict, P...variables )
-{
-    FILL_LOCALS_DICT( locals_dict, variables... );
-
-    return INCREASE_REFCOUNT( locals_dict );
-}
-
-
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LOCALS_DIR( void )
-{
-    return MAKE_LIST0();
-}
-
-template<typename T>
-static void FILL_LOCALS_DIR( PyObject *list, T variable )
-{
-    if ( variable->isInitialized() )
-    {
-        int status = PyList_Append( list, variable->getVariableName() );
-
-        if (unlikely( status == -1 ))
-        {
-            throw _PythonException();
-        }
-    }
-}
-
-template<typename T, typename... P>
-static void FILL_LOCALS_DIR( PyObject *list, T variable, P... variables )
-{
-    if ( variable->isInitialized() )
-    {
-        int status = PyList_Append( list, variable->getVariableName() );
-
-        if (unlikely( status == -1 ))
-        {
-            throw _PythonException();
-        }
-    }
-
-    FILL_LOCALS_DIR( list, variables... );
-}
-
-template<typename... P>
-static PyObject *MAKE_LOCALS_DIR( P...variables )
-{
-    PyObject *result = MAKE_LOCALS_DIR();
-
-    FILL_LOCALS_DIR( result, variables... );
-
-    return result;
-}
-
 NUITKA_MAY_BE_UNUSED static PyObject *TUPLE_COPY( PyObject *tuple )
 {
     assertObject( tuple );
@@ -1499,9 +1357,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
     return result;
 }
 
-// Create a frame object for the given code object and module
-extern PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module );
-
 // Create a code object for the given filename and function name
 extern PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, bool is_generator );
 
@@ -1518,9 +1373,6 @@ extern void enhancePythonTypes( void );
 extern void setCommandLineParameters( int argc, char *argv[] );
 
 extern void patchInspectModule( void );
-
-#define _DEBUG_UNFREEZER 0
-#define _DEBUG_REFRAME 0
 
 #define MAKE_CLASS( metaclass_global, metaclass_class, class_name, bases, class_dict ) _MAKE_CLASS( EVAL_ORDERED_5( metaclass_global, metaclass_class, class_name, bases, class_dict ) )
 

@@ -106,7 +106,7 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
                 change_desc = "Module variable '%s' found to be builtin reference." % self.variable_name
             elif self.variable_name == "__name__":
                 new_node = CPythonExpressionConstantRef(
-                    constant   = self.variable.getReferenced().getOwner().getName(),
+                    constant   = self.variable.getReferenced().getOwner().getFullName(),
                     source_ref = self.getSourceReference()
                 )
 

@@ -38,7 +38,7 @@ from .codegen import CodeGeneration
 from .transform.optimizations import Optimization
 from .transform.finalizations import Finalization
 
-import sys, os, shutil
+import sys, os
 
 def createNodeTree( filename ):
     """ Create a node tree.
@@ -275,7 +275,7 @@ def makeSourceDirectory( main_module ):
         source_code = "".join( module_hpp_include )
     )
 
-def runScons( tree, quiet ):
+def runScons( main_module, quiet ):
     python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
 
     if Utils.python_version >= 320:
@@ -294,9 +294,9 @@ def runScons( tree, quiet ):
         return "true" if value else "false"
 
     options = {
-        "name"           : Utils.basename( getTreeFilenameWithSuffix( tree, "" ) ),
-        "result_file"    : getResultPath( tree ),
-        "source_dir"     : getSourceDirectoryPath( tree ),
+        "name"           : Utils.basename( getTreeFilenameWithSuffix( main_module, "" ) ),
+        "result_file"    : getResultPath( main_module ),
+        "source_dir"     : getSourceDirectoryPath( main_module ),
         "debug_mode"     : asBoolStr( Options.isDebug() ),
         "unstriped_mode" : asBoolStr( Options.isUnstriped() ),
         "module_mode"    : asBoolStr( Options.shallMakeModule() ),
@@ -371,11 +371,16 @@ def executeMain( binary_filename, tree, clean_path ):
     )
 
 def executeModule( tree, clean_path ):
+    python_command = "__import__( '%s' )" % tree.getName()
+
+    if os.name == "nt":
+        python_command = '"%s"' % python_command
+
     args = (
         sys.executable,
         "python",
         "-c",
-        "__import__( '%s' )" % tree.getName(),
+        python_command,
     )
 
     callExec(
@@ -384,37 +389,23 @@ def executeModule( tree, clean_path ):
         args       = args
     )
 
-def compileTree( tree ):
+def compileTree( main_module ):
     if not Options.shallOnlyExecGcc():
         # Now build the target language code for the whole tree.
         makeSourceDirectory(
-            main_module = tree
+            main_module = main_module
         )
+    else:
+        source_dir = getSourceDirectoryPath( main_module )
+
+        if not Utils.isFile( Utils.joinpath( source_dir, "__helpers.hpp" ) ):
+            sys.exit( "Error, no previous build directory exists." )
+
 
     # Run the Scons to build things.
     result, options = runScons(
-        tree  = tree,
-        quiet = not Options.isShowScons()
+        main_module  = main_module,
+        quiet        = not Options.isShowScons()
     )
 
-    # Exit if compilation failed.
-    if not result:
-        sys.exit( 1 )
-
-    # Remove the source directory (now build directory too) if asked to.
-    if Options.isRemoveBuildDir():
-        shutil.rmtree( getSourceDirectoryPath( tree ) )
-
-    # Execute the module immediately if option was given.
-    if Options.shallExecuteImmediately():
-        if Options.shallMakeModule():
-            executeModule(
-                tree       = tree,
-                clean_path = Options.shallClearPythonPathEnvironment()
-            )
-        else:
-            executeMain(
-                binary_filename = options[ "result_file" ] + ".exe",
-                tree            = tree,
-                clean_path      = Options.shallClearPythonPathEnvironment()
-            )
+    return result, options

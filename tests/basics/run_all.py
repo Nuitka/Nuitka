@@ -34,7 +34,7 @@ else:
     active = True
 
 if "PYTHON" not in os.environ:
-    os.environ[ "PYTHON" ] = "python"
+    os.environ[ "PYTHON" ] = "python" if os.name != "nt" else sys.executable
 
 if "PYTHONIOENCODING" not in os.environ:
     os.environ[ "PYTHONIOENCODING" ] = "utf-8"
@@ -86,18 +86,25 @@ for filename in sorted( os.listdir( "." ) ):
     if not active and start_at in ( filename, path ):
         active = True
 
-
-    extra_flags = [ "expect_success" ]
-
-    if filename == "Referencing.py":
-        if not os.path.exists( "/usr/bin/" + os.environ[ "PYTHON" ] + "-dbg" ):
-            print( "Skip reference count test, CPython debug version not found." )
-            continue
-
-        extra_flags.append( "ignore_stderr" )
-        extra_flags.append( "python_debug" )
+    extra_flags = [ "expect_success", "remove_output" ]
 
     if active:
+        if filename == "Referencing.py":
+            debug_python = os.environ[ "PYTHON" ]
+            if not debug_python.endswith( "-dbg" ):
+                debug_python += "-dbg"
+
+            if os.name == "nt" or "--windows-target" in os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ):
+                print( "Skip reference count test, CPython debug not on Windows." )
+                continue
+
+            if not os.path.exists( os.path.join( "/usr/bin", debug_python ) ):
+                print( "Skip reference count test, CPython debug version not found." )
+                continue
+
+            extra_flags.append( "ignore_stderr" )
+            extra_flags.append( "python_debug" )
+
         # Temporary measure, until Python3 is better supported, disable some tests, so
         # this can be used to monitor the success of existing ones and have no regression for it.
         if python_version.startswith( b"3.2" ) and filename[:-3] in ( "ExecEval",  ):

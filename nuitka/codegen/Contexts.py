@@ -22,8 +22,6 @@
 from .Identifiers import (
     Identifier,
     ConstantIdentifier,
-    TempObjectIdentifier,
-    TempVariableIdentifier,
     LocalVariableIdentifier,
     ClosureVariableIdentifier
 )
@@ -60,18 +58,7 @@ else:
 
 class PythonContextBase:
     def __init__( self ):
-        self.while_loop_count = 0
-        self.for_loop_count = 0
-
         self.try_count = 0
-        self.with_count = 0
-
-        self.preservations = {}
-
-    def allocateForLoopNumber( self ):
-        self.for_loop_count += 1
-
-        return self.for_loop_count
 
     def allocateTryNumber( self ):
         self.try_count += 1
@@ -83,12 +70,6 @@ class PythonContextBase:
 
     def needsFrameExceptionKeeper( self ):
         return False
-
-    def getTempObjectHandle( self, var_name ):
-        return TempObjectIdentifier( var_name )
-
-    def getTempVarHandle( self, var_name ):
-        return TempVariableIdentifier( var_name )
 
 
 class PythonChildContextBase( PythonContextBase ):
@@ -129,6 +110,7 @@ class PythonChildContextBase( PythonContextBase ):
 
     def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, is_generator ):
         return self.parent.getCodeObjectHandle( filename, code_name, line_number, arg_names, is_generator )
+
 
 class PythonGlobalContext:
     def __init__( self ):
@@ -285,7 +267,8 @@ class PythonModuleContext( PythonContextBase ):
         self.function_codes = {}
 
         self.global_var_names = set()
-        self.temp_var_names = set()
+
+        self.temp_keepers = {}
 
     def __repr__( self ):
         return "<PythonModuleContext instance for module %s>" % self.filename
@@ -348,6 +331,13 @@ class PythonModuleContext( PythonContextBase ):
     def addMakeDictUse( self, value ):
         self.global_context.addMakeDictUse( value )
 
+    def addTempKeeperUsage( self, variable_name, ref_count ):
+        self.temp_keepers[ variable_name ] = ref_count
+
+    def getTempKeeperUsages( self ):
+        return self.temp_keepers
+
+
 
 class PythonFunctionContext( PythonChildContextBase ):
     def __init__( self, parent, function ):
@@ -360,6 +350,8 @@ class PythonFunctionContext( PythonChildContextBase ):
         # Make sure the local names are available as constants
         for local_name in function.getLocalVariableNames():
             self.getConstantHandle( constant = local_name )
+
+        self.temp_keepers = {}
 
     def __repr__( self ):
         return "<PythonFunctionContext for %s '%s'>" % (
@@ -400,11 +392,14 @@ class PythonFunctionContext( PythonChildContextBase ):
             else:
                 return ClosureVariableIdentifier( var_name, from_context = "" )
 
-    def getTempObjectHandle( self, var_name ):
-        return TempObjectIdentifier( var_name )
-
     def needsFrameExceptionKeeper( self ):
         return self.function.needsFrameExceptionKeeper()
+
+    def addTempKeeperUsage( self, variable_name, ref_count ):
+        self.temp_keepers[ variable_name ] = ref_count
+
+    def getTempKeeperUsages( self ):
+        return self.temp_keepers
 
 
 class PythonExecInlineContext( PythonChildContextBase ):

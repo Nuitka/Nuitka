@@ -16,9 +16,30 @@
 #     limitations under the License.
 #
 
-print( "This is deep brother module talking.", __name__ )
+import sys
 
-def someBrotherFunction():
-    pass
+class X:
+    def __del__( self ):
+        print "X.__del__ occured"
 
-print( "The __module__ of function here is", someBrotherFunction.__module__ )
+def raising( doit ):
+    x = X()
+
+    if doit:
+        1 / 0
+
+# Call it without an exception
+raising( False )
+
+def catcher():
+    try:
+        raising( True )
+    except ZeroDivisionError:
+        print "Catching"
+
+        print sys.exc_info()[2].tb_next.tb_frame.f_locals
+        pass
+
+catcher()
+
+print "Good bye."

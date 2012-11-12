@@ -56,11 +56,6 @@ from .nodes.BuiltinIteratorNodes import (
     CPythonExpressionBuiltinNext1,
     CPythonExpressionBuiltinIter1,
 )
-from .nodes.BoolNodes import (
-    CPythonExpressionBoolAND,
-    CPythonExpressionBoolOR
-)
-
 from .nodes.ExceptionNodes import (
     CPythonExpressionCaughtExceptionTracebackRef,
     CPythonExpressionCaughtExceptionValueRef,
@@ -80,11 +75,10 @@ from .nodes.SliceNodes import (
     CPythonExpressionSliceLookup,
     CPythonExpressionSliceObject
 )
-
 from .nodes.FunctionNodes import (
-    CPythonExpressionFunctionBodyDefaulted,
+    CPythonExpressionFunctionCreation,
     CPythonExpressionFunctionBody,
-    CPythonExpressionFunctionCall
+    CPythonExpressionFunctionCall,
 )
 from .nodes.ClassNodes import (
     CPythonExpressionClassDefinition,
@@ -308,7 +302,11 @@ def buildClassNode( provider, node, source_ref ):
     class_creation_function.setBody( body )
 
     decorated_body = CPythonExpressionClassDefinition(
-        class_definition = class_creation_function,
+        class_definition = CPythonExpressionFunctionCreation(
+            function_body = class_creation_function,
+            defaults      = (),
+            source_ref    = source_ref
+        ),
         bases            = bases,
         metaclass        = metaclass,
         source_ref       = source_ref
@@ -389,6 +387,9 @@ def buildFunctionNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
+    # Hack:
+    function_body.parent = provider
+
     function_statements_body = buildStatementsNode(
         provider   = function_body,
         nodes      = function_statements,
@@ -398,14 +399,11 @@ def buildFunctionNode( provider, node, source_ref ):
 
     function_body.setBody( function_statements_body )
 
-    if defaults:
-        decorated_body = CPythonExpressionFunctionBodyDefaulted(
-            function_body = function_body,
-            defaults      = defaults,
-            source_ref    = source_ref
-        )
-    else:
-        decorated_body = function_body
+    decorated_body = CPythonExpressionFunctionCreation(
+        function_body = function_body,
+        defaults      = defaults,
+        source_ref    = source_ref
+    )
 
     for decorator in decorators:
         decorated_body = CPythonExpressionCall(
@@ -449,7 +447,7 @@ def buildLambdaNode( provider, node, source_ref ):
 
     defaults = buildNodeList( provider, node.args.defaults, source_ref )
 
-    result = CPythonExpressionFunctionBody(
+    function_body = CPythonExpressionFunctionBody(
         provider   = provider,
         name       = "<lambda>",
         doc        = None,
@@ -458,12 +456,12 @@ def buildLambdaNode( provider, node, source_ref ):
     )
 
     body = buildNode(
-        provider   = result,
+        provider   = function_body,
         node       = node.body,
         source_ref = source_ref,
     )
 
-    if result.isGenerator():
+    if function_body.isGenerator():
         body = CPythonStatementExpressionOnly(
             expression = CPythonExpressionYield(
                 expression = body,
@@ -480,21 +478,18 @@ def buildLambdaNode( provider, node, source_ref ):
 
     body = CPythonStatementsFrame(
         statements = ( body, ),
-        arg_names  = result.getParameters().getCoArgNames(),
+        arg_names  = function_body.getParameters().getCoArgNames(),
         code_name  = "<lambda>",
         source_ref = body.getSourceReference()
     )
 
-    result.setBody( body )
+    function_body.setBody( body )
 
-    if defaults:
-        result = CPythonExpressionFunctionBodyDefaulted(
-            function_body = result,
-            defaults      = defaults,
-            source_ref    = source_ref
-        )
-
-    return result
+    return CPythonExpressionFunctionCreation(
+        function_body = function_body,
+        defaults      = defaults,
+        source_ref    = source_ref
+    )
 
 def buildForLoopNode( provider, node, source_ref ):
     source = buildNode( provider, node.iter, source_ref )
@@ -1457,8 +1452,9 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
         elif len( conditions ) > 1:
             loop_statements.append(
                 CPythonStatementConditional(
-                    condition = CPythonExpressionBoolAND(
-                        operands   = conditions,
+                    condition = _buildAndNode(
+                        provider   = function_body,
+                        values     = conditions,
                         source_ref = source_ref
                     ),
                     yes_branch = CPythonStatementsSequence(
@@ -1521,8 +1517,12 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
     )
 
     return CPythonExpressionFunctionCall(
-        function_body = function_body,
-        values        = (
+        function   = CPythonExpressionFunctionCreation(
+            function_body = function_body,
+            defaults      = (),
+            source_ref    = source_ref
+        ),
+        values     = (
             CPythonExpressionBuiltinIter1(
                 value      = buildNode(
                     provider   = provider,
@@ -1532,7 +1532,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
                 source_ref = source_ref
             ),
         ),
-        source_ref        = source_ref
+        source_ref = source_ref
     )
 
 def buildListContractionNode( provider, node, source_ref ):
@@ -1644,13 +1644,11 @@ def buildComparisonNode( provider, node, source_ref ):
 
     assert tmp_assign is None
 
-    if len( result ) > 1:
-        return CPythonExpressionBoolAND(
-            operands   = result,
-            source_ref = source_ref
-        )
-    else:
-        return result[ 0 ]
+    return _buildAndNode(
+        provider = provider,
+        values   = result,
+        source_ref = source_ref
+    )
 
 def buildConditionNode( provider, node, source_ref ):
     return CPythonStatementConditional(
@@ -2487,7 +2485,7 @@ def buildNodeList( provider, nodes, source_ref, allow_none = False ):
     else:
         return []
 
-def buildGlobalDeclarationNode( provider, node, source_ref ):
+def handleGlobalDeclarationNode( provider, node, source_ref ):
     # The source reference of the global really doesn't matter, pylint: disable=W0613
 
     # Need to catch the error of declaring a parameter variable as global ourselves
@@ -2498,11 +2496,11 @@ def buildGlobalDeclarationNode( provider, node, source_ref ):
         for variable_name in node.names:
             if variable_name in parameters.getParameterNames():
                 SyntaxErrors.raiseSyntaxError(
-                    "name '%s' is %s and global" % (
+                    reason     = "name '%s' is %s and global" % (
                         variable_name,
                         "local" if Utils.python_version < 300 else "parameter"
                     ),
-                    provider.getSourceReference()
+                    source_ref = provider.getSourceReference()
                 )
     except AttributeError:
         pass
@@ -2516,6 +2514,46 @@ def buildGlobalDeclarationNode( provider, node, source_ref ):
 
         closure_variable = provider.addClosureVariable(
             variable         = module_variable,
+            global_statement = True
+        )
+
+        if isinstance( provider, CPythonClosureGiverNodeBase ):
+            provider.registerProvidedVariable(
+                variable = closure_variable
+            )
+
+    return None
+
+def handleNonlocalDeclarationNode( provider, node, source_ref ):
+    # The source reference of the nonlocal really doesn't matter, pylint: disable=W0613
+
+    # Need to catch the error of declaring a parameter variable as global ourselves
+    # here. The AST parsing doesn't catch it.
+    try:
+        parameters = provider.getParameters()
+
+        for variable_name in node.names:
+            if variable_name in parameters.getParameterNames():
+                SyntaxErrors.raiseSyntaxError(
+                    reason       = "name '%s' is parameter and nonlocal" % (
+                        variable_name
+                    ),
+                    source_ref   = None,
+                    display_file = False,
+                    display_line = False
+                )
+    except AttributeError:
+        raise
+
+    parent_provider = provider.getParentVariableProvider()
+
+    for variable_name in node.names:
+        parent_variable = parent_provider.getVariableForAssignment(
+            variable_name = variable_name
+        )
+
+        closure_variable = provider.addClosureVariable(
+            variable         = parent_variable,
             global_statement = True
         )
 
@@ -2555,20 +2593,69 @@ def buildEllipsisNode( source_ref ):
         source_ref = source_ref
     )
 
+def _buildAndNode( provider, values, source_ref ):
+    result = values[ -1 ]
+    del values[ -1 ]
+
+    while values:
+        tmp_assign = CPythonExpressionAssignmentTempKeeper(
+            variable_name = provider.allocateTempKeeperName(),
+            source        = values[ -1 ],
+            source_ref    = source_ref
+        )
+        del values[ -1 ]
+
+        result = CPythonExpressionConditional(
+            condition      = tmp_assign,
+            no_expression = CPythonExpressionTempKeeperRef(
+                linked     = tmp_assign,
+                source_ref = source_ref
+            ),
+            yes_expression  = result,
+            source_ref      = source_ref
+        )
+
+    return result
+
+
 def buildBoolOpNode( provider, node, source_ref ):
     bool_op = getKind( node.op )
 
     if bool_op == "Or":
         # The "or" may be short circuit and is therefore not a plain operation
-        return CPythonExpressionBoolOR(
-            operands   = buildNodeList( provider, node.values, source_ref ),
-            source_ref = source_ref
-        )
+        values = buildNodeList( provider, node.values, source_ref )
+
+        result = values[ -1 ]
+        del values[ -1 ]
+
+        while True:
+            tmp_assign = CPythonExpressionAssignmentTempKeeper(
+                variable_name = provider.allocateTempKeeperName(),
+                source        = values[ -1 ],
+                source_ref    = source_ref
+            )
+            del values[ -1 ]
+
+            result = CPythonExpressionConditional(
+                condition      = tmp_assign,
+                yes_expression = CPythonExpressionTempKeeperRef(
+                    linked     = tmp_assign,
+                    source_ref = source_ref
+                ),
+                no_expression  = result,
+                source_ref      = source_ref
+            )
+
+            if not values:
+                break
+
+        return result
     elif bool_op == "And":
         # The "and" may be short circuit and is therefore not a plain operation
-        return CPythonExpressionBoolAND(
-            operands    = buildNodeList( provider, node.values, source_ref ),
-            source_ref  = source_ref
+        return _buildAndNode(
+            provider   = provider,
+            values     = buildNodeList( provider, node.values, source_ref ),
+            source_ref = source_ref
         )
     elif bool_op == "Not":
         # The "not" is really only a unary operation and no special.
@@ -3080,7 +3167,8 @@ _fast_path_args3 = {
     "Set"          : buildSequenceCreationNode,
     "Tuple"        : buildSequenceCreationNode,
     "List"         : buildSequenceCreationNode,
-    "Global"       : buildGlobalDeclarationNode,
+    "Global"       : handleGlobalDeclarationNode,
+    "Nonlocal"     : handleNonlocalDeclarationNode,
     "TryExcept"    : buildTryExceptionNode,
     "TryFinally"   : buildTryFinallyNode,
     "Try"          : buildTryNode,
@@ -3339,18 +3427,14 @@ def buildModuleTree( filename, package, is_top, is_main ):
 
                 wrong_byte = re.search( "byte 0x([a-f0-9]{2}) in position", str( e ) ).group( 1 )
 
-                raise SyntaxError(
-                    "Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; see http://www.python.org/peps/pep-0263.html for details" % ( # pylint: disable=C0301
+                SyntaxErrors.raiseSyntaxError(
+                    reason     = "Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; see http://www.python.org/peps/pep-0263.html for details" % ( # pylint: disable=C0301
                         wrong_byte,
                         source_filename,
                         count+1,
                     ),
-                    (
-                        source_filename,
-                        count+1,
-                        None,
-                        None
-                    )
+                    source_ref = SourceCodeReferences.fromFilename( source_filename, None ).atLineNumber( count+1 ),
+                    display_line = False
                 )
 
         buildParseTree(

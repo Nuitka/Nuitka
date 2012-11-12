@@ -15,22 +15,26 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Finalizations. Last steps directly before code creation is called.
-
-Here the final tasks are executed. Things normally volatile during optimizations can
-be computed here, so the code generation can be quick and doesn't have to check it
-many times.
+""" Templates for conditional statements and expressions.
 
 """
-from .FinalizeMarkups import FinalizeMarkups
-from .FinalizeClosureTaking import FinalizeClosureTaking
 
-# Bug of pylint, it's there but it reports it wrongly, pylint: disable=E0611
-from .. import TreeOperations
 
-def prepareCodeGeneration( tree ):
-    visitor = FinalizeMarkups()
-    TreeOperations.visitScopes( tree, visitor )
+template_branch_one = """\
+if ( %(condition)s )
+{
+%(branch_code)s
+}"""
 
-    visitor = FinalizeClosureTaking()
-    TreeOperations.visitFunctions( tree, visitor )
+template_branch_two = """\
+if ( %(condition)s )
+{
+%(branch_yes_code)s
+}
+else
+{
+%(branch_no_code)s
+}"""
+
+template_conditional_expression = """\
+( %(condition)s ? %(yes)s : %(no)s )"""

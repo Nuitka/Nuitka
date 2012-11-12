@@ -20,23 +20,25 @@ module_level = 1
 def defaultValueTest1( no_default, some_default_constant = 1 ):
     return some_default_constant
 
-def defaultValueTest2( no_default, some_default_constant = module_level*2 ):
+def defaultValueTest2( no_default, some_default_computed = module_level*2 ):
     local_var = no_default = "1"
-    return local_var, some_default_constant
+    return local_var, some_default_computed
 
 def defaultValueTest3( no_default, func_defaulted = defaultValueTest1(module_level)):
     return [ func_defaulted for i in range(8) ]
 
-##def defaultValueTest4( no_default, funced_defaulted = lambda x: x**2):
-##    c = 1
-##    d = 1
-##    return ( i+c+d for i in range(8) )
-##
-##def defaultValueTest5( no_default, tuple_defaulted = (1,2,3)):
-##    pass
-##
-##def defaultValueTest6( no_default, list_defaulted = [1,2,3]):
-##    pass
+def defaultValueTest4( no_default, funced_defaulted = lambda x: x**2):
+    c = 1
+    d = 1
+    return ( i+c+d for i in range(8) )
+
+def defaultValueTest5( no_default, tuple_defaulted = (1,2,3)):
+    return tuple_defaulted
+
+def defaultValueTest6( no_default, list_defaulted = [1,2,3]):
+    list_defaulted.append( 5 )
+
+    return list_defaulted
 
 print defaultValueTest1("ignored")
 
@@ -47,3 +49,17 @@ module_level = 7
 print defaultValueTest2("also ignored")
 
 print defaultValueTest3("nono not again")
+
+print list( defaultValueTest4("unused") )
+
+print defaultValueTest5("unused")
+
+print defaultValueTest6("unused"),
+print defaultValueTest6("unused")
+
+print defaultValueTest6.func_defaults
+
+defaultValueTest6.func_defaults = ( [1,2,3], )
+print defaultValueTest6.func_defaults
+
+print defaultValueTest6(1)

@@ -40,11 +40,40 @@ class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
 
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
+        self.break_exception = False
+        self.continue_exception = False
+        self.generator_return_exception = False
+        self.return_value_exception = True
+
     getBlockTry = CPythonChildrenHaving.childGetter( "tried" )
     getBlockFinal = CPythonChildrenHaving.childGetter( "final" )
 
     def isStatementAbortative( self ):
         return self.getBlockTry().isStatementAbortative()
+
+    def markAsExceptionContinue( self ):
+        self.continue_exception = True
+
+    def markAsExceptionBreak( self ):
+        self.break_exception = True
+
+    def markAsExceptionGeneratorReturn( self ):
+        self.generator_return_exception = True
+
+    def markAsExceptionReturnValue( self ):
+        self.return_value_exception = True
+
+    def needsExceptionContinue( self ):
+        return self.continue_exception
+
+    def needsExceptionBreak( self ):
+        return self.break_exception
+
+    def needsExceptionGeneratorReturn( self ):
+        return self.generator_return_exception
+
+    def needsExceptionReturnValue( self ):
+        return self.return_value_exception
 
 
 class CPythonStatementExceptHandler( CPythonChildrenHaving, CPythonNodeBase ):

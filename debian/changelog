@@ -1,3 +1,10 @@
+nuitka (0.3.25+ds-1) unstable; urgency=low
+
+  * New upstream release.
+  * Register the User Manual with "doc-base".
+
+ -- Kay Hayen <kayhayen@gmx.de>  Sun, 11 Nov 2012 13:57:32 +0100
+
 nuitka (0.3.24.1+ds-1) unstable; urgency=low
 
   * New upstream hotfix release.

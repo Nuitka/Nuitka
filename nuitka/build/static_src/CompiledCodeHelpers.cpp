@@ -427,7 +427,7 @@ static PyObject *_BUILTIN_RANGE_INT3( long low, long high, long step )
 
     long current = low;
 
-    for( int i = 0; i < size; i++ )
+    for ( int i = 0; i < size; i++ )
     {
         PyList_SET_ITEM( result, i, PyInt_FromLong( current ) );
         current += step;
@@ -448,12 +448,7 @@ static PyObject *_BUILTIN_RANGE_INT( long boundary )
 
 static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 {
-    if (likely(
-#if PYTHON_VERSION < 300
-            PyInt_Check( value ) ||
-#endif
-            PyLong_Check( value )
-       ))
+    if (likely( PyInt_Check( value ) || PyLong_Check( value ) ))
     {
         return INCREASE_REFCOUNT( value );
     }
@@ -653,7 +648,8 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
     assertObject( argnames );
     assert( PyTuple_Check( argnames ) );
 
-    int flags = 0;
+    int flags = CO_NEWLOCALS;
+    // TODO: Need to determine if CO_OPTIMIZED should be used, i.e. locals dict.
 
     if ( is_generator )
     {
@@ -698,42 +694,6 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
     return result;
 }
 
-extern PyObject *_python_dict_empty;
-
-PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
-{
-    assertCodeObject( code );
-    assertObject( module );
-
-    PyFrameObject *current = PyThreadState_GET()->frame;
-
-    PyFrameObject *result = PyFrame_New(
-        PyThreadState_GET(),                 // thread state
-        code,                                // code
-        ((PyModuleObject *)module)->md_dict, // globals (module dict)
-        _python_dict_empty                   // locals (we are not going to be compatible (yet?))
-    );
-
-    assertCodeObject( code );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    assert( current == PyThreadState_GET()->frame );
-
-    // Provide a non-NULL f_trace, so f_lineno will be used in exceptions.
-    result->f_trace = INCREASE_REFCOUNT( Py_None );
-
-    // Remove the reference to the current frame, to be set when actually using it
-    // only.
-    Py_XDECREF( result->f_back );
-    result->f_back = NULL;
-
-    return result;
-}
-
 static PyFrameObject *duplicateFrame( PyFrameObject *old_frame )
 {
     PyFrameObject *new_frame = PyObject_GC_NewVar( PyFrameObject, &PyFrame_Type, 0 );
@@ -751,7 +711,7 @@ static PyFrameObject *duplicateFrame( PyFrameObject *old_frame )
     Py_XINCREF( new_frame->f_code );
 
     // Copy attributes.
-    new_frame->f_locals = INCREASE_REFCOUNT( old_frame->f_locals );
+    new_frame->f_locals = NULL;
     new_frame->f_globals = INCREASE_REFCOUNT( old_frame->f_globals );
     new_frame->f_builtins = INCREASE_REFCOUNT( old_frame->f_builtins );
 

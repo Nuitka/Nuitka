@@ -24,11 +24,11 @@ transitive only references.
 
 """
 
-from .FinalizeBase import FinalizationVisitorScopedBase
+from .FinalizeBase import FinalizationVisitorBase
 
-class FinalizeClosureTaking( FinalizationVisitorScopedBase ):
+class FinalizeClosureTaking( FinalizationVisitorBase ):
     def onEnterNode( self, node ):
-        assert node.isClosureVariableTaker(), node
+        assert node.isExpressionFunctionBody(), node
 
         # print node, node.provider
 
@@ -43,7 +43,7 @@ class FinalizeClosureTaking( FinalizationVisitorScopedBase ):
             # print referenced
 
             while current is not referenced_owner:
-                if current.isClosureVariableTaker():
+                if current.isExpressionFunctionBody():
                     for current_variable in current.getClosureVariables():
                         if current_variable.getReferenced() is referenced:
                             break

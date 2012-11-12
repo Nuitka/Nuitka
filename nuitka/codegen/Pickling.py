@@ -38,8 +38,7 @@ import pickletools
 from logging import warning
 
 if Utils.python_version >= 300:
-    # Python3: The protocol 2 outputs bytes that I don't know how to covert to "str",
-    # which protocol 0 doesn't, so stay with it. TODO: Use more efficient protocol version
+    # Python3: The protocol 3 adds support for bytes type.
     # instead.
     pickle_protocol = 3
 else:

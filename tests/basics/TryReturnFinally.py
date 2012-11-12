@@ -16,9 +16,18 @@
 #     limitations under the License.
 #
 
-print( "This is deep brother module talking.", __name__ )
 
-def someBrotherFunction():
-    pass
+def returnInTried():
+    try:
+        return 8
+    finally:
+        print "returnInTried",
 
-print( "The __module__ of function here is", someBrotherFunction.__module__ )
+def returnInFinally():
+    try:
+        print "returnInFinally tried",
+    finally:
+        return 9
+
+print returnInTried()
+print returnInFinally()

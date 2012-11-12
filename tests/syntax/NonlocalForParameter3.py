@@ -16,9 +16,5 @@
 #     limitations under the License.
 #
 
-print( "This is deep brother module talking.", __name__ )
-
-def someBrotherFunction():
-    pass
-
-print( "The __module__ of function here is", someBrotherFunction.__module__ )
+def f( a ):
+    nonlocal a

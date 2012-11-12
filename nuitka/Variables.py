@@ -224,7 +224,7 @@ class ClosureVariableReference( VariableReferenceBase ):
     def getProviderVariable( self ):
         current = self.getOwner().getParent()
 
-        while not current.isClosureVariableTaker():
+        while not current.isExpressionFunctionBody():
             current = current.getParent()
 
         if current is self.getReferenced().getOwner():

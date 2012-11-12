@@ -43,13 +43,13 @@ static long Nuitka_Generator_tp_traverse( PyObject *function, visitproc visit, v
 
 static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObject *value )
 {
-    if ( generator->m_status == Generator_Status::status_Unused && value != NULL && value != Py_None )
+    if ( generator->m_status == status_Unused && value != NULL && value != Py_None )
     {
         PyErr_Format( PyExc_TypeError, "can't send non-None value to a just-started generator" );
         return NULL;
     }
 
-    if ( generator->m_status != Generator_Status::status_Finished )
+    if ( generator->m_status != status_Finished )
     {
         if ( generator->m_running )
         {
@@ -57,9 +57,9 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
             return NULL;
         }
 
-        if ( generator->m_status == Generator_Status::status_Unused )
+        if ( generator->m_status == status_Unused )
         {
-            generator->m_status = Generator_Status::status_Running;
+            generator->m_status = status_Running;
 
             // Prepare the generator context to run. TODO: Make stack size rational.
             prepareFiber( &generator->m_yielder_context, generator->m_code, (unsigned long)generator );
@@ -104,7 +104,7 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
 
         if ( generator->m_yielded == NULL )
         {
-            generator->m_status = Generator_Status::status_Finished;
+            generator->m_status = status_Finished;
 
             if ( generator->m_context )
             {
@@ -136,7 +136,7 @@ static PyObject *Nuitka_Generator_tp_iternext( Nuitka_GeneratorObject *generator
 
 static PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyObject *args )
 {
-    if ( generator->m_status == Generator_Status::status_Running )
+    if ( generator->m_status == status_Running )
     {
         generator->m_exception_type = PyExc_GeneratorExit;
         generator->m_exception_value = NULL;
@@ -275,7 +275,7 @@ static PyObject *Nuitka_Generator_throw( Nuitka_GeneratorObject *generator, PyOb
     PyObject *exception_value = generator->m_exception_value;
     PyObject *exception_tb = generator->m_exception_tb;
 
-    if ( generator->m_status != Generator_Status::status_Finished )
+    if ( generator->m_status != status_Finished )
     {
         PyObject *result = Nuitka_Generator_send( generator, Py_None );
 
@@ -427,7 +427,7 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject 
 
     result->m_weakrefs = NULL;
 
-    result->m_status = Generator_Status::status_Unused;
+    result->m_status = status_Unused;
     result->m_running = false;
 
     initFiber( &result->m_yielder_context );

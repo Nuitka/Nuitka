@@ -34,7 +34,7 @@ else:
     active = True
 
 if "PYTHON" not in os.environ:
-    os.environ[ "PYTHON" ] = "python"
+    os.environ[ "PYTHON" ] = "python" if os.name != "nt" else sys.executable
 
 def check_output(*popenargs, **kwargs):
     from subprocess import Popen, PIPE, CalledProcessError
@@ -79,6 +79,8 @@ for filename in sorted( os.listdir( "." ) ):
 
         if filename in ( "package_missing_init", "dash_import", ):
             extra_flags.append( "ignore_stderr" )
+
+        extra_flags.append( "remove_output" )
 
         os.environ[ "PYTHONPATH" ] = os.path.abspath( filename )
 

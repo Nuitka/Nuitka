@@ -57,6 +57,7 @@ int main( int argc, char *argv[] )
     PyType_Ready( &Nuitka_Generator_Type );
     PyType_Ready( &Nuitka_Function_Type );
     PyType_Ready( &Nuitka_Method_Type );
+    PyType_Ready( &Nuitka_Frame_Type );
 
     enhancePythonTypes();
 
@@ -81,7 +82,7 @@ int main( int argc, char *argv[] )
         Py_INCREF( frame___main__ );
         PyThreadState_GET()->frame = frame___main__;
 
-        PyErr_Print();
+        PyErr_PrintEx( 0 );
         Py_Exit( 1 );
     }
     else
@@ -230,7 +231,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
 """
 
-module_body_template = """\
+module_body_template = """
 #include "nuitka/prelude.hpp"
 
 #include "__modules.hpp"
@@ -318,6 +319,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     PyType_Ready( &Nuitka_Generator_Type );
     PyType_Ready( &Nuitka_Function_Type );
     PyType_Ready( &Nuitka_Method_Type );
+    PyType_Ready( &Nuitka_Frame_Type );
 
     patchInspectModule();
 #endif
@@ -406,8 +408,6 @@ MOD_INIT_DECL( %(module_identifier)s )
 %(module_inits)s
 
     // Module code
-    bool traceback = false;
-
     try
     {
         // To restore the initial exception, could be made dependent on actual try/except statement
@@ -421,9 +421,9 @@ MOD_INIT_DECL( %(module_identifier)s )
         {
             _exception.setTraceback( MAKE_TRACEBACK( frame_guard.getFrame() ) );
         }
-        else if ( traceback == false )
+        else
         {
-            _exception.addTraceback( frame_guard.getFrame() );
+            _exception.addTraceback( frame_guard.getFrame0() );
         }
 
         _exception.toPython();
@@ -431,7 +431,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     // Pop the frame from the frame stack, we are done here.
     assert( PyThreadState_GET()->frame == frame_%(module_identifier)s );
-    PyThreadState_GET()->frame = PyThreadState_GET()->frame->f_back;
+    PyThreadState_GET()->frame = INCREASE_REFCOUNT_X( PyThreadState_GET()->frame->f_back );
 
     // puts( "out init%(module_identifier)s" );
 

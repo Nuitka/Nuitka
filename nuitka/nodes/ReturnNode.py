@@ -38,6 +38,8 @@ class CPythonStatementReturn( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
+        self.exception_driven = False
+
     getExpression = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 
     def isStatementAbortative( self ):
@@ -45,3 +47,9 @@ class CPythonStatementReturn( CPythonExpressionChildrenHavingBase ):
 
     def mayRaiseException( self, exception_type ):
         return self.getExpression().mayRaiseException( exception_type )
+
+    def markAsExceptionDriven( self ):
+        self.exception_driven = True
+
+    def isExceptionDriven( self ):
+        return self.exception_driven

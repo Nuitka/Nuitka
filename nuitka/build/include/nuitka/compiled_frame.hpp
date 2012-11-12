@@ -15,33 +15,17 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-#ifndef __NUITKA_FIBERS_H__
-#define __NUITKA_FIBERS_H__
+#ifndef __NUITKA_COMPILED_FRAME_H__
+#define __NUITKA_COMPILED_FRAME_H__
 
-#if defined( _WIN32 )
-#include <windows.h>
-#else
-#include <ucontext.h>
-#endif
+// Create a frame object for the given code object and module
+extern PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module );
 
-typedef struct _Fiber
+extern PyTypeObject Nuitka_Frame_Type;
+
+static inline bool Nuitka_Frame_Check( PyObject *object )
 {
-#if defined( _WIN32 )
-    void *ss_sp;
-    size_t ss_size;
-
-    CONTEXT f_context;
-#else
-    ucontext_t f_context;
-#endif
-} Fiber;
-
-extern "C" void initFiber( Fiber *to );
-
-extern "C" void swapFiber( Fiber *to, Fiber *from );
-
-extern "C" void prepareFiber( Fiber *to, void *code, unsigned long arg );
-
-extern "C" void releaseFiber( Fiber *to );
+    return Py_TYPE( object ) == &Nuitka_Frame_Type;
+}
 
 #endif

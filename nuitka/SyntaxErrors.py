@@ -67,15 +67,37 @@ def formatOutput( e ):
          )
 
 
-def raiseSyntaxError( reason, source_ref, col_offset = None ):
-    source = open( source_ref.getFilename(), 'rU' ).readlines()
+def raiseSyntaxError( reason, source_ref, col_offset = None, display_file = True, display_line = True ):
+    if display_file and display_line:
+        source = open( source_ref.getFilename(), 'rU' ).readlines()
 
-    raise SyntaxError(
-        reason,
-        (
-            source_ref.getFilename(),
-            source_ref.getLineNumber(),
-            col_offset,
-            source[ source_ref.getLineNumber() - 1 ],
+        raise SyntaxError(
+            reason,
+            (
+                source_ref.getFilename(),
+                source_ref.getLineNumber(),
+                col_offset,
+                source[ source_ref.getLineNumber() - 1 ],
+            )
         )
-    )
+    else:
+        if source_ref is not None:
+            raise SyntaxError(
+                reason,
+                (
+                    source_ref.getFilename(),
+                    source_ref.getLineNumber(),
+                    None,
+                    source[ source_ref.getLineNumber() - 1 ] if display_line else None,
+                )
+            )
+        else:
+            raise SyntaxError(
+                reason,
+                (
+                    None,
+                    None,
+                    None,
+                    None
+                )
+            )

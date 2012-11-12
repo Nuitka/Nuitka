@@ -97,4 +97,28 @@ elif Options.shallDumpBuiltTreeXML():
 elif Options.shallDisplayBuiltTree():
     MainControl.displayTree( tree )
 else:
-    MainControl.compileTree( tree )
+    import shutil
+
+    result, options = MainControl.compileTree( tree )
+
+    # Exit if compilation failed.
+    if not result:
+        sys.exit( 1 )
+
+    # Remove the source directory (now build directory too) if asked to.
+    if Options.isRemoveBuildDir():
+        shutil.rmtree( MainControl.getSourceDirectoryPath( tree ) )
+
+    # Execute the module immediately if option was given.
+    if Options.shallExecuteImmediately():
+        if Options.shallMakeModule():
+            MainControl.executeModule(
+                tree       = tree,
+                clean_path = Options.shallClearPythonPathEnvironment()
+            )
+        else:
+            MainControl.executeMain(
+                binary_filename = options[ "result_file" ] + ".exe",
+                tree            = tree,
+                clean_path      = Options.shallClearPythonPathEnvironment()
+            )

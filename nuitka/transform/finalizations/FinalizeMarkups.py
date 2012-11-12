@@ -19,14 +19,17 @@
 
 Set flags on functions and classes to indicate if a locals dict is really needed.
 
-Set a flag on loops if they really need to catch Continue and Break exceptions or
-if it can be more simple code.
+Set a flag on loops if they really need to catch Continue and Break exceptions or if it
+can be more simple code.
 
-Set a flag on re-raises of exceptions if they can be simple throws or if they are
-in another context.
+Set a flag on return statements and functions that require the use of ReturnValue
+exceptions, or if it can be more simple code.
+
+Set a flag on re-raises of exceptions if they can be simple throws or if they are in
+another context.
 
 """
-from nuitka.nodes import OverflowCheck
+
 from nuitka import Options
 
 from .FinalizeBase import FinalizationVisitorBase
@@ -37,20 +40,18 @@ class FinalizeMarkups( FinalizationVisitorBase ):
     def onEnterNode( self, node ):
         # This has many different things it deals with, so there need to be a lot of
         # branches. pylint: disable=R0912
-
-        # Record if a function or class has an overflow. TODO: The Overflow check
-        # module and this should be united in a per tag finalization check on say
-        # "callable_body" tag
         if node.isExpressionFunctionBody():
-            body = node.getBody()
-
-            if body is not None and OverflowCheck.check( body ):
+            if node.isUnoptimized():
                 node.markAsLocalsDict()
 
-        if node.isStatementBreakLoop() or node.isStatementContinueLoop():
-            search = node.getParent()
+        if node.needsLocalsDict():
+            provider = node.getParentVariableProvider()
 
-            crossed_try = False
+            if provider.isExpressionFunctionBody():
+                provider.markAsLocalsDict()
+
+        if node.isStatementBreakLoop():
+            search = node.getParent()
 
             # Search up to the containing loop.
             while not search.isStatementLoop():
@@ -58,35 +59,69 @@ class FinalizeMarkups( FinalizationVisitorBase ):
                 search = search.getParent()
 
                 if search.isStatementTryFinally() and last_search == search.getBlockTry():
-                    crossed_try = True
+                    search.markAsExceptionBreak()
+                    node.markAsExceptionDriven()
 
-            if crossed_try:
-                search.markAsExceptionBreakContinue()
-                node.markAsExceptionBreakContinue()
+            search.markAsExceptionBreak()
+
+        if node.isStatementContinueLoop():
+            search = node.getParent()
+
+            # Search up to the containing loop.
+            while not search.isStatementLoop():
+                last_search = search
+                search = search.getParent()
+
+                if search.isStatementTryFinally() and last_search == search.getBlockTry():
+                    search.markAsExceptionContinue()
+                    node.markAsExceptionDriven()
+
+            search.markAsExceptionContinue()
+
+        if node.isStatementReturn():
+            search = node.getParent()
+
+            # Search up to the containing function, and check for a try/finally
+            # containing the "return" statement.
+            while not search.isExpressionFunctionBody():
+                last_search = search
+                search = search.getParent()
+
+                if search.isStatementTryFinally() and last_search == search.getBlockTry():
+                    if node.getExpression() is None:
+                        search.markAsExceptionGeneratorReturn()
+                    else:
+                        search.markAsExceptionReturnValue()
+
+                    node.markAsExceptionDriven()
+
+            if search.isGenerator():
+                node.markAsExceptionDriven()
+
+            if node.isExceptionDriven():
+                if search.isGenerator():
+                    search.markAsExceptionGeneratorReturn()
+                else:
+                    search.markAsExceptionReturnValue()
 
         if node.isStatementRaiseException() and node.isReraiseException():
             search = node.getParent()
 
-            crossed_except = False
-
             while not search.isParentVariableProvider():
                 if search.isStatementsSequence():
                     if search.getParent().isStatementExceptHandler():
-                        crossed_except = True
+                        node.markAsReraiseLocal()
                         break
 
                 search = search.getParent()
-
-            if crossed_except:
-                node.markAsReraiseLocal()
 
         if node.isStatementDelVariable():
             node.getTargetVariableRef().getVariable().setHasDelIndicator()
 
         if node.isStatementTryExcept():
-            parent = node.getParentVariableProvider()
+            provider = node.getParentVariableProvider()
 
-            parent.markAsTryExceptContaining()
+            provider.markAsTryExceptContaining()
 
         if node.isExpressionBuiltinImport() and not Options.getShallFollowExtra():
             warning( """\
