@@ -245,19 +245,22 @@ def buildClassNode( provider, node, source_ref ):
 
     # The class body is basically a function that implicitely, at the end returns its
     # locals and cannot have other return statements contained.
-    body = _makeStatementsSequence(
-        statements = (
-            CPythonStatementAssignmentVariable(
-                variable_ref = CPythonExpressionTargetVariableRef(
-                    variable_name = "__module__",
-                    source_ref    = source_ref
-                ),
-                source        = CPythonExpressionConstantRef(
-                    constant   = provider.getParentModule().getName(),
-                    source_ref = source_ref
-                ),
-                source_ref   = source_ref.atInternal()
+    statements = [
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTargetVariableRef(
+                variable_name = "__module__",
+                source_ref    = source_ref
             ),
+            source        = CPythonExpressionConstantRef(
+                constant   = provider.getParentModule().getName(),
+                source_ref = source_ref
+            ),
+            source_ref   = source_ref.atInternal()
+        )
+    ]
+
+    if class_doc is not None:
+        statements.append(
             CPythonStatementAssignmentVariable(
                 variable_ref = CPythonExpressionTargetVariableRef(
                     variable_name = "__doc__",
@@ -268,30 +271,36 @@ def buildClassNode( provider, node, source_ref ):
                     source_ref = source_ref
                 ),
                 source_ref   = source_ref.atInternal()
+            )
+        )
+
+    statements += [
+        body,
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTargetVariableRef(
+                variable_name = "__class__",
+                source_ref    = source_ref
             ),
-            body,
-            CPythonStatementAssignmentVariable(
-                variable_ref = CPythonExpressionTargetVariableRef(
-                    variable_name = "__class__",
-                    source_ref    = source_ref
-                ),
-                source       = CPythonExpressionClassCreation(
-                    class_name = node.name,
-                    class_dict = CPythonExpressionBuiltinLocals(
-                        source_ref = source_ref
-                    ),
+            source       = CPythonExpressionClassCreation(
+                class_name = node.name,
+                class_dict = CPythonExpressionBuiltinLocals(
                     source_ref = source_ref
                 ),
-                source_ref   = source_ref.atInternal()
+                source_ref = source_ref
             ),
-            CPythonStatementReturn(
-                expression = CPythonExpressionVariableRef(
-                    variable_name = "__class__",
-                    source_ref    = source_ref
-                ),
-                source_ref = source_ref.atInternal()
-            )
+            source_ref   = source_ref.atInternal()
         ),
+        CPythonStatementReturn(
+            expression = CPythonExpressionVariableRef(
+                variable_name = "__class__",
+                source_ref    = source_ref
+            ),
+            source_ref = source_ref.atInternal()
+        )
+    ]
+
+    body = _makeStatementsSequence(
+        statements = statements,
         allow_none = True,
         source_ref = source_ref
     )
