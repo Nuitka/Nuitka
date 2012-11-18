@@ -1535,6 +1535,22 @@ PyObject *_MAKE_CLASS( EVAL_ORDERED_5( PyObject *metaclass_global, PyObject *met
         }
     }
 
+
+#if PYTHON_VERSION > 300
+    PyObject *winner = (PyObject *)_PyType_CalculateMetaclass( (PyTypeObject *)metaclass, bases );
+
+    if ( winner == NULL )
+    {
+        throw _PythonException();
+    }
+
+    if ( winner != metaclass )
+    {
+        Py_DECREF( metaclass );
+        metaclass = INCREASE_REFCOUNT( winner );
+    }
+#endif
+
     PyObject *result = PyObject_CallFunctionObjArgs(
         metaclass,
         class_name,
