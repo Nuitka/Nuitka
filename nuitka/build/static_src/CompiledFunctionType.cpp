@@ -26,17 +26,20 @@
 // tp_descr_get slot, bind a function to an object.
 static PyObject *Nuitka_Function_descr_get( PyObject *function, PyObject *object, PyObject *klass )
 {
-#ifdef OLD
-    return PyMethod_New( function, object == Py_None ? NULL : object, klass );
-#else
     assert( Nuitka_Function_Check( function ) );
+
+#if PYTHON_VERSION >= 300
+    if ( object == NULL || object == Py_None )
+    {
+        return INCREASE_REFCOUNT( function );
+    }
+#endif
 
     return Nuitka_Method_New(
         (Nuitka_FunctionObject *)function,
         object == Py_None ? NULL : object,
         klass
     );
-#endif
 }
 
  // tp_repr slot, decide how a function shall be output
