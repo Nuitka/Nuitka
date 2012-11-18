@@ -5,6 +5,11 @@ This release brings about changes on all fronts, bug fixes, new features. Also v
 importantly Nuitka no longer uses C++11 for its code, but mere C++03. There is new
 re-formulation work, and re-factoring of functions.
 
+But the most important part is this: Mercurial unit tests are working. Nearly. With the
+usual disclaimer of me being wrong, all remaining errors are errors of the test, or minor
+things. Hope is that these unit tests can be added as release tests to Nuitka. And once
+that is done, the next big Python application can come.
+
 Bug fixes
 ---------
 
@@ -130,7 +135,7 @@ New Tests
 Summary
 -------
 
-This releases contains lots of progress. The compiled frames are exciting new technology,
+This release marks an important point. The compiled frames are exciting new technology,
 that will allow even better integration with CPython, while improving speed. Lowering the
 requirements to C++03 means, we will become usable on Android and with MSVC, which will
 make adoption of Nuitka on Windows easier for many.
@@ -143,6 +148,14 @@ acceptable. Now, work can resume in this domain.
 Also very exciting when it comes to optimization is the remove of special code for ``or``
 and ``and`` operators, as these are now only mere conditional expressions. Again, this
 will make value propagation easier with two special cases less.
+
+And then of course, with Mercurial unit tests running compiled with Nuitka, an important
+milestone has been hit.
+
+For a while now, the focus will be on completing Python3 support, XML based optimization
+regression tests, benchmarks, and other open ends. Once that is done, and more certainty
+about Mercurial tests support, I may call it a 0.4 and start with local type inference for
+actual speed gains.
 
 Nuitka Release 0.3.24
 =====================
