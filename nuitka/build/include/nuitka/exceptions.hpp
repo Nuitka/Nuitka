@@ -111,6 +111,12 @@ inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exceptio
     PyDict_SetItem( sys_dict, _python_str_plain_exc_traceback, exception_tb ? (PyObject *)exception_tb : Py_None );
 }
 
+inline void NORMALIZE_EXCEPTION( PyObject **exception_type, PyObject **exception_value, PyTracebackObject **exception_tb )
+{
+    PyErr_NormalizeException( exception_type, exception_value, (PyObject **)exception_tb );
+}
+
+
 class _PythonException
 {
 public:
@@ -193,7 +199,7 @@ public:
 
     inline void normalize()
     {
-        PyErr_NormalizeException( &this->exception_type, &this->exception_value, (PyObject **)&this->exception_tb );
+        NORMALIZE_EXCEPTION( &this->exception_type, &this->exception_value, &this->exception_tb );
     }
 
     inline bool matches( PyObject *exception ) const
@@ -240,7 +246,7 @@ public:
     {
         if ( this->exception_value == NULL )
         {
-            PyErr_NormalizeException( &this->exception_type, &this->exception_value, (PyObject **)&this->exception_tb );
+            this->normalize();
         }
 
         return this->exception_type;
@@ -250,7 +256,7 @@ public:
     {
         if ( this->exception_value == NULL )
         {
-            PyErr_NormalizeException( &this->exception_type, &this->exception_value, (PyObject **)&this->exception_tb );
+            this->normalize();
         }
 
         return this->exception_value;
@@ -523,7 +529,7 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exc
     {
         PyObject *value = NULL;
 
-        PyErr_NormalizeException( &exception_type, &value, (PyObject **)&traceback );
+        NORMALIZE_EXCEPTION( &exception_type, &value, &traceback );
 #if PYTHON_VERSION >= 270
         if (unlikely( !PyExceptionInstance_Check( value ) ))
         {
@@ -568,7 +574,7 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exc
 
     if ( PyExceptionClass_Check( exception_type ) )
     {
-        PyErr_NormalizeException( &exception_type, &value, (PyObject **)&traceback );
+        NORMALIZE_EXCEPTION( &exception_type, &value, &traceback );
 #if PYTHON_VERSION >= 270
         if (unlikely( !PyExceptionInstance_Check( value ) ))
         {

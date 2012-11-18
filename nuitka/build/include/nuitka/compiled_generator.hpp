@@ -60,7 +60,8 @@ typedef struct {
     void *m_code;
 
     PyObject *m_yielded;
-    PyObject *m_exception_type, *m_exception_value, *m_exception_tb;
+    PyObject *m_exception_type, *m_exception_value;
+    PyTracebackObject *m_exception_tb;
 
     PyFrameObject *m_frame;
     PyCodeObject *m_code_object;
@@ -97,7 +98,7 @@ static inline void CHECK_EXCEPTION( Nuitka_GeneratorObject *generator )
         Py_XINCREF( generator->m_exception_value );
         Py_XINCREF( generator->m_exception_tb );
 
-        PyErr_Restore( generator->m_exception_type, generator->m_exception_value, generator->m_exception_tb );
+        PyErr_Restore( generator->m_exception_type, generator->m_exception_value, (PyObject *)generator->m_exception_tb );
 
         generator->m_exception_type = NULL;
         generator->m_exception_value = NULL;
