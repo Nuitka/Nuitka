@@ -65,7 +65,8 @@ from nuitka import (
     Variables,
     Constants,
     Builtins,
-    Options
+    Options,
+    Utils
 )
 
 # pylint: disable=W0622
@@ -162,15 +163,20 @@ def getGeneratorReturnCode():
     return CodeTemplates.genfunc_yielder_return_template % {}
 
 def getMetaclassVariableCode( context ):
-    package_var_identifier = ModuleVariableIdentifier(
-        var_name         = "__metaclass__",
-        module_code_name = context.getModuleCodeName()
-    )
+    if Utils.python_version < 300:
+        context.addGlobalVariableNameUsage( "__metaclass__" )
 
-    return "( %s.isInitialized( false ) ? %s : NULL )" % (
-        package_var_identifier.getCode(),
-        package_var_identifier.getCodeTemporaryRef()
-    )
+        package_var_identifier = ModuleVariableIdentifier(
+            var_name         = "__metaclass__",
+            module_code_name = context.getModuleCodeName()
+        )
+
+        return "( %s.isInitialized( false ) ? %s : NULL )" % (
+            package_var_identifier.getCode(),
+            package_var_identifier.getCodeTemporaryRef()
+        )
+    else:
+        return "NULL"
 
 def getBuiltinImportCode( module_identifier, globals_dict, locals_dict, import_list, level ):
     assert type( module_identifier ) is not str
@@ -2378,14 +2384,15 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
     return result
 
 
-def getClassCreationCode( metaclass_global_code, name_identifier, dict_identifier ):
-    args = (
-        metaclass_global_code,
-         "metaclass",
+def getClassCreationCode( name_identifier, dict_identifier, context ):
+
+    args = [
+        getMetaclassVariableCode( context = context ),
+        "metaclass",
         name_identifier.getCodeTemporaryRef(),
         "bases",
         dict_identifier.getCodeTemporaryRef()
-    )
+    ]
 
     return Identifier(
         "MAKE_CLASS( %s )" % (

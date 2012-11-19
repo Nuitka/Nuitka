@@ -841,19 +841,15 @@ def generateExpressionCode( expression, context, allow_none = False ):
             context        = context
         )
     elif expression.isExpressionClassCreation():
-        context.addGlobalVariableNameUsage( "__metaclass__" )
-
         identifier = Generator.getClassCreationCode(
-            metaclass_global_code = Generator.getMetaclassVariableCode(
-                context = context
-            ),
-            name_identifier       = Generator.getConstantHandle(
+            name_identifier = Generator.getConstantHandle(
                 context  = context,
                 constant = expression.getClassName()
             ),
-            dict_identifier       = makeExpressionCode(
+            dict_identifier = makeExpressionCode(
                 expression = expression.getClassDict()
-            )
+            ),
+            context         = context
         )
     elif expression.isExpressionComparison():
         identifier = generateComparisonExpressionCode(
