@@ -26,9 +26,11 @@ from .__past__ import iterItems
 class Variable:
     def __init__( self, owner, variable_name ):
         assert type( variable_name ) is str, variable_name
+        assert type( owner ) not in ( tuple, list ), owner
 
         self.variable_name = variable_name
         self.owner = owner
+
 
         self.references = []
 
