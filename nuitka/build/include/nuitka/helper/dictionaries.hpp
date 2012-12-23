@@ -83,6 +83,43 @@ NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, P
     }
 }
 
+NUITKA_MAY_BE_UNUSED static void DICT_REMOVE_ITEM( PyObject *dict, PyObject *key )
+{
+    int status = PyDict_DelItem( dict, key );
+
+    if (unlikely( status == -1 ))
+    {
+        throw _PythonException();
+    }
+}
+
+
+NUITKA_MAY_BE_UNUSED static PyObject *DICT_GET_ITEM( PyObject *dict, PyObject *key )
+{
+    assertObject( dict );
+    assert( PyDict_Check( dict ) );
+
+    assertObject( key );
+
+    PyObject *result = PyDict_GetItem( dict, key );
+
+    if ( result == NULL )
+    {
+        if (unlikely( PyErr_Occurred() ))
+        {
+            throw _PythonException();
+        }
+
+        PyErr_SetObject( PyExc_KeyError, key );
+        throw _PythonException();
+    }
+    else
+    {
+        return INCREASE_REFCOUNT( result );
+    }
+}
+
+
 // Convert to dictionary, helper for builtin dict mainly.
 NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict_obj )
 {

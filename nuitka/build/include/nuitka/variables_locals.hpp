@@ -156,7 +156,11 @@ public:
 
         if ( this->isInitialized() )
         {
+#if PYTHON_VERSION < 300
             int status = PyDict_SetItem(
+#else
+            int status = PyObject_SetItem(
+#endif
                 locals_dict,
                 this->getVariableName(),
                 this->asObject()

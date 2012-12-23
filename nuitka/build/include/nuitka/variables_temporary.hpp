@@ -65,6 +65,7 @@ public:
 private:
 
     PyObjectTemporary( const PyObjectTemporary &object ) { assert( false ); }
+    PyObjectTemporary() { assert( false ); };
 
     PyObject *object;
 };

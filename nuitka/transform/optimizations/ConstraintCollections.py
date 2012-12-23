@@ -643,6 +643,15 @@ class ConstraintCollectionBase:
                 return None
 
             return statement
+        elif statement.isStatementDictOperationRemove():
+            # TODO: Be less lossly about it.
+            self.removeKnowledge( statement.getDict() )
+
+            return statement
+        elif statement.isStatementSetLocals():
+            # TODO: All should be forgotten, anything could be set now.
+
+            return statement
         else:
             assert False, statement
 

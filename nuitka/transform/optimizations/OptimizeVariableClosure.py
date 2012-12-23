@@ -65,6 +65,13 @@ class VariableClosureLookupVisitorPhase2( OptimizationVisitorBase ):
                             variable_name = node.getVariableName()
                         )
                     )
+        elif node.isExpressionTempVariableRef():
+            if node.getVariable().getOwner().getParentVariableProvider() != node.getParentVariableProvider():
+                node.setVariable(
+                    node.getParentVariableProvider().addClosureVariable( node.getVariable() )
+                )
+
+                assert node.getVariable().isClosureReference()
 
 
 class VariableClosureLookupVisitorPhase3( OptimizationVisitorBase ):

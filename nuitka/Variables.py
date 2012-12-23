@@ -450,11 +450,52 @@ def getModuleVariables( module ):
     return result
 
 
-class TempVariableReference( VariableReferenceBase ):
+class TempVariableReference2( VariableReferenceBase ):
+    reference_class = None
+
+    def isClosureReference( self ):
+        # Virtual method, pylint: disable=R0201
+        return True
 
     def isTempVariableReference( self ):
         # Virtual method, pylint: disable=R0201
         return True
+
+    def getDeclarationTypeCode( self, in_context ):
+        if self.getReferenced().getReferenced().needs_free:
+            return "PyObjectTemporary"
+        else:
+            return "PyObject *"
+
+    def getCodeName( self ):
+        # Abstract method, pylint: disable=R0201
+        return "_" + self.getReferenced().getReferenced().getCodeName()
+
+    def getProviderVariable( self ):
+        return self.getReferenced()
+
+
+class TempVariableReference( VariableReferenceBase ):
+    reference_class = TempVariableReference2
+
+    def isTempVariableReference( self ):
+        # Virtual method, pylint: disable=R0201
+        return True
+
+    # TODO: Clarify why it won't do work with reference_class from above, this overload
+    # should not be needed.
+    def makeReference( self, owner ):
+        assert self.reference_class, self
+
+        for reference in self.references:
+            if reference.getOwner() is owner:
+                return reference
+        else:
+            # The reference_class will be overloaded with something callable, pylint: disable=E1102
+            return TempVariableReference2(
+                owner    = owner,
+                variable = self
+            )
 
 
 class TempVariable( Variable ):

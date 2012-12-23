@@ -208,6 +208,9 @@ class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin 
     def getVariable( self ):
         return self.variable
 
+    def setVariable( self, variable ):
+        self.variable = variable
+
     def computeNode( self, constraint_collection ):
         # Nothing to do here.
         return self, None, None

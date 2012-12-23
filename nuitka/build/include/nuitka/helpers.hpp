@@ -1374,9 +1374,59 @@ extern void setCommandLineParameters( int argc, char *argv[] );
 
 extern void patchInspectModule( void );
 
-#define MAKE_CLASS( metaclass_global, metaclass_class, class_name, bases, class_dict ) _MAKE_CLASS( EVAL_ORDERED_5( metaclass_global, metaclass_class, class_name, bases, class_dict ) )
+#if PYTHON_VERSION > 300
+NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyObject *bases )
+{
+    assertObject( metaclass );
+    assertObject( bases );
 
+    PyObject *winner = (PyObject *)_PyType_CalculateMetaclass( (PyTypeObject *)metaclass, bases );
 
-extern PyObject *_MAKE_CLASS( EVAL_ORDERED_5( PyObject *metaclass_global, PyObject *metaclass_class, PyObject *class_name, PyObject *bases, PyObject *class_dict ) );
+    assertObject( winner );
+
+    if ( winner == NULL )
+    {
+        throw _PythonException();
+    }
+
+    return INCREASE_REFCOUNT( winner );
+}
+#else
+
+NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *bases, PyObject *metaclass_global )
+{
+    assertObject( bases );
+
+    PyObject *metaclass;
+
+    assert( bases != Py_None );
+
+    if ( PyTuple_GET_SIZE( bases ) > 0 )
+    {
+        PyObject *base = PyTuple_GET_ITEM( bases, 0 );
+
+        metaclass = PyObject_GetAttr( base, _python_str_plain___class__ );
+
+        if ( metaclass == NULL )
+        {
+            PyErr_Clear();
+
+            metaclass = INCREASE_REFCOUNT( (PyObject *)Py_TYPE( base ) );
+        }
+    }
+    else if ( metaclass_global != NULL )
+    {
+        metaclass = INCREASE_REFCOUNT( metaclass_global );
+    }
+    else
+    {
+        // Default to old style class.
+        metaclass = INCREASE_REFCOUNT( (PyObject *)&PyClass_Type );
+    }
+
+    return metaclass;
+}
+
+#endif
 
 #endif

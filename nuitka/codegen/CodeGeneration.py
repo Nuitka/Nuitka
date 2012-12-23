@@ -218,22 +218,6 @@ def generateFunctionCallCode( call_node, context ):
 
     extra_arguments = []
 
-    if call_node.isExpressionClassDefinition():
-        extra_arguments.append(
-            generateExpressionCode(
-                expression = call_node.getMetaclass(),
-                allow_none = True,
-                context    = context
-            )
-        )
-
-        extra_arguments.append(
-            generateTupleCreationCode(
-                elements = call_node.getBases(),
-                context  = context
-            )
-        )
-
     return Generator.getDirectionFunctionCallCode(
         function_identifier = function_identifier,
         arguments           = generateExpressionsCode(
@@ -707,7 +691,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
             call_node = expression,
             context   = context
         )
-    elif expression.isExpressionFunctionCall() or expression.isExpressionClassDefinition():
+    elif expression.isExpressionFunctionCall():
         identifier = generateFunctionCallCode(
             call_node = expression,
             context   = context
@@ -839,17 +823,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
             function_body  = expression.getFunctionBody(),
             defaults       = expression.getDefaults(),
             context        = context
-        )
-    elif expression.isExpressionClassCreation():
-        identifier = Generator.getClassCreationCode(
-            name_identifier = Generator.getConstantHandle(
-                context  = context,
-                constant = expression.getClassName()
-            ),
-            dict_identifier = makeExpressionCode(
-                expression = expression.getClassDict()
-            ),
-            context         = context
         )
     elif expression.isExpressionComparison():
         identifier = generateComparisonExpressionCode(
@@ -1066,6 +1039,11 @@ def generateExpressionCode( expression, context, allow_none = False ):
             key_identifier   = makeExpressionCode( expression.getKey() ),
             value_identifier = makeExpressionCode( expression.getValue() ),
         )
+    elif expression.isExpressionDictOperationGet():
+        identifier = Generator.getDictOperationGetCode(
+            dict_identifier    = makeExpressionCode( expression.getDict() ),
+            key_identifier     = makeExpressionCode( expression.getKey() ),
+        )
     elif expression.isExpressionTempKeeperRef():
         identifier = Generator.Identifier(
             "%s.asObject()" % expression.getVariableName(),
@@ -1091,6 +1069,12 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = Generator.getBuiltinSuperCode(
             type_identifier   = type_identifier,
             object_identifier = object_identifier
+        )
+    elif expression.isExpressionSelectMetaclass():
+        identifier = Generator.getSelectMetaclassCode(
+            metaclass_identifier = makeExpressionCode( expression.getMetaclass(), allow_none = True ),
+            bases_identifier     = makeExpressionCode( expression.getBases() ),
+            context              = context
         )
     elif Utils.python_version < 300 and expression.isExpressionBuiltinExecfile():
         identifier = generateExecfileCode(
@@ -1848,6 +1832,15 @@ def _generateStatementCode( statement, context ):
         code = Generator.getUnpackCheckCode(
             iterator_identifier = makeExpressionCode( statement.getIterator() ),
             count               = statement.getCount()
+        )
+    elif statement.isStatementDictOperationRemove():
+        code = Generator.getDictOperationRemoveCode(
+            dict_identifier = makeExpressionCode( statement.getDict() ),
+            key_identifier  = makeExpressionCode( statement.getKey() )
+        )
+    elif statement.isStatementSetLocals():
+        code = Generator.getSetLocalsCode(
+            new_locals_identifier = makeExpressionCode( statement.getNewLocals() )
         )
     else:
         assert False, statement.__class__

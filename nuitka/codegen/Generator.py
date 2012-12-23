@@ -163,20 +163,19 @@ def getGeneratorReturnCode():
     return CodeTemplates.genfunc_yielder_return_template % {}
 
 def getMetaclassVariableCode( context ):
-    if Utils.python_version < 300:
-        context.addGlobalVariableNameUsage( "__metaclass__" )
+    assert Utils.python_version < 300
 
-        package_var_identifier = ModuleVariableIdentifier(
-            var_name         = "__metaclass__",
-            module_code_name = context.getModuleCodeName()
-        )
+    context.addGlobalVariableNameUsage( "__metaclass__" )
 
-        return "( %s.isInitialized( false ) ? %s : NULL )" % (
-            package_var_identifier.getCode(),
-            package_var_identifier.getCodeTemporaryRef()
-        )
-    else:
-        return "NULL"
+    package_var_identifier = ModuleVariableIdentifier(
+        var_name         = "__metaclass__",
+        module_code_name = context.getModuleCodeName()
+    )
+
+    return "( %s.isInitialized( false ) ? %s : NULL )" % (
+        package_var_identifier.getCode(),
+        package_var_identifier.getCodeTemporaryRef()
+    )
 
 def getBuiltinImportCode( module_identifier, globals_dict, locals_dict, import_list, level ):
     assert type( module_identifier ) is not str
@@ -1345,6 +1344,9 @@ def getLoadLocalsCode( context, provider, mode ):
         else:
             assert False
 
+def getSetLocalsCode( new_locals_identifier ):
+    return "locals_dict.assign1( %s );" % new_locals_identifier.getCodeExportRef()
+
 def getStoreLocalsCode( context, source_identifier, provider ):
     assert not provider.isModule()
 
@@ -1866,12 +1868,7 @@ def getFunctionDecl( context, function_identifier, defaults_identifier, closure_
             )
         }
     else:
-        parameter_objects_decl = []
-
-        if context.function.isClassDictCreation():
-            parameter_objects_decl += [ "PyObject *metaclass", "PyObject *bases" ]
-
-        parameter_objects_decl += [
+        parameter_objects_decl = [
             "PyObject *_python_par_" + variable.getName()
             for variable in
             function_parameter_variables
@@ -2311,9 +2308,6 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                 closure_variable.getDeclarationCode()
             )
 
-    if context.function.isClassDictCreation():
-        parameter_objects_decl = [ "PyObject *metaclass", "PyObject *bases" ] + parameter_objects_decl
-
     function_name_obj = getConstantCode(
         context  = context,
         constant = function_name
@@ -2384,21 +2378,24 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
     return result
 
 
-def getClassCreationCode( name_identifier, dict_identifier, context ):
+def getSelectMetaclassCode( metaclass_identifier, bases_identifier, context ):
+    if Utils.python_version < 300:
+        assert metaclass_identifier is None
 
-    args = [
-        getMetaclassVariableCode( context = context ),
-        "metaclass",
-        name_identifier.getCodeTemporaryRef(),
-        "bases",
-        dict_identifier.getCodeTemporaryRef()
-    ]
+        args = [
+            bases_identifier.getCodeTemporaryRef(),
+            getMetaclassVariableCode( context = context )
+        ]
+    else:
+        args = [
+            metaclass_identifier.getCodeTemporaryRef(),
+            bases_identifier.getCodeTemporaryRef()
+        ]
 
-    return Identifier(
-        "MAKE_CLASS( %s )" % (
-            ", ".join( args )
-        ),
-        1
+
+    return CallIdentifier(
+        "SELECT_METACLASS",
+        args,
     )
 
 def getStatementTrace( source_desc, statement_repr ):
@@ -2793,6 +2790,21 @@ def getDictOperationSetCode( dict_identifier, key_identifier, value_identifier )
             value_identifier.getCodeTemporaryRef()
         ),
         0
+    )
+
+def getDictOperationGetCode( dict_identifier, key_identifier ):
+    return Identifier(
+        "DICT_GET_ITEM( %s, %s )" % (
+            dict_identifier.getCodeTemporaryRef(),
+            key_identifier.getCodeTemporaryRef(),
+        ),
+        1
+    )
+
+def getDictOperationRemoveCode( dict_identifier, key_identifier ):
+    return "DICT_REMOVE_ITEM( %s, %s );" % (
+        dict_identifier.getCodeTemporaryRef(),
+        key_identifier.getCodeTemporaryRef()
     )
 
 def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes, locals_identifier, \

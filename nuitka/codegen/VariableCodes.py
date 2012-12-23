@@ -37,6 +37,18 @@ def getVariableHandle( context, variable ):
         return context.getLocalHandle(
             var_name = var_name
         )
+    elif variable.isTempVariableReference():
+        if not variable.getOwner().isStatementTempBlock():
+            variable = variable.getReferenced()
+
+        if not variable.getReferenced().getNeedsFree():
+            return TempObjectIdentifier(
+                var_name = var_name
+            )
+        else:
+            return TempVariableIdentifier(
+                var_name = var_name
+            )
     elif variable.isClosureReference():
         return context.getClosureHandle(
             var_name = var_name
@@ -59,15 +71,6 @@ def getVariableHandle( context, variable ):
             var_name         = var_name,
             module_code_name = context.getModuleCodeName()
         )
-    elif variable.isTempVariableReference():
-        if not variable.getReferenced().getNeedsFree():
-            return TempObjectIdentifier(
-                var_name = var_name
-            )
-        else:
-            return TempVariableIdentifier(
-                var_name = var_name
-            )
     else:
         assert False, variable
 

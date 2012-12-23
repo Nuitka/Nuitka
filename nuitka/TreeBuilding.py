@@ -80,10 +80,8 @@ from .nodes.FunctionNodes import (
     CPythonExpressionFunctionBody,
     CPythonExpressionFunctionCall,
 )
-from .nodes.ClassNodes import (
-    CPythonExpressionClassDefinition,
-    CPythonExpressionClassCreation
-)
+from .nodes.ClassNodes import CPythonExpressionSelectMetaclass
+
 from .nodes.ContainerMakingNodes import (
     CPythonExpressionKeyValuePair,
     CPythonExpressionMakeTuple,
@@ -92,6 +90,8 @@ from .nodes.ContainerMakingNodes import (
     CPythonExpressionMakeSet
 )
 from .nodes.ContainerOperationNodes import (
+    CPythonExpressionDictOperationGet,
+    CPythonStatementDictOperationRemove,
     CPythonExpressionListOperationAppend,
     CPythonExpressionDictOperationSet,
     CPythonExpressionSetOperationAdd
@@ -149,7 +149,10 @@ from .nodes.TryNodes import (
     CPythonStatementTryFinally,
     CPythonStatementTryExcept
 )
-from .nodes.GlobalsLocalsNodes import CPythonExpressionBuiltinLocals
+from .nodes.GlobalsLocalsNodes import (
+    CPythonStatementSetLocals,
+    CPythonExpressionBuiltinLocals
+)
 
 import ast, sys, re
 
@@ -201,27 +204,21 @@ make_class_parameters = ParameterSpec(
     default_count = 0
 )
 
-def buildClassNode( provider, node, source_ref ):
-    assert getKind( node ) == "ClassDef"
 
+def _buildClassNode3( provider, node, source_ref ):
     class_statements, class_doc = _extractDocFromBody( node )
 
     decorators = buildNodeList( provider, reversed( node.decorator_list ), source_ref )
-    bases = buildNodeList( provider, node.bases, source_ref )
 
-    if Utils.python_version >= 300:
-        if len( node.keywords ) == 1:
-            assert len( node.keywords ) == 1, node.keywords
-            assert node.keywords[0].arg == "metaclass", node.keywords[0].arg
-            metaclass = buildNode( provider, node.keywords[0].value, source_ref )
-        elif not node.keywords:
-            metaclass = None
-        else:
-            assert False, node.keywords
-    else:
-        # TODO: May be detected during compile time, but Python2 syntax does't
-        # make it as easy.
-        metaclass = None
+    # The result will be a temp block that holds the temporary variables.
+    result = CPythonStatementTempBlock(
+        source_ref = source_ref
+    )
+
+    tmp_bases = result.getTempVariable( "bases" )
+    tmp_class_decl_dict = result.getTempVariable( "class_decl_dict" )
+    tmp_metaclass = result.getTempVariable( "metaclass" )
+    tmp_prepared = result.getTempVariable( "prepared" )
 
     class_creation_function = CPythonExpressionFunctionBody(
         provider   = provider,
@@ -243,9 +240,14 @@ def buildClassNode( provider, node, source_ref ):
         # The frame guard has nothing to tell its line number to.
         body.source_ref = source_ref.atInternal()
 
-    # The class body is basically a function that implicitely, at the end returns its
-    # locals and cannot have other return statements contained.
     statements = [
+        CPythonStatementSetLocals(
+            new_locals = CPythonExpressionTempVariableRef(
+                variable   = tmp_prepared.makeReference( result ),
+                source_ref = source_ref
+            ),
+            source_ref = source_ref.atInternal()
+        ),
         CPythonStatementAssignmentVariable(
             variable_ref = CPythonExpressionTargetVariableRef(
                 variable_name = "__module__",
@@ -281,9 +283,28 @@ def buildClassNode( provider, node, source_ref ):
                 variable_name = "__class__",
                 source_ref    = source_ref
             ),
-            source       = CPythonExpressionClassCreation(
-                class_name = node.name,
-                class_dict = CPythonExpressionBuiltinLocals(
+            source       = CPythonExpressionCall(
+                called = CPythonExpressionTempVariableRef(
+                    variable   = tmp_metaclass.makeReference( result ),
+                    source_ref = source_ref
+                ),
+                positional_args = (
+                    CPythonExpressionConstantRef(
+                        constant   = node.name,
+                        source_ref = source_ref
+                    ),
+                    CPythonExpressionTempVariableRef(
+                        variable   = tmp_bases.makeReference( result ),
+                        source_ref = source_ref
+                    ),
+                    CPythonExpressionBuiltinLocals(
+                        source_ref = source_ref
+                    )
+                ),
+                pairs = (),
+                list_star_arg = None,
+                dict_star_arg = CPythonExpressionTempVariableRef(
+                    variable   = tmp_class_decl_dict.makeReference( result ),
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -310,15 +331,18 @@ def buildClassNode( provider, node, source_ref ):
 
     class_creation_function.setBody( body )
 
-    decorated_body = CPythonExpressionClassDefinition(
-        class_definition = CPythonExpressionFunctionCreation(
+
+    # The class body is basically a function that implicitely, at the end returns its
+    # created class and cannot have other return statements contained.
+
+    decorated_body = CPythonExpressionFunctionCall(
+        function   = CPythonExpressionFunctionCreation(
             function_body = class_creation_function,
             defaults      = (),
             source_ref    = source_ref
         ),
-        bases            = bases,
-        metaclass        = metaclass,
-        source_ref       = source_ref
+        values     = (),
+        source_ref = source_ref
     )
 
     for decorator in decorators:
@@ -331,14 +355,415 @@ def buildClassNode( provider, node, source_ref ):
             source_ref      = decorator.getSourceReference()
         )
 
-    return CPythonStatementAssignmentVariable(
-        variable_ref = CPythonExpressionTargetVariableRef(
-            variable_name = node.name,
-            source_ref    = source_ref
+    statements = [
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_bases.makeReference( result ),
+                source_ref = source_ref
+            ),
+            source       = CPythonExpressionMakeTuple(
+                elements   = buildNodeList( provider, node.bases, source_ref ),
+                source_ref = source_ref
+            ),
+            source_ref   = source_ref
         ),
-        source     = decorated_body,
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_class_decl_dict.makeReference( result ),
+                source_ref = source_ref
+            ),
+            source       = CPythonExpressionMakeDict(
+                pairs      = [
+                    CPythonExpressionKeyValuePair(
+                        key        = CPythonExpressionConstantRef(
+                            constant   = keyword.arg,
+                            source_ref = source_ref
+                        ),
+                        value      = buildNode( provider, keyword.value, source_ref ),
+                        source_ref = source_ref
+                    )
+                    for keyword in
+                    node.keywords
+                ],
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        ),
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_metaclass.makeReference( result ),
+                source_ref = source_ref
+            ),
+            source       = CPythonExpressionSelectMetaclass(
+                metaclass = CPythonExpressionConditional(
+                    condition = CPythonExpressionComparison(
+                        comparator = "In",
+                        left       = CPythonExpressionConstantRef(
+                            constant   = "metaclass",
+                            source_ref = source_ref
+                        ),
+                        right      = CPythonExpressionTempVariableRef(
+                            variable   = tmp_class_decl_dict.makeReference( result ),
+                            source_ref = source_ref
+                        ),
+                        source_ref = source_ref
+                    ),
+                    yes_expression = CPythonExpressionDictOperationGet(
+                        dicte      = CPythonExpressionTempVariableRef(
+                            variable   = tmp_class_decl_dict.makeReference( result ),
+                            source_ref = source_ref
+                        ),
+                        key        = CPythonExpressionConstantRef(
+                            constant   = "metaclass",
+                            source_ref = source_ref
+                        ),
+                        source_ref = source_ref
+                    ),
+                    no_expression  = CPythonExpressionBuiltinRef(
+                        builtin_name = "type",
+                        source_ref   = source_ref
+                    ),
+                    source_ref     = source_ref
+                ),
+                bases     = CPythonExpressionTempVariableRef(
+                    variable   = tmp_bases.makeReference( result ),
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        ),
+        CPythonStatementConditional(
+            condition =  CPythonExpressionComparison(
+                comparator = "In",
+                left       = CPythonExpressionConstantRef(
+                    constant   = "metaclass",
+                    source_ref = source_ref
+                ),
+                right      = CPythonExpressionTempVariableRef(
+                    variable   = tmp_class_decl_dict.makeReference( result ),
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            ),
+            no_branch = None,
+            yes_branch = CPythonStatementsSequence(
+                statements = (
+                    CPythonStatementDictOperationRemove(
+                        dicte = CPythonExpressionTempVariableRef(
+                            variable   = tmp_class_decl_dict.makeReference( result ),
+                            source_ref = source_ref
+                        ),
+                        key   = CPythonExpressionConstantRef(
+                            constant   = "metaclass",
+                            source_ref = source_ref
+                        ),
+                        source_ref = source_ref
+                    ),
+                ),
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        ),
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_prepared.makeReference( result ),
+                source_ref = source_ref
+            ),
+            source       = CPythonExpressionCall(
+                called = CPythonExpressionAttributeLookup(
+                    expression     = CPythonExpressionTempVariableRef(
+                        variable   = tmp_metaclass.makeReference( result ),
+                        source_ref = source_ref
+                    ),
+                    attribute_name = "__prepare__",
+                    source_ref     = source_ref
+                ),
+                positional_args = (
+                    CPythonExpressionConstantRef(
+                        constant = node.name,
+                        source_ref     = source_ref
+                    ),
+                    CPythonExpressionTempVariableRef(
+                        variable   = tmp_bases.makeReference( result ),
+                        source_ref = source_ref
+                    )
+                ),
+                pairs = (),
+                dict_star_arg = CPythonExpressionTempVariableRef(
+                    variable   = tmp_class_decl_dict.makeReference( result ),
+                    source_ref = source_ref
+                ),
+                list_star_arg = None,
+                source_ref     = source_ref
+            ),
+            source_ref = source_ref
+        ),
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTargetVariableRef(
+                variable_name = node.name,
+                source_ref    = source_ref
+            ),
+            source     = decorated_body,
+            source_ref = source_ref
+        )
+    ]
+
+    result.setBody(
+        CPythonStatementsSequence(
+            statements = statements,
+            source_ref = source_ref
+        )
+    )
+
+    return result
+
+
+def _buildClassNode2( provider, node, source_ref ):
+    class_statements, class_doc = _extractDocFromBody( node )
+
+    decorators = buildNodeList( provider, reversed( node.decorator_list ), source_ref )
+
+    # The result will be a temp block that holds the temporary variables.
+    result = CPythonStatementTempBlock(
         source_ref = source_ref
     )
+
+    tmp_bases = result.getTempVariable( "bases" )
+    tmp_class_dict = result.getTempVariable( "class_dict" )
+    tmp_metaclass = result.getTempVariable( "metaclass" )
+    tmp_class = result.getTempVariable( "class" )
+
+    class_creation_function = CPythonExpressionFunctionBody(
+        provider   = provider,
+        is_class   = True,
+        parameters = make_class_parameters,
+        name       = node.name,
+        doc        = class_doc,
+        source_ref = source_ref
+    )
+
+    body = buildStatementsNode(
+        provider   = class_creation_function,
+        nodes      = class_statements,
+        frame      = True,
+        source_ref = source_ref
+    )
+
+    if body is not None:
+        # The frame guard has nothing to tell its line number to.
+        body.source_ref = source_ref.atInternal()
+
+    # The class body is basically a function that implicitely, at the end returns its
+    # locals and cannot have other return statements contained, and starts out with a
+    # variables "__module__" and potentially "__doc__" set.
+    statements = [
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTargetVariableRef(
+                variable_name = "__module__",
+                source_ref    = source_ref
+            ),
+            source        = CPythonExpressionConstantRef(
+                constant   = provider.getParentModule().getName(),
+                source_ref = source_ref
+            ),
+            source_ref   = source_ref.atInternal()
+        )
+    ]
+
+    if class_doc is not None:
+        statements.append(
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTargetVariableRef(
+                    variable_name = "__doc__",
+                    source_ref    = source_ref
+                ),
+                source        = CPythonExpressionConstantRef(
+                    constant   = class_doc,
+                    source_ref = source_ref
+                ),
+                source_ref   = source_ref.atInternal()
+            )
+        )
+
+    statements += [
+        body,
+        CPythonStatementReturn(
+            expression = CPythonExpressionBuiltinLocals(
+                source_ref = source_ref
+            ),
+            source_ref = source_ref.atInternal()
+        )
+    ]
+
+    body = _makeStatementsSequence(
+        statements = statements,
+        allow_none = True,
+        source_ref = source_ref
+    )
+
+    # The class body is basically a function that implicitely, at the end returns its
+    # locals and cannot have other return statements contained.
+
+    class_creation_function.setBody( body )
+
+    statements = [
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_bases.makeReference( result ),
+                source_ref = source_ref
+            ),
+            source       = CPythonExpressionMakeTuple(
+                elements   = buildNodeList( provider, node.bases, source_ref ),
+                source_ref = source_ref
+            ),
+            source_ref   = source_ref
+        ),
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_class_dict.makeReference( result ),
+                source_ref = source_ref
+            ),
+            source       =   CPythonExpressionFunctionCall(
+                function = CPythonExpressionFunctionCreation(
+                    function_body = class_creation_function,
+                    defaults      = (),
+                    source_ref    = source_ref
+                ),
+                values     = (),
+                source_ref = source_ref
+            ),
+            source_ref   = source_ref
+        ),
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_metaclass.makeReference( result ),
+                source_ref = source_ref
+            ),
+            source       = CPythonExpressionConditional(
+                condition =  CPythonExpressionComparison(
+                    comparator = "In",
+                    left       = CPythonExpressionConstantRef(
+                        constant   = "__metaclass__",
+                        source_ref = source_ref
+                    ),
+                    right      = CPythonExpressionTempVariableRef(
+                        variable   = tmp_class_dict.makeReference( result ),
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+                yes_expression = CPythonExpressionDictOperationGet(
+                    dicte = CPythonExpressionTempVariableRef(
+                        variable   = tmp_class_dict.makeReference( result ),
+                        source_ref = source_ref
+                    ),
+                    key   = CPythonExpressionConstantRef(
+                        constant   = "__metaclass__",
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+                no_expression = CPythonExpressionSelectMetaclass(
+                    metaclass = None,
+                    bases     = CPythonExpressionTempVariableRef(
+                        variable   = tmp_bases.makeReference( result ),
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        ),
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTempVariableRef(
+                variable   = tmp_class.makeReference( result ),
+                source_ref = source_ref
+            ),
+            source     = CPythonExpressionCall(
+                called = CPythonExpressionTempVariableRef(
+                    variable   = tmp_metaclass.makeReference( result ),
+                    source_ref = source_ref
+                ),
+                positional_args = (
+                    CPythonExpressionConstantRef(
+                        constant = node.name,
+                        source_ref     = source_ref
+                    ),
+                    CPythonExpressionTempVariableRef(
+                        variable   = tmp_bases.makeReference( result ),
+                        source_ref = source_ref
+                    ),
+                    CPythonExpressionTempVariableRef(
+                        variable   = tmp_class_dict.makeReference( result ),
+                        source_ref = source_ref
+                    )
+                ),
+                pairs = (),
+                dict_star_arg = None,
+                list_star_arg = None,
+                source_ref     = source_ref
+            ),
+            source_ref = source_ref
+        )
+    ]
+
+    for decorator in decorators:
+        statements.append(
+            CPythonStatementAssignmentVariable(
+                variable_ref = CPythonExpressionTempVariableRef(
+                    variable   = tmp_class.makeReference( result ),
+                    source_ref = source_ref
+                ),
+                source       = CPythonExpressionCall(
+                    called          = decorator,
+                    positional_args = (
+                        CPythonExpressionTempVariableRef(
+                            variable   = tmp_class.makeReference( result ),
+                            source_ref = source_ref
+                        ),
+                    ),
+                    pairs           = (),
+                    list_star_arg   = None,
+                    dict_star_arg   = None,
+                    source_ref      = decorator.getSourceReference()
+                ),
+                source_ref   = decorator.getSourceReference()
+            )
+        )
+
+    statements.append(
+        CPythonStatementAssignmentVariable(
+            variable_ref = CPythonExpressionTargetVariableRef(
+                variable_name = node.name,
+                source_ref    = source_ref
+            ),
+            source     = CPythonExpressionTempVariableRef(
+                variable   = tmp_class.makeReference( result ),
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        )
+    )
+
+    result.setBody(
+        CPythonStatementsSequence(
+            statements = statements,
+            source_ref = source_ref
+        )
+    )
+
+    return result
+
+def buildClassNode( provider, node, source_ref ):
+    assert getKind( node ) == "ClassDef"
+
+    if Utils.python_version >= 300:
+        return _buildClassNode3( provider, node, source_ref )
+    else:
+        return _buildClassNode2( provider, node, source_ref )
+
 
 def buildParameterSpec( name, node, source_ref ):
     kind = getKind( node )
