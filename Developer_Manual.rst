@@ -1066,11 +1066,14 @@ Much like ``else`` branches of loops, an indicator variable is used to indicate 
 into any of the exception handlers.
 
 Therefore, the ``else`` becomes a real conditional statement in the node tree, checking the
-indicator variable and guarding the execution of the ``else`` branch.xs
+indicator variable and guarding the execution of the ``else`` branch.
 
 
 Classes Creation
 ----------------
+
+Python2
+=======
 
 Classes have a body that only serves to build the class dictionary and is a normal
 function otherwise. This is expressed with the following re-formulation:
@@ -1080,7 +1083,7 @@ function otherwise. This is expressed with the following re-formulation:
    # in module "SomeModule"
    # ...
 
-   class SomeClass(SomeBase,AnotherBase)
+   class SomeClass( SomeBase, AnotherBase )
        """ This is the class documentation. """
 
        some_member = 3
@@ -1113,6 +1116,62 @@ Therefore, class bodies are just special function bodies that create a dictionar
 in class creation. They don't really appear after the tree building stage anymore. The
 type inference will of course have to become able to understand ``make_class`` quite well,
 so it can recognize the created class again.
+
+Python 3
+========
+
+In Python3, classes are a complicated way to write a function call, that can interact with
+its body. The body starts with a dictionary provided by the metaclass, so that is
+different, because it can "__prepare__" a non-empty locals for it, which is hidden away in
+"prepare_class_dict" below.
+
+What's noteworthy, is that this dictionary, could e.g. be a "OrderDict". I am not sure,
+what "__prepare__" is allowed to return.
+
+.. code-block:: python
+
+   # in module "SomeModule"
+   # ...
+
+   class SomeClass( SomeBase, AnotherBase, metaclass = SomeMetaClass )
+       """ This is the class documentation. """
+
+       some_member = 3
+
+.. code-block:: python
+
+   # Non-keyword arguments, need to be evaluated first.
+   tmp_bases = ( SomeBase, AnotherBase )
+
+   # Keyword arguments go next, __metaclass__ is just one of them. In principle we
+   # need to forward the others as well, but this is ignored for the sake of
+   # brevity.
+   tmp_metaclass = select_metaclass( tmp_bases, SomeMetaClass  )
+
+   tmp_prepared = tmp_metaclass.__prepare__( "SomeClass", tmp_bases )
+
+   # The function that creates the class dictionary. Receives temporary variables
+   # to work with.
+   def _makeSomeClass:
+       # This has effect, currently I don't know how to force that in Python3 syntax,
+       # but we will use something that ensures it.
+       locals() = tmp_prepared
+
+       # The module name becomes a normal local variable too.
+       __module__ = "SomeModule"
+
+       # The doc string becomes a normal local variable.
+       __doc__ = """ This is the class documentation. """
+
+       some_member = 3
+
+       # Create the class, share the potential closure variable __class__ with others.
+       __class__ = tmp_metaclass( "SomeClass", tmp_bases, locals() )
+
+       return __class__
+
+   # Build and assign the class.
+   SomeClass = _makeSomeClass()
 
 
 List Contractions
