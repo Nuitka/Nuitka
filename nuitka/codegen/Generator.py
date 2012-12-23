@@ -132,7 +132,7 @@ def _defaultToNullIdentifier( identifier ):
     else:
         return NullIdentifier()
 
-def getReturnCode( identifier, via_exception ):
+def getReturnCode( identifier, via_exception, context ):
     if via_exception:
         if identifier is None:
             identifier = getConstantHandle(

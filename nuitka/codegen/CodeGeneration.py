@@ -1681,6 +1681,7 @@ def generateReturnCode( statement, context ):
                 context    = context
             ),
             via_exception = statement.isExceptionDriven(),
+            context       = context
         )
 
 def generateStatementCode( statement, context ):
