@@ -19,6 +19,8 @@
 
 """
 
+from nuitka import Utils
+
 def isExceptionName( builtin_name ):
     if builtin_name.endswith( "Error" ) or builtin_name.endswith( "Exception" ):
         return True
@@ -106,3 +108,12 @@ builtin_anon_codes = {
     "ellipsis"                   : "&PyEllipsis_Type",
     "NotImplementedType"         : "Py_TYPE( Py_NotImplemented )"
 }
+
+if Utils.python_version < 300:
+    class A:
+        pass
+
+    builtin_anon_names[ "classobj" ] = type( A )
+    builtin_anon_codes[ "classobj" ] = "&PyClass_Type"
+
+    del A
