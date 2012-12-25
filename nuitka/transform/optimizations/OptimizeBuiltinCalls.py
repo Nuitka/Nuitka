@@ -52,14 +52,8 @@ from nuitka.nodes.BuiltinDecodingNodes import (
 )
 from nuitka.nodes.ExecEvalNodes import (
     CPythonExpressionBuiltinEval,
-
     CPythonStatementExec
 )
-
-if python_version < 300:
-    from nuitka.nodes.ExecEvalNodes import CPythonExpressionBuiltinExecfile
-else:
-    from nuitka.nodes.ExecEvalNodes import CPythonExpressionBuiltinExec
 
 from nuitka.nodes.VariableRefNode import CPythonExpressionVariableRef
 
@@ -377,53 +371,56 @@ def locals_extractor( node ):
             builtin_spec  = BuiltinOptimization.builtin_locals_spec
         )
 
-def execfile_extractor( node ):
-    def wrapExpressionBuiltinExecfileCreation( filename, globals_arg, locals_arg, source_ref ):
+if python_version < 300:
+    from nuitka.nodes.ExecEvalNodes import CPythonExpressionBuiltinExecfile
 
-        provider = node.getParentVariableProvider()
+    def execfile_extractor( node ):
+        def wrapExpressionBuiltinExecfileCreation( filename, globals_arg, locals_arg, source_ref ):
 
-        if provider.isExpressionFunctionBody() and provider.isClassDictCreation():
-            # In a case, the copy-back must be done and will only be done correctly by
-            # the code for exec statements.
+            provider = node.getParentVariableProvider()
 
-            use_call = CPythonStatementExec
-        else:
-            use_call = CPythonExpressionBuiltinExecfile
+            if provider.isExpressionFunctionBody() and provider.isClassDictCreation():
+                # In a case, the copy-back must be done and will only be done correctly by
+                # the code for exec statements.
 
-        if provider.isExpressionFunctionBody():
-            provider.markAsExecContaining()
+                use_call = CPythonStatementExec
+            else:
+                use_call = CPythonExpressionBuiltinExecfile
 
-        return use_call(
-            source_code = CPythonExpressionCall(
-                called          = CPythonExpressionAttributeLookup(
-                    expression     = CPythonExpressionBuiltinOpen(
-                        filename   = filename,
-                        mode       = CPythonExpressionConstantRef(
-                            constant   = "rU",
+            if provider.isExpressionFunctionBody():
+                provider.markAsExecContaining()
+
+            return use_call(
+                source_code = CPythonExpressionCall(
+                    called          = CPythonExpressionAttributeLookup(
+                        expression     = CPythonExpressionBuiltinOpen(
+                            filename   = filename,
+                            mode       = CPythonExpressionConstantRef(
+                                constant   = "rU",
+                                source_ref = source_ref
+                            ),
+                            buffering  = None,
                             source_ref = source_ref
                         ),
-                        buffering  = None,
-                        source_ref = source_ref
+                        attribute_name = "read",
+                        source_ref     = source_ref
                     ),
-                    attribute_name = "read",
-                    source_ref     = source_ref
+                    positional_args = (),
+                    pairs           = (),
+                    list_star_arg   = None,
+                    dict_star_arg   = None,
+                    source_ref      = source_ref
                 ),
-                positional_args = (),
-                pairs           = (),
-                list_star_arg   = None,
-                dict_star_arg   = None,
-                source_ref      = source_ref
-            ),
-            globals_arg = globals_arg,
-            locals_arg  = locals_arg,
-            source_ref = source_ref
-        )
+                globals_arg = globals_arg,
+                locals_arg  = locals_arg,
+                source_ref = source_ref
+            )
 
-    return BuiltinOptimization.extractBuiltinArgs(
-        node          = node,
-        builtin_class = wrapExpressionBuiltinExecfileCreation,
-        builtin_spec  = BuiltinOptimization.builtin_execfile_spec
-    )
+        return BuiltinOptimization.extractBuiltinArgs(
+            node          = node,
+            builtin_class = wrapExpressionBuiltinExecfileCreation,
+            builtin_spec  = BuiltinOptimization.builtin_execfile_spec
+        )
 
 def eval_extractor( node ):
     # TODO: Should precompute error as well: TypeError: eval() takes no keyword arguments
@@ -437,17 +434,20 @@ def eval_extractor( node ):
         source_ref   = node.getSourceReference()
     )
 
-def exec_extractor( node ):
-    # TODO: Should precompute error as well: TypeError: exec() takes no keyword arguments
+if python_version >= 300:
+    from nuitka.nodes.ExecEvalNodes import CPythonExpressionBuiltinExec
 
-    positional_args = node.getPositionalArguments()
+    def exec_extractor( node ):
+        # TODO: Should precompute error as well: TypeError: exec() takes no keyword arguments
 
-    return CPythonExpressionBuiltinExec(
-        source_code  = positional_args[0],
-        globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
-        locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
-        source_ref   = node.getSourceReference()
-    )
+        positional_args = node.getPositionalArguments()
+
+        return CPythonExpressionBuiltinExec(
+            source_code  = positional_args[0],
+            globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
+            locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
+            source_ref   = node.getSourceReference()
+        )
 
 def open_extractor( node ):
     return BuiltinOptimization.extractBuiltinArgs(
@@ -523,8 +523,6 @@ _dispatch_dict = {
     "globals"    : globals_extractor,
     "locals"     : locals_extractor,
     "eval"       : eval_extractor,
-    "exec"       : exec_extractor,
-    "execfile"   : execfile_extractor,
     "dir"        : dir_extractor,
     "vars"       : vars_extractor,
     "__import__" : import_extractor,
@@ -552,10 +550,19 @@ _dispatch_dict = {
 if python_version < 300:
     _dispatch_dict[ "long" ] = long_extractor
     _dispatch_dict[ "unicode" ] = unicode_extractor
+    _dispatch_dict[ "execfile" ] = execfile_extractor
 
     # The handling of 'open' built-in for Python3 is not yet correct.
     _dispatch_dict[ "open" ] = open_extractor
+else:
+    _dispatch_dict[ "exec" ] = exec_extractor
 
+from nuitka.Builtins import builtin_names
+
+for builtin_name in _dispatch_dict:
+    assert builtin_name in builtin_names, builtin_name
+
+del builtin_name
 
 def computeBuiltinCall( call_node, called ):
     builtin_name = called.getBuiltinName()
