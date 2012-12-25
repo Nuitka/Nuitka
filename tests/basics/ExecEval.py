@@ -16,7 +16,7 @@
 #     limitations under the License.
 #
 
-import tempfile
+import tempfile, sys, os
 
 print "eval 3+3=", eval("3+3")
 print "eval  3+3=", eval(" 3+3")
@@ -290,11 +290,11 @@ def makeAddPair(a, b):
     return addPair
 """ in locals()
 
-    assert makeAddPair
+    if sys.version_info < (3,):
+        assert makeAddPair
 
     return "yes"
 
 print "Exec adds functions declares in explicit locals() given.", execDefinesFunctionToLocalsExplicity()
 
-import os
 os.unlink( tmp_filename )

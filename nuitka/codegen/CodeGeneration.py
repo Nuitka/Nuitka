@@ -572,7 +572,12 @@ def generateCallCode( call_node, context ):
     )
 
 def _decideLocalsMode( provider ):
-    if provider.isExpressionFunctionBody() and ( provider.isEarlyClosure() or provider.isUnoptimized() ):
+    # TODO: This information should be in the node instead, and not decided during code
+    # generation, as optimization needs to know it. It should also be sticky and safe
+    # against inline this way.
+    if Utils.python_version >= 300:
+        mode = "updated"
+    elif provider.isExpressionFunctionBody() and ( provider.isEarlyClosure() or provider.isUnoptimized() ):
         mode = "updated"
     else:
         mode = "copy"
