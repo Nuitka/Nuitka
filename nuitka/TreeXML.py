@@ -53,7 +53,7 @@ def toString( xml ):
 def dump( xml  ):
     value = toString( xml ).rstrip()
 
-    if Utils.python_version > 300:
+    if Utils.python_version >= 300:
         value = value.decode( "utf-8" )
 
     Tracing.printLine( value )

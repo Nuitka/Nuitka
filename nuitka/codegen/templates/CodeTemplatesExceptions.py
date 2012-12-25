@@ -36,7 +36,7 @@ catch ( _PythonException &_exception )
         _exception.addTraceback( frame_guard.getFrame0() );
     }
 
-#if PYTHON_VERSION > 300
+#if PYTHON_VERSION >= 300
     PythonExceptionStacker exception_restorer;
 #endif
 
@@ -90,7 +90,7 @@ catch ( _PythonException &_exception )
 
     _caught_%(try_count)d.save( _exception );
 
-#if PYTHON_VERSION > 300
+#if PYTHON_VERSION >= 300
     _exception.toExceptionHandler();
 #endif
 }
