@@ -478,6 +478,17 @@ def getAttributeLookupCode( attribute, source ):
         1
     )
 
+def getAttributeCheckCode( attribute, source ):
+    return Identifier(
+        "BOOL_FROM( HAS_ATTRIBUTE( %s, %s ) )" % (
+            source.getCodeTemporaryRef(),
+            attribute.getCodeTemporaryRef()
+        ),
+        0
+    )
+
+
+
 def getImportNameCode( import_name, module ):
     return Identifier(
         "IMPORT_NAME( %s, %s )" % (

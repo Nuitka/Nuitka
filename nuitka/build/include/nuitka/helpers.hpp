@@ -1380,16 +1380,23 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyO
     assertObject( metaclass );
     assertObject( bases );
 
-    PyObject *winner = (PyObject *)_PyType_CalculateMetaclass( (PyTypeObject *)metaclass, bases );
-
-    assertObject( winner );
-
-    if ( winner == NULL )
+    if ( PyType_Check( metaclass ))
     {
-        throw _PythonException();
-    }
+        PyObject *winner = (PyObject *)_PyType_CalculateMetaclass( (PyTypeObject *)metaclass, bases );
 
-    return INCREASE_REFCOUNT( winner );
+        assertObject( winner );
+
+        if ( winner == NULL )
+        {
+            throw _PythonException();
+        }
+
+        return INCREASE_REFCOUNT( winner );
+    }
+    else
+    {
+        return INCREASE_REFCOUNT( metaclass );
+    }
 }
 #else
 

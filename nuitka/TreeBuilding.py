@@ -66,9 +66,11 @@ from .nodes.ExceptionNodes import (
 from .nodes.ComparisonNode import CPythonExpressionComparison
 from .nodes.ExecEvalNodes import CPythonStatementExec
 from .nodes.CallNode import CPythonExpressionCall
-from .nodes.AttributeNode import (
+from .nodes.TypeNode import CPythonExpressionBuiltinType1
+from .nodes.AttributeNodes import (
     CPythonExpressionSpecialAttributeLookup,
-    CPythonExpressionAttributeLookup
+    CPythonExpressionAttributeLookup,
+    CPythonExpressionBuiltinHasattr
 )
 from .nodes.SubscriptNode import CPythonExpressionSubscriptLookup
 from .nodes.SliceNodes import (
@@ -419,9 +421,30 @@ def _buildClassNode3( provider, node, source_ref ):
                         ),
                         source_ref = source_ref
                     ),
-                    no_expression  = CPythonExpressionBuiltinRef(
-                        builtin_name = "type",
-                        source_ref   = source_ref
+                    no_expression  = CPythonExpressionConditional(
+                        condition      = CPythonExpressionTempVariableRef(
+                            variable   = tmp_bases.makeReference( result ),
+                            source_ref = source_ref
+                        ),
+                        no_expression  = CPythonExpressionBuiltinRef(
+                            builtin_name = "type",
+                            source_ref   = source_ref
+                        ),
+                        yes_expression = CPythonExpressionBuiltinType1(
+                            value      = CPythonExpressionSubscriptLookup(
+                                expression = CPythonExpressionTempVariableRef(
+                                    variable   = tmp_bases.makeReference( result ),
+                                    source_ref = source_ref
+                                ),
+                                subscript  = CPythonExpressionConstantRef(
+                                    constant   = 0,
+                                    source_ref = source_ref
+                                ),
+                                source_ref = source_ref
+                            ),
+                            source_ref = source_ref
+                        ),
+                        source_ref     = source_ref
                     ),
                     source_ref     = source_ref
                 ),
@@ -434,7 +457,7 @@ def _buildClassNode3( provider, node, source_ref ):
             source_ref = source_ref
         ),
         CPythonStatementConditional(
-            condition =  CPythonExpressionComparison(
+            condition  = CPythonExpressionComparison(
                 comparator = "In",
                 left       = CPythonExpressionConstantRef(
                     constant   = "metaclass",
@@ -446,7 +469,7 @@ def _buildClassNode3( provider, node, source_ref ):
                 ),
                 source_ref = source_ref
             ),
-            no_branch = None,
+            no_branch  = None,
             yes_branch = CPythonStatementsSequence(
                 statements = (
                     CPythonStatementDictOperationRemove(
@@ -470,32 +493,50 @@ def _buildClassNode3( provider, node, source_ref ):
                 variable   = tmp_prepared.makeReference( result ),
                 source_ref = source_ref
             ),
-            source       = CPythonExpressionCall(
-                called = CPythonExpressionAttributeLookup(
-                    expression     = CPythonExpressionTempVariableRef(
+            source       = CPythonExpressionConditional(
+                condition = CPythonExpressionBuiltinHasattr(
+                    object     = CPythonExpressionTempVariableRef(
                         variable   = tmp_metaclass.makeReference( result ),
                         source_ref = source_ref
                     ),
-                    attribute_name = "__prepare__",
-                    source_ref     = source_ref
-                ),
-                positional_args = (
-                    CPythonExpressionConstantRef(
-                        constant = node.name,
-                        source_ref     = source_ref
-                    ),
-                    CPythonExpressionTempVariableRef(
-                        variable   = tmp_bases.makeReference( result ),
+                    name       = CPythonExpressionConstantRef(
+                        constant   = "__prepare__",
                         source_ref = source_ref
-                    )
-                ),
-                pairs = (),
-                dict_star_arg = CPythonExpressionTempVariableRef(
-                    variable   = tmp_class_decl_dict.makeReference( result ),
+                    ),
                     source_ref = source_ref
                 ),
-                list_star_arg = None,
-                source_ref     = source_ref
+                no_expression = CPythonExpressionConstantRef(
+                    constant   = {},
+                    source_ref = source_ref
+                ),
+                yes_expression = CPythonExpressionCall(
+                    called = CPythonExpressionAttributeLookup(
+                        expression     = CPythonExpressionTempVariableRef(
+                            variable   = tmp_metaclass.makeReference( result ),
+                            source_ref = source_ref
+                        ),
+                        attribute_name = "__prepare__",
+                        source_ref     = source_ref
+                    ),
+                    positional_args = (
+                        CPythonExpressionConstantRef(
+                            constant = node.name,
+                            source_ref     = source_ref
+                        ),
+                        CPythonExpressionTempVariableRef(
+                            variable   = tmp_bases.makeReference( result ),
+                            source_ref = source_ref
+                        )
+                    ),
+                    pairs = (),
+                    dict_star_arg = CPythonExpressionTempVariableRef(
+                        variable   = tmp_class_decl_dict.makeReference( result ),
+                        source_ref = source_ref
+                    ),
+                    list_star_arg = None,
+                    source_ref     = source_ref
+                ),
+                source_ref = source_ref
             ),
             source_ref = source_ref
         ),

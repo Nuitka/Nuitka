@@ -92,7 +92,7 @@ from nuitka.nodes.TypeNode import (
 )
 from nuitka.nodes.ClassNodes import CPythonExpressionBuiltinType3
 from nuitka.nodes.CallNode import CPythonExpressionCall
-from nuitka.nodes.AttributeNode import CPythonExpressionAttributeLookup
+from nuitka.nodes.AttributeNodes import CPythonExpressionAttributeLookup
 
 from nuitka.nodes.NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,

@@ -711,7 +711,11 @@ def generateExpressionCode( expression, context, allow_none = False ):
             attribute = context.getConstantHandle( expression.getAttributeName() ),
             source    = makeExpressionCode( expression.getLookupSource() ),
         )
-
+    elif expression.isExpressionBuiltinHasattr():
+        identifier = Generator.getAttributeCheckCode(
+            attribute = makeExpressionCode( expression.getAttribute() ),
+            source    = makeExpressionCode( expression.getLookupSource() ),
+        )
     elif expression.isExpressionImportName():
         identifier = Generator.getImportNameCode(
             import_name = context.getConstantHandle( expression.getImportName() ),

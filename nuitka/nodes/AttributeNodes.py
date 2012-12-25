@@ -77,3 +77,76 @@ class CPythonExpressionSpecialAttributeLookup( CPythonExpressionAttributeLookup 
     def computeNode( self, constraint_collection ):
         # There is a whole registry dedicated to this.
         return self, None, None
+
+
+class CPythonExpressionBuiltinGetattr( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_BUILTIN_GETATTR"
+
+    named_children = ( "source", "attribute", "default" )
+
+    def __init__( self, object, name, default, source_ref ):
+        CPythonExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "source"    : object,
+                "attribute" : name,
+                "default"   : default
+            },
+            source_ref = source_ref
+        )
+
+    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
+    getAttribute = CPythonExpressionChildrenHavingBase.childGetter( "attribute" )
+    getDefault = CPythonExpressionChildrenHavingBase.childGetter( "default" )
+
+    def computeNode( self, constraint_collection ):
+        # Note: Might be possible to predict or downgrade to mere attribute lookup.
+        return self, None, None
+
+
+class CPythonExpressionBuiltinSetattr( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_BUILTIN_SETATTR"
+
+    named_children = ( "source", "attribute", "value" )
+
+    def __init__( self, object, name, source_ref ):
+        CPythonExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "source"    : object,
+                "attribute" : name,
+                "value"     : value
+            },
+            source_ref = source_ref
+        )
+
+    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
+    getAttribute = CPythonExpressionChildrenHavingBase.childGetter( "attribute" )
+    getValue = CPythonExpressionChildrenHavingBase.childGetter( "value" )
+
+    def computeNode( self, constraint_collection ):
+        # Note: Might be possible to predict or downgrade to mere attribute set.
+        return self, None, None
+
+
+class CPythonExpressionBuiltinHasattr( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_BUILTIN_HASATTR"
+
+    named_children = ( "source", "attribute" )
+
+    def __init__( self, object, name, source_ref ):
+        CPythonExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "source"    : object,
+                "attribute" : name,
+            },
+            source_ref = source_ref
+        )
+
+    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
+    getAttribute = CPythonExpressionChildrenHavingBase.childGetter( "attribute" )
+
+    def computeNode( self, constraint_collection ):
+        # Note: Might be possible to predict or downgrade to mere attribute check.
+        return self, None, None
