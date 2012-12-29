@@ -49,3 +49,9 @@ assert inspect.isfunction( compiledGenerator() ) is False
 assert inspect.isgenerator( compiledFunction ) is False
 assert inspect.isgenerator( compiledGenerator ) is False
 assert inspect.isgenerator( compiledGenerator() ) is True
+
+def someFunction():
+   assert inspect.isframe( sys._getframe() )
+   print inspect.getframeinfo( sys._getframe() )
+
+someFunction()
