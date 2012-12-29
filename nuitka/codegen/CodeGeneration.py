@@ -213,6 +213,7 @@ def generateFunctionCallCode( call_node, context ):
     function_identifier = generateFunctionBodyCode(
         function_body  = function_body,
         defaults       = (), # TODO: Can't be right or needs check
+        kw_defaults    = (),
         context        = context
     )
 
@@ -229,7 +230,7 @@ def generateFunctionCallCode( call_node, context ):
         context            = context
     )
 
-def generateFunctionBodyCode( function_body, defaults, context ):
+def generateFunctionBodyCode( function_body, defaults, kw_defaults, context ):
     function_context = Contexts.PythonFunctionContext(
         parent         = context,
         function       = function_body
@@ -253,43 +254,60 @@ def generateFunctionBodyCode( function_body, defaults, context ):
             context  = context
         )
     else:
-        defaults_identifier = Generator.NullIdentifier()
+        defaults_identifier = Generator.getConstantHandle(
+            constant = None,
+            context  = context
+        )
+
+    if kw_defaults:
+        kw_defaults_identifier = generateExpressionCode(
+            expression = kw_defaults,
+            context    = context
+        )
+    else:
+        kw_defaults_identifier = Generator.getConstantHandle(
+            constant = None,
+            context  = context
+        )
 
     if function_body.isGenerator():
         function_code = Generator.getGeneratorFunctionCode(
-            context             = function_context,
-            function_name       = function_body.getFunctionName(),
-            function_identifier = function_body.getCodeName(),
-            parameters          = parameters,
-            closure_variables   = function_body.getClosureVariables(),
-            user_variables      = function_body.getUserLocalVariables(),
-            tmp_keepers         = function_context.getTempKeeperUsages(),
-            defaults_identifier = defaults_identifier,
-            needs_creation      = function_body.needsCreation(),
-            needs_return        = function_body.needsExceptionGeneratorReturn(),
-            source_ref          = function_body.getSourceReference(),
-            function_codes      = function_codes,
-            function_doc        = function_body.getDoc()
+            context                = function_context,
+            function_name          = function_body.getFunctionName(),
+            function_identifier    = function_body.getCodeName(),
+            parameters             = parameters,
+            closure_variables      = function_body.getClosureVariables(),
+            user_variables         = function_body.getUserLocalVariables(),
+            tmp_keepers            = function_context.getTempKeeperUsages(),
+            defaults_identifier    = defaults_identifier,
+            kw_defaults_identifier = kw_defaults_identifier,
+            needs_creation         = function_body.needsCreation(),
+            needs_return           = function_body.needsExceptionGeneratorReturn(),
+            source_ref             = function_body.getSourceReference(),
+            function_codes         = function_codes,
+            function_doc           = function_body.getDoc()
         )
     else:
         function_code = Generator.getFunctionCode(
-            context             = function_context,
-            function_name       = function_body.getFunctionName(),
-            function_identifier = function_body.getCodeName(),
-            parameters          = parameters,
-            closure_variables   = function_body.getClosureVariables(),
-            user_variables      = function_body.getUserLocalVariables(),
-            tmp_keepers         = function_context.getTempKeeperUsages(),
-            defaults_identifier = defaults_identifier,
-            needs_creation      = function_body.needsCreation(),
-            source_ref          = function_body.getSourceReference(),
-            function_codes      = function_codes,
-            function_doc        = function_body.getDoc()
+            context                = function_context,
+            function_name          = function_body.getFunctionName(),
+            function_identifier    = function_body.getCodeName(),
+            parameters             = parameters,
+            closure_variables      = function_body.getClosureVariables(),
+            user_variables         = function_body.getUserLocalVariables(),
+            tmp_keepers            = function_context.getTempKeeperUsages(),
+            defaults_identifier    = defaults_identifier,
+            kw_defaults_identifier = kw_defaults_identifier,
+            needs_creation         = function_body.needsCreation(),
+            source_ref             = function_body.getSourceReference(),
+            function_codes         = function_codes,
+            function_doc           = function_body.getDoc()
         )
 
     function_decl = Generator.getFunctionDecl(
         function_identifier          = function_body.getCodeName(),
         defaults_identifier          = defaults_identifier,
+        kw_defaults_identifier       = kw_defaults_identifier,
         closure_variables            = function_body.getClosureVariables(),
         function_parameter_variables = function_body.getParameters().getVariables(),
         context                      = function_context
@@ -303,10 +321,11 @@ def generateFunctionBodyCode( function_body, defaults, context ):
 
     if function_body.needsCreation():
         return Generator.getFunctionCreationCode(
-            function_identifier = function_body.getCodeName(),
-            defaults_identifier = defaults_identifier,
-            closure_variables   = function_body.getClosureVariables(),
-            context             = context
+            function_identifier    = function_body.getCodeName(),
+            defaults_identifier    = defaults_identifier,
+            kw_defaults_identifier = kw_defaults_identifier,
+            closure_variables      = function_body.getClosureVariables(),
+            context                = context
         )
     else:
         return function_body.getCodeName()
@@ -831,6 +850,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = generateFunctionBodyCode(
             function_body  = expression.getFunctionBody(),
             defaults       = expression.getDefaults(),
+            kw_defaults    = expression.getKwDefaults(),
             context        = context
         )
     elif expression.isExpressionComparison():

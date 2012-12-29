@@ -36,7 +36,8 @@ class BuiltinParameterSpec( ParameterSpec ):
             normal_args    = arg_names,
             list_star_arg  = list_star_arg,
             dict_star_arg  = dict_star_arg,
-            default_count  = default_count
+            default_count  = default_count,
+            kw_only_args   = ()
         )
 
         self.builtin = __builtins__[ name ]

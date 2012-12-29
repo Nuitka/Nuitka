@@ -328,22 +328,27 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
 class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_FUNCTION_CREATION"
 
-    named_children = ( "function_body", "defaults" )
+    named_children = ( "function_body", "kw_defaults", "defaults" )
 
-    def __init__( self, function_body, defaults, source_ref ):
+    def __init__( self, function_body, defaults, kw_defaults, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "function_body" : function_body,
-                "defaults"      : tuple( defaults )
+                "defaults"      : tuple( defaults ),
+                "kw_defaults"   : kw_defaults,
             },
             source_ref = source_ref
         )
 
     # Prevent normal recursion from entering the function.
     def getVisitableNodes( self ):
-        return self.getDefaults()
+        kw_defaults = self.getKwDefaults()
 
+        if kw_defaults is None:
+            return self.getDefaults()
+        else:
+            return ( kw_defaults, ) + self.getDefaults()
 
     def computeNode( self, constraint_collection ):
         # TODO: Function body may know something.
@@ -351,6 +356,7 @@ class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
 
     getFunctionBody = CPythonExpressionChildrenHavingBase.childGetter( "function_body" )
     getDefaults = CPythonExpressionChildrenHavingBase.childGetter( "defaults" )
+    getKwDefaults = CPythonExpressionChildrenHavingBase.childGetter( "kw_defaults" )
 
 
 class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):

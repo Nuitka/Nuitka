@@ -348,15 +348,20 @@ class MaybeLocalVariable( Variable ):
 
 
 class ParameterVariable( LocalVariable ):
-    def __init__( self, owner, parameter_name ):
+    def __init__( self, owner, parameter_name, kw_only ):
         LocalVariable.__init__(
             self,
             owner         = owner,
             variable_name = parameter_name
         )
 
+        self.kw_only = kw_only
+
     def isParameterVariable( self ):
         return True
+
+    def isParameterVariableKwOnly( self ):
+        return self.kw_only
 
     def getDeclarationTypeCode( self, in_context ):
         if self.isShared():
@@ -373,7 +378,8 @@ class NestedParameterVariable( ParameterVariable ):
         ParameterVariable.__init__(
             self,
             owner          = owner,
-            parameter_name = parameter_name
+            parameter_name = parameter_name,
+            kw_only        = False
         )
 
         self.parameter_spec = parameter_spec

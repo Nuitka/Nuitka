@@ -363,3 +363,16 @@ parse_argument_template_nested_argument_assign = """
         goto error_exit;
     }
 """
+
+template_kwonly_argument_default = """
+    if (_python_par_%(parameter_name)s == NULL )
+    {
+       _python_par_%(parameter_name)s = PyDict_GetItem( self->m_kwdefaults, %(parameter_name_object)s );
+
+       if (unlikely (_python_par_%(parameter_name)s == NULL ))
+       {
+           PyErr_Format( PyExc_TypeError, "%(function_name)s() needs keyword-only agument %(parameter_name)s" );
+           goto error_exit;
+        }
+    }
+"""

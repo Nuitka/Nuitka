@@ -23,7 +23,8 @@ from .Identifiers import (
     Identifier,
     ConstantIdentifier,
     LocalVariableIdentifier,
-    ClosureVariableIdentifier
+    ClosureVariableIdentifier,
+    SpecialConstantIdentifier
 )
 
 from .Namify import namifyConstant
@@ -179,13 +180,13 @@ class PythonGlobalContext:
 
     def getConstantHandle( self, constant ):
         if constant is None:
-            return Identifier( "Py_None", 0 )
+            return SpecialConstantIdentifier( None )
         elif constant is True:
-            return Identifier( "Py_True", 0 )
+            return SpecialConstantIdentifier( True )
         elif constant is False:
-            return Identifier( "Py_False", 0 )
+            return SpecialConstantIdentifier( False )
         elif constant is Ellipsis:
-            return Identifier( "Py_Ellipsis", 0 )
+            return SpecialConstantIdentifier( Ellipsis )
         else:
             key = ( type( constant ), HashableConstant( constant ) )
 

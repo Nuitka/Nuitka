@@ -228,6 +228,42 @@ static int Nuitka_Function_set_defaults( Nuitka_FunctionObject *object, PyObject
     return 0;
 }
 
+#if PYTHON_VERSION >= 300
+static PyObject *Nuitka_Function_get_kwdefaults( Nuitka_FunctionObject *object )
+{
+    return INCREASE_REFCOUNT( (PyObject *)object->m_kwdefaults );
+}
+
+static int Nuitka_Function_set_kwdefaults( Nuitka_FunctionObject *object, PyObject *value )
+{
+    if (unlikely( value != Py_None && PyDict_Check( value ) == false ))
+    {
+        PyErr_Format( PyExc_TypeError, "__kwdefaults__ must be set to a dict object" );
+        return -1;
+    }
+
+    if ( object->m_kwdefaults == Py_None && value != Py_None )
+    {
+        PyErr_Format( PyExc_TypeError, "Nuitka doesn't support __kwdefaults__ size changes" );
+        return -1;
+    }
+
+    // TODO: Check that keys are actually the same, this test is too weak.
+    if ( object->m_kwdefaults != Py_None && ( value == Py_None || PyDict_Size( object->m_kwdefaults ) != PyDict_Size( value ) ) )
+    {
+        PyErr_Format( PyExc_TypeError, "Nuitka doesn't support __kwdefaults__ size changes" );
+        return -1;
+    }
+
+
+    PyObject *old = object->m_kwdefaults;
+    object->m_kwdefaults = INCREASE_REFCOUNT( value );
+    Py_DECREF( old );
+
+    return 0;
+}
+#endif
+
 static int Nuitka_Function_set_globals( Nuitka_FunctionObject *object, PyObject *value )
 {
     PyErr_Format( PyExc_TypeError, "readonly attribute" );
@@ -277,19 +313,22 @@ static PyObject *Nuitka_Function_get_module( Nuitka_FunctionObject *object )
 
 static PyGetSetDef Nuitka_Function_getset[] =
 {
-   { (char *)"func_name",     (getter)Nuitka_Function_get_name,     (setter)Nuitka_Function_set_name, NULL },
-   { (char *)"__name__" ,     (getter)Nuitka_Function_get_name,     (setter)Nuitka_Function_set_name, NULL },
-   { (char *)"func_doc",      (getter)Nuitka_Function_get_doc,      (setter)Nuitka_Function_set_doc, NULL },
-   { (char *)"__doc__" ,      (getter)Nuitka_Function_get_doc,      (setter)Nuitka_Function_set_doc, NULL },
-   { (char *)"func_dict",     (getter)Nuitka_Function_get_dict,     (setter)Nuitka_Function_set_dict, NULL },
-   { (char *)"__dict__",      (getter)Nuitka_Function_get_dict,     (setter)Nuitka_Function_set_dict, NULL },
-   { (char *)"func_code",     (getter)Nuitka_Function_get_code,     (setter)Nuitka_Function_set_code, NULL },
-   { (char *)"__code__",      (getter)Nuitka_Function_get_code,     (setter)Nuitka_Function_set_code, NULL },
-   { (char *)"func_defaults", (getter)Nuitka_Function_get_defaults, (setter)Nuitka_Function_set_defaults, NULL },
-   { (char *)"__defaults__",  (getter)Nuitka_Function_get_defaults, (setter)Nuitka_Function_set_defaults, NULL },
-   { (char *)"func_globals",  (getter)Nuitka_Function_get_globals,  (setter)Nuitka_Function_set_globals, NULL },
-   { (char *)"__globals__",   (getter)Nuitka_Function_get_globals,  (setter)Nuitka_Function_set_globals, NULL },
-   { (char *)"__module__",    (getter)Nuitka_Function_get_module,   (setter)Nuitka_Function_set_module, NULL },
+   { (char *)"func_name",      (getter)Nuitka_Function_get_name,       (setter)Nuitka_Function_set_name, NULL },
+   { (char *)"__name__" ,      (getter)Nuitka_Function_get_name,       (setter)Nuitka_Function_set_name, NULL },
+   { (char *)"func_doc",       (getter)Nuitka_Function_get_doc,        (setter)Nuitka_Function_set_doc, NULL },
+   { (char *)"__doc__" ,       (getter)Nuitka_Function_get_doc,        (setter)Nuitka_Function_set_doc, NULL },
+   { (char *)"func_dict",      (getter)Nuitka_Function_get_dict,       (setter)Nuitka_Function_set_dict, NULL },
+   { (char *)"__dict__",       (getter)Nuitka_Function_get_dict,       (setter)Nuitka_Function_set_dict, NULL },
+   { (char *)"func_code",      (getter)Nuitka_Function_get_code,       (setter)Nuitka_Function_set_code, NULL },
+   { (char *)"__code__",       (getter)Nuitka_Function_get_code,       (setter)Nuitka_Function_set_code, NULL },
+   { (char *)"func_defaults",  (getter)Nuitka_Function_get_defaults,   (setter)Nuitka_Function_set_defaults, NULL },
+   { (char *)"__defaults__",   (getter)Nuitka_Function_get_defaults,   (setter)Nuitka_Function_set_defaults, NULL },
+   { (char *)"func_globals",   (getter)Nuitka_Function_get_globals,    (setter)Nuitka_Function_set_globals, NULL },
+   { (char *)"__globals__",    (getter)Nuitka_Function_get_globals,    (setter)Nuitka_Function_set_globals, NULL },
+   { (char *)"__module__",     (getter)Nuitka_Function_get_module,     (setter)Nuitka_Function_set_module, NULL },
+#if PYTHON_VERSION >= 300
+   { (char *)"__kwdefaults__", (getter)Nuitka_Function_get_kwdefaults, (setter)Nuitka_Function_set_kwdefaults},
+#endif
    { NULL }
 };
 
@@ -318,6 +357,10 @@ static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
     Py_XDECREF( function->m_dict );
 
     Py_DECREF( function->m_defaults );
+
+#if PYTHON_VERSION >= 300
+    Py_DECREF( function->m_kwdefaults );
+#endif
 
     if ( function->m_context )
     {
@@ -388,7 +431,11 @@ PyTypeObject Nuitka_Function_Type =
     0,                                              // tp_del
 };
 
+#if PYTHON_VERSION < 300
 static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, bool has_args, void *context, releaser cleanup )
+#else
+static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *module, PyObject *doc, bool has_args, void *context, releaser cleanup )
+#endif
 {
     Nuitka_FunctionObject *result = PyObject_GC_New( Nuitka_FunctionObject, &Nuitka_Function_Type );
 
@@ -407,14 +454,14 @@ static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, Py
     result->m_context = context;
     result->m_cleanup = cleanup;
 
-    if ( defaults == NULL )
-    {
-        defaults = INCREASE_REFCOUNT( Py_None );
-    }
-
     assertObject( defaults );
     assert( defaults == Py_None || ( PyTuple_Check( defaults ) && PyTuple_Size( defaults ) > 0 ) );
     result->m_defaults = defaults;
+
+#if PYTHON_VERSION >= 300
+    assert( kwdefaults == Py_None || ( PyDict_Check( kwdefaults ) && PyDict_Size( kwdefaults ) > 0 ) );
+    result->m_kwdefaults = kwdefaults;
+#endif
 
     result->m_code_object = code_object;
 
@@ -432,19 +479,37 @@ static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, Py
 }
 
 // Make a function without context.
+#if PYTHON_VERSION < 300
 PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc )
 {
     return make_kfunction( (void *)fparse, mparse, name, code_object, defaults, module, doc, true, NULL, NULL );
 }
+#else
+PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *module, PyObject *doc )
+{
+    return make_kfunction( (void *)fparse, mparse, name, code_object, defaults, kwdefaults, module, doc, true, NULL, NULL );
+}
+#endif
 
 // Make a function with context.
+#if PYTHON_VERSION < 300
 PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, void *context, releaser cleanup )
 {
     return make_kfunction( (void *)fparse, mparse, name, code_object, defaults, module, doc, true, context, cleanup );
 }
+#else
+PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+{
+    return make_kfunction( (void *)fparse, mparse, name, code_object, defaults, kwdefaults, module, doc, true, context, cleanup );
+}
+#endif
 
 // Make a function that is only a yielder, no args.
 PyObject *Nuitka_Function_New( argless_code code, PyObject *name, PyObject *module, PyObject *doc, void *context, releaser cleanup )
 {
+#if PYTHON_VERSION < 300
     return make_kfunction( (void *)code, NULL, name, NULL, _python_tuple_empty, module, doc, false, context, cleanup );
+#else
+    return make_kfunction( (void *)code, NULL, name, NULL, _python_tuple_empty, Py_None, module, doc, false, context, cleanup );
+#endif
 }

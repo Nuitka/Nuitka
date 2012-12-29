@@ -203,7 +203,8 @@ make_class_parameters = ParameterSpec(
     normal_args   = (),
     list_star_arg = None,
     dict_star_arg = None,
-    default_count = 0
+    default_count = 0,
+    kw_only_args  = ()
 )
 
 
@@ -333,7 +334,6 @@ def _buildClassNode3( provider, node, source_ref ):
 
     class_creation_function.setBody( body )
 
-
     # The class body is basically a function that implicitely, at the end returns its
     # created class and cannot have other return statements contained.
 
@@ -341,6 +341,7 @@ def _buildClassNode3( provider, node, source_ref ):
         function   = CPythonExpressionFunctionCreation(
             function_body = class_creation_function,
             defaults      = (),
+            kw_defaults   = None,
             source_ref    = source_ref
         ),
         values     = (),
@@ -669,6 +670,7 @@ def _buildClassNode2( provider, node, source_ref ):
                 function = CPythonExpressionFunctionCreation(
                     function_body = class_creation_function,
                     defaults      = (),
+                    kw_defaults   = None,
                     source_ref    = source_ref
                 ),
                 values     = (),
@@ -823,16 +825,12 @@ def buildParameterSpec( name, node, source_ref ):
         else:
             assert False, getKind( arg )
 
-    argnames = [ extractArg( arg ) for arg in node.args.args ]
-
-    kwargs = node.args.kwarg
-    varargs = node.args.vararg
-
     result = ParameterSpec(
         name           = name,
-        normal_args    = argnames,
-        list_star_arg  = varargs,
-        dict_star_arg  = kwargs,
+        normal_args    = [ extractArg( arg ) for arg in node.args.args ],
+        kw_only_args   = [ extractArg( arg ) for arg in node.args.kwonlyargs ] if Utils.python_version >= 300 else [],
+        list_star_arg  = node.args.vararg,
+        dict_star_arg  = node.args.kwarg,
         default_count  = len( node.args.defaults )
     )
 
@@ -846,13 +844,41 @@ def buildParameterSpec( name, node, source_ref ):
 
     return result
 
+def _buildParameterKwDefaults( provider, node, function_body, source_ref ):
+    if Utils.python_version >= 300:
+        kw_only_names = function_body.getParameters().getKwOnlyParameterNames()
+        pairs = []
+
+        for kw_name, kw_default in zip( kw_only_names, node.args.kw_defaults ):
+            if kw_default is not None:
+                pairs.append(
+                    CPythonExpressionKeyValuePair(
+                        key = CPythonExpressionConstantRef(
+                            constant   = kw_name,
+                            source_ref = source_ref
+                        ),
+                        value = buildNode( provider, kw_default, source_ref ),
+                        source_ref = source_ref
+                    )
+                )
+
+        if pairs:
+            kw_defaults = CPythonExpressionMakeDict(
+                pairs = pairs,
+                source_ref = source_ref
+            )
+        else:
+            kw_defaults = None
+    else:
+        kw_defaults = None
+
+    return kw_defaults
+
+
 def buildFunctionNode( provider, node, source_ref ):
     assert getKind( node ) == "FunctionDef"
 
     function_statements, function_doc = _extractDocFromBody( node )
-
-    decorators = buildNodeList( provider, reversed( node.decorator_list ), source_ref )
-    defaults = buildNodeList( provider, node.args.defaults, source_ref )
 
     function_body = CPythonExpressionFunctionBody(
         provider   = provider,
@@ -864,6 +890,11 @@ def buildFunctionNode( provider, node, source_ref ):
 
     # Hack:
     function_body.parent = provider
+
+    decorators = buildNodeList( provider, reversed( node.decorator_list ), source_ref )
+
+    defaults = buildNodeList( provider, node.args.defaults, source_ref )
+    kw_defaults = _buildParameterKwDefaults( provider, node, function_body, source_ref )
 
     function_statements_body = buildStatementsNode(
         provider   = function_body,
@@ -877,6 +908,7 @@ def buildFunctionNode( provider, node, source_ref ):
     decorated_body = CPythonExpressionFunctionCreation(
         function_body = function_body,
         defaults      = defaults,
+        kw_defaults   = kw_defaults,
         source_ref    = source_ref
     )
 
@@ -920,8 +952,6 @@ def buildFunctionNode( provider, node, source_ref ):
 def buildLambdaNode( provider, node, source_ref ):
     assert getKind( node ) == "Lambda"
 
-    defaults = buildNodeList( provider, node.args.defaults, source_ref )
-
     function_body = CPythonExpressionFunctionBody(
         provider   = provider,
         name       = "<lambda>",
@@ -929,6 +959,9 @@ def buildLambdaNode( provider, node, source_ref ):
         parameters = buildParameterSpec( "<lambda>", node, source_ref ),
         source_ref = source_ref,
     )
+
+    defaults = buildNodeList( provider, node.args.defaults, source_ref )
+    kw_defaults = _buildParameterKwDefaults( provider, node, function_body, source_ref )
 
     body = buildNode(
         provider   = function_body,
@@ -963,6 +996,7 @@ def buildLambdaNode( provider, node, source_ref ):
     return CPythonExpressionFunctionCreation(
         function_body = function_body,
         defaults      = defaults,
+        kw_defaults   = kw_defaults,
         source_ref    = source_ref
     )
 
@@ -1722,7 +1756,8 @@ make_contraction_parameters = ParameterSpec(
     normal_args   = ( "__iterator", ),
     list_star_arg = None,
     dict_star_arg = None,
-    default_count = 0
+    default_count = 0,
+    kw_only_args  = ()
 )
 
 def _buildContractionNode( provider, node, name, emit_class, start_value, assign_provider, source_ref ):
@@ -1995,6 +2030,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
         function   = CPythonExpressionFunctionCreation(
             function_body = function_body,
             defaults      = (),
+            kw_defaults   = None,
             source_ref    = source_ref
         ),
         values     = (
@@ -2951,7 +2987,12 @@ def buildNodeList( provider, nodes, source_ref, allow_none = False ):
         result = []
 
         for node in nodes:
-            entry = buildNode( provider, node, source_ref.atLineNumber( node.lineno ), allow_none )
+            if hasattr( node, "lineno" ):
+                node_source_ref = source_ref.atLineNumber( node.lineno )
+            else:
+                node_source_ref = source_ref
+
+            entry = buildNode( provider, node, node_source_ref, allow_none )
 
             if entry is not None:
                 result.append( entry )

@@ -63,7 +63,8 @@ class Identifier:
         return "<Identifier %s (%d)>" % ( self.code, self.ref_count )
 
     def isConstantIdentifier( self ):
-        return self.__class__ is ConstantIdentifier
+        return False
+
 
 class ConstantIdentifier( Identifier ):
     def __init__( self, constant_code, constant_value ):
@@ -74,11 +75,28 @@ class ConstantIdentifier( Identifier ):
     def __repr__( self ):
         return "<ConstantIdentifier %s>" % self.code
 
+    def isConstantIdentifier( self ):
+        return True
+
     def getCheapRefCount( self ):
         return 0
 
     def getConstant( self ):
         return self.constant_value
+
+
+class SpecialConstantIdentifier( ConstantIdentifier ):
+    def __init__( self, constant_value ):
+        if constant_value is None:
+            ConstantIdentifier.__init__( self, "Py_None", None )
+        elif constant_value is True:
+            ConstantIdentifier.__init__( self, "Py_True", True )
+        elif constant_value is False:
+            ConstantIdentifier.__init__( self, "Py_False", False )
+        elif constant_value is Ellipsis:
+            ConstantIdentifier.__init__( self, "Py_Ellipsis", Ellipsis )
+        else:
+            assert False, constant_value
 
 
 class ModuleVariableIdentifier:

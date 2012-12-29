@@ -176,6 +176,9 @@ NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_LE( EVAL_ORDERED_2( PyObject
 
 NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ_PARAMETERS( PyObject *operand1, PyObject *operand2 )
 {
+    assertObject( operand1 );
+    assertObject( operand2 );
+
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_EQ );
 
     // String comparisons cannot fail they say.

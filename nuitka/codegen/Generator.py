@@ -724,8 +724,11 @@ def getConditionalExpressionCode( condition_code, identifier_no, identifier_yes 
         ref_count
     )
 
-def getFunctionCreationCode( context, function_identifier, defaults_identifier, closure_variables ):
+def getFunctionCreationCode( context, function_identifier, defaults_identifier, kw_defaults_identifier, closure_variables ):
     args = []
+
+    if not kw_defaults_identifier.isConstantIdentifier():
+        args.append( kw_defaults_identifier.getCodeExportRef() )
 
     if not defaults_identifier.isConstantIdentifier():
         args.append( defaults_identifier.getCodeExportRef() )
@@ -1825,11 +1828,15 @@ def getFunctionsDecl( context ):
 
     return result
 
-def _getFunctionCreationArgs( defaults_identifier, closure_variables ):
+def _getFunctionCreationArgs( defaults_identifier, kw_defaults_identifier, closure_variables ):
     result = []
+
+    if not kw_defaults_identifier.isConstantIdentifier():
+        result.append( "PyObject *kwdefaults" )
 
     if not defaults_identifier.isConstantIdentifier():
         result.append( "PyObject *defaults" )
+
 
     for closure_variable in closure_variables:
         result.append( "PyObjectSharedLocalVariable &python_closure_%s" % closure_variable.getName() )
@@ -1853,15 +1860,15 @@ def _extractArgNames( args ):
         args
     ]
 
-def getFunctionDecl( context, function_identifier, defaults_identifier, closure_variables, \
-                     function_parameter_variables ):
+def getFunctionDecl( context, function_identifier, defaults_identifier, kw_defaults_identifier,
+                     closure_variables, function_parameter_variables ):
 
     if context.function.needsCreation():
         # TODO: These two branches probably mean it's two different things.
-
         function_creation_arg_spec = _getFunctionCreationArgs(
-            defaults_identifier = defaults_identifier,
-            closure_variables   = closure_variables
+            defaults_identifier    = defaults_identifier,
+            kw_defaults_identifier = kw_defaults_identifier,
+            closure_variables      = closure_variables
         )
 
         function_creation_arg_names = _extractArgNames( function_creation_arg_spec )
@@ -1958,10 +1965,17 @@ def _getFuncDefaultValue( defaults_identifier ):
     else:
         return Identifier( "defaults", 1 )
 
+
+def _getFuncKwDefaultValue( kw_defaults_identifier ):
+    if kw_defaults_identifier.isConstantIdentifier():
+        return kw_defaults_identifier
+    else:
+        return Identifier( "kwdefaults", 1 )
+
 def getGeneratorFunctionCode( context, function_name, function_identifier, parameters, \
                               closure_variables, user_variables, defaults_identifier,
-                              tmp_keepers, function_codes, needs_creation, needs_return,
-                              source_ref, function_doc ):
+                              kw_defaults_identifier, tmp_keepers, function_codes, needs_creation, \
+                              needs_return, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
 
@@ -2045,9 +2059,10 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
             )
         )
 
-    function_creation_args  = _getFunctionCreationArgs(
-        defaults_identifier = defaults_identifier,
-        closure_variables   = closure_variables
+    function_creation_args = _getFunctionCreationArgs(
+        defaults_identifier    = defaults_identifier,
+        kw_defaults_identifier = kw_defaults_identifier,
+        closure_variables      = closure_variables
     )
 
     function_doc = getConstantCode(
@@ -2166,6 +2181,10 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         defaults_identifier = defaults_identifier
     )
 
+    func_kwdefaults = _getFuncKwDefaultValue(
+        kw_defaults_identifier = kw_defaults_identifier
+    )
+
     if needs_creation:
         result += entry_point_code
 
@@ -2189,6 +2208,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
                 "context_copy"               : indented( context_copy ),
                 "function_doc"               : function_doc,
                 "defaults"                   : func_defaults.getCodeExportRef(),
+                "kwdefaults"                 : func_kwdefaults.getCodeExportRef(),
                 "module_identifier"          : getModuleAccessCode(
                     context = context
                 )
@@ -2212,6 +2232,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
                 ),
                 "function_doc"               : function_doc,
                 "defaults"                   : func_defaults.getCodeExportRef(),
+                "kwdefaults"                 : func_kwdefaults.getCodeExportRef(),
                 "module_identifier"          : getModuleAccessCode(
                     context = context
                 ),
@@ -2220,8 +2241,8 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
     return result
 
 def getFunctionCode( context, function_name, function_identifier, parameters, closure_variables, \
-                     user_variables, tmp_keepers, defaults_identifier, function_codes, \
-                     needs_creation, source_ref, function_doc ):
+                     user_variables, tmp_keepers, defaults_identifier, kw_defaults_identifier, \
+                     function_codes, needs_creation, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
 
@@ -2264,8 +2285,9 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         )
 
     function_creation_args = _getFunctionCreationArgs(
-        defaults_identifier = defaults_identifier,
-        closure_variables   = closure_variables,
+        defaults_identifier    = defaults_identifier,
+        kw_defaults_identifier = kw_defaults_identifier,
+        closure_variables      = closure_variables,
     )
 
     # User local variable initializations
@@ -2339,6 +2361,10 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         defaults_identifier = defaults_identifier
     )
 
+    func_kwdefaults = _getFuncKwDefaultValue(
+        kw_defaults_identifier = kw_defaults_identifier
+    )
+
     if needs_creation:
         code_identifier = context.getCodeObjectHandle(
             filename     = source_ref.getFilename(),
@@ -2365,6 +2391,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                 "context_copy"               : indented( context_copy ),
                 "function_doc"               : function_doc,
                 "defaults"                   : func_defaults.getCodeExportRef(),
+                "kwdefaults"                 : func_kwdefaults.getCodeExportRef(),
                 "module_identifier"          : getModuleAccessCode( context = context ),
             }
         else:
@@ -2383,6 +2410,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                 "code_identifier"            : code_identifier.getCodeTemporaryRef(),
                 "function_doc"               : function_doc,
                 "defaults"                   : func_defaults.getCodeExportRef(),
+                "kwdefaults"                 : func_kwdefaults.getCodeExportRef(),
                 "module_identifier"          : getModuleAccessCode( context = context ),
             }
 
