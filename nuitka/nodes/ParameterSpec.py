@@ -105,6 +105,23 @@ class ParameterSpecTuple:
 
         return result
 
+    def getAllNames( self ):
+        result = []
+
+        def extractArg( normal_arg ):
+            if type( normal_arg ) is str:
+                result.append( normal_arg )
+            elif type( normal_arg ) is tuple:
+                for normal_arg in normal_arg:
+                    extractArg( normal_arg )
+            else:
+                assert False
+
+        for normal_arg in self.normal_args:
+            extractArg( normal_arg )
+
+        return result
+
     def getTopLevelVariables( self ):
         return self.normal_variables
 
@@ -134,10 +151,12 @@ class ParameterSpec( ParameterSpecTuple ):
         self.kw_only_variables = None
 
     def checkValid( self ):
+        arg_names = self.getAllNames()
+
         # Check for duplicate arguments, could happen.
-        for normal_arg in self.normal_args:
-            if self.normal_args.count( normal_arg ) != 1:
-                return "duplicate argument '%s' in function definition" % normal_arg
+        for arg_name in arg_names:
+            if arg_names.count( arg_name ) != 1:
+                return "duplicate argument '%s' in function definition" % arg_name
         else:
             return None
 
@@ -223,6 +242,17 @@ class ParameterSpec( ParameterSpecTuple ):
             result.append( self.dict_star_variable )
 
         return result + self.kw_only_variables
+
+    def getAllNames( self ):
+        result = ParameterSpecTuple.getAllNames( self )[:]
+
+        if self.list_star_arg is not None:
+            result.append( self.list_star_arg )
+
+        if self.dict_star_arg is not None:
+            result.append( self.dict_star_arg )
+
+        return result + list( self.kw_only_args )
 
     def getStarListArgumentName( self ):
         return self.list_star_arg
