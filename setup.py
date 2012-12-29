@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2012, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -166,7 +166,7 @@ setup(
 
     # metadata for upload to PyPI
     author       = "Kay Hayen",
-    author_email = "kayhayen@gmx.de",
+    author_email = "Kay.Hayen@gmail.com",
     url          = "http://nuitka.net",
     description  = "Python compiler with full language support and CPython compatibility",
 

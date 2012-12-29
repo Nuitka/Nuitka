@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2012, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.

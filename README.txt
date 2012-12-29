@@ -147,7 +147,7 @@ Should you encounter and issues or bugs, please visit the `Nuitka bug tracker
 Contact me via email with your questions
 ----------------------------------------
 
-You are welcome to `contact me via email <mailto:kayhayen@gmx.de>`_ with your questions.
+You are welcome to `contact me via email <mailto:Kay.Hayen@gmail.com>`_ with your questions.
 
 Word of Warning
 ~~~~~~~~~~~~~~~
