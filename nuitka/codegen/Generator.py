@@ -1972,9 +1972,10 @@ def _getFuncKwDefaultValue( kw_defaults_identifier ):
     else:
         return Identifier( "kwdefaults", 1 )
 
-def getGeneratorFunctionCode( context, function_name, function_identifier, parameters, \
+def getGeneratorFunctionCode( context, function_name, function_identifier, parameters,
                               closure_variables, user_variables, defaults_identifier,
-                              kw_defaults_identifier, tmp_keepers, function_codes, needs_creation, \
+                              kw_defaults_identifier, annotations_identifier,
+                              tmp_keepers, function_codes, needs_creation,
                               needs_return, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
@@ -2185,6 +2186,13 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         kw_defaults_identifier = kw_defaults_identifier
     )
 
+    # TODO: Probably should support passing NULL to avoid useless dictionaries.
+    if annotations_identifier is None:
+        annotations_identifier = getConstantAccess(
+            context  = context,
+            constant = {}
+        )
+
     if needs_creation:
         result += entry_point_code
 
@@ -2209,6 +2217,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
                 "function_doc"               : function_doc,
                 "defaults"                   : func_defaults.getCodeExportRef(),
                 "kwdefaults"                 : func_kwdefaults.getCodeExportRef(),
+                "annotations"                : annotations_identifier.getCodeExportRef(),
                 "module_identifier"          : getModuleAccessCode(
                     context = context
                 )
@@ -2233,6 +2242,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
                 "function_doc"               : function_doc,
                 "defaults"                   : func_defaults.getCodeExportRef(),
                 "kwdefaults"                 : func_kwdefaults.getCodeExportRef(),
+                "annotations"                : annotations_identifier.getCodeExportRef(),
                 "module_identifier"          : getModuleAccessCode(
                     context = context
                 ),
@@ -2240,9 +2250,9 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 
     return result
 
-def getFunctionCode( context, function_name, function_identifier, parameters, closure_variables, \
-                     user_variables, tmp_keepers, defaults_identifier, kw_defaults_identifier, \
-                     function_codes, needs_creation, source_ref, function_doc ):
+def getFunctionCode( context, function_name, function_identifier, parameters, closure_variables,
+                     user_variables, tmp_keepers, defaults_identifier, kw_defaults_identifier,
+                     annotations_identifier, function_codes, needs_creation, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
 
@@ -2365,6 +2375,13 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         kw_defaults_identifier = kw_defaults_identifier
     )
 
+    # TODO: Probably should support passing NULL to avoid useless dictionaries.
+    if annotations_identifier is None:
+        annotations_identifier = getConstantAccess(
+            context  = context,
+            constant = {}
+        )
+
     if needs_creation:
         code_identifier = context.getCodeObjectHandle(
             filename     = source_ref.getFilename(),
@@ -2392,6 +2409,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                 "function_doc"               : function_doc,
                 "defaults"                   : func_defaults.getCodeExportRef(),
                 "kwdefaults"                 : func_kwdefaults.getCodeExportRef(),
+                "annotations"                : annotations_identifier.getCodeExportRef(),
                 "module_identifier"          : getModuleAccessCode( context = context ),
             }
         else:
@@ -2411,6 +2429,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
                 "function_doc"               : function_doc,
                 "defaults"                   : func_defaults.getCodeExportRef(),
                 "kwdefaults"                 : func_kwdefaults.getCodeExportRef(),
+                "annotations"                : annotations_identifier.getCodeExportRef(),
                 "module_identifier"          : getModuleAccessCode( context = context ),
             }
 

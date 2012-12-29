@@ -328,15 +328,18 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
 class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_FUNCTION_CREATION"
 
-    named_children = ( "function_body", "kw_defaults", "defaults" )
+    # Note: The order of evaluation for these is a bit unexpected, but true. Keyword
+    # defaults go first, then normal defaults, and annotations of all kinds go last.
+    named_children = ( "function_body", "kw_defaults", "defaults", "annotations" )
 
-    def __init__( self, function_body, defaults, kw_defaults, source_ref ):
+    def __init__( self, function_body, defaults, kw_defaults, annotations, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "function_body" : function_body,
                 "defaults"      : tuple( defaults ),
                 "kw_defaults"   : kw_defaults,
+                "annotations"   : annotations
             },
             source_ref = source_ref
         )
@@ -346,9 +349,19 @@ class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
         kw_defaults = self.getKwDefaults()
 
         if kw_defaults is None:
-            return self.getDefaults()
+            annotations = self.getAnnotations()
+
+            if annotations is None:
+                return self.getDefaults()
+            else:
+                return ( annotations, ) + self.getDefaults()
         else:
-            return ( kw_defaults, ) + self.getDefaults()
+            annotations = self.getAnnotations()
+
+            if annotations is None:
+                return ( kw_defaults, ) + self.getDefaults()
+            else:
+                return ( kw_defaults, annotations ) + self.getDefaults()
 
     def computeNode( self, constraint_collection ):
         # TODO: Function body may know something.
@@ -357,6 +370,7 @@ class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
     getFunctionBody = CPythonExpressionChildrenHavingBase.childGetter( "function_body" )
     getDefaults = CPythonExpressionChildrenHavingBase.childGetter( "defaults" )
     getKwDefaults = CPythonExpressionChildrenHavingBase.childGetter( "kw_defaults" )
+    getAnnotations = CPythonExpressionChildrenHavingBase.childGetter( "annotations" )
 
 
 class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):

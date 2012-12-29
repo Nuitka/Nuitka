@@ -342,6 +342,7 @@ def _buildClassNode3( provider, node, source_ref ):
             function_body = class_creation_function,
             defaults      = (),
             kw_defaults   = None,
+            annotations   = None,
             source_ref    = source_ref
         ),
         values     = (),
@@ -671,6 +672,7 @@ def _buildClassNode2( provider, node, source_ref ):
                     function_body = class_creation_function,
                     defaults      = (),
                     kw_defaults   = None,
+                    annotations   = None,
                     source_ref    = source_ref
                 ),
                 values     = (),
@@ -817,8 +819,6 @@ def buildParameterSpec( name, node, source_ref ):
         if getKind( arg ) == "Name":
             return arg.id
         elif getKind( arg ) == "arg":
-            assert arg.annotation is None
-
             return arg.arg
         elif getKind( arg ) == "Tuple":
             return tuple( extractArg( arg ) for arg in arg.elts )
@@ -874,6 +874,83 @@ def _buildParameterKwDefaults( provider, node, function_body, source_ref ):
 
     return kw_defaults
 
+def _buildParameterAnnotations( provider, node, source_ref ):
+    if Utils.python_version < 300:
+        return None
+
+    pairs = []
+
+    def extractArg( arg ):
+        if getKind( arg ) == "Name":
+            assert arg.annotation is None
+        elif getKind( arg ) == "arg":
+            if arg.annotation is not None:
+                pairs.append(
+                    CPythonExpressionKeyValuePair(
+                        key        = CPythonExpressionConstantRef(
+                            constant   = arg.arg,
+                            source_ref = source_ref
+                        ),
+                        value      = buildNode( provider, arg.annotation, source_ref ),
+                        source_ref = source_ref
+                    )
+                )
+        elif getKind( arg ) == "Tuple":
+            for arg in arg.elts:
+                extractArg( arg )
+        else:
+            assert False, getKind( arg )
+
+    for arg in node.args.args:
+        extractArg( arg )
+
+    for arg in node.args.kwonlyargs:
+        extractArg( arg )
+
+    if node.args.varargannotation is not None:
+        pairs.append(
+            CPythonExpressionKeyValuePair(
+                key        = CPythonExpressionConstantRef(
+                    constant   = node.args.vararg,
+                    source_ref = source_ref
+                ),
+                value      = buildNode( provider, node.args.varargannotation, source_ref ),
+                source_ref = source_ref
+            )
+        )
+    if node.args.kwargannotation is not None:
+        pairs.append(
+            CPythonExpressionKeyValuePair(
+                key        = CPythonExpressionConstantRef(
+                    constant   = node.args.kwarg,
+                    source_ref = source_ref
+                ),
+                value      = buildNode( provider, node.args.kwargannotation, source_ref ),
+                source_ref = source_ref
+            )
+        )
+
+    # Return value annotation (not there for lambdas)
+    if hasattr( node, "returns" ) and node.returns is not None:
+        pairs.append(
+            CPythonExpressionKeyValuePair(
+                key        = CPythonExpressionConstantRef(
+                    constant   = "return",
+                    source_ref = source_ref
+                ),
+                value      = buildNode( provider, node.returns, source_ref ),
+                source_ref = source_ref
+            )
+        )
+
+    if pairs:
+        return CPythonExpressionMakeDict(
+            pairs      = pairs,
+            source_ref = source_ref
+        )
+    else:
+        return None
+
 
 def buildFunctionNode( provider, node, source_ref ):
     assert getKind( node ) == "FunctionDef"
@@ -905,10 +982,13 @@ def buildFunctionNode( provider, node, source_ref ):
 
     function_body.setBody( function_statements_body )
 
+    annotations = _buildParameterAnnotations( provider, node, source_ref )
+
     decorated_body = CPythonExpressionFunctionCreation(
         function_body = function_body,
         defaults      = defaults,
         kw_defaults   = kw_defaults,
+        annotations   = annotations,
         source_ref    = source_ref
     )
 
@@ -993,10 +1073,13 @@ def buildLambdaNode( provider, node, source_ref ):
 
     function_body.setBody( body )
 
+    annotations = _buildParameterAnnotations( provider, node, source_ref )
+
     return CPythonExpressionFunctionCreation(
         function_body = function_body,
         defaults      = defaults,
         kw_defaults   = kw_defaults,
+        annotations   = annotations,
         source_ref    = source_ref
     )
 
@@ -2031,6 +2114,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
             function_body = function_body,
             defaults      = (),
             kw_defaults   = None,
+            annotations   = None,
             source_ref    = source_ref
         ),
         values     = (
@@ -3731,7 +3815,10 @@ def buildNode( provider, node, source_ref, allow_none = False ):
     try:
         kind = getKind( node )
 
-        source_ref = source_ref.atLineNumber( node.lineno )
+        if hasattr( node, "lineno" ):
+            source_ref = source_ref.atLineNumber( node.lineno )
+        else:
+            source_ref = source_ref
 
         if kind in _fast_path_args3:
             result = _fast_path_args3[ kind ](

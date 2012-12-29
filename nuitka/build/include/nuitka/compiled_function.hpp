@@ -66,6 +66,9 @@ struct Nuitka_FunctionObject {
 #if PYTHON_VERSION >= 300
     // List of keyword only defaults, for use in __kwdefaults__ and parameter parsing.
     PyObject *m_kwdefaults;
+
+    // Annotations to the function arguments and return value.
+    PyObject *m_annotations;
 #endif
 
     long m_counter;
@@ -78,14 +81,14 @@ extern PyTypeObject Nuitka_Function_Type;
 #if PYTHON_VERSION < 300
 extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc );
 #else
-extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *module, PyObject *doc );
+extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc );
 #endif
 
 // Make a function with context.
 #if PYTHON_VERSION < 300
 extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, void *context, releaser cleanup );
 #else
-extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *module, PyObject *doc, void *context, releaser cleanup );
+extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup );
 #endif
 
 // Make a function that is only a yielder, no args.

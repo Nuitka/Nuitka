@@ -64,6 +64,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
         %(defaults)s,
 #if PYTHON_VERSION >= 300
         %(kwdefaults)s,
+        %(annotations)s,
 #endif
         %(module_identifier)s,
         %(function_doc)s,
@@ -86,6 +87,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
         %(defaults)s,
 #if PYTHON_VERSION >= 300
         %(kwdefaults)s,
+        %(annotations)s,
 #endif
         %(module_identifier)s,
         %(function_doc)s

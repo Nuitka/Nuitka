@@ -214,6 +214,7 @@ def generateFunctionCallCode( call_node, context ):
         function_body  = function_body,
         defaults       = (), # TODO: Can't be right or needs check
         kw_defaults    = (),
+        annotations    = None,
         context        = context
     )
 
@@ -230,7 +231,7 @@ def generateFunctionCallCode( call_node, context ):
         context            = context
     )
 
-def generateFunctionBodyCode( function_body, defaults, kw_defaults, context ):
+def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations, context ):
     function_context = Contexts.PythonFunctionContext(
         parent         = context,
         function       = function_body
@@ -270,6 +271,12 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, context ):
             context  = context
         )
 
+    annotations_identifier = generateExpressionCode(
+        expression = annotations,
+        allow_none = True,
+        context    = context,
+    )
+
     if function_body.isGenerator():
         function_code = Generator.getGeneratorFunctionCode(
             context                = function_context,
@@ -281,6 +288,7 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, context ):
             tmp_keepers            = function_context.getTempKeeperUsages(),
             defaults_identifier    = defaults_identifier,
             kw_defaults_identifier = kw_defaults_identifier,
+            annotations_identifier = annotations_identifier,
             needs_creation         = function_body.needsCreation(),
             needs_return           = function_body.needsExceptionGeneratorReturn(),
             source_ref             = function_body.getSourceReference(),
@@ -298,6 +306,7 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, context ):
             tmp_keepers            = function_context.getTempKeeperUsages(),
             defaults_identifier    = defaults_identifier,
             kw_defaults_identifier = kw_defaults_identifier,
+            annotations_identifier = annotations_identifier,
             needs_creation         = function_body.needsCreation(),
             source_ref             = function_body.getSourceReference(),
             function_codes         = function_codes,
@@ -851,6 +860,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
             function_body  = expression.getFunctionBody(),
             defaults       = expression.getDefaults(),
             kw_defaults    = expression.getKwDefaults(),
+            annotations    = expression.getAnnotations(),
             context        = context
         )
     elif expression.isExpressionComparison():
