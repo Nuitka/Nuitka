@@ -168,8 +168,10 @@ public:
     }
 
 #if PYTHON_VERSION >= 300
-    void del() const
+    void del( bool tolerant ) const
     {
+        // TODO: Not using tolerant seems wrong, potentially we are missing the check from
+        // asObject here.
         this->storage->del();
     }
 #endif

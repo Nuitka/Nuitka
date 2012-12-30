@@ -103,18 +103,23 @@ public:
         return this->object != NULL;
     }
 
-    void del()
+    void del( bool tolerant )
     {
-        if ( this->object == NULL )
+        if (unlikely( this->object == NULL ))
         {
-            PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
-            throw _PythonException();
+            if ( tolerant == false )
+            {
+                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
+                throw _PythonException();
+            }
         }
-
-        assertObject( this->object );
+        else
+        {
+            assertObject( this->object );
 
             Py_DECREF( this->object );
             this->object = NULL;
+        }
     }
 
     PyObject *getVariableName() const

@@ -142,9 +142,10 @@ class CPythonStatementDelVariable( CPythonChildrenHaving, CPythonNodeBase ):
 
     named_children = ( "variable_ref", )
 
-    def __init__( self, variable_ref, source_ref ):
+    def __init__( self, variable_ref, tolerant, source_ref ):
         assert variable_ref is not None
         assert not variable_ref.isExpressionVariableRef()
+        assert tolerant is True or tolerant is False
 
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
@@ -155,6 +156,8 @@ class CPythonStatementDelVariable( CPythonChildrenHaving, CPythonNodeBase ):
             }
         )
 
+        self.tolerant = tolerant
+
     def getDetail( self ):
         variable_ref = self.getTargetVariableRef()
         variable = variable_ref.getVariable()
@@ -163,6 +166,10 @@ class CPythonStatementDelVariable( CPythonChildrenHaving, CPythonNodeBase ):
             return "to variable %s" % variable
         else:
             return "to variable %s" % self.getTargetVariableRef()
+
+    # TODO: Value propagation needs to make a difference based on this.
+    def isTolerant( self ):
+        return self.tolerant
 
     getTargetVariableRef = CPythonChildrenHaving.childGetter( "variable_ref" )
 

@@ -1770,6 +1770,63 @@ def buildAssignNode( provider, node, source_ref ):
 
         return result
 
+
+def buildDeleteStatementFromDecoded( kind, detail, source_ref ):
+    if kind in ( "Name", "Name_Exception" ):
+        # Note: Name_Exception is a "del" for exception handlers that doesn't insist on
+        # the variable already being defined.
+        variable_ref = detail
+
+        return CPythonStatementDelVariable(
+            variable_ref = variable_ref,
+            tolerant     = kind == "Name_Exception",
+            source_ref   = source_ref
+        )
+    elif kind == "Attribute":
+        lookup_source, attribute_name = detail
+
+
+        return CPythonStatementDelAttribute(
+            expression     = lookup_source,
+            attribute_name = attribute_name,
+            source_ref     = source_ref
+        )
+    elif kind == "Subscript":
+        subscribed, subscript = detail
+
+        return CPythonStatementDelSubscript(
+            expression = subscribed,
+            subscript  = subscript,
+            source_ref = source_ref
+        )
+    elif kind == "Slice":
+        lookup_source, lower, upper = detail
+
+        return CPythonStatementDelSlice(
+            expression = lookup_source,
+            lower      = lower,
+            upper      = upper,
+            source_ref = source_ref
+        )
+    elif kind == "Tuple":
+        result = []
+
+        for sub_node in detail:
+            result.append(
+                buildDeleteStatementFromDecoded(
+                    kind       = sub_node[0],
+                    detail     = sub_node[1],
+                    source_ref = source_ref
+                )
+            )
+
+        return _makeStatementsSequenceOrStatement(
+            statements = result,
+            source_ref = source_ref
+        )
+    else:
+        assert False, ( kind, detail, source_ref )
+
 def buildDeleteNode( provider, node, source_ref ):
     # Note: Each delete is sequential. It can succeed, and the failure of a later one does
     # not prevent the former to succeed. We can therefore have a sequence of del
@@ -1777,57 +1834,16 @@ def buildDeleteNode( provider, node, source_ref ):
 
     statements = []
 
-    def handleTarget( kind, detail ):
-        if kind == "Name":
-            variable_ref = detail
-
-            statements.append(
-                CPythonStatementDelVariable(
-                    variable_ref = variable_ref,
-                    source_ref   = source_ref
-                )
-            )
-        elif kind == "Attribute":
-            lookup_source, attribute_name = detail
-
-            statements.append(
-                CPythonStatementDelAttribute(
-                    expression     = lookup_source,
-                    attribute_name = attribute_name,
-                    source_ref     = source_ref
-                )
-            )
-        elif kind == "Subscript":
-            subscribed, subscript = detail
-
-            statements.append(
-                CPythonStatementDelSubscript(
-                    expression = subscribed,
-                    subscript  = subscript,
-                    source_ref = source_ref
-                )
-            )
-        elif kind == "Slice":
-            lookup_source, lower, upper = detail
-
-            statements.append(
-                CPythonStatementDelSlice(
-                    expression = lookup_source,
-                    lower      = lower,
-                    upper      = upper,
-                    source_ref = source_ref
-                )
-            )
-        elif kind == "Tuple":
-            for sub_node in detail:
-                handleTarget( sub_node[0], sub_node[1] )
-        else:
-            assert False, ( source_ref, ast.dump( node ) )
-
     for target in node.targets:
         kind, detail = decodeAssignTarget( provider, target, source_ref )
 
-        handleTarget( kind, detail )
+        statements.append(
+            buildDeleteStatementFromDecoded(
+                kind       = kind,
+                detail     = detail,
+                source_ref = source_ref
+            )
+        )
 
     return _makeStatementsSequenceOrStatement(
         statements = statements,
@@ -2343,7 +2359,7 @@ def buildTryExceptionNode( provider, node, source_ref ):
     for handler in node.handlers:
         exception_expression, exception_assign, exception_block = handler.type, handler.name, handler.body
 
-        statements = (
+        statements = [
             buildAssignmentStatements(
                 provider   = provider,
                 node       = exception_assign,
@@ -2358,7 +2374,24 @@ def buildTryExceptionNode( provider, node, source_ref ):
                 nodes      = exception_block,
                 source_ref = source_ref
             )
-        )
+        ]
+
+        if Utils.python_version >= 300:
+            target_info = decodeAssignTarget( provider, exception_assign, source_ref, allow_none = True )
+
+            if target_info is not None:
+                kind, detail = target_info
+
+                assert kind == "Name", kind
+                kind = "Name_Exception"
+
+                statements.append(
+                    buildDeleteStatementFromDecoded(
+                        kind       = kind,
+                        detail     = detail,
+                        source_ref = source_ref
+                    )
+                )
 
         handler_body = _makeStatementsSequence(
             statements = statements,

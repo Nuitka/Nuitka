@@ -193,11 +193,11 @@ class PyObjectGlobalVariable_%(module_identifier)s
             }
         }
 
-        void del() const
+        void del( bool tolerant ) const
         {
             int status = PyDict_DelItem( ((PyModuleObject *)_module_%(module_identifier)s)->md_dict, (PyObject *)*this->var_name );
 
-            if (unlikely( status == -1 ))
+            if (unlikely( status == -1 && tolerant == false ))
             {
                 PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
                 throw _PythonException();

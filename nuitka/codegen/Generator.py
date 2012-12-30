@@ -997,7 +997,7 @@ def getVariableAssignmentCode( context, variable, identifier ):
         identifier_code
     )
 
-def getVariableDelCode( context, variable ):
+def getVariableDelCode( context, tolerant, variable ):
     assert isinstance( variable, Variables.Variable ), variable
 
     if variable.isModuleVariable():
@@ -1005,14 +1005,18 @@ def getVariableDelCode( context, variable ):
 
         context.addGlobalVariableNameUsage( var_name )
 
-        return "_mvar_%s_%s.del();" % (
+        return "_mvar_%s_%s.del( %s );" % (
             context.getModuleCodeName(),
-            var_name
+            var_name,
+            "true" if tolerant else "false"
         )
     else:
-        return "%s.del();" % getVariableCode(
-            variable = variable,
-            context  = context
+        return "%s.del( %s );" % (
+            getVariableCode(
+                variable = variable,
+                context  = context
+            ),
+            "true" if tolerant else "false"
         )
 
 def getSubscriptAssignmentCode( subscribed, subscript, identifier ):

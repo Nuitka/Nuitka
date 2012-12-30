@@ -1217,9 +1217,10 @@ def generateAssignmentSliceCode( lookup_source, lower, upper, value, context ):
 
 
 
-def generateDelVariableCode( variable_ref, context ):
+def generateDelVariableCode( variable_ref, tolerant, context ):
     return Generator.getVariableDelCode(
         variable = variable_ref.getVariable(),
+        tolerant = tolerant,
         context  = context
     )
 
@@ -1764,6 +1765,7 @@ def _generateStatementCode( statement, context ):
     elif statement.isStatementDelVariable():
         code = generateDelVariableCode(
             variable_ref = statement.getTargetVariableRef(),
+            tolerant     = statement.isTolerant(),
             context      = context
         )
     elif statement.isStatementDelSubscript():
