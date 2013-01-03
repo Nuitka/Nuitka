@@ -904,6 +904,8 @@ class CPythonExpressionBuiltinNoArgBase( CPythonNodeBase, CPythonExpressionMixin
     def computeNode( self, constraint_collection ):
         from .NodeMakingHelpers import getComputationResult
 
+        # pylint: The lamba is there for make sure that no argument parsing will reach the
+        # builtin function at all, pylint: disable=W0108
         return getComputationResult(
             node        = self,
             computation = lambda : self.builtin_function(),

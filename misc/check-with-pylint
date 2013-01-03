@@ -128,5 +128,9 @@ else:
             if not filename.endswith( ".py" ):
                 continue
 
+            # Skip temporary files from flymake mode of Emacs.
+            if filename.endswith( "_flymake.py" ):
+                continue
+
             if filename not in blacklist:
                 executePyLint( os.path.join( dirpath, filename ) )

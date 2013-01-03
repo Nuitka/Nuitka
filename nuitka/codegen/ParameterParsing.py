@@ -242,7 +242,7 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
 
     return indented( parameter_parsing_code )
 
-def getParameterParsingCode( context, function_identifier, function_name, parameters, \
+def getParameterParsingCode( context, function_identifier, function_name, parameters,
                              needs_creation ):
 
     function_parameter_variables = parameters.getVariables()

@@ -110,10 +110,10 @@ builtin_anon_codes = {
 }
 
 if Utils.python_version < 300:
-    class A:
+    class Temp:
         pass
 
-    builtin_anon_names[ "classobj" ] = type( A )
+    builtin_anon_names[ "classobj" ] = type( Temp )
     builtin_anon_codes[ "classobj" ] = "&PyClass_Type"
 
-    del A
+    del Temp

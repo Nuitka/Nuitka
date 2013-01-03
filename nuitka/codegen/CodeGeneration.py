@@ -1954,7 +1954,7 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
         source_ref = statement_sequence.getSourceReference()
 
         if provider.isExpressionFunctionBody():
-            # TODO: Finalization should say this
+            # TODO: Finalization should say this or these should be difference nodes outright.
 
             if provider.isGenerator():
                 code = Generator.getFrameGuardLightCode(
@@ -1969,6 +1969,7 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
                     codes            = codes,
                     context          = context
                 )
+            # TODO: This is probably not correct for Python3.
             elif provider.code_prefix == "listcontr":
                 code = Generator.getFrameGuardVeryLightCode(
                     codes = codes,

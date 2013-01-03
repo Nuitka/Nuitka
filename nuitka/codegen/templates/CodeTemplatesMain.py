@@ -349,8 +349,8 @@ MOD_INIT_DECL( %(module_identifier)s )
     assertObject( _module_%(module_identifier)s );
 
 #ifndef _NUITKA_MODULE
-// TODO: Seems to work for Python2.7 as well, and maybe even useful. To be
-// investigated in separate tests.
+// Seems to work for Python2.7 out of the box, but for Python3.2, the module doesn't automatically enter
+// "sys.modules" with the object that it should, so do it manually.
 #if PYTHON_VERSION >= 300
     {
         int r = PyObject_SetItem( PySys_GetObject( (char *)"modules" ), %(module_name_obj)s, _module_%(module_identifier)s );

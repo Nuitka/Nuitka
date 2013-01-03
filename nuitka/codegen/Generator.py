@@ -339,7 +339,7 @@ def _getCallDictStarArgsCode( called_identifier, argument_tuple, argument_dictio
                 1
             )
 
-def _getCallBothStarArgsCode( called_identifier, argument_tuple, argument_dictionary, \
+def _getCallBothStarArgsCode( called_identifier, argument_tuple, argument_dictionary,
                               star_list_identifier, star_dict_identifier ):
     if argument_dictionary is None:
         if argument_tuple is None:
@@ -412,7 +412,7 @@ def getDirectionFunctionCallCode( function_identifier, arguments, closure_variab
     )
 
 
-def getCallCode( called_identifier, argument_tuple, argument_dictionary, \
+def getCallCode( called_identifier, argument_tuple, argument_dictionary,
                  star_list_identifier, star_dict_identifier ):
     if star_dict_identifier is None:
         if star_list_identifier is None:
@@ -724,7 +724,8 @@ def getConditionalExpressionCode( condition_code, identifier_no, identifier_yes 
         ref_count
     )
 
-def getFunctionCreationCode( context, function_identifier, defaults_identifier, kw_defaults_identifier, closure_variables ):
+def getFunctionCreationCode( context, function_identifier, defaults_identifier,
+                             kw_defaults_identifier, closure_variables ):
     args = []
 
     if not kw_defaults_identifier.isConstantIdentifier():
@@ -1032,7 +1033,7 @@ def getSubscriptDelCode( subscribed, subscript ):
         subscript.getCodeTemporaryRef()
     )
 
-def getTryFinallyCode( context, needs_continue, needs_break, needs_generator_return, \
+def getTryFinallyCode( context, needs_continue, needs_break, needs_generator_return,
                        needs_return_value, code_tried, code_final ):
     tb_making = getTracebackMakingIdentifier( context )
 
@@ -1121,7 +1122,7 @@ def getTryExceptCode( context, code_tried, handler_codes ):
     }
 
 
-def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier, \
+def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier,
                            exception_tb_identifier, exception_tb_maker ):
     if exception_value_identifier is None and exception_tb_identifier is None:
         return "RAISE_EXCEPTION( %s, %s );" % (
@@ -1147,8 +1148,7 @@ def getReRaiseExceptionCode( local ):
     else:
         return "RERAISE_EXCEPTION();"
 
-def getRaiseExceptionExpressionCode( exception_type_identifier, exception_value_identifier, \
-                                     exception_tb_maker ):
+def getRaiseExceptionExpressionCode( exception_type_identifier, exception_value_identifier, exception_tb_maker ):
     return ThrowingIdentifier(
         "THROW_EXCEPTION( %s, %s, %s )" % (
             exception_type_identifier.getCodeExportRef(),
@@ -1405,7 +1405,7 @@ def getFutureFlagsCode( future_spec ):
         return 0
 
 
-def getEvalCode( context, exec_code, filename_identifier, globals_identifier, \
+def getEvalCode( context, exec_code, filename_identifier, globals_identifier,
                  locals_identifier, mode_identifier, future_flags, provider ):
     if context.getParent() is None:
         return Identifier(
@@ -1682,7 +1682,7 @@ def getModuleIdentifier( module_name ):
 def getPackageIdentifier( module_name ):
     return module_name.replace( ".", "__" )
 
-def getModuleCode( context, module_name, package_name, codes, tmp_keepers, \
+def getModuleCode( context, module_name, package_name, codes, tmp_keepers,
                    doc_identifier, path_identifier, other_module_names, source_ref ):
 
     # For the module code, lots of attributes come together. pylint: disable=R0914
@@ -2325,13 +2325,15 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         constant = function_doc
     )
 
-    function_locals = function_parameter_decl + local_var_inits
+    function_locals = []
 
     if context.hasLocalsDict():
-        function_locals = CodeTemplates.function_dict_setup.split("\n") + function_locals
+        function_locals += CodeTemplates.function_dict_setup.split("\n")
 
     if context.needsFrameExceptionKeeper():
-        function_locals = CodeTemplates.frame_exceptionkeeper_setup.split("\n") + function_locals
+        function_locals += CodeTemplates.frame_exceptionkeeper_setup.split("\n")
+
+    function_locals += function_parameter_decl + local_var_inits
 
     result = ""
 
@@ -2869,7 +2871,7 @@ def getDictOperationRemoveCode( dict_identifier, key_identifier ):
         key_identifier.getCodeTemporaryRef()
     )
 
-def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes, locals_identifier, \
+def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes, locals_identifier,
                             is_class, context ):
     return_code = CodeTemplates.frame_guard_cpp_return if is_class else CodeTemplates.frame_guard_python_return
     tb_making = getTracebackMakingIdentifier( context )

@@ -557,12 +557,13 @@ if python_version < 300:
 else:
     _dispatch_dict[ "exec" ] = exec_extractor
 
-from nuitka.Builtins import builtin_names
+def check():
+    from nuitka.Builtins import builtin_names
 
-for builtin_name in _dispatch_dict:
-    assert builtin_name in builtin_names, builtin_name
+    for builtin_name in _dispatch_dict:
+        assert builtin_name in builtin_names, builtin_name
 
-del builtin_name
+check()
 
 def computeBuiltinCall( call_node, called ):
     builtin_name = called.getBuiltinName()

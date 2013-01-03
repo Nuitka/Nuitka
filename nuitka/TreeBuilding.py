@@ -209,9 +209,10 @@ make_class_parameters = ParameterSpec(
 
 
 def _buildClassNode3( provider, node, source_ref ):
-    class_statements, class_doc = _extractDocFromBody( node )
+    # Many variables, due to the huge re-formulation that is going on here, which just has
+    # the complexity, pylint: disable=R0914
 
-    decorators = buildNodeList( provider, reversed( node.decorator_list ), source_ref )
+    class_statements, class_doc = _extractDocFromBody( node )
 
     # The result will be a temp block that holds the temporary variables.
     result = CPythonStatementTempBlock(
@@ -349,7 +350,7 @@ def _buildClassNode3( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-    for decorator in decorators:
+    for decorator in buildNodeList( provider, reversed( node.decorator_list ), source_ref ):
         decorated_body = CPythonExpressionCall(
             called          = decorator,
             positional_args = ( decorated_body, ),
@@ -565,8 +566,6 @@ def _buildClassNode3( provider, node, source_ref ):
 def _buildClassNode2( provider, node, source_ref ):
     class_statements, class_doc = _extractDocFromBody( node )
 
-    decorators = buildNodeList( provider, reversed( node.decorator_list ), source_ref )
-
     # The result will be a temp block that holds the temporary variables.
     result = CPythonStatementTempBlock(
         source_ref = source_ref
@@ -754,7 +753,7 @@ def _buildClassNode2( provider, node, source_ref ):
         )
     ]
 
-    for decorator in decorators:
+    for decorator in buildNodeList( provider, reversed( node.decorator_list ), source_ref ):
         statements.append(
             CPythonStatementAssignmentVariable(
                 variable_ref = CPythonExpressionTempVariableRef(
@@ -875,6 +874,8 @@ def _buildParameterKwDefaults( provider, node, function_body, source_ref ):
     return kw_defaults
 
 def _buildParameterAnnotations( provider, node, source_ref ):
+    # Too many branches, because there is too many cases, pylint: disable=R0912
+
     if Utils.python_version < 300:
         return None
 
@@ -918,6 +919,7 @@ def _buildParameterAnnotations( provider, node, source_ref ):
                 source_ref = source_ref
             )
         )
+
     if node.args.kwargannotation is not None:
         pairs.append(
             CPythonExpressionKeyValuePair(
@@ -2354,6 +2356,9 @@ def _makeTryExceptNoRaise( tried, handlers, no_raise, source_ref ):
 
 
 def buildTryExceptionNode( provider, node, source_ref ):
+    # Many variables, due to the re-formulation that is going on here, which just has the
+    # complexity, pylint: disable=R0914
+
     handlers = []
 
     for handler in node.handlers:
@@ -3466,7 +3471,7 @@ def _buildInplaceAssignVariableNode( result, variable_ref, tmp_variable1, tmp_va
         )
     )
 
-def _buildInplaceAssignAttributeNode( result, lookup_source, attribute_name, tmp_variable1, \
+def _buildInplaceAssignAttributeNode( result, lookup_source, attribute_name, tmp_variable1,
                                       tmp_variable2, operator, expression, source_ref ):
     return (
         # First assign the target value to a temporary variable.
@@ -3582,8 +3587,8 @@ def _buildInplaceAssignSubscriptNode( result, subscribed, subscript, tmp_variabl
         )
     )
 
-def _buildInplaceAssignSliceNode( result, lookup_source, lower, upper, tmp_variable1, \
-                                  tmp_variable2, tmp_variable3, operator, expression, \
+def _buildInplaceAssignSliceNode( result, lookup_source, lower, upper, tmp_variable1,
+                                  tmp_variable2, tmp_variable3, operator, expression,
                                   source_ref ):
 
     # First assign the target value, lower and upper to temporary variables.
@@ -3947,7 +3952,34 @@ def getImportedModule( module_relpath ):
 def getImportedModules():
     return imported_modules.values()
 
+def _detectEncoding( source_filename ):
+    # Detect the encoding.
+    encoding = "ascii"
+
+    with open( source_filename, "rb" ) as source_file:
+        line1 = source_file.readline()
+
+        if line1.startswith( b'\xef\xbb\xbf' ):
+            encoding = "utf-8"
+        else:
+            line1_match = re.search( b"coding[:=]\s*([-\w.]+)", line1 )
+
+            if line1_match:
+                encoding = line1_match.group(1)
+            else:
+                line2 = source_file.readline()
+
+                line2_match = re.search( b"coding[:=]\s*([-\w.]+)", line2 )
+
+                if line2_match:
+                    encoding = line2_match.group(1)
+
+    return encoding
+
 def buildModuleTree( filename, package, is_top, is_main ):
+    # Many variables, branches, due to the huge re-formulation that is going on here,
+    # which just has the complexity, pylint: disable=R0914,R0912
+
     assert package is None or type( package ) is str
 
     if is_main and Utils.isDir( filename ):
@@ -4021,25 +4053,7 @@ def buildModuleTree( filename, package, is_top, is_main ):
         source_ref = source_ref.atInternal()
 
     # Detect the encoding.
-    encoding = "ascii"
-
-    with open( source_filename, "rb" ) as source_file:
-        line1 = source_file.readline()
-
-        if line1.startswith( b'\xef\xbb\xbf' ):
-            encoding = "utf-8"
-        else:
-            line1_match = re.search( b"coding[:=]\s*([-\w.]+)", line1 )
-
-            if line1_match:
-                encoding = line1_match.group(1)
-            else:
-                line2 = source_file.readline()
-
-                line2_match = re.search( b"coding[:=]\s*([-\w.]+)", line2 )
-
-                if line2_match:
-                    encoding = line2_match.group(1)
+    encoding = _detectEncoding( source_filename )
 
     with open( source_filename, "rU" ) as source_file:
         source_code = source_file.read()

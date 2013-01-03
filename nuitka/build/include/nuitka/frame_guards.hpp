@@ -150,7 +150,7 @@ extern PyFrameObject *detachCurrentFrame();
 class FrameGuard
 {
 public:
-    FrameGuard( PyFrameObject *frame_object )
+    explicit FrameGuard( PyFrameObject *frame_object )
     {
         assertFrameObject( frame_object );
 
@@ -243,7 +243,7 @@ private:
 class FrameGuardLight
 {
 public:
-    FrameGuardLight( PyFrameObject **frame_ptr )
+    explicit FrameGuardLight( PyFrameObject **frame_ptr )
     {
         assertFrameObject( *frame_ptr );
 
