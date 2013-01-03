@@ -233,6 +233,9 @@ def _buildClassNode3( provider, node, source_ref ):
         source_ref = source_ref
     )
 
+    # Hack:
+    class_creation_function.parent = provider
+
     body = buildStatementsNode(
         provider   = class_creation_function,
         nodes      = class_statements,
@@ -3184,6 +3187,9 @@ def handleNonlocalDeclarationNode( provider, node, source_ref ):
         raise
 
     parent_provider = provider.getParentVariableProvider()
+
+    while parent_provider.isClassDictCreation():
+        parent_provider = parent_provider.getParentVariableProvider()
 
     for variable_name in node.names:
         parent_variable = parent_provider.getVariableForAssignment(
