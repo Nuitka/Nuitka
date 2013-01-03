@@ -30,7 +30,7 @@ another context.
 
 """
 
-from nuitka import Options
+from nuitka import Options, Utils
 
 from .FinalizeBase import FinalizationVisitorBase
 
@@ -78,6 +78,21 @@ class FinalizeMarkups( FinalizationVisitorBase ):
 
             search.markAsExceptionContinue()
 
+        if node.isExpressionYield():
+            search = node.getParent()
+
+            while not search.isExpressionFunctionBody():
+                last_search = search
+                search = search.getParent()
+
+                if Utils.python_version >= 300 and search.isStatementTryFinally() and last_search == search.getBlockTry():
+                    node.markAsExceptionPreserving()
+                    break
+
+                if search.isStatementExceptHandler():
+                    node.markAsExceptionPreserving()
+                    break
+
         if node.isStatementReturn():
             search = node.getParent()
 
@@ -122,6 +137,16 @@ class FinalizeMarkups( FinalizationVisitorBase ):
             provider = node.getParentVariableProvider()
 
             provider.markAsTryExceptContaining()
+
+        if node.isStatementTryFinally():
+            provider = node.getParentVariableProvider()
+
+            provider.markAsTryFinallyContaining()
+
+        if node.isStatementRaiseException():
+            provider = node.getParentVariableProvider()
+
+            provider.markAsRaiseContaining()
 
         if node.isExpressionBuiltinImport() and not Options.getShallFollowExtra():
             warning( """\

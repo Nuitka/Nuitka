@@ -205,7 +205,22 @@ public:
     inline bool matches( PyObject *exception ) const
     {
 #if PYTHON_VERSION >= 300
-        if (unlikely( !PyExceptionClass_Check( exception ) ))
+        if ( PyTuple_Check( exception ))
+        {
+            Py_ssize_t length = PyTuple_Size( exception );
+
+            for ( Py_ssize_t i = 0; i < length; i += 1 )
+            {
+                PyObject *element = PyTuple_GET_ITEM( exception, i );
+
+                if (unlikely( !PyExceptionClass_Check( element ) ))
+                {
+                    PyErr_Format( PyExc_TypeError, "catching classes that do not inherit from BaseException is not allowed" );
+                    throw _PythonException();
+                }
+            }
+        }
+        else if (unlikely( !PyExceptionClass_Check( exception ) ))
         {
             PyErr_Format( PyExc_TypeError, "catching classes that do not inherit from BaseException is not allowed" );
             throw _PythonException();
@@ -394,96 +409,6 @@ private:
     PyObject *exception_type, *exception_value;
     PyTracebackObject *exception_tb;
 };
-
-
-class FrameExceptionKeeper
-{
-public:
-
-    FrameExceptionKeeper()
-    {
-        this->active = false;
-
-        this->frame_exc_type = NULL;
-        this->frame_exc_value = NULL;
-        this->frame_exc_traceback = NULL;
-    }
-
-    ~FrameExceptionKeeper()
-    {
-        if ( this->active )
-        {
-            _SET_CURRENT_EXCEPTION( this->frame_exc_type, this->frame_exc_value, this->frame_exc_traceback );
-
-            Py_XDECREF( this->frame_exc_type );
-            Py_XDECREF( this->frame_exc_value );
-            Py_XDECREF( this->frame_exc_traceback );
-        }
-    }
-
-    // Preserve the exception early before the exception handler is set up, so that it can later
-    // at function exit be restored.
-    void preserveExistingException()
-    {
-        if ( this->active == false )
-        {
-            this->active = true;
-
-            PyThreadState *thread_state = PyThreadState_GET();
-
-            if ( thread_state->exc_type )
-            {
-                this->frame_exc_type = INCREASE_REFCOUNT( thread_state->exc_type );
-                this->frame_exc_value = INCREASE_REFCOUNT_X( thread_state->exc_value );
-                this->frame_exc_traceback = INCREASE_REFCOUNT_X( (PyTracebackObject *)thread_state->exc_traceback );
-            }
-            else
-            {
-                this->frame_exc_type = NULL;
-                this->frame_exc_value = NULL;
-                this->frame_exc_traceback = NULL;
-            }
-        }
-    }
-
-private:
-
-    PyObject *frame_exc_type, *frame_exc_value;
-    PyTracebackObject *frame_exc_traceback;
-    bool active;
-
-};
-
-
-class PythonExceptionStacker
-{
-public:
-
-    PythonExceptionStacker()
-    {
-        PyThreadState *thread_state = PyThreadState_GET();
-
-        this->frame_exc_type = INCREASE_REFCOUNT_X( thread_state->exc_type );
-        this->frame_exc_value = INCREASE_REFCOUNT_X( thread_state->exc_value );
-        this->frame_exc_traceback = INCREASE_REFCOUNT_X( (PyTracebackObject *)thread_state->exc_traceback );
-    }
-
-    ~PythonExceptionStacker()
-    {
-        _SET_CURRENT_EXCEPTION( this->frame_exc_type, this->frame_exc_value, this->frame_exc_traceback );
-
-        Py_XDECREF( this->frame_exc_type );
-        Py_XDECREF( this->frame_exc_value );
-        Py_XDECREF( this->frame_exc_traceback );
-    }
-
-private:
-
-    PyObject *frame_exc_type, *frame_exc_value;
-    PyTracebackObject *frame_exc_traceback;
-
-};
-
 
 class GeneratorReturnException
 {

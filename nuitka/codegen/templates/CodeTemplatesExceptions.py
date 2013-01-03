@@ -20,7 +20,6 @@
 """
 
 try_except_template = """\
-_frame_exception_keeper.preserveExistingException();
 try
 {
 %(tried_code)s
@@ -36,10 +35,11 @@ catch ( _PythonException &_exception )
         _exception.addTraceback( frame_guard.getFrame0() );
     }
 
-#if PYTHON_VERSION >= 300
-    PythonExceptionStacker exception_restorer;
-#endif
+    frame_guard.preserveExistingException();
 
+#if PYTHON_VERSION >= 300
+    ExceptionRestorer%(guard_class)s restorer( &frame_guard );
+#endif
     _exception.toExceptionHandler();
 
 %(exception_code)s
@@ -91,6 +91,8 @@ catch ( _PythonException &_exception )
     _caught_%(try_count)d.save( _exception );
 
 #if PYTHON_VERSION >= 300
+    frame_guard.preserveExistingException();
+
     _exception.toExceptionHandler();
 #endif
 }
@@ -170,7 +172,3 @@ if ( _return_value_%(try_count)d != NULL )
 {
     throw ReturnValueException( _return_value_%(try_count)d );
 }"""
-
-
-frame_exceptionkeeper_setup = """\
-FrameExceptionKeeper _frame_exception_keeper;"""

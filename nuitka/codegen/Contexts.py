@@ -69,9 +69,6 @@ class PythonContextBase:
     def hasLocalsDict( self ):
         return False
 
-    def needsFrameExceptionKeeper( self ):
-        return False
-
 
 class PythonChildContextBase( PythonContextBase ):
     def __init__( self, parent ):
@@ -277,8 +274,8 @@ class PythonModuleContext( PythonContextBase ):
     def getFrameHandle( self ):
         return Identifier( "frame_guard.getFrame()", 1 )
 
-    def hasFrameGuard( self ):
-        return True
+    def getFrameGuardClass( self ):
+        return "FrameGuard"
 
     def getParent( self ):
         return None
@@ -375,8 +372,11 @@ class PythonFunctionContext( PythonChildContextBase ):
         else:
             return Identifier( "frame_guard.getFrame()", 1 )
 
-    def hasFrameGuard( self ):
-        return not self.function.isGenerator()
+    def getFrameGuardClass( self ):
+        if self.function.isGenerator():
+            return "FrameGuardLight"
+        else:
+            return "FrameGuard"
 
     def getLocalHandle( self, var_name ):
         return LocalVariableIdentifier( var_name, from_context = self.function.isGenerator() )
@@ -392,9 +392,6 @@ class PythonFunctionContext( PythonChildContextBase ):
                 return ClosureVariableIdentifier( var_name, from_context = "_python_context->" )
             else:
                 return ClosureVariableIdentifier( var_name, from_context = "" )
-
-    def needsFrameExceptionKeeper( self ):
-        return self.function.needsFrameExceptionKeeper()
 
     def addTempKeeperUsage( self, variable_name, ref_count ):
         self.temp_keepers[ variable_name ] = ref_count

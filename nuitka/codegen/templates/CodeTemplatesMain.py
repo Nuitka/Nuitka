@@ -399,10 +399,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     frame_%(module_identifier)s = MAKE_FRAME( %(code_identifier)s, _module_%(module_identifier)s );
 
     // Set module frame as the currently active one.
-    FrameGuardLight frame_guard( &frame_%(module_identifier)s );
-
-    // Push the new frame as the currently active one.
-    pushFrameStack( frame_%(module_identifier)s );
+    FrameGuard frame_guard( frame_%(module_identifier)s );
 
     // Initialize the standard module attributes.
 %(module_inits)s
@@ -410,9 +407,6 @@ MOD_INIT_DECL( %(module_identifier)s )
     // Module code
     try
     {
-        // To restore the initial exception, could be made dependent on actual try/except statement
-        // as it is done for functions/classes already.
-        FrameExceptionKeeper _frame_exception_keeper;
 %(module_code)s
     }
     catch ( _PythonException &_exception )
@@ -428,10 +422,6 @@ MOD_INIT_DECL( %(module_identifier)s )
 
         _exception.toPython();
     }
-
-    // Pop the frame from the frame stack, we are done here.
-    assert( PyThreadState_GET()->frame == frame_%(module_identifier)s );
-    PyThreadState_GET()->frame = INCREASE_REFCOUNT_X( PyThreadState_GET()->frame->f_back );
 
     // puts( "out init%(module_identifier)s" );
 

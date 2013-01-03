@@ -42,8 +42,16 @@ class CPythonExpressionYield( CPythonExpressionChildrenHavingBase ):
 
         self.for_return = for_return
 
+        self.exception_preserving = False
+
     def isForReturn( self ):
         return self.for_return
+
+    def markAsExceptionPreserving( self ):
+        self.exception_preserving = True
+
+    def isExceptionPreserving( self ):
+        return self.exception_preserving
 
     getExpression = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 

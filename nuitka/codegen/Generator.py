@@ -147,10 +147,17 @@ def getReturnCode( identifier, via_exception, context ):
         else:
             return "return;"
 
-def getYieldCode( identifier, for_return ):
+def getYieldCode( identifier, for_return, in_handler ):
+    assert not for_return or not in_handler
+
     if for_return:
         return Identifier(
             "YIELD_RETURN( generator, %s )" % identifier.getCodeExportRef(),
+            0
+        )
+    elif in_handler:
+       return Identifier(
+            "YIELD_VALUE_FROM_HANDLER( generator, %s )" % identifier.getCodeExportRef(),
             0
         )
     else:
@@ -919,12 +926,7 @@ def getSliceDelCode( target, lower, upper ):
 
 def getLineNumberCode( context, source_ref ):
     if source_ref.shallSetCurrentLine():
-        if context.hasFrameGuard():
-            template = "frame_guard.setLineNumber( %d );\n"
-        else:
-            template = "generator->m_frame->f_lineno = %d;\n"
-
-        return template % source_ref.getLineNumber()
+        return "frame_guard.setLineNumber( %d );\n" % source_ref.getLineNumber()
     else:
         return ""
 
@@ -1118,6 +1120,7 @@ def getTryExceptCode( context, code_tried, handler_codes ):
     return CodeTemplates.try_except_template % {
         "tried_code"     : indented( code_tried or "" ),
         "exception_code" : indented( exception_code ),
+        "guard_class"    : context.getFrameGuardClass(),
         "tb_making"      : tb_making.getCodeExportRef(),
     }
 
@@ -2110,9 +2113,6 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 
     function_locals = []
 
-    if context.needsFrameExceptionKeeper():
-        function_locals += CodeTemplates.frame_exceptionkeeper_setup.split( "\n" )
-
     if context.hasLocalsDict():
         function_locals += CodeTemplates.function_dict_setup.split( "\n" )
 
@@ -2329,9 +2329,6 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
 
     if context.hasLocalsDict():
         function_locals += CodeTemplates.function_dict_setup.split("\n")
-
-    if context.needsFrameExceptionKeeper():
-        function_locals += CodeTemplates.frame_exceptionkeeper_setup.split("\n")
 
     function_locals += function_parameter_decl + local_var_inits
 
