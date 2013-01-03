@@ -203,6 +203,11 @@ static PyObject *Nuitka_Function_get_defaults( Nuitka_FunctionObject *object )
 
 static int Nuitka_Function_set_defaults( Nuitka_FunctionObject *object, PyObject *value )
 {
+    if ( value == NULL )
+    {
+        value = Py_None;
+    }
+
     if (unlikely( value != Py_None && PyTuple_Check( value ) == false ))
     {
         PyErr_Format( PyExc_TypeError, "__defaults__ must be set to a tuple object" );
@@ -236,6 +241,11 @@ static PyObject *Nuitka_Function_get_kwdefaults( Nuitka_FunctionObject *object )
 
 static int Nuitka_Function_set_kwdefaults( Nuitka_FunctionObject *object, PyObject *value )
 {
+    if ( value == NULL )
+    {
+        value = Py_None;
+    }
+
     if (unlikely( value != Py_None && PyDict_Check( value ) == false ))
     {
         PyErr_Format( PyExc_TypeError, "__kwdefaults__ must be set to a dict object" );
@@ -256,7 +266,7 @@ static PyObject *Nuitka_Function_get_annotations( Nuitka_FunctionObject *object 
 static int Nuitka_Function_set_annotations( Nuitka_FunctionObject *object, PyObject *value )
 {
     // CPython silently converts None to empty dictionary.
-    if ( value == Py_None )
+    if ( value == Py_None || value == NULL )
     {
         value = PyDict_New();
     }
@@ -292,6 +302,11 @@ static int Nuitka_Function_set_module( Nuitka_FunctionObject *object, PyObject *
     if ( object->m_dict == NULL )
     {
        object->m_dict = PyDict_New();
+    }
+
+    if ( value == NULL )
+    {
+        value = Py_None;
     }
 
     return PyDict_SetItemString( object->m_dict, (char * )"__module__", value );
