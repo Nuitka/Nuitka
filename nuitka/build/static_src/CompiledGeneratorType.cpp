@@ -118,6 +118,9 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
         {
             generator->m_status = status_Finished;
 
+            Py_XDECREF( generator->m_frame );
+            generator->m_frame = NULL;
+
             if ( generator->m_context )
             {
                 generator->m_cleanup( generator->m_context );
@@ -175,7 +178,8 @@ static PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyOb
 
             PyErr_Format( PyExc_RuntimeError, "generator ignored GeneratorExit" );
             return NULL;
-        } else if ( PyErr_ExceptionMatches( PyExc_StopIteration ) || PyErr_ExceptionMatches( PyExc_GeneratorExit ) )
+        }
+        else if ( PyErr_ExceptionMatches( PyExc_StopIteration ) || PyErr_ExceptionMatches( PyExc_GeneratorExit ) )
         {
             PyErr_Clear();
             return INCREASE_REFCOUNT( Py_None );
