@@ -1908,10 +1908,14 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
         source_ref = statement.getSourceReference()
 
         if Options.shallTraceExecution():
+            statement_repr = repr( statement )
+
+            if Utils.python_version >= 300:
+                statement_repr = statement_repr.encode( "utf8" )
             codes.append(
                 Generator.getStatementTrace(
                     source_ref.getAsString(),
-                    repr( statement )
+                    statement_repr
                 )
             )
 
