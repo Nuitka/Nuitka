@@ -21,6 +21,8 @@
 extern PyObject *_python_str_plain_inspect;
 extern PyObject *_python_int_0;
 
+static PyObject *module_inspect;
+
 static char *kwlist[] = { (char *)"object", NULL };
 
 static PyObject *_inspect_isfunction_replacement( PyObject *self, PyObject *args, PyObject *kwds )
@@ -107,6 +109,46 @@ static PyObject *_inspect_isframe_replacement( PyObject *self, PyObject *args, P
     }
 }
 
+#if PYTHON_VERSION >= 300
+static PyObject *old_getgeneratorstate = NULL;
+
+static PyObject *_inspect_getgeneratorstate_replacement( PyObject *self, PyObject *args, PyObject *kwds )
+{
+    PyObject *object;
+
+    if ( !PyArg_ParseTupleAndKeywords( args, kwds, "O:getgeneratorstate", kwlist, &object, NULL ))
+    {
+        return NULL;
+    }
+
+    if ( Nuitka_Generator_Check( object ))
+    {
+        Nuitka_GeneratorObject *generator = (Nuitka_GeneratorObject *)object;
+
+        if ( generator->m_running )
+        {
+            return PyObject_GetAttrString( module_inspect, "GEN_RUNNING" );
+        }
+        else if ( generator->m_status == status_Finished )
+        {
+            return PyObject_GetAttrString( module_inspect, "GEN_CLOSED" );
+        }
+        else if ( generator->m_status == status_Unused )
+        {
+            return PyObject_GetAttrString( module_inspect, "GEN_CREATED" );
+        }
+        else
+        {
+           return PyObject_GetAttrString( module_inspect, "GEN_SUSPENDED" );
+        }
+    }
+    else
+    {
+        return old_getgeneratorstate->ob_type->tp_call( old_getgeneratorstate, args, kwds );
+    }
+}
+#endif
+
 static PyMethodDef _method_def_inspect_isfunction_replacement =
 {
     "isfunction",
@@ -139,9 +181,19 @@ static PyMethodDef _method_def_inspect_isframe_replacement =
     NULL
 };
 
+#if PYTHON_VERSION >= 300
+static PyMethodDef _method_def_inspect_getgeneratorstate_replacement =
+{
+    "isframe",
+    (PyCFunction)_inspect_getgeneratorstate_replacement,
+    METH_VARARGS | METH_KEYWORDS,
+    NULL
+};
+#endif
+
 void patchInspectModule( void )
 {
-    PyObject *module_inspect = IMPORT_MODULE( _python_str_plain_inspect, Py_None, Py_None, _python_tuple_empty, _python_int_0 );
+    module_inspect = IMPORT_MODULE( _python_str_plain_inspect, Py_None, Py_None, _python_tuple_empty, _python_int_0 );
     assertObject( module_inspect );
 
     // Patch "inspect.isfunction" unless it is already patched.
@@ -199,5 +251,19 @@ void patchInspectModule( void )
     }
 
     Py_DECREF( old_isframe );
+
+#if PYTHON_VERSION >= 300
+    // Patch "inspect.getgeneratorstate" unless it is already patched.
+    old_getgeneratorstate = PyObject_GetAttrString( module_inspect, "getgeneratorstate" );
+    assertObject( old_getgeneratorstate );
+
+    if (PyFunction_Check( old_getgeneratorstate ))
+    {
+        PyObject *inspect_getgeneratorstate_replacement = PyCFunction_New( &_method_def_inspect_getgeneratorstate_replacement, NULL );
+        assertObject( inspect_getgeneratorstate_replacement );
+
+        PyObject_SetAttrString( module_inspect, "getgeneratorstate", inspect_getgeneratorstate_replacement );
+    }
+#endif
 
 }

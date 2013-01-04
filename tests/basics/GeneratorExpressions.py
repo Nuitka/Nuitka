@@ -63,6 +63,14 @@ def iteratorCreationTiming():
     except StopIteration:
         print "Use past end gave StopIteration as expected"
 
+        try:
+            import inspect
+            print "Generator state then is", inspect.getgeneratorstate( gen )
+        except AttributeError:
+            pass
+
+        print "Its frame is now", gen.gi_frame
+
     print "Early aborting generator"
 
     gen2 = ( (y,z) for y in getIterable( 3 ) for z in getIterable( 2 ) )
