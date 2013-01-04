@@ -642,7 +642,11 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, in
 
     if (unlikely( result == NULL ))
     {
+#if PYTHON_VERSION < 300
         if (unlikely( !ERROR_OCCURED() ))
+#else
+        if (unlikely( !ERROR_OCCURED() || PyErr_ExceptionMatches( PyExc_StopIteration ) ))
+#endif
         {
             if ( seq_size_so_far == 1 )
             {
@@ -671,7 +675,11 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_PARAMETER_NEXT( PyObject *it
 
     if (unlikely( result == NULL ))
     {
+#if PYTHON_VERSION < 300
         if (unlikely( !ERROR_OCCURED() ))
+#else
+        if (unlikely( !ERROR_OCCURED() || PyErr_ExceptionMatches( PyExc_StopIteration ) ))
+#endif
         {
             if ( seq_size_so_far == 1 )
             {

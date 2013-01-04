@@ -15,6 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import sys
+
 def someFunction():
     a = 2
     print "Simple assignment to variable:", a
@@ -93,6 +95,31 @@ def otherFunction():
         except UnboundLocalError:
             print "Variable j is untouched"
 
+    class BasicIterClass:
+        def __init__(self, n):
+            self.n = n
+            self.i = 0
+        def __next__(self):
+            res = self.i
+            if res >= self.n:
+                raise StopIteration
+            self.i = res + 1
+            return res
+
+        if sys.version_info[0] < 3:
+            def next( self ):
+                return self.__next__()
+
+    class IteratingSequenceClass:
+        def __init__(self, n):
+            self.n = n
+        def __iter__(self):
+            return BasicIterClass(self.n)
+
+    try:
+        a, b, c = IteratingSequenceClass(2)
+    except ValueError:
+        print "Exception from iterating over too short class", sys.exc_info()
 
 
 def anotherFunction():
