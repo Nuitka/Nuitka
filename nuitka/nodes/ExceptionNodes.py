@@ -29,9 +29,9 @@ from .NodeBases import (
 class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_RAISE_EXCEPTION"
 
-    named_children = ( "exception_type", "exception_value", "exception_trace" )
+    named_children = ( "exception_type", "exception_value", "exception_trace", "exception_cause" )
 
-    def __init__( self, exception_type, exception_value, exception_trace, source_ref ):
+    def __init__( self, exception_type, exception_value, exception_trace, exception_cause, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         if exception_type is None:
@@ -46,6 +46,7 @@ class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
                 "exception_type"  : exception_type,
                 "exception_value" : exception_value,
                 "exception_trace" : exception_trace,
+                "exception_cause" : exception_cause
             }
         )
 
@@ -54,6 +55,7 @@ class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
     getExceptionType = CPythonChildrenHaving.childGetter( "exception_type" )
     getExceptionValue = CPythonChildrenHaving.childGetter( "exception_value" )
     getExceptionTrace = CPythonChildrenHaving.childGetter( "exception_trace" )
+    getExceptionCause = CPythonChildrenHaving.childGetter( "exception_cause" )
 
     def isReraiseException( self ):
         return self.getExceptionType() is None

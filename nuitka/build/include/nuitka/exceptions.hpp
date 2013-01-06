@@ -323,6 +323,13 @@ public:
         this->exception_type = exception_type;
     }
 
+#if PYTHON_VERSION >= 300
+    void setCause( PyObject *exception_cause )
+    {
+        PyException_SetCause( this->exception_value, exception_cause );
+    }
+#endif
+
     void dump() const
     {
         PRINT_ITEM_TO( NULL, this->exception_type );
@@ -446,9 +453,46 @@ private:
 #define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must derive from BaseException"
 #endif
 
+#if PYTHON_VERSION >= 300
+static void CHAIN_EXCEPTION( PyObject *exception_type, PyObject *exception_value )
+{
+    // Implicit chain of exception already existing.
+    PyThreadState *thread_state = PyThreadState_GET();
+
+    // Normalize existing exception first.
+    PyErr_NormalizeException( &thread_state->exc_type, &thread_state->exc_value, &thread_state->exc_traceback );
+
+    PyObject *old_exc_value = thread_state->exc_value;
+
+    if ( old_exc_value != NULL && old_exc_value != Py_None && old_exc_value != exception_value )
+    {
+        Py_INCREF( old_exc_value );
+
+        PyObject *o = old_exc_value, *context;
+        while (( context = PyException_GetContext(o) ))
+        {
+            Py_DECREF( context );
+
+            if ( context == exception_value )
+            {
+                PyException_SetContext( o, NULL );
+                break;
+            }
+
+            o = context;
+        }
+
+        PyException_SetContext( exception_value, old_exc_value );
+        PyException_SetTraceback( old_exc_value, thread_state->exc_traceback );
+    }
+}
+#endif
+
+
 NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception_type, PyTracebackObject *traceback )
 {
     assertObject( exception_type );
+    assertObject( traceback );
 
     if ( PyExceptionClass_Check( exception_type ) )
     {
@@ -469,7 +513,76 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exc
         }
 #endif
 
+#if PYTHON_VERSION >= 300
+        CHAIN_EXCEPTION( exception_type, value );
+#endif
+
         throw _PythonException( exception_type, value, traceback );
+    }
+    else if ( PyExceptionInstance_Check( exception_type ) )
+    {
+        PyObject *value = exception_type;
+        exception_type = INCREASE_REFCOUNT( PyExceptionInstance_Class( exception_type ) );
+
+#if PYTHON_VERSION >= 300
+        CHAIN_EXCEPTION( exception_type, value );
+#endif
+
+        throw _PythonException( exception_type, value, traceback );
+    }
+    else
+    {
+        PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
+
+        _PythonException to_throw;
+        to_throw.setTraceback( traceback );
+
+        throw to_throw;
+    }
+}
+
+#if PYTHON_VERSION >= 300
+NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( PyObject *exception_type, PyObject *exception_cause, PyTracebackObject *traceback )
+{
+    assertObject( exception_type );
+    assertObject( exception_cause );
+
+    if ( PyExceptionClass_Check( exception_cause ) )
+    {
+        exception_cause = PyObject_CallObject( exception_cause, NULL );
+
+        if (unlikely( exception_cause == NULL ))
+        {
+            throw _PythonException();
+        }
+    }
+
+    if (unlikely( !PyExceptionInstance_Check( exception_cause ) ))
+    {
+        PyErr_Format( PyExc_TypeError, "exception causes must derive from BaseException" );
+        throw _PythonException();
+    }
+
+    if ( PyExceptionClass_Check( exception_type ) )
+    {
+        PyObject *value = NULL;
+
+        NORMALIZE_EXCEPTION( &exception_type, &value, &traceback );
+        if (unlikely( !PyExceptionInstance_Check( value ) ))
+        {
+            PyErr_Format(
+                PyExc_TypeError,
+                "calling %s() should have returned an instance of BaseException, not '%s'",
+                ((PyTypeObject *)exception_type)->tp_name,
+                Py_TYPE( value )->tp_name
+            );
+
+            throw _PythonException();
+        }
+
+        _PythonException to_throw( exception_type, value, traceback );
+        to_throw.setCause( exception_cause );
+        throw to_throw;
     }
     else if ( PyExceptionInstance_Check( exception_type ) )
     {
@@ -485,6 +598,7 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exc
         throw to_throw;
     }
 }
+#endif
 
 NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyTracebackObject *traceback )
 {

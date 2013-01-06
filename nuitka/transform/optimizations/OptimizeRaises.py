@@ -120,6 +120,7 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
                 exception_type  = raise_exception.getExceptionType(),
                 exception_value = raise_exception.getExceptionValue(),
                 exception_trace = None,
+                exception_cause = None,
                 source_ref      = raise_exception.getSourceReference()
             )
 

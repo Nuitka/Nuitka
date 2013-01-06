@@ -1500,6 +1500,13 @@ def generateRaiseCode( statement, context ):
     exception_type  = statement.getExceptionType()
     exception_value = statement.getExceptionValue()
     exception_tb    = statement.getExceptionTrace()
+    exception_cause = statement.getExceptionCause()
+
+    # Exception cause is only possible with simple raise form.
+    if exception_cause is not None:
+        assert exception_type is not None
+        assert exception_value is None
+        assert exception_tb is None
 
     if exception_type is None:
         return Generator.getReRaiseExceptionCode(
@@ -1513,6 +1520,11 @@ def generateRaiseCode( statement, context ):
             ),
             exception_value_identifier = None,
             exception_tb_identifier    = None,
+            exception_cause_identifier = generateExpressionCode(
+                expression  = exception_cause,
+                allow_none  = True,
+                context     = context,
+            ),
             exception_tb_maker         = Generator.getTracebackMakingIdentifier(
                 context = context,
             )
@@ -1528,6 +1540,7 @@ def generateRaiseCode( statement, context ):
                 context    = context
             ),
             exception_tb_identifier    = None,
+            exception_cause_identifier = None,
             exception_tb_maker         = Generator.getTracebackMakingIdentifier(
                 context = context,
             )
@@ -1546,6 +1559,7 @@ def generateRaiseCode( statement, context ):
                 expression = exception_tb,
                 context    = context
             ),
+            exception_cause_identifier = None,
             exception_tb_maker         = None
         )
 

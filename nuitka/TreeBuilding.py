@@ -2518,24 +2518,21 @@ def buildTryNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-
-_has_raise_value = Utils.python_version < 300
-
 def buildRaiseNode( provider, node, source_ref ):
-    if _has_raise_value:
+    if Utils.python_version < 300:
         return CPythonStatementRaiseException(
-            exception_type  = buildNode( provider, node.type, source_ref, True ),
-            exception_value = buildNode( provider, node.inst, source_ref, True ),
-            exception_trace = buildNode( provider, node.tback, source_ref, True ),
+            exception_type  = buildNode( provider, node.type, source_ref, allow_none = True ),
+            exception_value = buildNode( provider, node.inst, source_ref, allow_none = True ),
+            exception_trace = buildNode( provider, node.tback, source_ref, allow_none = True ),
+            exception_cause = None,
             source_ref      = source_ref
         )
     else:
-        assert node.cause is None
-
         return CPythonStatementRaiseException(
-            exception_type  = buildNode( provider, node.exc, source_ref, True ),
+            exception_type  = buildNode( provider, node.exc, source_ref, allow_none = True ),
             exception_value = None,
             exception_trace = None,
+            exception_cause = buildNode( provider, node.cause, source_ref, allow_none = True ),
             source_ref      = source_ref
         )
 
@@ -2562,6 +2559,7 @@ def buildAssertNode( provider, node, source_ref ):
                 ),
             exception_value = buildNode( provider, node.msg, source_ref, True ),
             exception_trace = None,
+            exception_cause = None,
             source_ref      = source_ref
         )
     else:
@@ -2573,6 +2571,7 @@ def buildAssertNode( provider, node, source_ref ):
             ),
             exception_value = None,
             exception_trace = None,
+            exception_cause = None,
             source_ref      = source_ref
         )
 
@@ -2922,6 +2921,7 @@ def buildExecNode( provider, node, source_ref ):
                     source_ref = source_ref
                 ),
                 exception_trace = None,
+                exception_cause = None,
                 source_ref      = source_ref
             )
 
@@ -3080,6 +3080,7 @@ def buildWithNode( provider, node, source_ref ):
                                             exception_type  = None,
                                             exception_value = None,
                                             exception_trace = None,
+                                            exception_cause = None,
                                             source_ref      = source_ref
                                         ),
                                     ),

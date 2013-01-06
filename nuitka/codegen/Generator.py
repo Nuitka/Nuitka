@@ -1126,8 +1126,15 @@ def getTryExceptCode( context, code_tried, handler_codes ):
 
 
 def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier,
-                           exception_tb_identifier, exception_tb_maker ):
-    if exception_value_identifier is None and exception_tb_identifier is None:
+                           exception_tb_identifier, exception_cause_identifier,
+                           exception_tb_maker ):
+    if exception_cause_identifier is not None:
+        return "RAISE_EXCEPTION_WITH_CAUSE( %s, %s, %s );" % (
+            exception_type_identifier.getCodeExportRef(),
+            exception_cause_identifier.getCodeExportRef(),
+            exception_tb_maker.getCodeExportRef()
+        )
+    elif exception_value_identifier is None and exception_tb_identifier is None:
         return "RAISE_EXCEPTION( %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
