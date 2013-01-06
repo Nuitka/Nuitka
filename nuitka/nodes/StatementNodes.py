@@ -119,7 +119,7 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
 class CPythonStatementsFrame( CPythonStatementsSequence ):
     kind = "STATEMENTS_FRAME"
 
-    def __init__( self, statements, code_name, arg_names, source_ref ):
+    def __init__( self, statements, code_name, arg_names, kw_only_count, source_ref ):
         CPythonStatementsSequence.__init__(
             self,
             statements = statements,
@@ -128,6 +128,8 @@ class CPythonStatementsFrame( CPythonStatementsSequence ):
 
         self.arg_names = tuple( arg_names )
         self.code_name = code_name
+
+        self.kw_only_count = kw_only_count
 
     def getDetails( self ):
         return {
@@ -140,6 +142,9 @@ class CPythonStatementsFrame( CPythonStatementsSequence ):
 
     def getCodeObjectName( self ):
         return self.code_name
+
+    def getKwOnlyParameterCount( self ):
+        return self.kw_only_count
 
 
 class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):

@@ -1762,11 +1762,12 @@ def getModuleCode( context, module_name, package_name, codes, tmp_keepers,
     ]
 
     code_identifier = context.getCodeObjectHandle(
-        filename     = source_ref.getFilename(),
-        arg_names    = (),
-        line_number  = 0,
-        code_name    = module_name if module_name != "__main__" else "<module>",
-        is_generator = False
+        filename      = source_ref.getFilename(),
+        arg_names     = (),
+        kw_only_count = 0,
+        line_number   = 0,
+        code_name     = module_name if module_name != "__main__" else "<module>",
+        is_generator  = False
     )
 
     # Create for for "inittab" to use in unfreezing of modules if that is used.
@@ -2131,11 +2132,12 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
     }
 
     code_identifier = context.getCodeObjectHandle(
-        filename     = source_ref.getFilename(),
-        arg_names    = parameters.getCoArgNames(),
-        line_number  = source_ref.getLineNumber(),
-        code_name    = function_name,
-        is_generator = True
+        filename      = source_ref.getFilename(),
+        arg_names     = parameters.getCoArgNames(),
+        kw_only_count = parameters.getKwOnlyParameterCount(),
+        line_number   = source_ref.getLineNumber(),
+        code_name     = function_name,
+        is_generator  = True
     )
 
     if context_decl or instance_context_decl:
@@ -2387,11 +2389,12 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
 
     if needs_creation:
         code_identifier = context.getCodeObjectHandle(
-            filename     = source_ref.getFilename(),
-            arg_names    = parameters.getCoArgNames(),
-            line_number  = source_ref.getLineNumber(),
-            code_name    = function_name,
-            is_generator = False
+            filename      = source_ref.getFilename(),
+            arg_names     = parameters.getCoArgNames(),
+            kw_only_count = parameters.getKwOnlyParameterCount(),
+            line_number   = source_ref.getLineNumber(),
+            code_name     = function_name,
+            is_generator  = False
         )
 
         if context_decl:
@@ -2617,24 +2620,46 @@ def _getConstantsDefinitionCode( context ):
         assert False, (type(constant_value), constant_value, constant_identifier)
 
     for code_object_key, code_identifier in context.getCodeObjects():
-        code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (
-            code_identifier.getCode(),
-            getConstantCode(
-                constant = code_object_key[0],
-                context  = context
-            ),
-            getConstantCode(
-                constant = code_object_key[1],
-                context  = context
-            ),
-            code_object_key[2],
-            getConstantCode(
-                constant = code_object_key[3],
-                context  = context
-            ),
-            len( code_object_key[3] ),
-            "true" if code_object_key[4] else "false"
-        )
+        if Utils.python_version < 300:
+            code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (
+                code_identifier.getCode(),
+                getConstantCode(
+                    constant = code_object_key[0],
+                    context  = context
+                ),
+                getConstantCode(
+                    constant = code_object_key[1],
+                    context  = context
+                ),
+                code_object_key[2],
+                getConstantCode(
+                    constant = code_object_key[3],
+                    context  = context
+                ),
+                len( code_object_key[3] ),
+                "true" if code_object_key[5] else "false"
+            )
+        else:
+            code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %d, %s );" % (
+                code_identifier.getCode(),
+                getConstantCode(
+                    constant = code_object_key[0],
+                    context  = context
+                ),
+                getConstantCode(
+                    constant = code_object_key[1],
+                    context  = context
+                ),
+                code_object_key[2],
+                getConstantCode(
+                    constant = code_object_key[3],
+                    context  = context
+                ),
+                len( code_object_key[3] ),
+                code_object_key[4],
+                "true" if code_object_key[5] else "false"
+            )
+
 
         statements.append( code )
 

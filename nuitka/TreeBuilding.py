@@ -187,10 +187,11 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
 
     if frame:
         return CPythonStatementsFrame(
-            statements = statements,
-            arg_names  = provider.getParameters().getCoArgNames(),
-            code_name  = provider.getFunctionName(),
-            source_ref = source_ref
+            statements    = statements,
+            arg_names     = provider.getParameters().getCoArgNames(),
+            kw_only_count = provider.getParameters().getKwOnlyParameterCount(),
+            code_name     = provider.getFunctionName(),
+            source_ref    = source_ref
         )
     else:
         return CPythonStatementsSequence(
@@ -1070,10 +1071,11 @@ def buildLambdaNode( provider, node, source_ref ):
         )
 
     body = CPythonStatementsFrame(
-        statements = ( body, ),
-        arg_names  = function_body.getParameters().getCoArgNames(),
-        code_name  = "<lambda>",
-        source_ref = body.getSourceReference()
+        statements    = ( body, ),
+        arg_names     = function_body.getParameters().getCoArgNames(),
+        kw_only_count = function_body.getParameters().getKwOnlyParameterCount(),
+        code_name     = "<lambda>",
+        source_ref    = body.getSourceReference()
     )
 
     function_body.setBody( body )
@@ -2123,10 +2125,11 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
 
     function_body.setBody(
         CPythonStatementsFrame(
-            statements = [ temp_block ],
-            arg_names  = (),
-            code_name  = "contraction",
-            source_ref = source_ref
+            statements    = [ temp_block ],
+            arg_names     = (),
+            kw_only_count = 0,
+            code_name     = "contraction",
+            source_ref    = source_ref
         )
     )
 

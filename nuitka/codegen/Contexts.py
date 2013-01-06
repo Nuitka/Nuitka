@@ -43,14 +43,14 @@ import hashlib
 if python_version < 300:
     def calcHash( key ):
         hash_value = hashlib.md5(
-            "%s%s%d%s%s" % key
+            "%s%s%d%s%d%s" % key
         )
 
         return hash_value.hexdigest()
 else:
     def calcHash( key ):
         hash_value = hashlib.md5(
-            ( "%s%s%d%s%s" % key ).encode( "utf-8" )
+            ( "%s%s%d%s%d%s" % key ).encode( "utf-8" )
         )
 
         return hash_value.hexdigest()
@@ -106,8 +106,16 @@ class PythonChildContextBase( PythonContextBase ):
     def getModuleName( self ):
         return self.parent.getModuleName()
 
-    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, is_generator ):
-        return self.parent.getCodeObjectHandle( filename, code_name, line_number, arg_names, is_generator )
+    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, kw_only_count,
+                             is_generator ):
+        return self.parent.getCodeObjectHandle(
+            filename      = filename,
+            code_name     = code_name,
+            line_number   = line_number,
+            arg_names     = arg_names,
+            kw_only_count = kw_only_count,
+            is_generator  = is_generator
+        )
 
 
 class PythonGlobalContext:
@@ -195,8 +203,9 @@ class PythonGlobalContext:
     def getConstants( self ):
         return sorted( self.constants.items(), key = lambda x: x[1] )
 
-    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, is_generator ):
-        key = ( filename, code_name, line_number, arg_names, is_generator )
+    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, kw_only_count,
+                             is_generator ):
+        key = ( filename, code_name, line_number, arg_names, kw_only_count, is_generator )
 
         if key not in self.code_objects:
             self.code_objects[ key ] = Identifier(
@@ -283,8 +292,16 @@ class PythonModuleContext( PythonContextBase ):
     def getConstantHandle( self, constant ):
         return self.global_context.getConstantHandle( constant )
 
-    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, is_generator ):
-        return self.global_context.getCodeObjectHandle( filename, code_name, line_number, arg_names, is_generator )
+    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, kw_only_count,
+                             is_generator ):
+        return self.global_context.getCodeObjectHandle(
+            filename      = filename,
+            code_name     = code_name,
+            line_number   = line_number,
+            arg_names     = arg_names,
+            kw_only_count = kw_only_count,
+            is_generator  = is_generator
+        )
 
     def addFunctionCodes( self, code_name, function_decl, function_code ):
         assert code_name not in self.function_codes

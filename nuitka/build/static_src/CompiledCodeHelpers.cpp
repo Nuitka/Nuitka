@@ -639,7 +639,11 @@ PyObject *BUILTIN_DIR1( PyObject *arg )
 extern PyObject *_python_str_empty;
 extern PyObject *_python_bytes_empty;
 
+#if PYTHON_VERSION < 300
 PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, bool is_generator )
+#else
+PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, int kw_only_count, bool is_generator )
+#endif
 {
     assertObject( filename );
     assert( Nuitka_String_Check( filename ) );
@@ -661,7 +665,7 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
     PyCodeObject *result = PyCode_New (
         arg_count,           // argcount
 #if PYTHON_VERSION >= 300
-        0,                   // kw-only count
+        kw_only_count,       // kw-only count
 #endif
         0,                   // nlocals
         0,                   // stacksize

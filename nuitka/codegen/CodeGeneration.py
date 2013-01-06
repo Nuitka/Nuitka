@@ -1963,13 +1963,14 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
 
             if provider.isGenerator():
                 code = Generator.getFrameGuardLightCode(
-                    frame_identifier = provider.getCodeName(),
-                    code_identifier  = context.getCodeObjectHandle(
-                        filename     = source_ref.getFilename(),
-                        arg_names    = statement_sequence.getArgNames(),
-                        line_number  = source_ref.getLineNumber(),
-                        code_name    = statement_sequence.getCodeObjectName(),
-                        is_generator = True
+                    frame_identifier  = provider.getCodeName(),
+                    code_identifier   = context.getCodeObjectHandle(
+                        filename      = source_ref.getFilename(),
+                        arg_names     = statement_sequence.getArgNames(),
+                        kw_only_count = statement_sequence.getKwOnlyParameterCount(),
+                        line_number   = source_ref.getLineNumber(),
+                        code_name     = statement_sequence.getCodeObjectName(),
+                        is_generator  = True
                     ),
                     codes            = codes,
                     context          = context
@@ -1982,12 +1983,13 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
             else:
                 code = Generator.getFrameGuardHeavyCode(
                     frame_identifier  = provider.getCodeName(),
-                    code_identifier  = context.getCodeObjectHandle(
-                        filename     = source_ref.getFilename(),
-                        arg_names    = statement_sequence.getArgNames(),
-                        line_number  = source_ref.getLineNumber(),
-                        code_name    = statement_sequence.getCodeObjectName(),
-                        is_generator = False,
+                    code_identifier   = context.getCodeObjectHandle(
+                        filename      = source_ref.getFilename(),
+                        arg_names     = statement_sequence.getArgNames(),
+                        kw_only_count = statement_sequence.getKwOnlyParameterCount(),
+                        line_number   = source_ref.getLineNumber(),
+                        code_name     = statement_sequence.getCodeObjectName(),
+                        is_generator  = False,
                     ),
                     locals_identifier = Generator.getLoadLocalsCode(
                         context = context,
