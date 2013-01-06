@@ -24,6 +24,14 @@ is where getCheapRefCount tries to not allocate references not needed.
 # The method signatures do not always require usage of self, sometimes can be decided
 # based on class. pylint: disable=R0201
 
+from nuitka import Utils
+
+def encodeNonAscii( var_name ):
+    if Utils.python_version < 300:
+        return var_name
+    else:
+        return var_name.encode( "ascii", "xmlcharrefreplace" ).decode( "ascii" ).replace( "&#", "$$" ).replace( ";", "" )
+
 class Identifier:
     def __init__( self, code, ref_count ):
         self.code = code
@@ -128,7 +136,7 @@ class ModuleVariableIdentifier:
         return self.getCodeTemporaryRef()
 
     def getCode( self ):
-        return "_mvar_%s_%s" % ( self.module_code_name, self.var_name )
+        return "_mvar_%s_%s" % ( self.module_code_name, encodeNonAscii( self.var_name ) )
 
 
 class MaybeModuleVariableIdentifier( Identifier ):
@@ -141,6 +149,7 @@ class MaybeModuleVariableIdentifier( Identifier ):
             ),
             0
         )
+
 
 class LocalVariableIdentifier:
     def __init__( self, var_name, from_context = False ):
@@ -157,9 +166,9 @@ class LocalVariableIdentifier:
 
     def getCode( self ):
         if not self.from_context:
-            return "_python_var_" + self.var_name
+            return "_python_var_" + encodeNonAscii( self.var_name )
         else:
-            return "_python_context->python_var_" + self.var_name
+            return "_python_context->python_var_" + encodeNonAscii( self.var_name )
 
     def getRefCount( self ):
         return 0
@@ -217,11 +226,11 @@ class ClosureVariableIdentifier( Identifier ):
         self.from_context = from_context
 
         if self.from_context:
-            Identifier.__init__( self, self.from_context + "python_closure_" + self.var_name, 0 )
+            Identifier.__init__( self, self.from_context + "python_closure_" + encodeNonAscii( self.var_name ), 0 )
         else:
             # TODO: Use a variable object to decide naming policy
 
-            Identifier.__init__( self, "python_closure_" + self.var_name, 0 )
+            Identifier.__init__( self, "python_closure_" + encodeNonAscii( self.var_name ), 0 )
 
     def __repr__( self ):
         return "<ClosureVariableIdentifier %s >" % self.var_name
@@ -285,6 +294,7 @@ class CallIdentifier( Identifier ):
             ),
             ref_count = 1
         )
+
 
 class HelperCallIdentifier( CallIdentifier ):
     def __init__( self, helper, *args ):

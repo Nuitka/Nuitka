@@ -32,7 +32,8 @@ from .Identifiers import (
     CallIdentifier,
     NullIdentifier,
     getCodeTemporaryRefs,
-    getCodeExportRefs
+    getCodeExportRefs,
+    encodeNonAscii
 )
 
 from .Indentation import indented
@@ -1938,7 +1939,7 @@ def _getLocalVariableInitCode( context, variable, init_from = None, in_context =
     if not in_context:
         result += "_"
 
-    result += variable.getCodeName()
+    result += encodeNonAscii( variable.getCodeName() )
 
     if not in_context:
         if variable.isTempVariable():
