@@ -56,6 +56,7 @@ from .nodes.BuiltinIteratorNodes import (
     CPythonExpressionBuiltinNext1,
     CPythonExpressionBuiltinIter1,
 )
+from .nodes.BuiltinTypeNodes import CPythonExpressionBuiltinList
 from .nodes.ExceptionNodes import (
     CPythonExpressionCaughtExceptionTracebackRef,
     CPythonExpressionCaughtExceptionValueRef,
@@ -1522,8 +1523,8 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source, source
         return CPythonStatementAssignmentAttribute(
             expression     = lookup_source,
             attribute_name = attribute_name,
-            source     = source,
-            source_ref = source_ref
+            source         = source,
+            source_ref     = source_ref
         )
     elif kind == "Subscript":
         subscribed, subscript = detail
@@ -1571,37 +1572,63 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source, source
             range( len( detail ) )
         ]
 
-        for element_index in range( len( detail ) ):
-            statements.append(
-                CPythonStatementAssignmentVariable(
-                    variable_ref = CPythonExpressionTempVariableRef(
-                        variable   = element_vars[ element_index ].makeReference( result ),
-                        source_ref = source_ref
-                    ),
-                    source = CPythonExpressionSpecialUnpack(
-                        value      = CPythonExpressionTempVariableRef(
-                            variable   = source_iter_var.makeReference( result ),
+        starred = False
+
+        for element_index, element in enumerate( detail ):
+            if element[0] != "Starred":
+                statements.append(
+                    CPythonStatementAssignmentVariable(
+                        variable_ref = CPythonExpressionTempVariableRef(
+                            variable   = element_vars[ element_index ].makeReference( result ),
                             source_ref = source_ref
                         ),
-                        count      = element_index + 1,
+                        source = CPythonExpressionSpecialUnpack(
+                            value      = CPythonExpressionTempVariableRef(
+                                variable   = source_iter_var.makeReference( result ),
+                                source_ref = source_ref
+                            ),
+                            count      = element_index + 1,
+                            source_ref = source_ref
+                        ),
+                        source_ref   = source_ref
+                    )
+                )
+            else:
+                starred = True
+
+                statements.append(
+                    CPythonStatementAssignmentVariable(
+                        variable_ref = CPythonExpressionTempVariableRef(
+                            variable   = element_vars[ element_index ].makeReference( result ),
+                            source_ref = source_ref
+                        ),
+                        source = CPythonExpressionBuiltinList(
+                            value      = CPythonExpressionTempVariableRef(
+                                variable   = source_iter_var.makeReference( result ),
+                                source_ref = source_ref
+                            ),
+                            source_ref = source_ref
+                        ),
+                        source_ref   = source_ref
+                    )
+                )
+
+        if not starred:
+            statements.append(
+                CPythonStatementSpecialUnpackCheck(
+                    iterator   = CPythonExpressionTempVariableRef(
+                        variable   = source_iter_var.makeReference( result ),
                         source_ref = source_ref
                     ),
-                    source_ref   = source_ref
+                    count      = len( detail ),
+                    source_ref = source_ref
                 )
             )
 
-        statements.append(
-            CPythonStatementSpecialUnpackCheck(
-                iterator   = CPythonExpressionTempVariableRef(
-                    variable   = source_iter_var.makeReference( result ),
-                    source_ref = source_ref
-                ),
-                count      = len( detail ),
-                source_ref = source_ref
-            )
-        )
-
         for element_index, element in enumerate( detail ):
+            if element[0] == "Starred":
+                element = element[1]
+
             statements.append(
                 buildAssignmentStatementsFromDecoded(
                     provider   = provider,
@@ -1716,10 +1743,12 @@ def decodeAssignTarget( provider, node, source_ref, allow_none = False ):
             assert False, slice_kind
     elif kind in ( "Tuple", "List" ):
         return "Tuple", tuple(
-            decodeAssignTarget( provider, sub_node, source_ref, False )
+            decodeAssignTarget( provider, sub_node, source_ref, allow_none = False )
             for sub_node in
             node.elts
         )
+    elif kind == "Starred":
+        return "Starred", decodeAssignTarget( provider, node.value, source_ref, allow_none = False )
     else:
         assert False, ( source_ref, kind )
 
