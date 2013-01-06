@@ -3991,6 +3991,39 @@ def getImportedModule( module_relpath ):
 def getImportedModules():
     return imported_modules.values()
 
+def _splitEncoding( source_filename ):
+    source_code = open( source_filename, "rb" ).read()
+
+    if source_code.startswith( b'\xef\xbb\xbf' ):
+        return source_code[3:]
+
+    new_line = source_code.find( b"\n" )
+
+    if new_line is not -1:
+        line = source_code[ : new_line ]
+
+        line_match = re.search( b"coding[:=]\s*([-\w.]+)", line )
+
+        if line_match:
+            encoding = line_match.group(1).decode( "ascii" )
+
+            return source_code[ new_line + 1 : ].decode( encoding )
+
+        new_line = source_code.find( b"\n", new_line+1 )
+
+        if new_line is not -1:
+            line = source_code[ : new_line ]
+
+            line_match = re.search( b"coding[:=]\s*([-\w.]+)", line )
+
+            if line_match:
+                encoding = line_match.group(1).decode( "ascii" )
+
+                return source_code[ new_line + 1 : ].decode( encoding )
+
+
+    return source_code.decode( "utf-8" )
+
 def _detectEncoding( source_filename ):
     # Detect the encoding.
     encoding = "ascii"
@@ -4091,47 +4124,51 @@ def buildModuleTree( filename, package, is_top, is_main ):
     if not Options.shallHaveStatementLines():
         source_ref = source_ref.atInternal()
 
-    # Detect the encoding.
-    encoding = _detectEncoding( source_filename )
+    if Utils.python_version < 300:
+        # Detect the encoding.
+        encoding = _detectEncoding( source_filename )
 
-    with open( source_filename, "rU" ) as source_file:
-        source_code = source_file.read()
+        with open( source_filename, "rU" ) as source_file:
+            source_code = source_file.read()
 
-        # Try and detect SyntaxError from missing or wrong encodings.
-        if type( source_code ) is not unicode and encoding == "ascii":
-            try:
-                source_code = source_code.decode( encoding )
-            except UnicodeDecodeError as e:
-                lines = source_code.split( "\n" )
-                so_far = 0
+            # Try and detect SyntaxError from missing or wrong encodings.
+            if type( source_code ) is not unicode and encoding == "ascii":
+                try:
+                    source_code = source_code.decode( encoding )
+                except UnicodeDecodeError as e:
+                    lines = source_code.split( "\n" )
+                    so_far = 0
 
-                for count, line in enumerate( lines ):
-                    so_far += len( line ) + 1
+                    for count, line in enumerate( lines ):
+                        so_far += len( line ) + 1
 
-                    if so_far > e.args[2]:
-                        break
-                else:
-                    # Cannot happen, decode error implies non-empty.
-                    count = -1
+                        if so_far > e.args[2]:
+                            break
+                    else:
+                        # Cannot happen, decode error implies non-empty.
+                        count = -1
 
-                wrong_byte = re.search( "byte 0x([a-f0-9]{2}) in position", str( e ) ).group( 1 )
+                    wrong_byte = re.search( "byte 0x([a-f0-9]{2}) in position", str( e ) ).group( 1 )
 
-                SyntaxErrors.raiseSyntaxError(
-                    reason     = "Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; see http://www.python.org/peps/pep-0263.html for details" % ( # pylint: disable=C0301
-                        wrong_byte,
-                        source_filename,
-                        count+1,
-                    ),
-                    source_ref = SourceCodeReferences.fromFilename( source_filename, None ).atLineNumber( count+1 ),
-                    display_line = False
-                )
+                    SyntaxErrors.raiseSyntaxError(
+                        reason     = "Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; see http://www.python.org/peps/pep-0263.html for details" % ( # pylint: disable=C0301
+                            wrong_byte,
+                            source_filename,
+                            count+1,
+                        ),
+                        source_ref = SourceCodeReferences.fromFilename( source_filename, None ).atLineNumber( count+1 ),
+                        display_line = False
+                    )
 
-        buildParseTree(
-            provider    = result,
-            source_code = source_code,
-            source_ref  = source_ref,
-            replacement = False,
-        )
+    else:
+        source_code = _splitEncoding( source_filename )
+
+    buildParseTree(
+        provider    = result,
+        source_code = source_code,
+        source_ref  = source_ref,
+        replacement = False,
+    )
 
     addImportedModule( Utils.relpath( filename ), result )
 
