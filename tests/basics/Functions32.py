@@ -104,3 +104,8 @@ print( "After updating to None it is", kwonlyfunc.__annotations__ )
 
 kwonlyfunc.__annotations__ = { "k" : 9 }
 print( "After updating to None it is", kwonlyfunc.__annotations__ )
+
+def kwonlystarfunc( *, a, b, **d ):
+    return a, b, d
+
+print( "kwonlystarfunc", kwonlystarfunc( a = 8, b = 12, k = 9, j = 7 ) )

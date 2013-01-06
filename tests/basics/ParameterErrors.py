@@ -148,8 +148,17 @@ try:
 except TypeError, e:
     print repr(e)
 
+print "Call a function with defaults with too little arguments:"
+
 def functionWithDefaults( a, b, c, d = 3 ):
     print a, b, c, d
+
+try:
+    functionWithDefaults( 1 )
+except TypeError, e:
+    print repr(e)
+
+print "Call a function with defaults with too many arguments:"
 
 try:
     functionWithDefaults( 1 )

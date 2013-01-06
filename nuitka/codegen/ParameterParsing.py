@@ -50,7 +50,7 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
 
     plain_possible_count = len( top_level_parameters ) - parameters.getKwOnlyParameterCount()
 
-    if plain_possible_count and (not is_method or plain_possible_count > 1):
+    if plain_possible_count > 1 or (not is_method and plain_possible_count > 0):
         parameter_parsing_code += str( CodeTemplates.parse_argument_template_take_counts3 )
 
     if top_level_parameters:
@@ -94,12 +94,20 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
                 "function_name"         : function_name,
             }
 
-            quick_path_code += CodeTemplates.argparse_template_assign_from_dict_parameter_quick_path % {
+            if variable.isParameterVariableKwOnly():
+                assign_quick = CodeTemplates.argparse_template_assign_from_dict_parameter_quick_path_kw_only
+                assign_slow = CodeTemplates.argparse_template_assign_from_dict_parameter_slow_path_kw_only
+            else:
+                assign_quick = CodeTemplates.argparse_template_assign_from_dict_parameter_quick_path
+                assign_slow = CodeTemplates.argparse_template_assign_from_dict_parameter_slow_path
+
+
+            quick_path_code += assign_quick % {
                 "parameter_name_object"    : parameter_name_object,
                 "parameter_assign_from_kw" : indented( parameter_assign_from_kw )
             }
 
-            slow_path_code += CodeTemplates.argparse_template_assign_from_dict_parameter_slow_path % {
+            slow_path_code += assign_slow % {
                 "parameter_name_object"    : parameter_name_object,
                 "parameter_assign_from_kw" : indented( parameter_assign_from_kw )
             }
@@ -125,11 +133,11 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
 
         parameter_parsing_code += check_template % {
             "function_name"             : function_name,
-            "top_level_parameter_count" : len( top_level_parameters ),
+            "top_level_parameter_count" : plain_possible_count,
             "required_parameter_count"  : required_parameter_count,
         }
 
-    if plain_possible_count and (not is_method or plain_possible_count > 1):
+    if plain_possible_count > 1 or (not is_method and plain_possible_count > 0):
         parameter_parsing_code += CodeTemplates.parse_argument_usable_count % {
             "top_level_parameter_count" : plain_possible_count,
         }
@@ -154,14 +162,14 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
                 }
 
     if parameters.getListStarArgVariable() is not None:
-        if not is_method:
-            max_index = len( top_level_parameters )
+        if is_method:
+            max_index = plain_possible_count - 1
         else:
-            max_index = len( top_level_parameters ) - 1
+            max_index = plain_possible_count
 
         parameter_parsing_code += CodeTemplates.parse_argument_template_copy_list_star_args % {
             "list_star_parameter_name"  : parameters.getStarListArgumentName(),
-            "top_level_parameter_count" : len( top_level_parameters ),
+            "top_level_parameter_count" : len( top_level_parameters ) - parameters.getKwOnlyParameterCount(),
             "top_level_max_index"       : max_index
         }
 
