@@ -58,6 +58,15 @@ try_except_reraise_template = """\
     throw;
 }"""
 
+try_except_reraise_finally_template = """\
+if ( _caught_%(try_count)d.isEmpty() )
+{
+%(thrower_code)s
+}
+else
+    { _caught_%(try_count)d.rethrow();
+}"""
+
 try_except_reraise_unmatched_template = """\
 else
 {

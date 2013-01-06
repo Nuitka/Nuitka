@@ -1510,7 +1510,8 @@ def generateRaiseCode( statement, context ):
 
     if exception_type is None:
         return Generator.getReRaiseExceptionCode(
-            local = statement.isReraiseExceptionLocal()
+            local = statement.isReraiseExceptionLocal(),
+            final = context.getTryFinallyCount() if statement.isReraiseExceptionFinally() else None,
         )
     elif exception_value is None:
         return Generator.getRaiseExceptionCode(
@@ -1849,20 +1850,31 @@ def _generateStatementCode( statement, context ):
             context   = context
         )
     elif statement.isStatementTryFinally():
+        try_count = context.allocateTryNumber()
+
+        context.setTryFinallyCount( try_count )
+
+        code_final             = generateStatementSequenceCode(
+            statement_sequence = statement.getBlockFinal(),
+            context            = context
+        )
+
+        context.removeFinallyCount()
+
+        code_tried             = generateStatementSequenceCode(
+            statement_sequence = statement.getBlockTry(),
+            context            = context
+        )
+
         code = Generator.getTryFinallyCode(
-            context     = context,
-            code_tried = generateStatementSequenceCode(
-                statement_sequence = statement.getBlockTry(),
-                context            = context
-            ),
-            code_final = generateStatementSequenceCode(
-                statement_sequence = statement.getBlockFinal(),
-                context            = context
-            ),
-            needs_break = statement.needsExceptionBreak(),
-            needs_continue = statement.needsExceptionContinue(),
+            code_tried             = code_tried,
+            code_final             = code_final,
+            needs_break            = statement.needsExceptionBreak(),
+            needs_continue         = statement.needsExceptionContinue(),
             needs_generator_return = statement.needsExceptionGeneratorReturn(),
-            needs_return_value     = statement.needsExceptionReturnValue()
+            needs_return_value     = statement.needsExceptionReturnValue(),
+            try_count              = try_count,
+            context                = context
         )
     elif statement.isStatementTryExcept():
         code = generateTryExceptCode(

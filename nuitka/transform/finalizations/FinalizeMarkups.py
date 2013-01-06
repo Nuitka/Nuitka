@@ -122,13 +122,19 @@ class FinalizeMarkups( FinalizationVisitorBase ):
         if node.isStatementRaiseException() and node.isReraiseException():
             search = node.getParent()
 
+            # Check if it's in a try/except block.
             while not search.isParentVariableProvider():
                 if search.isStatementsSequence():
                     if search.getParent().isStatementExceptHandler():
                         node.markAsReraiseLocal()
                         break
 
+                    if search.getParent().isStatementTryFinally() and Utils.python_version >= 300:
+                        node.markAsReraiseFinally()
+
                 search = search.getParent()
+
+            search = node.getParent()
 
         if node.isStatementDelVariable():
             node.getTargetVariableRef().getVariable().setHasDelIndicator()

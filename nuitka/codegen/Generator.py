@@ -1037,14 +1037,13 @@ def getSubscriptDelCode( subscribed, subscript ):
     )
 
 def getTryFinallyCode( context, needs_continue, needs_break, needs_generator_return,
-                       needs_return_value, code_tried, code_final ):
+                       needs_return_value, code_tried, code_final, try_count ):
     tb_making = getTracebackMakingIdentifier( context )
 
     rethrow_setups = ""
     rethrow_catchers = ""
     rethrow_raisers = ""
 
-    try_count = context.allocateTryNumber()
     values = {
         "try_count" : try_count
     }
@@ -1153,11 +1152,19 @@ def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier
             exception_tb_identifier.getCodeExportRef()
         )
 
-def getReRaiseExceptionCode( local ):
+def getReRaiseExceptionCode( local, final ):
     if local:
-        return CodeTemplates.try_except_reraise_template % {}
+        thrower_code = CodeTemplates.try_except_reraise_template % {}
     else:
-        return "RERAISE_EXCEPTION();"
+        thrower_code = "RERAISE_EXCEPTION();"
+
+    if final:
+        return CodeTemplates.try_except_reraise_finally_template % {
+            "try_count"    : final,
+            "thrower_code" : thrower_code
+        }
+    else:
+        return thrower_code
 
 def getRaiseExceptionExpressionCode( exception_type_identifier, exception_value_identifier, exception_tb_maker ):
     return ThrowingIdentifier(

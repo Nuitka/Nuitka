@@ -61,6 +61,8 @@ class PythonContextBase:
     def __init__( self ):
         self.try_count = 0
 
+        self.try_finally_counts = []
+
     def allocateTryNumber( self ):
         self.try_count += 1
 
@@ -69,6 +71,17 @@ class PythonContextBase:
     def hasLocalsDict( self ):
         return False
 
+    def setTryFinallyCount( self, value ):
+        self.try_finally_counts.append( value )
+
+    def removeFinallyCount( self ):
+        del self.try_finally_counts[-1]
+
+    def getTryFinallyCount( self ):
+        if self.try_finally_counts:
+            return self.try_finally_counts[-1]
+        else:
+            return None
 
 class PythonChildContextBase( PythonContextBase ):
     def __init__( self, parent ):

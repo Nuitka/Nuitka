@@ -51,6 +51,7 @@ class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
         )
 
         self.reraise_local = False
+        self.reraise_finally = False
 
     getExceptionType = CPythonChildrenHaving.childGetter( "exception_type" )
     getExceptionValue = CPythonChildrenHaving.childGetter( "exception_value" )
@@ -65,8 +66,16 @@ class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
 
         return self.reraise_local
 
+    def isReraiseExceptionFinally( self ):
+        assert self.isReraiseException()
+
+        return self.reraise_finally
+
     def markAsReraiseLocal( self ):
         self.reraise_local = True
+
+    def markAsReraiseFinally( self ):
+        self.reraise_finally = True
 
     def isStatementAbortative( self ):
         return True
