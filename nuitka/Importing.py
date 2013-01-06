@@ -129,7 +129,12 @@ def _findModuleInPath( module_name, package_name ):
             return module_filename, package_name
         except ImportError:
             if _debug_module_finding:
-                print( "_findModuleInPath: imp.find_module failed" )
+                print( "_findModuleInPath: imp.find_module failed to locate" )
+        except SyntaxError:
+            # TODO: A warning might be nice here.
+            if _debug_module_finding:
+                print( "_findModuleInPath: imp.find_module failed with syntax error" )
+
 
     ext_path = sys.path + [ os.getcwd() ]
 
