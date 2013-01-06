@@ -526,6 +526,16 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exc
 
 #if PYTHON_VERSION >= 300
         CHAIN_EXCEPTION( exception_type, value );
+
+        PyTracebackObject *prev = (PyTracebackObject *)PyException_GetTraceback( value );
+
+        if ( prev != NULL )
+        {
+            assert( traceback->tb_next == NULL );
+            traceback->tb_next = prev;
+        }
+
+        PyException_SetTraceback( value, (PyObject *)traceback );
 #endif
 
         throw _PythonException( exception_type, value, traceback );
