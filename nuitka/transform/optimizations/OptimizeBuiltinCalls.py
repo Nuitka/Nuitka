@@ -581,7 +581,7 @@ def computeBuiltinCall( call_node, called ):
             message = "Replaced dynamic builtin import %s with static module import." % new_node.kind
         elif new_node.isExpressionBuiltin() or new_node.isStatementExec():
             tags = "new_builtin"
-            message = "Replaced call to builtin %s with builtin call." % new_node.kind
+            message = "Replaced call to builtin with builtin call %s." % new_node.kind
         elif new_node.isExpressionCall() or new_node.isExpressionRaiseException():
             tags = "new_raise"
             message = "Replaced call to builtin %s with exception raising call." % new_node.kind

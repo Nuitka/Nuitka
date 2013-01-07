@@ -373,6 +373,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
     def getIntegerValue( self, constraint_collection ):
         """ Node as integer value, if possible."""
         # Virtual method, pylint: disable=R0201,W0613
+        return None
 
 
 class CPythonCodeNodeBase( CPythonNodeBase ):

@@ -50,9 +50,11 @@ class CPythonExpressionBuiltinRange0( CPythonExpressionBuiltinNoArgBase ):
             source_ref       = source_ref
         )
 
+    def mayHaveSideEffects( self, constraint_collection ):
+        return False
 
-class CPythonExpressionBuiltinRangeBase( CPythonSideEffectsFromChildrenMixin, \
-                                         CPythonExpressionChildrenHavingBase ):
+
+class CPythonExpressionBuiltinRangeBase( CPythonExpressionChildrenHavingBase ):
 
     def __init__( self, values, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
@@ -68,6 +70,17 @@ class CPythonExpressionBuiltinRangeBase( CPythonSideEffectsFromChildrenMixin, \
             return None
         else:
             return length > 0
+
+    def mayHaveSideEffects( self, constraint_collection ):
+        for child in self.getVisitableNodes():
+            if child.mayHaveSideEffects( constraint_collection ):
+                return True
+
+            if child.getIntegerValue( constraint_collection ) is None:
+                return True
+
+        else:
+            return False
 
 
 class CPythonExpressionBuiltinRange1( CPythonExpressionBuiltinRangeBase ):
