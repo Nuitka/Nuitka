@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#     Copyright 2012, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
