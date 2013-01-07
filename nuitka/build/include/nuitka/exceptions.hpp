@@ -200,6 +200,10 @@ public:
     inline void normalize()
     {
         NORMALIZE_EXCEPTION( &this->exception_type, &this->exception_value, &this->exception_tb );
+
+#if PYTHON_VERSION >= 300
+        PyException_SetTraceback( this->exception_value, (PyObject *)this->exception_tb );
+#endif
     }
 
     inline bool matches( PyObject *exception ) const
