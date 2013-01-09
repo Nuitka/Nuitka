@@ -267,3 +267,63 @@ void patchInspectModule( void )
 #endif
 
 }
+
+extern PyModuleObject *module_builtin;
+
+static PyObject *_builtin_isinstance_replacement( PyObject *self, PyObject *args )
+{
+    PyObject *inst, *cls;
+
+    if (unlikely( PyArg_UnpackTuple(args, "isinstance", 2, 2, &inst, &cls) == 0 ))
+    {
+        return NULL;
+    }
+
+    if ( cls == (PyObject *)&PyFunction_Type && Nuitka_Function_Check( inst ) )
+    {
+        return INCREASE_REFCOUNT( Py_True );
+    }
+
+    if ( cls == (PyObject *)&PyGen_Type && Nuitka_Generator_Check( inst ) )
+    {
+        return INCREASE_REFCOUNT( Py_True );
+    }
+
+    int res = PyObject_IsInstance( inst, cls );
+
+    if (unlikely( res < 0 ))
+    {
+        return NULL;
+    }
+
+    return PyBool_FromLong( res );
+}
+
+static PyMethodDef _method_def_builtin_isinstance_replacement =
+{
+    "isinstance",
+    (PyCFunction)_builtin_isinstance_replacement,
+    METH_VARARGS,
+    NULL
+};
+
+void patchBuiltinModule()
+{
+    assertObject( (PyObject *)module_builtin );
+
+    // Patch "inspect.isfunction" unless it is already patched.
+    PyObject *old_isinstance = PyObject_GetAttrString( (PyObject *)module_builtin, "isinstance" );
+    assertObject( old_isinstance );
+
+    // TODO: Find safe criterion, these was a C method before
+    if ( true || PyFunction_Check( old_isinstance ))
+    {
+        PyObject *builtin_isinstance_replacement = PyCFunction_New( &_method_def_builtin_isinstance_replacement, NULL );
+        assertObject( builtin_isinstance_replacement );
+
+        PyObject_SetAttrString( (PyObject *)module_builtin, "isinstance", builtin_isinstance_replacement );
+    }
+
+    Py_DECREF( old_isinstance );
+
+}

@@ -70,6 +70,8 @@ int main( int argc, char *argv[] )
 
     patchInspectModule();
 
+    patchBuiltinModule();
+
     // Execute the "__main__" module init function.
     MOD_INIT_NAME( __main__)();
 
@@ -322,6 +324,8 @@ MOD_INIT_DECL( %(module_identifier)s )
     PyType_Ready( &Nuitka_Frame_Type );
 
     patchInspectModule();
+
+    patchBuiltinModule();
 #endif
 
 #if _MODULE_UNFREEZER

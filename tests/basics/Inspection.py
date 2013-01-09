@@ -17,18 +17,20 @@
 #
 
 
-import inspect, sys
+import inspect, types, sys
 
 def compiledFunction():
    pass
 
 assert inspect.isfunction( compiledFunction ) is True
+assert isinstance( compiledFunction, types.FunctionType )
 
 class compiledClass:
    def compiledMethod( self ):
       pass
 
 assert inspect.isfunction( compiledClass ) is False
+assert isinstance( compiledClass,types.FunctionType ) is False
 
 assert inspect.ismethod( compiledFunction ) is False
 assert inspect.ismethod( compiledClass ) is False
@@ -42,6 +44,8 @@ def compiledGenerator():
 assert inspect.isfunction( compiledGenerator ) is True
 assert inspect.isgeneratorfunction( compiledGenerator ) is True
 
+assert isinstance( compiledGenerator(), types.GeneratorType ) is True
+assert isinstance( compiledGenerator, types.GeneratorType ) is False
 
 assert inspect.ismethod( compiledGenerator() ) is False
 assert inspect.isfunction( compiledGenerator() ) is False

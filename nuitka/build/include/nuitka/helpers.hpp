@@ -1384,7 +1384,11 @@ extern void enhancePythonTypes( void );
 // Parse the command line parameters and provide it to sys module.
 extern void setCommandLineParameters( int argc, char *argv[] );
 
+// Replace inspect functions with ones that accept compiled types too.
 extern void patchInspectModule( void );
+
+// Replace builtin functions with ones that accept compiled types too.
+extern void patchBuiltinModule( void );
 
 #if PYTHON_VERSION >= 300
 NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyObject *bases )
