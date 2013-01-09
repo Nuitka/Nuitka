@@ -122,6 +122,12 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
         else:
             return None
 
+    def getStringValue( self, constraint_collection ):
+        if self.isStringConstant():
+            return self.constant
+        else:
+            return None
+
     def getIterationLength( self, constraint_collection ):
         if isIterableConstant( self.constant ):
             return getConstantIterationLength( self.constant )

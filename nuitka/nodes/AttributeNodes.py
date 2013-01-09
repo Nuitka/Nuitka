@@ -22,6 +22,7 @@ objects and classes. There will be a registry to aid predicting them.
 """
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
 from nuitka.transform.optimizations.registry import AttributeRegistry
 
@@ -100,7 +101,36 @@ class CPythonExpressionBuiltinGetattr( CPythonExpressionChildrenHavingBase ):
     getDefault = CPythonExpressionChildrenHavingBase.childGetter( "default" )
 
     def computeNode( self, constraint_collection ):
-        # Note: Might be possible to predict or downgrade to mere attribute lookup.
+        default = self.getDefault()
+
+        if default is None:
+            attribute = self.getAttribute()
+
+            attribute_name = attribute.getStringValue( constraint_collection )
+
+            if attribute_name is not None:
+                source = self.getLookupSource()
+                # If source has sideeffects, it must be evaluated, before the lookup, meaning,
+                # a temporary variable should be assigned. For now, we give up in this
+                # case. TODO: Replace source with a temporary variable assignment as a side
+                # effect.
+
+                side_effects = source.extractSideEffects()
+
+                if not side_effects:
+                    result = CPythonExpressionAttributeLookup(
+                        expression     = source,
+                        attribute_name = attribute_name,
+                        source_ref     = self.source_ref
+                    )
+
+                    result = wrapExpressionWithSideEffects(
+                        new_node = result,
+                        old_node = attribute
+                    )
+
+                    return result, "new_expression", "Replaced call to built-in 'getattr' with constant attribute '%s' to mere attribute lookup" % attribute_name
+
         return self, None, None
 
 
@@ -149,4 +179,5 @@ class CPythonExpressionBuiltinHasattr( CPythonExpressionChildrenHavingBase ):
 
     def computeNode( self, constraint_collection ):
         # Note: Might be possible to predict or downgrade to mere attribute check.
+
         return self, None, None

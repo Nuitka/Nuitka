@@ -1503,3 +1503,51 @@ PyObject *_BUILTIN_ISINSTANCE( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) )
 
     return PyBool_FromLong( res );
 }
+
+PyObject *_BUILTIN_GETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *default_value ) )
+{
+
+#if PYTHON_VERSION < 300
+    if ( PyUnicode_Check( attribute ) )
+    {
+        attribute = _PyUnicode_AsDefaultEncodedString( attribute, NULL );
+
+        if (unlikely( attribute == NULL ))
+        {
+            throw _PythonException();
+        }
+    }
+
+    if (unlikely( !PyString_Check( attribute ) ))
+    {
+        PyErr_Format( PyExc_TypeError, "getattr(): attribute name must be string" );
+        throw _PythonException();
+    }
+#else
+    if (!PyUnicode_Check( attribute ))
+    {
+        PyErr_Format( PyExc_TypeError, "getattr(): attribute name must be string" );
+        throw _PythonException();
+    }
+#endif
+
+    PyObject *result = PyObject_GetAttr( object, attribute );
+
+    if ( result == NULL )
+    {
+        if ( default_value != NULL && PyErr_ExceptionMatches( PyExc_AttributeError ))
+        {
+            PyErr_Clear();
+
+            return INCREASE_REFCOUNT( default_value );
+        }
+        else
+        {
+            throw _PythonException();
+        }
+    }
+    else
+    {
+        return result;
+    }
+}

@@ -749,6 +749,12 @@ def generateExpressionCode( expression, context, allow_none = False ):
             attribute = makeExpressionCode( expression.getAttribute() ),
             source    = makeExpressionCode( expression.getLookupSource() ),
         )
+    elif expression.isExpressionBuiltinGetattr():
+        identifier = Generator.getAttributeGetCode(
+            source    = makeExpressionCode( expression.getLookupSource() ),
+            attribute = makeExpressionCode( expression.getAttribute() ),
+            default   = makeExpressionCode( expression.getDefault(), allow_none = True )
+        )
     elif expression.isExpressionImportName():
         identifier = Generator.getImportNameCode(
             import_name = context.getConstantHandle( expression.getImportName() ),
@@ -1098,17 +1104,10 @@ def generateExpressionCode( expression, context, allow_none = False ):
             identifier   = makeExpressionCode( expression.getExpression() )
         )
     elif expression.isExpressionBuiltinSuper():
-        type_identifier = makeExpressionCode( expression.getType(), allow_none = True )
-
-        if type_identifier is None:
-            type_identifier = None
-
-        object_identifier = makeExpressionCode( expression.getObject(), allow_none = True )
-
-
         identifier = Generator.getBuiltinSuperCode(
-            type_identifier   = type_identifier,
-            object_identifier = object_identifier
+            type_identifier   = makeExpressionCode( expression.getType(), allow_none = True ),
+            object_identifier = makeExpressionCode( expression.getObject(), allow_none = True )
+        )
     elif expression.isExpressionBuiltinIsinstance():
         identifier = Generator.getBuiltinIsinstanceCode(
             inst_identifier = makeExpressionCode( expression.getInst(), allow_none = True ),

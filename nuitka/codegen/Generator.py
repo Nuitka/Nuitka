@@ -495,6 +495,15 @@ def getAttributeCheckCode( attribute, source ):
         0
     )
 
+def getAttributeGetCode( attribute, source, default ):
+    return Identifier(
+        "BUILTIN_GETATTR( %s, %s, %s)" % (
+            source.getCodeTemporaryRef(),
+            attribute.getCodeTemporaryRef(),
+            _defaultToNullIdentifier( default ).getCodeTemporaryRef()
+        ),
+        0
+    )
 
 
 def getImportNameCode( import_name, module ):

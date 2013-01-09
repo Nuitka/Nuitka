@@ -194,7 +194,10 @@ builtin_vars_spec = BuiltinParameterSpecNoKeywords( "vars", ( "object", ), 0 )
 builtin_locals_spec = BuiltinParameterSpecNoKeywords( "locals", (), 0 )
 builtin_globals_spec = BuiltinParameterSpecNoKeywords( "globals", (), 0 )
 
-builtin_super_spec = BuiltinParameterSpecNoKeywords( "super", ("type", "object" ), 1 if python_version < 300 else 2 )
+builtin_super_spec = BuiltinParameterSpecNoKeywords( "super", ( "type", "object" ), 1 if python_version < 300 else 2 )
+
+builtin_hasattr_spec = BuiltinParameterSpecNoKeywords( "hasattr", ( "object", "name" ), 0 )
+builtin_getattr_spec = BuiltinParameterSpecNoKeywords( "getattr", ( "object", "name", "default" ), 1 )
 
 builtin_isinstance_spec = BuiltinParameterSpecNoKeywords( "isinstance", ( "object", "instance" ), 0 )
 
