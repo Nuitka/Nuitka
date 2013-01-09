@@ -19,6 +19,8 @@
 
 """
 
+from types import BuiltinFunctionType
+
 from nuitka import Utils
 
 def isExceptionName( builtin_name ):
@@ -96,17 +98,17 @@ builtin_all_names = builtin_names + builtin_exception_names
 assert exceptions
 
 builtin_anon_names = {
-    "NoneType"                   : type( None ),
-    "builtin_function_or_method" : type( len ),
-    "ellipsis"                   : type( Ellipsis ),
-    "NotImplementedType"         : type( NotImplemented )
+    "NoneType"                   : type( None ), # Strangely not Python3 types module
+    "ellipsis"                   : type( Ellipsis ), # see above
+    "NotImplementedType"         : type( NotImplemented ),
+    "builtin_function_or_method" : BuiltinFunctionType,
 }
 
 builtin_anon_codes = {
     "NoneType"                   : "Py_TYPE( Py_None )",
-    "builtin_function_or_method" : "&PyCFunction_Type",
     "ellipsis"                   : "&PyEllipsis_Type",
-    "NotImplementedType"         : "Py_TYPE( Py_NotImplemented )"
+    "NotImplementedType"         : "Py_TYPE( Py_NotImplemented )",
+    "builtin_function_or_method" : "&PyCFunction_Type"
 }
 
 if Utils.python_version < 300:
