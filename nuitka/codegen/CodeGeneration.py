@@ -1109,6 +1109,10 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = Generator.getBuiltinSuperCode(
             type_identifier   = type_identifier,
             object_identifier = object_identifier
+    elif expression.isExpressionBuiltinIsinstance():
+        identifier = Generator.getBuiltinIsinstanceCode(
+            inst_identifier = makeExpressionCode( expression.getInst(), allow_none = True ),
+            cls_identifier  = makeExpressionCode( expression.getCls(), allow_none = True )
         )
     elif expression.isExpressionSelectMetaclass():
         identifier = Generator.getSelectMetaclassCode(

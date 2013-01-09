@@ -86,3 +86,26 @@ class CPythonExpressionBuiltinSuper( CPythonExpressionChildrenHavingBase ):
     def computeNode( self, constraint_collection ):
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
+
+
+class CPythonExpressionBuiltinIsinstance( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_BUILTIN_ISINSTANCE"
+
+    named_children = ( "inst", "cls" )
+
+    def __init__( self, inst, cls, source_ref ):
+        CPythonExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "inst" : inst,
+                "cls"  : cls
+
+            },
+            source_ref = source_ref )
+
+    getInst = CPythonExpressionChildrenHavingBase.childGetter( "inst" )
+    getCls = CPythonExpressionChildrenHavingBase.childGetter( "cls" )
+
+    def computeNode( self, constraint_collection ):
+        # TODO: Quite some cases should be possible to predict.
+        return self, None, None

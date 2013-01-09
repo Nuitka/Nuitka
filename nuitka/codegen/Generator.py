@@ -1530,6 +1530,15 @@ def getBuiltinSuperCode( type_identifier, object_identifier ):
         1
     )
 
+def getBuiltinIsinstanceCode( inst_identifier, cls_identifier ):
+    return Identifier(
+        "BUILTIN_ISINSTANCE( %s, %s )" % (
+            inst_identifier.getCodeTemporaryRef(),
+            cls_identifier.getCodeTemporaryRef()
+        ),
+        1
+    )
+
 def getBuiltinOpenCode( filename, mode, buffering ):
     return Identifier(
         "OPEN_FILE( %s, %s, %s )" % (

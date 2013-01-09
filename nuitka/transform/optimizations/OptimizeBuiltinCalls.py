@@ -83,6 +83,7 @@ from nuitka.nodes.ImportNodes import CPythonExpressionBuiltinImport
 from nuitka.nodes.TypeNode import (
     CPythonExpressionBuiltinSuper,
     CPythonExpressionBuiltinType1,
+    CPythonExpressionBuiltinIsinstance
 )
 from nuitka.nodes.ClassNodes import CPythonExpressionBuiltinType3
 from nuitka.nodes.CallNode import CPythonExpressionCall
@@ -457,8 +458,6 @@ def open_extractor( node ):
     )
 
 def super_extractor( node ):
-
-
     # Need to accept type and object as keyword argument, that is just the API of super,
     # pylint: disable=W0622
     def wrapSuperBuiltin( type, object, source_ref ):
@@ -519,6 +518,13 @@ def super_extractor( node ):
         builtin_spec  = BuiltinOptimization.builtin_super_spec
     )
 
+def isinstance_extractor( node ):
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = CPythonExpressionBuiltinIsinstance,
+        builtin_spec  = BuiltinOptimization.builtin_isinstance_spec
+    )
+
 _dispatch_dict = {
     "globals"    : globals_extractor,
     "locals"     : locals_extractor,
@@ -544,7 +550,8 @@ _dispatch_dict = {
     "int"        : int_extractor,
     "repr"       : repr_extractor,
     "len"        : len_extractor,
-    "super"      : super_extractor
+    "super"      : super_extractor,
+    "isinstance" : isinstance_extractor
 }
 
 if python_version < 300:

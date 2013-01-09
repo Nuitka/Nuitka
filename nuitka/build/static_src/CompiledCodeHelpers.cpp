@@ -1478,3 +1478,28 @@ PyObject *BUILTIN_CALLABLE( PyObject *value )
 {
     return PyBool_FromLong( (long)PyCallable_Check( value ) );
 }
+
+PyObject *_BUILTIN_ISINSTANCE( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) )
+{
+    assertObject( inst );
+    assertObject( cls );
+
+    if ( cls == (PyObject *)&PyFunction_Type && Nuitka_Function_Check( inst ) )
+    {
+        return INCREASE_REFCOUNT( Py_True );
+    }
+
+    if ( cls == (PyObject *)&PyGen_Type && Nuitka_Generator_Check( inst ) )
+    {
+        return INCREASE_REFCOUNT( Py_True );
+    }
+
+    int res = PyObject_IsInstance( inst, cls );
+
+    if (unlikely( res < 0 ))
+    {
+        throw _PythonException();
+    }
+
+    return PyBool_FromLong( res );
+}
