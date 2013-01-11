@@ -30,7 +30,9 @@ def encodeNonAscii( var_name ):
     if Utils.python_version < 300:
         return var_name
     else:
-        return var_name.encode( "ascii", "xmlcharrefreplace" ).decode( "ascii" ).replace( "&#", "$$" ).replace( ";", "" )
+        var_name = var_name.encode( "ascii", "xmlcharrefreplace" )
+
+        return var_name.decode( "ascii" ).replace( "&#", "$$" ).replace( ";", "" )
 
 class Identifier:
     def __init__( self, code, ref_count ):

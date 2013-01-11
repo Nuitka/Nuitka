@@ -177,6 +177,9 @@ FrameGuardVeryLight frame_guard;
 
 %(codes)s"""
 
+# Bad to read, but the context declaration should be on one line.
+# pylint: disable=C0301
+
 function_context_access_template = """\
     // The context of the function.
     struct _context_%(function_identifier)s_t *_python_context = (struct _context_%(function_identifier)s_t *)self->m_context;"""

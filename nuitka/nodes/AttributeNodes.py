@@ -85,6 +85,9 @@ class CPythonExpressionBuiltinGetattr( CPythonExpressionChildrenHavingBase ):
 
     named_children = ( "source", "attribute", "default" )
 
+    # Need to accept object keyword argument, that is just the API of getattr,
+    # pylint: disable=W0622
+
     def __init__( self, object, name, default, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
@@ -129,7 +132,7 @@ class CPythonExpressionBuiltinGetattr( CPythonExpressionChildrenHavingBase ):
                         old_node = attribute
                     )
 
-                    return result, "new_expression", "Replaced call to built-in 'getattr' with constant attribute '%s' to mere attribute lookup" % attribute_name
+                    return result, "new_expression", "Replaced call to built-in 'getattr' with constant attribute '%s' to mere attribute lookup" % attribute_name # pylint: disable=C0301
 
         return self, None, None
 
@@ -139,7 +142,10 @@ class CPythonExpressionBuiltinSetattr( CPythonExpressionChildrenHavingBase ):
 
     named_children = ( "source", "attribute", "value" )
 
-    def __init__( self, object, name, source_ref ):
+    # Need to accept object keyword argument, that is just the API of setattr,
+    # pylint: disable=W0622
+
+    def __init__( self, object, name, value, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -163,6 +169,9 @@ class CPythonExpressionBuiltinHasattr( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_HASATTR"
 
     named_children = ( "source", "attribute" )
+
+    # Need to accept object keyword argument, that is just the API of hasattr,
+    # pylint: disable=W0622
 
     def __init__( self, object, name, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(

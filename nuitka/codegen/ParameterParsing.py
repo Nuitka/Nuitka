@@ -129,7 +129,8 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
         else:
             check_template = CodeTemplates.parse_argument_template_check_counts_with_list_star_arg
 
-        required_parameter_count = len( top_level_parameters ) - parameters.getDefaultCount() - parameters.getKwOnlyParameterCount()
+        required_parameter_count = len( top_level_parameters ) - parameters.getDefaultCount() - \
+                                   parameters.getKwOnlyParameterCount()
 
         parameter_parsing_code += check_template % {
             "function_name"             : function_name,

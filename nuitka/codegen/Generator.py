@@ -157,7 +157,7 @@ def getYieldCode( identifier, for_return, in_handler ):
             0
         )
     elif in_handler:
-       return Identifier(
+        return Identifier(
             "YIELD_VALUE_FROM_HANDLER( generator, %s )" % identifier.getCodeExportRef(),
             0
         )
@@ -934,7 +934,7 @@ def getSliceDelCode( target, lower, upper ):
         "Py_None" if upper is None else upper.getCodeTemporaryRef()
     )
 
-def getLineNumberCode( context, source_ref ):
+def getLineNumberCode( source_ref ):
     if source_ref.shallSetCurrentLine():
         return "frame_guard.setLineNumber( %d );\n" % source_ref.getLineNumber()
     else:

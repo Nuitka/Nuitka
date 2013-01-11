@@ -1970,7 +1970,6 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
 
         if source_ref != last_ref and statement.needsLineNumber():
             code = Generator.getLineNumberCode(
-                context    = context,
                 source_ref = source_ref
             ) + code
 

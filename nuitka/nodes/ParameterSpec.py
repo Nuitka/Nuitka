@@ -200,7 +200,8 @@ class ParameterSpec( ParameterSpecTuple ):
         ]
 
     def isEmpty( self ):
-        return len( self.normal_args ) == 0 and self.list_star_arg is None and self.dict_star_arg is None and len( self.kw_only_args ) == 0
+        return len( self.normal_args ) == 0 and self.list_star_arg is None and \
+               self.dict_star_arg is None and len( self.kw_only_args ) == 0
 
     def getDefaultParameterVariables( self ):
         result = ParameterSpecTuple.getTopLevelVariables( self )

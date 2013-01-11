@@ -25,7 +25,6 @@ predicted still, and these are interesting for warnings.
 
 from .NodeBases import (
     CPythonExpressionChildrenHavingBase,
-    CPythonSideEffectsFromChildrenMixin,
     CPythonExpressionBuiltinNoArgBase
 )
 
