@@ -15,7 +15,7 @@ Requirements
   On Windows the MinGW g++ compiler is known to work start with at least version 4.5, the
   VC++ compiler is not known at this time.
 
-- Python: Version 2.6 or 2.7 (3.2 works partially)
+- Python: Version 2.6, 2.7 or 3.2
 
   You need at least CPython to execute Nuitka and then also to execute the created binary,
   because it uses the shared library of CPython.
@@ -623,7 +623,7 @@ windows installation at all.
 
 .. footer::
 
-   © Kay Hayen, 2012 | Page ###Page### of ###Total### | Section ###Section###
+   © Kay Hayen, 2013 | Page ###Page### of ###Total### | Section ###Section###
 
 
 Updates for this Manual
