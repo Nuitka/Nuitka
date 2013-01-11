@@ -1439,32 +1439,28 @@ def generateTryExceptCode( statement, context ):
                                 if catched_type.getExceptionName() == "StopIteration":
                                     if handlers[0].getExceptionBranch().isStatementAbortative():
 
-                                        temp_number = context.allocateTryNumber()
+                                        temp_identifier = Generator.getTryNextExceptStopIterationIdentifier( context = context )
 
-                                        return """\
-PyObject *_tmp_unpack_%(tmp_count)d = ITERATOR_NEXT( %(source_identifier)s );
+                                        assign_code = generateAssignmentVariableCode(
+                                            variable_ref = tried_statement.getTargetVariableRef(),
+                                            value        = temp_identifier,
+                                            context      = context
+                                        )
 
-if ( _tmp_unpack_%(tmp_count)d == NULL )
-{
-%(handler_code)s
-}
-%(assignment_code)s""" % {
-    "tmp_count" : temp_number,
-    "handler_code" : Generator.indented( generateStatementSequenceCode(
-        statement_sequence = handlers[0].getExceptionBranch(),
-        allow_none         = True,
-        context            = context
-     ) ),
-     "assignment_code" : generateAssignmentVariableCode(
-        variable_ref = tried_statement.getTargetVariableRef(),
-        value        = Generator.Identifier( "_tmp_unpack_%d" % temp_number, 1 ),
-        context      = context
-     ),
-     "source_identifier" : generateExpressionCode(
-        expression = source.getValue(),
-        context    = context
-     ).getCodeTemporaryRef()
-}
+                                        return Generator.getTryNextExceptStopIterationCode(
+                                            handler_code      = generateStatementSequenceCode(
+                                                statement_sequence = handlers[0].getExceptionBranch(),
+                                                allow_none         = True,
+                                                context            = context
+                                            ),
+                                            temp_identifier   = temp_identifier,
+                                            assign_code       = assign_code,
+                                            source_identifier =         generateExpressionCode(
+                                                expression = source.getValue(),
+                                                context    = context
+                                            )
+                                        )
+
 
     handler_codes = []
 

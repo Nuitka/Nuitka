@@ -181,3 +181,18 @@ if ( _return_value_%(try_count)d != NULL )
 {
     throw ReturnValueException( _return_value_%(try_count)d );
 }"""
+
+# Very special template for:
+# try:
+#  x = next(iter)
+# except StopIteration:
+#  handler_code
+
+template_try_next_except_stop_iteration = """\
+PyObject *%(temp_var)s = ITERATOR_NEXT( %(source_identifier)s );
+
+if ( %(temp_var)s == NULL )
+{
+%(handler_code)s
+}
+%(assignment_code)s"""

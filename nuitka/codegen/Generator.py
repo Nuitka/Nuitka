@@ -1133,6 +1133,20 @@ def getTryExceptCode( context, code_tried, handler_codes ):
         "tb_making"      : tb_making.getCodeExportRef(),
     }
 
+def getTryNextExceptStopIterationIdentifier( context ):
+    try_count = context.allocateTryNumber()
+
+    return Identifier( "_tmp_unpack_%d" % try_count, 1 )
+
+def getTryNextExceptStopIterationCode( source_identifier, handler_code, assign_code, temp_identifier ):
+    return CodeTemplates.template_try_next_except_stop_iteration % {
+        "temp_var"          : temp_identifier.getCode(),
+        "handler_code"      : indented( handler_code ),
+        "assignment_code"   : assign_code,
+        "source_identifier" : source_identifier.getCodeTemporaryRef()
+    }
+
+
 
 def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier,
                            exception_tb_identifier, exception_cause_identifier,
