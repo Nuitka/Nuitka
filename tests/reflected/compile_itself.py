@@ -326,10 +326,20 @@ def executePASS5():
     os.unlink( os.path.join( tmp_dir, "nuitka.so" ) )
     shutil.rmtree( os.path.join( tmp_dir, "nuitka.build" ) )
 
+cross_compilation = "--windows-target" in os.environ.get( "NUITKA_EXTRA_OPTIONS", "" )
+
 executePASS1()
-executePASS2()
+
+if cross_compilation:
+    print( "PASS 2: Skipped for cross-compilation case." )
+else:
+    executePASS2()
 executePASS3()
-executePASS4()
+
+if cross_compilation:
+    print( "PASS 4: Skipped for cross-compilation case." )
+else:
+    executePASS4()
 
 shutil.rmtree( "nuitka" )
 
