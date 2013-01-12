@@ -109,3 +109,19 @@ def kwonlystarfunc( *, a, b, **d ):
     return a, b, d
 
 print( "kwonlystarfunc", kwonlystarfunc( a = 8, b = 12, k = 9, j = 7 ) )
+
+def deeplyNestedNonLocalWrite():
+    x = 0
+    y = 0
+    def f():
+        def g():
+            nonlocal x
+
+            x = 3
+
+            return x
+
+        return g()
+    return f(), x
+
+print( "Deeply nested non local writing function", deeplyNestedNonLocalWrite() )

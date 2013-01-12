@@ -3202,42 +3202,21 @@ def handleNonlocalDeclarationNode( provider, node, source_ref ):
     # The source reference of the nonlocal really doesn't matter, pylint: disable=W0613
 
     # Need to catch the error of declaring a parameter variable as global ourselves
-    # here. The AST parsing doesn't catch it.
-    try:
-        parameters = provider.getParameters()
-
-        for variable_name in node.names:
-            if variable_name in parameters.getParameterNames():
-                SyntaxErrors.raiseSyntaxError(
-                    reason       = "name '%s' is parameter and nonlocal" % (
-                        variable_name
-                    ),
-                    source_ref   = None,
-                    display_file = False,
-                    display_line = False
-                )
-    except AttributeError:
-        raise
-
-    parent_provider = provider.getParentVariableProvider()
-
-    while parent_provider.isClassDictCreation():
-        parent_provider = parent_provider.getParentVariableProvider()
+    # here. The AST parsing doesn't catch it, but we can do it here.
+    parameters = provider.getParameters()
 
     for variable_name in node.names:
-        parent_variable = parent_provider.getVariableForAssignment(
-            variable_name = variable_name
-        )
-
-        closure_variable = provider.addClosureVariable(
-            variable         = parent_variable,
-            global_statement = True
-        )
-
-        if isinstance( provider, CPythonClosureGiverNodeBase ):
-            provider.registerProvidedVariable(
-                variable = closure_variable
+        if variable_name in parameters.getParameterNames():
+            SyntaxErrors.raiseSyntaxError(
+                reason       = "name '%s' is parameter and nonlocal" % (
+                    variable_name
+                ),
+                source_ref   = None if Options.isFullCompat() else source_ref,
+                display_file = not Options.isFullCompat(),
+                display_line = not Options.isFullCompat()
             )
+
+    provider.addNonlocalsDeclaration( node.names, source_ref )
 
     return None
 

@@ -92,6 +92,8 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         else:
             self.is_genexpr = False
 
+        self.non_local_declarations = []
+
         CPythonClosureTaker.__init__(
             self,
             provider      = provider,
@@ -269,6 +271,12 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
             return self.getClosureVariable(
                 variable_name = variable_name
             )
+
+    def addNonlocalsDeclaration( self, names, source_ref ):
+        self.non_local_declarations.append( ( names, source_ref ) )
+
+    def getNonlocalDeclarations( self ):
+        return self.non_local_declarations
 
     getBody = CPythonChildrenHaving.childGetter( "body" )
     setBody = CPythonChildrenHaving.childSetter( "body" )
