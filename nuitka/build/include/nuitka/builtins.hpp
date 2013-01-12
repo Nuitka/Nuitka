@@ -24,15 +24,20 @@ extern PyModuleObject *module_builtin;
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN( PyObject *name )
 {
+    assertObject( (PyObject *)module_builtin );
     assertObject( name );
     assert( Nuitka_String_Check( name ) );
 
+#if PYTHON_VERSION < 300
     PyDictEntry *entry = GET_PYDICT_ENTRY(
         module_builtin,
         (Nuitka_StringObject *)name
     );
 
     PyObject *result = entry->me_value;
+#else
+    PyObject *result = PyObject_GetAttr( (PyObject *)module_builtin, name );
+#endif
 
     assertObject( result );
 

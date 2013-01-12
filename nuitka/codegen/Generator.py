@@ -1232,7 +1232,7 @@ def getBuiltinRefCode( context, builtin_name ):
             constant = builtin_name,
             context  = context
         ),
-        0
+        0 if Utils.python_version < 300 else 1
     )
 
 def getBuiltinAnonymousRefCode( builtin_name ):

@@ -268,8 +268,6 @@ void patchInspectModule( void )
 
 }
 
-extern PyModuleObject *module_builtin;
-
 static PyObject *_builtin_isinstance_replacement( PyObject *self, PyObject *args )
 {
     PyObject *inst, *cls;
@@ -306,6 +304,8 @@ static PyMethodDef _method_def_builtin_isinstance_replacement =
     METH_VARARGS,
     NULL
 };
+
+extern PyModuleObject *module_builtin;
 
 void patchBuiltinModule()
 {
