@@ -161,7 +161,7 @@ if python_version < 300:
             )
 
             if new_node is self:
-                str_value = self.getValue().getStrValue()
+                str_value = self.getValue().getStrValue( constraint_collection )
 
                 if str_value is not None:
                     new_node = wrapExpressionWithSideEffects(

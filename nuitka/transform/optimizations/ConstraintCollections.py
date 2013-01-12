@@ -484,7 +484,7 @@ class ConstraintCollectionBase:
             self.onStatementUsingChildExpressions( statement )
 
             for printed in statement.getValues():
-                new_node = printed.getStrValue()
+                new_node = printed.getStrValue( self )
 
                 if new_node is not None and new_node is not printed:
                     printed.replaceWith( new_node )

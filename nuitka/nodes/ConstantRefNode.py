@@ -134,7 +134,7 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
         else:
             return None
 
-    def getStrValue( self ):
+    def getStrValue( self, constraint_collection ):
         if type( self.constant ) is str:
             return self
         else:

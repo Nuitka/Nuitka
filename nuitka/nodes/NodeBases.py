@@ -375,11 +375,6 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         # Virtual method, pylint: disable=R0201,W0613
         return None
 
-    def getStringValue( self, constraint_collection ):
-        """ Node as integer value, if possible."""
-        # Virtual method, pylint: disable=R0201,W0613
-        return None
-
 
 class CPythonCodeNodeBase( CPythonNodeBase ):
     def __init__( self, name, code_prefix, source_ref ):
@@ -852,11 +847,25 @@ class CPythonExpressionMixin:
         # Virtual method, pylint: disable=R0201
         return None
 
-    def getStrValue( self ):
+    def getStringValue( self, constraint_collection ):
+        """ Node as integer value, if possible."""
+        # Virtual method, pylint: disable=R0201,W0613
+        return None
+
+    def getStrValue( self, constraint_collection ):
         """ Value that "str" or "PyObject_Str" would give, if known.
 
         Otherwise it is "None" to indicate unknown.
         """
+        string_value = self.getStringValue( constraint_collection )
+
+        if string_value is not None:
+            from .NodeMakingHelpers import makeConstantReplacementNode
+
+            return makeConstantReplacementNode(
+                node     = self,
+                constant = string_value
+            )
 
         return None
 
