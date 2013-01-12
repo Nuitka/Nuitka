@@ -98,6 +98,9 @@ class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
 
         return self, None, None
 
+    def getStringValue( self, constraint_collection ):
+        return repr( self.getCompileTimeConstant() )
+
     def isKnownToBeIterable( self, count ):
         # TODO: Why yes, some may be, could be told here.
         return None
@@ -107,7 +110,7 @@ class CPythonExpressionBuiltinAnonymousRef( CPythonExpressionBuiltinRefBase ):
     kind = "EXPRESSION_BUILTIN_ANONYMOUS_REF"
 
     def __init__( self, builtin_name, source_ref ):
-        assert builtin_name not in builtin_names, builtin_name
+        assert builtin_name in builtin_anon_names
 
         CPythonExpressionBuiltinRefBase.__init__(
             self,
