@@ -23,6 +23,9 @@ and constants. Otherwise the thread of cyclic dependency kicks in.
 
 from .ConstantRefNode import CPythonExpressionConstantRef
 
+from nuitka.Constants import isConstant
+from nuitka.Builtins import builtin_names
+
 from .BuiltinReferenceNodes import (
     CPythonExpressionBuiltinExceptionRef,
     CPythonExpressionBuiltinRef
@@ -89,6 +92,24 @@ def makeRaiseExceptionReplacementExpressionFromInstance( expression, exception )
         exception_value = args[0]
     )
 
+def makeCompileTimeConstantReplacementNode( value, node ):
+    if isConstant( value ):
+        return makeConstantReplacementNode(
+            constant = value,
+            node     = node
+        )
+    elif type( value ) is type:
+        if value.__name__ in builtin_names:
+            return CPythonExpressionBuiltinRef(
+                builtin_name = value.__name__,
+                source_ref    = node.getSourceReference()
+            )
+        else:
+            return node
+    else:
+        return node
+
+
 def getComputationResult( node, computation, description ):
     """ With a computation function, execute it and return the constant result or
         exception node.
@@ -107,13 +128,17 @@ def getComputationResult( node, computation, description ):
         change_tags = "new_raise"
         change_desc = description + " was predicted to raise an exception."
     else:
-        new_node = makeConstantReplacementNode(
-            constant = result,
-            node     = node
+        new_node = makeCompileTimeConstantReplacementNode(
+            value = result,
+            node  = node
         )
 
-        change_tags = "new_constant"
-        change_desc = description + " was predicted to constant result."
+        if new_node is not node:
+            change_tags = "new_constant"
+            change_desc = description + " was predicted to constant result."
+        else:
+            change_tags = None
+            change_desc = None
 
     return new_node, change_tags, change_desc
 
