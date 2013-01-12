@@ -198,6 +198,7 @@ builtin_super_spec = BuiltinParameterSpecNoKeywords( "super", ( "type", "object"
 
 builtin_hasattr_spec = BuiltinParameterSpecNoKeywords( "hasattr", ( "object", "name" ), 0 )
 builtin_getattr_spec = BuiltinParameterSpecNoKeywords( "getattr", ( "object", "name", "default" ), 1 )
+builtin_setattr_spec = BuiltinParameterSpecNoKeywords( "setattr", ( "object", "name", "value" ), 0 )
 
 builtin_isinstance_spec = BuiltinParameterSpecNoKeywords( "isinstance", ( "object", "instance" ), 0 )
 

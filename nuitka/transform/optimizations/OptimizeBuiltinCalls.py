@@ -90,6 +90,7 @@ from nuitka.nodes.CallNode import CPythonExpressionCall
 from nuitka.nodes.AttributeNodes import (
     CPythonExpressionAttributeLookup,
     CPythonExpressionBuiltinGetattr,
+    CPythonExpressionBuiltinSetattr,
     CPythonExpressionBuiltinHasattr
 )
 from nuitka.nodes.NodeMakingHelpers import (
@@ -535,6 +536,13 @@ def getattr_extractor( node ):
         builtin_spec  = BuiltinOptimization.builtin_getattr_spec
     )
 
+def setattr_extractor( node ):
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = CPythonExpressionBuiltinSetattr,
+        builtin_spec  = BuiltinOptimization.builtin_setattr_spec
+    )
+
 def isinstance_extractor( node ):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
@@ -570,6 +578,7 @@ _dispatch_dict = {
     "super"      : super_extractor,
     "hasattr"    : hasattr_extractor,
     "getattr"    : getattr_extractor,
+    "setattr"    : setattr_extractor,
     "isinstance" : isinstance_extractor
 }
 

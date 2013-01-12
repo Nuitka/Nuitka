@@ -755,6 +755,12 @@ def generateExpressionCode( expression, context, allow_none = False ):
             attribute = makeExpressionCode( expression.getAttribute() ),
             default   = makeExpressionCode( expression.getDefault(), allow_none = True )
         )
+    elif expression.isExpressionBuiltinSetattr():
+        identifier = Generator.getAttributeSetCode(
+            source    = makeExpressionCode( expression.getLookupSource() ),
+            attribute = makeExpressionCode( expression.getAttribute() ),
+            value     = makeExpressionCode( expression.getValue() )
+        )
     elif expression.isExpressionImportName():
         identifier = Generator.getImportNameCode(
             import_name = context.getConstantHandle( expression.getImportName() ),

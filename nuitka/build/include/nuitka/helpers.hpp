@@ -1331,6 +1331,10 @@ extern PyObject *_BUILTIN_ISINSTANCE( EVAL_ORDERED_2( PyObject *inst, PyObject *
 #define BUILTIN_GETATTR( object, attribute, default_value ) _BUILTIN_GETATTR( EVAL_ORDERED_3( object, attribute, default_value ) )
 extern PyObject *_BUILTIN_GETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *default_value ) );
 
+// For quicker setattr() functionality.
+#define BUILTIN_SETATTR( object, attribute, value ) _BUILTIN_SETATTR( EVAL_ORDERED_3( object, attribute, value ) )
+extern void _BUILTIN_SETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *value ) );
+
 NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {
     if ( PyDict_Check( globals ) == 0 )

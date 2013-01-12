@@ -502,6 +502,16 @@ def getAttributeGetCode( attribute, source, default ):
             attribute.getCodeTemporaryRef(),
             _defaultToNullIdentifier( default ).getCodeTemporaryRef()
         ),
+        1
+    )
+
+def getAttributeSetCode( attribute, source, value ):
+    return Identifier(
+        "( BUILTIN_SETATTR( %s, %s, %s), Py_None )" % (
+            source.getCodeTemporaryRef(),
+            attribute.getCodeTemporaryRef(),
+            value.getCodeTemporaryRef()
+        ),
         0
     )
 

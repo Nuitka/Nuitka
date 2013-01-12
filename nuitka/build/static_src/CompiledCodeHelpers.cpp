@@ -1506,7 +1506,6 @@ PyObject *_BUILTIN_ISINSTANCE( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) )
 
 PyObject *_BUILTIN_GETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *default_value ) )
 {
-
 #if PYTHON_VERSION < 300
     if ( PyUnicode_Check( attribute ) )
     {
@@ -1549,5 +1548,15 @@ PyObject *_BUILTIN_GETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribut
     else
     {
         return result;
+    }
+}
+
+void _BUILTIN_SETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *value ) )
+{
+    int res = PyObject_SetAttr( object, attribute, value );
+
+    if (unlikely( res != 0 ))
+    {
+        throw _PythonException();
     }
 }
