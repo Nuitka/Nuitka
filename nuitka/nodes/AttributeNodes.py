@@ -24,8 +24,6 @@ objects and classes. There will be a registry to aid predicting them.
 from .NodeBases import CPythonExpressionChildrenHavingBase
 from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
-from nuitka.transform.optimizations.registry import AttributeRegistry
-
 
 class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP"
@@ -61,10 +59,14 @@ class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
             source_ref     = source_ref
         )
 
-
     def computeNode( self, constraint_collection ):
-        # There is a whole registry dedicated to this.
-        return AttributeRegistry.computeAttribute( self, constraint_collection )
+        lookup_source = self.getLookupSource()
+
+        return lookup_source.computeNodeAttribute(
+            lookup_node           = self,
+            attribute_name        = self.getAttributeName(),
+            constraint_collection = constraint_collection
+        )
 
     def isKnownToBeIterable( self, count ):
         # TODO: Should ask AttributeRegistry

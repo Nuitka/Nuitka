@@ -25,7 +25,7 @@ to variables only ever read.
 """
 
 
-from .NodeBases import CPythonNodeBase, CPythonExpressionMixin
+from .NodeBases import CPythonNodeBase, CompileTimeConstantExpressionMixin
 
 from .ConstantRefNode import CPythonExpressionConstantRef
 
@@ -36,7 +36,7 @@ from nuitka.Builtins import (
     builtin_names
 )
 
-class CPythonExpressionBuiltinRefBase( CPythonNodeBase, CPythonExpressionMixin ):
+class CPythonExpressionBuiltinRefBase( CPythonNodeBase, CompileTimeConstantExpressionMixin ):
     def __init__( self, builtin_name, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 

@@ -24,10 +24,7 @@ This should be done via a slice registry.
 """
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
-
 from .NodeMakingHelpers import convertNoneConstantToNone
-
-from nuitka.transform.optimizations.registry import SliceRegistry
 
 
 class CPythonExpressionSliceLookup( CPythonExpressionChildrenHavingBase ):
@@ -46,14 +43,15 @@ class CPythonExpressionSliceLookup( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
-
+    # Automatically optimize lower and upper to not present children when they become
+    # value "None".
     def setChild( self, name, value ):
         if name in ( "lower", "upper" ):
             value = convertNoneConstantToNone( value )
 
         return CPythonExpressionChildrenHavingBase.setChild( self, name, value )
 
+    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 
     getLower = CPythonExpressionChildrenHavingBase.childGetter( "lower" )
     setLower = CPythonExpressionChildrenHavingBase.childSetter( "lower" )
@@ -62,8 +60,14 @@ class CPythonExpressionSliceLookup( CPythonExpressionChildrenHavingBase ):
     setUpper = CPythonExpressionChildrenHavingBase.childSetter( "upper" )
 
     def computeNode( self, constraint_collection ):
-        # There is a whole registry dedicated to this.
-        return SliceRegistry.computeSlice( self, constraint_collection )
+        lookup_source = self.getLookupSource()
+
+        return lookup_source.computeNodeSlice(
+            lookup_node           = self,
+            lower                 = self.getLower(),
+            upper                 = self.getUpper(),
+            constraint_collection = constraint_collection
+        )
 
     def isKnownToBeIterable( self, count ):
         # TODO: Should ask SlicetRegistry

@@ -25,8 +25,6 @@ This should be done via a subscript registry.
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
 
-from nuitka.transform.optimizations.registry import SubscriptRegistry
-
 
 class CPythonExpressionSubscriptLookup( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_SUBSCRIPT_LOOKUP"
@@ -47,8 +45,13 @@ class CPythonExpressionSubscriptLookup( CPythonExpressionChildrenHavingBase ):
     getSubscript = CPythonExpressionChildrenHavingBase.childGetter( "subscript" )
 
     def computeNode( self, constraint_collection ):
-        # There is a whole registry dedicated to this.
-        return SubscriptRegistry.computeSubscript( self, constraint_collection )
+        lookup_source = self.getLookupSource()
+
+        return lookup_source.computeNodeSubscript(
+            lookup_node           = self,
+            subscript             = self.getSubscript(),
+            constraint_collection = constraint_collection
+        )
 
     def isKnownToBeIterable( self, count ):
         return None

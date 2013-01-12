@@ -34,14 +34,6 @@ OptimizeBuiltinCalls.register()
 from . import OptimizeFunctionCalls
 OptimizeFunctionCalls.register()
 
-# Populate slice registry
-from . import OptimizeSlices
-OptimizeSlices.register()
-
-# Populate subscript registry
-from . import OptimizeSubscripts
-OptimizeSubscripts.register()
-
 from .Tags import TagSet
 
 from nuitka import Options, TreeBuilding

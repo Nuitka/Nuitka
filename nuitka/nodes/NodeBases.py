@@ -873,6 +873,98 @@ class CPythonExpressionMixin:
         # print "onRelease", self
         pass
 
+    def computeNodeAttribute( self, lookup_node, attribute_name, constraint_collection ):
+        # By default, an attribute lookup may change everything about the lookup source.
+        constraint_collection.removeKnowledge( lookup_node )
+
+        return lookup_node, None, None
+
+    def computeNodeSubscript( self, lookup_node, subscript, constraint_collection ):
+        # By default, an subscript may change everything about the lookup source.
+        constraint_collection.removeKnowledge( lookup_node )
+
+        return lookup_node, None, None
+
+    def computeNodeSlice( self, lookup_node, lower, upper, constraint_collection ):
+        # By default, a slicing may change everything about the lookup source.
+        constraint_collection.removeKnowledge( lookup_node )
+
+        return lookup_node, None, None
+
+class CompileTimeConstantExpressionMixin( CPythonExpressionMixin ):
+    def isCompileTimeConstant( self ):
+        """ Has a value that we can use at compile time.
+
+            Yes or no. If it has such a value, simulations can be applied at compile time
+            and e.g. operations or conditions, or even calls may be executed against it.
+        """
+        # Virtual method, pylint: disable=R0201
+
+        return True
+
+    def computeNodeAttribute( self, lookup_node, attribute_name, constraint_collection ):
+        from .NodeMakingHelpers import getComputationResult
+
+        return getComputationResult(
+            node        = lookup_node,
+            computation = lambda : getattr( self.getCompileTimeConstant(), attribute_name ),
+            description = "Attribute lookup to %s precomputed." % attribute_name
+        )
+
+    def computeNodeSubscript( self, lookup_node, subscript, constraint_collection ):
+        from .NodeMakingHelpers import getComputationResult
+
+        if subscript.isCompileTimeConstant():
+            return getComputationResult(
+                node        = lookup_node,
+                computation = lambda : self.getCompileTimeConstant()[ subscript.getCompileTimeConstant() ],
+                description = "Subscript of constant with constant value."
+            )
+
+        return lookup_node, None, None
+
+    def computeNodeSlice( self, lookup_node, lower, upper, constraint_collection ):
+        from .NodeMakingHelpers import getComputationResult
+
+        # TODO: Could be happy with predictable index values and not require constants.
+        if lower is not None:
+            if upper is not None:
+                if lower.isCompileTimeConstant() and upper.isCompileTimeConstant():
+
+                    return getComputationResult(
+                        node        = lookup_node,
+                        computation = lambda : self.getCompileTimeConstant()[
+                            lower.getCompileTimeConstant() : upper.getCompileTimeConstant()
+                        ],
+                        description = "Slicing of constant with constant indexes."
+                    )
+            else:
+                if lower.isCompileTimeConstant():
+                    return getComputationResult(
+                        node        = lookup_node,
+                        computation = lambda : self.getCompileTimeConstant()[
+                            lower.getCompileTimeConstant() :
+                        ],
+                        description = "Slicing of constant with constant lower index only."
+                    )
+        else:
+            if upper is not None:
+                if upper.isCompileTimeConstant():
+                    return getComputationResult(
+                        node        = lookup_node,
+                        computation = lambda : self.getCompileTimeConstant()[
+                            : upper.getCompileTimeConstant()
+                        ],
+                        description = "Slicing of constant with constant upper index only."
+                    )
+            else:
+                return getComputationResult(
+                    node        = lookup_node,
+                    computation = lambda : self.getCompileTimeConstant()[ : ],
+                    description = "Slicing of constant with no indexes."
+                )
+
+        return lookup_node, None, None
 
 
 class CPythonExpressionSpecBasedComputationMixin( CPythonExpressionMixin ):

@@ -19,7 +19,7 @@
 
 """
 
-from .NodeBases import CPythonNodeBase, CPythonExpressionMixin
+from .NodeBases import CPythonNodeBase, CompileTimeConstantExpressionMixin
 
 from nuitka.Constants import (
     getConstantIterationLength,
@@ -30,7 +30,7 @@ from nuitka.Constants import (
     isMutable,
 )
 
-class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
+class CPythonExpressionConstantRef( CPythonNodeBase, CompileTimeConstantExpressionMixin ):
     kind = "EXPRESSION_CONSTANT_REF"
 
     def __init__( self, constant, source_ref ):
@@ -55,10 +55,6 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
     def computeNode( self, constraint_collection ):
         # Cannot compute any further.
         return self, None, None
-
-    def isCompileTimeConstant( self ):
-        # Virtual method, pylint: disable=R0201
-        return True
 
     def getCompileTimeConstant( self ):
         return self.constant
