@@ -26,6 +26,7 @@ from nuitka.Constants import (
     isIterableConstant,
     isIndexConstant,
     isNumberConstant,
+    isConstant,
     isMutable,
 )
 
@@ -34,6 +35,8 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CPythonExpressionMixin ):
 
     def __init__( self, constant, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        assert isConstant( constant ), constant
 
         self.constant = constant
 
