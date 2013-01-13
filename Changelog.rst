@@ -1,3 +1,156 @@
+Nuitka Release 0.3.26 (Draft)
+=============================
+
+This releases brings full Python3 support. With this
+
+New Features
+------------
+
+- Python3 is now fully supported.
+
+  - Fully correct ``metaclass =`` semantics now correctly supported. It had been working
+    somewhat previously, but now all the corner cases are covered too.
+
+  - Keyword only parameters.
+
+  - Annotations of functions return value and their arguments.
+
+  - Exception causes, chaining, automatic deletion of exception handlers ``as`` values.
+
+  - Added support for starred assigns.
+
+  - Unicode variable names are also supported, although it's of course ugly, to find a way
+    to translate these to C++ ones.
+
+Bug fixes
+---------
+
+- Code like ``instance( some_function, types.FunctionType)`` that "zope.interfaces" was
+  causing compatibility problems. Now this kind of check passes for compiled functions
+  too. `Issue#53 <http://bugs.nuitka.net/issue53>`_
+
+- For nested exceptions and interactions with generator objects, the exceptions in
+  "sys.exc_info()" were not always fully compatible. They now are.
+
+- The ``range`` builtin was not raising exceptions if given arguments appeared to not have
+  side effects, but were still illegal, e.g. ``range( [], 1, -1 )`` was optimized away if
+  the value was not used.
+
+- Don't crash on imported modules with syntax errors. Instead, the attempted recursion is
+  simply not done.
+
+- Doing a ``del`` on ``__defaults`` and ``__module`` of compiled functions was
+  crashing. Noticed by a Python3 test for ``__kwdefaults__`` that exhibited this weakness.
+
+- Wasn't detecting duplicate arguments, if one of them was not normal. Star arguments can
+  collide with normal ones.
+
+- The ``__doc__`` of classes is now only set, where it was in fact specified. Otherwise it
+  polluted the name space of ``locals()``.
+
+New Optimizations
+-----------------
+
+- Added support for optimizing ``hasattr``, ``getattr``, and ``setattr`` built-ins as
+  well. The ``hasattr`` was needed for the ``class`` re-formulation of Python3 anyway.
+
+- Optimizing ``getattr`` with string argument and no default to simple attribute access.
+
+- Optimizing attribute access to compile time constants for the first time. The old
+  registry had no actual user yet.
+
+- Optimizing subscript and slices for all compile time constants beyond constant values,
+  made easy by using inheritance.
+
+- Built-in references now convert to strings directly, e.g. when used in a print
+  statement. Needed for the testing approach "compiled file contains only prints with
+  constant value".
+
+- Optimizing calls to constant nodes directly into exceptions.
+
+
+Cleanups
+--------
+
+- The handling of classes for Python2 and Python3 have been re-formulated in Python more
+  completely.
+
+  * The calling of the determined "metaclass" is now in the node tree, so this call may
+    possible to inline in the future. This eliminated some static C++ code.
+
+  * Passing of values into dictionary creation function is no longer using hard coded
+    special parameters, but temporary variables can now have closure references, making
+    this normal and visible to the optimization.
+
+  * Class dictionary creation functions are therefore no longer as special as they used to
+    be.
+
+  * There is no class creation node anymore, it's merely a call to ``type`` or the
+    metaclass detected.
+
+- Merged C++ classes for frame exception keeper with frame guards.
+
+  * The exception is now saved in the compiled frame object, making it potentially more
+    compatible to start with.
+
+  * Aligned module and function frame guard usage, now using the same class.
+
+  * There is now a clear difference in the frame guard classes. One is for generators and
+    one is for functions, allowing to implement their different exception behavior there.
+
+- The optimization registries for calls, subscripts, slices, and attributes have been
+  replaced with attaching them to nodes.
+
+  * The ensuing circular dependency has been resolved by more local imports for created
+    nodes.
+
+  * The package "nuitka.transform.optimization.registries" is no more.
+
+  * New per node methods "computeNodeCall", "computeNodeSubscript", etc. dispatch the
+    optimization process to the nodes directly.
+
+- The variable closure taking has been cleaned up.
+
+  * Stages are now properly numbered.
+
+  * Python3 only stage is not executed for Python2 anymore.
+
+  * Added comments explaining things a bit better.
+
+- The special code generation used for unpacking from iterators and catching
+  "StopIteration" was cleaned up.
+
+  * Now uses template, Generator functions, and proper identifiers.
+
+- Checks for Python version was sometimes "> 300", where of course ">= 300" is the only
+  thing that makes sense.
+
+
+New Tests
+---------
+
+- The complete CPython3.2 test suite was adapted (no ``__code__``, no ``__closure__``,
+  etc.) and is now passing, but only without "--debug", because otherwise some of the
+  generated C++ triggers (harmless) warnings.
+
+- Added new basic CPython3.2 test "Functions32" and "ParameterErrors32" to cover keyword
+  only parameter handling.
+
+- Added tests to cover generator object and exception interactions.
+
+Organizational
+--------------
+
+- Changed my email from GMX over to Gmail, the old one will still continue to
+  work. Updated the copyright notices accordingly.
+
+- Uploaded `Nuitka to PyPI <http://pypi.python.org/pypi/Nuitka/>`_ as well.
+
+Summary
+-------
+
+This release is not yet finished.
+
 Nuitka Release 0.3.25
 =====================
 
