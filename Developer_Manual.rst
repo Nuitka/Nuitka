@@ -24,13 +24,12 @@ private conversations or discussions on the mailing list.
 Milestones
 ==========
 
-1. Feature parity with Python, understand all the language construct and behave absolutely
-   compatible.
+1. Feature parity with CPython, understand all the language construct and behave
+   absolutely compatible.
 
-   Feature parity has been reached for Python 2.6 and 2.7, we do not target any older
-   CPython release. For Python 3.2, things are still not complete. The Python 3.x is not
-   currently a high priority, but eventually we will get Nuitka going there too, and some
-   of the basic tests already pass. You are more than welcome to volunteer for this task.
+   Feature parity has been reached for CPython 2.6 and 2.7. We do not target any older
+   CPython release. For CPython 3.2 it also has been reached. We do not target older
+   CPython 3.1 and 3.0 releases.
 
    This milestone is considered reached.
 
@@ -86,7 +85,7 @@ express which of these, we consider done.
 - Final:
 
   We will then round it up and call it "Nuitka 1.0" when this works as expected for a
-  bunch of people. The plan is to reach this goal during 2012. This is based on lots of
+  bunch of people. The plan is to reach this goal during 2014. This is based on lots of
   assumptions that may not hold up though.
 
 Of course, this may be subject to change.
@@ -125,8 +124,8 @@ and it's optimized for readability, and avoids all performance optimizations for
 Line Length
 -----------
 
-No more than 120 characters. Screens are wider these days, but most of the rules aim at
-keeping the lines below 90.
+No more than 120 characters. Screens are wider these days, but most of the code aims at
+keeping the lines below 100.
 
 
 Indentation
@@ -1242,6 +1241,79 @@ With this the branch that the "short-circuit" expresses, becomes obvious, at the
 of having the assignment expression to the temporary variable, that one needs to create
 anyway.
 
+Complex Calls
+-------------
+
+The call operator in Python allows to provide arguments in 4 forms.
+
+* Positional (or normal) arguments
+
+* Named (or keyword) arguments
+
+* Star list arguments
+
+* Star dictionary arguments
+
+The evaluation order is precisely this. An example would be:
+
+.. code-block:: python
+
+   something( pos1, pos2, name1 = named1, name2 = named2, *star_list, **star_dict )
+
+The task here is that first all the arguments are evaluated, left to right, and then they
+are merged into only two, that is positional and named arguments only. for this, the star
+list argument and the star dict arguments, are merged with the positional and named
+arguments.
+
+What's peculiar, is that if both the star list and dict arguments are present, the merging
+is first done for star dict, and only after that for the star list argument. This makes a
+difference, because in case of an error, the star argument raises first.
+
+.. code-block:: python
+
+   something( *1, **2 )
+
+This raises "TypeError: something() argument after ** must be a mapping, not int" as
+opposed to a possibly more expected "TypeError: something() argument after * must be a
+sequence, not int."
+
+That doesn't matter much though, because the value is to be evaluated first anyway, and
+the check is only performed afterwards. If the star list argument calculation gives an
+error, this one is raised before checking the star dict argument.
+
+So, what we do, is we convert complex calls by the way of special functions, which handle
+the dirty work for us. The optimization is then tasked to do the difficult stuff. Our
+example becomes this:
+
+.. code-block:: python
+
+   def _complex_call( called, pos, kw, star_list_arg, star_dict_arg ):
+       # Raises errors in case of duplicate arguments or tmp_star_dict not being a
+       # mapping.
+       tmp_merged_dict = merge_star_dict_arguments( called, tmp_named, mapping_check( called, tmp_star_dict ) )
+
+       # Raises an error if tmp_star_list is not a sequence.
+       tmp_pos_merged = merge_pos_arguments( called, tmp_pos, tmp_star_list )
+
+       # On the C-API level, this is what it looks like.
+       return called( *tmp_pos_merged, **tmp_merged_dict )
+
+   returned = _complex_call(
+       called        = something,
+       pos           = (pos1, pos2),
+       named         = {
+           "name1" : named1,
+           "name2" = named2
+       },
+       star_list_arg = star_list,
+       star_list_arg = star_dict
+   )
+
+
+The call to "_complex_call" is be a direct function call with no parameter parsing
+overhead. And the call in its end, is a special call operation, which relates to the
+"PyObject_Call" C-API.
+
 
 Nodes that serve special purposes
 =================================
@@ -2220,12 +2292,11 @@ into action, which could be code changes, plan changes, issues created, etc.
   same for conditional expressions too. May apply to ``or`` as well, and ``and``, because
   there also only conditionally code is executed.
 
-* Make "MAKE_CLASS" meta class selection transparent.
+* Make "SELECT_METACLASS" meta class selection transparent.
 
-  Looking at the "MAKE_CLASS" helper, one of the main tasks is to select the meta class,
-  which could also be done external to it, and as nodes. In that way, the optimization
-  process can remove choices at compile time, and e.g. inline the effect of a meta class,
-  if it is known.
+  Looking at the "SELECT_METACLASS" it should become an anonymous helper function. In that
+  way, the optimization process can remove choices at compile time, and e.g. inline the
+  effect of a meta class, if it is known.
 
   This of course makes most sense, if we have the optimizations in place that will allow
   this to actually happen.
@@ -2271,26 +2342,6 @@ into action, which could be code changes, plan changes, issues created, etc.
 
   Lambdas have defaults too, so it's not always a statement, but has to happen inside an
   expression.
-
-* For the defaults attribute, if all are constants that are not mutable, a constant should be used.
-
-  Currently we have code like this:
-
-  .. code-block:: python
-
-      PyObject *result = Nuitka_Function_New(
-        _fparse_function_1___init___of_class_1_Record_of_module___main__,
-        _mparse_function_1___init___of_class_1_Record_of_module___main__,
-        _python_str_plain___init__,
-        _codeobj_4396e68e0f2485e4f509e7f4e3338b92,
-        MAKE_TUPLE5( Py_None, _python_int_0, _python_int_0, _python_int_0, _python_int_0 ),
-        _module___main__,
-        Py_None
-      );
-
-
-  The call to "MAKE_TUPLE" is useless and could be optimized away. Minor space savings
-  would result.
 
 * Terminal assignments without effect removal.
 
@@ -2537,7 +2588,6 @@ into action, which could be code changes, plan changes, issues created, etc.
   could do so with the shelve module. We would have to implement "__deepcopy__" and then
   could store in there optimized node structures from start values after parsing.
 
-
 * Tail recursion optimization.
 
   Functions that return the results of calls, can be optimized. The Stackless Python does
@@ -2553,7 +2603,7 @@ into action, which could be code changes, plan changes, issues created, etc.
 
 .. footer::
 
-   © Kay Hayen, 2012 | Page ###Page### of ###Total### | Section ###Section###
+   © Kay Hayen, 2013 | Page ###Page### of ###Total### | Section ###Section###
 
 .. raw:: pdf
 
