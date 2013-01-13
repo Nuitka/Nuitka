@@ -85,7 +85,8 @@ class FinalizeMarkups( FinalizationVisitorBase ):
                 last_search = search
                 search = search.getParent()
 
-                if Utils.python_version >= 300 and search.isStatementTryFinally() and last_search == search.getBlockTry():
+                if Utils.python_version >= 300 and search.isStatementTryFinally() and \
+                     last_search == search.getBlockTry():
                     node.markAsExceptionPreserving()
                     break
 

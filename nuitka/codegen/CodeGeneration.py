@@ -1445,7 +1445,9 @@ def generateTryExceptCode( statement, context ):
                                 if catched_type.getExceptionName() == "StopIteration":
                                     if handlers[0].getExceptionBranch().isStatementAbortative():
 
-                                        temp_identifier = Generator.getTryNextExceptStopIterationIdentifier( context = context )
+                                        temp_identifier = Generator.getTryNextExceptStopIterationIdentifier(
+                                            context = context
+                                        )
 
                                         assign_code = generateAssignmentVariableCode(
                                             variable_ref = tried_statement.getTargetVariableRef(),

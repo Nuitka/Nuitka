@@ -99,7 +99,8 @@ def compareConstants( a, b ):
 def isConstant( constant ):
     constant_type = type( constant )
 
-    if constant_type in ( str, tuple, dict, list, unicode, complex, int, long, bool, float, NoneType, range, bytes, set ):
+    if constant_type in ( str, tuple, dict, list, unicode, complex, int, long, bool, float, \
+                          NoneType, range, bytes, set ):
         return True
     elif constant in ( Ellipsis, NoneType ):
         return True
