@@ -18,8 +18,6 @@
 """ Optimizations of builtins to builtin calls.
 
 """
-from nuitka.nodes.NodeMakingHelpers import makeRaiseExceptionReplacementExpressionFromInstance
-
 from nuitka.nodes.CallNode import CPythonExpressionCall
 
 from nuitka.nodes.ParameterSpec import ParameterSpec, TooManyArguments, matchCall
@@ -300,6 +298,8 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class, empty_special_class =
             pairs         = pairs
         )
     except TooManyArguments as e:
+        from nuitka.nodes.NodeMakingHelpers import makeRaiseExceptionReplacementExpressionFromInstance
+
         return CPythonExpressionCall(
             called          = makeRaiseExceptionReplacementExpressionFromInstance(
                 expression     = node,

@@ -22,7 +22,6 @@
 
 from .NodeBases import CPythonExpressionChildrenHavingBase, CPythonSideEffectsFromChildrenMixin
 
-from .NodeMakingHelpers import getComputationResult, makeConstantReplacementNode
 
 class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
                                          CPythonExpressionChildrenHavingBase ):
@@ -64,6 +63,8 @@ class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
         else:
             simulator = self.getSimulator()
             assert simulator is not None
+
+            from .NodeMakingHelpers import getComputationResult
 
             # The simulator is in fact callable if not None, pylint: disable=E1102
             return getComputationResult(
@@ -201,6 +202,8 @@ class CPythonExpressionMakeDict( CPythonSideEffectsFromChildrenMixin, \
 
         for pair in pairs:
             constant_value[ pair.getKey().getConstant() ] = pair.getValue().getConstant()
+
+        from .NodeMakingHelpers import makeConstantReplacementNode
 
         new_node = makeConstantReplacementNode(
             constant = constant_value,

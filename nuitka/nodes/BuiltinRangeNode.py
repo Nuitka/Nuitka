@@ -28,11 +28,6 @@ from .NodeBases import (
     CPythonExpressionBuiltinNoArgBase
 )
 
-from .NodeMakingHelpers import (
-    makeConstantReplacementNode,
-    getComputationResult
-)
-
 from nuitka.transform.optimizations import BuiltinOptimization
 
 from nuitka.Utils import python_version
@@ -110,6 +105,8 @@ class CPythonExpressionBuiltinRange1( CPythonExpressionBuiltinRangeBase ):
         if not BuiltinOptimization.builtin_range_spec.isCompileTimeComputable( given_values ):
             return self, None, None
 
+        from .NodeMakingHelpers import getComputationResult
+
         return getComputationResult(
             node        = self,
             computation = lambda : BuiltinOptimization.builtin_range_spec.simulateCall( given_values ),
@@ -135,6 +132,8 @@ class CPythonExpressionBuiltinRange1( CPythonExpressionBuiltinRangeBase ):
 
         if element_index > length:
             return None
+
+        from .NodeMakingHelpers import makeConstantReplacementNode
 
         # TODO: Make sure to cast element_index to what CPython will give, for now a
         # downcast will do.
@@ -172,6 +171,8 @@ class CPythonExpressionBuiltinRange2( CPythonExpressionBuiltinRangeBase ):
 
         if not self.builtin_spec.isCompileTimeComputable( given_values ):
             return self, None, None
+
+        from .NodeMakingHelpers import getComputationResult
 
         return getComputationResult(
             node        = self,
@@ -226,6 +227,8 @@ class CPythonExpressionBuiltinRange2( CPythonExpressionBuiltinRangeBase ):
         if result >= high:
             return None
         else:
+            from .NodeMakingHelpers import makeConstantReplacementNode
+
             return makeConstantReplacementNode(
                 constant = result,
                 node     = self
@@ -262,6 +265,8 @@ class CPythonExpressionBuiltinRange3( CPythonExpressionBuiltinRangeBase ):
 
         if not self.builtin_spec.isCompileTimeComputable( given_values ):
             return self, None, None
+
+        from .NodeMakingHelpers import getComputationResult
 
         return getComputationResult(
             node        = self,
@@ -341,6 +346,8 @@ class CPythonExpressionBuiltinRange3( CPythonExpressionBuiltinRangeBase ):
         if result >= high:
             return None
         else:
+            from .NodeMakingHelpers import makeConstantReplacementNode
+
             return makeConstantReplacementNode(
                 constant = result,
                 node     = self

@@ -18,11 +18,12 @@
 """ Attribute node
 
 Knowing attributes of an object is very important, esp. when it comes to 'self' and
-objects and classes. There will be a registry to aid predicting them.
+objects and classes.
+
+There will be a method "computeNodeAttribute" to aid predicting them.
 """
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
-from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
 
 class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
@@ -69,7 +70,7 @@ class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
         )
 
     def isKnownToBeIterable( self, count ):
-        # TODO: Should ask AttributeRegistry
+        # TODO: Could be known.
         return None
 
 
@@ -78,7 +79,7 @@ class CPythonExpressionSpecialAttributeLookup( CPythonExpressionAttributeLookup 
 
     # TODO: Special lookups should be treated somehow different.
     def computeNode( self, constraint_collection ):
-        # There is a whole registry dedicated to this.
+        # TODO: Special lookups may reuse "computeNodeAttribute"
         return self, None, None
 
 
@@ -128,6 +129,8 @@ class CPythonExpressionBuiltinGetattr( CPythonExpressionChildrenHavingBase ):
                         attribute_name = attribute_name,
                         source_ref     = self.source_ref
                     )
+
+                    from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
                     result = wrapExpressionWithSideEffects(
                         new_node = result,

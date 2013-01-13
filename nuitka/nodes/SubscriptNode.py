@@ -20,7 +20,7 @@
 Subscripts are important when working with lists and dictionaries. Tracking them can allow
 to achieve more compact code, or predict results at compile time.
 
-This should be done via a subscript registry.
+There will be a method "computeNodeSubscript" to aid predicting them.
 """
 
 from .NodeBases import CPythonExpressionChildrenHavingBase

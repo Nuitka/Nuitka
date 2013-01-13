@@ -23,8 +23,6 @@ difference.
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
 
-from .NodeMakingHelpers import getComputationResult
-
 from nuitka import PythonOperators
 
 import math
@@ -104,6 +102,8 @@ class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
                             if math.log10( abs( left_value ) ) + math.log10( abs( right_value ) ) > 20:
                                 return self, None, None
 
+            from .NodeMakingHelpers import getComputationResult
+
             return getComputationResult(
                 node        = self,
                 computation = lambda : self.getSimulator()(
@@ -146,6 +146,9 @@ class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
 
         if operand.isCompileTimeConstant():
             operand_value = operand.getCompileTimeConstant()
+
+            from .NodeMakingHelpers import getComputationResult
+
             return getComputationResult(
                 node        = self,
                 computation = lambda : self.getSimulator()(

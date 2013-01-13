@@ -31,8 +31,6 @@ from .NodeBases import (
 
 from .ValueFriends import ValueFriendBase
 
-from .NodeMakingHelpers import makeConstantReplacementNode, wrapExpressionWithSideEffects
-
 from .SideEffectNode import CPythonExpressionSideEffects
 
 from nuitka.transform.optimizations import BuiltinOptimization
@@ -49,6 +47,8 @@ class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
         return self.getValue().getIterationLength( constraint_collection )
 
     def computeNode( self, constraint_collection ):
+        from .NodeMakingHelpers import makeConstantReplacementNode, wrapExpressionWithSideEffects
+
         new_node, change_tags, change_desc = CPythonExpressionBuiltinSingleArgBase.computeNode(
             self,
             constraint_collection = constraint_collection

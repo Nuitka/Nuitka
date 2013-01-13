@@ -26,10 +26,6 @@ from nuitka import Variables, Builtins, Options
 
 from .NodeBases import CPythonChildrenHaving, CPythonNodeBase, CPythonExpressionMixin
 
-from .BuiltinReferenceNodes import (
-    CPythonExpressionBuiltinExceptionRef,
-    CPythonExpressionBuiltinRef
-)
 
 from .ConstantRefNode import CPythonExpressionConstantRef
 
@@ -87,6 +83,8 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
 
         if _isReadOnlyModuleVariable( self.variable ):
             if self.variable_name in Builtins.builtin_exception_names:
+                from .BuiltinReferenceNodes import CPythonExpressionBuiltinExceptionRef
+
                 new_node = CPythonExpressionBuiltinExceptionRef(
                     exception_name = self.variable_name,
                     source_ref     = self.getSourceReference()
@@ -96,6 +94,8 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
                 change_tags = "new_builtin"
                 change_desc = "Module variable '%s' found to be builtin exception reference." % self.variable_name
             elif self.variable_name in Builtins.builtin_names:
+                from .BuiltinReferenceNodes import CPythonExpressionBuiltinRef
+
                 new_node = CPythonExpressionBuiltinRef(
                     builtin_name = self.variable_name,
                     source_ref   = self.getSourceReference()

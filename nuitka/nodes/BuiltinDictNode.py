@@ -24,9 +24,8 @@ from .NodeBases import CPythonExpressionChildrenHavingBase
 from .ConstantRefNode import CPythonExpressionConstantRef
 from .ContainerMakingNodes import CPythonExpressionKeyValuePair
 
-from .NodeMakingHelpers import getComputationResult
-
 from nuitka.transform.optimizations.BuiltinOptimization import builtin_dict_spec
+
 
 class CPythonExpressionBuiltinDict( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_DICT"
@@ -79,6 +78,8 @@ class CPythonExpressionBuiltinDict( CPythonExpressionChildrenHavingBase ):
                 pos_args = ( pos_arg, )
             else:
                 pos_args = None
+
+            from .NodeMakingHelpers import getComputationResult
 
             return getComputationResult(
                 node         = self,

@@ -20,7 +20,7 @@
 Slices are important when working with lists. Tracking them can allow to achieve more
 compact code, or predict results at compile time.
 
-This should be done via a slice registry.
+There will be a method "computeNodeSlice" to aid predicting them.
 """
 
 from .NodeBases import CPythonExpressionChildrenHavingBase

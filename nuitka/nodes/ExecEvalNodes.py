@@ -30,8 +30,6 @@ from .NodeBases import (
     CPythonClosureGiverNodeBase
 )
 
-from .NodeMakingHelpers import convertNoneConstantToNone
-
 from nuitka import Variables, Utils
 
 class CPythonExpressionBuiltinEval( CPythonExpressionChildrenHavingBase ):
@@ -113,6 +111,8 @@ class CPythonStatementExec( CPythonChildrenHaving, CPythonNodeBase ):
 
     def setChild( self, name, value ):
         if name in ( "globals", "locals" ):
+            from .NodeMakingHelpers import convertNoneConstantToNone
+
             value = convertNoneConstantToNone( value )
 
         return CPythonChildrenHaving.setChild( self, name, value )
@@ -137,6 +137,7 @@ class CPythonStatementExecInline( CPythonChildrenHaving, CPythonClosureTaker, CP
 
     def __init__( self, provider, source_ref ):
         CPythonClosureTaker.__init__( self, provider )
+
         CPythonClosureGiverNodeBase.__init__(
             self,
             name        = "exec_inline",

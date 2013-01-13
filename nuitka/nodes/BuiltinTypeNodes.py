@@ -28,11 +28,6 @@ from .NodeBases import (
     CPythonNodeBase
 )
 
-from .NodeMakingHelpers import (
-    makeConstantReplacementNode,
-    wrapExpressionWithSideEffects
-)
-
 from nuitka.transform.optimizations import BuiltinOptimization
 
 from nuitka.Utils import python_version
@@ -72,6 +67,8 @@ class CPythonExpressionBuiltinIntLongBase( CPythonChildrenHaving, CPythonNodeBas
     named_children = ( "value", "base" )
 
     def __init__( self, value, base, source_ref ):
+        from .NodeMakingHelpers import makeConstantReplacementNode
+
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         if value is None:
@@ -164,6 +161,8 @@ if python_version < 300:
                 str_value = self.getValue().getStrValue( constraint_collection )
 
                 if str_value is not None:
+                    from .NodeMakingHelpers import wrapExpressionWithSideEffects
+
                     new_node = wrapExpressionWithSideEffects(
                         new_node = str_value,
                         old_node = self.getValue()

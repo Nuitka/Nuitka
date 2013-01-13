@@ -17,11 +17,8 @@
 #
 """ Optimize calls to builtins reference builtin nodes.
 
-This works via the call registry. For builtin name references, we check if it's one of the
-supported builtin types.
+For builtin name references, we check if it's one of the supported builtin types.
 """
-
-from .registry import CallRegistry
 
 from nuitka.Utils import python_version
 
@@ -63,10 +60,6 @@ from nuitka.nodes.GlobalsLocalsNodes import (
     CPythonExpressionBuiltinDir0,
     CPythonExpressionBuiltinDir1
 )
-from nuitka.nodes.BuiltinReferenceNodes import (
-    CPythonExpressionBuiltinExceptionRef,
-    CPythonExpressionBuiltinRef
-)
 from nuitka.nodes.OperatorNodes import CPythonExpressionOperationUnary
 from nuitka.nodes.ConstantRefNode import CPythonExpressionConstantRef
 from nuitka.nodes.BuiltinDictNode import CPythonExpressionBuiltinDict
@@ -93,11 +86,6 @@ from nuitka.nodes.AttributeNodes import (
     CPythonExpressionBuiltinSetattr,
     CPythonExpressionBuiltinHasattr
 )
-from nuitka.nodes.NodeMakingHelpers import (
-    makeRaiseExceptionReplacementExpressionFromInstance,
-    makeRaiseExceptionReplacementExpression
-)
-
 
 from nuitka.transform.optimizations import BuiltinOptimization
 
@@ -190,6 +178,8 @@ def dict_extractor( node ):
 
     def wrapExpressionBuiltinDictCreation( positional_args, dict_star_arg, source_ref ):
         if len( positional_args ) > 1:
+            from nuitka.nodes.NodeMakingHelpers import makeRaiseExceptionReplacementExpressionFromInstance
+
             return CPythonExpressionCall(
                 called          = makeRaiseExceptionReplacementExpressionFromInstance(
                     expression     = node,
@@ -480,6 +470,8 @@ def super_extractor( node ):
                 )
             )
 
+            from nuitka.nodes.NodeMakingHelpers import makeRaiseExceptionReplacementExpression
+
             if not type.getVariable().isClosureReference():
                 return makeRaiseExceptionReplacementExpression(
                     expression      = node,
@@ -630,42 +622,3 @@ def computeBuiltinCall( call_node, called ):
     else:
         # TODO: Consider giving warnings, whitelisted potentially
         return call_node, None, None
-
-from nuitka.nodes.ExceptionNodes import CPythonExpressionBuiltinMakeException
-
-def computeBuiltinExceptionCall( call_node, called ):
-    exception_name = called.getExceptionName()
-
-    def createBuiltinMakeException( args, source_ref ):
-        return CPythonExpressionBuiltinMakeException(
-            exception_name = exception_name,
-            args           = args,
-            source_ref     = source_ref
-        )
-
-    new_node = BuiltinOptimization.extractBuiltinArgs(
-        node          = call_node,
-        builtin_class = createBuiltinMakeException,
-        builtin_spec  = BuiltinOptimization.BuiltinParameterSpecExceptions(
-            name          = exception_name,
-            default_count = 0
-        )
-    )
-
-    # TODO: Don't allow this to happen.
-    if new_node is None:
-        return call_node, None, None
-
-    return new_node, "new_expression", "detected builtin exception making"
-
-
-def register():
-    CallRegistry.registerCallHandler(
-        kind    = CPythonExpressionBuiltinRef.kind,
-        handler = computeBuiltinCall
-    )
-
-    CallRegistry.registerCallHandler(
-        kind    = CPythonExpressionBuiltinExceptionRef.kind,
-        handler = computeBuiltinExceptionCall
-    )

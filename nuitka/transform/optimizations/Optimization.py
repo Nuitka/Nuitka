@@ -28,12 +28,6 @@ from .OptimizeVariableClosure import VariableClosureLookupVisitors
 from .OptimizeRaises import OptimizeRaisesVisitor
 from .OptimizeValuePropagation import ValuePropagationVisitor
 
-# Populate call registry.
-from . import OptimizeBuiltinCalls
-OptimizeBuiltinCalls.register()
-from . import OptimizeFunctionCalls
-OptimizeFunctionCalls.register()
-
 from .Tags import TagSet
 
 from nuitka import Options, TreeBuilding

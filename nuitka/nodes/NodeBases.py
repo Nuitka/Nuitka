@@ -891,6 +891,12 @@ class CPythonExpressionMixin:
 
         return lookup_node, None, None
 
+    def computeNodeCall( self, call_node, constraint_collection ):
+        constraint_collection.removeKnowledge( call_node )
+
+        return call_node, None, None
+
+
 class CompileTimeConstantExpressionMixin( CPythonExpressionMixin ):
     def isCompileTimeConstant( self ):
         """ Has a value that we can use at compile time.

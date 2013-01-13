@@ -29,6 +29,9 @@ from .NodeBases import CPythonNodeBase, CompileTimeConstantExpressionMixin
 
 from .ConstantRefNode import CPythonExpressionConstantRef
 
+from nuitka.transform.optimizations import BuiltinOptimization
+from nuitka.transform.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
+
 from nuitka.Builtins import (
     builtin_exception_names,
     builtin_exception_values,
@@ -97,6 +100,13 @@ class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
             return new_node, "new_constant", "Builtin constant %s resolved" % self.builtin_name
 
         return self, None, None
+
+    def computeNodeCall( self, call_node, constraint_collection ):
+
+        return computeBuiltinCall(
+            call_node = call_node,
+            called    = self
+        )
 
     def getStringValue( self, constraint_collection ):
         return repr( self.getCompileTimeConstant() )
@@ -174,3 +184,30 @@ class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
 
     def computeNode( self, constraint_collection ):
         return self, None, None
+
+    def computeNodeCall( self, call_node, constraint_collection ):
+        exception_name = self.getExceptionName()
+
+        def createBuiltinMakeException( args, source_ref ):
+            from nuitka.nodes.ExceptionNodes import CPythonExpressionBuiltinMakeException
+
+            return CPythonExpressionBuiltinMakeException(
+                exception_name = exception_name,
+                args           = args,
+                source_ref     = source_ref
+            )
+
+        new_node = BuiltinOptimization.extractBuiltinArgs(
+            node          = call_node,
+            builtin_class = createBuiltinMakeException,
+            builtin_spec  = BuiltinOptimization.BuiltinParameterSpecExceptions(
+                name          = exception_name,
+                default_count = 0
+            )
+        )
+
+        # TODO: Don't allow this to happen.
+        if new_node is None:
+            return call_node, None, None
+
+        return new_node, "new_expression", "detected builtin exception making"

@@ -29,8 +29,6 @@ from .NodeBases import (
     CPythonExpressionChildrenHavingBase
 )
 
-from . import BuiltinReferenceNodes
-
 from nuitka.Builtins import builtin_names
 
 
@@ -44,6 +42,8 @@ class CPythonExpressionBuiltinType1( CPythonExpressionBuiltinSingleArgBase ):
             value = value.getCompileTimeConstant()
 
             type_name = value.__class__.__name__
+
+            from . import BuiltinReferenceNodes
 
             if type_name in builtin_names:
                 new_node = BuiltinReferenceNodes.CPythonExpressionBuiltinRef(

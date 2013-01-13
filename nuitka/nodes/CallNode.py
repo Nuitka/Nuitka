@@ -21,12 +21,10 @@ Function calls and generally calling expressions are the same thing. This is ver
 important, because it allows to predict most things, and avoid expensive operations like
 parameter parsing at run time.
 
-The call can be computed with a call registry.
+There will be a method "computeNodeCall" to aid predicting them.
 """
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
-
-from nuitka.transform.optimizations.registry import CallRegistry
 
 from .ConstantRefNode import CPythonExpressionConstantRef
 
@@ -136,8 +134,12 @@ class CPythonExpressionCall( CPythonExpressionChildrenHavingBase ):
                     # TODO: Need to cleanup the named argument mess before it is possible.
                     pass
 
-        # There is a whole registry dedicated to this.
-        return CallRegistry.computeCall( self, constraint_collection )
+        called = self.getCalled()
+
+        return called.computeNodeCall(
+            call_node             = self,
+            constraint_collection = constraint_collection
+        )
 
     def isKnownToBeIterable( self, count ):
         # Virtual method and unpredicted calls are unknown if they can be iterated at all,
