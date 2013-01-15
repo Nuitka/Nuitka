@@ -164,3 +164,37 @@ try:
     functionWithDefaults( 1 )
 except TypeError, e:
     print repr(e)
+
+print "Complex call with invalid star list and star arguments:"
+
+try:
+    a = 1
+    b = 2.0
+
+    functionWithDefaults(1,c=3,*a,**b)
+except TypeError, e:
+    print repr(e)
+
+try:
+    a = 1
+    b = 2.0
+
+    functionWithDefaults(1,*a,**b)
+except TypeError, e:
+    print repr(e)
+
+try:
+    a = 1
+    b = 2.0
+
+    functionWithDefaults(c=1, *a,**b)
+except TypeError, e:
+    print repr(e)
+
+try:
+    a = 1
+    b = 2.0
+
+    functionWithDefaults(*a,**b)
+except TypeError, e:
+    print repr(e)

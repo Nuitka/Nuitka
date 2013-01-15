@@ -489,6 +489,21 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_STAR_LIST( EVAL_ORDERE
 
 NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_POSARGS_STAR_LIST_STAR_DICT( EVAL_ORDERED_4( PyObject *function_object, PyObject *positional_args, PyObject *list_star_arg, PyObject *dict_star_arg ) )
 {
+    if (unlikely( PyMapping_Check( dict_star_arg ) == 0 ))
+    {
+        PyErr_Format( PyExc_TypeError, "%s%s argument after ** must be a mapping, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), Py_TYPE( dict_star_arg )->tp_name );
+        throw _PythonException();
+    }
+
+    PyObjectTemporary result( PyDict_New() );
+
+    MERGE_STAR_DICT_ARGS(
+        function_object,
+        _python_dict_empty,
+        dict_star_arg,
+        result.asObject()
+    );
+
     return CALL_FUNCTION_WITH_POSARGS_STAR_DICT(
         function_object,
         PyObjectTemporary(
@@ -506,7 +521,22 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_POSARGS_STAR_LIST_STAR
 
 NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_POSARGS_KEYARGS_STAR_LIST_STAR_DICT( EVAL_ORDERED_5( PyObject *function_object, PyObject *positional_args, PyObject *named_args, PyObject *list_star_arg, PyObject *dict_star_arg ) )
 {
-    return CALL_FUNCTION_WITH_POSARGS_KEYARGS_STAR_DICT(
+    if (unlikely( PyMapping_Check( dict_star_arg ) == 0 ))
+    {
+        PyErr_Format( PyExc_TypeError, "%s%s argument after ** must be a mapping, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), Py_TYPE( dict_star_arg )->tp_name );
+        throw _PythonException();
+    }
+
+    PyObjectTemporary result( PyDict_Copy( named_args ) );
+
+    MERGE_STAR_DICT_ARGS(
+        function_object,
+        named_args,
+        dict_star_arg,
+        result.asObject()
+    );
+
+    return CALL_FUNCTION(
         function_object,
         PyObjectTemporary(
             MERGE_STAR_LIST_ARGS(
@@ -515,8 +545,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_POSARGS_KEYARGS_STAR_L
                 function_object
             )
         ).asObject(),
-        named_args,
-        dict_star_arg
+        result.asObject()
      );
 }
 
@@ -524,6 +553,21 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_POSARGS_KEYARGS_STAR_L
 
 NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_STAR_LIST_STAR_DICT( EVAL_ORDERED_3( PyObject *function_object, PyObject *list_star_arg, PyObject *dict_star_arg ) )
 {
+    if (unlikely( PyMapping_Check( dict_star_arg ) == 0 ))
+    {
+        PyErr_Format( PyExc_TypeError, "%s%s argument after ** must be a mapping, not %s", GET_CALLABLE_NAME( function_object ), GET_CALLABLE_DESC( function_object ), Py_TYPE( dict_star_arg )->tp_name );
+        throw _PythonException();
+    }
+
+    PyObjectTemporary result( PyDict_New() );
+
+    MERGE_STAR_DICT_ARGS(
+        function_object,
+        _python_dict_empty,
+        dict_star_arg,
+        result.asObject()
+    );
+
     if (unlikely( PyTuple_Check( list_star_arg ) == 0 ))
     {
         PyObject *list_star_arg_tuple = PySequence_Tuple( list_star_arg );
@@ -538,18 +582,18 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_STAR_LIST_STAR_DICT( E
             throw _PythonException();
         }
 
-        return CALL_FUNCTION_WITH_POSARGS_STAR_DICT(
+        return CALL_FUNCTION(
             function_object,
             PyObjectTemporary( list_star_arg_tuple ).asObject(),
-            dict_star_arg
+            result.asObject()
         );
     }
     else
     {
-        return CALL_FUNCTION_WITH_POSARGS_STAR_DICT(
+        return CALL_FUNCTION(
             function_object,
             list_star_arg,
-            dict_star_arg
+            result.asObject()
         );
     }
 }
