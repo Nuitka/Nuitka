@@ -56,6 +56,8 @@ New Optimizations
 
 - Optimizing ``getattr`` with string argument and no default to simple attribute access.
 
+- Added support for optimizing ``isinstance`` built-in.
+
 - Optimizing attribute access to compile time constants for the first time. The old
   registry had no actual user yet.
 
