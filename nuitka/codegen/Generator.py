@@ -495,6 +495,12 @@ def getAttributeCheckCode( attribute, source ):
         0
     )
 
+def getAttributeCheckBoolCode( attribute, source ):
+    return "HAS_ATTRIBUTE( %s, %s )" % (
+        source.getCodeTemporaryRef(),
+        attribute.getCodeTemporaryRef()
+    )
+
 def getAttributeGetCode( attribute, source, default ):
     return Identifier(
         "BUILTIN_GETATTR( %s, %s, %s)" % (

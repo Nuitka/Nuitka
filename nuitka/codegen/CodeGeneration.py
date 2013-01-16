@@ -106,6 +106,7 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
 
         if inverted:
             value = not value
+            inverted = False
 
         if value:
             result = Generator.getTrueExpressionCode()
@@ -121,6 +122,8 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
             result = Generator.getConditionNotBoolCode(
                 condition = result
             )
+
+            inverted = False
     elif condition.isExpressionOperationNOT():
         if not inverted:
             result = Generator.getConditionNotBoolCode(
@@ -129,6 +132,8 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
                     context   = context
                 )
             )
+
+            inverted = False
         else:
             result = generateConditionCode(
                 condition = condition.getOperand(),
@@ -186,20 +191,38 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
                     context   = context
                 )
             )
+    elif condition.isExpressionBuiltinHasattr():
+        result = Generator.getAttributeCheckBoolCode(
+            attribute = generateExpressionCode(
+                expression = condition.getAttribute(),
+                context    = context
+            ),
+            source    = generateExpressionCode(
+                expression = condition.getLookupSource(),
+                context    = context
+            )
+        )
     else:
         condition_identifier = generateExpressionCode(
-            context    = context,
-            expression = condition
+            expression = condition,
+            context    = context
         )
 
         if inverted:
             result = Generator.getConditionCheckFalseCode(
                 condition = condition_identifier
             )
+
+            inverted = False
         else:
             result = Generator.getConditionCheckTrueCode(
                 condition = condition_identifier
             )
+
+    if inverted:
+        result = Generator.getConditionNotBoolCode(
+            condition = result
+        )
 
     assert type( result ) is str, result
 
