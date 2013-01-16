@@ -30,6 +30,9 @@ from nuitka.Constants import (
     isMutable,
 )
 
+from nuitka.__past__ import iterItems
+
+
 class CPythonExpressionConstantRef( CPythonNodeBase, CompileTimeConstantExpressionMixin ):
     kind = "EXPRESSION_CONSTANT_REF"
 
@@ -53,8 +56,29 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CompileTimeConstantExpressi
         return repr( self.constant )
 
     def computeNode( self, constraint_collection ):
-        # Cannot compute any further.
+        # Cannot compute any further, this is already the best.
         return self, None, None
+
+    def computeNodeCall( self, call_node, constraint_collection ):
+        # We can't handle complex these yet. TODO: In principle, checks on the star
+        # arguments were made side effects, it would be possible, but that's too
+        # complex for now.
+        if call_node.getStarListArg() is not None or call_node.getStarDictArg() is not None:
+            return call_node, None, None
+
+        from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression, wrapExpressionWithSideEffects
+
+        new_node = wrapExpressionWithSideEffects(
+            new_node = makeRaiseExceptionReplacementExpression(
+                expression      = self,
+                exception_type  = "TypeError",
+                exception_value = "'%s' object is not callable" % type( self.constant ).__name__
+            ),
+            old_node = call_node,
+            side_effects = call_node.extractPreCallSideEffects()
+        )
+
+        return new_node, "new_raise", "Predicted call of constant value to exception raise."
 
     def getCompileTimeConstant( self ):
         return self.constant
@@ -94,6 +118,72 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CompileTimeConstantExpressi
         assert count < len( self.constant )
 
         return CPythonExpressionConstantRef( self.constant[ count ], self.source_ref )
+
+    def getIterationValues( self, constraint_collection ):
+        source_ref = self.getSourceReference()
+
+        return tuple(
+            CPythonExpressionConstantRef(
+                constant   = value,
+                source_ref = source_ref
+            )
+            for value in
+            self.constant
+        )
+
+    def isMapping( self ):
+        return type( self.constant ) is dict
+
+    def isMappingWithConstantStringKeys( self ):
+        assert self.isMapping()
+
+        for key in self.constant:
+            if type( key ) not in ( str, unicode ):
+                return False
+        else:
+            return True
+
+    def getMappingPairs( self ):
+        assert self.isMapping()
+
+        pairs = []
+
+        source_ref = self.getSourceReference()
+
+        for key, value in iterItems( self.constant ):
+            pairs.append(
+                CPythonExpressionConstantRef(
+                    constant   = key,
+                    source_ref = source_ref
+                ),
+                CPythonExpressionConstantRef(
+                    constant   = value,
+                    source_ref = source_ref
+                )
+            )
+
+        return pairs
+
+    def getMappingStringKeyPairs( self ):
+        assert self.isMapping()
+
+        pairs = []
+
+        source_ref = self.getSourceReference()
+
+        for key, value in iterItems( self.constant ):
+            pairs.append(
+                (
+                    key,
+                    CPythonExpressionConstantRef(
+                        constant   = value,
+                        source_ref = source_ref
+                    )
+                )
+            )
+
+        return pairs
+
 
     def isBoolConstant( self ):
         return type( self.constant ) is bool

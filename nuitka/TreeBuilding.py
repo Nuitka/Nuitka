@@ -66,7 +66,12 @@ from .nodes.ExceptionNodes import (
 )
 from .nodes.ComparisonNode import CPythonExpressionComparison
 from .nodes.ExecEvalNodes import CPythonStatementExec
-from .nodes.CallNode import CPythonExpressionCall
+from .nodes.CallNode import (
+    CPythonExpressionCallRaw,
+    CPythonExpressionCallNoKeywords,
+    CPythonExpressionCallEmpty,
+    CPythonExpressionCallComplex
+)
 from .nodes.TypeNode import CPythonExpressionBuiltinType1
 from .nodes.AttributeNodes import (
     CPythonExpressionSpecialAttributeLookup,
@@ -84,7 +89,6 @@ from .nodes.FunctionNodes import (
     CPythonExpressionFunctionCall,
 )
 from .nodes.ClassNodes import CPythonExpressionSelectMetaclass
-
 from .nodes.ContainerMakingNodes import (
     CPythonExpressionKeyValuePair,
     CPythonExpressionMakeTuple,
@@ -99,7 +103,6 @@ from .nodes.ContainerOperationNodes import (
     CPythonExpressionDictOperationSet,
     CPythonExpressionSetOperationAdd
 )
-
 from .nodes.StatementNodes import (
     CPythonStatementExpressionOnly,
     CPythonStatementsSequence,
@@ -156,6 +159,7 @@ from .nodes.GlobalsLocalsNodes import (
     CPythonStatementSetLocals,
     CPythonExpressionBuiltinLocals
 )
+from .nodes.NodeMakingHelpers import makeCallNode
 
 import ast, sys, re
 
@@ -292,27 +296,28 @@ def _buildClassNode3( provider, node, source_ref ):
                 variable_name = "__class__",
                 source_ref    = source_ref
             ),
-            source       = CPythonExpressionCall(
-                called = CPythonExpressionTempVariableRef(
+            source       = CPythonExpressionCallRaw(
+                called     = CPythonExpressionTempVariableRef(
                     variable   = tmp_metaclass.makeReference( result ),
                     source_ref = source_ref
                 ),
-                positional_args = (
-                    CPythonExpressionConstantRef(
-                        constant   = node.name,
-                        source_ref = source_ref
+                args       = CPythonExpressionMakeTuple(
+                    elements   = (
+                        CPythonExpressionConstantRef(
+                            constant   = node.name,
+                            source_ref = source_ref
+                        ),
+                        CPythonExpressionTempVariableRef(
+                            variable   = tmp_bases.makeReference( result ),
+                            source_ref = source_ref
+                        ),
+                        CPythonExpressionBuiltinLocals(
+                            source_ref = source_ref
+                        )
                     ),
-                    CPythonExpressionTempVariableRef(
-                        variable   = tmp_bases.makeReference( result ),
-                        source_ref = source_ref
-                    ),
-                    CPythonExpressionBuiltinLocals(
-                        source_ref = source_ref
-                    )
+                    source_ref = source_ref
                 ),
-                pairs = (),
-                list_star_arg = None,
-                dict_star_arg = CPythonExpressionTempVariableRef(
+                kw         = CPythonExpressionTempVariableRef(
                     variable   = tmp_class_decl_dict.makeReference( result ),
                     source_ref = source_ref
                 ),
@@ -356,13 +361,13 @@ def _buildClassNode3( provider, node, source_ref ):
     )
 
     for decorator in buildNodeList( provider, reversed( node.decorator_list ), source_ref ):
-        decorated_body = CPythonExpressionCall(
-            called          = decorator,
-            positional_args = ( decorated_body, ),
-            pairs           = (),
-            list_star_arg   = None,
-            dict_star_arg   = None,
-            source_ref      = decorator.getSourceReference()
+        decorated_body = CPythonExpressionCallNoKeywords(
+            called     = decorator,
+            args       = CPythonExpressionMakeTuple(
+                elements   = ( decorated_body, ),
+                source_ref = source_ref
+            ),
+            source_ref = decorator.getSourceReference()
         )
 
     statements = [
@@ -517,8 +522,8 @@ def _buildClassNode3( provider, node, source_ref ):
                     constant   = {},
                     source_ref = source_ref
                 ),
-                yes_expression = CPythonExpressionCall(
-                    called = CPythonExpressionAttributeLookup(
+                yes_expression = CPythonExpressionCallRaw(
+                    called     = CPythonExpressionAttributeLookup(
                         expression     = CPythonExpressionTempVariableRef(
                             variable   = tmp_metaclass.makeReference( result ),
                             source_ref = source_ref
@@ -526,23 +531,24 @@ def _buildClassNode3( provider, node, source_ref ):
                         attribute_name = "__prepare__",
                         source_ref     = source_ref
                     ),
-                    positional_args = (
-                        CPythonExpressionConstantRef(
-                            constant = node.name,
-                            source_ref     = source_ref
+                    args       = CPythonExpressionMakeTuple(
+                        elements   = (
+                            CPythonExpressionConstantRef(
+                                constant = node.name,
+                                source_ref     = source_ref
+                            ),
+                            CPythonExpressionTempVariableRef(
+                                variable   = tmp_bases.makeReference( result ),
+                                source_ref = source_ref
+                            )
                         ),
-                        CPythonExpressionTempVariableRef(
-                            variable   = tmp_bases.makeReference( result ),
-                            source_ref = source_ref
-                        )
+                        source_ref = source_ref
                     ),
-                    pairs = (),
-                    dict_star_arg = CPythonExpressionTempVariableRef(
+                    kw         = CPythonExpressionTempVariableRef(
                         variable   = tmp_class_decl_dict.makeReference( result ),
                         source_ref = source_ref
                     ),
-                    list_star_arg = None,
-                    source_ref     = source_ref
+                    source_ref = source_ref
                 ),
                 source_ref = source_ref
             ),
@@ -730,29 +736,29 @@ def _buildClassNode2( provider, node, source_ref ):
                 variable   = tmp_class.makeReference( result ),
                 source_ref = source_ref
             ),
-            source     = CPythonExpressionCall(
-                called = CPythonExpressionTempVariableRef(
+            source     = CPythonExpressionCallNoKeywords(
+                called         = CPythonExpressionTempVariableRef(
                     variable   = tmp_metaclass.makeReference( result ),
                     source_ref = source_ref
                 ),
-                positional_args = (
-                    CPythonExpressionConstantRef(
-                        constant = node.name,
-                        source_ref     = source_ref
+                args           = CPythonExpressionMakeTuple(
+                    elements   = (
+                        CPythonExpressionConstantRef(
+                            constant = node.name,
+                            source_ref     = source_ref
+                        ),
+                        CPythonExpressionTempVariableRef(
+                            variable   = tmp_bases.makeReference( result ),
+                            source_ref = source_ref
+                        ),
+                        CPythonExpressionTempVariableRef(
+                            variable   = tmp_class_dict.makeReference( result ),
+                            source_ref = source_ref
+                        )
                     ),
-                    CPythonExpressionTempVariableRef(
-                        variable   = tmp_bases.makeReference( result ),
-                        source_ref = source_ref
-                    ),
-                    CPythonExpressionTempVariableRef(
-                        variable   = tmp_class_dict.makeReference( result ),
-                        source_ref = source_ref
-                    )
+                    source_ref = source_ref
                 ),
-                pairs = (),
-                dict_star_arg = None,
-                list_star_arg = None,
-                source_ref     = source_ref
+                source_ref = source_ref
             ),
             source_ref = source_ref
         )
@@ -765,18 +771,18 @@ def _buildClassNode2( provider, node, source_ref ):
                     variable   = tmp_class.makeReference( result ),
                     source_ref = source_ref
                 ),
-                source       = CPythonExpressionCall(
-                    called          = decorator,
-                    positional_args = (
-                        CPythonExpressionTempVariableRef(
-                            variable   = tmp_class.makeReference( result ),
-                            source_ref = source_ref
+                source       = CPythonExpressionCallNoKeywords(
+                    called     = decorator,
+                    args       = CPythonExpressionMakeTuple(
+                        elements  = (
+                            CPythonExpressionTempVariableRef(
+                                variable   = tmp_class.makeReference( result ),
+                                source_ref = source_ref
+                            ),
                         ),
+                        source_ref = source_ref
                     ),
-                    pairs           = (),
-                    list_star_arg   = None,
-                    dict_star_arg   = None,
-                    source_ref      = decorator.getSourceReference()
+                    source_ref = decorator.getSourceReference()
                 ),
                 source_ref   = decorator.getSourceReference()
             )
@@ -1000,13 +1006,13 @@ def buildFunctionNode( provider, node, source_ref ):
     )
 
     for decorator in decorators:
-        decorated_body = CPythonExpressionCall(
-            called          = decorator,
-            positional_args = ( decorated_body, ),
-            pairs           = (),
-            list_star_arg   = None,
-            dict_star_arg   = None,
-            source_ref      = decorator.getSourceReference()
+        decorated_body = CPythonExpressionCallNoKeywords(
+            called     = decorator,
+            args       = CPythonExpressionMakeTuple(
+                elements    = ( decorated_body, ),
+                source_ref = source_ref
+            ),
+            source_ref = decorator.getSourceReference()
         )
 
     # Add the staticmethod decorator to __new__ methods if not provided.
@@ -1015,16 +1021,16 @@ def buildFunctionNode( provider, node, source_ref ):
     # them early, so our analysis will see it
     if node.name == "__new__" and not decorators and \
          provider.isExpressionFunctionBody() and provider.isClassDictCreation():
-        decorated_body = CPythonExpressionCall(
-            called          = CPythonExpressionBuiltinRef(
+        decorated_body = CPythonExpressionCallNoKeywords(
+            called     = CPythonExpressionBuiltinRef(
                 builtin_name = "staticmethod",
                 source_ref   = source_ref
             ),
-            positional_args = ( decorated_body, ),
-            pairs           = (),
-            list_star_arg   = None,
-            dict_star_arg   = None,
-            source_ref      = source_ref,
+            args       = CPythonExpressionMakeTuple(
+                elements   = ( decorated_body, ),
+                source_ref = source_ref
+            ),
+            source_ref = source_ref,
         )
 
     return CPythonStatementAssignmentVariable(
@@ -1405,14 +1411,18 @@ def buildCallNode( provider, node, source_ref ):
         node.keywords
     ]
 
-    return CPythonExpressionCall(
-        called          = buildNode( provider, node.func, source_ref ),
-        positional_args = positional_args,
-        pairs           = pairs,
-        list_star_arg   = buildNode( provider, node.starargs, source_ref, True ),
-        dict_star_arg   = buildNode( provider, node.kwargs, source_ref, True ),
-        source_ref      = source_ref,
+    list_star_arg   = buildNode( provider, node.starargs, source_ref, True )
+    dict_star_arg   = buildNode( provider, node.kwargs, source_ref, True )
+
+    return makeCallNode(
+           called          = buildNode( provider, node.func, source_ref ),
+            positional_args = positional_args,
+            pairs           = pairs,
+            list_star_arg   = list_star_arg,
+            dict_star_arg   = dict_star_arg,
+            source_ref      = source_ref,
     )
+
 
 def buildSequenceCreationNode( provider, node, source_ref ):
     elements = buildNodeList( provider, node.elts, source_ref )
@@ -3018,7 +3028,7 @@ def buildWithNode( provider, node, source_ref ):
                 variable   = tmp_enter_variable.makeReference( result ),
                 source_ref = source_ref
             ),
-            source       = CPythonExpressionCall(
+            source       = CPythonExpressionCallEmpty(
                 called         = attribute_lookup_class(
                     expression     = CPythonExpressionTempVariableRef(
                         variable   = tmp_source_variable.makeReference( result ),
@@ -3027,10 +3037,6 @@ def buildWithNode( provider, node, source_ref ):
                     attribute_name = "__enter__",
                     source_ref     = source_ref
                 ),
-                positional_args = (),
-                pairs           = (),
-                dict_star_arg   = None,
-                list_star_arg   = None,
                 source_ref      = source_ref
             ),
             source_ref   = source_ref
@@ -3053,25 +3059,25 @@ def buildWithNode( provider, node, source_ref ):
                     body           = CPythonStatementsSequence(
                         statements = (
                             CPythonStatementConditional(
-                                condition     = CPythonExpressionCall(
+                                condition     = CPythonExpressionCallNoKeywords(
                                     called          = CPythonExpressionTempVariableRef(
                                         variable   = tmp_exit_variable.makeReference( result ),
                                         source_ref = source_ref
                                     ),
-                                    positional_args = (
-                                        CPythonExpressionCaughtExceptionTypeRef(
-                                            source_ref = source_ref
+                                    args = CPythonExpressionMakeTuple(
+                                        elements   = (
+                                            CPythonExpressionCaughtExceptionTypeRef(
+                                                source_ref = source_ref
+                                            ),
+                                            CPythonExpressionCaughtExceptionValueRef(
+                                                source_ref = source_ref
+                                            ),
+                                            CPythonExpressionCaughtExceptionTracebackRef(
+                                                source_ref = source_ref
+                                            ),
                                         ),
-                                        CPythonExpressionCaughtExceptionValueRef(
-                                            source_ref = source_ref
-                                        ),
-                                        CPythonExpressionCaughtExceptionTracebackRef(
-                                            source_ref = source_ref
-                                        ),
+                                        source_ref = source_ref
                                     ),
-                                    pairs           = (),
-                                    list_star_arg   = None,
-                                    dict_star_arg   = None,
                                     source_ref      = source_ref
                                 ),
                                 no_branch = CPythonStatementsSequence(
@@ -3098,29 +3104,16 @@ def buildWithNode( provider, node, source_ref ):
             no_raise   = CPythonStatementsSequence(
                 statements = (
                     CPythonStatementExpressionOnly(
-                        expression = CPythonExpressionCall(
-                            called          = CPythonExpressionTempVariableRef(
+                        expression = CPythonExpressionCallNoKeywords(
+                            called     = CPythonExpressionTempVariableRef(
                                 variable   = tmp_exit_variable.makeReference( result ),
                                 source_ref = source_ref
                             ),
-                            positional_args = (
-                                CPythonExpressionConstantRef(
-                                    constant   = None,
-                                    source_ref = source_ref
-                                ),
-                                CPythonExpressionConstantRef(
-                                    constant   = None,
-                                    source_ref = source_ref
-                                ),
-                                CPythonExpressionConstantRef(
-                                    constant   = None,
-                                    source_ref = source_ref
-                                )
+                            args       = CPythonExpressionConstantRef(
+                                constant   = ( None, None, None ),
+                                source_ref = source_ref
                             ),
-                            pairs           = (),
-                            list_star_arg   = None,
-                            dict_star_arg   = None,
-                            source_ref      = source_ref
+                            source_ref = source_ref
                         ),
                         source_ref     = source_ref
                     ),

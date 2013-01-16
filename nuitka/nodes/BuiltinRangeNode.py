@@ -49,6 +49,7 @@ class CPythonExpressionBuiltinRange0( CPythonExpressionBuiltinNoArgBase ):
 
 
 class CPythonExpressionBuiltinRangeBase( CPythonExpressionChildrenHavingBase ):
+    """ Base class for all range nodes. """
 
     def __init__( self, values, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(

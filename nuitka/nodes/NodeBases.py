@@ -290,6 +290,10 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
+    def isExpressionCall( self ):
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
     def visit( self, context, visitor ):
         visitor( self )
 
@@ -492,6 +496,9 @@ class CPythonChildrenHaving:
         assert name in self.child_values, name
 
         return self.child_values[ name ]
+
+    def hasChild( self, name ):
+        return name in self.child_values
 
     @staticmethod
     def childGetter( name ):

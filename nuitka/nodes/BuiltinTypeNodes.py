@@ -161,9 +161,9 @@ if python_version < 300:
                 str_value = self.getValue().getStrValue( constraint_collection )
 
                 if str_value is not None:
-                    from .NodeMakingHelpers import wrapExpressionWithSideEffects
+                    from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
-                    new_node = wrapExpressionWithSideEffects(
+                    new_node = wrapExpressionWithNodeSideEffects(
                         new_node = str_value,
                         old_node = self.getValue()
                     )

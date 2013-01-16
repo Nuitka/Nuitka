@@ -30,18 +30,25 @@ from .BuiltinReferenceNodes import (
     CPythonExpressionBuiltinExceptionRef,
     CPythonExpressionBuiltinRef
 )
-
 from .ExceptionNodes import (
     CPythonExpressionRaiseException,
     CPythonStatementRaiseException
 )
-
 from .StatementNodes import (
     CPythonStatementExpressionOnly,
     CPythonStatementsSequence
 )
-
+from .CallNode import (
+    CPythonExpressionCallComplex,
+    CPythonExpressionCallRaw
+)
+from .ContainerMakingNodes import (
+    CPythonExpressionMakeTuple,
+    CPythonExpressionMakeDict
+)
 from .SideEffectNode import CPythonExpressionSideEffects
+
+
 
 def makeConstantReplacementNode( constant, node ):
     return CPythonExpressionConstantRef(
@@ -108,7 +115,6 @@ def makeCompileTimeConstantReplacementNode( value, node ):
             return node
     else:
         return node
-
 
 def getComputationResult( node, computation, description ):
     """ With a computation function, execute it and return the constant result or
@@ -182,10 +188,8 @@ def convertNoneConstantToNone( node ):
     else:
         return node
 
-def wrapExpressionWithSideEffects( new_node, old_node ):
+def wrapExpressionWithSideEffects( side_effects, old_node, new_node ):
     assert new_node.isExpression()
-
-    side_effects = old_node.extractSideEffects()
 
     if side_effects:
         new_node = CPythonExpressionSideEffects(
@@ -195,6 +199,13 @@ def wrapExpressionWithSideEffects( new_node, old_node ):
         )
 
     return new_node
+
+def wrapExpressionWithNodeSideEffects( new_node, old_node ):
+    return wrapExpressionWithSideEffects(
+        side_effects = old_node.extractSideEffects(),
+        old_node     = old_node,
+        new_node     = new_node
+    )
 
 def wrapStatementWithSideEffects( new_node, old_node, allow_none = False ):
     assert new_node is not None or allow_none
@@ -222,3 +233,28 @@ def wrapStatementWithSideEffects( new_node, old_node, allow_none = False ):
             )
 
     return new_node
+
+
+def makeCallNode( called, positional_args, pairs, list_star_arg, dict_star_arg, source_ref ):
+    if list_star_arg is None and dict_star_arg is None:
+        return CPythonExpressionCallRaw(
+            called  = called,
+            args    = CPythonExpressionMakeTuple(
+                elements   = positional_args,
+                source_ref = source_ref
+            ),
+            kw      = CPythonExpressionMakeDict(
+                pairs      = pairs,
+                source_ref = source_ref
+            ),
+            source_ref      = source_ref,
+        )
+    else:
+        return CPythonExpressionCallComplex(
+            called          = called,
+            positional_args = positional_args,
+            pairs           = pairs,
+            list_star_arg   = list_star_arg,
+            dict_star_arg   = dict_star_arg,
+            source_ref      = source_ref,
+        )

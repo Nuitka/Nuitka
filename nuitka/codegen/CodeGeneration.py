@@ -249,15 +249,22 @@ def generateFunctionCallCode( call_node, context ):
             expressions = call_node.getArgumentValues(),
             context     = context
         ),
-        closure_variables  = function_body.getClosureVariables(),
-        extra_arguments    = extra_arguments,
-        context            = context
+        closure_variables   = function_body.getClosureVariables(),
+        extra_arguments     = extra_arguments,
+        context             = context
     )
 
+_generated_functions = {}
+
 def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations, context ):
+    function_identifier = function_body.getCodeName()
+
+    if function_identifier in _generated_functions:
+        return _generated_functions[ function_identifier ]
+
     function_context = Contexts.PythonFunctionContext(
-        parent         = context,
-        function       = function_body
+        parent   = context,
+        function = function_body
     )
 
     function_codes = generateStatementSequenceCode(
@@ -304,7 +311,7 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
         function_code = Generator.getGeneratorFunctionCode(
             context                = function_context,
             function_name          = function_body.getFunctionName(),
-            function_identifier    = function_body.getCodeName(),
+            function_identifier    = function_identifier,
             parameters             = parameters,
             closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
@@ -322,7 +329,7 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
         function_code = Generator.getFunctionCode(
             context                = function_context,
             function_name          = function_body.getFunctionName(),
-            function_identifier    = function_body.getCodeName(),
+            function_identifier    = function_identifier,
             parameters             = parameters,
             closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
@@ -337,7 +344,7 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
         )
 
     function_decl = Generator.getFunctionDecl(
-        function_identifier          = function_body.getCodeName(),
+        function_identifier          = function_identifier,
         defaults_identifier          = defaults_identifier,
         kw_defaults_identifier       = kw_defaults_identifier,
         closure_variables            = function_body.getClosureVariables(),
@@ -346,13 +353,13 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
     )
 
     context.addFunctionCodes(
-        code_name     = function_body.getCodeName(),
+        code_name     = function_identifier,
         function_decl = function_decl,
         function_code = function_code
     )
 
     if function_body.needsCreation():
-        return Generator.getFunctionCreationCode(
+        result = Generator.getFunctionCreationCode(
             function_identifier    = function_body.getCodeName(),
             defaults_identifier    = defaults_identifier,
             kw_defaults_identifier = kw_defaults_identifier,
@@ -360,7 +367,11 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
             context                = context
         )
     else:
-        return function_body.getCodeName()
+        result = function_body.getCodeName()
+
+    _generated_functions[ function_identifier ] = result
+
+    return result
 
 def generateOperationCode( operator, operands, context ):
     return Generator.getOperationCode(
@@ -573,6 +584,7 @@ def generateSliceLookupCode( expression, context ):
                 )
             )
 
+# TODO: Must die
 def generateCallNamedArgumentsCode( pairs, context ):
     if pairs:
         return generateDictionaryCreationCode(
@@ -582,7 +594,7 @@ def generateCallNamedArgumentsCode( pairs, context ):
     else:
         return None
 
-def generateCallCode( call_node, context ):
+def generateCallComplexCode( call_node, context ):
     # TODO: Misnomer
     called_identifier = generateExpressionCode(
         expression = call_node.getCalled(),
@@ -621,6 +633,55 @@ def generateCallCode( call_node, context ):
         star_list_identifier = star_list_identifier,
         star_dict_identifier = star_dict_identifier,
     )
+
+def generateCallSimpleCode( call_node, context ):
+    # TODO: Misnomer
+    called_identifier = generateExpressionCode(
+        expression = call_node.getCalled(),
+        context    = context
+    )
+
+    if call_node.getPositionalArguments():
+        positional_args_identifier = generateTupleCreationCode(
+            elements = call_node.getPositionalArguments(),
+            context  = context
+        )
+    else:
+        positional_args_identifier = None
+
+    kw_identifier = generateCallNamedArgumentsCode(
+        pairs   = call_node.getNamedArgumentPairs(),
+        context = context
+    )
+
+    return Generator.getCallCode(
+        called_identifier    = called_identifier,
+        argument_tuple       = positional_args_identifier,
+        argument_dictionary  = kw_identifier,
+        star_list_identifier = None,
+        star_dict_identifier = None
+    )
+
+def generateCallCode( call_node, context ):
+    return Generator.getCallCode(
+        called_identifier    = generateExpressionCode(
+            expression = call_node.getCalled(),
+            context    = context
+        ),
+        argument_tuple       = generateExpressionCode(
+            expression = call_node.getCallArgs(),
+            allow_none = True,
+            context    = context
+        ),
+        argument_dictionary  = generateExpressionCode(
+            expression = call_node.getCallKw(),
+            allow_none = True,
+            context    = context
+        ),
+        star_list_identifier = None,
+        star_dict_identifier = None
+    )
+
 
 def _decideLocalsMode( provider ):
     # TODO: This information should be in the node instead, and not decided during code
@@ -741,6 +802,16 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = generateDictionaryCreationCode(
             pairs   = expression.getPairs(),
             context = context
+        )
+    elif expression.isExpressionCallComplex():
+        identifier = generateCallComplexCode(
+            call_node = expression,
+            context   = context
+        )
+    elif expression.isExpressionCallSimple():
+        identifier = generateCallSimpleCode(
+            call_node = expression,
+            context   = context
         )
     elif expression.isExpressionCall():
         identifier = generateCallCode(

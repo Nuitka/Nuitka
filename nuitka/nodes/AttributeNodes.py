@@ -130,9 +130,9 @@ class CPythonExpressionBuiltinGetattr( CPythonExpressionChildrenHavingBase ):
                         source_ref     = self.source_ref
                     )
 
-                    from .NodeMakingHelpers import wrapExpressionWithSideEffects
+                    from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
-                    result = wrapExpressionWithSideEffects(
+                    result = wrapExpressionWithNodeSideEffects(
                         new_node = result,
                         old_node = attribute
                     )

@@ -37,8 +37,6 @@ from .IndicatorMixins import (
     MarkGeneratorIndicator
 )
 
-from .CallNode import CPythonExpressionCall
-
 from .ParameterSpec import TooManyArguments, matchCall
 
 from nuitka import Variables, Utils
@@ -297,15 +295,15 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         return self, None, None
 
     def computeNodeCall( self, call_node, constraint_collection ):
-        # We can't handle these yet. TODO: In principle, if e.g. the called function node takes
+        # We can't handle complex these yet. TODO: In principle, if e.g. the called function node takes
         # only those, we could in fact do more, but that's off limits for now.
         if call_node.getStarListArg() is not None or call_node.getStarDictArg() is not None:
-            return None
+            return call_node, None, None
 
         # TODO: Until we have something to re-order the arguments, we need to skip this. For
-        # the immediate need, we avoid this complexity.
+        # the immediate need, we avoid this complexity, as a re-ordering will be needed.
         if call_node.getNamedArgumentPairs():
-            return None
+            return call_node, None, None
 
         call_spec = self.getParameters()
 
@@ -333,7 +331,6 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
                 source_ref    = call_node.getSourceReference()
             )
 
-
             return (
                 result,
                 "new_statements", # TODO: More appropiate tag maybe.
@@ -341,22 +338,26 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
             )
 
         except TooManyArguments as e:
-            from .NodeMakingHelpers import makeRaiseExceptionReplacementExpressionFromInstance
+            from nuitka.nodes.NodeMakingHelpers import (
+                makeRaiseExceptionReplacementExpressionFromInstance,
+                wrapExpressionWithSideEffects
+            )
 
-            return CPythonExpressionCall(
-                called          = makeRaiseExceptionReplacementExpressionFromInstance(
+            result = wrapExpressionWithSideEffects(
+                new_node = makeRaiseExceptionReplacementExpressionFromInstance(
                     expression     = call_node,
                     exception      = e.getRealException()
                 ),
-                positional_args = call_node.getPositionalArguments(),
-                list_star_arg   = call_spec.getStarListArg(),
-                dict_star_arg   = call_node.getStarDictArg(),
-                pairs           = call_node.getNamedArgumentPairs(),
-                source_ref      = call_node.getSourceReference()
+                old_node           = call_node,
+                side_effects = call_node.extractPreCallSideEffects()
             )
 
+            return (
+                result,
+                "new_statements,new_raise", # TODO: More appropiate tag maybe.
+                "Replaced call to created function body '%s' to argument error" % self.getName()
+            )
 
-        return call_node, None, None
 
     def isCompileTimeConstant( self ):
         # TODO: It's actually pretty much compile time accessible mayhaps.
@@ -410,6 +411,9 @@ class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
     named_children = ( "function_body", "kw_defaults", "defaults", "annotations" )
 
     def __init__( self, function_body, defaults, kw_defaults, annotations, source_ref ):
+        assert kw_defaults is None or kw_defaults.isExpression()
+        assert annotations is None or annotations.isExpression()
+
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {

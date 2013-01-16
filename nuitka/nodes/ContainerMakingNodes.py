@@ -89,6 +89,9 @@ class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
     def canPredictIterationValues( self, constraint_collection ):
         return True
 
+    def getIterationValues( self, constraint_collection ):
+        return self.getElements()
+
     def getTruthValue( self, constraint_collection ):
         return self.getIterationLength( constraint_collection ) > 0
 
@@ -138,7 +141,8 @@ class CPythonExpressionMakeSet( CPythonExpressionMakeSequenceBase ):
         return set
 
 
-class CPythonExpressionKeyValuePair( CPythonExpressionChildrenHavingBase ):
+class CPythonExpressionKeyValuePair( CPythonSideEffectsFromChildrenMixin,
+                                     CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_KEY_VALUE_PAIR"
 
     named_children = ( "key", "value" )
@@ -226,3 +230,22 @@ class CPythonExpressionMakeDict( CPythonSideEffectsFromChildrenMixin, \
 
     def getTruthValue( self, constraint_collection ):
         return self.getIterationLength( constraint_collection ) > 0
+
+    def isMapping( self ):
+        return True
+
+    def isMappingWithConstantStringKeys( self ):
+
+        for pair in self.getPairs():
+            key = pair.getKey()
+
+            if not key.isExpressionConstantRef() or not key.isStringConstant():
+                return False
+        else:
+            return True
+
+    def getMappingStringKeyPairs( self ):
+        return [ ( pair.getKey().getConstant(), pair.getValue() ) for pair in self.getPairs() ]
+
+    def getMappingPairs( self ):
+        return self.getPairs()

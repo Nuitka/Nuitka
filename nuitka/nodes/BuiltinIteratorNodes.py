@@ -47,7 +47,7 @@ class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
         return self.getValue().getIterationLength( constraint_collection )
 
     def computeNode( self, constraint_collection ):
-        from .NodeMakingHelpers import makeConstantReplacementNode, wrapExpressionWithSideEffects
+        from .NodeMakingHelpers import makeConstantReplacementNode, wrapExpressionWithNodeSideEffects
 
         new_node, change_tags, change_desc = CPythonExpressionBuiltinSingleArgBase.computeNode(
             self,
@@ -61,10 +61,9 @@ class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
                 change_tags = "new_constant"
                 change_desc = "Predicted len argument"
 
-                new_node = wrapExpressionWithSideEffects(
+                new_node = wrapExpressionWithNodeSideEffects(
                     new_node = makeConstantReplacementNode( arg_length, self ),
                     old_node = self.getValue()
-
                 )
 
                 if new_node.isExpressionSideEffects(): # false alarm pylint: disable=E1101
@@ -279,11 +278,11 @@ class CPythonExpressionBuiltinIter2( CPythonExpressionChildrenHavingBase ):
 
     named_children = ( "callable", "sentinel", )
 
-    def __init__( self, call_able, sentinel, source_ref ):
+    def __init__( self, callable, sentinel, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values = {
-                "callable" : call_able,
+                "callable" : callable,
                 "sentinel" : sentinel,
             },
             source_ref = source_ref

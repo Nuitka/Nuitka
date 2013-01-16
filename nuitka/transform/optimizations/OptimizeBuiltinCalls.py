@@ -79,7 +79,7 @@ from nuitka.nodes.TypeNode import (
     CPythonExpressionBuiltinIsinstance
 )
 from nuitka.nodes.ClassNodes import CPythonExpressionBuiltinType3
-from nuitka.nodes.CallNode import CPythonExpressionCall
+from nuitka.nodes.CallNode import CPythonExpressionCallEmpty
 from nuitka.nodes.AttributeNodes import (
     CPythonExpressionAttributeLookup,
     CPythonExpressionBuiltinGetattr,
@@ -90,20 +90,15 @@ from nuitka.nodes.AttributeNodes import (
 from nuitka.transform.optimizations import BuiltinOptimization
 
 def dir_extractor( node ):
-    # Only treat the empty dir() call, leave the others alone for now.
-    if node.isEmptyCall():
-        return CPythonExpressionBuiltinDir0(
-            source_ref = node.getSourceReference()
-        )
-    else:
-        return BuiltinOptimization.extractBuiltinArgs(
-            node          = node,
-            builtin_class = CPythonExpressionBuiltinDir1,
-            builtin_spec  = BuiltinOptimization.builtin_dir_spec
-        )
+    return BuiltinOptimization.extractBuiltinArgs(
+        node                = node,
+        builtin_class       = CPythonExpressionBuiltinDir1,
+        builtin_spec        = BuiltinOptimization.builtin_dir_spec,
+        empty_special_class = CPythonExpressionBuiltinDir0
+    )
 
 def vars_extractor( node ):
-    if node.isEmptyCall():
+    def selectVarsEmptyClass( source_ref ):
         if node.getParentVariableProvider().isModule():
             return CPythonExpressionBuiltinGlobals(
                 source_ref = node.getSourceReference()
@@ -112,12 +107,12 @@ def vars_extractor( node ):
             return CPythonExpressionBuiltinLocals(
                 source_ref = node.getSourceReference()
             )
-    else:
-        return BuiltinOptimization.extractBuiltinArgs(
-            node          = node,
-            builtin_class = CPythonExpressionBuiltinVars,
-            builtin_spec  = BuiltinOptimization.builtin_vars_spec
-        )
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class       = CPythonExpressionBuiltinVars,
+        builtin_spec        = BuiltinOptimization.builtin_vars_spec,
+        empty_special_class = selectVarsEmptyClass
+    )
 
 def import_extractor( node ):
     return BuiltinOptimization.extractBuiltinArgs(
@@ -127,50 +122,69 @@ def import_extractor( node ):
     )
 
 def type_extractor( node ):
-    positional_args = node.getPositionalArguments()
+    args = node.getCallArgs()
+    length = args.getIterationLength( None )
 
-    if len( positional_args ) == 1:
-        return CPythonExpressionBuiltinType1(
-            value      = positional_args[0],
-            source_ref = node.getSourceReference()
+    if length == 1:
+        return BuiltinOptimization.extractBuiltinArgs(
+            node          = node,
+            builtin_class = CPythonExpressionBuiltinType1,
+            builtin_spec  = BuiltinOptimization.builtin_type1_spec
         )
-    elif len( positional_args ) == 3:
-        return CPythonExpressionBuiltinType3(
-            type_name  = positional_args[0],
-            bases      = positional_args[1],
-            type_dict  = positional_args[2],
-            source_ref = node.getSourceReference()
+
+    else:
+        return BuiltinOptimization.extractBuiltinArgs(
+            node          = node,
+            builtin_class = CPythonExpressionBuiltinType3,
+            builtin_spec  = BuiltinOptimization.builtin_type3_spec
         )
 
 def iter_extractor( node ):
-    positional_args = node.getPositionalArguments()
+    # Note: Iter in fact names its first argument if the default applies "collection", but
+    # it won't matter much, fixed up in a wrapper.
+    def wrapIterCreation( callable, sentinel, source_ref ):
+        if sentinel is None:
+            return CPythonExpressionBuiltinIter1(
+                value      = callable,
+                source_ref = source_ref
+            )
+        else:
+            return CPythonExpressionBuiltinIter2(
+                callable   = callable,
+                sentinel   = sentinel,
+                source_ref = source_ref
+            )
 
-    if len( positional_args ) == 1:
-        return CPythonExpressionBuiltinIter1(
-            value      = positional_args[0],
-            source_ref = node.getSourceReference()
-        )
-    elif len( positional_args ) == 2:
-        return CPythonExpressionBuiltinIter2(
-            call_able  = positional_args[0],
-            sentinel   = positional_args[1],
-            source_ref = node.getSourceReference()
-        )
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = wrapIterCreation,
+        builtin_spec  = BuiltinOptimization.builtin_iter_spec
+    )
+
 
 def next_extractor( node ):
-    positional_args = node.getPositionalArguments()
 
-    if len( positional_args ) == 1:
-        return CPythonExpressionBuiltinNext1(
-            value      = positional_args[0],
-            source_ref = node.getSourceReference()
-        )
-    else:
-        return CPythonExpressionBuiltinNext2(
-            iterator   = positional_args[0],
-            default    = positional_args[1],
-            source_ref = node.getSourceReference()
-        )
+    # Split up next with and without defaults, they are not going to behave really very
+    # similar.
+    def selectNextBuiltinClass( iterator, default, source_ref ):
+        if default is None:
+            return CPythonExpressionBuiltinNext1(
+                value      = iterator,
+                source_ref = node.getSourceReference()
+            )
+        else:
+            return CPythonExpressionBuiltinNext2(
+                iterator   = iterator,
+                default    = default,
+                source_ref = node.getSourceReference()
+            )
+
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = selectNextBuiltinClass,
+        builtin_spec  = BuiltinOptimization.builtin_iter_spec
+    )
+
 
 def dict_extractor( node ):
     # The dict is a bit strange in that it accepts a position parameter, or not, but
@@ -178,21 +192,32 @@ def dict_extractor( node ):
 
     def wrapExpressionBuiltinDictCreation( positional_args, dict_star_arg, source_ref ):
         if len( positional_args ) > 1:
-            from nuitka.nodes.NodeMakingHelpers import makeRaiseExceptionReplacementExpressionFromInstance
-
-            return CPythonExpressionCall(
-                called          = makeRaiseExceptionReplacementExpressionFromInstance(
-                    expression     = node,
-                    exception      = TypeError(
-                        "dict expected at most 1 arguments, got %d" % len( positional_args )
-                    )
-                ),
-                positional_args = positional_args,
-                list_star_arg   = None,
-                dict_star_arg   = None,
-                pairs           = dict_star_arg,
-                source_ref      = source_ref
+            from nuitka.nodes.NodeMakingHelpers import (
+                makeRaiseExceptionReplacementExpressionFromInstance,
+                wrapExpressionWithSideEffects
             )
+
+            result = makeRaiseExceptionReplacementExpressionFromInstance(
+                expression     = node,
+                exception      = TypeError(
+                    "dict expected at most 1 arguments, got %d" % len( positional_args )
+                )
+            )
+
+            result = wrapExpressionWithSideEffects(
+                side_effects = positional_args,
+                old_node     = node,
+                new_node     = result
+            )
+
+            if dict_star_arg:
+                result = wrapExpressionWithSideEffects(
+                    side_effects = dict_star_arg,
+                    old_node     = node,
+                    new_node     = result
+                )
+
+            return result
 
         return CPythonExpressionBuiltinDict(
             pos_arg    = positional_args[0] if positional_args else None,
@@ -268,8 +293,8 @@ def range_extractor( node ):
     return BuiltinOptimization.extractBuiltinArgs(
         node                = node,
         builtin_class       = selectRangeBuiltin,
-        empty_special_class = CPythonExpressionBuiltinRange0,
-        builtin_spec        = BuiltinOptimization.builtin_range_spec
+        builtin_spec        = BuiltinOptimization.builtin_range_spec,
+        empty_special_class = CPythonExpressionBuiltinRange0
     )
 
 def len_extractor( node ):
@@ -386,8 +411,8 @@ if python_version < 300:
                 provider.markAsExecContaining()
 
             return use_call(
-                source_code = CPythonExpressionCall(
-                    called          = CPythonExpressionAttributeLookup(
+                source_code = CPythonExpressionCallEmpty(
+                    called     = CPythonExpressionAttributeLookup(
                         expression     = CPythonExpressionBuiltinOpen(
                             filename   = filename,
                             mode       = CPythonExpressionConstantRef(
@@ -400,15 +425,11 @@ if python_version < 300:
                         attribute_name = "read",
                         source_ref     = source_ref
                     ),
-                    positional_args = (),
-                    pairs           = (),
-                    list_star_arg   = None,
-                    dict_star_arg   = None,
-                    source_ref      = source_ref
+                    source_ref = source_ref
                 ),
                 globals_arg = globals_arg,
                 locals_arg  = locals_arg,
-                source_ref = source_ref
+                source_ref  = source_ref
             )
 
         return BuiltinOptimization.extractBuiltinArgs(
@@ -418,30 +439,21 @@ if python_version < 300:
         )
 
 def eval_extractor( node ):
-    # TODO: Should precompute error as well: TypeError: eval() takes no keyword arguments
-
-    positional_args = node.getPositionalArguments()
-
-    return CPythonExpressionBuiltinEval(
-        source_code  = positional_args[0],
-        globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
-        locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
-        source_ref   = node.getSourceReference()
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = CPythonExpressionBuiltinEval,
+        builtin_spec  = BuiltinOptimization.builtin_eval_spec
     )
+
 
 if python_version >= 300:
     from nuitka.nodes.ExecEvalNodes import CPythonExpressionBuiltinExec
 
     def exec_extractor( node ):
-        # TODO: Should precompute error as well: TypeError: exec() takes no keyword arguments
-
-        positional_args = node.getPositionalArguments()
-
-        return CPythonExpressionBuiltinExec(
-            source_code  = positional_args[0],
-            globals_arg  = positional_args[1] if len( positional_args ) > 1 else None,
-            locals_arg   = positional_args[2] if len( positional_args ) > 2 else None,
-            source_ref   = node.getSourceReference()
+        return BuiltinOptimization.extractBuiltinArgs(
+            node          = node,
+            builtin_class = CPythonExpressionBuiltinExec,
+            builtin_spec  = BuiltinOptimization.builtin_eval_spec
         )
 
 def open_extractor( node ):
@@ -601,22 +613,25 @@ def computeBuiltinCall( call_node, called ):
         if new_node is None:
             return call_node, None, None
 
-        tags = set( [ "new_builtin" ] )
+        inspect_node = new_node
 
-        if new_node.isExpressionBuiltinImport():
+        if inspect_node.isExpressionSideEffects():
+            inspect_node = inspect_node.getExpression()
+
+        if inspect_node.isExpressionBuiltinImport():
             tags    = "new_builtin new_import"
-            message = "Replaced dynamic builtin import %s with static module import." % new_node.kind
-        elif new_node.isExpressionBuiltin() or new_node.isStatementExec():
+            message = "Replaced dynamic builtin import %s with static module import." % inspect_node.kind
+        elif inspect_node.isExpressionBuiltin() or inspect_node.isStatementExec():
             tags = "new_builtin"
-            message = "Replaced call to builtin with builtin call %s." % new_node.kind
-        elif new_node.isExpressionCall() or new_node.isExpressionRaiseException():
+            message = "Replaced call to builtin with builtin call %s." % inspect_node.kind
+        elif inspect_node.isExpressionRaiseException():
             tags = "new_raise"
-            message = "Replaced call to builtin %s with exception raising call." % new_node.kind
-        elif new_node.isExpressionOperationUnary():
+            message = "Replaced call to builtin %s with exception raising call." % inspect_node.kind
+        elif inspect_node.isExpressionOperationUnary():
             tags = "new_expression"
-            message = "Replaced call to builtin %s with exception raising call." % new_node.kind
+            message = "Replaced call to builtin %s with exception raising call." % inspect_node.kind
         else:
-            assert False
+            assert False, ( builtin_name, "->", inspect_node )
 
         return new_node, tags, message
     else:

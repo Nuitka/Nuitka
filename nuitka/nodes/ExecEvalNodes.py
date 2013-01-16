@@ -37,13 +37,13 @@ class CPythonExpressionBuiltinEval( CPythonExpressionChildrenHavingBase ):
 
     named_children = ( "source", "globals", "locals" )
 
-    def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
+    def __init__( self, source, globals, locals, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "source"  : source_code,
-                "globals" : globals_arg,
-                "locals"  : locals_arg,
+                "source"  : source,
+                "globals" : globals,
+                "locals"  : locals,
             },
             source_ref = source_ref
         )

@@ -83,6 +83,7 @@ class PythonContextBase:
         else:
             return None
 
+
 class PythonChildContextBase( PythonContextBase ):
     def __init__( self, parent ):
         PythonContextBase.__init__( self )
@@ -317,7 +318,7 @@ class PythonModuleContext( PythonContextBase ):
         )
 
     def addFunctionCodes( self, code_name, function_decl, function_code ):
-        assert code_name not in self.function_codes
+        assert code_name not in self.function_codes, code_name
 
         self.function_codes[ code_name ] = ( function_decl, function_code )
 

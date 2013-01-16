@@ -18,8 +18,6 @@
 """ Optimizations of builtins to builtin calls.
 
 """
-from nuitka.nodes.CallNode import CPythonExpressionCall
-
 from nuitka.nodes.ParameterSpec import ParameterSpec, TooManyArguments, matchCall
 
 from nuitka.Utils import python_version
@@ -186,11 +184,23 @@ builtin_oct_spec = BuiltinParameterSpecNoKeywords( "oct", ( "number", ), 0 )
 builtin_hex_spec = BuiltinParameterSpecNoKeywords( "hex", ( "number", ), 0 )
 builtin_repr_spec = BuiltinParameterSpecNoKeywords( "repr", ( "object", ), 0 )
 
-builtin_dir_spec = BuiltinParameterSpecNoKeywords( "dir", ( "object", ), 0 )
-builtin_vars_spec = BuiltinParameterSpecNoKeywords( "vars", ( "object", ), 0 )
+builtin_dir_spec = BuiltinParameterSpecNoKeywords( "dir", ( "object", ), 1 )
+builtin_vars_spec = BuiltinParameterSpecNoKeywords( "vars", ( "object", ), 1 )
 
 builtin_locals_spec = BuiltinParameterSpecNoKeywords( "locals", (), 0 )
 builtin_globals_spec = BuiltinParameterSpecNoKeywords( "globals", (), 0 )
+builtin_eval_spec = BuiltinParameterSpecNoKeywords( "eval", ("source", "globals", "locals"), 2 )
+if python_version >= 300:
+    builtin_exec_spec = BuiltinParameterSpecNoKeywords( "exec", ("source", "globals", "locals"), 2 )
+
+# Note: Iter in fact names its first argument if the default applies "collection", but it
+# won't matter much, fixed up in a wrapper.
+builtin_iter_spec = BuiltinParameterSpecNoKeywords( "iter", ( "callable", "sentinel" ), 1 )
+builtin_next_spec = BuiltinParameterSpecNoKeywords( "next", ( "iterator", "default" ), 1 )
+
+# Note: type with 1 and type with 3 arguments are too different.
+builtin_type1_spec = BuiltinParameterSpecNoKeywords( "type", ( "object", ), 0 )
+builtin_type3_spec = BuiltinParameterSpecNoKeywords( "type", ( "name", "bases", "dict" ), 0 )
 
 builtin_super_spec = BuiltinParameterSpecNoKeywords( "super", ( "type", "object" ), 1 if python_version < 300 else 2 )
 
@@ -267,23 +277,28 @@ builtin_range_spec = BuiltinRangeSpec( "range", ( "start", "stop", "step" ), 2 )
 
 
 def extractBuiltinArgs( node, builtin_spec, builtin_class, empty_special_class = None ):
-    # These cannot be handled.
-    if node.getStarListArg() is not None or node.getStarDictArg() is not None:
-        return None
-
     try:
-        pairs = tuple(
-            ( pair.getKey().getConstant(), pair.getValue() )
-            for pair in
-            node.getNamedArgumentPairs()
-        )
+        kw = node.getCallKw()
+
+
+        # TODO: Could check for too many / too few, even if they are unknown, we might
+        # raise that error, but that need not be optimized immediately.
+        if not kw.isMappingWithConstantStringKeys():
+            return None
+
+        pairs = kw.getMappingStringKeyPairs()
 
         if pairs and not builtin_spec.allowsKeywords():
             raise TooManyArguments(
                 TypeError( builtin_spec.getKeywordRefusalText() )
             )
 
-        positional = node.getPositionalArguments()
+        args = node.getCallArgs()
+
+        if not args.canPredictIterationValues( None ):
+            return None
+
+        positional = args.getIterationValues( None )
 
         if not positional and not pairs and empty_special_class is not None:
             return empty_special_class( source_ref = node.getSourceReference() )
@@ -298,18 +313,18 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class, empty_special_class =
             pairs         = pairs
         )
     except TooManyArguments as e:
-        from nuitka.nodes.NodeMakingHelpers import makeRaiseExceptionReplacementExpressionFromInstance
+        from nuitka.nodes.NodeMakingHelpers import (
+            makeRaiseExceptionReplacementExpressionFromInstance,
+            wrapExpressionWithSideEffects
+        )
 
-        return CPythonExpressionCall(
-            called          = makeRaiseExceptionReplacementExpressionFromInstance(
+        return wrapExpressionWithSideEffects(
+            new_node     = makeRaiseExceptionReplacementExpressionFromInstance(
                 expression     = node,
                 exception      = e.getRealException()
             ),
-            positional_args = node.getPositionalArguments(),
-            list_star_arg   = node.getStarListArg(),
-            dict_star_arg   = node.getStarDictArg(),
-            pairs           = node.getNamedArgumentPairs(),
-            source_ref      = node.getSourceReference()
+            old_node     = node,
+            side_effects = node.extractPreCallSideEffects()
         )
 
     args_list = []
@@ -325,6 +340,6 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class, empty_special_class =
 
     # Using list reference for passing the arguments without names, pylint: disable=W0142
     return builtin_class(
-        source_ref = node.getSourceReference(),
-        *args_list
+        *args_list,
+        source_ref = node.getSourceReference()
     )
