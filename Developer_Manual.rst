@@ -1241,6 +1241,30 @@ With this the branch that the "short-circuit" expresses, becomes obvious, at the
 of having the assignment expression to the temporary variable, that one needs to create
 anyway.
 
+Simple Calls
+------------
+
+As seen below, even complex calls are simple calls. In simple calls of Python there is
+still some hidden semantic going on, that we expose.
+
+.. code-block:: python
+
+   func( arg1, arg2, named1 = arg3, named2 = arg4 )
+
+On the C-API level there is a tuple and dictionary built. This one is exposed:
+
+.. code-block:: python
+
+   func( *( arg1, arg2 ), **{ "named1" : arg3, "named2" : arg4 } )
+
+A called function will access this tuple and the dictionary to parse the arguments, once
+that is also re-formulated (argument parsing), it can then lead to simple inlining. This
+way calls only have 2 arguments with constant semantics, that fits perfectly with the
+C-API where it is the same, so it is actually easier for code generation.
+
+Although the above looks like a complex call, it actually is not. No checks are needed for
+the types of the star arguments and it's directly translated to ``PyObject_Call``.
+
 Complex Calls
 -------------
 
