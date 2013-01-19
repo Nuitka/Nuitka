@@ -1578,6 +1578,12 @@ def getBuiltinIsinstanceCode( inst_identifier, cls_identifier ):
         1
     )
 
+def getBuiltinIsinstanceBoolCode( inst_identifier, cls_identifier ):
+    return "BUILTIN_ISINSTANCE_BOOL( %s, %s )" % (
+        inst_identifier.getCodeTemporaryRef(),
+        cls_identifier.getCodeTemporaryRef()
+    )
+
 def getBuiltinOpenCode( filename, mode, buffering ):
     return Identifier(
         "OPEN_FILE( %s, %s, %s )" % (

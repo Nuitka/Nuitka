@@ -208,7 +208,7 @@ builtin_hasattr_spec = BuiltinParameterSpecNoKeywords( "hasattr", ( "object", "n
 builtin_getattr_spec = BuiltinParameterSpecNoKeywords( "getattr", ( "object", "name", "default" ), 1 )
 builtin_setattr_spec = BuiltinParameterSpecNoKeywords( "setattr", ( "object", "name", "value" ), 0 )
 
-builtin_isinstance_spec = BuiltinParameterSpecNoKeywords( "isinstance", ( "object", "instance" ), 0 )
+builtin_isinstance_spec = BuiltinParameterSpecNoKeywords( "isinstance", ( "instance", "cls" ), 0 )
 
 
 class BuiltinRangeSpec( BuiltinParameterSpecNoKeywords ):

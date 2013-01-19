@@ -91,19 +91,19 @@ class CPythonExpressionBuiltinSuper( CPythonExpressionChildrenHavingBase ):
 class CPythonExpressionBuiltinIsinstance( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_ISINSTANCE"
 
-    named_children = ( "inst", "cls" )
+    named_children = ( "instance", "cls" )
 
-    def __init__( self, inst, cls, source_ref ):
+    def __init__( self, instance, cls, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "inst" : inst,
-                "cls"  : cls
+                "instance" : instance,
+                "cls"      : cls
 
             },
             source_ref = source_ref )
 
-    getInst = CPythonExpressionChildrenHavingBase.childGetter( "inst" )
+    getInstance = CPythonExpressionChildrenHavingBase.childGetter( "instance" )
     getCls = CPythonExpressionChildrenHavingBase.childGetter( "cls" )
 
     def computeNode( self, constraint_collection ):

@@ -202,6 +202,17 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
                 context    = context
             )
         )
+    elif condition.isExpressionBuiltinIsinstance():
+        result = Generator.getBuiltinIsinstanceBoolCode(
+            inst_identifier = generateExpressionCode(
+                expression = condition.getInstance(),
+                context    = context
+            ),
+            cls_identifier    = generateExpressionCode(
+                expression = condition.getCls(),
+                context    = context
+            )
+        )
     else:
         condition_identifier = generateExpressionCode(
             expression = condition,
@@ -1210,7 +1221,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
         )
     elif expression.isExpressionBuiltinIsinstance():
         identifier = Generator.getBuiltinIsinstanceCode(
-            inst_identifier = makeExpressionCode( expression.getInst(), allow_none = True ),
+            inst_identifier = makeExpressionCode( expression.getInstance(), allow_none = True ),
             cls_identifier  = makeExpressionCode( expression.getCls(), allow_none = True )
         )
     elif expression.isExpressionSelectMetaclass():

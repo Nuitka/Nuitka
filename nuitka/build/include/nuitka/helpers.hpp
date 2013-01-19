@@ -1327,6 +1327,9 @@ extern PyObject *_BUILTIN_SUPER( EVAL_ORDERED_2( PyObject *type, PyObject *objec
 #define BUILTIN_ISINSTANCE( inst, cls ) _BUILTIN_ISINSTANCE( EVAL_ORDERED_2( inst, cls ) )
 extern PyObject *_BUILTIN_ISINSTANCE( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) );
 
+#define BUILTIN_ISINSTANCE_BOOL( inst, cls ) _BUILTIN_ISINSTANCE_BOOL( EVAL_ORDERED_2( inst, cls ) )
+extern bool _BUILTIN_ISINSTANCE_BOOL( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) );
+
 // For quicker getattr() functionality.
 #define BUILTIN_GETATTR( object, attribute, default_value ) _BUILTIN_GETATTR( EVAL_ORDERED_3( object, attribute, default_value ) )
 extern PyObject *_BUILTIN_GETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *default_value ) );

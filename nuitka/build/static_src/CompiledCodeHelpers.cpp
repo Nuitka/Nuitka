@@ -1504,6 +1504,32 @@ PyObject *_BUILTIN_ISINSTANCE( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) )
     return PyBool_FromLong( res );
 }
 
+bool _BUILTIN_ISINSTANCE_BOOL( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) )
+{
+    assertObject( inst );
+    assertObject( cls );
+
+    if ( cls == (PyObject *)&PyFunction_Type && Nuitka_Function_Check( inst ) )
+    {
+        return true;
+    }
+
+    if ( cls == (PyObject *)&PyGen_Type && Nuitka_Generator_Check( inst ) )
+    {
+        return true;
+    }
+
+    int res = PyObject_IsInstance( inst, cls );
+
+    if (unlikely( res < 0 ))
+    {
+        throw _PythonException();
+    }
+
+    return res != 0;
+}
+
+
 PyObject *_BUILTIN_GETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *default_value ) )
 {
 #if PYTHON_VERSION < 300
