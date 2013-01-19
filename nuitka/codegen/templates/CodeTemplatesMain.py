@@ -401,6 +401,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 #endif
 
     frame_%(module_identifier)s = MAKE_FRAME( %(code_identifier)s, _module_%(module_identifier)s );
+    frame_%(module_identifier)s->f_locals = INCREASE_REFCOUNT( frame_%(module_identifier)s->f_globals );
 
     // Set module frame as the currently active one.
     FrameGuard frame_guard( frame_%(module_identifier)s );
