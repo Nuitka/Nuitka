@@ -81,3 +81,18 @@ class CPythonExpressionComparison( CPythonExpressionChildrenHavingBase ):
             )
 
         return self, None, None
+
+    def computeNodeOperationNot( self, not_node, constraint_collection ):
+        if self.comparator in PythonOperators.comparison_inversions:
+            left, right = self.getOperands()
+
+            result = CPythonExpressionComparison(
+                left       = left,
+                right      = right,
+                comparator = PythonOperators.comparison_inversions[ self.comparator ],
+                source_ref = self.source_ref
+            )
+
+            return result, "new_expression", "Replaced negated comparison with inverse comparision."
+
+        return not_node, None, None

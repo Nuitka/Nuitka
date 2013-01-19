@@ -77,6 +77,9 @@ class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
                 description = "%s with constant arguments" % simulator
             )
 
+    def mayHaveSideEffectsBool( self, constraint_collection ):
+        return False
+
     def isKnownToBeIterable( self, count ):
         return count is None or count == len( self.getElements() )
 
@@ -215,6 +218,9 @@ class CPythonExpressionMakeDict( CPythonSideEffectsFromChildrenMixin, \
         )
 
         return new_node, "new_constant", "Created dictionary found to be constant."
+
+    def mayHaveSideEffectsBool( self, constraint_collection ):
+        return False
 
     def isKnownToBeIterable( self, count ):
         return count is None or count == len( self.getPairs() )

@@ -337,6 +337,12 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         return True
 
+    def mayHaveSideEffectsBool( self, constraint_collection ):
+        """ Unless we are told otherwise, everything may have a side effect. """
+        # Virtual method, pylint: disable=R0201,W0613
+
+        return True
+
     def extractSideEffects( self ):
         """ Unless defined otherwise, the expression is the side effect. """
         # Virtual method, pylint: disable=R0201,W0613
@@ -903,6 +909,11 @@ class CPythonExpressionMixin:
 
         return call_node, None, None
 
+    def computeNodeOperationNot( self, not_node, constraint_collection ):
+        constraint_collection.removeKnowledge( not_node )
+
+        return not_node, None, None
+
 
 class CompileTimeConstantExpressionMixin( CPythonExpressionMixin ):
     def isCompileTimeConstant( self ):
@@ -914,6 +925,22 @@ class CompileTimeConstantExpressionMixin( CPythonExpressionMixin ):
         # Virtual method, pylint: disable=R0201
 
         return True
+
+    def mayHaveSideEffects( self, constraint_collection ):
+        return False
+
+    def mayHaveSideEffectsBool( self, constraint_collection ):
+        return False
+
+    def computeNodeOperationNot( self, not_node, constraint_collection ):
+        from .NodeMakingHelpers import getComputationResult
+
+        return getComputationResult(
+            node        = not_node,
+            computation = lambda : not self.getCompileTimeConstant(),
+            description = "Compile time constant negation truth value precomputed."
+        )
+
 
     def computeNodeAttribute( self, lookup_node, attribute_name, constraint_collection ):
         from .NodeMakingHelpers import getComputationResult

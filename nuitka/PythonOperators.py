@@ -85,6 +85,12 @@ other_comparison_functions = {
     "NotIn" : lambda value1, value2: value1 not in value2
 }
 
+comparison_inversions = {
+    "Is"    : "IsNot",
+    "IsNot" : "Is",
+    "In"    : "NotIn",
+    "NotIn" : "In"
+}
 
 all_comparison_functions = dict( rich_comparison_functions)
 all_comparison_functions.update( other_comparison_functions )

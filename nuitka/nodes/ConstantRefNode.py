@@ -30,10 +30,10 @@ from nuitka.Constants import (
     isMutable,
 )
 
-from nuitka.__past__ import iterItems
+from nuitka.__past__ import iterItems, unicode
 
 
-class CPythonExpressionConstantRef( CPythonNodeBase, CompileTimeConstantExpressionMixin ):
+class CPythonExpressionConstantRef( CompileTimeConstantExpressionMixin, CPythonNodeBase ):
     kind = "EXPRESSION_CONSTANT_REF"
 
     def __init__( self, constant, source_ref ):
@@ -69,12 +69,12 @@ class CPythonExpressionConstantRef( CPythonNodeBase, CompileTimeConstantExpressi
         from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression, wrapExpressionWithSideEffects
 
         new_node = wrapExpressionWithSideEffects(
-            new_node = makeRaiseExceptionReplacementExpression(
+            new_node     = makeRaiseExceptionReplacementExpression(
                 expression      = self,
                 exception_type  = "TypeError",
                 exception_value = "'%s' object is not callable" % type( self.constant ).__name__
             ),
-            old_node = call_node,
+            old_node     = call_node,
             side_effects = call_node.extractPreCallSideEffects()
         )
 

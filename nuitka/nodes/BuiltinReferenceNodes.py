@@ -39,7 +39,7 @@ from nuitka.Builtins import (
     builtin_names
 )
 
-class CPythonExpressionBuiltinRefBase( CPythonNodeBase, CompileTimeConstantExpressionMixin ):
+class CPythonExpressionBuiltinRefBase( CompileTimeConstantExpressionMixin, CPythonNodeBase ):
     def __init__( self, builtin_name, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 

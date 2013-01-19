@@ -31,6 +31,7 @@ from . import (
 )
 
 from nuitka import (
+    PythonOperators,
     Constants,
     Tracing,
     Options,
@@ -113,9 +114,24 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
         else:
             result = Generator.getFalseExpressionCode()
     elif condition.isExpressionComparison():
-        result = generateComparisonExpressionBoolCode(
-            comparison_expression = condition,
-            context               = context
+        left = generateExpressionCode(
+            expression = condition.getLeft(),
+            context    = context
+        )
+        right = generateExpressionCode(
+            expression = condition.getRight(),
+            context    = context
+        )
+
+        comparator = condition.getComparator()
+
+        # Do not allow this, expected to be optimized away.
+        assert not inverted or comparator not in PythonOperators.comparison_inversions, condition
+
+        result = Generator.getComparisonExpressionBoolCode(
+            comparator = comparator,
+            left       = left,
+            right      = right
         )
 
         if inverted:
@@ -408,23 +424,6 @@ def generateComparisonExpressionCode( comparison_expression, context ):
         left       = left,
         right      = right
     )
-
-def generateComparisonExpressionBoolCode( comparison_expression, context ):
-    left = generateExpressionCode(
-        expression = comparison_expression.getLeft(),
-        context    = context
-    )
-    right = generateExpressionCode(
-        expression = comparison_expression.getRight(),
-        context    = context
-    )
-
-    return Generator.getComparisonExpressionBoolCode(
-        comparator = comparison_expression.getComparator(),
-        left       = left,
-        right      = right
-    )
-
 
 def generateDictionaryCreationCode( pairs, context ):
     keys = []
@@ -1779,21 +1778,29 @@ def generatePrintCode( statement, target_file, context ):
     )
 
 def generateBranchCode( statement, context ):
+    yes_codes      = generateStatementSequenceCode(
+        statement_sequence = statement.getBranchYes(),
+        allow_none         = True,
+        context            = context
+    )
+
+    no_codes       = generateStatementSequenceCode(
+        statement_sequence = statement.getBranchNo(),
+        allow_none         = True,
+        context            = context
+    )
+
+    condition = statement.getCondition()
+
+    assert yes_codes is not None, statement
+
     return Generator.getBranchCode(
         condition_code = generateConditionCode(
-            condition = statement.getCondition(),
+            condition = condition,
             context   = context
         ),
-        yes_codes      = generateStatementSequenceCode(
-            statement_sequence = statement.getBranchYes(),
-            allow_none         = True,
-            context            = context
-        ),
-        no_codes       = generateStatementSequenceCode(
-            statement_sequence = statement.getBranchNo(),
-            allow_none         = True,
-            context            = context
-        )
+        yes_codes      = yes_codes,
+        no_codes       = no_codes
     )
 
 def generateLoopCode( statement, context ):

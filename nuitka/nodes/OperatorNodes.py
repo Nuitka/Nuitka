@@ -176,6 +176,12 @@ class CPythonExpressionOperationNOT( CPythonExpressionOperationUnary ):
             source_ref = source_ref
         )
 
+    def computeNode( self, constraint_collection ):
+        return self.getOperand().computeNodeOperationNot(
+            not_node              = self,
+            constraint_collection = constraint_collection
+        )
+
     def getTruthValue( self, constraint_collection ):
         result = self.getOperand().getTruthValue( constraint_collection )
 
@@ -187,14 +193,10 @@ class CPythonExpressionOperationNOT( CPythonExpressionOperationUnary ):
         if operand.mayHaveSideEffects( constraint_collection ):
             return True
 
-        # TODO: Find the common ground of these, and make it an expression method.
-        if operand.isExpressionMakeSequence():
-            return False
+        return operand.mayHaveSideEffectsBool( constraint_collection )
 
-        if operand.isExpressionMakeDict():
-            return False
-
-        return True
+    def mayHaveSideEffectsBool( self, constraint_collection ):
+        return self.getOperand().mayHaveSideEffectsBool( constraint_collection )
 
     def extractSideEffects( self ):
         operand = self.getOperand()

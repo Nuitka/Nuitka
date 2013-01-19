@@ -35,6 +35,9 @@ from nuitka.nodes.NodeMakingHelpers import (
     wrapStatementWithSideEffects
 )
 
+from nuitka.nodes.ConditionalNodes import CPythonStatementConditional
+from nuitka.nodes.OperatorNodes import CPythonExpressionOperationNOT
+
 from nuitka import Options, Utils, TreeRecursion, Importing
 
 from logging import debug
@@ -197,6 +200,9 @@ class ConstraintCollectionBase:
 
         self.onSubExpressions( expression )
 
+        r = expression.computeNode( self )
+        assert type(r) is tuple, expression
+
         new_node, change_tags, change_desc = expression.computeNode( self )
 
         if new_node is not expression:
@@ -315,6 +321,28 @@ class ConstraintCollectionBase:
                 "new_statements",
                 statement.getSourceReference(),
                 "Condition for branch was predicted to be always %s." % choice
+            )
+
+            return new_statement
+
+        if statement.getBranchYes() is None:
+            # Would be eliminated already.
+            assert statement.getBranchNo() is not None
+
+            new_statement = CPythonStatementConditional(
+                condition = CPythonExpressionOperationNOT(
+                    operand    = statement.getCondition(),
+                    source_ref = statement.getCondition().getSourceReference()
+                ),
+                yes_branch = statement.getBranchNo(),
+                no_branch  = None,
+                source_ref = statement.getSourceReference()
+            )
+
+            self.signalChange(
+                "new_statements",
+                statement.getSourceReference(),
+                "Empty true branch for condition was replaced with inverted condition check."
             )
 
             return new_statement
