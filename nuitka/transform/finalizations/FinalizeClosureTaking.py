@@ -36,9 +36,12 @@ class FinalizeClosureTaking( FinalizationVisitorBase ):
             referenced = variable.getReferenced()
             referenced_owner = referenced.getOwner()
 
+            if referenced_owner.isStatementTempBlock():
+                referenced_owner = referenced_owner.getParentVariableProvider()
+
             assert not referenced.isModuleVariable()
 
-            current = node.getParent()
+            current = node.getParentVariableProvider()
 
             # print referenced
 
@@ -52,4 +55,10 @@ class FinalizeClosureTaking( FinalizationVisitorBase ):
                         current.addClosureVariable( referenced )
 
 
-                current = current.getParent()
+                # Detect loops in the provider relationship
+                assert current.getParentVariableProvider() is not current, current
+
+                current = current.getParentVariableProvider()
+
+                # Not found?!
+                assert current is not None, ( variable, referenced )

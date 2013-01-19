@@ -122,7 +122,7 @@ class Variable:
             owner = reference.getOwner()
 
             while owner.isExpressionFunctionBody() and not owner.isGenerator() and not owner.needsCreation():
-                owner = owner.getParent().getParentVariableProvider()
+                owner = owner.getParentVariableProvider()
 
             # TODO: Check if this is necessary still.
             if owner != top_owner:
@@ -224,10 +224,7 @@ class ClosureVariableReference( VariableReferenceBase ):
         return True
 
     def getProviderVariable( self ):
-        current = self.getOwner().getParent()
-
-        while not current.isExpressionFunctionBody():
-            current = current.getParent()
+        current = self.getOwner().getParentVariableProvider()
 
         if current is self.getReferenced().getOwner():
             return self.getReferenced()

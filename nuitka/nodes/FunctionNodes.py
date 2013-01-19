@@ -44,9 +44,10 @@ from nuitka import Variables, Utils
 from nuitka.__past__ import iterItems
 
 
-class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavingNodeBase, \
-                                     CPythonClosureTaker, MarkContainsTryExceptIndicator, \
-                                     CPythonExpressionMixin, MarkGeneratorIndicator, \
+class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
+                                     CPythonParameterHavingNodeBase, CPythonExpressionMixin,
+                                     MarkContainsTryExceptIndicator,
+                                     MarkGeneratorIndicator,
                                      MarkLocalsDictIndicator, MarkUnoptimizedFunctionIndicator ):
     # We really want these many ancestors, as per design, we add properties via base class
     # mixins a lot, pylint: disable=R0901

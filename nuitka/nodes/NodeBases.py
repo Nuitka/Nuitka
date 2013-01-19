@@ -428,19 +428,14 @@ class CPythonCodeNodeBase( CPythonNodeBase ):
 
     def getCodeName( self ):
         if self.code_name is None:
-            search = self.parent
+            provider = self.getParentVariableProvider()
+            parent_name = provider.getCodeName()
 
-            while search is not None:
-                if isinstance( search, CPythonCodeNodeBase ):
-                    break
+            uid = "_%d" % provider.getChildUID( self )
 
-                search = search.parent
+            assert isinstance( self, CPythonCodeNodeBase )
 
-            parent_name = search.getCodeName()
-
-            uid = "_%d" % search.getChildUID( self )
-
-            if isinstance( self, CPythonCodeNodeBase ) and self.name:
+            if self.name:
                 name = uid + "_" + self.name
             else:
                 name = uid
@@ -639,6 +634,8 @@ class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
 
         self.providing = OrderedDict()
 
+        self.temp_keeper_count = 0
+
     def hasProvidedVariable( self, variable_name ):
         return variable_name in self.providing
 
@@ -688,6 +685,13 @@ class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
                     del self.providing[ variable.getName() ]
 
 
+    def allocateTempKeeperName( self ):
+        self.temp_keeper_count += 1
+
+        return "keeper_%d" % self.temp_keeper_count
+
+
+
 class CPythonParameterHavingNodeBase( CPythonClosureGiverNodeBase ):
     def __init__( self, name, code_prefix, parameters, source_ref ):
         CPythonClosureGiverNodeBase.__init__(
@@ -722,8 +726,6 @@ class CPythonClosureTaker:
         self.taken = set()
 
         self.temp_variables = set()
-
-        self.temp_keeper_count = 0
 
     def getParentVariableProvider( self ):
         return self.provider
@@ -786,11 +788,6 @@ class CPythonClosureTaker:
         """
 
         return self.early_closure
-
-    def allocateTempKeeperName( self ):
-        self.temp_keeper_count += 1
-
-        return "keeper_%d" % self.temp_keeper_count
 
 
 class CPythonExpressionMixin:

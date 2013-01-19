@@ -36,7 +36,7 @@ from nuitka import (
 
 from nuitka.oset import OrderedSet
 
-class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureGiverNodeBase, \
+class CPythonModule( CPythonChildrenHaving, CPythonClosureGiverNodeBase,
                      MarkContainsTryExceptIndicator ):
     """ Module
 
@@ -60,12 +60,6 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureG
             source_ref  = source_ref
         )
 
-        CPythonClosureTaker.__init__(
-            self,
-            provider      = self,
-            early_closure = True
-        )
-
         CPythonChildrenHaving.__init__(
             self,
             values = {}
@@ -86,6 +80,9 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureG
 
     getBody = CPythonChildrenHaving.childGetter( "body" )
     setBody = CPythonChildrenHaving.childSetter( "body" )
+
+    def getParentVariableProvider( self ):
+        return None
 
     def getVariables( self ):
         return self.variables

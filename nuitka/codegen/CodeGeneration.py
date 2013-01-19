@@ -44,18 +44,20 @@ def mangleAttributeName( attribute_name, node ):
 
     seen_function = False
 
-    while node is not None:
-        node = node.getParent()
+    while True:
+        node = node.getParentVariableProvider()
 
-        if node is None:
+        if node.isModule():
             break
 
-        if node.isExpressionFunctionBody() and node.isClassDictCreation():
+        assert node.isExpressionFunctionBody()
+
+        if node.isClassDictCreation():
             if seen_function:
                 return "_" + node.getName() + attribute_name
             else:
                 return attribute_name
-        elif node.isExpressionFunctionBody():
+        else:
             seen_function = True
 
     return attribute_name
