@@ -2957,8 +2957,8 @@ def getDictOperationRemoveCode( dict_identifier, key_identifier ):
     )
 
 def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes, locals_identifier,
-                            is_class, context ):
-    return_code = CodeTemplates.frame_guard_cpp_return if is_class else CodeTemplates.frame_guard_python_return
+                            is_direct, context ):
+    return_code = CodeTemplates.frame_guard_cpp_return if is_direct else CodeTemplates.frame_guard_python_return
     tb_making = getTracebackMakingIdentifier( context )
 
     return CodeTemplates.frame_guard_full_template % {

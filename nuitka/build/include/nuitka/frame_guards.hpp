@@ -483,6 +483,24 @@ public:
         frame_object->f_lineno = lineno;
     }
 
+    PyFrameObject *getFrame() const
+    {
+        return INCREASE_REFCOUNT( this->getFrame0() );
+    }
+
+    PyFrameObject *getFrame0() const
+    {
+        return PyThreadState_GET()->frame;
+    }
+
+    void preserveExistingException()
+    {
+    }
+
+
+    void detachFrame( void )
+    {
+    }
 };
 
 #endif

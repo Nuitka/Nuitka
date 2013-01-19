@@ -193,6 +193,7 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
     if frame:
         return CPythonStatementsFrame(
             statements    = statements,
+            guard_mode    = "generator" if provider.isGenerator() else "full",
             arg_names     = provider.getParameters().getCoArgNames(),
             kw_only_count = provider.getParameters().getKwOnlyParameterCount(),
             code_name     = provider.getFunctionName(),
@@ -1079,6 +1080,7 @@ def buildLambdaNode( provider, node, source_ref ):
 
     body = CPythonStatementsFrame(
         statements    = ( body, ),
+        guard_mode    = "generator" if function_body.isGenerator() else "full",
         arg_names     = function_body.getParameters().getCoArgNames(),
         kw_only_count = function_body.getParameters().getKwOnlyParameterCount(),
         code_name     = "<lambda>",
@@ -1415,12 +1417,12 @@ def buildCallNode( provider, node, source_ref ):
     dict_star_arg   = buildNode( provider, node.kwargs, source_ref, True )
 
     return makeCallNode(
-           called          = buildNode( provider, node.func, source_ref ),
-            positional_args = positional_args,
-            pairs           = pairs,
-            list_star_arg   = list_star_arg,
-            dict_star_arg   = dict_star_arg,
-            source_ref      = source_ref,
+        called          = buildNode( provider, node.func, source_ref ),
+        positional_args = positional_args,
+        pairs           = pairs,
+        list_star_arg   = list_star_arg,
+        dict_star_arg   = dict_star_arg,
+        source_ref      = source_ref,
     )
 
 
@@ -2165,6 +2167,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
     function_body.setBody(
         CPythonStatementsFrame(
             statements    = [ temp_block ],
+            guard_mode    = "pass_through" if emit_class is not CPythonExpressionYield else "generator",
             arg_names     = (),
             kw_only_count = 0,
             code_name     = "contraction",

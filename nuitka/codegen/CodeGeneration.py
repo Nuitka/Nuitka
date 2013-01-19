@@ -2082,52 +2082,52 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
 
     if statement_sequence.isStatementsFrame():
         provider = statement_sequence.getParentVariableProvider()
+        assert provider.isExpressionFunctionBody()
+
         source_ref = statement_sequence.getSourceReference()
 
-        if provider.isExpressionFunctionBody():
-            # TODO: Finalization should say this or these should be difference nodes outright.
+        guard_mode = statement_sequence.getGuardMode()
 
-            if provider.isGenerator():
-                code = Generator.getFrameGuardLightCode(
-                    frame_identifier  = provider.getCodeName(),
-                    code_identifier   = context.getCodeObjectHandle(
-                        filename      = source_ref.getFilename(),
-                        arg_names     = statement_sequence.getArgNames(),
-                        kw_only_count = statement_sequence.getKwOnlyParameterCount(),
-                        line_number   = source_ref.getLineNumber(),
-                        code_name     = statement_sequence.getCodeObjectName(),
-                        is_generator  = True
-                    ),
-                    codes            = codes,
-                    context          = context
-                )
-            # TODO: This is probably not correct for Python3.
-            elif provider.code_prefix == "listcontr":
-                code = Generator.getFrameGuardVeryLightCode(
-                    codes = codes,
-                )
-            else:
-                code = Generator.getFrameGuardHeavyCode(
-                    frame_identifier  = provider.getCodeName(),
-                    code_identifier   = context.getCodeObjectHandle(
-                        filename      = source_ref.getFilename(),
-                        arg_names     = statement_sequence.getArgNames(),
-                        kw_only_count = statement_sequence.getKwOnlyParameterCount(),
-                        line_number   = source_ref.getLineNumber(),
-                        code_name     = statement_sequence.getCodeObjectName(),
-                        is_generator  = False,
-                    ),
-                    locals_identifier = Generator.getLoadLocalsCode(
-                        context = context,
-                        provider = provider,
-                        mode     = "updated"
-                    ),
-                    is_class          = provider.isExpressionFunctionBody() and provider.isClassDictCreation(),
-                    codes             = codes,
-                    context           = context
-                )
+        if guard_mode == "generator":
+            code = Generator.getFrameGuardLightCode(
+                frame_identifier  = provider.getCodeName(),
+                code_identifier   = context.getCodeObjectHandle(
+                    filename      = source_ref.getFilename(),
+                    arg_names     = statement_sequence.getArgNames(),
+                    kw_only_count = statement_sequence.getKwOnlyParameterCount(),
+                    line_number   = source_ref.getLineNumber(),
+                    code_name     = statement_sequence.getCodeObjectName(),
+                    is_generator  = True
+                ),
+                codes            = codes,
+                context          = context
+            )
+        elif guard_mode == "pass_through":
+            code = Generator.getFrameGuardVeryLightCode(
+                codes = codes,
+            )
+        elif guard_mode == "full":
+            code = Generator.getFrameGuardHeavyCode(
+                frame_identifier  = provider.getCodeName(),
+                code_identifier   = context.getCodeObjectHandle(
+                    filename      = source_ref.getFilename(),
+                    arg_names     = statement_sequence.getArgNames(),
+                    kw_only_count = statement_sequence.getKwOnlyParameterCount(),
+                    line_number   = source_ref.getLineNumber(),
+                    code_name     = statement_sequence.getCodeObjectName(),
+                    is_generator  = False,
+                ),
+                locals_identifier = Generator.getLoadLocalsCode(
+                    context = context,
+                    provider = provider,
+                    mode     = "updated"
+                ),
+                is_direct         = provider.isExpressionFunctionBody() and provider.isClassDictCreation() or statement_sequence.code_name == "unused",
+                codes             = codes,
+                context           = context
+            )
         else:
-            assert False, provider
+            assert False, guard_mode
 
         codes = code.split( "\n" )
 

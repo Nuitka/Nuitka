@@ -119,7 +119,7 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
 class CPythonStatementsFrame( CPythonStatementsSequence ):
     kind = "STATEMENTS_FRAME"
 
-    def __init__( self, statements, code_name, arg_names, kw_only_count, source_ref ):
+    def __init__( self, statements, guard_mode, code_name, arg_names, kw_only_count, source_ref ):
         CPythonStatementsSequence.__init__(
             self,
             statements = statements,
@@ -131,11 +131,17 @@ class CPythonStatementsFrame( CPythonStatementsSequence ):
 
         self.kw_only_count = kw_only_count
 
+        self.guard_mode = guard_mode
+
     def getDetails( self ):
         return {
-            "code_name" : self.code_name,
-            "arg_names" : self.arg_names
+            "code_name"  : self.code_name,
+            "arg_names"  : self.arg_names,
+            "guard_mode" : self.guard_mode
         }
+
+    def getGuardMode( self ):
+        return self.guard_mode
 
     def getArgNames( self ):
         return self.arg_names
