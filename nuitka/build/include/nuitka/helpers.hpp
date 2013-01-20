@@ -36,6 +36,11 @@ typedef struct {
     PyObject *md_dict;
 } PyModuleObject;
 
+// These two express if a directly called function should be exported (C++ level) or if it
+// can be local to the file.
+#define NUITKA_CROSS_MODULE
+#define NUITKA_LOCAL_MODULE static
+
 extern void PRINT_ITEM_TO( PyObject *file, PyObject *object );
 static PyObject *INCREASE_REFCOUNT( PyObject *object );
 static PyObject *INCREASE_REFCOUNT_X( PyObject *object );
@@ -209,7 +214,7 @@ static char const *GET_CALLABLE_NAME( PyObject *object )
     }
     else if ( PyClass_Check( object ) )
     {
-        return Nuitka_String_AsString(((PyClassObject*)object)->cl_name );
+        return Nuitka_String_AsString( ((PyClassObject*)object)->cl_name );
     }
 #endif
     else if ( PyCFunction_Check( object ) )

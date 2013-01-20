@@ -81,6 +81,9 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureGiverNodeBase,
     getBody = CPythonChildrenHaving.childGetter( "body" )
     setBody = CPythonChildrenHaving.childSetter( "body" )
 
+    def getParent( self ):
+        assert False
+
     def getParentVariableProvider( self ):
         return None
 

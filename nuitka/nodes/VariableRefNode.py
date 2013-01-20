@@ -257,9 +257,6 @@ class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
 
     named_children = ( "body", )
 
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
-
     def __init__( self, source_ref ):
         CPythonNodeBase.__init__(
             self,
@@ -274,6 +271,9 @@ class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
         )
 
         self.temp_variables = set()
+
+    getBody = CPythonChildrenHaving.childGetter( "body" )
+    setBody = CPythonChildrenHaving.childSetter( "body" )
 
     def getTempVariable( self, name ):
         assert name not in self.temp_variables

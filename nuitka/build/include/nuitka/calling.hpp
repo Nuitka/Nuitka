@@ -461,30 +461,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_KEYARGS_STAR_LIST( EVA
     }
 }
 
-#define CALL_FUNCTION_WITH_STAR_LIST( function_object, list_star_arg ) _CALL_FUNCTION_WITH_STAR_LIST( EVAL_ORDERED_2( function_object, list_star_arg ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_STAR_LIST( EVAL_ORDERED_2( PyObject *function_object, PyObject *list_star_arg ) )
-{
-    // The list star arg could just as well have been an argument tuple, so
-    // this can is easy.
-    PyObject *list_star_arg_tuple = STAR_LIST_ARG_AS_TUPLE( function_object, list_star_arg );
-
-    if ( list_star_arg_tuple == list_star_arg )
-    {
-        return CALL_FUNCTION_WITH_POSARGS(
-            function_object,
-            list_star_arg_tuple
-        );
-    }
-    else
-    {
-        return CALL_FUNCTION_WITH_POSARGS(
-            function_object,
-            PyObjectTemporary( list_star_arg_tuple ).asObject()
-        );
-    }
-}
-
 #define CALL_FUNCTION_WITH_POSARGS_STAR_LIST_STAR_DICT( function_object, positional_args, list_star_arg, dict_star_arg ) _CALL_FUNCTION_WITH_POSARGS_STAR_LIST_STAR_DICT( EVAL_ORDERED_4( function_object, positional_args, list_star_arg, dict_star_arg ) )
 
 NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_POSARGS_STAR_LIST_STAR_DICT( EVAL_ORDERED_4( PyObject *function_object, PyObject *positional_args, PyObject *list_star_arg, PyObject *dict_star_arg ) )

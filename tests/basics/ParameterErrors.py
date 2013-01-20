@@ -198,3 +198,40 @@ try:
     functionWithDefaults(*a,**b)
 except TypeError, e:
     print repr(e)
+
+try:
+    a = 1
+
+    functionWithDefaults(*a)
+except TypeError, e:
+    print repr(e)
+
+
+try:
+    a = 1
+
+    MethodContainer(*a)
+except TypeError, e:
+    print repr(e)
+
+
+try:
+    a = 1
+
+    MethodContainer()(*a)
+except TypeError, e:
+    print repr(e)
+
+try:
+    a = 1
+
+    MethodContainer.methodTwoParameters(*a)
+except TypeError, e:
+    print repr(e)
+
+try:
+    a = 1
+
+    None(*a)
+except TypeError, e:
+    print repr(e)

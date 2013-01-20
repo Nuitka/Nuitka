@@ -1430,6 +1430,7 @@ def buildCallNode( provider, node, source_ref ):
     dict_star_arg   = buildNode( provider, node.kwargs, source_ref, True )
 
     return makeCallNode(
+        provider        = provider,
         called          = buildNode( provider, node.func, source_ref ),
         positional_args = positional_args,
         pairs           = pairs,

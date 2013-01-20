@@ -25,9 +25,6 @@
 template_call_star_dict = """\
 CALL_FUNCTION_WITH_STAR_DICT( %(function)s, %(star_dict_arg)s )"""
 
-template_call_star_list = """\
-CALL_FUNCTION_WITH_STAR_LIST( %(function)s, %(star_list_arg)s )"""
-
 template_call_star_list_star_dict = """\
 CALL_FUNCTION_WITH_STAR_LIST_STAR_DICT( %(function)s, %(star_list_arg)s, %(star_dict_arg)s )"""
 

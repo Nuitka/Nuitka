@@ -270,13 +270,7 @@ def _getCallNoStarArgsCode( called_identifier, argument_tuple, argument_dictiona
 def _getCallListStarArgsCode( called_identifier, argument_tuple, argument_dictionary, star_list_identifier ):
     if argument_dictionary is None:
         if argument_tuple is None:
-            return Identifier(
-                CodeTemplates.template_call_star_list % {
-                    "function"      : called_identifier.getCodeTemporaryRef(),
-                    "star_list_arg" : star_list_identifier.getCodeTemporaryRef()
-                },
-                1
-            )
+            assert False
         else:
             return Identifier(
                 CodeTemplates.template_call_pos_star_list % {
@@ -1869,9 +1863,10 @@ def getModuleCode( context, module_name, package_name, codes, tmp_keepers,
 
     return header + module_code
 
-def getModuleDeclarationCode( module_name ):
+def getModuleDeclarationCode( module_name, extra_declarations ):
     module_header_code = CodeTemplates.module_header_template % {
-        "module_identifier" : getModuleIdentifier( module_name ),
+        "module_identifier"  : getModuleIdentifier( module_name ),
+        "extra_declarations" : extra_declarations
     }
 
     return CodeTemplates.template_header_guard % {
@@ -1940,8 +1935,7 @@ def _extractArgNames( args ):
 def getFunctionDecl( context, function_identifier, defaults_identifier, kw_defaults_identifier,
                      closure_variables, function_parameter_variables ):
 
-    if context.function.needsCreation():
-        # TODO: These two branches probably mean it's two different things.
+    if context.isForCreatedFunction():
         function_creation_arg_spec = _getFunctionCreationArgs(
             defaults_identifier    = defaults_identifier,
             kw_defaults_identifier = kw_defaults_identifier,
@@ -1974,10 +1968,18 @@ def getFunctionDecl( context, function_identifier, defaults_identifier, kw_defau
                 closure_variable.getDeclarationCode()
             )
 
-        return CodeTemplates.template_function_direct_declaration % {
+        result = CodeTemplates.template_function_direct_declaration % {
+            "file_scope"             : context.getExportScope(),
             "function_identifier"    : function_identifier,
             "parameter_objects_decl" : ", ".join( parameter_objects_decl ),
         }
+
+        if context.isForCrossModuleUsage():
+            context.addExportDeclarations( result )
+
+            return ""
+        else:
+            return result
 
 # TODO: Move this to VariableCodes, it's that subject.
 def _getLocalVariableInitCode( context, variable, init_from = None, in_context = False ):
@@ -2051,9 +2053,8 @@ def _getFuncKwDefaultValue( kw_defaults_identifier ):
 
 def getGeneratorFunctionCode( context, function_name, function_identifier, parameters,
                               closure_variables, user_variables, defaults_identifier,
-                              kw_defaults_identifier, annotations_identifier,
-                              tmp_keepers, function_codes, needs_creation,
-                              needs_return, source_ref, function_doc ):
+                              kw_defaults_identifier, annotations_identifier, tmp_keepers,
+                              function_codes, needs_return, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
 
@@ -2061,7 +2062,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         function_identifier     = function_identifier,
         function_name           = function_name,
         parameters              = parameters,
-        needs_creation          = needs_creation,
+        needs_creation          = context.isForCreatedFunction(),
         context                 = context,
     )
 
@@ -2155,7 +2156,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 
     instance_context_decl = function_parameter_decl + local_var_decl
 
-    if not needs_creation:
+    if context.isForDirectCall():
         instance_context_decl = context_decl + instance_context_decl
         context_decl = []
 
@@ -2221,7 +2222,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 
         context_making = context_making.split( "\n" )
 
-        if not needs_creation:
+        if context.isForDirectCall():
             context_making += context_copy
 
         generator_making = CodeTemplates.genfunc_generator_with_context_making  % {
@@ -2238,7 +2239,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 
         context_making = []
 
-    if not needs_creation:
+    if context.isForDirectCall():
         for closure_variable in closure_variables:
             parameter_objects_decl.append(
                 closure_variable.getDeclarationCode()
@@ -2268,7 +2269,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
             constant = {}
         )
 
-    if needs_creation:
+    if context.isForCreatedFunction():
         result += entry_point_code
 
         if context_decl:
@@ -2327,7 +2328,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 
 def getFunctionCode( context, function_name, function_identifier, parameters, closure_variables,
                      user_variables, tmp_keepers, defaults_identifier, kw_defaults_identifier,
-                     annotations_identifier, function_codes, needs_creation, source_ref, function_doc ):
+                     annotations_identifier, function_codes, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
 
@@ -2335,7 +2336,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         function_identifier     = function_identifier,
         function_name           = function_name,
         parameters              = parameters,
-        needs_creation          = needs_creation,
+        needs_creation          = context.isForCreatedFunction(),
         context                 = context,
     )
 
@@ -2405,40 +2406,49 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
 
     result = ""
 
-    if context_decl and needs_creation:
+    if context_decl and context.isForCreatedFunction():
         result += CodeTemplates.function_context_body_template % {
             "function_identifier" : function_identifier,
             "context_decl"        : indented( context_decl ),
             "context_free"        : indented( context_free ),
         }
 
-    if closure_variables and needs_creation:
+    if closure_variables and context.isForCreatedFunction():
         context_access_function_impl = CodeTemplates.function_context_access_template % {
             "function_identifier" : function_identifier,
         }
     else:
         context_access_function_impl = str( CodeTemplates.function_context_unused_template )
 
-    if not needs_creation:
-        for closure_variable in closure_variables:
-            parameter_objects_decl.append(
-                closure_variable.getDeclarationCode()
-            )
-
     function_name_obj = getConstantCode(
         context  = context,
         constant = function_name
     )
 
-    result += CodeTemplates.function_body_template % {
-        "function_identifier"          : function_identifier,
-        "context_access_function_impl" : context_access_function_impl,
-        "parameter_objects_decl"       : ", ".join( parameter_objects_decl ),
-        "function_locals"              : indented( function_locals ),
-        "function_body"                : indented( function_codes ),
-    }
+    if context.isForDirectCall():
+        for closure_variable in closure_variables:
+            parameter_objects_decl.append(
+                closure_variable.getDeclarationCode()
+            )
 
-    if needs_creation:
+        result += CodeTemplates.function_direct_body_template % {
+            "file_scope"                   : context.getExportScope(),
+            "function_identifier"          : function_identifier,
+            "context_access_function_impl" : context_access_function_impl,
+            "parameter_objects_decl"       : ", ".join( parameter_objects_decl ),
+            "function_locals"              : indented( function_locals ),
+            "function_body"                : indented( function_codes ),
+        }
+    else:
+        result += CodeTemplates.function_body_template % {
+            "function_identifier"          : function_identifier,
+            "context_access_function_impl" : context_access_function_impl,
+            "parameter_objects_decl"       : ", ".join( parameter_objects_decl ),
+            "function_locals"              : indented( function_locals ),
+            "function_body"                : indented( function_codes ),
+        }
+
+    if context.isForCreatedFunction():
         result += entry_point_code
 
     func_defaults = _getFuncDefaultValue(
@@ -2456,7 +2466,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
             constant = {}
         )
 
-    if needs_creation:
+    if context.isForCreatedFunction():
         code_identifier = context.getCodeObjectHandle(
             filename      = source_ref.getFilename(),
             arg_names     = parameters.getCoArgNames(),
@@ -2963,10 +2973,7 @@ def getDictOperationRemoveCode( dict_identifier, key_identifier ):
     )
 
 def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes, locals_identifier, context ):
-    # TODO: Actually that will become possible to happen and should be dealt with.
-    assert not context.function.needsCreation() or not context.function.needsDirectCall()
-
-    if context.function.needsDirectCall():
+    if context.isForDirectCall():
         return_code = CodeTemplates.frame_guard_cpp_return
     else:
         return_code = CodeTemplates.frame_guard_python_return

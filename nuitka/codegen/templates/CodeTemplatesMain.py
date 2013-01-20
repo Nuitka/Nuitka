@@ -231,6 +231,8 @@ class PyObjectGlobalVariable_%(module_identifier)s
         Nuitka_StringObject **var_name;
 };
 
+// Declarations from this module to other modules if any.
+%(extra_declarations)s
 """
 
 module_body_template = """

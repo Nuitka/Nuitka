@@ -114,6 +114,9 @@ class PythonChildContextBase( PythonContextBase ):
     def addGlobalVariableNameUsage( self, var_name ):
         self.parent.addGlobalVariableNameUsage( var_name )
 
+    def addExportDeclarations( self, declarations ):
+        self.parent.addExportDeclarations( declarations )
+
     def getModuleCodeName( self ):
         return self.parent.getModuleCodeName()
 
@@ -291,6 +294,8 @@ class PythonModuleContext( PythonContextBase ):
 
         self.temp_keepers = {}
 
+        self.export_declarations = []
+
     def __repr__( self ):
         return "<PythonModuleContext instance for module %s>" % self.filename
 
@@ -360,12 +365,17 @@ class PythonModuleContext( PythonContextBase ):
     def addMakeDictUse( self, value ):
         self.global_context.addMakeDictUse( value )
 
+    def addExportDeclarations( self, declarations ):
+        self.export_declarations.append( declarations )
+
     def addTempKeeperUsage( self, variable_name, ref_count ):
         self.temp_keepers[ variable_name ] = ref_count
 
     def getTempKeeperUsages( self ):
         return self.temp_keepers
 
+    def getExportDeclarations( self ):
+        return "\n".join( self.export_declarations )
 
 
 class PythonFunctionContext( PythonChildContextBase ):
@@ -381,6 +391,8 @@ class PythonFunctionContext( PythonChildContextBase ):
             self.getConstantHandle( constant = local_name )
 
         self.temp_keepers = {}
+
+        self.guard_mode = None
 
     def __repr__( self ):
         return "<PythonFunctionContext for %s '%s'>" % (
@@ -403,11 +415,21 @@ class PythonFunctionContext( PythonChildContextBase ):
         else:
             return Identifier( "frame_guard.getFrame()", 1 )
 
+    def getFrameGuardMode( self ):
+        return self.guard_mode
+
+    def setFrameGuardMode( self, guard_mode ):
+        self.guard_mode = guard_mode
+
     def getFrameGuardClass( self ):
-        if self.function.isGenerator():
+        if self.guard_mode == "generator":
             return "FrameGuardLight"
-        else:
+        elif self.guard_mode == "full":
             return "FrameGuard"
+        elif self.guard_mode == "pass_through":
+            return "FrameGuardVeryLight"
+        else:
+            assert False, (self, self.guard_mode)
 
     def getLocalHandle( self, var_name ):
         return LocalVariableIdentifier( var_name, from_context = self.function.isGenerator() )
@@ -429,6 +451,28 @@ class PythonFunctionContext( PythonChildContextBase ):
 
     def getTempKeeperUsages( self ):
         return self.temp_keepers
+
+
+class PythonFunctionDirectContext( PythonFunctionContext ):
+    def isForDirectCall( self ):
+        return True
+
+    def getExportScope( self ):
+        return "NUITKA_CROSS_MODULE" if self.function.isCrossModuleUsed() else "NUITKA_LOCAL_MODULE"
+
+    def isForCrossModuleUsage( self ):
+        return self.function.isCrossModuleUsed()
+
+    def isForCreatedFunction( self ):
+        return False
+
+
+class PythonFunctionCreatedContext( PythonFunctionContext ):
+    def isForDirectCall( self ):
+        return False
+
+    def isForCreatedFunction( self ):
+        return True
 
 
 class PythonExecInlineContext( PythonChildContextBase ):

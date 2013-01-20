@@ -429,42 +429,6 @@ private:
 #endif
 };
 
-#if PYTHON_VERSION >= 300
-class ExceptionRestorerFrameGuard
-{
-public:
-    explicit ExceptionRestorerFrameGuard( FrameGuard *frame_guard )
-    {
-        this->frame_guard = frame_guard;
-    }
-
-    ~ExceptionRestorerFrameGuard()
-    {
-        this->frame_guard->restoreExistingException();
-    }
-
-private:
-    FrameGuard *frame_guard;
-};
-
-class ExceptionRestorerFrameGuardLight
-{
-public:
-    explicit ExceptionRestorerFrameGuardLight( FrameGuardLight *frame_guard )
-    {
-        this->frame_guard = frame_guard;
-    }
-
-    ~ExceptionRestorerFrameGuardLight()
-    {
-        this->frame_guard->restoreExistingException();
-    }
-
-private:
-    FrameGuardLight *frame_guard;
-};
-#endif
-
 class FrameGuardVeryLight
 {
 public:
@@ -501,6 +465,68 @@ public:
     void detachFrame( void )
     {
     }
+
+#if PYTHON_VERSION >= 300
+    void restoreExistingException()
+    {
+    }
+#endif
 };
+
+
+#if PYTHON_VERSION >= 300
+class ExceptionRestorerFrameGuard
+{
+public:
+    explicit ExceptionRestorerFrameGuard( FrameGuard *frame_guard )
+    {
+        this->frame_guard = frame_guard;
+    }
+
+    ~ExceptionRestorerFrameGuard()
+    {
+        this->frame_guard->restoreExistingException();
+    }
+
+private:
+    FrameGuard *frame_guard;
+};
+
+class ExceptionRestorerFrameGuardLight
+{
+public:
+    explicit ExceptionRestorerFrameGuardLight( FrameGuardLight *frame_guard )
+    {
+        this->frame_guard = frame_guard;
+    }
+
+    ~ExceptionRestorerFrameGuardLight()
+    {
+        this->frame_guard->restoreExistingException();
+    }
+
+private:
+    FrameGuardLight *frame_guard;
+};
+
+class ExceptionRestorerFrameGuardVeryLight
+{
+public:
+    explicit ExceptionRestorerFrameGuardVeryLight( FrameGuardVeryLight *frame_guard )
+    {
+        this->frame_guard = frame_guard;
+    }
+
+    ~ExceptionRestorerFrameGuardVeryLight()
+    {
+        this->frame_guard->restoreExistingException();
+    }
+
+private:
+    FrameGuardVeryLight *frame_guard;
+};
+
+#endif
+
 
 #endif

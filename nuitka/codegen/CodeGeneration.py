@@ -291,11 +291,21 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
     if function_identifier in _generated_functions:
         return _generated_functions[ function_identifier ]
 
-    function_context = Contexts.PythonFunctionContext(
-        parent   = context,
-        function = function_body
-    )
+    # TODO: Actually that will become possible to happen and should be dealt with.
+    assert not function_body.needsCreation() or not function_body.needsDirectCall()
 
+    if function_body.needsCreation():
+        function_context = Contexts.PythonFunctionCreatedContext(
+            parent   = context,
+            function = function_body
+        )
+    else:
+        function_context = Contexts.PythonFunctionDirectContext(
+            parent   = context,
+            function = function_body
+        )
+
+    # TODO: Generate both codes, and base direct/etc. decisions on context.
     function_codes = generateStatementSequenceCode(
         statement_sequence = function_body.getBody(),
         allow_none         = True,
@@ -348,7 +358,6 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
             defaults_identifier    = defaults_identifier,
             kw_defaults_identifier = kw_defaults_identifier,
             annotations_identifier = annotations_identifier,
-            needs_creation         = function_body.needsCreation(),
             needs_return           = function_body.needsExceptionGeneratorReturn(),
             source_ref             = function_body.getSourceReference(),
             function_codes         = function_codes,
@@ -366,7 +375,6 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
             defaults_identifier    = defaults_identifier,
             kw_defaults_identifier = kw_defaults_identifier,
             annotations_identifier = annotations_identifier,
-            needs_creation         = function_body.needsCreation(),
             source_ref             = function_body.getSourceReference(),
             function_codes         = function_codes,
             function_doc           = function_body.getDoc()
@@ -2045,6 +2053,10 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
 
     assert statement_sequence.isStatementsSequence(), statement_sequence
 
+    if statement_sequence.isStatementsFrame():
+        guard_mode = statement_sequence.getGuardMode()
+        context.setFrameGuardMode( guard_mode )
+
     statements = statement_sequence.getStatements()
 
     codes = []
@@ -2105,8 +2117,6 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
         assert provider.isExpressionFunctionBody()
 
         source_ref = statement_sequence.getSourceReference()
-
-        guard_mode = statement_sequence.getGuardMode()
 
         if guard_mode == "generator":
             code = Generator.getFrameGuardLightCode(
@@ -2181,7 +2191,7 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
     else:
         path_identifier = None
 
-    return Generator.getModuleCode(
+    source_code = Generator.getModuleCode(
         module_name        = module_name,
         package_name       = module.getPackage(),
         doc_identifier     = context.getConstantHandle(
@@ -2199,9 +2209,12 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
         context             = context,
     )
 
-def generateModuleDeclarationCode( module_name ):
+    return source_code, context
+
+def generateModuleDeclarationCode( module_name, context ):
     return Generator.getModuleDeclarationCode(
-        module_name = module_name
+        module_name        = module_name,
+        extra_declarations = context.getExportDeclarations()
     )
 
 def generateMainCode( context, codes ):

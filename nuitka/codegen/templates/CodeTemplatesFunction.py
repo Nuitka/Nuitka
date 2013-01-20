@@ -26,7 +26,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
 """
 
 template_function_direct_declaration = """\
-static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s );
+%(file_scope)s PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s );
 """
 
 function_context_body_template = """
@@ -111,6 +111,22 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
     return INCREASE_REFCOUNT( Py_None );
 }
 """
+
+function_direct_body_template = """\
+%(file_scope)s PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
+{
+%(context_access_function_impl)s
+
+    // Local variable declarations.
+%(function_locals)s
+
+    // Actual function code.
+%(function_body)s
+
+    return INCREASE_REFCOUNT( Py_None );
+}
+"""
+
 
 function_dict_setup = """\
 // Locals dictionary setup.

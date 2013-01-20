@@ -147,6 +147,9 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
         # Indicator if the function is called directly.
         self.needs_direct = False
 
+        # Indicator if the function is used outside of where it's defined.
+        self.cross_module_use = False
+
     def getDetails( self ):
         return {
             "name"       : self.getFunctionName(),
@@ -154,6 +157,9 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
             "provider"   : self.provider,
             "doc"        : self.doc
         }
+
+    def getParent( self ):
+        assert False
 
     def isClassDictCreation( self ):
         return self.is_class
@@ -306,6 +312,12 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
 
     def markAsDirectlyCalled( self ):
         self.needs_direct = True
+
+    def isCrossModuleUsed( self ):
+        return self.cross_module_use
+
+    def markAsCrossModuleUsed( self ):
+        self.cross_module_use = True
 
     def computeNode( self, constraint_collection ):
         # Function body is quite irreplacable.

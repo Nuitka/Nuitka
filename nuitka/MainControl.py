@@ -215,7 +215,7 @@ def makeSourceDirectory( main_module ):
     for module in sorted( modules, key = lambda x : x.getFullName() ):
         cpp_filename, hpp_filename = module_filenames[ module ]
 
-        source_code = CodeGeneration.generateModuleCode(
+        source_code, module_context = CodeGeneration.generateModuleCode(
             global_context = global_context,
             module         = module,
             module_name    = module.getFullName(),
@@ -239,7 +239,8 @@ def makeSourceDirectory( main_module ):
         writeSourceCode(
             filename     = hpp_filename,
             source_code  = CodeGeneration.generateModuleDeclarationCode(
-                module_name = module.getFullName()
+                module_name = module.getFullName(),
+                context     = module_context
             )
         )
 

@@ -19,7 +19,7 @@
 
 """
 
-from types import BuiltinFunctionType
+from types import BuiltinFunctionType, FunctionType, GeneratorType
 
 from nuitka import Utils
 
@@ -101,21 +101,35 @@ builtin_anon_names = {
     "NoneType"                   : type( None ), # Strangely not Python3 types module
     "ellipsis"                   : type( Ellipsis ), # see above
     "NotImplementedType"         : type( NotImplemented ),
+    "function"                   : FunctionType,
     "builtin_function_or_method" : BuiltinFunctionType,
+    "compiled_function"          : BuiltinFunctionType, # Can't really have it any better way.
+    "generator"                  : GeneratorType,
+    "compiled_generator"         : GeneratorType, # Can't really have it any better way.
 }
 
 builtin_anon_codes = {
     "NoneType"                   : "Py_TYPE( Py_None )",
     "ellipsis"                   : "&PyEllipsis_Type",
     "NotImplementedType"         : "Py_TYPE( Py_NotImplemented )",
-    "builtin_function_or_method" : "&PyCFunction_Type"
+    "function"                   : "&PyFunction_Type",
+    "builtin_function_or_method" : "&PyCFunction_Type",
+    "compiled_function"          : "&Nuitka_Function_Type",
+    "compiled_generator"         : "&Nuitka_Generator_Type",
 }
 
 if Utils.python_version < 300:
     class Temp:
-        pass
+        def method():
+            pass
 
     builtin_anon_names[ "classobj" ] = type( Temp )
     builtin_anon_codes[ "classobj" ] = "&PyClass_Type"
+
+    builtin_anon_names[ "instance" ] = type( Temp() )
+    builtin_anon_codes[ "instance" ] = "&PyInstance_Type"
+
+    builtin_anon_names[ "instancemethod" ] = type( Temp().method )
+    builtin_anon_codes[ "instancemethod" ] = "&PyMethod_Type"
 
     del Temp
