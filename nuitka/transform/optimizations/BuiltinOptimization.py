@@ -189,9 +189,9 @@ builtin_vars_spec = BuiltinParameterSpecNoKeywords( "vars", ( "object", ), 1 )
 
 builtin_locals_spec = BuiltinParameterSpecNoKeywords( "locals", (), 0 )
 builtin_globals_spec = BuiltinParameterSpecNoKeywords( "globals", (), 0 )
-builtin_eval_spec = BuiltinParameterSpecNoKeywords( "eval", ("source", "globals", "locals"), 2 )
+builtin_eval_spec = BuiltinParameterSpecNoKeywords( "eval", ( "source", "globals", "locals" ), 2 )
 if python_version >= 300:
-    builtin_exec_spec = BuiltinParameterSpecNoKeywords( "exec", ("source", "globals", "locals"), 2 )
+    builtin_exec_spec = BuiltinParameterSpecNoKeywords( "exec", ( "source", "globals", "locals" ), 2 )
 
 # Note: Iter in fact names its first argument if the default applies "collection", but it
 # won't matter much, fixed up in a wrapper.

@@ -378,6 +378,17 @@ def matchCall( func_name, args, star_list_arg, star_dict_arg, num_defaults, posi
             assign( star_list_arg, () )
     elif 0 < num_args < num_total:
         if num_defaults == 0:
+            if num_args != 1:
+                raise TooManyArguments(
+                    TypeError(
+                        "%s expected %d arguments, got %d" % (
+                            func_name,
+                            num_args,
+                            num_total
+                        )
+                    )
+                )
+
             raise TooManyArguments(
                 TypeError(
                     "%s() takes exactly %s (%d given)" % (
@@ -485,6 +496,17 @@ def matchCall( func_name, args, star_list_arg, star_dict_arg, num_defaults, posi
         num_required = num_args - num_defaults
 
         if num_required > 0 or improved:
+            if num_defaults == 0 and num_args != 1:
+                raise TooManyArguments(
+                    TypeError(
+                        "%s expected %d arguments, got %d" % (
+                            func_name,
+                            num_args,
+                            num_total
+                        )
+                    )
+                )
+
             if num_required == 1:
                 arg_desc = "1 argument"
             else:
