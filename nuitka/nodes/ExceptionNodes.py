@@ -109,6 +109,17 @@ class CPythonExpressionRaiseException( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
+    def willRaiseException( self, exception_type ):
+        # Virtual method, pylint: disable=R0201,W0613
+
+        # One thing is clear, it will raise. TODO: Match exception_type more closely if it
+        # is predictable.
+        if exception_type is BaseException:
+            return True
+        else:
+            return False
+
+
     getExceptionType = CPythonExpressionChildrenHavingBase.childGetter( "exception_type" )
     getExceptionValue = CPythonExpressionChildrenHavingBase.childGetter( "exception_value" )
     def computeNode( self, constraint_collection ):

@@ -94,6 +94,7 @@ class VariableUsageTrackingMixin:
             if variable.isTempVariable():
                 variable.setNeedsFree( usage.getNeedsFree() )
 
+
 # TODO: This code is only here while staging it, will live in a dedicated module later on
 class ConstraintCollectionBase:
     def __init__( self, parent, signal_change, copy_of = None ):
@@ -510,6 +511,51 @@ class ConstraintCollectionBase:
                     return None
         elif statement.isStatementPrint():
             self.onStatementUsingChildExpressions( statement )
+
+            dest = statement.getDestination()
+
+            if dest is not None:
+                if dest.willRaiseException( BaseException ):
+                    return makeStatementExpressionOnlyReplacementNode(
+                        expression = statement.getDestination(),
+                        node       = statement
+                    )
+
+            values = statement.getValues()
+
+            for value in values:
+                if value.willRaiseException( BaseException ):
+
+                    # Trim to values up to this only.
+                    values = list( values )[:values.index( value ) ]
+
+                    self.signalChange(
+                        "new_raise new_statements",
+                        statement.getSourceReference(),
+                        "Known exception raise in print statement converted to explicit raise."
+                    )
+
+                    if values:
+                        statement.setValues( values )
+                        statement.removeNewlinePrint()
+
+                        return makeStatementsSequenceReplacementNode(
+                            statements = (
+                                statement,
+                                makeStatementExpressionOnlyReplacementNode(
+                                    expression = value,
+                                    node       = value
+                                ),
+                            ),
+                            node = statement
+                        )
+                    else:
+                        return makeStatementExpressionOnlyReplacementNode(
+                            expression = value,
+                            node       = statement
+                        )
+
+
 
             for printed in statement.getValues():
                 new_node = printed.getStrValue( self )

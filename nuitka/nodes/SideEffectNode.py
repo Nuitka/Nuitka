@@ -76,3 +76,10 @@ class CPythonExpressionSideEffects( CPythonExpressionChildrenHavingBase ):
             return self.getExpression(), "new_expression", "Removed empty side effects."
 
         return self, None, None
+
+    def willRaiseException( self, exception_type ):
+        for child in self.getVisitableNodes():
+            if child.willRaiseException( exception_type ):
+                return True
+        else:
+            return False

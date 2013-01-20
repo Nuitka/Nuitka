@@ -49,6 +49,9 @@ class CPythonStatementPrint( CPythonChildrenHaving, CPythonNodeBase ):
     def isNewlinePrint( self ):
         return self.newline
 
+    def removeNewlinePrint( self ):
+        self.newline = False
+
     getDestination = CPythonChildrenHaving.childGetter( "dest" )
     getValues = CPythonChildrenHaving.childGetter( "values" )
     setValues = CPythonChildrenHaving.childSetter( "values" )

@@ -38,11 +38,7 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
             while node.parent.isExpressionSideEffects():
                 node = node.parent
 
-            if node.parent.isStatementPrint():
-                self.trimEvaluation(
-                    node = node.parent
-                )
-            elif node.parent.isOperation():
+            if node.parent.isOperation():
                 self.trimEvaluation(
                     node = node.parent
                 )

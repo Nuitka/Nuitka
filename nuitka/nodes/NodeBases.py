@@ -355,6 +355,13 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         return True
 
+    def willRaiseException( self, exception_type ):
+        """ Unless we are told otherwise, nothing may raise anything. """
+        # Virtual method, pylint: disable=R0201,W0613
+
+        return False
+
+
     def needsLineNumber( self ):
         return self.mayRaiseException( BaseException )
 
