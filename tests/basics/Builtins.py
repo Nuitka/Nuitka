@@ -209,3 +209,16 @@ print "Can optimize the empty star dict arg away", long(**dict())
 
 print "Dict building with keyword arguments", dict(), dict( a = f )
 print "Dictionary entirely from constant args", dict(q='Guido', w='van', e='Rossum', r='invented', t='Python', y='')
+
+a = 5
+print "Instance check recognises", isinstance( a, int )
+
+try:
+    print "Instance check with too many arguments", isinstance( a, long, int )
+except Exception, e:
+    print "Too many args", repr(e)
+
+try:
+    print "Instance check with too many arguments", isinstance( a )
+except Exception, e:
+    print "Too few args", repr(e)

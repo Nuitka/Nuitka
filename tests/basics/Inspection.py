@@ -24,6 +24,7 @@ def compiledFunction():
 
 assert inspect.isfunction( compiledFunction ) is True
 assert isinstance( compiledFunction, types.FunctionType )
+assert isinstance( compiledFunction, ( int, types.FunctionType ) )
 
 class compiledClass:
    def compiledMethod( self ):

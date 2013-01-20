@@ -1571,11 +1571,11 @@ def getBuiltinSuperCode( type_identifier, object_identifier ):
 
 def getBuiltinIsinstanceCode( inst_identifier, cls_identifier ):
     return Identifier(
-        "BUILTIN_ISINSTANCE( %s, %s )" % (
+        "BOOL_FROM( BUILTIN_ISINSTANCE_BOOL( %s, %s ) )" % (
             inst_identifier.getCodeTemporaryRef(),
             cls_identifier.getCodeTemporaryRef()
         ),
-        1
+        0
     )
 
 def getBuiltinIsinstanceBoolCode( inst_identifier, cls_identifier ):

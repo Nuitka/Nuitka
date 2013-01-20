@@ -268,6 +268,8 @@ void patchInspectModule( void )
 
 }
 
+extern int Nuitka_IsInstance( PyObject *inst, PyObject *cls );
+
 static PyObject *_builtin_isinstance_replacement( PyObject *self, PyObject *args )
 {
     PyObject *inst, *cls;
@@ -277,17 +279,7 @@ static PyObject *_builtin_isinstance_replacement( PyObject *self, PyObject *args
         return NULL;
     }
 
-    if ( cls == (PyObject *)&PyFunction_Type && Nuitka_Function_Check( inst ) )
-    {
-        return INCREASE_REFCOUNT( Py_True );
-    }
-
-    if ( cls == (PyObject *)&PyGen_Type && Nuitka_Generator_Check( inst ) )
-    {
-        return INCREASE_REFCOUNT( Py_True );
-    }
-
-    int res = PyObject_IsInstance( inst, cls );
+    int res = Nuitka_IsInstance( inst, cls );
 
     if (unlikely( res < 0 ))
     {

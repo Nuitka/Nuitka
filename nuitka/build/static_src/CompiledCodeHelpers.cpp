@@ -1479,47 +1479,65 @@ PyObject *BUILTIN_CALLABLE( PyObject *value )
     return PyBool_FromLong( (long)PyCallable_Check( value ) );
 }
 
-PyObject *_BUILTIN_ISINSTANCE( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) )
+// Used by InspectPatcher too.
+int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
 {
     assertObject( inst );
     assertObject( cls );
 
+    // Quick path.
+    if ( Py_TYPE( inst ) == (PyTypeObject *)cls )
+    {
+        return true;
+    }
+
     if ( cls == (PyObject *)&PyFunction_Type && Nuitka_Function_Check( inst ) )
     {
-        return INCREASE_REFCOUNT( Py_True );
+        return true;
     }
 
     if ( cls == (PyObject *)&PyGen_Type && Nuitka_Generator_Check( inst ) )
     {
-        return INCREASE_REFCOUNT( Py_True );
+        return true;
     }
 
-    int res = PyObject_IsInstance( inst, cls );
-
-    if (unlikely( res < 0 ))
+    if ( cls == (PyObject *)&PyMethod_Type && Nuitka_Method_Check( inst ) )
     {
-        throw _PythonException();
+        return true;
     }
 
-    return PyBool_FromLong( res );
+    if ( PyTuple_Check( cls ) )
+    {
+        for ( Py_ssize_t i = 0, size = PyTuple_GET_SIZE( cls ); i < size; i++ )
+        {
+            PyObject *element = PyTuple_GET_ITEM( cls, i );
+
+            if (unlikely( Py_EnterRecursiveCall( (char *)" in __instancecheck__" ) ))
+            {
+                return -1;
+            }
+
+            int res = Nuitka_IsInstance( inst, element );
+
+            Py_LeaveRecursiveCall();
+
+            if ( res != 0 )
+            {
+                return res;
+            }
+        }
+
+        return 0;
+    }
+    else
+    {
+        return PyObject_IsInstance( inst, cls );
+    }
 }
 
 bool _BUILTIN_ISINSTANCE_BOOL( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) )
 {
-    assertObject( inst );
-    assertObject( cls );
-
-    if ( cls == (PyObject *)&PyFunction_Type && Nuitka_Function_Check( inst ) )
-    {
-        return true;
-    }
-
-    if ( cls == (PyObject *)&PyGen_Type && Nuitka_Generator_Check( inst ) )
-    {
-        return true;
-    }
-
-    int res = PyObject_IsInstance( inst, cls );
+    int res = Nuitka_IsInstance( inst, cls );
 
     if (unlikely( res < 0 ))
     {
