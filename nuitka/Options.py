@@ -186,7 +186,7 @@ parser.add_option(
     "--python-version",
     action  = "store",
     dest    = "python_version",
-    choices = ( "2.6", "2.7", "3.2" ),
+    choices = ( "2.6", "2.7", "3.2", "3.3" ),
     default = None,
     help    = """Major version of Python to be used, one of '2.6', '2.7', or '3.2'."""
 )

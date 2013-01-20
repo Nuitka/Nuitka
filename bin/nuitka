@@ -62,7 +62,7 @@ if intended_version is not None:
     current_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
 
     if current_version != intended_version:
-        assert intended_version in ( "2.6", "2.7", "3.2" )
+        assert intended_version in ( "2.6", "2.7", "3.2", "3.3" )
 
         if os.name == "nt":
             python_binary = r"C:\Python%s\python.exe" % intended_version.replace( ".", "" )

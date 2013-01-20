@@ -6,7 +6,7 @@ This releases brings full Python3 support. With this
 New Features
 ------------
 
-- Python3 is now fully supported.
+- Python3.2 is now fully supported.
 
   - Fully correct ``metaclass =`` semantics now correctly supported. It had been working
     somewhat previously, but now all the corner cases are covered too.
