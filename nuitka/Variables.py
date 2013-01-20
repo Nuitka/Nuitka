@@ -233,7 +233,7 @@ class ClosureVariableReference( VariableReferenceBase ):
                 if variable.getName() == self.getName():
                     return variable
             else:
-                assert False
+                assert False, self
 
     def getDeclarationTypeCode( self, in_context ):
         if self.getReferenced().isShared():

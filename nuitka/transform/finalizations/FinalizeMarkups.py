@@ -161,3 +161,10 @@ Unresolved '__import__' call at '%s' may require use of '--recurse-directory'.""
                     node.getSourceReference().getAsString()
                 )
             )
+
+        if node.isExpressionFunctionCreation():
+            if not node.getParent().isExpressionFunctionCall():
+                node.getFunctionRef().getFunctionBody().markAsNeedsCreation()
+
+        if node.isExpressionFunctionCall():
+            node.getFunction().getFunctionRef().getFunctionBody().markAsDirectlyCalled()

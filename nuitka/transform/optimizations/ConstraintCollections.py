@@ -226,7 +226,7 @@ class ConstraintCollectionBase:
         return statement
 
     def onSubExpressions( self, owner ):
-        if owner.isExpressionFunctionCreation():
+        if owner.isExpressionFunctionRef():
             collector = ConstraintCollectionFunction( self, self.signalChange )
             collector.process( owner.getFunctionBody() )
         elif owner.isExpressionFunctionBody():

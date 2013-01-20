@@ -260,7 +260,7 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
 def generateFunctionCallCode( call_node, context ):
     assert call_node.getFunction().isExpressionFunctionCreation()
 
-    function_body = call_node.getFunction().getFunctionBody()
+    function_body = call_node.getFunction().getFunctionRef().getFunctionBody()
 
     function_identifier = generateFunctionBodyCode(
         function_body  = function_body,
@@ -975,7 +975,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
         )
     elif expression.isExpressionFunctionCreation():
         identifier = generateFunctionBodyCode(
-            function_body  = expression.getFunctionBody(),
+            function_body  = expression.getFunctionRef().getFunctionBody(),
             defaults       = expression.getDefaults(),
             kw_defaults    = expression.getKwDefaults(),
             annotations    = expression.getAnnotations(),
@@ -2142,7 +2142,6 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
                     provider = provider,
                     mode     = "updated"
                 ),
-                is_direct         = provider.isExpressionFunctionBody() and provider.isClassDictCreation() or statement_sequence.code_name == "unused",
                 codes             = codes,
                 context           = context
             )

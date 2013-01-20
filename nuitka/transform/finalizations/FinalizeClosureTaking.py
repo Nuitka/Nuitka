@@ -41,9 +41,7 @@ class FinalizeClosureTaking( FinalizationVisitorBase ):
 
             assert not referenced.isModuleVariable()
 
-            current = node.getParentVariableProvider()
-
-            # print referenced
+            current = node
 
             while current is not referenced_owner:
                 if current.isExpressionFunctionBody():
@@ -53,7 +51,6 @@ class FinalizeClosureTaking( FinalizationVisitorBase ):
                     else:
                         # print "ADD", current, referenced
                         current.addClosureVariable( referenced )
-
 
                 # Detect loops in the provider relationship
                 assert current.getParentVariableProvider() is not current, current

@@ -27,7 +27,8 @@ from .NodeBases import (
     CPythonParameterHavingNodeBase,
     CPythonExpressionMixin,
     CPythonChildrenHaving,
-    CPythonClosureTaker
+    CPythonClosureTaker,
+    CPythonNodeBase
 )
 
 from .IndicatorMixins import (
@@ -139,6 +140,12 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
 
         # Indicator if the generator return exception might be required.
         self.generator_return_exception = False
+
+        # Indicator if the function needs to be created as a function object.
+        self.needs_creation = False
+
+        # Indicator if the function is called directly.
+        self.needs_direct = False
 
     def getDetails( self ):
         return {
@@ -289,7 +296,16 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
 
     def needsCreation( self ):
         # TODO: This looks kind of arbitrary, the users should decide, if they need it.
-        return not self.parent.parent.isExpressionFunctionCall() and not self.isClassDictCreation()
+        return self.needs_creation
+
+    def markAsNeedsCreation( self ):
+        self.needs_creation = True
+
+    def needsDirectCall( self ):
+        return self.needs_direct
+
+    def markAsDirectlyCalled( self ):
+        self.needs_direct = True
 
     def computeNode( self, constraint_collection ):
         # Function body is quite irreplacable.
@@ -409,16 +425,17 @@ class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
 
     # Note: The order of evaluation for these is a bit unexpected, but true. Keyword
     # defaults go first, then normal defaults, and annotations of all kinds go last.
-    named_children = ( "function_body", "kw_defaults", "defaults", "annotations" )
+    named_children = ( "kw_defaults", "defaults", "annotations", "function_ref" )
 
-    def __init__( self, function_body, defaults, kw_defaults, annotations, source_ref ):
+    def __init__( self, function_ref, defaults, kw_defaults, annotations, source_ref ):
         assert kw_defaults is None or kw_defaults.isExpression()
         assert annotations is None or annotations.isExpression()
+        assert function_ref.isExpressionFunctionRef()
 
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "function_body" : function_body,
+                "function_ref"  : function_ref,
                 "defaults"      : tuple( defaults ),
                 "kw_defaults"   : kw_defaults,
                 "annotations"   : annotations
@@ -426,33 +443,33 @@ class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    # Prevent normal recursion from entering the function.
-    def getVisitableNodes( self ):
-        kw_defaults = self.getKwDefaults()
-
-        if kw_defaults is None:
-            annotations = self.getAnnotations()
-
-            if annotations is None:
-                return self.getDefaults()
-            else:
-                return ( annotations, ) + self.getDefaults()
-        else:
-            annotations = self.getAnnotations()
-
-            if annotations is None:
-                return ( kw_defaults, ) + self.getDefaults()
-            else:
-                return ( kw_defaults, annotations ) + self.getDefaults()
-
     def computeNode( self, constraint_collection ):
         # TODO: Function body may know something.
         return self, None, None
 
-    getFunctionBody = CPythonExpressionChildrenHavingBase.childGetter( "function_body" )
+    getFunctionRef = CPythonExpressionChildrenHavingBase.childGetter( "function_ref" )
     getDefaults = CPythonExpressionChildrenHavingBase.childGetter( "defaults" )
     getKwDefaults = CPythonExpressionChildrenHavingBase.childGetter( "kw_defaults" )
     getAnnotations = CPythonExpressionChildrenHavingBase.childGetter( "annotations" )
+
+
+class CPythonExpressionFunctionRef( CPythonNodeBase, CPythonExpressionMixin ):
+    kind = "EXPRESSION_FUNCTION_REF"
+
+    def __init__( self, function_body, source_ref ):
+        CPythonNodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        self.function_body = function_body
+
+    def getFunctionBody( self ):
+        return self.function_body
+
+    def computeNode( self, constraint_collection ):
+        # TODO: Function body may know something.
+        return self, None, None
 
 
 class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):

@@ -87,7 +87,8 @@ from .nodes.FunctionNodes import (
     CPythonExpressionFunctionCreation,
     CPythonExpressionFunctionBody,
     CPythonExpressionFunctionCall,
-)
+    CPythonExpressionFunctionRef
+    )
 from .nodes.ClassNodes import CPythonExpressionSelectMetaclass
 from .nodes.ContainerMakingNodes import (
     CPythonExpressionKeyValuePair,
@@ -351,11 +352,14 @@ def _buildClassNode3( provider, node, source_ref ):
 
     decorated_body = CPythonExpressionFunctionCall(
         function   = CPythonExpressionFunctionCreation(
-            function_body = class_creation_function,
-            defaults      = (),
-            kw_defaults   = None,
-            annotations   = None,
-            source_ref    = source_ref
+            function_ref = CPythonExpressionFunctionRef(
+                function_body = class_creation_function,
+                source_ref    = source_ref
+            ),
+            defaults     = (),
+            kw_defaults  = None,
+            annotations  = None,
+            source_ref   = source_ref
         ),
         values     = (),
         source_ref = source_ref
@@ -680,11 +684,14 @@ def _buildClassNode2( provider, node, source_ref ):
             ),
             source       =   CPythonExpressionFunctionCall(
                 function = CPythonExpressionFunctionCreation(
-                    function_body = class_creation_function,
-                    defaults      = (),
-                    kw_defaults   = None,
-                    annotations   = None,
-                    source_ref    = source_ref
+                    function_ref = CPythonExpressionFunctionRef(
+                        function_body = class_creation_function,
+                        source_ref    = source_ref
+                    ),
+                    defaults     = (),
+                    kw_defaults  = None,
+                    annotations  = None,
+                    source_ref   = source_ref
                 ),
                 values     = (),
                 source_ref = source_ref
@@ -999,11 +1006,14 @@ def buildFunctionNode( provider, node, source_ref ):
     annotations = _buildParameterAnnotations( provider, node, source_ref )
 
     decorated_body = CPythonExpressionFunctionCreation(
-        function_body = function_body,
-        defaults      = defaults,
-        kw_defaults   = kw_defaults,
-        annotations   = annotations,
-        source_ref    = source_ref
+        function_ref = CPythonExpressionFunctionRef(
+            function_body,
+            source_ref = source_ref
+        ),
+        defaults     = defaults,
+        kw_defaults  = kw_defaults,
+        annotations  = annotations,
+        source_ref   = source_ref
     )
 
     for decorator in decorators:
@@ -1092,11 +1102,14 @@ def buildLambdaNode( provider, node, source_ref ):
     annotations = _buildParameterAnnotations( provider, node, source_ref )
 
     return CPythonExpressionFunctionCreation(
-        function_body = function_body,
-        defaults      = defaults,
-        kw_defaults   = kw_defaults,
-        annotations   = annotations,
-        source_ref    = source_ref
+        function_ref = CPythonExpressionFunctionRef(
+            function_body = function_body,
+            source_ref    = source_ref
+        ),
+        defaults     = defaults,
+        kw_defaults  = kw_defaults,
+        annotations  = annotations,
+        source_ref   = source_ref
     )
 
 def buildForLoopNode( provider, node, source_ref ):
@@ -2177,11 +2190,14 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
 
     return CPythonExpressionFunctionCall(
         function   = CPythonExpressionFunctionCreation(
-            function_body = function_body,
-            defaults      = (),
-            kw_defaults   = None,
-            annotations   = None,
-            source_ref    = source_ref
+            function_ref = CPythonExpressionFunctionRef(
+                function_body = function_body,
+                source_ref    = source_ref
+            ),
+            defaults     = (),
+            kw_defaults  = None,
+            annotations  = None,
+            source_ref   = source_ref
         ),
         values     = (
             CPythonExpressionBuiltinIter1(
