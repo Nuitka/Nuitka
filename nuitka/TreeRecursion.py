@@ -28,7 +28,7 @@ from logging import info, warning
 _warned_about = set()
 
 def recurseTo( module_package, module_filename, module_relpath ):
-    if TreeBuilding.isImportedPath( module_relpath ):
+    if not TreeBuilding.isImportedPath( module_relpath ):
         info( "Recurse to import %s", module_relpath )
 
         try:
@@ -64,6 +64,8 @@ def considerFilename( module_filename, module_package ):
     module_filename = Utils.normpath( module_filename )
 
     if Utils.isDir( module_filename ):
+        module_filename = Utils.abspath( module_filename )
+
         module_name = Utils.basename( module_filename )
         module_relpath = Utils.relpath( module_filename )
 
@@ -73,8 +75,10 @@ def considerFilename( module_filename, module_package ):
         module_relpath = Utils.relpath( module_filename )
 
         return module_filename, module_relpath, module_name
+    else:
+        return None
 
-def checkPluginPath( plugin_filename, module_package ):
+def _checkPluginPath( plugin_filename, module_package ):
     plugin_info = considerFilename(
         module_package  = module_package,
         module_filename = plugin_filename
@@ -106,8 +110,27 @@ def checkPluginPath( plugin_filename, module_package ):
                     assert sub_path != plugin_filename, package_dir
 
                     if Importing.isPackageDir( sub_path ) or sub_path.endswith( ".py" ):
-                        checkPluginPath( sub_path, module.getFullName() )
+                        _checkPluginPath( sub_path, module.getFullName() )
 
 
+        else:
+            warning( "Failed to include module from '%s'.", plugin_info[0] )
+
+def checkPluginPath( plugin_filename, module_package ):
+    plugin_info = considerFilename(
+        module_package  = module_package,
+        module_filename = plugin_filename
+    )
+
+    if plugin_info is not None:
+        # File or package, handle that.
+        if Utils.isFile( plugin_info[0] ) or Importing.isPackageDir( plugin_info[0] ):
+            _checkPluginPath( plugin_filename, module_package )
+        elif Utils.isDir( plugin_info[0] ):
+            for sub_path, sub_filename in Utils.listDir( plugin_info[0] ):
+                assert sub_filename != "__init__.py"
+
+                if Importing.isPackageDir( sub_path ) or sub_path.endswith( ".py" ):
+                    _checkPluginPath( sub_path, None )
         else:
             warning( "Failed to include module from '%s'.", plugin_info[0] )

@@ -44,7 +44,8 @@ def createNodeTree( filename ):
     """ Create a node tree.
 
     Turn that source code into a node tree structure. If recursion into imported modules
-    is available, more trees will be available during optimization.
+    is available, more trees will be available during optimization, or immediately through
+    recursed directory paths.
 
     """
 

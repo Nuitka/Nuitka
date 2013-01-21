@@ -3975,7 +3975,7 @@ def addImportedModule( module_relpath, imported_module ):
     imported_modules[ module_relpath ] = imported_module
 
 def isImportedPath( module_relpath ):
-    return module_relpath not in imported_modules
+    return module_relpath in imported_modules
 
 def getImportedModule( module_relpath ):
     return imported_modules[ module_relpath ]
@@ -4113,12 +4113,21 @@ def buildModuleTree( filename, package, is_top, is_main ):
             if module_name.endswith( ".py" ):
                 module_name = module_name[:-3]
 
+            if "." in module_name:
+                sys.stderr.write(
+                    "Error, '%s' is not a proper python module name.\n" % (
+                        module_name
+                    )
+                )
+
+                sys.exit( 2 )
+
         result = CPythonModule(
             name       = module_name,
             package    = package,
             source_ref = source_ref
         )
-    elif Utils.isDir( filename ) and Utils.joinpath( filename, "__init__.py" ):
+    elif Utils.isDir( filename ) and Utils.isFile( Utils.joinpath( filename, "__init__.py" ) ):
         source_filename = Utils.joinpath( filename, "__init__.py" )
 
         if is_top:

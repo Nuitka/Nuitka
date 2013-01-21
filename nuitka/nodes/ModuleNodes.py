@@ -50,7 +50,7 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureGiverNodeBase,
 
     def __init__( self, name, package, source_ref ):
         assert type(name) is str, type(name)
-        assert "." not in name
+        assert "." not in name, name
         assert package is None or ( type( package ) is str and package != "" )
 
         CPythonClosureGiverNodeBase.__init__(
