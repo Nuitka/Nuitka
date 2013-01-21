@@ -334,6 +334,10 @@ if debug_mode:
     if "g++" in env[ "CXX" ]:
         env.Append( CCFLAGS = [ "-Wno-sequence-point" ] )
 
+    # Benefit from clang checking memory accesses.
+    if "clang" in env[ "CXX" ]:
+        env.Append( CCFLAGS = [ "-fsanatize=address,bounds,return" ] )
+
 # Python version, use the scons one if not given.
 python_version = ARGUMENTS.get( "python_version", None )
 
