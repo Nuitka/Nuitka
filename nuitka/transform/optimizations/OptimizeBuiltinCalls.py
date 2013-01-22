@@ -101,11 +101,11 @@ def vars_extractor( node ):
     def selectVarsEmptyClass( source_ref ):
         if node.getParentVariableProvider().isModule():
             return CPythonExpressionBuiltinGlobals(
-                source_ref = node.getSourceReference()
+                source_ref = source_ref
             )
         else:
             return CPythonExpressionBuiltinLocals(
-                source_ref = node.getSourceReference()
+                source_ref = source_ref
             )
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
@@ -141,7 +141,10 @@ def type_extractor( node ):
 
 def iter_extractor( node ):
     # Note: Iter in fact names its first argument if the default applies "collection", but
-    # it won't matter much, fixed up in a wrapper.
+    # it won't matter much, fixed up in a wrapper.  The "callable" is part of the API,
+    # pylint: disable=W0622
+
+
     def wrapIterCreation( callable, sentinel, source_ref ):
         if sentinel is None:
             return CPythonExpressionBuiltinIter1(
@@ -170,13 +173,13 @@ def next_extractor( node ):
         if default is None:
             return CPythonExpressionBuiltinNext1(
                 value      = iterator,
-                source_ref = node.getSourceReference()
+                source_ref = source_ref
             )
         else:
             return CPythonExpressionBuiltinNext2(
                 iterator   = iterator,
                 default    = default,
-                source_ref = node.getSourceReference()
+                source_ref = source_ref
             )
 
     return BuiltinOptimization.extractBuiltinArgs(
@@ -222,7 +225,7 @@ def dict_extractor( node ):
         return CPythonExpressionBuiltinDict(
             pos_arg    = positional_args[0] if positional_args else None,
             pairs      = dict_star_arg,
-            source_ref = node.getSourceReference()
+            source_ref = source_ref
         )
 
     return BuiltinOptimization.extractBuiltinArgs(

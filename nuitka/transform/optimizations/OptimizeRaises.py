@@ -159,7 +159,8 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
             assert False
 
     # TODO: Make use of this.
-    def matchesException( self, catched_exceptions, raised_exception ):
+    @staticmethod
+    def matchesException( catched_exceptions, raised_exception ):
         if catched_exceptions is None:
             return True
 

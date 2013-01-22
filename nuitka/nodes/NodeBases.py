@@ -892,6 +892,7 @@ class CPythonExpressionMixin:
 
     def computeNodeAttribute( self, lookup_node, attribute_name, constraint_collection ):
         # By default, an attribute lookup may change everything about the lookup source.
+        # Virtual method, pylint: disable=R0201,W0613
         constraint_collection.removeKnowledge( lookup_node )
 
         return lookup_node, None, None

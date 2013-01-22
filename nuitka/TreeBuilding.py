@@ -69,8 +69,7 @@ from .nodes.ExecEvalNodes import CPythonStatementExec
 from .nodes.CallNode import (
     CPythonExpressionCallRaw,
     CPythonExpressionCallNoKeywords,
-    CPythonExpressionCallEmpty,
-    CPythonExpressionCallComplex
+    CPythonExpressionCallEmpty
 )
 from .nodes.TypeNode import CPythonExpressionBuiltinType1
 from .nodes.AttributeNodes import (

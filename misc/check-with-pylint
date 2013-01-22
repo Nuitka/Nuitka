@@ -132,5 +132,9 @@ else:
             if filename.endswith( "_flymake.py" ):
                 continue
 
+            # Skip temporary files from unsaved files of Emacs.
+            if filename.startswith( ".#" ):
+                continue
+
             if filename not in blacklist:
                 executePyLint( os.path.join( dirpath, filename ) )

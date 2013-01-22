@@ -254,9 +254,9 @@ def makeCallNode( provider, called, positional_args, pairs, list_star_arg, dict_
             source_ref      = source_ref,
         )
     else:
-        from .ComplexCallHelperFunctions import getFunctionCallHelperStarListOnly
-
         if list_star_arg is not None and dict_star_arg is None and not positional_args and not pairs:
+            from .ComplexCallHelperFunctions import getFunctionCallHelperStarListOnly
+
             return CPythonExpressionFunctionCall(
                 function   = CPythonExpressionFunctionCreation(
                     function_ref = CPythonExpressionFunctionRef(

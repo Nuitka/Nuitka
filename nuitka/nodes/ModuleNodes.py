@@ -23,8 +23,7 @@ and cross-module optimizations are the most difficult to tackle.
 
 from .NodeBases import (
     CPythonClosureGiverNodeBase,
-    CPythonChildrenHaving,
-    CPythonClosureTaker
+    CPythonChildrenHaving
 )
 
 from .IndicatorMixins import MarkContainsTryExceptIndicator

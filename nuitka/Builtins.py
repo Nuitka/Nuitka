@@ -120,7 +120,7 @@ builtin_anon_codes = {
 
 if Utils.python_version < 300:
     class Temp:
-        def method():
+        def method( self ):
             pass
 
     builtin_anon_names[ "classobj" ] = type( Temp )
