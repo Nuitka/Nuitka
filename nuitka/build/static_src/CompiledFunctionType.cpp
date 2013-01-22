@@ -312,11 +312,13 @@ static int Nuitka_Function_set_module( Nuitka_FunctionObject *object, PyObject *
     return PyDict_SetItemString( object->m_dict, (char * )"__module__", value );
 }
 
+ extern PyObject *_python_str_plain___module__;
+
 static PyObject *Nuitka_Function_get_module( Nuitka_FunctionObject *object )
 {
     if ( object->m_dict )
     {
-        PyObject *result = PyDict_GetItemString( object->m_dict, (char * )"__module__" );
+        PyObject *result = PyDict_GetItem( object->m_dict, _python_str_plain___module__ );
 
         if ( result != NULL )
         {
@@ -324,17 +326,7 @@ static PyObject *Nuitka_Function_get_module( Nuitka_FunctionObject *object )
         }
     }
 
-    char const *module_name = PyModule_GetName( object->m_module );
-
-#if PYTHON_VERSION < 300
-    PyObject *result = PyString_FromString( module_name );
-    PyString_InternInPlace( &result );
-    return result;
-#else
-    PyObject *result = PyUnicode_FromString( module_name );
-    PyUnicode_InternInPlace( &result );
-    return result;
-#endif
+    return MODULE_NAME( object->m_module );
 }
 
 

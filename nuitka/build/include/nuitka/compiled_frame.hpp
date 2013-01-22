@@ -21,6 +21,13 @@
 // Create a frame object for the given code object and module
 extern PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module );
 
+// Create a code object for the given filename and function name
+#if PYTHON_VERSION < 300
+extern PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, int flags );
+#else
+extern PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, int kw_only_count, int flags );
+#endif
+
 extern PyTypeObject Nuitka_Frame_Type;
 
 static inline bool Nuitka_Frame_Check( PyObject *object )

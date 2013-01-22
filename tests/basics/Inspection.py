@@ -60,3 +60,18 @@ def someFunction():
    print inspect.getframeinfo( sys._getframe() )
 
 someFunction()
+
+import sys
+
+class C:
+    print "Class locals", str( sys._getframe().f_locals ).replace( ", '__locals__': {...}", "" )
+    print "Class flags", sys._getframe().f_code.co_flags | 64
+
+def f():
+    print "Func locals", sys._getframe().f_locals
+    print "Func flags", sys._getframe().f_code.co_flags | 64
+
+f()
+
+print "Module frame locals", sys._getframe().f_locals
+print "Module flags", sys._getframe().f_code.co_flags  | 64

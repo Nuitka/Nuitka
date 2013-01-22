@@ -43,14 +43,14 @@ import hashlib
 if python_version < 300:
     def calcHash( key ):
         hash_value = hashlib.md5(
-            "%s%s%d%s%d%s" % key
+            "%s%s%d%s%d%s%s" % key
         )
 
         return hash_value.hexdigest()
 else:
     def calcHash( key ):
         hash_value = hashlib.md5(
-            ( "%s%s%d%s%d%s" % key ).encode( "utf-8" )
+            ( "%s%s%d%s%d%s%s" % key ).encode( "utf-8" )
         )
 
         return hash_value.hexdigest()
@@ -124,14 +124,15 @@ class PythonChildContextBase( PythonContextBase ):
         return self.parent.getModuleName()
 
     def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, kw_only_count,
-                             is_generator ):
+                             is_generator, is_optimized ):
         return self.parent.getCodeObjectHandle(
             filename      = filename,
             code_name     = code_name,
             line_number   = line_number,
             arg_names     = arg_names,
             kw_only_count = kw_only_count,
-            is_generator  = is_generator
+            is_generator  = is_generator,
+            is_optimized  = is_optimized
         )
 
 
@@ -221,8 +222,8 @@ class PythonGlobalContext:
         return sorted( self.constants.items(), key = lambda x: x[1] )
 
     def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, kw_only_count,
-                             is_generator ):
-        key = ( filename, code_name, line_number, arg_names, kw_only_count, is_generator )
+                             is_generator, is_optimized ):
+        key = ( filename, code_name, line_number, arg_names, kw_only_count, is_generator, is_optimized )
 
         if key not in self.code_objects:
             self.code_objects[ key ] = Identifier(
@@ -312,14 +313,15 @@ class PythonModuleContext( PythonContextBase ):
         return self.global_context.getConstantHandle( constant )
 
     def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, kw_only_count,
-                             is_generator ):
+                             is_generator, is_optimized ):
         return self.global_context.getCodeObjectHandle(
             filename      = filename,
             code_name     = code_name,
             line_number   = line_number,
             arg_names     = arg_names,
             kw_only_count = kw_only_count,
-            is_generator  = is_generator
+            is_generator  = is_generator,
+            is_optimized  = is_optimized
         )
 
     def addFunctionCodes( self, code_name, function_decl, function_code ):

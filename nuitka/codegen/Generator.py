@@ -1830,7 +1830,8 @@ def getModuleCode( context, module_name, package_name, codes, tmp_keepers,
         kw_only_count = 0,
         line_number   = 0,
         code_name     = module_name if module_name != "__main__" else "<module>",
-        is_generator  = False
+        is_generator  = False,
+        is_optimized  = False
     )
 
     # Create for for "inittab" to use in unfreezing of modules if that is used.
@@ -2207,7 +2208,8 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         kw_only_count = parameters.getKwOnlyParameterCount(),
         line_number   = source_ref.getLineNumber(),
         code_name     = function_name,
-        is_generator  = True
+        is_generator  = True,
+        is_optimized  = not context.hasLocalsDict()
     )
 
     if context_decl or instance_context_decl:
@@ -2473,7 +2475,8 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
             kw_only_count = parameters.getKwOnlyParameterCount(),
             line_number   = source_ref.getLineNumber(),
             code_name     = function_name,
-            is_generator  = False
+            is_generator  = False,
+            is_optimized  = not context.hasLocalsDict()
         )
 
         if context_decl:
@@ -2699,6 +2702,17 @@ def _getConstantsDefinitionCode( context ):
         assert False, (type(constant_value), constant_value, constant_identifier)
 
     for code_object_key, code_identifier in context.getCodeObjects():
+        co_flags = []
+
+        if code_object_key[2] != 0:
+            co_flags.append( "CO_NEWLOCALS" )
+
+        if code_object_key[5]:
+            co_flags.append( "CO_GENERATOR" )
+
+        if code_object_key[6]:
+            co_flags.append( "CO_OPTIMIZED" )
+
         if Utils.python_version < 300:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (
                 code_identifier.getCode(),
@@ -2716,7 +2730,7 @@ def _getConstantsDefinitionCode( context ):
                     context  = context
                 ),
                 len( code_object_key[3] ),
-                "true" if code_object_key[5] else "false"
+                " | ".join( co_flags ) or "0",
             )
         else:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %d, %s );" % (
@@ -2736,7 +2750,7 @@ def _getConstantsDefinitionCode( context ):
                 ),
                 len( code_object_key[3] ),
                 code_object_key[4],
-                "true" if code_object_key[5] else "false"
+                " | ".join( co_flags ) or  "0",
             )
 
 

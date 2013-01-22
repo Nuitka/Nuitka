@@ -1385,13 +1385,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
     return result;
 }
 
-// Create a code object for the given filename and function name
-#if PYTHON_VERSION < 300
-extern PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, bool is_generator );
-#else
-extern PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, int kw_only_count, bool is_generator );
-#endif
-
 #include "nuitka/importing.hpp"
 
 // For the constant loading:
@@ -1469,5 +1462,20 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *bases, PyObjec
 }
 
 #endif
+
+NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME( PyObject *module )
+{
+    char const *module_name = PyModule_GetName( module );
+
+#if PYTHON_VERSION < 300
+    PyObject *result = PyString_FromString( module_name );
+    PyString_InternInPlace( &result );
+    return result;
+#else
+    PyObject *result = PyUnicode_FromString( module_name );
+    PyUnicode_InternInPlace( &result );
+    return result;
+#endif
+}
 
 #endif

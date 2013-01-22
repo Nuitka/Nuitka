@@ -2127,7 +2127,8 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
                     kw_only_count = statement_sequence.getKwOnlyParameterCount(),
                     line_number   = source_ref.getLineNumber(),
                     code_name     = statement_sequence.getCodeObjectName(),
-                    is_generator  = True
+                    is_generator  = statement_sequence.getParentVariableProvider().isGenerator(),
+                    is_optimized  = not context.hasLocalsDict()
                 ),
                 codes            = codes,
                 context          = context
@@ -2146,6 +2147,7 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
                     line_number   = source_ref.getLineNumber(),
                     code_name     = statement_sequence.getCodeObjectName(),
                     is_generator  = False,
+                    is_optimized  = not context.hasLocalsDict()
                 ),
                 locals_identifier = Generator.getLoadLocalsCode(
                     context = context,

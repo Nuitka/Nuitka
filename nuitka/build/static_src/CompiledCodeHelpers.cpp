@@ -636,125 +636,6 @@ PyObject *BUILTIN_DIR1( PyObject *arg )
     return result;
 }
 
-extern PyObject *_python_str_empty;
-extern PyObject *_python_bytes_empty;
-
-#if PYTHON_VERSION < 300
-PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, bool is_generator )
-#else
-PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, int kw_only_count, bool is_generator )
-#endif
-{
-    assertObject( filename );
-    assert( Nuitka_String_Check( filename ) );
-    assertObject( function_name );
-    assert( Nuitka_String_Check( function_name ) );
-    assertObject( argnames );
-    assert( PyTuple_Check( argnames ) );
-
-    int flags = CO_NEWLOCALS;
-    // TODO: Need to determine if CO_OPTIMIZED should be used, i.e. locals dict.
-
-    if ( is_generator )
-    {
-        flags |= CO_GENERATOR;
-    }
-
-    // TODO: Consider using PyCode_NewEmpty
-
-    PyCodeObject *result = PyCode_New (
-        arg_count,           // argcount
-#if PYTHON_VERSION >= 300
-        kw_only_count,       // kw-only count
-#endif
-        0,                   // nlocals
-        0,                   // stacksize
-        flags,               // flags
-#if PYTHON_VERSION < 300
-        _python_str_empty,   // code (bytecode)
-#else
-        _python_bytes_empty, // code (bytecode)
-#endif
-        _python_tuple_empty, // consts (we are not going to be compatible)
-        _python_tuple_empty, // names (we are not going to be compatible)
-        argnames,            // varnames (we are not going to be compatible)
-        _python_tuple_empty, // freevars (we are not going to be compatible)
-        _python_tuple_empty, // cellvars (we are not going to be compatible)
-        filename,            // filename
-        function_name,       // name
-        line,                // firstlineno (offset of the code object)
-#if PYTHON_VERSION < 300
-        _python_str_empty    // lnotab (table to translate code object)
-#else
-        _python_bytes_empty  // lnotab (table to translate code object)
-#endif
-    );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
-static PyFrameObject *duplicateFrame( PyFrameObject *old_frame )
-{
-    PyFrameObject *new_frame = PyObject_GC_NewVar( PyFrameObject, &PyFrame_Type, 0 );
-
-    // Allow only to detach only our tracing frames.
-    assert( old_frame->f_trace == Py_None );
-    new_frame->f_trace = INCREASE_REFCOUNT( Py_None );
-
-    // Copy the back reference if any.
-    new_frame->f_back = old_frame->f_back;
-    Py_XINCREF( new_frame->f_back );
-
-    // Take a code reference as well.
-    new_frame->f_code = old_frame->f_code;
-    Py_XINCREF( new_frame->f_code );
-
-    // Copy attributes.
-    new_frame->f_locals = NULL;
-    new_frame->f_globals = INCREASE_REFCOUNT( old_frame->f_globals );
-    new_frame->f_builtins = INCREASE_REFCOUNT( old_frame->f_builtins );
-
-    new_frame->f_exc_type = INCREASE_REFCOUNT_X( old_frame->f_exc_type );
-    new_frame->f_exc_value = INCREASE_REFCOUNT_X( old_frame->f_exc_value );
-    new_frame->f_exc_traceback = INCREASE_REFCOUNT_X( old_frame->f_exc_traceback );
-
-    assert( old_frame->f_valuestack == old_frame->f_localsplus );
-    new_frame->f_valuestack = new_frame->f_localsplus;
-
-    assert( old_frame->f_stacktop == old_frame->f_valuestack );
-    new_frame->f_stacktop = new_frame->f_valuestack;
-
-    new_frame->f_tstate = old_frame->f_tstate;
-    new_frame->f_lasti = -1;
-    new_frame->f_lineno = old_frame->f_lineno;
-
-    assert( old_frame->f_iblock == 0 );
-    new_frame->f_iblock = 0;
-
-    Nuitka_GC_Track( new_frame );
-
-    return new_frame;
-}
-
-PyFrameObject *detachCurrentFrame()
-{
-    PyFrameObject *old_frame = PyThreadState_GET()->frame;
-
-    // Duplicate it.
-    PyFrameObject *new_frame = duplicateFrame( old_frame );
-
-    // The given frame can be put on top now.
-    PyThreadState_GET()->frame = new_frame;
-    Py_DECREF( old_frame );
-
-    return new_frame;
-}
-
 extern PyObject *_python_str_plain___import__;
 
 static PythonBuiltin _python_builtin_import( &_python_str_plain___import__ );
@@ -841,6 +722,7 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 extern PyObject *_python_str_plain_print;
 extern PyObject *_python_str_plain_end;
 extern PyObject *_python_str_plain_file;
+extern PyObject *_python_str_empty;
 
 static PythonBuiltin _python_builtin_print( &_python_str_plain_print );
 
