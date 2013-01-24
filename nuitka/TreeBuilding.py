@@ -67,7 +67,7 @@ from .nodes.ExceptionNodes import (
 from .nodes.ComparisonNode import CPythonExpressionComparison
 from .nodes.ExecEvalNodes import CPythonStatementExec
 from .nodes.CallNode import (
-    CPythonExpressionCallRaw,
+    CPythonExpressionCall,
     CPythonExpressionCallNoKeywords,
     CPythonExpressionCallEmpty
 )
@@ -159,7 +159,6 @@ from .nodes.GlobalsLocalsNodes import (
     CPythonStatementSetLocals,
     CPythonExpressionBuiltinLocals
 )
-from .nodes.NodeMakingHelpers import makeCallNode
 
 import ast, sys, re
 
@@ -297,7 +296,7 @@ def _buildClassNode3( provider, node, source_ref ):
                 variable_name = "__class__",
                 source_ref    = source_ref
             ),
-            source       = CPythonExpressionCallRaw(
+            source       = CPythonExpressionCall(
                 called     = CPythonExpressionTempVariableRef(
                     variable   = tmp_metaclass.makeReference( result ),
                     source_ref = source_ref
@@ -526,7 +525,7 @@ def _buildClassNode3( provider, node, source_ref ):
                     constant   = {},
                     source_ref = source_ref
                 ),
-                yes_expression = CPythonExpressionCallRaw(
+                yes_expression = CPythonExpressionCall(
                     called     = CPythonExpressionAttributeLookup(
                         expression     = CPythonExpressionTempVariableRef(
                             variable   = tmp_metaclass.makeReference( result ),
@@ -1406,6 +1405,94 @@ def buildWhileLoopNode( provider, node, source_ref ):
         )
 
         return temp_block
+
+def makeCallNode( provider, called, positional_args, pairs, list_star_arg, dict_star_arg, source_ref ):
+    if list_star_arg is None and dict_star_arg is None:
+        return CPythonExpressionCall(
+            called  = called,
+            args    = CPythonExpressionMakeTuple(
+                elements   = positional_args,
+                source_ref = source_ref
+            ),
+            kw      = CPythonExpressionMakeDict(
+                pairs      = pairs,
+                source_ref = source_ref
+            ),
+            source_ref      = source_ref,
+        )
+    else:
+        key = len( positional_args ) > 0, len( pairs ) > 0, list_star_arg is not None, dict_star_arg is not None
+
+        from .nodes.ComplexCallHelperFunctions import (
+            getFunctionCallHelperPosKeywordsStarList,
+            getFunctionCallHelperPosStarList,
+            getFunctionCallHelperKeywordsStarList,
+            getFunctionCallHelperStarList,
+            getFunctionCallHelperPosKeywordsStarDict,
+            getFunctionCallHelperPosStarDict,
+            getFunctionCallHelperKeywordsStarDict,
+            getFunctionCallHelperStarDict,
+            getFunctionCallHelperPosKeywordsStarListStarDict,
+            getFunctionCallHelperPosStarListStarDict,
+            getFunctionCallHelperKeywordsStarListStarDict,
+            getFunctionCallHelperStarListStarDict,
+        )
+
+        table = {
+            (  True,   True,  True, False ) : getFunctionCallHelperPosKeywordsStarList,
+            (  True,  False,  True, False ) : getFunctionCallHelperPosStarList,
+            ( False,   True,  True, False ) : getFunctionCallHelperKeywordsStarList,
+            ( False,  False,  True, False ) : getFunctionCallHelperStarList,
+            (  True,   True, False,  True ) : getFunctionCallHelperPosKeywordsStarDict,
+            (  True,  False, False,  True ) : getFunctionCallHelperPosStarDict,
+            ( False,   True, False,  True ) : getFunctionCallHelperKeywordsStarDict,
+            ( False,  False, False,  True ) : getFunctionCallHelperStarDict,
+            (  True,   True,  True,  True ) : getFunctionCallHelperPosKeywordsStarListStarDict,
+            (  True,  False,  True,  True ) : getFunctionCallHelperPosStarListStarDict,
+            ( False,   True,  True,  True ) : getFunctionCallHelperKeywordsStarListStarDict,
+            ( False,  False,  True,  True ) : getFunctionCallHelperStarListStarDict,
+        }
+
+        get_helper = table[ key ]
+
+        helper_args = [ called ]
+
+        if positional_args:
+            helper_args.append(
+                CPythonExpressionMakeTuple(
+                    elements   = positional_args,
+                    source_ref = source_ref
+                )
+            )
+
+        if pairs:
+            helper_args.append(
+                CPythonExpressionMakeDict(
+                    pairs      = pairs,
+                    source_ref = source_ref
+                )
+            )
+
+        if list_star_arg is not None:
+            helper_args.append( list_star_arg )
+
+        if dict_star_arg is not None:
+            helper_args.append( dict_star_arg )
+
+        return CPythonExpressionFunctionCall(
+            function   = CPythonExpressionFunctionCreation(
+                function_ref = CPythonExpressionFunctionRef(
+                    function_body = get_helper( provider ),
+                    source_ref    = source_ref
+                ),
+                defaults     = (),
+                kw_defaults  = None,
+                annotations  = None,
+                source_ref   = source_ref
+            ),
+            values     = helper_args,
+            source_ref = source_ref,
+        )
 
 def buildCallNode( provider, node, source_ref ):
     positional_args = buildNodeList( provider, node.args, source_ref )

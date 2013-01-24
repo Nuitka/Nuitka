@@ -196,6 +196,12 @@ class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin 
 
         self.variable = variable
 
+    def makeCloneAt( self, source_ref ):
+        return self.__class__(
+            variable   = self.variable,
+            source_ref = source_ref
+        )
+
     def getDetails( self ):
         return { "name" : self.variable.getName() }
 

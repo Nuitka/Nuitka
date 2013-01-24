@@ -60,12 +60,6 @@ class CPythonExpressionConstantRef( CompileTimeConstantExpressionMixin, CPythonN
         return self, None, None
 
     def computeNodeCall( self, call_node, constraint_collection ):
-        # We can't handle complex these yet. TODO: In principle, checks on the star
-        # arguments were made side effects, it would be possible, but that's too
-        # complex for now.
-        if call_node.getStarListArg() is not None or call_node.getStarDictArg() is not None:
-            return call_node, None, None
-
         from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression, wrapExpressionWithSideEffects
 
         new_node = wrapExpressionWithSideEffects(

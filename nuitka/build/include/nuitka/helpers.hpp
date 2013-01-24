@@ -189,44 +189,6 @@ static inline PyObject *Nuitka_Function_GetName( PyObject *object );
 static inline bool Nuitka_Generator_Check( PyObject *object );
 static inline PyObject *Nuitka_Generator_GetName( PyObject *object );
 
-static char const *GET_CALLABLE_NAME( PyObject *object )
-{
-    if ( Nuitka_Function_Check( object ) )
-    {
-        return Nuitka_String_AsString( Nuitka_Function_GetName( object ) );
-    }
-    else if ( Nuitka_Generator_Check( object ) )
-    {
-        return Nuitka_String_AsString( Nuitka_Generator_GetName( object ) );
-    }
-    else if ( PyMethod_Check( object ) )
-    {
-        return PyEval_GetFuncName( PyMethod_GET_FUNCTION( object ) );
-    }
-    else if ( PyFunction_Check( object ) )
-    {
-        return Nuitka_String_AsString( ((PyFunctionObject*)object)->func_name );
-    }
-#if PYTHON_VERSION < 300
-    else if ( PyInstance_Check( object ) )
-    {
-        return Nuitka_String_AsString( ((PyInstanceObject*)object)->in_class->cl_name );
-    }
-    else if ( PyClass_Check( object ) )
-    {
-        return Nuitka_String_AsString( ((PyClassObject*)object)->cl_name );
-    }
-#endif
-    else if ( PyCFunction_Check( object ) )
-    {
-        return ((PyCFunctionObject*)object)->m_ml->ml_name;
-    }
-    else
-    {
-        return Py_TYPE( object )->tp_name;
-    }
-}
-
 #include "nuitka/calling.hpp"
 
 NUITKA_MAY_BE_UNUSED static long FROM_LONG( PyObject *value )
@@ -561,6 +523,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
 NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 {
     assertObject( iterator );
+    assert( Py_TYPE( iterator )->tp_iternext );
 
     PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
@@ -579,6 +542,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
 {
     assertObject( iterator );
+    assert( Py_TYPE( iterator )->tp_iternext );
 
     PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 

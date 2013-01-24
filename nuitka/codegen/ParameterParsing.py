@@ -119,7 +119,6 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
             "parameter_slow_path"   : indented( slow_path_code, 2 )
         }
 
-
     if parameters.isEmpty():
         parameter_parsing_code += CodeTemplates.template_parameter_function_refuses % {
             "function_name" : function_name,

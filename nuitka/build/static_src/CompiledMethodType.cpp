@@ -111,6 +111,66 @@ static char const *GET_INSTANCE_CLASS_NAME( PyObject *instance )
     return result;
 }
 
+static char const *GET_CALLABLE_DESC( PyObject *object )
+{
+    if ( Nuitka_Function_Check( object ) || Nuitka_Generator_Check( object ) || PyMethod_Check( object ) || PyFunction_Check( object ) || PyCFunction_Check( object ) )
+    {
+        return "()";
+    }
+#if PYTHON_VERSION < 300
+    else if ( PyClass_Check( object ) )
+    {
+        return " constructor";
+    }
+    else if ( PyInstance_Check( object ))
+    {
+        return " instance";
+    }
+#endif
+    else
+    {
+        return " object";
+    }
+}
+
+static char const *GET_CALLABLE_NAME( PyObject *object )
+{
+    if ( Nuitka_Function_Check( object ) )
+    {
+        return Nuitka_String_AsString( Nuitka_Function_GetName( object ) );
+    }
+    else if ( Nuitka_Generator_Check( object ) )
+    {
+        return Nuitka_String_AsString( Nuitka_Generator_GetName( object ) );
+    }
+    else if ( PyMethod_Check( object ) )
+    {
+        return PyEval_GetFuncName( PyMethod_GET_FUNCTION( object ) );
+    }
+    else if ( PyFunction_Check( object ) )
+    {
+        return Nuitka_String_AsString( ((PyFunctionObject*)object)->func_name );
+    }
+#if PYTHON_VERSION < 300
+    else if ( PyInstance_Check( object ) )
+    {
+        return Nuitka_String_AsString( ((PyInstanceObject*)object)->in_class->cl_name );
+    }
+    else if ( PyClass_Check( object ) )
+    {
+        return Nuitka_String_AsString( ((PyClassObject*)object)->cl_name );
+    }
+#endif
+    else if ( PyCFunction_Check( object ) )
+    {
+        return ((PyCFunctionObject*)object)->m_ml->ml_name;
+    }
+    else
+    {
+        return Py_TYPE( object )->tp_name;
+    }
+}
+
 static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *args, PyObject *kw )
 {
     Py_ssize_t arg_count = PyTuple_Size( args );

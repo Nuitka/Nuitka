@@ -37,7 +37,7 @@ class CPythonStatementLoop( CPythonChildrenHaving, CPythonNodeBase ):
         CPythonChildrenHaving.__init__(
             self,
             values = {
-                "frame"     : body
+                "frame" : body
             }
         )
 

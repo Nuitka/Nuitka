@@ -209,8 +209,6 @@ if ( kw == NULL )
 }
 else
 {
-    assert( PyDict_Check( kw ) );
-
     if ( ((PyDictObject *)kw)->ma_used > 0 )
     {
         _python_par_%(dict_star_parameter_name)s = _PyDict_NewPresized( ((PyDictObject *)kw)->ma_used  );

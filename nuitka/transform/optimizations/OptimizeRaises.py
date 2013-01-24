@@ -42,14 +42,6 @@ class OptimizeRaisesVisitor( OptimizationVisitorBase ):
                 self.trimEvaluation(
                     node = node.parent
                 )
-            elif node.parent.isExpressionCallComplex():
-                self.trimEvaluation(
-                    node = node.parent
-                )
-            elif node.parent.isExpressionCallSimple():
-                self.trimEvaluation(
-                    node = node.parent
-                )
             elif node.parent.isExpressionCall():
                 self.trimEvaluation(
                     node = node.parent

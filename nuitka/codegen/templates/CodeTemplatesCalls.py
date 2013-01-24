@@ -19,42 +19,6 @@
 
 """
 
-# Bad to read, but we wan't the helper name to say it all and the call on same line
-# pylint: disable=C0301
-
-template_call_star_dict = """\
-CALL_FUNCTION_WITH_STAR_DICT( %(function)s, %(star_dict_arg)s )"""
-
-template_call_star_list_star_dict = """\
-CALL_FUNCTION_WITH_STAR_LIST_STAR_DICT( %(function)s, %(star_list_arg)s, %(star_dict_arg)s )"""
-
-template_call_pos_star_dict = """\
-CALL_FUNCTION_WITH_POSARGS_STAR_DICT( %(function)s, %(pos_args)s, %(star_dict_arg)s )"""
-
-template_call_pos_star_list = """\
-CALL_FUNCTION_WITH_POSARGS_STAR_LIST( %(function)s, %(pos_args)s, %(star_list_arg)s )"""
-
-template_call_pos_star_list_star_dict = """\
-CALL_FUNCTION_WITH_POSARGS_STAR_LIST_STAR_DICT( %(function)s, %(pos_args)s, %(star_list_arg)s, %(star_dict_arg)s )"""
-
-template_call_pos_named_star_list = """\
-CALL_FUNCTION_WITH_POSARGS_KEYARGS_STAR_LIST( %(function)s, %(pos_args)s, %(named_args)s, %(star_list_arg)s )"""
-
-template_call_pos_named_star_dict = """\
-CALL_FUNCTION_WITH_POSARGS_KEYARGS_STAR_DICT( %(function)s, %(pos_args)s, %(named_args)s, %(star_dict_arg)s )"""
-
-template_call_pos_named_star_list_star_dict = """\
-CALL_FUNCTION_WITH_POSARGS_KEYARGS_STAR_LIST_STAR_DICT( %(function)s, %(pos_args)s, %(named_args)s, %(star_list_arg)s, %(star_dict_arg)s )"""
-
-template_call_named_star_list = """\
-CALL_FUNCTION_WITH_KEYARGS_STAR_LIST( %(function)s, %(named_args)s, %(star_list_arg)s )"""
-
-template_call_named_star_dict = """\
-CALL_FUNCTION_WITH_KEYARGS_STAR_DICT( %(function)s, %(named_args)s, %(star_dict_arg)s )"""
-
-template_call_named_star_list_star_dict = """\
-CALL_FUNCTION_WITH_KEYARGS_STAR_LIST_STAR_DICT( %(function)s, %(named_args)s, %(star_list_arg)s, %(star_dict_arg)s )"""
-
 template_reverse_macros_declaration = """\
 #include "nuitka/eval_order.hpp"
 

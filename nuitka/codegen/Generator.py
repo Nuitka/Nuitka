@@ -31,6 +31,7 @@ from .Identifiers import (
     ThrowingIdentifier,
     CallIdentifier,
     NullIdentifier,
+    EmptyDictIdentifier,
     getCodeTemporaryRefs,
     getCodeExportRefs,
     encodeNonAscii
@@ -90,10 +91,7 @@ def getConstantAccess( context, constant ):
                 1
             )
         else:
-            return Identifier(
-                "PyDict_New()",
-                1
-            )
+            return EmptyDictIdentifier()
     elif type( constant ) is set:
         if constant:
             return Identifier(
@@ -267,125 +265,6 @@ def _getCallNoStarArgsCode( called_identifier, argument_tuple, argument_dictiona
                 1
             )
 
-def _getCallListStarArgsCode( called_identifier, argument_tuple, argument_dictionary, star_list_identifier ):
-    if argument_dictionary is None:
-        if argument_tuple is None:
-            assert False
-        else:
-            return Identifier(
-                CodeTemplates.template_call_pos_star_list % {
-                    "function"      : called_identifier.getCodeTemporaryRef(),
-                    "pos_args"      : argument_tuple.getCodeTemporaryRef(),
-                    "star_list_arg" : star_list_identifier.getCodeTemporaryRef()
-                },
-                1
-            )
-    else:
-        if argument_tuple is None:
-            return Identifier(
-                CodeTemplates.template_call_named_star_list % {
-                    "function"      : called_identifier.getCodeTemporaryRef(),
-                    "named_args"    : argument_dictionary.getCodeTemporaryRef(),
-                    "star_list_arg" : star_list_identifier.getCodeTemporaryRef()
-                },
-                1
-            )
-        else:
-            return Identifier(
-                CodeTemplates.template_call_pos_named_star_list % {
-                    "function"      : called_identifier.getCodeTemporaryRef(),
-                    "pos_args"      : argument_tuple.getCodeTemporaryRef(),
-                    "named_args"    : argument_dictionary.getCodeTemporaryRef(),
-                    "star_list_arg" : star_list_identifier.getCodeTemporaryRef()
-                },
-                1
-            )
-
-def _getCallDictStarArgsCode( called_identifier, argument_tuple, argument_dictionary, star_dict_identifier ):
-    if argument_dictionary is None:
-        if argument_tuple is None:
-            return Identifier(
-                CodeTemplates.template_call_star_dict % {
-                    "function"      : called_identifier.getCodeTemporaryRef(),
-                    "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
-                },
-                1
-            )
-        else:
-            return Identifier(
-                CodeTemplates.template_call_pos_star_dict % {
-                    "function"      : called_identifier.getCodeTemporaryRef(),
-                    "pos_args"      : argument_tuple.getCodeTemporaryRef(),
-                    "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
-                },
-                1
-            )
-    else:
-        if argument_tuple is None:
-            return Identifier(
-                CodeTemplates.template_call_named_star_dict % {
-                    "function"      : called_identifier.getCodeTemporaryRef(),
-                    "named_args"    : argument_dictionary.getCodeTemporaryRef(),
-                    "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
-                },
-                1
-            )
-        else:
-            return Identifier(
-                CodeTemplates.template_call_pos_named_star_dict % {
-                    "function"      : called_identifier.getCodeTemporaryRef(),
-                    "pos_args"      : argument_tuple.getCodeTemporaryRef(),
-                    "named_args"    : argument_dictionary.getCodeTemporaryRef(),
-                    "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
-                },
-                1
-            )
-
-def _getCallBothStarArgsCode( called_identifier, argument_tuple, argument_dictionary,
-                              star_list_identifier, star_dict_identifier ):
-    if argument_dictionary is None:
-        if argument_tuple is None:
-            return Identifier(
-                CodeTemplates.template_call_star_list_star_dict % {
-                    "function"      : called_identifier.getCodeTemporaryRef(),
-                    "star_list_arg" : star_list_identifier.getCodeTemporaryRef(),
-                    "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
-                },
-                1
-            )
-        else:
-            return Identifier(
-                CodeTemplates.template_call_pos_star_list_star_dict % {
-                    "function"      : called_identifier.getCodeTemporaryRef(),
-                    "pos_args"      : argument_tuple.getCodeTemporaryRef(),
-                    "star_list_arg" : star_list_identifier.getCodeTemporaryRef(),
-                    "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
-                },
-                1
-            )
-    else:
-        if argument_tuple is None:
-            return Identifier(
-                CodeTemplates.template_call_named_star_list_star_dict % {
-                    "function"      : called_identifier.getCodeTemporaryRef(),
-                    "named_args"    : argument_dictionary.getCodeTemporaryRef(),
-                    "star_list_arg" : star_list_identifier.getCodeTemporaryRef(),
-                    "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
-                },
-                1
-            )
-        else:
-            return Identifier(
-                CodeTemplates.template_call_pos_named_star_list_star_dict % {
-                    "function"      : called_identifier.getCodeTemporaryRef(),
-                    "pos_args"      : argument_tuple.getCodeTemporaryRef(),
-                    "named_args"    : argument_dictionary.getCodeTemporaryRef(),
-                    "star_list_arg" : star_list_identifier.getCodeTemporaryRef(),
-                    "star_dict_arg" : star_dict_identifier.getCodeTemporaryRef()
-                },
-                1
-            )
-
 
 def getDirectionFunctionCallCode( function_identifier, arguments, closure_variables, extra_arguments, context ):
     function_identifier = getDirectFunctionEntryPointIdentifier(
@@ -414,38 +293,45 @@ def getDirectionFunctionCallCode( function_identifier, arguments, closure_variab
     )
 
 
-def getCallCode( called_identifier, argument_tuple, argument_dictionary,
-                 star_list_identifier, star_dict_identifier ):
-    if star_dict_identifier is None:
-        if star_list_identifier is None:
-            return _getCallNoStarArgsCode(
-                called_identifier   = called_identifier,
-                argument_tuple      = argument_tuple,
-                argument_dictionary = argument_dictionary
+def getCallCode( called_identifier, argument_tuple, argument_dictionary ):
+    if argument_dictionary is not None and argument_dictionary.isConstantIdentifier() and argument_dictionary.getConstant() == {}:
+        argument_dictionary = None
+
+    if argument_dictionary is None:
+        if argument_tuple is None:
+            return Identifier(
+                "CALL_FUNCTION_NO_ARGS( %(function)s )" % {
+                    "function"   : called_identifier.getCodeTemporaryRef(),
+                },
+                1
             )
         else:
-            return _getCallListStarArgsCode(
-                called_identifier    = called_identifier,
-                argument_tuple       = argument_tuple,
-                argument_dictionary  = argument_dictionary,
-                star_list_identifier = star_list_identifier
+            return Identifier(
+                "CALL_FUNCTION_WITH_POSARGS( %(function)s, %(pos_args)s )" % {
+                    "function"   : called_identifier.getCodeTemporaryRef(),
+                    "pos_args"   : argument_tuple.getCodeTemporaryRef()
+                },
+                1
             )
     else:
-        if star_list_identifier is not None:
-            return _getCallBothStarArgsCode(
-                called_identifier    = called_identifier,
-                argument_tuple       = argument_tuple,
-                argument_dictionary  = argument_dictionary,
-                star_list_identifier = star_list_identifier,
-                star_dict_identifier = star_dict_identifier
+        if argument_tuple is None:
+            return Identifier(
+                "CALL_FUNCTION_WITH_KEYARGS( %(function)s, %(named_args)s )" % {
+                    "function"   : called_identifier.getCodeTemporaryRef(),
+                    "named_args" : argument_dictionary.getCodeTemporaryRef()
+                },
+                1
             )
         else:
-            return _getCallDictStarArgsCode(
-                called_identifier    = called_identifier,
-                argument_tuple       = argument_tuple,
-                argument_dictionary  = argument_dictionary,
-                star_dict_identifier = star_dict_identifier
+            return Identifier(
+                "CALL_FUNCTION( %(function)s, %(pos_args)s, %(named_args)s )" % {
+                    "function"   : called_identifier.getCodeTemporaryRef(),
+                    "pos_args"   : argument_tuple.getCodeTemporaryRef(),
+                    "named_args" : argument_dictionary.getCodeTemporaryRef()
+                },
+                1
             )
+
 
 def getUnpackNextCode( iterator_identifier, count ):
     return Identifier(
@@ -1265,9 +1151,7 @@ def getMakeBuiltinExceptionCode( context, exception_type, exception_args ):
             element_identifiers = exception_args,
             context             = context,
         ),
-        argument_dictionary  = None,
-        star_list_identifier = None,
-        star_dict_identifier = None
+        argument_dictionary  = None
     )
 
 def _getLocalVariableList( context, provider ):
@@ -1969,10 +1853,20 @@ def getFunctionDecl( context, function_identifier, defaults_identifier, kw_defau
                 closure_variable.getDeclarationCode()
             )
 
+        direct_call_arg_names = _extractArgNames( parameter_objects_decl )
+
         result = CodeTemplates.template_function_direct_declaration % {
-            "file_scope"             : context.getExportScope(),
-            "function_identifier"    : function_identifier,
-            "parameter_objects_decl" : ", ".join( parameter_objects_decl ),
+            "file_scope"               : context.getExportScope(),
+            "function_identifier"      : function_identifier,
+            "direct_call_arg_names"    : ", ".join( direct_call_arg_names ),
+            "direct_call_arg_reversal" : getEvalOrderedCode(
+                context = context,
+                args    = direct_call_arg_names
+            ),
+            "direct_call_arg_spec"     : getEvalOrderedCode(
+                context = context,
+                args    = parameter_objects_decl
+            )
         }
 
         if context.isForCrossModuleUsage():
@@ -2437,7 +2331,10 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
             "file_scope"                   : context.getExportScope(),
             "function_identifier"          : function_identifier,
             "context_access_function_impl" : context_access_function_impl,
-            "parameter_objects_decl"       : ", ".join( parameter_objects_decl ),
+            "direct_call_arg_spec"         : getEvalOrderedCode(
+                context = context,
+                args    = parameter_objects_decl
+            ),
             "function_locals"              : indented( function_locals ),
             "function_body"                : indented( function_codes ),
         }

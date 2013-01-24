@@ -324,11 +324,6 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
         return self, None, None
 
     def computeNodeCall( self, call_node, constraint_collection ):
-        # We can't handle complex these yet. TODO: In principle, if e.g. the called function node takes
-        # only those, we could in fact do more, but that's off limits for now.
-        if call_node.getStarListArg() is not None or call_node.getStarDictArg() is not None:
-            return call_node, None, None
-
         # TODO: Until we have something to re-order the arguments, we need to skip this. For
         # the immediate need, we avoid this complexity, as a re-ordering will be needed.
         if call_node.getNamedArgumentPairs():
@@ -469,12 +464,20 @@ class CPythonExpressionFunctionRef( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_FUNCTION_REF"
 
     def __init__( self, function_body, source_ref ):
+        assert function_body.isExpressionFunctionBody()
+
         CPythonNodeBase.__init__(
             self,
             source_ref = source_ref
         )
 
         self.function_body = function_body
+
+    def makeCloneAt( self, source_ref ):
+        return CPythonExpressionFunctionRef(
+            function_body = self.function_body,
+            source_ref    = source_ref
+        )
 
     def getFunctionBody( self ):
         return self.function_body

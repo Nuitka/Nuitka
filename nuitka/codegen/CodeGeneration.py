@@ -614,73 +614,6 @@ def generateCallNamedArgumentsCode( pairs, context ):
     else:
         return None
 
-def generateCallComplexCode( call_node, context ):
-    # TODO: Misnomer
-    called_identifier = generateExpressionCode(
-        expression = call_node.getCalled(),
-        context    = context
-    )
-
-    if call_node.getPositionalArguments():
-        positional_args_identifier = generateTupleCreationCode(
-            elements = call_node.getPositionalArguments(),
-            context  = context
-        )
-    else:
-        positional_args_identifier = None
-
-    kw_identifier = generateCallNamedArgumentsCode(
-        pairs   = call_node.getNamedArgumentPairs(),
-        context = context
-    )
-
-    star_list_identifier = generateExpressionCode(
-        expression = call_node.getStarListArg(),
-        allow_none = True,
-        context    = context
-    )
-
-    star_dict_identifier = generateExpressionCode(
-        expression = call_node.getStarDictArg(),
-        allow_none = True,
-        context    = context
-    )
-
-    return Generator.getCallCode(
-        called_identifier    = called_identifier,
-        argument_tuple       = positional_args_identifier,
-        argument_dictionary  = kw_identifier,
-        star_list_identifier = star_list_identifier,
-        star_dict_identifier = star_dict_identifier,
-    )
-
-def generateCallSimpleCode( call_node, context ):
-    # TODO: Misnomer
-    called_identifier = generateExpressionCode(
-        expression = call_node.getCalled(),
-        context    = context
-    )
-
-    if call_node.getPositionalArguments():
-        positional_args_identifier = generateTupleCreationCode(
-            elements = call_node.getPositionalArguments(),
-            context  = context
-        )
-    else:
-        positional_args_identifier = None
-
-    kw_identifier = generateCallNamedArgumentsCode(
-        pairs   = call_node.getNamedArgumentPairs(),
-        context = context
-    )
-
-    return Generator.getCallCode(
-        called_identifier    = called_identifier,
-        argument_tuple       = positional_args_identifier,
-        argument_dictionary  = kw_identifier,
-        star_list_identifier = None,
-        star_dict_identifier = None
-    )
 
 def generateCallCode( call_node, context ):
     return Generator.getCallCode(
@@ -690,16 +623,12 @@ def generateCallCode( call_node, context ):
         ),
         argument_tuple       = generateExpressionCode(
             expression = call_node.getCallArgs(),
-            allow_none = True,
             context    = context
         ),
         argument_dictionary  = generateExpressionCode(
             expression = call_node.getCallKw(),
-            allow_none = True,
             context    = context
-        ),
-        star_list_identifier = None,
-        star_dict_identifier = None
+        )
     )
 
 
@@ -822,16 +751,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
         identifier = generateDictionaryCreationCode(
             pairs   = expression.getPairs(),
             context = context
-        )
-    elif expression.isExpressionCallComplex():
-        identifier = generateCallComplexCode(
-            call_node = expression,
-            context   = context
-        )
-    elif expression.isExpressionCallSimple():
-        identifier = generateCallSimpleCode(
-            call_node = expression,
-            context   = context
         )
     elif expression.isExpressionCall():
         identifier = generateCallCode(

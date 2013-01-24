@@ -235,3 +235,19 @@ try:
     None(*a)
 except TypeError, e:
     print repr(e)
+
+
+try:
+    a = 1
+
+    None(**a)
+except TypeError, e:
+    print repr(e)
+
+print "Call object with name as both keyword and in star dict argument:"
+try:
+    a = {"a" : 3}
+
+    None(a=2, **a)
+except TypeError, e:
+    print repr(e)

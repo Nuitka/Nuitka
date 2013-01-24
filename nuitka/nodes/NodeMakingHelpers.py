@@ -38,10 +38,7 @@ from .StatementNodes import (
     CPythonStatementExpressionOnly,
     CPythonStatementsSequence
 )
-from .CallNode import (
-    CPythonExpressionCallComplex,
-    CPythonExpressionCallRaw
-)
+from .CallNode import CPythonExpressionCall
 from .ContainerMakingNodes import (
     CPythonExpressionMakeTuple,
     CPythonExpressionMakeDict
@@ -237,46 +234,3 @@ def wrapStatementWithSideEffects( new_node, old_node, allow_none = False ):
             )
 
     return new_node
-
-
-def makeCallNode( provider, called, positional_args, pairs, list_star_arg, dict_star_arg, source_ref ):
-    if list_star_arg is None and dict_star_arg is None:
-        return CPythonExpressionCallRaw(
-            called  = called,
-            args    = CPythonExpressionMakeTuple(
-                elements   = positional_args,
-                source_ref = source_ref
-            ),
-            kw      = CPythonExpressionMakeDict(
-                pairs      = pairs,
-                source_ref = source_ref
-            ),
-            source_ref      = source_ref,
-        )
-    else:
-        if list_star_arg is not None and dict_star_arg is None and not positional_args and not pairs:
-            from .ComplexCallHelperFunctions import getFunctionCallHelperStarListOnly
-
-            return CPythonExpressionFunctionCall(
-                function   = CPythonExpressionFunctionCreation(
-                    function_ref = CPythonExpressionFunctionRef(
-                        function_body = getFunctionCallHelperStarListOnly( provider ),
-                        source_ref    = source_ref
-                    ),
-                    defaults     = (),
-                    kw_defaults  = None,
-                    annotations  = None,
-                    source_ref   = source_ref
-                ),
-                values     = ( called, list_star_arg ),
-                source_ref = source_ref,
-            )
-
-        return CPythonExpressionCallComplex(
-            called          = called,
-            positional_args = positional_args,
-            pairs           = pairs,
-            list_star_arg   = list_star_arg,
-            dict_star_arg   = dict_star_arg,
-            source_ref      = source_ref,
-        )

@@ -109,6 +109,20 @@ class SpecialConstantIdentifier( ConstantIdentifier ):
             assert False, constant_value
 
 
+class EmptyDictIdentifier( Identifier ):
+    def __init__( self ):
+        Identifier.__init__( self, "PyDict_New()", 1 )
+
+    def getCheapRefCount( self ):
+        return 1
+
+    def isConstantIdentifier( self ):
+        return True
+
+    def getConstant( self ):
+        return {}
+
+
 class ModuleVariableIdentifier:
     def __init__( self, var_name, module_code_name ):
         self.var_name = var_name
