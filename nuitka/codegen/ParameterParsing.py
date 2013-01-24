@@ -62,6 +62,7 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
 
         parameter_parsing_code += CodeTemplates.parse_argument_template_dict_star_copy % {
             "dict_star_parameter_name" : parameters.getStarDictArgumentName(),
+            "function_name"            : function_name,
         }
 
         # Check for each variable.

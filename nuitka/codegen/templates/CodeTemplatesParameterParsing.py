@@ -22,6 +22,9 @@
 template_parameter_function_entry_point = """\
 static PyObject *%(parse_function_identifier)s( Nuitka_FunctionObject *self, PyObject *args, PyObject *kw )
 {
+    assert( PyTuple_Check( args ) );
+    assert( kw == NULL || PyDict_Check( kw ) );
+
     Py_ssize_t args_size = PyTuple_GET_SIZE( args );
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_found = 0;
@@ -206,20 +209,41 @@ if ( kw == NULL )
 }
 else
 {
-    _python_par_%(dict_star_parameter_name)s = PyDict_Copy( kw );
+    assert( PyDict_Check( kw ) );
 
-    if (unlikely( _python_par_%(dict_star_parameter_name)s == NULL ))
+    if ( ((PyDictObject *)kw)->ma_used > 0 )
     {
-        PyErr_Clear();
+        _python_par_%(dict_star_parameter_name)s = _PyDict_NewPresized( ((PyDictObject *)kw)->ma_used  );
 
-        _python_par_%(dict_star_parameter_name)s = MAKE_DICT0();
-
-        if (unlikely( PyDict_Update( _python_par_%(dict_star_parameter_name)s, kw ) != 0 ))
+        for ( int i = 0; i <= ((PyDictObject *)kw)->ma_mask; i++ )
         {
-            PyErr_Format( PyExc_TypeError, "after ** must be a mapping, not %%s", Py_TYPE( kw )->tp_name );
+            PyDictEntry *entry = &((PyDictObject *)kw)->ma_table[ i ];
 
-            goto error_exit;
+            if ( entry->me_value != NULL )
+            {
+
+#if PYTHON_VERSION < 300
+                if (unlikely( !PyString_Check( entry->me_key ) && !PyUnicode_Check( entry->me_key ) ))
+#else
+                if (unlikely( !PyUnicode_Check( entry->me_key ) ))
+#endif
+                {
+                    PyErr_Format( PyExc_TypeError, "%(function_name)s() keywords must be strings" );
+                    goto error_exit;
+                }
+
+                int res = PyDict_SetItem( _python_par_%(dict_star_parameter_name)s, entry->me_key, entry->me_value );
+
+                if (unlikely( res == -1 ))
+                {
+                    goto error_exit;
+                }
+            }
         }
+    }
+    else
+    {
+        _python_par_%(dict_star_parameter_name)s = PyDict_New();
     }
 }
 """
