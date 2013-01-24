@@ -270,25 +270,25 @@ class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
             }
         )
 
-        self.temp_variables = set()
+        self.temp_variables = {}
 
     getBody = CPythonChildrenHaving.childGetter( "body" )
     setBody = CPythonChildrenHaving.childSetter( "body" )
 
     def getTempVariable( self, name ):
-        assert name not in self.temp_variables
+        assert name not in self.temp_variables, name
 
         result = Variables.TempVariable(
             owner         = self,
             variable_name = name
         )
 
-        self.temp_variables.add( result )
+        self.temp_variables[ name ] = result
 
         return result
 
     def getTempVariables( self ):
-        return self.temp_variables
+        return self.temp_variables.values()
 
     def mayHaveSideEffects( self, constraint_collection ):
         return self.getBody().mayHaveSideEffects( constraint_collection )
