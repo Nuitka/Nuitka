@@ -4,3 +4,6 @@
 [submodule "tests/CPython27"]
 	path = tests/CPython27
 	url = http://git.nuitka.net/tests-Nuitka-CPython27.git
+[submodule "gui"]
+	path = gui
+	url = https://github.com/juancarlospaco/nuitka-gui
