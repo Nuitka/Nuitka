@@ -162,6 +162,20 @@ class CPythonStatementsFrame( CPythonStatementsSequence ):
     def makeCloneAt( self ):
         assert False
 
+    def getCodeObjectHandle( self, context ):
+        provider = self.getParentVariableProvider()
+
+        return context.getCodeObjectHandle(
+            filename      = self.source_ref.getFilename(),
+            arg_names     = self.getArgNames(),
+            kw_only_count = self.getKwOnlyParameterCount(),
+            line_number   = 0 if provider.isModule() else self.source_ref.getLineNumber(),
+            code_name     = self.getCodeObjectName(),
+            is_generator  = provider.isExpressionFunctionBody() and provider.isGenerator(),
+            is_optimized  = not context.hasLocalsDict() and not provider.isModule()
+        )
+
+
 class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_EXPRESSION_ONLY"
 

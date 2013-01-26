@@ -1244,9 +1244,9 @@ def getLoadGlobalsCode( context ):
     )
 
 def getLoadLocalsCode( context, provider, mode ):
-    assert not provider.isModule()
-
-    if not context.hasLocalsDict():
+    if provider.isModule():
+        return getLoadGlobalsCode( context )
+    elif not context.hasLocalsDict():
         local_list = _getLocalVariableList(
             provider = provider,
             context  = context
@@ -1708,16 +1708,6 @@ def getModuleCode( context, module_name, package_name, codes, tmp_keepers,
         for tmp_variable, ref_count in sorted( iterItems( tmp_keepers ) )
     ]
 
-    code_identifier = context.getCodeObjectHandle(
-        filename      = source_ref.getFilename(),
-        arg_names     = (),
-        kw_only_count = 0,
-        line_number   = 0,
-        code_name     = module_name if module_name != "__main__" else "<module>",
-        is_generator  = False,
-        is_optimized  = False
-    )
-
     # Create for for "inittab" to use in unfreezing of modules if that is used.
     module_inittab = []
 
@@ -1736,12 +1726,11 @@ def getModuleCode( context, module_name, package_name, codes, tmp_keepers,
             constant = module_name
         ),
         "module_identifier"     : module_identifier,
-        "code_identifier"       : code_identifier.getCodeTemporaryRef(),
         "module_functions_decl" : functions_decl,
         "module_functions_code" : functions_code,
         "module_globals"        : module_globals,
         "module_inits"          : module_inits + indented( module_local_decl ),
-        "module_code"           : indented( codes, 2 ),
+        "module_code"           : indented( codes ),
         "module_inittab"        : indented( sorted( module_inittab ) ),
         "use_unfreezer"         : 1 if other_module_names else 0
     }
@@ -1759,12 +1748,16 @@ def getModuleDeclarationCode( module_name, extra_declarations ):
         "header_body"       : module_header_code
     }
 
-def getMainCode( codes, context ):
+def getMainCode( codes, code_identifier, context ):
+    if code_identifier is None:
+        code_identifier = NullIdentifier()
+
     main_code = CodeTemplates.main_program % {
-        "sys_executable" : getConstantCode(
+        "sys_executable"  : getConstantCode(
             constant = "python.exe" if Options.isWindowsTarget() else sys.executable,
             context  = context
-        )
+        ),
+        "code_identifier" : code_identifier.getCodeTemporaryRef()
     }
 
     return codes + main_code
@@ -2899,6 +2892,19 @@ def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes, locals_ide
         "frame_locals"      : locals_identifier.getCodeExportRef(),
         "tb_making"         : tb_making.getCodeExportRef(),
         "return_code"       : return_code
+    }
+
+def getFrameGuardOnceCode( frame_identifier, code_identifier, locals_identifier, codes, context ):
+    tb_making = getTracebackMakingIdentifier( context )
+
+    return CodeTemplates.frame_guard_once_template % {
+        "frame_identifier"  : frame_identifier,
+        "code_identifier"   : code_identifier.getCodeTemporaryRef(),
+        "codes"             : indented( codes ),
+        "module_identifier" : getModuleAccessCode( context = context ),
+        "frame_locals"      : locals_identifier.getCodeExportRef(),
+        "tb_making"         : tb_making.getCodeExportRef(),
+        "return_code"       : indented( context.getReturnCode() )
     }
 
 def getFrameGuardLightCode( frame_identifier, code_identifier, codes, context ):

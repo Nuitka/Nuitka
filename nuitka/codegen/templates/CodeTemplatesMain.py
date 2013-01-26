@@ -77,12 +77,8 @@ int main( int argc, char *argv[] )
 
     if ( ERROR_OCCURED() )
     {
-        assertFrameObject( frame___main__ );
-        assert( frame___main__->f_back == NULL );
-
-        // Cleanup code may need a frame, so put it back.
-        Py_INCREF( frame___main__ );
-        PyThreadState_GET()->frame = frame___main__;
+        // Cleanup code may need a frame, so put one back.
+        PyThreadState_GET()->frame = MAKE_FRAME( %(code_identifier)s, _module___main__ );
 
         PyErr_PrintEx( 0 );
         Py_Exit( 1 );
@@ -259,9 +255,6 @@ PyObject *_module_%(module_identifier)s;
 // The module function definitions.
 %(module_functions_code)s
 
-// Frame object of the module.
-static PyFrameObject *frame_%(module_identifier)s;
-
 #if PYTHON_VERSION >= 300
 static struct PyModuleDef _moduledef =
 {
@@ -402,36 +395,11 @@ MOD_INIT_DECL( %(module_identifier)s )
     }
 #endif
 
-    frame_%(module_identifier)s = MAKE_FRAME( %(code_identifier)s, _module_%(module_identifier)s );
-
-    // Set module frame as the currently active one.
-    FrameGuard frame_guard( frame_%(module_identifier)s );
-
     // Initialize the standard module attributes.
 %(module_inits)s
 
     // Module code
-    try
-    {
 %(module_code)s
-    }
-    catch ( _PythonException &_exception )
-    {
-        if ( !_exception.hasTraceback() )
-        {
-            _exception.setTraceback( MAKE_TRACEBACK( frame_guard.getFrame() ) );
-        }
-        else
-        {
-            _exception.addTraceback( frame_guard.getFrame0() );
-        }
-
-        _exception.toPython();
-    }
-
-    // puts( "out init%(module_identifier)s" );
-
-    return MOD_RETURN_VALUE( _module_%(module_identifier)s );
 }
 """
 

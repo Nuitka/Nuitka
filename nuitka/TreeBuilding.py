@@ -190,12 +190,26 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
         return None
 
     if frame:
+        if provider.isExpressionFunctionBody():
+            arg_names     = provider.getParameters().getCoArgNames()
+            kw_only_count = provider.getParameters().getKwOnlyParameterCount()
+            code_name     = provider.getFunctionName()
+            guard_mode    = "generator" if provider.isGenerator() else "full"
+        else:
+            assert provider.isModule()
+
+            arg_names     = ()
+            kw_only_count = 0
+            code_name     = "<module>" if provider.isMainModule() else provider.getName()
+            guard_mode    = "once"
+
+
         return CPythonStatementsFrame(
             statements    = statements,
-            guard_mode    = "generator" if provider.isGenerator() else "full",
-            arg_names     = provider.getParameters().getCoArgNames(),
-            kw_only_count = provider.getParameters().getKwOnlyParameterCount(),
-            code_name     = provider.getFunctionName(),
+            guard_mode    = guard_mode,
+            arg_names     = arg_names,
+            kw_only_count = kw_only_count,
+            code_name     = code_name,
             source_ref    = source_ref
         )
     else:
@@ -4036,7 +4050,8 @@ def buildParseTree( provider, source_code, source_ref, replacement ):
     result = buildStatementsNode(
         provider   = provider,
         nodes      = body,
-        source_ref = source_ref
+        source_ref = source_ref,
+        frame      = True
     )
 
     if not replacement:
@@ -4044,16 +4059,6 @@ def buildParseTree( provider, source_code, source_ref, replacement ):
         provider.setBody( result )
 
     return result
-
-def buildReplacementTree( provider, source_code, source_ref ):
-    assert False, "bitrot"
-
-    return buildParseTree(
-        provider    = provider,
-        source_code = source_code,
-        source_ref  = source_ref,
-        replacement = True
-    )
 
 imported_modules = {}
 
@@ -4211,6 +4216,7 @@ def buildModuleTree( filename, package, is_top, is_main ):
         result = CPythonModule(
             name       = module_name,
             package    = package,
+            is_main    = is_main,
             source_ref = source_ref
         )
     elif Utils.isDir( filename ) and Utils.isFile( Utils.joinpath( filename, "__init__.py" ) ):

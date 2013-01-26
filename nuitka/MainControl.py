@@ -226,7 +226,8 @@ def makeSourceDirectory( main_module ):
         # The main of an executable module gets a bit different code.
         if module is main_module and not Options.shallMakeModule():
             source_code = CodeGeneration.generateMainCode(
-                context = global_context,
+                context = module_context,
+                module  = module,
                 codes   = source_code
             )
 

@@ -2033,43 +2033,44 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
 
     if statement_sequence.isStatementsFrame():
         provider = statement_sequence.getParentVariableProvider()
-        assert provider.isExpressionFunctionBody()
 
         source_ref = statement_sequence.getSourceReference()
 
         if guard_mode == "generator":
+            assert provider.isExpressionFunctionBody() and provider.isGenerator()
+
             code = Generator.getFrameGuardLightCode(
-                frame_identifier  = provider.getCodeName(),
-                code_identifier   = context.getCodeObjectHandle(
-                    filename      = source_ref.getFilename(),
-                    arg_names     = statement_sequence.getArgNames(),
-                    kw_only_count = statement_sequence.getKwOnlyParameterCount(),
-                    line_number   = source_ref.getLineNumber(),
-                    code_name     = statement_sequence.getCodeObjectName(),
-                    is_generator  = statement_sequence.getParentVariableProvider().isGenerator(),
-                    is_optimized  = not context.hasLocalsDict()
-                ),
+                frame_identifier = provider.getCodeName(),
+                code_identifier  = statement_sequence.getCodeObjectHandle( context ),
                 codes            = codes,
                 context          = context
             )
         elif guard_mode == "pass_through":
+            assert provider.isExpressionFunctionBody()
+
             code = Generator.getFrameGuardVeryLightCode(
                 codes = codes,
             )
         elif guard_mode == "full":
+            assert provider.isExpressionFunctionBody()
+
             code = Generator.getFrameGuardHeavyCode(
                 frame_identifier  = provider.getCodeName(),
-                code_identifier   = context.getCodeObjectHandle(
-                    filename      = source_ref.getFilename(),
-                    arg_names     = statement_sequence.getArgNames(),
-                    kw_only_count = statement_sequence.getKwOnlyParameterCount(),
-                    line_number   = source_ref.getLineNumber(),
-                    code_name     = statement_sequence.getCodeObjectName(),
-                    is_generator  = False,
-                    is_optimized  = not context.hasLocalsDict()
-                ),
+                code_identifier   = statement_sequence.getCodeObjectHandle( context ),
                 locals_identifier = Generator.getLoadLocalsCode(
-                    context = context,
+                    context  = context,
+                    provider = provider,
+                    mode     = "updated"
+                ),
+                codes             = codes,
+                context           = context
+            )
+        elif guard_mode == "once":
+            code = Generator.getFrameGuardOnceCode(
+                frame_identifier  = provider.getCodeName(),
+                code_identifier   = statement_sequence.getCodeObjectHandle( context ),
+                locals_identifier = Generator.getLoadLocalsCode(
+                    context  = context,
                     provider = provider,
                     mode     = "updated"
                 ),
@@ -2138,10 +2139,16 @@ def generateModuleDeclarationCode( module_name, context ):
         extra_declarations = context.getExportDeclarations()
     )
 
-def generateMainCode( context, codes ):
+def generateMainCode( module, codes, context ):
+    if module.getBody() is not None:
+        code_identifier = module.getBody().getCodeObjectHandle( context )
+    else:
+        code_identifier = None
+
     return Generator.getMainCode(
-        context = context,
-        codes   = codes
+        context         = context,
+        code_identifier = code_identifier,
+        codes           = codes
     )
 
 def generateConstantsDeclarationCode( context ):

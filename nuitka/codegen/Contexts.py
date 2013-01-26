@@ -379,6 +379,12 @@ class PythonModuleContext( PythonContextBase ):
     def getExportDeclarations( self ):
         return "\n".join( self.export_declarations )
 
+    def setFrameGuardMode( self, guard_mode ):
+        assert guard_mode == "once"
+
+    def getReturnCode( self ):
+        return "MOD_RETURN_VALUE( _module_%s );" % self.getModuleCodeName()
+
 
 class PythonFunctionContext( PythonChildContextBase ):
     def __init__( self, parent, function ):
@@ -475,17 +481,3 @@ class PythonFunctionCreatedContext( PythonFunctionContext ):
 
     def isForCreatedFunction( self ):
         return True
-
-
-class PythonExecInlineContext( PythonChildContextBase ):
-    def __init__( self, parent ):
-        PythonChildContextBase.__init__( self, parent = parent )
-
-    def getClosureHandle( self, var_name ):
-        return self.parent.getLocalHandle( var_name )
-
-    def getLocalHandle( self, var_name ):
-        return self.parent.getLocalHandle( var_name )
-
-    def hasLocalsDict( self ):
-        return self.parent.hasLocalsDict()

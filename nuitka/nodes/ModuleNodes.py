@@ -47,7 +47,7 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureGiverNodeBase,
 
     named_children = ( "body", )
 
-    def __init__( self, name, package, source_ref ):
+    def __init__( self, name, package, is_main, source_ref ):
         assert type(name) is str, type(name)
         assert "." not in name, name
         assert package is None or ( type( package ) is str and package != "" )
@@ -68,6 +68,9 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureGiverNodeBase,
 
         self.package = package
         self.doc = None
+
+        # Indicator, if this is the top level module.
+        self.is_main = is_main
 
         self.variables = set()
 
@@ -148,6 +151,9 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureGiverNodeBase,
     def isEarlyClosure( self ):
         return True
 
+    def isMainModule( self ):
+        return self.is_main
+
     def getCodeName( self ):
         return "module_" + self.getFullName().replace( ".", "__" ).replace( "-", "_" )
 
@@ -170,6 +176,7 @@ class CPythonPackage( CPythonModule ):
             self,
             name       = name,
             package    = package,
+            is_main    = False,
             source_ref = source_ref
         )
 

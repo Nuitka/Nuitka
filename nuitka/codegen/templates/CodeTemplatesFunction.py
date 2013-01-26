@@ -182,6 +182,7 @@ catch( ReturnValueException &_exception )
     return _exception.getValue();
 }"""
 
+# TODO: Treat heavy and once the same.
 frame_guard_python_return = """
     _exception.toPython();
     return NULL;"""
@@ -193,6 +194,46 @@ frame_guard_listcontr_template = """\
 FrameGuardVeryLight frame_guard;
 
 %(codes)s"""
+
+frame_guard_once_template = """\
+PyFrameObject *frame_%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
+
+FrameGuard frame_guard( frame_%(frame_identifier)s );
+try
+{
+    assert( Py_REFCNT( frame_%(frame_identifier)s ) == 2 ); // Frame stack
+%(codes)s
+}
+catch ( _PythonException &_exception )
+{
+    if ( !_exception.hasTraceback() )
+    {
+        _exception.setTraceback( %(tb_making)s );
+    }
+    else
+    {
+        _exception.addTraceback( frame_guard.getFrame0() );
+    }
+
+#if 0
+// TODO: Recognize the need for it
+    Py_XDECREF( frame_guard.getFrame0()->f_locals );
+    frame_guard.getFrame0()->f_locals = %(frame_locals)s;
+#endif
+
+// TODO:
+    _exception.toPython();
+%(return_code)s
+}
+#if 0
+// TODO: Recognize the need for it, now we know it's only modules and therefore
+// not needed.
+catch( ReturnValueException &_exception )
+{
+    return _exception.getValue();
+}
+#endif"""
+
 
 # Bad to read, but the context declaration should be on one line.
 # pylint: disable=C0301
