@@ -75,7 +75,19 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureGiverNodeBase,
         self.functions = OrderedSet()
 
     def getDetails( self ):
-        return { "filename" : self.source_ref.getFilename()  }
+        return {
+            "filename" : self.source_ref.getFilename(),
+            "package"  : self.package,
+            "name"     : self.name
+        }
+
+    def asXml( self ):
+        result = super( CPythonModule, self ).asXml()
+
+        for function_body in self.functions:
+            result.append( function_body.asXml() )
+
+        return result
 
     getBody = CPythonChildrenHaving.childGetter( "body" )
     setBody = CPythonChildrenHaving.childSetter( "body" )

@@ -153,8 +153,9 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
     def getDetails( self ):
         return {
             "name"       : self.getFunctionName(),
+            "ref_name"   : self.getCodeName(),
             "parameters" : self.getParameters(),
-            "provider"   : self.provider,
+            "provider"   : self.provider.getCodeName(),
             "doc"        : self.doc
         }
 
@@ -472,6 +473,11 @@ class CPythonExpressionFunctionRef( CPythonNodeBase, CPythonExpressionMixin ):
         )
 
         self.function_body = function_body
+
+    def getDetails( self ):
+        return {
+            "function" : self.function_body.getCodeName()
+        }
 
     def makeCloneAt( self, source_ref ):
         return CPythonExpressionFunctionRef(

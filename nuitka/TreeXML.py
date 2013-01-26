@@ -28,25 +28,6 @@ try:
 except ImportError:
     lxml = None
 
-def makeNodeElement( node ):
-    result = lxml.etree.Element(
-        "node",
-        kind   = node.__class__.__name__.replace( "CPython", "" ),
-        source = "%s" % node.getSourceReference().getLineNumber()
-    )
-
-    for key, value in node.getDetails().iteritems():
-        value = str( value )
-
-        if value.startswith( "<" ) and value.endswith( ">" ):
-            value = value[1:-1]
-
-        result.set( key, str( value ) )
-
-#    result.text = str( node )
-
-    return result
-
 def toString( xml ):
     return lxml.etree.tostring( xml, pretty_print = True )
 

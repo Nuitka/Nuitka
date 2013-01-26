@@ -21,6 +21,8 @@
 
 from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
 
+from nuitka.Utils import python_version
+
 def mergeStatements( statements ):
     """ Helper function that merges nested statement sequences. """
     merged_statements = []
@@ -134,11 +136,16 @@ class CPythonStatementsFrame( CPythonStatementsSequence ):
         self.guard_mode = guard_mode
 
     def getDetails( self ):
-        return {
+        result = {
             "code_name"  : self.code_name,
-            "arg_names"  : self.arg_names,
+            "arg_names"  : ", ".join( self.arg_names ),
             "guard_mode" : self.guard_mode
         }
+
+        if python_version >= 300:
+            result[ "kw_only_count" ] = self.kw_only_count
+
+        return result
 
     def getGuardMode( self ):
         return self.guard_mode
@@ -152,6 +159,8 @@ class CPythonStatementsFrame( CPythonStatementsSequence ):
     def getKwOnlyParameterCount( self ):
         return self.kw_only_count
 
+    def makeCloneAt( self ):
+        assert False
 
 class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_EXPRESSION_ONLY"
