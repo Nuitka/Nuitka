@@ -1,7 +1,12 @@
 Nuitka Release 0.3.26 (Draft)
 =============================
 
-This releases brings full Python3 support. With this
+This releases brings progress on all fronts. There is full Python3.2 support. With this
+release, the test suite of CPython3.2 is considered passing.
+
+Then lots of work on optimization and infrastructure. The major goal of this release was
+to get in shape for actual optimization. This is also why for the first time, it is tested
+that some things are indeed compile time optimized to spot regressions easier.
 
 New Features
 ------------
@@ -55,13 +60,6 @@ Bug fixes
 New Optimizations
 -----------------
 
-- Added support for optimizing ``hasattr``, ``getattr``, and ``setattr`` built-ins as
-  well. The ``hasattr`` was needed for the ``class`` re-formulation of Python3 anyway.
-
-- Optimizing ``getattr`` with string argument and no default to simple attribute access.
-
-- Added support for optimizing ``isinstance`` built-in.
-
 - Optimizing attribute access to compile time constants for the first time. The old
   registry had no actual user yet.
 
@@ -74,6 +72,12 @@ New Optimizations
 
 - Optimizing calls to constant nodes directly into exceptions.
 
+- Added support for optimizing ``hasattr``, ``getattr``, and ``setattr`` built-ins as
+  well. The ``hasattr`` was needed for the ``class`` re-formulation of Python3 anyway.
+
+- Optimizing ``getattr`` with string argument and no default to simple attribute access.
+
+- Added support for optimizing ``isinstance`` built-in.
 
 Cleanups
 --------
@@ -93,6 +97,14 @@ Cleanups
 
   * There is no class creation node anymore, it's merely a call to ``type`` or the
     metaclass detected.
+
+- Re-formulated complex calls through helper functions that process the star list and dict
+  arguments and do merges, checks, etc.
+
+  * Moves much C++ code into the node tree visibility.
+
+  * Will allow optimization to eliminate checks and to compile time merge, once inline
+    functions and loop unrolling are supported.
 
 - Merged C++ classes for frame exception keeper with frame guards.
 
@@ -114,6 +126,10 @@ Cleanups
 
   * New per node methods "computeNodeCall", "computeNodeSubscript", etc. dispatch the
     optimization process to the nodes directly.
+
+- Use the standard frame guard code generation for modules too.
+
+  * Added a variant "once", that avoids caching of frames entirely.
 
 - The variable closure taking has been cleaned up.
 
@@ -138,6 +154,10 @@ New Tests
 - The complete CPython3.2 test suite was adapted (no ``__code__``, no ``__closure__``,
   etc.) and is now passing, but only without "--debug", because otherwise some of the
   generated C++ triggers (harmless) warnings.
+
+- Added new test suite designed to prove that expressions that are known to be compile
+  time constant are indeed so. This works using the XML output done with "--dump-xml" and
+  then searching it to only have print statements with constant values.
 
 - Added new basic CPython3.2 test "Functions32" and "ParameterErrors32" to cover keyword
   only parameter handling.
