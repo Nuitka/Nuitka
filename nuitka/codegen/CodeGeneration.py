@@ -1433,20 +1433,6 @@ def generateExecCode( exec_def, context ):
         )
     )
 
-def generateExecCodeInline( exec_def, context ):
-    exec_context = Contexts.PythonExecInlineContext(
-        parent = context
-    )
-
-    codes = generateStatementSequenceCode(
-        statement_sequence = exec_def.getBody(),
-        context            = exec_context
-    )
-
-    return Generator.getBlockCode(
-        codes = codes
-    )
-
 def generateTryExceptCode( statement, context ):
     tried_block = statement.getBlockTry()
 
@@ -1936,11 +1922,6 @@ def _generateStatementCode( statement, context ):
         )
     elif statement.isStatementExec():
         code = generateExecCode(
-            exec_def     = statement,
-            context      = context
-        )
-    elif statement.isStatementExecInline():
-        code = generateExecCodeInline(
             exec_def     = statement,
             context      = context
         )

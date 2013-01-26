@@ -162,18 +162,6 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         return self.parent
 
-    def getParentExecInline( self ):
-        """ Return the parent that is an inlined exec.
-
-        """
-
-        parent = self.getParent()
-
-        while parent is not None and not parent.isStatementExecInline():
-            parent = parent.getParent()
-
-        return parent
-
     def getParentFunction( self ):
         """ Return the parent that is a function.
 

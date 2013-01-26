@@ -294,7 +294,8 @@ def getDirectionFunctionCallCode( function_identifier, arguments, closure_variab
 
 
 def getCallCode( called_identifier, argument_tuple, argument_dictionary ):
-    if argument_dictionary is not None and argument_dictionary.isConstantIdentifier() and argument_dictionary.getConstant() == {}:
+    if argument_dictionary is not None and argument_dictionary.isConstantIdentifier() and \
+       argument_dictionary.getConstant() == {}:
         argument_dictionary = None
 
     if argument_dictionary is None:

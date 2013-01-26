@@ -85,6 +85,7 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureGiverNodeBase,
         }
 
     def asXml( self ):
+        # The class is new style, false alarm: pylint: disable=E1002
         result = super( CPythonModule, self ).asXml()
 
         for function_body in self.functions:
@@ -149,6 +150,7 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureGiverNodeBase,
         return result
 
     def isEarlyClosure( self ):
+        # Modules should immediately closure variables on use, pylint: disable=R0201
         return True
 
     def isMainModule( self ):

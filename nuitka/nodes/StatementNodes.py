@@ -159,7 +159,7 @@ class CPythonStatementsFrame( CPythonStatementsSequence ):
     def getKwOnlyParameterCount( self ):
         return self.kw_only_count
 
-    def makeCloneAt( self ):
+    def makeCloneAt( self, source_ref ):
         assert False
 
     def getCodeObjectHandle( self, context ):

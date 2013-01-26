@@ -23,7 +23,6 @@ e.g. a new constant determined could make another optimization feasible.
 """
 
 from .OptimizeModuleRecursion import ModuleRecursionVisitor
-from .OptimizeConstantExec import OptimizeExecVisitor
 from .OptimizeVariableClosure import VariableClosureLookupVisitors
 from .OptimizeRaises import OptimizeRaisesVisitor
 from .OptimizeValuePropagation import ValuePropagationVisitor
@@ -61,10 +60,6 @@ def optimizeTree( tree ):
         if tags.check( "new_code new_import" ):
             if not Options.shallMakeModule():
                 optimizations_queue.add( ModuleRecursionVisitor )
-
-        if tags.check( "new_code new_constant" ):
-            if Options.shallOptimizeStringExec():
-                optimizations_queue.add( OptimizeExecVisitor )
 
         if tags.check( "new_code new_raise" ):
             optimizations_queue.add( OptimizeRaisesVisitor )

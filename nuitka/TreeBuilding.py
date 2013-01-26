@@ -1421,6 +1421,9 @@ def buildWhileLoopNode( provider, node, source_ref ):
         return temp_block
 
 def makeCallNode( provider, called, positional_args, pairs, list_star_arg, dict_star_arg, source_ref ):
+    # Many variables, but only to cover the many complex call cases.
+    # pylint: disable=R0914
+
     if list_star_arg is None and dict_star_arg is None:
         return CPythonExpressionCall(
             called  = called,

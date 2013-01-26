@@ -38,17 +38,7 @@ from .StatementNodes import (
     CPythonStatementExpressionOnly,
     CPythonStatementsSequence
 )
-from .CallNode import CPythonExpressionCall
-from .ContainerMakingNodes import (
-    CPythonExpressionMakeTuple,
-    CPythonExpressionMakeDict
-)
 from .SideEffectNode import CPythonExpressionSideEffects
-from .FunctionNodes import (
-    CPythonExpressionFunctionCreation,
-    CPythonExpressionFunctionRef,
-    CPythonExpressionFunctionCall
-)
 
 
 def makeConstantReplacementNode( constant, node ):
