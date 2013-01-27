@@ -105,12 +105,6 @@ for filename in sorted( os.listdir( "." ) ):
             extra_flags.append( "ignore_stderr" )
             extra_flags.append( "python_debug" )
 
-        # Temporary measure, until Python3 is better supported, disable some tests, so
-        # this can be used to monitor the success of existing ones and have no regression for it.
-        if python_version.startswith( b"3.2" ) and filename[:-3] in ( "ExecEval",  ):
-            print( "Skipping malfunctional test", filename )
-            continue
-
         # Apply 2to3 conversion if necessary.
         assert type( python_version ) is bytes
 
