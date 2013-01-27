@@ -297,6 +297,8 @@ static PyObject *Nuitka_Function_get_globals( Nuitka_FunctionObject *object )
     return INCREASE_REFCOUNT( PyModule_GetDict( object->m_module ) );
 }
 
+extern PyObject *_python_str_plain___module__;
+
 static int Nuitka_Function_set_module( Nuitka_FunctionObject *object, PyObject *value )
 {
     if ( object->m_dict == NULL )
@@ -309,10 +311,8 @@ static int Nuitka_Function_set_module( Nuitka_FunctionObject *object, PyObject *
         value = Py_None;
     }
 
-    return PyDict_SetItemString( object->m_dict, (char * )"__module__", value );
+    return PyDict_SetItem( object->m_dict, _python_str_plain___module__, value );
 }
-
- extern PyObject *_python_str_plain___module__;
 
 static PyObject *Nuitka_Function_get_module( Nuitka_FunctionObject *object )
 {

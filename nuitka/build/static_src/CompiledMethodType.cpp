@@ -65,6 +65,8 @@ static PyMethodDef Nuitka_Method_methods[] =
     { NULL }
 };
 
+extern PyObject *_python_str_plain___name__;
+
 static char const *GET_CLASS_NAME( PyObject *klass )
 {
     if ( klass == NULL )
@@ -73,7 +75,7 @@ static char const *GET_CLASS_NAME( PyObject *klass )
     }
     else
     {
-        PyObject *name = PyObject_GetAttrString( klass, "__name__" );
+        PyObject *name = PyObject_GetAttr( klass, _python_str_plain___name__ );
 
         if (unlikely( name == NULL ))
         {

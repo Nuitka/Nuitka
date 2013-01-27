@@ -153,6 +153,7 @@ class PythonGlobalContext:
         # Python mechanics.
         self.getConstantHandle( "__module__" )
         self.getConstantHandle( "__class__" )
+        self.getConstantHandle( "__name__" )
         self.getConstantHandle( "__metaclass__" )
         self.getConstantHandle( "__dict__" )
         self.getConstantHandle( "__doc__" )
@@ -160,8 +161,17 @@ class PythonGlobalContext:
         self.getConstantHandle( "__enter__" )
         self.getConstantHandle( "__exit__" )
         self.getConstantHandle( "__builtins__" )
+        self.getConstantHandle( "__all__" )
+
         # For Python3 modules
-        self.getConstantHandle( "__cached__" )
+        if python_version >= 300:
+            self.getConstantHandle( "__cached__" )
+
+        # For patching Python2 internal class type
+        if python_version < 300:
+            self.getConstantHandle( "__getattr__" )
+            self.getConstantHandle( "__setattr__" )
+            self.getConstantHandle( "__delattr__" )
 
         # Patched module name.
         self.getConstantHandle( "inspect" )

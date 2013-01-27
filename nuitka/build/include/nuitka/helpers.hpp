@@ -1307,6 +1307,8 @@ extern PyObject *_BUILTIN_GETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *a
 #define BUILTIN_SETATTR( object, attribute, value ) _BUILTIN_SETATTR( EVAL_ORDERED_3( object, attribute, value ) )
 extern void _BUILTIN_SETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *value ) );
 
+extern PyObject *_python_str_plain___builtins__;
+
 NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {
     if ( PyDict_Check( globals ) == 0 )
@@ -1327,9 +1329,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
     }
 
     // Set the __builtins__ in globals, it is expected to be present.
-    if ( PyDict_GetItemString( globals, (char *)"__builtins__" ) == NULL )
+    if ( PyDict_GetItem( globals, _python_str_plain___builtins__ ) == NULL )
     {
-        if ( PyDict_SetItemString( globals, (char *)"__builtins__", (PyObject *)module_builtin ) == -1 )
+        if ( PyDict_SetItem( globals, _python_str_plain___builtins__, (PyObject *)module_builtin ) == -1 )
         {
             throw _PythonException();
         }

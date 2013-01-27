@@ -664,6 +664,8 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *loc
     return import_result;
 }
 
+extern PyObject *_python_str_plain___all__;
+
 void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 {
     // Check parameters.
@@ -673,7 +675,7 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
     PyObject *iter;
     bool all_case;
 
-    if ( PyObject *all = PyObject_GetAttrString( module, (char *)"__all__" ) )
+    if ( PyObject *all = PyObject_GetAttr( module, _python_str_plain___all__ ) )
     {
         iter = MAKE_ITERATOR( all );
         all_case = true;
@@ -1012,21 +1014,15 @@ static void set_slot( PyObject **slot, PyObject *value )
     Py_XDECREF( temp );
 }
 
+extern PyObject *_python_str_plain___getattr__;
+extern PyObject *_python_str_plain___setattr__;
+extern PyObject *_python_str_plain___delattr__;
+
 static void set_attr_slots( PyClassObject *klass )
 {
-    static PyObject *getattrstr = NULL, *setattrstr = NULL, *delattrstr = NULL;
-
-    if ( getattrstr == NULL )
-    {
-        getattrstr = PyString_InternFromString( "__getattr__" );
-        setattrstr = PyString_InternFromString( "__setattr__" );
-        delattrstr = PyString_InternFromString( "__delattr__" );
-    }
-
-
-    set_slot( &klass->cl_getattr, FIND_ATTRIBUTE_IN_CLASS( klass, getattrstr ) );
-    set_slot( &klass->cl_setattr, FIND_ATTRIBUTE_IN_CLASS( klass, setattrstr ) );
-    set_slot( &klass->cl_delattr, FIND_ATTRIBUTE_IN_CLASS( klass, delattrstr ) );
+    set_slot( &klass->cl_getattr, FIND_ATTRIBUTE_IN_CLASS( klass, _python_str_plain___getattr__ ) );
+    set_slot( &klass->cl_setattr, FIND_ATTRIBUTE_IN_CLASS( klass, _python_str_plain___setattr__ ) );
+    set_slot( &klass->cl_delattr, FIND_ATTRIBUTE_IN_CLASS( klass, _python_str_plain___delattr__ ) );
 }
 
 static bool set_dict( PyClassObject *klass, PyObject *value )
