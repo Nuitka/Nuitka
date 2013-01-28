@@ -63,11 +63,9 @@ class CPythonExpressionAssignmentTempKeeper( CPythonExpressionChildrenHavingBase
     getAssignSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
 
     def computeNode( self, constraint_collection ):
-        # TODO: Nothing to do here? Maybe if the assignment target is unused, it could
-        # replace itself with source.
+        if self.variable.getReferenced().isWriteOnly():
+            return self.getAssignSource(), "new_expression", "Removed useless temporary keeper assignment."
 
-        # TODO: A real variable should be the link, then we could tell if it's used at
-        # all.
         return self, None, None
 
 

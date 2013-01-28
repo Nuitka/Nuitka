@@ -616,7 +616,7 @@ def getClosureVariableProvisionCode( context, closure_variables ):
 
 def getConditionalExpressionCode( condition_code, identifier_no, identifier_yes ):
     if identifier_yes.getCheapRefCount() == identifier_no.getCheapRefCount():
-        if identifier_yes.getCheapRefCount == 0:
+        if identifier_yes.getCheapRefCount() == 0:
             codes_yes = identifier_yes.getCodeTemporaryRef()
             codes_no  = identifier_no.getCodeTemporaryRef()
             ref_count = 0
@@ -911,7 +911,7 @@ def getAssignmentTempKeeperCode( source_identifier, variable, context ):
     ref_count = source_identifier.getCheapRefCount()
     variable_name = variable.getName()
 
-    assert variable.getReferenced().getNeedsFree() == bool( ref_count ), ( variable.getReferenced().getNeedsFree(), ref_count )
+    assert variable.getReferenced().getNeedsFree() == bool( ref_count ), ( variable, variable.getReferenced().getNeedsFree(), ref_count, source_identifier )
 
     context.addTempKeeperUsage( variable_name, ref_count )
 

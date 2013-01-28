@@ -193,21 +193,7 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
                     )
                 )
             else:
-                # TODO: There should be no assignment at all remaining, this is an
-                # optimization shortcoming if it is.
-                result = Generator.getConditionOrCode(
-                    operands = (
-                        generateConditionCode(
-                            condition = expression_yes,
-                            context   = context,
-                        ),
-                        generateConditionCode(
-                            condition = expression_no,
-                            context   = context,
-                        )
-                    )
-                )
-
+                assert False, condition
         else:
             result = Generator.getConditionSelectionCode(
                 condition_code = generateConditionCode(

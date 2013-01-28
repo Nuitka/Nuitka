@@ -67,6 +67,9 @@ class VariableUsageProfile:
     def isUnused( self ):
         return not self.written_to and not self.read_from
 
+    def isWriteOnly( self ):
+        return self.written_to and not self.read_from
+
     def setNeedsFree( self, needs_free ):
         assert needs_free is not None
 
@@ -88,10 +91,14 @@ class VariableUsageTrackingMixin:
 
             return self.variable_usages[ variable ]
 
-    def setTempNeedsFreeIndications( self ):
+    def setIndications( self ):
         for variable, usage in iterItems( self.variable_usages ):
             if variable.isTempVariable():
                 variable.setNeedsFree( usage.getNeedsFree() )
+
+            if variable.isTempKeeperVariable():
+                if usage.isWriteOnly():
+                    variable.setWriteOnly()
 
 
 # TODO: This code is only here while staging it, will live in a dedicated module later on
@@ -206,6 +213,8 @@ class ConstraintCollectionBase:
         new_node, change_tags, change_desc = expression.computeNode( self )
 
         if new_node is not expression:
+            # print expression, "->", new_node
+
             expression.replaceWith( new_node )
 
             self.signalChange(
@@ -229,8 +238,11 @@ class ConstraintCollectionBase:
             self.variables[ variable  ] = value_friend
 
             self.onTempVariableAssigned( variable, value_friend )
+        elif new_node.isExpressionTempKeeperRef():
+            variable = new_node.getVariable()
+            assert variable is not None
 
-
+            self.onTempVariableRead( variable )
 
         return new_node
 
@@ -263,6 +275,8 @@ class ConstraintCollectionBase:
     def onTempVariableAssigned( self, variable, value_friend ):
         self.parent.onTempVariableAssigned( variable, value_friend )
 
+    def onTempVariableRead( self, variable ):
+        self.parent.onTempVariableRead( variable )
 
     def _onStatementAssignmentVariable( self, statement ):
         self.onExpression( statement.getAssignSource() )
@@ -804,7 +818,7 @@ class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrack
         if statements_sequence is not None:
             self.onStatementsSequence( statements_sequence )
 
-        self.setTempNeedsFreeIndications()
+        self.setIndications()
 
     def onLocalVariableAssigned( self, variable, value_friend ):
         self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
@@ -818,6 +832,12 @@ class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrack
         assert variable.getRealOwner() is self.function_body, variable.getOwner()
 
         self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
+
+    def onTempVariableRead( self, variable ):
+        variable = variable.getReferenced()
+
+        self._getVariableUsage( variable ).markAsReadFrom()
+
 
 
 class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackingMixin ):
@@ -837,7 +857,7 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
         if module_body is not None:
             self.onStatementsSequence( module_body )
 
-        self.setTempNeedsFreeIndications()
+        self.setIndications()
 
         self.attemptRecursion( module )
 
@@ -879,6 +899,14 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
         assert variable.getRealOwner() is self.module, variable.getOwner()
 
         self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
+
+    def onTempVariableRead( self, variable ):
+        variable = variable.getReferenced()
+
+        assert variable.getRealOwner() is self.module, variable.getOwner()
+
+        self._getVariableUsage( variable ).markAsReadFrom()
+
 
     def getWrittenVariables( self ):
         return [

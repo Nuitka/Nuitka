@@ -109,6 +109,10 @@ class Variable:
 
     def isTempVariable( self ):
         return False
+
+    def isTempKeeperVariable( self ):
+        return False
+
     # pylint: enable=R0201
 
     def _checkShared( self, variable ):
@@ -548,6 +552,26 @@ class TempVariable( Variable ):
     def getDeclarationInitValueCode( self ):
         # Virtual method, pylint: disable=R0201
         return "NULL"
+
+
+class TempKeeperVariable( TempVariable ):
+    def __init__( self, owner, variable_name ):
+        TempVariable.__init__(
+            self,
+            owner         = owner,
+            variable_name = variable_name
+        )
+
+        self.write_only = False
+
+    def isTempKeeperVariable( self ):
+        return True
+
+    def isWriteOnly( self ):
+        return self.write_only
+
+    def setWriteOnly( self ):
+        self.write_only = True
 
 
 def getNames( variables ):

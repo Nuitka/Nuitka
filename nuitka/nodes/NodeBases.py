@@ -685,7 +685,7 @@ class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
 
         from nuitka import Variables
 
-        result = Variables.TempVariable(
+        result = Variables.TempKeeperVariable(
             owner         = self,
             variable_name = name
         )
