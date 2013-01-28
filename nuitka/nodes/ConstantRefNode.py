@@ -30,7 +30,9 @@ from nuitka.Constants import (
     isMutable,
 )
 
+# pylint: disable=W0622
 from nuitka.__past__ import iterItems, unicode
+# pylint: enable=W0622
 
 
 class CPythonExpressionConstantRef( CompileTimeConstantExpressionMixin, CPythonNodeBase ):

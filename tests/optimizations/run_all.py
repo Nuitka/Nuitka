@@ -70,6 +70,24 @@ os.environ[ "PYTHONPATH" ] = os.getcwd()
 
 print( "Using concrete python", python_version )
 
+def checkSequence( statements ):
+    for statement in module_statements:
+        kind = getKind( statement )
+
+        if kind == "Print":
+            print_args = getRole( statement, "values" )
+
+            if len( print_args ) != 1:
+                sys.exit( "Error, print with more than one argument." )
+
+            print_arg = print_args[0]
+
+            if getKind( print_arg ) != "ConstantRef":
+                sys.exit( "Error, print of non-constant %s." % getKind( print_arg ) )
+        else:
+            sys.exit( "Error, non-print statement of unknown kind '%s'." % kind )
+
+
 for filename in sorted( os.listdir( "." ) ):
     if not filename.endswith( ".py" ) or filename.startswith( "run_" ):
         continue
@@ -141,22 +159,7 @@ for filename in sorted( os.listdir( "." ) ):
             else:
                 return None
 
-
-        for statement in module_statements:
-            kind = getKind( statement )
-
-            if kind == "Print":
-                print_args = getRole( statement, "values" )
-
-                if len( print_args ) != 1:
-                    sys.exit( "Error, print with more than one argument." )
-
-                print_arg = print_args[0]
-
-                if getKind( print_arg ) != "ConstantRef":
-                    sys.exit( "Error, print of non-constant." )
-            else:
-                sys.exit( "Error, non-print statement of unknown kind '%s'." % kind )
+        checkSequence( module_statements )
 
 
         # TODO: Detect the exception from above

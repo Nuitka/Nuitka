@@ -21,3 +21,6 @@
 print not bool
 print not {}
 print not 7
+print bool or len
+print False or dict
+print type(Ellipsis)
