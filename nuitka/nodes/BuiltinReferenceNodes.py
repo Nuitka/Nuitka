@@ -155,6 +155,9 @@ class CPythonExpressionBuiltinAnonymousRef( CPythonExpressionBuiltinRefBase ):
     def computeNode( self, constraint_collection ):
         return self, None, None
 
+    def getStringValue( self, constraint_collection ):
+        return repr( self.getCompileTimeConstant() )
+
 
 class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
     kind = "EXPRESSION_BUILTIN_EXCEPTION_REF"
