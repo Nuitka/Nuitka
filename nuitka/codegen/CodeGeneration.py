@@ -193,7 +193,21 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
                     )
                 )
             else:
-                assert False
+                # TODO: There should be no assignment at all remaining, this is an
+                # optimization shortcoming if it is.
+                result = Generator.getConditionOrCode(
+                    operands = (
+                        generateConditionCode(
+                            condition = expression_yes,
+                            context   = context,
+                        ),
+                        generateConditionCode(
+                            condition = expression_no,
+                            context   = context,
+                        )
+                    )
+                )
+
         else:
             result = Generator.getConditionSelectionCode(
                 condition_code = generateConditionCode(
@@ -1073,19 +1087,11 @@ def generateExpressionCode( expression, context, allow_none = False ):
             exception_type = expression.getExceptionName(),
         )
     elif expression.isExpressionAssignmentTempKeeper():
-        source_identifier = makeExpressionCode( expression.getAssignSource() )
-
-        ref_count = source_identifier.getCheapRefCount()
-
-        identifier = Generator.Identifier(
-            "%s.assign( %s )" % (
-                expression.getVariableName(),
-                source_identifier.getCodeExportRef()
-            ),
-            ref_count
+        identifier = Generator.getAssignmentTempKeeperCode(
+            variable          = expression.getVariable(),
+            source_identifier = makeExpressionCode( expression.getAssignSource() ),
+            context           = context
         )
-
-        context.addTempKeeperUsage( expression.getVariableName(), ref_count )
     elif expression.isExpressionBuiltinInt():
         assert expression.getValue() is not None or expression.getBase() is not None
 
@@ -1130,9 +1136,9 @@ def generateExpressionCode( expression, context, allow_none = False ):
             key_identifier     = makeExpressionCode( expression.getKey() ),
         )
     elif expression.isExpressionTempKeeperRef():
-        identifier = Generator.Identifier(
-            "%s.asObject()" % expression.getVariableName(),
-            1
+        identifier = Generator.getTempKeeperHandle(
+            variable = expression.getVariable(),
+            context  = context
         )
     elif expression.isExpressionSideEffects():
         identifier = Generator.getSideEffectsCode(

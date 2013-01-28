@@ -383,6 +383,9 @@ class PythonModuleContext( PythonContextBase ):
     def addTempKeeperUsage( self, variable_name, ref_count ):
         self.temp_keepers[ variable_name ] = ref_count
 
+    def getTempKeeperRefCount( self, variable_name ):
+        return self.temp_keepers[ variable_name ]
+
     def getTempKeeperUsages( self ):
         return self.temp_keepers
 
@@ -466,6 +469,9 @@ class PythonFunctionContext( PythonChildContextBase ):
 
     def addTempKeeperUsage( self, variable_name, ref_count ):
         self.temp_keepers[ variable_name ] = ref_count
+
+    def getTempKeeperRefCount( self, variable_name ):
+        return self.temp_keepers[ variable_name ]
 
     def getTempKeeperUsages( self ):
         return self.temp_keepers

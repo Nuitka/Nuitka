@@ -97,7 +97,7 @@ public:
     {
         assertObject( value );
 
-        this->object = INCREASE_REFCOUNT( value );
+        this->object = value;
         return this->object;
     }
 
@@ -120,11 +120,22 @@ public:
     ~PyObjectTempKeeper0()
     {}
 
-    PyObject *asObject()
+    PyObject *asObject0()
     {
         assertObject( this->object );
 
         PyObject *result = this->object;
+
+        this->object = NULL;
+        return result;
+    }
+
+    PyObject *asObject()
+    {
+        assertObject( this->object );
+
+        PyObject *result = INCREASE_REFCOUNT( this->object );
+
         this->object = NULL;
         return result;
     }

@@ -94,9 +94,24 @@ class CPythonExpressionTempKeeperRef( CPythonNodeBase, CPythonExpressionMixin ):
         return self.variable.getName()
 
     def computeNode( self, constraint_collection ):
-        # Nothing to do here.
+        friend = constraint_collection.getVariableValueFriend( self.getVariable() )
+
+        if friend is not None and not friend.mayHaveSideEffects( None ) and friend.isNode():
+            assert hasattr( friend, "makeCloneAt" ), friend
+
+            new_node = friend.makeCloneAt(
+                source_ref = self.source_ref,
+            )
+
+            change_desc = "Assignment source of '%s' propagated, as it has no side effects." % self.getVariableName()
+
+            return new_node, "new_expression", change_desc
+
         return self, None, None
 
     def mayRaiseException( self, exception_type ):
         # Can't happen
         return False
+
+    def mayProvideReference( self ):
+        return self.variable.getReferenced().getNeedsFree()

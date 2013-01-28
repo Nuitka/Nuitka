@@ -55,7 +55,6 @@ class VariableUsageProfile:
     def markAsWrittenTo( self, value_friend ):
         self.written_to = True
 
-        # TODO: check for "may provide a reference"
         if value_friend.mayProvideReference():
             self.needs_free = True
 
@@ -215,9 +214,23 @@ class ConstraintCollectionBase:
                 change_desc
             )
 
-            if new_node.isExpressionVariableRef() and \
-                 not new_node.getVariable().isModuleVariableReference():
+        if new_node.isExpressionVariableRef():
+            if not new_node.getVariable().isModuleVariableReference():
                 self.onLocalVariableRead( new_node.getVariable() )
+        elif new_node.isExpressionAssignmentTempKeeper():
+            variable = new_node.getVariable()
+            assert variable is not None
+
+            value_friend = new_node.getAssignSource().getValueFriend( self )
+            assert value_friend is not None
+
+            assert variable not in self.variables
+
+            self.variables[ variable  ] = value_friend
+
+            self.onTempVariableAssigned( variable, value_friend )
+
+
 
         return new_node
 

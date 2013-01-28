@@ -195,3 +195,7 @@ class CPythonExpressionBuiltinHasattr( CPythonExpressionChildrenHavingBase ):
         # Note: Might be possible to predict or downgrade to mere attribute check.
 
         return self, None, None
+
+    def mayProvideReference( self ):
+        # Dedicated code returns "True" or "False" only, which requires no reference.
+        return False

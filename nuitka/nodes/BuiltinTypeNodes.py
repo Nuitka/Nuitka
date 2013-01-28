@@ -59,7 +59,9 @@ class CPythonExpressionBuiltinBool( CPythonExpressionBuiltinTypeBase ):
 
     builtin_spec = BuiltinOptimization.builtin_bool_spec
 
-
+    def mayProvideReference( self ):
+        # Dedicated code returns "True" or "False" only, which requires no reference
+        return False
 
 
 class CPythonExpressionBuiltinIntLongBase( CPythonChildrenHaving, CPythonNodeBase, \

@@ -907,6 +907,39 @@ def getVariableAssignmentCode( context, variable, identifier ):
         identifier_code
     )
 
+def getAssignmentTempKeeperCode( source_identifier, variable, context ):
+    ref_count = source_identifier.getCheapRefCount()
+    variable_name = variable.getName()
+
+    assert variable.getReferenced().getNeedsFree() == bool( ref_count ), ( variable.getReferenced().getNeedsFree(), ref_count )
+
+    context.addTempKeeperUsage( variable_name, ref_count )
+
+    return Identifier(
+        "%s.assign( %s )" % (
+            variable_name,
+            source_identifier.getCodeExportRef() if ref_count else source_identifier.getCodeTemporaryRef()
+        ),
+        0
+    )
+
+def getTempKeeperHandle( variable, context ):
+    variable_name = variable.getName()
+    ref_count = context.getTempKeeperRefCount( variable_name )
+
+    if ref_count == 1:
+        return Identifier(
+            "%s.asObject()" % variable_name,
+            1
+        )
+    else:
+        # TODO: Could create an identifier, where 0 is just cheap, and 1 is still
+        # available, may give nicer to read code occasionally.
+        return Identifier(
+            "%s.asObject0()" % variable_name,
+            0
+        )
+
 def getVariableDelCode( context, tolerant, variable ):
     assert isinstance( variable, Variables.Variable ), variable
 
@@ -1121,7 +1154,6 @@ def getSideEffectsCode( side_effects, identifier ):
             ),
             1
         )
-
 
 def getBuiltinRefCode( context, builtin_name ):
     return Identifier(

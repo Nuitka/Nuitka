@@ -39,6 +39,8 @@ from nuitka.Builtins import (
     builtin_names
 )
 
+from nuitka.Utils import python_version
+
 class CPythonExpressionBuiltinRefBase( CompileTimeConstantExpressionMixin, CPythonNodeBase ):
     def __init__( self, builtin_name, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
@@ -115,6 +117,11 @@ class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
         # TODO: Why yes, some may be, could be told here.
         return None
 
+    def mayProvideReference( self ):
+        # Dedicated code returns which returns from builtin module dictionary, but isn't
+        # available for Python3 yet.
+
+        return python_version >= 300
 
 class CPythonExpressionBuiltinAnonymousRef( CPythonExpressionBuiltinRefBase ):
     kind = "EXPRESSION_BUILTIN_ANONYMOUS_REF"

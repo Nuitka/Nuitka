@@ -210,6 +210,11 @@ class CPythonExpressionOperationNOT( CPythonExpressionOperationUnary ):
 
         return ( self, )
 
+    def mayProvideReference( self ):
+        # Dedicated code returns "True" or "False" only, which requires no reference,
+        # except for rich comparisons, which do.
+        return False
+
 
 class CPythonExpressionOperationBinaryInplace( CPythonExpressionOperationBinary ):
     kind = "EXPRESSION_OPERATION_BINARY_INPLACE"

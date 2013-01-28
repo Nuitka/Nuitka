@@ -68,7 +68,6 @@ class CPythonExpressionConditional( CPythonExpressionChildrenHavingBase ):
         else:
             return self, None, None
 
-
     def mayHaveSideEffectsBool( self, constraint_collection ):
         if condition.mayHaveSideEffectsBool( constraint_collection ):
             return True
@@ -80,6 +79,10 @@ class CPythonExpressionConditional( CPythonExpressionChildrenHavingBase ):
             return True
 
         return False
+
+    def mayProvideReference( self ):
+        return self.getExpressionYes().mayProvideReference() or self.getExpressionNo().mayProvideReference()
+
 
 class CPythonStatementConditional( CPythonExpressionChildrenHavingBase ):
     kind = "STATEMENT_CONDITIONAL"

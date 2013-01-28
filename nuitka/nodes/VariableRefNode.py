@@ -168,6 +168,10 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
     def isKnownToBeIterable( self, count ):
         return None
 
+    def mayProvideReference( self ):
+        # Variables are capable of "asObject0".
+        return False
+
     def mayHaveSideEffects( self, constraint_collection ):
         if constraint_collection is None:
             return True
