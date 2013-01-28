@@ -1,9 +1,9 @@
-nuitka (0.3.26~pre4+ds-1) UNRELEASED; urgency=low
+nuitka (0.3.26~pre5+ds-1) UNRELEASED; urgency=low
 
   * New upstream pre-release.
   * Changes so the Debian package can be backported to Squeeze as well.
 
- -- Kay Hayen <kayhayen@gmx.de>  Sat, 26 Jan 2013 19:21:17 +0100
+ -- Kay Hayen <kayhayen@gmx.de>  Mon, 28 Jan 2013 18:42:51 +0100
 
 nuitka (0.3.25+ds-1) unstable; urgency=low
 
