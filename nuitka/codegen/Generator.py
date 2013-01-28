@@ -1129,8 +1129,7 @@ def getRaiseExceptionExpressionCode( exception_type_identifier, exception_value_
     )
 
 def getSideEffectsCode( side_effects, identifier ):
-    if not side_effects:
-        return identifier
+    assert side_effects
 
     side_effects_code = ", ".join(
         side_effect.getCodeTemporaryRef()
