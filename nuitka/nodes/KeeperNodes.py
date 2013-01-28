@@ -35,7 +35,7 @@ class CPythonExpressionAssignmentTempKeeper( CPythonExpressionChildrenHavingBase
 
     named_children = ( "source", )
 
-    def __init__( self, variable_name, source, source_ref ):
+    def __init__( self, variable, source, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -44,13 +44,21 @@ class CPythonExpressionAssignmentTempKeeper( CPythonExpressionChildrenHavingBase
             source_ref = source_ref
         )
 
-        self.variable_name = variable_name
+        self.variable = variable
 
     def getDetail( self ):
         return "%s from %s" % ( self.getVariableName(), self.getAssignSource() )
 
+    def getDetails( self ):
+        return {
+            "name" : self.getVariableName()
+        }
+
+    def getVariable( self ):
+        return self.variable
+
     def getVariableName( self ):
-        return self.variable_name
+        return self.variable.getName()
 
     getAssignSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
 
@@ -66,11 +74,10 @@ class CPythonExpressionAssignmentTempKeeper( CPythonExpressionChildrenHavingBase
 class CPythonExpressionTempKeeperRef( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_TEMP_KEEPER_REF"
 
-    def __init__( self, linked, source_ref ):
+    def __init__( self, variable, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
-        # TODO: A real variable should be the link.
-        self.linked = linked
+        self.variable = variable
 
     def getDetails( self ):
         return {
@@ -80,8 +87,11 @@ class CPythonExpressionTempKeeperRef( CPythonNodeBase, CPythonExpressionMixin ):
     def getDetail( self ):
         return self.getVariableName()
 
+    def getVariable( self ):
+        return self.variable
+
     def getVariableName( self ):
-        return self.linked.getVariableName()
+        return self.variable.getName()
 
     def computeNode( self, constraint_collection ):
         # Nothing to do here.

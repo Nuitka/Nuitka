@@ -2389,30 +2389,30 @@ def buildComparisonNode( provider, node, source_ref ):
     result = []
 
     # For PyLint to like it, this will hold the previous one, normally.
-    tmp_assign = None
+    keeper_variable = None
 
     for comparator, right in zip( node.ops, rights ):
         if result:
             # Now we know it's not the only one, so we change the "left" to be a reference
             # to the previously saved right side.
             left = CPythonExpressionTempKeeperRef(
-                linked     = tmp_assign,
+                variable   = keeper_variable.makeReference( provider ),
                 source_ref = source_ref
             )
 
-            tmp_assign = None
+            keeper_variable = None
 
         if right is not rights[-1]:
-            # Now we known it's not the last one, so we ought to preseve the "right" so it
+            # Now we know it's not the last one, so we ought to preseve the "right" so it
             # can be referenced by the next part that will come. We do it by assining it
             # to a temp variable to be shared with the next part.
-            right = CPythonExpressionAssignmentTempKeeper(
-                variable_name = provider.allocateTempKeeperName(),
-                source        = right,
-                source_ref    = source_ref
-            )
+            keeper_variable = provider.getTempKeeperVariable()
 
-            tmp_assign = right
+            right = CPythonExpressionAssignmentTempKeeper(
+                variable   = keeper_variable.makeReference( provider ),
+                source     = right,
+                source_ref = source_ref
+            )
 
         result.append(
             CPythonExpressionComparison(
@@ -2423,11 +2423,11 @@ def buildComparisonNode( provider, node, source_ref ):
             )
         )
 
-    assert tmp_assign is None
+    assert keeper_variable is None
 
     return _buildAndNode(
-        provider = provider,
-        values   = result,
+        provider   = provider,
+        values     = result,
         source_ref = source_ref
     )
 
@@ -3365,22 +3365,53 @@ def buildEllipsisNode( source_ref ):
         source_ref = source_ref
     )
 
+def _buildOrNode( provider, values, source_ref ):
+    result = values[ -1 ]
+    del values[ -1 ]
+
+    while True:
+        keeper_variable = provider.getTempKeeperVariable()
+
+        tmp_assign = CPythonExpressionAssignmentTempKeeper(
+            variable   = keeper_variable.makeReference( provider ),
+            source     = values[ -1 ],
+            source_ref = source_ref
+        )
+        del values[ -1 ]
+
+        result = CPythonExpressionConditional(
+            condition      = tmp_assign,
+            yes_expression = CPythonExpressionTempKeeperRef(
+                variable   = keeper_variable.makeReference( provider ),
+                source_ref = source_ref
+            ),
+            no_expression  = result,
+            source_ref      = source_ref
+        )
+
+        if not values:
+            break
+
+    return result
+
 def _buildAndNode( provider, values, source_ref ):
     result = values[ -1 ]
     del values[ -1 ]
 
     while values:
+        keeper_variable = provider.getTempKeeperVariable()
+
         tmp_assign = CPythonExpressionAssignmentTempKeeper(
-            variable_name = provider.allocateTempKeeperName(),
-            source        = values[ -1 ],
-            source_ref    = source_ref
+            variable   = keeper_variable.makeReference( provider ),
+            source     = values[ -1 ],
+            source_ref = source_ref
         )
         del values[ -1 ]
 
         result = CPythonExpressionConditional(
             condition      = tmp_assign,
             no_expression = CPythonExpressionTempKeeperRef(
-                linked     = tmp_assign,
+                variable   = keeper_variable.makeReference( provider ),
                 source_ref = source_ref
             ),
             yes_expression  = result,
@@ -3395,33 +3426,12 @@ def buildBoolOpNode( provider, node, source_ref ):
 
     if bool_op == "Or":
         # The "or" may be short circuit and is therefore not a plain operation
-        values = buildNodeList( provider, node.values, source_ref )
+        return _buildOrNode(
+            provider   = provider,
+            values     = buildNodeList( provider, node.values, source_ref ),
+            source_ref = source_ref
+        )
 
-        result = values[ -1 ]
-        del values[ -1 ]
-
-        while True:
-            tmp_assign = CPythonExpressionAssignmentTempKeeper(
-                variable_name = provider.allocateTempKeeperName(),
-                source        = values[ -1 ],
-                source_ref    = source_ref
-            )
-            del values[ -1 ]
-
-            result = CPythonExpressionConditional(
-                condition      = tmp_assign,
-                yes_expression = CPythonExpressionTempKeeperRef(
-                    linked     = tmp_assign,
-                    source_ref = source_ref
-                ),
-                no_expression  = result,
-                source_ref      = source_ref
-            )
-
-            if not values:
-                break
-
-        return result
     elif bool_op == "And":
         # The "and" may be short circuit and is therefore not a plain operation
         return _buildAndNode(

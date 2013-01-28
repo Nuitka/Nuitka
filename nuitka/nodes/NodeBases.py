@@ -23,6 +23,7 @@ These classes provide the generic base classes available for nodes.
 
 
 from nuitka.odict import OrderedDict
+from nuitka.oset import OrderedSet
 
 from nuitka import (
     Tracing,
@@ -629,7 +630,7 @@ class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
 
         self.providing = OrderedDict()
 
-        self.temp_keeper_count = 0
+        self.keeper_variables = OrderedSet()
 
     def hasProvidedVariable( self, variable_name ):
         return variable_name in self.providing
@@ -679,12 +680,19 @@ class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
                 if not usages:
                     del self.providing[ variable.getName() ]
 
+    def getTempKeeperVariable( self ):
+        name = "keeper_%d" % len( self.keeper_variables )
 
-    def allocateTempKeeperName( self ):
-        self.temp_keeper_count += 1
+        from nuitka import Variables
 
-        return "keeper_%d" % self.temp_keeper_count
+        result = Variables.TempVariable(
+            owner         = self,
+            variable_name = name
+        )
 
+        self.keeper_variables.add( result )
+
+        return result
 
 
 class CPythonParameterHavingNodeBase( CPythonClosureGiverNodeBase ):
