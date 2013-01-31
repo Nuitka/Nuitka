@@ -230,8 +230,8 @@ We can consider making the compatible behaviour optional, and use it for the tes
 the called expression clearly is more useful to see then the closing brace.
 
 
-Optimizations
-=============
+Optimization
+============
 
 Constant Folding
 ~~~~~~~~~~~~~~~~
@@ -264,11 +264,11 @@ At the core of optimizations there is an attempt to determine values of variable
 time and predictions of assignments. It determines if their inputs are constants or of
 similar values. An expression, e.g. a module variable access, an expensive operation, may
 be constant across the module of the function scope and then there needs to be none, or no
-repeated module variable lookup.
+repeated module variable look-up.
 
-Consider e.g. the module attribute "__name__" which likely is only ever read, so its value
-could be predicted to a constant string known at compile time. This can then be used as
-input to the constant folding.
+Consider e.g. the module attribute ``__name__`` which likely is only ever read, so its
+value could be predicted to a constant string known at compile time. This can then be used
+as input to the constant folding.
 
 .. code-block:: python
 
@@ -276,7 +276,8 @@ input to the constant folding.
       # Your test code might be here
       use_something_not_use_by_program()
 
-From modules attributes, only "__name__" is currently actually optimized. Also possible would be at least "__doc__".
+From modules attributes, only "__name__" is currently actually optimized. Also possible
+would be at least "__doc__".
 
 Also builtins exception name references are optimized if they are uses as module level
 read only variables:
@@ -288,16 +289,13 @@ read only variables:
    except ValueError: # The ValueError is a slow global name lookup normally.
       pass
 
-Status: At this stage it only useful for exception names and will need considerably more
-work, before it can be applied to local variables and their values.
-
 Builtin Call Prediction
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-For builtin calls like "type", "len", "range" it is often possible to predict the result
-at compile time, esp. for constant inputs the resulting value often can be precomputed by
-Nuitka. It can simply determine the result or the raised exception and replace the builtin
-call with it allowing for more constant folding or code path folding.
+For builtin calls like ``type``, ``len``, or ``range`` it is often possible to predict the
+result at compile time, esp. for constant inputs the resulting value often can be
+precomputed by Nuitka. It can simply determine the result or the raised exception and
+replace the builtin call with it allowing for more constant folding or code path folding.
 
 .. code-block:: python
 
@@ -306,7 +304,7 @@ call with it allowing for more constant folding or code path folding.
    range( 3, 9, 2 ) # predictable result
    range( 3, 9, 0 ) # predictable exception, range hates that 0.
 
-The builtin call prediction is considered implemented. We can simply during Nuitka runtime
+The builtin call prediction is considered implemented. We can simply during compile time
 emulate the call and use its result or raised exception. But we may not cover all the
 builtins there are yet.
 
@@ -317,7 +315,7 @@ e.g. may give too big values to include the result in the binary. Then it is not
 
    range( 100000 ) # We do not want this one to be expanded
 
-Status: This is considered mostly implemented. Please file bugs for builtins that are
+Status: This is considered mostly implemented. Please file bugs for built-ins that are
 predictable but are not computed by Nuitka at compile time.
 
 Conditional Statement Prediction
@@ -343,16 +341,17 @@ or
       # Your deactivated code might be here
 
 
-It will also greatly benefit from constant propagations, or enable them because once some
-branches have been removed, other things may become more predictable, so this is critical to have.
+It will also benefit from constant propagations, or enable them because once some branches
+have been removed, other things may become more predictable, so this can trigger other
+optimization to become possible.
 
-Every branch removed makes optimizations more likely. With some code branches removed,
+Every branch removed makes optimization more likely. With some code branches removed,
 access patterns may be more friendly. Imagine e.g. that a function is only called in a
 removed branch. It may be possible to remove it entirely, and that may have other
 consequences too.
 
-Status: This is considered implemented, but for the most benefit, more constants needs to
-be determined at compile time.
+Status: This is considered implemented, but for the maximum benefit, more constants needs
+to be determined at compile time.
 
 Exception Propagation
 ~~~~~~~~~~~~~~~~~~~~~
@@ -371,16 +370,16 @@ Consider the following code:
 The (1 / 0) can be predicted to raise a "ZeroDivisionError" exception, which will be
 propagated through the "+" operation. That part is just Constant Propagation as normal.
 
-The call to "side_effect_having" will have to be retained, but the print statement, can be
-turned into an explicit raise. The statement sequence can then be aborted and as such the
-"something_else" call needs no code generation or consideration anymore.
+The call to "side_effect_having" will have to be retained though, but the print statement,
+can be turned into an explicit raise. The statement sequence can then be aborted and as
+such the "something_else" call needs no code generation or consideration anymore.
 
 To that end, Nuitka works with a special node that raises an exception and has so called
 "side_effects" children, yet can be used in generated code as an expression.
 
 Status: The propagation of exceptions is implemented on a very basic level. It works, but
 exceptions will not propagate through all different expression and statement types. As
-work progresses or examples arise, these will be extended.
+work progresses or examples arise, the coverage will be extended.
 
 Exception Scope Reduction
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -438,10 +437,7 @@ it:
 e = ValueError( "range() step argument must not be zero" )
 print e
 
-Status: For this to work, the builtin or user defined exception types from the raise
-must be matched against the catching ones. This works partially, but to simulate the
-effects of a raise statement and the normalization at compile time is something new
-and not yet done correctly, so this is currently disabled.
+Status: This is not implemented yet.
 
 Empty branch removal
 ~~~~~~~~~~~~~~~~~~~~
@@ -492,7 +488,8 @@ building the assignment targets.
 We do this now, but only for constants, because we currently have no ability to predict if
 an expression can raise an exception or not.
 
-Status: Not really implemented, and should use "mayHaveSideEffect()" to be actually good at things.
+Status: Not really implemented, and should use "mayHaveSideEffect()" to be actually good
+at things.
 
 Builtin Type Inference
 ~~~~~~~~~~~~~~~~~~~~~~
