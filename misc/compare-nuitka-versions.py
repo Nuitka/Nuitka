@@ -238,7 +238,7 @@ print "Running on", this_config
 
 machines = (
     Configuration( "Kay - Main Dev", "AMD Phenom II X6 1055T Processor" ),
-    Configuration( "Kay - Mobile Dev", "Intel Core2 Duo CPU T9300@2.50GHz" )
+    Configuration( "Kay - Mobile Dev", "Intel Core i5-2520M CPU@2.50GHz" )
 )
 
 if this_config not in machines:
