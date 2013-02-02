@@ -63,7 +63,7 @@ inline static void popFrameStack( void )
 
     PyFrameObject *old = tstate->frame;
 
-#if _DEBUG_REFRAME
+#if _DEBUG_FRAME
     printf( "Taking off frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)old ) ), PyString_AsString( PyObject_Repr( (PyObject *)old->f_code ) ) );
 #endif
 
@@ -73,7 +73,7 @@ inline static void popFrameStack( void )
     // We might be very top level, e.g. in a thread, and therefore do not insist on value.
     Py_XDECREF( tstate->frame );
 
-#if _DEBUG_REFRAME
+#if _DEBUG_FRAME
     printf( "Now at top frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)tstate->frame ) ), PyString_AsString( PyObject_Repr( (PyObject *)tstate->frame->f_code ) ) );
 #endif
 }
@@ -87,7 +87,7 @@ inline static void pushFrameStack( PyFrameObject *frame_object )
     // Look at current frame.
     PyFrameObject *old = tstate->frame;
 
-#if _DEBUG_REFRAME
+#if _DEBUG_FRAME
     if ( old )
     {
         assertCodeObject( old->f_code );
@@ -111,7 +111,7 @@ inline static void pushFrameStack( PyFrameObject *frame_object )
         frame_object->f_back = INCREASE_REFCOUNT( old );
     }
 
-#if _DEBUG_REFRAME
+#if _DEBUG_FRAME
     printf( "Now at top frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)tstate->frame ) ), PyString_AsString( PyObject_Repr( (PyObject *)tstate->frame->f_code ) ) );
 #endif
 }
@@ -460,7 +460,6 @@ public:
     void preserveExistingException()
     {
     }
-
 
     void detachFrame( void )
     {

@@ -19,6 +19,7 @@
 #define __NUITKA_HELPERS_H__
 
 #define _DEBUG_UNFREEZER 0
+#define _DEBUG_FRAME 0
 #define _DEBUG_REFRAME 0
 
 #include "nuitka/eval_order.hpp"
