@@ -17,7 +17,7 @@
 #     limitations under the License.
 #
 
-import os, sys, subprocess, shutil, tempfile
+import os, sys, commands, subprocess, shutil, tempfile
 
 input_file = sys.argv[1]
 nuitka_binary = os.environ.get( "NUITKA_BINARY", "nuitka" )
@@ -50,7 +50,7 @@ log_file = ( basename[:-3] if input_file.endswith( ".py" ) else basename ) + ".l
 
 sys.stdout.flush()
 
-valgrind_options = "-q --tool=callgrind --callgrind-out-file=%s --zero-before=init__main__" % log_file
+valgrind_options = "-q --tool=callgrind --callgrind-out-file=%s --zero-before=init__main__() --zero-before=init__main__" % log_file
 
 subprocess.check_call( [ "valgrind" ] + valgrind_options.split() + [ output_binary ] )
 

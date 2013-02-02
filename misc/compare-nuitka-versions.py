@@ -19,13 +19,15 @@
 
 """ Collect the performance data from multiple Nuitka versions. """
 
-import subprocess, sys, os, tempfile, shutil, urllib, urllib2, datetime, socket
+import subprocess, sys, os, tempfile, shutil, datetime, socket
 import sqlite3, time
 
 # Quick check that we actually in the correct spot.
 assert os.path.exists( "debian" )
 
 from optparse import OptionParser
+
+from git import Repo
 
 parser = OptionParser()
 
@@ -75,7 +77,9 @@ if os.path.exists( "public-repo" ):
 
 # Make git work on here, even if we leave it soon.
 os.environ[ "GIT_DIR" ] = os.path.join( os.path.abspath( os.getcwd() ), ".git" )
-print "Using git dir", os.environ[ "GIT_DIR" ]
+# print "Using git dir", os.environ[ "GIT_DIR" ]
+
+repo = Repo()
 
 playground_dir = os.path.join( tempfile.gettempdir(), "nuitka_playground" )
 
@@ -103,18 +107,17 @@ def setupPlayground( commit_id ):
     os.environ[ "PYTHONPATH" ] = os.getcwd()
 
 def getCommitDate( commit_id ):
-    # false alarm, pylint: disable=E1103
-    return int(
-        subprocess.check_output(
-            ( 'git show --format=%ct ' + commit_id ).split()
-        ).strip().split( "\n" )[-1]
-    )
+    commit = repo.rev_parse( commit_id )
+
+    if hasattr( commit, "object" ):
+        commit = commit.object
+
+    return commit.committed_date
+
 
 def getCommitHash( commit_id ):
-    # false alarm, pylint: disable=E1103
-    commit_hash = subprocess.check_output(
-        ( 'git show --format=%H ' + commit_id ).split()
-    ).strip().split( "\n" )[-1].strip()
+    commit = repo.rev_parse( commit_id )
+    commit_hash = commit.hash
 
     assert len( commit_hash ) == 40, commit_hash
 
@@ -131,7 +134,7 @@ class ValgrindBenchmarkBase:
         self.name = name
         self.result = {}
 
-    def execute( self, python_version ):
+    def execute( self, nuitka_version ):
         if os.path.exists( os.path.join( "bin", "Nuitka.py" ) ):
             binary = "Nuitka.py"
         else:
@@ -140,7 +143,7 @@ class ValgrindBenchmarkBase:
         binary = os.path.join( "bin", binary )
 
         # Used by run_valgrind.py
-        os.environ[ "NUITKA_BINARY" ] = "python%s %s" % ( python_version, binary )
+        os.environ[ "NUITKA_BINARY" ] = "python%s %s" % ( nuitka_version.getPythonVersion(), binary )
 
         # Very old Nuitka needs that.
         if os.path.exists( "scons" ):
@@ -150,8 +153,7 @@ class ValgrindBenchmarkBase:
         if os.path.exists( "include" ):
             os.environ[ "NUITKA_INCLUDE" ] = "include"
 
-        os.environ[ "NUITKA_EXTRA_OPTIONS" ] = self.getExtraArguments()
-
+        os.environ[ "NUITKA_EXTRA_OPTIONS" ] = self.getExtraArguments( nuitka_version )
         # false alarm, pylint: disable=E1103
 
         output = subprocess.check_output(
@@ -168,14 +170,20 @@ class ValgrindBenchmarkBase:
     def getResults( self ):
         return dict( self.result )
 
-    def getExtraArguments( self ):
-        return ""
+    def getExtraArguments( self, nuitka_version ):
+        nuitka_version = nuitka_version.getNuitkaVersion()
+
+        if nuitka_version.startswith( "0.3" ) and nuitka_version < "0.3.17":
+            return ""
+        else:
+            return "--remove-output"
 
     def getFilename( self ):
         assert False
 
     def getProvided( self ):
         return "CPU_TICKS", "EXE_SIZE"
+
 
 class ValgrindBenchmark( ValgrindBenchmarkBase ):
     def __init__( self, name, filename ):
@@ -295,12 +303,12 @@ def setNuitkaVersions():
 
     # false alarm, pylint: disable=E1103
 
-    # Collect the versions.
-    nuitka_versions = subprocess.check_output( "git tag --list".split() ).strip()
-    nuitka_versions = list( sorted( nuitka_versions.split( "\n" ) ) )
+    # These were too bad for one reason of the other.
+    blacklist = ( "0.3.12c", "0.3.11", "0.3.11a", "0.3.11b", "0.3.11c" )
 
-    for blacklist_version in ( "0.3.12c", "0.3.11", "0.3.11a", "0.3.11b", "0.3.11c" ):
-        nuitka_versions.remove( blacklist_version )
+    # Collect the versions.
+    nuitka_versions = [ tag.name for tag in repo.tags if tag.name not in blacklist ]
+    nuitka_versions.append( "develop" )
 
     result = []
 
@@ -362,8 +370,6 @@ class ResultDatabase:
         sql_filename = self.db_filename[:-2] + "sql"
 
         command = """sqlite3 '%s' ".read '%s'" """ % ( self.db_filename, sql_filename )
-        print command
-
         os.system( command )
 
 
@@ -471,19 +477,28 @@ class Execution:
     def execute( self ):
         print "Executing", self
 
-        print "Prepare playground", self.nuitka_version.getNuitkaVersion()
+        nuitka_version = self.nuitka_version.getNuitkaVersion()
+
+        print "Prepare playground with Nuitka version '%s'." % nuitka_version
         sys.stdout.flush()
 
-        setupPlayground( self.nuitka_version.getNuitkaVersion() )
+        setupPlayground( nuitka_version )
 
-        self.benchmark.execute( self.nuitka_version.getPythonVersion() )
+        print "Execute benchmark '%s' with '%s'." % (
+            self.benchmark.getName(),
+            self.nuitka_version,
+        )
+
+        self.benchmark.execute(
+            self.nuitka_version
+        )
 
         result = self.benchmark.getResults()
 
         for key, value in result.iteritems():
             result_databases[ self.machine ].setData(
-                self.nuitka_version.getNuitkaVersion(),
-                getCommitHash( self.nuitka_version.getNuitkaVersion() ),
+                nuitka_version,
+                getCommitHash( nuitka_version ),
                 self.nuitka_version.getPythonVersion(),
                 self.benchmark.getName(),
                 key,
@@ -547,66 +562,39 @@ if options.import_repo:
         ResultDatabase( machine ).importFromFile()
 
 
-if options.export_codespeed:
+def createGraphs():
+    graphs = {}
+
+    import matplotlib.pyplot as plt
+
+    def getFigure( benchmark, environment ):
+        key = benchmark, environment
+
+        if key not in graphs:
+            graphs[ key ] = plt.figure()
+
+        return graphs[ key ]
+
+    dates = []
+    values = []
+    names = []
+
     def publishResult( environment, executable, commit_id, benchmark, size, ticks ):
         commit_date = getCommitDate( commit_id )
         commit_date = datetime.datetime.fromtimestamp( commit_date )
 
-        def postdata( params ):
-            CODESPEED_URL = 'http://localhost:8000/'
+        if benchmark == "pystone":
+            if executable == "nuitka-python2.7":
+                print commit_date, environment, executable, commit_id, size, ticks
 
-            try:
-                f = urllib2.urlopen( CODESPEED_URL + 'result/add/', params )
-            except urllib2.URLError as e:
-                if "Connection refused" in str(e):
-                    print "Launching speedcenter deamon."
+                assert type( ticks ) is int, repr( ticks )
 
-                    os.system( "cd %s/web/codespeed/speedcenter; python manage.py runserver &" % orig_dir )
-                    time.sleep( 2 )
+                dates.append( commit_date )
+                values.append( ticks )
+                names.append( commit_id )
 
-                    f = urllib2.urlopen( CODESPEED_URL + 'result/add/', params )
-                else:
-                    raise
-
-            response = f.read()
-
-            f.close()
-
-        data = {
-            # Mandatory fields
-            'commitid'      : commit_id,
-            'revision_date' : commit_date,
-            'branch'        : "default",
-            'project'       : "Nuitka",
-            'executable'    : executable,
-            'benchmark'     : benchmark + " ticks",
-            'environment'   : environment,
-            'result_value'  : ticks,
-            # Optional fields
-            'result_date'   : commit_date
-        }
-
-        postdata( urllib.urlencode( data ) )
-
-        data = {
-            # Mandatory fields
-            'commitid'      : commit_id,
-            'revision_date' : commit_date,
-            'branch'        : 'default',
-            'project'       : 'Nuitka',
-            'executable'    : executable,
-            'benchmark'     : benchmark + ' bytes',
-            'environment'   : environment,
-            'result_value'  : size,
-            # Optional fields
-            'result_date'   : commit_date
-        }
-
-        postdata( urllib.urlencode( data ) )
-
-
-    for configuration, tasks in tasks.iteritems():
-        for task in tasks:
+    for configuration, task_list in tasks.iteritems():
+        for task in task_list:
             if not task.getData():
                 continue
 
@@ -615,6 +603,19 @@ if options.export_codespeed:
                 executable  = task.getExecutable(),
                 commit_id   = task.getVersion().getNuitkaVersion(),
                 benchmark   = task.getBenchmark().getName(),
-                size        = task.getData()[ "EXE_SIZE" ],
-                ticks       = task.getData()[ "CPU_TICKS" ]
+                size        = int( task.getData()[ "EXE_SIZE" ] ),
+                ticks       = int( task.getData()[ "CPU_TICKS" ] )
             )
+
+    plt.title( "PyStone" )
+    plt.ylabel( "ticks" )
+
+    plt.bar( dates, values )
+
+    for date, value, name in zip( dates, values, names ):
+        plt.text( date, value, name, ha="center", va="bottom" )
+
+    plt.show()
+
+if options.export_codespeed:
+    createGraphs()
