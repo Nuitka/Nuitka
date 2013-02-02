@@ -20,12 +20,12 @@
 """ Collect the performance data from multiple Nuitka versions. """
 
 import subprocess, sys, os, tempfile, shutil, urllib, urllib2, datetime, socket
-import sqlite3, decimal, time
+import sqlite3, time
 
 # Quick check that we actually in the correct spot.
 assert os.path.exists( "debian" )
 
-from optparse import OptionParser, OptionGroup
+from optparse import OptionParser
 
 parser = OptionParser()
 
@@ -43,6 +43,22 @@ parser.add_option(
     dest    = "export_codespeed",
     default = False,
     help    = """Export the benchmark data into codespeed."""
+)
+
+parser.add_option(
+    "--export-repo",
+    action  = "store_true",
+    dest    = "export_repo",
+    default = False,
+    help    = """Export the benchmark data as SQL text file."""
+)
+
+parser.add_option(
+    "--import-repo",
+    action  = "store_true",
+    dest    = "import_repo",
+    default = False,
+    help    = """Import the benchmark data from SQL text file."""
 )
 
 options, positional_args = parser.parse_args()
@@ -87,10 +103,18 @@ def setupPlayground( commit_id ):
     os.environ[ "PYTHONPATH" ] = os.getcwd()
 
 def getCommitDate( commit_id ):
-    return int( subprocess.check_output( ( 'git show --format=%ct ' + commit_id ).split() ).strip().split( "\n" )[-1] )
+    # false alarm, pylint: disable=E1103
+    return int(
+        subprocess.check_output(
+            ( 'git show --format=%ct ' + commit_id ).split()
+        ).strip().split( "\n" )[-1]
+    )
 
 def getCommitHash( commit_id ):
-    commit_hash = subprocess.check_output( ( 'git show --format=%H ' + commit_id ).split() ).strip().split( "\n" )[-1].strip()
+    # false alarm, pylint: disable=E1103
+    commit_hash = subprocess.check_output(
+        ( 'git show --format=%H ' + commit_id ).split()
+    ).strip().split( "\n" )[-1].strip()
 
     assert len( commit_hash ) == 40, commit_hash
 
@@ -107,7 +131,7 @@ class ValgrindBenchmarkBase:
         self.name = name
         self.result = {}
 
-    def execute( self, python_version, compiler = None ):
+    def execute( self, python_version ):
         if os.path.exists( os.path.join( "bin", "Nuitka.py" ) ):
             binary = "Nuitka.py"
         else:
@@ -128,7 +152,15 @@ class ValgrindBenchmarkBase:
 
         os.environ[ "NUITKA_EXTRA_OPTIONS" ] = self.getExtraArguments()
 
-        output = subprocess.check_output( ( os.path.join( start_dir, "misc", "run-valgrind.py" ), benchmark_path, "number" ) ).strip()
+        # false alarm, pylint: disable=E1103
+
+        output = subprocess.check_output(
+            (
+                os.path.join( start_dir, "misc", "run-valgrind.py" ),
+                benchmark_path,
+                "number"
+            )
+        ).strip()
 
         self.result[ "EXE_SIZE" ] = int( output.split( "\n" )[-2].split("=")[1] )
         self.result[ "CPU_TICKS" ] = int( output.split( "\n" )[-1].split("=")[1] )
@@ -258,7 +290,10 @@ class NuitkaVersion:
     def getPythonVersion( self ):
         return self.python_version
 
-def getNuitkaVersions():
+def setNuitkaVersions():
+    global nuitka_versions
+
+    # false alarm, pylint: disable=E1103
 
     # Collect the versions.
     nuitka_versions = subprocess.check_output( "git tag --list".split() ).strip()
@@ -275,9 +310,10 @@ def getNuitkaVersions():
                 NuitkaVersion( nuitka_version, python_version )
             )
 
-    return result
+    nuitka_versions = result
 
-nuitka_versions = getNuitkaVersions()
+nuitka_versions = None
+setNuitkaVersions()
 
 from collections import defaultdict
 tasks = defaultdict( lambda : [] )
@@ -293,6 +329,43 @@ class ResultDatabase:
 
         self.connection = None
         self.cursor = None
+
+    def exportToFile( self ):
+        assert not self.connection and not self.cursor
+
+        if not os.path.exists( self.db_filename ):
+            return
+
+        command = "sqlite3 '%s' .dump" % self.db_filename
+
+        process = subprocess.Popen(
+            args   = command,
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE,
+            shell  = True
+        )
+
+        data, stderr = process.communicate()
+        assert process.returncode == 0, stderr
+
+        sql_filename = self.db_filename[:-2] + "sql"
+
+        with open( sql_filename, "w" ) as out_file:
+            out_file.write( data )
+
+    def importFromFile( self ):
+        assert not self.connection and not self.cursor
+
+        if os.path.exists( self.db_filename ):
+            return
+
+        sql_filename = self.db_filename[:-2] + "sql"
+
+        command = """sqlite3 '%s' ".read '%s'" """ % ( self.db_filename, sql_filename )
+        print command
+
+        os.system( command )
+
 
     def _doSql( self, sql, *args ):
         sql = sql.strip()
@@ -360,16 +433,19 @@ value          varchar(40) not NULL
 
 result_databases = dict()
 
+def getResultDatabase( machine ):
+    if machine not in result_databases:
+        result_databases[ machine ] = ResultDatabase( machine )
+
+    return result_databases[ machine ]
+
 class Execution:
     def __init__( self, machine, nuitka_version, benchmark ):
         self.machine = machine
         self.nuitka_version = nuitka_version
         self.benchmark = benchmark
 
-        if self.machine in result_databases:
-            self.result_database = result_databases[ self.machine ]
-        else:
-            self.result_database = result_databases[ self.machine ] = ResultDatabase( self.machine )
+        self.result_database = getResultDatabase( machine )
 
     def __repr__( self ):
         return "<Machine %s version %s to run %s>" % (
@@ -435,21 +511,24 @@ class Execution:
 
 
 
-for machine in machines:
-    # The pystone should be run everywhere with historic versions and current.
+def defineTasks():
+    for machine in machines:
+        # The pystone should be run everywhere with historic versions and current.
 
-    for nuitka_version in nuitka_versions:
-        for benchmark in benchmarks:
-            if not benchmark.supports( nuitka_version ):
-                continue
+        for nuitka_version in nuitka_versions:
+            for benchmark in benchmarks:
+                if not benchmark.supports( nuitka_version ):
+                    continue
 
-            tasks[ machine ].append(
-                Execution(
-                    machine        = machine,
-                    nuitka_version = nuitka_version,
-                    benchmark      = benchmark
+                tasks[ machine ].append(
+                    Execution(
+                        machine        = machine,
+                        nuitka_version = nuitka_version,
+                        benchmark      = benchmark
+                    )
                 )
-            )
+
+defineTasks()
 
 # Remove the playground again from /tmp
 shutil.rmtree( playground_dir, True )
@@ -458,6 +537,14 @@ if options.run_benchmarks:
     for task in tasks[ this_config ]:
         if not task.hasData():
             task.execute()
+
+if options.export_repo:
+    for machine in machines:
+        ResultDatabase( machine ).exportToFile()
+
+if options.import_repo:
+    for machine in machines:
+        ResultDatabase( machine ).importFromFile()
 
 
 if options.export_codespeed:
@@ -480,13 +567,9 @@ if options.export_codespeed:
                     f = urllib2.urlopen( CODESPEED_URL + 'result/add/', params )
                 else:
                     raise
-            except urllib2.HTTPError as e:
-                print str(e)
-                print e.read()
-
-                raise
 
             response = f.read()
+
             f.close()
 
         data = {
@@ -524,6 +607,8 @@ if options.export_codespeed:
 
     for configuration, tasks in tasks.iteritems():
         for task in tasks:
+            if not task.getData():
+                continue
 
             publishResult(
                 environment = task.getMachine().getName(),
