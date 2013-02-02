@@ -375,7 +375,7 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
     frame->f_exc_type = frame->f_exc_value = frame->f_exc_traceback = NULL;
 
     frame->f_stacktop = frame->f_valuestack;
-    frame->f_builtins = INCREASE_REFCOUNT( module_builtin->md_dict );
+    frame->f_builtins = INCREASE_REFCOUNT( (PyObject *)dict_builtin );
 
     frame->f_back = NULL;
 

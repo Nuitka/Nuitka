@@ -18,19 +18,23 @@
 #ifndef __NUITKA_BUILTINS_H__
 #define __NUITKA_BUILTINS_H__
 
+extern PyDictObject *dict_builtin;
+
+#if PYTHON_VERSION >= 300
 extern PyModuleObject *module_builtin;
+#endif
 
 #include "nuitka/calling.hpp"
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN( PyObject *name )
 {
-    assertObject( (PyObject *)module_builtin );
+    assertObject( (PyObject *)dict_builtin );
     assertObject( name );
     assert( Nuitka_String_Check( name ) );
 
 #if PYTHON_VERSION < 300
     PyDictEntry *entry = GET_PYDICT_ENTRY(
-        module_builtin,
+        dict_builtin,
         (Nuitka_StringObject *)name
     );
 
@@ -58,7 +62,7 @@ public:
         if ( this->value == NULL )
         {
             PyDictEntry *entry = GET_PYDICT_ENTRY(
-                module_builtin,
+                dict_builtin,
                 *this->name
             );
 
@@ -73,7 +77,7 @@ public:
     void refresh( void )
     {
         PyDictEntry *entry = GET_PYDICT_ENTRY(
-            module_builtin,
+            dict_builtin,
             *this->name
         );
 

@@ -73,7 +73,7 @@ int main( int argc, char *argv[] )
     patchBuiltinModule();
 
     // Execute the "__main__" module init function.
-    MOD_INIT_NAME( __main__)();
+    MOD_INIT_NAME( __main__ )();
 
     if ( ERROR_OCCURED() )
     {

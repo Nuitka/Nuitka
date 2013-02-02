@@ -55,7 +55,7 @@ static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, Nuitka_StringObject *k
 }
 
 // Quick module lookup for a string value.
-static PyDictEntry *GET_PYDICT_ENTRY( PyModuleObject *module, Nuitka_StringObject *key )
+NUITKA_MAY_BE_UNUSED static PyDictEntry *GET_PYDICT_ENTRY( PyModuleObject *module, Nuitka_StringObject *key )
 {
     // Idea similar to LOAD_GLOBAL in CPython. Because the variable name is a string, we
     // can shortcut much of the dictionary code by using its hash and dictionary knowledge
