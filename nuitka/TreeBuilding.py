@@ -1013,6 +1013,36 @@ def buildFunctionNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
+    if function_body.isExpressionFunctionBody() and function_body.isGenerator():
+        # TODO: raise generator exit?
+        pass
+    elif function_statements_body is None:
+        function_statements_body = CPythonStatementsSequence(
+            statements = (
+                CPythonStatementReturn(
+                    expression = CPythonExpressionConstantRef(
+                        constant   = None,
+                        source_ref = source_ref.atInternal()
+                    ),
+                    source_ref = source_ref.atInternal()
+                ),
+            ),
+            source_ref = source_ref
+        )
+    elif not function_statements_body.isStatementAbortative():
+        function_statements_body.setStatements(
+            function_statements_body.getStatements() +
+            (
+                CPythonStatementReturn(
+                    expression = CPythonExpressionConstantRef(
+                        constant   = None,
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref.atInternal()
+                ),
+            )
+        )
+
     function_body.setBody( function_statements_body )
 
     annotations = _buildParameterAnnotations( provider, node, source_ref )

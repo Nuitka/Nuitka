@@ -109,14 +109,15 @@ class CPythonStatementConditional( CPythonExpressionChildrenHavingBase ):
     def isStatementAbortative( self ):
         yes_branch = self.getBranchYes()
 
-        if yes_branch is not None and not yes_branch.isStatementAbortative():
+        if yes_branch is not None:
+            if yes_branch.isStatementAbortative():
+                no_branch = self.getBranchNo()
+
+                if no_branch is not None:
+                    return no_branch.isStatementAbortative()
+                else:
+                    return False
+            else:
+                return False
+        else:
             return False
-
-        no_branch = self.getBranchNo()
-
-        if no_branch is not None and not no_branch.isStatementAbortative():
-            return False
-
-        assert yes_branch is not None or no_branch is not None
-
-        return yes_branch is not None and no_branch is not None

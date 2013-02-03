@@ -122,6 +122,7 @@ class CPythonExpressionRaiseException( CPythonExpressionChildrenHavingBase ):
 
     getExceptionType = CPythonExpressionChildrenHavingBase.childGetter( "exception_type" )
     getExceptionValue = CPythonExpressionChildrenHavingBase.childGetter( "exception_value" )
+
     def computeNode( self, constraint_collection ):
         return self, None, None
 

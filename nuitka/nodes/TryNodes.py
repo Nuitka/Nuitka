@@ -49,7 +49,20 @@ class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
     getBlockFinal = CPythonChildrenHaving.childGetter( "final" )
 
     def isStatementAbortative( self ):
-        return self.getBlockTry().isStatementAbortative()
+        # In try/finally there are two chances to raise or return a value, so we need to
+        # "or" the both branches. One of them will do.
+
+        tried_block = self.getBlockTry()
+
+        if tried_block is not None and tried_block.isStatementAbortative():
+            return True
+
+        final_block = self.getBlockFinal()
+
+        if final_block is not None and final_block.isStatementAbortative():
+            return True
+
+        return False
 
     def markAsExceptionContinue( self ):
         self.continue_exception = True
@@ -117,7 +130,13 @@ class CPythonStatementTryExcept( CPythonChildrenHaving, CPythonNodeBase ):
     getExceptionHandlers = CPythonChildrenHaving.childGetter( "handlers" )
 
     def isStatementAbortative( self ):
-        if not self.getBlockTry().isStatementAbortative():
+        tried_block = self.getBlockTry()
+
+        # Happens during tree building only.
+        if tried_block is None:
+            return False
+
+        if not tried_block.isStatementAbortative():
             return False
 
         for handler in self.getExceptionHandlers():
