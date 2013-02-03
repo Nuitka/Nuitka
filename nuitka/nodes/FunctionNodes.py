@@ -460,6 +460,31 @@ class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
     getKwDefaults = CPythonExpressionChildrenHavingBase.childGetter( "kw_defaults" )
     getAnnotations = CPythonExpressionChildrenHavingBase.childGetter( "annotations" )
 
+    def mayRaiseException( self, exception_type ):
+        kw_defaults = self.getKwDefaults()
+        defaults = self.getDefaults()
+        annotations = self.getAnnotations()
+
+        if kw_defaults is not None:
+            result = kw_defaults.mayRaiseException( exception_type )
+
+            if result is True or result is None:
+                return result
+
+        for default in defaults:
+            result = default.mayRaiseException( exception_type )
+
+            if result is True or result is None:
+                return result
+
+        if annotations is not None:
+            result = annotations.mayRaiseException( exception_type )
+
+            if result is True or result is None:
+                return result
+
+        return False
+
 
 class CPythonExpressionFunctionRef( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_FUNCTION_REF"
