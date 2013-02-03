@@ -117,7 +117,11 @@ def getCommitDate( commit_id ):
 
 def getCommitHash( commit_id ):
     commit = repo.rev_parse( commit_id )
-    commit_hash = commit.hash
+
+    if hasattr( commit, "object" ):
+        commit = commit.object
+
+    commit_hash = commit.hexsha
 
     assert len( commit_hash ) == 40, commit_hash
 
@@ -412,7 +416,7 @@ value          varchar(40) not NULL
         return cmp( self.machine, other.machine )
 
     def getData( self, nuitka_version, python_version, benchmark_name ):
-        r = self._doSql(
+        stored = self._doSql(
             """SELECT * FROM results WHERE nuitka_version=? AND python_version=? AND benckmark_name=?""",
 
             nuitka_version,
@@ -420,7 +424,19 @@ value          varchar(40) not NULL
             benchmark_name
         )
 
-        return r
+        result = []
+
+        for res in stored:
+            if res[ 1 ] == getCommitHash( nuitka_version ):
+                result.append( res )
+            else:
+                self._doSql(
+                    """DELETE FROM results where nuitka_version=? and commit_id=?""",
+                    nuitka_version,
+                    res[1]
+                )
+
+        return result
 
     def setData( self, nuitka_version, commit_id, python_version, benchmark_name, key, value ):
         r = self._doSql(
@@ -610,10 +626,14 @@ def createGraphs():
     plt.title( "PyStone" )
     plt.ylabel( "ticks" )
 
-    plt.bar( dates, values )
+    counts = range( 1, len( values ) + 1 )
 
-    for date, value, name in zip( dates, values, names ):
-        plt.text( date, value, name, ha="center", va="bottom" )
+    plt.bar( counts, values, width = 0.5 )
+
+    counter = 1
+
+    for count, date, value, name in zip( counts, dates, values, names ):
+        plt.text( count + 0.5, value, name, ha="center", va="bottom", rotation = 65 )
 
     plt.show()
 
