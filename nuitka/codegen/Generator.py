@@ -1584,6 +1584,9 @@ def getBuiltinListCode( identifier ):
     return HelperCallIdentifier( "TO_LIST", identifier )
 
 def getBuiltinDictCode( seq_identifier, dict_identifier ):
+    if dict_identifier.isConstantIdentifier() and dict_identifier.getConstant() == {}:
+        dict_identifier = None
+
     assert seq_identifier is not None or dict_identifier is not None
 
     if seq_identifier is not None:

@@ -604,17 +604,6 @@ def generateSliceLookupCode( expression, context ):
                 )
             )
 
-# TODO: Must die
-def generateCallNamedArgumentsCode( pairs, context ):
-    if pairs:
-        return generateDictionaryCreationCode(
-            pairs      = pairs,
-            context    = context
-        )
-    else:
-        return None
-
-
 def generateCallCode( call_node, context ):
     return Generator.getCallCode(
         called_identifier    = generateExpressionCode(
@@ -748,6 +737,8 @@ def generateExpressionCode( expression, context, allow_none = False ):
             context  = context
         )
     elif expression.isExpressionMakeDict():
+        assert expression.getPairs()
+
         identifier = generateDictionaryCreationCode(
             pairs   = expression.getPairs(),
             context = context
@@ -1005,7 +996,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
                 expression = expression.getPositionalArgument(),
                 allow_none = True
             ),
-            dict_identifier = generateCallNamedArgumentsCode(
+            dict_identifier = generateDictionaryCreationCode(
                 pairs    = expression.getNamedArgumentPairs(),
                 context  = context
             )
