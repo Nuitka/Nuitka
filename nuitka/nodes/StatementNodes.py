@@ -59,6 +59,8 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
     def setChild( self, name, value ):
         assert name == "statements"
 
+        assert None not in value, value
+
         return CPythonChildrenHaving.setChild(
             self,
             name  = name,
@@ -146,6 +148,9 @@ class CPythonStatementsFrame( CPythonStatementsSequence ):
             result[ "kw_only_count" ] = self.kw_only_count
 
         return result
+
+    def needsLineNumber( self ):
+        return False
 
     def getGuardMode( self ):
         return self.guard_mode

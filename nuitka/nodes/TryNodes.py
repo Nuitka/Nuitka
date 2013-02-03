@@ -46,7 +46,9 @@ class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
         self.return_value_exception = True
 
     getBlockTry = CPythonChildrenHaving.childGetter( "tried" )
+    setBlockTry = CPythonChildrenHaving.childSetter( "tried" )
     getBlockFinal = CPythonChildrenHaving.childGetter( "final" )
+    setBlockFinal = CPythonChildrenHaving.childSetter( "final" )
 
     def isStatementAbortative( self ):
         # In try/finally there are two chances to raise or return a value, so we need to
@@ -127,6 +129,8 @@ class CPythonStatementTryExcept( CPythonChildrenHaving, CPythonNodeBase ):
         )
 
     getBlockTry = CPythonChildrenHaving.childGetter( "tried" )
+    setBlockTry = CPythonChildrenHaving.childSetter( "tried" )
+
     getExceptionHandlers = CPythonChildrenHaving.childGetter( "handlers" )
 
     def isStatementAbortative( self ):

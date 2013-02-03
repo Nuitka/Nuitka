@@ -153,8 +153,76 @@ class ConstraintCollectionBase:
         for variable_name, variable_info in sorted( iterItems( self.variables ) ):
             debug( "%r: %r", variable_name, variable_info )
 
+    def _onStatementsFrame( self, statements_sequence ):
+        assert statements_sequence.isStatementsFrame()
+
+        new_statements = []
+
+        statements = statements_sequence.getStatements()
+        assert statements, statements_sequence
+
+        for count, statement in enumerate( statements ):
+            # May be frames embedded.
+            if statement.isStatementsFrame():
+                new_statement = self.onStatementsSequence( statement )
+            else:
+                new_statement = self.onStatement( statement )
+
+            if new_statement is not None:
+                if new_statement.isStatementsSequence() and not new_statement.isStatementsFrame():
+                    new_statements.extend( new_statement.getStatements() )
+                else:
+                    new_statements.append( new_statement )
+
+                if statement is not statements[-1] and new_statement.isStatementAbortative():
+                    self.signalChange(
+                        "new_statements",
+                        statements[ count + 1 ].getSourceReference(),
+                        "Removed dead statements."
+                    )
+
+                    break
+
+        if not new_statements:
+            return None
+
+        outside_pre = []
+
+        while new_statements and not new_statements[0].mayRaiseException( BaseException ):
+            outside_pre.append( new_statements[0] )
+            del new_statements[0]
+
+        outside_post = []
+
+        while new_statements and not new_statements[-1].mayRaiseException( BaseException ):
+            outside_post.insert( 0, new_statements[-1] )
+            del new_statements[-1]
+
+        if outside_pre or outside_post:
+            if new_statements:
+                statements_sequence.setStatements( tuple( new_statements ) )
+
+                return makeStatementsSequenceReplacementNode(
+                    statements = outside_pre + [ statements_sequence ] + outside_post,
+                    node       = statements_sequence
+                )
+            else:
+                return makeStatementsSequenceReplacementNode(
+                    statements = outside_pre + outside_post,
+                    node       = statements_sequence
+                )
+        else:
+            if statements != new_statements:
+                statements_sequence.setStatements( tuple( new_statements ) )
+
+            return statements_sequence
+
+
     def onStatementsSequence( self, statements_sequence ):
         assert statements_sequence.isStatementsSequence()
+
+        if statements_sequence.isStatementsFrame():
+            return self._onStatementsFrame( statements_sequence )
 
         new_statements = []
 
@@ -191,8 +259,6 @@ class ConstraintCollectionBase:
 
                 return statements_sequence
             else:
-                statements_sequence.replaceWith( None )
-
                 return None
         else:
             return statements_sequence
@@ -586,7 +652,10 @@ class ConstraintCollectionBase:
         tried_statement_sequence = statement.getBlockTry()
 
         if tried_statement_sequence is not None:
-            self.onStatementsSequence( tried_statement_sequence )
+            result = self.onStatementsSequence( tried_statement_sequence )
+
+            if result is not tried_statement_sequence:
+                statement.setBlockTry( result )
 
         final_statement_sequence = statement.getBlockFinal()
 
@@ -595,7 +664,10 @@ class ConstraintCollectionBase:
 
         if final_statement_sequence is not None:
             # Then assuming no exception, the no raise block if present.
-            self.onStatementsSequence( final_statement_sequence )
+            result = self.onStatementsSequence( final_statement_sequence )
+
+            if result is not final_statement_sequence:
+                statement.setBlockFinal( result )
 
         # Note: Need to query again, because the object may have changed in the
         # "onStatementsSequence" calls.
@@ -618,7 +690,10 @@ class ConstraintCollectionBase:
         tried_statement_sequence = statement.getBlockTry()
 
         if tried_statement_sequence is not None:
-            self.onStatementsSequence( tried_statement_sequence )
+            result = self.onStatementsSequence( tried_statement_sequence )
+
+            if result is not tried_statement_sequence:
+                statement.setBlockTry( result )
 
         # The exception branches triggers in unknown state, any amount of tried code
         # may have happened. A similar approach to loops should be taken to invalidate
@@ -739,7 +814,12 @@ class ConstraintCollectionBase:
             # should abort here.
             return statement
         elif statement.isStatementTempBlock():
-            self.onStatementsSequence( statement.getBody() )
+            temp_block_body = statement.getBody()
+
+            result = self.onStatementsSequence( temp_block_body )
+
+            if result is not temp_block_body:
+                statement.setBody( result )
 
             for variable, friend in iterItems( dict( self.variables ) ):
                 if variable.getOwner() is statement:
@@ -781,7 +861,10 @@ class ConstraintCollectionHandler( ConstraintCollectionBase ):
         branch = handler.getExceptionBranch()
 
         if branch is not None:
-            self.onStatementsSequence( branch )
+            result = self.onStatementsSequence( branch )
+
+            if result is not branch:
+                handler.setExceptionBranch( result )
 
         exception_types = handler.getExceptionTypes()
 
@@ -794,8 +877,10 @@ class ConstraintCollectionBranch( ConstraintCollectionBase ):
     def process( self, start_state, branch ):
         assert branch.isStatementsSequence(), branch
 
-        self.onStatementsSequence( branch )
+        result = self.onStatementsSequence( branch )
 
+        if result is not branch:
+            branch.replaceWith( result )
 
 class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrackingMixin ):
     def __init__( self, parent, signal_change ):
@@ -816,7 +901,10 @@ class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrack
         statements_sequence = function_body.getBody()
 
         if statements_sequence is not None:
-            self.onStatementsSequence( statements_sequence )
+            result = self.onStatementsSequence( statements_sequence )
+
+            if result is not statements_sequence:
+                function_body.setBody( result )
 
         self.setIndications()
 
@@ -855,7 +943,10 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
         module_body = module.getBody()
 
         if module_body is not None:
-            self.onStatementsSequence( module_body )
+            result = self.onStatementsSequence( module_body )
+
+            if result is not module_body:
+                module.setBody( result )
 
         self.setIndications()
 
@@ -927,4 +1018,7 @@ class ConstraintCollectionLoopOther( ConstraintCollectionBase ):
         loop_body = loop.getLoopBody()
 
         if loop_body is not None:
-            self.onStatementsSequence( loop_body )
+            result = self.onStatementsSequence( loop_body )
+
+            if result is not loop_body:
+                loop_body.replaceWith( result )
