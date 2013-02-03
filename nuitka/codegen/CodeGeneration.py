@@ -2027,16 +2027,20 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
         elif guard_mode == "full":
             assert provider.isExpressionFunctionBody()
 
-            code = Generator.getFrameGuardHeavyCode(
-                frame_identifier  = provider.getCodeName(),
-                code_identifier   = statement_sequence.getCodeObjectHandle( context ),
+            locals_code = Generator.getFrameLocalsUpdateCode(
                 locals_identifier = Generator.getLoadLocalsCode(
                     context  = context,
                     provider = provider,
                     mode     = "updated"
-                ),
-                codes             = codes,
-                context           = context
+                )
+            )
+
+            code = Generator.getFrameGuardHeavyCode(
+                frame_identifier = provider.getCodeName(),
+                code_identifier  = statement_sequence.getCodeObjectHandle( context ),
+                locals_code      = locals_code,
+                codes            = codes,
+                context          = context
             )
         elif guard_mode == "once":
             code = Generator.getFrameGuardOnceCode(

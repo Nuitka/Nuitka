@@ -27,8 +27,13 @@ def _indentedCode( codes, count ):
         " " * count + line if (line and not line.startswith( "#" )) else line for line in codes
     )
 
-def indented( codes, level = 1 ):
+def indented( codes, level = 1, vert_block = False ):
     if type( codes ) is str:
         codes = codes.split( "\n" )
+
+    if vert_block and codes != [ "" ]:
+
+        codes.insert( 0, "" )
+        codes.append( "" )
 
     return _indentedCode( codes, level * 4 )

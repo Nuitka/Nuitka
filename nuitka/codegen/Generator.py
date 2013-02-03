@@ -1284,10 +1284,7 @@ def getLoadLocalsCode( context, provider, mode ):
             context  = context
         )
 
-        result = Identifier(
-            "PyDict_New()",
-            1
-        )
+        result = EmptyDictIdentifier()
 
         for local_var in local_list:
             result = Identifier(
@@ -2908,7 +2905,15 @@ def getDictOperationRemoveCode( dict_identifier, key_identifier ):
         key_identifier.getCodeTemporaryRef()
     )
 
-def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes, locals_identifier, context ):
+def getFrameLocalsUpdateCode( locals_identifier ):
+    if locals_identifier.isConstantIdentifier() and locals_identifier.getConstant() == {}:
+        return ""
+    else:
+        return CodeTemplates.template_frame_locals_update % {
+            "locals_identifier" : locals_identifier.getCodeExportRef()
+        }
+
+def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes, locals_code, context ):
     if context.isForDirectCall():
         return_code = CodeTemplates.frame_guard_cpp_return
     else:
@@ -2921,7 +2926,7 @@ def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes, locals_ide
         "code_identifier"   : code_identifier.getCodeTemporaryRef(),
         "codes"             : indented( codes ),
         "module_identifier" : getModuleAccessCode( context = context ),
-        "frame_locals"      : locals_identifier.getCodeExportRef(),
+        "frame_locals"      : indented( locals_code, vert_block = True ),
         "tb_making"         : tb_making.getCodeExportRef(),
         "return_code"       : return_code
     }

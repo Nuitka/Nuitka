@@ -166,10 +166,7 @@ catch ( _PythonException &_exception )
     {
         _exception.addTraceback( frame_guard.getFrame0() );
     }
-
-    Py_XDECREF( frame_guard.getFrame0()->f_locals );
-    frame_guard.getFrame0()->f_locals = %(frame_locals)s;
-
+%(frame_locals)s
     if ( frame_guard.getFrame0() == frame_%(frame_identifier)s )
     {
        Py_DECREF( frame_%(frame_identifier)s );
@@ -234,6 +231,9 @@ catch( ReturnValueException &_exception )
 }
 #endif"""
 
+template_frame_locals_update = """\
+Py_XDECREF( frame_guard.getFrame0()->f_locals );
+frame_guard.getFrame0()->f_locals = %(locals_identifier)s;"""
 
 # Bad to read, but the context declaration should be on one line.
 # pylint: disable=C0301
