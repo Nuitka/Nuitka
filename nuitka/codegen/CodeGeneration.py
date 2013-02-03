@@ -2114,7 +2114,15 @@ def generateModuleDeclarationCode( module_name, context ):
 
 def generateMainCode( module, codes, context ):
     if module.getBody() is not None:
-        code_identifier = module.getBody().getCodeObjectHandle( context )
+        code_identifier = context.getCodeObjectHandle(
+            filename      = module.source_ref.getFilename(),
+            arg_names     = (),
+            kw_only_count = 0,
+            line_number   = 0,
+            code_name     = "<module>",
+            is_generator  = False,
+            is_optimized  = False
+        )
     else:
         code_identifier = None
 
