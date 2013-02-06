@@ -52,7 +52,8 @@ class CPythonExpressionBuiltinLocals( CPythonNodeBase, CPythonExpressionMixin ):
         return self, None, None
 
     def needsLocalsDict( self ):
-        return self.getParentVariableProvider().isEarlyClosure()
+        return self.getParentVariableProvider().isEarlyClosure() and \
+               ( not self.getParent().isStatementReturn() or self.getParent().isExceptionDriven() )
 
 
 class CPythonStatementSetLocals( CPythonChildrenHaving, CPythonNodeBase ):

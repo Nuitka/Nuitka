@@ -38,7 +38,7 @@ class CPythonStatementReturn( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-        self.exception_driven = False
+        self.exception_driven = None
 
     getExpression = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 
@@ -48,8 +48,10 @@ class CPythonStatementReturn( CPythonExpressionChildrenHavingBase ):
     def mayRaiseException( self, exception_type ):
         return self.getExpression().mayRaiseException( exception_type )
 
-    def markAsExceptionDriven( self ):
-        self.exception_driven = True
+    def setExceptionDriven( self, value ):
+        self.exception_driven = value
 
     def isExceptionDriven( self ):
+        assert self.exception_driven is not None
+
         return self.exception_driven

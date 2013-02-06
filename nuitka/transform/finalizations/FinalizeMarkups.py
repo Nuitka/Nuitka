@@ -97,6 +97,8 @@ class FinalizeMarkups( FinalizationVisitorBase ):
         if node.isStatementReturn():
             search = node.getParent()
 
+            exception_driven = False
+
             # Search up to the containing function, and check for a try/finally
             # containing the "return" statement.
             while not search.isExpressionFunctionBody():
@@ -109,16 +111,18 @@ class FinalizeMarkups( FinalizationVisitorBase ):
                     else:
                         search.markAsExceptionReturnValue()
 
-                    node.markAsExceptionDriven()
+                    exception_driven = True
 
             if search.isGenerator():
-                node.markAsExceptionDriven()
+                exception_driven = True
 
-            if node.isExceptionDriven():
+            if exception_driven:
                 if search.isGenerator():
                     search.markAsExceptionGeneratorReturn()
                 else:
                     search.markAsExceptionReturnValue()
+
+            node.setExceptionDriven( exception_driven )
 
         if node.isStatementRaiseException() and node.isReraiseException():
             search = node.getParent()
