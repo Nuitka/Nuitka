@@ -18,8 +18,6 @@
 #ifndef __NUITKA_DICTIONARIES_H__
 #define __NUITKA_DICTIONARIES_H__
 
-extern PyObject *_python_dict_empty;
-
 // Quick dictionary lookup for a string value.
 static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, Nuitka_StringObject *key )
 {
@@ -64,13 +62,6 @@ NUITKA_MAY_BE_UNUSED static PyDictEntry *GET_PYDICT_ENTRY( PyModuleObject *modul
     PyDictObject *dict = (PyDictObject *)(module->md_dict);
 
     return GET_PYDICT_ENTRY( dict, key );
-}
-
-// Check if a dictionary can contain strings. It doesn't if the ma_lookup wasn't changed
-// away from the variant that is active in dictionaries that never saw one.
-static inline bool COULD_CONTAIN_NON_STRINGS( PyObject *dict )
-{
-    return ( ((PyDictObject *)( dict ))->ma_lookup != ((PyDictObject *)_python_dict_empty)->ma_lookup );
 }
 
 NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, PyObject *value )
