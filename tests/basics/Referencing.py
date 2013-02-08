@@ -461,6 +461,26 @@ def simpleFunction57():
    f(2)
    f(3,4)
 
+def simpleFunction58():
+   a = 3
+   b = 5
+
+   try:
+      return 7
+   finally:
+      a / b
+
+
+def simpleFunction59():
+   a = 3
+   b = 5
+
+   try:
+      return 7
+   finally:
+      return a / b
+
+
 x = 17
 
 def checkReferenceCount( checked_function, max_rounds = 10 ):
@@ -564,3 +584,5 @@ checkReferenceCount( simpleFunction55 )
 # we accept for now.
 # checkReferenceCount( simpleFunction56 )
 checkReferenceCount( simpleFunction57 )
+checkReferenceCount( simpleFunction58 )
+checkReferenceCount( simpleFunction59 )

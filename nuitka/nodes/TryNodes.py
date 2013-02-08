@@ -43,7 +43,8 @@ class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
         self.break_exception = False
         self.continue_exception = False
         self.generator_return_exception = False
-        self.return_value_exception = True
+        self.return_value_exception_catch = False
+        self.return_value_exception_reraise = False
 
     getBlockTry = CPythonChildrenHaving.childGetter( "tried" )
     setBlockTry = CPythonChildrenHaving.childSetter( "tried" )
@@ -75,8 +76,11 @@ class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
     def markAsExceptionGeneratorReturn( self ):
         self.generator_return_exception = True
 
-    def markAsExceptionReturnValue( self ):
-        self.return_value_exception = True
+    def markAsExceptionReturnValueCatch( self ):
+        self.return_value_exception_catch = True
+
+    def markAsExceptionReturnValueReraise( self ):
+        self.return_value_exception_reraise = True
 
     def needsExceptionContinue( self ):
         return self.continue_exception
@@ -87,8 +91,11 @@ class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
     def needsExceptionGeneratorReturn( self ):
         return self.generator_return_exception
 
-    def needsExceptionReturnValue( self ):
-        return self.return_value_exception
+    def needsExceptionReturnValueCatcher( self ):
+        return self.return_value_exception_catch
+
+    def needsExceptionReturnValueReraiser( self ):
+        return self.return_value_exception_reraise
 
 
 class CPythonStatementExceptHandler( CPythonChildrenHaving, CPythonNodeBase ):

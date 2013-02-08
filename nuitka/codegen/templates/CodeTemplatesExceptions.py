@@ -64,7 +64,8 @@ if ( _caught_%(try_count)d.isEmpty() )
 %(thrower_code)s
 }
 else
-    { _caught_%(try_count)d.rethrow();
+{
+    _caught_%(try_count)d.rethrow();
 }"""
 
 try_except_reraise_unmatched_template = """\
@@ -124,7 +125,7 @@ bool _return_%(try_count)d = false;
 """
 
 try_finally_template_setup_return_value = """\
-PyObject *_return_value_%(try_count)d = NULL;
+PyObjectTempKeeper1 _return_value_%(try_count)d;
 """
 
 try_finally_template_catch_continue = """\
@@ -151,7 +152,7 @@ catch ( GeneratorReturnException & )
 try_finally_template_catch_return_value = """\
 catch ( ReturnValueException &e )
 {
-    _return_value_%(try_count)d = e.getValue();
+    _return_value_%(try_count)d.assign( e.getValue() );
 }
 """
 
@@ -159,28 +160,36 @@ try_finally_template_reraise_continue = """\
 if ( _continue_%(try_count)d )
 {
     throw ContinueException();
-}
-"""
+}"""
 
 try_finally_template_reraise_break = """\
 if ( _break_%(try_count)d )
 {
     throw BreakException();
-}
-"""
+}"""
 
 try_finally_template_reraise_generator_return = """\
 if ( _return_%(try_count)d )
 {
     throw GeneratorReturnException();
-}
-"""
+}"""
 
 try_finally_template_reraise_return_value = """\
-if ( _return_value_%(try_count)d != NULL )
+if ( _return_value_%(try_count)d.isKeeping() )
 {
-    throw ReturnValueException( _return_value_%(try_count)d );
+    throw ReturnValueException( _return_value_%(try_count)d.asObject() );
 }"""
+
+try_finally_template_direct_return_value = """\
+assert( _return_value_%(try_count)d.isKeeping() ); // Must be true as this is last.
+return _return_value_%(try_count)d.asObject();"""
+
+try_finally_template_indirect_return_value = """\
+if ( _return_value_%(try_count)d.isKeeping() )
+{
+    return _return_value_%(try_count)d.asObject();
+}"""
+
 
 # Very special template for:
 # try:

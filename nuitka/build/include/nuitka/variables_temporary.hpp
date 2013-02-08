@@ -101,6 +101,11 @@ public:
         return this->object;
     }
 
+    bool isKeeping() const
+    {
+        return this->object != NULL;
+    }
+
 private:
 
     PyObjectTempKeeper1( const PyObjectTempKeeper1 &other ) { assert( false ); }

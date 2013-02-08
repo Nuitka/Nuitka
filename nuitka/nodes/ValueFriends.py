@@ -60,7 +60,7 @@ class ValueFriendChooseOne( ValueFriendBase ):
 
     def mayHaveSideEffects( self, constraint_collection ):
         for choice in self.choices:
-            if choice.mayHaveSideEffects():
+            if choice.mayHaveSideEffects( constraint_collection ):
                 return True
         else:
             return False

@@ -1884,14 +1884,16 @@ def _generateStatementCode( statement, context ):
         )
 
         code = Generator.getTryFinallyCode(
-            code_tried             = code_tried,
-            code_final             = code_final,
-            needs_break            = statement.needsExceptionBreak(),
-            needs_continue         = statement.needsExceptionContinue(),
-            needs_generator_return = statement.needsExceptionGeneratorReturn(),
-            needs_return_value     = statement.needsExceptionReturnValue(),
-            try_count              = try_count,
-            context                = context
+            code_tried                 = code_tried,
+            code_final                 = code_final,
+            needs_break                = statement.needsExceptionBreak(),
+            needs_continue             = statement.needsExceptionContinue(),
+            needs_generator_return     = statement.needsExceptionGeneratorReturn(),
+            needs_return_value_catch   = statement.needsExceptionReturnValueCatcher(),
+            needs_return_value_reraise = statement.needsExceptionReturnValueReraiser(),
+            abortative                 = statement.isStatementAbortative(),
+            try_count                  = try_count,
+            context                    = context
         )
     elif statement.isStatementTryExcept():
         code = generateTryExceptCode(

@@ -976,7 +976,9 @@ def getSubscriptDelCode( subscribed, subscript ):
     )
 
 def getTryFinallyCode( context, needs_continue, needs_break, needs_generator_return,
-                       needs_return_value, code_tried, code_final, try_count ):
+                       needs_return_value_catch, needs_return_value_reraise, abortative,
+                       code_tried, code_final, try_count ):
+
     tb_making = getTracebackMakingIdentifier( context )
 
     rethrow_setups = ""
@@ -1002,12 +1004,18 @@ def getTryFinallyCode( context, needs_continue, needs_break, needs_generator_ret
         rethrow_catchers += CodeTemplates.try_finally_template_catch_generator_return % values
         rethrow_raisers += CodeTemplates.try_finally_template_reraise_generator_return % values
 
-    if needs_return_value:
+    if needs_return_value_catch:
         rethrow_setups += CodeTemplates.try_finally_template_setup_return_value % values
         rethrow_catchers += CodeTemplates.try_finally_template_catch_return_value % values
-        rethrow_raisers += CodeTemplates.try_finally_template_reraise_return_value % values
 
-    return CodeTemplates.try_finally_template % {
+        if needs_return_value_reraise:
+            rethrow_raisers += CodeTemplates.try_finally_template_reraise_return_value % values
+        elif not abortative:
+            rethrow_raisers += CodeTemplates.try_finally_template_indirect_return_value % values
+        else:
+            rethrow_raisers += CodeTemplates.try_finally_template_direct_return_value % values
+
+    result = CodeTemplates.try_finally_template % {
         "try_count"        : try_count,
         "tried_code"       : indented( code_tried ),
         "final_code"       : indented( code_final, 0 ),
@@ -1016,6 +1024,11 @@ def getTryFinallyCode( context, needs_continue, needs_break, needs_generator_ret
         "rethrow_catchers" : rethrow_catchers,
         "rethrow_raisers"  : rethrow_raisers,
     }
+
+    if not rethrow_raisers:
+        result = result.rstrip()
+
+    return result
 
 def getTryExceptHandlerCode( exception_identifiers, handler_code, needs_frame_detach, first_handler ):
     exception_code = []

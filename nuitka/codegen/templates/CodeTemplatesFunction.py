@@ -108,8 +108,6 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 
     // Actual function code.
 %(function_body)s
-
-    return INCREASE_REFCOUNT( Py_None );
 }
 """
 
@@ -123,8 +121,6 @@ function_direct_body_template = """\
 
     // Actual function code.
 %(function_body)s
-
-    return INCREASE_REFCOUNT( Py_None );
 }
 """
 
@@ -174,12 +170,8 @@ catch ( _PythonException &_exception )
     }
 %(return_code)s
 }
-catch( ReturnValueException &_exception )
-{
-    return _exception.getValue();
-}"""
+"""
 
-# TODO: Treat heavy and once the same.
 frame_guard_python_return = """
     _exception.toPython();
     return NULL;"""
@@ -221,15 +213,7 @@ catch ( _PythonException &_exception )
 // TODO:
     _exception.toPython();
 %(return_code)s
-}
-#if 0
-// TODO: Recognize the need for it, now we know it's only modules and therefore
-// not needed.
-catch( ReturnValueException &_exception )
-{
-    return _exception.getValue();
-}
-#endif"""
+}"""
 
 template_frame_locals_update = """\
 Py_XDECREF( frame_guard.getFrame0()->f_locals );

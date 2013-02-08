@@ -438,12 +438,21 @@ class ReturnValueException
 public:
     explicit ReturnValueException( PyObject *value )
     {
+        assertObject( value );
+
         this->value = value;
+    }
+
+    ~ReturnValueException()
+    {
+        assertObject( value );
+
+        Py_DECREF( this->value );
     }
 
     PyObject *getValue() const
     {
-        return this->value;
+        return INCREASE_REFCOUNT( this->value );
     }
 
 private:
