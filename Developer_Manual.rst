@@ -1413,16 +1413,16 @@ Goals/Allowances to the task
 
 1. Goal: Must not use any pre-existing C/C++ language file headers, only generate
    declarations in generated C++ code ourselves. We would rather write a C header to
-   ``ctypes`` declarations convert if it needs to be, but not mix and use declarations from
-   existing header code.
-2. Allowance: May use ``ctypes`` module at compile time to ask things about ``ctypes`` and its
-   types.
-3. Goal: Should make use of ``ctypes``, to e.g. not hard code what ``ctypes.c_int()`` gives on
-   the current platform, unless there is a specific benefit.
+   ``ctypes`` declarations convert if it needs to be, but not mix and use declarations
+   from existing header code.
+2. Allowance: May use ``ctypes`` module at compile time to ask things about ``ctypes`` and
+   its types.
+3. Goal: Should make use of ``ctypes``, to e.g. not hard code what ``ctypes.c_int()``
+   gives on the current platform, unless there is a specific benefit.
 4. Allowance: Not all ``ctypes`` usages must be supported immediately.
 5. Goal: Try and be as general as possible. For the compiler, ``ctypes`` support should be
-   hidden behind a generic interface of some sort. Supporting ``math`` module should be the
-   same thing.
+   hidden behind a generic interface of some sort. Supporting ``math`` module should be
+   the same thing.
 
 
 Type Inference - The Discussion
@@ -1459,11 +1459,12 @@ want to forward propagate abstract properties of the values.
 
 .. note::
 
-   Builtin exceptions, and builtin names are also compile time constants.
+   Builtin exceptions, and built-in names are also compile time constants.
 
 In order to fully benefit from type knowledge, the new type system must be able to be
 fully friends with existing builtin types.  The behavior of a type ``long``, ``str``,
-etc. ought to be implemented as far as possible with the builtin ``long``, ``str`` as well.
+etc. ought to be implemented as far as possible with the builtin ``long``, ``str`` as
+well.
 
 .. note::
 
@@ -1472,9 +1473,9 @@ etc. ought to be implemented as far as possible with the builtin ``long``, ``str
    ``ctypes.c_int`` values would be an example of that. Of course that may not be possible
    for everything.
 
-   This approach has well proven itself with builtin functions already, where we use real
-   builtins where possible to make computations. We have the problem though that builtins may
-   have problems to execute everything with reasonable compile time cost.
+   This approach has well proven itself with built-in functions already, where we use real
+   built-ins where possible to make computations. We have the problem though that
+   built-ins may have problems to execute everything with reasonable compile time cost.
 
 Another example, consider the following code:
 
@@ -1486,8 +1487,8 @@ To predict this code, calculating it at compile time using constant operations, 
 feasible, puts an unacceptable burden on the compilation.
 
 Esp. we wouldn't want to produce such a huge constant and stream it, the C++ code would
-become too huge. So, we need to stop the ``*`` operator from being used at compile time and
-live with reduced knowledge, already here:
+become too huge. So, we need to stop the ``*`` operator from being used at compile time
+and live with reduced knowledge, already here:
 
 .. code-block:: python
 
@@ -1500,7 +1501,7 @@ Instead, we would probably say that for this expression:
    - Can predict every of its elements when subscripted, sliced, etc., if need be, with a
      function we may create.
 
-Similar is true for this nice thing:
+Similar is true for this horrible thing:
 
 .. code-block:: python
 
@@ -1514,23 +1515,23 @@ So it's a rather general problem, this time we know:
      function.
 
 Again, we wouldn't want to create the list. Therefore Nuitka avoids executing these
-calculation, when they result in constants larger than a treshold of 256. It's also done
-for large integers and more.
+calculation, when they result in constants larger than a treshold of 256. It's also
+applied to integers and more CPU and memory traps.
 
-Now lets look at a use:
+Now lets look at a use case:
 
 .. code-block:: python
 
    for x in range( 10000000000000 ):
        doSomething()
 
-Looking at this example, one way to look at it, would be to turn ``range`` into ``xrange``,
-note that ``x`` is unused. That would already perform better. But really better is to notice
-that ``range()`` generated values are not used, but only the length of the expression
-matters.
+Looking at this example, one traditional way to look at it, would be to turn ``range``
+into ``xrange``, note that ``x`` is unused. That would already perform better. But really
+better is to notice that ``range()`` generated values are not used, but only the length of
+the expression matters.
 
-And even if ``x`` were used, only the ability to predict the value from a function would be
-interesting, so we would use that computation function instead of having an iteration
+And even if ``x`` were used, only the ability to predict the value from a function would
+be interesting, so we would use that computation function instead of having an iteration
 source. Being able to predict from a function could mean to have Python code to do it, as
 well as C++ code to do it. Then code for the loop can be generated without any CPython
 usage at all.
@@ -1575,13 +1576,13 @@ follows:
 
    import ctypes
 
-This leads to Nuitka tree an assignment from a "import module expression" to the variable
-``ctypes``. It can be predicted by default to be a module object, and even better, it can be
-known as ``ctypes`` from standard library with more or less certainty. See the section about
-"Importing".
+This leads to Nuitka tree an assignment from a ``__import__`` expression to the variable
+``ctypes``. It can be predicted by default to be a module object, and even better, it can
+be known as ``ctypes`` from standard library with more or less certainty. See the section
+about "Importing".
 
 So that part is "easy", and it's what will happen. During optimization, when the module
-import expression is examined, it should say:
+``__import__`` expression is examined, it should say:
 
    - ``ctypes`` is a module
    - ``ctypes`` is from standard library (if it is, may not be true)
