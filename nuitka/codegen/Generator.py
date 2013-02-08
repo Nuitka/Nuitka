@@ -1282,7 +1282,7 @@ def getLoadVarsCode( identifier ):
 
 def getLoadGlobalsCode( context ):
     return Identifier(
-        "PyModule_GetDict( %(module_identifier)s )" % {
+        "((PyModuleObject *)%(module_identifier)s)->md_dict" % {
             "module_identifier" : getModuleAccessCode( context )
         },
         0
