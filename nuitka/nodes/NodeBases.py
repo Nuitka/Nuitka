@@ -360,8 +360,8 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         return False
 
-    def isStatementAbortative( self ):
-        """ Is the node abortative, control flow doesn't continue after this node.  """
+    def isStatementAborting( self ):
+        """ Is the node aborting, control flow doesn't continue after this node.  """
         # Virtual method, pylint: disable=R0201
         assert self.isStatement(), self.kind
 

@@ -67,7 +67,7 @@ class CPythonStatementContinueLoop( CPythonNodeBase ):
 
         self.exception_driven = False
 
-    def isStatementAbortative( self ):
+    def isStatementAborting( self ):
         return True
 
     def markAsExceptionDriven( self ):
@@ -85,7 +85,7 @@ class CPythonStatementBreakLoop( CPythonNodeBase ):
 
         self.exception_driven = False
 
-    def isStatementAbortative( self ):
+    def isStatementAborting( self ):
         return True
 
     def markAsExceptionDriven( self ):

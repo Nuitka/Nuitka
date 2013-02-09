@@ -976,7 +976,7 @@ def getSubscriptDelCode( subscribed, subscript ):
     )
 
 def getTryFinallyCode( context, needs_continue, needs_break, needs_generator_return,
-                       needs_return_value_catch, needs_return_value_reraise, abortative,
+                       needs_return_value_catch, needs_return_value_reraise, aborting,
                        code_tried, code_final, try_count ):
 
     tb_making = getTracebackMakingIdentifier( context )
@@ -1010,7 +1010,7 @@ def getTryFinallyCode( context, needs_continue, needs_break, needs_generator_ret
 
         if needs_return_value_reraise:
             rethrow_raisers += CodeTemplates.try_finally_template_reraise_return_value % values
-        elif not abortative:
+        elif not aborting:
             rethrow_raisers += CodeTemplates.try_finally_template_indirect_return_value % values
         else:
             rethrow_raisers += CodeTemplates.try_finally_template_direct_return_value % values

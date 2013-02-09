@@ -1445,7 +1445,7 @@ def generateTryExceptCode( statement, context ):
                             catched_type = catched_types[0]
                             if catched_type.isExpressionBuiltinExceptionRef():
                                 if catched_type.getExceptionName() == "StopIteration":
-                                    if handlers[0].getExceptionBranch().isStatementAbortative():
+                                    if handlers[0].getExceptionBranch().isStatementAborting():
 
                                         temp_identifier = Generator.getTryNextExceptStopIterationIdentifier(
                                             context = context
@@ -1891,7 +1891,7 @@ def _generateStatementCode( statement, context ):
             needs_generator_return     = statement.needsExceptionGeneratorReturn(),
             needs_return_value_catch   = statement.needsExceptionReturnValueCatcher(),
             needs_return_value_reraise = statement.needsExceptionReturnValueReraiser(),
-            abortative                 = statement.isStatementAbortative(),
+            aborting                   = statement.isStatementAborting(),
             try_count                  = try_count,
             context                    = context
         )

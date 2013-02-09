@@ -42,7 +42,7 @@ class CPythonStatementReturn( CPythonExpressionChildrenHavingBase ):
 
     getExpression = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 
-    def isStatementAbortative( self ):
+    def isStatementAborting( self ):
         return True
 
     def mayRaiseException( self, exception_type ):

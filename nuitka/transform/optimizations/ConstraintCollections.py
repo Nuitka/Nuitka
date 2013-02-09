@@ -174,7 +174,7 @@ class ConstraintCollectionBase:
                 else:
                     new_statements.append( new_statement )
 
-                if statement is not statements[-1] and new_statement.isStatementAbortative():
+                if statement is not statements[-1] and new_statement.isStatementAborting():
                     self.signalChange(
                         "new_statements",
                         statements[ count + 1 ].getSourceReference(),
@@ -242,7 +242,7 @@ class ConstraintCollectionBase:
                 else:
                     new_statements.append( new_statement )
 
-                if statement is not statements[-1] and new_statement.isStatementAbortative():
+                if statement is not statements[-1] and new_statement.isStatementAborting():
                     self.signalChange(
                         "new_statements",
                         statements[ count + 1 ].getSourceReference(),

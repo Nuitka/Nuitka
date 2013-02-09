@@ -77,7 +77,7 @@ class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
     def markAsReraiseFinally( self ):
         self.reraise_finally = True
 
-    def isStatementAbortative( self ):
+    def isStatementAborting( self ):
         return True
 
     def needsLineNumber( self ):

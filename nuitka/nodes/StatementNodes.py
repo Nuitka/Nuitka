@@ -116,8 +116,8 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
         else:
             return False
 
-    def isStatementAbortative( self ):
-        return self.getStatements()[-1].isStatementAbortative()
+    def isStatementAborting( self ):
+        return self.getStatements()[-1].isStatementAborting()
 
 
 class CPythonStatementsFrame( CPythonStatementsSequence ):

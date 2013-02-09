@@ -1029,7 +1029,7 @@ def buildFunctionNode( provider, node, source_ref ):
             ),
             source_ref = source_ref
         )
-    elif not function_statements_body.isStatementAbortative():
+    elif not function_statements_body.isStatementAborting():
         function_statements_body.setStatements(
             function_statements_body.getStatements() +
             (

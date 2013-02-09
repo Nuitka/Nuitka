@@ -106,15 +106,15 @@ class CPythonStatementConditional( CPythonExpressionChildrenHavingBase ):
     getBranchNo = CPythonExpressionChildrenHavingBase.childGetter( "no_branch" )
     setBranchNo = CPythonExpressionChildrenHavingBase.childSetter( "no_branch" )
 
-    def isStatementAbortative( self ):
+    def isStatementAborting( self ):
         yes_branch = self.getBranchYes()
 
         if yes_branch is not None:
-            if yes_branch.isStatementAbortative():
+            if yes_branch.isStatementAborting():
                 no_branch = self.getBranchNo()
 
                 if no_branch is not None:
-                    return no_branch.isStatementAbortative()
+                    return no_branch.isStatementAborting()
                 else:
                     return False
             else:
