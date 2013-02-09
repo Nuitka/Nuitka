@@ -1978,10 +1978,8 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
                 context   = context
             )
 
-        # Can happen for "global" declarations, these are still in the node tree and yield
-        # no code.
-        if code == "":
-            continue
+        # Cannot happen
+        assert code != "", statement
 
         if source_ref != last_ref and statement.needsLineNumber():
             code = Generator.getLineNumberCode(
