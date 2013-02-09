@@ -1,12 +1,13 @@
-Nuitka Release 0.3.26 (Draft)
-=============================
+Nuitka Release 0.4 (Draft)
+==========================
 
-This releases brings progress on all fronts. There is full Python3.2 support. With this
-release, the test suite of CPython3.2 is considered passing.
+This release brings massive progress on all fronts. The big highlight is of course: Full
+Python3.2 support. With this release, the test suite of CPython3.2 is considered passing.
 
 Then lots of work on optimization and infrastructure. The major goal of this release was
 to get in shape for actual optimization. This is also why for the first time, it is tested
-that some things are indeed compile time optimized to spot regressions easier.
+that some things are indeed compile time optimized to spot regressions easier. And we are
+having performance diagrams.
 
 New Features
 ------------
@@ -82,6 +83,13 @@ New Optimization
 
 - Added support for optimizing ``isinstance`` built-in.
 
+- Was handling "BreakException" and "ContinueException" in all loops that used ``break``
+  or ``continue`` instead of only where necessary.
+
+- When catching "ReturnValueException", was raising an exception where a normal return was
+  sufficient. Raising them now only where needed, which also means, function need not
+  catch them ever.
+
 Cleanups
 --------
 
@@ -108,6 +116,10 @@ Cleanups
 
   * Will allow optimization to eliminate checks and to compile time merge, once inline
     functions and loop unrolling are supported.
+
+- Added "return None" to function bodies without a an aborting statement at the end, and
+  removed the hard coded fallback from function templates. Makes it explicit in the node
+  tree and available for optimization.
 
 - Merged C++ classes for frame exception keeper with frame guards.
 
@@ -181,7 +193,22 @@ Organizational
 Summary
 -------
 
-This release is not yet finished.
+This release marks a milestone. The support of Python3 is here. The re-formulation of
+complex calls, and the code generation improvements are quite huge. More re-formulation
+could be done for argument parsing, but generally this is now mostly complete.
+
+The 0.3.x series had a lot releases. Many of which brought progress with re-formulations
+that aimed at making optimization easier or possible. Sometimes small things like making
+"return None" explicit. Sometimes bigger things, like making class creations normal
+functions, or getting rid of ``or`` and ``and``. All of this was important ground work, to
+make sure, that optimization doesn't deal with complex stuff.
+
+So, the 0.4.x series begins with this. The focus from now on can be almost purely
+optimization. This release contains already some of it, with frames being optimized away,
+with the assignment keepers from the ``or`` and ``and`` re-formulation being optimized
+away. This will be about achieving goals from the "ctypes" plan as discussed in the
+developer manual.
+
 
 Nuitka Release 0.3.25
 =====================
