@@ -31,22 +31,22 @@ Milestones
    CPython release. For CPython 3.2 it also has been reached. We do not target older
    CPython 3.1 and 3.0 releases.
 
-   This milestone is considered reached.
+   This milestone was reached.
 
 2. Create the most efficient native code from this. This means to be fast with the basic
    Python object handling.
 
-   This milestone is considered mostly reached.
+   This milestone was reached.
 
 3. Then do constant propagation, determine as many values and useful constraints as
    possible at compile time and create more efficient code.
 
-   This milestone is considered in progress.
+   This milestone is considered almost reached.
 
 4. Type inference, detect and special case the handling of strings, integers, lists in
    the program.
 
-   This milestone is started only.
+   This milestone is considered in progress
 
 5. Add interfacing to C code, so Nuitka can turn a ``ctypes`` binding into an efficient
    binding as written with C.
@@ -71,16 +71,14 @@ express which of these, we consider done.
   Before milestone 1, we used "0.1.x" version numbers. After reaching it, we used "0.2.x"
   version numbers.
 
-- Now:
-
-  We currently use "0.3.x" version numbers as we still strive for milestone 2 and 3 to be
-  really completed.
+  Before milestone 2 and 3, we used "0.3.x" version numbers. After almost reaching 3, and
+  beginning with 4, we use "0.4.x" version numbers.
 
 - Future:
 
   When we start to have sufficient amount of type inference in a stable release, that will
-  be "0.4.x" version numbers. With ``ctypes`` bindings in a sufficient state it will be
-  "0.5.x".
+  be "0.5.x" version numbers. With ``ctypes`` bindings in a sufficient state it will be
+  "0.6.x".
 
 - Final:
 
@@ -1625,8 +1623,8 @@ propagation should only be the special case of it.
 Excursion to Functions
 ----------------------
 
-In order to decide what this means to functions, if we propagate forward, how to handle
-this:
+In order to decide what this means to functions and their call boundaries, if we propagate
+forward, how to handle this:
 
 .. code-block:: python
 
@@ -1636,18 +1634,20 @@ this:
       return a
 
 We would notate that ``a`` is first a "unknown PyObject parameter object", then something
-that has an ``append`` attribute, when returned. The type of ``a`` changes after ``a.append``
-lookup succeeds. It might be an object, but e.g. it could have a higher probability of
-being a ``PyListObject``.
+that definitely has an ``append`` attribute, when returned. Otherwise an exception
+occurs. The type of ``a`` changes to that after ``a.append`` look-up succeeds. It might be
+many kinds of an object, but e.g. it could have a higher probability of being a
+``PyListObject``. And we would know it cannot be a ``PyStringObject``, as that one has no
+"append".
 
 .. note::
 
-   If classes in the program have an ``append`` attribute, it should play a role too, there
-   needs to be a way to plug-in to this decisions.
+   If classes, i.e. other types in the program, have an ``append`` attribute, it should
+   play a role too, there needs to be a way to plug-in to this decisions.
 
-This is a more global property of ``a`` value, and true even before the append succeeds, but
-not as much maybe, so it would make sense to apply that information after an analysis of
-all the node. This may be ``Finalization`` work.
+This is a more global property of ``a`` value, and true even before the ``append``
+succeeded, but not as much maybe, so it would make sense to apply that information after
+an analysis of all the node. This may be ``Finalization`` work.
 
 .. code-block:: python
 
@@ -1655,21 +1655,28 @@ all the node. This may be ``Finalization`` work.
 
    assert b == [3] # Could be decided now
 
-Goal: The structure we use should make it easy to visit ``my_append`` and then have
-something that easily allows to plug in the given values and know things. We need to be
-able to tell, if evaluating ``my_append`` makes sense with given parameters or not.
+Goal: The structure we use makes it easy to tell what ``my_append`` may be. So, there
+should be a means to ask it about call results with given type/value information. We need
+to be able to tell, if evaluating ``my_append`` makes sense with given parameters or not,
+if it does impact the return value.
 
 We should e.g. be able to make ``my_append`` tell, one or more of these:
 
-   - Returns the first parameter value (unless it raises an exception)
-   - The return value has the same type as ``a`` (unless it raises an exception)
+   - Returns the first parameter value as return value (unless it raises an exception).
+   - The return value has the same type as ``a`` (unless it raises an exception).
 
-It would be nice, if ``my_append`` had sufficient information, so we could instantiate with
-``list`` and ``int`` from the parameters, and then e.g. know at least some things that it does
-in that case.
+The exactness of statements may vary. But some things may be more interesting. If e.g. the
+aliasing of a parameter value is known exactly, then information about it need to all be
+given up, but can survive.
 
-Doing it "forward" appears to be best suited for functions and therefore long term. We
-will try it that way.
+It would be nice, if ``my_append`` had sufficient information, so we could specialize with
+``list`` and ``int`` from the parameters, and then e.g. know at least some things that it
+does in that case. Such specialization would have to be decided if it makes sense. In the
+alternative, it could be done for each variant anyway, as there won't be that many of
+them.
+
+Doing this "forward" analysis appears to be best suited for functions and therefore long
+term. We will try it that way.
 
 
 Excursion to Loops
@@ -1690,10 +1697,15 @@ have an assumption from before it started, that "a" is constant, but that is onl
 the first iteration. So, we can't pass knowledge from outside loop forward directly into
 the for loop body.
 
-So we will have to do a first pass, where we need to collect invalidations of all of the
-outside knowledge. The assignment to "a" should make it an alternative to what we knew
-about "b". And we can't really assume to know anything about a to e.g. predict "b" due to
-that. That first pass needs to scan for assignments, and treat them as invalidations.
+So while we pass through the loop, we need to collect in-validations of this outside
+knowledge. The assignment to "a" should make it an alternative to what we knew about
+"b". And we can't really assume to know anything about a to e.g. predict "b" due to
+that. That first pass needs to scan for assignments, and treat them as in-validations.
+
+For a start, it will be done like this though. At loop entry, all knowledge is removed
+about everything, and so is at loop exit. That way, only the loop inner working is
+optimized, and before and after the loop as separate things. The optimal handling of "a"
+in the example code will take a while.
 
 
 Excursion to Conditions
@@ -1713,10 +1725,9 @@ conditional block, it must be clear to the outside, that things changed inside t
 may not necessarily apply. Even worse, one of 2 things might be true. In one branch, the
 variable "x" is constant, in the other too, but it's a different value.
 
-So for constants, we need to have the constraint collection know when it enters a
-conditional branch, and when it does, it must take special precautions, to preserve the
-existing state. When exiting all the branches, these branches must be merged, with new
-information.
+So we need to have the constraint collection know when it enters a conditional branch, and
+then it does, it must take special precautions, to merge the existing state at condition
+exit. When exiting both the branches, these branches must be merged, with new information.
 
 In the above case:
 
@@ -1747,12 +1758,13 @@ For conditional statements optimization, the following is note-worthy:
      .. code-block:: python
 
          if type( a ) is list:
-             a = a.append( x )
+             a.append( x )
          else:
              a += ( x, )
 
-     In this case, the knowledge that ``a`` is a list, could be used to generate better code
-     and with definite knowledge that ``a`` is of type list. These is a lot more to do, until we understand ``type checks`` though.
+     In this case, the knowledge that ``a`` is a list, could be used to generate better
+     code and with definite knowledge that ``a`` is of type list. With that knowledge the
+     ``append`` attribute call will become the ``list`` built-in type operation.
 
    - If 2 branches exist, or one makes a difference.
 
@@ -1762,30 +1774,48 @@ For conditional statements optimization, the following is note-worthy:
        If only one branch exist, that one should fork existing state and continue it, but
        afterwards, it needs to be merged back to the state before the statement.
 
+   - Branches that abort make a difference.
 
-Excursion to return statements
-------------------------------
+     .. code-block:: python
 
-The return statement (like ``break``, ``continue``, ``raise``) is abortative to control flow. It
-becomes the last statement of inspected block. With a conditional statement branch, in
-case one branch has a return statement and the other not, the merging of the constraint
-collection must consider it by not taking any knowledge from such branch at all.
+         if type( a ) is list:
+             a.append( x )
+         else:
+             raise ValueError
 
-If all branches of a conditional statement return, that is discovered, and leads to
-removing statements after it as dead code.
+     Here it is obvious, that the conditional statement exit, requires no merging. We can
+     fully inherit the state of the non-exiting branch, including the knowledge that ``a``
+     is in fact a ``list`` built-in object.
+
+
+Excursion to ``return`` statements
+----------------------------------
+
+The return statement (like ``break``, ``continue``, ``raise``) is "aborting" to control
+flow. It is always the last statement of inspected block.
+
+If all branches of a conditional statement are "aborting", the statement is decided
+"aborting" too. If a loop doesn't break, it is "aborting" too.
 
 .. note::
 
-   The removal of statements following abortative statements is implemented, and so is the
+   The removal of statements following "aborting" statements is implemented, and so is the
    discovery of abortative conditional statements. It's not yet done for loops, temp
    blocks, etc. though.
+
+So, return statements are easy for local optimization. In the general picture, it would be
+sweet to collect all return statements, and analyze the commonality of them. This would
+give us the "my_append" information from above. And were we to do this for exception
+raises too, we could tell exceptions from a function too.
 
 
 Excursion to ``yield`` expressions
 ----------------------------------
 
 The ``yield`` expression can be treated like a normal function call, and as such
-invalidates some known constraints just as much as they do.
+invalidates some known constraints just as much as they do. It executes outside code for
+an unknown amount of time, and then returns, with little about the outside world known
+anymore.
 
 
 Mixed Types
@@ -1850,7 +1880,7 @@ The following is the intended interface
   The base class offers methods that allow to check if certain operations are supported or
   not. These can always return ``True`` (yes), ``False`` (no), and ``None`` (cannot decide). In
   the case of the later, optimizations may not be able do much about it. Lets call these
-  values "tristate".
+  values "tri-state".
 
   Part of the interface is a method ``computeNode`` which gives the node the chance to
   return another node instead, which may also be an exception.
@@ -2352,22 +2382,6 @@ into action, which could be code changes, plan changes, issues created, etc.
   The best approach is probably to track down ``in`` and other potential users, that don't
   use the list nature and just convert then.
 
-* Functions with defaults should use temp variables for them.
-
-  .. code-block:: python
-
-     def f( a, b=2, b=3 ):
-         pass
-
-  Should be composed into a temp holder variable calculated outside, and then passed on to
-  the function creation. That way, it becomes obvious that the defaults are an attribute
-  that is computed outside of the function. Previously defaults were children of the
-  builder, but that caused problems. Currently the defaults are wrapped outside, which has
-  its own problems too.
-
-  Lambdas have defaults too, so it's not always a statement, but has to happen inside an
-  expression.
-
 * Terminal assignments without effect removal.
 
   In order to optimize away unused assignments, Nuitka should not try and find variables
@@ -2385,12 +2399,9 @@ into action, which could be code changes, plan changes, issues created, etc.
 
 * Friends that keep track
 
-  The value friends should become the place, where variables or values track their
-  uses. The iterator should keep track of the "next()" calls made to it, so they can
-  tell which value to given in that case.
-
-  The attribute registry should e.g. support "value friends" with calling a method for
-  them.
+  The value friends should become the place, where variables or values track their use
+  state. The iterator should keep track of the "next()" calls made to it, so it can tell
+  which value to given in that case.
 
   And then there is a destroy, once a value is released, which could then make the
   iterator decide to tell its references, that they can be considered to have no effect,
