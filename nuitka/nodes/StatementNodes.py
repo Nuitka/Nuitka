@@ -177,7 +177,8 @@ class CPythonStatementsFrame( CPythonStatementsSequence ):
             line_number   = 0 if provider.isModule() else self.source_ref.getLineNumber(),
             code_name     = self.getCodeObjectName(),
             is_generator  = provider.isExpressionFunctionBody() and provider.isGenerator(),
-            is_optimized  = not provider.isModule() and not provider.isClassDictCreation() and not context.hasLocalsDict()
+            is_optimized  = not provider.isModule() and not provider.isClassDictCreation() and \
+                            not context.hasLocalsDict()
         )
 
 

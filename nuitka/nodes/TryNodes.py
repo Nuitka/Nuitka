@@ -155,3 +155,34 @@ class CPythonStatementTryExcept( CPythonChildrenHaving, CPythonNodeBase ):
                 return False
 
         return True
+
+    def isStatementTryFinallyOptimized( self ):
+        tried_block = self.getBlockTry()
+
+        tried_statements = tried_block.getStatements()
+
+        if len( tried_statements ) == 1:
+            tried_statement = tried_statements[0]
+
+            if tried_statement.isStatementAssignmentVariable():
+                source = tried_statement.getAssignSource()
+
+                if source.isExpressionBuiltinNext1():
+                    if not source.getValue().mayRaiseException( BaseException ):
+                        # Note: Now we know the source lookup is the only thing that may
+                        # raise.
+
+                        handlers = self.getExceptionHandlers()
+
+                        if len( handlers ) == 1:
+                            catched_types = handlers[0].getExceptionTypes()
+
+                            if len( catched_types ) == 1:
+                                catched_type = catched_types[0]
+
+                                if catched_type.isExpressionBuiltinExceptionRef():
+                                    if catched_type.getExceptionName() == "StopIteration":
+                                        if handlers[0].getExceptionBranch().isStatementAborting():
+                                            return True
+
+        return False

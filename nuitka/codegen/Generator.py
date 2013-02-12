@@ -911,7 +911,8 @@ def getAssignmentTempKeeperCode( source_identifier, variable, context ):
     ref_count = source_identifier.getCheapRefCount()
     variable_name = variable.getName()
 
-    assert variable.getReferenced().getNeedsFree() == bool( ref_count ), ( variable, variable.getReferenced().getNeedsFree(), ref_count, source_identifier )
+    assert variable.getReferenced().getNeedsFree() == bool( ref_count ), \
+           ( variable, variable.getReferenced().getNeedsFree(), ref_count, source_identifier )
 
     context.addTempKeeperUsage( variable_name, ref_count )
 

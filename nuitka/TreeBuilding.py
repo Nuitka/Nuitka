@@ -18,7 +18,19 @@
 """ Build the internal node tree from source code.
 
 Does all the Python parsing and puts it into a tree structure for use in later stages of
-the compiler. This may happen recursively when exec statements are inlined.
+the compiler.
+
+At the bottom of the file, the dispatching is happening. One function deals with every
+node kind as found in the AST. The parsing is centered around the module "ast" output.
+
+Many higher level language features and translated into lower level ones. Inplace
+assignments, for loops, while loops, classes, complex calls, with statements, and even
+or/and etc. are all translated to simpler constructs.
+
+The output of this module is a node tree, which contains only relatively low level
+operations. A property of the output module is also an overlaid tree of provider structure
+that indicates variable provision.
+
 """
 
 # pylint: disable=W0622
@@ -171,6 +183,8 @@ def getKind( node ):
     return node.__class__.__name__.split( "." )[-1]
 
 def buildVariableReferenceNode( provider, node, source_ref ):
+    # Python3 is influenced by the mere use of a variable name. So we need to remember it,
+    # esp. for cases, where it is optimized away.
     if Utils.python_version >= 300 and node.id == "super" and provider.isExpressionFunctionBody():
         provider.markAsClassClosureTaker()
 
@@ -180,15 +194,20 @@ def buildVariableReferenceNode( provider, node, source_ref ):
     )
 
 def buildStatementsNode( provider, nodes, source_ref, frame = False ):
+    # We are not creating empty statement sequences.
     if nodes is None:
         return None
 
-    statements = buildNodeList( provider, nodes, source_ref, True )
+    # Build as list of statements, throw away empty ones, and remove useless nesting.
+    statements = buildNodeList( provider, nodes, source_ref, allow_none = True )
     statements = mergeStatements( statements )
 
+    # We are not creating empty statement sequences. Might be empty, because e.g. a global
+    # node generates not really a statement, or pass statements.
     if not statements:
         return None
 
+    # In case of a frame is desired, build it instead.
     if frame:
         if provider.isExpressionFunctionBody():
             arg_names     = provider.getParameters().getCoArgNames()
@@ -232,6 +251,8 @@ def _buildClassNode3( provider, node, source_ref ):
     # Many variables, due to the huge re-formulation that is going on here, which just has
     # the complexity, pylint: disable=R0914
 
+    # This function is the Python3 special case with special re-formulation as according
+    # to developer manual.
     class_statements, class_doc = _extractDocFromBody( node )
 
     # The result will be a temp block that holds the temporary variables.
@@ -594,6 +615,9 @@ def _buildClassNode3( provider, node, source_ref ):
 def _buildClassNode2( provider, node, source_ref ):
     class_statements, class_doc = _extractDocFromBody( node )
 
+    # This function is the Python3 special case with special re-formulation as according
+    # to developer manual.
+
     # The result will be a temp block that holds the temporary variables.
     result = CPythonStatementTempBlock(
         source_ref = source_ref
@@ -834,6 +858,9 @@ def _buildClassNode2( provider, node, source_ref ):
 def buildClassNode( provider, node, source_ref ):
     assert getKind( node ) == "ClassDef"
 
+    # Python3 and Python3 are similar, but fundamentally different, so handle them in
+    # dedicated code.
+
     if Utils.python_version >= 300:
         return _buildClassNode3( provider, node, source_ref )
     else:
@@ -875,6 +902,9 @@ def buildParameterSpec( name, node, source_ref ):
     return result
 
 def _buildParameterKwDefaults( provider, node, function_body, source_ref ):
+    # Build keyword only arguments default values. We are hiding here, that it is a
+    # Python3 only feature.
+
     if Utils.python_version >= 300:
         kw_only_names = function_body.getParameters().getKwOnlyParameterNames()
         pairs = []
@@ -907,6 +937,7 @@ def _buildParameterKwDefaults( provider, node, function_body, source_ref ):
 def _buildParameterAnnotations( provider, node, source_ref ):
     # Too many branches, because there is too many cases, pylint: disable=R0912
 
+    # Build annotations. We are hiding here, that it is a Python3 only feature.
     if Utils.python_version < 300:
         return None
 
@@ -1058,6 +1089,20 @@ def buildFunctionNode( provider, node, source_ref ):
         source_ref   = source_ref
     )
 
+    # Add the staticmethod decorator to __new__ methods if not provided.
+
+    # CPython made these optional, but applies them to every class __new__. We add them
+    # early, so our optimization will see it.
+    if node.name == "__new__" and not decorators and \
+         provider.isExpressionFunctionBody() and provider.isClassDictCreation():
+
+        decorators = (
+            CPythonExpressionBuiltinRef(
+                builtin_name = "staticmethod",
+                source_ref   = source_ref
+            ),
+        )
+
     for decorator in decorators:
         decorated_body = CPythonExpressionCallNoKeywords(
             called     = decorator,
@@ -1066,24 +1111,6 @@ def buildFunctionNode( provider, node, source_ref ):
                 source_ref = source_ref
             ),
             source_ref = decorator.getSourceReference()
-        )
-
-    # Add the staticmethod decorator to __new__ methods if not provided.
-
-    # CPython made these optional, but applies them to every class __new__. We better add
-    # them early, so our analysis will see it
-    if node.name == "__new__" and not decorators and \
-         provider.isExpressionFunctionBody() and provider.isClassDictCreation():
-        decorated_body = CPythonExpressionCallNoKeywords(
-            called     = CPythonExpressionBuiltinRef(
-                builtin_name = "staticmethod",
-                source_ref   = source_ref
-            ),
-            args       = CPythonExpressionMakeTuple(
-                elements   = ( decorated_body, ),
-                source_ref = source_ref
-            ),
-            source_ref = source_ref,
         )
 
     return CPythonStatementAssignmentVariable(
@@ -1155,6 +1182,11 @@ def buildLambdaNode( provider, node, source_ref ):
     )
 
 def buildForLoopNode( provider, node, source_ref ):
+    # The for loop is re-formulated according to developer manual. An iterator is created,
+    # and looped until it gives StopIteration. The else block is taken if a for loop exits
+    # normally, i.e. because of iterator exhaustion. We do this by introducing an
+    # indicator variable.
+
     source = buildNode( provider, node.iter, source_ref )
 
     result = CPythonStatementTempBlock(
@@ -1205,7 +1237,6 @@ def buildForLoopNode( provider, node, source_ref ):
         allow_none = True,
         source_ref = source_ref
     )
-
 
     statements = (
         CPythonStatementTryExcept(
@@ -1342,6 +1373,11 @@ def buildForLoopNode( provider, node, source_ref ):
     return result
 
 def buildWhileLoopNode( provider, node, source_ref ):
+    # The while loop is re-formulated according to developer manual. The condition becomes
+    # an early condition to break the loop. The else block is taken if a while loop exits
+    # normally, i.e. because of condition not being true. We do this by introducing an
+    # indicator variable.
+
     else_block = buildStatementsNode(
         provider   = provider,
         nodes      = node.orelse if node.orelse else None,
@@ -1468,6 +1504,9 @@ def makeCallNode( provider, called, positional_args, pairs, list_star_arg, dict_
             source_ref      = source_ref,
         )
     else:
+        # Dispatch to complex helper function for each case. These do re-formulation of
+        # complex calls according to developer manual.
+
         key = len( positional_args ) > 0, len( pairs ) > 0, list_star_arg is not None, dict_star_arg is not None
 
         from .nodes.ComplexCallHelperFunctions import (
@@ -1574,6 +1613,10 @@ def buildCallNode( provider, node, source_ref ):
 
 
 def buildSequenceCreationNode( provider, node, source_ref ):
+    # Sequence creation. Tries to avoid creations with only constant elements. Would be
+    # caught by optimization, but would be useless churn. For mutable constants we cannot
+    # do it though.
+
     elements = buildNodeList( provider, node.elts, source_ref )
 
     for element in elements:
@@ -1604,24 +1647,26 @@ def buildSequenceCreationNode( provider, node, source_ref ):
     else:
         if sequence_kind == "TUPLE":
             return CPythonExpressionMakeTuple(
-                elements      = elements,
-                source_ref    = source_ref
+                elements   = elements,
+                source_ref = source_ref
             )
         elif sequence_kind == "LIST":
             return CPythonExpressionMakeList(
-                elements      = elements,
-                source_ref    = source_ref
+                elements   = elements,
+                source_ref = source_ref
             )
         elif sequence_kind == "SET":
             return CPythonExpressionMakeSet(
-                elements      = elements,
-                source_ref    = source_ref
+                elements   = elements,
+                source_ref = source_ref
             )
         else:
             assert False, sequence_kind
 
 
 def buildDictionaryNode( provider, node, source_ref ):
+    # Create dictionary node. Tries to avoid it for constant values that are not mutable.
+
     keys = []
     values = []
 
@@ -1919,6 +1964,8 @@ def buildAssignNode( provider, node, source_ref ):
     source = buildNode( provider, node.value, source_ref )
 
     if len( node.targets ) == 1:
+        # Simple assignment case, one source, one target.
+
         return buildAssignmentStatements(
             provider   = provider,
             node       = node.targets[0],
@@ -1926,6 +1973,9 @@ def buildAssignNode( provider, node, source_ref ):
             source_ref = source_ref
         )
     else:
+        # Complex assignment case, one source, but multiple targets. We keep the source in
+        # a temporary variable, and then assign from it multiple times.
+
         result = CPythonStatementTempBlock(
             source_ref = source_ref
         )
@@ -1938,8 +1988,8 @@ def buildAssignNode( provider, node, source_ref ):
                     variable   = tmp_source.makeReference( result ),
                     source_ref = source_ref
                 ),
-                source     = source,
-                source_ref = source_ref
+                source       = source,
+                source_ref   = source_ref
             )
         ]
 
@@ -2023,9 +2073,12 @@ def buildDeleteStatementFromDecoded( kind, detail, source_ref ):
         assert False, ( kind, detail, source_ref )
 
 def buildDeleteNode( provider, node, source_ref ):
+    # Build del statements.
+
     # Note: Each delete is sequential. It can succeed, and the failure of a later one does
-    # not prevent the former to succeed. We can therefore have a sequence of del
-    # statements that each only delete one thing therefore.
+    # not prevent the former to succeed. We can therefore have a simple sequence of del
+    # statements that each only delete one thing therefore. In output tree for
+    # optimization "del" therefore only ever has single arguments.
 
     statements = []
 
@@ -2055,10 +2108,14 @@ make_contraction_parameters = ParameterSpec(
 )
 
 def _buildContractionNode( provider, node, name, emit_class, start_value, assign_provider, source_ref ):
-    # The contraction nodes are reformulated to loop style nodes, and use a lot of
-    # temporary names, nested blocks, etc. and so a lot of variable names. There is no
-    # good way around that, and we deal with many cases, due to having generator
-    # expressions sharing this code, pylint: disable=R0912,R0914
+    # The contraction nodes are reformulated to function bodies, with loops as described
+    # in the developer manual. They use a lot of temporary names, nested blocks, etc. and
+    # so a lot of variable names. There is no good way around that, and we deal with many
+    # cases, due to having generator expressions sharing this code,
+    # pylint: disable=R0912,R0914
+
+    # Note: The assign_provider is only to cover Python2 list contractions, assigning one
+    # of the loop variables to the outside scope.
 
     assert provider.isParentVariableProvider(), provider
 
@@ -2347,6 +2404,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
     )
 
 def buildListContractionNode( provider, node, source_ref ):
+    # List contractions are dealt with by general code.
 
     return _buildContractionNode(
         provider         = provider,
@@ -2363,6 +2421,8 @@ def buildListContractionNode( provider, node, source_ref ):
     )
 
 def buildSetContractionNode( provider, node, source_ref ):
+    # Set contractions are dealt with by general code.
+
     return _buildContractionNode(
         provider         = provider,
         node             = node,
@@ -2377,6 +2437,8 @@ def buildSetContractionNode( provider, node, source_ref ):
     )
 
 def buildDictContractionNode( provider, node, source_ref ):
+    # Dict contractions are dealt with by general code.
+
     return _buildContractionNode(
         provider         = provider,
         node             = node,
@@ -2391,6 +2453,8 @@ def buildDictContractionNode( provider, node, source_ref ):
     )
 
 def buildGeneratorExpressionNode( provider, node, source_ref ):
+    # Generator expressions are dealt with by general code.
+
     assert getKind( node ) == "GeneratorExp"
 
     return _buildContractionNode(
@@ -2405,6 +2469,10 @@ def buildGeneratorExpressionNode( provider, node, source_ref ):
 
 def buildComparisonNode( provider, node, source_ref ):
     assert len( node.comparators ) == len( node.ops )
+
+    # Comparisons are re-formulated as described in the developer manual. When having
+    # multiple compators, things require assignment expressions and references of them to
+    # work properly. Then they can become normal "and" code.
 
     # The operands are split out
     left = buildNode( provider, node.left, source_ref )
@@ -2462,6 +2530,10 @@ def buildComparisonNode( provider, node, source_ref ):
     )
 
 def buildConditionNode( provider, node, source_ref ):
+    # Conditional statements may have one or two branches. We will never see an "elif",
+    # because that's already dealt with by module "ast", which turns it into nested
+    # conditional statements.
+
     return CPythonStatementConditional(
         condition  = buildNode( provider, node.test, source_ref ),
         yes_branch = buildStatementsNode(
@@ -2478,6 +2550,12 @@ def buildConditionNode( provider, node, source_ref ):
     )
 
 def _makeTryExceptNoRaise( tried, handlers, no_raise, source_ref ):
+    # This helper executes the re-formulation of "no_raise" blocks, which are the "else"
+    # blocks of try/except statements. We use an indicator variable instead, which will
+    # signal that the tried block executed up to the end. And then we make the else block
+    # be a conditional statement checking that. This is a separate function, so it can be
+    # re-used in other re-formulations, e.g. with statements.
+
     assert no_raise is not None
     assert len( handlers ) > 0
 
@@ -2496,11 +2574,11 @@ def _makeTryExceptNoRaise( tried, handlers, no_raise, source_ref ):
                             variable   = tmp_handler_indicator_variable.makeReference( result ),
                             source_ref = source_ref.atInternal()
                         ),
-                        source     = CPythonExpressionConstantRef(
+                        source       = CPythonExpressionConstantRef(
                             constant   = False,
                             source_ref = source_ref
                         ),
-                        source_ref = no_raise.getSourceReference().atInternal()
+                        source_ref   = no_raise.getSourceReference().atInternal()
                     ),
                     handler.getExceptionBranch()
                 ),
@@ -2554,6 +2632,11 @@ def _makeTryExceptNoRaise( tried, handlers, no_raise, source_ref ):
 
 
 def buildTryExceptionNode( provider, node, source_ref ):
+    # Try/except nodes. Re-formulated as described in the developer manual. Exception
+    # handlers made the assignment to variables explicit. Same for the "del" as done for
+    # Python3. Also catches always work a tuple of exception types and hides away that
+    # they may be built or not.
+
     # Many variables, due to the re-formulation that is going on here, which just has the
     # complexity, pylint: disable=R0914
 
@@ -2646,6 +2729,8 @@ def buildTryExceptionNode( provider, node, source_ref ):
         )
 
 def buildTryFinallyNode( provider, node, source_ref ):
+    # Try/finally node statements.
+
     return CPythonStatementTryFinally(
         tried      = buildStatementsNode(
             provider   = provider,
@@ -2661,7 +2746,9 @@ def buildTryFinallyNode( provider, node, source_ref ):
     )
 
 def buildTryNode( provider, node, source_ref ):
-    # Note: This variant is used for Python3.3 or higher only, older stuff uses the above ones.
+    # Note: This variant is used for Python3.3 or higher only, older stuff uses the above
+    # ones, this one merges try/except with try/finally in the "ast". We split it up
+    # again, as it's logically separated of course.
     return CPythonStatementTryFinally(
         tried      = CPythonStatementsSequence(
             statements = (
@@ -2682,6 +2769,9 @@ def buildTryNode( provider, node, source_ref ):
     )
 
 def buildRaiseNode( provider, node, source_ref ):
+    # Raise statements. Under Python2 they may have type, value and traceback attached,
+    # for Python3, you can only give type (actually value) and cause.
+
     if Utils.python_version < 300:
         return CPythonStatementRaiseException(
             exception_type  = buildNode( provider, node.type, source_ref, allow_none = True ),
@@ -2701,6 +2791,10 @@ def buildRaiseNode( provider, node, source_ref ):
 
 
 def buildAssertNode( provider, node, source_ref ):
+    # Build assert statements. These are re-formulated as described in the developer
+    # manual too. They end up as conditional statement with raises of AssertionError
+    # exceptions.
+
     # Underlying assumption:
     #
     # Assert x, y is the same as:
@@ -2716,7 +2810,7 @@ def buildAssertNode( provider, node, source_ref ):
 
     if Utils.python_version < 270 or node.msg is None:
         raise_statement = CPythonStatementRaiseException(
-            exception_type = CPythonExpressionBuiltinExceptionRef(
+            exception_type  = CPythonExpressionBuiltinExceptionRef(
                 exception_name = "AssertionError",
                 source_ref     = source_ref
                 ),
@@ -2727,7 +2821,7 @@ def buildAssertNode( provider, node, source_ref ):
         )
     else:
         raise_statement = CPythonStatementRaiseException(
-            exception_type =  CPythonExpressionBuiltinMakeException(
+            exception_type  =  CPythonExpressionBuiltinMakeException(
                 exception_name = "AssertionError",
                 args           = ( buildNode( provider, node.msg, source_ref, True ), ),
                 source_ref     = source_ref
@@ -2792,8 +2886,17 @@ def _buildExtSliceNode( provider, node, source_ref ):
     )
 
 def buildSubscriptNode( provider, node, source_ref ):
+    # Subscript expression nodes.
+
     assert getKind( node.ctx ) == "Load", source_ref
 
+    # The subscribt "[]" operator is one of many different things. This is expressed by
+    # this kind, there are "slice" lookups (two values, even if one is using default), and
+    # then "index" lookups. The form with three argument is really an "index" lookup, with
+    # a slice object. And the "..." lookup is also an index loopup, with it as the
+    # argument. So this splits things into two different operations, "subscript" with a
+    # single "subscript" object. Or a slice lookup with a lower and higher boundary. These
+    # things should behave similar, but they are different slots.
     kind = getKind( node.slice )
 
     if kind == "Index":
@@ -2872,7 +2975,16 @@ def _makeStatementsSequence( statements, allow_none, source_ref ):
         return None
 
 
-def _buildImportModulesNode( import_names, source_ref ):
+def buildImportModulesNode( node, source_ref ):
+    # Import modules statement. As described in the developer manual, these statements can
+    # be treated as several ones.
+
+    import_names   = [
+        ( import_desc.name, import_desc.asname )
+        for import_desc in
+        node.names
+    ]
+
     import_nodes = []
 
     for import_desc in import_names:
@@ -2880,6 +2992,7 @@ def _buildImportModulesNode( import_names, source_ref ):
 
         module_topname = module_name.split(".")[0]
 
+        # Note: The "level" of import is influenced by the future absolute imports.
         level = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1
 
         if local_name:
@@ -2926,16 +3039,6 @@ def _buildImportModulesNode( import_names, source_ref ):
         source_ref = source_ref
     )
 
-def buildImportModulesNode( node, source_ref ):
-    return _buildImportModulesNode(
-        import_names   = [
-            ( import_desc.name, import_desc.asname )
-            for import_desc in
-            node.names
-        ],
-        source_ref     = source_ref
-    )
-
 def enableFutureFeature( object_name, future_spec, source_ref ):
     if object_name == "unicode_literals":
         future_spec.enableUnicodeLiterals()
@@ -2945,14 +3048,15 @@ def enableFutureFeature( object_name, future_spec, source_ref ):
         future_spec.enableFutureDivision()
     elif object_name == "print_function":
         future_spec.enableFuturePrint()
-    elif object_name == 'barry_as_FLUFL' and Utils.python_version >= 300:
+    elif object_name == "barry_as_FLUFL" and Utils.python_version >= 300:
         future_spec.enableBarry()
-    elif object_name == 'braces':
+    elif object_name == "braces":
         SyntaxErrors.raiseSyntaxError(
             "not a chance",
             source_ref
         )
     elif object_name in ( "nested_scopes", "generators", "with_statement" ):
+        # These are enabled in all cases already.
         pass
     else:
         SyntaxErrors.raiseSyntaxError(
@@ -2961,9 +3065,13 @@ def enableFutureFeature( object_name, future_spec, source_ref ):
         )
 
 def buildImportFromNode( provider, node, source_ref ):
+    # "from .. import .." statements. This may trigger a star import, or multiple names
+    # being looked up from the given module variable name.
+
     module_name = node.module if node.module is not None else ""
     level = node.level
 
+    # Importing from "__future__" module may enable flags.
     if module_name == "__future__":
         assert provider.isModule() or source_ref.isExecReference()
 
@@ -3046,24 +3154,25 @@ def buildImportFromNode( provider, node, source_ref ):
         )
 
 def buildPrintNode( provider, node, source_ref ):
-    values = buildNodeList( provider, node.values, source_ref )
-    dest = buildNode( provider, node.dest, source_ref, True )
+    # "print" statements, should only occur with Python2.
 
     return CPythonStatementPrint(
         newline    = node.nl,
-        dest       = dest,
-        values     = values,
+        dest       = buildNode( provider, node.dest, source_ref, allow_none = True ),
+        values     = buildNodeList( provider, node.values, source_ref ),
         source_ref = source_ref
     )
 
 def buildExecNode( provider, node, source_ref ):
+    # "exec" statements, should only occur with Python2.
+
     exec_globals = node.globals
     exec_locals = node.locals
     body = node.body
 
     orig_globals = exec_globals
 
-    # Allow exec(a,b,c) to be same as exec a, b, c
+    # Handle exec(a,b,c) to be same as exec a, b, c
     if exec_locals is None and exec_globals is None and getKind( body ) == "Tuple":
         parts = body.elts
         body  = parts[0]
@@ -3113,6 +3222,10 @@ def buildExecNode( provider, node, source_ref ):
 
 
 def buildWithNode( provider, node, source_ref ):
+    # "with" statements are re-formulated as described in the developer manual. Catches
+    # exceptions, and provides them to "__exit__", while making the "__enter__" value
+    # available under a given name.
+
     with_source = buildNode( provider, node.context_expr, source_ref )
 
     result = CPythonStatementTempBlock(
@@ -3143,8 +3256,8 @@ def buildWithNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-    # The "__enter__" and "__exit__" were normal attribute lookups under Python2.6, but
-    # that changed later.
+    # The "__enter__" and "__exit__" were normal attribute lookups under CPython2.6, but
+    # that changed with CPython2.7.
     if Utils.python_version < 270:
         attribute_lookup_class = CPythonExpressionAttributeLookup
     else:
@@ -3286,24 +3399,6 @@ def buildWithNode( provider, node, source_ref ):
 
     return result
 
-def buildNodeList( provider, nodes, source_ref, allow_none = False ):
-    if nodes is not None:
-        result = []
-
-        for node in nodes:
-            if hasattr( node, "lineno" ):
-                node_source_ref = source_ref.atLineNumber( node.lineno )
-            else:
-                node_source_ref = source_ref
-
-            entry = buildNode( provider, node, node_source_ref, allow_none )
-
-            if entry is not None:
-                result.append( entry )
-
-        return result
-    else:
-        return []
 
 def handleGlobalDeclarationNode( provider, node, source_ref ):
     # The source reference of the global really doesn't matter, pylint: disable=W0613
@@ -3336,6 +3431,9 @@ def handleGlobalDeclarationNode( provider, node, source_ref ):
             variable         = module_variable,
             global_statement = True
         )
+
+        # TODO: Check below may be unncessary.
+        assert isinstance( provider, CPythonClosureGiverNodeBase )
 
         if isinstance( provider, CPythonClosureGiverNodeBase ):
             provider.registerProvidedVariable(
@@ -3860,7 +3958,7 @@ def buildInplaceAssignNode( provider, node, source_ref ):
     # There are many inplace assignment variables, and the detail is unpacked into names,
     # so we end up with a lot of variables, which is on purpose, pylint: disable=R0914
 
-    operator   = getKind( node.op )
+    operator = getKind( node.op )
 
     if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
         operator = "TrueDiv"
@@ -3959,8 +4057,24 @@ def buildConditionalExpressionNode( provider, node, source_ref ):
         source_ref     = source_ref
     )
 
+def buildNodeList( provider, nodes, source_ref, allow_none = False ):
+    if nodes is not None:
+        result = []
 
+        for node in nodes:
+            if hasattr( node, "lineno" ):
+                node_source_ref = source_ref.atLineNumber( node.lineno )
+            else:
+                node_source_ref = source_ref
 
+            entry = buildNode( provider, node, node_source_ref, allow_none )
+
+            if entry is not None:
+                result.append( entry )
+
+        return result
+    else:
+        return []
 
 _fast_path_args3 = {
     "Name"         : buildVariableReferenceNode,
