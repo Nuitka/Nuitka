@@ -40,11 +40,11 @@ parser.add_option(
 )
 
 parser.add_option(
-    "--export-codespeed",
-    action  = "store_true",
-    dest    = "export_codespeed",
-    default = False,
-    help    = """Export the benchmark data into codespeed."""
+    "--generate-graphs",
+    action  = "store",
+    dest    = "graphs_output_dir",
+    default = None,
+    help    = """Generate graphs for the benchmark data."""
 )
 
 parser.add_option(
@@ -581,40 +581,53 @@ if options.import_repo:
 def createGraphs():
     graphs = {}
 
-    import matplotlib.pyplot as plt
+    dates_pystone_26 = []
+    values_pystone_26 = []
+    names_pystone_26 = []
 
-    def getFigure( benchmark, environment ):
-        key = benchmark, environment
+    dates_pystone_27 = []
+    values_pystone_27 = []
+    names_pystone_27 = []
 
-        if key not in graphs:
-            graphs[ key ] = plt.figure()
+    def isInterestingVersion( name ):
+        if name in ( "master", "develop", "0.3.13a" ):
+            return True
 
-        return graphs[ key ]
+        if name[-1].isalpha():
+            return False
 
-    dates = []
-    values = []
-    names = []
+        if name.count( "." ) == 3:
+            return False
 
-    def publishResult( environment, executable, commit_id, benchmark, size, ticks ):
+        return True
+
+    def considerResult( environment, executable, commit_id, benchmark, size, ticks ):
         commit_date = getCommitDate( commit_id )
         commit_date = datetime.datetime.fromtimestamp( commit_date )
 
         if benchmark == "pystone":
+            assert type( ticks ) is int, repr( ticks )
+
+            if not isInterestingVersion( commit_id ):
+                return
+
             if executable == "nuitka-python2.7":
-                print commit_date, environment, executable, commit_id, size, ticks
-
-                assert type( ticks ) is int, repr( ticks )
-
-                dates.append( commit_date )
-                values.append( ticks )
-                names.append( commit_id )
+                dates_pystone_27.append( commit_date )
+                values_pystone_27.append( ticks )
+                names_pystone_27.append( commit_id )
+            elif executable == "nuitka-python2.6":
+                dates_pystone_26.append( commit_date )
+                values_pystone_26.append( ticks )
+                names_pystone_26.append( commit_id )
+            else:
+                assert False, executable
 
     for configuration, task_list in tasks.iteritems():
         for task in task_list:
             if not task.getData():
                 continue
 
-            publishResult(
+            considerResult(
                 environment = task.getMachine().getName(),
                 executable  = task.getExecutable(),
                 commit_id   = task.getVersion().getNuitkaVersion(),
@@ -623,19 +636,38 @@ def createGraphs():
                 ticks       = int( task.getData()[ "CPU_TICKS" ] )
             )
 
-    plt.title( "PyStone" )
+
+    assert len( values_pystone_27 ) == len( values_pystone_26 )
+
+    import matplotlib.pyplot as plt
+
+    plt.title( "PyStone ticks after entering __main__" )
     plt.ylabel( "ticks" )
+    plt.xlabel( "version" )
 
-    counts = range( 1, len( values ) + 1 )
+    counts = [ i*3+1.2 for i in range( 0, len( values_pystone_27 ) ) ]
 
-    plt.bar( counts, values, width = 0.5 )
+    p27 = plt.bar( counts, values_pystone_27, width = 1, color = "orange" )
+    plt.xticks( counts, names_pystone_27 )
 
-    counter = 1
+    plt.yticks( ( 900000000, 950000000, 1000000000, ), ( "900M", "950M", "1000M", ) )
 
-    for count, date, value, name in zip( counts, dates, values, names ):
-        plt.text( count + 0.5, value, name, ha="center", va="bottom", rotation = 65 )
+    sizes = plt.gcf().get_size_inches()
+    plt.gcf().set_size_inches( sizes[0]*1.5, sizes[1]*1.5 )
 
-    plt.show()
+    # plt.savefig( os.path.join( orig_dir, options.graphs_output_dir, "pystone27-nuitka.svg" ) )
+    # plt.close()
 
-if options.export_codespeed:
+    counts = [ i*3 for i in range( 0, len( values_pystone_26 ) ) ]
+
+    p26 = plt.bar( counts, values_pystone_26, width = 1 )
+
+    plt.legend( ( p26[0], p27[0] ), ( "Python2.6", "Python2.7" ), bbox_to_anchor=(1.005, 1), loc=2, borderaxespad=0.,  )
+
+    sizes = plt.gcf().get_size_inches()
+    plt.gcf().set_size_inches( sizes[0]*1.5, sizes[1]*1.5 )
+    plt.savefig( os.path.join( orig_dir, options.graphs_output_dir, "pystone-nuitka.svg" ) )
+
+
+if options.graphs_output_dir is not None:
     createGraphs()
