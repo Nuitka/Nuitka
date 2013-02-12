@@ -57,7 +57,9 @@ subprocess.check_call( [ "valgrind" ] + valgrind_options.split() + [ output_bina
 if "number" in sys.argv:
     for line in open( log_file ):
         if line.startswith( "summary:" ):
-            print "SIZE=%d" % os.stat( output_binary ).st_size
+            sizes = commands.getoutput( "size '%s'" % output_binary ).split("\n")[-1].replace( "\t", "" ).split()
+
+            print "SIZE=%d" % ( int( sizes[0] ) + int( sizes[1] ) )
             print "TICKS=%s" % line.split()[1]
             break
     else:
