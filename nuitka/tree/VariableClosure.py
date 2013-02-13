@@ -17,20 +17,18 @@
 #
 """ Variable closure taking.
 
-This is not an actual optimization. It is rather the completion of early stages. The
-variables are not immediately resolved to be bound to actual scopes, but only during these
-steps.
+This is the completion of variable object completion. The variables were not immediately
+resolved to be bound to actual scopes, but are only now.
 
-Only after this is executed, the other things can make informed decisions.
-
+Only after this is executed, variable reference nodes can be considered complete.
 """
-
-from .OptimizeBase import OptimizationVisitorBase
 
 from nuitka import SyntaxErrors
 
 from nuitka.Utils import python_version
 from nuitka.Options import isFullCompat
+
+from .Operations import VisitorNoopMixin, visitScopes
 
 # Note: We do the variable scope assignment, as an extra step from tree building, because
 # it will build the tree without any consideration of evaluation order. And only the way
@@ -40,7 +38,7 @@ from nuitka.Options import isFullCompat
 # are to be done immediately, and one where it is delayed. This is basically class vs.
 # function.
 
-class VariableClosureLookupVisitorPhase1( OptimizationVisitorBase ):
+class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
     """ Variable closure phase 1: Find assignments and early closure references.
 
         In class context, a reference to a variable must be obeyed immediately, so
@@ -99,7 +97,7 @@ class VariableClosureLookupVisitorPhase1( OptimizationVisitorBase ):
                         )
 
 
-class VariableClosureLookupVisitorPhase2( OptimizationVisitorBase ):
+class VariableClosureLookupVisitorPhase2( VisitorNoopMixin ):
     """ Variable closure phase 2: Find assignments and references.
 
         In class context, a reference to a variable must be obeyed immediately, so
@@ -163,7 +161,7 @@ class VariableClosureLookupVisitorPhase2( OptimizationVisitorBase ):
                 )
 
 
-class VariableClosureLookupVisitorPhase3( OptimizationVisitorBase ):
+class VariableClosureLookupVisitorPhase3( VisitorNoopMixin ):
     """ Variable closure phase 3: Find errors.
 
         In this phase, the only task remaining is to find errors. We might e.g.
@@ -188,14 +186,18 @@ class VariableClosureLookupVisitorPhase3( OptimizationVisitorBase ):
                     )
 
 
-if python_version < 300:
-    VariableClosureLookupVisitors = (
-        VariableClosureLookupVisitorPhase1,
-        VariableClosureLookupVisitorPhase2,
-        VariableClosureLookupVisitorPhase3
-    )
-else:
-    VariableClosureLookupVisitors = (
-        VariableClosureLookupVisitorPhase1,
-        VariableClosureLookupVisitorPhase2,
-    )
+def completeVariableClosures( tree ):
+    if python_version < 300:
+        visitors = (
+            VariableClosureLookupVisitorPhase1(),
+            VariableClosureLookupVisitorPhase2(),
+            VariableClosureLookupVisitorPhase3()
+        )
+    else:
+        visitors = (
+            VariableClosureLookupVisitorPhase1(),
+            VariableClosureLookupVisitorPhase2(),
+        )
+
+    for visitor in visitors:
+        visitScopes( tree, visitor )

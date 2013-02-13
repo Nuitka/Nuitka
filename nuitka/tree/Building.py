@@ -172,6 +172,8 @@ from nuitka.nodes.GlobalsLocalsNodes import (
     CPythonExpressionBuiltinLocals
 )
 
+from .VariableClosure import completeVariableClosures
+
 import ast, sys, re
 
 from logging import warning
@@ -4424,5 +4426,7 @@ def buildModuleTree( filename, package, is_top, is_main ):
     )
 
     addImportedModule( Utils.relpath( filename ), result )
+
+    completeVariableClosures( result )
 
     return result

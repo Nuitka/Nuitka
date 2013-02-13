@@ -23,7 +23,6 @@ e.g. a new constant determined could make another optimization feasible.
 """
 
 from .OptimizeModuleRecursion import ModuleRecursionVisitor
-from .OptimizeVariableClosure import VariableClosureLookupVisitors
 from .OptimizeRaises import OptimizeRaisesVisitor
 from .OptimizeValuePropagation import ValuePropagationVisitor
 
@@ -52,9 +51,6 @@ def optimizeTree( tree ):
     tags.add( "new_code" )
 
     def refreshOptimizationsFromTags( optimizations_queue, tags ):
-        if tags.check( "new_code" ):
-            optimizations_queue.update( VariableClosureLookupVisitors )
-
         # Note: The import recursion cannot be done in "computeNode" due to circular
         # dependency and since it only needs to be done with "new_import" again, it
         # remains its own visitor.
