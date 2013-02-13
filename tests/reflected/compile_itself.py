@@ -68,9 +68,8 @@ PACKAGE_LIST = (
     'nuitka/gui',
     'nuitka/codegen',
     'nuitka/codegen/templates',
-    'nuitka/transform',
-    'nuitka/transform/optimizations',
-    'nuitka/transform/finalizations',
+    'nuitka/optimizations',
+    'nuitka/finalizations',
 )
 
 def diffRecursive( dir1, dir2 ):

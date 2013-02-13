@@ -38,8 +38,8 @@ from .build import SconsInterface
 
 from .codegen import CodeGeneration
 
-from .transform.optimizations import Optimization
-from .transform.finalizations import Finalization
+from .optimizations import Optimization
+from .finalizations import Finalization
 
 import sys, os
 

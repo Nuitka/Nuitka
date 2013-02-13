@@ -24,7 +24,7 @@ about performance critical.
 """
 from .NodeBases import CPythonExpressionBuiltinSingleArgBase
 
-from nuitka.transform.optimizations import BuiltinOptimization
+from nuitka.optimizations import BuiltinOptimization
 
 class CPythonExpressionBuiltinBin( CPythonExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_BIN"

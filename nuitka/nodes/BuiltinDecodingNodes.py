@@ -28,7 +28,7 @@ from .NodeBases import (
     CPythonExpressionBuiltinNoArgBase
 )
 
-from nuitka.transform.optimizations import BuiltinOptimization
+from nuitka.optimizations import BuiltinOptimization
 
 
 class CPythonExpressionBuiltinOrd0( CPythonExpressionBuiltinNoArgBase ):

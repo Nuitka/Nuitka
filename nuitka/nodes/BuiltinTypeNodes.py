@@ -28,7 +28,7 @@ from .NodeBases import (
     CPythonNodeBase
 )
 
-from nuitka.transform.optimizations import BuiltinOptimization
+from nuitka.optimizations import BuiltinOptimization
 
 from nuitka.Utils import python_version
 

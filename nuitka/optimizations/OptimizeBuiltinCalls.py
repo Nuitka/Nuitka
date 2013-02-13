@@ -87,7 +87,7 @@ from nuitka.nodes.AttributeNodes import (
     CPythonExpressionBuiltinHasattr
 )
 
-from nuitka.transform.optimizations import BuiltinOptimization
+from . import BuiltinOptimization
 
 def dir_extractor( node ):
     return BuiltinOptimization.extractBuiltinArgs(

@@ -33,7 +33,7 @@ from .ValueFriends import ValueFriendBase
 
 from .SideEffectNode import CPythonExpressionSideEffects
 
-from nuitka.transform.optimizations import BuiltinOptimization
+from nuitka.optimizations import BuiltinOptimization
 
 from nuitka import Options
 

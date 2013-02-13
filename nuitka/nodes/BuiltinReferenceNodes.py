@@ -29,8 +29,8 @@ from .NodeBases import CPythonNodeBase, CompileTimeConstantExpressionMixin
 
 from .ConstantRefNode import CPythonExpressionConstantRef
 
-from nuitka.transform.optimizations import BuiltinOptimization
-from nuitka.transform.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
+from nuitka.optimizations import BuiltinOptimization
+from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
 
 from nuitka.Builtins import (
     builtin_exception_names,
