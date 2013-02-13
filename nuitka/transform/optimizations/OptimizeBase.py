@@ -88,6 +88,7 @@ class OptimizationVisitorBase( TreeOperations.VisitorNoopMixin ):
 
         node.replaceWith( new_node )
 
+
 class OptimizationDispatchingVisitorBase( OptimizationVisitorBase ):
     def __init__( self, dispatch_dict ):
         self.dispatch_dict = dispatch_dict

@@ -32,7 +32,7 @@ class ExitVisit( BaseException ):
 class RestartVisit( BaseException ):
     pass
 
-def _visitTree( tree, visitor, limit_tag ):
+def _visitTree( tree, visitor ):
     try:
         visitor.onEnterNode( tree )
 
@@ -41,35 +41,36 @@ def _visitTree( tree, visitor, limit_tag ):
         visit_children = False
 
     if visit_children:
-        for visitable in tree.getChildNodesNotTagged( limit_tag ):
+        for visitable in tree.getVisitableNodes():
             if visitable is None:
                 raise AssertionError( "'None' child encountered", tree, tree.source_ref )
 
-            _visitTree( visitable, visitor, limit_tag )
+            _visitTree( visitable, visitor )
 
     visitor.onLeaveNode( tree )
 
-def visitTree( tree, visitor, limit_tag = None ):
+def visitTree( tree, visitor ):
     try:
-        _visitTree( tree, visitor, limit_tag )
+        _visitTree( tree, visitor )
     except ExitVisit:
         pass
     except RestartVisit:
-        visitTree( tree, visitor, limit_tag )
+        visitTree( tree, visitor )
 
 def visitScope( tree, visitor ):
-    visitTree( tree, visitor, "closure_taker" )
+    visitTree( tree, visitor )
 
 def visitScopes( tree, visitor ):
-    visitTree( tree, visitor, None )
+    visitTree( tree, visitor )
 
     for function in tree.getFunctions():
-        visitTree( function, visitor, None )
+        visitTree( function, visitor )
 
 def visitFunctions( tree, visitor ):
     for function in tree.getFunctions():
         visitor.onEnterNode( function )
         visitor.onLeaveNode( function )
+
 
 class VisitorNoopMixin:
     def onEnterNode( self, node ):

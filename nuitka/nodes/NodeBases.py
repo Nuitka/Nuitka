@@ -40,15 +40,6 @@ class NodeCheckMetaClass( type ):
     kinds = set()
 
     def __new__( mcs, name, bases, dictionary ):
-        # Merge the tags with the base classes in a non-overriding
-        # way, instead add them up.
-        if "tags" not in dictionary:
-            dictionary[ "tags" ] = ()
-
-        for base in bases:
-            if hasattr( base, "tags" ):
-                dictionary[ "tags" ] += getattr( base, "tags" )
-
         assert len( bases ) == len( set( bases ) )
 
         # Uncomment this for debug view of class tags.
@@ -89,10 +80,6 @@ class NodeCheckMetaClass( type ):
             if not hasattr( CPythonNodeBase, checker_method ):
                 setattr( CPythonNodeBase, checker_method, checkKind )
 
-            # Tags mechanism, so node classes can be tagged with inheritance or freely,
-            # the "tags" attribute is not overloaded, but added. Absolutely not obvious
-            # and a trap set for the compiler by itself.
-
         type.__init__( mcs, name, bases, dictionary )
 
 # For every node type, there is a test, and then some more members, pylint: disable=R0904
@@ -103,8 +90,6 @@ CPythonNodeMetaClassBase = NodeCheckMetaClass( "CPythonNodeMetaClassBase", (obje
 
 class CPythonNodeBase( CPythonNodeMetaClassBase ):
     kind = None
-
-    tags = ()
 
     # Must be overloaded by expressions.
     value_friend_maker = None
@@ -297,19 +282,6 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         # Virtual method, pylint: disable=R0201
         return ()
 
-    def getChildNodesNotTagged( self, tag ):
-        """ Get child nodes that do not have a given tag.
-
-        """
-
-        return [
-            node
-            for node in
-            self.getVisitableNodes()
-            if not node.hasTag( tag )
-        ]
-
-
     def replaceWith( self, new_node ):
         self.parent.replaceChild(
             old_node = self,
@@ -372,9 +344,6 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         # Virtual method, pylint: disable=R0201,W0613
         return False
-
-    def hasTag( self, tag ):
-        return tag in self.__class__.tags
 
     def getIntegerValue( self, constraint_collection ):
         """ Node as integer value, if possible."""
@@ -717,8 +686,6 @@ class CPythonParameterHavingNodeBase( CPythonClosureGiverNodeBase ):
 
 class CPythonClosureTaker:
     """ Mixin for nodes that accept variables from closure givers. """
-
-    tags = ( "closure_taker", )
 
     def __init__( self, provider, early_closure ):
         assert provider.isParentVariableProvider(), provider
