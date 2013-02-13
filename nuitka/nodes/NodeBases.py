@@ -30,8 +30,6 @@ from nuitka import (
     TreeXML
 )
 
-from . import UsageCheck
-
 from nuitka.__past__ import iterItems
 
 lxml = TreeXML.lxml
@@ -629,25 +627,6 @@ class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
 
     def getProvidedVariables( self ):
         return self.providing.values()
-
-    def reconsiderVariable( self, variable ):
-        # TODO: Why doesn't this fit in as well.
-        if self.isModule():
-            return
-
-        assert variable.getOwner() is self
-
-        if variable.getName() in self.providing:
-            assert self.providing[ variable.getName() ] is variable, (
-                self.providing[ variable.getName() ], "is not", variable, self
-            )
-
-            if not variable.isShared():
-                # TODO: The functions/classes should have have a clearer scope too.
-                usages = UsageCheck.getVariableUsages( self, variable )
-
-                if not usages:
-                    del self.providing[ variable.getName() ]
 
     def getTempKeeperVariable( self ):
         name = "keeper_%d" % len( self.keeper_variables )
