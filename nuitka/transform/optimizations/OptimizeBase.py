@@ -21,7 +21,7 @@ Provides a class that all optimization visitors should inherit from.
 """
 
 # Pylint fails to find this, somewhat, at least it reports wrong about this.
-from .. import TreeOperations
+from nuitka.tree import Operations
 
 # pylint: disable=W0611
 # These are here for easier import by the optimization steps.
@@ -34,11 +34,13 @@ from nuitka.nodes.NodeMakingHelpers import (
     makeConstantReplacementNode,
 )
 
+from nuitka.tree.Operations import RestartVisit, ExitVisit
+
 from logging import warning, debug, info
 # pylint: enable=W0611
 
 
-class OptimizationVisitorBase( TreeOperations.VisitorNoopMixin ):
+class OptimizationVisitorBase( Operations.VisitorNoopMixin ):
     on_signal = None
 
     def signalChange( self, tags, source_ref, message ):
@@ -53,7 +55,7 @@ class OptimizationVisitorBase( TreeOperations.VisitorNoopMixin ):
     def execute( self, tree, on_signal = None ):
         self.on_signal = on_signal
 
-        TreeOperations.visitScopes(
+        Operations.visitScopes(
             tree    = tree,
             visitor = self
         )

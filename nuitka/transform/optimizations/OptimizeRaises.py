@@ -19,9 +19,7 @@
 
 """
 
-from .OptimizeBase import OptimizationVisitorBase
-
-from ..TreeOperations import RestartVisit
+from .OptimizeBase import OptimizationVisitorBase, RestartVisit
 
 from nuitka.nodes.SideEffectNode import CPythonExpressionSideEffects
 

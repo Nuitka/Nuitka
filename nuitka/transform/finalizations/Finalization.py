@@ -26,11 +26,8 @@ from .FinalizeMarkups import FinalizeMarkups
 from .FinalizeClosureTaking import FinalizeClosureTaking
 
 # Bug of pylint, it's there but it reports it wrongly, pylint: disable=E0611
-from .. import TreeOperations
+from nuitka.tree import Operations
 
 def prepareCodeGeneration( tree ):
-    visitor = FinalizeMarkups()
-    TreeOperations.visitScopes( tree, visitor )
-
-    visitor = FinalizeClosureTaking()
-    TreeOperations.visitFunctions( tree, visitor )
+    Operations.visitScopes( tree, visitor = FinalizeMarkups() )
+    Operations.visitFunctions( tree, visitor = FinalizeClosureTaking() )

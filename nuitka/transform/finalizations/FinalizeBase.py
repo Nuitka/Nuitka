@@ -20,7 +20,7 @@
 Provides a class that all finalization visitors should inherit from.
 """
 
-from nuitka.transform import TreeOperations
+from nuitka.tree import Operations
 
-class FinalizationVisitorBase( TreeOperations.VisitorNoopMixin ):
+class FinalizationVisitorBase( Operations.VisitorNoopMixin ):
     pass

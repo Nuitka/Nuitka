@@ -24,7 +24,7 @@ constraint collections.
 
 from .OptimizeBase import (
     OptimizationVisitorBase,
-    TreeOperations
+    ExitVisit
 )
 
 from .ConstraintCollections import ConstraintCollectionModule
@@ -67,4 +67,4 @@ class ValuePropagationVisitor( OptimizationVisitorBase ):
 
             # This is a cheap way to only visit the module. TODO: Hide this away in a base
             # class or don't use visiting.
-            raise TreeOperations.ExitVisit
+            raise ExitVisit

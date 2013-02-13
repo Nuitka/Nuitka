@@ -57,9 +57,6 @@ def visitTree( tree, visitor ):
     except RestartVisit:
         visitTree( tree, visitor )
 
-def visitScope( tree, visitor ):
-    visitTree( tree, visitor )
-
 def visitScopes( tree, visitor ):
     visitTree( tree, visitor )
 
