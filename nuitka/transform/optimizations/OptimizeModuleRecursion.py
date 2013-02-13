@@ -26,7 +26,8 @@ So this is called repeatedly mayhaps, each time a constant is added.
 
 from .OptimizeBase import OptimizationVisitorBase, warning
 
-from nuitka import TreeRecursion, Importing, Options, Utils
+from nuitka import Importing, Options, Utils
+from nuitka.tree import Recursion
 
 import os
 
@@ -47,7 +48,7 @@ def isStandardLibraryPath( path ):
 
 class ModuleRecursionVisitor( OptimizationVisitorBase ):
     def _recurseTo( self, module_package, module_filename, module_relpath ):
-        imported_module, added_flag = TreeRecursion.recurseTo(
+        imported_module, added_flag = Recursion.recurseTo(
             module_package  = module_package,
             module_filename = module_filename,
             module_relpath  = module_relpath

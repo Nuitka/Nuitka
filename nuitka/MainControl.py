@@ -22,9 +22,12 @@ C/API, to compile it to either an executable or an extension module.
 
 """
 
+from .tree import (
+    Recursion,
+    Building
+)
+
 from . import (
-    TreeRecursion,
-    TreeBuilding,
     Tracing,
     TreeXML,
     Options,
@@ -50,7 +53,7 @@ def createNodeTree( filename ):
     """
 
     # First, build the raw node tree from the source code.
-    result = TreeBuilding.buildModuleTree(
+    result = Building.buildModuleTree(
         filename = filename,
         package  = None,
         is_top   = True,
@@ -59,7 +62,7 @@ def createNodeTree( filename ):
 
     # Second, do it for the directories given.
     for plugin_filename in Options.getShallFollowExtra():
-        TreeRecursion.checkPluginPath(
+        Recursion.checkPluginPath(
             plugin_filename = plugin_filename,
             module_package  = None
         )
@@ -195,7 +198,7 @@ def makeSourceDirectory( main_module ):
     global_context = CodeGeneration.makeGlobalContext()
 
     # Get the full list of modules imported, create code for all of them.
-    modules = TreeBuilding.getImportedModules()
+    modules = Building.getImportedModules()
     assert main_module in modules
 
     # Sometimes we need to talk about all modules except main module.

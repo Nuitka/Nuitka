@@ -63,6 +63,7 @@ if tmp_dir == "/tmp" and os.path.exists( "/var/tmp" ):
 PACKAGE_LIST = (
     'nuitka',
     'nuitka/nodes',
+    'nuitka/tree',
     'nuitka/build',
     'nuitka/gui',
     'nuitka/codegen',

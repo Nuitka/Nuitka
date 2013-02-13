@@ -19,20 +19,20 @@
 
 """
 
-from nuitka import Utils
+from nuitka import Utils, Importing
 
-from . import TreeBuilding, Importing
+from . import Building
 
 from logging import info, warning
 
 _warned_about = set()
 
 def recurseTo( module_package, module_filename, module_relpath ):
-    if not TreeBuilding.isImportedPath( module_relpath ):
+    if not Building.isImportedPath( module_relpath ):
         info( "Recurse to import %s", module_relpath )
 
         try:
-            _imported_module = TreeBuilding.buildModuleTree(
+            _imported_module = Building.buildModuleTree(
                 filename = module_filename,
                 package  = module_package,
                 is_top   = False,
@@ -53,9 +53,9 @@ def recurseTo( module_package, module_filename, module_relpath ):
 
         assert not module_relpath.endswith( "/__init__.py" )
 
-        return TreeBuilding.getImportedModule( module_relpath ), True
+        return Building.getImportedModule( module_relpath ), True
     else:
-        return TreeBuilding.getImportedModule( module_relpath ), False
+        return Building.getImportedModule( module_relpath ), False
 
 
 def considerFilename( module_filename, module_package ):

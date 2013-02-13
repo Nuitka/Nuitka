@@ -2508,7 +2508,7 @@ def _getConstantsDeclarationCode( context, for_header ):
 
     return "\n".join( statements )
 
-# TODO: The determation of this should already happen in TreeBuilding or in a helper not
+# TODO: The determation of this should already happen in Building or in a helper not
 # during code generation.
 _match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
 

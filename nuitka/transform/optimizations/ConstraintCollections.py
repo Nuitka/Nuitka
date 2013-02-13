@@ -38,7 +38,8 @@ from nuitka.nodes.NodeMakingHelpers import (
 from nuitka.nodes.ConditionalNodes import CPythonStatementConditional
 from nuitka.nodes.OperatorNodes import CPythonExpressionOperationNOT
 
-from nuitka import Options, Utils, TreeRecursion, Importing
+from nuitka import Options, Utils, Importing
+from nuitka.tree import Recursion
 
 from logging import debug
 
@@ -965,7 +966,7 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
                     level          = 1
                 )
 
-                imported_module, added_flag = TreeRecursion.recurseTo(
+                imported_module, added_flag = Recursion.recurseTo(
                     module_package  = package_package,
                     module_filename = package_filename,
                     module_relpath  = Utils.relpath( package_filename )

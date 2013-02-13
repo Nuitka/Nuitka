@@ -34,10 +34,10 @@ that indicates variable provision.
 """
 
 # pylint: disable=W0622
-from .__past__ import long, unicode
+from nuitka.__past__ import long, unicode
 # pylint: enable=W0622
 
-from . import (
+from nuitka import (
     SourceCodeReferences,
     SyntaxErrors,
     Options,
@@ -45,105 +45,105 @@ from . import (
     Utils
 )
 
-from .nodes.NodeBases import CPythonClosureGiverNodeBase
+from nuitka.nodes.NodeBases import CPythonClosureGiverNodeBase
 
-from .nodes.ParameterSpec import ParameterSpec
-from .nodes.FutureSpec import FutureSpec
+from nuitka.nodes.ParameterSpec import ParameterSpec
+from nuitka.nodes.FutureSpec import FutureSpec
 
-from .nodes.NodeBases import CPythonNodeBase
-from .nodes.VariableRefNode import (
+from nuitka.nodes.NodeBases import CPythonNodeBase
+from nuitka.nodes.VariableRefNode import (
     CPythonExpressionTargetVariableRef,
     CPythonExpressionVariableRef,
     CPythonExpressionTempVariableRef,
     CPythonStatementTempBlock
 )
-from .nodes.ConstantRefNode import CPythonExpressionConstantRef
-from .nodes.BuiltinReferenceNodes import (
+from nuitka.nodes.ConstantRefNode import CPythonExpressionConstantRef
+from nuitka.nodes.BuiltinReferenceNodes import (
     CPythonExpressionBuiltinExceptionRef,
     CPythonExpressionBuiltinRef
 )
-from .nodes.BuiltinIteratorNodes import (
+from nuitka.nodes.BuiltinIteratorNodes import (
     CPythonStatementSpecialUnpackCheck,
     CPythonExpressionSpecialUnpack,
     CPythonExpressionBuiltinNext1,
     CPythonExpressionBuiltinIter1,
 )
-from .nodes.BuiltinTypeNodes import CPythonExpressionBuiltinList
-from .nodes.ExceptionNodes import (
+from nuitka.nodes.BuiltinTypeNodes import CPythonExpressionBuiltinList
+from nuitka.nodes.ExceptionNodes import (
     CPythonExpressionCaughtExceptionTracebackRef,
     CPythonExpressionCaughtExceptionValueRef,
     CPythonExpressionCaughtExceptionTypeRef,
     CPythonExpressionBuiltinMakeException,
     CPythonStatementRaiseException
 )
-from .nodes.ComparisonNode import CPythonExpressionComparison
-from .nodes.ExecEvalNodes import CPythonStatementExec
-from .nodes.CallNode import (
+from nuitka.nodes.ComparisonNode import CPythonExpressionComparison
+from nuitka.nodes.ExecEvalNodes import CPythonStatementExec
+from nuitka.nodes.CallNode import (
     CPythonExpressionCall,
     CPythonExpressionCallNoKeywords,
     CPythonExpressionCallEmpty
 )
-from .nodes.TypeNode import CPythonExpressionBuiltinType1
-from .nodes.AttributeNodes import (
+from nuitka.nodes.TypeNode import CPythonExpressionBuiltinType1
+from nuitka.nodes.AttributeNodes import (
     CPythonExpressionSpecialAttributeLookup,
     CPythonExpressionAttributeLookup,
     CPythonExpressionBuiltinHasattr
 )
-from .nodes.SubscriptNode import CPythonExpressionSubscriptLookup
-from .nodes.SliceNodes import (
+from nuitka.nodes.SubscriptNode import CPythonExpressionSubscriptLookup
+from nuitka.nodes.SliceNodes import (
     CPythonExpressionSliceLookup,
     CPythonExpressionSliceObject
 )
-from .nodes.FunctionNodes import (
+from nuitka.nodes.FunctionNodes import (
     CPythonExpressionFunctionCreation,
     CPythonExpressionFunctionBody,
     CPythonExpressionFunctionCall,
     CPythonExpressionFunctionRef
     )
-from .nodes.ClassNodes import CPythonExpressionSelectMetaclass
-from .nodes.ContainerMakingNodes import (
+from nuitka.nodes.ClassNodes import CPythonExpressionSelectMetaclass
+from nuitka.nodes.ContainerMakingNodes import (
     CPythonExpressionKeyValuePair,
     CPythonExpressionMakeTuple,
     CPythonExpressionMakeList,
     CPythonExpressionMakeDict,
     CPythonExpressionMakeSet
 )
-from .nodes.ContainerOperationNodes import (
+from nuitka.nodes.ContainerOperationNodes import (
     CPythonExpressionDictOperationGet,
     CPythonStatementDictOperationRemove,
     CPythonExpressionListOperationAppend,
     CPythonExpressionDictOperationSet,
     CPythonExpressionSetOperationAdd
 )
-from .nodes.StatementNodes import (
+from nuitka.nodes.StatementNodes import (
     CPythonStatementExpressionOnly,
     CPythonStatementsSequence,
     CPythonStatementsFrame,
     mergeStatements
 )
-from .nodes.ImportNodes import (
+from nuitka.nodes.ImportNodes import (
     CPythonExpressionImportModule,
     CPythonExpressionImportName,
     CPythonStatementImportStar,
 )
-from .nodes.OperatorNodes import (
+from nuitka.nodes.OperatorNodes import (
     CPythonExpressionOperationBinaryInplace,
     CPythonExpressionOperationBinary,
     CPythonExpressionOperationUnary,
     CPythonExpressionOperationNOT
 )
-from .nodes.LoopNodes import (
+from nuitka.nodes.LoopNodes import (
     CPythonStatementContinueLoop,
     CPythonStatementBreakLoop,
     CPythonStatementLoop
 )
-from .nodes.ConditionalNodes import (
+from nuitka.nodes.ConditionalNodes import (
     CPythonExpressionConditional,
     CPythonStatementConditional
 )
-from .nodes.YieldNode import CPythonExpressionYield
-from .nodes.ReturnNode import CPythonStatementReturn
-from .nodes.AssignNodes import (
+from nuitka.nodes.YieldNode import CPythonExpressionYield
+from nuitka.nodes.ReturnNode import CPythonStatementReturn
+from nuitka.nodes.AssignNodes import (
     CPythonStatementAssignmentVariable,
     CPythonStatementAssignmentAttribute,
     CPythonStatementAssignmentSubscript,
@@ -153,21 +153,21 @@ from .nodes.AssignNodes import (
     CPythonStatementDelVariable,
     CPythonStatementDelSlice,
 )
-from .nodes.KeeperNodes import (
+from nuitka.nodes.KeeperNodes import (
     CPythonExpressionAssignmentTempKeeper,
     CPythonExpressionTempKeeperRef
 )
-from .nodes.PrintNodes import CPythonStatementPrint
-from .nodes.ModuleNodes import (
+from nuitka.nodes.PrintNodes import CPythonStatementPrint
+from nuitka.nodes.ModuleNodes import (
     CPythonPackage,
     CPythonModule
 )
-from .nodes.TryNodes import (
+from nuitka.nodes.TryNodes import (
     CPythonStatementExceptHandler,
     CPythonStatementTryFinally,
     CPythonStatementTryExcept
 )
-from .nodes.GlobalsLocalsNodes import (
+from nuitka.nodes.GlobalsLocalsNodes import (
     CPythonStatementSetLocals,
     CPythonExpressionBuiltinLocals
 )
@@ -1509,7 +1509,7 @@ def makeCallNode( provider, called, positional_args, pairs, list_star_arg, dict_
 
         key = len( positional_args ) > 0, len( pairs ) > 0, list_star_arg is not None, dict_star_arg is not None
 
-        from .nodes.ComplexCallHelperFunctions import (
+        from nuitka.nodes.ComplexCallHelperFunctions import (
             getFunctionCallHelperPosKeywordsStarList,
             getFunctionCallHelperPosStarList,
             getFunctionCallHelperKeywordsStarList,

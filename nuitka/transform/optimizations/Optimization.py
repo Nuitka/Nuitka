@@ -29,7 +29,8 @@ from .OptimizeValuePropagation import ValuePropagationVisitor
 
 from .Tags import TagSet
 
-from nuitka import Options, TreeBuilding
+from nuitka import Options
+from nuitka.tree import Building
 
 from nuitka.oset import OrderedSet
 
@@ -84,7 +85,7 @@ def optimizeTree( tree ):
     return tree
 
 def getImportedModules():
-    return TreeBuilding.getImportedModules()
+    return Building.getImportedModules()
 
 def optimizeWhole( main_module ):
     done_modules = set()
