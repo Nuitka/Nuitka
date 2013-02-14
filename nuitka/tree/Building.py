@@ -76,7 +76,11 @@ from nuitka.nodes.ExceptionNodes import (
     CPythonExpressionBuiltinMakeException,
     CPythonStatementRaiseException
 )
-from nuitka.nodes.ComparisonNode import CPythonExpressionComparison
+from nuitka.nodes.ComparisonNode import (
+    CPythonExpressionComparison,
+    CPythonExpressionComparisonIs,
+    CPythonExpressionComparisonIsNOT
+)
 from nuitka.nodes.ExecEvalNodes import CPythonStatementExec
 from nuitka.nodes.CallNode import (
     CPythonExpressionCall,
@@ -1347,16 +1351,15 @@ def buildForLoopNode( provider, node, source_ref ):
     if else_block is not None:
         statements += [
             CPythonStatementConditional(
-                condition  = CPythonExpressionComparison(
-                    left = CPythonExpressionTempVariableRef(
+                condition  = CPythonExpressionComparisonIs(
+                    left       = CPythonExpressionTempVariableRef(
                         variable   = tmp_break_indicator_variable.makeReference( result ),
                         source_ref = source_ref
                     ),
-                    right = CPythonExpressionConstantRef(
+                    right      = CPythonExpressionConstantRef(
                         constant   = True,
                         source_ref = source_ref
                     ),
-                    comparator = "Is",
                     source_ref = source_ref
                 ),
                 yes_branch = else_block,
@@ -1461,16 +1464,15 @@ def buildWhileLoopNode( provider, node, source_ref ):
             ),
             loop_statement,
             CPythonStatementConditional(
-                condition  = CPythonExpressionComparison(
-                    left = CPythonExpressionTempVariableRef(
+                condition  = CPythonExpressionComparisonIs(
+                    left       = CPythonExpressionTempVariableRef(
                         variable   = tmp_break_indicator_variable.makeReference( temp_block ),
                         source_ref = source_ref
                     ),
-                    right = CPythonExpressionConstantRef(
+                    right      = CPythonExpressionConstantRef(
                         constant   = True,
                         source_ref = source_ref
                     ),
-                    comparator = "Is",
                     source_ref = source_ref
                 ),
                 yes_branch = else_block,
@@ -2470,6 +2472,8 @@ def buildGeneratorExpressionNode( provider, node, source_ref ):
     )
 
 def buildComparisonNode( provider, node, source_ref ):
+    from nuitka.nodes.NodeMakingHelpers import makeComparisonNode
+
     assert len( node.comparators ) == len( node.ops )
 
     # Comparisons are re-formulated as described in the developer manual. When having
@@ -2514,11 +2518,13 @@ def buildComparisonNode( provider, node, source_ref ):
                 source_ref = source_ref
             )
 
+        comparator = getKind( comparator )
+
         result.append(
-            CPythonExpressionComparison(
+            makeComparisonNode(
                 left       = left,
                 right      = right,
-                comparator = getKind( comparator ),
+                comparator = comparator,
                 source_ref = source_ref
             )
         )
@@ -2609,7 +2615,7 @@ def _makeTryExceptNoRaise( tried, handlers, no_raise, source_ref ):
                     source_ref = source_ref
                 ),
                 CPythonStatementConditional(
-                    condition  = CPythonExpressionComparison(
+                    condition  = CPythonExpressionComparisonIs(
                         left = CPythonExpressionTempVariableRef(
                             variable   = tmp_handler_indicator_variable.makeReference( result ),
                             source_ref = source_ref
@@ -2618,7 +2624,6 @@ def _makeTryExceptNoRaise( tried, handlers, no_raise, source_ref ):
                             constant   = True,
                             source_ref = source_ref
                         ),
-                        comparator = "Is",
                         source_ref = source_ref
                     ),
                     yes_branch = no_raise,
@@ -3715,13 +3720,12 @@ def _buildInplaceAssignVariableNode( result, variable_ref, tmp_variable1, tmp_va
         ),
         # Copy it over, if the reference values change, i.e. IsNot is true.
         CPythonStatementConditional(
-            condition = CPythonExpressionComparison(
-                comparator = "IsNot",
-                left     = CPythonExpressionTempVariableRef(
+            condition = CPythonExpressionComparisonIsNOT(
+                left       = CPythonExpressionTempVariableRef(
                     variable   = tmp_variable1.makeReference( result ),
                     source_ref = source_ref
                 ),
-                right    = CPythonExpressionTempVariableRef(
+                right      = CPythonExpressionTempVariableRef(
                     variable   = tmp_variable2.makeReference( result ),
                     source_ref = source_ref
                 ),
@@ -3780,13 +3784,12 @@ def _buildInplaceAssignAttributeNode( result, lookup_source, attribute_name, tmp
         ),
         # Copy it over, if the reference values change, i.e. IsNot is true.
         CPythonStatementConditional(
-            condition = CPythonExpressionComparison(
-                comparator = "IsNot",
-                left     = CPythonExpressionTempVariableRef(
+            condition = CPythonExpressionComparisonIsNOT(
+                left       = CPythonExpressionTempVariableRef(
                     variable   = tmp_variable1.makeReference( result ),
                     source_ref = source_ref
                 ),
-                right    = CPythonExpressionTempVariableRef(
+                right      = CPythonExpressionTempVariableRef(
                     variable   = tmp_variable2.makeReference( result ),
                     source_ref = source_ref
                 ),

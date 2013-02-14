@@ -115,6 +115,16 @@ class ConstraintCollectionBase:
 
             self.variables = dict( copy_of.variables )
 
+    def mustAlias( self, a, b ):
+        if a.isExpressionVariableRef() and b.isExpressionVariableRef():
+            return a.getVariable() is b.getVariable()
+
+        return False
+
+    def mustNotAlias( self, a, b ):
+        return False
+
+
     def removeKnowledge( self, value_friend ):
         to_remove = []
 

@@ -38,6 +38,11 @@ from .StatementNodes import (
     CPythonStatementExpressionOnly,
     CPythonStatementsSequence
 )
+from .ComparisonNode import (
+    CPythonExpressionComparison,
+    CPythonExpressionComparisonIs,
+    CPythonExpressionComparisonIsNOT
+)
 from .SideEffectNode import CPythonExpressionSideEffects
 
 
@@ -224,3 +229,24 @@ def wrapStatementWithSideEffects( new_node, old_node, allow_none = False ):
             )
 
     return new_node
+
+def makeComparisonNode( left, right, comparator, source_ref ):
+    if comparator == "Is":
+        return CPythonExpressionComparisonIs(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif comparator == "IsNot":
+        return CPythonExpressionComparisonIsNOT(
+                left       = left,
+                right      = right,
+                source_ref = source_ref
+            )
+    else:
+        return CPythonExpressionComparison(
+            left       = left,
+            right      = right,
+            comparator = comparator,
+            source_ref = source_ref
+        )
