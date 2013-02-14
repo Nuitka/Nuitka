@@ -142,13 +142,6 @@ catch ( BreakException & )
 }
 """
 
-try_finally_template_catch_generator_return = """\
-catch ( GeneratorReturnException & )
-{
-    _return_%(try_count)d = true;
-}
-"""
-
 try_finally_template_catch_return_value = """\
 catch ( ReturnValueException &e )
 {
@@ -166,12 +159,6 @@ try_finally_template_reraise_break = """\
 if ( _break_%(try_count)d )
 {
     throw BreakException();
-}"""
-
-try_finally_template_reraise_generator_return = """\
-if ( _return_%(try_count)d )
-{
-    throw GeneratorReturnException();
 }"""
 
 try_finally_template_reraise_return_value = """\

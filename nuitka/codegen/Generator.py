@@ -158,9 +158,6 @@ def getYieldCode( identifier, in_handler ):
             0
         )
 
-def getGeneratorReturnCode():
-    return CodeTemplates.genfunc_yielder_return_template % {}
-
 def getMetaclassVariableCode( context ):
     assert Utils.python_version < 300
 
@@ -969,9 +966,9 @@ def getSubscriptDelCode( subscribed, subscript ):
         subscript.getCodeTemporaryRef()
     )
 
-def getTryFinallyCode( context, needs_continue, needs_break, needs_generator_return,
-                       needs_return_value_catch, needs_return_value_reraise, aborting,
-                       code_tried, code_final, try_count ):
+def getTryFinallyCode( context, needs_continue, needs_break, needs_return_value_catch,
+                       needs_return_value_reraise, aborting, code_tried, code_final,
+                       try_count ):
 
     tb_making = getTracebackMakingIdentifier( context )
 
@@ -992,11 +989,6 @@ def getTryFinallyCode( context, needs_continue, needs_break, needs_generator_ret
         rethrow_setups += CodeTemplates.try_finally_template_setup_break  % values
         rethrow_catchers += CodeTemplates.try_finally_template_catch_break % values
         rethrow_raisers += CodeTemplates.try_finally_template_reraise_break % values
-
-    if needs_generator_return:
-        rethrow_setups += CodeTemplates.try_finally_template_setup_generator_return % values
-        rethrow_catchers += CodeTemplates.try_finally_template_catch_generator_return % values
-        rethrow_raisers += CodeTemplates.try_finally_template_reraise_generator_return % values
 
     if needs_return_value_catch:
         rethrow_setups += CodeTemplates.try_finally_template_setup_return_value % values
@@ -1981,7 +1973,7 @@ def _getFuncKwDefaultValue( kw_defaults_identifier ):
 def getGeneratorFunctionCode( context, function_name, function_identifier, parameters,
                               closure_variables, user_variables, defaults_identifier,
                               kw_defaults_identifier, annotations_identifier, tmp_keepers,
-                              function_codes, needs_return, source_ref, function_doc ):
+                              function_codes, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
 
@@ -2116,12 +2108,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 
     function_locals += function_var_inits
 
-    if needs_return:
-        template = CodeTemplates.genfunc_yielder_with_return_template
-    else:
-        template = CodeTemplates.genfunc_yielder_without_return_template
-
-    result += template % {
+    result += CodeTemplates.genfunc_yielder_template % {
         "function_identifier" : function_identifier,
         "function_body"       : indented( function_codes, 2 ),
         "function_var_inits"  : indented( function_locals, 2 ),

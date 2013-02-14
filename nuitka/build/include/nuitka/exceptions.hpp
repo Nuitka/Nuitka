@@ -421,10 +421,6 @@ private:
     PyTracebackObject *exception_tb;
 };
 
-class GeneratorReturnException
-{
-};
-
 class ContinueException
 {
 };

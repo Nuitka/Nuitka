@@ -358,7 +358,6 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
             defaults_identifier    = defaults_identifier,
             kw_defaults_identifier = kw_defaults_identifier,
             annotations_identifier = annotations_identifier,
-            needs_return           = function_body.needsExceptionGeneratorReturn(),
             source_ref             = function_body.getSourceReference(),
             function_codes         = function_codes,
             function_doc           = function_body.getDoc()
@@ -1724,21 +1723,14 @@ def generateTempBlock( statement, context ):
     )
 
 def generateReturnCode( statement, context ):
-    parent_function = statement.getParentFunction()
-
-    if parent_function is not None and parent_function.isGenerator():
-        assert statement.getExpression().getConstant() is None
-
-        return Generator.getGeneratorReturnCode()
-    else:
-        return Generator.getReturnCode(
-            identifier    = generateExpressionCode(
-                expression = statement.getExpression(),
-                context    = context
-            ),
-            via_exception = statement.isExceptionDriven(),
-            context       = context
-        )
+    return Generator.getReturnCode(
+        identifier    = generateExpressionCode(
+            expression = statement.getExpression(),
+            context    = context
+        ),
+        via_exception = statement.isExceptionDriven(),
+        context       = context
+    )
 
 def generateStatementCode( statement, context ):
     try:
@@ -1887,7 +1879,6 @@ def _generateStatementCode( statement, context ):
             code_final                 = code_final,
             needs_break                = statement.needsExceptionBreak(),
             needs_continue             = statement.needsExceptionContinue(),
-            needs_generator_return     = statement.needsExceptionGeneratorReturn(),
             needs_return_value_catch   = statement.needsExceptionReturnValueCatcher(),
             needs_return_value_reraise = statement.needsExceptionReturnValueReraiser(),
             aborting                   = statement.isStatementAborting(),

@@ -30,6 +30,9 @@ from nuitka.Options import isFullCompat
 
 from .Operations import VisitorNoopMixin, visitScopes
 
+from nuitka.nodes.ExceptionNodes import CPythonStatementRaiseException
+from nuitka.nodes.BuiltinReferenceNodes import CPythonExpressionBuiltinExceptionRef
+
 # Note: We do the variable scope assignment, as an extra step from tree building, because
 # it will build the tree without any consideration of evaluation order. And only the way
 # these visitors are entered, will ensure this order.
@@ -95,6 +98,22 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
                             display_file = not isFullCompat(),
                             display_line = not isFullCompat()
                         )
+
+    def onLeaveNode( self, node ):
+        if node.isStatementReturn() and node.getParentVariableProvider().isGenerator():
+            node.replaceWith(
+                CPythonStatementRaiseException(
+                    exception_type  = CPythonExpressionBuiltinExceptionRef(
+                        exception_name = "StopIteration",
+                        source_ref     = node.getSourceReference()
+                    ),
+                    exception_value = None,
+                    exception_trace = None,
+                    exception_cause = None,
+                    source_ref      = node.getSourceReference()
+                )
+            )
+
 
 
 class VariableClosureLookupVisitorPhase2( VisitorNoopMixin ):

@@ -138,9 +138,6 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
         # Indicator if the return value exception might be required.
         self.return_exception = False
 
-        # Indicator if the generator return exception might be required.
-        self.generator_return_exception = False
-
         # Indicator if the function needs to be created as a function object.
         self.needs_creation = False
 
@@ -420,12 +417,6 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
 
     def needsExceptionReturnValue( self ):
         return self.return_exception
-
-    def markAsExceptionGeneratorReturn( self ):
-        self.generator_return_exception = True
-
-    def needsExceptionGeneratorReturn( self ):
-        return self.generator_return_exception
 
 
 class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):

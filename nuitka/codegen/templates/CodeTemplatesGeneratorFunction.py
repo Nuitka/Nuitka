@@ -125,31 +125,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
 }
 """
 
-genfunc_yielder_with_return_template = """
-static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
-{
-    try {
-        // Make context accessible if one is used.
-%(context_access)s
-
-        // Local variable inits
-%(function_var_inits)s
-
-        // Actual function code.
-%(function_body)s
-    }
-    catch ( GeneratorReturnException & )
-    {
-        PyErr_SetNone( PyExc_StopIteration );
-    }
-
-    // TODO: Won't return, we should tell the compiler about that.
-    generator->m_yielded = NULL;
-    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
-}
-"""
-
-genfunc_yielder_without_return_template = """
+genfunc_yielder_template = """
 static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
     {
@@ -168,9 +144,6 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
     swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
 }
 """
-
-genfunc_yielder_return_template = """\
-throw GeneratorReturnException();"""
 
 frame_guard_genfunc_template = """\
 static PyFrameObject *frame_%(frame_identifier)s = NULL;

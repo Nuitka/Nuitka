@@ -42,7 +42,6 @@ class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
 
         self.break_exception = False
         self.continue_exception = False
-        self.generator_return_exception = False
         self.return_value_exception_catch = False
         self.return_value_exception_reraise = False
 
@@ -73,9 +72,6 @@ class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
     def markAsExceptionBreak( self ):
         self.break_exception = True
 
-    def markAsExceptionGeneratorReturn( self ):
-        self.generator_return_exception = True
-
     def markAsExceptionReturnValueCatch( self ):
         self.return_value_exception_catch = True
 
@@ -87,9 +83,6 @@ class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
 
     def needsExceptionBreak( self ):
         return self.break_exception
-
-    def needsExceptionGeneratorReturn( self ):
-        return self.generator_return_exception
 
     def needsExceptionReturnValueCatcher( self ):
         return self.return_value_exception_catch
