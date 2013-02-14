@@ -560,7 +560,7 @@ class ConstraintCollectionBase:
         if dest is not None:
             if dest.willRaiseException( BaseException ):
                 return makeStatementExpressionOnlyReplacementNode(
-                    expression = statement.getDestination(),
+                    expression = dest,
                     node       = statement
                 )
 
@@ -655,6 +655,37 @@ class ConstraintCollectionBase:
                     )
 
                     break
+
+        if dest is None:
+            values = statement.getValues()
+
+            if values:
+                if values[0].isExpressionSideEffects():
+                    statements = [
+                        makeStatementExpressionOnlyReplacementNode(
+                            side_effect,
+                            statement
+                        )
+                        for side_effect in
+                        values[0].getSideEffects()
+                    ]
+
+                    statements.append( statement )
+
+                    statement.setValues(
+                        ( values[0].getExpression(), ) + values[ 1: ]
+                    )
+
+                    self.signalChange(
+                        "new_statements",
+                        statement.getSourceReference(),
+                        "Side effects first printed item promoted to statements."
+                    )
+
+                    return makeStatementsSequenceReplacementNode(
+                        statements = statements,
+                        node       = statement,
+                    )
 
         return statement
 
