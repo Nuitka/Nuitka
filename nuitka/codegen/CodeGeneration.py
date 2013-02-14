@@ -909,7 +909,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
             identifier = makeExpressionCode(
                 expression = expression.getExpression()
             ),
-            for_return = expression.isForReturn(),
             in_handler = expression.isExceptionPreserving()
         )
     elif expression.isExpressionImportModule():

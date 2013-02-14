@@ -175,14 +175,4 @@ static inline PyObject *YIELD_VALUE_FROM_HANDLER( Nuitka_GeneratorObject *genera
     return generator->m_yielded;
 }
 
-static inline void YIELD_RETURN( Nuitka_GeneratorObject *generator, PyObject *value )
-{
-#if PYTHON_VERSION < 270
-    if ( value != Py_None )
-    {
-        YIELD_VALUE( generator, value );
-    }
-#endif
-}
-
 #endif

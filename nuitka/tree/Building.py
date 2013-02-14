@@ -1149,18 +1149,71 @@ def buildLambdaNode( provider, node, source_ref ):
     )
 
     if function_body.isGenerator():
-        body = CPythonStatementExpressionOnly(
-            expression = CPythonExpressionYield(
+        if Utils.python_version < 270:
+            temp_block = CPythonStatementTempBlock(
+                source_ref = source_ref,
+            )
+
+            tmp_return_value = temp_block.getTempVariable( "yield_return" )
+
+            statements = (
+                CPythonStatementAssignmentVariable(
+                    variable_ref = CPythonExpressionTempVariableRef(
+                        variable = tmp_return_value.makeReference( temp_block ),
+                        source_ref = source_ref,
+                    ),
+                    source     = body,
+                    source_ref = source_ref
+                ),
+                CPythonStatementConditional(
+                    condition = CPythonExpressionComparisonIsNOT(
+                        left       = CPythonExpressionTempVariableRef(
+                            variable = tmp_return_value.makeReference( temp_block ),
+                            source_ref = source_ref,
+                        ),
+                        right      = CPythonExpressionConstantRef(
+                            constant   = None,
+                            source_ref = source_ref
+                        ),
+                        source_ref = source_ref
+                    ),
+                    yes_branch = CPythonStatementsSequence(
+                        statements = (
+                            CPythonStatementExpressionOnly(
+                                expression = CPythonExpressionYield(
+                                    expression = CPythonExpressionTempVariableRef(
+                                        variable = tmp_return_value.makeReference( temp_block ),
+                                        source_ref = source_ref,
+                                    ),
+                                    source_ref = source_ref
+                                ),
+                                source_ref = source_ref
+                            ),
+                        ),
+                        source_ref = source_ref
+                    ),
+                    no_branch  = None,
+                    source_ref = source_ref
+                )
+            )
+
+            temp_block.setBody(
+                CPythonStatementsSequence(
+                    statements = statements,
+                    source_ref = source_ref
+                )
+            )
+
+            body = temp_block
+        else:
+            body = CPythonStatementExpressionOnly(
                 expression = body,
-                for_return = True,
-                source_ref = body.getSourceReference()
-            ),
-            source_ref = body.getSourceReference()
-        )
+                source_ref = source_ref
+            )
     else:
         body = CPythonStatementReturn(
             expression = body,
-            source_ref = body.getSourceReference()
+            source_ref = source_ref
         )
 
     body = CPythonStatementsFrame(
@@ -2176,7 +2229,6 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
                     node       = node.elt,
                     source_ref = source_ref
                 ),
-                for_return = False,
                 source_ref = source_ref
             )
     else:
@@ -3629,7 +3681,6 @@ def buildYieldNode( provider, node, source_ref ):
     if node.value is not None:
         return CPythonExpressionYield(
             expression = buildNode( provider, node.value, source_ref ),
-            for_return = False,
             source_ref = source_ref
         )
     else:
@@ -3638,7 +3689,6 @@ def buildYieldNode( provider, node, source_ref ):
                 constant   = None,
                 source_ref = source_ref
             ),
-            for_return = False,
             source_ref = source_ref
         )
 

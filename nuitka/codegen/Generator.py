@@ -146,15 +146,8 @@ def getReturnCode( identifier, via_exception, context ):
         else:
             return "return;"
 
-def getYieldCode( identifier, for_return, in_handler ):
-    assert not for_return or not in_handler
-
-    if for_return:
-        return Identifier(
-            "YIELD_RETURN( generator, %s )" % identifier.getCodeExportRef(),
-            0
-        )
-    elif in_handler:
+def getYieldCode( identifier, in_handler ):
+    if in_handler:
         return Identifier(
             "YIELD_VALUE_FROM_HANDLER( generator, %s )" % identifier.getCodeExportRef(),
             0

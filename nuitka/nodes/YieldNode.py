@@ -31,7 +31,7 @@ class CPythonExpressionYield( CPythonExpressionChildrenHavingBase ):
 
     named_children = ( "expression", )
 
-    def __init__( self, expression, for_return, source_ref ):
+    def __init__( self, expression, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -40,12 +40,7 @@ class CPythonExpressionYield( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-        self.for_return = for_return
-
         self.exception_preserving = False
-
-    def isForReturn( self ):
-        return self.for_return
 
     def markAsExceptionPreserving( self ):
         self.exception_preserving = True
