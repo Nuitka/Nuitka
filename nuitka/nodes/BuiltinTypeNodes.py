@@ -63,6 +63,27 @@ class CPythonExpressionBuiltinBool( CPythonExpressionBuiltinTypeBase ):
         # Dedicated code returns "True" or "False" only, which requires no reference
         return False
 
+    def computeNode( self, constraint_collection ):
+        value = self.getValue()
+
+        if value is not None:
+            truth_value = self.getValue().getTruthValue( constraint_collection )
+
+            if truth_value is not None:
+                from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects, makeConstantReplacementNode
+
+                result = wrapExpressionWithNodeSideEffects(
+                    new_node = makeConstantReplacementNode(
+                        constant = truth_value,
+                        node     = self,
+                    ),
+                    old_node = self.getValue()
+                )
+
+                return result, "new_constant", "Predicted truth value of builtin bool argument"
+
+        return CPythonExpressionBuiltinTypeBase.computeNode( self, constraint_collection )
+
 
 class CPythonExpressionBuiltinIntLongBase( CPythonChildrenHaving, CPythonNodeBase, \
                                            CPythonExpressionSpecBasedComputationMixin ):
