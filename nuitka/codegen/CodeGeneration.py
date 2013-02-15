@@ -38,30 +38,6 @@ from nuitka import (
     Utils
 )
 
-def mangleAttributeName( attribute_name, node ):
-    if not attribute_name.startswith( "__" ) or attribute_name.endswith( "__" ):
-        return attribute_name
-
-    seen_function = False
-
-    while True:
-        node = node.getParentVariableProvider()
-
-        if node.isModule():
-            break
-
-        assert node.isExpressionFunctionBody()
-
-        if node.isClassDictCreation():
-            if seen_function:
-                return "_" + node.getName() + attribute_name
-            else:
-                return attribute_name
-        else:
-            seen_function = True
-
-    return attribute_name
-
 def generateTupleCreationCode( elements, context ):
     if _areConstants( elements ):
         return Generator.getConstantHandle(
@@ -753,13 +729,8 @@ def generateExpressionCode( expression, context, allow_none = False ):
             context   = context
         )
     elif expression.isExpressionAttributeLookup():
-        attribute_name = mangleAttributeName(
-            attribute_name = expression.getAttributeName(),
-            node           = expression
-        )
-
         identifier = Generator.getAttributeLookupCode(
-            attribute = context.getConstantHandle( attribute_name ),
+            attribute = context.getConstantHandle( expression.getAttributeName() ),
             source    = makeExpressionCode( expression.getLookupSource() ),
         )
     elif expression.isExpressionSpecialAttributeLookup():
@@ -1290,17 +1261,13 @@ def generateDelSliceCode( lookup_source, lower, upper, context ):
         )
 
 def generateDelAttributeCode( statement, context ):
-    attribute_name = mangleAttributeName(
-        attribute_name = statement.getAttributeName(),
-        node           = statement
-    )
     return Generator.getAttributeDelCode(
         target    = generateExpressionCode(
             expression = statement.getLookupSource(),
             context    = context
         ),
         attribute = context.getConstantHandle(
-            constant = attribute_name
+            constant = statement.getAttributeName()
         )
     )
 
@@ -1765,10 +1732,7 @@ def _generateStatementCode( statement, context ):
     elif statement.isStatementAssignmentAttribute():
         code = generateAssignmentAttributeCode(
             lookup_source  = makeExpressionCode( statement.getLookupSource() ),
-            attribute_name = mangleAttributeName(
-                attribute_name = statement.getAttributeName(),
-                node           = statement
-            ),
+            attribute_name = statement.getAttributeName(),
             value          = makeExpressionCode( statement.getAssignSource() ),
             context        = context
         )

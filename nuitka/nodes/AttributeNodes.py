@@ -45,6 +45,9 @@ class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
     def getAttributeName( self ):
         return self.attribute_name
 
+    def setAttributeName( self, attribute_name ):
+        self.attribute_name = attribute_name
+
     def getDetails( self ):
         return { "attribute" : self.getAttributeName() }
 

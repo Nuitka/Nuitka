@@ -98,8 +98,39 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
                             display_file = not isFullCompat(),
                             display_line = not isFullCompat()
                         )
+        # Attribute access of names of class functions should be mangled, if they start
+        # with "__", but do not end in "__" as well.
+        elif node.isExpressionAttributeLookup() or node.isStatementAssignmentAttribute() or \
+             node.isStatementDelAttribute():
+            attribute_name = node.getAttributeName()
+
+            if attribute_name.startswith( "__" ) and not attribute_name.endswith( "__" ):
+                seen_function = False
+
+                current = node
+
+                while True:
+                    current = current.getParentVariableProvider()
+
+                    if current.isModule():
+                        break
+
+                    assert current.isExpressionFunctionBody()
+
+                    if current.isClassDictCreation():
+                        if seen_function:
+                            node.setAttributeName( "_" + current.getName() + attribute_name )
+
+                        break
+                    else:
+                        seen_function = True
+
 
     def onLeaveNode( self, node ):
+        # Return statements in generators are not really that, instead they are exception
+        # raises, fix that up now. Doing it right from the onset, would be a bit more
+        # difficult, as the knowledge that something is a generator, requires a second
+        # pass.
         if node.isStatementReturn() and node.getParentVariableProvider().isGenerator():
             node.replaceWith(
                 CPythonStatementRaiseException(

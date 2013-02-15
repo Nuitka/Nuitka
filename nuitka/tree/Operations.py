@@ -77,12 +77,3 @@ class VisitorNoopMixin:
     def onLeaveNode( self, node ):
         """ To be optionally overloaded for operation after the node children were done. """
         pass
-
-    # Only for "scope" and "execution" visits.
-    def onEnterScope( self, tree ):
-        """ To be optionally overloaded for per-scope entry tasks. """
-        pass
-
-    def onLeaveScope( self, tree ):
-        """ To be optionally overloaded for per-scope exit tasks. """
-        pass

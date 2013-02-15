@@ -87,6 +87,9 @@ class CPythonStatementAssignmentAttribute( CPythonChildrenHaving, CPythonNodeBas
     def getAttributeName( self ):
         return self.attribute_name
 
+    def setAttributeName( self, attribute_name ):
+        self.attribute_name = attribute_name
+
     getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
     getAssignSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
 
@@ -199,6 +202,9 @@ class CPythonStatementDelAttribute( CPythonChildrenHaving, CPythonNodeBase ):
 
     def getAttributeName( self ):
         return self.attribute_name
+
+    def setAttributeName( self, attribute_name ):
+        self.attribute_name = attribute_name
 
     getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 
