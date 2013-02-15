@@ -241,12 +241,8 @@ def makeDiffable( output ):
 
         line = ran_re.sub( r"\1x.xxxs", line )
 
-        # TODO: The C++ compiler may give this warning when modules become too big.
-        if line.endswith( "note: variable tracking size limit exceeded with -fvar-tracking-assignments, retrying without" ):
-            del result[-1]
-            continue
-
-        # TODO: This is a bug potentially, occurs only for CPython when re-directed.
+        # This is a bug potentially, occurs only for CPython when re-directed, we are
+        # going to ignore the issue as Nuitka is fine.
         if line == "Exception RuntimeError: 'maximum recursion depth exceeded while calling a Python object' in <type 'exceptions.AttributeError'> ignored":
             continue
 
