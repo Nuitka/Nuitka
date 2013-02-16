@@ -147,8 +147,13 @@ class Variable:
     reference_class = None
 
     def makeReference( self, owner ):
+        # Need to provider a reference class, or else making references cannot work.
         assert self.reference_class, self
 
+        if self.__class__ == TempVariableReference:
+            assert self.reference_class == TempVariableReference2, ( self.__class__, self.reference_class )
+
+        # Search for existing references to be re-used before making a new one.
         for reference in self.references:
             if reference.getOwner() is owner:
                 return reference
@@ -182,7 +187,8 @@ class VariableReferenceBase( Variable ):
             variable_name = variable.getName()
         )
 
-        self.reference_class = variable.reference_class
+        if self.reference_class is None:
+            self.reference_class = variable.reference_class
 
         variable.addReference( self )
         self.variable = variable
@@ -489,21 +495,6 @@ class TempVariableReference( VariableReferenceBase ):
     def isTempVariableReference( self ):
         # Virtual method, pylint: disable=R0201
         return True
-
-    # TODO: Clarify why it won't do work with reference_class from above, this overload
-    # should not be needed.
-    def makeReference( self, owner ):
-        assert self.reference_class, self
-
-        for reference in self.references:
-            if reference.getOwner() is owner:
-                return reference
-        else:
-            # The reference_class will be overloaded with something callable, pylint: disable=E1102
-            return TempVariableReference2(
-                owner    = owner,
-                variable = self
-            )
 
 
 class TempVariable( Variable ):

@@ -77,7 +77,7 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
                     node.getParentVariableProvider().addClosureVariable( node.getVariable() )
                 )
 
-                assert node.getVariable().isClosureReference()
+                assert node.getVariable().isClosureReference(), node.getVariable()
         elif python_version >= 300 and node.isExpressionFunctionBody():
             # Take closure variables for non-local declarations.
 
