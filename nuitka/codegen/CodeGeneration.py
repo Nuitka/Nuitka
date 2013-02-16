@@ -238,9 +238,15 @@ def generateFunctionCallCode( call_node, context ):
 
     function_body = call_node.getFunction().getFunctionRef().getFunctionBody()
 
+    # TODO: Can't be right and needs improvement. We may not be the exclusive owners of
+    # the function body. Instead of may be called directly, and with defaults both. For
+    # that, two instances of the function will be needed, one with, and one without the
+    # defaults and annotations.  Currently the case cannot happen, for as don't as we only
+    # do this ourselves, or only for functions without defaults and annotations.
+
     function_identifier = generateFunctionBodyCode(
         function_body  = function_body,
-        defaults       = (), # TODO: Can't be right or needs check
+        defaults       = (),
         kw_defaults    = (),
         annotations    = None,
         context        = context
