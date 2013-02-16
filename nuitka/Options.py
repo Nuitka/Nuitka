@@ -385,8 +385,7 @@ tracing_group.add_option(
     "--show-progress",
     action  = "store_true",
     dest    = "show_progress",
-    # TODO: Enable by default for interactive mode.
-    default = False and sys.stdout.isatty(),
+    default = False,
     help    = """Provide progress information and statistics. Defaults to off."""
 )
 
@@ -412,6 +411,17 @@ parser.add_option(
 Specify the allowed number of parallel C++ compiler jobs. Defaults to the system
 CPU count.""",
 )
+
+parser.add_option(
+    "--improved",
+    action  = "store_true",
+    dest    = "improved",
+    default = False,
+    help    = """\
+Allow minor devitations from CPython behaviour, e.g. better tracebacks, which are not
+really incompatible, but different.""",
+)
+
 
 if is_nuitka_python:
     count = 0
@@ -536,7 +546,7 @@ def shallDisableConsoleWindow():
     return options.win_disable_console
 
 def isFullCompat():
-    return True
+    return not options.improved
 
 def isShowProgress():
     return options.show_progress
