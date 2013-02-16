@@ -46,21 +46,23 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
         strcmp( Nuitka_String_AsString( mode ), "exec" ) != 0
        )
     {
-        // TODO: There is an API to call a method, use it instead.
-        source = LOOKUP_ATTRIBUTE( source_code, _python_str_plain_strip );
-        source = PyObject_CallFunctionObjArgs( source, NULL );
+        source = PyObject_CallMethodObjArgs( source_code, _python_str_plain_strip, NULL );
 
-        assert( source );
+        if (unlikely( source == NULL ))
+        {
+            throw _PythonException();
+        }
     }
 #if PYTHON_VERSION < 300
-    // TODO: What does Python3 do here.
+    // Note: Python3 does not support "exec" with file handles.
     else if ( PyFile_Check( source_code ) && strcmp( Nuitka_String_AsString( mode ), "exec" ) == 0 )
     {
-        // TODO: There is an API to call a method, use it instead.
-        source = LOOKUP_ATTRIBUTE( source_code, _python_str_plain_read );
-        source = PyObject_CallFunctionObjArgs( source, NULL );
+        source = PyObject_CallMethodObjArgs( source_code, _python_str_plain_read, NULL );
 
-        assert( source );
+        if (unlikely( source == NULL ))
+        {
+            throw _PythonException();
+        }
     }
 #endif
     else
@@ -123,7 +125,7 @@ PyObject *_OPEN_FILE( EVAL_ORDERED_3( PyObject *file_name, PyObject *mode, PyObj
 PyObject *BUILTIN_CHR( unsigned char c )
 {
     // TODO: A switch statement might be faster, because no object needs to be created at
-    // all, this is how CPython does it.
+    // all, this here is how CPython does it.
     char s[1];
     s[0] = (char)c;
 
