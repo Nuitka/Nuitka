@@ -652,7 +652,9 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exc
     }
     else if ( PyExceptionInstance_Check( exception_type ) )
     {
-        // TODO: What should be done with old value, Py_DECREF maybe?
+        // The type is rather a value, so we are overriding it here.
+        Py_XDECREF( value );
+
         value = exception_type;
         exception_type = INCREASE_REFCOUNT( PyExceptionInstance_Class( exception_type ) );
 
@@ -713,7 +715,8 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static PyObject *THROW_EXCEPTION( PyObject
     }
     else if ( PyExceptionInstance_Check( exception_type ) )
     {
-        // TODO: What should be done with old value, Py_DECREF maybe?
+        Py_DECREF( exception_value );
+
         exception_value = exception_type;
         exception_type = INCREASE_REFCOUNT( PyExceptionInstance_Class( exception_type ) );
 

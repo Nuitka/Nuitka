@@ -481,6 +481,13 @@ def simpleFunction59():
       return a / b
 
 
+def simpleFunction60():
+   try:
+      raise ValueError(1,2,3), ValueError(1,2,3)
+   except Exception:
+      pass
+
+
 x = 17
 
 def checkReferenceCount( checked_function, max_rounds = 10 ):
@@ -586,3 +593,4 @@ checkReferenceCount( simpleFunction55 )
 checkReferenceCount( simpleFunction57 )
 checkReferenceCount( simpleFunction58 )
 checkReferenceCount( simpleFunction59 )
+checkReferenceCount( simpleFunction60 )
