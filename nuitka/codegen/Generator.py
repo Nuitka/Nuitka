@@ -1168,8 +1168,13 @@ def getBuiltinAnonymousRefCode( builtin_name ):
         0
     )
 
-
 def getExceptionRefCode( exception_type ):
+    if exception_type == "NotImplemented":
+        return Identifier(
+            "Py_NotImplemented",
+            0
+        )
+
     return Identifier(
         "PyExc_%s" % exception_type,
         0
