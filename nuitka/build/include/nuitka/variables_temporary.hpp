@@ -89,6 +89,7 @@ public:
         assertObject( this->object );
 
         PyObject *result = this->object;
+
         this->object = NULL;
         return result;
     }

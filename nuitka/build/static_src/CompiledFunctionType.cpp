@@ -260,6 +260,11 @@ static int Nuitka_Function_set_kwdefaults( Nuitka_FunctionObject *object, PyObje
 }
 static PyObject *Nuitka_Function_get_annotations( Nuitka_FunctionObject *object )
 {
+    if ( object->m_annotations == NULL )
+    {
+        object->m_annotations = PyDict_New();
+    }
+
     return INCREASE_REFCOUNT( (PyObject *)object->m_annotations );
 }
 
@@ -380,7 +385,7 @@ static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
 
 #if PYTHON_VERSION >= 300
     Py_DECREF( function->m_kwdefaults );
-    Py_DECREF( function->m_annotations );
+    Py_XDECREF( function->m_annotations );
 #endif
 
     if ( function->m_context )
@@ -483,8 +488,7 @@ static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, Py
     assert( kwdefaults == Py_None || ( PyDict_Check( kwdefaults ) && PyDict_Size( kwdefaults ) > 0 ) );
     result->m_kwdefaults = kwdefaults;
 
-    assertObject( annotations );
-    assert( PyDict_Check( annotations ));
+    assert( annotations == NULL || PyDict_Check( annotations ) );
     result->m_annotations = annotations;
 #endif
 

@@ -2139,12 +2139,8 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         kw_defaults_identifier = kw_defaults_identifier
     )
 
-    # TODO: Probably should support passing NULL to avoid useless dictionaries.
     if annotations_identifier is None:
-        annotations_identifier = getConstantAccess(
-            context  = context,
-            constant = {}
-        )
+        annotations_identifier = NullIdentifier()
 
     if context.isForCreatedFunction():
         result += entry_point_code
@@ -2339,12 +2335,8 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         kw_defaults_identifier = kw_defaults_identifier
     )
 
-    # TODO: Probably should support passing NULL to avoid useless dictionaries.
     if annotations_identifier is None:
-        annotations_identifier = getConstantAccess(
-            context  = context,
-            constant = {}
-        )
+        annotations_identifier = NullIdentifier()
 
     if context.isForCreatedFunction():
         code_identifier = context.getCodeObjectHandle(
@@ -2450,7 +2442,7 @@ def _getConstantsDeclarationCode( context, for_header ):
 
     return "\n".join( statements )
 
-# TODO: The determation of this should already happen in Building or in a helper not
+# TODO: The determination of this should already happen in Building or in a helper not
 # during code generation.
 _match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
 
