@@ -1414,7 +1414,7 @@ def getEvalCode( context, exec_code, filename_identifier, globals_identifier,
             1
         )
 
-def getExecCode( context, exec_code, globals_identifier, locals_identifier, future_flags, provider ):
+def getExecCode( context, exec_code, globals_identifier, locals_identifier, future_flags, provider, source_ref ):
     make_globals_identifier = getLoadGlobalsCode(
         context = context
     )
@@ -1444,18 +1444,25 @@ def getExecCode( context, exec_code, globals_identifier, locals_identifier, futu
             mode     = "updated"
         )
 
+        if Options.isFullCompat():
+            filename_identifier = getConstantCode(
+                constant = "<string>",
+                context  = context
+            )
+        else:
+            filename_identifier = getConstantCode(
+                constant = "<string at %s>" % source_ref.getAsString(),
+                context  = context
+            )
+
+
         return CodeTemplates.exec_local_template % {
             "globals_identifier"      : globals_identifier.getCodeExportRef(),
             "locals_identifier"       : locals_identifier.getCodeExportRef(),
             "make_globals_identifier" : make_globals_identifier.getCodeExportRef(),
             "make_locals_identifier"  : make_locals_identifier.getCodeExportRef(),
             "source_identifier"       : exec_code.getCodeTemporaryRef(),
-            # TODO: Move to the outside, and make using the real source reference an
-            # option.
-            "filename_identifier"     : getConstantCode(
-                constant = "<string>",
-                context = context
-            ),
+            "filename_identifier"     : filename_identifier,
             "mode_identifier"         : getConstantCode(
                 constant = "exec",
                 context  = context

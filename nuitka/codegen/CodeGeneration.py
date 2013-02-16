@@ -1384,7 +1384,8 @@ def generateExecCode( exec_def, context ):
         locals_identifier  = locals_identifier,
         future_flags       = Generator.getFutureFlagsCode(
             future_spec = exec_def.getSourceReference().getFutureSpec()
-        )
+        ),
+        source_ref         = exec_def.getSourceReference()
     )
 
 def generateTryExceptCode( statement, context ):
