@@ -25,8 +25,7 @@ other steps.
 
 
 allowed_tags = (
-    # New code means new statements with possible variable usages that are
-    # not yet bound. Could mean anything.
+    # New code means new statements. Could be a new module, or an inlined exec statement.
     "new_code",
 
     # Added new import.
@@ -52,9 +51,6 @@ allowed_tags = (
 
     # New constant introduced.
     "new_constant",
-
-    # New module recursed to.
-    "new_module",
 
 )
 

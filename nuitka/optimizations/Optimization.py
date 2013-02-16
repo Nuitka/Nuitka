@@ -61,7 +61,7 @@ def optimizeTree( tree ):
         if tags.check( "new_code new_raise" ):
             optimizations_queue.add( OptimizeRaisesVisitor )
 
-        if tags.check( "new_code new_statements new_constant new_builtin read_only_mvar" ):
+        if tags.check( "new_code new_import new_statements new_constant new_builtin read_only_mvar" ):
             optimizations_queue.add( ValuePropagationVisitor )
 
         tags.clear()

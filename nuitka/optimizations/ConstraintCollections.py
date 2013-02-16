@@ -1015,9 +1015,9 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
 
                 if added_flag:
                     self.signalChange(
-                        "new_module",
+                        "new_code",
                         imported_module.getSourceReference(),
-                        "Recursed to module."
+                        "Recursed to module package."
                     )
 
     def onModuleVariableAssigned( self, variable, value_friend ):
