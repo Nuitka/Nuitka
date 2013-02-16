@@ -128,7 +128,8 @@ class Variable:
             while owner.isExpressionFunctionBody() and not owner.isGenerator() and not owner.needsCreation():
                 owner = owner.getParentVariableProvider()
 
-            # TODO: Check if this is necessary still.
+            # This defines being shared. Owned by one, and references that are owned by
+            # another node.
             if owner != top_owner:
                 return True
         else:
