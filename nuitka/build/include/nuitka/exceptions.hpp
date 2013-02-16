@@ -398,7 +398,8 @@ public:
             Py_XINCREF( this->exception_value );
             Py_XINCREF( this->exception_tb );
 
-            // TODO: Can the traceback truly be NULL ?
+            // Restore the frame line number from the traceback, if present. Otherwise it
+            // will changed already.
             if ( this->exception_tb )
             {
                 this->exception_tb->tb_frame->f_lineno = this->exception_tb->tb_lineno;
