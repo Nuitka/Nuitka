@@ -1230,11 +1230,14 @@ def _getLocalVariableList( context, provider ):
 
 def getLoadDirCode( context, provider ):
     if provider.isModule():
-        # TODO: Giving 1 for a temporary ref looks wrong.
+        globals_identifier = getLoadGlobalsCode(
+            context = context
+        )
+
         return Identifier(
-            "PyDict_Keys( %s )" % getLoadGlobalsCode(
-                context = context
-            ).getCodeTemporaryRef(),
+            "PyDict_Keys( %s )" % (
+                globals_identifier.getCodeTemporaryRef(),
+            ),
             1
         )
     else:
