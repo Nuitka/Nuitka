@@ -1393,56 +1393,43 @@ def generateTryExceptCode( statement, context ):
 
     assert tried_block.mayRaiseException( BaseException )
 
-    # Try to find "simple code" cases. TODO: this should be more general, but that's what
-    # is needed immediately.
-    tried_statements = tried_block.getStatements()
+    if statement.isStatementTryFinallyOptimized():
+        tried_statements = tried_block.getStatements()
 
-    if len( tried_statements ) == 1:
+        assert len( tried_statements ) == 1
         tried_statement = tried_statements[0]
 
-        if tried_statement.isStatementAssignmentVariable():
-            source = tried_statement.getAssignSource()
+        source = tried_statement.getAssignSource()
 
-            if source.isExpressionBuiltinNext1():
-                if not source.getValue().mayRaiseException( BaseException ):
-                    # Note: Now we know the source lookup is the only thing that may
-                    # raise.
+        assert source.isExpressionBuiltinNext1()
+        assert not source.getValue().mayRaiseException( BaseException )
 
-                    handlers = statement.getExceptionHandlers()
+        handlers = statement.getExceptionHandlers()
+        assert len( handlers ) == 1
 
-                    if len( handlers ) == 1:
-                        catched_types = handlers[0].getExceptionTypes()
+        temp_identifier = Generator.getTryNextExceptStopIterationIdentifier(
+            context = context
+        )
 
-                        if len( catched_types ) == 1:
-                            catched_type = catched_types[0]
-                            if catched_type.isExpressionBuiltinExceptionRef():
-                                if catched_type.getExceptionName() == "StopIteration":
-                                    if handlers[0].getExceptionBranch().isStatementAborting():
+        assign_code = generateAssignmentVariableCode(
+            variable_ref = tried_statement.getTargetVariableRef(),
+            value        = temp_identifier,
+            context      = context
+        )
 
-                                        temp_identifier = Generator.getTryNextExceptStopIterationIdentifier(
-                                            context = context
-                                        )
-
-                                        assign_code = generateAssignmentVariableCode(
-                                            variable_ref = tried_statement.getTargetVariableRef(),
-                                            value        = temp_identifier,
-                                            context      = context
-                                        )
-
-                                        return Generator.getTryNextExceptStopIterationCode(
-                                            handler_code      = generateStatementSequenceCode(
-                                                statement_sequence = handlers[0].getExceptionBranch(),
-                                                allow_none         = True,
-                                                context            = context
-                                            ),
-                                            temp_identifier   = temp_identifier,
-                                            assign_code       = assign_code,
-                                            source_identifier =         generateExpressionCode(
-                                                expression = source.getValue(),
-                                                context    = context
-                                            )
-                                        )
-
+        return Generator.getTryNextExceptStopIterationCode(
+            handler_code      = generateStatementSequenceCode(
+                statement_sequence = handlers[0].getExceptionBranch(),
+                allow_none         = True,
+                context            = context
+            ),
+            temp_identifier   = temp_identifier,
+            assign_code       = assign_code,
+            source_identifier =         generateExpressionCode(
+                expression = source.getValue(),
+                context    = context
+            )
+        )
 
     handler_codes = []
 
