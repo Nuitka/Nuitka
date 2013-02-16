@@ -125,3 +125,19 @@ def deeplyNestedNonLocalWrite():
     return f(), x
 
 print( "Deeply nested non local writing function", deeplyNestedNonLocalWrite() )
+
+def deletingClosureVariables():
+    try:
+        x = 1
+
+        def g():
+            nonlocal x
+
+            del x
+
+        g()
+        g()
+    except Exception as e:
+        return e
+
+print( "Using deleted non-local vaiables", deletingClosureVariables() )

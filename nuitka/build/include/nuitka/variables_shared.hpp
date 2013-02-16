@@ -80,12 +80,17 @@ public:
     }
 
 #if PYTHON_VERSION >= 300
-    void del()
+    void del( bool tolerant )
     {
         if ( this->free_value )
         {
             // Free old value if any available and owned.
             Py_DECREF( this->object );
+        }
+        else if ( !tolerant )
+        {
+            PyErr_Format( PyExc_NameError, "free variable '%s' referenced before assignment in enclosing scope", Nuitka_String_AsString( this->var_name ) );
+            throw _PythonException();
         }
 
         this->object = NULL;
@@ -170,9 +175,7 @@ public:
 #if PYTHON_VERSION >= 300
     void del( bool tolerant ) const
     {
-        // TODO: Not using tolerant seems wrong, potentially we are missing the check from
-        // asObject here.
-        this->storage->del();
+        this->storage->del( tolerant );
     }
 #endif
 
