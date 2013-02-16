@@ -294,3 +294,15 @@ def _isWhiteListedNotExistingModule( module_name ):
         # Python3 modules that no longer exist
         "commands",
     )
+
+def isStandardLibraryPath( path ):
+    path = Utils.normcase( path )
+    os_path = Utils.normcase( Utils.dirname( os.__file__  ) )
+
+    if not path.startswith( os_path ):
+        return False
+
+    if "dist-packages" in path or "site-packages" in path:
+        return False
+
+    return True

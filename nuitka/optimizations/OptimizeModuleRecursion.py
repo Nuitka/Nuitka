@@ -29,22 +29,7 @@ from .OptimizeBase import OptimizationVisitorBase, warning
 from nuitka import Importing, Options, Utils
 from nuitka.tree import Recursion
 
-import os
-
 _warned_about = set()
-
-def isStandardLibraryPath( path ):
-    path = Utils.normcase( path )
-    os_path = Utils.normcase( Utils.dirname( os.__file__  ) )
-
-    if not path.startswith( os_path ):
-        return False
-
-    if "dist-packages" in path or "site-packages" in path:
-        return False
-
-    return True
-
 
 class ModuleRecursionVisitor( OptimizationVisitorBase ):
     def _recurseTo( self, module_package, module_filename, module_relpath ):
@@ -56,7 +41,7 @@ class ModuleRecursionVisitor( OptimizationVisitorBase ):
 
         if added_flag:
             self.signalChange(
-                "new_module",
+                "new_code",
                 imported_module.getSourceReference(),
                 "Recursed to module."
             )
@@ -137,7 +122,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         if Options.shallFollowNoImports():
             return False
 
-        if isStandardLibraryPath( module_filename ):
+        if Importing.isStandardLibraryPath( module_filename ):
             return Options.shallFollowStandardLibrary()
 
         if Options.shallFollowAllImports():
