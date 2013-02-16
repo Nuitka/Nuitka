@@ -549,10 +549,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
 
     if (unlikely( result == NULL ))
     {
-        // TODO: Throwing an error unless another exists, should be offered too.
+        // The iteration can return NULL with no error, which means StopIteration.
         if ( !ERROR_OCCURED() )
         {
-            PyErr_SetNone( PyExc_StopIteration );
+            throw _PythonException( PyExc_StopIteration );
         }
 
         throw _PythonException();

@@ -110,7 +110,7 @@ public:
         if ( this->object == NULL && this->var_name != NULL )
         {
             PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
-                throw _PythonException();
+            throw _PythonException();
         }
 
         assertObject( this->object );
