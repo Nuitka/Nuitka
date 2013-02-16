@@ -33,8 +33,6 @@ it's done in "isStandardLibraryPath" of this module.
 
 """
 
-# TODO: Above comment needs to take into account split of work with OptimizeModuleRecursion
-
 from . import Options, Utils
 
 import sys, os, imp
@@ -131,7 +129,12 @@ def _findModuleInPath( module_name, package_name ):
             if _debug_module_finding:
                 print( "_findModuleInPath: imp.find_module failed to locate" )
         except SyntaxError:
-            # TODO: A warning might be nice here.
+            # Warn user, as this is kind of unusual.
+            warning(
+                "%s: Module cannot be imported due to syntax errors",
+                module_name,
+            )
+
             if _debug_module_finding:
                 print( "_findModuleInPath: imp.find_module failed with syntax error" )
 
