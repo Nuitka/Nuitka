@@ -25,6 +25,13 @@ static bool ERROR_OCCURED( void )
     return tstate->curexc_type != NULL;
 }
 
+static PyObject *GET_ERROR_OCCURED( void )
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    return tstate->curexc_type;
+}
+
 
 #if PYTHON_VERSION < 300
 NUITKA_MAY_BE_UNUSED static void dumpTraceback( PyTracebackObject *traceback )
