@@ -34,7 +34,7 @@ from .Identifiers import (
     EmptyDictIdentifier,
     getCodeTemporaryRefs,
     getCodeExportRefs,
-    encodeNonAscii
+
 )
 
 from .Indentation import indented
@@ -44,7 +44,11 @@ from .Pickling import getStreamedConstant
 from .OrderedEvaluation import getEvalOrderedCode
 
 from .ConstantCodes import getConstantHandle, getConstantCode
-from .VariableCodes import getVariableHandle, getVariableCode  # imported from here pylint: disable=W0611
+
+# These are here to be imported from here
+# pylint: disable=W0611
+from .VariableCodes import getVariableHandle, getVariableCode, getLocalVariableInitCode
+# pylint: enable=W0611
 
 from .TupleCodes import getTupleCreationCode
 from .ListCodes import getListCreationCode # imported from here pylint: disable=W0611
@@ -861,7 +865,7 @@ def getVariableAssignmentCode( context, variable, identifier ):
         if not referenced.declared:
             referenced.declared = True
 
-            return _getLocalVariableInitCode(
+            return getLocalVariableInitCode(
                 context   = context,
                 variable  = variable.getReferenced(),
                 init_from = identifier
@@ -1912,63 +1916,6 @@ def getFunctionDecl( context, function_identifier, defaults_identifier, kw_defau
         else:
             return result
 
-# TODO: Move this to VariableCodes, it's that subject.
-def _getLocalVariableInitCode( context, variable, init_from = None, in_context = False ):
-    # This has many cases to deal with, so there need to be a lot of branches. It could
-    # be cleaner a bit by solving the TODOs, but the fundamental problem renames.
-    # pylint: disable=R0912
-
-    assert not variable.isModuleVariable()
-
-    assert init_from is None or hasattr( init_from, "getCodeTemporaryRef" )
-
-    result = variable.getDeclarationTypeCode( in_context )
-
-    # For pointer types, we don't have to separate with spaces.
-    if not result.endswith( "*" ):
-        result += " "
-
-    store_name = variable.getMangledName()
-
-    if not in_context:
-        result += "_"
-
-    result += encodeNonAscii( variable.getCodeName() )
-
-    if not in_context:
-        if variable.isTempVariable():
-            if init_from is None:
-                result += " = " + variable.getDeclarationInitValueCode()
-            elif not variable.getNeedsFree():
-                result += " = %s" % init_from.getCodeTemporaryRef()
-            else:
-                result += "( %s )" % init_from.getCodeExportRef()
-        else:
-            result += "( "
-
-            result += "%s" % getConstantCode(
-                context  = context,
-                constant = store_name
-            )
-
-            if init_from is not None:
-                if context.hasLocalsDict():
-                    if init_from.getCheapRefCount() == 0:
-                        result += ", %s" % init_from.getCodeTemporaryRef()
-                    else:
-                        result += ", %s" % init_from.getCodeExportRef()
-
-                        if not variable.isParameterVariable():
-                            result += ", true"
-                else:
-                    result += ", %s" % init_from.getCodeExportRef()
-
-            result += " )"
-
-    result += ";"
-
-    return result
-
 def _getFuncDefaultValue( defaults_identifier ):
     if defaults_identifier.isConstantIdentifier():
         return defaults_identifier
@@ -2002,7 +1949,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
     context_free = []
 
     function_parameter_decl = [
-        _getLocalVariableInitCode(
+        getLocalVariableInitCode(
             context    = context,
             variable   = variable,
             in_context = True
@@ -2030,7 +1977,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 
     for user_variable in user_variables:
         local_var_decl.append(
-            _getLocalVariableInitCode(
+            getLocalVariableInitCode(
                 context    = context,
                 variable   = user_variable,
                 in_context = True
@@ -2056,7 +2003,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
         assert closure_variable.isShared()
 
         context_decl.append(
-            _getLocalVariableInitCode(
+            getLocalVariableInitCode(
                 context    = context,
                 variable   = closure_variable,
                 in_context = True
@@ -2272,7 +2219,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
     context_free = []
 
     function_parameter_decl = [
-        _getLocalVariableInitCode(
+        getLocalVariableInitCode(
             context   = context,
             variable  = variable,
             init_from = Identifier( "_python_par_" + variable.getName(), 1 )
@@ -2283,7 +2230,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
 
     for closure_variable in closure_variables:
         context_decl.append(
-            _getLocalVariableInitCode(
+            getLocalVariableInitCode(
                 context    = context,
                 variable   = closure_variable,
                 in_context = True
@@ -2305,7 +2252,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
 
     # User local variable initializations
     local_var_inits = [
-        _getLocalVariableInitCode(
+        getLocalVariableInitCode(
             context  = context,
             variable = variable
         )
