@@ -400,6 +400,8 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     // Module code
 %(module_code)s
+
+   return MOD_RETURN_VALUE( _module_%(module_identifier)s );
 }
 """
 

@@ -396,7 +396,7 @@ class PythonModuleContext( PythonContextBase ):
         assert guard_mode == "once"
 
     def getReturnCode( self ):
-        return "MOD_RETURN_VALUE( _module_%s );" % self.getModuleCodeName()
+        return "return MOD_RETURN_VALUE( _module_%s );" % self.getModuleCodeName()
 
 
 class PythonFunctionContext( PythonChildContextBase ):
