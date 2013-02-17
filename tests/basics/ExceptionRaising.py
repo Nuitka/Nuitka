@@ -452,3 +452,11 @@ def multiCatchViaTupleVariable():
         print "Yes, indeed."
 
 multiCatchViaTupleVariable()
+
+def raiseValueWithValue():
+    try:
+        raise ValueError(1,2,3), (ValueError(1,2,3))
+    except Exception as e:
+        print "Gives", e
+
+print "Check exception given when value is raised with value", raiseValueWithValue()

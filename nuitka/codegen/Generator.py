@@ -1091,18 +1091,18 @@ def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier
             exception_tb_maker.getCodeExportRef()
         )
     elif exception_value_identifier is None and exception_tb_identifier is None:
-        return "RAISE_EXCEPTION( %s, %s );" % (
+        return "RAISE_EXCEPTION_WITH_TYPE( %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
         )
     elif exception_tb_identifier is None:
-        return "RAISE_EXCEPTION( %s, %s, %s );" % (
+        return "RAISE_EXCEPTION_WITH_VALUE( %s, %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
         )
     else:
-        return "RAISE_EXCEPTION( %s, %s, %s );" % (
+        return "RAISE_EXCEPTION_WITH_TRACEBACK( %s, %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
             exception_tb_identifier.getCodeExportRef()
@@ -1186,12 +1186,12 @@ def getExceptionRefCode( exception_type ):
 
 def getMakeBuiltinExceptionCode( context, exception_type, exception_args ):
     return getCallCode(
-        called_identifier    = Identifier( "PyExc_%s" % exception_type, 0 ),
-        argument_tuple       = getTupleCreationCode(
+        called_identifier   = Identifier( "PyExc_%s" % exception_type, 0 ),
+        argument_tuple      = getTupleCreationCode(
             element_identifiers = exception_args,
             context             = context,
         ),
-        argument_dictionary  = None
+        argument_dictionary = None
     )
 
 def _getLocalVariableList( context, provider ):

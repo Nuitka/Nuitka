@@ -18,6 +18,8 @@
 #ifndef __NUITKA_HELPER_INDEXES_H__
 #define __NUITKA_HELPER_INDEXES_H__
 
+#include "nuitka/helper/raising.hpp"
+
 NUITKA_MAY_BE_UNUSED static Py_ssize_t CONVERT_TO_INDEX( PyObject *value )
 {
     assertObject( value );

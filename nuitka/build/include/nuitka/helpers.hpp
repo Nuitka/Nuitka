@@ -74,7 +74,6 @@ static inline void assertObject( PyTracebackObject *value )
 // For the EVAL_ORDER and MAKE_TUPLE macros.
 #include "__helpers.hpp"
 
-
 // Helper functions for reference count handling in the fly.
 NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
 {
@@ -101,13 +100,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
     return object;
 }
 
-#include "nuitka/exceptions.hpp"
-
 #include "printing.hpp"
 
 #include "nuitka/helper/boolean.hpp"
 
 #include "nuitka/helper/dictionaries.hpp"
+
 
 #if PYTHON_VERSION >= 300
 static char *_PyUnicode_AS_STRING( PyObject *unicode )
@@ -122,6 +120,8 @@ static char *_PyUnicode_AS_STRING( PyObject *unicode )
     return PyBytes_AS_STRING( bytes );
 }
 #endif
+
+#include "nuitka/helper/raising.hpp"
 
 typedef PyObject *(binary_api)( PyObject *, PyObject * );
 
