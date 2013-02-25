@@ -1,6 +1,12 @@
-nuitka (0.4.0+ds-1) unstable; urgency=low
+nuitka (0.4.1~pre1+ds-2) UNRELEASED; urgency=low
 
   * New upstream pre-release.
+
+ -- Kay Hayen <kayhayen@gmx.de>  Mon, 25 Feb 2013 22:17:58 +0100
+
+nuitka (0.4.0+ds-1) unstable; urgency=low
+
+  * New upstream release.
   * Changes so the Debian package can be backported to Squeeze as well.
 
  -- Kay Hayen <kayhayen@gmx.de>  Sat, 09 Feb 2013 10:08:15 +0100
