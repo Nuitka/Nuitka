@@ -21,7 +21,7 @@ Function calls and generally calling expressions are the same thing. This is ver
 important, because it allows to predict most things, and avoid expensive operations like
 parameter parsing at run time.
 
-There will be a method "computeNodeCall" to aid predicting them.
+There will be a method "computeExpressionCall" to aid predicting them.
 """
 
 from .NodeBases import ExpressionChildrenHavingBase
@@ -56,7 +56,7 @@ class ExpressionCall( ExpressionChildrenHavingBase ):
     def isExpressionCall( self ):
         return True
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         called = self.getCalled()
 
         if called.willRaiseException( BaseException ):
@@ -88,7 +88,7 @@ class ExpressionCall( ExpressionChildrenHavingBase ):
 
             return result, "new_raise", "Call keyword arguments raise exception"
 
-        return called.computeNodeCall(
+        return called.computeExpressionCall(
             call_node             = self,
             constraint_collection = constraint_collection
         )

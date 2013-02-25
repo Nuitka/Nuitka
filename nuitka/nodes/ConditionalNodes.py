@@ -48,7 +48,7 @@ class ExpressionConditional( ExpressionChildrenHavingBase ):
     getExpressionNo = ExpressionChildrenHavingBase.childGetter( "expression_no" )
     getCondition = ExpressionChildrenHavingBase.childGetter( "condition" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         condition = self.getCondition()
 
         # If the condition raises, we let that escape.

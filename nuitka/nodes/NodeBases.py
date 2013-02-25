@@ -826,31 +826,31 @@ class ExpressionMixin:
         # print "onRelease", self
         pass
 
-    def computeNodeAttribute( self, lookup_node, attribute_name, constraint_collection ):
+    def computeExpressionAttribute( self, lookup_node, attribute_name, constraint_collection ):
         # By default, an attribute lookup may change everything about the lookup source.
         # Virtual method, pylint: disable=R0201,W0613
         constraint_collection.removeKnowledge( lookup_node )
 
         return lookup_node, None, None
 
-    def computeNodeSubscript( self, lookup_node, subscript, constraint_collection ):
+    def computeExpressionSubscript( self, lookup_node, subscript, constraint_collection ):
         # By default, an subscript may change everything about the lookup source.
         constraint_collection.removeKnowledge( lookup_node )
 
         return lookup_node, None, None
 
-    def computeNodeSlice( self, lookup_node, lower, upper, constraint_collection ):
+    def computeExpressionSlice( self, lookup_node, lower, upper, constraint_collection ):
         # By default, a slicing may change everything about the lookup source.
         constraint_collection.removeKnowledge( lookup_node )
 
         return lookup_node, None, None
 
-    def computeNodeCall( self, call_node, constraint_collection ):
+    def computeExpressionCall( self, call_node, constraint_collection ):
         constraint_collection.removeKnowledge( call_node )
 
         return call_node, None, None
 
-    def computeNodeOperationNot( self, not_node, constraint_collection ):
+    def computeExpressionOperationNot( self, not_node, constraint_collection ):
         constraint_collection.removeKnowledge( not_node )
 
         return not_node, None, None
@@ -873,7 +873,7 @@ class CompileTimeConstantExpressionMixin( ExpressionMixin ):
     def mayHaveSideEffectsBool( self, constraint_collection ):
         return False
 
-    def computeNodeOperationNot( self, not_node, constraint_collection ):
+    def computeExpressionOperationNot( self, not_node, constraint_collection ):
         from .NodeMakingHelpers import getComputationResult
 
         return getComputationResult(
@@ -883,7 +883,7 @@ class CompileTimeConstantExpressionMixin( ExpressionMixin ):
         )
 
 
-    def computeNodeAttribute( self, lookup_node, attribute_name, constraint_collection ):
+    def computeExpressionAttribute( self, lookup_node, attribute_name, constraint_collection ):
         from .NodeMakingHelpers import getComputationResult
 
         return getComputationResult(
@@ -892,7 +892,7 @@ class CompileTimeConstantExpressionMixin( ExpressionMixin ):
             description = "Attribute lookup to %s precomputed." % attribute_name
         )
 
-    def computeNodeSubscript( self, lookup_node, subscript, constraint_collection ):
+    def computeExpressionSubscript( self, lookup_node, subscript, constraint_collection ):
         from .NodeMakingHelpers import getComputationResult
 
         if subscript.isCompileTimeConstant():
@@ -904,7 +904,7 @@ class CompileTimeConstantExpressionMixin( ExpressionMixin ):
 
         return lookup_node, None, None
 
-    def computeNodeSlice( self, lookup_node, lower, upper, constraint_collection ):
+    def computeExpressionSlice( self, lookup_node, lower, upper, constraint_collection ):
         from .NodeMakingHelpers import getComputationResult
 
         # TODO: Could be happy with predictable index values and not require constants.
@@ -989,7 +989,7 @@ class ExpressionBuiltinNoArgBase( NodeBase, ExpressionMixin ):
 
         self.builtin_function = builtin_function
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         from .NodeMakingHelpers import getComputationResult
 
         # The lamba is there for make sure that no argument parsing will reach the builtin
@@ -1016,7 +1016,7 @@ class ExpressionBuiltinSingleArgBase( ExpressionChildrenHavingBase,
 
     getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         value = self.getValue()
 
         assert self.builtin_spec is not None, self

@@ -75,7 +75,7 @@ class ExpressionOperationBinary( ExpressionOperationBase ):
             source_ref = source_ref
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         operator = self.getOperator()
         operands = self.getOperands()
 
@@ -154,7 +154,7 @@ class ExpressionOperationUnary( ExpressionOperationBase ):
             source_ref = source_ref
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         operator = self.getOperator()
         operand = self.getOperand()
 
@@ -190,13 +190,13 @@ class ExpressionOperationNOT( ExpressionOperationUnary ):
             source_ref = source_ref
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         operand = self.getOperand()
 
         if operand.willRaiseException( BaseException ):
             return operand, "new_raise", "Argument of 'not' operation raises exception"
 
-        return operand.computeNodeOperationNot(
+        return operand.computeExpressionOperationNot(
             not_node              = self,
             constraint_collection = constraint_collection
         )
@@ -249,6 +249,6 @@ class ExpressionOperationBinaryInplace( ExpressionOperationBinary ):
             source_ref = source_ref
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Inplace operation requires extra care to avoid corruption of values.
         return self, None, None

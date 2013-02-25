@@ -63,7 +63,7 @@ class ExpressionBuiltinBool( ExpressionBuiltinTypeBase ):
         # Dedicated code returns "True" or "False" only, which requires no reference
         return False
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         value = self.getValue()
 
         if value is not None:
@@ -82,7 +82,7 @@ class ExpressionBuiltinBool( ExpressionBuiltinTypeBase ):
 
                 return result, "new_constant", "Predicted truth value of builtin bool argument"
 
-        return ExpressionBuiltinTypeBase.computeNode( self, constraint_collection )
+        return ExpressionBuiltinTypeBase.computeExpression( self, constraint_collection )
 
 
 class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
@@ -111,7 +111,7 @@ class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
     getValue = ChildrenHavingMixin.childGetter( "value" )
     getBase = ChildrenHavingMixin.childGetter( "base" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         value = self.getValue()
         base = self.getBase()
 
@@ -155,7 +155,7 @@ class ExpressionBuiltinUnicodeBase( ChildrenHavingMixin, NodeBase,
     getEncoding = ChildrenHavingMixin.childGetter( "encoding" )
     getErrors = ChildrenHavingMixin.childGetter( "errors" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         args = [
             self.getValue(),
             self.getEncoding(),
@@ -174,8 +174,8 @@ if python_version < 300:
 
         builtin_spec = BuiltinOptimization.builtin_str_spec
 
-        def computeNode( self, constraint_collection ):
-            new_node, change_tags, change_desc = ExpressionBuiltinTypeBase.computeNode(
+        def computeExpression( self, constraint_collection ):
+            new_node, change_tags, change_desc = ExpressionBuiltinTypeBase.computeExpression(
                 self,
                 constraint_collection
             )

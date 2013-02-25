@@ -56,7 +56,7 @@ class ExpressionMakeSequenceBase( SideEffectsFromChildrenMixin,
         # Abstract method, pylint: disable=R0201,W0613
         return None
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         elements = self.getElements()
 
         for count, element in enumerate( elements ):
@@ -178,7 +178,7 @@ class ExpressionKeyValuePair( SideEffectsFromChildrenMixin,
     getKey = ExpressionChildrenHavingBase.childGetter( "key" )
     getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         key = self.getKey()
 
         if key.willRaiseException( BaseException ):
@@ -217,7 +217,7 @@ class ExpressionMakeDict( SideEffectsFromChildrenMixin,
 
     getPairs = ExpressionChildrenHavingBase.childGetter( "pairs" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         pairs = self.getPairs()
 
         for count, pair in enumerate( pairs ):

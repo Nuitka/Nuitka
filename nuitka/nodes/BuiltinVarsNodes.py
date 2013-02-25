@@ -40,6 +40,6 @@ class ExpressionBuiltinVars( ExpressionChildrenHavingBase ):
 
     getSource = ExpressionChildrenHavingBase.childGetter( "source" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Should be possible.
         return self, None, None

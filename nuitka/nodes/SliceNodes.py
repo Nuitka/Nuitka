@@ -20,7 +20,7 @@
 Slices are important when working with lists. Tracking them can allow to achieve more
 compact code, or predict results at compile time.
 
-There will be a method "computeNodeSlice" to aid predicting them.
+There will be a method "computeExpressionSlice" to aid predicting them.
 """
 
 from .NodeBases import ExpressionChildrenHavingBase
@@ -59,10 +59,10 @@ class ExpressionSliceLookup( ExpressionChildrenHavingBase ):
     getUpper = ExpressionChildrenHavingBase.childGetter( "upper" )
     setUpper = ExpressionChildrenHavingBase.childSetter( "upper" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         lookup_source = self.getLookupSource()
 
-        return lookup_source.computeNodeSlice(
+        return lookup_source.computeExpressionSlice(
             lookup_node           = self,
             lower                 = self.getLower(),
             upper                 = self.getUpper(),
@@ -94,6 +94,6 @@ class ExpressionSliceObject( ExpressionChildrenHavingBase ):
     getUpper = ExpressionChildrenHavingBase.childGetter( "upper" )
     getStep  = ExpressionChildrenHavingBase.childGetter( "step" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Not much to do, potentially simplify to slice instead?
         return self, None, None

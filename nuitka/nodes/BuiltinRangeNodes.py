@@ -96,7 +96,7 @@ class ExpressionBuiltinRange1( ExpressionBuiltinRangeBase ):
 
     getLow = ExpressionChildrenHavingBase.childGetter( "low" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Support Python3 range objects too.
         if python_version >= 300:
             return self, None, None
@@ -181,7 +181,7 @@ class ExpressionBuiltinRange2( ExpressionBuiltinRangeBase ):
             description = "Builtin call to %s precomputed." % self.builtin_spec.getName()
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         if python_version >= 300:
             return self, None, None
 
@@ -275,7 +275,7 @@ class ExpressionBuiltinRange3( ExpressionBuiltinRangeBase ):
             description = "Builtin call to %s precomputed." % self.builtin_spec.getName()
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         if python_version >= 300:
             return self, None, None
 

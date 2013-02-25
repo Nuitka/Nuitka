@@ -57,11 +57,11 @@ class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
     def getDetail( self ):
         return repr( self.constant )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # Cannot compute any further, this is already the best.
         return self, None, None
 
-    def computeNodeCall( self, call_node, constraint_collection ):
+    def computeExpressionCall( self, call_node, constraint_collection ):
         from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression, wrapExpressionWithSideEffects
 
         new_node = wrapExpressionWithSideEffects(

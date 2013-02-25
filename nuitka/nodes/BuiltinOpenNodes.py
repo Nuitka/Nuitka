@@ -44,6 +44,6 @@ class ExpressionBuiltinOpen( ExpressionChildrenHavingBase ):
     getMode = ExpressionChildrenHavingBase.childGetter( "mode" )
     getBuffering = ExpressionChildrenHavingBase.childGetter( "buffering" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # Note: Quite impossible to predict without further assumptions.
         return self, None, None

@@ -139,7 +139,7 @@ class ExpressionRaiseException( ExpressionChildrenHavingBase ):
     def mayProvideReference( self ):
         return False
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         return self, None, None
 
 
@@ -167,7 +167,7 @@ class ExpressionBuiltinMakeException( ExpressionChildrenHavingBase ):
 
     getArgs = ExpressionChildrenHavingBase.childGetter( "args" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         return self, None, None
 
 
@@ -177,7 +177,7 @@ class ExpressionCaughtExceptionTypeRef( NodeBase, ExpressionMixin ):
     def __init__( self, source_ref ):
         NodeBase.__init__( self, source_ref = source_ref )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
@@ -192,7 +192,7 @@ class ExpressionCaughtExceptionValueRef( NodeBase, ExpressionMixin ):
     def __init__( self, source_ref ):
         NodeBase.__init__( self, source_ref = source_ref )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
@@ -212,7 +212,7 @@ class ExpressionCaughtExceptionTracebackRef( NodeBase, ExpressionMixin ):
     def __init__( self, source_ref ):
         NodeBase.__init__( self, source_ref = source_ref )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         return self, None, None
 
     def mayHaveSideEffects( self, constraint_collection ):

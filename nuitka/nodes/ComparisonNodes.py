@@ -68,7 +68,7 @@ class ExpressionComparison( ExpressionChildrenHavingBase ):
     def getSimulator( self ):
         return PythonOperators.all_comparison_functions[ self.comparator ]
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         left, right = self.getOperands()
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
@@ -88,7 +88,7 @@ class ExpressionComparison( ExpressionChildrenHavingBase ):
 
         return self, None, None
 
-    def computeNodeOperationNot( self, not_node, constraint_collection ):
+    def computeExpressionOperationNot( self, not_node, constraint_collection ):
         if self.comparator in PythonOperators.comparison_inversions:
             left, right = self.getOperands()
 
@@ -128,7 +128,7 @@ class ExpressionComparisonIsIsNotBase( ExpressionComparison ):
     def isExpressionComparison( self ):
         return True
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         left, right = self.getOperands()
 
         if constraint_collection.mustAlias( left, right ):
@@ -167,7 +167,7 @@ class ExpressionComparisonIsIsNotBase( ExpressionComparison ):
 
             return result, "new_constant", "Determined values to not alias and therefore result of %s comparison" % self.comparator
 
-        return ExpressionComparison.computeNode( self, constraint_collection )
+        return ExpressionComparison.computeExpression( self, constraint_collection )
 
     def extractSideEffects( self ):
         left, right = self.getOperands()

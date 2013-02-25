@@ -38,7 +38,7 @@ class ExpressionBuiltinGlobals( NodeBase, ExpressionMixin ):
     def __init__( self, source_ref ):
         NodeBase.__init__( self, source_ref = source_ref )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         return self, None, None
 
 
@@ -48,7 +48,7 @@ class ExpressionBuiltinLocals( NodeBase, ExpressionMixin ):
     def __init__( self, source_ref ):
         NodeBase.__init__( self, source_ref = source_ref )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         return self, None, None
 
     def needsLocalsDict( self ):
@@ -83,13 +83,13 @@ class ExpressionBuiltinDir0( NodeBase, ExpressionMixin ):
     def __init__( self, source_ref ):
         NodeBase.__init__( self, source_ref = source_ref )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         return self, None, None
 
 
 class ExpressionBuiltinDir1( ExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_DIR1"
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Quite some cases should be possible to predict.
         return self, None, None

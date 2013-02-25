@@ -248,7 +248,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                             )
 
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # Attempt to recurse if not already done.
         if not self.hasAttemptedRecurse():
             self._attemptRecursion(
@@ -298,7 +298,7 @@ class ExpressionBuiltinImport( ExpressionChildrenHavingBase ):
     getLocals = ExpressionChildrenHavingBase.childGetter( "locals" )
     getLevel = ExpressionChildrenHavingBase.childGetter( "level" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         module_name = self.getImportName()
         fromlist = self.getFromList()
         level = self.getLevel()
@@ -367,7 +367,7 @@ class ExpressionImportName( ExpressionChildrenHavingBase ):
 
     getModule = ExpressionChildrenHavingBase.childGetter( "module" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: May return a module or module variable reference of some sort in the
         # future with embedded modules.
         return self, None, None

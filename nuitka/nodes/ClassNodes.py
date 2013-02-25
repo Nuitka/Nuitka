@@ -38,7 +38,7 @@ class ExpressionSelectMetaclass( ExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Meta class selection is very computable, and should be done.
         return self, None, None
 
@@ -66,7 +66,7 @@ class ExpressionBuiltinType3( ExpressionChildrenHavingBase ):
     getBases = ExpressionChildrenHavingBase.childGetter( "bases" )
     getDict = ExpressionChildrenHavingBase.childGetter( "dict" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Should be compile time computable if bases and dict are.
 
         return self, None, None

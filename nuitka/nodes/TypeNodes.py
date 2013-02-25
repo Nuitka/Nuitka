@@ -35,7 +35,7 @@ from nuitka.Builtins import builtin_names
 class ExpressionBuiltinType1( ExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_TYPE1"
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         value = self.getValue()
 
         if value.isCompileTimeConstant():
@@ -86,7 +86,7 @@ class ExpressionBuiltinSuper( ExpressionChildrenHavingBase ):
     getType = ExpressionChildrenHavingBase.childGetter( "type" )
     getObject = ExpressionChildrenHavingBase.childGetter( "object" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
 
@@ -109,7 +109,7 @@ class ExpressionBuiltinIsinstance( ExpressionChildrenHavingBase ):
     getInstance = ExpressionChildrenHavingBase.childGetter( "instance" )
     getCls = ExpressionChildrenHavingBase.childGetter( "cls" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
 

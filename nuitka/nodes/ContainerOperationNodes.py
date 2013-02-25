@@ -43,7 +43,7 @@ class ExpressionListOperationAppend( ExpressionChildrenHavingBase ):
     getList = ExpressionChildrenHavingBase.childGetter( "list" )
     getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         constraint_collection.removeKnowledge( self.getList() )
 
         return self, None, None
@@ -70,7 +70,7 @@ class ExpressionSetOperationAdd( ExpressionChildrenHavingBase ):
     getSet = ExpressionChildrenHavingBase.childGetter( "set" )
     getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         constraint_collection.removeKnowledge( self.getSet() )
 
         return self, None, None
@@ -100,7 +100,7 @@ class ExpressionDictOperationSet( ExpressionChildrenHavingBase ):
     getKey = ExpressionChildrenHavingBase.childGetter( "key" )
     getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         constraint_collection.removeKnowledge( self.getDict() )
 
         return self, None, None
@@ -150,5 +150,5 @@ class ExpressionDictOperationGet( ExpressionChildrenHavingBase ):
     getDict = ExpressionChildrenHavingBase.childGetter( "dict" )
     getKey = ExpressionChildrenHavingBase.childGetter( "key" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         return self, None, None

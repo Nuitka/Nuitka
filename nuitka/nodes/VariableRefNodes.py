@@ -78,7 +78,7 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
 
         self.variable = variable
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         assert self.variable is not None
 
         if _isReadOnlyModuleVariable( self.variable ):
@@ -188,7 +188,7 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
 class ExpressionTargetVariableRef( ExpressionVariableRef ):
     kind = "EXPRESSION_TARGET_VARIABLE_REF"
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         assert False
 
 
@@ -221,7 +221,7 @@ class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
     def setVariable( self, variable ):
         self.variable = variable
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # Nothing to do here.
         return self, None, None
 

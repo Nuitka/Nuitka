@@ -285,10 +285,10 @@ class ConstraintCollectionBase:
 
         self.onSubExpressions( expression )
 
-        r = expression.computeNode( self )
+        r = expression.computeExpression( self )
         assert type(r) is tuple, expression
 
-        new_node, change_tags, change_desc = expression.computeNode( self )
+        new_node, change_tags, change_desc = expression.computeExpression( self )
 
         if new_node is not expression:
             # print expression, "->", new_node

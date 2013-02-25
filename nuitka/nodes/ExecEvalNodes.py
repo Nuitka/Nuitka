@@ -53,7 +53,7 @@ class ExpressionBuiltinEval( ExpressionChildrenHavingBase ):
     getGlobals = ExpressionChildrenHavingBase.childGetter( "globals" )
     getLocals = ExpressionChildrenHavingBase.childGetter( "locals" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Attempt for constant values to do it.
         return self, None, None
 
@@ -66,7 +66,7 @@ if Utils.python_version >= 300:
         def needsLocalsDict( self ):
             return True
 
-        def computeNode( self, constraint_collection ):
+        def computeExpression( self, constraint_collection ):
             # TODO: Attempt for constant values to do it.
             if self.getParent().isStatementExpressionOnly() and self.getParentVariableProvider().isEarlyClosure():
                 result = StatementExec(

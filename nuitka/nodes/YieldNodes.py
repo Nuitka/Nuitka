@@ -50,7 +50,7 @@ class ExpressionYield( ExpressionChildrenHavingBase ):
 
     getExpression = ExpressionChildrenHavingBase.childGetter( "expression" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         value = self.getExpression()
 
         if value.willRaiseException( BaseException ):

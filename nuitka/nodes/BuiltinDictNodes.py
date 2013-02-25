@@ -70,7 +70,7 @@ class ExpressionBuiltinDict( ExpressionChildrenHavingBase ):
 
         return True
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         if self.hasOnlyConstantArguments():
             pos_arg = self.getPositionalArgument()
 

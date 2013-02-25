@@ -20,7 +20,7 @@
 Knowing attributes of an object is very important, esp. when it comes to 'self' and
 objects and classes.
 
-There will be a method "computeNodeAttribute" to aid predicting them.
+There will be a method "computeExpressionAttribute" to aid predicting them.
 """
 
 from .NodeBases import ExpressionChildrenHavingBase
@@ -63,13 +63,13 @@ class ExpressionAttributeLookup( ExpressionChildrenHavingBase ):
             source_ref     = source_ref
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         lookup_source = self.getLookupSource()
 
         if lookup_source.willRaiseException( BaseException ):
             return lookup_source, "new_raise", "Attribute lookup source raises exception."
 
-        return lookup_source.computeNodeAttribute(
+        return lookup_source.computeExpressionAttribute(
             lookup_node           = self,
             attribute_name        = self.getAttributeName(),
             constraint_collection = constraint_collection
@@ -84,13 +84,13 @@ class ExpressionSpecialAttributeLookup( ExpressionAttributeLookup ):
     kind = "EXPRESSION_SPECIAL_ATTRIBUTE_LOOKUP"
 
     # TODO: Special lookups should be treated somehow different.
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         lookup_source = self.getLookupSource()
 
         if lookup_source.willRaiseException( BaseException ):
             return lookup_source, "new_raise", "Special attribute lookup source raises exception."
 
-        # TODO: Special lookups may reuse "computeNodeAttribute"
+        # TODO: Special lookups may reuse "computeExpressionAttribute"
         return self, None, None
 
 
@@ -117,7 +117,7 @@ class ExpressionBuiltinGetattr( ExpressionChildrenHavingBase ):
     getAttribute = ExpressionChildrenHavingBase.childGetter( "attribute" )
     getDefault = ExpressionChildrenHavingBase.childGetter( "default" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         default = self.getDefault()
 
         if default is None:
@@ -176,7 +176,7 @@ class ExpressionBuiltinSetattr( ExpressionChildrenHavingBase ):
     getAttribute = ExpressionChildrenHavingBase.childGetter( "attribute" )
     getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # Note: Might be possible to predict or downgrade to mere attribute set.
         return self, None, None
 
@@ -202,7 +202,7 @@ class ExpressionBuiltinHasattr( ExpressionChildrenHavingBase ):
     getLookupSource = ExpressionChildrenHavingBase.childGetter( "source" )
     getAttribute = ExpressionChildrenHavingBase.childGetter( "attribute" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # Note: Might be possible to predict or downgrade to mere attribute check.
 
         return self, None, None

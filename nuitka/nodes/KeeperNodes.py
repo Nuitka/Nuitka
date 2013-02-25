@@ -62,7 +62,7 @@ class ExpressionAssignmentTempKeeper( ExpressionChildrenHavingBase ):
 
     getAssignSource = ExpressionChildrenHavingBase.childGetter( "source" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         source = self.getAssignSource()
 
         if self.variable.getReferenced().isWriteOnly():
@@ -96,7 +96,7 @@ class ExpressionTempKeeperRef( NodeBase, ExpressionMixin ):
     def getVariableName( self ):
         return self.variable.getName()
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         friend = constraint_collection.getVariableValueFriend( self.getVariable() )
 
         if friend is not None and not friend.mayHaveSideEffects( None ) and friend.isNode():

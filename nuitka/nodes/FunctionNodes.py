@@ -318,11 +318,11 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
     def markAsCrossModuleUsed( self ):
         self.cross_module_use = True
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # Function body is quite irreplacable.
         return self, None, None
 
-    def computeNodeCall( self, call_node, constraint_collection ):
+    def computeExpressionCall( self, call_node, constraint_collection ):
         # TODO: Until we have something to re-order the arguments, we need to skip this. For
         # the immediate need, we avoid this complexity, as a re-ordering will be needed.
         if call_node.getNamedArgumentPairs():
@@ -444,7 +444,7 @@ class ExpressionFunctionCreation( SideEffectsFromChildrenMixin,
             source_ref = source_ref
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Function body may know something.
         return self, None, None
 
@@ -504,7 +504,7 @@ class ExpressionFunctionRef( NodeBase, ExpressionMixin ):
     def getFunctionBody( self ):
         return self.function_body
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Function body may know something.
         return self, None, None
 
@@ -530,7 +530,7 @@ class ExpressionFunctionCall( ExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         function = self.getFunction()
 
         if function.willRaiseException( BaseException ):

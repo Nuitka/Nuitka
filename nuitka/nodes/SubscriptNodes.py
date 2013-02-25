@@ -20,7 +20,7 @@
 Subscripts are important when working with lists and dictionaries. Tracking them can allow
 to achieve more compact code, or predict results at compile time.
 
-There will be a method "computeNodeSubscript" to aid predicting them.
+There will be a method "computeExpressionSubscript" to aid predicting them.
 """
 
 from .NodeBases import ExpressionChildrenHavingBase
@@ -44,10 +44,10 @@ class ExpressionSubscriptLookup( ExpressionChildrenHavingBase ):
     getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
     getSubscript = ExpressionChildrenHavingBase.childGetter( "subscript" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         lookup_source = self.getLookupSource()
 
-        return lookup_source.computeNodeSubscript(
+        return lookup_source.computeExpressionSubscript(
             lookup_node           = self,
             subscript             = self.getSubscript(),
             constraint_collection = constraint_collection

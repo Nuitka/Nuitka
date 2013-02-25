@@ -84,7 +84,7 @@ class ExpressionBuiltinRef( ExpressionBuiltinRefBase ):
     def getCompileTimeConstant( self ):
         return __builtins__[ self.builtin_name ]
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         quick_names = {
             "None"      : None,
             "True"      : True,
@@ -103,7 +103,7 @@ class ExpressionBuiltinRef( ExpressionBuiltinRefBase ):
 
         return self, None, None
 
-    def computeNodeCall( self, call_node, constraint_collection ):
+    def computeExpressionCall( self, call_node, constraint_collection ):
 
         return computeBuiltinCall(
             call_node = call_node,
@@ -152,7 +152,7 @@ class ExpressionBuiltinAnonymousRef( ExpressionBuiltinRefBase ):
     def getCompileTimeConstant( self ):
         return builtin_anon_names[ self.builtin_name ]
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         return self, None, None
 
     def getStringValue( self, constraint_collection ):
@@ -192,10 +192,10 @@ class ExpressionBuiltinExceptionRef( ExpressionBuiltinRefBase ):
     def getCompileTimeConstant( self ):
         return builtin_exception_values[ self.builtin_name ]
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         return self, None, None
 
-    def computeNodeCall( self, call_node, constraint_collection ):
+    def computeExpressionCall( self, call_node, constraint_collection ):
         exception_name = self.getExceptionName()
 
         def createBuiltinMakeException( args, source_ref ):

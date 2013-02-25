@@ -46,10 +46,10 @@ class ExpressionBuiltinLen( ExpressionBuiltinSingleArgBase ):
     def getIntegerValue( self, constraint_collection ):
         return self.getValue().getIterationLength( constraint_collection )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         from .NodeMakingHelpers import makeConstantReplacementNode, wrapExpressionWithNodeSideEffects
 
-        new_node, change_tags, change_desc = ExpressionBuiltinSingleArgBase.computeNode(
+        new_node, change_tags, change_desc = ExpressionBuiltinSingleArgBase.computeExpression(
             self,
             constraint_collection = constraint_collection
         )
@@ -133,7 +133,7 @@ class ExpressionBuiltinIter1( ExpressionBuiltinSingleArgBase ):
     def getValueFriend( self, constraint_collection ):
         return ValueFriendBuiltinIter1( self.getValue().getValueFriend( constraint_collection ) )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         value = self.getValue()
 
         if value.isIteratorMaking():
@@ -183,7 +183,7 @@ class ExpressionBuiltinNext1( ExpressionBuiltinSingleArgBase ):
             source_ref = source_ref
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         if not Options.isExperimental():
             return self, None, None
 
@@ -291,7 +291,7 @@ class ExpressionBuiltinIter2( ExpressionChildrenHavingBase ):
     getCallable = ExpressionChildrenHavingBase.childGetter( "callable" )
     getSentinel = ExpressionChildrenHavingBase.childGetter( "sentinel" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         return self, None, None
 
     def isIteratorMaking( self ):
@@ -316,5 +316,5 @@ class ExpressionBuiltinNext2( ExpressionChildrenHavingBase ):
     getIterator = ExpressionChildrenHavingBase.childGetter( "iterator" )
     getDefault = ExpressionChildrenHavingBase.childGetter( "default" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         return self, None, None

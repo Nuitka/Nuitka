@@ -61,7 +61,7 @@ class ExpressionSideEffects( ExpressionChildrenHavingBase ):
 
         return ExpressionChildrenHavingBase.setChild( self, name, value )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         side_effects = self.getSideEffects()
         new_side_effects = []
 
