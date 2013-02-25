@@ -815,10 +815,6 @@ class ConstraintCollectionBase:
 
         elif statement.isStatementTryExcept():
             return self._onStatementTryExcept( statement )
-
-        elif statement.isStatementImportStar():
-            # TODO: Need to invalidate everything, and everything could be assigned now.
-            return self.onStatementUsingChildExpressions( statement )
         elif statement.isStatementContinueLoop():
             # TODO: Not clear how to handle these, the statement sequence processing
             # should abort here.

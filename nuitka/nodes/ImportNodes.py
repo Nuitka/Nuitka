@@ -339,6 +339,15 @@ class StatementImportStar( ExpressionChildrenHavingBase ):
 
     getModule = ExpressionChildrenHavingBase.childGetter( "module" )
 
+    def computeStatement( self, constraint_collection ):
+        constraint_collection.onExpression( self.getModule() )
+
+        # Need to invalidate everything, and everything could be assigned to something
+        # else now.
+        constraint_collection.removeAllKnowledge()
+
+        return self, None, None
+
 
 class ExpressionImportName( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_IMPORT_NAME"
