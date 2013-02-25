@@ -195,6 +195,25 @@ def wrapStatementWithSideEffects( new_node, old_node, allow_none = False ):
 
     return new_node
 
+def makeStatementOnlyNodesFromExpressions( expressions ):
+    statements = tuple(
+        StatementExpressionOnly(
+            expression = expression,
+            source_ref = expression.getSourceReference()
+        )
+        for expression in expressions
+    )
+
+    if not statements:
+        return None
+    elif len( statements ) == 1:
+        return statements[ 0 ]
+    else:
+        return StatementsSequence(
+            statements = statements,
+            source_ref = statements[0].getSourceReference()
+        )
+
 def makeComparisonNode( left, right, comparator, source_ref ):
     if comparator == "Is":
         return ExpressionComparisonIs(

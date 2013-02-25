@@ -93,6 +93,34 @@ class StatementAssignmentAttribute( ChildrenHavingMixin, NodeBase ):
     getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
     getAssignSource = ExpressionChildrenHavingBase.childGetter( "source" )
 
+    def computeStatement( self, constraint_collection ):
+        constraint_collection.onExpression( self.getAssignSource() )
+        source = self.getAssignSource()
+
+        # No assignment will occur, if the assignment source raises, so strip it away.
+        if source.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+
+            return makeStatementExpressionOnlyReplacementNode(
+                expression = source,
+                node       = self
+            )
+
+        constraint_collection.onExpression( self.getLookupSource() )
+        lookup_source = self.getLookupSource()
+
+        if lookup_source.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+            return makeStatementOnlyNodesFromExpressions(
+                expressions = (
+                    source,
+                    lookup_source
+                )
+            )
+
+        return self
+
 
 class StatementAssignmentSubscript( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_ASSIGNMENT_SUBSCRIPT"
@@ -114,6 +142,48 @@ class StatementAssignmentSubscript( ChildrenHavingMixin, NodeBase ):
     getSubscribed = ExpressionChildrenHavingBase.childGetter( "expression" )
     getSubscript = ExpressionChildrenHavingBase.childGetter( "subscript" )
     getAssignSource = ExpressionChildrenHavingBase.childGetter( "source" )
+
+    def computeStatement( self, constraint_collection ):
+        constraint_collection.onExpression( self.getAssignSource() )
+        source = self.getAssignSource()
+
+        # No assignment will occur, if the assignment source raises, so strip it away.
+        if source.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+
+            return makeStatementExpressionOnlyReplacementNode(
+                expression = source,
+                node       = self
+            )
+
+        constraint_collection.onExpression( self.getSubscribed() )
+        subscribed = self.getSubscribed()
+
+        if subscribed.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+            return makeStatementOnlyNodesFromExpressions(
+                expressions = (
+                    source,
+                    subscribed
+                )
+            )
+
+        constraint_collection.onExpression( self.getSubscript() )
+        subscript = self.getSubscript()
+
+        if subscript.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+            return makeStatementOnlyNodesFromExpressions(
+                expressions = (
+                    source,
+                    subscribed,
+                    subscript
+                )
+            )
+
+        return self
 
 
 class StatementAssignmentSlice( ChildrenHavingMixin, NodeBase ):
@@ -138,6 +208,63 @@ class StatementAssignmentSlice( ChildrenHavingMixin, NodeBase ):
     getLower = ExpressionChildrenHavingBase.childGetter( "lower" )
     getUpper = ExpressionChildrenHavingBase.childGetter( "upper" )
     getAssignSource = ExpressionChildrenHavingBase.childGetter( "source" )
+
+    def computeStatement( self, constraint_collection ):
+        constraint_collection.onExpression( self.getAssignSource() )
+        source = self.getAssignSource()
+
+        # No assignment will occur, if the assignment source raises, so strip it away.
+        if source.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+
+            return makeStatementExpressionOnlyReplacementNode(
+                expression = source,
+                node       = self
+            )
+
+        constraint_collection.onExpression( self.getLookupSource() )
+        lookup_source = self.getLookupSource()
+
+        if lookup_source.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+            return makeStatementOnlyNodesFromExpressions(
+                expressions = (
+                    source,
+                    lookup_source
+                )
+            )
+
+        constraint_collection.onExpression( self.getLower(), allow_none = True )
+        lower = self.getLower()
+
+        if lower is not None and lower.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+            return makeStatementOnlyNodesFromExpressions(
+                expressions = (
+                    source,
+                    lookup_source,
+                    lower
+                )
+            )
+
+        constraint_collection.onExpression( self.getUpper(), allow_none = True )
+        upper = self.getUpper()
+
+        if upper is not None and upper.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+            return makeStatementOnlyNodesFromExpressions(
+                expressions = (
+                    source,
+                    lookup_source,
+                    lower,
+                    upper
+                )
+            )
+
+        return self
 
 
 class StatementDelVariable( ChildrenHavingMixin, NodeBase ):
@@ -208,6 +335,21 @@ class StatementDelAttribute( ChildrenHavingMixin, NodeBase ):
 
     getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
 
+    def computeStatement( self, constraint_collection ):
+        constraint_collection.onExpression( self.getLookupSource() )
+        lookup_source = self.getLookupSource()
+
+        if lookup_source.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+
+            return makeStatementExpressionOnlyReplacementNode(
+                expression = lookup_source,
+                node       = self
+            )
+
+
+        return self
+
 
 class StatementDelSubscript( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_DEL_SUBSCRIPT"
@@ -227,6 +369,34 @@ class StatementDelSubscript( ChildrenHavingMixin, NodeBase ):
 
     getSubscribed = ExpressionChildrenHavingBase.childGetter( "expression" )
     getSubscript = ExpressionChildrenHavingBase.childGetter( "subscript" )
+
+    def computeStatement( self, constraint_collection ):
+        constraint_collection.onExpression( self.getSubscribed() )
+        subscribed = self.getSubscribed()
+
+        if subscribed.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+
+            return makeStatementExpressionOnlyReplacementNode(
+                expression = subscribed,
+                node       = self
+            )
+
+
+        constraint_collection.onExpression( self.getSubscript() )
+        subscript = self.getSubscript()
+
+        if subscript.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+            return makeStatementOnlyNodesFromExpressions(
+                expressions = (
+                    subscribed,
+                    subscript
+                )
+            )
+
+        return self
 
 
 class StatementDelSlice( ChildrenHavingMixin, NodeBase ):
@@ -249,3 +419,44 @@ class StatementDelSlice( ChildrenHavingMixin, NodeBase ):
     getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
     getLower = ExpressionChildrenHavingBase.childGetter( "lower" )
     getUpper = ExpressionChildrenHavingBase.childGetter( "upper" )
+
+    def computeStatement( self, constraint_collection ):
+        constraint_collection.onExpression( self.getLookupSource() )
+        lookup_source = self.getLookupSource()
+
+        if lookup_source.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+
+            return makeStatementExpressionOnlyReplacementNode(
+                expression = lookup_source,
+                node       = self
+            )
+
+        constraint_collection.onExpression( self.getLower(), allow_none = True )
+        lower = self.getLower()
+
+        if lower is not None and lower.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+            return makeStatementOnlyNodesFromExpressions(
+                expressions = (
+                    lookup_source,
+                    lower
+                )
+            )
+
+        constraint_collection.onExpression( self.getUpper(), allow_none = True )
+        upper = self.getUpper()
+
+        if upper is not None and upper.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+            return makeStatementOnlyNodesFromExpressions(
+                expressions = (
+                    lookup_source,
+                    lower,
+                    upper
+                )
+            )
+
+        return self

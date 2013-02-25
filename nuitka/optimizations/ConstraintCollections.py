@@ -770,28 +770,10 @@ class ConstraintCollectionBase:
     def onStatement( self, statement ):
         assert statement.isStatement(), statement
 
-        if statement.isStatementAssignmentVariable():
+        if hasattr( statement, "computeStatement" ):
+            return statement.computeStatement( self )
+        elif statement.isStatementAssignmentVariable():
             return self._onStatementAssignmentVariable( statement )
-        elif statement.isStatementAssignmentAttribute():
-            self.onExpression( statement.getAssignSource() )
-            self.onExpression( statement.getLookupSource() )
-
-            return statement
-        elif statement.isStatementAssignmentSubscript():
-            self.onExpression( statement.getAssignSource() )
-
-            self.onExpression( statement.getSubscribed() )
-            self.onExpression( statement.getSubscript() )
-
-            return statement
-        elif statement.isStatementAssignmentSlice():
-            self.onExpression( statement.getAssignSource() )
-
-            self.onExpression( statement.getLookupSource() )
-            self.onExpression( statement.getLower(), allow_none = True )
-            self.onExpression( statement.getUpper(), allow_none = True )
-
-            return statement
         elif statement.isStatementDelVariable():
             variable = statement.getTargetVariableRef()
 
@@ -799,21 +781,6 @@ class ConstraintCollectionBase:
                 self.variables[ variable ].onRelease( self )
 
                 del self.variables[ variable ]
-
-            return statement
-        elif statement.isStatementDelAttribute():
-            self.onExpression( statement.getLookupSource() )
-
-            return statement
-        elif statement.isStatementDelSubscript():
-            self.onExpression( statement.getSubscribed() )
-            self.onExpression( statement.getSubscript() )
-
-            return statement
-        elif statement.isStatementDelSlice():
-            self.onExpression( statement.getLookupSource() )
-            self.onExpression( statement.getLower(), allow_none = True )
-            self.onExpression( statement.getUpper(), allow_none = True )
 
             return statement
         elif statement.isStatementExpressionOnly():
