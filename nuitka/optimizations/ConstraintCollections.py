@@ -771,7 +771,17 @@ class ConstraintCollectionBase:
         assert statement.isStatement(), statement
 
         if hasattr( statement, "computeStatement" ):
-            return statement.computeStatement( self )
+            new_statement, change_tags, change_desc = statement.computeStatement( self )
+
+            if new_statement is not statement:
+                self.signalChange(
+                    change_tags,
+                    statement.getSourceReference(),
+                    change_desc
+                )
+
+            return new_statement
+
         elif statement.isStatementAssignmentVariable():
             return self._onStatementAssignmentVariable( statement )
         elif statement.isStatementDelVariable():
@@ -842,100 +852,6 @@ class ConstraintCollectionBase:
 
         elif statement.isStatementPrint():
             return self._onStatementPrint( statement )
-        elif statement.isStatementReturn():
-            statement = self.onStatementUsingChildExpressions( statement )
-
-            value = statement.getExpression()
-
-            if value.willRaiseException( BaseException ):
-                self.signalChange(
-                    "new_statements",
-                    statement.getSourceReference(),
-                    "Return statement raises"
-                )
-
-                return makeStatementExpressionOnlyReplacementNode(
-                    expression = value,
-                    node       = statement
-                )
-
-            # TODO: The merging will need to consider if merged branches really can exit
-            # or not.
-            return statement
-        elif statement.isStatementRaiseException():
-            statement = self.onStatementUsingChildExpressions( statement )
-
-            exception_type = statement.getExceptionType()
-
-            if exception_type is not None and exception_type.willRaiseException( BaseException ):
-                self.signalChange(
-                    "new_raise",
-                    statement.getSourceReference(),
-                    "Explicit raise already raises building exception type"
-                )
-
-                return makeStatementExpressionOnlyReplacementNode(
-                    expression = exception_type,
-                    node       = statement
-                )
-
-            exception_value = statement.getExceptionValue()
-
-            if exception_value is not None and exception_value.willRaiseException( BaseException ):
-                self.signalChange(
-                    "new_raise",
-                    statement.getSourceReference(),
-                    "Explicit raise already raises building exception value"
-                )
-
-                return wrapStatementWithSideEffects(
-                    new_node = makeStatementExpressionOnlyReplacementNode(
-                        expression = exception_value,
-                        node       = statement
-                    ),
-                    old_node = exception_type
-                )
-
-            exception_trace = statement.getExceptionTrace()
-
-            if exception_trace is not None and exception_trace.willRaiseException( BaseException ):
-                self.signalChange(
-                    "new_raise",
-                    statement.getSourceReference(),
-                    "Explicit raise already raises building exception traceback"
-                )
-
-                return wrapStatementWithSideEffects(
-                    new_node = wrapStatementWithSideEffects(
-                        new_node = makeStatementExpressionOnlyReplacementNode(
-                            expression = exception_trace,
-                            node       = statement
-                        ),
-                        old_node = exception_value
-                    ),
-                    old_node = exception_type
-                )
-
-            exception_cause = statement.getExceptionCause()
-
-            if exception_cause is not None and exception_cause.willRaiseException( BaseException ):
-                self.signalChange(
-                    "new_raise",
-                    statement.getSourceReference(),
-                    "Explicit raise already raises building exception cause"
-                )
-
-                return wrapStatementWithSideEffects(
-                    new_node = makeStatementExpressionOnlyReplacementNode(
-                        expression = exception_type,
-                        node       = statement
-                    ),
-                    old_node = exception_type
-                )
-
-            return statement
-        elif statement.isStatementExec():
-            return self.onStatementUsingChildExpressions( statement )
         elif statement.isStatementConditional():
             return self._onStatementConditional( statement )
         elif statement.isStatementLoop():

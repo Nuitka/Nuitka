@@ -55,3 +55,19 @@ class StatementReturn( ExpressionChildrenHavingBase ):
         assert self.exception_driven is not None
 
         return self.exception_driven
+
+    def computeStatement( self, constraint_collection ):
+        constraint_collection.onExpression( self.getExpression() )
+        expression = self.getExpression()
+
+        if expression.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+
+            result = makeStatementExpressionOnlyReplacementNode(
+                expression = expression,
+                node       = self
+            )
+
+            return result, "new_raise", "Return statement raises in returned expression, removed return"
+
+        return self, None, None

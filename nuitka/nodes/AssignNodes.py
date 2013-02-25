@@ -101,10 +101,12 @@ class StatementAssignmentAttribute( ChildrenHavingMixin, NodeBase ):
         if source.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
-            return makeStatementExpressionOnlyReplacementNode(
+            result = makeStatementExpressionOnlyReplacementNode(
                 expression = source,
                 node       = self
             )
+
+            return result, "new_raise", "Attribute assignment raises exception in assigned value, removed assignment"
 
         constraint_collection.onExpression( self.getLookupSource() )
         lookup_source = self.getLookupSource()
@@ -112,14 +114,16 @@ class StatementAssignmentAttribute( ChildrenHavingMixin, NodeBase ):
         if lookup_source.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
-            return makeStatementOnlyNodesFromExpressions(
+            result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     source,
                     lookup_source
                 )
             )
 
-        return self
+            return result, "new_raise", "Attribute assignment raises exception in attribute source, removed assignment"
+
+        return self, None, None
 
 
 class StatementAssignmentSubscript( ChildrenHavingMixin, NodeBase ):
@@ -151,10 +155,12 @@ class StatementAssignmentSubscript( ChildrenHavingMixin, NodeBase ):
         if source.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
-            return makeStatementExpressionOnlyReplacementNode(
+            result = makeStatementExpressionOnlyReplacementNode(
                 expression = source,
                 node       = self
             )
+
+            return result, "new_raise", "Subscript assignment raises exception in assigned value, removed assignment"
 
         constraint_collection.onExpression( self.getSubscribed() )
         subscribed = self.getSubscribed()
@@ -162,12 +168,14 @@ class StatementAssignmentSubscript( ChildrenHavingMixin, NodeBase ):
         if subscribed.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
-            return makeStatementOnlyNodesFromExpressions(
+            result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     source,
                     subscribed
                 )
             )
+
+            return result, "new_raise", "Subscript assignment raises exception in subscribed value, removed assignment"
 
         constraint_collection.onExpression( self.getSubscript() )
         subscript = self.getSubscript()
@@ -175,7 +183,7 @@ class StatementAssignmentSubscript( ChildrenHavingMixin, NodeBase ):
         if subscript.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
-            return makeStatementOnlyNodesFromExpressions(
+            result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     source,
                     subscribed,
@@ -183,7 +191,9 @@ class StatementAssignmentSubscript( ChildrenHavingMixin, NodeBase ):
                 )
             )
 
-        return self
+            return result, "new_raise", "Subscript assignment raises exception in subscript value, removed assignment"
+
+        return self, None, None
 
 
 class StatementAssignmentSlice( ChildrenHavingMixin, NodeBase ):
@@ -217,10 +227,12 @@ class StatementAssignmentSlice( ChildrenHavingMixin, NodeBase ):
         if source.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
-            return makeStatementExpressionOnlyReplacementNode(
+            result = makeStatementExpressionOnlyReplacementNode(
                 expression = source,
                 node       = self
             )
+
+            return result, "new_raise", "Slice assignment raises exception in assigned value, removed assignment"
 
         constraint_collection.onExpression( self.getLookupSource() )
         lookup_source = self.getLookupSource()
@@ -228,12 +240,14 @@ class StatementAssignmentSlice( ChildrenHavingMixin, NodeBase ):
         if lookup_source.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
-            return makeStatementOnlyNodesFromExpressions(
+            result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     source,
                     lookup_source
                 )
             )
+
+            return result, "new_raise", "Slice assignment raises exception in sliced value, removed assignment"
 
         constraint_collection.onExpression( self.getLower(), allow_none = True )
         lower = self.getLower()
@@ -241,7 +255,7 @@ class StatementAssignmentSlice( ChildrenHavingMixin, NodeBase ):
         if lower is not None and lower.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
-            return makeStatementOnlyNodesFromExpressions(
+            result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     source,
                     lookup_source,
@@ -249,13 +263,15 @@ class StatementAssignmentSlice( ChildrenHavingMixin, NodeBase ):
                 )
             )
 
+            return result, "new_raise", "Slice assignment raises exception in lower slice boundary value, removed assignment"
+
         constraint_collection.onExpression( self.getUpper(), allow_none = True )
         upper = self.getUpper()
 
         if upper is not None and upper.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
-            return makeStatementOnlyNodesFromExpressions(
+            result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     source,
                     lookup_source,
@@ -264,7 +280,9 @@ class StatementAssignmentSlice( ChildrenHavingMixin, NodeBase ):
                 )
             )
 
-        return self
+            return result, "new_raise", "Slice assignment raises exception in upper slice boundary value, removed assignment"
+
+        return self, None, None
 
 
 class StatementDelVariable( ChildrenHavingMixin, NodeBase ):
@@ -347,8 +365,7 @@ class StatementDelAttribute( ChildrenHavingMixin, NodeBase ):
                 node       = self
             )
 
-
-        return self
+        return self, None, None
 
 
 class StatementDelSubscript( ChildrenHavingMixin, NodeBase ):
@@ -377,10 +394,12 @@ class StatementDelSubscript( ChildrenHavingMixin, NodeBase ):
         if subscribed.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
-            return makeStatementExpressionOnlyReplacementNode(
+            result = makeStatementExpressionOnlyReplacementNode(
                 expression = subscribed,
                 node       = self
             )
+
+            return result, "new_raise", "Subscript del raises exception in subscribed value, removed del"
 
 
         constraint_collection.onExpression( self.getSubscript() )
@@ -389,14 +408,16 @@ class StatementDelSubscript( ChildrenHavingMixin, NodeBase ):
         if subscript.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
-            return makeStatementOnlyNodesFromExpressions(
+            result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     subscribed,
                     subscript
                 )
             )
 
-        return self
+            return result, "new_raise", "Subscript del raises exception in subscribt value, removed del"
+
+        return self, None, None
 
 
 class StatementDelSlice( ChildrenHavingMixin, NodeBase ):
@@ -427,10 +448,13 @@ class StatementDelSlice( ChildrenHavingMixin, NodeBase ):
         if lookup_source.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
-            return makeStatementExpressionOnlyReplacementNode(
+            result = makeStatementExpressionOnlyReplacementNode(
                 expression = lookup_source,
                 node       = self
             )
+
+            return result, "new_raise", "Slice del raises exception in sliced value, removed del"
+
 
         constraint_collection.onExpression( self.getLower(), allow_none = True )
         lower = self.getLower()
@@ -438,12 +462,14 @@ class StatementDelSlice( ChildrenHavingMixin, NodeBase ):
         if lower is not None and lower.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
-            return makeStatementOnlyNodesFromExpressions(
+            result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     lookup_source,
                     lower
                 )
             )
+
+            return result, "new_raise", "Slice del raises exception in lower slice boundary value, removed del"
 
         constraint_collection.onExpression( self.getUpper(), allow_none = True )
         upper = self.getUpper()
@@ -451,7 +477,7 @@ class StatementDelSlice( ChildrenHavingMixin, NodeBase ):
         if upper is not None and upper.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
-            return makeStatementOnlyNodesFromExpressions(
+            result = makeStatementOnlyNodesFromExpressions(
                 expressions = (
                     lookup_source,
                     lower,
@@ -459,4 +485,6 @@ class StatementDelSlice( ChildrenHavingMixin, NodeBase ):
                 )
             )
 
-        return self
+            return result, "new_raise", "Slice del raises exception in upper slice boundary value, removed del"
+
+        return self, None, None

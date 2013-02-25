@@ -86,6 +86,68 @@ class StatementRaiseException( ChildrenHavingMixin, NodeBase ):
     def isImplicit( self ):
         return False
 
+    def computeStatement( self, constraint_collection ):
+        constraint_collection.onExpression( self.getExceptionType(), allow_none = True )
+        exception_type = self.getExceptionType()
+
+        if exception_type is not None and exception_type.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+
+            result = makeStatementExpressionOnlyReplacementNode(
+                expression = exception_type,
+                node       = self
+            )
+
+            return result, "new_raise", "Explicit raise already raises implicitely building exception type"
+
+        constraint_collection.onExpression( self.getExceptionValue(), allow_none = True )
+        exception_value = self.getExceptionValue()
+
+        if exception_value is not None and exception_value.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+            result = makeStatementOnlyNodesFromExpressions(
+                expressions = (
+                    exception_type,
+                    exception_value
+                )
+            )
+
+            return result, "new_node", "Explicit raise already raises implicitely building exception value"
+
+        constraint_collection.onExpression( self.getExceptionTrace(), allow_none = True )
+        exception_trace = self.getExceptionTrace()
+
+        if exception_trace is not None and exception_trace.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+            result = makeStatementOnlyNodesFromExpressions(
+                expressions = (
+                    exception_type,
+                    exception_value,
+                    exception_trace
+                )
+            )
+
+            return result, "new_raise", "Explicit raise already raises implicitely building exception traceback"
+
+        constraint_collection.onExpression( self.getExceptionCause(), allow_none = True )
+        exception_cause = self.getExceptionCause()
+
+        if exception_cause is not None and exception_cause.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+            result = makeStatementOnlyNodesFromExpressions(
+                expressions = (
+                    exception_type,
+                    exception_cause,
+                )
+            )
+
+            return result, "new_raise", "Explicit raise already raises implicitely building exception cause"
+
+        return self, None, None
+
 
 class StatementRaiseExceptionImplicit( StatementRaiseException ):
     kind = "STATEMENT_RAISE_EXCEPTION_IMPLICIT"

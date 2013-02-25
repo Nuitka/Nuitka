@@ -141,3 +141,45 @@ class StatementExec( ChildrenHavingMixin, NodeBase ):
         return _couldBeNone( self.getGlobals() ) or \
                self.getGlobals().isExpressionBuiltinLocals() or \
                self.getLocals() is not None and self.getLocals().isExpressionBuiltinLocals()
+
+    def computeStatement( self, constraint_collection ):
+        constraint_collection.onExpression( self.getSourceCode() )
+        source_code = self.getSourceCode()
+
+        if source_code.willRaiseException( BaseException ):
+            result = source_code
+
+            return result, "new_raise", "Exec statement raises implicitely when determining source code argument."
+
+        constraint_collection.onExpression( self.getGlobals(), allow_none = True )
+        globals_arg = self.getGlobals()
+
+        if globals_arg is not None and globals_arg.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+            result = makeStatementOnlyNodesFromExpressions(
+                expressions = (
+                    source_code,
+                    globals_arg
+                )
+            )
+
+            return result, "new_raise", "Exec statement raises implicitely when determining globals argument."
+
+        constraint_collection.onExpression( self.getLocals(), allow_none = True )
+        locals_arg = self.getLocals()
+
+        if locals_arg is not None and locals_arg.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+            result = makeStatementOnlyNodesFromExpressions(
+                expressions = (
+                    source_code,
+                    globals_arg,
+                    locals_arg
+                )
+            )
+
+            return result, "new_raise", "Exec statement raises implicitely when determining locals argument."
+
+        return self, None, None
