@@ -1004,6 +1004,10 @@ def generateExpressionCode( expression, context, allow_none = False ):
             identifier = makeExpressionCode( expression.getValue() )
         )
     elif expression.isExpressionRaiseException():
+        # Missed optimization opportunity, please report.
+        if Options.isDebug():
+            assert expression.parent.isExpressionSideEffects(), ( expression, expression.parent )
+
         identifier = Generator.getRaiseExceptionExpressionCode(
             exception_type_identifier  = makeExpressionCode(
                 expression = expression.getExceptionType()
