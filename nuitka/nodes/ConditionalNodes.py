@@ -51,20 +51,31 @@ class CPythonExpressionConditional( CPythonExpressionChildrenHavingBase ):
     def computeNode( self, constraint_collection ):
         condition = self.getCondition()
 
-        # TODO: Actually really want to check the truth value only, not constant ness.
-        if condition.isCompileTimeConstant():
-            if condition.getCompileTimeConstant():
-                return (
-                    self.getExpressionYes(),
-                    "new_expression",
-                    "Conditional expression predicted to yes case"
-                )
-            else:
-                return (
-                    self.getExpressionNo(),
-                    "new_expression",
-                    "Conditional expression predicted to no case"
-                )
+        # Decide this based on truth value of condition.
+        truth_value = condition.getTruthValue( constraint_collection )
+
+        if truth_value is True:
+            from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+
+            return (
+                wrapExpressionWithNodeSideEffects(
+                    new_node = self.getExpressionYes(),
+                    old_node = condition
+                ),
+                "new_expression",
+                "Conditional expression predicted to yes case"
+            )
+        elif truth_value is False:
+            from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+
+            return (
+                wrapExpressionWithNodeSideEffects(
+                    new_node = self.getExpressionNo(),
+                    old_node = condition
+                ),
+                "new_expression",
+                "Conditional expression predicted to no case"
+            )
         else:
             return self, None, None
 
