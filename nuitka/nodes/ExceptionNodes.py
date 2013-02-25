@@ -136,6 +136,9 @@ class CPythonExpressionRaiseException( CPythonExpressionChildrenHavingBase ):
     getExceptionType = CPythonExpressionChildrenHavingBase.childGetter( "exception_type" )
     getExceptionValue = CPythonExpressionChildrenHavingBase.childGetter( "exception_value" )
 
+    def mayProvideReference( self ):
+        return False
+
     def computeNode( self, constraint_collection ):
         return self, None, None
 
