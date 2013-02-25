@@ -23,18 +23,18 @@ which is more general, the 'Forever' loop, with breaks
 
 """
 
-from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
+from .NodeBases import ChildrenHavingMixin, NodeBase
 
 
-class CPythonStatementLoop( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementLoop( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_LOOP"
 
     named_children = ( "frame", )
 
     def __init__( self, body, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {
                 "frame" : body
@@ -44,7 +44,7 @@ class CPythonStatementLoop( CPythonChildrenHaving, CPythonNodeBase ):
         self.break_exception = False
         self.continue_exception = False
 
-    getLoopBody = CPythonChildrenHaving.childGetter( "frame" )
+    getLoopBody = ChildrenHavingMixin.childGetter( "frame" )
 
     def markAsExceptionContinue( self ):
         self.continue_exception = True
@@ -59,11 +59,11 @@ class CPythonStatementLoop( CPythonChildrenHaving, CPythonNodeBase ):
         return self.break_exception
 
 
-class CPythonStatementContinueLoop( CPythonNodeBase ):
+class StatementContinueLoop( NodeBase ):
     kind = "STATEMENT_CONTINUE_LOOP"
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
         self.exception_driven = False
 
@@ -77,11 +77,11 @@ class CPythonStatementContinueLoop( CPythonNodeBase ):
         return self.exception_driven
 
 
-class CPythonStatementBreakLoop( CPythonNodeBase ):
+class StatementBreakLoop( NodeBase ):
     kind = "STATEMENT_BREAK_LOOP"
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
         self.exception_driven = False
 

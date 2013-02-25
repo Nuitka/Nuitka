@@ -35,9 +35,9 @@ from nuitka.nodes.NodeMakingHelpers import (
     wrapStatementWithSideEffects
 )
 
-from nuitka.nodes.ExceptionNodes import CPythonStatementRaiseExceptionImplicit
-from nuitka.nodes.ConditionalNodes import CPythonStatementConditional
-from nuitka.nodes.OperatorNodes import CPythonExpressionOperationNOT
+from nuitka.nodes.ExceptionNodes import StatementRaiseExceptionImplicit
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 
 from nuitka import Options, Utils, Importing
 from nuitka.tree import Recursion
@@ -546,8 +546,8 @@ class ConstraintCollectionBase:
             # Would be eliminated already.
             assert statement.getBranchNo() is not None
 
-            new_statement = CPythonStatementConditional(
-                condition = CPythonExpressionOperationNOT(
+            new_statement = StatementConditional(
+                condition = ExpressionOperationNOT(
                     operand    = statement.getCondition(),
                     source_ref = statement.getCondition().getSourceReference()
                 ),
@@ -862,7 +862,7 @@ class ConstraintCollectionBase:
                     return None
 
                 if expression.isExpressionRaiseException():
-                    return CPythonStatementRaiseExceptionImplicit(
+                    return StatementRaiseExceptionImplicit(
                         exception_type  = expression.getExceptionType(),
                         exception_value = expression.getExceptionValue(),
                         exception_trace = None,
@@ -1121,7 +1121,7 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
         self.module = None
 
     def process( self, module ):
-        assert module.isModule()
+        assert module.isPythonModule()
         self.module = module
 
         module_body = module.getBody()

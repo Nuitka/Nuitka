@@ -21,30 +21,30 @@ These are for use in optimizations and computations, and therefore cover mostly 
 and constants. Otherwise the thread of cyclic dependency kicks in.
 """
 
-from .ConstantRefNodes import CPythonExpressionConstantRef
+from .ConstantRefNodes import ExpressionConstantRef
 
 from nuitka.Constants import isConstant
 from nuitka.Builtins import builtin_names
 
 from .BuiltinRefNodes import (
-    CPythonExpressionBuiltinExceptionRef,
-    CPythonExpressionBuiltinRef
+    ExpressionBuiltinExceptionRef,
+    ExpressionBuiltinRef
 )
-from .ExceptionNodes import CPythonExpressionRaiseException
+from .ExceptionNodes import ExpressionRaiseException
 from .StatementNodes import (
-    CPythonStatementExpressionOnly,
-    CPythonStatementsSequence
+    StatementExpressionOnly,
+    StatementsSequence
 )
 from .ComparisonNodes import (
-    CPythonExpressionComparison,
-    CPythonExpressionComparisonIs,
-    CPythonExpressionComparisonIsNOT
+    ExpressionComparison,
+    ExpressionComparisonIs,
+    ExpressionComparisonIsNOT
 )
-from .SideEffectNodes import CPythonExpressionSideEffects
+from .SideEffectNodes import ExpressionSideEffects
 
 
 def makeConstantReplacementNode( constant, node ):
-    return CPythonExpressionConstantRef(
+    return ExpressionConstantRef(
         constant   = constant,
         source_ref = node.getSourceReference()
     )
@@ -54,8 +54,8 @@ def makeRaiseExceptionReplacementExpression( expression, exception_type, excepti
 
     assert type( exception_type ) is str
 
-    result = CPythonExpressionRaiseException(
-        exception_type  = CPythonExpressionBuiltinExceptionRef(
+    result = ExpressionRaiseException(
+        exception_type  = ExpressionBuiltinExceptionRef(
             exception_name = exception_type,
             source_ref     = source_ref
         ),
@@ -88,7 +88,7 @@ def makeCompileTimeConstantReplacementNode( value, node ):
         )
     elif type( value ) is type:
         if value.__name__ in builtin_names:
-            return CPythonExpressionBuiltinRef(
+            return ExpressionBuiltinRef(
                 builtin_name = value.__name__,
                 source_ref    = node.getSourceReference()
             )
@@ -130,13 +130,13 @@ def getComputationResult( node, computation, description ):
     return new_node, change_tags, change_desc
 
 def makeStatementExpressionOnlyReplacementNode( expression, node ):
-    return CPythonStatementExpressionOnly(
+    return StatementExpressionOnly(
         expression = expression,
         source_ref = node.getSourceReference()
     )
 
 def makeStatementsSequenceReplacementNode( statements, node ):
-    return CPythonStatementsSequence(
+    return StatementsSequence(
         statements = statements,
         source_ref = node.getSourceReference()
     )
@@ -153,7 +153,7 @@ def wrapExpressionWithSideEffects( side_effects, old_node, new_node ):
     assert new_node.isExpression()
 
     if side_effects:
-        new_node = CPythonExpressionSideEffects(
+        new_node = ExpressionSideEffects(
             expression   = new_node,
             side_effects = side_effects,
             source_ref   = old_node.getSourceReference()
@@ -175,7 +175,7 @@ def wrapStatementWithSideEffects( new_node, old_node, allow_none = False ):
 
     if side_effects:
         side_effects = tuple(
-            CPythonStatementExpressionOnly(
+            StatementExpressionOnly(
                 expression = side_effect,
                 source_ref = side_effect.getSourceReference()
             )
@@ -197,19 +197,19 @@ def wrapStatementWithSideEffects( new_node, old_node, allow_none = False ):
 
 def makeComparisonNode( left, right, comparator, source_ref ):
     if comparator == "Is":
-        return CPythonExpressionComparisonIs(
+        return ExpressionComparisonIs(
             left       = left,
             right      = right,
             source_ref = source_ref
         )
     elif comparator == "IsNot":
-        return CPythonExpressionComparisonIsNOT(
+        return ExpressionComparisonIsNOT(
                 left       = left,
                 right      = right,
                 source_ref = source_ref
             )
     else:
-        return CPythonExpressionComparison(
+        return ExpressionComparison(
             left       = left,
             right      = right,
             comparator = comparator,

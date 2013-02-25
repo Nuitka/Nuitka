@@ -20,19 +20,19 @@
 """
 
 from .NodeBases import (
-    CPythonExpressionChildrenHavingBase,
-    CPythonExpressionMixin,
-    CPythonChildrenHaving,
-    CPythonNodeBase
+    ExpressionChildrenHavingBase,
+    ExpressionMixin,
+    ChildrenHavingMixin,
+    NodeBase
 )
 
-class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementRaiseException( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_RAISE_EXCEPTION"
 
     named_children = ( "exception_type", "exception_value", "exception_trace", "exception_cause" )
 
     def __init__( self, exception_type, exception_value, exception_trace, exception_cause, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
         if exception_type is None:
             assert exception_value is None
@@ -40,7 +40,7 @@ class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
         if exception_value is None:
             assert exception_trace is None
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {
                 "exception_type"  : exception_type,
@@ -53,10 +53,10 @@ class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
         self.reraise_local = False
         self.reraise_finally = False
 
-    getExceptionType = CPythonChildrenHaving.childGetter( "exception_type" )
-    getExceptionValue = CPythonChildrenHaving.childGetter( "exception_value" )
-    getExceptionTrace = CPythonChildrenHaving.childGetter( "exception_trace" )
-    getExceptionCause = CPythonChildrenHaving.childGetter( "exception_cause" )
+    getExceptionType = ChildrenHavingMixin.childGetter( "exception_type" )
+    getExceptionValue = ChildrenHavingMixin.childGetter( "exception_value" )
+    getExceptionTrace = ChildrenHavingMixin.childGetter( "exception_trace" )
+    getExceptionCause = ChildrenHavingMixin.childGetter( "exception_cause" )
 
     def isReraiseException( self ):
         return self.getExceptionType() is None
@@ -87,7 +87,7 @@ class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
         return False
 
 
-class CPythonStatementRaiseExceptionImplicit( CPythonStatementRaiseException ):
+class StatementRaiseExceptionImplicit( StatementRaiseException ):
     kind = "STATEMENT_RAISE_EXCEPTION_IMPLICIT"
 
     def isStatementRaiseException( self ):
@@ -97,7 +97,7 @@ class CPythonStatementRaiseExceptionImplicit( CPythonStatementRaiseException ):
         return True
 
 
-class CPythonExpressionRaiseException( CPythonExpressionChildrenHavingBase ):
+class ExpressionRaiseException( ExpressionChildrenHavingBase ):
     """ This node type is only produced via optimization.
 
     CPython only knows exception raising as a statement, but often the raising
@@ -113,7 +113,7 @@ class CPythonExpressionRaiseException( CPythonExpressionChildrenHavingBase ):
     named_children = ( "exception_type", "exception_value" )
 
     def __init__( self, exception_type, exception_value, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "exception_type"  : exception_type,
@@ -133,8 +133,8 @@ class CPythonExpressionRaiseException( CPythonExpressionChildrenHavingBase ):
             return False
 
 
-    getExceptionType = CPythonExpressionChildrenHavingBase.childGetter( "exception_type" )
-    getExceptionValue = CPythonExpressionChildrenHavingBase.childGetter( "exception_value" )
+    getExceptionType = ExpressionChildrenHavingBase.childGetter( "exception_type" )
+    getExceptionValue = ExpressionChildrenHavingBase.childGetter( "exception_value" )
 
     def mayProvideReference( self ):
         return False
@@ -143,13 +143,13 @@ class CPythonExpressionRaiseException( CPythonExpressionChildrenHavingBase ):
         return self, None, None
 
 
-class CPythonExpressionBuiltinMakeException( CPythonExpressionChildrenHavingBase ):
+class ExpressionBuiltinMakeException( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_MAKE_EXCEPTION"
 
     named_children = ( "args", )
 
     def __init__( self, exception_name, args, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "args" : tuple( args ),
@@ -165,17 +165,17 @@ class CPythonExpressionBuiltinMakeException( CPythonExpressionChildrenHavingBase
     def getExceptionName( self ):
         return self.exception_name
 
-    getArgs = CPythonExpressionChildrenHavingBase.childGetter( "args" )
+    getArgs = ExpressionChildrenHavingBase.childGetter( "args" )
 
     def computeNode( self, constraint_collection ):
         return self, None, None
 
 
-class CPythonExpressionCaughtExceptionTypeRef( CPythonNodeBase, CPythonExpressionMixin ):
+class ExpressionCaughtExceptionTypeRef( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_TYPE_REF"
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
     def computeNode( self, constraint_collection ):
         # TODO: Might be predictable based on the exception handler this is in.
@@ -186,11 +186,11 @@ class CPythonExpressionCaughtExceptionTypeRef( CPythonNodeBase, CPythonExpressio
         return False
 
 
-class CPythonExpressionCaughtExceptionValueRef( CPythonNodeBase, CPythonExpressionMixin ):
+class ExpressionCaughtExceptionValueRef( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_VALUE_REF"
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
     def computeNode( self, constraint_collection ):
         # TODO: Might be predictable based on the exception handler this is in.
@@ -201,16 +201,16 @@ class CPythonExpressionCaughtExceptionValueRef( CPythonNodeBase, CPythonExpressi
         return False
 
     def makeCloneAt( self, source_ref ):
-        return CPythonExpressionCaughtExceptionValueRef(
+        return ExpressionCaughtExceptionValueRef(
             source_ref = source_ref
         )
 
 
-class CPythonExpressionCaughtExceptionTracebackRef( CPythonNodeBase, CPythonExpressionMixin ):
+class ExpressionCaughtExceptionTracebackRef( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_TRACEBACK_REF"
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
     def computeNode( self, constraint_collection ):
         return self, None, None

@@ -23,13 +23,13 @@ located here. These are the core of value control flow.
 """
 
 from .NodeBases import (
-    CPythonExpressionChildrenHavingBase,
-    CPythonChildrenHaving,
-    CPythonNodeBase
+    ExpressionChildrenHavingBase,
+    ChildrenHavingMixin,
+    NodeBase
 )
 
 
-class CPythonStatementAssignmentVariable( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementAssignmentVariable( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE"
 
     named_children = ( "source", "variable_ref" )
@@ -40,9 +40,9 @@ class CPythonStatementAssignmentVariable( CPythonChildrenHaving, CPythonNodeBase
 
         assert not variable_ref.isExpressionVariableRef()
 
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {
                 "source"       : source,
@@ -53,22 +53,22 @@ class CPythonStatementAssignmentVariable( CPythonChildrenHaving, CPythonNodeBase
     def getDetail( self ):
         return "%s from %s" % ( self.getTargetVariableRef(), self.getAssignSource() )
 
-    getTargetVariableRef = CPythonChildrenHaving.childGetter( "variable_ref" )
-    getAssignSource = CPythonChildrenHaving.childGetter( "source" )
+    getTargetVariableRef = ChildrenHavingMixin.childGetter( "variable_ref" )
+    getAssignSource = ChildrenHavingMixin.childGetter( "source" )
 
     def mayRaiseException( self, exception_type ):
         return self.getAssignSource().mayRaiseException( exception_type )
 
 
-class CPythonStatementAssignmentAttribute( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementAssignmentAttribute( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
 
     named_children = ( "source", "expression" )
 
     def __init__( self, expression, attribute_name, source, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {
                 "expression" : expression,
@@ -90,19 +90,19 @@ class CPythonStatementAssignmentAttribute( CPythonChildrenHaving, CPythonNodeBas
     def setAttributeName( self, attribute_name ):
         self.attribute_name = attribute_name
 
-    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
-    getAssignSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
+    getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
+    getAssignSource = ExpressionChildrenHavingBase.childGetter( "source" )
 
 
-class CPythonStatementAssignmentSubscript( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementAssignmentSubscript( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_ASSIGNMENT_SUBSCRIPT"
 
     named_children = ( "source", "expression", "subscript" )
 
     def __init__( self, expression, subscript, source, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values     = {
                 "source"     : source,
@@ -111,20 +111,20 @@ class CPythonStatementAssignmentSubscript( CPythonChildrenHaving, CPythonNodeBas
             }
         )
 
-    getSubscribed = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
-    getSubscript = CPythonExpressionChildrenHavingBase.childGetter( "subscript" )
-    getAssignSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
+    getSubscribed = ExpressionChildrenHavingBase.childGetter( "expression" )
+    getSubscript = ExpressionChildrenHavingBase.childGetter( "subscript" )
+    getAssignSource = ExpressionChildrenHavingBase.childGetter( "source" )
 
 
-class CPythonStatementAssignmentSlice( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementAssignmentSlice( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_ASSIGNMENT_SLICE"
 
     named_children = ( "source", "expression", "lower", "upper" )
 
     def __init__( self, expression, lower, upper, source, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values     = {
                 "source"     : source,
@@ -134,13 +134,13 @@ class CPythonStatementAssignmentSlice( CPythonChildrenHaving, CPythonNodeBase ):
             }
         )
 
-    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
-    getLower = CPythonExpressionChildrenHavingBase.childGetter( "lower" )
-    getUpper = CPythonExpressionChildrenHavingBase.childGetter( "upper" )
-    getAssignSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
+    getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
+    getLower = ExpressionChildrenHavingBase.childGetter( "lower" )
+    getUpper = ExpressionChildrenHavingBase.childGetter( "upper" )
+    getAssignSource = ExpressionChildrenHavingBase.childGetter( "source" )
 
 
-class CPythonStatementDelVariable( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementDelVariable( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_DEL_VARIABLE"
 
     named_children = ( "variable_ref", )
@@ -150,9 +150,9 @@ class CPythonStatementDelVariable( CPythonChildrenHaving, CPythonNodeBase ):
         assert not variable_ref.isExpressionVariableRef()
         assert tolerant is True or tolerant is False
 
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {
                 "variable_ref" : variable_ref
@@ -174,18 +174,18 @@ class CPythonStatementDelVariable( CPythonChildrenHaving, CPythonNodeBase ):
     def isTolerant( self ):
         return self.tolerant
 
-    getTargetVariableRef = CPythonChildrenHaving.childGetter( "variable_ref" )
+    getTargetVariableRef = ChildrenHavingMixin.childGetter( "variable_ref" )
 
 
-class CPythonStatementDelAttribute( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementDelAttribute( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_DEL_ATTRIBUTE"
 
     named_children = ( "expression", )
 
     def __init__( self, expression, attribute_name, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {
                 "expression" : expression
@@ -206,18 +206,18 @@ class CPythonStatementDelAttribute( CPythonChildrenHaving, CPythonNodeBase ):
     def setAttributeName( self, attribute_name ):
         self.attribute_name = attribute_name
 
-    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
+    getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
 
 
-class CPythonStatementDelSubscript( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementDelSubscript( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_DEL_SUBSCRIPT"
 
     named_children = ( "expression", "subscript" )
 
     def __init__( self, expression, subscript, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values     = {
                 "expression" : expression,
@@ -225,19 +225,19 @@ class CPythonStatementDelSubscript( CPythonChildrenHaving, CPythonNodeBase ):
             }
         )
 
-    getSubscribed = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
-    getSubscript = CPythonExpressionChildrenHavingBase.childGetter( "subscript" )
+    getSubscribed = ExpressionChildrenHavingBase.childGetter( "expression" )
+    getSubscript = ExpressionChildrenHavingBase.childGetter( "subscript" )
 
 
-class CPythonStatementDelSlice( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementDelSlice( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_DEL_SLICE"
 
     named_children = ( "expression", "lower", "upper" )
 
     def __init__( self, expression, lower, upper, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values     = {
                 "expression" : expression,
@@ -246,6 +246,6 @@ class CPythonStatementDelSlice( CPythonChildrenHaving, CPythonNodeBase ):
             }
         )
 
-    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
-    getLower = CPythonExpressionChildrenHavingBase.childGetter( "lower" )
-    getUpper = CPythonExpressionChildrenHavingBase.childGetter( "upper" )
+    getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
+    getLower = ExpressionChildrenHavingBase.childGetter( "lower" )
+    getUpper = ExpressionChildrenHavingBase.childGetter( "upper" )

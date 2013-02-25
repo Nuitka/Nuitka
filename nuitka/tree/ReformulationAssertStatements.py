@@ -18,14 +18,14 @@
 
 from nuitka import Utils
 
-from nuitka.nodes.BuiltinRefNodes import CPythonExpressionBuiltinExceptionRef
+from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ExceptionNodes import (
-    CPythonExpressionBuiltinMakeException,
-    CPythonStatementRaiseException
+    ExpressionBuiltinMakeException,
+    StatementRaiseException
 )
-from nuitka.nodes.StatementNodes import CPythonStatementsSequence
-from nuitka.nodes.OperatorNodes import CPythonExpressionOperationNOT
-from nuitka.nodes.ConditionalNodes import CPythonStatementConditional
+from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
+from nuitka.nodes.ConditionalNodes import StatementConditional
 
 from .Helpers import buildNode
 
@@ -48,8 +48,8 @@ def buildAssertNode( provider, node, source_ref ):
     #     raise AssertionError( y )
 
     if Utils.python_version < 270 or node.msg is None:
-        raise_statement = CPythonStatementRaiseException(
-            exception_type  = CPythonExpressionBuiltinExceptionRef(
+        raise_statement = StatementRaiseException(
+            exception_type  = ExpressionBuiltinExceptionRef(
                 exception_name = "AssertionError",
                 source_ref     = source_ref
                 ),
@@ -59,8 +59,8 @@ def buildAssertNode( provider, node, source_ref ):
             source_ref      = source_ref
         )
     else:
-        raise_statement = CPythonStatementRaiseException(
-            exception_type  =  CPythonExpressionBuiltinMakeException(
+        raise_statement = StatementRaiseException(
+            exception_type  =  ExpressionBuiltinMakeException(
                 exception_name = "AssertionError",
                 args           = ( buildNode( provider, node.msg, source_ref, True ), ),
                 source_ref     = source_ref
@@ -71,12 +71,12 @@ def buildAssertNode( provider, node, source_ref ):
             source_ref      = source_ref
         )
 
-    return CPythonStatementConditional(
-        condition  = CPythonExpressionOperationNOT(
+    return StatementConditional(
+        condition  = ExpressionOperationNOT(
             operand    = buildNode( provider, node.test, source_ref ),
             source_ref = source_ref
         ),
-        yes_branch = CPythonStatementsSequence(
+        yes_branch = StatementsSequence(
             statements = (
                 raise_statement,
             ),

@@ -22,15 +22,15 @@ and hopefully can be predicted, because at run time, it is hard to support.
 """
 
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase
 
-class CPythonExpressionBuiltinVars( CPythonExpressionChildrenHavingBase ):
+class ExpressionBuiltinVars( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_VARS"
 
     named_children = ( "source", )
 
     def __init__( self, source, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "source"  : source,
@@ -38,7 +38,7 @@ class CPythonExpressionBuiltinVars( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
+    getSource = ExpressionChildrenHavingBase.childGetter( "source" )
 
     def computeNode( self, constraint_collection ):
         # TODO: Should be possible.

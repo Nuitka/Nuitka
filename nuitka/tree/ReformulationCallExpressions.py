@@ -16,17 +16,17 @@
 #     limitations under the License.
 #
 
-from nuitka.nodes.ConstantRefNodes import CPythonExpressionConstantRef
-from nuitka.nodes.CallNodes import CPythonExpressionCall
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.CallNodes import ExpressionCall
 from nuitka.nodes.FunctionNodes import (
-    CPythonExpressionFunctionCreation,
-    CPythonExpressionFunctionCall,
-    CPythonExpressionFunctionRef
+    ExpressionFunctionCreation,
+    ExpressionFunctionCall,
+    ExpressionFunctionRef
 )
 from nuitka.nodes.ContainerMakingNodes import (
-    CPythonExpressionKeyValuePair,
-    CPythonExpressionMakeTuple,
-    CPythonExpressionMakeDict,
+    ExpressionKeyValuePair,
+    ExpressionMakeTuple,
+    ExpressionMakeDict,
 )
 from .Helpers import (
     buildNodeList,
@@ -39,8 +39,8 @@ def buildCallNode( provider, node, source_ref ):
     # Only the values of keyword pairs have a real source ref, and those only really
     # matter, so that makes sense.
     pairs = [
-        CPythonExpressionKeyValuePair(
-            key        = CPythonExpressionConstantRef(
+        ExpressionKeyValuePair(
+            key        = ExpressionConstantRef(
                 constant   = keyword.arg,
                 source_ref = source_ref
             ),
@@ -69,13 +69,13 @@ def _makeCallNode( provider, called, positional_args, pairs, list_star_arg, dict
     # pylint: disable=R0914
 
     if list_star_arg is None and dict_star_arg is None:
-        return CPythonExpressionCall(
+        return ExpressionCall(
             called  = called,
-            args    = CPythonExpressionMakeTuple(
+            args    = ExpressionMakeTuple(
                 elements   = positional_args,
                 source_ref = source_ref
             ),
-            kw      = CPythonExpressionMakeDict(
+            kw      = ExpressionMakeDict(
                 pairs      = pairs,
                 source_ref = source_ref
             ),
@@ -123,7 +123,7 @@ def _makeCallNode( provider, called, positional_args, pairs, list_star_arg, dict
 
         if positional_args:
             helper_args.append(
-                CPythonExpressionMakeTuple(
+                ExpressionMakeTuple(
                     elements   = positional_args,
                     source_ref = source_ref
                 )
@@ -131,7 +131,7 @@ def _makeCallNode( provider, called, positional_args, pairs, list_star_arg, dict
 
         if pairs:
             helper_args.append(
-                CPythonExpressionMakeDict(
+                ExpressionMakeDict(
                     pairs      = pairs,
                     source_ref = source_ref
                 )
@@ -143,9 +143,9 @@ def _makeCallNode( provider, called, positional_args, pairs, list_star_arg, dict
         if dict_star_arg is not None:
             helper_args.append( dict_star_arg )
 
-        return CPythonExpressionFunctionCall(
-            function   = CPythonExpressionFunctionCreation(
-                function_ref = CPythonExpressionFunctionRef(
+        return ExpressionFunctionCall(
+            function   = ExpressionFunctionCreation(
+                function_ref = ExpressionFunctionRef(
                     function_body = get_helper( provider ),
                     source_ref    = source_ref
                 ),

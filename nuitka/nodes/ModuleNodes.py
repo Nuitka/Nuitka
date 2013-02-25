@@ -22,8 +22,8 @@ and cross-module optimizations are the most difficult to tackle.
 """
 
 from .NodeBases import (
-    CPythonClosureGiverNodeBase,
-    CPythonChildrenHaving
+    ClosureGiverNodeBase,
+    ChildrenHavingMixin
 )
 
 from .IndicatorMixins import MarkContainsTryExceptIndicator
@@ -35,15 +35,15 @@ from nuitka import (
 
 from nuitka.oset import OrderedSet
 
-class CPythonModule( CPythonChildrenHaving, CPythonClosureGiverNodeBase,
-                     MarkContainsTryExceptIndicator ):
+class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
+                    MarkContainsTryExceptIndicator ):
     """ Module
 
         The module is the only possible root of a tree. When there are many modules
         they form a forrest.
     """
 
-    kind = "MODULE"
+    kind = "PYTHON_MODULE"
 
     named_children = ( "body", )
 
@@ -52,14 +52,14 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureGiverNodeBase,
         assert "." not in name, name
         assert package is None or ( type( package ) is str and package != "" )
 
-        CPythonClosureGiverNodeBase.__init__(
+        ClosureGiverNodeBase.__init__(
             self,
             name        = name,
             code_prefix = "module",
             source_ref  = source_ref
         )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {}
         )
@@ -86,15 +86,18 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureGiverNodeBase,
 
     def asXml( self ):
         # The class is new style, false alarm: pylint: disable=E1002
-        result = super( CPythonModule, self ).asXml()
+        result = super( PythonModule, self ).asXml()
 
         for function_body in self.functions:
             result.append( function_body.asXml() )
 
         return result
 
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
+    getBody = ChildrenHavingMixin.childGetter( "body" )
+    setBody = ChildrenHavingMixin.childSetter( "body" )
+
+    def isPythonModule( self ):
+        return True
 
     def getParent( self ):
         assert False
@@ -168,13 +171,13 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureGiverNodeBase,
         return self.functions
 
 
-class CPythonPackage( CPythonModule ):
-    kind = "PACKAGE"
+class PythonPackage( PythonModule ):
+    kind = "PYTHON_PACKAGE"
 
     def __init__( self, name, package, source_ref ):
         assert name
 
-        CPythonModule.__init__(
+        PythonModule.__init__(
             self,
             name       = name,
             package    = package,

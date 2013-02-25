@@ -21,16 +21,16 @@ This is a rather two sided beast, as it may be read or write. And we would like 
 to track it, so we can include files into the executable, or write more efficiently.
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase
 
 
-class CPythonExpressionBuiltinOpen( CPythonExpressionChildrenHavingBase ):
+class ExpressionBuiltinOpen( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_OPEN"
 
     named_children = ( "filename", "mode", "buffering" )
 
     def __init__( self, filename, mode, buffering, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "filename"  : filename,
@@ -40,9 +40,9 @@ class CPythonExpressionBuiltinOpen( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getFilename = CPythonExpressionChildrenHavingBase.childGetter( "filename" )
-    getMode = CPythonExpressionChildrenHavingBase.childGetter( "mode" )
-    getBuffering = CPythonExpressionChildrenHavingBase.childGetter( "buffering" )
+    getFilename = ExpressionChildrenHavingBase.childGetter( "filename" )
+    getMode = ExpressionChildrenHavingBase.childGetter( "mode" )
+    getBuffering = ExpressionChildrenHavingBase.childGetter( "buffering" )
 
     def computeNode( self, constraint_collection ):
         # Note: Quite impossible to predict without further assumptions.

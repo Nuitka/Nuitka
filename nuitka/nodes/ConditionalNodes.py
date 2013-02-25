@@ -22,16 +22,16 @@ would be 'if a: ... else: ...' and there is no 'elif', because that is expressed
 nesting of conditional statements.
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase
 
 
-class CPythonExpressionConditional( CPythonExpressionChildrenHavingBase ):
+class ExpressionConditional( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_CONDITIONAL"
 
     named_children = ( "condition", "expression_yes", "expression_no" )
 
     def __init__( self, condition, yes_expression, no_expression, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "condition"      : condition,
@@ -44,9 +44,9 @@ class CPythonExpressionConditional( CPythonExpressionChildrenHavingBase ):
     def getBranches( self ):
         return ( self.getExpressionYes(), self.getExpressionNo() )
 
-    getExpressionYes = CPythonExpressionChildrenHavingBase.childGetter( "expression_yes" )
-    getExpressionNo = CPythonExpressionChildrenHavingBase.childGetter( "expression_no" )
-    getCondition = CPythonExpressionChildrenHavingBase.childGetter( "condition" )
+    getExpressionYes = ExpressionChildrenHavingBase.childGetter( "expression_yes" )
+    getExpressionNo = ExpressionChildrenHavingBase.childGetter( "expression_no" )
+    getCondition = ExpressionChildrenHavingBase.childGetter( "condition" )
 
     def computeNode( self, constraint_collection ):
         condition = self.getCondition()
@@ -99,13 +99,13 @@ class CPythonExpressionConditional( CPythonExpressionChildrenHavingBase ):
         return self.getExpressionYes().mayProvideReference() or self.getExpressionNo().mayProvideReference()
 
 
-class CPythonStatementConditional( CPythonExpressionChildrenHavingBase ):
+class StatementConditional( ExpressionChildrenHavingBase ):
     kind = "STATEMENT_CONDITIONAL"
 
     named_children = ( "condition", "yes_branch", "no_branch" )
 
     def __init__( self, condition, yes_branch, no_branch, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "condition"  : condition,
@@ -115,11 +115,11 @@ class CPythonStatementConditional( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getCondition = CPythonExpressionChildrenHavingBase.childGetter( "condition" )
-    getBranchYes = CPythonExpressionChildrenHavingBase.childGetter( "yes_branch" )
-    setBranchYes = CPythonExpressionChildrenHavingBase.childSetter( "yes_branch" )
-    getBranchNo = CPythonExpressionChildrenHavingBase.childGetter( "no_branch" )
-    setBranchNo = CPythonExpressionChildrenHavingBase.childSetter( "no_branch" )
+    getCondition = ExpressionChildrenHavingBase.childGetter( "condition" )
+    getBranchYes = ExpressionChildrenHavingBase.childGetter( "yes_branch" )
+    setBranchYes = ExpressionChildrenHavingBase.childSetter( "yes_branch" )
+    getBranchNo = ExpressionChildrenHavingBase.childGetter( "no_branch" )
+    setBranchNo = ExpressionChildrenHavingBase.childSetter( "no_branch" )
 
     def isStatementAborting( self ):
         yes_branch = self.getBranchYes()

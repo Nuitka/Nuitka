@@ -24,21 +24,21 @@ expressions, changing the meaning of course dramatically.
 
 from nuitka import Variables, Builtins, Options
 
-from .NodeBases import CPythonChildrenHaving, CPythonNodeBase, CPythonExpressionMixin
+from .NodeBases import ChildrenHavingMixin, NodeBase, ExpressionMixin
 
 
-from .ConstantRefNodes import CPythonExpressionConstantRef
+from .ConstantRefNodes import ExpressionConstantRef
 
 def _isReadOnlyModuleVariable( variable ):
     return ( variable.isModuleVariable() and variable.getReadOnlyIndicator() is True ) or \
            variable.isMaybeLocalVariable()
 
 
-class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
+class ExpressionVariableRef( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_VARIABLE_REF"
 
     def __init__( self, variable_name, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
         self.variable_name = variable_name
         self.variable = None
@@ -83,9 +83,9 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
 
         if _isReadOnlyModuleVariable( self.variable ):
             if self.variable_name in Builtins.builtin_exception_names:
-                from .BuiltinRefNodes import CPythonExpressionBuiltinExceptionRef
+                from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
-                new_node = CPythonExpressionBuiltinExceptionRef(
+                new_node = ExpressionBuiltinExceptionRef(
                     exception_name = self.variable_name,
                     source_ref     = self.getSourceReference()
                 )
@@ -94,9 +94,9 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
                 change_tags = "new_builtin"
                 change_desc = "Module variable '%s' found to be builtin exception reference." % self.variable_name
             elif self.variable_name in Builtins.builtin_names:
-                from .BuiltinRefNodes import CPythonExpressionBuiltinRef
+                from .BuiltinRefNodes import ExpressionBuiltinRef
 
-                new_node = CPythonExpressionBuiltinRef(
+                new_node = ExpressionBuiltinRef(
                     builtin_name = self.variable_name,
                     source_ref   = self.getSourceReference()
                 )
@@ -105,7 +105,7 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
                 change_tags = "new_builtin"
                 change_desc = "Module variable '%s' found to be builtin reference." % self.variable_name
             elif self.variable_name == "__name__":
-                new_node = CPythonExpressionConstantRef(
+                new_node = ExpressionConstantRef(
                     constant   = self.variable.getReferenced().getOwner().getFullName(),
                     source_ref = self.getSourceReference()
                 )
@@ -113,7 +113,7 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
                 change_tags = "new_constant"
                 change_desc = "Replaced read-only module attribute '__name__' with constant value."
             elif self.variable_name == "__doc__":
-                new_node = CPythonExpressionConstantRef(
+                new_node = ExpressionConstantRef(
                     constant   = self.variable.getReferenced().getOwner().getDoc(),
                     source_ref = self.getSourceReference()
                 )
@@ -121,7 +121,7 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
                 change_tags = "new_constant"
                 change_desc = "Replaced read-only module attribute '__doc__' with constant value."
             elif self.variable_name == "__package__":
-                new_node = CPythonExpressionConstantRef(
+                new_node = ExpressionConstantRef(
                     constant   = self.variable.getReferenced().getOwner().getPackage(),
                     source_ref = self.getSourceReference()
                 )
@@ -130,7 +130,7 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
                 change_desc = "Replaced read-only module attribute '__package__' with constant value."
             elif self.variable_name == "__file__":
                 # TODO: We have had talks of this becoming more dynamic, but currently it isn't so.
-                new_node = CPythonExpressionConstantRef(
+                new_node = ExpressionConstantRef(
                     constant   = self.variable.getReferenced().getOwner().getFilename(),
                     source_ref = self.getSourceReference()
                 )
@@ -185,18 +185,18 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
             return True
 
 
-class CPythonExpressionTargetVariableRef( CPythonExpressionVariableRef ):
+class ExpressionTargetVariableRef( ExpressionVariableRef ):
     kind = "EXPRESSION_TARGET_VARIABLE_REF"
 
     def computeNode( self, constraint_collection ):
         assert False
 
 
-class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
+class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"
 
     def __init__( self, variable, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
         self.variable = variable
 
@@ -262,18 +262,18 @@ class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin 
             return None
 
 
-class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementTempBlock( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_TEMP_BLOCK"
 
     named_children = ( "body", )
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__(
+        NodeBase.__init__(
             self,
             source_ref = source_ref.atInternal()
         )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {
                 "body" : None
@@ -282,8 +282,8 @@ class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
 
         self.temp_variables = {}
 
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
+    getBody = ChildrenHavingMixin.childGetter( "body" )
+    setBody = ChildrenHavingMixin.childSetter( "body" )
 
     def getTempVariable( self, name ):
         assert name not in self.temp_variables, name

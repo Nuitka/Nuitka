@@ -16,11 +16,11 @@
 #     limitations under the License.
 #
 
-from nuitka.nodes.OperatorNodes import CPythonExpressionOperationNOT
-from nuitka.nodes.ConditionalNodes import CPythonExpressionConditional
+from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
+from nuitka.nodes.ConditionalNodes import ExpressionConditional
 from nuitka.nodes.KeeperNodes import (
-    CPythonExpressionAssignmentTempKeeper,
-    CPythonExpressionTempKeeperRef
+    ExpressionAssignmentTempKeeper,
+    ExpressionTempKeeperRef
 )
 
 from .Helpers import (
@@ -49,7 +49,7 @@ def buildBoolOpNode( provider, node, source_ref ):
         )
     elif bool_op == "Not":
         # The "not" is really only a unary operation and no special.
-        return CPythonExpressionOperationNOT(
+        return ExpressionOperationNOT(
             operand    = buildNode( provider, node.operand, source_ref ),
             source_ref = source_ref
         )
@@ -64,16 +64,16 @@ def buildOrNode( provider, values, source_ref ):
     while True:
         keeper_variable = provider.getTempKeeperVariable()
 
-        tmp_assign = CPythonExpressionAssignmentTempKeeper(
+        tmp_assign = ExpressionAssignmentTempKeeper(
             variable   = keeper_variable.makeReference( provider ),
             source     = values[ -1 ],
             source_ref = source_ref
         )
         del values[ -1 ]
 
-        result = CPythonExpressionConditional(
+        result = ExpressionConditional(
             condition      = tmp_assign,
-            yes_expression = CPythonExpressionTempKeeperRef(
+            yes_expression = ExpressionTempKeeperRef(
                 variable   = keeper_variable.makeReference( provider ),
                 source_ref = source_ref
             ),
@@ -93,16 +93,16 @@ def buildAndNode( provider, values, source_ref ):
     while values:
         keeper_variable = provider.getTempKeeperVariable()
 
-        tmp_assign = CPythonExpressionAssignmentTempKeeper(
+        tmp_assign = ExpressionAssignmentTempKeeper(
             variable   = keeper_variable.makeReference( provider ),
             source     = values[ -1 ],
             source_ref = source_ref
         )
         del values[ -1 ]
 
-        result = CPythonExpressionConditional(
+        result = ExpressionConditional(
             condition      = tmp_assign,
-            no_expression = CPythonExpressionTempKeeperRef(
+            no_expression = ExpressionTempKeeperRef(
                 variable   = keeper_variable.makeReference( provider ),
                 source_ref = source_ref
             ),

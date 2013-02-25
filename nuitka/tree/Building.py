@@ -47,56 +47,56 @@ from nuitka import (
 from nuitka.nodes.FutureSpec import FutureSpec
 
 from nuitka.nodes.VariableRefNodes import (
-    CPythonExpressionTargetVariableRef,
-    CPythonExpressionVariableRef
+    ExpressionTargetVariableRef,
+    ExpressionVariableRef
 )
-from nuitka.nodes.ConstantRefNodes import CPythonExpressionConstantRef
-from nuitka.nodes.BuiltinRefNodes import CPythonExpressionBuiltinExceptionRef
-from nuitka.nodes.ExceptionNodes import CPythonStatementRaiseException
-from nuitka.nodes.ExecEvalNodes import CPythonStatementExec
-from nuitka.nodes.AttributeNodes import CPythonExpressionAttributeLookup
-from nuitka.nodes.SubscriptNodes import CPythonExpressionSubscriptLookup
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
+from nuitka.nodes.ExceptionNodes import StatementRaiseException
+from nuitka.nodes.ExecEvalNodes import StatementExec
+from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.SliceNodes import (
-    CPythonExpressionSliceLookup,
-    CPythonExpressionSliceObject
+    ExpressionSliceLookup,
+    ExpressionSliceObject
 )
 from nuitka.nodes.ContainerMakingNodes import (
-    CPythonExpressionKeyValuePair,
-    CPythonExpressionMakeTuple,
-    CPythonExpressionMakeList,
-    CPythonExpressionMakeDict,
-    CPythonExpressionMakeSet
+    ExpressionKeyValuePair,
+    ExpressionMakeTuple,
+    ExpressionMakeList,
+    ExpressionMakeDict,
+    ExpressionMakeSet
 )
 from nuitka.nodes.StatementNodes import (
-    CPythonStatementExpressionOnly,
-    CPythonStatementsSequence,
+    StatementExpressionOnly,
+    StatementsSequence,
 )
 from nuitka.nodes.ImportNodes import (
-    CPythonExpressionImportModule,
-    CPythonExpressionImportName,
-    CPythonStatementImportStar,
+    ExpressionImportModule,
+    ExpressionImportName,
+    StatementImportStar,
 )
 from nuitka.nodes.OperatorNodes import (
-    CPythonExpressionOperationBinary,
-    CPythonExpressionOperationUnary
+    ExpressionOperationBinary,
+    ExpressionOperationUnary
 )
 from nuitka.nodes.LoopNodes import (
-    CPythonStatementContinueLoop,
-    CPythonStatementBreakLoop,
+    StatementContinueLoop,
+    StatementBreakLoop,
 )
 from nuitka.nodes.ConditionalNodes import (
-    CPythonExpressionConditional,
-    CPythonStatementConditional
+    ExpressionConditional,
+    StatementConditional
 )
-from nuitka.nodes.YieldNodes import CPythonExpressionYield
-from nuitka.nodes.ReturnNodes import CPythonStatementReturn
-from nuitka.nodes.AssignNodes import CPythonStatementAssignmentVariable
-from nuitka.nodes.PrintNodes import CPythonStatementPrint
+from nuitka.nodes.YieldNodes import ExpressionYield
+from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.PrintNodes import StatementPrint
 from nuitka.nodes.ModuleNodes import (
-    CPythonPackage,
-    CPythonModule
+    PythonPackage,
+    PythonModule
 )
-from nuitka.nodes.TryNodes import CPythonStatementTryFinally
+from nuitka.nodes.TryNodes import StatementTryFinally
 
 from .VariableClosure import completeVariableClosures
 
@@ -164,7 +164,7 @@ def buildVariableReferenceNode( provider, node, source_ref ):
     if Utils.python_version >= 300 and node.id == "super" and provider.isExpressionFunctionBody():
         provider.markAsClassClosureTaker()
 
-    return CPythonExpressionVariableRef(
+    return ExpressionVariableRef(
         variable_name = node.id,
         source_ref    = source_ref
     )
@@ -198,23 +198,23 @@ def buildSequenceCreationNode( provider, node, source_ref ):
         else:
             assert False, sequence_kind
 
-        return CPythonExpressionConstantRef(
+        return ExpressionConstantRef(
             constant   = const_type( element.getConstant() for element in elements ),
             source_ref = source_ref
         )
     else:
         if sequence_kind == "TUPLE":
-            return CPythonExpressionMakeTuple(
+            return ExpressionMakeTuple(
                 elements   = elements,
                 source_ref = source_ref
             )
         elif sequence_kind == "LIST":
-            return CPythonExpressionMakeList(
+            return ExpressionMakeList(
                 elements   = elements,
                 source_ref = source_ref
             )
         elif sequence_kind == "SET":
-            return CPythonExpressionMakeSet(
+            return ExpressionMakeSet(
                 elements   = elements,
                 source_ref = source_ref
             )
@@ -253,14 +253,14 @@ def buildDictionaryNode( provider, node, source_ref ):
         for key, value in zip( keys, values ):
             constant_value[ key.getConstant() ] = value.getConstant()
 
-        return CPythonExpressionConstantRef(
+        return ExpressionConstantRef(
             constant   = constant_value,
             source_ref = source_ref
         )
     else:
-        return CPythonExpressionMakeDict(
+        return ExpressionMakeDict(
             pairs      = [
-                CPythonExpressionKeyValuePair( key, value, key.getSourceReference() )
+                ExpressionKeyValuePair( key, value, key.getSourceReference() )
                 for key, value in
                 zip( keys, values )
             ],
@@ -272,7 +272,7 @@ def buildConditionNode( provider, node, source_ref ):
     # because that's already dealt with by module "ast", which turns it into nested
     # conditional statements.
 
-    return CPythonStatementConditional(
+    return StatementConditional(
         condition  = buildNode( provider, node.test, source_ref ),
         yes_branch = buildStatementsNode(
             provider   = provider,
@@ -290,7 +290,7 @@ def buildConditionNode( provider, node, source_ref ):
 def buildTryFinallyNode( provider, node, source_ref ):
     # Try/finally node statements.
 
-    return CPythonStatementTryFinally(
+    return StatementTryFinally(
         tried      = buildStatementsNode(
             provider   = provider,
             nodes      = node.body,
@@ -308,8 +308,8 @@ def buildTryNode( provider, node, source_ref ):
     # Note: This variant is used for Python3.3 or higher only, older stuff uses the above
     # ones, this one merges try/except with try/finally in the "ast". We split it up
     # again, as it's logically separated of course.
-    return CPythonStatementTryFinally(
-        tried      = CPythonStatementsSequence(
+    return StatementTryFinally(
+        tried      = StatementsSequence(
             statements = (
                 buildTryExceptionNode(
                     provider   = provider,
@@ -332,7 +332,7 @@ def buildRaiseNode( provider, node, source_ref ):
     # for Python3, you can only give type (actually value) and cause.
 
     if Utils.python_version < 300:
-        return CPythonStatementRaiseException(
+        return StatementRaiseException(
             exception_type  = buildNode( provider, node.type, source_ref, allow_none = True ),
             exception_value = buildNode( provider, node.inst, source_ref, allow_none = True ),
             exception_trace = buildNode( provider, node.tback, source_ref, allow_none = True ),
@@ -340,7 +340,7 @@ def buildRaiseNode( provider, node, source_ref ):
             source_ref      = source_ref
         )
     else:
-        return CPythonStatementRaiseException(
+        return StatementRaiseException(
             exception_type  = buildNode( provider, node.exc, source_ref, allow_none = True ),
             exception_value = None,
             exception_trace = None,
@@ -363,7 +363,7 @@ def buildSubscriptNode( provider, node, source_ref ):
     kind = getKind( node.slice )
 
     if kind == "Index":
-        return CPythonExpressionSubscriptLookup(
+        return ExpressionSubscriptLookup(
             expression = buildNode( provider, node.value, source_ref ),
             subscript  = buildNode( provider, node.slice.value, source_ref ),
             source_ref = source_ref
@@ -375,9 +375,9 @@ def buildSubscriptNode( provider, node, source_ref ):
         if node.slice.step is not None:
             step = buildNode( provider, node.slice.step,  source_ref )
 
-            return CPythonExpressionSubscriptLookup(
+            return ExpressionSubscriptLookup(
                 expression = buildNode( provider, node.value, source_ref ),
-                subscript  = CPythonExpressionSliceObject(
+                subscript  = ExpressionSliceObject(
                     lower      = lower,
                     upper      = upper,
                     step       = step,
@@ -386,22 +386,22 @@ def buildSubscriptNode( provider, node, source_ref ):
                 source_ref = source_ref
             )
         else:
-            return CPythonExpressionSliceLookup(
+            return ExpressionSliceLookup(
                 expression = buildNode( provider, node.value, source_ref ),
                 lower      = lower,
                 upper      = upper,
                 source_ref = source_ref
             )
     elif kind == "ExtSlice":
-        return CPythonExpressionSubscriptLookup(
+        return ExpressionSubscriptLookup(
             expression = buildNode( provider, node.value, source_ref ),
             subscript  = buildExtSliceNode( provider, node, source_ref ),
             source_ref = source_ref
         )
     elif kind == "Ellipsis":
-        return CPythonExpressionSubscriptLookup(
+        return ExpressionSubscriptLookup(
             expression = buildNode( provider, node.value, source_ref ),
-            subscript  = CPythonExpressionConstantRef(
+            subscript  = ExpressionConstantRef(
                 constant   = Ellipsis,
                 source_ref = source_ref
             ),
@@ -431,7 +431,7 @@ def buildImportModulesNode( node, source_ref ):
         level = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1
 
         if local_name:
-            import_node = CPythonExpressionImportModule(
+            import_node = ExpressionImportModule(
                 module_name = module_name,
                 import_list = None,
                 level       = level,
@@ -439,13 +439,13 @@ def buildImportModulesNode( node, source_ref ):
             )
 
             for import_name in module_name.split(".")[1:]:
-                import_node = CPythonExpressionImportName(
+                import_node = ExpressionImportName(
                     module      = import_node,
                     import_name = import_name,
                     source_ref  = source_ref
                 )
         else:
-            import_node = CPythonExpressionImportModule(
+            import_node = ExpressionImportModule(
                 module_name = module_name,
                 import_list = None,
                 level       = level,
@@ -456,8 +456,8 @@ def buildImportModulesNode( node, source_ref ):
         # level package name given for assignment of the imported module.
 
         import_nodes.append(
-            CPythonStatementAssignmentVariable(
-                variable_ref = CPythonExpressionTargetVariableRef(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetVariableRef(
                     variable_name = local_name if local_name is not None else module_topname,
                     source_ref    = source_ref
                 ),
@@ -508,7 +508,7 @@ def buildImportFromNode( provider, node, source_ref ):
 
     # Importing from "__future__" module may enable flags.
     if module_name == "__future__":
-        assert provider.isModule() or source_ref.isExecReference()
+        assert provider.isPythonModule() or source_ref.isExecReference()
 
         for import_desc in node.names:
             object_name, _local_name = import_desc.name, import_desc.asname
@@ -538,7 +538,7 @@ def buildImportFromNode( provider, node, source_ref ):
         assert target_names == [ None ]
 
         # Python3 made this a syntax error unfortunately.
-        if not provider.isModule() and Utils.python_version >= 300:
+        if not provider.isPythonModule() and Utils.python_version >= 300:
             SyntaxErrors.raiseSyntaxError(
                 "import * only allowed at module level",
                 provider.getSourceReference()
@@ -547,8 +547,8 @@ def buildImportFromNode( provider, node, source_ref ):
         if provider.isExpressionFunctionBody():
             provider.markAsStarImportContaining()
 
-        return CPythonStatementImportStar(
-            module_import = CPythonExpressionImportModule(
+        return StatementImportStar(
+            module_import = ExpressionImportModule(
                 module_name = module_name,
                 import_list = ( "*", ),
                 level       = level,
@@ -561,13 +561,13 @@ def buildImportFromNode( provider, node, source_ref ):
 
         for target_name, import_name in zip( target_names, import_names ):
             import_nodes.append(
-                CPythonStatementAssignmentVariable(
-                    variable_ref = CPythonExpressionTargetVariableRef(
+                StatementAssignmentVariable(
+                    variable_ref = ExpressionTargetVariableRef(
                         variable_name = target_name,
                         source_ref    = source_ref
                     ),
-                    source     = CPythonExpressionImportName(
-                        module      = CPythonExpressionImportModule(
+                    source     = ExpressionImportName(
+                        module      = ExpressionImportModule(
                             module_name = module_name,
                             import_list = import_names,
                             level       = level,
@@ -583,7 +583,7 @@ def buildImportFromNode( provider, node, source_ref ):
         # Note: Each import is sequential. It can succeed, and the failure of a later one is
         # not changing one. We can therefore have a sequence of imports that only import one
         # thing therefore.
-        return CPythonStatementsSequence(
+        return StatementsSequence(
             statements = import_nodes,
             source_ref = source_ref
         )
@@ -591,7 +591,7 @@ def buildImportFromNode( provider, node, source_ref ):
 def buildPrintNode( provider, node, source_ref ):
     # "print" statements, should only occur with Python2.
 
-    return CPythonStatementPrint(
+    return StatementPrint(
         newline    = node.nl,
         dest       = buildNode( provider, node.dest, source_ref, allow_none = True ),
         values     = buildNodeList( provider, node.values, source_ref ),
@@ -618,12 +618,12 @@ def buildExecNode( provider, node, source_ref ):
             if len( parts ) > 2:
                 exec_locals = parts[2]
         else:
-            return CPythonStatementRaiseException(
-                exception_type = CPythonExpressionBuiltinExceptionRef(
+            return StatementRaiseException(
+                exception_type = ExpressionBuiltinExceptionRef(
                     exception_name = "TypeError",
                     source_ref     = source_ref
                 ),
-                exception_value = CPythonExpressionConstantRef(
+                exception_value = ExpressionConstantRef(
                     constant   = "exec: arg 1 must be a string, file, or code object",
                     source_ref = source_ref
                 ),
@@ -648,7 +648,7 @@ def buildExecNode( provider, node, source_ref ):
         if globals_node.isExpressionConstantRef() and globals_node.getConstant() is None:
             globals_node = None
 
-    return CPythonStatementExec(
+    return StatementExec(
         source_code = buildNode( provider, body, source_ref ),
         globals_arg = globals_node,
         locals_arg  = locals_node,
@@ -720,7 +720,7 @@ def handleNonlocalDeclarationNode( provider, node, source_ref ):
 def buildStringNode( node, source_ref ):
     assert type( node.s ) in ( str, unicode )
 
-    return CPythonExpressionConstantRef(
+    return ExpressionConstantRef(
         constant   = node.s,
         source_ref = source_ref
     )
@@ -728,25 +728,25 @@ def buildStringNode( node, source_ref ):
 def buildNumberNode( node, source_ref ):
     assert type( node.n ) in ( int, long, float, complex ), type( node.n )
 
-    return CPythonExpressionConstantRef(
+    return ExpressionConstantRef(
         constant   = node.n,
         source_ref = source_ref
     )
 
 def buildBytesNode( node, source_ref ):
-    return CPythonExpressionConstantRef(
+    return ExpressionConstantRef(
         constant   = node.s,
         source_ref = source_ref
     )
 
 def buildEllipsisNode( source_ref ):
-    return CPythonExpressionConstantRef(
+    return ExpressionConstantRef(
         constant   = Ellipsis,
         source_ref = source_ref
     )
 
 def buildAttributeNode( provider, node, source_ref ):
-    return CPythonExpressionAttributeLookup(
+    return ExpressionAttributeLookup(
         expression     = buildNode( provider, node.value, source_ref ),
         attribute_name = node.attr,
         source_ref     = source_ref
@@ -758,18 +758,18 @@ def buildReturnNode( provider, node, source_ref ):
             "'return' outside function",
             source_ref,
             None if Utils.python_version < 300 else (
-                node.col_offset if provider.isModule() else node.col_offset+4
+                node.col_offset if provider.isPythonModule() else node.col_offset+4
             )
         )
 
     if node.value is not None:
-        return CPythonStatementReturn(
+        return StatementReturn(
             expression = buildNode( provider, node.value, source_ref ),
             source_ref = source_ref
         )
     else:
-        return CPythonStatementReturn(
-            expression = CPythonExpressionConstantRef(
+        return StatementReturn(
+            expression = ExpressionConstantRef(
                 constant   = None,
                 source_ref = source_ref
             ),
@@ -778,7 +778,7 @@ def buildReturnNode( provider, node, source_ref ):
 
 
 def buildYieldNode( provider, node, source_ref ):
-    if provider.isModule():
+    if provider.isPythonModule():
         SyntaxErrors.raiseSyntaxError(
             "'yield' outside function",
             source_ref,
@@ -788,13 +788,13 @@ def buildYieldNode( provider, node, source_ref ):
     provider.markAsGenerator()
 
     if node.value is not None:
-        return CPythonExpressionYield(
+        return ExpressionYield(
             expression = buildNode( provider, node.value, source_ref ),
             source_ref = source_ref
         )
     else:
-        return CPythonExpressionYield(
-            expression = CPythonExpressionConstantRef(
+        return ExpressionYield(
+            expression = ExpressionConstantRef(
                 constant   = None,
                 source_ref = source_ref
             ),
@@ -802,7 +802,7 @@ def buildYieldNode( provider, node, source_ref ):
         )
 
 def buildExprOnlyNode( provider, node, source_ref ):
-    return CPythonStatementExpressionOnly(
+    return StatementExpressionOnly(
         expression = buildNode( provider, node.value, source_ref ),
         source_ref = source_ref
     )
@@ -816,7 +816,7 @@ def buildUnaryOpNode( provider, node, source_ref ):
             source_ref = source_ref
         )
     else:
-        return CPythonExpressionOperationUnary(
+        return ExpressionOperationUnary(
             operator   = getKind( node.op ),
             operand    = buildNode( provider, node.operand, source_ref ),
             source_ref = source_ref
@@ -829,7 +829,7 @@ def buildBinaryOpNode( provider, node, source_ref ):
     if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
         operator = "TrueDiv"
 
-    return CPythonExpressionOperationBinary(
+    return ExpressionOperationBinary(
         operator   = operator,
         left       = buildNode( provider, node.left, source_ref ),
         right      = buildNode( provider, node.right, source_ref ),
@@ -837,14 +837,14 @@ def buildBinaryOpNode( provider, node, source_ref ):
     )
 
 def buildReprNode( provider, node, source_ref ):
-    return CPythonExpressionOperationUnary(
+    return ExpressionOperationUnary(
         operator   = "Repr",
         operand    = buildNode( provider, node.value, source_ref ),
         source_ref = source_ref
     )
 
 def buildConditionalExpressionNode( provider, node, source_ref ):
-    return CPythonExpressionConditional(
+    return ExpressionConditional(
         condition      = buildNode( provider, node.test, source_ref ),
         yes_expression = buildNode( provider, node.body, source_ref ),
         no_expression  = buildNode( provider, node.orelse, source_ref ),
@@ -904,8 +904,8 @@ setBuildDispatchers(
     },
     path_args1 = {
         "Ellipsis"     : buildEllipsisNode,
-        "Continue"     : CPythonStatementContinueLoop,
-        "Break"        : CPythonStatementBreakLoop,
+        "Continue"     : StatementContinueLoop,
+        "Break"        : StatementBreakLoop,
     }
 )
 
@@ -1092,7 +1092,7 @@ def buildModuleTree( filename, package, is_top, is_main ):
 
                 sys.exit( 2 )
 
-        result = CPythonModule(
+        result = PythonModule(
             name       = module_name,
             package    = package,
             is_main    = is_main,
@@ -1116,7 +1116,7 @@ def buildModuleTree( filename, package, is_top, is_main ):
 
             package_name = Utils.basename( filename )
 
-        result = CPythonPackage(
+        result = PythonPackage(
             name       = package_name,
             package    = package,
             source_ref = source_ref

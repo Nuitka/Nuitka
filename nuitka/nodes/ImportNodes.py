@@ -25,15 +25,15 @@ what it normally could. The import expression node can recurse. An "__import__" 
 
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase
 
-from .ConstantRefNodes import CPythonExpressionConstantRef
+from .ConstantRefNodes import ExpressionConstantRef
 
 from nuitka import Importing, Utils, Options
 
 from logging import warning
 
-class CPythonExpressionImportModule( CPythonExpressionChildrenHavingBase ):
+class ExpressionImportModule( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_IMPORT_MODULE"
 
     named_children = ( "module", )
@@ -42,7 +42,7 @@ class CPythonExpressionImportModule( CPythonExpressionChildrenHavingBase ):
     _warned_about = set()
 
     def __init__( self, module_name, import_list, level, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "module" : None
@@ -86,8 +86,8 @@ class CPythonExpressionImportModule( CPythonExpressionChildrenHavingBase ):
     def setAttemptedRecurse( self ):
         self.attempted_recurse = True
 
-    getModule = CPythonExpressionChildrenHavingBase.childGetter( "module" )
-    _setModule = CPythonExpressionChildrenHavingBase.childSetter( "module" )
+    getModule = ExpressionChildrenHavingBase.childGetter( "module" )
+    _setModule = ExpressionChildrenHavingBase.childSetter( "module" )
 
     def setModule( self, module ):
         # Modules have no parent.
@@ -202,7 +202,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
         parent_module = self.getParentModule()
 
-        if parent_module.isPackage():
+        if parent_module.isPythonPackage():
             parent_package = parent_module.getFullName()
         else:
             parent_package = self.getParentModule().getPackage()
@@ -229,7 +229,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
                 import_list = self.getImportList()
 
-                if import_list and imported_module.isPackage():
+                if import_list and imported_module.isPythonPackage():
                     for import_item in import_list:
 
                         module_package, _module_name, module_filename = Importing.findModule(
@@ -262,25 +262,25 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         return self, None, None
 
 
-class CPythonExpressionBuiltinImport( CPythonExpressionChildrenHavingBase ):
+class ExpressionBuiltinImport( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_IMPORT"
 
     named_children = ( "import_name", "globals", "locals", "fromlist", "level" )
 
     def __init__( self, name, import_globals, import_locals, fromlist, level, source_ref ):
         if fromlist is None:
-            fromlist = CPythonExpressionConstantRef(
+            fromlist = ExpressionConstantRef(
                 constant   = [],
                 source_ref = source_ref
             )
 
         if level is None:
-            level = CPythonExpressionConstantRef(
+            level = ExpressionConstantRef(
                 constant   = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1,
                 source_ref = source_ref
             )
 
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "import_name" : name,
@@ -292,11 +292,11 @@ class CPythonExpressionBuiltinImport( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getImportName = CPythonExpressionChildrenHavingBase.childGetter( "import_name" )
-    getFromList = CPythonExpressionChildrenHavingBase.childGetter( "fromlist" )
-    getGlobals = CPythonExpressionChildrenHavingBase.childGetter( "globals" )
-    getLocals = CPythonExpressionChildrenHavingBase.childGetter( "locals" )
-    getLevel = CPythonExpressionChildrenHavingBase.childGetter( "level" )
+    getImportName = ExpressionChildrenHavingBase.childGetter( "import_name" )
+    getFromList = ExpressionChildrenHavingBase.childGetter( "fromlist" )
+    getGlobals = ExpressionChildrenHavingBase.childGetter( "globals" )
+    getLocals = ExpressionChildrenHavingBase.childGetter( "locals" )
+    getLevel = ExpressionChildrenHavingBase.childGetter( "level" )
 
     def computeNode( self, constraint_collection ):
         module_name = self.getImportName()
@@ -309,7 +309,7 @@ class CPythonExpressionBuiltinImport( CPythonExpressionChildrenHavingBase ):
 
         if module_name.isExpressionConstantRef() and fromlist.isExpressionConstantRef() \
              and level.isExpressionConstantRef():
-            new_node = CPythonExpressionImportModule(
+            new_node = ExpressionImportModule(
                 module_name = module_name.getConstant(),
                 import_list = fromlist.getConstant(),
                 level       = level.getConstant(),
@@ -323,13 +323,13 @@ class CPythonExpressionBuiltinImport( CPythonExpressionChildrenHavingBase ):
         return self, None, None
 
 
-class CPythonStatementImportStar( CPythonExpressionChildrenHavingBase ):
+class StatementImportStar( ExpressionChildrenHavingBase ):
     kind = "STATEMENT_IMPORT_STAR"
 
     named_children = ( "module", )
 
     def __init__( self, module_import, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "module" : module_import
@@ -337,16 +337,16 @@ class CPythonStatementImportStar( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getModule = CPythonExpressionChildrenHavingBase.childGetter( "module" )
+    getModule = ExpressionChildrenHavingBase.childGetter( "module" )
 
 
-class CPythonExpressionImportName( CPythonExpressionChildrenHavingBase ):
+class ExpressionImportName( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_IMPORT_NAME"
 
     named_children = ( "module", )
 
     def __init__( self, module, import_name, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "module" : module
@@ -365,7 +365,7 @@ class CPythonExpressionImportName( CPythonExpressionChildrenHavingBase ):
     def getDetail( self ):
         return "import %s from %s" % ( self.getImportName(), self.getModule() )
 
-    getModule = CPythonExpressionChildrenHavingBase.childGetter( "module" )
+    getModule = ExpressionChildrenHavingBase.childGetter( "module" )
 
     def computeNode( self, constraint_collection ):
         # TODO: May return a module or module variable reference of some sort in the

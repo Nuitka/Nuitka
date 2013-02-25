@@ -19,7 +19,7 @@
 
 """
 
-from .NodeBases import CPythonNodeBase, CompileTimeConstantExpressionMixin
+from .NodeBases import NodeBase, CompileTimeConstantExpressionMixin
 
 from nuitka.Constants import (
     getConstantIterationLength,
@@ -35,11 +35,11 @@ from nuitka.__past__ import iterItems, unicode
 # pylint: enable=W0622
 
 
-class CPythonExpressionConstantRef( CompileTimeConstantExpressionMixin, CPythonNodeBase ):
+class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
     kind = "EXPRESSION_CONSTANT_REF"
 
     def __init__( self, constant, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
         assert isConstant( constant ), constant
 
@@ -113,13 +113,13 @@ class CPythonExpressionConstantRef( CompileTimeConstantExpressionMixin, CPythonN
     def getIterationValue( self, count, constraint_collection ):
         assert count < len( self.constant )
 
-        return CPythonExpressionConstantRef( self.constant[ count ], self.source_ref )
+        return ExpressionConstantRef( self.constant[ count ], self.source_ref )
 
     def getIterationValues( self, constraint_collection ):
         source_ref = self.getSourceReference()
 
         return tuple(
-            CPythonExpressionConstantRef(
+            ExpressionConstantRef(
                 constant   = value,
                 source_ref = source_ref
             )
@@ -148,11 +148,11 @@ class CPythonExpressionConstantRef( CompileTimeConstantExpressionMixin, CPythonN
 
         for key, value in iterItems( self.constant ):
             pairs.append(
-                CPythonExpressionConstantRef(
+                ExpressionConstantRef(
                     constant   = key,
                     source_ref = source_ref
                 ),
-                CPythonExpressionConstantRef(
+                ExpressionConstantRef(
                     constant   = value,
                     source_ref = source_ref
                 )
@@ -171,7 +171,7 @@ class CPythonExpressionConstantRef( CompileTimeConstantExpressionMixin, CPythonN
             pairs.append(
                 (
                     key,
-                    CPythonExpressionConstantRef(
+                    ExpressionConstantRef(
                         constant   = value,
                         source_ref = source_ref
                     )
@@ -223,7 +223,7 @@ class CPythonExpressionConstantRef( CompileTimeConstantExpressionMixin, CPythonN
         if type( self.constant ) is str:
             return self
         else:
-            return CPythonExpressionConstantRef(
+            return ExpressionConstantRef(
                 constant   = str( self.constant ),
                 source_ref = self.getSourceReference()
             )

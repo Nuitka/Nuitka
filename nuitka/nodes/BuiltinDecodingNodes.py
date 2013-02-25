@@ -24,24 +24,24 @@ answer quite a few questions at compile time.
 """
 
 from .NodeBases import (
-    CPythonExpressionBuiltinSingleArgBase,
-    CPythonExpressionBuiltinNoArgBase
+    ExpressionBuiltinSingleArgBase,
+    ExpressionBuiltinNoArgBase
 )
 
 from nuitka.optimizations import BuiltinOptimization
 
 
-class CPythonExpressionBuiltinOrd0( CPythonExpressionBuiltinNoArgBase ):
+class ExpressionBuiltinOrd0( ExpressionBuiltinNoArgBase ):
     kind = "EXPRESSION_BUILTIN_ORD0"
 
     def __init__( self, source_ref ):
-        CPythonExpressionBuiltinNoArgBase.__init__(
+        ExpressionBuiltinNoArgBase.__init__(
             self,
             builtin_function = ord,
             source_ref       = source_ref
         )
 
-class CPythonExpressionBuiltinOrd( CPythonExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinOrd( ExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_ORD"
 
     builtin_spec = BuiltinOptimization.builtin_ord_spec
@@ -50,7 +50,7 @@ class CPythonExpressionBuiltinOrd( CPythonExpressionBuiltinSingleArgBase ):
         return False
 
 
-class CPythonExpressionBuiltinChr( CPythonExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinChr( ExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_CHR"
 
     builtin_spec = BuiltinOptimization.builtin_chr_spec

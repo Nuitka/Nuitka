@@ -19,7 +19,7 @@
 
 """
 
-from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
+from .NodeBases import ChildrenHavingMixin, NodeBase
 
 from nuitka.Utils import python_version
 
@@ -38,30 +38,30 @@ def mergeStatements( statements ):
     return merged_statements
 
 
-class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementsSequence( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENTS_SEQUENCE"
 
     named_children = ( "statements", )
 
     def __init__( self, statements, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {
                 "statements" : tuple( statements )
             }
         )
 
-    getStatements = CPythonChildrenHaving.childGetter( "statements" )
-    setStatements = CPythonChildrenHaving.childSetterNotNone( "statements" )
+    getStatements = ChildrenHavingMixin.childGetter( "statements" )
+    setStatements = ChildrenHavingMixin.childSetterNotNone( "statements" )
 
     def setChild( self, name, value ):
         assert name == "statements"
 
         assert None not in value, value
 
-        return CPythonChildrenHaving.setChild(
+        return ChildrenHavingMixin.setChild(
             self,
             name  = name,
             value = mergeStatements( value )
@@ -120,11 +120,11 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
         return self.getStatements()[-1].isStatementAborting()
 
 
-class CPythonStatementsFrame( CPythonStatementsSequence ):
+class StatementsFrame( StatementsSequence ):
     kind = "STATEMENTS_FRAME"
 
     def __init__( self, statements, guard_mode, code_name, arg_names, kw_only_count, source_ref ):
-        CPythonStatementsSequence.__init__(
+        StatementsSequence.__init__(
             self,
             statements = statements,
             source_ref = source_ref
@@ -174,23 +174,23 @@ class CPythonStatementsFrame( CPythonStatementsSequence ):
             filename      = self.source_ref.getFilename(),
             arg_names     = self.getArgNames(),
             kw_only_count = self.getKwOnlyParameterCount(),
-            line_number   = 0 if provider.isModule() else self.source_ref.getLineNumber(),
+            line_number   = 0 if provider.isPythonModule() else self.source_ref.getLineNumber(),
             code_name     = self.getCodeObjectName(),
             is_generator  = provider.isExpressionFunctionBody() and provider.isGenerator(),
-            is_optimized  = not provider.isModule() and not provider.isClassDictCreation() and \
+            is_optimized  = not provider.isPythonModule() and not provider.isClassDictCreation() and \
                             not context.hasLocalsDict()
         )
 
 
-class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementExpressionOnly( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_EXPRESSION_ONLY"
 
     named_children = ( "expression", )
 
     def __init__( self, expression, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {
                 "expression" : expression
@@ -203,4 +203,4 @@ class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):
     def mayHaveSideEffects( self, constraint_collection ):
         return self.getExpression().mayHaveSideEffects( constraint_collection )
 
-    getExpression = CPythonChildrenHaving.childGetter( "expression" )
+    getExpression = ChildrenHavingMixin.childGetter( "expression" )

@@ -20,22 +20,22 @@ from nuitka import Utils, SyntaxErrors
 
 from nuitka.nodes.ParameterSpec import ParameterSpec
 
-from nuitka.nodes.VariableRefNodes import CPythonExpressionTargetVariableRef
-from nuitka.nodes.ConstantRefNodes import CPythonExpressionConstantRef
-from nuitka.nodes.BuiltinRefNodes import CPythonExpressionBuiltinRef
-from nuitka.nodes.CallNodes import CPythonExpressionCallNoKeywords
+from nuitka.nodes.VariableRefNodes import ExpressionTargetVariableRef
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
+from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.FunctionNodes import (
-    CPythonExpressionFunctionCreation,
-    CPythonExpressionFunctionBody,
-    CPythonExpressionFunctionRef
+    ExpressionFunctionCreation,
+    ExpressionFunctionBody,
+    ExpressionFunctionRef
 )
-from nuitka.nodes.ContainerMakingNodes import CPythonExpressionMakeTuple
-from nuitka.nodes.StatementNodes import CPythonStatementsSequence
-from nuitka.nodes.ReturnNodes import CPythonStatementReturn
-from nuitka.nodes.AssignNodes import CPythonStatementAssignmentVariable
+from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.ContainerMakingNodes import (
-    CPythonExpressionKeyValuePair,
-    CPythonExpressionMakeDict
+    ExpressionKeyValuePair,
+    ExpressionMakeDict
 )
 
 from .Helpers import (
@@ -51,7 +51,7 @@ def buildFunctionNode( provider, node, source_ref ):
 
     function_statements, function_doc = extractDocFromBody( node )
 
-    function_body = CPythonExpressionFunctionBody(
+    function_body = ExpressionFunctionBody(
         provider   = provider,
         name       = node.name,
         doc        = function_doc,
@@ -78,10 +78,10 @@ def buildFunctionNode( provider, node, source_ref ):
         # TODO: raise generator exit?
         pass
     elif function_statements_body is None:
-        function_statements_body = CPythonStatementsSequence(
+        function_statements_body = StatementsSequence(
             statements = (
-                CPythonStatementReturn(
-                    expression = CPythonExpressionConstantRef(
+                StatementReturn(
+                    expression = ExpressionConstantRef(
                         constant   = None,
                         source_ref = source_ref.atInternal()
                     ),
@@ -94,8 +94,8 @@ def buildFunctionNode( provider, node, source_ref ):
         function_statements_body.setStatements(
             function_statements_body.getStatements() +
             (
-                CPythonStatementReturn(
-                    expression = CPythonExpressionConstantRef(
+                StatementReturn(
+                    expression = ExpressionConstantRef(
                         constant   = None,
                         source_ref = source_ref
                     ),
@@ -108,8 +108,8 @@ def buildFunctionNode( provider, node, source_ref ):
 
     annotations = buildParameterAnnotations( provider, node, source_ref )
 
-    decorated_body = CPythonExpressionFunctionCreation(
-        function_ref = CPythonExpressionFunctionRef(
+    decorated_body = ExpressionFunctionCreation(
+        function_ref = ExpressionFunctionRef(
             function_body,
             source_ref = source_ref
         ),
@@ -127,24 +127,24 @@ def buildFunctionNode( provider, node, source_ref ):
          provider.isExpressionFunctionBody() and provider.isClassDictCreation():
 
         decorators = (
-            CPythonExpressionBuiltinRef(
+            ExpressionBuiltinRef(
                 builtin_name = "staticmethod",
                 source_ref   = source_ref
             ),
         )
 
     for decorator in decorators:
-        decorated_body = CPythonExpressionCallNoKeywords(
+        decorated_body = ExpressionCallNoKeywords(
             called     = decorator,
-            args       = CPythonExpressionMakeTuple(
+            args       = ExpressionMakeTuple(
                 elements    = ( decorated_body, ),
                 source_ref = source_ref
             ),
             source_ref = decorator.getSourceReference()
         )
 
-    return CPythonStatementAssignmentVariable(
-        variable_ref = CPythonExpressionTargetVariableRef(
+    return StatementAssignmentVariable(
+        variable_ref = ExpressionTargetVariableRef(
             variable_name = node.name,
             source_ref    = source_ref
         ),
@@ -163,8 +163,8 @@ def buildParameterKwDefaults( provider, node, function_body, source_ref ):
         for kw_name, kw_default in zip( kw_only_names, node.args.kw_defaults ):
             if kw_default is not None:
                 pairs.append(
-                    CPythonExpressionKeyValuePair(
-                        key = CPythonExpressionConstantRef(
+                    ExpressionKeyValuePair(
+                        key = ExpressionConstantRef(
                             constant   = kw_name,
                             source_ref = source_ref
                         ),
@@ -174,7 +174,7 @@ def buildParameterKwDefaults( provider, node, function_body, source_ref ):
                 )
 
         if pairs:
-            kw_defaults = CPythonExpressionMakeDict(
+            kw_defaults = ExpressionMakeDict(
                 pairs = pairs,
                 source_ref = source_ref
             )
@@ -200,8 +200,8 @@ def buildParameterAnnotations( provider, node, source_ref ):
         elif getKind( arg ) == "arg":
             if arg.annotation is not None:
                 pairs.append(
-                    CPythonExpressionKeyValuePair(
-                        key        = CPythonExpressionConstantRef(
+                    ExpressionKeyValuePair(
+                        key        = ExpressionConstantRef(
                             constant   = arg.arg,
                             source_ref = source_ref
                         ),
@@ -223,8 +223,8 @@ def buildParameterAnnotations( provider, node, source_ref ):
 
     if node.args.varargannotation is not None:
         pairs.append(
-            CPythonExpressionKeyValuePair(
-                key        = CPythonExpressionConstantRef(
+            ExpressionKeyValuePair(
+                key        = ExpressionConstantRef(
                     constant   = node.args.vararg,
                     source_ref = source_ref
                 ),
@@ -235,8 +235,8 @@ def buildParameterAnnotations( provider, node, source_ref ):
 
     if node.args.kwargannotation is not None:
         pairs.append(
-            CPythonExpressionKeyValuePair(
-                key        = CPythonExpressionConstantRef(
+            ExpressionKeyValuePair(
+                key        = ExpressionConstantRef(
                     constant   = node.args.kwarg,
                     source_ref = source_ref
                 ),
@@ -248,8 +248,8 @@ def buildParameterAnnotations( provider, node, source_ref ):
     # Return value annotation (not there for lambdas)
     if hasattr( node, "returns" ) and node.returns is not None:
         pairs.append(
-            CPythonExpressionKeyValuePair(
-                key        = CPythonExpressionConstantRef(
+            ExpressionKeyValuePair(
+                key        = ExpressionConstantRef(
                     constant   = "return",
                     source_ref = source_ref
                 ),
@@ -259,7 +259,7 @@ def buildParameterAnnotations( provider, node, source_ref ):
         )
 
     if pairs:
-        return CPythonExpressionMakeDict(
+        return ExpressionMakeDict(
             pairs      = pairs,
             source_ref = source_ref
         )

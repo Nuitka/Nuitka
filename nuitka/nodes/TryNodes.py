@@ -21,16 +21,16 @@ The try/except needs handlers, and these blocks are complex control flow.
 
 """
 
-from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
+from .NodeBases import ChildrenHavingMixin, NodeBase
 
 
-class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementTryFinally( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_TRY_FINALLY"
 
     named_children = ( "tried", "final" )
 
     def __init__( self, tried, final, source_ref ):
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {
                 "tried" : tried,
@@ -38,17 +38,17 @@ class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
             }
         )
 
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
         self.break_exception = False
         self.continue_exception = False
         self.return_value_exception_catch = False
         self.return_value_exception_reraise = False
 
-    getBlockTry = CPythonChildrenHaving.childGetter( "tried" )
-    setBlockTry = CPythonChildrenHaving.childSetter( "tried" )
-    getBlockFinal = CPythonChildrenHaving.childGetter( "final" )
-    setBlockFinal = CPythonChildrenHaving.childSetter( "final" )
+    getBlockTry = ChildrenHavingMixin.childGetter( "tried" )
+    setBlockTry = ChildrenHavingMixin.childSetter( "tried" )
+    getBlockFinal = ChildrenHavingMixin.childGetter( "final" )
+    setBlockFinal = ChildrenHavingMixin.childSetter( "final" )
 
     def isStatementAborting( self ):
         # In try/finally there are two chances to raise or return a value, so we need to
@@ -91,15 +91,15 @@ class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
         return self.return_value_exception_reraise
 
 
-class CPythonStatementExceptHandler( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementExceptHandler( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_EXCEPT_HANDLER"
 
     named_children = ( "exception_types", "body" )
 
     def __init__( self, exception_types, body, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {
                 "exception_types" : tuple( exception_types ),
@@ -107,20 +107,20 @@ class CPythonStatementExceptHandler( CPythonChildrenHaving, CPythonNodeBase ):
             }
         )
 
-    getExceptionTypes  = CPythonChildrenHaving.childGetter( "exception_types" )
-    getExceptionBranch = CPythonChildrenHaving.childGetter( "body" )
-    setExceptionBranch = CPythonChildrenHaving.childSetter( "body" )
+    getExceptionTypes  = ChildrenHavingMixin.childGetter( "exception_types" )
+    getExceptionBranch = ChildrenHavingMixin.childGetter( "body" )
+    setExceptionBranch = ChildrenHavingMixin.childSetter( "body" )
 
 
-class CPythonStatementTryExcept( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementTryExcept( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_TRY_EXCEPT"
 
     named_children = ( "tried", "handlers" )
 
     def __init__( self, tried, handlers, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {
                 "tried"    : tried,
@@ -128,10 +128,10 @@ class CPythonStatementTryExcept( CPythonChildrenHaving, CPythonNodeBase ):
             }
         )
 
-    getBlockTry = CPythonChildrenHaving.childGetter( "tried" )
-    setBlockTry = CPythonChildrenHaving.childSetter( "tried" )
+    getBlockTry = ChildrenHavingMixin.childGetter( "tried" )
+    setBlockTry = ChildrenHavingMixin.childSetter( "tried" )
 
-    getExceptionHandlers = CPythonChildrenHaving.childGetter( "handlers" )
+    getExceptionHandlers = ChildrenHavingMixin.childGetter( "handlers" )
 
     def isStatementAborting( self ):
         tried_block = self.getBlockTry()

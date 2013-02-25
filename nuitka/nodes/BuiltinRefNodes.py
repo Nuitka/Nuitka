@@ -25,9 +25,9 @@ to variables only ever read.
 """
 
 
-from .NodeBases import CPythonNodeBase, CompileTimeConstantExpressionMixin
+from .NodeBases import NodeBase, CompileTimeConstantExpressionMixin
 
-from .ConstantRefNodes import CPythonExpressionConstantRef
+from .ConstantRefNodes import ExpressionConstantRef
 
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
@@ -41,9 +41,9 @@ from nuitka.Builtins import (
 
 from nuitka.Utils import python_version
 
-class CPythonExpressionBuiltinRefBase( CompileTimeConstantExpressionMixin, CPythonNodeBase ):
+class ExpressionBuiltinRefBase( CompileTimeConstantExpressionMixin, NodeBase ):
     def __init__( self, builtin_name, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
         self.builtin_name = builtin_name
 
@@ -61,13 +61,13 @@ class CPythonExpressionBuiltinRefBase( CompileTimeConstantExpressionMixin, CPyth
         return False
 
 
-class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
+class ExpressionBuiltinRef( ExpressionBuiltinRefBase ):
     kind = "EXPRESSION_BUILTIN_REF"
 
     def __init__( self, builtin_name, source_ref ):
         assert builtin_name in builtin_names, builtin_name
 
-        CPythonExpressionBuiltinRefBase.__init__(
+        ExpressionBuiltinRefBase.__init__(
             self,
             builtin_name = builtin_name,
             source_ref   = source_ref
@@ -94,7 +94,7 @@ class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
         }
 
         if self.builtin_name in quick_names:
-            new_node = CPythonExpressionConstantRef(
+            new_node = ExpressionConstantRef(
                 constant   = quick_names[ self.builtin_name ],
                 source_ref = self.getSourceReference()
             )
@@ -123,13 +123,13 @@ class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
 
         return python_version >= 300
 
-class CPythonExpressionBuiltinAnonymousRef( CPythonExpressionBuiltinRefBase ):
+class ExpressionBuiltinAnonymousRef( ExpressionBuiltinRefBase ):
     kind = "EXPRESSION_BUILTIN_ANONYMOUS_REF"
 
     def __init__( self, builtin_name, source_ref ):
         assert builtin_name in builtin_anon_names
 
-        CPythonExpressionBuiltinRefBase.__init__(
+        ExpressionBuiltinRefBase.__init__(
             self,
             builtin_name = builtin_name,
             source_ref   = source_ref
@@ -159,13 +159,13 @@ class CPythonExpressionBuiltinAnonymousRef( CPythonExpressionBuiltinRefBase ):
         return repr( self.getCompileTimeConstant() )
 
 
-class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
+class ExpressionBuiltinExceptionRef( ExpressionBuiltinRefBase ):
     kind = "EXPRESSION_BUILTIN_EXCEPTION_REF"
 
     def __init__( self, exception_name, source_ref ):
         assert exception_name in builtin_exception_names
 
-        CPythonExpressionBuiltinRefBase.__init__(
+        ExpressionBuiltinRefBase.__init__(
             self,
             builtin_name = exception_name,
             source_ref   = source_ref
@@ -174,7 +174,7 @@ class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
     def getDetails( self ):
         return { "exception_name" : self.builtin_name }
 
-    getExceptionName = CPythonExpressionBuiltinRefBase.getBuiltinName
+    getExceptionName = ExpressionBuiltinRefBase.getBuiltinName
 
     def isExpressionBuiltin( self ):
         # Means if it's a builtin function call.
@@ -199,9 +199,9 @@ class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
         exception_name = self.getExceptionName()
 
         def createBuiltinMakeException( args, source_ref ):
-            from nuitka.nodes.ExceptionNodes import CPythonExpressionBuiltinMakeException
+            from nuitka.nodes.ExceptionNodes import ExpressionBuiltinMakeException
 
-            return CPythonExpressionBuiltinMakeException(
+            return ExpressionBuiltinMakeException(
                 exception_name = exception_name,
                 args           = args,
                 source_ref     = source_ref

@@ -19,12 +19,12 @@
 
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase
 
 from nuitka import PythonOperators
 
 
-class CPythonExpressionComparison( CPythonExpressionChildrenHavingBase ):
+class ExpressionComparison( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_COMPARISON"
 
     named_children = ( "left", "right" )
@@ -36,7 +36,7 @@ class CPythonExpressionComparison( CPythonExpressionChildrenHavingBase ):
 
         assert comparator in PythonOperators.all_comparison_functions
 
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "left"  : left,
@@ -48,7 +48,7 @@ class CPythonExpressionComparison( CPythonExpressionChildrenHavingBase ):
         self.comparator = comparator
 
         if comparator in ( "Is", "IsNot" ):
-            assert self.__class__ is not CPythonExpressionComparison
+            assert self.__class__ is not ExpressionComparison
 
     def getOperands( self ):
         return (
@@ -56,8 +56,8 @@ class CPythonExpressionComparison( CPythonExpressionChildrenHavingBase ):
             self.getRight()
         )
 
-    getLeft = CPythonExpressionChildrenHavingBase.childGetter( "left" )
-    getRight = CPythonExpressionChildrenHavingBase.childGetter( "right" )
+    getLeft = ExpressionChildrenHavingBase.childGetter( "left" )
+    getRight = ExpressionChildrenHavingBase.childGetter( "right" )
 
     def getComparator( self ):
         return self.comparator
@@ -111,9 +111,9 @@ class CPythonExpressionComparison( CPythonExpressionChildrenHavingBase ):
         return self.comparator in PythonOperators.rich_comparison_functions
 
 
-class CPythonExpressionComparisonIsIsNotBase( CPythonExpressionComparison ):
+class ExpressionComparisonIsIsNotBase( ExpressionComparison ):
     def __init__( self, left, right, comparator, source_ref ):
-        CPythonExpressionComparison.__init__(
+        ExpressionComparison.__init__(
             self,
             left       = left,
             right      = right,
@@ -167,7 +167,7 @@ class CPythonExpressionComparisonIsIsNotBase( CPythonExpressionComparison ):
 
             return result, "new_constant", "Determined values to not alias and therefore result of %s comparison" % self.comparator
 
-        return CPythonExpressionComparison.computeNode( self, constraint_collection )
+        return ExpressionComparison.computeNode( self, constraint_collection )
 
     def extractSideEffects( self ):
         left, right = self.getOperands()
@@ -175,11 +175,11 @@ class CPythonExpressionComparisonIsIsNotBase( CPythonExpressionComparison ):
         return left.extractSideEffects() + right.extractSideEffects()
 
 
-class CPythonExpressionComparisonIs( CPythonExpressionComparisonIsIsNotBase ):
+class ExpressionComparisonIs( ExpressionComparisonIsIsNotBase ):
     kind = "EXPRESSION_COMPARISON_IS"
 
     def __init__( self, left, right, source_ref ):
-        CPythonExpressionComparisonIsIsNotBase.__init__(
+        ExpressionComparisonIsIsNotBase.__init__(
             self,
             left       = left,
             right      = right,
@@ -188,11 +188,11 @@ class CPythonExpressionComparisonIs( CPythonExpressionComparisonIsIsNotBase ):
     )
 
 
-class CPythonExpressionComparisonIsNOT( CPythonExpressionComparisonIsIsNotBase ):
+class ExpressionComparisonIsNOT( ExpressionComparisonIsIsNotBase ):
     kind = "EXPRESSION_COMPARISON_IS_NOT"
 
     def __init__( self, left, right, source_ref ):
-        CPythonExpressionComparisonIsIsNotBase.__init__(
+        ExpressionComparisonIsIsNotBase.__init__(
             self,
             left       = left,
             right      = right,

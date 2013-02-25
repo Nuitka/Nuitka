@@ -23,16 +23,16 @@ objects and classes.
 There will be a method "computeNodeAttribute" to aid predicting them.
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase
 
 
-class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
+class ExpressionAttributeLookup( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP"
 
     named_children = ( "expression", )
 
     def __init__( self, expression, attribute_name, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "expression" : expression
@@ -54,10 +54,10 @@ class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
     def getDetail( self ):
         return "attribute %s from %s" % ( self.getAttributeName(), self.getLookupSource() )
 
-    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
+    getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
 
     def makeCloneAt( self, source_ref ):
-        return CPythonExpressionAttributeLookup(
+        return ExpressionAttributeLookup(
             expression     = self.getLookupSource().makeCloneAt( source_ref ),
             attribute_name = self.getAttributeName(),
             source_ref     = source_ref
@@ -80,7 +80,7 @@ class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
         return None
 
 
-class CPythonExpressionSpecialAttributeLookup( CPythonExpressionAttributeLookup ):
+class ExpressionSpecialAttributeLookup( ExpressionAttributeLookup ):
     kind = "EXPRESSION_SPECIAL_ATTRIBUTE_LOOKUP"
 
     # TODO: Special lookups should be treated somehow different.
@@ -94,7 +94,7 @@ class CPythonExpressionSpecialAttributeLookup( CPythonExpressionAttributeLookup 
         return self, None, None
 
 
-class CPythonExpressionBuiltinGetattr( CPythonExpressionChildrenHavingBase ):
+class ExpressionBuiltinGetattr( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_GETATTR"
 
     named_children = ( "source", "attribute", "default" )
@@ -103,7 +103,7 @@ class CPythonExpressionBuiltinGetattr( CPythonExpressionChildrenHavingBase ):
     # pylint: disable=W0622
 
     def __init__( self, object, name, default, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "source"    : object,
@@ -113,9 +113,9 @@ class CPythonExpressionBuiltinGetattr( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
-    getAttribute = CPythonExpressionChildrenHavingBase.childGetter( "attribute" )
-    getDefault = CPythonExpressionChildrenHavingBase.childGetter( "default" )
+    getLookupSource = ExpressionChildrenHavingBase.childGetter( "source" )
+    getAttribute = ExpressionChildrenHavingBase.childGetter( "attribute" )
+    getDefault = ExpressionChildrenHavingBase.childGetter( "default" )
 
     def computeNode( self, constraint_collection ):
         default = self.getDefault()
@@ -135,7 +135,7 @@ class CPythonExpressionBuiltinGetattr( CPythonExpressionChildrenHavingBase ):
                 side_effects = source.extractSideEffects()
 
                 if not side_effects:
-                    result = CPythonExpressionAttributeLookup(
+                    result = ExpressionAttributeLookup(
                         expression     = source,
                         attribute_name = attribute_name,
                         source_ref     = self.source_ref
@@ -153,7 +153,7 @@ class CPythonExpressionBuiltinGetattr( CPythonExpressionChildrenHavingBase ):
         return self, None, None
 
 
-class CPythonExpressionBuiltinSetattr( CPythonExpressionChildrenHavingBase ):
+class ExpressionBuiltinSetattr( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_SETATTR"
 
     named_children = ( "source", "attribute", "value" )
@@ -162,7 +162,7 @@ class CPythonExpressionBuiltinSetattr( CPythonExpressionChildrenHavingBase ):
     # pylint: disable=W0622
 
     def __init__( self, object, name, value, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "source"    : object,
@@ -172,16 +172,16 @@ class CPythonExpressionBuiltinSetattr( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
-    getAttribute = CPythonExpressionChildrenHavingBase.childGetter( "attribute" )
-    getValue = CPythonExpressionChildrenHavingBase.childGetter( "value" )
+    getLookupSource = ExpressionChildrenHavingBase.childGetter( "source" )
+    getAttribute = ExpressionChildrenHavingBase.childGetter( "attribute" )
+    getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
     def computeNode( self, constraint_collection ):
         # Note: Might be possible to predict or downgrade to mere attribute set.
         return self, None, None
 
 
-class CPythonExpressionBuiltinHasattr( CPythonExpressionChildrenHavingBase ):
+class ExpressionBuiltinHasattr( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_HASATTR"
 
     named_children = ( "source", "attribute" )
@@ -190,7 +190,7 @@ class CPythonExpressionBuiltinHasattr( CPythonExpressionChildrenHavingBase ):
     # pylint: disable=W0622
 
     def __init__( self, object, name, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "source"    : object,
@@ -199,8 +199,8 @@ class CPythonExpressionBuiltinHasattr( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
-    getAttribute = CPythonExpressionChildrenHavingBase.childGetter( "attribute" )
+    getLookupSource = ExpressionChildrenHavingBase.childGetter( "source" )
+    getAttribute = ExpressionChildrenHavingBase.childGetter( "attribute" )
 
     def computeNode( self, constraint_collection ):
         # Note: Might be possible to predict or downgrade to mere attribute check.

@@ -24,18 +24,18 @@ detected to fail, which would be perfect.
 Predicting the behavior of 'print' is not trivial at all, due to many special cases.
 """
 
-from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
+from .NodeBases import ChildrenHavingMixin, NodeBase
 
 
-class CPythonStatementPrint( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementPrint( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_PRINT"
 
     named_children = ( "dest", "values" )
 
     def __init__( self, dest, values, newline, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {
                 "values" : tuple( values ),
@@ -52,6 +52,6 @@ class CPythonStatementPrint( CPythonChildrenHaving, CPythonNodeBase ):
     def removeNewlinePrint( self ):
         self.newline = False
 
-    getDestination = CPythonChildrenHaving.childGetter( "dest" )
-    getValues = CPythonChildrenHaving.childGetter( "values" )
-    setValues = CPythonChildrenHaving.childSetter( "values" )
+    getDestination = ChildrenHavingMixin.childGetter( "dest" )
+    getValues = ChildrenHavingMixin.childGetter( "values" )
+    setValues = ChildrenHavingMixin.childSetter( "values" )

@@ -20,11 +20,11 @@
 """
 
 
-from .NodeBases import CPythonExpressionChildrenHavingBase, CPythonSideEffectsFromChildrenMixin
+from .NodeBases import ExpressionChildrenHavingBase, SideEffectsFromChildrenMixin
 
 
-class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
-                                         CPythonExpressionChildrenHavingBase ):
+class ExpressionMakeSequenceBase( SideEffectsFromChildrenMixin,
+                                  ExpressionChildrenHavingBase ):
     named_children = ( "elements", )
 
     def __init__( self, sequence_kind, elements, source_ref ):
@@ -35,7 +35,7 @@ class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
 
         self.sequence_kind = sequence_kind.lower()
 
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "elements" : tuple( elements ),
@@ -50,7 +50,7 @@ class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
     def getSequenceKind( self ):
         return self.sequence_kind
 
-    getElements = CPythonExpressionChildrenHavingBase.childGetter( "elements" )
+    getElements = ExpressionChildrenHavingBase.childGetter( "elements" )
 
     def getSimulator( self ):
         # Abstract method, pylint: disable=R0201,W0613
@@ -114,11 +114,11 @@ class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
         return self.getIterationLength( constraint_collection ) > 0
 
 
-class CPythonExpressionMakeTuple( CPythonExpressionMakeSequenceBase ):
+class ExpressionMakeTuple( ExpressionMakeSequenceBase ):
     kind = "EXPRESSION_MAKE_TUPLE"
 
     def __init__( self, elements, source_ref ):
-        CPythonExpressionMakeSequenceBase.__init__(
+        ExpressionMakeSequenceBase.__init__(
             self,
             sequence_kind = "TUPLE",
             elements      = elements,
@@ -129,11 +129,11 @@ class CPythonExpressionMakeTuple( CPythonExpressionMakeSequenceBase ):
         return tuple
 
 
-class CPythonExpressionMakeList( CPythonExpressionMakeSequenceBase ):
+class ExpressionMakeList( ExpressionMakeSequenceBase ):
     kind = "EXPRESSION_MAKE_LIST"
 
     def __init__( self, elements, source_ref ):
-        CPythonExpressionMakeSequenceBase.__init__(
+        ExpressionMakeSequenceBase.__init__(
             self,
             sequence_kind = "LIST",
             elements      = elements,
@@ -144,11 +144,11 @@ class CPythonExpressionMakeList( CPythonExpressionMakeSequenceBase ):
         return list
 
 
-class CPythonExpressionMakeSet( CPythonExpressionMakeSequenceBase ):
+class ExpressionMakeSet( ExpressionMakeSequenceBase ):
     kind = "EXPRESSION_MAKE_SET"
 
     def __init__( self, elements, source_ref ):
-        CPythonExpressionMakeSequenceBase.__init__(
+        ExpressionMakeSequenceBase.__init__(
             self,
             sequence_kind = "SET",
             elements      = elements,
@@ -159,14 +159,14 @@ class CPythonExpressionMakeSet( CPythonExpressionMakeSequenceBase ):
         return set
 
 
-class CPythonExpressionKeyValuePair( CPythonSideEffectsFromChildrenMixin,
-                                     CPythonExpressionChildrenHavingBase ):
+class ExpressionKeyValuePair( SideEffectsFromChildrenMixin,
+                              ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_KEY_VALUE_PAIR"
 
     named_children = ( "key", "value" )
 
     def __init__( self, key, value, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "key"   : key,
@@ -175,8 +175,8 @@ class CPythonExpressionKeyValuePair( CPythonSideEffectsFromChildrenMixin,
             source_ref = source_ref
         )
 
-    getKey = CPythonExpressionChildrenHavingBase.childGetter( "key" )
-    getValue = CPythonExpressionChildrenHavingBase.childGetter( "value" )
+    getKey = ExpressionChildrenHavingBase.childGetter( "key" )
+    getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
     def computeNode( self, constraint_collection ):
         key = self.getKey()
@@ -200,14 +200,14 @@ class CPythonExpressionKeyValuePair( CPythonSideEffectsFromChildrenMixin,
         return self, None, None
 
 
-class CPythonExpressionMakeDict( CPythonSideEffectsFromChildrenMixin, \
-                                 CPythonExpressionChildrenHavingBase ):
+class ExpressionMakeDict( SideEffectsFromChildrenMixin,
+                          ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_MAKE_DICT"
 
     named_children = ( "pairs", )
 
     def __init__( self, pairs, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "pairs" : tuple( pairs ),
@@ -215,7 +215,7 @@ class CPythonExpressionMakeDict( CPythonSideEffectsFromChildrenMixin, \
             source_ref = source_ref
         )
 
-    getPairs = CPythonExpressionChildrenHavingBase.childGetter( "pairs" )
+    getPairs = ExpressionChildrenHavingBase.childGetter( "pairs" )
 
     def computeNode( self, constraint_collection ):
         pairs = self.getPairs()

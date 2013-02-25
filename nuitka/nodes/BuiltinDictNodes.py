@@ -19,15 +19,15 @@
 
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase
 
-from .ConstantRefNodes import CPythonExpressionConstantRef
-from .ContainerMakingNodes import CPythonExpressionKeyValuePair
+from .ConstantRefNodes import ExpressionConstantRef
+from .ContainerMakingNodes import ExpressionKeyValuePair
 
 from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
 
 
-class CPythonExpressionBuiltinDict( CPythonExpressionChildrenHavingBase ):
+class ExpressionBuiltinDict( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_DICT"
 
     named_children = ( "pos_arg", "pairs" )
@@ -36,13 +36,13 @@ class CPythonExpressionBuiltinDict( CPythonExpressionChildrenHavingBase ):
         assert type( pos_arg ) not in ( tuple, list ), source_ref
         assert type( pairs ) in ( tuple, list ), source_ref
 
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values = {
                 "pos_arg" : pos_arg,
                 "pairs"   : tuple(
-                    CPythonExpressionKeyValuePair(
-                        CPythonExpressionConstantRef( key, source_ref ),
+                    ExpressionKeyValuePair(
+                        ExpressionConstantRef( key, source_ref ),
                         value,
                         value.getSourceReference()
                     )
@@ -53,8 +53,8 @@ class CPythonExpressionBuiltinDict( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getPositionalArgument = CPythonExpressionChildrenHavingBase.childGetter( "pos_arg" )
-    getNamedArgumentPairs = CPythonExpressionChildrenHavingBase.childGetter( "pairs" )
+    getPositionalArgument = ExpressionChildrenHavingBase.childGetter( "pos_arg" )
+    getNamedArgumentPairs = ExpressionChildrenHavingBase.childGetter( "pairs" )
 
     def hasOnlyConstantArguments( self ):
         pos_arg = self.getPositionalArgument()

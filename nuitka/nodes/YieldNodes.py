@@ -24,15 +24,15 @@ often be 'None', but doesn't have to be.
 Often it will be used as a statement, which should also be reflected in a dedicated node.
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase
 
-class CPythonExpressionYield( CPythonExpressionChildrenHavingBase ):
+class ExpressionYield( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_YIELD"
 
     named_children = ( "expression", )
 
     def __init__( self, expression, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "expression" : expression
@@ -48,7 +48,7 @@ class CPythonExpressionYield( CPythonExpressionChildrenHavingBase ):
     def isExceptionPreserving( self ):
         return self.exception_preserving
 
-    getExpression = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
+    getExpression = ExpressionChildrenHavingBase.childGetter( "expression" )
 
     def computeNode( self, constraint_collection ):
         value = self.getExpression()

@@ -19,33 +19,33 @@
 from nuitka import Utils
 
 from nuitka.nodes.VariableRefNodes import (
-    CPythonExpressionTempVariableRef,
-    CPythonStatementTempBlock
+    ExpressionTempVariableRef,
+    StatementTempBlock
 )
-from nuitka.nodes.ConstantRefNodes import CPythonExpressionConstantRef
-from nuitka.nodes.BuiltinRefNodes import CPythonExpressionBuiltinExceptionRef
-from nuitka.nodes.ContainerMakingNodes import CPythonExpressionMakeTuple
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
+from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import (
-    CPythonExpressionCaughtExceptionTracebackRef,
-    CPythonExpressionCaughtExceptionValueRef,
-    CPythonExpressionCaughtExceptionTypeRef,
-    CPythonStatementRaiseException
+    ExpressionCaughtExceptionTracebackRef,
+    ExpressionCaughtExceptionValueRef,
+    ExpressionCaughtExceptionTypeRef,
+    StatementRaiseException
 )
 from nuitka.nodes.CallNodes import (
-    CPythonExpressionCallNoKeywords,
-    CPythonExpressionCallEmpty
+    ExpressionCallNoKeywords,
+    ExpressionCallEmpty
 )
 from nuitka.nodes.AttributeNodes import (
-    CPythonExpressionSpecialAttributeLookup,
-    CPythonExpressionAttributeLookup
+    ExpressionSpecialAttributeLookup,
+    ExpressionAttributeLookup
 )
 from nuitka.nodes.StatementNodes import (
-    CPythonStatementExpressionOnly,
-    CPythonStatementsSequence
+    StatementExpressionOnly,
+    StatementsSequence
 )
-from nuitka.nodes.ConditionalNodes import CPythonStatementConditional
-from nuitka.nodes.AssignNodes import CPythonStatementAssignmentVariable
-from nuitka.nodes.TryNodes import CPythonStatementExceptHandler
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.TryNodes import StatementExceptHandler
 
 from .ReformulationTryExceptStatements import makeTryExceptNoRaise
 from .ReformulationAssignmentStatements import buildAssignmentStatements
@@ -64,7 +64,7 @@ def buildWithNode( provider, node, source_ref ):
 
     with_source = buildNode( provider, node.context_expr, source_ref )
 
-    result = CPythonStatementTempBlock(
+    result = StatementTempBlock(
         source_ref = source_ref
     )
 
@@ -77,7 +77,7 @@ def buildWithNode( provider, node, source_ref ):
             provider   = provider,
             node       = node.optional_vars,
             allow_none = True,
-            source     = CPythonExpressionTempVariableRef(
+            source     = ExpressionTempVariableRef(
                 variable   = tmp_enter_variable.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -95,14 +95,14 @@ def buildWithNode( provider, node, source_ref ):
     # The "__enter__" and "__exit__" were normal attribute lookups under CPython2.6, but
     # that changed with CPython2.7.
     if Utils.python_version < 270:
-        attribute_lookup_class = CPythonExpressionAttributeLookup
+        attribute_lookup_class = ExpressionAttributeLookup
     else:
-        attribute_lookup_class = CPythonExpressionSpecialAttributeLookup
+        attribute_lookup_class = ExpressionSpecialAttributeLookup
 
     statements = [
         # First assign the with context to a temporary variable.
-        CPythonStatementAssignmentVariable(
-            variable_ref = CPythonExpressionTempVariableRef(
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTempVariableRef(
                 variable   = tmp_source_variable.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -110,13 +110,13 @@ def buildWithNode( provider, node, source_ref ):
             source_ref   = source_ref
         ),
         # Next, assign "__enter__" and "__exit__" attributes to temporary variables.
-        CPythonStatementAssignmentVariable(
-            variable_ref = CPythonExpressionTempVariableRef(
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTempVariableRef(
                 variable   = tmp_exit_variable.makeReference( result ),
                 source_ref = source_ref
             ),
             source       = attribute_lookup_class(
-                expression     = CPythonExpressionTempVariableRef(
+                expression     = ExpressionTempVariableRef(
                     variable   = tmp_source_variable.makeReference( result ),
                     source_ref = source_ref
                 ),
@@ -125,14 +125,14 @@ def buildWithNode( provider, node, source_ref ):
             ),
             source_ref   = source_ref
         ),
-        CPythonStatementAssignmentVariable(
-            variable_ref = CPythonExpressionTempVariableRef(
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTempVariableRef(
                 variable   = tmp_enter_variable.makeReference( result ),
                 source_ref = source_ref
             ),
-            source       = CPythonExpressionCallEmpty(
+            source       = ExpressionCallEmpty(
                 called         = attribute_lookup_class(
-                    expression     = CPythonExpressionTempVariableRef(
+                    expression     = ExpressionTempVariableRef(
                         variable   = tmp_source_variable.makeReference( result ),
                         source_ref = source_ref
                     ),
@@ -151,30 +151,30 @@ def buildWithNode( provider, node, source_ref ):
         makeTryExceptNoRaise(
             tried      = with_body,
             handlers   = (
-                CPythonStatementExceptHandler(
+                StatementExceptHandler(
                     exception_types = (
-                        CPythonExpressionBuiltinExceptionRef(
+                        ExpressionBuiltinExceptionRef(
                             exception_name = "BaseException",
                             source_ref     = source_ref
                         ),
                     ),
-                    body           = CPythonStatementsSequence(
+                    body           = StatementsSequence(
                         statements = (
-                            CPythonStatementConditional(
-                                condition     = CPythonExpressionCallNoKeywords(
-                                    called          = CPythonExpressionTempVariableRef(
+                            StatementConditional(
+                                condition     = ExpressionCallNoKeywords(
+                                    called          = ExpressionTempVariableRef(
                                         variable   = tmp_exit_variable.makeReference( result ),
                                         source_ref = source_ref
                                     ),
-                                    args = CPythonExpressionMakeTuple(
+                                    args = ExpressionMakeTuple(
                                         elements   = (
-                                            CPythonExpressionCaughtExceptionTypeRef(
+                                            ExpressionCaughtExceptionTypeRef(
                                                 source_ref = source_ref
                                             ),
-                                            CPythonExpressionCaughtExceptionValueRef(
+                                            ExpressionCaughtExceptionValueRef(
                                                 source_ref = source_ref
                                             ),
-                                            CPythonExpressionCaughtExceptionTracebackRef(
+                                            ExpressionCaughtExceptionTracebackRef(
                                                 source_ref = source_ref
                                             ),
                                         ),
@@ -182,9 +182,9 @@ def buildWithNode( provider, node, source_ref ):
                                     ),
                                     source_ref      = source_ref
                                 ),
-                                no_branch = CPythonStatementsSequence(
+                                no_branch = StatementsSequence(
                                     statements = (
-                                        CPythonStatementRaiseException(
+                                        StatementRaiseException(
                                             exception_type  = None,
                                             exception_value = None,
                                             exception_trace = None,
@@ -203,15 +203,15 @@ def buildWithNode( provider, node, source_ref ):
                     source_ref = source_ref
                 ),
             ),
-            no_raise   = CPythonStatementsSequence(
+            no_raise   = StatementsSequence(
                 statements = (
-                    CPythonStatementExpressionOnly(
-                        expression = CPythonExpressionCallNoKeywords(
-                            called     = CPythonExpressionTempVariableRef(
+                    StatementExpressionOnly(
+                        expression = ExpressionCallNoKeywords(
+                            called     = ExpressionTempVariableRef(
                                 variable   = tmp_exit_variable.makeReference( result ),
                                 source_ref = source_ref
                             ),
-                            args       = CPythonExpressionConstantRef(
+                            args       = ExpressionConstantRef(
                                 constant   = ( None, None, None ),
                                 source_ref = source_ref
                             ),
@@ -227,7 +227,7 @@ def buildWithNode( provider, node, source_ref ):
     ]
 
     result.setBody(
-        CPythonStatementsSequence(
+        StatementsSequence(
             statements = statements,
             source_ref = source_ref
         )

@@ -17,27 +17,27 @@
 #
 
 from nuitka.nodes.VariableRefNodes import (
-    CPythonExpressionTempVariableRef,
-    CPythonStatementTempBlock
+    ExpressionTempVariableRef,
+    StatementTempBlock
 )
-from nuitka.nodes.ConstantRefNodes import CPythonExpressionConstantRef
-from nuitka.nodes.BuiltinRefNodes import CPythonExpressionBuiltinExceptionRef
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
 from nuitka.nodes.BuiltinIteratorNodes import (
-    CPythonExpressionBuiltinNext1,
-    CPythonExpressionBuiltinIter1
+    ExpressionBuiltinNext1,
+    ExpressionBuiltinIter1
 )
-from nuitka.nodes.ComparisonNodes import CPythonExpressionComparisonIs
-from nuitka.nodes.StatementNodes import CPythonStatementsSequence
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
+from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.LoopNodes import (
-    CPythonStatementBreakLoop,
-    CPythonStatementLoop
+    StatementBreakLoop,
+    StatementLoop
 )
-from nuitka.nodes.ConditionalNodes import CPythonStatementConditional
-from nuitka.nodes.AssignNodes import CPythonStatementAssignmentVariable
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.TryNodes import (
-    CPythonStatementExceptHandler,
-    CPythonStatementTryExcept
+    StatementExceptHandler,
+    StatementTryExcept
 )
 
 from .Helpers import (
@@ -56,13 +56,13 @@ def buildForLoopNode( provider, node, source_ref ):
 
     source = buildNode( provider, node.iter, source_ref )
 
-    result = CPythonStatementTempBlock(
+    result = StatementTempBlock(
         source_ref = source_ref
     )
 
     tmp_iter_variable = result.getTempVariable( "for_iterator" )
 
-    iterate_tmp_block = CPythonStatementTempBlock(
+    iterate_tmp_block = StatementTempBlock(
         source_ref = source_ref
     )
 
@@ -78,12 +78,12 @@ def buildForLoopNode( provider, node, source_ref ):
         tmp_break_indicator_variable = result.getTempVariable( "break_indicator" )
 
         statements = [
-            CPythonStatementAssignmentVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTempVariableRef(
                     variable   = tmp_break_indicator_variable.makeReference( result ),
                     source_ref = source_ref
                 ),
-                source     = CPythonExpressionConstantRef(
+                source     = ExpressionConstantRef(
                     constant   = True,
                     source_ref = source_ref
                 ),
@@ -94,7 +94,7 @@ def buildForLoopNode( provider, node, source_ref ):
         statements = []
 
     statements.append(
-        CPythonStatementBreakLoop(
+        StatementBreakLoop(
             source_ref = source_ref.atInternal()
         )
     )
@@ -106,16 +106,16 @@ def buildForLoopNode( provider, node, source_ref ):
     )
 
     statements = (
-        CPythonStatementTryExcept(
-            tried      = CPythonStatementsSequence(
+        StatementTryExcept(
+            tried      = StatementsSequence(
                 statements = (
-                    CPythonStatementAssignmentVariable(
-                        variable_ref = CPythonExpressionTempVariableRef(
+                    StatementAssignmentVariable(
+                        variable_ref = ExpressionTempVariableRef(
                             variable   = tmp_value_variable.makeReference( iterate_tmp_block ),
                             source_ref = source_ref
                         ),
-                        source     = CPythonExpressionBuiltinNext1(
-                            value      = CPythonExpressionTempVariableRef(
+                        source     = ExpressionBuiltinNext1(
+                            value      = ExpressionTempVariableRef(
                                 variable   = tmp_iter_variable.makeReference( result ),
                                 source_ref = source_ref
                             ),
@@ -127,9 +127,9 @@ def buildForLoopNode( provider, node, source_ref ):
                 source_ref = source_ref
             ),
             handlers   = (
-                CPythonStatementExceptHandler(
+                StatementExceptHandler(
                     exception_types = (
-                        CPythonExpressionBuiltinExceptionRef(
+                        ExpressionBuiltinExceptionRef(
                             exception_name = "StopIteration",
                             source_ref     = source_ref
                         ),
@@ -143,7 +143,7 @@ def buildForLoopNode( provider, node, source_ref ):
         buildAssignmentStatements(
             provider   = provider,
             node       = node.target,
-            source     = CPythonExpressionTempVariableRef(
+            source     = ExpressionTempVariableRef(
                 variable   = tmp_value_variable.makeReference( iterate_tmp_block ),
                 source_ref = source_ref
             ),
@@ -152,7 +152,7 @@ def buildForLoopNode( provider, node, source_ref ):
     )
 
     iterate_tmp_block.setBody(
-        CPythonStatementsSequence(
+        StatementsSequence(
             statements = statements,
             source_ref = source_ref
         )
@@ -175,12 +175,12 @@ def buildForLoopNode( provider, node, source_ref ):
 
     if else_block is not None:
         statements = [
-            CPythonStatementAssignmentVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTempVariableRef(
                     variable   = tmp_break_indicator_variable.makeReference( result ),
                     source_ref = source_ref
                 ),
-                source     = CPythonExpressionConstantRef(
+                source     = ExpressionConstantRef(
                     constant = False,
                     source_ref = source_ref
                 ),
@@ -192,18 +192,18 @@ def buildForLoopNode( provider, node, source_ref ):
 
     statements += [
         # First create the iterator and store it.
-        CPythonStatementAssignmentVariable(
-            variable_ref = CPythonExpressionTempVariableRef(
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTempVariableRef(
                 variable   = tmp_iter_variable.makeReference( result ),
                 source_ref = source_ref
             ),
-            source     = CPythonExpressionBuiltinIter1(
+            source     = ExpressionBuiltinIter1(
                 value       = source,
                 source_ref  = source.getSourceReference()
             ),
             source_ref = source_ref
         ),
-        CPythonStatementLoop(
+        StatementLoop(
             body       = loop_body,
             source_ref = source_ref
         )
@@ -211,13 +211,13 @@ def buildForLoopNode( provider, node, source_ref ):
 
     if else_block is not None:
         statements += [
-            CPythonStatementConditional(
-                condition  = CPythonExpressionComparisonIs(
-                    left       = CPythonExpressionTempVariableRef(
+            StatementConditional(
+                condition  = ExpressionComparisonIs(
+                    left       = ExpressionTempVariableRef(
                         variable   = tmp_break_indicator_variable.makeReference( result ),
                         source_ref = source_ref
                     ),
-                    right      = CPythonExpressionConstantRef(
+                    right      = ExpressionConstantRef(
                         constant   = True,
                         source_ref = source_ref
                     ),
@@ -230,7 +230,7 @@ def buildForLoopNode( provider, node, source_ref ):
         ]
 
     result.setBody(
-        CPythonStatementsSequence(
+        StatementsSequence(
             statements = statements,
             source_ref = source_ref
         )
@@ -251,31 +251,31 @@ def buildWhileLoopNode( provider, node, source_ref ):
     )
 
     if else_block is not None:
-        temp_block = CPythonStatementTempBlock(
+        temp_block = StatementTempBlock(
             source_ref = source_ref
         )
 
         tmp_break_indicator_variable = temp_block.getTempVariable( "break_indicator" )
 
         statements = (
-            CPythonStatementAssignmentVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTempVariableRef(
                     variable   = tmp_break_indicator_variable.makeReference( temp_block ),
                     source_ref = source_ref
                 ),
-                source     = CPythonExpressionConstantRef(
+                source     = ExpressionConstantRef(
                     constant   = True,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
             ),
-            CPythonStatementBreakLoop(
+            StatementBreakLoop(
                 source_ref = source_ref
             )
         )
     else:
         statements = (
-            CPythonStatementBreakLoop(
+            StatementBreakLoop(
                 source_ref = source_ref
             ),
         )
@@ -284,9 +284,9 @@ def buildWhileLoopNode( provider, node, source_ref ):
     # it fails.
     loop_body = makeStatementsSequence(
         statements = (
-            CPythonStatementConditional(
+            StatementConditional(
                 condition = buildNode( provider, node.test, source_ref ),
-                no_branch = CPythonStatementsSequence(
+                no_branch = StatementsSequence(
                     statements = statements,
                     source_ref = source_ref
                 ),
@@ -303,7 +303,7 @@ def buildWhileLoopNode( provider, node, source_ref ):
         source_ref = source_ref
     )
 
-    loop_statement = CPythonStatementLoop(
+    loop_statement = StatementLoop(
         body       = loop_body,
         source_ref = source_ref
     )
@@ -312,25 +312,25 @@ def buildWhileLoopNode( provider, node, source_ref ):
         return loop_statement
     else:
         statements = (
-            CPythonStatementAssignmentVariable(
-                variable_ref = CPythonExpressionTempVariableRef(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTempVariableRef(
                     variable   = tmp_break_indicator_variable.makeReference( temp_block ),
                     source_ref = source_ref
                 ),
-                source = CPythonExpressionConstantRef(
+                source = ExpressionConstantRef(
                     constant   = False,
                     source_ref = source_ref
                 ),
                 source_ref   = source_ref
             ),
             loop_statement,
-            CPythonStatementConditional(
-                condition  = CPythonExpressionComparisonIs(
-                    left       = CPythonExpressionTempVariableRef(
+            StatementConditional(
+                condition  = ExpressionComparisonIs(
+                    left       = ExpressionTempVariableRef(
                         variable   = tmp_break_indicator_variable.makeReference( temp_block ),
                         source_ref = source_ref
                     ),
-                    right      = CPythonExpressionConstantRef(
+                    right      = ExpressionConstantRef(
                         constant   = True,
                         source_ref = source_ref
                     ),
@@ -343,7 +343,7 @@ def buildWhileLoopNode( provider, node, source_ref ):
         )
 
         temp_block.setBody(
-            CPythonStatementsSequence(
+            StatementsSequence(
                statements = statements,
                source_ref = source_ref
             )

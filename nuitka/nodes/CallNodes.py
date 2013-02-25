@@ -24,12 +24,12 @@ parameter parsing at run time.
 There will be a method "computeNodeCall" to aid predicting them.
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase
 
-from .ConstantRefNodes import CPythonExpressionConstantRef
+from .ConstantRefNodes import ExpressionConstantRef
 
 
-class CPythonExpressionCall( CPythonExpressionChildrenHavingBase ):
+class ExpressionCall( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_CALL"
 
     named_children = ( "called", "args", "kw" )
@@ -39,7 +39,7 @@ class CPythonExpressionCall( CPythonExpressionChildrenHavingBase ):
         assert args.isExpression()
         assert kw.isExpression()
 
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "called" : called,
@@ -49,9 +49,9 @@ class CPythonExpressionCall( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getCalled = CPythonExpressionChildrenHavingBase.childGetter( "called" )
-    getCallArgs = CPythonExpressionChildrenHavingBase.childGetter( "args" )
-    getCallKw = CPythonExpressionChildrenHavingBase.childGetter( "kw" )
+    getCalled = ExpressionChildrenHavingBase.childGetter( "called" )
+    getCallArgs = ExpressionChildrenHavingBase.childGetter( "args" )
+    getCallKw = ExpressionChildrenHavingBase.childGetter( "kw" )
 
     def isExpressionCall( self ):
         return True
@@ -100,7 +100,7 @@ class CPythonExpressionCall( CPythonExpressionChildrenHavingBase ):
         return args.extractSideEffects() + kw.extractSideEffects()
 
 
-class CPythonExpressionCallNoKeywords( CPythonExpressionCall ):
+class ExpressionCallNoKeywords( ExpressionCall ):
     kind = "EXPRESSION_CALL_NO_KEYWORDS"
 
     named_children = ( "called", "args", "kw" )
@@ -108,18 +108,18 @@ class CPythonExpressionCallNoKeywords( CPythonExpressionCall ):
     def __init__( self, called, args, source_ref ):
         assert called.isExpression()
 
-        CPythonExpressionCall.__init__(
+        ExpressionCall.__init__(
             self,
             called = called,
             args   = args,
-            kw     = CPythonExpressionConstantRef(
+            kw     = ExpressionConstantRef(
                 constant   = {},
                 source_ref = source_ref,
             ),
             source_ref = source_ref
         )
 
-class CPythonExpressionCallKeywordsOnly( CPythonExpressionCall ):
+class ExpressionCallKeywordsOnly( ExpressionCall ):
     kind = "EXPRESSION_CALL_KEYWORDS_ONLY"
 
     named_children = ( "called", "args", "kw" )
@@ -127,10 +127,10 @@ class CPythonExpressionCallKeywordsOnly( CPythonExpressionCall ):
     def __init__( self, called, kw, source_ref ):
         assert called.isExpression()
 
-        CPythonExpressionCall.__init__(
+        ExpressionCall.__init__(
             self,
             called = called,
-            args   = CPythonExpressionConstantRef(
+            args   = ExpressionConstantRef(
                 constant   = (),
                 source_ref = source_ref,
             ),
@@ -139,7 +139,7 @@ class CPythonExpressionCallKeywordsOnly( CPythonExpressionCall ):
         )
 
 
-class CPythonExpressionCallEmpty( CPythonExpressionCall ):
+class ExpressionCallEmpty( ExpressionCall ):
     kind = "EXPRESSION_CALL_EMPTY"
 
     named_children = ( "called", "args", "kw" )
@@ -147,14 +147,14 @@ class CPythonExpressionCallEmpty( CPythonExpressionCall ):
     def __init__( self, called, source_ref ):
         assert called.isExpression()
 
-        CPythonExpressionCall.__init__(
+        ExpressionCall.__init__(
             self,
             called = called,
-            args   = CPythonExpressionConstantRef(
+            args   = ExpressionConstantRef(
                 constant   = (),
                 source_ref = source_ref
             ),
-            kw     = CPythonExpressionConstantRef(
+            kw     = ExpressionConstantRef(
                 constant   = {},
                 source_ref = source_ref,
             ),

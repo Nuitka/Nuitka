@@ -17,8 +17,8 @@
 #
 
 from nuitka.nodes.KeeperNodes import (
-    CPythonExpressionAssignmentTempKeeper,
-    CPythonExpressionTempKeeperRef
+    ExpressionAssignmentTempKeeper,
+    ExpressionTempKeeperRef
 )
 
 from .ReformulationBooleanExpressions import buildAndNode
@@ -56,7 +56,7 @@ def buildComparisonNode( provider, node, source_ref ):
         if result:
             # Now we know it's not the only one, so we change the "left" to be a reference
             # to the previously saved right side.
-            left = CPythonExpressionTempKeeperRef(
+            left = ExpressionTempKeeperRef(
                 variable   = keeper_variable.makeReference( provider ),
                 source_ref = source_ref
             )
@@ -69,7 +69,7 @@ def buildComparisonNode( provider, node, source_ref ):
             # to a temp variable to be shared with the next part.
             keeper_variable = provider.getTempKeeperVariable()
 
-            right = CPythonExpressionAssignmentTempKeeper(
+            right = ExpressionAssignmentTempKeeper(
                 variable   = keeper_variable.makeReference( provider ),
                 source     = right,
                 source_ref = source_ref

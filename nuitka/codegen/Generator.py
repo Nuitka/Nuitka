@@ -1238,7 +1238,7 @@ def _getLocalVariableList( context, provider ):
 
 
 def getLoadDirCode( context, provider ):
-    if provider.isModule():
+    if provider.isPythonModule():
         globals_identifier = getLoadGlobalsCode(
             context = context
         )
@@ -1296,7 +1296,7 @@ def getLoadGlobalsCode( context ):
     )
 
 def getLoadLocalsCode( context, provider, mode ):
-    if provider.isModule():
+    if provider.isPythonModule():
         return getLoadGlobalsCode( context )
     elif not context.hasLocalsDict():
         local_list = _getLocalVariableList(
@@ -1350,7 +1350,7 @@ def getSetLocalsCode( new_locals_identifier ):
     return "locals_dict.assign1( %s );" % new_locals_identifier.getCodeExportRef()
 
 def getStoreLocalsCode( context, source_identifier, provider ):
-    assert not provider.isModule()
+    assert not provider.isPythonModule()
 
     code = ""
 

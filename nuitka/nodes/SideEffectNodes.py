@@ -21,16 +21,16 @@ Sometimes, the effect of an expression needs to be had, but the value itself doe
 not matter at all.
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase
 
 
-class CPythonExpressionSideEffects( CPythonExpressionChildrenHavingBase ):
+class ExpressionSideEffects( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_SIDE_EFFECTS"
 
     named_children = ( "side_effects", "expression" )
 
     def __init__( self, side_effects, expression, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values = {
                 "side_effects" : tuple( side_effects ),
@@ -39,10 +39,10 @@ class CPythonExpressionSideEffects( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getSideEffects  = CPythonExpressionChildrenHavingBase.childGetter( "side_effects" )
-    getExpression = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
+    getSideEffects  = ExpressionChildrenHavingBase.childGetter( "side_effects" )
+    getExpression = ExpressionChildrenHavingBase.childGetter( "expression" )
 
-    setSideEffects  = CPythonExpressionChildrenHavingBase.childSetter( "side_effects" )
+    setSideEffects  = ExpressionChildrenHavingBase.childSetter( "side_effects" )
 
     def setChild( self, name, value ):
         if name == "side_effects":
@@ -59,7 +59,7 @@ class CPythonExpressionSideEffects( CPythonExpressionChildrenHavingBase ):
 
             value = real_value
 
-        return CPythonExpressionChildrenHavingBase.setChild( self, name, value )
+        return ExpressionChildrenHavingBase.setChild( self, name, value )
 
     def computeNode( self, constraint_collection ):
         side_effects = self.getSideEffects()

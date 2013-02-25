@@ -95,12 +95,12 @@ def _checkPluginPath( plugin_filename, module_package ):
             if not added:
                 warning(
                     "Recursed to %s '%s' at '%s' twice.",
-                    "package" if module.isPackage() else "module",
+                    "package" if module.isPythonPackage() else "module",
                     module.getName(),
                     plugin_info[0]
                 )
 
-            if module.isPackage():
+            if module.isPythonPackage():
                 package_dir = Utils.dirname( module.getFilename() )
 
                 for sub_path, sub_filename in Utils.listDir( package_dir ):

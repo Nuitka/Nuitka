@@ -21,12 +21,12 @@
 """
 
 from nuitka.nodes.StatementNodes import (
-    CPythonStatementsSequence,
-    CPythonStatementsFrame,
+    StatementsSequence,
+    StatementsFrame,
     mergeStatements
 )
 
-from nuitka.nodes.NodeBases import CPythonNodeBase
+from nuitka.nodes.NodeBases import NodeBase
 
 from nuitka import Tracing
 
@@ -93,7 +93,7 @@ def buildNode( provider, node, source_ref, allow_none = False ):
         if result is None and allow_none:
             return None
 
-        assert isinstance( result, CPythonNodeBase ), result
+        assert isinstance( result, NodeBase ), result
 
         return result
     except SyntaxError:
@@ -143,7 +143,7 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
             code_name     = provider.getFunctionName()
             guard_mode    = "generator" if provider.isGenerator() else "full"
         else:
-            assert provider.isModule()
+            assert provider.isPythonModule()
 
             arg_names     = ()
             kw_only_count = 0
@@ -151,7 +151,7 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
             guard_mode    = "once"
 
 
-        return CPythonStatementsFrame(
+        return StatementsFrame(
             statements    = statements,
             guard_mode    = guard_mode,
             arg_names     = arg_names,
@@ -160,7 +160,7 @@ def buildStatementsNode( provider, nodes, source_ref, frame = False ):
             source_ref    = source_ref
         )
     else:
-        return CPythonStatementsSequence(
+        return StatementsSequence(
             statements = statements,
             source_ref = source_ref
         )
@@ -173,7 +173,7 @@ def makeStatementsSequenceOrStatement( statements, source_ref ):
     """
 
     if len( statements ) > 1:
-        return CPythonStatementsSequence(
+        return StatementsSequence(
             statements = statements,
             source_ref = source_ref
         )
@@ -185,7 +185,7 @@ def makeStatementsSequence( statements, allow_none, source_ref ):
         statements = tuple( statement for statement in statements if statement is not None )
 
     if statements:
-        return CPythonStatementsSequence(
+        return StatementsSequence(
             statements = statements,
             source_ref = source_ref
         )

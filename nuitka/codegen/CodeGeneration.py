@@ -1546,7 +1546,7 @@ def generateImportModuleCode( expression, context ):
         context = context
     )
 
-    if provider.isModule():
+    if provider.isPythonModule():
         locals_dict = globals_dict
     else:
         locals_dict  = generateBuiltinLocalsCode(
@@ -1592,7 +1592,7 @@ def generateBuiltinImportCode( expression, context ):
     if locals_dict is None:
         provider = expression.getParentVariableProvider()
 
-        if provider.isModule():
+        if provider.isPythonModule():
             locals_dict = globals_dict
         else:
             locals_dict  = generateBuiltinLocalsCode(
@@ -2010,7 +2010,7 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
     return codes
 
 def generateModuleCode( global_context, module, module_name, other_modules ):
-    assert module.isModule(), module
+    assert module.isPythonModule(), module
 
     context = Contexts.PythonModuleContext(
         module_name    = module_name,
@@ -2029,7 +2029,7 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
 
     codes = codes or []
 
-    if module.isPackage():
+    if module.isPythonPackage():
         path_identifier = context.getConstantHandle(
             constant = module.getPathAttribute()
         )

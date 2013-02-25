@@ -24,8 +24,8 @@ predicted still, and these are interesting for warnings.
 """
 
 from .NodeBases import (
-    CPythonExpressionChildrenHavingBase,
-    CPythonExpressionBuiltinNoArgBase
+    ExpressionChildrenHavingBase,
+    ExpressionBuiltinNoArgBase
 )
 
 from nuitka.optimizations import BuiltinOptimization
@@ -34,11 +34,11 @@ from nuitka.Utils import python_version
 
 import math
 
-class CPythonExpressionBuiltinRange0( CPythonExpressionBuiltinNoArgBase ):
+class ExpressionBuiltinRange0( ExpressionBuiltinNoArgBase ):
     kind = "EXPRESSION_BUILTIN_RANGE0"
 
     def __init__( self, source_ref ):
-        CPythonExpressionBuiltinNoArgBase.__init__(
+        ExpressionBuiltinNoArgBase.__init__(
             self,
             builtin_function = range,
             source_ref       = source_ref
@@ -48,11 +48,11 @@ class CPythonExpressionBuiltinRange0( CPythonExpressionBuiltinNoArgBase ):
         return False
 
 
-class CPythonExpressionBuiltinRangeBase( CPythonExpressionChildrenHavingBase ):
+class ExpressionBuiltinRangeBase( ExpressionChildrenHavingBase ):
     """ Base class for all range nodes. """
 
     def __init__( self, values, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = values,
             source_ref = source_ref
@@ -78,7 +78,7 @@ class CPythonExpressionBuiltinRangeBase( CPythonExpressionChildrenHavingBase ):
             return False
 
 
-class CPythonExpressionBuiltinRange1( CPythonExpressionBuiltinRangeBase ):
+class ExpressionBuiltinRange1( ExpressionBuiltinRangeBase ):
     kind = "EXPRESSION_BUILTIN_RANGE1"
 
     named_children = ( "low", )
@@ -86,7 +86,7 @@ class CPythonExpressionBuiltinRange1( CPythonExpressionBuiltinRangeBase ):
     def __init__( self, low, source_ref ):
         assert low is not None
 
-        CPythonExpressionBuiltinRangeBase.__init__(
+        ExpressionBuiltinRangeBase.__init__(
             self,
             values     = {
                 "low"  : low,
@@ -94,7 +94,7 @@ class CPythonExpressionBuiltinRange1( CPythonExpressionBuiltinRangeBase ):
             source_ref = source_ref
         )
 
-    getLow = CPythonExpressionChildrenHavingBase.childGetter( "low" )
+    getLow = ExpressionChildrenHavingBase.childGetter( "low" )
 
     def computeNode( self, constraint_collection ):
         # TODO: Support Python3 range objects too.
@@ -147,13 +147,13 @@ class CPythonExpressionBuiltinRange1( CPythonExpressionBuiltinRangeBase ):
         return count is None or count == self.getIterationLength()
 
 
-class CPythonExpressionBuiltinRange2( CPythonExpressionBuiltinRangeBase ):
+class ExpressionBuiltinRange2( ExpressionBuiltinRangeBase ):
     kind = "EXPRESSION_BUILTIN_RANGE2"
 
     named_children = ( "low", "high" )
 
     def __init__( self, low, high, source_ref ):
-        CPythonExpressionBuiltinRangeBase.__init__(
+        ExpressionBuiltinRangeBase.__init__(
             self,
             values     = {
                 "low"  : low,
@@ -162,8 +162,8 @@ class CPythonExpressionBuiltinRange2( CPythonExpressionBuiltinRangeBase ):
             source_ref = source_ref
         )
 
-    getLow  = CPythonExpressionChildrenHavingBase.childGetter( "low" )
-    getHigh = CPythonExpressionChildrenHavingBase.childGetter( "high" )
+    getLow  = ExpressionChildrenHavingBase.childGetter( "low" )
+    getHigh = ExpressionChildrenHavingBase.childGetter( "high" )
 
     builtin_spec = BuiltinOptimization.builtin_range_spec
 
@@ -239,13 +239,13 @@ class CPythonExpressionBuiltinRange2( CPythonExpressionBuiltinRangeBase ):
         return count is None or count == self.getIterationLength()
 
 
-class CPythonExpressionBuiltinRange3( CPythonExpressionBuiltinRangeBase ):
+class ExpressionBuiltinRange3( ExpressionBuiltinRangeBase ):
     kind = "EXPRESSION_BUILTIN_RANGE3"
 
     named_children = ( "low", "high", "step" )
 
     def __init__( self, low, high, step, source_ref ):
-        CPythonExpressionBuiltinRangeBase.__init__(
+        ExpressionBuiltinRangeBase.__init__(
             self,
             values     = {
                 "low"  : low,
@@ -255,9 +255,9 @@ class CPythonExpressionBuiltinRange3( CPythonExpressionBuiltinRangeBase ):
             source_ref = source_ref
         )
 
-    getLow  = CPythonExpressionChildrenHavingBase.childGetter( "low" )
-    getHigh = CPythonExpressionChildrenHavingBase.childGetter( "high" )
-    getStep = CPythonExpressionChildrenHavingBase.childGetter( "step" )
+    getLow  = ExpressionChildrenHavingBase.childGetter( "low" )
+    getHigh = ExpressionChildrenHavingBase.childGetter( "high" )
+    getStep = ExpressionChildrenHavingBase.childGetter( "step" )
 
     builtin_spec = BuiltinOptimization.builtin_range_spec
 

@@ -23,14 +23,14 @@ to do.
 """
 
 from .NodeBases import (
-    CPythonExpressionChildrenHavingBase,
-    CPythonChildrenHaving,
-    CPythonNodeBase
+    ExpressionChildrenHavingBase,
+    ChildrenHavingMixin,
+    NodeBase
 )
 
 from nuitka import Utils
 
-class CPythonExpressionBuiltinEval( CPythonExpressionChildrenHavingBase ):
+class ExpressionBuiltinEval( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_EVAL"
 
     named_children = ( "source", "globals", "locals" )
@@ -39,7 +39,7 @@ class CPythonExpressionBuiltinEval( CPythonExpressionChildrenHavingBase ):
     # pylint: disable=W0622
 
     def __init__( self, source, globals, locals, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "source"  : source,
@@ -49,9 +49,9 @@ class CPythonExpressionBuiltinEval( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getSourceCode = CPythonExpressionChildrenHavingBase.childGetter( "source" )
-    getGlobals = CPythonExpressionChildrenHavingBase.childGetter( "globals" )
-    getLocals = CPythonExpressionChildrenHavingBase.childGetter( "locals" )
+    getSourceCode = ExpressionChildrenHavingBase.childGetter( "source" )
+    getGlobals = ExpressionChildrenHavingBase.childGetter( "globals" )
+    getLocals = ExpressionChildrenHavingBase.childGetter( "locals" )
 
     def computeNode( self, constraint_collection ):
         # TODO: Attempt for constant values to do it.
@@ -60,7 +60,7 @@ class CPythonExpressionBuiltinEval( CPythonExpressionChildrenHavingBase ):
 
 # Note: Python3 only so far.
 if Utils.python_version >= 300:
-    class CPythonExpressionBuiltinExec( CPythonExpressionBuiltinEval ):
+    class ExpressionBuiltinExec( ExpressionBuiltinEval ):
         kind = "EXPRESSION_BUILTIN_EXEC"
 
         def needsLocalsDict( self ):
@@ -69,7 +69,7 @@ if Utils.python_version >= 300:
         def computeNode( self, constraint_collection ):
             # TODO: Attempt for constant values to do it.
             if self.getParent().isStatementExpressionOnly() and self.getParentVariableProvider().isEarlyClosure():
-                result = CPythonStatementExec(
+                result = StatementExec(
                     source_code = self.getSourceCode(),
                     globals_arg = self.getGlobals(),
                     locals_arg  = self.getLocals(),
@@ -83,13 +83,13 @@ if Utils.python_version >= 300:
 
 # Note: Python2 only
 if Utils.python_version < 300:
-    class CPythonExpressionBuiltinExecfile( CPythonExpressionBuiltinEval ):
+    class ExpressionBuiltinExecfile( ExpressionBuiltinEval ):
         kind = "EXPRESSION_BUILTIN_EXECFILE"
 
         named_children = ( "source", "globals", "locals" )
 
         def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
-            CPythonExpressionBuiltinEval.__init__( self, source_code, globals_arg, locals_arg, source_ref )
+            ExpressionBuiltinEval.__init__( self, source_code, globals_arg, locals_arg, source_ref )
 
         def needsLocalsDict( self ):
             return True
@@ -108,15 +108,15 @@ def _couldBeNone( node ):
         # assert False, node
         return True
 
-class CPythonStatementExec( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementExec( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_EXEC"
 
     named_children = ( "source", "globals", "locals" )
 
     def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {
                 "globals" : globals_arg,
@@ -131,11 +131,11 @@ class CPythonStatementExec( CPythonChildrenHaving, CPythonNodeBase ):
 
             value = convertNoneConstantToNone( value )
 
-        return CPythonChildrenHaving.setChild( self, name, value )
+        return ChildrenHavingMixin.setChild( self, name, value )
 
-    getSourceCode = CPythonChildrenHaving.childGetter( "source" )
-    getGlobals = CPythonChildrenHaving.childGetter( "globals" )
-    getLocals = CPythonChildrenHaving.childGetter( "locals" )
+    getSourceCode = ChildrenHavingMixin.childGetter( "source" )
+    getGlobals = ChildrenHavingMixin.childGetter( "globals" )
+    getLocals = ChildrenHavingMixin.childGetter( "locals" )
 
     def needsLocalsDict( self ):
         return _couldBeNone( self.getGlobals() ) or \

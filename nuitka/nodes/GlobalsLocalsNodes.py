@@ -25,28 +25,28 @@ not know where their value goes.
 
 
 from .NodeBases import (
-    CPythonNodeBase,
-    CPythonChildrenHaving,
-    CPythonExpressionMixin,
-    CPythonExpressionBuiltinSingleArgBase
+    NodeBase,
+    ChildrenHavingMixin,
+    ExpressionMixin,
+    ExpressionBuiltinSingleArgBase
 )
 
 
-class CPythonExpressionBuiltinGlobals( CPythonNodeBase, CPythonExpressionMixin ):
+class ExpressionBuiltinGlobals( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_BUILTIN_GLOBALS"
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
     def computeNode( self, constraint_collection ):
         return self, None, None
 
 
-class CPythonExpressionBuiltinLocals( CPythonNodeBase, CPythonExpressionMixin ):
+class ExpressionBuiltinLocals( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_BUILTIN_LOCALS"
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
     def computeNode( self, constraint_collection ):
         return self, None, None
@@ -56,15 +56,15 @@ class CPythonExpressionBuiltinLocals( CPythonNodeBase, CPythonExpressionMixin ):
                ( not self.getParent().isStatementReturn() or self.getParent().isExceptionDriven() )
 
 
-class CPythonStatementSetLocals( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementSetLocals( ChildrenHavingMixin, NodeBase ):
     kind = "STATEMENT_SET_LOCALS"
 
     named_children = ( "new_locals", )
 
     def __init__( self, new_locals, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values     = {
                 "new_locals" : new_locals,
@@ -74,20 +74,20 @@ class CPythonStatementSetLocals( CPythonChildrenHaving, CPythonNodeBase ):
     def needsLocalsDict( self ):
         return True
 
-    getNewLocals = CPythonChildrenHaving.childGetter( "new_locals" )
+    getNewLocals = ChildrenHavingMixin.childGetter( "new_locals" )
 
 
-class CPythonExpressionBuiltinDir0( CPythonNodeBase, CPythonExpressionMixin ):
+class ExpressionBuiltinDir0( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_BUILTIN_DIR0"
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
     def computeNode( self, constraint_collection ):
         return self, None, None
 
 
-class CPythonExpressionBuiltinDir1( CPythonExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinDir1( ExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_DIR1"
 
     def computeNode( self, constraint_collection ):

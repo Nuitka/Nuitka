@@ -19,25 +19,25 @@
 from nuitka import Utils
 
 from nuitka.nodes.VariableRefNodes import (
-    CPythonExpressionTempVariableRef,
-    CPythonStatementTempBlock
+    ExpressionTempVariableRef,
+    StatementTempBlock
 )
-from nuitka.nodes.ConstantRefNodes import CPythonExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.FunctionNodes import (
-    CPythonExpressionFunctionCreation,
-    CPythonExpressionFunctionBody,
-    CPythonExpressionFunctionRef
+    ExpressionFunctionCreation,
+    ExpressionFunctionBody,
+    ExpressionFunctionRef
 )
 from nuitka.nodes.StatementNodes import (
-    CPythonStatementExpressionOnly,
-    CPythonStatementsSequence,
-    CPythonStatementsFrame
+    StatementExpressionOnly,
+    StatementsSequence,
+    StatementsFrame
 )
-from nuitka.nodes.ComparisonNodes import CPythonExpressionComparisonIsNOT
-from nuitka.nodes.ConditionalNodes import CPythonStatementConditional
-from nuitka.nodes.YieldNodes import CPythonExpressionYield
-from nuitka.nodes.ReturnNodes import CPythonStatementReturn
-from nuitka.nodes.AssignNodes import CPythonStatementAssignmentVariable
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.YieldNodes import ExpressionYield
+from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 
 from .ReformulationFunctionStatements import (
     buildParameterKwDefaults,
@@ -54,7 +54,7 @@ from .Helpers import (
 def buildLambdaNode( provider, node, source_ref ):
     assert getKind( node ) == "Lambda"
 
-    function_body = CPythonExpressionFunctionBody(
+    function_body = ExpressionFunctionBody(
         provider   = provider,
         name       = "<lambda>",
         doc        = None,
@@ -73,38 +73,38 @@ def buildLambdaNode( provider, node, source_ref ):
 
     if function_body.isGenerator():
         if Utils.python_version < 270:
-            temp_block = CPythonStatementTempBlock(
+            temp_block = StatementTempBlock(
                 source_ref = source_ref,
             )
 
             tmp_return_value = temp_block.getTempVariable( "yield_return" )
 
             statements = (
-                CPythonStatementAssignmentVariable(
-                    variable_ref = CPythonExpressionTempVariableRef(
+                StatementAssignmentVariable(
+                    variable_ref = ExpressionTempVariableRef(
                         variable = tmp_return_value.makeReference( temp_block ),
                         source_ref = source_ref,
                     ),
                     source     = body,
                     source_ref = source_ref
                 ),
-                CPythonStatementConditional(
-                    condition = CPythonExpressionComparisonIsNOT(
-                        left       = CPythonExpressionTempVariableRef(
+                StatementConditional(
+                    condition = ExpressionComparisonIsNOT(
+                        left       = ExpressionTempVariableRef(
                             variable = tmp_return_value.makeReference( temp_block ),
                             source_ref = source_ref,
                         ),
-                        right      = CPythonExpressionConstantRef(
+                        right      = ExpressionConstantRef(
                             constant   = None,
                             source_ref = source_ref
                         ),
                         source_ref = source_ref
                     ),
-                    yes_branch = CPythonStatementsSequence(
+                    yes_branch = StatementsSequence(
                         statements = (
-                            CPythonStatementExpressionOnly(
-                                expression = CPythonExpressionYield(
-                                    expression = CPythonExpressionTempVariableRef(
+                            StatementExpressionOnly(
+                                expression = ExpressionYield(
+                                    expression = ExpressionTempVariableRef(
                                         variable = tmp_return_value.makeReference( temp_block ),
                                         source_ref = source_ref,
                                     ),
@@ -121,7 +121,7 @@ def buildLambdaNode( provider, node, source_ref ):
             )
 
             temp_block.setBody(
-                CPythonStatementsSequence(
+                StatementsSequence(
                     statements = statements,
                     source_ref = source_ref
                 )
@@ -129,17 +129,17 @@ def buildLambdaNode( provider, node, source_ref ):
 
             body = temp_block
         else:
-            body = CPythonStatementExpressionOnly(
+            body = StatementExpressionOnly(
                 expression = body,
                 source_ref = source_ref
             )
     else:
-        body = CPythonStatementReturn(
+        body = StatementReturn(
             expression = body,
             source_ref = source_ref
         )
 
-    body = CPythonStatementsFrame(
+    body = StatementsFrame(
         statements    = ( body, ),
         guard_mode    = "generator" if function_body.isGenerator() else "full",
         arg_names     = function_body.getParameters().getCoArgNames(),
@@ -152,8 +152,8 @@ def buildLambdaNode( provider, node, source_ref ):
 
     annotations = buildParameterAnnotations( provider, node, source_ref )
 
-    return CPythonExpressionFunctionCreation(
-        function_ref = CPythonExpressionFunctionRef(
+    return ExpressionFunctionCreation(
+        function_ref = ExpressionFunctionRef(
             function_body = function_body,
             source_ref    = source_ref
         ),

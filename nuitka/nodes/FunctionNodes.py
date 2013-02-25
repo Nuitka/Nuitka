@@ -23,12 +23,13 @@ complexities.
 """
 
 from .NodeBases import (
-    CPythonExpressionChildrenHavingBase,
-    CPythonParameterHavingNodeBase,
-    CPythonExpressionMixin,
-    CPythonChildrenHaving,
-    CPythonClosureTaker,
-    CPythonNodeBase
+    ExpressionChildrenHavingBase,
+    SideEffectsFromChildrenMixin,
+    ParameterHavingNodeBase,
+    ExpressionMixin,
+    ChildrenHavingMixin,
+    ClosureTakerMixin,
+    NodeBase
 )
 
 from .IndicatorMixins import (
@@ -45,8 +46,8 @@ from nuitka import Variables, Utils
 from nuitka.__past__ import iterItems
 
 
-class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
-                                     CPythonParameterHavingNodeBase, CPythonExpressionMixin,
+class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
+                                     ParameterHavingNodeBase, ExpressionMixin,
                                      MarkContainsTryExceptIndicator,
                                      MarkGeneratorIndicator,
                                      MarkLocalsDictIndicator, MarkUnoptimizedFunctionIndicator ):
@@ -101,13 +102,13 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
 
         self.non_local_declarations = []
 
-        CPythonClosureTaker.__init__(
+        ClosureTakerMixin.__init__(
             self,
             provider      = provider,
             early_closure = is_class
         )
 
-        CPythonParameterHavingNodeBase.__init__(
+        ParameterHavingNodeBase.__init__(
             self,
             name        = name,
             code_prefix = code_prefix,
@@ -115,7 +116,7 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
             source_ref  = source_ref
         )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {}
         )
@@ -295,8 +296,8 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
     def getNonlocalDeclarations( self ):
         return self.non_local_declarations
 
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
+    getBody = ChildrenHavingMixin.childGetter( "body" )
+    setBody = ChildrenHavingMixin.childSetter( "body" )
 
     def needsCreation( self ):
         # TODO: This looks kind of arbitrary, the users should decide, if they need it.
@@ -347,7 +348,7 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
                     if arg_value is positional_arg:
                         values.append( arg_value )
 
-            result = CPythonExpressionFunctionCall(
+            result = ExpressionFunctionCall(
                 function_body = self,
                 values        = values,
                 source_ref    = call_node.getSourceReference()
@@ -419,7 +420,8 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
         return self.return_exception
 
 
-class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
+class ExpressionFunctionCreation( SideEffectsFromChildrenMixin,
+                                  ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_FUNCTION_CREATION"
 
     # Note: The order of evaluation for these is a bit unexpected, but true. Keyword
@@ -431,7 +433,7 @@ class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
         assert annotations is None or annotations.isExpression()
         assert function_ref.isExpressionFunctionRef()
 
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "function_ref"  : function_ref,
@@ -446,10 +448,10 @@ class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
         # TODO: Function body may know something.
         return self, None, None
 
-    getFunctionRef = CPythonExpressionChildrenHavingBase.childGetter( "function_ref" )
-    getDefaults = CPythonExpressionChildrenHavingBase.childGetter( "defaults" )
-    getKwDefaults = CPythonExpressionChildrenHavingBase.childGetter( "kw_defaults" )
-    getAnnotations = CPythonExpressionChildrenHavingBase.childGetter( "annotations" )
+    getFunctionRef = ExpressionChildrenHavingBase.childGetter( "function_ref" )
+    getDefaults = ExpressionChildrenHavingBase.childGetter( "defaults" )
+    getKwDefaults = ExpressionChildrenHavingBase.childGetter( "kw_defaults" )
+    getAnnotations = ExpressionChildrenHavingBase.childGetter( "annotations" )
 
     def mayRaiseException( self, exception_type ):
         for default in self.getDefaults():
@@ -474,29 +476,14 @@ class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
 
         return False
 
-    def mayHaveSideEffects( self, constraint_collection ):
-        for default in self.getDefaults():
-            if defaults.mayHaveSideEffects( constraint_collection ):
-                return True
 
-        kw_defaults = self.getKwDefaults()
-        if kw_defaults is not None and kw_defaults.mayHaveSideEffects( constraint_collection ):
-            return True
-
-        annotations = self.getAnnotations()
-        if annotations is not None and annotations.mayHaveSideEffects( constraint_collection ):
-            return True
-
-        return False
-
-
-class CPythonExpressionFunctionRef( CPythonNodeBase, CPythonExpressionMixin ):
+class ExpressionFunctionRef( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_FUNCTION_REF"
 
     def __init__( self, function_body, source_ref ):
         assert function_body.isExpressionFunctionBody()
 
-        CPythonNodeBase.__init__(
+        NodeBase.__init__(
             self,
             source_ref = source_ref
         )
@@ -509,7 +496,7 @@ class CPythonExpressionFunctionRef( CPythonNodeBase, CPythonExpressionMixin ):
         }
 
     def makeCloneAt( self, source_ref ):
-        return CPythonExpressionFunctionRef(
+        return ExpressionFunctionRef(
             function_body = self.function_body,
             source_ref    = source_ref
         )
@@ -526,7 +513,7 @@ class CPythonExpressionFunctionRef( CPythonNodeBase, CPythonExpressionMixin ):
         return False
 
 
-class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):
+class ExpressionFunctionCall( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_FUNCTION_CALL"
 
     named_children = ( "function", "values" )
@@ -534,7 +521,7 @@ class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):
     def __init__( self, function, values, source_ref ):
         assert function.isExpressionFunctionCreation()
 
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "function" : function,
@@ -565,5 +552,5 @@ class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):
 
         return self, None, None
 
-    getFunction = CPythonExpressionChildrenHavingBase.childGetter( "function" )
-    getArgumentValues = CPythonExpressionChildrenHavingBase.childGetter( "values" )
+    getFunction = ExpressionChildrenHavingBase.childGetter( "function" )
+    getArgumentValues = ExpressionChildrenHavingBase.childGetter( "values" )

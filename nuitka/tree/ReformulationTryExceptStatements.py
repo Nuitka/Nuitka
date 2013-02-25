@@ -19,18 +19,18 @@
 from nuitka import Utils
 
 from nuitka.nodes.VariableRefNodes import (
-    CPythonExpressionTempVariableRef,
-    CPythonStatementTempBlock
+    ExpressionTempVariableRef,
+    StatementTempBlock
 )
-from nuitka.nodes.ConstantRefNodes import CPythonExpressionConstantRef
-from nuitka.nodes.ExceptionNodes import CPythonExpressionCaughtExceptionValueRef
-from nuitka.nodes.ComparisonNodes import CPythonExpressionComparisonIs
-from nuitka.nodes.StatementNodes import CPythonStatementsSequence
-from nuitka.nodes.ConditionalNodes import CPythonStatementConditional
-from nuitka.nodes.AssignNodes import CPythonStatementAssignmentVariable
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ExceptionNodes import ExpressionCaughtExceptionValueRef
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
+from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.TryNodes import (
-    CPythonStatementExceptHandler,
-    CPythonStatementTryExcept
+    StatementExceptHandler,
+    StatementTryExcept
 )
 
 from .ReformulationAssignmentStatements import (
@@ -57,7 +57,7 @@ def makeTryExceptNoRaise( tried, handlers, no_raise, source_ref ):
     assert no_raise is not None
     assert len( handlers ) > 0
 
-    result = CPythonStatementTempBlock(
+    result = StatementTempBlock(
         source_ref = source_ref
     )
 
@@ -67,12 +67,12 @@ def makeTryExceptNoRaise( tried, handlers, no_raise, source_ref ):
         handler.setExceptionBranch(
             makeStatementsSequence(
                 statements = (
-                    CPythonStatementAssignmentVariable(
-                        variable_ref = CPythonExpressionTempVariableRef(
+                    StatementAssignmentVariable(
+                        variable_ref = ExpressionTempVariableRef(
                             variable   = tmp_handler_indicator_variable.makeReference( result ),
                             source_ref = source_ref.atInternal()
                         ),
-                        source       = CPythonExpressionConstantRef(
+                        source       = ExpressionConstantRef(
                             constant   = False,
                             source_ref = source_ref
                         ),
@@ -86,31 +86,31 @@ def makeTryExceptNoRaise( tried, handlers, no_raise, source_ref ):
         )
 
     result.setBody(
-        CPythonStatementsSequence(
+        StatementsSequence(
             statements = (
-                CPythonStatementAssignmentVariable(
-                    variable_ref = CPythonExpressionTempVariableRef(
+                StatementAssignmentVariable(
+                    variable_ref = ExpressionTempVariableRef(
                         variable   = tmp_handler_indicator_variable.makeReference( result ),
                         source_ref = source_ref.atInternal()
                     ),
-                    source     = CPythonExpressionConstantRef(
+                    source     = ExpressionConstantRef(
                         constant   = True,
                         source_ref = source_ref
                     ),
                     source_ref = source_ref
                 ),
-                CPythonStatementTryExcept(
+                StatementTryExcept(
                     tried      = tried,
                     handlers   = handlers,
                     source_ref = source_ref
                 ),
-                CPythonStatementConditional(
-                    condition  = CPythonExpressionComparisonIs(
-                        left = CPythonExpressionTempVariableRef(
+                StatementConditional(
+                    condition  = ExpressionComparisonIs(
+                        left = ExpressionTempVariableRef(
                             variable   = tmp_handler_indicator_variable.makeReference( result ),
                             source_ref = source_ref
                         ),
-                        right = CPythonExpressionConstantRef(
+                        right = ExpressionConstantRef(
                             constant   = True,
                             source_ref = source_ref
                         ),
@@ -146,7 +146,7 @@ def buildTryExceptionNode( provider, node, source_ref ):
                 provider   = provider,
                 node       = exception_assign,
                 allow_none = True,
-                source     = CPythonExpressionCaughtExceptionValueRef(
+                source     = ExpressionCaughtExceptionValueRef(
                     source_ref = source_ref.atInternal()
                 ),
                 source_ref = source_ref.atInternal()
@@ -191,7 +191,7 @@ def buildTryExceptionNode( provider, node, source_ref ):
             exception_types = ( exception_types, )
 
         handlers.append(
-            CPythonStatementExceptHandler(
+            StatementExceptHandler(
                 exception_types = exception_types,
                 body            = handler_body,
                 source_ref      = source_ref
@@ -211,7 +211,7 @@ def buildTryExceptionNode( provider, node, source_ref ):
     )
 
     if no_raise is None:
-        return CPythonStatementTryExcept(
+        return StatementTryExcept(
             handlers   = handlers,
             tried      = tried,
             source_ref = source_ref

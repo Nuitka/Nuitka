@@ -24,19 +24,19 @@ all other constructs use real temporary variables.
 """
 
 from .NodeBases import (
-    CPythonExpressionChildrenHavingBase,
-    CPythonExpressionMixin,
-    CPythonNodeBase
+    ExpressionChildrenHavingBase,
+    ExpressionMixin,
+    NodeBase
 )
 
 
-class CPythonExpressionAssignmentTempKeeper( CPythonExpressionChildrenHavingBase ):
+class ExpressionAssignmentTempKeeper( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_ASSIGNMENT_TEMP_KEEPER"
 
     named_children = ( "source", )
 
     def __init__( self, variable, source, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "source" : source,
@@ -60,7 +60,7 @@ class CPythonExpressionAssignmentTempKeeper( CPythonExpressionChildrenHavingBase
     def getVariableName( self ):
         return self.variable.getName()
 
-    getAssignSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
+    getAssignSource = ExpressionChildrenHavingBase.childGetter( "source" )
 
     def computeNode( self, constraint_collection ):
         source = self.getAssignSource()
@@ -74,11 +74,11 @@ class CPythonExpressionAssignmentTempKeeper( CPythonExpressionChildrenHavingBase
         return self, None, None
 
 
-class CPythonExpressionTempKeeperRef( CPythonNodeBase, CPythonExpressionMixin ):
+class ExpressionTempKeeperRef( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_TEMP_KEEPER_REF"
 
     def __init__( self, variable, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
         self.variable = variable
 
