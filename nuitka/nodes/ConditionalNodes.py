@@ -136,3 +136,106 @@ class StatementConditional( StatementChildrenHavingBase ):
                 return False
         else:
             return False
+
+
+    def computeStatement( self, constraint_collection ):
+        constraint_collection.onExpression( self.getCondition() )
+        condition = self.getCondition()
+
+        from nuitka.optimizations.ConstraintCollections import ConstraintCollectionBranch
+
+        # TODO: We now know that condition evaluates to true for the yes branch
+        # and to not true for no branch
+
+        yes_branch = self.getBranchYes()
+
+        if yes_branch is not None:
+            branch_yes_collection = ConstraintCollectionBranch( constraint_collection, constraint_collection.signalChange )
+            branch_yes_collection.process( yes_branch )
+
+            # May have just gone away.
+            yes_branch = self.getBranchYes()
+
+        no_branch = self.getBranchNo()
+
+        if no_branch is not None:
+            branch_no_collection = ConstraintCollectionBranch( constraint_collection, constraint_collection.signalChange )
+
+            branch_no_collection.process( no_branch )
+
+            # May have just gone away.
+            no_branch = self.getBranchNo()
+
+        if yes_branch is not None and no_branch is not None:
+            # TODO: Merging should be done by method.
+            constraint_collection.variables = constraint_collection.mergeBranchVariables(
+                branch_yes_collection.variables,
+                branch_no_collection.variables
+            )
+        elif yes_branch is not None:
+            constraint_collection.mergeBranch( branch_yes_collection )
+        elif no_branch is not None:
+            constraint_collection.mergeBranch( branch_no_collection )
+        else:
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+
+            # With both branches eliminated, the condition remains as a side effect.
+            result = makeStatementExpressionOnlyReplacementNode(
+                expression = condition,
+                node       = self
+            )
+
+            return result, "new_statements", "Both branches have no effect, drop branch nature, only evaluate condition."
+
+        if yes_branch is None:
+            # Would be eliminated already, if there wasn't any "no" branch either.
+            assert no_branch is not None
+
+            from .OperatorNodes import ExpressionOperationNOT
+
+            new_statement = StatementConditional(
+                condition = ExpressionOperationNOT(
+                    operand    = condition,
+                    source_ref = condition.getSourceReference()
+                ),
+                yes_branch = no_branch,
+                no_branch  = None,
+                source_ref = self.getSourceReference()
+            )
+
+            return new_statement, "new_statements", "Empty true branch for condition was replaced with inverted condition check."
+
+        # Note: Checking the condition late, so that the surviving branches got processed
+        # already. Returning without doing that, will lead to errorneous assumptions.
+        truth_value = condition.getTruthValue( constraint_collection )
+
+        if truth_value is not None:
+            from .NodeMakingHelpers import wrapStatementWithSideEffects
+
+            if truth_value is True:
+                choice = "true"
+
+                new_statement = self.getBranchYes()
+            else:
+                choice = "false"
+
+                new_statement = self.getBranchNo()
+
+            new_statement = wrapStatementWithSideEffects(
+                new_node   = new_statement,
+                old_node   = condition,
+                allow_none = True # surviving branch may empty
+            )
+
+            return new_statement, "new_statements", "Condition for branch was predicted to be always %s." % choice
+        elif condition.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+
+            result = makeStatementExpressionOnlyReplacementNode(
+                expression = condition,
+                node       = self
+            )
+
+            return result, "new_raise", "Conditional statements already raises implicitely in condition, removing branches"
+
+        return self, None, None

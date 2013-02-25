@@ -26,10 +26,11 @@ from nuitka import Variables, Builtins, Options
 
 from .NodeBases import (
     StatementChildrenHavingBase,
-    ChildrenHavingMixin,
     ExpressionMixin,
     NodeBase
 )
+
+from nuitka.__past__ import iterItems
 
 from .ConstantRefNodes import ExpressionConstantRef
 
@@ -302,3 +303,23 @@ class StatementTempBlock( StatementChildrenHavingBase ):
 
     def mayHaveSideEffects( self, constraint_collection ):
         return self.getBody().mayHaveSideEffects( constraint_collection )
+
+    def computeStatement( self, constraint_collection ):
+        old_body = self.getBody()
+        result = constraint_collection.onStatementsSequence( old_body )
+
+        if result is not old_body:
+            self.setBody( result )
+
+        # TODO: That should be a method of the constraint_collection
+        for variable, friend in iterItems( dict( constraint_collection.variables ) ):
+            if variable.getOwner() is self:
+                del constraint_collection.variables[ variable ]
+
+                # TODO: Back propagate now.
+                friend.onRelease( self )
+
+        if result is None:
+            return None, "new_statements", "Removed empty temporary block"
+
+        return self, None, None

@@ -75,6 +75,26 @@ class StatementSetLocals( StatementChildrenHavingBase ):
 
     getNewLocals = StatementChildrenHavingBase.childGetter( "new_locals" )
 
+    def computeStatement( self, constraint_collection ):
+        # Make sure that we don't even assume "unset" of things not set yet for anything.
+        constraint_collection.removeAllKnowledge()
+
+        constraint_collection.onExpression( self.getNewLocals() )
+        new_locals = self.getNewLocals()
+
+        if new_locals.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+
+            result = makeStatementExpressionOnlyReplacementNode(
+                expression = new_locals,
+                node       = self
+            )
+
+            return result, "new_raise", "Setting locals already raises implicitely building new locals."
+
+        return self, None, None
+
+
 
 class ExpressionBuiltinDir0( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_BUILTIN_DIR0"

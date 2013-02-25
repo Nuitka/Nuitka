@@ -78,6 +78,12 @@ class StatementContinueLoop( NodeBase ):
     def isExceptionDriven( self ):
         return self.exception_driven
 
+    def computeStatement( self, constraint_collection ):
+        # This statement being aborting, will already tell everything. TODO: The fine
+        # difference that this jumps to loop start for sure, should be represented somehow
+        # one day.
+        return self, None, None
+
 
 class StatementBreakLoop( NodeBase ):
     kind = "STATEMENT_BREAK_LOOP"
@@ -95,3 +101,9 @@ class StatementBreakLoop( NodeBase ):
 
     def isExceptionDriven( self ):
         return self.exception_driven
+
+    def computeStatement( self, constraint_collection ):
+        # This statement being aborting, will already tell everything. TODO: The fine
+        # difference that this exits the loop for sure, should be represented somehow one
+        # day.
+        return self, None, None

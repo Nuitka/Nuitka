@@ -517,14 +517,27 @@ class ChildrenHavingMixin:
                 pass
             elif type( value ) is tuple:
                 if old_node in value:
-                    self.setChild(
-                        key,
-                        tuple(
-                            (val if val is not old_node else new_node)
-                            for val in
-                            value
+                    if new_node is not None:
+                        self.setChild(
+                            key,
+                            tuple(
+                                (val if val is not old_node else new_node)
+                                for val in
+                                value
+                            )
                         )
-                    )
+                    else:
+                        self.setChild(
+                            key,
+                            tuple(
+                                val
+                                for val in
+                                value
+                                if val is not old_node
+                            )
+                        )
+
+
 
                     break
             elif isinstance( value, NodeBase ):

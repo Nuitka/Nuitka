@@ -270,6 +270,26 @@ class StatementSpecialUnpackCheck( StatementChildrenHavingBase ):
 
     getIterator = StatementChildrenHavingBase.childGetter( "iterator" )
 
+    def computeStatement( self, constraint_collection ):
+        constraint_collection.onExpression( self.getIterator() )
+        iterator = self.getIterator()
+
+        if iterator.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+
+            result = makeStatementExpressionOnlyReplacementNode(
+                expression = iterator,
+                node       = self
+            )
+
+            return result, "new_raise", "Explicit raise already raises implicitely building exception type"
+
+        # Remove the check if it can be decided at compile time.
+        if iterator.isKnownToBeIterableAtMax( 0, constraint_collection ):
+            return None, "new_statements", "Determined iteration end check to be always true."
+
+        return self, None, None
+
 
 class ExpressionBuiltinIter2( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_ITER2"

@@ -456,117 +456,6 @@ class ConstraintCollectionBase:
 
         return result
 
-    def _onStatementConditional( self, statement ):
-        no_branch = statement.getBranchNo()
-
-        if no_branch is not None and not no_branch.mayHaveSideEffects( None ):
-            self.signalChange(
-                "new_statements",
-                no_branch.getSourceReference(),
-                "Removed else branch without side effects."
-            )
-
-            statement.setBranchNo( None )
-
-            no_branch = None
-
-        yes_branch = statement.getBranchYes()
-
-        if yes_branch is not None and not yes_branch.mayHaveSideEffects( None ):
-            statement.setBranchYes( None )
-
-            self.signalChange(
-                "new_statements",
-                yes_branch.getSourceReference(),
-                "Removed else branch without side effects."
-            )
-
-            yes_branch = None
-
-        self.onExpression( statement.getCondition() )
-
-        # TODO: We now know that condition evaluates to true for the yes branch
-        # and to not true for no branch
-
-        branch_yes_collection = ConstraintCollectionBranch( self, self.signalChange )
-
-        if yes_branch is not None:
-            branch_yes_collection.process( self, yes_branch )
-
-        if no_branch is not None:
-            branch_no_collection = ConstraintCollectionBranch( self, self.signalChange )
-
-            branch_no_collection.process( self, statement.getBranchNo() )
-
-            self.variables = self.mergeBranchVariables(
-                branch_yes_collection.variables,
-                branch_no_collection.variables
-            )
-        else:
-            self.mergeBranch( branch_yes_collection )
-
-        if statement.getBranchNo() is None and statement.getBranchYes() is None:
-            self.signalChange(
-                "new_statements",
-                statement.getSourceReference(),
-                "Both branches have no effect, drop branch nature, only evaluate condition."
-            )
-
-            return makeStatementExpressionOnlyReplacementNode(
-                expression = statement.getCondition(),
-                node       = statement
-            )
-
-
-        truth_value = statement.getCondition().getTruthValue( self )
-
-        if truth_value is not None:
-            if truth_value is True:
-                choice = "true"
-
-                new_statement = statement.getBranchYes()
-            else:
-                choice = "false"
-
-                new_statement = statement.getBranchNo()
-
-            new_statement = wrapStatementWithSideEffects(
-                new_node   = new_statement,
-                old_node   = statement.getCondition(),
-                allow_none = True # surviving branch may empty
-            )
-
-            self.signalChange(
-                "new_statements",
-                statement.getSourceReference(),
-                "Condition for branch was predicted to be always %s." % choice
-            )
-
-            return new_statement
-
-        if statement.getBranchYes() is None:
-            # Would be eliminated already.
-            assert statement.getBranchNo() is not None
-
-            new_statement = StatementConditional(
-                condition = ExpressionOperationNOT(
-                    operand    = statement.getCondition(),
-                    source_ref = statement.getCondition().getSourceReference()
-                ),
-                yes_branch = statement.getBranchNo(),
-                no_branch  = None,
-                source_ref = statement.getSourceReference()
-            )
-
-            self.signalChange(
-                "new_statements",
-                statement.getSourceReference(),
-                "Empty true branch for condition was replaced with inverted condition check."
-            )
-
-            return new_statement
-
-        return statement
 
     def _onStatementPrint( self, statement ):
         self.onStatementUsingChildExpressions( statement )
@@ -706,71 +595,6 @@ class ConstraintCollectionBase:
 
         return statement
 
-    def _onStatementTryFinally( self, statement ):
-        # The tried block can be processed normally, if it is not empty already.
-        tried_statement_sequence = statement.getBlockTry()
-
-        if tried_statement_sequence is not None:
-            result = self.onStatementsSequence( tried_statement_sequence )
-
-            if result is not tried_statement_sequence:
-                statement.setBlockTry( result )
-
-        final_statement_sequence = statement.getBlockFinal()
-
-        # TODO: The final must not assume that all of tried was executed, instead it may
-        # have aborted after any part of it, which is a rather complex definition.
-
-        if final_statement_sequence is not None:
-            # Then assuming no exception, the no raise block if present.
-            result = self.onStatementsSequence( final_statement_sequence )
-
-            if result is not final_statement_sequence:
-                statement.setBlockFinal( result )
-
-        # Note: Need to query again, because the object may have changed in the
-        # "onStatementsSequence" calls.
-
-        if statement.getBlockTry() is None:
-            # If the tried block is empty, go to the final block directly, if any.
-            result = statement.getBlockFinal()
-        elif statement.getBlockFinal() is None:
-            # If the final block is empty, just need to execute the tried block then.
-            result = statement.getBlockTry()
-        else:
-            # Otherwise keep it as it.
-            result = statement
-
-        return result
-
-
-    def _onStatementTryExcept( self, statement ):
-        # The tried block can be processed normally.
-        tried_statement_sequence = statement.getBlockTry()
-
-        if tried_statement_sequence is not None:
-            result = self.onStatementsSequence( tried_statement_sequence )
-
-            if result is not tried_statement_sequence:
-                statement.setBlockTry( result )
-
-        if statement.getBlockTry() is None:
-            return None
-
-        # The exception branches triggers in unknown state, any amount of tried code
-        # may have happened. A similar approach to loops should be taken to invalidate
-        # the state before.
-        for handler in statement.getExceptionHandlers():
-            exception_branch = ConstraintCollectionHandler( self, self.signalChange )
-            exception_branch.process( handler )
-
-        # Give up, merging this is too hard for now, any amount of the tried sequence may
-        # have executed together with one of the handlers, or all of tried and no
-        # handlers.
-        self.removeAllKnowledge()
-
-        return statement
-
     def onStatement( self, statement ):
         assert statement.isStatement(), statement
 
@@ -799,8 +623,6 @@ class ConstraintCollectionBase:
             return statement
         elif statement.isStatementPrint():
             return self._onStatementPrint( statement )
-        elif statement.isStatementConditional():
-            return self._onStatementConditional( statement )
         elif statement.isStatementLoop():
             other_loop_run = ConstraintCollectionLoopOther( self, self.signalChange )
             other_loop_run.process( self, statement )
@@ -808,55 +630,6 @@ class ConstraintCollectionBase:
             self.mergeBranch(
                 other_loop_run
             )
-
-            return statement
-        elif statement.isStatementTryFinally():
-            return self._onStatementTryFinally( statement )
-
-        elif statement.isStatementTryExcept():
-            return self._onStatementTryExcept( statement )
-        elif statement.isStatementContinueLoop():
-            # TODO: Not clear how to handle these, the statement sequence processing
-            # should abort here.
-            return statement
-        elif statement.isStatementBreakLoop():
-            # TODO: Not clear how to handle these, the statement sequence processing
-            # should abort here.
-            return statement
-        elif statement.isStatementTempBlock():
-            temp_block_body = statement.getBody()
-
-            result = self.onStatementsSequence( temp_block_body )
-
-            if result is not temp_block_body:
-                statement.setBody( result )
-
-            for variable, friend in iterItems( dict( self.variables ) ):
-                if variable.getOwner() is statement:
-                    del self.variables[ variable ]
-
-                    # TODO: Back propagate now.
-                    friend.onRelease( self )
-
-            if statement.mayHaveSideEffects( None ):
-                return statement
-            else:
-                return None
-        elif statement.isStatementSpecialUnpackCheck():
-            self.onExpression( statement.getIterator() )
-
-            # Remove the check if it can be decided at compile time.
-            if statement.getIterator().isKnownToBeIterableAtMax( 0, self ):
-                return None
-
-            return statement
-        elif statement.isStatementDictOperationRemove():
-            # TODO: Be less lossly about it.
-            self.removeKnowledge( statement.getDict() )
-
-            return statement
-        elif statement.isStatementSetLocals():
-            # TODO: All should be forgotten, anything could be set now.
 
             return statement
         else:
@@ -884,13 +657,14 @@ class ConstraintCollectionHandler( ConstraintCollectionBase ):
 
 
 class ConstraintCollectionBranch( ConstraintCollectionBase ):
-    def process( self, start_state, branch ):
+    def process( self, branch ):
         assert branch.isStatementsSequence(), branch
 
         result = self.onStatementsSequence( branch )
 
         if result is not branch:
             branch.replaceWith( result )
+
 
 class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrackingMixin ):
     def __init__( self, parent, signal_change ):
