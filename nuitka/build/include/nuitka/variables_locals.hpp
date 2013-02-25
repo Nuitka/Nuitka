@@ -1,4 +1,4 @@
-//     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+//     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -110,7 +110,7 @@ public:
         if ( this->object == NULL && this->var_name != NULL )
         {
             PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
-                throw _PythonException();
+            throw _PythonException();
         }
 
         assertObject( this->object );
@@ -128,21 +128,26 @@ public:
         return this->object != NULL;
     }
 
-    void del()
+    void del( bool tolerant )
     {
         if ( this->object == NULL )
         {
-            PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
-            throw _PythonException();
+            if ( tolerant == false )
+            {
+                PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
+                throw _PythonException();
+            }
         }
-
-        if ( this->free_value )
+        else
         {
-            Py_DECREF( this->object );
-        }
+            if ( this->free_value )
+            {
+                Py_DECREF( this->object );
+            }
 
-        this->object = NULL;
-        this->free_value = false;
+            this->object = NULL;
+            this->free_value = false;
+        }
     }
 
     PyObject *getVariableName() const
@@ -156,7 +161,11 @@ public:
 
         if ( this->isInitialized() )
         {
+#if PYTHON_VERSION < 300
             int status = PyDict_SetItem(
+#else
+            int status = PyObject_SetItem(
+#endif
                 locals_dict,
                 this->getVariableName(),
                 this->asObject()

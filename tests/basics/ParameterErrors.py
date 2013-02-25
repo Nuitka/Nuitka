@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -148,10 +148,106 @@ try:
 except TypeError, e:
     print repr(e)
 
+print "Call a function with defaults with too little arguments:"
+
 def functionWithDefaults( a, b, c, d = 3 ):
     print a, b, c, d
 
 try:
     functionWithDefaults( 1 )
+except TypeError, e:
+    print repr(e)
+
+print "Call a function with defaults with too many arguments:"
+
+try:
+    functionWithDefaults( 1 )
+except TypeError, e:
+    print repr(e)
+
+print "Complex call with invalid star list and star arguments:"
+
+try:
+    a = 1
+    b = 2.0
+
+    functionWithDefaults(1,c=3,*a,**b)
+except TypeError, e:
+    print repr(e)
+
+try:
+    a = 1
+    b = 2.0
+
+    functionWithDefaults(1,*a,**b)
+except TypeError, e:
+    print repr(e)
+
+try:
+    a = 1
+    b = 2.0
+
+    functionWithDefaults(c=1, *a,**b)
+except TypeError, e:
+    print repr(e)
+
+try:
+    a = 1
+    b = 2.0
+
+    functionWithDefaults(*a,**b)
+except TypeError, e:
+    print repr(e)
+
+try:
+    a = 1
+
+    functionWithDefaults(*a)
+except TypeError, e:
+    print repr(e)
+
+
+try:
+    a = 1
+
+    MethodContainer(*a)
+except TypeError, e:
+    print repr(e)
+
+
+try:
+    a = 1
+
+    MethodContainer()(*a)
+except TypeError, e:
+    print repr(e)
+
+try:
+    a = 1
+
+    MethodContainer.methodTwoParameters(*a)
+except TypeError, e:
+    print repr(e)
+
+try:
+    a = 1
+
+    None(*a)
+except TypeError, e:
+    print repr(e)
+
+
+try:
+    a = 1
+
+    None(**a)
+except TypeError, e:
+    print repr(e)
+
+print "Call object with name as both keyword and in star dict argument:"
+try:
+    a = {"a" : 3}
+
+    None(a=2, **a)
 except TypeError, e:
     print repr(e)

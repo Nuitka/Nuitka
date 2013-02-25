@@ -1,4 +1,4 @@
-//     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+//     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -23,6 +23,13 @@ static bool ERROR_OCCURED( void )
     PyThreadState *tstate = PyThreadState_GET();
 
     return tstate->curexc_type != NULL;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *GET_ERROR_OCCURED( void )
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    return tstate->curexc_type;
 }
 
 
@@ -111,6 +118,12 @@ inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exceptio
     PyDict_SetItem( sys_dict, _python_str_plain_exc_traceback, exception_tb ? (PyObject *)exception_tb : Py_None );
 }
 
+inline void NORMALIZE_EXCEPTION( PyObject **exception_type, PyObject **exception_value, PyTracebackObject **exception_tb )
+{
+    PyErr_NormalizeException( exception_type, exception_value, (PyObject **)exception_tb );
+}
+
+
 class _PythonException
 {
 public:
@@ -144,7 +157,7 @@ public:
     {
         assertObject( exception );
         assert( value == NULL || Py_REFCNT( value ) > 0 );
-        assertObject( traceback );
+        assert( traceback == NULL || Py_REFCNT( traceback ) > 0 );
 
         this->exception_type = exception;
         this->exception_value = value;
@@ -193,13 +206,32 @@ public:
 
     inline void normalize()
     {
-        PyErr_NormalizeException( &this->exception_type, &this->exception_value, (PyObject **)&this->exception_tb );
+        NORMALIZE_EXCEPTION( &this->exception_type, &this->exception_value, &this->exception_tb );
+
+#if PYTHON_VERSION >= 300
+        PyException_SetTraceback( this->exception_value, (PyObject *)this->exception_tb );
+#endif
     }
 
     inline bool matches( PyObject *exception ) const
     {
 #if PYTHON_VERSION >= 300
-        if (unlikely( !PyExceptionClass_Check( exception ) ))
+        if ( PyTuple_Check( exception ))
+        {
+            Py_ssize_t length = PyTuple_Size( exception );
+
+            for ( Py_ssize_t i = 0; i < length; i += 1 )
+            {
+                PyObject *element = PyTuple_GET_ITEM( exception, i );
+
+                if (unlikely( !PyExceptionClass_Check( element ) ))
+                {
+                    PyErr_Format( PyExc_TypeError, "catching classes that do not inherit from BaseException is not allowed" );
+                    throw _PythonException();
+                }
+            }
+        }
+        else if (unlikely( !PyExceptionClass_Check( exception ) ))
         {
             PyErr_Format( PyExc_TypeError, "catching classes that do not inherit from BaseException is not allowed" );
             throw _PythonException();
@@ -240,7 +272,7 @@ public:
     {
         if ( this->exception_value == NULL )
         {
-            PyErr_NormalizeException( &this->exception_type, &this->exception_value, (PyObject **)&this->exception_tb );
+            this->normalize();
         }
 
         return this->exception_type;
@@ -250,7 +282,7 @@ public:
     {
         if ( this->exception_value == NULL )
         {
-            PyErr_NormalizeException( &this->exception_type, &this->exception_value, (PyObject **)&this->exception_tb );
+            this->normalize();
         }
 
         return this->exception_value;
@@ -301,6 +333,13 @@ public:
         Py_XDECREF( this->exception_type );
         this->exception_type = exception_type;
     }
+
+#if PYTHON_VERSION >= 300
+    void setCause( PyObject *exception_cause )
+    {
+        PyException_SetCause( this->exception_value, exception_cause );
+    }
+#endif
 
     void dump() const
     {
@@ -366,7 +405,8 @@ public:
             Py_XINCREF( this->exception_value );
             Py_XINCREF( this->exception_tb );
 
-            // TODO: Can the traceback truly be NULL ?
+            // Restore the frame line number from the traceback, if present. Otherwise it
+            // will changed already.
             if ( this->exception_tb )
             {
                 this->exception_tb->tb_frame->f_lineno = this->exception_tb->tb_lineno;
@@ -389,100 +429,6 @@ private:
     PyTracebackObject *exception_tb;
 };
 
-
-class FrameExceptionKeeper
-{
-public:
-
-    FrameExceptionKeeper()
-    {
-        this->active = false;
-
-        this->frame_exc_type = NULL;
-        this->frame_exc_value = NULL;
-        this->frame_exc_traceback = NULL;
-    }
-
-    ~FrameExceptionKeeper()
-    {
-        if ( this->active )
-        {
-            _SET_CURRENT_EXCEPTION( this->frame_exc_type, this->frame_exc_value, this->frame_exc_traceback );
-
-            Py_XDECREF( this->frame_exc_type );
-            Py_XDECREF( this->frame_exc_value );
-            Py_XDECREF( this->frame_exc_traceback );
-        }
-    }
-
-    // Preserve the exception early before the exception handler is set up, so that it can later
-    // at function exit be restored.
-    void preserveExistingException()
-    {
-        if ( this->active == false )
-        {
-            this->active = true;
-
-            PyThreadState *thread_state = PyThreadState_GET();
-
-            if ( thread_state->exc_type )
-            {
-                this->frame_exc_type = INCREASE_REFCOUNT( thread_state->exc_type );
-                this->frame_exc_value = INCREASE_REFCOUNT_X( thread_state->exc_value );
-                this->frame_exc_traceback = INCREASE_REFCOUNT_X( (PyTracebackObject *)thread_state->exc_traceback );
-            }
-            else
-            {
-                this->frame_exc_type = NULL;
-                this->frame_exc_value = NULL;
-                this->frame_exc_traceback = NULL;
-            }
-        }
-    }
-
-private:
-
-    PyObject *frame_exc_type, *frame_exc_value;
-    PyTracebackObject *frame_exc_traceback;
-    bool active;
-
-};
-
-
-class PythonExceptionStacker
-{
-public:
-
-    PythonExceptionStacker()
-    {
-        PyThreadState *thread_state = PyThreadState_GET();
-
-        this->frame_exc_type = INCREASE_REFCOUNT_X( thread_state->exc_type );
-        this->frame_exc_value = INCREASE_REFCOUNT_X( thread_state->exc_value );
-        this->frame_exc_traceback = INCREASE_REFCOUNT_X( (PyTracebackObject *)thread_state->exc_traceback );
-    }
-
-    ~PythonExceptionStacker()
-    {
-        _SET_CURRENT_EXCEPTION( this->frame_exc_type, this->frame_exc_value, this->frame_exc_traceback );
-
-        Py_XDECREF( this->frame_exc_type );
-        Py_XDECREF( this->frame_exc_value );
-        Py_XDECREF( this->frame_exc_traceback );
-    }
-
-private:
-
-    PyObject *frame_exc_type, *frame_exc_value;
-    PyTracebackObject *frame_exc_traceback;
-
-};
-
-
-class GeneratorReturnException
-{
-};
-
 class ContinueException
 {
 };
@@ -496,12 +442,21 @@ class ReturnValueException
 public:
     explicit ReturnValueException( PyObject *value )
     {
+        assertObject( value );
+
         this->value = value;
+    }
+
+    ~ReturnValueException()
+    {
+        assertObject( value );
+
+        Py_DECREF( this->value );
     }
 
     PyObject *getValue() const
     {
-        return this->value;
+        return INCREASE_REFCOUNT( this->value );
     }
 
 private:
@@ -509,182 +464,5 @@ private:
 
 };
 
-#if PYTHON_VERSION < 300
-#define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must be old-style classes or derived from BaseException, not %s"
-#else
-#define WRONG_EXCEPTION_TYPE_ERROR_MESSAGE "exceptions must derive from BaseException"
-#endif
-
-NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception_type, PyTracebackObject *traceback )
-{
-    assertObject( exception_type );
-
-    if ( PyExceptionClass_Check( exception_type ) )
-    {
-        PyObject *value = NULL;
-
-        PyErr_NormalizeException( &exception_type, &value, (PyObject **)&traceback );
-#if PYTHON_VERSION >= 270
-        if (unlikely( !PyExceptionInstance_Check( value ) ))
-        {
-            PyErr_Format(
-                PyExc_TypeError,
-                "calling %s() should have returned an instance of BaseException, not '%s'",
-                ((PyTypeObject *)exception_type)->tp_name,
-                Py_TYPE( value )->tp_name
-            );
-
-            throw _PythonException();
-        }
-#endif
-
-        throw _PythonException( exception_type, value, traceback );
-    }
-    else if ( PyExceptionInstance_Check( exception_type ) )
-    {
-        throw _PythonException( INCREASE_REFCOUNT( PyExceptionInstance_Class( exception_type ) ), exception_type, traceback );
-    }
-    else
-    {
-        PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
-
-        _PythonException to_throw;
-        to_throw.setTraceback( traceback );
-
-        throw to_throw;
-    }
-}
-
-NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyTracebackObject *traceback )
-{
-    assertObject( exception_type );
-
-    // Non-empty tuple exceptions are the first element.
-    while (unlikely( PyTuple_Check( exception_type ) && PyTuple_Size( exception_type ) > 0 ))
-    {
-        PyObjectTemporary old( exception_type );
-        exception_type = INCREASE_REFCOUNT( PyTuple_GET_ITEM( exception_type, 0 ) );
-    }
-
-    if ( PyExceptionClass_Check( exception_type ) )
-    {
-        PyErr_NormalizeException( &exception_type, &value, (PyObject **)&traceback );
-#if PYTHON_VERSION >= 270
-        if (unlikely( !PyExceptionInstance_Check( value ) ))
-        {
-            PyErr_Format(
-                PyExc_TypeError,
-                "calling %s() should have returned an instance of BaseException, not '%s'",
-                ((PyTypeObject *)exception_type)->tp_name,
-                Py_TYPE( value )->tp_name
-            );
-
-            throw _PythonException();
-        }
-#endif
-
-        throw _PythonException( exception_type, value, traceback );
-    }
-    else if ( PyExceptionInstance_Check( exception_type ) )
-    {
-        // TODO: What should be done with old value, Py_DECREF maybe?
-        value = exception_type;
-        exception_type = INCREASE_REFCOUNT( PyExceptionInstance_Class( exception_type ) );
-
-        throw _PythonException( exception_type, value, traceback );
-    }
-    else
-    {
-        PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
-
-        throw _PythonException();
-    }
-}
-
-NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static inline void RAISE_EXCEPTION( PyObject *exception_type, PyObject *value, PyObject *traceback )
-{
-    // Check traceback
-    assert( traceback == NULL || PyTraceBack_Check( traceback ) );
-
-    RAISE_EXCEPTION( exception_type, value, (PyTracebackObject *)traceback );
-}
-
-NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( void )
-{
-    PyThreadState *tstate = PyThreadState_GET();
-    assert( tstate );
-
-    PyObject *type = tstate->exc_type != NULL ? tstate->exc_type : Py_None;
-    PyObject *value = tstate->exc_value;
-    PyObject *tb = tstate->exc_traceback;
-
-    assertObject( type );
-
-#if PYTHON_VERSION >= 300
-    if ( type == Py_None )
-    {
-        PyErr_Format( PyExc_RuntimeError, "No active exception to reraise" );
-        throw _PythonException();
-    }
-#endif
-
-    Py_INCREF( type );
-    Py_XINCREF( value );
-    Py_XINCREF( tb );
-
-    RAISE_EXCEPTION( type, value, tb );
-}
-
-// Throw an exception from within an expression, this is without normalization. TODO: There needs
-// to be a form that is like a statement, and doesn't do it, so it won't impact "raise", but can
-// be used in optimization.
-NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static PyObject *THROW_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *traceback )
-{
-    assertObject( exception_type );
-
-    if ( PyExceptionClass_Check( exception_type ) )
-    {
-        throw _PythonException( exception_type, exception_value, traceback );
-    }
-    else if ( PyExceptionInstance_Check( exception_type ) )
-    {
-        // TODO: What should be done with old value, Py_DECREF maybe?
-        exception_value = exception_type;
-        exception_type = INCREASE_REFCOUNT( PyExceptionInstance_Class( exception_type ) );
-
-        throw _PythonException( exception_type, exception_value, traceback );
-    }
-    else
-    {
-        PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
-
-        throw _PythonException();
-    }
-}
-
-
-
-static void THROW_IF_ERROR_OCCURED( void )
-{
-    if ( ERROR_OCCURED() )
-    {
-        throw _PythonException();
-    }
-}
-
-static void THROW_IF_ERROR_OCCURED_NOT( PyObject *ignored )
-{
-    if ( ERROR_OCCURED() )
-    {
-        if ( PyErr_ExceptionMatches( ignored ))
-        {
-            PyErr_Clear();
-        }
-        else
-        {
-            throw _PythonException();
-        }
-    }
-}
 
 #endif

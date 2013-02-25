@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,7 +28,7 @@ from .NodeBases import (
     CPythonExpressionBuiltinNoArgBase
 )
 
-from nuitka.transform.optimizations import BuiltinOptimization
+from nuitka.optimizations import BuiltinOptimization
 
 
 class CPythonExpressionBuiltinOrd0( CPythonExpressionBuiltinNoArgBase ):

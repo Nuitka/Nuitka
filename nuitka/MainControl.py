@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,9 +22,12 @@ C/API, to compile it to either an executable or an extension module.
 
 """
 
+from .tree import (
+    Recursion,
+    Building
+)
+
 from . import (
-    TreeRecursion,
-    TreeBuilding,
     Tracing,
     TreeXML,
     Options,
@@ -35,8 +38,8 @@ from .build import SconsInterface
 
 from .codegen import CodeGeneration
 
-from .transform.optimizations import Optimization
-from .transform.finalizations import Finalization
+from .optimizations import Optimization
+from .finalizations import Finalization
 
 import sys, os
 
@@ -44,12 +47,13 @@ def createNodeTree( filename ):
     """ Create a node tree.
 
     Turn that source code into a node tree structure. If recursion into imported modules
-    is available, more trees will be available during optimization.
+    is available, more trees will be available during optimization, or immediately through
+    recursed directory paths.
 
     """
 
     # First, build the raw node tree from the source code.
-    result = TreeBuilding.buildModuleTree(
+    result = Building.buildModuleTree(
         filename = filename,
         package  = None,
         is_top   = True,
@@ -58,7 +62,7 @@ def createNodeTree( filename ):
 
     # Second, do it for the directories given.
     for plugin_filename in Options.getShallFollowExtra():
-        TreeRecursion.checkPluginPath(
+        Recursion.checkPluginPath(
             plugin_filename = plugin_filename,
             module_package  = None
         )
@@ -194,7 +198,7 @@ def makeSourceDirectory( main_module ):
     global_context = CodeGeneration.makeGlobalContext()
 
     # Get the full list of modules imported, create code for all of them.
-    modules = TreeBuilding.getImportedModules()
+    modules = Building.getImportedModules()
     assert main_module in modules
 
     # Sometimes we need to talk about all modules except main module.
@@ -215,7 +219,7 @@ def makeSourceDirectory( main_module ):
     for module in sorted( modules, key = lambda x : x.getFullName() ):
         cpp_filename, hpp_filename = module_filenames[ module ]
 
-        source_code = CodeGeneration.generateModuleCode(
+        source_code, module_context = CodeGeneration.generateModuleCode(
             global_context = global_context,
             module         = module,
             module_name    = module.getFullName(),
@@ -225,7 +229,8 @@ def makeSourceDirectory( main_module ):
         # The main of an executable module gets a bit different code.
         if module is main_module and not Options.shallMakeModule():
             source_code = CodeGeneration.generateMainCode(
-                context = global_context,
+                context = module_context,
+                module  = module,
                 codes   = source_code
             )
 
@@ -239,7 +244,8 @@ def makeSourceDirectory( main_module ):
         writeSourceCode(
             filename     = hpp_filename,
             source_code  = CodeGeneration.generateModuleDeclarationCode(
-                module_name = module.getFullName()
+                module_name = module.getFullName(),
+                context     = module_context
             )
         )
 

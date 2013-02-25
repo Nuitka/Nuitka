@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,8 +29,6 @@ from .NodeBases import (
     CPythonExpressionChildrenHavingBase
 )
 
-from . import BuiltinReferenceNodes
-
 from nuitka.Builtins import builtin_names
 
 
@@ -44,6 +42,8 @@ class CPythonExpressionBuiltinType1( CPythonExpressionBuiltinSingleArgBase ):
             value = value.getCompileTimeConstant()
 
             type_name = value.__class__.__name__
+
+            from . import BuiltinReferenceNodes
 
             if type_name in builtin_names:
                 new_node = BuiltinReferenceNodes.CPythonExpressionBuiltinRef(
@@ -86,3 +86,31 @@ class CPythonExpressionBuiltinSuper( CPythonExpressionChildrenHavingBase ):
     def computeNode( self, constraint_collection ):
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
+
+
+class CPythonExpressionBuiltinIsinstance( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_BUILTIN_ISINSTANCE"
+
+    named_children = ( "instance", "cls" )
+
+    def __init__( self, instance, cls, source_ref ):
+        CPythonExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "instance" : instance,
+                "cls"      : cls
+
+            },
+            source_ref = source_ref )
+
+    getInstance = CPythonExpressionChildrenHavingBase.childGetter( "instance" )
+    getCls = CPythonExpressionChildrenHavingBase.childGetter( "cls" )
+
+    def computeNode( self, constraint_collection ):
+        # TODO: Quite some cases should be possible to predict.
+        return self, None, None
+
+    def mayProvideReference( self ):
+        # Dedicated code returns "True" or "False" only, which requires no reference,
+        # except for rich comparisons, which do.
+        return False

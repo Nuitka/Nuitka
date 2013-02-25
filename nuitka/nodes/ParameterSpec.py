@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -53,13 +53,15 @@ class ParameterSpecTuple:
         return self.normal_variables
 
     def setOwner( self, owner ):
+        assert self.owner is None
+
         self.owner = owner
 
         self.normal_variables = []
 
         for count, normal_arg in enumerate( self.normal_args ):
             if type( normal_arg ) == str:
-                normal_variable = Variables.ParameterVariable( self.owner, normal_arg )
+                normal_variable = Variables.ParameterVariable( self.owner, normal_arg, False )
             elif type( normal_arg ) == tuple:
                 sub_parameter_spec = ParameterSpecTuple(
                     normal_args = normal_arg,
@@ -82,6 +84,7 @@ class ParameterSpecTuple:
 
             self.normal_variables.append( normal_variable )
 
+
     def getVariables( self ):
         result = []
 
@@ -102,14 +105,32 @@ class ParameterSpecTuple:
 
         return result
 
+    def getAllNames( self ):
+        result = []
+
+        def extractArg( normal_arg ):
+            if type( normal_arg ) is str:
+                result.append( normal_arg )
+            elif type( normal_arg ) is tuple:
+                for normal_arg in normal_arg:
+                    extractArg( normal_arg )
+            else:
+                assert False
+
+        for normal_arg in self.normal_args:
+            extractArg( normal_arg )
+
+        return result
+
     def getTopLevelVariables( self ):
         return self.normal_variables
 
     def getParameterNames( self ):
         return Variables.getNames( self.getVariables() )
 
+
 class ParameterSpec( ParameterSpecTuple ):
-    def __init__( self, name, normal_args, list_star_arg, dict_star_arg, default_count ):
+    def __init__( self, name, normal_args, kw_only_args, list_star_arg, dict_star_arg, default_count ):
         assert None not in normal_args
 
         self.name = name
@@ -126,11 +147,16 @@ class ParameterSpec( ParameterSpecTuple ):
 
         self.default_count = default_count
 
+        self.kw_only_args = tuple( kw_only_args )
+        self.kw_only_variables = None
+
     def checkValid( self ):
+        arg_names = self.getAllNames()
+
         # Check for duplicate arguments, could happen.
-        for normal_arg in self.normal_args:
-            if self.normal_args.count( normal_arg ) != 1:
-                return "duplicate argument '%s' in function definition" % normal_arg
+        for arg_name in arg_names:
+            if arg_names.count( arg_name ) != 1:
+                return "duplicate argument '%s' in function definition" % arg_name
         else:
             return None
 
@@ -152,20 +178,30 @@ class ParameterSpec( ParameterSpecTuple ):
         return len( self.normal_args )
 
     def setOwner( self, owner ):
+        if self.owner is not None:
+            return
+
         ParameterSpecTuple.setOwner( self, owner )
 
         if self.list_star_arg:
-            self.list_star_variable = Variables.ParameterVariable( owner, self.list_star_arg )
+            self.list_star_variable = Variables.ParameterVariable( owner, self.list_star_arg, False )
         else:
             self.list_star_variable = None
 
         if self.dict_star_arg:
-            self.dict_star_variable = Variables.ParameterVariable( owner, self.dict_star_arg )
+            self.dict_star_variable = Variables.ParameterVariable( owner, self.dict_star_arg, False )
         else:
             self.dict_star_variable = None
 
+        self.kw_only_variables = [
+            Variables.ParameterVariable( self.owner, kw_only_arg, True )
+            for kw_only_arg in
+            self.kw_only_args
+        ]
+
     def isEmpty( self ):
-        return len( self.normal_args ) == 0 and self.list_star_arg is None and self.dict_star_arg is None
+        return len( self.normal_args ) == 0 and self.list_star_arg is None and \
+               self.dict_star_arg is None and len( self.kw_only_args ) == 0
 
     def getDefaultParameterVariables( self ):
         result = ParameterSpecTuple.getTopLevelVariables( self )
@@ -182,7 +218,7 @@ class ParameterSpec( ParameterSpecTuple ):
         return self.getDefaultCount() > 0
 
     def getVariables( self ):
-        result = ParameterSpecTuple.getVariables( self )
+        result = ParameterSpecTuple.getVariables( self )[:]
 
         if self.list_star_variable is not None:
             result.append( self.list_star_variable )
@@ -190,10 +226,15 @@ class ParameterSpec( ParameterSpecTuple ):
         if self.dict_star_variable is not None:
             result.append( self.dict_star_variable )
 
-        return result
+        return result + self.kw_only_variables
+
+    def getTopLevelVariables( self ):
+        result = ParameterSpecTuple.getTopLevelVariables( self )
+
+        return result + self.kw_only_variables
 
     def getAllVariables( self ):
-        result = ParameterSpecTuple.getAllVariables( self )
+        result = ParameterSpecTuple.getAllVariables( self )[:]
 
         if self.list_star_variable is not None:
             result.append( self.list_star_variable )
@@ -201,7 +242,18 @@ class ParameterSpec( ParameterSpecTuple ):
         if self.dict_star_variable is not None:
             result.append( self.dict_star_variable )
 
-        return result
+        return result + self.kw_only_variables
+
+    def getAllNames( self ):
+        result = ParameterSpecTuple.getAllNames( self )[:]
+
+        if self.list_star_arg is not None:
+            result.append( self.list_star_arg )
+
+        if self.dict_star_arg is not None:
+            result.append( self.dict_star_arg )
+
+        return result + list( self.kw_only_args )
 
     def getStarListArgumentName( self ):
         return self.list_star_arg
@@ -215,6 +267,9 @@ class ParameterSpec( ParameterSpecTuple ):
     def getDictStarArgVariable( self ):
         return self.dict_star_variable
 
+    def getKwOnlyVariables( self ):
+        return self.kw_only_variables
+
     def allowsKeywords( self ):
         # Abstract method, pylint: disable=R0201
         return True
@@ -224,6 +279,12 @@ class ParameterSpec( ParameterSpecTuple ):
 
     def getArgumentNames( self ):
         return self.normal_args
+
+    def getKwOnlyParameterNames( self ):
+        return self.kw_only_args
+
+    def getKwOnlyParameterCount( self ):
+        return len( self.kw_only_args )
 
     def getCoArgNames( self ):
         result = []
@@ -317,6 +378,17 @@ def matchCall( func_name, args, star_list_arg, star_dict_arg, num_defaults, posi
             assign( star_list_arg, () )
     elif 0 < num_args < num_total:
         if num_defaults == 0:
+            if num_args != 1:
+                raise TooManyArguments(
+                    TypeError(
+                        "%s expected %d arguments, got %d" % (
+                            func_name,
+                            num_args,
+                            num_total
+                        )
+                    )
+                )
+
             raise TooManyArguments(
                 TypeError(
                     "%s() takes exactly %s (%d given)" % (
@@ -424,6 +496,17 @@ def matchCall( func_name, args, star_list_arg, star_dict_arg, num_defaults, posi
         num_required = num_args - num_defaults
 
         if num_required > 0 or improved:
+            if num_defaults == 0 and num_args != 1:
+                raise TooManyArguments(
+                    TypeError(
+                        "%s expected %d arguments, got %d" % (
+                            func_name,
+                            num_args,
+                            num_total
+                        )
+                    )
+                )
+
             if num_required == 1:
                 arg_desc = "1 argument"
             else:

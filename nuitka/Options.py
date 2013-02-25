@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -18,8 +18,8 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.3.25
-Copyright (C) 2012 Kay Hayen."""
+Nuitka V0.4.0
+Copyright (C) 2013 Kay Hayen."""
 
 from . import Utils
 
@@ -186,7 +186,7 @@ parser.add_option(
     "--python-version",
     action  = "store",
     dest    = "python_version",
-    choices = ( "2.6", "2.7", "3.2" ),
+    choices = ( "2.6", "2.7", "3.2", "3.3" ),
     default = None,
     help    = """Major version of Python to be used, one of '2.6', '2.7', or '3.2'."""
 )
@@ -385,8 +385,7 @@ tracing_group.add_option(
     "--show-progress",
     action  = "store_true",
     dest    = "show_progress",
-    # TODO: Enable by default for interactive mode.
-    default = False and sys.stdout.isatty(),
+    default = False,
     help    = """Provide progress information and statistics. Defaults to off."""
 )
 
@@ -412,6 +411,17 @@ parser.add_option(
 Specify the allowed number of parallel C++ compiler jobs. Defaults to the system
 CPU count.""",
 )
+
+parser.add_option(
+    "--improved",
+    action  = "store_true",
+    dest    = "improved",
+    default = False,
+    help    = """\
+Allow minor devitations from CPython behaviour, e.g. better tracebacks, which are not
+really incompatible, but different.""",
+)
+
 
 if is_nuitka_python:
     count = 0
@@ -536,7 +546,7 @@ def shallDisableConsoleWindow():
     return options.win_disable_console
 
 def isFullCompat():
-    return True
+    return not options.improved
 
 def isShowProgress():
     return options.show_progress

@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -87,6 +87,9 @@ class CPythonStatementAssignmentAttribute( CPythonChildrenHaving, CPythonNodeBas
     def getAttributeName( self ):
         return self.attribute_name
 
+    def setAttributeName( self, attribute_name ):
+        self.attribute_name = attribute_name
+
     getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
     getAssignSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
 
@@ -142,9 +145,10 @@ class CPythonStatementDelVariable( CPythonChildrenHaving, CPythonNodeBase ):
 
     named_children = ( "variable_ref", )
 
-    def __init__( self, variable_ref, source_ref ):
+    def __init__( self, variable_ref, tolerant, source_ref ):
         assert variable_ref is not None
         assert not variable_ref.isExpressionVariableRef()
+        assert tolerant is True or tolerant is False
 
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
@@ -155,6 +159,8 @@ class CPythonStatementDelVariable( CPythonChildrenHaving, CPythonNodeBase ):
             }
         )
 
+        self.tolerant = tolerant
+
     def getDetail( self ):
         variable_ref = self.getTargetVariableRef()
         variable = variable_ref.getVariable()
@@ -163,6 +169,10 @@ class CPythonStatementDelVariable( CPythonChildrenHaving, CPythonNodeBase ):
             return "to variable %s" % variable
         else:
             return "to variable %s" % self.getTargetVariableRef()
+
+    # TODO: Value propagation needs to make a difference based on this.
+    def isTolerant( self ):
+        return self.tolerant
 
     getTargetVariableRef = CPythonChildrenHaving.childGetter( "variable_ref" )
 
@@ -192,6 +202,9 @@ class CPythonStatementDelAttribute( CPythonChildrenHaving, CPythonNodeBase ):
 
     def getAttributeName( self ):
         return self.attribute_name
+
+    def setAttributeName( self, attribute_name ):
+        self.attribute_name = attribute_name
 
     getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 

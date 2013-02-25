@@ -1,4 +1,4 @@
-//     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+//     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -63,6 +63,14 @@ struct Nuitka_FunctionObject {
     // List of defaults, for use in func_defaults and parameter parsing.
     PyObject *m_defaults;
 
+#if PYTHON_VERSION >= 300
+    // List of keyword only defaults, for use in __kwdefaults__ and parameter parsing.
+    PyObject *m_kwdefaults;
+
+    // Annotations to the function arguments and return value.
+    PyObject *m_annotations;
+#endif
+
     long m_counter;
 };
 
@@ -70,10 +78,18 @@ extern PyTypeObject Nuitka_Function_Type;
 
 
 // Make a function without context.
+#if PYTHON_VERSION < 300
 extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc );
+#else
+extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc );
+#endif
 
 // Make a function with context.
+#if PYTHON_VERSION < 300
 extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, void *context, releaser cleanup );
+#else
+extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup );
+#endif
 
 // Make a function that is only a yielder, no args.
 extern PyObject *Nuitka_Function_New( argless_code code, PyObject *name, PyObject *module, PyObject *doc, void * );

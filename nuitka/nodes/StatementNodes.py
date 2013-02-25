@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,6 +20,8 @@
 """
 
 from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
+
+from nuitka.Utils import python_version
 
 def mergeStatements( statements ):
     """ Helper function that merges nested statement sequences. """
@@ -56,6 +58,8 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
 
     def setChild( self, name, value ):
         assert name == "statements"
+
+        assert None not in value, value
 
         return CPythonChildrenHaving.setChild(
             self,
@@ -112,14 +116,14 @@ class CPythonStatementsSequence( CPythonChildrenHaving, CPythonNodeBase ):
         else:
             return False
 
-    def isStatementAbortative( self ):
-        return self.getStatements()[-1].isStatementAbortative()
+    def isStatementAborting( self ):
+        return self.getStatements()[-1].isStatementAborting()
 
 
 class CPythonStatementsFrame( CPythonStatementsSequence ):
     kind = "STATEMENTS_FRAME"
 
-    def __init__( self, statements, code_name, arg_names, source_ref ):
+    def __init__( self, statements, guard_mode, code_name, arg_names, kw_only_count, source_ref ):
         CPythonStatementsSequence.__init__(
             self,
             statements = statements,
@@ -129,17 +133,53 @@ class CPythonStatementsFrame( CPythonStatementsSequence ):
         self.arg_names = tuple( arg_names )
         self.code_name = code_name
 
+        self.kw_only_count = kw_only_count
+
+        self.guard_mode = guard_mode
+
     def getDetails( self ):
-        return {
-            "code_name" : self.code_name,
-            "arg_names" : self.arg_names
+        result = {
+            "code_name"  : self.code_name,
+            "arg_names"  : ", ".join( self.arg_names ),
+            "guard_mode" : self.guard_mode
         }
+
+        if python_version >= 300:
+            result[ "kw_only_count" ] = self.kw_only_count
+
+        return result
+
+    def needsLineNumber( self ):
+        return False
+
+    def getGuardMode( self ):
+        return self.guard_mode
 
     def getArgNames( self ):
         return self.arg_names
 
     def getCodeObjectName( self ):
         return self.code_name
+
+    def getKwOnlyParameterCount( self ):
+        return self.kw_only_count
+
+    def makeCloneAt( self, source_ref ):
+        assert False
+
+    def getCodeObjectHandle( self, context ):
+        provider = self.getParentVariableProvider()
+
+        return context.getCodeObjectHandle(
+            filename      = self.source_ref.getFilename(),
+            arg_names     = self.getArgNames(),
+            kw_only_count = self.getKwOnlyParameterCount(),
+            line_number   = 0 if provider.isModule() else self.source_ref.getLineNumber(),
+            code_name     = self.getCodeObjectName(),
+            is_generator  = provider.isExpressionFunctionBody() and provider.isGenerator(),
+            is_optimized  = not provider.isModule() and not provider.isClassDictCreation() and \
+                            not context.hasLocalsDict()
+        )
 
 
 class CPythonStatementExpressionOnly( CPythonChildrenHaving, CPythonNodeBase ):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,7 +17,7 @@
 #     limitations under the License.
 #
 
-import os, sys, subprocess, shutil, tempfile
+import os, sys, commands, subprocess, shutil, tempfile
 
 input_file = sys.argv[1]
 nuitka_binary = os.environ.get( "NUITKA_BINARY", "nuitka" )
@@ -35,7 +35,7 @@ output_binary = os.path.join(
 )
 
 os.system(
-    "%s --exe --output-dir=%s --remove-output --unstriped %s %s" % (
+    "%s --exe --output-dir=%s --unstriped %s %s" % (
         nuitka_binary,
         tempdir,
         os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ),
@@ -50,14 +50,16 @@ log_file = ( basename[:-3] if input_file.endswith( ".py" ) else basename ) + ".l
 
 sys.stdout.flush()
 
-valgrind_options = "-q --tool=callgrind --callgrind-out-file=%s --zero-before=init__main__" % log_file
+valgrind_options = "-q --tool=callgrind --callgrind-out-file=%s --zero-before=init__main__() --zero-before=init__main__" % log_file
 
 subprocess.check_call( [ "valgrind" ] + valgrind_options.split() + [ output_binary ] )
 
 if "number" in sys.argv:
     for line in open( log_file ):
         if line.startswith( "summary:" ):
-            print "SIZE=%d" % os.stat( output_binary ).st_size
+            sizes = commands.getoutput( "size '%s'" % output_binary ).split("\n")[-1].replace( "\t", "" ).split()
+
+            print "SIZE=%d" % ( int( sizes[0] ) + int( sizes[1] ) )
             print "TICKS=%s" % line.split()[1]
             break
     else:

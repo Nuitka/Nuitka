@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,8 +25,11 @@ from .Identifiers import (
     ModuleVariableIdentifier,
     MaybeModuleVariableIdentifier,
     TempVariableIdentifier,
-    TempObjectIdentifier
+    TempObjectIdentifier,
+    encodeNonAscii
 )
+
+from .ConstantCodes import getConstantCode
 
 def getVariableHandle( context, variable ):
     assert isinstance( variable, Variables.Variable ), variable
@@ -37,6 +40,18 @@ def getVariableHandle( context, variable ):
         return context.getLocalHandle(
             var_name = var_name
         )
+    elif variable.isTempVariableReference():
+        if not variable.getOwner().isStatementTempBlock():
+            variable = variable.getReferenced()
+
+        if not variable.getReferenced().getNeedsFree():
+            return TempObjectIdentifier(
+                var_name = var_name
+            )
+        else:
+            return TempVariableIdentifier(
+                var_name = var_name
+            )
     elif variable.isClosureReference():
         return context.getClosureHandle(
             var_name = var_name
@@ -59,15 +74,6 @@ def getVariableHandle( context, variable ):
             var_name         = var_name,
             module_code_name = context.getModuleCodeName()
         )
-    elif variable.isTempVariableReference():
-        if not variable.getReferenced().getNeedsFree():
-            return TempObjectIdentifier(
-                var_name = var_name
-            )
-        else:
-            return TempVariableIdentifier(
-                var_name = var_name
-            )
     else:
         assert False, variable
 
@@ -78,3 +84,58 @@ def getVariableCode( context, variable ):
     )
 
     return var_identifier.getCode()
+
+def getLocalVariableInitCode( context, variable, init_from = None, in_context = False ):
+    # This has many cases to deal with, so there need to be a lot of branches.
+    # pylint: disable=R0912
+
+    assert not variable.isModuleVariable()
+
+    assert init_from is None or hasattr( init_from, "getCodeTemporaryRef" )
+
+    result = variable.getDeclarationTypeCode( in_context )
+
+    # For pointer types, we don't have to separate with spaces.
+    if not result.endswith( "*" ):
+        result += " "
+
+    store_name = variable.getMangledName()
+
+    if not in_context:
+        result += "_"
+
+    result += encodeNonAscii( variable.getCodeName() )
+
+    if not in_context:
+        if variable.isTempVariable():
+            if init_from is None:
+                result += " = " + variable.getDeclarationInitValueCode()
+            elif not variable.getNeedsFree():
+                result += " = %s" % init_from.getCodeTemporaryRef()
+            else:
+                result += "( %s )" % init_from.getCodeExportRef()
+        else:
+            result += "( "
+
+            result += "%s" % getConstantCode(
+                context  = context,
+                constant = store_name
+            )
+
+            if init_from is not None:
+                if context.hasLocalsDict():
+                    if init_from.getCheapRefCount() == 0:
+                        result += ", %s" % init_from.getCodeTemporaryRef()
+                    else:
+                        result += ", %s" % init_from.getCodeExportRef()
+
+                        if not variable.isParameterVariable():
+                            result += ", true"
+                else:
+                    result += ", %s" % init_from.getCodeExportRef()
+
+            result += " )"
+
+    result += ";"
+
+    return result

@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,32 +28,13 @@ try:
 except ImportError:
     lxml = None
 
-def makeNodeElement( node ):
-    result = lxml.etree.Element(
-        "node",
-        kind   = node.__class__.__name__.replace( "CPython", "" ),
-        source = "%s" % node.getSourceReference().getLineNumber()
-    )
-
-    for key, value in node.getDetails().iteritems():
-        value = str( value )
-
-        if value.startswith( "<" ) and value.endswith( ">" ):
-            value = value[1:-1]
-
-        result.set( key, str( value ) )
-
-#    result.text = str( node )
-
-    return result
-
 def toString( xml ):
     return lxml.etree.tostring( xml, pretty_print = True )
 
 def dump( xml  ):
     value = toString( xml ).rstrip()
 
-    if Utils.python_version > 300:
+    if Utils.python_version >= 300:
         value = value.decode( "utf-8" )
 
     Tracing.printLine( value )

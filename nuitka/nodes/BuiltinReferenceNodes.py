@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,9 +25,12 @@ to variables only ever read.
 """
 
 
-from .NodeBases import CPythonNodeBase, CPythonExpressionMixin
+from .NodeBases import CPythonNodeBase, CompileTimeConstantExpressionMixin
 
 from .ConstantRefNode import CPythonExpressionConstantRef
+
+from nuitka.optimizations import BuiltinOptimization
+from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
 
 from nuitka.Builtins import (
     builtin_exception_names,
@@ -36,7 +39,9 @@ from nuitka.Builtins import (
     builtin_names
 )
 
-class CPythonExpressionBuiltinRefBase( CPythonNodeBase, CPythonExpressionMixin ):
+from nuitka.Utils import python_version
+
+class CPythonExpressionBuiltinRefBase( CompileTimeConstantExpressionMixin, CPythonNodeBase ):
     def __init__( self, builtin_name, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
@@ -98,16 +103,31 @@ class CPythonExpressionBuiltinRef( CPythonExpressionBuiltinRefBase ):
 
         return self, None, None
 
+    def computeNodeCall( self, call_node, constraint_collection ):
+
+        return computeBuiltinCall(
+            call_node = call_node,
+            called    = self
+        )
+
+    def getStringValue( self, constraint_collection ):
+        return repr( self.getCompileTimeConstant() )
+
     def isKnownToBeIterable( self, count ):
         # TODO: Why yes, some may be, could be told here.
         return None
 
+    def mayProvideReference( self ):
+        # Dedicated code returns which returns from builtin module dictionary, but isn't
+        # available for Python3 yet.
+
+        return python_version >= 300
 
 class CPythonExpressionBuiltinAnonymousRef( CPythonExpressionBuiltinRefBase ):
     kind = "EXPRESSION_BUILTIN_ANONYMOUS_REF"
 
     def __init__( self, builtin_name, source_ref ):
-        assert builtin_name not in builtin_names, builtin_name
+        assert builtin_name in builtin_anon_names
 
         CPythonExpressionBuiltinRefBase.__init__(
             self,
@@ -134,6 +154,9 @@ class CPythonExpressionBuiltinAnonymousRef( CPythonExpressionBuiltinRefBase ):
 
     def computeNode( self, constraint_collection ):
         return self, None, None
+
+    def getStringValue( self, constraint_collection ):
+        return repr( self.getCompileTimeConstant() )
 
 
 class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
@@ -171,3 +194,30 @@ class CPythonExpressionBuiltinExceptionRef( CPythonExpressionBuiltinRefBase ):
 
     def computeNode( self, constraint_collection ):
         return self, None, None
+
+    def computeNodeCall( self, call_node, constraint_collection ):
+        exception_name = self.getExceptionName()
+
+        def createBuiltinMakeException( args, source_ref ):
+            from nuitka.nodes.ExceptionNodes import CPythonExpressionBuiltinMakeException
+
+            return CPythonExpressionBuiltinMakeException(
+                exception_name = exception_name,
+                args           = args,
+                source_ref     = source_ref
+            )
+
+        new_node = BuiltinOptimization.extractBuiltinArgs(
+            node          = call_node,
+            builtin_class = createBuiltinMakeException,
+            builtin_spec  = BuiltinOptimization.BuiltinParameterSpecExceptions(
+                name          = exception_name,
+                default_count = 0
+            )
+        )
+
+        # TODO: Don't allow this to happen.
+        if new_node is None:
+            return call_node, None, None
+
+        return new_node, "new_expression", "detected builtin exception making"

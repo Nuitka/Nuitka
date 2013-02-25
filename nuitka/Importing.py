@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,8 +32,6 @@ the standard library, one can abuse the attribute "__file__" of the "os" module 
 it's done in "isStandardLibraryPath" of this module.
 
 """
-
-# TODO: Above comment needs to take into account split of work with OptimizeModuleRecursion
 
 from . import Options, Utils
 
@@ -129,7 +127,17 @@ def _findModuleInPath( module_name, package_name ):
             return module_filename, package_name
         except ImportError:
             if _debug_module_finding:
-                print( "_findModuleInPath: imp.find_module failed" )
+                print( "_findModuleInPath: imp.find_module failed to locate" )
+        except SyntaxError:
+            # Warn user, as this is kind of unusual.
+            warning(
+                "%s: Module cannot be imported due to syntax errors",
+                module_name,
+            )
+
+            if _debug_module_finding:
+                print( "_findModuleInPath: imp.find_module failed with syntax error" )
+
 
     ext_path = sys.path + [ os.getcwd() ]
 
@@ -289,3 +297,15 @@ def _isWhiteListedNotExistingModule( module_name ):
         # Python3 modules that no longer exist
         "commands",
     )
+
+def isStandardLibraryPath( path ):
+    path = Utils.normcase( path )
+    os_path = Utils.normcase( Utils.dirname( os.__file__  ) )
+
+    if not path.startswith( os_path ):
+        return False
+
+    if "dist-packages" in path or "site-packages" in path:
+        return False
+
+    return True

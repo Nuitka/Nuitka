@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -209,3 +209,16 @@ print "Can optimize the empty star dict arg away", long(**dict())
 
 print "Dict building with keyword arguments", dict(), dict( a = f )
 print "Dictionary entirely from constant args", dict(q='Guido', w='van', e='Rossum', r='invented', t='Python', y='')
+
+a = 5
+print "Instance check recognises", isinstance( a, int )
+
+try:
+    print "Instance check with too many arguments", isinstance( a, long, int )
+except Exception, e:
+    print "Too many args", repr(e)
+
+try:
+    print "Instance check with too many arguments", isinstance( a )
+except Exception, e:
+    print "Too few args", repr(e)

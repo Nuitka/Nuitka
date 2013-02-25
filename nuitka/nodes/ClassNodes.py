@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,61 +23,27 @@ The classes are are at the core of the language and have their complexities.
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
 
-from .FunctionNodes import CPythonExpressionFunctionCall
+class CPythonExpressionSelectMetaclass( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_SELECT_METACLASS"
 
-class CPythonExpressionClassDefinition( CPythonExpressionFunctionCall ):
-    kind = "EXPRESSION_CLASS_DEFINITION"
+    named_children = ( "metaclass", "bases", )
 
-    named_children = CPythonExpressionFunctionCall.named_children + \
-                     ( "metaclass", "bases" )
-
-    def __init__( self, class_definition, metaclass, bases, source_ref ):
-        CPythonExpressionFunctionCall.__init__(
-            self,
-            function   = class_definition,
-            values     = (),
-            source_ref = source_ref
-        )
-
-        self.setMetaclass( metaclass )
-        self.setBases( bases )
-
-    getBases = CPythonExpressionChildrenHavingBase.childGetter( "bases" )
-    setBases = CPythonExpressionChildrenHavingBase.childSetter( "bases" )
-    getMetaclass = CPythonExpressionChildrenHavingBase.childGetter( "metaclass" )
-    setMetaclass = CPythonExpressionChildrenHavingBase.childSetter( "metaclass" )
-
-
-class CPythonExpressionClassCreation( CPythonExpressionChildrenHavingBase ):
-    kind = "EXPRESSION_CLASS_CREATION"
-
-    named_children = ( "class_dict", )
-
-    def __init__( self, class_name, class_dict, source_ref ):
+    def __init__( self, metaclass, bases, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values = {
-                "class_dict" : class_dict
+                "metaclass" : metaclass,
+                "bases"     : bases
             },
             source_ref = source_ref
         )
 
-        self.class_name = class_name
-
-    def getDetails( self ):
-        return {
-            "class_name" : self.class_name
-        }
-
-    getClassDict = CPythonExpressionChildrenHavingBase.childGetter( "class_dict" )
-
-    def getClassName( self ):
-        return self.class_name
-
     def computeNode( self, constraint_collection ):
-        # Class body is quite irreplacable. TODO: Not really, could be predictable as
-        # a whole.
+        # TODO: Meta class selection is very computable, and should be done.
         return self, None, None
+
+    getMetaclass = CPythonExpressionChildrenHavingBase.childGetter( "metaclass" )
+    getBases = CPythonExpressionChildrenHavingBase.childGetter( "bases" )
 
 
 class CPythonExpressionBuiltinType3( CPythonExpressionChildrenHavingBase ):

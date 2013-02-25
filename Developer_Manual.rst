@@ -24,30 +24,29 @@ private conversations or discussions on the mailing list.
 Milestones
 ==========
 
-1. Feature parity with Python, understand all the language construct and behave absolutely
-   compatible.
+1. Feature parity with CPython, understand all the language construct and behave
+   absolutely compatible.
 
-   Feature parity has been reached for Python 2.6 and 2.7, we do not target any older
-   CPython release. For Python 3.2, things are still not complete. The Python 3.x is not
-   currently a high priority, but eventually we will get Nuitka going there too, and some
-   of the basic tests already pass. You are more than welcome to volunteer for this task.
+   Feature parity has been reached for CPython 2.6 and 2.7. We do not target any older
+   CPython release. For CPython 3.2 it also has been reached. We do not target older
+   CPython 3.1 and 3.0 releases.
 
-   This milestone is considered reached.
+   This milestone was reached.
 
 2. Create the most efficient native code from this. This means to be fast with the basic
    Python object handling.
 
-   This milestone is considered mostly reached.
+   This milestone was reached.
 
 3. Then do constant propagation, determine as many values and useful constraints as
    possible at compile time and create more efficient code.
 
-   This milestone is considered in progress.
+   This milestone is considered almost reached.
 
 4. Type inference, detect and special case the handling of strings, integers, lists in
    the program.
 
-   This milestone is started only.
+   This milestone is considered in progress
 
 5. Add interfacing to C code, so Nuitka can turn a ``ctypes`` binding into an efficient
    binding as written with C.
@@ -72,21 +71,19 @@ express which of these, we consider done.
   Before milestone 1, we used "0.1.x" version numbers. After reaching it, we used "0.2.x"
   version numbers.
 
-- Now:
-
-  We currently use "0.3.x" version numbers as we still strive for milestone 2 and 3 to be
-  really completed.
+  Before milestone 2 and 3, we used "0.3.x" version numbers. After almost reaching 3, and
+  beginning with 4, we use "0.4.x" version numbers.
 
 - Future:
 
   When we start to have sufficient amount of type inference in a stable release, that will
-  be "0.4.x" version numbers. With ``ctypes`` bindings in a sufficient state it will be
-  "0.5.x".
+  be "0.5.x" version numbers. With ``ctypes`` bindings in a sufficient state it will be
+  "0.6.x".
 
 - Final:
 
   We will then round it up and call it "Nuitka 1.0" when this works as expected for a
-  bunch of people. The plan is to reach this goal during 2012. This is based on lots of
+  bunch of people. The plan is to reach this goal during 2014. This is based on lots of
   assumptions that may not hold up though.
 
 Of course, this may be subject to change.
@@ -125,8 +122,8 @@ and it's optimized for readability, and avoids all performance optimizations for
 Line Length
 -----------
 
-No more than 120 characters. Screens are wider these days, but most of the rules aim at
-keeping the lines below 90.
+No more than 120 characters. Screens are wider these days, but most of the code aims at
+keeping the lines below 100.
 
 
 Indentation
@@ -1066,11 +1063,14 @@ Much like ``else`` branches of loops, an indicator variable is used to indicate 
 into any of the exception handlers.
 
 Therefore, the ``else`` becomes a real conditional statement in the node tree, checking the
-indicator variable and guarding the execution of the ``else`` branch.xs
+indicator variable and guarding the execution of the ``else`` branch.
 
 
 Classes Creation
 ----------------
+
+Python2
+=======
 
 Classes have a body that only serves to build the class dictionary and is a normal
 function otherwise. This is expressed with the following re-formulation:
@@ -1080,7 +1080,7 @@ function otherwise. This is expressed with the following re-formulation:
    # in module "SomeModule"
    # ...
 
-   class SomeClass(SomeBase,AnotherBase)
+   class SomeClass( SomeBase, AnotherBase )
        """ This is the class documentation. """
 
        some_member = 3
@@ -1113,6 +1113,62 @@ Therefore, class bodies are just special function bodies that create a dictionar
 in class creation. They don't really appear after the tree building stage anymore. The
 type inference will of course have to become able to understand ``make_class`` quite well,
 so it can recognize the created class again.
+
+Python 3
+========
+
+In Python3, classes are a complicated way to write a function call, that can interact with
+its body. The body starts with a dictionary provided by the metaclass, so that is
+different, because it can "__prepare__" a non-empty locals for it, which is hidden away in
+"prepare_class_dict" below.
+
+What's noteworthy, is that this dictionary, could e.g. be a "OrderDict". I am not sure,
+what "__prepare__" is allowed to return.
+
+.. code-block:: python
+
+   # in module "SomeModule"
+   # ...
+
+   class SomeClass( SomeBase, AnotherBase, metaclass = SomeMetaClass )
+       """ This is the class documentation. """
+
+       some_member = 3
+
+.. code-block:: python
+
+   # Non-keyword arguments, need to be evaluated first.
+   tmp_bases = ( SomeBase, AnotherBase )
+
+   # Keyword arguments go next, __metaclass__ is just one of them. In principle we
+   # need to forward the others as well, but this is ignored for the sake of
+   # brevity.
+   tmp_metaclass = select_metaclass( tmp_bases, SomeMetaClass  )
+
+   tmp_prepared = tmp_metaclass.__prepare__( "SomeClass", tmp_bases )
+
+   # The function that creates the class dictionary. Receives temporary variables
+   # to work with.
+   def _makeSomeClass:
+       # This has effect, currently I don't know how to force that in Python3 syntax,
+       # but we will use something that ensures it.
+       locals() = tmp_prepared
+
+       # The module name becomes a normal local variable too.
+       __module__ = "SomeModule"
+
+       # The doc string becomes a normal local variable.
+       __doc__ = """ This is the class documentation. """
+
+       some_member = 3
+
+       # Create the class, share the potential closure variable __class__ with others.
+       __class__ = tmp_metaclass( "SomeClass", tmp_bases, locals() )
+
+       return __class__
+
+   # Build and assign the class.
+   SomeClass = _makeSomeClass()
 
 
 List Contractions
@@ -1182,6 +1238,103 @@ operands are simply switching sides.
 With this the branch that the "short-circuit" expresses, becomes obvious, at the expense
 of having the assignment expression to the temporary variable, that one needs to create
 anyway.
+
+Simple Calls
+------------
+
+As seen below, even complex calls are simple calls. In simple calls of Python there is
+still some hidden semantic going on, that we expose.
+
+.. code-block:: python
+
+   func( arg1, arg2, named1 = arg3, named2 = arg4 )
+
+On the C-API level there is a tuple and dictionary built. This one is exposed:
+
+.. code-block:: python
+
+   func( *( arg1, arg2 ), **{ "named1" : arg3, "named2" : arg4 } )
+
+A called function will access this tuple and the dictionary to parse the arguments, once
+that is also re-formulated (argument parsing), it can then lead to simple inlining. This
+way calls only have 2 arguments with constant semantics, that fits perfectly with the
+C-API where it is the same, so it is actually easier for code generation.
+
+Although the above looks like a complex call, it actually is not. No checks are needed for
+the types of the star arguments and it's directly translated to ``PyObject_Call``.
+
+Complex Calls
+-------------
+
+The call operator in Python allows to provide arguments in 4 forms.
+
+* Positional (or normal) arguments
+
+* Named (or keyword) arguments
+
+* Star list arguments
+
+* Star dictionary arguments
+
+The evaluation order is precisely this. An example would be:
+
+.. code-block:: python
+
+   something( pos1, pos2, name1 = named1, name2 = named2, *star_list, **star_dict )
+
+The task here is that first all the arguments are evaluated, left to right, and then they
+are merged into only two, that is positional and named arguments only. for this, the star
+list argument and the star dict arguments, are merged with the positional and named
+arguments.
+
+What's peculiar, is that if both the star list and dict arguments are present, the merging
+is first done for star dict, and only after that for the star list argument. This makes a
+difference, because in case of an error, the star argument raises first.
+
+.. code-block:: python
+
+   something( *1, **2 )
+
+This raises "TypeError: something() argument after ** must be a mapping, not int" as
+opposed to a possibly more expected "TypeError: something() argument after * must be a
+sequence, not int."
+
+That doesn't matter much though, because the value is to be evaluated first anyway, and
+the check is only performed afterwards. If the star list argument calculation gives an
+error, this one is raised before checking the star dict argument.
+
+So, what we do, is we convert complex calls by the way of special functions, which handle
+the dirty work for us. The optimization is then tasked to do the difficult stuff. Our
+example becomes this:
+
+.. code-block:: python
+
+   def _complex_call( called, pos, kw, star_list_arg, star_dict_arg ):
+       # Raises errors in case of duplicate arguments or tmp_star_dict not being a
+       # mapping.
+       tmp_merged_dict = merge_star_dict_arguments( called, tmp_named, mapping_check( called, tmp_star_dict ) )
+
+       # Raises an error if tmp_star_list is not a sequence.
+       tmp_pos_merged = merge_pos_arguments( called, tmp_pos, tmp_star_list )
+
+       # On the C-API level, this is what it looks like.
+       return called( *tmp_pos_merged, **tmp_merged_dict )
+
+   returned = _complex_call(
+       called        = something,
+       pos           = (pos1, pos2),
+       named         = {
+           "name1" : named1,
+           "name2" = named2
+       },
+       star_list_arg = star_list,
+       star_list_arg = star_dict
+   )
+
+
+The call to "_complex_call" is be a direct function call with no parameter parsing
+overhead. And the call in its end, is a special call operation, which relates to the
+"PyObject_Call" C-API.
 
 
 Nodes that serve special purposes
@@ -1258,16 +1411,16 @@ Goals/Allowances to the task
 
 1. Goal: Must not use any pre-existing C/C++ language file headers, only generate
    declarations in generated C++ code ourselves. We would rather write a C header to
-   ``ctypes`` declarations convert if it needs to be, but not mix and use declarations from
-   existing header code.
-2. Allowance: May use ``ctypes`` module at compile time to ask things about ``ctypes`` and its
-   types.
-3. Goal: Should make use of ``ctypes``, to e.g. not hard code what ``ctypes.c_int()`` gives on
-   the current platform, unless there is a specific benefit.
+   ``ctypes`` declarations convert if it needs to be, but not mix and use declarations
+   from existing header code.
+2. Allowance: May use ``ctypes`` module at compile time to ask things about ``ctypes`` and
+   its types.
+3. Goal: Should make use of ``ctypes``, to e.g. not hard code what ``ctypes.c_int()``
+   gives on the current platform, unless there is a specific benefit.
 4. Allowance: Not all ``ctypes`` usages must be supported immediately.
 5. Goal: Try and be as general as possible. For the compiler, ``ctypes`` support should be
-   hidden behind a generic interface of some sort. Supporting ``math`` module should be the
-   same thing.
+   hidden behind a generic interface of some sort. Supporting ``math`` module should be
+   the same thing.
 
 
 Type Inference - The Discussion
@@ -1304,11 +1457,12 @@ want to forward propagate abstract properties of the values.
 
 .. note::
 
-   Builtin exceptions, and builtin names are also compile time constants.
+   Builtin exceptions, and built-in names are also compile time constants.
 
 In order to fully benefit from type knowledge, the new type system must be able to be
 fully friends with existing builtin types.  The behavior of a type ``long``, ``str``,
-etc. ought to be implemented as far as possible with the builtin ``long``, ``str`` as well.
+etc. ought to be implemented as far as possible with the builtin ``long``, ``str`` as
+well.
 
 .. note::
 
@@ -1317,9 +1471,9 @@ etc. ought to be implemented as far as possible with the builtin ``long``, ``str
    ``ctypes.c_int`` values would be an example of that. Of course that may not be possible
    for everything.
 
-   This approach has well proven itself with builtin functions already, where we use real
-   builtins where possible to make computations. We have the problem though that builtins may
-   have problems to execute everything with reasonable compile time cost.
+   This approach has well proven itself with built-in functions already, where we use real
+   built-ins where possible to make computations. We have the problem though that
+   built-ins may have problems to execute everything with reasonable compile time cost.
 
 Another example, consider the following code:
 
@@ -1331,8 +1485,8 @@ To predict this code, calculating it at compile time using constant operations, 
 feasible, puts an unacceptable burden on the compilation.
 
 Esp. we wouldn't want to produce such a huge constant and stream it, the C++ code would
-become too huge. So, we need to stop the ``*`` operator from being used at compile time and
-live with reduced knowledge, already here:
+become too huge. So, we need to stop the ``*`` operator from being used at compile time
+and live with reduced knowledge, already here:
 
 .. code-block:: python
 
@@ -1345,7 +1499,7 @@ Instead, we would probably say that for this expression:
    - Can predict every of its elements when subscripted, sliced, etc., if need be, with a
      function we may create.
 
-Similar is true for this nice thing:
+Similar is true for this horrible thing:
 
 .. code-block:: python
 
@@ -1359,23 +1513,23 @@ So it's a rather general problem, this time we know:
      function.
 
 Again, we wouldn't want to create the list. Therefore Nuitka avoids executing these
-calculation, when they result in constants larger than a treshold of 256. It's also done
-for large integers and more.
+calculation, when they result in constants larger than a treshold of 256. It's also
+applied to integers and more CPU and memory traps.
 
-Now lets look at a use:
+Now lets look at a use case:
 
 .. code-block:: python
 
    for x in range( 10000000000000 ):
        doSomething()
 
-Looking at this example, one way to look at it, would be to turn ``range`` into ``xrange``,
-note that ``x`` is unused. That would already perform better. But really better is to notice
-that ``range()`` generated values are not used, but only the length of the expression
-matters.
+Looking at this example, one traditional way to look at it, would be to turn ``range``
+into ``xrange``, note that ``x`` is unused. That would already perform better. But really
+better is to notice that ``range()`` generated values are not used, but only the length of
+the expression matters.
 
-And even if ``x`` were used, only the ability to predict the value from a function would be
-interesting, so we would use that computation function instead of having an iteration
+And even if ``x`` were used, only the ability to predict the value from a function would
+be interesting, so we would use that computation function instead of having an iteration
 source. Being able to predict from a function could mean to have Python code to do it, as
 well as C++ code to do it. Then code for the loop can be generated without any CPython
 usage at all.
@@ -1420,13 +1574,13 @@ follows:
 
    import ctypes
 
-This leads to Nuitka tree an assignment from a "import module expression" to the variable
-``ctypes``. It can be predicted by default to be a module object, and even better, it can be
-known as ``ctypes`` from standard library with more or less certainty. See the section about
-"Importing".
+This leads to Nuitka tree an assignment from a ``__import__`` expression to the variable
+``ctypes``. It can be predicted by default to be a module object, and even better, it can
+be known as ``ctypes`` from standard library with more or less certainty. See the section
+about "Importing".
 
 So that part is "easy", and it's what will happen. During optimization, when the module
-import expression is examined, it should say:
+``__import__`` expression is examined, it should say:
 
    - ``ctypes`` is a module
    - ``ctypes`` is from standard library (if it is, may not be true)
@@ -1469,8 +1623,8 @@ propagation should only be the special case of it.
 Excursion to Functions
 ----------------------
 
-In order to decide what this means to functions, if we propagate forward, how to handle
-this:
+In order to decide what this means to functions and their call boundaries, if we propagate
+forward, how to handle this:
 
 .. code-block:: python
 
@@ -1480,18 +1634,20 @@ this:
       return a
 
 We would notate that ``a`` is first a "unknown PyObject parameter object", then something
-that has an ``append`` attribute, when returned. The type of ``a`` changes after ``a.append``
-lookup succeeds. It might be an object, but e.g. it could have a higher probability of
-being a ``PyListObject``.
+that definitely has an ``append`` attribute, when returned. Otherwise an exception
+occurs. The type of ``a`` changes to that after ``a.append`` look-up succeeds. It might be
+many kinds of an object, but e.g. it could have a higher probability of being a
+``PyListObject``. And we would know it cannot be a ``PyStringObject``, as that one has no
+"append".
 
 .. note::
 
-   If classes in the program have an ``append`` attribute, it should play a role too, there
-   needs to be a way to plug-in to this decisions.
+   If classes, i.e. other types in the program, have an ``append`` attribute, it should
+   play a role too, there needs to be a way to plug-in to this decisions.
 
-This is a more global property of ``a`` value, and true even before the append succeeds, but
-not as much maybe, so it would make sense to apply that information after an analysis of
-all the node. This may be ``Finalization`` work.
+This is a more global property of ``a`` value, and true even before the ``append``
+succeeded, but not as much maybe, so it would make sense to apply that information after
+an analysis of all the node. This may be ``Finalization`` work.
 
 .. code-block:: python
 
@@ -1499,21 +1655,28 @@ all the node. This may be ``Finalization`` work.
 
    assert b == [3] # Could be decided now
 
-Goal: The structure we use should make it easy to visit ``my_append`` and then have
-something that easily allows to plug in the given values and know things. We need to be
-able to tell, if evaluating ``my_append`` makes sense with given parameters or not.
+Goal: The structure we use makes it easy to tell what ``my_append`` may be. So, there
+should be a means to ask it about call results with given type/value information. We need
+to be able to tell, if evaluating ``my_append`` makes sense with given parameters or not,
+if it does impact the return value.
 
 We should e.g. be able to make ``my_append`` tell, one or more of these:
 
-   - Returns the first parameter value (unless it raises an exception)
-   - The return value has the same type as ``a`` (unless it raises an exception)
+   - Returns the first parameter value as return value (unless it raises an exception).
+   - The return value has the same type as ``a`` (unless it raises an exception).
 
-It would be nice, if ``my_append`` had sufficient information, so we could instantiate with
-``list`` and ``int`` from the parameters, and then e.g. know at least some things that it does
-in that case.
+The exactness of statements may vary. But some things may be more interesting. If e.g. the
+aliasing of a parameter value is known exactly, then information about it need to all be
+given up, but can survive.
 
-Doing it "forward" appears to be best suited for functions and therefore long term. We
-will try it that way.
+It would be nice, if ``my_append`` had sufficient information, so we could specialize with
+``list`` and ``int`` from the parameters, and then e.g. know at least some things that it
+does in that case. Such specialization would have to be decided if it makes sense. In the
+alternative, it could be done for each variant anyway, as there won't be that many of
+them.
+
+Doing this "forward" analysis appears to be best suited for functions and therefore long
+term. We will try it that way.
 
 
 Excursion to Loops
@@ -1534,10 +1697,15 @@ have an assumption from before it started, that "a" is constant, but that is onl
 the first iteration. So, we can't pass knowledge from outside loop forward directly into
 the for loop body.
 
-So we will have to do a first pass, where we need to collect invalidations of all of the
-outside knowledge. The assignment to "a" should make it an alternative to what we knew
-about "b". And we can't really assume to know anything about a to e.g. predict "b" due to
-that. That first pass needs to scan for assignments, and treat them as invalidations.
+So while we pass through the loop, we need to collect in-validations of this outside
+knowledge. The assignment to "a" should make it an alternative to what we knew about
+"b". And we can't really assume to know anything about a to e.g. predict "b" due to
+that. That first pass needs to scan for assignments, and treat them as in-validations.
+
+For a start, it will be done like this though. At loop entry, all knowledge is removed
+about everything, and so is at loop exit. That way, only the loop inner working is
+optimized, and before and after the loop as separate things. The optimal handling of "a"
+in the example code will take a while.
 
 
 Excursion to Conditions
@@ -1557,10 +1725,9 @@ conditional block, it must be clear to the outside, that things changed inside t
 may not necessarily apply. Even worse, one of 2 things might be true. In one branch, the
 variable "x" is constant, in the other too, but it's a different value.
 
-So for constants, we need to have the constraint collection know when it enters a
-conditional branch, and when it does, it must take special precautions, to preserve the
-existing state. When exiting all the branches, these branches must be merged, with new
-information.
+So we need to have the constraint collection know when it enters a conditional branch, and
+then it does, it must take special precautions, to merge the existing state at condition
+exit. When exiting both the branches, these branches must be merged, with new information.
 
 In the above case:
 
@@ -1591,12 +1758,13 @@ For conditional statements optimization, the following is note-worthy:
      .. code-block:: python
 
          if type( a ) is list:
-             a = a.append( x )
+             a.append( x )
          else:
              a += ( x, )
 
-     In this case, the knowledge that ``a`` is a list, could be used to generate better code
-     and with definite knowledge that ``a`` is of type list. These is a lot more to do, until we understand ``type checks`` though.
+     In this case, the knowledge that ``a`` is a list, could be used to generate better
+     code and with definite knowledge that ``a`` is of type list. With that knowledge the
+     ``append`` attribute call will become the ``list`` built-in type operation.
 
    - If 2 branches exist, or one makes a difference.
 
@@ -1606,30 +1774,48 @@ For conditional statements optimization, the following is note-worthy:
        If only one branch exist, that one should fork existing state and continue it, but
        afterwards, it needs to be merged back to the state before the statement.
 
+   - Branches that abort make a difference.
 
-Excursion to return statements
-------------------------------
+     .. code-block:: python
 
-The return statement (like ``break``, ``continue``, ``raise``) is abortative to control flow. It
-becomes the last statement of inspected block. With a conditional statement branch, in
-case one branch has a return statement and the other not, the merging of the constraint
-collection must consider it by not taking any knowledge from such branch at all.
+         if type( a ) is list:
+             a.append( x )
+         else:
+             raise ValueError
 
-If all branches of a conditional statement return, that is discovered, and leads to
-removing statements after it as dead code.
+     Here it is obvious, that the conditional statement exit, requires no merging. We can
+     fully inherit the state of the non-exiting branch, including the knowledge that ``a``
+     is in fact a ``list`` built-in object.
+
+
+Excursion to ``return`` statements
+----------------------------------
+
+The return statement (like ``break``, ``continue``, ``raise``) is "aborting" to control
+flow. It is always the last statement of inspected block.
+
+If all branches of a conditional statement are "aborting", the statement is decided
+"aborting" too. If a loop doesn't break, it is "aborting" too.
 
 .. note::
 
-   The removal of statements following abortative statements is implemented, and so is the
+   The removal of statements following "aborting" statements is implemented, and so is the
    discovery of abortative conditional statements. It's not yet done for loops, temp
    blocks, etc. though.
+
+So, return statements are easy for local optimization. In the general picture, it would be
+sweet to collect all return statements, and analyze the commonality of them. This would
+give us the "my_append" information from above. And were we to do this for exception
+raises too, we could tell exceptions from a function too.
 
 
 Excursion to ``yield`` expressions
 ----------------------------------
 
 The ``yield`` expression can be treated like a normal function call, and as such
-invalidates some known constraints just as much as they do.
+invalidates some known constraints just as much as they do. It executes outside code for
+an unknown amount of time, and then returns, with little about the outside world known
+anymore.
 
 
 Mixed Types
@@ -1694,7 +1880,7 @@ The following is the intended interface
   The base class offers methods that allow to check if certain operations are supported or
   not. These can always return ``True`` (yes), ``False`` (no), and ``None`` (cannot decide). In
   the case of the later, optimizations may not be able do much about it. Lets call these
-  values "tristate".
+  values "tri-state".
 
   Part of the interface is a method ``computeNode`` which gives the node the chance to
   return another node instead, which may also be an exception.
@@ -2161,12 +2347,11 @@ into action, which could be code changes, plan changes, issues created, etc.
   same for conditional expressions too. May apply to ``or`` as well, and ``and``, because
   there also only conditionally code is executed.
 
-* Make "MAKE_CLASS" meta class selection transparent.
+* Make "SELECT_METACLASS" meta class selection transparent.
 
-  Looking at the "MAKE_CLASS" helper, one of the main tasks is to select the meta class,
-  which could also be done external to it, and as nodes. In that way, the optimization
-  process can remove choices at compile time, and e.g. inline the effect of a meta class,
-  if it is known.
+  Looking at the "SELECT_METACLASS" it should become an anonymous helper function. In that
+  way, the optimization process can remove choices at compile time, and e.g. inline the
+  effect of a meta class, if it is known.
 
   This of course makes most sense, if we have the optimizations in place that will allow
   this to actually happen.
@@ -2197,42 +2382,6 @@ into action, which could be code changes, plan changes, issues created, etc.
   The best approach is probably to track down ``in`` and other potential users, that don't
   use the list nature and just convert then.
 
-* Functions with defaults should use temp variables for them.
-
-  .. code-block:: python
-
-     def f( a, b=2, b=3 ):
-         pass
-
-  Should be composed into a temp holder variable calculated outside, and then passed on to
-  the function creation. That way, it becomes obvious that the defaults are an attribute
-  that is computed outside of the function. Previously defaults were children of the
-  builder, but that caused problems. Currently the defaults are wrapped outside, which has
-  its own problems too.
-
-  Lambdas have defaults too, so it's not always a statement, but has to happen inside an
-  expression.
-
-* For the defaults attribute, if all are constants that are not mutable, a constant should be used.
-
-  Currently we have code like this:
-
-  .. code-block:: python
-
-      PyObject *result = Nuitka_Function_New(
-        _fparse_function_1___init___of_class_1_Record_of_module___main__,
-        _mparse_function_1___init___of_class_1_Record_of_module___main__,
-        _python_str_plain___init__,
-        _codeobj_4396e68e0f2485e4f509e7f4e3338b92,
-        MAKE_TUPLE5( Py_None, _python_int_0, _python_int_0, _python_int_0, _python_int_0 ),
-        _module___main__,
-        Py_None
-      );
-
-
-  The call to "MAKE_TUPLE" is useless and could be optimized away. Minor space savings
-  would result.
-
 * Terminal assignments without effect removal.
 
   In order to optimize away unused assignments, Nuitka should not try and find variables
@@ -2250,12 +2399,9 @@ into action, which could be code changes, plan changes, issues created, etc.
 
 * Friends that keep track
 
-  The value friends should become the place, where variables or values track their
-  uses. The iterator should keep track of the "next()" calls made to it, so they can
-  tell which value to given in that case.
-
-  The attribute registry should e.g. support "value friends" with calling a method for
-  them.
+  The value friends should become the place, where variables or values track their use
+  state. The iterator should keep track of the "next()" calls made to it, so it can tell
+  which value to given in that case.
 
   And then there is a destroy, once a value is released, which could then make the
   iterator decide to tell its references, that they can be considered to have no effect,
@@ -2478,7 +2624,6 @@ into action, which could be code changes, plan changes, issues created, etc.
   could do so with the shelve module. We would have to implement "__deepcopy__" and then
   could store in there optimized node structures from start values after parsing.
 
-
 * Tail recursion optimization.
 
   Functions that return the results of calls, can be optimized. The Stackless Python does
@@ -2494,7 +2639,7 @@ into action, which could be code changes, plan changes, issues created, etc.
 
 .. footer::
 
-   © Kay Hayen, 2012 | Page ###Page### of ###Total### | Section ###Section###
+   © Kay Hayen, 2013 | Page ###Page### of ###Total### | Section ###Section###
 
 .. raw:: pdf
 

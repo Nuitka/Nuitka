@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -56,6 +56,15 @@ parser.add_option(
     action  = "store_false",
     dest    = "debian_sid",
     default = True,
+    help    = """\
+Check the created Debian package in a Debian Sid pbuilder. Default %default."""
+)
+
+parser.add_option(
+    "--check-debian-squeeze",
+    action  = "store_true",
+    dest    = "debian_squeeze",
+    default = False,
     help    = """\
 Check the created Debian package in a Debian Sid pbuilder. Default %default."""
 )
@@ -222,6 +231,9 @@ basetgz_list = []
 
 if options.debian_sid:
     basetgz_list.append( "base.tgz" )
+
+if options.debian_squeeze:
+    basetgz_list.append( "squeeze.tgz" )
 
 if options.ubuntu_oneiric or options.ubuntu_all:
     basetgz_list.append( "oneiric.tgz" )

@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -70,17 +70,15 @@ int main( int argc, char *argv[] )
 
     patchInspectModule();
 
+    patchBuiltinModule();
+
     // Execute the "__main__" module init function.
-    MOD_INIT_NAME( __main__)();
+    MOD_INIT_NAME( __main__ )();
 
     if ( ERROR_OCCURED() )
     {
-        assertFrameObject( frame___main__ );
-        assert( frame___main__->f_back == NULL );
-
-        // Cleanup code may need a frame, so put it back.
-        Py_INCREF( frame___main__ );
-        PyThreadState_GET()->frame = frame___main__;
+        // Cleanup code may need a frame, so put one back.
+        PyThreadState_GET()->frame = MAKE_FRAME( %(code_identifier)s, _module___main__ );
 
         PyErr_PrintEx( 0 );
         Py_Exit( 1 );
@@ -193,11 +191,11 @@ class PyObjectGlobalVariable_%(module_identifier)s
             }
         }
 
-        void del() const
+        void del( bool tolerant ) const
         {
             int status = PyDict_DelItem( ((PyModuleObject *)_module_%(module_identifier)s)->md_dict, (PyObject *)*this->var_name );
 
-            if (unlikely( status == -1 ))
+            if (unlikely( status == -1 && tolerant == false ))
             {
                 PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
                 throw _PythonException();
@@ -229,6 +227,8 @@ class PyObjectGlobalVariable_%(module_identifier)s
         Nuitka_StringObject **var_name;
 };
 
+// Declarations from this module to other modules if any.
+%(extra_declarations)s
 """
 
 module_body_template = """
@@ -254,9 +254,6 @@ PyObject *_module_%(module_identifier)s;
 
 // The module function definitions.
 %(module_functions_code)s
-
-// Frame object of the module.
-static PyFrameObject *frame_%(module_identifier)s;
 
 #if PYTHON_VERSION >= 300
 static struct PyModuleDef _moduledef =
@@ -322,6 +319,8 @@ MOD_INIT_DECL( %(module_identifier)s )
     PyType_Ready( &Nuitka_Frame_Type );
 
     patchInspectModule();
+
+    patchBuiltinModule();
 #endif
 
 #if _MODULE_UNFREEZER
@@ -349,8 +348,8 @@ MOD_INIT_DECL( %(module_identifier)s )
     assertObject( _module_%(module_identifier)s );
 
 #ifndef _NUITKA_MODULE
-// TODO: Seems to work for Python2.7 as well, and maybe even useful. To be
-// investigated in separate tests.
+// Seems to work for Python2.7 out of the box, but for Python3.2, the module doesn't automatically enter
+// "sys.modules" with the object that it should, so do it manually.
 #if PYTHON_VERSION >= 300
     {
         int r = PyObject_SetItem( PySys_GetObject( (char *)"modules" ), %(module_name_obj)s, _module_%(module_identifier)s );
@@ -396,46 +395,13 @@ MOD_INIT_DECL( %(module_identifier)s )
     }
 #endif
 
-    frame_%(module_identifier)s = MAKE_FRAME( %(code_identifier)s, _module_%(module_identifier)s );
-
-    // Set module frame as the currently active one.
-    FrameGuardLight frame_guard( &frame_%(module_identifier)s );
-
-    // Push the new frame as the currently active one.
-    pushFrameStack( frame_%(module_identifier)s );
-
     // Initialize the standard module attributes.
 %(module_inits)s
 
     // Module code
-    try
-    {
-        // To restore the initial exception, could be made dependent on actual try/except statement
-        // as it is done for functions/classes already.
-        FrameExceptionKeeper _frame_exception_keeper;
 %(module_code)s
-    }
-    catch ( _PythonException &_exception )
-    {
-        if ( !_exception.hasTraceback() )
-        {
-            _exception.setTraceback( MAKE_TRACEBACK( frame_guard.getFrame() ) );
-        }
-        else
-        {
-            _exception.addTraceback( frame_guard.getFrame0() );
-        }
 
-        _exception.toPython();
-    }
-
-    // Pop the frame from the frame stack, we are done here.
-    assert( PyThreadState_GET()->frame == frame_%(module_identifier)s );
-    PyThreadState_GET()->frame = INCREASE_REFCOUNT_X( PyThreadState_GET()->frame->f_back );
-
-    // puts( "out init%(module_identifier)s" );
-
-    return MOD_RETURN_VALUE( _module_%(module_identifier)s );
+   return MOD_RETURN_VALUE( _module_%(module_identifier)s );
 }
 """
 

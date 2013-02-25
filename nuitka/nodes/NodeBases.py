@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,13 +23,12 @@ These classes provide the generic base classes available for nodes.
 
 
 from nuitka.odict import OrderedDict
+from nuitka.oset import OrderedSet
 
 from nuitka import (
     Tracing,
     TreeXML
 )
-
-from . import UsageCheck
 
 from nuitka.__past__ import iterItems
 
@@ -39,15 +38,6 @@ class NodeCheckMetaClass( type ):
     kinds = set()
 
     def __new__( mcs, name, bases, dictionary ):
-        # Merge the tags with the base classes in a non-overriding
-        # way, instead add them up.
-        if "tags" not in dictionary:
-            dictionary[ "tags" ] = ()
-
-        for base in bases:
-            if hasattr( base, "tags" ):
-                dictionary[ "tags" ] += getattr( base, "tags" )
-
         assert len( bases ) == len( set( bases ) )
 
         # Uncomment this for debug view of class tags.
@@ -88,10 +78,6 @@ class NodeCheckMetaClass( type ):
             if not hasattr( CPythonNodeBase, checker_method ):
                 setattr( CPythonNodeBase, checker_method, checkKind )
 
-            # Tags mechanism, so node classes can be tagged with inheritance or freely,
-            # the "tags" attribute is not overloaded, but added. Absolutely not obvious
-            # and a trap set for the compiler by itself.
-
         type.__init__( mcs, name, bases, dictionary )
 
 # For every node type, there is a test, and then some more members, pylint: disable=R0904
@@ -102,8 +88,6 @@ CPythonNodeMetaClassBase = NodeCheckMetaClass( "CPythonNodeMetaClassBase", (obje
 
 class CPythonNodeBase( CPythonNodeMetaClassBase ):
     kind = None
-
-    tags = ()
 
     # Must be overloaded by expressions.
     value_friend_maker = None
@@ -161,18 +145,6 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
             assert False, ( self,  self.source_ref )
 
         return self.parent
-
-    def getParentExecInline( self ):
-        """ Return the parent that is an inlined exec.
-
-        """
-
-        parent = self.getParent()
-
-        while parent is not None and not parent.isStatementExecInline():
-            parent = parent.getParent()
-
-        return parent
 
     def getParentFunction( self ):
         """ Return the parent that is a function.
@@ -290,6 +262,10 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
+    def isExpressionCall( self ):
+        # Virtual method, pylint: disable=R0201,W0613
+        return False
+
     def visit( self, context, visitor ):
         visitor( self )
 
@@ -303,19 +279,6 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
     def getVisitableNodesNamed( self ):
         # Virtual method, pylint: disable=R0201
         return ()
-
-    def getChildNodesNotTagged( self, tag ):
-        """ Get child nodes that do not have a given tag.
-
-        """
-
-        return [
-            node
-            for node in
-            self.getVisitableNodes()
-            if not node.hasTag( tag )
-        ]
-
 
     def replaceWith( self, new_node ):
         self.parent.replaceChild(
@@ -333,6 +296,12 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         return True
 
+    def mayHaveSideEffectsBool( self, constraint_collection ):
+        """ Unless we are told otherwise, everything may have a side effect. """
+        # Virtual method, pylint: disable=R0201,W0613
+
+        return True
+
     def extractSideEffects( self ):
         """ Unless defined otherwise, the expression is the side effect. """
         # Virtual method, pylint: disable=R0201,W0613
@@ -345,6 +314,13 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         return True
 
+    def willRaiseException( self, exception_type ):
+        """ Unless we are told otherwise, nothing may raise anything. """
+        # Virtual method, pylint: disable=R0201,W0613
+
+        return False
+
+
     def needsLineNumber( self ):
         return self.mayRaiseException( BaseException )
 
@@ -354,8 +330,8 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
 
         return False
 
-    def isStatementAbortative( self ):
-        """ Is the node abortative, control flow doesn't continue after this node.  """
+    def isStatementAborting( self ):
+        """ Is the node aborting, control flow doesn't continue after this node.  """
         # Virtual method, pylint: disable=R0201
         assert self.isStatement(), self.kind
 
@@ -367,12 +343,10 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
-    def hasTag( self, tag ):
-        return tag in self.__class__.tags
-
     def getIntegerValue( self, constraint_collection ):
         """ Node as integer value, if possible."""
         # Virtual method, pylint: disable=R0201,W0613
+        return None
 
 
 class CPythonCodeNodeBase( CPythonNodeBase ):
@@ -417,19 +391,14 @@ class CPythonCodeNodeBase( CPythonNodeBase ):
 
     def getCodeName( self ):
         if self.code_name is None:
-            search = self.parent
+            provider = self.getParentVariableProvider()
+            parent_name = provider.getCodeName()
 
-            while search is not None:
-                if isinstance( search, CPythonCodeNodeBase ):
-                    break
+            uid = "_%d" % provider.getChildUID( self )
 
-                search = search.parent
+            assert isinstance( self, CPythonCodeNodeBase )
 
-            parent_name = search.getCodeName()
-
-            uid = "_%d" % search.getChildUID( self )
-
-            if isinstance( self, CPythonCodeNodeBase ) and self.name:
+            if self.name:
                 name = uid + "_" + self.name
             else:
                 name = uid
@@ -491,6 +460,9 @@ class CPythonChildrenHaving:
         assert name in self.child_values, name
 
         return self.child_values[ name ]
+
+    def hasChild( self, name ):
+        return name in self.child_values
 
     @staticmethod
     def childGetter( name ):
@@ -625,6 +597,8 @@ class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
 
         self.providing = OrderedDict()
 
+        self.keeper_variables = OrderedSet()
+
     def hasProvidedVariable( self, variable_name ):
         return variable_name in self.providing
 
@@ -654,24 +628,19 @@ class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
     def getProvidedVariables( self ):
         return self.providing.values()
 
-    def reconsiderVariable( self, variable ):
-        # TODO: Why doesn't this fit in as well.
-        if self.isModule():
-            return
+    def getTempKeeperVariable( self ):
+        name = "keeper_%d" % len( self.keeper_variables )
 
-        assert variable.getOwner() is self
+        from nuitka import Variables
 
-        if variable.getName() in self.providing:
-            assert self.providing[ variable.getName() ] is variable, (
-                self.providing[ variable.getName() ], "is not", variable, self
-            )
+        result = Variables.TempKeeperVariable(
+            owner         = self,
+            variable_name = name
+        )
 
-            if not variable.isShared():
-                # TODO: The functions/classes should have have a clearer scope too.
-                usages = UsageCheck.getVariableUsages( self, variable )
+        self.keeper_variables.add( result )
 
-                if not usages:
-                    del self.providing[ variable.getName() ]
+        return result
 
 
 class CPythonParameterHavingNodeBase( CPythonClosureGiverNodeBase ):
@@ -697,8 +666,6 @@ class CPythonParameterHavingNodeBase( CPythonClosureGiverNodeBase ):
 class CPythonClosureTaker:
     """ Mixin for nodes that accept variables from closure givers. """
 
-    tags = ( "closure_taker", )
-
     def __init__( self, provider, early_closure ):
         assert provider.isParentVariableProvider(), provider
 
@@ -708,8 +675,6 @@ class CPythonClosureTaker:
         self.taken = set()
 
         self.temp_variables = set()
-
-        self.temp_keeper_count = 0
 
     def getParentVariableProvider( self ):
         return self.provider
@@ -772,11 +737,6 @@ class CPythonClosureTaker:
         """
 
         return self.early_closure
-
-    def allocateTempKeeperName( self ):
-        self.temp_keeper_count += 1
-
-        return "keeper_%d" % self.temp_keeper_count
 
 
 class CPythonExpressionMixin:
@@ -846,11 +806,25 @@ class CPythonExpressionMixin:
         # Virtual method, pylint: disable=R0201
         return None
 
-    def getStrValue( self ):
+    def getStringValue( self, constraint_collection ):
+        """ Node as integer value, if possible."""
+        # Virtual method, pylint: disable=R0201,W0613
+        return None
+
+    def getStrValue( self, constraint_collection ):
         """ Value that "str" or "PyObject_Str" would give, if known.
 
         Otherwise it is "None" to indicate unknown.
         """
+        string_value = self.getStringValue( constraint_collection )
+
+        if string_value is not None:
+            from .NodeMakingHelpers import makeConstantReplacementNode
+
+            return makeConstantReplacementNode(
+                node     = self,
+                constant = string_value
+            )
 
         return None
 
@@ -858,6 +832,126 @@ class CPythonExpressionMixin:
         # print "onRelease", self
         pass
 
+    def computeNodeAttribute( self, lookup_node, attribute_name, constraint_collection ):
+        # By default, an attribute lookup may change everything about the lookup source.
+        # Virtual method, pylint: disable=R0201,W0613
+        constraint_collection.removeKnowledge( lookup_node )
+
+        return lookup_node, None, None
+
+    def computeNodeSubscript( self, lookup_node, subscript, constraint_collection ):
+        # By default, an subscript may change everything about the lookup source.
+        constraint_collection.removeKnowledge( lookup_node )
+
+        return lookup_node, None, None
+
+    def computeNodeSlice( self, lookup_node, lower, upper, constraint_collection ):
+        # By default, a slicing may change everything about the lookup source.
+        constraint_collection.removeKnowledge( lookup_node )
+
+        return lookup_node, None, None
+
+    def computeNodeCall( self, call_node, constraint_collection ):
+        constraint_collection.removeKnowledge( call_node )
+
+        return call_node, None, None
+
+    def computeNodeOperationNot( self, not_node, constraint_collection ):
+        constraint_collection.removeKnowledge( not_node )
+
+        return not_node, None, None
+
+
+class CompileTimeConstantExpressionMixin( CPythonExpressionMixin ):
+    def isCompileTimeConstant( self ):
+        """ Has a value that we can use at compile time.
+
+            Yes or no. If it has such a value, simulations can be applied at compile time
+            and e.g. operations or conditions, or even calls may be executed against it.
+        """
+        # Virtual method, pylint: disable=R0201
+
+        return True
+
+    def mayHaveSideEffects( self, constraint_collection ):
+        return False
+
+    def mayHaveSideEffectsBool( self, constraint_collection ):
+        return False
+
+    def computeNodeOperationNot( self, not_node, constraint_collection ):
+        from .NodeMakingHelpers import getComputationResult
+
+        return getComputationResult(
+            node        = not_node,
+            computation = lambda : not self.getCompileTimeConstant(),
+            description = "Compile time constant negation truth value precomputed."
+        )
+
+
+    def computeNodeAttribute( self, lookup_node, attribute_name, constraint_collection ):
+        from .NodeMakingHelpers import getComputationResult
+
+        return getComputationResult(
+            node        = lookup_node,
+            computation = lambda : getattr( self.getCompileTimeConstant(), attribute_name ),
+            description = "Attribute lookup to %s precomputed." % attribute_name
+        )
+
+    def computeNodeSubscript( self, lookup_node, subscript, constraint_collection ):
+        from .NodeMakingHelpers import getComputationResult
+
+        if subscript.isCompileTimeConstant():
+            return getComputationResult(
+                node        = lookup_node,
+                computation = lambda : self.getCompileTimeConstant()[ subscript.getCompileTimeConstant() ],
+                description = "Subscript of constant with constant value."
+            )
+
+        return lookup_node, None, None
+
+    def computeNodeSlice( self, lookup_node, lower, upper, constraint_collection ):
+        from .NodeMakingHelpers import getComputationResult
+
+        # TODO: Could be happy with predictable index values and not require constants.
+        if lower is not None:
+            if upper is not None:
+                if lower.isCompileTimeConstant() and upper.isCompileTimeConstant():
+
+                    return getComputationResult(
+                        node        = lookup_node,
+                        computation = lambda : self.getCompileTimeConstant()[
+                            lower.getCompileTimeConstant() : upper.getCompileTimeConstant()
+                        ],
+                        description = "Slicing of constant with constant indexes."
+                    )
+            else:
+                if lower.isCompileTimeConstant():
+                    return getComputationResult(
+                        node        = lookup_node,
+                        computation = lambda : self.getCompileTimeConstant()[
+                            lower.getCompileTimeConstant() :
+                        ],
+                        description = "Slicing of constant with constant lower index only."
+                    )
+        else:
+            if upper is not None:
+                if upper.isCompileTimeConstant():
+                    return getComputationResult(
+                        node        = lookup_node,
+                        computation = lambda : self.getCompileTimeConstant()[
+                            : upper.getCompileTimeConstant()
+                        ],
+                        description = "Slicing of constant with constant upper index only."
+                    )
+            else:
+                return getComputationResult(
+                    node        = lookup_node,
+                    computation = lambda : self.getCompileTimeConstant()[ : ],
+                    description = "Slicing of constant with no indexes."
+                )
+
+        return lookup_node, None, None
 
 
 class CPythonExpressionSpecBasedComputationMixin( CPythonExpressionMixin ):
@@ -904,6 +998,8 @@ class CPythonExpressionBuiltinNoArgBase( CPythonNodeBase, CPythonExpressionMixin
     def computeNode( self, constraint_collection ):
         from .NodeMakingHelpers import getComputationResult
 
+        # The lamba is there for make sure that no argument parsing will reach the builtin
+        # function at all, pylint: disable=W0108
         return getComputationResult(
             node        = self,
             computation = lambda : self.builtin_function(),

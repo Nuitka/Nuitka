@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -35,7 +35,7 @@ class CPythonExpressionAssignmentTempKeeper( CPythonExpressionChildrenHavingBase
 
     named_children = ( "source", )
 
-    def __init__( self, variable_name, source, source_ref ):
+    def __init__( self, variable, source, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -44,33 +44,38 @@ class CPythonExpressionAssignmentTempKeeper( CPythonExpressionChildrenHavingBase
             source_ref = source_ref
         )
 
-        self.variable_name = variable_name
+        self.variable = variable
 
     def getDetail( self ):
         return "%s from %s" % ( self.getVariableName(), self.getAssignSource() )
 
+    def getDetails( self ):
+        return {
+            "name" : self.getVariableName()
+        }
+
+    def getVariable( self ):
+        return self.variable
+
     def getVariableName( self ):
-        return self.variable_name
+        return self.variable.getName()
 
     getAssignSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
 
     def computeNode( self, constraint_collection ):
-        # TODO: Nothing to do here? Maybe if the assignment target is unused, it could
-        # replace itself with source.
+        if self.variable.getReferenced().isWriteOnly():
+            return self.getAssignSource(), "new_expression", "Removed useless temporary keeper assignment."
 
-        # TODO: A real variable should be the link, then we could tell if it's used at
-        # all.
         return self, None, None
 
 
 class CPythonExpressionTempKeeperRef( CPythonNodeBase, CPythonExpressionMixin ):
     kind = "EXPRESSION_TEMP_KEEPER_REF"
 
-    def __init__( self, linked, source_ref ):
+    def __init__( self, variable, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
-        # TODO: A real variable should be the link.
-        self.linked = linked
+        self.variable = variable
 
     def getDetails( self ):
         return {
@@ -80,13 +85,31 @@ class CPythonExpressionTempKeeperRef( CPythonNodeBase, CPythonExpressionMixin ):
     def getDetail( self ):
         return self.getVariableName()
 
+    def getVariable( self ):
+        return self.variable
+
     def getVariableName( self ):
-        return self.linked.getVariableName()
+        return self.variable.getName()
 
     def computeNode( self, constraint_collection ):
-        # Nothing to do here.
+        friend = constraint_collection.getVariableValueFriend( self.getVariable() )
+
+        if friend is not None and not friend.mayHaveSideEffects( None ) and friend.isNode():
+            assert hasattr( friend, "makeCloneAt" ), friend
+
+            new_node = friend.makeCloneAt(
+                source_ref = self.source_ref,
+            )
+
+            change_desc = "Assignment source of '%s' propagated, as it has no side effects." % self.getVariableName()
+
+            return new_node, "new_expression", change_desc
+
         return self, None, None
 
     def mayRaiseException( self, exception_type ):
         # Can't happen
         return False
+
+    def mayProvideReference( self ):
+        return self.variable.getReferenced().getNeedsFree()

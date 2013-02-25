@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -48,18 +48,21 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
 
     top_level_parameters = parameters.getTopLevelVariables()
 
-    if top_level_parameters and (not is_method or len( top_level_parameters ) > 1):
+    plain_possible_count = len( top_level_parameters ) - parameters.getKwOnlyParameterCount()
+
+    if plain_possible_count > 1 or (not is_method and plain_possible_count > 0):
         parameter_parsing_code += str( CodeTemplates.parse_argument_template_take_counts3 )
 
     if top_level_parameters:
         parameter_parsing_code += "// Copy given dictionary values to the the respective variables:\n"
 
     if parameters.getDictStarArgVariable() is not None:
-        # In the case of star dict arguments, we need to check what is for it and is arguments
+        # In the case of star dict arguments, we need to check what is for it and which arguments
         # with names we have.
 
         parameter_parsing_code += CodeTemplates.parse_argument_template_dict_star_copy % {
             "dict_star_parameter_name" : parameters.getStarDictArgumentName(),
+            "function_name"            : function_name,
         }
 
         # Check for each variable.
@@ -92,12 +95,20 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
                 "function_name"         : function_name,
             }
 
-            quick_path_code += CodeTemplates.argparse_template_assign_from_dict_parameter_quick_path % {
+            if variable.isParameterVariableKwOnly():
+                assign_quick = CodeTemplates.argparse_template_assign_from_dict_parameter_quick_path_kw_only
+                assign_slow = CodeTemplates.argparse_template_assign_from_dict_parameter_slow_path_kw_only
+            else:
+                assign_quick = CodeTemplates.argparse_template_assign_from_dict_parameter_quick_path
+                assign_slow = CodeTemplates.argparse_template_assign_from_dict_parameter_slow_path
+
+
+            quick_path_code += assign_quick % {
                 "parameter_name_object"    : parameter_name_object,
                 "parameter_assign_from_kw" : indented( parameter_assign_from_kw )
             }
 
-            slow_path_code += CodeTemplates.argparse_template_assign_from_dict_parameter_slow_path % {
+            slow_path_code += assign_slow % {
                 "parameter_name_object"    : parameter_name_object,
                 "parameter_assign_from_kw" : indented( parameter_assign_from_kw )
             }
@@ -107,7 +118,6 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
             "parameter_quick_path"  : indented( quick_path_code, 2 ),
             "parameter_slow_path"   : indented( slow_path_code, 2 )
         }
-
 
     if parameters.isEmpty():
         parameter_parsing_code += CodeTemplates.template_parameter_function_refuses % {
@@ -119,20 +129,22 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
         else:
             check_template = CodeTemplates.parse_argument_template_check_counts_with_list_star_arg
 
-        required_parameter_count = len( top_level_parameters ) - parameters.getDefaultCount()
+        required_parameter_count = len( top_level_parameters ) - parameters.getDefaultCount() - \
+                                   parameters.getKwOnlyParameterCount()
 
         parameter_parsing_code += check_template % {
             "function_name"             : function_name,
-            "top_level_parameter_count" : len( top_level_parameters ),
+            "top_level_parameter_count" : plain_possible_count,
             "required_parameter_count"  : required_parameter_count,
         }
 
-    if top_level_parameters and (not is_method or len( top_level_parameters ) > 1):
+    if plain_possible_count > 1 or (not is_method and plain_possible_count > 0):
         parameter_parsing_code += CodeTemplates.parse_argument_usable_count % {
-            "top_level_parameter_count" : len( top_level_parameters ),
+            "top_level_parameter_count" : plain_possible_count,
         }
 
         for count, variable in enumerate( top_level_parameters ):
+            # The "self" will already be parsed.
             if is_method and count == 0:
                 continue
 
@@ -142,7 +154,7 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
                     "parameter_position"   : count,
                     "parameter_args_index" : count if not is_method else count-1
                 }
-            else:
+            elif not variable.isParameterVariableKwOnly():
                 parameter_parsing_code += CodeTemplates.argparse_template_plain_argument % {
                     "function_name"        : function_name,
                     "parameter_name"       : variable.getName(),
@@ -151,14 +163,14 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
                 }
 
     if parameters.getListStarArgVariable() is not None:
-        if not is_method:
-            max_index = len( top_level_parameters )
+        if is_method:
+            max_index = plain_possible_count - 1
         else:
-            max_index = len( top_level_parameters ) - 1
+            max_index = plain_possible_count
 
         parameter_parsing_code += CodeTemplates.parse_argument_template_copy_list_star_args % {
             "list_star_parameter_name"  : parameters.getStarListArgumentName(),
-            "top_level_parameter_count" : len( top_level_parameters ),
+            "top_level_parameter_count" : len( top_level_parameters ) - parameters.getKwOnlyParameterCount(),
             "top_level_max_index"       : max_index
         }
 
@@ -227,9 +239,19 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
         recursion         = 1
     )
 
+    for variable in parameters.getKwOnlyVariables():
+        parameter_parsing_code += CodeTemplates.template_kwonly_argument_default % {
+            "function_name"         : function_name,
+            "parameter_name"        : variable.getName(),
+            "parameter_name_object" : getConstantCode(
+                        constant = variable.getName(),
+                        context  = context
+                    )
+        }
+
     return indented( parameter_parsing_code )
 
-def getParameterParsingCode( context, function_identifier, function_name, parameters, \
+def getParameterParsingCode( context, function_identifier, function_name, parameters,
                              needs_creation ):
 
     function_parameter_variables = parameters.getVariables()
@@ -305,7 +327,6 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
         }
     else:
         mparse_identifier = "NULL"
-
 
     return (
         function_parameter_variables,

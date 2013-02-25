@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -16,7 +16,7 @@
 #     limitations under the License.
 #
 
-import tempfile
+import tempfile, sys, os
 
 print "eval 3+3=", eval("3+3")
 print "eval  3+3=", eval(" 3+3")
@@ -290,11 +290,11 @@ def makeAddPair(a, b):
     return addPair
 """ in locals()
 
-    assert makeAddPair
+    if sys.version_info < (3,):
+        assert makeAddPair
 
     return "yes"
 
 print "Exec adds functions declares in explicit locals() given.", execDefinesFunctionToLocalsExplicity()
 
-import os
 os.unlink( tmp_filename )

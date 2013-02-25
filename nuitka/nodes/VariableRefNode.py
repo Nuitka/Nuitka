@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,10 +26,6 @@ from nuitka import Variables, Builtins, Options
 
 from .NodeBases import CPythonChildrenHaving, CPythonNodeBase, CPythonExpressionMixin
 
-from .BuiltinReferenceNodes import (
-    CPythonExpressionBuiltinExceptionRef,
-    CPythonExpressionBuiltinRef
-)
 
 from .ConstantRefNode import CPythonExpressionConstantRef
 
@@ -87,6 +83,8 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
 
         if _isReadOnlyModuleVariable( self.variable ):
             if self.variable_name in Builtins.builtin_exception_names:
+                from .BuiltinReferenceNodes import CPythonExpressionBuiltinExceptionRef
+
                 new_node = CPythonExpressionBuiltinExceptionRef(
                     exception_name = self.variable_name,
                     source_ref     = self.getSourceReference()
@@ -96,6 +94,8 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
                 change_tags = "new_builtin"
                 change_desc = "Module variable '%s' found to be builtin exception reference." % self.variable_name
             elif self.variable_name in Builtins.builtin_names:
+                from .BuiltinReferenceNodes import CPythonExpressionBuiltinRef
+
                 new_node = CPythonExpressionBuiltinRef(
                     builtin_name = self.variable_name,
                     source_ref   = self.getSourceReference()
@@ -168,6 +168,10 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
     def isKnownToBeIterable( self, count ):
         return None
 
+    def mayProvideReference( self ):
+        # Variables are capable of "asObject0".
+        return False
+
     def mayHaveSideEffects( self, constraint_collection ):
         if constraint_collection is None:
             return True
@@ -196,6 +200,12 @@ class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin 
 
         self.variable = variable
 
+    def makeCloneAt( self, source_ref ):
+        return self.__class__(
+            variable   = self.variable,
+            source_ref = source_ref
+        )
+
     def getDetails( self ):
         return { "name" : self.variable.getName() }
 
@@ -207,6 +217,9 @@ class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin 
 
     def getVariable( self ):
         return self.variable
+
+    def setVariable( self, variable ):
+        self.variable = variable
 
     def computeNode( self, constraint_collection ):
         # Nothing to do here.
@@ -254,9 +267,6 @@ class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
 
     named_children = ( "body", )
 
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
-
     def __init__( self, source_ref ):
         CPythonNodeBase.__init__(
             self,
@@ -270,22 +280,25 @@ class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
             }
         )
 
-        self.temp_variables = set()
+        self.temp_variables = {}
+
+    getBody = CPythonChildrenHaving.childGetter( "body" )
+    setBody = CPythonChildrenHaving.childSetter( "body" )
 
     def getTempVariable( self, name ):
-        assert name not in self.temp_variables
+        assert name not in self.temp_variables, name
 
         result = Variables.TempVariable(
             owner         = self,
             variable_name = name
         )
 
-        self.temp_variables.add( result )
+        self.temp_variables[ name ] = result
 
         return result
 
     def getTempVariables( self ):
-        return self.temp_variables
+        return self.temp_variables.values()
 
     def mayHaveSideEffects( self, constraint_collection ):
         return self.getBody().mayHaveSideEffects( constraint_collection )

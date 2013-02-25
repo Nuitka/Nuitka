@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,7 +22,6 @@
 
 from .NodeBases import CPythonExpressionChildrenHavingBase, CPythonSideEffectsFromChildrenMixin
 
-from .NodeMakingHelpers import getComputationResult, makeConstantReplacementNode
 
 class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
                                          CPythonExpressionChildrenHavingBase ):
@@ -65,6 +64,8 @@ class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
             simulator = self.getSimulator()
             assert simulator is not None
 
+            from .NodeMakingHelpers import getComputationResult
+
             # The simulator is in fact callable if not None, pylint: disable=E1102
             return getComputationResult(
                 node        = self,
@@ -75,6 +76,9 @@ class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
                 ),
                 description = "%s with constant arguments" % simulator
             )
+
+    def mayHaveSideEffectsBool( self, constraint_collection ):
+        return False
 
     def isKnownToBeIterable( self, count ):
         return count is None or count == len( self.getElements() )
@@ -87,6 +91,9 @@ class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
 
     def canPredictIterationValues( self, constraint_collection ):
         return True
+
+    def getIterationValues( self, constraint_collection ):
+        return self.getElements()
 
     def getTruthValue( self, constraint_collection ):
         return self.getIterationLength( constraint_collection ) > 0
@@ -137,7 +144,8 @@ class CPythonExpressionMakeSet( CPythonExpressionMakeSequenceBase ):
         return set
 
 
-class CPythonExpressionKeyValuePair( CPythonExpressionChildrenHavingBase ):
+class CPythonExpressionKeyValuePair( CPythonSideEffectsFromChildrenMixin,
+                                     CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_KEY_VALUE_PAIR"
 
     named_children = ( "key", "value" )
@@ -202,12 +210,17 @@ class CPythonExpressionMakeDict( CPythonSideEffectsFromChildrenMixin, \
         for pair in pairs:
             constant_value[ pair.getKey().getConstant() ] = pair.getValue().getConstant()
 
+        from .NodeMakingHelpers import makeConstantReplacementNode
+
         new_node = makeConstantReplacementNode(
             constant = constant_value,
             node     = self
         )
 
         return new_node, "new_constant", "Created dictionary found to be constant."
+
+    def mayHaveSideEffectsBool( self, constraint_collection ):
+        return False
 
     def isKnownToBeIterable( self, count ):
         return count is None or count == len( self.getPairs() )
@@ -223,3 +236,22 @@ class CPythonExpressionMakeDict( CPythonSideEffectsFromChildrenMixin, \
 
     def getTruthValue( self, constraint_collection ):
         return self.getIterationLength( constraint_collection ) > 0
+
+    def isMapping( self ):
+        return True
+
+    def isMappingWithConstantStringKeys( self ):
+
+        for pair in self.getPairs():
+            key = pair.getKey()
+
+            if not key.isExpressionConstantRef() or not key.isStringConstant():
+                return False
+        else:
+            return True
+
+    def getMappingStringKeyPairs( self ):
+        return [ ( pair.getKey().getConstant(), pair.getValue() ) for pair in self.getPairs() ]
+
+    def getMappingPairs( self ):
+        return self.getPairs()

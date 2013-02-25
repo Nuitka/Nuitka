@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,22 +23,28 @@ and constants. Otherwise the thread of cyclic dependency kicks in.
 
 from .ConstantRefNode import CPythonExpressionConstantRef
 
+from nuitka.Constants import isConstant
+from nuitka.Builtins import builtin_names
+
 from .BuiltinReferenceNodes import (
     CPythonExpressionBuiltinExceptionRef,
     CPythonExpressionBuiltinRef
 )
-
 from .ExceptionNodes import (
     CPythonExpressionRaiseException,
     CPythonStatementRaiseException
 )
-
 from .StatementNodes import (
     CPythonStatementExpressionOnly,
     CPythonStatementsSequence
 )
-
+from .ComparisonNode import (
+    CPythonExpressionComparison,
+    CPythonExpressionComparisonIs,
+    CPythonExpressionComparisonIsNOT
+)
 from .SideEffectNode import CPythonExpressionSideEffects
+
 
 def makeConstantReplacementNode( constant, node ):
     return CPythonExpressionConstantRef(
@@ -89,6 +95,23 @@ def makeRaiseExceptionReplacementExpressionFromInstance( expression, exception )
         exception_value = args[0]
     )
 
+def makeCompileTimeConstantReplacementNode( value, node ):
+    if isConstant( value ):
+        return makeConstantReplacementNode(
+            constant = value,
+            node     = node
+        )
+    elif type( value ) is type:
+        if value.__name__ in builtin_names:
+            return CPythonExpressionBuiltinRef(
+                builtin_name = value.__name__,
+                source_ref    = node.getSourceReference()
+            )
+        else:
+            return node
+    else:
+        return node
+
 def getComputationResult( node, computation, description ):
     """ With a computation function, execute it and return the constant result or
         exception node.
@@ -107,13 +130,17 @@ def getComputationResult( node, computation, description ):
         change_tags = "new_raise"
         change_desc = description + " was predicted to raise an exception."
     else:
-        new_node = makeConstantReplacementNode(
-            constant = result,
-            node     = node
+        new_node = makeCompileTimeConstantReplacementNode(
+            value = result,
+            node  = node
         )
 
-        change_tags = "new_constant"
-        change_desc = description + " was predicted to constant result."
+        if new_node is not node:
+            change_tags = "new_constant"
+            change_desc = description + " was predicted to constant result."
+        else:
+            change_tags = None
+            change_desc = None
 
     return new_node, change_tags, change_desc
 
@@ -157,10 +184,8 @@ def convertNoneConstantToNone( node ):
     else:
         return node
 
-def wrapExpressionWithSideEffects( new_node, old_node ):
+def wrapExpressionWithSideEffects( side_effects, old_node, new_node ):
     assert new_node.isExpression()
-
-    side_effects = old_node.extractSideEffects()
 
     if side_effects:
         new_node = CPythonExpressionSideEffects(
@@ -170,6 +195,13 @@ def wrapExpressionWithSideEffects( new_node, old_node ):
         )
 
     return new_node
+
+def wrapExpressionWithNodeSideEffects( new_node, old_node ):
+    return wrapExpressionWithSideEffects(
+        side_effects = old_node.extractSideEffects(),
+        old_node     = old_node,
+        new_node     = new_node
+    )
 
 def wrapStatementWithSideEffects( new_node, old_node, allow_none = False ):
     assert new_node is not None or allow_none
@@ -197,3 +229,24 @@ def wrapStatementWithSideEffects( new_node, old_node, allow_none = False ):
             )
 
     return new_node
+
+def makeComparisonNode( left, right, comparator, source_ref ):
+    if comparator == "Is":
+        return CPythonExpressionComparisonIs(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif comparator == "IsNot":
+        return CPythonExpressionComparisonIsNOT(
+                left       = left,
+                right      = right,
+                source_ref = source_ref
+            )
+    else:
+        return CPythonExpressionComparison(
+            left       = left,
+            right      = right,
+            comparator = comparator,
+            source_ref = source_ref
+        )

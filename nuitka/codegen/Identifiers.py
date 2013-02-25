@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,6 +23,16 @@ is where getCheapRefCount tries to not allocate references not needed.
 
 # The method signatures do not always require usage of self, sometimes can be decided
 # based on class. pylint: disable=R0201
+
+from nuitka import Utils
+
+def encodeNonAscii( var_name ):
+    if Utils.python_version < 300:
+        return var_name
+    else:
+        var_name = var_name.encode( "ascii", "xmlcharrefreplace" )
+
+        return var_name.decode( "ascii" ).replace( "&#", "$$" ).replace( ";", "" )
 
 class Identifier:
     def __init__( self, code, ref_count ):
@@ -63,7 +73,8 @@ class Identifier:
         return "<Identifier %s (%d)>" % ( self.code, self.ref_count )
 
     def isConstantIdentifier( self ):
-        return self.__class__ is ConstantIdentifier
+        return False
+
 
 class ConstantIdentifier( Identifier ):
     def __init__( self, constant_code, constant_value ):
@@ -74,11 +85,42 @@ class ConstantIdentifier( Identifier ):
     def __repr__( self ):
         return "<ConstantIdentifier %s>" % self.code
 
+    def isConstantIdentifier( self ):
+        return True
+
     def getCheapRefCount( self ):
         return 0
 
     def getConstant( self ):
         return self.constant_value
+
+
+class SpecialConstantIdentifier( ConstantIdentifier ):
+    def __init__( self, constant_value ):
+        if constant_value is None:
+            ConstantIdentifier.__init__( self, "Py_None", None )
+        elif constant_value is True:
+            ConstantIdentifier.__init__( self, "Py_True", True )
+        elif constant_value is False:
+            ConstantIdentifier.__init__( self, "Py_False", False )
+        elif constant_value is Ellipsis:
+            ConstantIdentifier.__init__( self, "Py_Ellipsis", Ellipsis )
+        else:
+            assert False, constant_value
+
+
+class EmptyDictIdentifier( Identifier ):
+    def __init__( self ):
+        Identifier.__init__( self, "PyDict_New()", 1 )
+
+    def getCheapRefCount( self ):
+        return 1
+
+    def isConstantIdentifier( self ):
+        return True
+
+    def getConstant( self ):
+        return {}
 
 
 class ModuleVariableIdentifier:
@@ -110,7 +152,7 @@ class ModuleVariableIdentifier:
         return self.getCodeTemporaryRef()
 
     def getCode( self ):
-        return "_mvar_%s_%s" % ( self.module_code_name, self.var_name )
+        return "_mvar_%s_%s" % ( self.module_code_name, encodeNonAscii( self.var_name ) )
 
 
 class MaybeModuleVariableIdentifier( Identifier ):
@@ -123,6 +165,7 @@ class MaybeModuleVariableIdentifier( Identifier ):
             ),
             0
         )
+
 
 class LocalVariableIdentifier:
     def __init__( self, var_name, from_context = False ):
@@ -139,9 +182,9 @@ class LocalVariableIdentifier:
 
     def getCode( self ):
         if not self.from_context:
-            return "_python_var_" + self.var_name
+            return "_python_var_" + encodeNonAscii( self.var_name )
         else:
-            return "_python_context->python_var_" + self.var_name
+            return "_python_context->python_var_" + encodeNonAscii( self.var_name )
 
     def getRefCount( self ):
         return 0
@@ -199,11 +242,11 @@ class ClosureVariableIdentifier( Identifier ):
         self.from_context = from_context
 
         if self.from_context:
-            Identifier.__init__( self, self.from_context + "python_closure_" + self.var_name, 0 )
+            Identifier.__init__( self, self.from_context + "python_closure_" + encodeNonAscii( self.var_name ), 0 )
         else:
             # TODO: Use a variable object to decide naming policy
 
-            Identifier.__init__( self, "python_closure_" + self.var_name, 0 )
+            Identifier.__init__( self, "python_closure_" + encodeNonAscii( self.var_name ), 0 )
 
     def __repr__( self ):
         return "<ClosureVariableIdentifier %s >" % self.var_name
@@ -267,6 +310,7 @@ class CallIdentifier( Identifier ):
             ),
             ref_count = 1
         )
+
 
 class HelperCallIdentifier( CallIdentifier ):
     def __init__( self, helper, *args ):

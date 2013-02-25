@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -461,6 +461,33 @@ def simpleFunction57():
    f(2)
    f(3,4)
 
+def simpleFunction58():
+   a = 3
+   b = 5
+
+   try:
+      return 7
+   finally:
+      a / b
+
+
+def simpleFunction59():
+   a = 3
+   b = 5
+
+   try:
+      return 7
+   finally:
+      return a / b
+
+
+def simpleFunction60():
+   try:
+      raise ValueError(1,2,3), ValueError(1,2,3)
+   except Exception:
+      pass
+
+
 x = 17
 
 def checkReferenceCount( checked_function, max_rounds = 10 ):
@@ -564,3 +591,6 @@ checkReferenceCount( simpleFunction55 )
 # we accept for now.
 # checkReferenceCount( simpleFunction56 )
 checkReferenceCount( simpleFunction57 )
+checkReferenceCount( simpleFunction58 )
+checkReferenceCount( simpleFunction59 )
+checkReferenceCount( simpleFunction60 )

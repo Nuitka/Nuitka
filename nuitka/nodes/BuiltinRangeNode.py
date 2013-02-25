@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,16 +25,10 @@ predicted still, and these are interesting for warnings.
 
 from .NodeBases import (
     CPythonExpressionChildrenHavingBase,
-    CPythonSideEffectsFromChildrenMixin,
     CPythonExpressionBuiltinNoArgBase
 )
 
-from .NodeMakingHelpers import (
-    makeConstantReplacementNode,
-    getComputationResult
-)
-
-from nuitka.transform.optimizations import BuiltinOptimization
+from nuitka.optimizations import BuiltinOptimization
 
 from nuitka.Utils import python_version
 
@@ -50,9 +44,12 @@ class CPythonExpressionBuiltinRange0( CPythonExpressionBuiltinNoArgBase ):
             source_ref       = source_ref
         )
 
+    def mayHaveSideEffects( self, constraint_collection ):
+        return False
 
-class CPythonExpressionBuiltinRangeBase( CPythonSideEffectsFromChildrenMixin, \
-                                         CPythonExpressionChildrenHavingBase ):
+
+class CPythonExpressionBuiltinRangeBase( CPythonExpressionChildrenHavingBase ):
+    """ Base class for all range nodes. """
 
     def __init__( self, values, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
@@ -68,6 +65,17 @@ class CPythonExpressionBuiltinRangeBase( CPythonSideEffectsFromChildrenMixin, \
             return None
         else:
             return length > 0
+
+    def mayHaveSideEffects( self, constraint_collection ):
+        for child in self.getVisitableNodes():
+            if child.mayHaveSideEffects( constraint_collection ):
+                return True
+
+            if child.getIntegerValue( constraint_collection ) is None:
+                return True
+
+        else:
+            return False
 
 
 class CPythonExpressionBuiltinRange1( CPythonExpressionBuiltinRangeBase ):
@@ -98,6 +106,8 @@ class CPythonExpressionBuiltinRange1( CPythonExpressionBuiltinRangeBase ):
         if not BuiltinOptimization.builtin_range_spec.isCompileTimeComputable( given_values ):
             return self, None, None
 
+        from .NodeMakingHelpers import getComputationResult
+
         return getComputationResult(
             node        = self,
             computation = lambda : BuiltinOptimization.builtin_range_spec.simulateCall( given_values ),
@@ -123,6 +133,8 @@ class CPythonExpressionBuiltinRange1( CPythonExpressionBuiltinRangeBase ):
 
         if element_index > length:
             return None
+
+        from .NodeMakingHelpers import makeConstantReplacementNode
 
         # TODO: Make sure to cast element_index to what CPython will give, for now a
         # downcast will do.
@@ -160,6 +172,8 @@ class CPythonExpressionBuiltinRange2( CPythonExpressionBuiltinRangeBase ):
 
         if not self.builtin_spec.isCompileTimeComputable( given_values ):
             return self, None, None
+
+        from .NodeMakingHelpers import getComputationResult
 
         return getComputationResult(
             node        = self,
@@ -214,6 +228,8 @@ class CPythonExpressionBuiltinRange2( CPythonExpressionBuiltinRangeBase ):
         if result >= high:
             return None
         else:
+            from .NodeMakingHelpers import makeConstantReplacementNode
+
             return makeConstantReplacementNode(
                 constant = result,
                 node     = self
@@ -250,6 +266,8 @@ class CPythonExpressionBuiltinRange3( CPythonExpressionBuiltinRangeBase ):
 
         if not self.builtin_spec.isCompileTimeComputable( given_values ):
             return self, None, None
+
+        from .NodeMakingHelpers import getComputationResult
 
         return getComputationResult(
             node        = self,
@@ -329,6 +347,8 @@ class CPythonExpressionBuiltinRange3( CPythonExpressionBuiltinRangeBase ):
         if result >= high:
             return None
         else:
+            from .NodeMakingHelpers import makeConstantReplacementNode
+
             return makeConstantReplacementNode(
                 constant = result,
                 node     = self

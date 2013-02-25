@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -68,6 +68,21 @@ class CPythonExpressionConditional( CPythonExpressionChildrenHavingBase ):
         else:
             return self, None, None
 
+    def mayHaveSideEffectsBool( self, constraint_collection ):
+        if condition.mayHaveSideEffectsBool( constraint_collection ):
+            return True
+
+        if self.getExpressionYes().mayHaveSideEffectsBool( constraint_collection ):
+            return True
+
+        if self.getExpressionNo().mayHaveSideEffectsBool( constraint_collection ):
+            return True
+
+        return False
+
+    def mayProvideReference( self ):
+        return self.getExpressionYes().mayProvideReference() or self.getExpressionNo().mayProvideReference()
+
 
 class CPythonStatementConditional( CPythonExpressionChildrenHavingBase ):
     kind = "STATEMENT_CONDITIONAL"
@@ -91,17 +106,18 @@ class CPythonStatementConditional( CPythonExpressionChildrenHavingBase ):
     getBranchNo = CPythonExpressionChildrenHavingBase.childGetter( "no_branch" )
     setBranchNo = CPythonExpressionChildrenHavingBase.childSetter( "no_branch" )
 
-    def isStatementAbortative( self ):
+    def isStatementAborting( self ):
         yes_branch = self.getBranchYes()
 
-        if yes_branch is not None and not yes_branch.isStatementAbortative():
+        if yes_branch is not None:
+            if yes_branch.isStatementAborting():
+                no_branch = self.getBranchNo()
+
+                if no_branch is not None:
+                    return no_branch.isStatementAborting()
+                else:
+                    return False
+            else:
+                return False
+        else:
             return False
-
-        no_branch = self.getBranchNo()
-
-        if no_branch is not None and not no_branch.isStatementAbortative():
-            return False
-
-        assert yes_branch is not None or no_branch is not None
-
-        return yes_branch is not None and no_branch is not None

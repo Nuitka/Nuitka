@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,12 +17,6 @@
 #
 
 import sys, os
-
-if not hasattr( sys, "version_info" ) or sys.version_info < ( 2, 6, 0, "final" ):
-    raise SystemExit( "Nuitka requires Python 2.6 or later." )
-
-if sys.version_info[0] >= 3:
-    raise SystemExit( "Nuitka is not currently ported to 3.x, please help." )
 
 scripts = [ "bin/nuitka", "bin/nuitka-python" ]
 
@@ -172,7 +166,7 @@ setup(
 
     # metadata for upload to PyPI
     author       = "Kay Hayen",
-    author_email = "kayhayen@gmx.de",
+    author_email = "Kay.Hayen@gmail.com",
     url          = "http://nuitka.net",
     description  = "Python compiler with full language support and CPython compatibility",
 

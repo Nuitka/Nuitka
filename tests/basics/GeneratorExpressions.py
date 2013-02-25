@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -62,6 +62,14 @@ def iteratorCreationTiming():
         gen.next()
     except StopIteration:
         print "Use past end gave StopIteration as expected"
+
+        try:
+            import inspect
+            print "Generator state then is", inspect.getgeneratorstate( gen )
+        except AttributeError:
+            pass
+
+        print "Its frame is now", gen.gi_frame
 
     print "Early aborting generator"
 

@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,9 +29,9 @@ from .NodeBases import (
 class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
     kind = "STATEMENT_RAISE_EXCEPTION"
 
-    named_children = ( "exception_type", "exception_value", "exception_trace" )
+    named_children = ( "exception_type", "exception_value", "exception_trace", "exception_cause" )
 
-    def __init__( self, exception_type, exception_value, exception_trace, source_ref ):
+    def __init__( self, exception_type, exception_value, exception_trace, exception_cause, source_ref ):
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         if exception_type is None:
@@ -46,14 +46,17 @@ class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
                 "exception_type"  : exception_type,
                 "exception_value" : exception_value,
                 "exception_trace" : exception_trace,
+                "exception_cause" : exception_cause
             }
         )
 
         self.reraise_local = False
+        self.reraise_finally = False
 
     getExceptionType = CPythonChildrenHaving.childGetter( "exception_type" )
     getExceptionValue = CPythonChildrenHaving.childGetter( "exception_value" )
     getExceptionTrace = CPythonChildrenHaving.childGetter( "exception_trace" )
+    getExceptionCause = CPythonChildrenHaving.childGetter( "exception_cause" )
 
     def isReraiseException( self ):
         return self.getExceptionType() is None
@@ -63,10 +66,18 @@ class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
 
         return self.reraise_local
 
+    def isReraiseExceptionFinally( self ):
+        assert self.isReraiseException()
+
+        return self.reraise_finally
+
     def markAsReraiseLocal( self ):
         self.reraise_local = True
 
-    def isStatementAbortative( self ):
+    def markAsReraiseFinally( self ):
+        self.reraise_finally = True
+
+    def isStatementAborting( self ):
         return True
 
     def needsLineNumber( self ):
@@ -98,8 +109,20 @@ class CPythonExpressionRaiseException( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
+    def willRaiseException( self, exception_type ):
+        # Virtual method, pylint: disable=R0201,W0613
+
+        # One thing is clear, it will raise. TODO: Match exception_type more closely if it
+        # is predictable.
+        if exception_type is BaseException:
+            return True
+        else:
+            return False
+
+
     getExceptionType = CPythonExpressionChildrenHavingBase.childGetter( "exception_type" )
     getExceptionValue = CPythonExpressionChildrenHavingBase.childGetter( "exception_value" )
+
     def computeNode( self, constraint_collection ):
         return self, None, None
 

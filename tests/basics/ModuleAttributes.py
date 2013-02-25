@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -19,9 +19,19 @@
 
 With newline and stuff."""
 
-import os
+import os, sys
 
 print "doc:", __doc__
 print "filename:", __file__
 print "builtins:", __builtins__
 print "debug", __debug__
+
+def checkFromFunction():
+    frame = sys._getframe(1)
+    locals = frame.f_locals
+
+    print "Globals", frame.f_globals
+    print "Locals", frame.f_locals
+    print "Is identical", frame.f_locals is frame.f_globals
+
+checkFromFunction()

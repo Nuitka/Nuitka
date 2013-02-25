@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -85,6 +85,12 @@ other_comparison_functions = {
     "NotIn" : lambda value1, value2: value1 not in value2
 }
 
+comparison_inversions = {
+    "Is"    : "IsNot",
+    "IsNot" : "Is",
+    "In"    : "NotIn",
+    "NotIn" : "In"
+}
 
 all_comparison_functions = dict( rich_comparison_functions)
 all_comparison_functions.update( other_comparison_functions )

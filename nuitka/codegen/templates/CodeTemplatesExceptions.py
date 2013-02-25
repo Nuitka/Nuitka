@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,7 +20,6 @@
 """
 
 try_except_template = """\
-_frame_exception_keeper.preserveExistingException();
 try
 {
 %(tried_code)s
@@ -36,10 +35,11 @@ catch ( _PythonException &_exception )
         _exception.addTraceback( frame_guard.getFrame0() );
     }
 
-#if PYTHON_VERSION > 300
-    PythonExceptionStacker exception_restorer;
-#endif
+    frame_guard.preserveExistingException();
 
+#if PYTHON_VERSION >= 300
+    ExceptionRestorer%(guard_class)s restorer( &frame_guard );
+#endif
     _exception.toExceptionHandler();
 
 %(exception_code)s
@@ -56,6 +56,16 @@ try_except_reraise_template = """\
     tb->tb_next = NULL;
 
     throw;
+}"""
+
+try_except_reraise_finally_template = """\
+if ( _caught_%(try_count)d.isEmpty() )
+{
+%(thrower_code)s
+}
+else
+{
+    _caught_%(try_count)d.rethrow();
 }"""
 
 try_except_reraise_unmatched_template = """\
@@ -90,7 +100,9 @@ catch ( _PythonException &_exception )
 
     _caught_%(try_count)d.save( _exception );
 
-#if PYTHON_VERSION > 300
+#if PYTHON_VERSION >= 300
+    frame_guard.preserveExistingException();
+
     _exception.toExceptionHandler();
 #endif
 }
@@ -113,7 +125,7 @@ bool _return_%(try_count)d = false;
 """
 
 try_finally_template_setup_return_value = """\
-PyObject *_return_value_%(try_count)d = NULL;
+PyObjectTempKeeper1 _return_value_%(try_count)d;
 """
 
 try_finally_template_catch_continue = """\
@@ -130,17 +142,10 @@ catch ( BreakException & )
 }
 """
 
-try_finally_template_catch_generator_return = """\
-catch ( GeneratorReturnException & )
-{
-    _return_%(try_count)d = true;
-}
-"""
-
 try_finally_template_catch_return_value = """\
 catch ( ReturnValueException &e )
 {
-    _return_value_%(try_count)d = e.getValue();
+    _return_value_%(try_count)d.assign( e.getValue() );
 }
 """
 
@@ -148,29 +153,42 @@ try_finally_template_reraise_continue = """\
 if ( _continue_%(try_count)d )
 {
     throw ContinueException();
-}
-"""
+}"""
 
 try_finally_template_reraise_break = """\
 if ( _break_%(try_count)d )
 {
     throw BreakException();
-}
-"""
-
-try_finally_template_reraise_generator_return = """\
-if ( _return_%(try_count)d )
-{
-    throw GeneratorReturnException();
-}
-"""
+}"""
 
 try_finally_template_reraise_return_value = """\
-if ( _return_value_%(try_count)d != NULL )
+if ( _return_value_%(try_count)d.isKeeping() )
 {
-    throw ReturnValueException( _return_value_%(try_count)d );
+    throw ReturnValueException( _return_value_%(try_count)d.asObject() );
+}"""
+
+try_finally_template_direct_return_value = """\
+assert( _return_value_%(try_count)d.isKeeping() ); // Must be true as this is last.
+return _return_value_%(try_count)d.asObject();"""
+
+try_finally_template_indirect_return_value = """\
+if ( _return_value_%(try_count)d.isKeeping() )
+{
+    return _return_value_%(try_count)d.asObject();
 }"""
 
 
-frame_exceptionkeeper_setup = """\
-FrameExceptionKeeper _frame_exception_keeper;"""
+# Very special template for:
+# try:
+#  x = next(iter)
+# except StopIteration:
+#  handler_code
+
+template_try_next_except_stop_iteration = """\
+PyObject *%(temp_var)s = ITERATOR_NEXT( %(source_identifier)s );
+
+if ( %(temp_var)s == NULL )
+{
+%(handler_code)s
+}
+%(assignment_code)s"""

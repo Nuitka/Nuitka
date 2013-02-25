@@ -1,4 +1,4 @@
-//     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+//     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -46,21 +46,23 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
         strcmp( Nuitka_String_AsString( mode ), "exec" ) != 0
        )
     {
-        // TODO: There is an API to call a method, use it instead.
-        source = LOOKUP_ATTRIBUTE( source_code, _python_str_plain_strip );
-        source = PyObject_CallFunctionObjArgs( source, NULL );
+        source = PyObject_CallMethodObjArgs( source_code, _python_str_plain_strip, NULL );
 
-        assert( source );
+        if (unlikely( source == NULL ))
+        {
+            throw _PythonException();
+        }
     }
 #if PYTHON_VERSION < 300
-    // TODO: What does Python3 do here.
+    // Note: Python3 does not support "exec" with file handles.
     else if ( PyFile_Check( source_code ) && strcmp( Nuitka_String_AsString( mode ), "exec" ) == 0 )
     {
-        // TODO: There is an API to call a method, use it instead.
-        source = LOOKUP_ATTRIBUTE( source_code, _python_str_plain_read );
-        source = PyObject_CallFunctionObjArgs( source, NULL );
+        source = PyObject_CallMethodObjArgs( source_code, _python_str_plain_read, NULL );
 
-        assert( source );
+        if (unlikely( source == NULL ))
+        {
+            throw _PythonException();
+        }
     }
 #endif
     else
@@ -123,7 +125,7 @@ PyObject *_OPEN_FILE( EVAL_ORDERED_3( PyObject *file_name, PyObject *mode, PyObj
 PyObject *BUILTIN_CHR( unsigned char c )
 {
     // TODO: A switch statement might be faster, because no object needs to be created at
-    // all, this is how CPython does it.
+    // all, this here is how CPython does it.
     char s[1];
     s[0] = (char)c;
 
@@ -636,121 +638,6 @@ PyObject *BUILTIN_DIR1( PyObject *arg )
     return result;
 }
 
-extern PyObject *_python_str_empty;
-extern PyObject *_python_bytes_empty;
-
-PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, bool is_generator )
-{
-    assertObject( filename );
-    assert( Nuitka_String_Check( filename ) );
-    assertObject( function_name );
-    assert( Nuitka_String_Check( function_name ) );
-    assertObject( argnames );
-    assert( PyTuple_Check( argnames ) );
-
-    int flags = CO_NEWLOCALS;
-    // TODO: Need to determine if CO_OPTIMIZED should be used, i.e. locals dict.
-
-    if ( is_generator )
-    {
-        flags |= CO_GENERATOR;
-    }
-
-    // TODO: Consider using PyCode_NewEmpty
-
-    PyCodeObject *result = PyCode_New (
-        arg_count,           // argcount
-#if PYTHON_VERSION >= 300
-        0,                   // kw-only count
-#endif
-        0,                   // nlocals
-        0,                   // stacksize
-        flags,               // flags
-#if PYTHON_VERSION < 300
-        _python_str_empty,   // code (bytecode)
-#else
-        _python_bytes_empty, // code (bytecode)
-#endif
-        _python_tuple_empty, // consts (we are not going to be compatible)
-        _python_tuple_empty, // names (we are not going to be compatible)
-        argnames,            // varnames (we are not going to be compatible)
-        _python_tuple_empty, // freevars (we are not going to be compatible)
-        _python_tuple_empty, // cellvars (we are not going to be compatible)
-        filename,            // filename
-        function_name,       // name
-        line,                // firstlineno (offset of the code object)
-#if PYTHON_VERSION < 300
-        _python_str_empty    // lnotab (table to translate code object)
-#else
-        _python_bytes_empty  // lnotab (table to translate code object)
-#endif
-    );
-
-    if (unlikely( result == NULL ))
-    {
-        throw _PythonException();
-    }
-
-    return result;
-}
-
-static PyFrameObject *duplicateFrame( PyFrameObject *old_frame )
-{
-    PyFrameObject *new_frame = PyObject_GC_NewVar( PyFrameObject, &PyFrame_Type, 0 );
-
-    // Allow only to detach only our tracing frames.
-    assert( old_frame->f_trace == Py_None );
-    new_frame->f_trace = INCREASE_REFCOUNT( Py_None );
-
-    // Copy the back reference if any.
-    new_frame->f_back = old_frame->f_back;
-    Py_XINCREF( new_frame->f_back );
-
-    // Take a code reference as well.
-    new_frame->f_code = old_frame->f_code;
-    Py_XINCREF( new_frame->f_code );
-
-    // Copy attributes.
-    new_frame->f_locals = NULL;
-    new_frame->f_globals = INCREASE_REFCOUNT( old_frame->f_globals );
-    new_frame->f_builtins = INCREASE_REFCOUNT( old_frame->f_builtins );
-
-    new_frame->f_exc_type = INCREASE_REFCOUNT_X( old_frame->f_exc_type );
-    new_frame->f_exc_value = INCREASE_REFCOUNT_X( old_frame->f_exc_value );
-    new_frame->f_exc_traceback = INCREASE_REFCOUNT_X( old_frame->f_exc_traceback );
-
-    assert( old_frame->f_valuestack == old_frame->f_localsplus );
-    new_frame->f_valuestack = new_frame->f_localsplus;
-
-    assert( old_frame->f_stacktop == old_frame->f_valuestack );
-    new_frame->f_stacktop = new_frame->f_valuestack;
-
-    new_frame->f_tstate = old_frame->f_tstate;
-    new_frame->f_lasti = -1;
-    new_frame->f_lineno = old_frame->f_lineno;
-
-    assert( old_frame->f_iblock == 0 );
-    new_frame->f_iblock = 0;
-
-    Nuitka_GC_Track( new_frame );
-
-    return new_frame;
-}
-
-PyFrameObject *detachCurrentFrame()
-{
-    PyFrameObject *old_frame = PyThreadState_GET()->frame;
-
-    // Duplicate it.
-    PyFrameObject *new_frame = duplicateFrame( old_frame );
-
-    // The given frame can be put on top now.
-    PyThreadState_GET()->frame = new_frame;
-    Py_DECREF( old_frame );
-
-    return new_frame;
-}
-
 extern PyObject *_python_str_plain___import__;
 
 static PythonBuiltin _python_builtin_import( &_python_str_plain___import__ );
@@ -779,6 +666,8 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *loc
     return import_result;
 }
 
+extern PyObject *_python_str_plain___all__;
+
 void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 {
     // Check parameters.
@@ -788,7 +677,7 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
     PyObject *iter;
     bool all_case;
 
-    if ( PyObject *all = PyObject_GetAttrString( module, (char *)"__all__" ) )
+    if ( PyObject *all = PyObject_GetAttr( module, _python_str_plain___all__ ) )
     {
         iter = MAKE_ITERATOR( all );
         all_case = true;
@@ -837,6 +726,7 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 extern PyObject *_python_str_plain_print;
 extern PyObject *_python_str_plain_end;
 extern PyObject *_python_str_plain_file;
+extern PyObject *_python_str_empty;
 
 static PythonBuiltin _python_builtin_print( &_python_str_plain_print );
 
@@ -1126,21 +1016,15 @@ static void set_slot( PyObject **slot, PyObject *value )
     Py_XDECREF( temp );
 }
 
+extern PyObject *_python_str_plain___getattr__;
+extern PyObject *_python_str_plain___setattr__;
+extern PyObject *_python_str_plain___delattr__;
+
 static void set_attr_slots( PyClassObject *klass )
 {
-    static PyObject *getattrstr = NULL, *setattrstr = NULL, *delattrstr = NULL;
-
-    if ( getattrstr == NULL )
-    {
-        getattrstr = PyString_InternFromString( "__getattr__" );
-        setattrstr = PyString_InternFromString( "__setattr__" );
-        delattrstr = PyString_InternFromString( "__delattr__" );
-    }
-
-
-    set_slot( &klass->cl_getattr, FIND_ATTRIBUTE_IN_CLASS( klass, getattrstr ) );
-    set_slot( &klass->cl_setattr, FIND_ATTRIBUTE_IN_CLASS( klass, setattrstr ) );
-    set_slot( &klass->cl_delattr, FIND_ATTRIBUTE_IN_CLASS( klass, delattrstr ) );
+    set_slot( &klass->cl_getattr, FIND_ATTRIBUTE_IN_CLASS( klass, _python_str_plain___getattr__ ) );
+    set_slot( &klass->cl_setattr, FIND_ATTRIBUTE_IN_CLASS( klass, _python_str_plain___setattr__ ) );
+    set_slot( &klass->cl_delattr, FIND_ATTRIBUTE_IN_CLASS( klass, _python_str_plain___delattr__ ) );
 }
 
 static bool set_dict( PyClassObject *klass, PyObject *value )
@@ -1470,90 +1354,133 @@ PyObject *_BUILTIN_SUPER( EVAL_ORDERED_2( PyObject *type, PyObject *object ) )
     return (PyObject *)result;
 }
 
-extern PyObject *_python_str_plain___metaclass__;
-extern PyObject *_python_str_plain___class__;
-
-PyObject *_MAKE_CLASS( EVAL_ORDERED_5( PyObject *metaclass_global, PyObject *metaclass_class, PyObject *class_name, PyObject *bases, PyObject *class_dict ) )
+PyObject *BUILTIN_CALLABLE( PyObject *value )
 {
-    // This selection is dynamic, although it is something that might be determined at
-    // compile time already in many cases, and therefore should be a function that is
-    // built of nodes.
-#if PYTHON_VERSION < 300
-    PyObject *metaclass;
+    return PyBool_FromLong( (long)PyCallable_Check( value ) );
+}
 
-    if ( metaclass_class != NULL )
+// Used by InspectPatcher too.
+int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
+{
+    assertObject( inst );
+    assertObject( cls );
+
+    // Quick path.
+    if ( Py_TYPE( inst ) == (PyTypeObject *)cls )
     {
-        metaclass = metaclass_class;
+        return true;
     }
-    else
+
+    if ( cls == (PyObject *)&PyFunction_Type && Nuitka_Function_Check( inst ) )
     {
-        metaclass = PyDict_GetItem( class_dict, _python_str_plain___metaclass__ );
+        return true;
     }
 
-    // Prefer the metaclass entry of the new class, otherwise search the base classes for
-    // their metaclass.
-    if ( metaclass != NULL )
+    if ( cls == (PyObject *)&PyGen_Type && Nuitka_Generator_Check( inst ) )
     {
-        /* Hold a reference to the metaclass while we use it. */
-        Py_INCREF( metaclass );
+        return true;
     }
-    else
-#else
-    PyObject *metaclass = metaclass_class;
 
-    if ( metaclass == NULL )
-#endif
+    if ( cls == (PyObject *)&PyMethod_Type && Nuitka_Method_Check( inst ) )
     {
-        assertObject( bases );
+        return true;
+    }
 
-        if ( PyTuple_GET_SIZE( bases ) > 0 )
+    if ( PyTuple_Check( cls ) )
+    {
+        for ( Py_ssize_t i = 0, size = PyTuple_GET_SIZE( cls ); i < size; i++ )
         {
-            PyObject *base = PyTuple_GET_ITEM( bases, 0 );
+            PyObject *element = PyTuple_GET_ITEM( cls, i );
 
-            metaclass = PyObject_GetAttr( base, _python_str_plain___class__ );
-
-            if ( metaclass == NULL )
+            if (unlikely( Py_EnterRecursiveCall( (char *)" in __instancecheck__" ) ))
             {
-                PyErr_Clear();
+                return -1;
+            }
 
-                metaclass = INCREASE_REFCOUNT( (PyObject *)Py_TYPE( base ) );
+            int res = Nuitka_IsInstance( inst, element );
+
+            Py_LeaveRecursiveCall();
+
+            if ( res != 0 )
+            {
+                return res;
             }
         }
-        else if ( metaclass_global != NULL )
-        {
-            metaclass = INCREASE_REFCOUNT( metaclass_global );
-        }
-        else
-        {
-#if PYTHON_VERSION < 300
-            // Default to old style class.
-            metaclass = INCREASE_REFCOUNT( (PyObject *)&PyClass_Type );
-#else
-            // Default to new style class.
-            metaclass = INCREASE_REFCOUNT( (PyObject *)&PyType_Type );
-#endif
-        }
+
+        return 0;
     }
+    else
+    {
+        return PyObject_IsInstance( inst, cls );
+    }
+}
 
-    PyObject *result = PyObject_CallFunctionObjArgs(
-        metaclass,
-        class_name,
-        bases,
-        class_dict,
-        NULL
-    );
+bool _BUILTIN_ISINSTANCE_BOOL( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) )
+{
+    int res = Nuitka_IsInstance( inst, cls );
 
-    Py_DECREF( metaclass );
-
-    if (unlikely( result == NULL ))
+    if (unlikely( res < 0 ))
     {
         throw _PythonException();
     }
 
-    return result;
+    return res != 0;
 }
 
-PyObject *BUILTIN_CALLABLE( PyObject *value )
+
+PyObject *_BUILTIN_GETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *default_value ) )
 {
-    return PyBool_FromLong( (long)PyCallable_Check( value ) );
+#if PYTHON_VERSION < 300
+    if ( PyUnicode_Check( attribute ) )
+    {
+        attribute = _PyUnicode_AsDefaultEncodedString( attribute, NULL );
+
+        if (unlikely( attribute == NULL ))
+        {
+            throw _PythonException();
+        }
+    }
+
+    if (unlikely( !PyString_Check( attribute ) ))
+    {
+        PyErr_Format( PyExc_TypeError, "getattr(): attribute name must be string" );
+        throw _PythonException();
+    }
+#else
+    if (!PyUnicode_Check( attribute ))
+    {
+        PyErr_Format( PyExc_TypeError, "getattr(): attribute name must be string" );
+        throw _PythonException();
+    }
+#endif
+
+    PyObject *result = PyObject_GetAttr( object, attribute );
+
+    if ( result == NULL )
+    {
+        if ( default_value != NULL && PyErr_ExceptionMatches( PyExc_AttributeError ))
+        {
+            PyErr_Clear();
+
+            return INCREASE_REFCOUNT( default_value );
+        }
+        else
+        {
+            throw _PythonException();
+        }
+    }
+    else
+    {
+        return result;
+    }
+}
+
+void _BUILTIN_SETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *value ) )
+{
+    int res = PyObject_SetAttr( object, attribute, value );
+
+    if (unlikely( res != 0 ))
+    {
+        throw _PythonException();
+    }
 }

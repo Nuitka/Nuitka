@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -48,6 +48,9 @@ class CPythonStatementPrint( CPythonChildrenHaving, CPythonNodeBase ):
 
     def isNewlinePrint( self ):
         return self.newline
+
+    def removeNewlinePrint( self ):
+        self.newline = False
 
     getDestination = CPythonChildrenHaving.childGetter( "dest" )
     getValues = CPythonChildrenHaving.childGetter( "values" )

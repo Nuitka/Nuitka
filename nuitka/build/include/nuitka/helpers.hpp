@@ -1,4 +1,4 @@
-//     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+//     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -19,6 +19,7 @@
 #define __NUITKA_HELPERS_H__
 
 #define _DEBUG_UNFREEZER 0
+#define _DEBUG_FRAME 0
 #define _DEBUG_REFRAME 0
 
 #include "nuitka/eval_order.hpp"
@@ -35,6 +36,11 @@ typedef struct {
     PyObject_HEAD
     PyObject *md_dict;
 } PyModuleObject;
+
+// These two express if a directly called function should be exported (C++ level) or if it
+// can be local to the file.
+#define NUITKA_CROSS_MODULE
+#define NUITKA_LOCAL_MODULE static
 
 extern void PRINT_ITEM_TO( PyObject *file, PyObject *object );
 static PyObject *INCREASE_REFCOUNT( PyObject *object );
@@ -68,7 +74,6 @@ static inline void assertObject( PyTracebackObject *value )
 // For the EVAL_ORDER and MAKE_TUPLE macros.
 #include "__helpers.hpp"
 
-
 // Helper functions for reference count handling in the fly.
 NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
 {
@@ -95,13 +100,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
     return object;
 }
 
-#include "nuitka/exceptions.hpp"
-
 #include "printing.hpp"
 
 #include "nuitka/helper/boolean.hpp"
 
 #include "nuitka/helper/dictionaries.hpp"
+
 
 #if PYTHON_VERSION >= 300
 static char *_PyUnicode_AS_STRING( PyObject *unicode )
@@ -116,6 +120,8 @@ static char *_PyUnicode_AS_STRING( PyObject *unicode )
     return PyBytes_AS_STRING( bytes );
 }
 #endif
+
+#include "nuitka/helper/raising.hpp"
 
 typedef PyObject *(binary_api)( PyObject *, PyObject * );
 
@@ -183,44 +189,6 @@ static inline PyObject *Nuitka_Function_GetName( PyObject *object );
 
 static inline bool Nuitka_Generator_Check( PyObject *object );
 static inline PyObject *Nuitka_Generator_GetName( PyObject *object );
-
-static char const *GET_CALLABLE_NAME( PyObject *object )
-{
-    if ( Nuitka_Function_Check( object ) )
-    {
-        return Nuitka_String_AsString( Nuitka_Function_GetName( object ) );
-    }
-    else if ( Nuitka_Generator_Check( object ) )
-    {
-        return Nuitka_String_AsString( Nuitka_Generator_GetName( object ) );
-    }
-    else if ( PyMethod_Check( object ) )
-    {
-        return PyEval_GetFuncName( PyMethod_GET_FUNCTION( object ) );
-    }
-    else if ( PyFunction_Check( object ) )
-    {
-        return Nuitka_String_AsString( ((PyFunctionObject*)object)->func_name );
-    }
-#if PYTHON_VERSION < 300
-    else if ( PyInstance_Check( object ) )
-    {
-        return Nuitka_String_AsString( ((PyInstanceObject*)object)->in_class->cl_name );
-    }
-    else if ( PyClass_Check( object ) )
-    {
-        return Nuitka_String_AsString(((PyClassObject*)object)->cl_name );
-    }
-#endif
-    else if ( PyCFunction_Check( object ) )
-    {
-        return ((PyCFunctionObject*)object)->m_ml->ml_name;
-    }
-    else
-    {
-        return Py_TYPE( object )->tp_name;
-    }
-}
 
 #include "nuitka/calling.hpp"
 
@@ -556,6 +524,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
 NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 {
     assertObject( iterator );
+    assert( Py_TYPE( iterator )->tp_iternext );
 
     PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
@@ -574,15 +543,16 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
 {
     assertObject( iterator );
+    assert( Py_TYPE( iterator )->tp_iternext );
 
     PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
 
     if (unlikely( result == NULL ))
     {
-        // TODO: Throwing an error unless another exists, should be offered too.
+        // The iteration can return NULL with no error, which means StopIteration.
         if ( !ERROR_OCCURED() )
         {
-            PyErr_SetNone( PyExc_StopIteration );
+            throw _PythonException( PyExc_StopIteration );
         }
 
         throw _PythonException();
@@ -642,7 +612,11 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, in
 
     if (unlikely( result == NULL ))
     {
+#if PYTHON_VERSION < 300
         if (unlikely( !ERROR_OCCURED() ))
+#else
+        if (unlikely( !ERROR_OCCURED() || PyErr_ExceptionMatches( PyExc_StopIteration ) ))
+#endif
         {
             if ( seq_size_so_far == 1 )
             {
@@ -671,7 +645,11 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_PARAMETER_NEXT( PyObject *it
 
     if (unlikely( result == NULL ))
     {
+#if PYTHON_VERSION < 300
         if (unlikely( !ERROR_OCCURED() ))
+#else
+        if (unlikely( !ERROR_OCCURED() || PyErr_ExceptionMatches( PyExc_StopIteration ) ))
+#endif
         {
             if ( seq_size_so_far == 1 )
             {
@@ -1312,8 +1290,25 @@ extern PyObject *BUILTIN_LEN( PyObject *boundary );
 extern PyObject *BUILTIN_DIR1( PyObject *arg );
 
 // For quicker builtin super() functionality.
-#define BUILTIN_SUPER( type, object) _BUILTIN_SUPER( EVAL_ORDERED_2( type, object ) )
+#define BUILTIN_SUPER( type, object ) _BUILTIN_SUPER( EVAL_ORDERED_2( type, object ) )
 extern PyObject *_BUILTIN_SUPER( EVAL_ORDERED_2( PyObject *type, PyObject *object ) );
+
+// For quicker isinstance() functionality.
+#define BUILTIN_ISINSTANCE( inst, cls ) _BUILTIN_ISINSTANCE( EVAL_ORDERED_2( inst, cls ) )
+extern PyObject *_BUILTIN_ISINSTANCE( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) );
+
+#define BUILTIN_ISINSTANCE_BOOL( inst, cls ) _BUILTIN_ISINSTANCE_BOOL( EVAL_ORDERED_2( inst, cls ) )
+extern bool _BUILTIN_ISINSTANCE_BOOL( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) );
+
+// For quicker getattr() functionality.
+#define BUILTIN_GETATTR( object, attribute, default_value ) _BUILTIN_GETATTR( EVAL_ORDERED_3( object, attribute, default_value ) )
+extern PyObject *_BUILTIN_GETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *default_value ) );
+
+// For quicker setattr() functionality.
+#define BUILTIN_SETATTR( object, attribute, value ) _BUILTIN_SETATTR( EVAL_ORDERED_3( object, attribute, value ) )
+extern void _BUILTIN_SETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *value ) );
+
+extern PyObject *_python_str_plain___builtins__;
 
 NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
 {
@@ -1335,9 +1330,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
     }
 
     // Set the __builtins__ in globals, it is expected to be present.
-    if ( PyDict_GetItemString( globals, (char *)"__builtins__" ) == NULL )
+    if ( PyDict_GetItem( globals, _python_str_plain___builtins__ ) == NULL )
     {
-        if ( PyDict_SetItemString( globals, (char *)"__builtins__", (PyObject *)module_builtin ) == -1 )
+        if ( PyDict_SetItem( globals, _python_str_plain___builtins__, (PyObject *)module_builtin ) == -1 )
         {
             throw _PythonException();
         }
@@ -1357,9 +1352,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
     return result;
 }
 
-// Create a code object for the given filename and function name
-extern PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, bool is_generator );
-
 #include "nuitka/importing.hpp"
 
 // For the constant loading:
@@ -1372,11 +1364,85 @@ extern void enhancePythonTypes( void );
 // Parse the command line parameters and provide it to sys module.
 extern void setCommandLineParameters( int argc, char *argv[] );
 
+// Replace inspect functions with ones that accept compiled types too.
 extern void patchInspectModule( void );
 
-#define MAKE_CLASS( metaclass_global, metaclass_class, class_name, bases, class_dict ) _MAKE_CLASS( EVAL_ORDERED_5( metaclass_global, metaclass_class, class_name, bases, class_dict ) )
+// Replace builtin functions with ones that accept compiled types too.
+extern void patchBuiltinModule( void );
 
+#if PYTHON_VERSION >= 300
+NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyObject *bases )
+{
+    assertObject( metaclass );
+    assertObject( bases );
 
-extern PyObject *_MAKE_CLASS( EVAL_ORDERED_5( PyObject *metaclass_global, PyObject *metaclass_class, PyObject *class_name, PyObject *bases, PyObject *class_dict ) );
+    if (likely( PyType_Check( metaclass ) ))
+    {
+        PyObject *winner = (PyObject *)_PyType_CalculateMetaclass( (PyTypeObject *)metaclass, bases );
+
+        if (unlikely( winner == NULL ))
+        {
+            throw _PythonException();
+        }
+
+        return INCREASE_REFCOUNT( winner );
+    }
+    else
+    {
+        return INCREASE_REFCOUNT( metaclass );
+    }
+}
+#else
+
+NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *bases, PyObject *metaclass_global )
+{
+    assertObject( bases );
+
+    PyObject *metaclass;
+
+    assert( bases != Py_None );
+
+    if ( PyTuple_GET_SIZE( bases ) > 0 )
+    {
+        PyObject *base = PyTuple_GET_ITEM( bases, 0 );
+
+        metaclass = PyObject_GetAttr( base, _python_str_plain___class__ );
+
+        if ( metaclass == NULL )
+        {
+            PyErr_Clear();
+
+            metaclass = INCREASE_REFCOUNT( (PyObject *)Py_TYPE( base ) );
+        }
+    }
+    else if ( metaclass_global != NULL )
+    {
+        metaclass = INCREASE_REFCOUNT( metaclass_global );
+    }
+    else
+    {
+        // Default to old style class.
+        metaclass = INCREASE_REFCOUNT( (PyObject *)&PyClass_Type );
+    }
+
+    return metaclass;
+}
+
+#endif
+
+NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME( PyObject *module )
+{
+    char const *module_name = PyModule_GetName( module );
+
+#if PYTHON_VERSION < 300
+    PyObject *result = PyString_FromString( module_name );
+    PyString_InternInPlace( &result );
+    return result;
+#else
+    PyObject *result = PyUnicode_FromString( module_name );
+    PyUnicode_InternInPlace( &result );
+    return result;
+#endif
+}
 
 #endif

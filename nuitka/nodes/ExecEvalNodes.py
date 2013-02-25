@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,27 +25,26 @@ to do.
 from .NodeBases import (
     CPythonExpressionChildrenHavingBase,
     CPythonChildrenHaving,
-    CPythonNodeBase,
-    CPythonClosureTaker,
-    CPythonClosureGiverNodeBase
+    CPythonNodeBase
 )
 
-from .NodeMakingHelpers import convertNoneConstantToNone
-
-from nuitka import Variables, Utils
+from nuitka import Utils
 
 class CPythonExpressionBuiltinEval( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_EVAL"
 
     named_children = ( "source", "globals", "locals" )
 
-    def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
+    # Need to accept globals and local keyword argument, that is just the API of eval,
+    # pylint: disable=W0622
+
+    def __init__( self, source, globals, locals, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "source"  : source_code,
-                "globals" : globals_arg,
-                "locals"  : locals_arg,
+                "source"  : source,
+                "globals" : globals,
+                "locals"  : locals,
             },
             source_ref = source_ref
         )
@@ -66,6 +65,21 @@ if Utils.python_version >= 300:
 
         def needsLocalsDict( self ):
             return True
+
+        def computeNode( self, constraint_collection ):
+            # TODO: Attempt for constant values to do it.
+            if self.getParent().isStatementExpressionOnly() and self.getParentVariableProvider().isEarlyClosure():
+                result = CPythonStatementExec(
+                    source_code = self.getSourceCode(),
+                    globals_arg = self.getGlobals(),
+                    locals_arg  = self.getLocals(),
+                    source_ref  = self.source_ref,
+                )
+
+                return result, "new_statements", "Replaced builtin exec call to exec statement in early closure context."
+
+            return self, None, None
+
 
 # Note: Python2 only
 if Utils.python_version < 300:
@@ -113,6 +127,8 @@ class CPythonStatementExec( CPythonChildrenHaving, CPythonNodeBase ):
 
     def setChild( self, name, value ):
         if name in ( "globals", "locals" ):
+            from .NodeMakingHelpers import convertNoneConstantToNone
+
             value = convertNoneConstantToNone( value )
 
         return CPythonChildrenHaving.setChild( self, name, value )
@@ -125,72 +141,3 @@ class CPythonStatementExec( CPythonChildrenHaving, CPythonNodeBase ):
         return _couldBeNone( self.getGlobals() ) or \
                self.getGlobals().isExpressionBuiltinLocals() or \
                self.getLocals() is not None and self.getLocals().isExpressionBuiltinLocals()
-
-
-# TODO: This is totally bitrot
-class CPythonStatementExecInline( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureGiverNodeBase ):
-    kind = "STATEMENT_EXEC_INLINE"
-
-    named_children = ( "body", )
-
-    early_closure = True
-
-    def __init__( self, provider, source_ref ):
-        CPythonClosureTaker.__init__( self, provider )
-        CPythonClosureGiverNodeBase.__init__(
-            self,
-            name        = "exec_inline",
-            code_prefix = "exec_inline",
-            source_ref  = source_ref
-        )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {}
-        )
-
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
-
-    def getVariableForAssignment( self, variable_name ):
-        # print ( "ASS inline", self, variable_name )
-
-        if self.hasProvidedVariable( variable_name ):
-            return self.getProvidedVariable( variable_name )
-
-        result = self.getProvidedVariable( variable_name )
-
-        # Remember that we need that closure for something.
-        self.registerProvidedVariable( result )
-
-        # print ( "RES inline", result )
-
-        return result
-
-    def getVariableForReference( self, variable_name ):
-        # print ( "REF inline", self, variable_name )
-
-        result = self.getVariableForAssignment( variable_name )
-
-        # print ( "RES inline", result )
-
-        return result
-
-    def createProvidedVariable( self, variable_name ):
-        # print ( "CREATE inline", self, variable_name )
-
-        # An exec in a module gives a module variable always, on the top level
-        # of an exec, if it's not already a global through a global statement,
-        # the parent receives a local variable now.
-        if self.provider.isModule():
-            return self.provider.getProvidedVariable(
-                variable_name = variable_name
-            )
-        else:
-            return Variables.LocalVariable(
-                owner         = self.provider,
-                variable_name = variable_name
-            )
-
-    def needsLocalsDict( self ):
-        return True

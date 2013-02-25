@@ -1,4 +1,4 @@
-//     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+//     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -17,8 +17,6 @@
 //
 #ifndef __NUITKA_DICTIONARIES_H__
 #define __NUITKA_DICTIONARIES_H__
-
-extern PyObject *_python_dict_empty;
 
 // Quick dictionary lookup for a string value.
 static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, Nuitka_StringObject *key )
@@ -55,7 +53,7 @@ static PyDictEntry *GET_PYDICT_ENTRY( PyDictObject *dict, Nuitka_StringObject *k
 }
 
 // Quick module lookup for a string value.
-static PyDictEntry *GET_PYDICT_ENTRY( PyModuleObject *module, Nuitka_StringObject *key )
+NUITKA_MAY_BE_UNUSED static PyDictEntry *GET_PYDICT_ENTRY( PyModuleObject *module, Nuitka_StringObject *key )
 {
     // Idea similar to LOAD_GLOBAL in CPython. Because the variable name is a string, we
     // can shortcut much of the dictionary code by using its hash and dictionary knowledge
@@ -64,13 +62,6 @@ static PyDictEntry *GET_PYDICT_ENTRY( PyModuleObject *module, Nuitka_StringObjec
     PyDictObject *dict = (PyDictObject *)(module->md_dict);
 
     return GET_PYDICT_ENTRY( dict, key );
-}
-
-// Check if a dictionary can contain strings. It doesn't if the ma_lookup wasn't changed
-// away from the variant that is active in dictionaries that never saw one.
-static inline bool COULD_CONTAIN_NON_STRINGS( PyObject *dict )
-{
-    return ( ((PyDictObject *)( dict ))->ma_lookup != ((PyDictObject *)_python_dict_empty)->ma_lookup );
 }
 
 NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, PyObject *value )
@@ -82,6 +73,43 @@ NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, P
         throw _PythonException();
     }
 }
+
+NUITKA_MAY_BE_UNUSED static void DICT_REMOVE_ITEM( PyObject *dict, PyObject *key )
+{
+    int status = PyDict_DelItem( dict, key );
+
+    if (unlikely( status == -1 ))
+    {
+        throw _PythonException();
+    }
+}
+
+
+NUITKA_MAY_BE_UNUSED static PyObject *DICT_GET_ITEM( PyObject *dict, PyObject *key )
+{
+    assertObject( dict );
+    assert( PyDict_Check( dict ) );
+
+    assertObject( key );
+
+    PyObject *result = PyDict_GetItem( dict, key );
+
+    if ( result == NULL )
+    {
+        if (unlikely( PyErr_Occurred() ))
+        {
+            throw _PythonException();
+        }
+
+        PyErr_SetObject( PyExc_KeyError, key );
+        throw _PythonException();
+    }
+    else
+    {
+        return INCREASE_REFCOUNT( result );
+    }
+}
+
 
 // Convert to dictionary, helper for builtin dict mainly.
 NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict_obj )

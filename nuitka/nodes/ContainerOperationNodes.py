@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,7 +19,7 @@
 
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import CPythonExpressionChildrenHavingBase, CPythonChildrenHaving, CPythonNodeBase
 
 
 class CPythonExpressionListOperationAppend( CPythonExpressionChildrenHavingBase ):
@@ -103,4 +103,52 @@ class CPythonExpressionDictOperationSet( CPythonExpressionChildrenHavingBase ):
     def computeNode( self, constraint_collection ):
         constraint_collection.removeKnowledge( self.getDict() )
 
+        return self, None, None
+
+
+class CPythonStatementDictOperationRemove( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "STATEMENT_DICT_OPERATION_REMOVE"
+
+    named_children = ( "dict", "key" )
+
+    def __init__( self, dicte, key, source_ref ):
+        assert dicte is not None
+        assert key is not None
+
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values     = {
+                "dict"    : dicte,
+                "key"     : key,
+            }
+        )
+
+    getDict = CPythonExpressionChildrenHavingBase.childGetter( "dict" )
+    getKey = CPythonExpressionChildrenHavingBase.childGetter( "key" )
+
+
+class CPythonExpressionDictOperationGet( CPythonExpressionChildrenHavingBase ):
+    kind = "EXPRESSION_DICT_OPERATION_GET"
+
+    named_children = ( "dict", "key" )
+
+    def __init__( self, dicte, key, source_ref ):
+        assert dicte is not None
+        assert key is not None
+
+        CPythonExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "dict" : dicte,
+                "key"  : key,
+            },
+            source_ref = source_ref
+        )
+
+    getDict = CPythonExpressionChildrenHavingBase.childGetter( "dict" )
+    getKey = CPythonExpressionChildrenHavingBase.childGetter( "key" )
+
+    def computeNode( self, constraint_collection ):
         return self, None, None

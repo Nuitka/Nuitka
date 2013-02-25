@@ -1,4 +1,4 @@
-//     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+//     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -30,8 +30,9 @@ static inline bool IS_INDEXABLE( PyObject *value )
 }
 
 #if PYTHON_VERSION < 300
-// TODO: It appears that Python3 has no index slicing operations anymore, but uses slice
-// objects all the time. That's fine by us for now.
+// Note: It appears that Python3 has no index slicing operations anymore, but uses slice
+// objects all the time. That's fine and make sure we adhere to it by guarding the
+// presence of the helpers.
 
 #define LOOKUP_SLICE( source, lower, upper ) _LOOKUP_SLICE( EVAL_ORDERED_3( source, lower, upper ) )
 

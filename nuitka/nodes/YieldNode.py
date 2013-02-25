@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,7 +31,7 @@ class CPythonExpressionYield( CPythonExpressionChildrenHavingBase ):
 
     named_children = ( "expression", )
 
-    def __init__( self, expression, for_return, source_ref ):
+    def __init__( self, expression, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -40,10 +40,13 @@ class CPythonExpressionYield( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-        self.for_return = for_return
+        self.exception_preserving = False
 
-    def isForReturn( self ):
-        return self.for_return
+    def markAsExceptionPreserving( self ):
+        self.exception_preserving = True
+
+    def isExceptionPreserving( self ):
+        return self.exception_preserving
 
     getExpression = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 

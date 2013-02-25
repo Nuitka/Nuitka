@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,8 +23,7 @@ and cross-module optimizations are the most difficult to tackle.
 
 from .NodeBases import (
     CPythonClosureGiverNodeBase,
-    CPythonChildrenHaving,
-    CPythonClosureTaker
+    CPythonChildrenHaving
 )
 
 from .IndicatorMixins import MarkContainsTryExceptIndicator
@@ -36,7 +35,7 @@ from nuitka import (
 
 from nuitka.oset import OrderedSet
 
-class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureGiverNodeBase, \
+class CPythonModule( CPythonChildrenHaving, CPythonClosureGiverNodeBase,
                      MarkContainsTryExceptIndicator ):
     """ Module
 
@@ -48,9 +47,9 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureG
 
     named_children = ( "body", )
 
-    def __init__( self, name, package, source_ref ):
+    def __init__( self, name, package, is_main, source_ref ):
         assert type(name) is str, type(name)
-        assert "." not in name
+        assert "." not in name, name
         assert package is None or ( type( package ) is str and package != "" )
 
         CPythonClosureGiverNodeBase.__init__(
@@ -58,12 +57,6 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureG
             name        = name,
             code_prefix = "module",
             source_ref  = source_ref
-        )
-
-        CPythonClosureTaker.__init__(
-            self,
-            provider      = self,
-            early_closure = True
         )
 
         CPythonChildrenHaving.__init__(
@@ -76,16 +69,38 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureG
         self.package = package
         self.doc = None
 
+        # Indicator, if this is the top level module.
+        self.is_main = is_main
+
         self.variables = set()
 
         # The list functions contained in that module.
         self.functions = OrderedSet()
 
     def getDetails( self ):
-        return { "filename" : self.source_ref.getFilename()  }
+        return {
+            "filename" : self.source_ref.getFilename(),
+            "package"  : self.package,
+            "name"     : self.name
+        }
+
+    def asXml( self ):
+        # The class is new style, false alarm: pylint: disable=E1002
+        result = super( CPythonModule, self ).asXml()
+
+        for function_body in self.functions:
+            result.append( function_body.asXml() )
+
+        return result
 
     getBody = CPythonChildrenHaving.childGetter( "body" )
     setBody = CPythonChildrenHaving.childSetter( "body" )
+
+    def getParent( self ):
+        assert False
+
+    def getParentVariableProvider( self ):
+        return None
 
     def getVariables( self ):
         return self.variables
@@ -135,7 +150,11 @@ class CPythonModule( CPythonChildrenHaving, CPythonClosureTaker, CPythonClosureG
         return result
 
     def isEarlyClosure( self ):
+        # Modules should immediately closure variables on use, pylint: disable=R0201
         return True
+
+    def isMainModule( self ):
+        return self.is_main
 
     def getCodeName( self ):
         return "module_" + self.getFullName().replace( ".", "__" ).replace( "-", "_" )
@@ -159,6 +178,7 @@ class CPythonPackage( CPythonModule ):
             self,
             name       = name,
             package    = package,
+            is_main    = False,
             source_ref = source_ref
         )
 

@@ -1,4 +1,4 @@
-//     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+//     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -80,12 +80,17 @@ public:
     }
 
 #if PYTHON_VERSION >= 300
-    void del()
+    void del( bool tolerant )
     {
         if ( this->free_value )
         {
             // Free old value if any available and owned.
             Py_DECREF( this->object );
+        }
+        else if ( !tolerant )
+        {
+            PyErr_Format( PyExc_NameError, "free variable '%s' referenced before assignment in enclosing scope", Nuitka_String_AsString( this->var_name ) );
+            throw _PythonException();
         }
 
         this->object = NULL;
@@ -168,9 +173,9 @@ public:
     }
 
 #if PYTHON_VERSION >= 300
-    void del() const
+    void del( bool tolerant ) const
     {
-        this->storage->del();
+        this->storage->del( tolerant );
     }
 #endif
 
@@ -222,7 +227,11 @@ public:
     {
         if ( this->isInitialized() )
         {
+#if PYTHON_VERSION < 300
             int status = PyDict_SetItem(
+#else
+            int status = PyObject_SetItem(
+#endif
                 locals_dict,
                 this->getVariableName(),
                 this->asObject()

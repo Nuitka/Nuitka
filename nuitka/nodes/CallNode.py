@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,128 +21,111 @@ Function calls and generally calling expressions are the same thing. This is ver
 important, because it allows to predict most things, and avoid expensive operations like
 parameter parsing at run time.
 
-The call can be computed with a call registry.
+There will be a method "computeNodeCall" to aid predicting them.
 """
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
 
-from nuitka.transform.optimizations.registry import CallRegistry
-
 from .ConstantRefNode import CPythonExpressionConstantRef
+
 
 class CPythonExpressionCall( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_CALL"
 
-    named_children = ( "called", "positional_args", "pairs", "list_star_arg", "dict_star_arg" )
+    named_children = ( "called", "args", "kw" )
 
-    def __init__( self, called, positional_args, pairs, list_star_arg, dict_star_arg, source_ref ):
+    def __init__( self, called, args, kw, source_ref ):
         assert called.isExpression()
-
-        for positional_arg in positional_args:
-            assert positional_arg.isExpression()
-
-        assert type( pairs ) in ( list, tuple ), pairs
-
-        for pair in pairs:
-            assert pair.isExpressionKeyValuePair()
+        assert args.isExpression()
+        assert kw.isExpression()
 
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "called"          : called,
-                "positional_args" : tuple( positional_args ),
-                "pairs"           : tuple( pairs ),
-                "list_star_arg"   : list_star_arg,
-                "dict_star_arg"   : dict_star_arg
+                "called" : called,
+                "args"   : args,
+                "kw"     : kw,
             },
             source_ref = source_ref
         )
 
     getCalled = CPythonExpressionChildrenHavingBase.childGetter( "called" )
-    getPositionalArguments = CPythonExpressionChildrenHavingBase.childGetter( "positional_args" )
-    setPositionalArguments = CPythonExpressionChildrenHavingBase.childSetter( "positional_args" )
-    getNamedArgumentPairs = CPythonExpressionChildrenHavingBase.childGetter( "pairs" )
-    setNamedArgumentPairs = CPythonExpressionChildrenHavingBase.childSetter( "pairs" )
-    getStarListArg = CPythonExpressionChildrenHavingBase.childGetter( "list_star_arg" )
-    setStarListArg = CPythonExpressionChildrenHavingBase.childSetter( "list_star_arg" )
-    getStarDictArg = CPythonExpressionChildrenHavingBase.childGetter( "dict_star_arg" )
-    setStarDictArg = CPythonExpressionChildrenHavingBase.childSetter( "dict_star_arg" )
+    getCallArgs = CPythonExpressionChildrenHavingBase.childGetter( "args" )
+    getCallKw = CPythonExpressionChildrenHavingBase.childGetter( "kw" )
 
-    def isEmptyCall( self ):
-        return not self.getPositionalArguments() and not self.getNamedArgumentPairs() and \
-               not self.getStarListArg() and not self.getStarDictArg()
-
-    def hasOnlyPositionalArguments( self ):
-        return not self.getNamedArgumentPairs() and not self.getStarListArg() and \
-               not self.getStarDictArg()
-
-    def hasOnlyConstantArguments( self ):
-        for positional_arg in self.getPositionalArguments():
-            if not positional_arg.isExpressionConstantRef():
-                return False
-
-        for pair in self.getNamedArgumentPairs():
-            if not pair.getKey().isExpressionConstantRef():
-                return False
-
-            if not pair.getValue().isExpressionConstantRef():
-                return False
-
-        list_star_arg = self.getStarListArg()
-
-        if list_star_arg is not None and not list_star_arg.isExpressionConstantRef():
-            return False
-
-        dict_star_arg = self.getStarDictArg()
-
-        if dict_star_arg is not None and not dict_star_arg.isExpressionConstantRef():
-            return False
-
+    def isExpressionCall( self ):
         return True
 
     def computeNode( self, constraint_collection ):
-        star_list_arg = self.getStarListArg()
+        return self.getCalled().computeNodeCall(
+            call_node             = self,
+            constraint_collection = constraint_collection
+        )
 
-        if star_list_arg is not None:
-            if star_list_arg.isExpressionMakeSequence():
-                positional_args = self.getPositionalArguments()
+    def extractPreCallSideEffects( self ):
+        args = self.getCallArgs()
+        kw = self.getCallKw()
 
-                self.setPositionalArguments( positional_args + star_list_arg.getElements() )
-                self.setStarListArg( None )
-            elif star_list_arg.isExpressionConstantRef():
-                if star_list_arg.isKnownToBeIterable( count = None ):
-                    positional_args = self.getPositionalArguments()
+        return args.extractSideEffects() + kw.extractSideEffects()
 
-                    constant_nodes = []
 
-                    for constant in star_list_arg.getConstant():
-                        constant_nodes.append(
-                            CPythonExpressionConstantRef(
-                                constant   = constant,
-                                source_ref = star_list_arg.getSourceReference()
-                            )
-                        )
+class CPythonExpressionCallNoKeywords( CPythonExpressionCall ):
+    kind = "EXPRESSION_CALL_NO_KEYWORDS"
 
-                    self.setPositionalArguments( positional_args + tuple( constant_nodes ) )
-                    self.setStarListArg( None )
+    named_children = ( "called", "args", "kw" )
 
-            star_dict_arg = self.getStarDictArg()
+    def __init__( self, called, args, source_ref ):
+        assert called.isExpression()
 
-            if star_dict_arg is not None:
-                if star_dict_arg.isExpressionMakeDict():
-                    # TODO: Need to cleanup the named argument mess before it is possible.
-                    pass
-                elif star_dict_arg.isExpressionConstantRef():
-                    # TODO: Need to cleanup the named argument mess before it is possible.
-                    pass
+        CPythonExpressionCall.__init__(
+            self,
+            called = called,
+            args   = args,
+            kw     = CPythonExpressionConstantRef(
+                constant   = {},
+                source_ref = source_ref,
+            ),
+            source_ref = source_ref
+        )
 
-        # There is a whole registry dedicated to this.
-        return CallRegistry.computeCall( self, constraint_collection )
+class CPythonExpressionCallKeywordsOnly( CPythonExpressionCall ):
+    kind = "EXPRESSION_CALL_KEYWORDS_ONLY"
 
-    def isKnownToBeIterable( self, count ):
-        # Virtual method and unpredicted calls are unknown if they can be iterated at all,
-        # pylint: disable=R0201,W0613
-        return None
+    named_children = ( "called", "args", "kw" )
 
-    def extractSideEffects( self ):
-        return ( self, )
+    def __init__( self, called, kw, source_ref ):
+        assert called.isExpression()
+
+        CPythonExpressionCall.__init__(
+            self,
+            called = called,
+            args   = CPythonExpressionConstantRef(
+                constant   = (),
+                source_ref = source_ref,
+            ),
+            kw     = kw,
+            source_ref = source_ref
+        )
+
+
+class CPythonExpressionCallEmpty( CPythonExpressionCall ):
+    kind = "EXPRESSION_CALL_EMPTY"
+
+    named_children = ( "called", "args", "kw" )
+
+    def __init__( self, called, source_ref ):
+        assert called.isExpression()
+
+        CPythonExpressionCall.__init__(
+            self,
+            called = called,
+            args   = CPythonExpressionConstantRef(
+                constant   = (),
+                source_ref = source_ref
+            ),
+            kw     = CPythonExpressionConstantRef(
+                constant   = {},
+                source_ref = source_ref,
+            ),
+            source_ref = source_ref
+        )

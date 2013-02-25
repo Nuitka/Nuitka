@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,12 +28,7 @@ from .NodeBases import (
     CPythonNodeBase
 )
 
-from .NodeMakingHelpers import (
-    makeConstantReplacementNode,
-    wrapExpressionWithSideEffects
-)
-
-from nuitka.transform.optimizations import BuiltinOptimization
+from nuitka.optimizations import BuiltinOptimization
 
 from nuitka.Utils import python_version
 
@@ -64,7 +59,30 @@ class CPythonExpressionBuiltinBool( CPythonExpressionBuiltinTypeBase ):
 
     builtin_spec = BuiltinOptimization.builtin_bool_spec
 
+    def mayProvideReference( self ):
+        # Dedicated code returns "True" or "False" only, which requires no reference
+        return False
 
+    def computeNode( self, constraint_collection ):
+        value = self.getValue()
+
+        if value is not None:
+            truth_value = self.getValue().getTruthValue( constraint_collection )
+
+            if truth_value is not None:
+                from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects, makeConstantReplacementNode
+
+                result = wrapExpressionWithNodeSideEffects(
+                    new_node = makeConstantReplacementNode(
+                        constant = truth_value,
+                        node     = self,
+                    ),
+                    old_node = self.getValue()
+                )
+
+                return result, "new_constant", "Predicted truth value of builtin bool argument"
+
+        return CPythonExpressionBuiltinTypeBase.computeNode( self, constraint_collection )
 
 
 class CPythonExpressionBuiltinIntLongBase( CPythonChildrenHaving, CPythonNodeBase, \
@@ -72,6 +90,8 @@ class CPythonExpressionBuiltinIntLongBase( CPythonChildrenHaving, CPythonNodeBas
     named_children = ( "value", "base" )
 
     def __init__( self, value, base, source_ref ):
+        from .NodeMakingHelpers import makeConstantReplacementNode
+
         CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         if value is None:
@@ -161,10 +181,12 @@ if python_version < 300:
             )
 
             if new_node is self:
-                str_value = self.getValue().getStrValue()
+                str_value = self.getValue().getStrValue( constraint_collection )
 
                 if str_value is not None:
-                    new_node = wrapExpressionWithSideEffects(
+                    from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+
+                    new_node = wrapExpressionWithNodeSideEffects(
                         new_node = str_value,
                         old_node = self.getValue()
                     )

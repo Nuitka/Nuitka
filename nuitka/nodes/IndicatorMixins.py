@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,12 +30,26 @@ class MarkContainsTryExceptIndicator:
 
     def __init__( self ):
         self.try_except_containing = False
+        self.try_finally_containing = False
+        self.raise_containing = False
 
     def markAsTryExceptContaining( self ):
         self.try_except_containing = True
 
-    def needsFrameExceptionKeeper( self ):
+    def isTryExceptContaining( self ):
         return self.try_except_containing
+
+    def markAsTryFinallyContaining( self ):
+        self.try_finally_containing = True
+
+    def isTryFinallyContaining( self ):
+        return self.try_finally_containing
+
+    def markAsRaiseContaining( self ):
+        self.raise_containing = True
+
+    def isRaiseContaining( self ):
+        return self.raise_containing
 
 
 class MarkLocalsDictIndicator:

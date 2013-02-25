@@ -1,4 +1,4 @@
-//     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+//     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -65,6 +65,7 @@ public:
 private:
 
     PyObjectTemporary( const PyObjectTemporary &object ) { assert( false ); }
+    PyObjectTemporary() { assert( false ); };
 
     PyObject *object;
 };
@@ -88,6 +89,7 @@ public:
         assertObject( this->object );
 
         PyObject *result = this->object;
+
         this->object = NULL;
         return result;
     }
@@ -96,8 +98,13 @@ public:
     {
         assertObject( value );
 
-        this->object = INCREASE_REFCOUNT( value );
+        this->object = value;
         return this->object;
+    }
+
+    bool isKeeping() const
+    {
+        return this->object != NULL;
     }
 
 private:
@@ -119,11 +126,22 @@ public:
     ~PyObjectTempKeeper0()
     {}
 
-    PyObject *asObject()
+    PyObject *asObject0()
     {
         assertObject( this->object );
 
         PyObject *result = this->object;
+
+        this->object = NULL;
+        return result;
+    }
+
+    PyObject *asObject()
+    {
+        assertObject( this->object );
+
+        PyObject *result = INCREASE_REFCOUNT( this->object );
+
         this->object = NULL;
         return result;
     }

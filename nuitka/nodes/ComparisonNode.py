@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,7 +23,6 @@ from .NodeBases import CPythonExpressionChildrenHavingBase
 
 from nuitka import PythonOperators
 
-from .NodeMakingHelpers import getComputationResult
 
 class CPythonExpressionComparison( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_COMPARISON"
@@ -35,9 +34,11 @@ class CPythonExpressionComparison( CPythonExpressionChildrenHavingBase ):
         assert right.isExpression()
         assert type( comparator ) is str, comparator
 
+        assert comparator in PythonOperators.all_comparison_functions
+
         CPythonExpressionChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "left"  : left,
                 "right" : right
             },
@@ -45,6 +46,9 @@ class CPythonExpressionComparison( CPythonExpressionChildrenHavingBase ):
         )
 
         self.comparator = comparator
+
+        if comparator in ( "Is", "IsNot" ):
+            assert self.__class__ is not CPythonExpressionComparison
 
     def getOperands( self ):
         return (
@@ -71,6 +75,8 @@ class CPythonExpressionComparison( CPythonExpressionChildrenHavingBase ):
             left_value = left.getCompileTimeConstant()
             right_value = right.getCompileTimeConstant()
 
+            from .NodeMakingHelpers import getComputationResult
+
             return getComputationResult(
                 node        = self,
                 computation = lambda : self.getSimulator()(
@@ -81,3 +87,115 @@ class CPythonExpressionComparison( CPythonExpressionChildrenHavingBase ):
             )
 
         return self, None, None
+
+    def computeNodeOperationNot( self, not_node, constraint_collection ):
+        if self.comparator in PythonOperators.comparison_inversions:
+            left, right = self.getOperands()
+
+            from .NodeMakingHelpers import makeComparisonNode
+
+            result = makeComparisonNode(
+                left       = left,
+                right      = right,
+                comparator = PythonOperators.comparison_inversions[ self.comparator ],
+                source_ref = self.source_ref
+            )
+
+            return result, "new_expression", "Replaced negated comparison with inverse comparision."
+
+        return not_node, None, None
+
+    def mayProvideReference( self ):
+        # Dedicated code returns "True" or "False" only, which requires no reference,
+        # except for rich comparisons, which do.
+        return self.comparator in PythonOperators.rich_comparison_functions
+
+
+class CPythonExpressionComparisonIsIsNotBase( CPythonExpressionComparison ):
+    def __init__( self, left, right, comparator, source_ref ):
+        CPythonExpressionComparison.__init__(
+            self,
+            left       = left,
+            right      = right,
+            comparator = comparator,
+            source_ref = source_ref
+        )
+
+        assert comparator in ( "Is", "IsNot" )
+
+        self.match_value = comparator == "Is"
+
+    def isExpressionComparison( self ):
+        return True
+
+    def computeNode( self, constraint_collection ):
+        left, right = self.getOperands()
+
+        if constraint_collection.mustAlias( left, right ):
+            from .NodeMakingHelpers import makeConstantReplacementNode, wrapExpressionWithSideEffects
+
+            result = makeConstantReplacementNode(
+                constant = self.match_value,
+                node     = self
+            )
+
+            if left.mayHaveSideEffects( constraint_collection ) or \
+               right.mayHaveSideEffects( constraint_collection ):
+                result = wrapExpressionWithSideEffects(
+                    side_effects = self.extractSideEffects(),
+                    old_node     = self,
+                    new_node     = result
+                )
+
+            return result, "new_constant", "Determined values to alias and therefore result of %s comparison" % self.comparator
+
+        if constraint_collection.mustNotAlias( left, right ):
+            from .NodeMakingHelpers import makeConstantReplacementNode, wrapExpressionWithSideEffects
+
+            result = makeConstantReplacementNode(
+                constant = not self.match_value,
+                node     = self
+            )
+
+            if left.mayHaveSideEffects( constraint_collection ) or \
+               right.mayHaveSideEffects( constraint_collection ):
+                result = wrapExpressionWithSideEffects(
+                    side_effects = self.extractSideEffects(),
+                    old_node     = self,
+                    new_node     = result
+                )
+
+            return result, "new_constant", "Determined values to not alias and therefore result of %s comparison" % self.comparator
+
+        return CPythonExpressionComparison.computeNode( self, constraint_collection )
+
+    def extractSideEffects( self ):
+        left, right = self.getOperands()
+
+        return left.extractSideEffects() + right.extractSideEffects()
+
+
+class CPythonExpressionComparisonIs( CPythonExpressionComparisonIsIsNotBase ):
+    kind = "EXPRESSION_COMPARISON_IS"
+
+    def __init__( self, left, right, source_ref ):
+        CPythonExpressionComparisonIsIsNotBase.__init__(
+            self,
+            left       = left,
+            right      = right,
+            comparator = "Is",
+            source_ref = source_ref
+    )
+
+
+class CPythonExpressionComparisonIsNOT( CPythonExpressionComparisonIsIsNotBase ):
+    kind = "EXPRESSION_COMPARISON_IS_NOT"
+
+    def __init__( self, left, right, source_ref ):
+        CPythonExpressionComparisonIsIsNotBase.__init__(
+            self,
+            left       = left,
+            right      = right,
+            comparator = "IsNot",
+            source_ref = source_ref
+    )

@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,8 +22,6 @@ difference.
 """
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
-
-from .NodeMakingHelpers import getComputationResult
 
 from nuitka import PythonOperators
 
@@ -104,6 +102,8 @@ class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
                             if math.log10( abs( left_value ) ) + math.log10( abs( right_value ) ) > 20:
                                 return self, None, None
 
+            from .NodeMakingHelpers import getComputationResult
+
             return getComputationResult(
                 node        = self,
                 computation = lambda : self.getSimulator()(
@@ -146,6 +146,9 @@ class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
 
         if operand.isCompileTimeConstant():
             operand_value = operand.getCompileTimeConstant()
+
+            from .NodeMakingHelpers import getComputationResult
+
             return getComputationResult(
                 node        = self,
                 computation = lambda : self.getSimulator()(
@@ -173,6 +176,12 @@ class CPythonExpressionOperationNOT( CPythonExpressionOperationUnary ):
             source_ref = source_ref
         )
 
+    def computeNode( self, constraint_collection ):
+        return self.getOperand().computeNodeOperationNot(
+            not_node              = self,
+            constraint_collection = constraint_collection
+        )
+
     def getTruthValue( self, constraint_collection ):
         result = self.getOperand().getTruthValue( constraint_collection )
 
@@ -184,14 +193,10 @@ class CPythonExpressionOperationNOT( CPythonExpressionOperationUnary ):
         if operand.mayHaveSideEffects( constraint_collection ):
             return True
 
-        # TODO: Find the common ground of these, and make it an expression method.
-        if operand.isExpressionMakeSequence():
-            return False
+        return operand.mayHaveSideEffectsBool( constraint_collection )
 
-        if operand.isExpressionMakeDict():
-            return False
-
-        return True
+    def mayHaveSideEffectsBool( self, constraint_collection ):
+        return self.getOperand().mayHaveSideEffectsBool( constraint_collection )
 
     def extractSideEffects( self ):
         operand = self.getOperand()
@@ -204,6 +209,11 @@ class CPythonExpressionOperationNOT( CPythonExpressionOperationUnary ):
             return self.getOperand().extractSideEffects()
 
         return ( self, )
+
+    def mayProvideReference( self ):
+        # Dedicated code returns "True" or "False" only, which requires no reference,
+        # except for rich comparisons, which do.
+        return False
 
 
 class CPythonExpressionOperationBinaryInplace( CPythonExpressionOperationBinary ):

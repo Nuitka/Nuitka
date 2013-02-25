@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,33 +31,12 @@ from . import (
 )
 
 from nuitka import (
+    PythonOperators,
     Constants,
     Tracing,
     Options,
     Utils
 )
-
-def mangleAttributeName( attribute_name, node ):
-    if not attribute_name.startswith( "__" ) or attribute_name.endswith( "__" ):
-        return attribute_name
-
-    seen_function = False
-
-    while node is not None:
-        node = node.getParent()
-
-        if node is None:
-            break
-
-        if node.isExpressionFunctionBody() and node.isClassDictCreation():
-            if seen_function:
-                return "_" + node.getName() + attribute_name
-            else:
-                return attribute_name
-        elif node.isExpressionFunctionBody():
-            seen_function = True
-
-    return attribute_name
 
 def generateTupleCreationCode( elements, context ):
     if _areConstants( elements ):
@@ -106,21 +85,39 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
 
         if inverted:
             value = not value
+            inverted = False
 
         if value:
             result = Generator.getTrueExpressionCode()
         else:
             result = Generator.getFalseExpressionCode()
     elif condition.isExpressionComparison():
-        result = generateComparisonExpressionBoolCode(
-            comparison_expression = condition,
-            context               = context
+        left = generateExpressionCode(
+            expression = condition.getLeft(),
+            context    = context
+        )
+        right = generateExpressionCode(
+            expression = condition.getRight(),
+            context    = context
+        )
+
+        comparator = condition.getComparator()
+
+        # Do not allow this, expected to be optimized away.
+        assert not inverted or comparator not in PythonOperators.comparison_inversions, condition
+
+        result = Generator.getComparisonExpressionBoolCode(
+            comparator = comparator,
+            left       = left,
+            right      = right
         )
 
         if inverted:
             result = Generator.getConditionNotBoolCode(
                 condition = result
             )
+
+            inverted = False
     elif condition.isExpressionOperationNOT():
         if not inverted:
             result = Generator.getConditionNotBoolCode(
@@ -129,6 +126,8 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
                     context   = context
                 )
             )
+
+            inverted = False
         else:
             result = generateConditionCode(
                 condition = condition.getOperand(),
@@ -170,7 +169,7 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
                     )
                 )
             else:
-                assert False
+                assert False, condition
         else:
             result = Generator.getConditionSelectionCode(
                 condition_code = generateConditionCode(
@@ -186,20 +185,49 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
                     context   = context
                 )
             )
+    elif condition.isExpressionBuiltinHasattr():
+        result = Generator.getAttributeCheckBoolCode(
+            attribute = generateExpressionCode(
+                expression = condition.getAttribute(),
+                context    = context
+            ),
+            source    = generateExpressionCode(
+                expression = condition.getLookupSource(),
+                context    = context
+            )
+        )
+    elif condition.isExpressionBuiltinIsinstance():
+        result = Generator.getBuiltinIsinstanceBoolCode(
+            inst_identifier = generateExpressionCode(
+                expression = condition.getInstance(),
+                context    = context
+            ),
+            cls_identifier    = generateExpressionCode(
+                expression = condition.getCls(),
+                context    = context
+            )
+        )
     else:
         condition_identifier = generateExpressionCode(
-            context    = context,
-            expression = condition
+            expression = condition,
+            context    = context
         )
 
         if inverted:
             result = Generator.getConditionCheckFalseCode(
                 condition = condition_identifier
             )
+
+            inverted = False
         else:
             result = Generator.getConditionCheckTrueCode(
                 condition = condition_identifier
             )
+
+    if inverted:
+        result = Generator.getConditionNotBoolCode(
+            condition = result
+        )
 
     assert type( result ) is str, result
 
@@ -208,31 +236,23 @@ def generateConditionCode( condition, context, inverted = False, allow_none = Fa
 def generateFunctionCallCode( call_node, context ):
     assert call_node.getFunction().isExpressionFunctionCreation()
 
-    function_body = call_node.getFunction().getFunctionBody()
+    function_body = call_node.getFunction().getFunctionRef().getFunctionBody()
+
+    # TODO: Can't be right and needs improvement. We may not be the exclusive owners of
+    # the function body. Instead of may be called directly, and with defaults both. For
+    # that, two instances of the function will be needed, one with, and one without the
+    # defaults and annotations.  Currently the case cannot happen, for as don't as we only
+    # do this ourselves, or only for functions without defaults and annotations.
 
     function_identifier = generateFunctionBodyCode(
         function_body  = function_body,
-        defaults       = (), # TODO: Can't be right or needs check
+        defaults       = (),
+        kw_defaults    = (),
+        annotations    = None,
         context        = context
     )
 
     extra_arguments = []
-
-    if call_node.isExpressionClassDefinition():
-        extra_arguments.append(
-            generateExpressionCode(
-                expression = call_node.getMetaclass(),
-                allow_none = True,
-                context    = context
-            )
-        )
-
-        extra_arguments.append(
-            generateTupleCreationCode(
-                elements = call_node.getBases(),
-                context  = context
-            )
-        )
 
     return Generator.getDirectionFunctionCallCode(
         function_identifier = function_identifier,
@@ -240,17 +260,34 @@ def generateFunctionCallCode( call_node, context ):
             expressions = call_node.getArgumentValues(),
             context     = context
         ),
-        closure_variables  = function_body.getClosureVariables(),
-        extra_arguments    = extra_arguments,
-        context            = context
+        closure_variables   = function_body.getClosureVariables(),
+        extra_arguments     = extra_arguments,
+        context             = context
     )
 
-def generateFunctionBodyCode( function_body, defaults, context ):
-    function_context = Contexts.PythonFunctionContext(
-        parent         = context,
-        function       = function_body
-    )
+_generated_functions = {}
 
+def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations, context ):
+    function_identifier = function_body.getCodeName()
+
+    if function_identifier in _generated_functions:
+        return _generated_functions[ function_identifier ]
+
+    # TODO: Actually that will become possible to happen and should be dealt with.
+    assert not function_body.needsCreation() or not function_body.needsDirectCall()
+
+    if function_body.needsCreation():
+        function_context = Contexts.PythonFunctionCreatedContext(
+            parent   = context,
+            function = function_body
+        )
+    else:
+        function_context = Contexts.PythonFunctionDirectContext(
+            parent   = context,
+            function = function_body
+        )
+
+    # TODO: Generate both codes, and base direct/etc. decisions on context.
     function_codes = generateStatementSequenceCode(
         statement_sequence = function_body.getBody(),
         allow_none         = True,
@@ -269,63 +306,90 @@ def generateFunctionBodyCode( function_body, defaults, context ):
             context  = context
         )
     else:
-        defaults_identifier = Generator.NullIdentifier()
+        defaults_identifier = Generator.getConstantHandle(
+            constant = None,
+            context  = context
+        )
+
+    if kw_defaults:
+        kw_defaults_identifier = generateExpressionCode(
+            expression = kw_defaults,
+            context    = context
+        )
+    else:
+        kw_defaults_identifier = Generator.getConstantHandle(
+            constant = None,
+            context  = context
+        )
+
+    annotations_identifier = generateExpressionCode(
+        expression = annotations,
+        allow_none = True,
+        context    = context,
+    )
 
     if function_body.isGenerator():
         function_code = Generator.getGeneratorFunctionCode(
-            context             = function_context,
-            function_name       = function_body.getFunctionName(),
-            function_identifier = function_body.getCodeName(),
-            parameters          = parameters,
-            closure_variables   = function_body.getClosureVariables(),
-            user_variables      = function_body.getUserLocalVariables(),
-            tmp_keepers         = function_context.getTempKeeperUsages(),
-            defaults_identifier = defaults_identifier,
-            needs_creation      = function_body.needsCreation(),
-            needs_return        = function_body.needsExceptionGeneratorReturn(),
-            source_ref          = function_body.getSourceReference(),
-            function_codes      = function_codes,
-            function_doc        = function_body.getDoc()
+            context                = function_context,
+            function_name          = function_body.getFunctionName(),
+            function_identifier    = function_identifier,
+            parameters             = parameters,
+            closure_variables      = function_body.getClosureVariables(),
+            user_variables         = function_body.getUserLocalVariables(),
+            tmp_keepers            = function_context.getTempKeeperUsages(),
+            defaults_identifier    = defaults_identifier,
+            kw_defaults_identifier = kw_defaults_identifier,
+            annotations_identifier = annotations_identifier,
+            source_ref             = function_body.getSourceReference(),
+            function_codes         = function_codes,
+            function_doc           = function_body.getDoc()
         )
     else:
         function_code = Generator.getFunctionCode(
-            context             = function_context,
-            function_name       = function_body.getFunctionName(),
-            function_identifier = function_body.getCodeName(),
-            parameters          = parameters,
-            closure_variables   = function_body.getClosureVariables(),
-            user_variables      = function_body.getUserLocalVariables(),
-            tmp_keepers         = function_context.getTempKeeperUsages(),
-            defaults_identifier = defaults_identifier,
-            needs_creation      = function_body.needsCreation(),
-            source_ref          = function_body.getSourceReference(),
-            function_codes      = function_codes,
-            function_doc        = function_body.getDoc()
+            context                = function_context,
+            function_name          = function_body.getFunctionName(),
+            function_identifier    = function_identifier,
+            parameters             = parameters,
+            closure_variables      = function_body.getClosureVariables(),
+            user_variables         = function_body.getUserLocalVariables(),
+            tmp_keepers            = function_context.getTempKeeperUsages(),
+            defaults_identifier    = defaults_identifier,
+            kw_defaults_identifier = kw_defaults_identifier,
+            annotations_identifier = annotations_identifier,
+            source_ref             = function_body.getSourceReference(),
+            function_codes         = function_codes,
+            function_doc           = function_body.getDoc()
         )
 
     function_decl = Generator.getFunctionDecl(
-        function_identifier          = function_body.getCodeName(),
+        function_identifier          = function_identifier,
         defaults_identifier          = defaults_identifier,
+        kw_defaults_identifier       = kw_defaults_identifier,
         closure_variables            = function_body.getClosureVariables(),
         function_parameter_variables = function_body.getParameters().getVariables(),
         context                      = function_context
     )
 
     context.addFunctionCodes(
-        code_name     = function_body.getCodeName(),
+        code_name     = function_identifier,
         function_decl = function_decl,
         function_code = function_code
     )
 
     if function_body.needsCreation():
-        return Generator.getFunctionCreationCode(
-            function_identifier = function_body.getCodeName(),
-            defaults_identifier = defaults_identifier,
-            closure_variables   = function_body.getClosureVariables(),
-            context             = context
+        result = Generator.getFunctionCreationCode(
+            function_identifier    = function_body.getCodeName(),
+            defaults_identifier    = defaults_identifier,
+            kw_defaults_identifier = kw_defaults_identifier,
+            closure_variables      = function_body.getClosureVariables(),
+            context                = context
         )
     else:
-        return function_body.getCodeName()
+        result = function_body.getCodeName()
+
+    _generated_functions[ function_identifier ] = result
+
+    return result
 
 def generateOperationCode( operator, operands, context ):
     return Generator.getOperationCode(
@@ -351,23 +415,6 @@ def generateComparisonExpressionCode( comparison_expression, context ):
         left       = left,
         right      = right
     )
-
-def generateComparisonExpressionBoolCode( comparison_expression, context ):
-    left = generateExpressionCode(
-        expression = comparison_expression.getLeft(),
-        context    = context
-    )
-    right = generateExpressionCode(
-        expression = comparison_expression.getRight(),
-        context    = context
-    )
-
-    return Generator.getComparisonExpressionBoolCode(
-        comparator = comparison_expression.getComparator(),
-        left       = left,
-        right      = right
-    )
-
 
 def generateDictionaryCreationCode( pairs, context ):
     keys = []
@@ -538,57 +585,30 @@ def generateSliceLookupCode( expression, context ):
                 )
             )
 
-def generateCallNamedArgumentsCode( pairs, context ):
-    if pairs:
-        return generateDictionaryCreationCode(
-            pairs      = pairs,
+def generateCallCode( call_node, context ):
+    return Generator.getCallCode(
+        called_identifier    = generateExpressionCode(
+            expression = call_node.getCalled(),
+            context    = context
+        ),
+        argument_tuple       = generateExpressionCode(
+            expression = call_node.getCallArgs(),
+            context    = context
+        ),
+        argument_dictionary  = generateExpressionCode(
+            expression = call_node.getCallKw(),
             context    = context
         )
-    else:
-        return None
-
-def generateCallCode( call_node, context ):
-    # TODO: Misnomer
-    called_identifier = generateExpressionCode(
-        expression = call_node.getCalled(),
-        context    = context
     )
 
-    if call_node.getPositionalArguments():
-        positional_args_identifier = generateTupleCreationCode(
-            elements = call_node.getPositionalArguments(),
-            context  = context
-        )
-    else:
-        positional_args_identifier = None
-
-    kw_identifier = generateCallNamedArgumentsCode(
-        pairs   = call_node.getNamedArgumentPairs(),
-        context = context
-    )
-
-    star_list_identifier = generateExpressionCode(
-        expression = call_node.getStarListArg(),
-        allow_none = True,
-        context    = context
-    )
-
-    star_dict_identifier = generateExpressionCode(
-        expression = call_node.getStarDictArg(),
-        allow_none = True,
-        context    = context
-    )
-
-    return Generator.getCallCode(
-        called_identifier    = called_identifier,
-        argument_tuple       = positional_args_identifier,
-        argument_dictionary  = kw_identifier,
-        star_list_identifier = star_list_identifier,
-        star_dict_identifier = star_dict_identifier,
-    )
 
 def _decideLocalsMode( provider ):
-    if provider.isExpressionFunctionBody() and ( provider.isEarlyClosure() or provider.isUnoptimized() ):
+    # TODO: This information should be in the node instead, and not decided during code
+    # generation, as optimization needs to know it. It should also be sticky and safe
+    # against inline this way.
+    if Utils.python_version >= 300:
+        mode = "updated"
+    elif provider.isExpressionFunctionBody() and ( provider.isEarlyClosure() or provider.isUnoptimized() ):
         mode = "updated"
     else:
         mode = "copy"
@@ -698,6 +718,8 @@ def generateExpressionCode( expression, context, allow_none = False ):
             context  = context
         )
     elif expression.isExpressionMakeDict():
+        assert expression.getPairs()
+
         identifier = generateDictionaryCreationCode(
             pairs   = expression.getPairs(),
             context = context
@@ -707,19 +729,14 @@ def generateExpressionCode( expression, context, allow_none = False ):
             call_node = expression,
             context   = context
         )
-    elif expression.isExpressionFunctionCall() or expression.isExpressionClassDefinition():
+    elif expression.isExpressionFunctionCall():
         identifier = generateFunctionCallCode(
             call_node = expression,
             context   = context
         )
     elif expression.isExpressionAttributeLookup():
-        attribute_name = mangleAttributeName(
-            attribute_name = expression.getAttributeName(),
-            node           = expression
-        )
-
         identifier = Generator.getAttributeLookupCode(
-            attribute = context.getConstantHandle( attribute_name ),
+            attribute = context.getConstantHandle( expression.getAttributeName() ),
             source    = makeExpressionCode( expression.getLookupSource() ),
         )
     elif expression.isExpressionSpecialAttributeLookup():
@@ -727,7 +744,23 @@ def generateExpressionCode( expression, context, allow_none = False ):
             attribute = context.getConstantHandle( expression.getAttributeName() ),
             source    = makeExpressionCode( expression.getLookupSource() ),
         )
-
+    elif expression.isExpressionBuiltinHasattr():
+        identifier = Generator.getAttributeCheckCode(
+            attribute = makeExpressionCode( expression.getAttribute() ),
+            source    = makeExpressionCode( expression.getLookupSource() ),
+        )
+    elif expression.isExpressionBuiltinGetattr():
+        identifier = Generator.getAttributeGetCode(
+            source    = makeExpressionCode( expression.getLookupSource() ),
+            attribute = makeExpressionCode( expression.getAttribute() ),
+            default   = makeExpressionCode( expression.getDefault(), allow_none = True )
+        )
+    elif expression.isExpressionBuiltinSetattr():
+        identifier = Generator.getAttributeSetCode(
+            source    = makeExpressionCode( expression.getLookupSource() ),
+            attribute = makeExpressionCode( expression.getAttribute() ),
+            value     = makeExpressionCode( expression.getValue() )
+        )
     elif expression.isExpressionImportName():
         identifier = Generator.getImportNameCode(
             import_name = context.getConstantHandle( expression.getImportName() ),
@@ -836,24 +869,11 @@ def generateExpressionCode( expression, context, allow_none = False ):
         )
     elif expression.isExpressionFunctionCreation():
         identifier = generateFunctionBodyCode(
-            function_body  = expression.getFunctionBody(),
+            function_body  = expression.getFunctionRef().getFunctionBody(),
             defaults       = expression.getDefaults(),
+            kw_defaults    = expression.getKwDefaults(),
+            annotations    = expression.getAnnotations(),
             context        = context
-        )
-    elif expression.isExpressionClassCreation():
-        context.addGlobalVariableNameUsage( "__metaclass__" )
-
-        identifier = Generator.getClassCreationCode(
-            metaclass_global_code = Generator.getMetaclassVariableCode(
-                context = context
-            ),
-            name_identifier       = Generator.getConstantHandle(
-                context  = context,
-                constant = expression.getClassName()
-            ),
-            dict_identifier       = makeExpressionCode(
-                expression = expression.getClassDict()
-            )
         )
     elif expression.isExpressionComparison():
         identifier = generateComparisonExpressionCode(
@@ -865,7 +885,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
             identifier = makeExpressionCode(
                 expression = expression.getExpression()
             ),
-            for_return = expression.isForReturn()
+            in_handler = expression.isExceptionPreserving()
         )
     elif expression.isExpressionImportModule():
         identifier = generateImportModuleCode(
@@ -951,7 +971,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
                 expression = expression.getPositionalArgument(),
                 allow_none = True
             ),
-            dict_identifier = generateCallNamedArgumentsCode(
+            dict_identifier = generateDictionaryCreationCode(
                 pairs    = expression.getNamedArgumentPairs(),
                 context  = context
             )
@@ -1019,19 +1039,11 @@ def generateExpressionCode( expression, context, allow_none = False ):
             exception_type = expression.getExceptionName(),
         )
     elif expression.isExpressionAssignmentTempKeeper():
-        source_identifier = makeExpressionCode( expression.getAssignSource() )
-
-        ref_count = source_identifier.getCheapRefCount()
-
-        identifier = Generator.Identifier(
-            "%s.assign( %s )" % (
-                expression.getVariableName(),
-                source_identifier.getCodeExportRef()
-            ),
-            ref_count
+        identifier = Generator.getAssignmentTempKeeperCode(
+            variable          = expression.getVariable(),
+            source_identifier = makeExpressionCode( expression.getAssignSource() ),
+            context           = context
         )
-
-        context.addTempKeeperUsage( expression.getVariableName(), ref_count )
     elif expression.isExpressionBuiltinInt():
         assert expression.getValue() is not None or expression.getBase() is not None
 
@@ -1070,10 +1082,15 @@ def generateExpressionCode( expression, context, allow_none = False ):
             key_identifier   = makeExpressionCode( expression.getKey() ),
             value_identifier = makeExpressionCode( expression.getValue() ),
         )
+    elif expression.isExpressionDictOperationGet():
+        identifier = Generator.getDictOperationGetCode(
+            dict_identifier    = makeExpressionCode( expression.getDict() ),
+            key_identifier     = makeExpressionCode( expression.getKey() ),
+        )
     elif expression.isExpressionTempKeeperRef():
-        identifier = Generator.Identifier(
-            "%s.asObject()" % expression.getVariableName(),
-            1
+        identifier = Generator.getTempKeeperHandle(
+            variable = expression.getVariable(),
+            context  = context
         )
     elif expression.isExpressionSideEffects():
         identifier = Generator.getSideEffectsCode(
@@ -1084,17 +1101,20 @@ def generateExpressionCode( expression, context, allow_none = False ):
             identifier   = makeExpressionCode( expression.getExpression() )
         )
     elif expression.isExpressionBuiltinSuper():
-        type_identifier = makeExpressionCode( expression.getType(), allow_none = True )
-
-        if type_identifier is None:
-            type_identifier = None
-
-        object_identifier = makeExpressionCode( expression.getObject(), allow_none = True )
-
-
         identifier = Generator.getBuiltinSuperCode(
-            type_identifier   = type_identifier,
-            object_identifier = object_identifier
+            type_identifier   = makeExpressionCode( expression.getType(), allow_none = True ),
+            object_identifier = makeExpressionCode( expression.getObject(), allow_none = True )
+        )
+    elif expression.isExpressionBuiltinIsinstance():
+        identifier = Generator.getBuiltinIsinstanceCode(
+            inst_identifier = makeExpressionCode( expression.getInstance(), allow_none = True ),
+            cls_identifier  = makeExpressionCode( expression.getCls(), allow_none = True )
+        )
+    elif expression.isExpressionSelectMetaclass():
+        identifier = Generator.getSelectMetaclassCode(
+            metaclass_identifier = makeExpressionCode( expression.getMetaclass(), allow_none = True ),
+            bases_identifier     = makeExpressionCode( expression.getBases() ),
+            context              = context
         )
     elif Utils.python_version < 300 and expression.isExpressionBuiltinExecfile():
         identifier = generateExecfileCode(
@@ -1198,9 +1218,10 @@ def generateAssignmentSliceCode( lookup_source, lower, upper, value, context ):
 
 
 
-def generateDelVariableCode( variable_ref, context ):
+def generateDelVariableCode( variable_ref, tolerant, context ):
     return Generator.getVariableDelCode(
         variable = variable_ref.getVariable(),
+        tolerant = tolerant,
         context  = context
     )
 
@@ -1246,17 +1267,13 @@ def generateDelSliceCode( lookup_source, lower, upper, context ):
         )
 
 def generateDelAttributeCode( statement, context ):
-    attribute_name = mangleAttributeName(
-        attribute_name = statement.getAttributeName(),
-        node           = statement
-    )
     return Generator.getAttributeDelCode(
         target    = generateExpressionCode(
             expression = statement.getLookupSource(),
             context    = context
         ),
         attribute = context.getConstantHandle(
-            constant = attribute_name
+            constant = statement.getAttributeName()
         )
     )
 
@@ -1367,21 +1384,8 @@ def generateExecCode( exec_def, context ):
         locals_identifier  = locals_identifier,
         future_flags       = Generator.getFutureFlagsCode(
             future_spec = exec_def.getSourceReference().getFutureSpec()
-        )
-    )
-
-def generateExecCodeInline( exec_def, context ):
-    exec_context = Contexts.PythonExecInlineContext(
-        parent = context
-    )
-
-    codes = generateStatementSequenceCode(
-        statement_sequence = exec_def.getBody(),
-        context            = exec_context
-    )
-
-    return Generator.getBlockCode(
-        codes = codes
+        ),
+        source_ref         = exec_def.getSourceReference()
     )
 
 def generateTryExceptCode( statement, context ):
@@ -1389,58 +1393,43 @@ def generateTryExceptCode( statement, context ):
 
     assert tried_block.mayRaiseException( BaseException )
 
-    # Try to find "simple code" cases. TODO: this should be more general, but that's what
-    # is needed immediately.
-    tried_statements = tried_block.getStatements()
+    if statement.isStatementTryFinallyOptimized():
+        tried_statements = tried_block.getStatements()
 
-    if len( tried_statements ) == 1:
+        assert len( tried_statements ) == 1
         tried_statement = tried_statements[0]
 
-        if tried_statement.isStatementAssignmentVariable():
-            source = tried_statement.getAssignSource()
+        source = tried_statement.getAssignSource()
 
-            if source.isExpressionBuiltinNext1():
-                if not source.getValue().mayRaiseException( BaseException ):
-                    # Note: Now we know the source lookup is the only thing that may
-                    # raise.
+        assert source.isExpressionBuiltinNext1()
+        assert not source.getValue().mayRaiseException( BaseException )
 
-                    handlers = statement.getExceptionHandlers()
+        handlers = statement.getExceptionHandlers()
+        assert len( handlers ) == 1
 
-                    if len( handlers ) == 1:
-                        catched_types = handlers[0].getExceptionTypes()
+        temp_identifier = Generator.getTryNextExceptStopIterationIdentifier(
+            context = context
+        )
 
-                        if len( catched_types ) == 1:
-                            catched_type = catched_types[0]
-                            if catched_type.isExpressionBuiltinExceptionRef():
-                                if catched_type.getExceptionName() == "StopIteration":
-                                    if handlers[0].getExceptionBranch().isStatementAbortative():
+        assign_code = generateAssignmentVariableCode(
+            variable_ref = tried_statement.getTargetVariableRef(),
+            value        = temp_identifier,
+            context      = context
+        )
 
-                                        temp_number = context.allocateTryNumber()
-
-                                        return """\
-PyObject *_tmp_unpack_%(tmp_count)d = ITERATOR_NEXT( %(source_identifier)s );
-
-if ( _tmp_unpack_%(tmp_count)d == NULL )
-{
-%(handler_code)s
-}
-%(assignment_code)s""" % {
-    "tmp_count" : temp_number,
-    "handler_code" : Generator.indented( generateStatementSequenceCode(
-        statement_sequence = handlers[0].getExceptionBranch(),
-        allow_none         = True,
-        context            = context
-     ) ),
-     "assignment_code" : generateAssignmentVariableCode(
-        variable_ref = tried_statement.getTargetVariableRef(),
-        value        = Generator.Identifier( "_tmp_unpack_%d" % temp_number, 1 ),
-        context      = context
-     ),
-     "source_identifier" : generateExpressionCode(
-        expression = source.getValue(),
-        context    = context
-     ).getCodeTemporaryRef()
-}
+        return Generator.getTryNextExceptStopIterationCode(
+            handler_code      = generateStatementSequenceCode(
+                statement_sequence = handlers[0].getExceptionBranch(),
+                allow_none         = True,
+                context            = context
+            ),
+            temp_identifier   = temp_identifier,
+            assign_code       = assign_code,
+            source_identifier =         generateExpressionCode(
+                expression = source.getValue(),
+                context    = context
+            )
+        )
 
     handler_codes = []
 
@@ -1479,10 +1468,18 @@ def generateRaiseCode( statement, context ):
     exception_type  = statement.getExceptionType()
     exception_value = statement.getExceptionValue()
     exception_tb    = statement.getExceptionTrace()
+    exception_cause = statement.getExceptionCause()
+
+    # Exception cause is only possible with simple raise form.
+    if exception_cause is not None:
+        assert exception_type is not None
+        assert exception_value is None
+        assert exception_tb is None
 
     if exception_type is None:
         return Generator.getReRaiseExceptionCode(
-            local = statement.isReraiseExceptionLocal()
+            local = statement.isReraiseExceptionLocal(),
+            final = context.getTryFinallyCount() if statement.isReraiseExceptionFinally() else None,
         )
     elif exception_value is None:
         return Generator.getRaiseExceptionCode(
@@ -1492,6 +1489,11 @@ def generateRaiseCode( statement, context ):
             ),
             exception_value_identifier = None,
             exception_tb_identifier    = None,
+            exception_cause_identifier = generateExpressionCode(
+                expression  = exception_cause,
+                allow_none  = True,
+                context     = context,
+            ),
             exception_tb_maker         = Generator.getTracebackMakingIdentifier(
                 context = context,
             )
@@ -1507,6 +1509,7 @@ def generateRaiseCode( statement, context ):
                 context    = context
             ),
             exception_tb_identifier    = None,
+            exception_cause_identifier = None,
             exception_tb_maker         = Generator.getTracebackMakingIdentifier(
                 context = context,
             )
@@ -1525,6 +1528,7 @@ def generateRaiseCode( statement, context ):
                 expression = exception_tb,
                 context    = context
             ),
+            exception_cause_identifier = None,
             exception_tb_maker         = None
         )
 
@@ -1631,21 +1635,29 @@ def generatePrintCode( statement, target_file, context ):
     )
 
 def generateBranchCode( statement, context ):
+    yes_codes      = generateStatementSequenceCode(
+        statement_sequence = statement.getBranchYes(),
+        allow_none         = True,
+        context            = context
+    )
+
+    no_codes       = generateStatementSequenceCode(
+        statement_sequence = statement.getBranchNo(),
+        allow_none         = True,
+        context            = context
+    )
+
+    condition = statement.getCondition()
+
+    assert yes_codes is not None, statement
+
     return Generator.getBranchCode(
         condition_code = generateConditionCode(
-            condition = statement.getCondition(),
+            condition = condition,
             context   = context
         ),
-        yes_codes      = generateStatementSequenceCode(
-            statement_sequence = statement.getBranchYes(),
-            allow_none         = True,
-            context            = context
-        ),
-        no_codes       = generateStatementSequenceCode(
-            statement_sequence = statement.getBranchNo(),
-            allow_none         = True,
-            context            = context
-        )
+        yes_codes      = yes_codes,
+        no_codes       = no_codes
     )
 
 def generateLoopCode( statement, context ):
@@ -1672,20 +1684,14 @@ def generateTempBlock( statement, context ):
     )
 
 def generateReturnCode( statement, context ):
-    parent_function = statement.getParentFunction()
-
-    if parent_function is not None and parent_function.isGenerator():
-        assert statement.getExpression().getConstant() is None
-
-        return Generator.getGeneratorReturnCode()
-    else:
-        return Generator.getReturnCode(
-            identifier    = generateExpressionCode(
-                expression = statement.getExpression(),
-                context    = context
-            ),
-            via_exception = statement.isExceptionDriven(),
-        )
+    return Generator.getReturnCode(
+        identifier    = generateExpressionCode(
+            expression = statement.getExpression(),
+            context    = context
+        ),
+        via_exception = statement.isExceptionDriven(),
+        context       = context
+    )
 
 def generateStatementCode( statement, context ):
     try:
@@ -1720,10 +1726,7 @@ def _generateStatementCode( statement, context ):
     elif statement.isStatementAssignmentAttribute():
         code = generateAssignmentAttributeCode(
             lookup_source  = makeExpressionCode( statement.getLookupSource() ),
-            attribute_name = mangleAttributeName(
-                attribute_name = statement.getAttributeName(),
-                node           = statement
-            ),
+            attribute_name = statement.getAttributeName(),
             value          = makeExpressionCode( statement.getAssignSource() ),
             context        = context
         )
@@ -1744,6 +1747,7 @@ def _generateStatementCode( statement, context ):
     elif statement.isStatementDelVariable():
         code = generateDelVariableCode(
             variable_ref = statement.getTargetVariableRef(),
+            tolerant     = statement.isTolerant(),
             context      = context
         )
     elif statement.isStatementDelSubscript():
@@ -1812,20 +1816,32 @@ def _generateStatementCode( statement, context ):
             context   = context
         )
     elif statement.isStatementTryFinally():
+        try_count = context.allocateTryNumber()
+
+        context.setTryFinallyCount( try_count )
+
+        code_final             = generateStatementSequenceCode(
+            statement_sequence = statement.getBlockFinal(),
+            context            = context
+        )
+
+        context.removeFinallyCount()
+
+        code_tried             = generateStatementSequenceCode(
+            statement_sequence = statement.getBlockTry(),
+            context            = context
+        )
+
         code = Generator.getTryFinallyCode(
-            context     = context,
-            code_tried = generateStatementSequenceCode(
-                statement_sequence = statement.getBlockTry(),
-                context            = context
-            ),
-            code_final = generateStatementSequenceCode(
-                statement_sequence = statement.getBlockFinal(),
-                context            = context
-            ),
-            needs_break = statement.needsExceptionBreak(),
-            needs_continue = statement.needsExceptionContinue(),
-            needs_generator_return = statement.needsExceptionGeneratorReturn(),
-            needs_return_value     = statement.needsExceptionReturnValue()
+            code_tried                 = code_tried,
+            code_final                 = code_final,
+            needs_break                = statement.needsExceptionBreak(),
+            needs_continue             = statement.needsExceptionContinue(),
+            needs_return_value_catch   = statement.needsExceptionReturnValueCatcher(),
+            needs_return_value_reraise = statement.needsExceptionReturnValueReraiser(),
+            aborting                   = statement.isStatementAborting(),
+            try_count                  = try_count,
+            context                    = context
         )
     elif statement.isStatementTryExcept():
         code = generateTryExceptCode(
@@ -1842,15 +1858,19 @@ def _generateStatementCode( statement, context ):
             exec_def     = statement,
             context      = context
         )
-    elif statement.isStatementExecInline():
-        code = generateExecCodeInline(
-            exec_def     = statement,
-            context      = context
-        )
     elif statement.isStatementSpecialUnpackCheck():
         code = Generator.getUnpackCheckCode(
             iterator_identifier = makeExpressionCode( statement.getIterator() ),
             count               = statement.getCount()
+        )
+    elif statement.isStatementDictOperationRemove():
+        code = Generator.getDictOperationRemoveCode(
+            dict_identifier = makeExpressionCode( statement.getDict() ),
+            key_identifier  = makeExpressionCode( statement.getKey() )
+        )
+    elif statement.isStatementSetLocals():
+        code = Generator.getSetLocalsCode(
+            new_locals_identifier = makeExpressionCode( statement.getNewLocals() )
         )
     else:
         assert False, statement.__class__
@@ -1866,6 +1886,10 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
 
     assert statement_sequence.isStatementsSequence(), statement_sequence
 
+    if statement_sequence.isStatementsFrame():
+        guard_mode = statement_sequence.getGuardMode()
+        context.setFrameGuardMode( guard_mode )
+
     statements = statement_sequence.getStatements()
 
     codes = []
@@ -1876,10 +1900,14 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
         source_ref = statement.getSourceReference()
 
         if Options.shallTraceExecution():
+            statement_repr = repr( statement )
+
+            if Utils.python_version >= 300:
+                statement_repr = statement_repr.encode( "utf8" )
             codes.append(
                 Generator.getStatementTrace(
                     source_ref.getAsString(),
-                    repr( statement )
+                    statement_repr
                 )
             )
 
@@ -1898,14 +1926,11 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
                 context   = context
             )
 
-        # Can happen for "global" declarations, these are still in the node tree and yield
-        # no code.
-        if code == "":
-            continue
+        # Cannot happen
+        assert code != "", statement
 
         if source_ref != last_ref and statement.needsLineNumber():
             code = Generator.getLineNumberCode(
-                context    = context,
                 source_ref = source_ref
             ) + code
 
@@ -1920,49 +1945,56 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
 
     if statement_sequence.isStatementsFrame():
         provider = statement_sequence.getParentVariableProvider()
+
         source_ref = statement_sequence.getSourceReference()
 
-        if provider.isExpressionFunctionBody():
-            # TODO: Finalization should say this
+        if guard_mode == "generator":
+            assert provider.isExpressionFunctionBody() and provider.isGenerator()
 
-            if provider.isGenerator():
-                code = Generator.getFrameGuardLightCode(
-                    frame_identifier = provider.getCodeName(),
-                    code_identifier  = context.getCodeObjectHandle(
-                        filename     = source_ref.getFilename(),
-                        arg_names    = statement_sequence.getArgNames(),
-                        line_number  = source_ref.getLineNumber(),
-                        code_name    = statement_sequence.getCodeObjectName(),
-                        is_generator = True
-                    ),
-                    codes            = codes,
-                    context          = context
+            code = Generator.getFrameGuardLightCode(
+                frame_identifier = provider.getCodeName(),
+                code_identifier  = statement_sequence.getCodeObjectHandle( context ),
+                codes            = codes,
+                context          = context
+            )
+        elif guard_mode == "pass_through":
+            assert provider.isExpressionFunctionBody()
+
+            code = Generator.getFrameGuardVeryLightCode(
+                codes = codes,
+            )
+        elif guard_mode == "full":
+            assert provider.isExpressionFunctionBody()
+
+            locals_code = Generator.getFrameLocalsUpdateCode(
+                locals_identifier = Generator.getLoadLocalsCode(
+                    context  = context,
+                    provider = provider,
+                    mode     = "updated"
                 )
-            elif provider.code_prefix == "listcontr":
-                code = Generator.getFrameGuardVeryLightCode(
-                    codes = codes,
-                )
-            else:
-                code = Generator.getFrameGuardHeavyCode(
-                    frame_identifier  = provider.getCodeName(),
-                    code_identifier  = context.getCodeObjectHandle(
-                        filename     = source_ref.getFilename(),
-                        arg_names    = statement_sequence.getArgNames(),
-                        line_number  = source_ref.getLineNumber(),
-                        code_name    = statement_sequence.getCodeObjectName(),
-                        is_generator = False,
-                    ),
-                    locals_identifier = Generator.getLoadLocalsCode(
-                        context = context,
-                        provider = provider,
-                        mode     = "updated"
-                    ),
-                    is_class          = provider.isExpressionFunctionBody() and provider.isClassDictCreation(),
-                    codes             = codes,
-                    context           = context
-                )
+            )
+
+            code = Generator.getFrameGuardHeavyCode(
+                frame_identifier = provider.getCodeName(),
+                code_identifier  = statement_sequence.getCodeObjectHandle( context ),
+                locals_code      = locals_code,
+                codes            = codes,
+                context          = context
+            )
+        elif guard_mode == "once":
+            code = Generator.getFrameGuardOnceCode(
+                frame_identifier  = provider.getCodeName(),
+                code_identifier   = statement_sequence.getCodeObjectHandle( context ),
+                locals_identifier = Generator.getLoadLocalsCode(
+                    context  = context,
+                    provider = provider,
+                    mode     = "updated"
+                ),
+                codes             = codes,
+                context           = context
+            )
         else:
-            assert False, provider
+            assert False, guard_mode
 
         codes = code.split( "\n" )
 
@@ -1997,7 +2029,7 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
     else:
         path_identifier = None
 
-    return Generator.getModuleCode(
+    source_code = Generator.getModuleCode(
         module_name        = module_name,
         package_name       = module.getPackage(),
         doc_identifier     = context.getConstantHandle(
@@ -2015,15 +2047,32 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
         context             = context,
     )
 
-def generateModuleDeclarationCode( module_name ):
+    return source_code, context
+
+def generateModuleDeclarationCode( module_name, context ):
     return Generator.getModuleDeclarationCode(
-        module_name = module_name
+        module_name        = module_name,
+        extra_declarations = context.getExportDeclarations()
     )
 
-def generateMainCode( context, codes ):
+def generateMainCode( module, codes, context ):
+    if module.getBody() is not None:
+        code_identifier = context.getCodeObjectHandle(
+            filename      = module.source_ref.getFilename(),
+            arg_names     = (),
+            kw_only_count = 0,
+            line_number   = 0,
+            code_name     = "<module>",
+            is_generator  = False,
+            is_optimized  = False
+        )
+    else:
+        code_identifier = None
+
     return Generator.getMainCode(
-        context = context,
-        codes   = codes
+        context         = context,
+        code_identifier = code_identifier,
+        codes           = codes
     )
 
 def generateConstantsDeclarationCode( context ):

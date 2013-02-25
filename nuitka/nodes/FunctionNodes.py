@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,7 +27,8 @@ from .NodeBases import (
     CPythonParameterHavingNodeBase,
     CPythonExpressionMixin,
     CPythonChildrenHaving,
-    CPythonClosureTaker
+    CPythonClosureTaker,
+    CPythonNodeBase
 )
 
 from .IndicatorMixins import (
@@ -37,11 +38,17 @@ from .IndicatorMixins import (
     MarkGeneratorIndicator
 )
 
+from .ParameterSpec import TooManyArguments, matchCall
+
 from nuitka import Variables, Utils
 
-class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavingNodeBase, \
-                                     CPythonClosureTaker, MarkContainsTryExceptIndicator, \
-                                     CPythonExpressionMixin, MarkGeneratorIndicator, \
+from nuitka.__past__ import iterItems
+
+
+class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
+                                     CPythonParameterHavingNodeBase, CPythonExpressionMixin,
+                                     MarkContainsTryExceptIndicator,
+                                     MarkGeneratorIndicator,
                                      MarkLocalsDictIndicator, MarkUnoptimizedFunctionIndicator ):
     # We really want these many ancestors, as per design, we add properties via base class
     # mixins a lot, pylint: disable=R0901
@@ -92,6 +99,8 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         else:
             self.is_genexpr = False
 
+        self.non_local_declarations = []
+
         CPythonClosureTaker.__init__(
             self,
             provider      = provider,
@@ -129,16 +138,26 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
         # Indicator if the return value exception might be required.
         self.return_exception = False
 
-        # Indicator if the generator return exception might be required.
-        self.generator_return_exception = False
+        # Indicator if the function needs to be created as a function object.
+        self.needs_creation = False
+
+        # Indicator if the function is called directly.
+        self.needs_direct = False
+
+        # Indicator if the function is used outside of where it's defined.
+        self.cross_module_use = False
 
     def getDetails( self ):
         return {
             "name"       : self.getFunctionName(),
+            "ref_name"   : self.getCodeName(),
             "parameters" : self.getParameters(),
-            "provider"   : self.provider,
+            "provider"   : self.provider.getCodeName(),
             "doc"        : self.doc
         }
+
+    def getParent( self ):
+        assert False
 
     def isClassDictCreation( self ):
         return self.is_class
@@ -270,16 +289,97 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
                 variable_name = variable_name
             )
 
+    def addNonlocalsDeclaration( self, names, source_ref ):
+        self.non_local_declarations.append( ( names, source_ref ) )
+
+    def getNonlocalDeclarations( self ):
+        return self.non_local_declarations
+
     getBody = CPythonChildrenHaving.childGetter( "body" )
     setBody = CPythonChildrenHaving.childSetter( "body" )
 
     def needsCreation( self ):
         # TODO: This looks kind of arbitrary, the users should decide, if they need it.
-        return not self.parent.parent.isExpressionFunctionCall() and not self.isClassDictCreation()
+        return self.needs_creation
+
+    def markAsNeedsCreation( self ):
+        self.needs_creation = True
+
+    def needsDirectCall( self ):
+        return self.needs_direct
+
+    def markAsDirectlyCalled( self ):
+        self.needs_direct = True
+
+    def isCrossModuleUsed( self ):
+        return self.cross_module_use
+
+    def markAsCrossModuleUsed( self ):
+        self.cross_module_use = True
 
     def computeNode( self, constraint_collection ):
         # Function body is quite irreplacable.
         return self, None, None
+
+    def computeNodeCall( self, call_node, constraint_collection ):
+        # TODO: Until we have something to re-order the arguments, we need to skip this. For
+        # the immediate need, we avoid this complexity, as a re-ordering will be needed.
+        if call_node.getNamedArgumentPairs():
+            return call_node, None, None
+
+        call_spec = self.getParameters()
+
+        try:
+            args_dict = matchCall(
+                func_name     = self.getName(),
+                args          = call_spec.getArgumentNames(),
+                star_list_arg = call_spec.getStarListArgumentName(),
+                star_dict_arg = call_spec.getStarDictArgumentName(),
+                num_defaults  = call_spec.getDefaultCount(),
+                positional    = call_node.getPositionalArguments(),
+                pairs         = ()
+            )
+
+            values = []
+
+            for positional_arg in call_node.getPositionalArguments():
+                for _arg_name, arg_value in iterItems( args_dict ):
+                    if arg_value is positional_arg:
+                        values.append( arg_value )
+
+            result = CPythonExpressionFunctionCall(
+                function_body = self,
+                values        = values,
+                source_ref    = call_node.getSourceReference()
+            )
+
+            return (
+                result,
+                "new_statements", # TODO: More appropiate tag maybe.
+                "Replaced call to created function body '%s' with direct function call" % self.getName()
+            )
+
+        except TooManyArguments as e:
+            from nuitka.nodes.NodeMakingHelpers import (
+                makeRaiseExceptionReplacementExpressionFromInstance,
+                wrapExpressionWithSideEffects
+            )
+
+            result = wrapExpressionWithSideEffects(
+                new_node = makeRaiseExceptionReplacementExpressionFromInstance(
+                    expression     = call_node,
+                    exception      = e.getRealException()
+                ),
+                old_node           = call_node,
+                side_effects = call_node.extractPreCallSideEffects()
+            )
+
+            return (
+                result,
+                "new_statements,new_raise", # TODO: More appropiate tag maybe.
+                "Replaced call to created function body '%s' to argument error" % self.getName()
+            )
+
 
     def isCompileTimeConstant( self ):
         # TODO: It's actually pretty much compile time accessible mayhaps.
@@ -318,39 +418,95 @@ class CPythonExpressionFunctionBody( CPythonChildrenHaving, CPythonParameterHavi
     def needsExceptionReturnValue( self ):
         return self.return_exception
 
-    def markAsExceptionGeneratorReturn( self ):
-        self.generator_return_exception = True
-
-    def needsExceptionGeneratorReturn( self ):
-        return self.generator_return_exception
-
 
 class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_FUNCTION_CREATION"
 
-    named_children = ( "function_body", "defaults" )
+    # Note: The order of evaluation for these is a bit unexpected, but true. Keyword
+    # defaults go first, then normal defaults, and annotations of all kinds go last.
+    named_children = ( "kw_defaults", "defaults", "annotations", "function_ref" )
 
-    def __init__( self, function_body, defaults, source_ref ):
+    def __init__( self, function_ref, defaults, kw_defaults, annotations, source_ref ):
+        assert kw_defaults is None or kw_defaults.isExpression()
+        assert annotations is None or annotations.isExpression()
+        assert function_ref.isExpressionFunctionRef()
+
         CPythonExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "function_body" : function_body,
-                "defaults"      : tuple( defaults )
+                "function_ref"  : function_ref,
+                "defaults"      : tuple( defaults ),
+                "kw_defaults"   : kw_defaults,
+                "annotations"   : annotations
             },
             source_ref = source_ref
         )
-
-    # Prevent normal recursion from entering the function.
-    def getVisitableNodes( self ):
-        return self.getDefaults()
-
 
     def computeNode( self, constraint_collection ):
         # TODO: Function body may know something.
         return self, None, None
 
-    getFunctionBody = CPythonExpressionChildrenHavingBase.childGetter( "function_body" )
+    getFunctionRef = CPythonExpressionChildrenHavingBase.childGetter( "function_ref" )
     getDefaults = CPythonExpressionChildrenHavingBase.childGetter( "defaults" )
+    getKwDefaults = CPythonExpressionChildrenHavingBase.childGetter( "kw_defaults" )
+    getAnnotations = CPythonExpressionChildrenHavingBase.childGetter( "annotations" )
+
+    def mayRaiseException( self, exception_type ):
+        kw_defaults = self.getKwDefaults()
+        defaults = self.getDefaults()
+        annotations = self.getAnnotations()
+
+        if kw_defaults is not None:
+            result = kw_defaults.mayRaiseException( exception_type )
+
+            if result is True or result is None:
+                return result
+
+        for default in defaults:
+            result = default.mayRaiseException( exception_type )
+
+            if result is True or result is None:
+                return result
+
+        if annotations is not None:
+            result = annotations.mayRaiseException( exception_type )
+
+            if result is True or result is None:
+                return result
+
+        return False
+
+
+class CPythonExpressionFunctionRef( CPythonNodeBase, CPythonExpressionMixin ):
+    kind = "EXPRESSION_FUNCTION_REF"
+
+    def __init__( self, function_body, source_ref ):
+        assert function_body.isExpressionFunctionBody()
+
+        CPythonNodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        self.function_body = function_body
+
+    def getDetails( self ):
+        return {
+            "function" : self.function_body.getCodeName()
+        }
+
+    def makeCloneAt( self, source_ref ):
+        return CPythonExpressionFunctionRef(
+            function_body = self.function_body,
+            source_ref    = source_ref
+        )
+
+    def getFunctionBody( self ):
+        return self.function_body
+
+    def computeNode( self, constraint_collection ):
+        # TODO: Function body may know something.
+        return self, None, None
 
 
 class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):

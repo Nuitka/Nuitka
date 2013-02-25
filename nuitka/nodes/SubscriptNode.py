@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,12 +20,10 @@
 Subscripts are important when working with lists and dictionaries. Tracking them can allow
 to achieve more compact code, or predict results at compile time.
 
-This should be done via a subscript registry.
+There will be a method "computeNodeSubscript" to aid predicting them.
 """
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
-
-from nuitka.transform.optimizations.registry import SubscriptRegistry
 
 
 class CPythonExpressionSubscriptLookup( CPythonExpressionChildrenHavingBase ):
@@ -47,8 +45,13 @@ class CPythonExpressionSubscriptLookup( CPythonExpressionChildrenHavingBase ):
     getSubscript = CPythonExpressionChildrenHavingBase.childGetter( "subscript" )
 
     def computeNode( self, constraint_collection ):
-        # There is a whole registry dedicated to this.
-        return SubscriptRegistry.computeSubscript( self, constraint_collection )
+        lookup_source = self.getLookupSource()
+
+        return lookup_source.computeNodeSubscript(
+            lookup_node           = self,
+            subscript             = self.getSubscript(),
+            constraint_collection = constraint_collection
+        )
 
     def isKnownToBeIterable( self, count ):
         return None

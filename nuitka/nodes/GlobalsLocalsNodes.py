@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,6 +26,7 @@ not know where their value goes.
 
 from .NodeBases import (
     CPythonNodeBase,
+    CPythonChildrenHaving,
     CPythonExpressionMixin,
     CPythonExpressionBuiltinSingleArgBase
 )
@@ -51,7 +52,29 @@ class CPythonExpressionBuiltinLocals( CPythonNodeBase, CPythonExpressionMixin ):
         return self, None, None
 
     def needsLocalsDict( self ):
-        return self.getParentVariableProvider().isEarlyClosure()
+        return self.getParentVariableProvider().isEarlyClosure() and \
+               ( not self.getParent().isStatementReturn() or self.getParent().isExceptionDriven() )
+
+
+class CPythonStatementSetLocals( CPythonChildrenHaving, CPythonNodeBase ):
+    kind = "STATEMENT_SET_LOCALS"
+
+    named_children = ( "new_locals", )
+
+    def __init__( self, new_locals, source_ref ):
+        CPythonNodeBase.__init__( self, source_ref = source_ref )
+
+        CPythonChildrenHaving.__init__(
+            self,
+            values     = {
+                "new_locals" : new_locals,
+            }
+        )
+
+    def needsLocalsDict( self ):
+        return True
+
+    getNewLocals = CPythonChildrenHaving.childGetter( "new_locals" )
 
 
 class CPythonExpressionBuiltinDir0( CPythonNodeBase, CPythonExpressionMixin ):

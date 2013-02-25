@@ -1,4 +1,4 @@
-//     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+//     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -20,6 +20,13 @@
 
 // Create a frame object for the given code object and module
 extern PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module );
+
+// Create a code object for the given filename and function name
+#if PYTHON_VERSION < 300
+extern PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, int flags );
+#else
+extern PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int line, PyObject *argnames, int arg_count, int kw_only_count, int flags );
+#endif
 
 extern PyTypeObject Nuitka_Frame_Type;
 

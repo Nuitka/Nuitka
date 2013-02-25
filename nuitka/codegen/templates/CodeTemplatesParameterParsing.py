@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,9 +22,13 @@
 template_parameter_function_entry_point = """\
 static PyObject *%(parse_function_identifier)s( Nuitka_FunctionObject *self, PyObject *args, PyObject *kw )
 {
+    assert( PyTuple_Check( args ) );
+    assert( kw == NULL || PyDict_Check( kw ) );
+
     Py_ssize_t args_size = PyTuple_GET_SIZE( args );
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_found = 0;
+    NUITKA_MAY_BE_UNUSED Py_ssize_t kw_only_found = 0;
     Py_ssize_t args_given = args_size;
 %(parameter_parsing_code)s
 
@@ -45,6 +49,7 @@ static PyObject *%(parse_function_identifier)s( Nuitka_FunctionObject *self, PyO
     Py_ssize_t args_size = PyTuple_GET_SIZE( args );
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_size = kw ? PyDict_Size( kw ) : 0;
     NUITKA_MAY_BE_UNUSED Py_ssize_t kw_found = 0;
+    NUITKA_MAY_BE_UNUSED Py_ssize_t kw_only_found = 0;
     Py_ssize_t args_given = args_size + 1; // Count the self parameter already given as well.
 %(parameter_parsing_code)s
 
@@ -72,8 +77,7 @@ if (unlikely( args_given + kw_size > 0 ))
 
 parse_argument_template_check_counts_with_list_star_arg = r"""
 // Check if too little arguments were given.
-
-if (unlikely( args_given + kw_found < %(required_parameter_count)d ))
+if (unlikely( args_given + kw_found - kw_only_found < %(required_parameter_count)d ))
 {
     if ( %(top_level_parameter_count)d == 1 )
     {
@@ -104,9 +108,9 @@ if (unlikely( args_given > %(top_level_parameter_count)d ))
     if ( %(top_level_parameter_count)d == 1 )
     {
 #if PYTHON_VERSION < 300
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_size );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_found );
 #else
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 positional argument (%%" PY_FORMAT_SIZE_T "d given)", args_given );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 positional argument (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_only_found );
 #endif
     }
     else
@@ -114,7 +118,14 @@ if (unlikely( args_given > %(top_level_parameter_count)d ))
 #if PYTHON_VERSION < 300
         PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_size );
 #else
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d positional arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given );
+        if ( %(top_level_parameter_count)d == %(required_parameter_count)d )
+        {
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d positional arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_only_found );
+        }
+        else
+        {
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at most %%d positional arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_only_found );
+        }
 #endif
     }
 
@@ -122,29 +133,29 @@ if (unlikely( args_given > %(top_level_parameter_count)d ))
 }
 
 // Check if too little arguments were given.
-if (unlikely( args_given + kw_size < %(required_parameter_count)d ))
+if (unlikely( args_given + kw_found - kw_only_found < %(required_parameter_count)d ))
 {
     if ( %(top_level_parameter_count)d == 1 )
     {
-        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_size );
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_found - kw_only_found );
     }
     else
     {
 #if PYTHON_VERSION < 270
         if ( kw_size > 0 )
         {
-            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d non-keyword arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_size );
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d non-keyword arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_found  );
         }
         else
 #endif
         {
             if ( %(top_level_parameter_count)d == %(required_parameter_count)d )
             {
-                PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(required_parameter_count)d, args_given + kw_size );
+                PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(required_parameter_count)d, args_given + kw_found - kw_only_found );
             }
             else
             {
-                PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(required_parameter_count)d, args_given + kw_size );
+                PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at least %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(required_parameter_count)d, args_given + kw_found - kw_only_found );
             }
         }
     }
@@ -198,20 +209,39 @@ if ( kw == NULL )
 }
 else
 {
-    _python_par_%(dict_star_parameter_name)s = PyDict_Copy( kw );
-
-    if (unlikely( _python_par_%(dict_star_parameter_name)s == NULL ))
+    if ( ((PyDictObject *)kw)->ma_used > 0 )
     {
-        PyErr_Clear();
+        _python_par_%(dict_star_parameter_name)s = _PyDict_NewPresized( ((PyDictObject *)kw)->ma_used  );
 
-        _python_par_%(dict_star_parameter_name)s = MAKE_DICT0();
-
-        if (unlikely( PyDict_Update( _python_par_%(dict_star_parameter_name)s, kw ) != 0 ))
+        for ( int i = 0; i <= ((PyDictObject *)kw)->ma_mask; i++ )
         {
-            PyErr_Format( PyExc_TypeError, "after ** must be a mapping, not %%s", Py_TYPE( kw )->tp_name );
+            PyDictEntry *entry = &((PyDictObject *)kw)->ma_table[ i ];
 
-            goto error_exit;
+            if ( entry->me_value != NULL )
+            {
+
+#if PYTHON_VERSION < 300
+                if (unlikely( !PyString_Check( entry->me_key ) && !PyUnicode_Check( entry->me_key ) ))
+#else
+                if (unlikely( !PyUnicode_Check( entry->me_key ) ))
+#endif
+                {
+                    PyErr_Format( PyExc_TypeError, "%(function_name)s() keywords must be strings" );
+                    goto error_exit;
+                }
+
+                int res = PyDict_SetItem( _python_par_%(dict_star_parameter_name)s, entry->me_key, entry->me_value );
+
+                if (unlikely( res == -1 ))
+                {
+                    goto error_exit;
+                }
+            }
         }
+    }
+    else
+    {
+        _python_par_%(dict_star_parameter_name)s = PyDict_New();
     }
 }
 """
@@ -286,17 +316,17 @@ if ( kw_size > 0 )
            PyErr_Format(
                PyExc_TypeError,
                "%(function_name)s() got an unexpected keyword argument '%%s'",
-#if PYTHON_VERSION < 300
-               PyString_Check( key ) ?
-#else
-               PyUnicode_Check( key ) ?
-#endif
-                   Nuitka_String_AsString( key ) : "<non-string>"
+               Nuitka_String_Check( key ) ? Nuitka_String_AsString( key ) : "<non-string>"
            );
 
            goto error_exit;
         }
     }
+
+#if PYTHON_VERSION < 300
+    assert( kw_found == kw_size );
+    assert( kw_only_found == 0 );
+#endif
 }
 """
 
@@ -305,6 +335,17 @@ if ( found == false && %(parameter_name_object)s == key )
 {
 %(parameter_assign_from_kw)s
     found = true;
+    kw_found += 1;
+}
+"""
+
+argparse_template_assign_from_dict_parameter_quick_path_kw_only = """\
+if ( found == false && %(parameter_name_object)s == key )
+{
+%(parameter_assign_from_kw)s
+    found = true;
+    kw_found += 1;
+    kw_only_found += 1;
 }
 """
 
@@ -313,8 +354,20 @@ if ( found == false && RICH_COMPARE_BOOL_EQ_PARAMETERS( %(parameter_name_object)
 {
 %(parameter_assign_from_kw)s
     found = true;
+    kw_found += 1;
 }
 """
+
+argparse_template_assign_from_dict_parameter_slow_path_kw_only = """\
+if ( found == false && RICH_COMPARE_BOOL_EQ_PARAMETERS( %(parameter_name_object)s, key ) )
+{
+%(parameter_assign_from_kw)s
+    found = true;
+    kw_found += 1;
+    kw_only_found += 1;
+}
+"""
+
 
 argparse_template_assign_from_dict_finding = """\
 if (unlikely( _python_par_%(parameter_name)s ))
@@ -361,5 +414,18 @@ parse_argument_template_nested_argument_assign = """
     {
         Py_DECREF( _python_iter_%(iter_name)s );
         goto error_exit;
+    }
+"""
+
+template_kwonly_argument_default = """
+    if (_python_par_%(parameter_name)s == NULL )
+    {
+       _python_par_%(parameter_name)s = PyDict_GetItem( self->m_kwdefaults, %(parameter_name_object)s );
+
+       if (unlikely (_python_par_%(parameter_name)s == NULL ))
+       {
+           PyErr_Format( PyExc_TypeError, "%(function_name)s() needs keyword-only argument %(parameter_name)s" );
+           goto error_exit;
+        }
     }
 """

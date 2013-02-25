@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,7 +23,8 @@ from .Identifiers import (
     Identifier,
     ConstantIdentifier,
     LocalVariableIdentifier,
-    ClosureVariableIdentifier
+    ClosureVariableIdentifier,
+    SpecialConstantIdentifier
 )
 
 from .Namify import namifyConstant
@@ -42,14 +43,14 @@ import hashlib
 if python_version < 300:
     def calcHash( key ):
         hash_value = hashlib.md5(
-            "%s%s%d%s%s" % key
+            "%s%s%d%s%d%s%s" % key
         )
 
         return hash_value.hexdigest()
 else:
     def calcHash( key ):
         hash_value = hashlib.md5(
-            ( "%s%s%d%s%s" % key ).encode( "utf-8" )
+            ( "%s%s%d%s%d%s%s" % key ).encode( "utf-8" )
         )
 
         return hash_value.hexdigest()
@@ -60,6 +61,8 @@ class PythonContextBase:
     def __init__( self ):
         self.try_count = 0
 
+        self.try_finally_counts = []
+
     def allocateTryNumber( self ):
         self.try_count += 1
 
@@ -68,8 +71,17 @@ class PythonContextBase:
     def hasLocalsDict( self ):
         return False
 
-    def needsFrameExceptionKeeper( self ):
-        return False
+    def setTryFinallyCount( self, value ):
+        self.try_finally_counts.append( value )
+
+    def removeFinallyCount( self ):
+        del self.try_finally_counts[-1]
+
+    def getTryFinallyCount( self ):
+        if self.try_finally_counts:
+            return self.try_finally_counts[-1]
+        else:
+            return None
 
 
 class PythonChildContextBase( PythonContextBase ):
@@ -102,14 +114,26 @@ class PythonChildContextBase( PythonContextBase ):
     def addGlobalVariableNameUsage( self, var_name ):
         self.parent.addGlobalVariableNameUsage( var_name )
 
+    def addExportDeclarations( self, declarations ):
+        self.parent.addExportDeclarations( declarations )
+
     def getModuleCodeName( self ):
         return self.parent.getModuleCodeName()
 
     def getModuleName( self ):
         return self.parent.getModuleName()
 
-    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, is_generator ):
-        return self.parent.getCodeObjectHandle( filename, code_name, line_number, arg_names, is_generator )
+    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, kw_only_count,
+                             is_generator, is_optimized ):
+        return self.parent.getCodeObjectHandle(
+            filename      = filename,
+            code_name     = code_name,
+            line_number   = line_number,
+            arg_names     = arg_names,
+            kw_only_count = kw_only_count,
+            is_generator  = is_generator,
+            is_optimized  = is_optimized
+        )
 
 
 class PythonGlobalContext:
@@ -129,6 +153,7 @@ class PythonGlobalContext:
         # Python mechanics.
         self.getConstantHandle( "__module__" )
         self.getConstantHandle( "__class__" )
+        self.getConstantHandle( "__name__" )
         self.getConstantHandle( "__metaclass__" )
         self.getConstantHandle( "__dict__" )
         self.getConstantHandle( "__doc__" )
@@ -136,8 +161,17 @@ class PythonGlobalContext:
         self.getConstantHandle( "__enter__" )
         self.getConstantHandle( "__exit__" )
         self.getConstantHandle( "__builtins__" )
+        self.getConstantHandle( "__all__" )
+
         # For Python3 modules
-        self.getConstantHandle( "__cached__" )
+        if python_version >= 300:
+            self.getConstantHandle( "__cached__" )
+
+        # For patching Python2 internal class type
+        if python_version < 300:
+            self.getConstantHandle( "__getattr__" )
+            self.getConstantHandle( "__setattr__" )
+            self.getConstantHandle( "__delattr__" )
 
         # Patched module name.
         self.getConstantHandle( "inspect" )
@@ -179,13 +213,13 @@ class PythonGlobalContext:
 
     def getConstantHandle( self, constant ):
         if constant is None:
-            return Identifier( "Py_None", 0 )
+            return SpecialConstantIdentifier( None )
         elif constant is True:
-            return Identifier( "Py_True", 0 )
+            return SpecialConstantIdentifier( True )
         elif constant is False:
-            return Identifier( "Py_False", 0 )
+            return SpecialConstantIdentifier( False )
         elif constant is Ellipsis:
-            return Identifier( "Py_Ellipsis", 0 )
+            return SpecialConstantIdentifier( Ellipsis )
         else:
             key = ( type( constant ), HashableConstant( constant ) )
 
@@ -197,8 +231,9 @@ class PythonGlobalContext:
     def getConstants( self ):
         return sorted( self.constants.items(), key = lambda x: x[1] )
 
-    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, is_generator ):
-        key = ( filename, code_name, line_number, arg_names, is_generator )
+    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, kw_only_count,
+                             is_generator, is_optimized ):
+        key = ( filename, code_name, line_number, arg_names, kw_only_count, is_generator, is_optimized )
 
         if key not in self.code_objects:
             self.code_objects[ key ] = Identifier(
@@ -270,14 +305,16 @@ class PythonModuleContext( PythonContextBase ):
 
         self.temp_keepers = {}
 
+        self.export_declarations = []
+
     def __repr__( self ):
         return "<PythonModuleContext instance for module %s>" % self.filename
 
     def getFrameHandle( self ):
         return Identifier( "frame_guard.getFrame()", 1 )
 
-    def hasFrameGuard( self ):
-        return True
+    def getFrameGuardClass( self ):
+        return "FrameGuard"
 
     def getParent( self ):
         return None
@@ -285,11 +322,20 @@ class PythonModuleContext( PythonContextBase ):
     def getConstantHandle( self, constant ):
         return self.global_context.getConstantHandle( constant )
 
-    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, is_generator ):
-        return self.global_context.getCodeObjectHandle( filename, code_name, line_number, arg_names, is_generator )
+    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, kw_only_count,
+                             is_generator, is_optimized ):
+        return self.global_context.getCodeObjectHandle(
+            filename      = filename,
+            code_name     = code_name,
+            line_number   = line_number,
+            arg_names     = arg_names,
+            kw_only_count = kw_only_count,
+            is_generator  = is_generator,
+            is_optimized  = is_optimized
+        )
 
     def addFunctionCodes( self, code_name, function_decl, function_code ):
-        assert code_name not in self.function_codes
+        assert code_name not in self.function_codes, code_name
 
         self.function_codes[ code_name ] = ( function_decl, function_code )
 
@@ -331,12 +377,26 @@ class PythonModuleContext( PythonContextBase ):
     def addMakeDictUse( self, value ):
         self.global_context.addMakeDictUse( value )
 
+    def addExportDeclarations( self, declarations ):
+        self.export_declarations.append( declarations )
+
     def addTempKeeperUsage( self, variable_name, ref_count ):
         self.temp_keepers[ variable_name ] = ref_count
+
+    def getTempKeeperRefCount( self, variable_name ):
+        return self.temp_keepers[ variable_name ]
 
     def getTempKeeperUsages( self ):
         return self.temp_keepers
 
+    def getExportDeclarations( self ):
+        return "\n".join( self.export_declarations )
+
+    def setFrameGuardMode( self, guard_mode ):
+        assert guard_mode == "once"
+
+    def getReturnCode( self ):
+        return "return MOD_RETURN_VALUE( _module_%s );" % self.getModuleCodeName()
 
 
 class PythonFunctionContext( PythonChildContextBase ):
@@ -352,6 +412,8 @@ class PythonFunctionContext( PythonChildContextBase ):
             self.getConstantHandle( constant = local_name )
 
         self.temp_keepers = {}
+
+        self.guard_mode = None
 
     def __repr__( self ):
         return "<PythonFunctionContext for %s '%s'>" % (
@@ -374,8 +436,21 @@ class PythonFunctionContext( PythonChildContextBase ):
         else:
             return Identifier( "frame_guard.getFrame()", 1 )
 
-    def hasFrameGuard( self ):
-        return not self.function.isGenerator()
+    def getFrameGuardMode( self ):
+        return self.guard_mode
+
+    def setFrameGuardMode( self, guard_mode ):
+        self.guard_mode = guard_mode
+
+    def getFrameGuardClass( self ):
+        if self.guard_mode == "generator":
+            return "FrameGuardLight"
+        elif self.guard_mode == "full":
+            return "FrameGuard"
+        elif self.guard_mode == "pass_through":
+            return "FrameGuardVeryLight"
+        else:
+            assert False, (self, self.guard_mode)
 
     def getLocalHandle( self, var_name ):
         return LocalVariableIdentifier( var_name, from_context = self.function.isGenerator() )
@@ -392,25 +467,33 @@ class PythonFunctionContext( PythonChildContextBase ):
             else:
                 return ClosureVariableIdentifier( var_name, from_context = "" )
 
-    def needsFrameExceptionKeeper( self ):
-        return self.function.needsFrameExceptionKeeper()
-
     def addTempKeeperUsage( self, variable_name, ref_count ):
         self.temp_keepers[ variable_name ] = ref_count
+
+    def getTempKeeperRefCount( self, variable_name ):
+        return self.temp_keepers[ variable_name ]
 
     def getTempKeeperUsages( self ):
         return self.temp_keepers
 
 
-class PythonExecInlineContext( PythonChildContextBase ):
-    def __init__( self, parent ):
-        PythonChildContextBase.__init__( self, parent = parent )
+class PythonFunctionDirectContext( PythonFunctionContext ):
+    def isForDirectCall( self ):
+        return True
 
-    def getClosureHandle( self, var_name ):
-        return self.parent.getLocalHandle( var_name )
+    def getExportScope( self ):
+        return "NUITKA_CROSS_MODULE" if self.function.isCrossModuleUsed() else "NUITKA_LOCAL_MODULE"
 
-    def getLocalHandle( self, var_name ):
-        return self.parent.getLocalHandle( var_name )
+    def isForCrossModuleUsage( self ):
+        return self.function.isCrossModuleUsed()
 
-    def hasLocalsDict( self ):
-        return self.parent.hasLocalsDict()
+    def isForCreatedFunction( self ):
+        return False
+
+
+class PythonFunctionCreatedContext( PythonFunctionContext ):
+    def isForDirectCall( self ):
+        return False
+
+    def isForCreatedFunction( self ):
+        return True

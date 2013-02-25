@@ -1,5 +1,5 @@
 # -*- python -*-
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -260,8 +260,7 @@ if "g++" in env[ "CXX" ]:
     if not win_target:
         env.Append( CCFLAGS = [ "-fvisibility=hidden", "-fvisibility-inlines-hidden" ] )
 
-    if "CXXVERSION" not in env:
-        env[ "CXXVERSION" ] = getGccVersion()
+    env[ "CXXVERSION" ] = getGccVersion()
 
     # Version dependent options.
     gpp_version = int( env[ "CXXVERSION" ].replace( ".", "" ) )
@@ -316,6 +315,10 @@ if "g++" in env[ "CXX" ]:
     if lto_mode and gpp_version < 460:
         print >> sys.stderr, "Warning, LTO mode specified, but not available."
 
+    # The var-tracking does not scale, disable it. Should we really need it, we can enable
+    # it.
+    env.Append( CCFLAGS = [ "-fno-var-tracking" ] )
+
 if msvc_mode:
     env.Append( CCFLAGS = [ "/EHsc", "/J", "/Gd" ] )
     env.Append( LINKFLAGS = [ "/INCREMENTAL:NO" ] )
@@ -333,6 +336,10 @@ if debug_mode:
     # As for sequence points, we are abusing it, so we have to allow it.
     if "g++" in env[ "CXX" ]:
         env.Append( CCFLAGS = [ "-Wno-sequence-point" ] )
+
+    # Benefit from clang checking memory accesses.
+    if "clang" in env[ "CXX" ]:
+        env.Append( CCFLAGS = [ "-fsanatize=address,bounds,return" ] )
 
 # Python version, use the scons one if not given.
 python_version = ARGUMENTS.get( "python_version", None )

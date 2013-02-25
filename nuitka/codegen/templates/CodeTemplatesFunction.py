@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,7 +26,8 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
 """
 
 template_function_direct_declaration = """\
-static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s );
+#define impl_%(function_identifier)s( %(direct_call_arg_names)s ) _impl_%(function_identifier)s( %(direct_call_arg_reversal)s )
+%(file_scope)s PyObject *_impl_%(function_identifier)s( %(direct_call_arg_spec)s );
 """
 
 function_context_body_template = """
@@ -62,6 +63,10 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
         %(function_name_obj)s,
         %(code_identifier)s,
         %(defaults)s,
+#if PYTHON_VERSION >= 300
+        %(kwdefaults)s,
+        %(annotations)s,
+#endif
         %(module_identifier)s,
         %(function_doc)s,
         _python_context,
@@ -81,6 +86,10 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
         %(function_name_obj)s,
         %(code_identifier)s,
         %(defaults)s,
+#if PYTHON_VERSION >= 300
+        %(kwdefaults)s,
+        %(annotations)s,
+#endif
         %(module_identifier)s,
         %(function_doc)s
     );
@@ -99,10 +108,22 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 
     // Actual function code.
 %(function_body)s
-
-    return INCREASE_REFCOUNT( Py_None );
 }
 """
+
+function_direct_body_template = """\
+%(file_scope)s PyObject *_impl_%(function_identifier)s( %(direct_call_arg_spec)s )
+{
+%(context_access_function_impl)s
+
+    // Local variable declarations.
+%(function_locals)s
+
+    // Actual function code.
+%(function_body)s
+}
+"""
+
 
 function_dict_setup = """\
 // Locals dictionary setup.
@@ -141,10 +162,7 @@ catch ( _PythonException &_exception )
     {
         _exception.addTraceback( frame_guard.getFrame0() );
     }
-
-    Py_XDECREF( frame_guard.getFrame0()->f_locals );
-    frame_guard.getFrame0()->f_locals = %(frame_locals)s;
-
+%(frame_locals)s
     if ( frame_guard.getFrame0() == frame_%(frame_identifier)s )
     {
        Py_DECREF( frame_%(frame_identifier)s );
@@ -152,10 +170,7 @@ catch ( _PythonException &_exception )
     }
 %(return_code)s
 }
-catch( ReturnValueException &_exception )
-{
-    return _exception.getValue();
-}"""
+"""
 
 frame_guard_python_return = """
     _exception.toPython();
@@ -168,6 +183,44 @@ frame_guard_listcontr_template = """\
 FrameGuardVeryLight frame_guard;
 
 %(codes)s"""
+
+frame_guard_once_template = """\
+PyFrameObject *frame_%(frame_identifier)s = MAKE_FRAME( %(code_identifier)s, %(module_identifier)s );
+
+FrameGuard frame_guard( frame_%(frame_identifier)s );
+try
+{
+    assert( Py_REFCNT( frame_%(frame_identifier)s ) == 2 ); // Frame stack
+%(codes)s
+}
+catch ( _PythonException &_exception )
+{
+    if ( !_exception.hasTraceback() )
+    {
+        _exception.setTraceback( %(tb_making)s );
+    }
+    else
+    {
+        _exception.addTraceback( frame_guard.getFrame0() );
+    }
+
+#if 0
+// TODO: Recognize the need for it
+    Py_XDECREF( frame_guard.getFrame0()->f_locals );
+    frame_guard.getFrame0()->f_locals = %(frame_locals)s;
+#endif
+
+// TODO:
+    _exception.toPython();
+%(return_code)s
+}"""
+
+template_frame_locals_update = """\
+Py_XDECREF( frame_guard.getFrame0()->f_locals );
+frame_guard.getFrame0()->f_locals = %(locals_identifier)s;"""
+
+# Bad to read, but the context declaration should be on one line.
+# pylint: disable=C0301
 
 function_context_access_template = """\
     // The context of the function.

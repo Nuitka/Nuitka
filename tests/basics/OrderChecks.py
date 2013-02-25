@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -318,6 +318,42 @@ def nextOrderCheck():
     except Exception as e:
         print "Caught", repr(e)
 
+def raiseOrderCheck():
+    print "Checking order of raises:"
+    def exception_type():
+        print "exception_type",
+
+        return ValueError
+
+    def exception_value():
+        print "exception_value",
+
+        return 1
+
+    def exception_tb():
+        print "exception_value",
+
+        return None
+
+    print "3 args",
+    try:
+        raise exception_type(), exception_value(), exception_tb()
+    except Exception as e:
+        print "caught", repr(e)
+
+    print "2 args",
+    try:
+        raise exception_type(), exception_value()
+    except Exception as e:
+        print "caught", repr(e)
+
+    print "1 args",
+    try:
+        raise exception_type()
+    except Exception as e:
+        print "caught", repr(e)
+
+
 dictOrderCheck()
 listOrderCheck()
 subscriptOrderCheck()
@@ -336,3 +372,4 @@ openOrderCheck()
 nextOrderCheck()
 longOrderCheck()
 intOrderCheck()
+raiseOrderCheck()

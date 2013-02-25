@@ -1,4 +1,4 @@
-//     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+//     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -17,6 +17,8 @@
 //
 #ifndef __NUITKA_HELPER_INDEXES_H__
 #define __NUITKA_HELPER_INDEXES_H__
+
+#include "nuitka/helper/raising.hpp"
 
 NUITKA_MAY_BE_UNUSED static Py_ssize_t CONVERT_TO_INDEX( PyObject *value )
 {

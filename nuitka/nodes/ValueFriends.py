@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -60,7 +60,7 @@ class ValueFriendChooseOne( ValueFriendBase ):
 
     def mayHaveSideEffects( self, constraint_collection ):
         for choice in self.choices:
-            if choice.mayHaveSideEffects():
+            if choice.mayHaveSideEffects( constraint_collection ):
                 return True
         else:
             return False

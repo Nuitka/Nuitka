@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -17,18 +17,21 @@
 #
 
 
-import inspect, sys
+import inspect, types, sys
 
 def compiledFunction():
    pass
 
 assert inspect.isfunction( compiledFunction ) is True
+assert isinstance( compiledFunction, types.FunctionType )
+assert isinstance( compiledFunction, ( int, types.FunctionType ) )
 
 class compiledClass:
    def compiledMethod( self ):
       pass
 
 assert inspect.isfunction( compiledClass ) is False
+assert isinstance( compiledClass,types.FunctionType ) is False
 
 assert inspect.ismethod( compiledFunction ) is False
 assert inspect.ismethod( compiledClass ) is False
@@ -42,6 +45,8 @@ def compiledGenerator():
 assert inspect.isfunction( compiledGenerator ) is True
 assert inspect.isgeneratorfunction( compiledGenerator ) is True
 
+assert isinstance( compiledGenerator(), types.GeneratorType ) is True
+assert isinstance( compiledGenerator, types.GeneratorType ) is False
 
 assert inspect.ismethod( compiledGenerator() ) is False
 assert inspect.isfunction( compiledGenerator() ) is False
@@ -49,3 +54,24 @@ assert inspect.isfunction( compiledGenerator() ) is False
 assert inspect.isgenerator( compiledFunction ) is False
 assert inspect.isgenerator( compiledGenerator ) is False
 assert inspect.isgenerator( compiledGenerator() ) is True
+
+def someFunction():
+   assert inspect.isframe( sys._getframe() )
+   print inspect.getframeinfo( sys._getframe() )
+
+someFunction()
+
+import sys
+
+class C:
+    print "Class locals", str( sys._getframe().f_locals ).replace( ", '__locals__': {...}", "" )
+    print "Class flags", sys._getframe().f_code.co_flags | 64
+
+def f():
+    print "Func locals", sys._getframe().f_locals
+    print "Func flags", sys._getframe().f_code.co_flags | 64
+
+f()
+
+print "Module frame locals", sys._getframe().f_locals
+print "Module flags", sys._getframe().f_code.co_flags  | 64

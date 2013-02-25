@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -76,3 +76,10 @@ class CPythonExpressionSideEffects( CPythonExpressionChildrenHavingBase ):
             return self.getExpression(), "new_expression", "Removed empty side effects."
 
         return self, None, None
+
+    def willRaiseException( self, exception_type ):
+        for child in self.getVisitableNodes():
+            if child.willRaiseException( exception_type ):
+                return True
+        else:
+            return False

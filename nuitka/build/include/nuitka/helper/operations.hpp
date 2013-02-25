@@ -1,4 +1,4 @@
-//     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+//     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -185,12 +185,41 @@ static PyObject *SEQUENCE_REPEAT( ssizeargfunc repeatfunc, PyObject *seq, PyObje
         throw _PythonException();
     }
 
-    // TODO: Inlining this will make it much cheaper.
-    Py_ssize_t count = PyNumber_AsSsize_t( n, PyExc_OverflowError );
+    PyObject *index_value = PyNumber_Index( n );
 
-    if (unlikely( count == -1 ))
+    if (unlikely( index_value == NULL ))
     {
-        THROW_IF_ERROR_OCCURED();
+        throw _PythonException();
+    }
+
+    /* We're done if PyInt_AsSsize_t() returns without error. */
+#if PYTHON_VERSION < 300
+    Py_ssize_t count = PyInt_AsSsize_t( index_value );
+#else
+    Py_ssize_t count = PyLong_AsSsize_t( index_value );
+#endif
+
+    Py_DECREF( index_value );
+
+    if (unlikely(  count == -1 )) // Note: -1 is an unlikely repetition count
+    {
+        PyObject *exception = GET_ERROR_OCCURED();
+
+        if (unlikely(  exception ))
+        {
+            if ( !PyErr_GivenExceptionMatches( exception, PyExc_OverflowError ) )
+            {
+                throw _PythonException();
+            }
+
+            PyErr_Format(
+                PyExc_OverflowError,
+                "cannot fit '%s' into an index-sized integer",
+                Py_TYPE( n )->tp_name
+            );
+
+            throw _PythonException();
+        }
     }
 
     PyObject *result = (*repeatfunc)( seq, count );

@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,9 +26,11 @@ from .__past__ import iterItems
 class Variable:
     def __init__( self, owner, variable_name ):
         assert type( variable_name ) is str, variable_name
+        assert type( owner ) not in ( tuple, list ), owner
 
         self.variable_name = variable_name
         self.owner = owner
+
 
         self.references = []
 
@@ -107,6 +109,10 @@ class Variable:
 
     def isTempVariable( self ):
         return False
+
+    def isTempKeeperVariable( self ):
+        return False
+
     # pylint: enable=R0201
 
     def _checkShared( self, variable ):
@@ -120,9 +126,10 @@ class Variable:
             owner = reference.getOwner()
 
             while owner.isExpressionFunctionBody() and not owner.isGenerator() and not owner.needsCreation():
-                owner = owner.getParent().getParentVariableProvider()
+                owner = owner.getParentVariableProvider()
 
-            # TODO: Check if this is necessary still.
+            # This defines being shared. Owned by one, and references that are owned by
+            # another node.
             if owner != top_owner:
                 return True
         else:
@@ -140,8 +147,13 @@ class Variable:
     reference_class = None
 
     def makeReference( self, owner ):
+        # Need to provider a reference class, or else making references cannot work.
         assert self.reference_class, self
 
+        if self.__class__ == TempVariableReference:
+            assert self.reference_class == TempVariableReference2, ( self.__class__, self.reference_class )
+
+        # Search for existing references to be re-used before making a new one.
         for reference in self.references:
             if reference.getOwner() is owner:
                 return reference
@@ -175,7 +187,8 @@ class VariableReferenceBase( Variable ):
             variable_name = variable.getName()
         )
 
-        self.reference_class = variable.reference_class
+        if self.reference_class is None:
+            self.reference_class = variable.reference_class
 
         variable.addReference( self )
         self.variable = variable
@@ -222,10 +235,7 @@ class ClosureVariableReference( VariableReferenceBase ):
         return True
 
     def getProviderVariable( self ):
-        current = self.getOwner().getParent()
-
-        while not current.isExpressionFunctionBody():
-            current = current.getParent()
+        current = self.getOwner().getParentVariableProvider()
 
         if current is self.getReferenced().getOwner():
             return self.getReferenced()
@@ -234,7 +244,7 @@ class ClosureVariableReference( VariableReferenceBase ):
                 if variable.getName() == self.getName():
                     return variable
             else:
-                assert False
+                assert False, self
 
     def getDeclarationTypeCode( self, in_context ):
         if self.getReferenced().isShared():
@@ -346,15 +356,20 @@ class MaybeLocalVariable( Variable ):
 
 
 class ParameterVariable( LocalVariable ):
-    def __init__( self, owner, parameter_name ):
+    def __init__( self, owner, parameter_name, kw_only ):
         LocalVariable.__init__(
             self,
             owner         = owner,
             variable_name = parameter_name
         )
 
+        self.kw_only = kw_only
+
     def isParameterVariable( self ):
         return True
+
+    def isParameterVariableKwOnly( self ):
+        return self.kw_only
 
     def getDeclarationTypeCode( self, in_context ):
         if self.isShared():
@@ -371,7 +386,8 @@ class NestedParameterVariable( ParameterVariable ):
         ParameterVariable.__init__(
             self,
             owner          = owner,
-            parameter_name = parameter_name
+            parameter_name = parameter_name,
+            kw_only        = False
         )
 
         self.parameter_spec = parameter_spec
@@ -448,7 +464,33 @@ def getModuleVariables( module ):
     return result
 
 
+class TempVariableReference2( VariableReferenceBase ):
+    reference_class = None
+
+    def isClosureReference( self ):
+        # Virtual method, pylint: disable=R0201
+        return True
+
+    def isTempVariableReference( self ):
+        # Virtual method, pylint: disable=R0201
+        return True
+
+    def getDeclarationTypeCode( self, in_context ):
+        if self.getReferenced().getReferenced().needs_free:
+            return "PyObjectTemporary"
+        else:
+            return "PyObject *"
+
+    def getCodeName( self ):
+        # Abstract method, pylint: disable=R0201
+        return "_" + self.getReferenced().getReferenced().getCodeName()
+
+    def getProviderVariable( self ):
+        return self.getReferenced()
+
+
 class TempVariableReference( VariableReferenceBase ):
+    reference_class = TempVariableReference2
 
     def isTempVariableReference( self ):
         # Virtual method, pylint: disable=R0201
@@ -502,6 +544,26 @@ class TempVariable( Variable ):
     def getDeclarationInitValueCode( self ):
         # Virtual method, pylint: disable=R0201
         return "NULL"
+
+
+class TempKeeperVariable( TempVariable ):
+    def __init__( self, owner, variable_name ):
+        TempVariable.__init__(
+            self,
+            owner         = owner,
+            variable_name = variable_name
+        )
+
+        self.write_only = False
+
+    def isTempKeeperVariable( self ):
+        return True
+
+    def isWriteOnly( self ):
+        return self.write_only
+
+    def setWriteOnly( self ):
+        self.write_only = True
 
 
 def getNames( variables ):

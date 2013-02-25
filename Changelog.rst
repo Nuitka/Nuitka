@@ -1,9 +1,226 @@
+Nuitka Release 0.4 (Draft)
+==========================
+
+This release brings massive progress on all fronts. The big highlight is of course: Full
+Python3.2 support. With this release, the test suite of CPython3.2 is considered passing.
+
+Then lots of work on optimization and infrastructure. The major goal of this release was
+to get in shape for actual optimization. This is also why for the first time, it is tested
+that some things are indeed compile time optimized to spot regressions easier. And we are
+having performance diagrams.
+
+New Features
+------------
+
+- Python3.2 is now fully supported.
+
+  - Fully correct ``metaclass =`` semantics now correctly supported. It had been working
+    somewhat previously, but now all the corner cases are covered too.
+
+  - Keyword only parameters.
+
+  - Annotations of functions return value and their arguments.
+
+  - Exception causes, chaining, automatic deletion of exception handlers ``as`` values.
+
+  - Added support for starred assigns.
+
+  - Unicode variable names are also supported, although it's of course ugly, to find a way
+    to translate these to C++ ones.
+
+Bug fixes
+---------
+
+- Checking compiled code with ``instance( some_function, types.FunctionType )`` as
+  "zope.interfaces" does, was causing compatibility problems. Now this kind of check
+  passes for compiled functions too. `Issue#53 <http://bugs.nuitka.net/issue53>`_
+
+- The frame of modules had an empty locals dictionary, which is not compatible to CPython
+  which puts the globals dictionary there too. Also discussed in `Issue#53
+  <http://bugs.nuitka.net/issue53>`_
+
+- For nested exceptions and interactions with generator objects, the exceptions in
+  "sys.exc_info()" were not always fully compatible. They now are.
+
+- The ``range`` builtin was not raising exceptions if given arguments appeared to not have
+  side effects, but were still illegal, e.g. ``range( [], 1, -1 )`` was optimized away if
+  the value was not used.
+
+- Don't crash on imported modules with syntax errors. Instead, the attempted recursion is
+  simply not done.
+
+- Doing a ``del`` on ``__defaults`` and ``__module`` of compiled functions was
+  crashing. Noticed by a Python3 test for ``__kwdefaults__`` that exhibited this weakness.
+
+- Wasn't detecting duplicate arguments, if one of them was not normal. Star arguments can
+  collide with normal ones.
+
+- The ``__doc__`` of classes is now only set, where it was in fact specified. Otherwise it
+  polluted the name space of ``locals()``.
+
+- When ``return`` from the tried statements of a ``try/finally`` block, was overridden, by
+  the final block, a reference was leaked.
+
+New Optimization
+----------------
+
+- Optimizing attribute access to compile time constants for the first time. The old
+  registry had no actual user yet.
+
+- Optimizing subscript and slices for all compile time constants beyond constant values,
+  made easy by using inheritance.
+
+- Built-in references now convert to strings directly, e.g. when used in a print
+  statement. Needed for the testing approach "compiled file contains only prints with
+  constant value".
+
+- Optimizing calls to constant nodes directly into exceptions.
+
+- Added support for optimizing ``hasattr``, ``getattr``, and ``setattr`` built-ins as
+  well. The ``hasattr`` was needed for the ``class`` re-formulation of Python3 anyway.
+
+- Optimizing ``getattr`` with string argument and no default to simple attribute access.
+
+- Added support for optimizing ``isinstance`` built-in.
+
+- Was handling "BreakException" and "ContinueException" in all loops that used ``break``
+  or ``continue`` instead of only where necessary.
+
+- When catching "ReturnValueException", was raising an exception where a normal return was
+  sufficient. Raising them now only where needed, which also means, function need not
+  catch them ever.
+
+Cleanups
+--------
+
+- The handling of classes for Python2 and Python3 have been re-formulated in Python more
+  completely.
+
+  * The calling of the determined "metaclass" is now in the node tree, so this call may
+    possible to inline in the future. This eliminated some static C++ code.
+
+  * Passing of values into dictionary creation function is no longer using hard coded
+    special parameters, but temporary variables can now have closure references, making
+    this normal and visible to the optimization.
+
+  * Class dictionary creation functions are therefore no longer as special as they used to
+    be.
+
+  * There is no class creation node anymore, it's merely a call to ``type`` or the
+    metaclass detected.
+
+- Re-formulated complex calls through helper functions that process the star list and dict
+  arguments and do merges, checks, etc.
+
+  * Moves much C++ code into the node tree visibility.
+
+  * Will allow optimization to eliminate checks and to compile time merge, once inline
+    functions and loop unrolling are supported.
+
+- Added "return None" to function bodies without a an aborting statement at the end, and
+  removed the hard coded fallback from function templates. Makes it explicit in the node
+  tree and available for optimization.
+
+- Merged C++ classes for frame exception keeper with frame guards.
+
+  * The exception is now saved in the compiled frame object, making it potentially more
+    compatible to start with.
+
+  * Aligned module and function frame guard usage, now using the same class.
+
+  * There is now a clear difference in the frame guard classes. One is for generators and
+    one is for functions, allowing to implement their different exception behavior there.
+
+- The optimization registries for calls, subscripts, slices, and attributes have been
+  replaced with attaching them to nodes.
+
+  * The ensuing circular dependency has been resolved by more local imports for created
+    nodes.
+
+  * The package "nuitka.transform.optimization.registries" is no more.
+
+  * New per node methods "computeNodeCall", "computeNodeSubscript", etc. dispatch the
+    optimization process to the nodes directly.
+
+- Use the standard frame guard code generation for modules too.
+
+  * Added a variant "once", that avoids caching of frames entirely.
+
+- The variable closure taking has been cleaned up.
+
+  * Stages are now properly numbered.
+
+  * Python3 only stage is not executed for Python2 anymore.
+
+  * Added comments explaining things a bit better.
+
+- The special code generation used for unpacking from iterators and catching
+  "StopIteration" was cleaned up.
+
+  * Now uses template, Generator functions, and proper identifiers.
+
+- Checks for Python version was sometimes "> 300", where of course ">= 300" is the only
+  thing that makes sense.
+
+
+New Tests
+---------
+
+- The complete CPython3.2 test suite was adapted (no ``__code__``, no ``__closure__``,
+  etc.) and is now passing, but only without "--debug", because otherwise some of the
+  generated C++ triggers (harmless) warnings.
+
+- Added new test suite designed to prove that expressions that are known to be compile
+  time constant are indeed so. This works using the XML output done with "--dump-xml" and
+  then searching it to only have print statements with constant values.
+
+- Added new basic CPython3.2 test "Functions32" and "ParameterErrors32" to cover keyword
+  only parameter handling.
+
+- Added tests to cover generator object and exception interactions.
+
+- Added tests to cover ``try/finally`` and ``return`` in one or both branches correctly
+  handling the references.
+
+Organizational
+--------------
+
+- Changed my email from GMX over to Gmail, the old one will still continue to
+  work. Updated the copyright notices accordingly.
+
+- Uploaded `Nuitka to PyPI <http://pypi.python.org/pypi/Nuitka/>`_ as well.
+
+Summary
+-------
+
+This release marks a milestone. The support of Python3 is here. The re-formulation of
+complex calls, and the code generation improvements are quite huge. More re-formulation
+could be done for argument parsing, but generally this is now mostly complete.
+
+The 0.3.x series had a lot releases. Many of which brought progress with re-formulations
+that aimed at making optimization easier or possible. Sometimes small things like making
+"return None" explicit. Sometimes bigger things, like making class creations normal
+functions, or getting rid of ``or`` and ``and``. All of this was important ground work, to
+make sure, that optimization doesn't deal with complex stuff.
+
+So, the 0.4.x series begins with this. The focus from now on can be almost purely
+optimization. This release contains already some of it, with frames being optimized away,
+with the assignment keepers from the ``or`` and ``and`` re-formulation being optimized
+away. This will be about achieving goals from the "ctypes" plan as discussed in the
+developer manual.
+
+
 Nuitka Release 0.3.25
 =====================
 
 This release brings about changes on all fronts, bug fixes, new features. Also very
 importantly Nuitka no longer uses C++11 for its code, but mere C++03. There is new
 re-formulation work, and re-factoring of functions.
+
+But the most important part is this: Mercurial unit tests are working. Nearly. With the
+usual disclaimer of me being wrong, all remaining errors are errors of the test, or minor
+things. Hope is that these unit tests can be added as release tests to Nuitka. And once
+that is done, the next big Python application can come.
 
 Bug fixes
 ---------
@@ -65,8 +282,8 @@ Cleanups
 - Don't export module entry points when building executable and not modules. These exports
   cause MinGW and MSVC compilers to create export libraries.
 
-New Optimizations
------------------
+New Optimization
+----------------
 
 - More efficient code for conditional expressions in conditions:
 
@@ -116,6 +333,10 @@ Organizational
   ``try``/``finally`` and loop constructs.
 
 
+- Catch exceptions for ``continue``, ``break``, and ``return`` only where needed for
+  ``try``/``finally`` and loop constructs.
+
+
 New Tests
 ---------
 
@@ -130,7 +351,7 @@ New Tests
 Summary
 -------
 
-This releases contains lots of progress. The compiled frames are exciting new technology,
+This release marks an important point. The compiled frames are exciting new technology,
 that will allow even better integration with CPython, while improving speed. Lowering the
 requirements to C++03 means, we will become usable on Android and with MSVC, which will
 make adoption of Nuitka on Windows easier for many.
@@ -143,6 +364,14 @@ acceptable. Now, work can resume in this domain.
 Also very exciting when it comes to optimization is the remove of special code for ``or``
 and ``and`` operators, as these are now only mere conditional expressions. Again, this
 will make value propagation easier with two special cases less.
+
+And then of course, with Mercurial unit tests running compiled with Nuitka, an important
+milestone has been hit.
+
+For a while now, the focus will be on completing Python3 support, XML based optimization
+regression tests, benchmarks, and other open ends. Once that is done, and more certainty
+about Mercurial tests support, I may call it a 0.4 and start with local type inference for
+actual speed gains.
 
 Nuitka Release 0.3.24
 =====================
@@ -451,8 +680,8 @@ New Features
 - Python3 has gained support for recursive programs and stand alone extension modules,
   these are now both possible as well.
 
-New Optimizations
------------------
+New Optimization
+----------------
 
 - Avoid frame stack entries for functions that cannot raise exceptions, i.e. where they
   would not be used.
@@ -630,8 +859,8 @@ Bug fixes
 - The syntax error for ``return`` outside of a function, was not given, instead the code
   returned at run time. Fixed to raise a ``SyntaxError`` at compile time.
 
-New Optimizations
------------------
+New Optimization
+----------------
 
 - Avoid ``tuple`` objects to be created when catching multiple exception types, instead call
   exception match check function multiple times.
@@ -875,8 +1104,8 @@ New Features
   option. Currently this option is mainly intended to allow testing the "MacOS X" support
   as good as possible under Linux.
 
-New Optimizations
------------------
+New Optimization
+----------------
 
 - Enhanced all optimizations that previously worked on "constants" to work on "compile
   time constants" instead. A "compile time constant" can currently also be any form of a
@@ -1101,8 +1330,8 @@ New Features
 - Added support for the ``exec`` built-in of Python3, this enables us to run one more basic
   test, ``GlobalStatement.py`` with Python3. The test ``ExecEval.py`` nearly works now.
 
-New Optimizations
------------------
+New Optimization
+----------------
 
 - The no arguments ``range()`` call now optimized into the static CPython exception it
   raises.
@@ -1243,8 +1472,8 @@ Bug fixes
 - Compatibility Fix: When no defaults are given, CPython uses ``None`` for
   ``func.func_defaults``, but Nuitka had been using ``None``.
 
-New Optimizations
------------------
+New Optimization
+----------------
 
 - If the condition of assert statements can be predicted, these are now optimized in a
   static raise or removed.
@@ -1372,8 +1601,8 @@ New Features
   ``--recurse-to`` (confirm to recurse to those modules)
   ``--recurse-not-to`` (confirm to not recurse to those modules)
 
-New Optimizations
------------------
+New Optimization
+----------------
 
 - The optimization of constant conditional expressions was not done yet. Added this
   missing constant propagation case.
@@ -1595,8 +1824,8 @@ Bug fixes
 
 - Fix, the future spec was not properly preserving the future division flag.
 
-New Optimizations
------------------
+New Optimization
+----------------
 
 - The optimization scales now much better, because per-module optimizations only require
   the module to be reconsidered, but not all modules all the time. With many modules
@@ -1785,8 +2014,8 @@ Organizational
 - Don't strip the binary when executing it to analyse compiled binary with
   ``valgrind``. It will give better information that way, without changing the code.
 
-Optimizations
--------------
+New Optimization
+----------------
 
 - Implemented ``swapcontext`` alike (``swapFiber``) for x64 to achieve 8 times speedup for
   Generators. It doesn't do useless syscalls to preserve signal masks. Now Nuitka is
@@ -2007,8 +2236,8 @@ Bug fixes
 - The order of evaluation for ``in`` and ``not in`` operators wasn't enforced in a portable
   way. Now it is correct on "ARM" too. Fixed in 0.3.12e already.
 
-New Optimizations
------------------
+New Optimization
+----------------
 
 - The built-ins ``GeneratorExit`` and ``StopIteration`` are optimized to their Python C/API
   names where possible as well.
@@ -2247,8 +2476,8 @@ Bug fixes
   printed expressions, and did the output only then. That is incompatible in case of
   exceptions, where partial outputs need to be done, and so that got fixed.
 
-New Optimizations
------------------
+New Optimization
+----------------
 
 - Function calls now each have a dedicated helper function, avoiding in some cases
   unnecessary work. We will may build further on this and inline ``PyObject_Call``
@@ -2372,8 +2601,8 @@ Bug fixes
   it was evident that the lookup was made twice. Correcting this also improves the
   performance for the normal case.
 
-New Optimizations
------------------
+New Optimization
+----------------
 
 - Statically raised as well as predicted exceptions are propagated upwards, leading to
   code and block removal where possible, while maintaining the side effects.
@@ -2513,8 +2742,8 @@ Bug fixes
 - The check for mutable constants was erroneous for tuples, which could lead to assuming a
   tuple with only mutable elements to be not mutable, which is of course wrong.
 
-New Optimizations
------------------
+New Optimization
+----------------
 
 This time there are so many new optimizations, it makes sense to group them by the subject.
 
@@ -2763,8 +2992,8 @@ Bug fixes
 - There was an ``assert False`` right after warning about not found modules in the ``--deep``
   mode, which was of course unnecessary.
 
-New Optimizations
------------------
+New Optimization
+----------------
 
 - When unpacking variables in assignments, the temporary variables are now held in a new
   temporary class that is designed for the task specifically.
@@ -2901,8 +3130,8 @@ Bug fixes
 - Exception tracebacks created inside ``with`` statements could contain duplicate lines,
   this was corrected.
 
-New Optimizations
------------------
+New Optimization
+----------------
 
 - Global variable assignments now also use ``assign0`` where no reference exists.
 
@@ -3041,8 +3270,8 @@ New Features
   requires g++ 4.6 to be available, but then it at least creates smaller binaries and may
   provide more optimizations in the future.
 
-New Optimizations
------------------
+New Optimization
+----------------
 
 - Exceptions raised by pre-computed built-ins, unpacking, etc. are now transformed to
   raising the exception statically.
@@ -3169,20 +3398,26 @@ New Features
 - Added meaningful error messages in the "file not found" case. Previously I just didn't
   care, but we sort of approach end user usability with this.
 
-New Optimizations
------------------
+New Optimization
+----------------
 
 - Added optimization for the built-in ``range()`` which otherwise requires a module and
   ``builtin`` module lookup, then parameter parsing. Now this is much faster with Nuitka
   and small ranges (less than 256 values) are converted to constants directly, avoiding
   run time overhead entirely.
+
 - Code for re-raise statements now use a simple re-throw of the exception where possible,
   and only do the hard work where the re-throw is not inside an exception handler.
+
 - Constant folding of operations and comparisons is now performed if the operands are
   constants.
+
 - Values of some built-ins are pre-computed if the operands are constants.
-- The value of module attribute ``__name__`` is replaced by a constant unless it is assigned
-  to. This is the first sign of upcoming constant propagation, even if only a weak one.
+
+- The value of module attribute ``__name__`` is replaced by a constant unless it is
+  assigned to. This is the first sign of upcoming constant propagation, even if only a
+  weak one.
+
 - Conditional statement and/or their branches are eliminated where constant conditions
   allow it.
 
@@ -3337,15 +3572,17 @@ New Features
   followed in "deep" mode. With time, non-constants may still become predictable, right
   now it must be a real CPython constant string.
 
-New Optimizations
------------------
+New Optimization
+----------------
 
 - Added optimization for the built-ins ``ord()`` and ``chr()``, these require a module and
   built-in module lookup, then parameter parsing. Now these are really quick with Nuitka.
+
 - Added optimization for the ``type()`` built-in with one parameter. As above, using from
   builtin module can be very slow. Now it is instantaneous.
-- Added optimization for the ``type()`` built-in with three parameters. It's rarely used, but
-  providing our own variant, allowed to fix the bug mentioned above.
+
+- Added optimization for the ``type()`` built-in with three parameters. It's rarely used,
+  but providing our own variant, allowed to fix the bug mentioned above.
 
 Cleanups
 --------
@@ -3453,14 +3690,16 @@ Others
 - The pickling of some tuples showed that "cPickle" can have non-reproducible results,
   using "pickle" to stream constants now
 
-Optimizations
--------------
+New Optimization
+----------------
 
 - Access to instance attributes has become faster by writing specific code for the
   case. This is done in JIT way, attempting at run time to optimize attribute access for
   instances.
+
 - Assignments now often consider what's cheaper for the other side, instead of taking a
   reference to a global variable, just to have to release it.
+
 - The function call code built argument tuples and dictionaries as constants, now that is
   true for every tuple usage.
 
@@ -3832,12 +4071,15 @@ New Tests
 
 - Added "DoubleDeletions" to cover behaviour of ``del``. It seems that this is not part of
   the CPython test suite.
+
 - The "OverflowFunctions" (those with dynamic local variables) now has an interesting
   test, exec on a local scope, effectively adding a local variable while a closure
   variable is still accessible, and a module variable too. This is also not in the CPython
   test suite.
+
 - Restored the parts of the CPython test suite that did local star imports or exec to
   provide new variables. Previously these have been removed.
+
 - Also "test_with.py" which covers PEP 343 has been reactivated, the with statement works
   as expected.
 
@@ -3861,15 +4103,17 @@ Reduced Differences / New Features
 
 - Generator functions already worked quite fine, but now they have the ``throw()``, ``send()``
   and ``close()`` methods.
+
 - Yield is now an expression as is ought to be, it returns values put in by ``send()`` on
   the generator user.
+
 - Support for extended slices:
 
-.. code-block:: python
+  .. code-block:: python
 
-   x = d[:42, ..., :24:, 24, 100]
-   d[:42, ..., :24:, 24, 100] = "Strange"
-   del d[:42, ..., :24:, 24, 100]
+     x = d[:42, ..., :24:, 24, 100]
+     d[:42, ..., :24:, 24, 100] = "Strange"
+     del d[:42, ..., :24:, 24, 100]
 
 Tests Work
 ----------
@@ -3900,13 +4144,18 @@ Bug Fixes
 
 - Scope analysis is now done during the tree building instead of sometimes during code
   generation, this fixed a few issues that didn't show up in tests previously.
+
 - Reference leaks of generator expressions that were not fishing, but then deleted are not
   more.
+
 - Inlining of exec is more correct now.
+
 - More accurate exception lines when iterator creation executes compiled code, e.g. in a
   for loop
+
 - The list of base classes of a class was evaluated in the context of the class, now it is
   done in the context of the containing scope.
+
 - The first iterated of a generator expression was evaluated in its own context, now it is
   done in the context of the containing scope.
 
@@ -3914,9 +4163,12 @@ Reduced Differences
 -------------------
 
 - With the enhanced scope analysis, ``UnboundLocalError`` is now correctly supported.
-- Generator expressions (but not yet functions) have a ``throw()``, ``send()`` and ``close()``
-  method.
+
+- Generator expressions (but not yet functions) have a ``throw()``, ``send()`` and
+  ``close()`` method.
+
 - Exec can now write to local function namespace even if ``None`` is provided at run time.
+
 - Relative imports inside packages are now correctly resolved at compile time when using
   ``--deep``.
 

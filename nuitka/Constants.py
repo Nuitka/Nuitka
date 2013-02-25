@@ -1,4 +1,4 @@
-#     Copyright 2012, Kay Hayen, mailto:kayhayen@gmx.de
+#     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -95,6 +95,18 @@ def compareConstants( a, b ):
     # The NaN values of float and complex may let this fail, even if the constants are
     # built in the same way.
     return a == b
+
+def isConstant( constant ):
+    constant_type = type( constant )
+
+    if constant_type in ( str, tuple, dict, list, unicode, complex, int, long, bool, float, \
+                          NoneType, range, bytes, set ):
+        return True
+    elif constant in ( Ellipsis, NoneType ):
+        return True
+    else:
+        return False
+
 
 def isMutable( constant ):
     constant_type = type( constant )
