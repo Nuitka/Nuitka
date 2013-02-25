@@ -33,6 +33,8 @@ class StatementPrint( StatementChildrenHavingBase ):
     named_children = ( "dest", "values" )
 
     def __init__( self, dest, values, newline, source_ref ):
+        assert values or newline
+
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -53,3 +55,150 @@ class StatementPrint( StatementChildrenHavingBase ):
     getDestination = StatementChildrenHavingBase.childGetter( "dest" )
     getValues = StatementChildrenHavingBase.childGetter( "values" )
     setValues = StatementChildrenHavingBase.childSetter( "values" )
+
+    def computeStatement( self, constraint_collection ):
+        constraint_collection.onExpression( self.getDestination(), allow_none = True )
+        dest = self.getDestination()
+
+        if dest is not None and dest.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+
+            result = makeStatementExpressionOnlyReplacementNode(
+                expression = dest,
+                node       = self
+            )
+
+            return result, "new_raise", "Known exception raise in print statement destination converted to explicit raise."
+
+        for count, value in enumerate( self.getValues() ):
+            constraint_collection.onExpression( value )
+            value = self.getValues()[ count ]
+
+            if value.willRaiseException( BaseException ):
+                # Trim to values up to this from this statement.
+                values = self.getValues()
+                values = list( values )[ : values.index( value ) ]
+
+                from .NodeMakingHelpers import (
+                    makeStatementExpressionOnlyReplacementNode,
+                    makeStatementsSequenceReplacementNode
+                )
+
+                if values:
+                    result = makeStatementsSequenceReplacementNode(
+                        statements = (
+                            StatementPrint(
+                                dest       = self.getDestination(),
+                                values     = values,
+                                newline    = False,
+                                source_ref = self.source_ref
+                            ),
+                            makeStatementExpressionOnlyReplacementNode(
+                                expression = value,
+                                node       = self
+                            )
+                        ),
+                        node       = self
+                    )
+                else:
+                    result = makeStatementExpressionOnlyReplacementNode(
+                        expression = value,
+                        node       = self
+                    )
+
+                return result, "new_raise", "Known exception raise in print statement arguments converted to explicit raise."
+
+            new_node = value.getStrValue( self )
+
+            if new_node is not None and new_node is not value:
+                from .NodeMakingHelpers import wrapExpressionWithSideEffects
+
+                value.replaceWith( new_node )
+
+                constraint_collection.signalChange(
+                    "new_expression",
+                    value.getSourceReference(),
+                    "Converted print argument to 'str' at compile time"
+                )
+
+        printeds = self.getValues()
+
+        for count in range( len( printeds ) - 1 ):
+            if printeds[ count ].isExpressionConstantRef():
+                new_value = printeds[ count ].getConstant()
+
+                # Above code should have replaced this already.
+                assert type( new_value ) is str, self
+
+                stop_count = count + 1
+
+                while True:
+                    candidate = printeds[ stop_count ]
+
+                    if candidate.isExpressionConstantRef() and candidate.isStringConstant():
+                        if not new_value.endswith( "\t" ):
+                            new_value += " "
+
+                        new_value += candidate.getConstant()
+
+                        stop_count += 1
+
+                        if stop_count >= len( printeds ):
+                            break
+
+                    else:
+                        break
+
+                if stop_count != count + 1:
+                    from .NodeMakingHelpers import makeConstantReplacementNode
+
+                    new_node = makeConstantReplacementNode(
+                        constant = new_value,
+                        node     = printeds[ count ]
+                    )
+
+                    new_printeds = printeds[ : count ] + ( new_node, ) + printeds[ stop_count: ]
+
+                    self.setValues( new_printeds )
+
+                    constraint_collection.signalChange(
+                        "new_expression",
+                        printeds[ count ].getSourceReference(),
+                        "Combined print string arguments at compile time"
+                    )
+
+                    break
+
+        if dest is None:
+            values = self.getValues()
+
+            if values:
+                if values[0].isExpressionSideEffects():
+                    from .NodeMakingHelpers import (
+                        makeStatementExpressionOnlyReplacementNode,
+                        makeStatementsSequenceReplacementNode
+                    )
+
+                    statements = [
+                        makeStatementExpressionOnlyReplacementNode(
+                            side_effect,
+                            self
+                        )
+                        for side_effect in
+                        values[0].getSideEffects()
+                    ]
+
+                    statements.append( self )
+
+                    self.setValues(
+                        ( values[0].getExpression(), ) + values[ 1: ]
+                    )
+
+                    result = makeStatementsSequenceReplacementNode(
+                        statements = statements,
+                        node       = self,
+                    )
+
+                    return result, "new_statements", "Side effects first printed item promoted to statements."
+
+        return self, None, None
