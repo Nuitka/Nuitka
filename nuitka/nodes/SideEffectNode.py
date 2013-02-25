@@ -69,11 +69,20 @@ class CPythonExpressionSideEffects( CPythonExpressionChildrenHavingBase ):
             if side_effect.mayHaveSideEffects( constraint_collection ):
                 new_side_effects.append( side_effect )
 
+        expression = self.getExpression()
+
+        if expression.isExpressionSideEffects():
+            new_side_effects.extend( expression.getSideEffects() )
+
+            expression.setSideEffects( new_side_effects )
+
+            return expression, "new_expression", "Remove nested side effects"
+
         if new_side_effects != side_effects:
             self.setSideEffects( new_side_effects )
 
         if not new_side_effects:
-            return self.getExpression(), "new_expression", "Removed empty side effects."
+            return expression, "new_expression", "Removed empty side effects."
 
         return self, None, None
 
