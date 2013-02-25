@@ -17,16 +17,29 @@
 #
 """ Nodes related to importing modules or names.
 
+Normally imports are mostly relatively static, but Nuitka also attempts to cover the uses
+of "__import__" builtin and other import techniques, that allow dynamic values.
+
+If other optimizations make it possible to predict these, the compiler can go deeper that
+what it normally could. The import expression node can recurse. An "__import__" builtin may be converted to it, once the module name becomes a compile time constant.
+
 """
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
 
 from .ConstantRefNode import CPythonExpressionConstantRef
 
+from nuitka import Importing, Utils, Options
+
+from logging import warning
+
 class CPythonExpressionImportModule( CPythonExpressionChildrenHavingBase ):
     kind = "EXPRESSION_IMPORT_MODULE"
 
     named_children = ( "module", )
+
+    # Set of modules, that we failed to import, and gave warning to the user about it.
+    _warned_about = set()
 
     def __init__( self, module_name, import_list, level, source_ref ):
         CPythonExpressionChildrenHavingBase.__init__(
@@ -61,10 +74,12 @@ class CPythonExpressionImportModule( CPythonExpressionChildrenHavingBase ):
         else:
             return self.level
 
-    # Prevent normal recursion from entering the module.
+    # Prevent normal recursion from entering the module. TODO: Why have the class when not
+    # really using it.
     def getVisitableNodes( self ):
         return ()
 
+    # TODO: No need for these accessor functions anymore.
     def hasAttemptedRecurse( self ):
         return self.attempted_recurse
 
@@ -80,7 +95,168 @@ class CPythonExpressionImportModule( CPythonExpressionChildrenHavingBase ):
         self._setModule( module )
         module.parent = None
 
+    def _recurseTo( self, constraint_collection, module_package, module_filename, module_relpath ):
+        from nuitka.tree import Recursion
+
+        imported_module, added_flag = Recursion.recurseTo(
+            module_package  = module_package,
+            module_filename = module_filename,
+            module_relpath  = module_relpath
+        )
+
+        if added_flag:
+            constraint_collection.signalChange(
+                "new_code",
+                imported_module.getSourceReference(),
+                "Recursed to module."
+            )
+
+        return imported_module
+
+    @staticmethod
+    def _decide( module_filename, module_name, module_package ):
+        # Many branches, which make decisions immediately, pylint: disable=R0911
+
+        no_case_modules = Options.getShallFollowInNoCase()
+
+        if module_package is None:
+            full_name = module_name
+        else:
+            full_name = module_package + "." + module_name
+
+        for no_case_module in no_case_modules:
+            if full_name == no_case_module:
+                return False
+
+            if full_name.startswith( no_case_module + "." ):
+                return False
+
+        any_case_modules = Options.getShallFollowModules()
+
+        for any_case_module in any_case_modules:
+            if full_name == any_case_module:
+                return True
+
+            if full_name.startswith( any_case_module + "." ):
+                return True
+
+        if Options.shallFollowNoImports():
+            return False
+
+        if Importing.isStandardLibraryPath( module_filename ):
+            return Options.shallFollowStandardLibrary()
+
+        if Options.shallFollowAllImports():
+            return True
+
+        # Means, I don't know.
+        return None
+
+    def _consider( self, constraint_collection, module_filename, module_package ):
+        assert module_package is None or ( type( module_package ) is str and module_package != "" )
+
+        module_filename = Utils.normpath( module_filename )
+
+        if Utils.isDir( module_filename ):
+            module_name = Utils.basename( module_filename )
+        elif module_filename.endswith( ".py" ):
+            module_name = Utils.basename( module_filename )[:-3]
+        else:
+            module_name = None
+
+        if module_name is not None:
+            decision = self._decide( module_filename, module_name, module_package )
+
+            if decision:
+                module_relpath = Utils.relpath( module_filename )
+
+                return self._recurseTo(
+                    constraint_collection = constraint_collection,
+                    module_package        = module_package,
+                    module_filename       = module_filename,
+                    module_relpath        = module_relpath
+                )
+            elif decision is None:
+                if module_package is None:
+                    module_fullpath = module_name
+                else:
+                    module_fullpath = module_package + "." + module_name
+
+                if module_filename not in self._warned_about:
+                    self._warned_about.add( module_filename )
+
+                    warning( # long message, but shall be like it, pylint: disable=C0301
+                        """\
+Not recursing to '%(full_path)s' (%(filename)s), please specify \
+--recurse-none (do not warn), \
+--recurse-all (recurse to all), \
+--recurse-not-to=%(full_path)s (ignore it), \
+--recurse-to=%(full_path)s (recurse to it) to change.""" % {
+                            "full_path" : module_fullpath,
+                            "filename"  : module_filename
+                        }
+                    )
+
+    def _attemptRecursion( self, constraint_collection ):
+        assert self.getModule() is None
+
+        parent_module = self.getParentModule()
+
+        if parent_module.isPackage():
+            parent_package = parent_module.getFullName()
+        else:
+            parent_package = self.getParentModule().getPackage()
+
+        module_package, _module_name, module_filename = Importing.findModule(
+            source_ref     = self.source_ref,
+            module_name    = self.getModuleName(),
+            parent_package = parent_package,
+            level          = self.getLevel()
+        )
+
+        # That would be an illegal package name, catch it.
+        assert module_package != ""
+
+        if module_filename is not None:
+            imported_module = self._consider(
+                constraint_collection = constraint_collection,
+                module_filename       = module_filename,
+                module_package        = module_package
+            )
+
+            if imported_module is not None:
+                self.setModule( imported_module )
+
+                import_list = self.getImportList()
+
+                if import_list and imported_module.isPackage():
+                    for import_item in import_list:
+
+                        module_package, _module_name, module_filename = Importing.findModule(
+                            source_ref     = self.source_ref,
+                            module_name    = import_item,
+                            parent_package = imported_module.getFullName(),
+                            level          = -1,
+                            warn           = False
+                        )
+
+                        if module_filename is not None:
+                            _imported_module = self._consider(
+                                constraint_collection = constraint_collection,
+                                module_filename       = module_filename,
+                                module_package        = module_package
+                            )
+
+
     def computeNode( self, constraint_collection ):
+        # Attempt to recurse if not already done.
+        if not self.hasAttemptedRecurse():
+            self._attemptRecursion(
+                constraint_collection = constraint_collection
+            )
+
+            self.setAttemptedRecurse()
+
         # TODO: May return a module reference of some sort in the future with embedded
         # modules.
         return self, None, None
