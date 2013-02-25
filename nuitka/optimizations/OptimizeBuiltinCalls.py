@@ -402,18 +402,10 @@ if python_version < 300:
 
             provider = node.getParentVariableProvider()
 
-            if provider.isExpressionFunctionBody() and provider.isClassDictCreation():
-                # In a case, the copy-back must be done and will only be done correctly by
-                # the code for exec statements.
-
-                use_call = StatementExec
-            else:
-                use_call = ExpressionBuiltinExecfile
-
             if provider.isExpressionFunctionBody():
                 provider.markAsExecContaining()
 
-            return use_call(
+            return ExpressionBuiltinExecfile(
                 source_code = ExpressionCallEmpty(
                     called     = ExpressionAttributeLookup(
                         expression     = ExpressionBuiltinOpen(

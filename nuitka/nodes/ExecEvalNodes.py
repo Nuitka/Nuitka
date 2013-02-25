@@ -68,16 +68,6 @@ if Utils.python_version >= 300:
 
         def computeExpression( self, constraint_collection ):
             # TODO: Attempt for constant values to do it.
-            if self.getParent().isStatementExpressionOnly() and self.getParentVariableProvider().isEarlyClosure():
-                result = StatementExec(
-                    source_code = self.getSourceCode(),
-                    globals_arg = self.getGlobals(),
-                    locals_arg  = self.getLocals(),
-                    source_ref  = self.source_ref,
-                )
-
-                return result, "new_statements", "Replaced builtin exec call to exec statement in early closure context."
-
             return self, None, None
 
 

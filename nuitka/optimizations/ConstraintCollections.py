@@ -125,7 +125,6 @@ class ConstraintCollectionBase:
     def mustNotAlias( self, a, b ):
         return False
 
-
     def removeKnowledge( self, value_friend ):
         to_remove = []
 
@@ -135,6 +134,9 @@ class ConstraintCollectionBase:
 
         for remove in to_remove:
             del self.variables[ remove ]
+
+    def removeAllKnowledge( self ):
+        self.variables = {}
 
     @staticmethod
     def mergeBranchVariables( a, b ):
@@ -618,6 +620,7 @@ class ConstraintCollectionBase:
             new_node = printed.getStrValue( self )
 
             if new_node is not None and new_node is not printed:
+                # TODO: Side effects?!
                 printed.replaceWith( new_node )
 
                 self.signalChange(
@@ -751,6 +754,9 @@ class ConstraintCollectionBase:
             if result is not tried_statement_sequence:
                 statement.setBlockTry( result )
 
+        if statement.getBlockTry() is None:
+            return None
+
         # The exception branches triggers in unknown state, any amount of tried code
         # may have happened. A similar approach to loops should be taken to invalidate
         # the state before.
@@ -758,14 +764,12 @@ class ConstraintCollectionBase:
             exception_branch = ConstraintCollectionHandler( self, self.signalChange )
             exception_branch.process( handler )
 
-        # Give up, merging this is too hard for now.
-        self.variables = {}
+        # Give up, merging this is too hard for now, any amount of the tried sequence may
+        # have executed together with one of the handlers, or all of tried and no
+        # handlers.
+        self.removeAllKnowledge()
 
-        if statement.getBlockTry() is None:
-            return None
-        else:
-            return statement
-
+        return statement
 
     def onStatement( self, statement ):
         assert statement.isStatement(), statement
@@ -793,63 +797,6 @@ class ConstraintCollectionBase:
                 del self.variables[ variable ]
 
             return statement
-        elif statement.isStatementExpressionOnly():
-            expression = statement.getExpression()
-
-            if expression.isStatement():
-                # Workaround for possibilty of generating a statement here.
-                return self.onStatement( expression )
-            elif expression.isExpressionSideEffects():
-                side_effects = list(
-                    makeStatementExpressionOnlyReplacementNode(
-                        expression = side_effect,
-                        node       = side_effect
-                    )
-                    for side_effect in expression.getSideEffects()
-                )
-
-                self.signalChange(
-                    "new_statements",
-                    statement.getSourceReference(),
-                    "Turned side effects of expression only statement into statements"
-
-                )
-
-                return makeStatementsSequenceReplacementNode(
-                    statements = side_effects + [
-                        makeStatementExpressionOnlyReplacementNode(
-                            expression = expression.getExpression(),
-                            node       = statement
-                        )
-                    ],
-                    node       = statement
-                )
-
-            else:
-                self.onExpression( expression )
-                expression = statement.getExpression()
-
-                if not expression.mayHaveSideEffects( self ):
-                    self.signalChange(
-                        "new_statements",
-                        statement.getSourceReference(),
-                        "Removed statement without effect."
-                    )
-
-                    return None
-
-                if expression.isExpressionRaiseException():
-                    return StatementRaiseExceptionImplicit(
-                        exception_type  = expression.getExceptionType(),
-                        exception_value = expression.getExceptionValue(),
-                        exception_trace = None,
-                        exception_cause = None,
-                        source_ref      = expression.getSourceReference()
-                    )
-
-
-                return statement
-
         elif statement.isStatementPrint():
             return self._onStatementPrint( statement )
         elif statement.isStatementConditional():
