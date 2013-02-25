@@ -1,8 +1,11 @@
 Nuitka Release 0.4 (Draft)
 ==========================
+Nuitka Release 0.4.0
+====================
 
 This release brings massive progress on all fronts. The big highlight is of course: Full
-Python3.2 support. With this release, the test suite of CPython3.2 is considered passing.
+Python3.2 support. With this release, the test suite of CPython3.2 is considered passing
+when compiled with Nuitka.
 
 Then lots of work on optimization and infrastructure. The major goal of this release was
 to get in shape for actual optimization. This is also why for the first time, it is tested
@@ -49,17 +52,32 @@ Bug fixes
 - Don't crash on imported modules with syntax errors. Instead, the attempted recursion is
   simply not done.
 
-- Doing a ``del`` on ``__defaults`` and ``__module`` of compiled functions was
-  crashing. Noticed by a Python3 test for ``__kwdefaults__`` that exhibited this weakness.
+- Doing a ``del`` on ``__defaults`` and ``__module__`` of compiled functions was
+  crashing. This was noticed by a Python3 test for ``__kwdefaults__`` that exposed this
+  compiled functions weakness.
 
-- Wasn't detecting duplicate arguments, if one of them was not normal. Star arguments can
-  collide with normal ones.
+- Wasn't detecting duplicate arguments, if one of them was not a plain arguments. Star
+  arguments could collide with normal ones.
 
 - The ``__doc__`` of classes is now only set, where it was in fact specified. Otherwise it
-  polluted the name space of ``locals()``.
+  only polluted the name space of ``locals()``.
 
 - When ``return`` from the tried statements of a ``try/finally`` block, was overridden, by
-  the final block, a reference was leaked.
+  the final block, a reference was leaked. Example code:
+
+  .. code-block:: python
+
+     try:
+         return 1
+     finally:
+         return 2
+
+- Raising exception instances with value, was leaking references, and not raising the
+  ``TypeError`` error it is supposed to do.
+
+- When raising with multiple arguments, the evaluation order of them was not enforced, it
+  now is. This fixes a reference leak when raising exceptions, where building the
+  exception was raising an exception.
 
 New Optimization
 ----------------
@@ -75,6 +93,13 @@ New Optimization
   constant value".
 
 - Optimizing calls to constant nodes directly into exceptions.
+
+- Optimizing built-in ``bool`` for arguments with known truth value. This would be
+  creations of tuples, lists, and dictionaries.
+
+- Optimizing ``a is b`` and ``a is not b`` based on aliasing interface, which at this time
+  effectively is limited to telling that ``a is a`` is true and ``a is not a`` is false,
+  but this will expand.
 
 - Added support for optimizing ``hasattr``, ``getattr``, and ``setattr`` built-ins as
   well. The ``hasattr`` was needed for the ``class`` re-formulation of Python3 anyway.
@@ -154,14 +179,40 @@ Cleanups
 
   * Added comments explaining things a bit better.
 
+  * Now an early step done directly after building a tree.
+
 - The special code generation used for unpacking from iterators and catching
   "StopIteration" was cleaned up.
 
   * Now uses template, Generator functions, and proper identifiers.
 
+- The ``return`` statements in generators are now re-formulated into ``raise
+  StopIteration`` for generators, because that's what they really are. Allowed to remove
+  special handling of ``return`` nodes in generators.
+
+- The specialty of CPython2.6 yielding non-None values of lambda generators, was so far
+  implemented in code generation. This was moved to tree building as a re-formulation,
+  making it subject to normal optimization.
+
+- Mangling of attribute names in functions contained in classes, has been removed into the
+  early tree building. So far it was done during code generation, making it invisible to
+  the optimization stages.
+
+- Removed tags attribute from node classes. This was once intended to make up for
+  non-inheritance of similar node kinds, but since we have function references, the
+  structure got so clean, it's no more needed.
+
+- Introduced new package ``nuitka.tree``, where the building of node trees, and operations
+  on them live, as well as recursion and variable closure.
+
+- Removed ``nuitka.transform`` and move its former children ``nuitka.optimization`` and
+  ``nuitka.finalization`` one level up. The deeply nested structure turned out to have no
+  advantage.
+
 - Checks for Python version was sometimes "> 300", where of course ">= 300" is the only
   thing that makes sense.
 
+- Split out helper code for exception raising from the handling of exception objects.
 
 New Tests
 ---------
@@ -181,6 +232,8 @@ New Tests
 
 - Added tests to cover ``try/finally`` and ``return`` in one or both branches correctly
   handling the references.
+
+- Added tests to cover evaluation order of arguments when raising exceptions.
 
 Organizational
 --------------
