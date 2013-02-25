@@ -16,13 +16,13 @@
 #     limitations under the License.
 #
 
-from nuitka.nodes.VariableRefNode import (
+from nuitka.nodes.VariableRefNodes import (
     CPythonExpressionTargetVariableRef,
     CPythonExpressionTempVariableRef,
     CPythonExpressionVariableRef,
     CPythonStatementTempBlock
 )
-from nuitka.nodes.ConstantRefNode import CPythonExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import CPythonExpressionConstantRef
 from nuitka.nodes.BuiltinIteratorNodes import (
     CPythonStatementSpecialUnpackCheck,
     CPythonExpressionSpecialUnpack,
@@ -44,8 +44,8 @@ from nuitka.nodes.AssignNodes import (
     CPythonStatementDelSlice,
 )
 from nuitka.nodes.OperatorNodes import CPythonExpressionOperationBinaryInplace
-from nuitka.nodes.ComparisonNode import CPythonExpressionComparisonIsNOT
-from nuitka.nodes.SubscriptNode import CPythonExpressionSubscriptLookup
+from nuitka.nodes.ComparisonNodes import CPythonExpressionComparisonIsNOT
+from nuitka.nodes.SubscriptNodes import CPythonExpressionSubscriptLookup
 from nuitka.nodes.SliceNodes import CPythonExpressionSliceLookup
 from nuitka.nodes.ContainerMakingNodes import CPythonExpressionMakeTuple
 

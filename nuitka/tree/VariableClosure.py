@@ -31,7 +31,7 @@ from nuitka.Options import isFullCompat
 from .Operations import VisitorNoopMixin, visitScopes
 
 from nuitka.nodes.ExceptionNodes import CPythonStatementRaiseException
-from nuitka.nodes.BuiltinReferenceNodes import CPythonExpressionBuiltinExceptionRef
+from nuitka.nodes.BuiltinRefNodes import CPythonExpressionBuiltinExceptionRef
 
 # Note: We do the variable scope assignment, as an extra step from tree building, because
 # it will build the tree without any consideration of evaluation order. And only the way

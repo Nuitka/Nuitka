@@ -21,12 +21,12 @@ These are for use in optimizations and computations, and therefore cover mostly 
 and constants. Otherwise the thread of cyclic dependency kicks in.
 """
 
-from .ConstantRefNode import CPythonExpressionConstantRef
+from .ConstantRefNodes import CPythonExpressionConstantRef
 
 from nuitka.Constants import isConstant
 from nuitka.Builtins import builtin_names
 
-from .BuiltinReferenceNodes import (
+from .BuiltinRefNodes import (
     CPythonExpressionBuiltinExceptionRef,
     CPythonExpressionBuiltinRef
 )
@@ -35,12 +35,12 @@ from .StatementNodes import (
     CPythonStatementExpressionOnly,
     CPythonStatementsSequence
 )
-from .ComparisonNode import (
+from .ComparisonNodes import (
     CPythonExpressionComparison,
     CPythonExpressionComparisonIs,
     CPythonExpressionComparisonIsNOT
 )
-from .SideEffectNode import CPythonExpressionSideEffects
+from .SideEffectNodes import CPythonExpressionSideEffects
 
 
 def makeConstantReplacementNode( constant, node ):

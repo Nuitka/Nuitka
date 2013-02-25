@@ -22,26 +22,26 @@ comments with developer manual sections.
 
 """
 
-from nuitka.nodes.VariableRefNode import (
+from nuitka.nodes.VariableRefNodes import (
     CPythonExpressionTargetVariableRef,
     CPythonExpressionVariableRef,
     CPythonExpressionTempVariableRef,
     CPythonStatementTempBlock
 )
-from nuitka.nodes.ConstantRefNode import CPythonExpressionConstantRef
-from nuitka.nodes.BuiltinReferenceNodes import CPythonExpressionBuiltinRef
-from nuitka.nodes.ComparisonNode import CPythonExpressionComparison
+from nuitka.nodes.ConstantRefNodes import CPythonExpressionConstantRef
+from nuitka.nodes.BuiltinRefNodes import CPythonExpressionBuiltinRef
+from nuitka.nodes.ComparisonNodes import CPythonExpressionComparison
 
-from nuitka.nodes.CallNode import (
+from nuitka.nodes.CallNodes import (
     CPythonExpressionCallNoKeywords,
     CPythonExpressionCall
 )
-from nuitka.nodes.TypeNode import CPythonExpressionBuiltinType1
+from nuitka.nodes.TypeNodes import CPythonExpressionBuiltinType1
 from nuitka.nodes.AttributeNodes import (
     CPythonExpressionAttributeLookup,
     CPythonExpressionBuiltinHasattr
 )
-from nuitka.nodes.SubscriptNode import CPythonExpressionSubscriptLookup
+from nuitka.nodes.SubscriptNodes import CPythonExpressionSubscriptLookup
 from nuitka.nodes.FunctionNodes import (
     CPythonExpressionFunctionCreation,
     CPythonExpressionFunctionBody,
@@ -64,7 +64,7 @@ from nuitka.nodes.ConditionalNodes import (
     CPythonExpressionConditional,
     CPythonStatementConditional
 )
-from nuitka.nodes.ReturnNode import CPythonStatementReturn
+from nuitka.nodes.ReturnNodes import CPythonStatementReturn
 from nuitka.nodes.AssignNodes import CPythonStatementAssignmentVariable
 
 from nuitka.nodes.GlobalsLocalsNodes import (

@@ -18,13 +18,13 @@
 
 from nuitka import Utils
 
-from nuitka.nodes.VariableRefNode import (
+from nuitka.nodes.VariableRefNodes import (
     CPythonExpressionTempVariableRef,
     CPythonStatementTempBlock
 )
-from nuitka.nodes.ConstantRefNode import CPythonExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import CPythonExpressionConstantRef
 from nuitka.nodes.ExceptionNodes import CPythonExpressionCaughtExceptionValueRef
-from nuitka.nodes.ComparisonNode import CPythonExpressionComparisonIs
+from nuitka.nodes.ComparisonNodes import CPythonExpressionComparisonIs
 from nuitka.nodes.StatementNodes import CPythonStatementsSequence
 from nuitka.nodes.ConditionalNodes import CPythonStatementConditional
 from nuitka.nodes.AssignNodes import CPythonStatementAssignmentVariable

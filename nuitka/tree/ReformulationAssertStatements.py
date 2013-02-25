@@ -18,7 +18,7 @@
 
 from nuitka import Utils
 
-from nuitka.nodes.BuiltinReferenceNodes import CPythonExpressionBuiltinExceptionRef
+from nuitka.nodes.BuiltinRefNodes import CPythonExpressionBuiltinExceptionRef
 from nuitka.nodes.ExceptionNodes import (
     CPythonExpressionBuiltinMakeException,
     CPythonStatementRaiseException

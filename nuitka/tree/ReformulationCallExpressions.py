@@ -16,8 +16,8 @@
 #     limitations under the License.
 #
 
-from nuitka.nodes.ConstantRefNode import CPythonExpressionConstantRef
-from nuitka.nodes.CallNode import CPythonExpressionCall
+from nuitka.nodes.ConstantRefNodes import CPythonExpressionConstantRef
+from nuitka.nodes.CallNodes import CPythonExpressionCall
 from nuitka.nodes.FunctionNodes import (
     CPythonExpressionFunctionCreation,
     CPythonExpressionFunctionCall,

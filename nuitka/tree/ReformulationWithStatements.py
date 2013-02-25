@@ -18,12 +18,12 @@
 
 from nuitka import Utils
 
-from nuitka.nodes.VariableRefNode import (
+from nuitka.nodes.VariableRefNodes import (
     CPythonExpressionTempVariableRef,
     CPythonStatementTempBlock
 )
-from nuitka.nodes.ConstantRefNode import CPythonExpressionConstantRef
-from nuitka.nodes.BuiltinReferenceNodes import CPythonExpressionBuiltinExceptionRef
+from nuitka.nodes.ConstantRefNodes import CPythonExpressionConstantRef
+from nuitka.nodes.BuiltinRefNodes import CPythonExpressionBuiltinExceptionRef
 from nuitka.nodes.ContainerMakingNodes import CPythonExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import (
     CPythonExpressionCaughtExceptionTracebackRef,
@@ -31,7 +31,7 @@ from nuitka.nodes.ExceptionNodes import (
     CPythonExpressionCaughtExceptionTypeRef,
     CPythonStatementRaiseException
 )
-from nuitka.nodes.CallNode import (
+from nuitka.nodes.CallNodes import (
     CPythonExpressionCallNoKeywords,
     CPythonExpressionCallEmpty
 )

@@ -20,18 +20,18 @@ from nuitka import Utils, SyntaxErrors
 
 from nuitka.nodes.ParameterSpec import ParameterSpec
 
-from nuitka.nodes.VariableRefNode import CPythonExpressionTargetVariableRef
-from nuitka.nodes.ConstantRefNode import CPythonExpressionConstantRef
-from nuitka.nodes.CallNode import CPythonExpressionCallNoKeywords
+from nuitka.nodes.VariableRefNodes import CPythonExpressionTargetVariableRef
+from nuitka.nodes.ConstantRefNodes import CPythonExpressionConstantRef
+from nuitka.nodes.BuiltinRefNodes import CPythonExpressionBuiltinRef
+from nuitka.nodes.CallNodes import CPythonExpressionCallNoKeywords
 from nuitka.nodes.FunctionNodes import (
     CPythonExpressionFunctionCreation,
     CPythonExpressionFunctionBody,
     CPythonExpressionFunctionRef
 )
-from nuitka.nodes.BuiltinReferenceNodes import CPythonExpressionBuiltinRef
 from nuitka.nodes.ContainerMakingNodes import CPythonExpressionMakeTuple
 from nuitka.nodes.StatementNodes import CPythonStatementsSequence
-from nuitka.nodes.ReturnNode import CPythonStatementReturn
+from nuitka.nodes.ReturnNodes import CPythonStatementReturn
 from nuitka.nodes.AssignNodes import CPythonStatementAssignmentVariable
 from nuitka.nodes.ContainerMakingNodes import (
     CPythonExpressionKeyValuePair,

@@ -27,7 +27,7 @@ what it normally could. The import expression node can recurse. An "__import__" 
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
 
-from .ConstantRefNode import CPythonExpressionConstantRef
+from .ConstantRefNodes import CPythonExpressionConstantRef
 
 from nuitka import Importing, Utils, Options
 

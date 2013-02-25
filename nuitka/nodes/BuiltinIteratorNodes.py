@@ -31,7 +31,7 @@ from .NodeBases import (
 
 from .ValueFriends import ValueFriendBase
 
-from .SideEffectNode import CPythonExpressionSideEffects
+from .SideEffectNodes import CPythonExpressionSideEffects
 
 from nuitka.optimizations import BuiltinOptimization
 

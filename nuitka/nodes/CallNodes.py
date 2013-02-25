@@ -26,7 +26,7 @@ There will be a method "computeNodeCall" to aid predicting them.
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
 
-from .ConstantRefNode import CPythonExpressionConstantRef
+from .ConstantRefNodes import CPythonExpressionConstantRef
 
 
 class CPythonExpressionCall( CPythonExpressionChildrenHavingBase ):

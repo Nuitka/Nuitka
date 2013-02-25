@@ -16,18 +16,18 @@
 #     limitations under the License.
 #
 
-from nuitka.nodes.VariableRefNode import (
+from nuitka.nodes.VariableRefNodes import (
     CPythonExpressionTempVariableRef,
     CPythonStatementTempBlock
 )
-from nuitka.nodes.ConstantRefNode import CPythonExpressionConstantRef
-from nuitka.nodes.BuiltinReferenceNodes import CPythonExpressionBuiltinExceptionRef
+from nuitka.nodes.ConstantRefNodes import CPythonExpressionConstantRef
+from nuitka.nodes.BuiltinRefNodes import CPythonExpressionBuiltinExceptionRef
 
 from nuitka.nodes.BuiltinIteratorNodes import (
     CPythonExpressionBuiltinNext1,
     CPythonExpressionBuiltinIter1
 )
-from nuitka.nodes.ComparisonNode import CPythonExpressionComparisonIs
+from nuitka.nodes.ComparisonNodes import CPythonExpressionComparisonIs
 from nuitka.nodes.StatementNodes import CPythonStatementsSequence
 from nuitka.nodes.LoopNodes import (
     CPythonStatementBreakLoop,

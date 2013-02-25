@@ -33,30 +33,30 @@ from .LoopNodes import (
     CPythonStatementLoop,
     CPythonStatementBreakLoop
 )
-from .TypeNode import (
+from .TypeNodes import (
     CPythonExpressionBuiltinIsinstance,
     CPythonExpressionBuiltinType1
 )
-from .BuiltinReferenceNodes import (
+from .BuiltinRefNodes import (
     CPythonExpressionBuiltinRef,
     CPythonExpressionBuiltinExceptionRef,
     CPythonExpressionBuiltinAnonymousRef
 )
 from .ConditionalNodes import CPythonStatementConditional
-from .ComparisonNode import CPythonExpressionComparison
-from .VariableRefNode import (
+from .ComparisonNodes import CPythonExpressionComparison
+from .VariableRefNodes import (
     CPythonExpressionVariableRef,
     CPythonExpressionTargetVariableRef,
     CPythonStatementTempBlock,
     CPythonExpressionTempVariableRef
 )
-from .CallNode import (
+from .CallNodes import (
     CPythonExpressionCallKeywordsOnly,
     CPythonExpressionCallNoKeywords,
     CPythonExpressionCallEmpty,
     CPythonExpressionCall
 )
-from .ReturnNode import CPythonStatementReturn
+from .ReturnNodes import CPythonStatementReturn
 from .TryNodes import (
     CPythonStatementTryExcept,
     CPythonStatementExceptHandler
@@ -69,7 +69,7 @@ from .ExceptionNodes import (
     CPythonStatementRaiseException,
     CPythonExpressionBuiltinMakeException
 )
-from .ConstantRefNode import CPythonExpressionConstantRef
+from .ConstantRefNodes import CPythonExpressionConstantRef
 from .AttributeNodes import CPythonExpressionAttributeLookup
 from .ContainerMakingNodes import CPythonExpressionMakeTuple
 from .BuiltinTypeNodes import CPythonExpressionBuiltinTuple
@@ -81,8 +81,8 @@ from .BuiltinIteratorNodes import (
     CPythonExpressionBuiltinIter1,
     CPythonExpressionBuiltinNext1
 )
-from .SubscriptNode import CPythonExpressionSubscriptLookup
-from .BuiltinDictNode import CPythonExpressionBuiltinDict
+from .SubscriptNodes import CPythonExpressionSubscriptLookup
+from .BuiltinDictNodes import CPythonExpressionBuiltinDict
 
 from .ParameterSpec import ParameterSpec
 

@@ -18,11 +18,11 @@
 
 from nuitka import Utils
 
-from nuitka.nodes.VariableRefNode import (
+from nuitka.nodes.VariableRefNodes import (
     CPythonExpressionTempVariableRef,
     CPythonStatementTempBlock
 )
-from nuitka.nodes.ConstantRefNode import CPythonExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import CPythonExpressionConstantRef
 from nuitka.nodes.FunctionNodes import (
     CPythonExpressionFunctionCreation,
     CPythonExpressionFunctionBody,
@@ -33,10 +33,10 @@ from nuitka.nodes.StatementNodes import (
     CPythonStatementsSequence,
     CPythonStatementsFrame
 )
-from nuitka.nodes.ComparisonNode import CPythonExpressionComparisonIsNOT
+from nuitka.nodes.ComparisonNodes import CPythonExpressionComparisonIsNOT
 from nuitka.nodes.ConditionalNodes import CPythonStatementConditional
-from nuitka.nodes.YieldNode import CPythonExpressionYield
-from nuitka.nodes.ReturnNode import CPythonStatementReturn
+from nuitka.nodes.YieldNodes import CPythonExpressionYield
+from nuitka.nodes.ReturnNodes import CPythonStatementReturn
 from nuitka.nodes.AssignNodes import CPythonStatementAssignmentVariable
 
 from .ReformulationFunctionStatements import (

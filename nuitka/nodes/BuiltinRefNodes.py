@@ -27,7 +27,7 @@ to variables only ever read.
 
 from .NodeBases import CPythonNodeBase, CompileTimeConstantExpressionMixin
 
-from .ConstantRefNode import CPythonExpressionConstantRef
+from .ConstantRefNodes import CPythonExpressionConstantRef
 
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall

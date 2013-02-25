@@ -43,15 +43,18 @@ class CPythonExpressionBuiltinType1( CPythonExpressionBuiltinSingleArgBase ):
 
             type_name = value.__class__.__name__
 
-            from . import BuiltinReferenceNodes
+            from .BuiltinRefNodes import (
+                CPythonExpressionBuiltinAnonymousRef,
+                CPythonExpressionBuiltinRef
+            )
 
             if type_name in builtin_names:
-                new_node = BuiltinReferenceNodes.CPythonExpressionBuiltinRef(
+                new_node = CPythonExpressionBuiltinRef(
                     builtin_name = type_name,
                     source_ref   = self.getSourceReference()
                 )
             else:
-                new_node = BuiltinReferenceNodes.CPythonExpressionBuiltinAnonymousRef(
+                new_node = CPythonExpressionBuiltinAnonymousRef(
                     builtin_name = type_name,
                     source_ref   = self.getSourceReference()
                 )

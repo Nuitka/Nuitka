@@ -21,7 +21,7 @@
 
 from .NodeBases import CPythonExpressionChildrenHavingBase
 
-from .ConstantRefNode import CPythonExpressionConstantRef
+from .ConstantRefNodes import CPythonExpressionConstantRef
 from .ContainerMakingNodes import CPythonExpressionKeyValuePair
 
 from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec

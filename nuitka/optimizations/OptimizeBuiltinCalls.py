@@ -52,7 +52,7 @@ from nuitka.nodes.ExecEvalNodes import (
     CPythonStatementExec
 )
 
-from nuitka.nodes.VariableRefNode import CPythonExpressionVariableRef
+from nuitka.nodes.VariableRefNodes import CPythonExpressionVariableRef
 
 from nuitka.nodes.GlobalsLocalsNodes import (
     CPythonExpressionBuiltinGlobals,
@@ -61,25 +61,25 @@ from nuitka.nodes.GlobalsLocalsNodes import (
     CPythonExpressionBuiltinDir1
 )
 from nuitka.nodes.OperatorNodes import CPythonExpressionOperationUnary
-from nuitka.nodes.ConstantRefNode import CPythonExpressionConstantRef
-from nuitka.nodes.BuiltinDictNode import CPythonExpressionBuiltinDict
-from nuitka.nodes.BuiltinOpenNode import CPythonExpressionBuiltinOpen
-from nuitka.nodes.BuiltinRangeNode import (
+from nuitka.nodes.ConstantRefNodes import CPythonExpressionConstantRef
+from nuitka.nodes.BuiltinDictNodes import CPythonExpressionBuiltinDict
+from nuitka.nodes.BuiltinOpenNodes import CPythonExpressionBuiltinOpen
+from nuitka.nodes.BuiltinRangeNodes import (
     CPythonExpressionBuiltinRange0,
     CPythonExpressionBuiltinRange1,
     CPythonExpressionBuiltinRange2,
     CPythonExpressionBuiltinRange3
 )
 
-from nuitka.nodes.BuiltinVarsNode import CPythonExpressionBuiltinVars
+from nuitka.nodes.BuiltinVarsNodes import CPythonExpressionBuiltinVars
 from nuitka.nodes.ImportNodes import CPythonExpressionBuiltinImport
-from nuitka.nodes.TypeNode import (
+from nuitka.nodes.TypeNodes import (
     CPythonExpressionBuiltinSuper,
     CPythonExpressionBuiltinType1,
     CPythonExpressionBuiltinIsinstance
 )
 from nuitka.nodes.ClassNodes import CPythonExpressionBuiltinType3
-from nuitka.nodes.CallNode import CPythonExpressionCallEmpty
+from nuitka.nodes.CallNodes import CPythonExpressionCallEmpty
 from nuitka.nodes.AttributeNodes import (
     CPythonExpressionAttributeLookup,
     CPythonExpressionBuiltinGetattr,

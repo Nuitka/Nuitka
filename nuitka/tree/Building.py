@@ -46,16 +46,16 @@ from nuitka import (
 
 from nuitka.nodes.FutureSpec import FutureSpec
 
-from nuitka.nodes.VariableRefNode import (
+from nuitka.nodes.VariableRefNodes import (
     CPythonExpressionTargetVariableRef,
     CPythonExpressionVariableRef
 )
-from nuitka.nodes.ConstantRefNode import CPythonExpressionConstantRef
-from nuitka.nodes.BuiltinReferenceNodes import CPythonExpressionBuiltinExceptionRef
+from nuitka.nodes.ConstantRefNodes import CPythonExpressionConstantRef
+from nuitka.nodes.BuiltinRefNodes import CPythonExpressionBuiltinExceptionRef
 from nuitka.nodes.ExceptionNodes import CPythonStatementRaiseException
 from nuitka.nodes.ExecEvalNodes import CPythonStatementExec
 from nuitka.nodes.AttributeNodes import CPythonExpressionAttributeLookup
-from nuitka.nodes.SubscriptNode import CPythonExpressionSubscriptLookup
+from nuitka.nodes.SubscriptNodes import CPythonExpressionSubscriptLookup
 from nuitka.nodes.SliceNodes import (
     CPythonExpressionSliceLookup,
     CPythonExpressionSliceObject
@@ -88,8 +88,8 @@ from nuitka.nodes.ConditionalNodes import (
     CPythonExpressionConditional,
     CPythonStatementConditional
 )
-from nuitka.nodes.YieldNode import CPythonExpressionYield
-from nuitka.nodes.ReturnNode import CPythonStatementReturn
+from nuitka.nodes.YieldNodes import CPythonExpressionYield
+from nuitka.nodes.ReturnNodes import CPythonStatementReturn
 from nuitka.nodes.AssignNodes import CPythonStatementAssignmentVariable
 from nuitka.nodes.PrintNodes import CPythonStatementPrint
 from nuitka.nodes.ModuleNodes import (
