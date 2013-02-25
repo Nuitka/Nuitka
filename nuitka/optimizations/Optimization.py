@@ -22,63 +22,68 @@ can emit tags that can cause the re-execution of other optimization visitors, be
 e.g. a new constant determined could make another optimization feasible.
 """
 
-from .OptimizeModuleRecursion import ModuleRecursionVisitor
-from .OptimizeRaises import OptimizeRaisesVisitor
-from .OptimizeValuePropagation import ValuePropagationVisitor
-
 from .Tags import TagSet
 
-from nuitka import Options
+from nuitka import Options, Variables
 from nuitka.tree import Building
 
-from nuitka.oset import OrderedSet
-
 from nuitka.Tracing import printLine
+
+from .ConstraintCollections import ConstraintCollectionModule
 
 from logging import debug
 
 _progress = Options.isShowProgress()
 
-def optimizeTree( tree ):
-    # Lots of conditions to take, pylint: disable=R0912
+def _optimizeModulePass( module, tag_set ):
+    def signalChange( tags, source_ref, message ):
+        """ Indicate a change to the optimization framework.
+
+        """
+        debug( "%s : %s : %s" % ( source_ref.getAsString(), tags, message ) )
+
+        tag_set.onSignal( tags )
+
+    constraint_collection = ConstraintCollectionModule( signalChange )
+    constraint_collection.process( module = module )
+
+    written_variables = constraint_collection.getWrittenVariables()
+
+    for variable in Variables.getModuleVariables( module = module ):
+        old_value = variable.getReadOnlyIndicator()
+        new_value = variable not in written_variables
+
+        if old_value is not new_value and new_value:
+            # Don't suddenly start to write.
+            assert not (new_value is False and old_value is True)
+
+            constraint_collection.signalChange(
+                "read_only_mvar",
+                module.getSourceReference(),
+                "Determined variable '%s' is only read." % variable.getName()
+            )
+
+            variable.setReadOnlyIndicator( new_value )
+
+
+def optimizeModule( module ):
     if _progress:
-        printLine( "Doing module local optimizations for '%s'." % tree.getFullName() )
+        printLine( "Doing module local optimizations for '%s'." % module.getFullName() )
 
-    optimizations_queue = OrderedSet()
-    tags = TagSet()
+    tag_set = TagSet()
 
-    # Seed optimization with tag that causes all steps to be run.
-    tags.add( "new_code" )
+    while True:
+        tag_set.clear()
 
-    def refreshOptimizationsFromTags( optimizations_queue, tags ):
-        # Note: The import recursion cannot be done in "computeNode" due to circular
-        # dependency and since it only needs to be done with "new_import" again, it
-        # remains its own visitor.
-        if tags.check( "new_code new_import" ):
-            if not Options.shallMakeModule():
-                optimizations_queue.add( ModuleRecursionVisitor )
+        _optimizeModulePass(
+            module  = module,
+            tag_set = tag_set
+        )
 
-        if tags.check( "new_code new_raise" ):
-            optimizations_queue.add( OptimizeRaisesVisitor )
+        if not tag_set:
+            break
 
-        if tags.check( "new_code new_import new_statements new_constant new_builtin read_only_mvar" ):
-            optimizations_queue.add( ValuePropagationVisitor )
-
-        tags.clear()
-
-    refreshOptimizationsFromTags( optimizations_queue, tags )
-
-    while optimizations_queue:
-        next_optimization = optimizations_queue.pop( last = False )
-
-        debug( "Applying to '%s' optimization '%s':" % ( tree, next_optimization ) )
-
-        next_optimization().execute( tree, on_signal = tags.onSignal )
-
-        if not optimizations_queue or tags.check( "new_code" ):
-            refreshOptimizationsFromTags( optimizations_queue, tags )
-
-    return tree
+    return module
 
 def getImportedModules():
     return Building.getImportedModules()
@@ -86,7 +91,7 @@ def getImportedModules():
 def optimizeWhole( main_module ):
     done_modules = set()
 
-    result = optimizeTree( main_module )
+    optimizeModule( main_module )
     done_modules.add( main_module )
 
     if _progress:
@@ -99,7 +104,9 @@ def optimizeWhole( main_module ):
 
         for module in list( getImportedModules() ):
             if module not in done_modules:
-                optimizeTree( module )
+                optimizeModule(
+                    module = module
+                )
 
                 done_modules.add( module )
 
@@ -111,5 +118,3 @@ def optimizeWhole( main_module ):
                     )
 
                 finished = False
-
-    return result

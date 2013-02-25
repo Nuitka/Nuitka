@@ -30,10 +30,7 @@ from .BuiltinReferenceNodes import (
     CPythonExpressionBuiltinExceptionRef,
     CPythonExpressionBuiltinRef
 )
-from .ExceptionNodes import (
-    CPythonExpressionRaiseException,
-    CPythonStatementRaiseException
-)
+from .ExceptionNodes import CPythonExpressionRaiseException
 from .StatementNodes import (
     CPythonStatementExpressionOnly,
     CPythonStatementsSequence
@@ -50,18 +47,6 @@ def makeConstantReplacementNode( constant, node ):
     return CPythonExpressionConstantRef(
         constant   = constant,
         source_ref = node.getSourceReference()
-    )
-
-def makeBuiltinExceptionRefReplacementNode( exception_name, node ):
-    return CPythonExpressionBuiltinExceptionRef(
-        exception_name = exception_name,
-        source_ref     = node.getSourceReference()
-    )
-
-def makeBuiltinRefReplacementNode( builtin_name, node ):
-    return CPythonExpressionBuiltinRef(
-        builtin_name = builtin_name,
-        source_ref   = node.getSourceReference()
     )
 
 def makeRaiseExceptionReplacementExpression( expression, exception_type, exception_value ):
@@ -143,26 +128,6 @@ def getComputationResult( node, computation, description ):
             change_desc = None
 
     return new_node, change_tags, change_desc
-
-def makeRaiseExceptionReplacementStatement( statement, exception_type, exception_value ):
-    source_ref = statement.getSourceReference()
-
-    assert type( exception_type ) is str
-
-    result = CPythonStatementRaiseException(
-        exception_type  = makeBuiltinExceptionRefReplacementNode(
-            exception_name = exception_type,
-            node           = statement
-        ),
-        exception_value = makeConstantReplacementNode(
-            constant = exception_value,
-            node     = statement
-        ),
-        exception_trace = None,
-        source_ref = source_ref
-    )
-
-    return result
 
 def makeStatementExpressionOnlyReplacementNode( expression, node ):
     return CPythonStatementExpressionOnly(

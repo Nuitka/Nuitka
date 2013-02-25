@@ -872,6 +872,7 @@ class ConstraintCollectionBase:
 
 
                 return statement
+
         elif statement.isStatementPrint():
             return self._onStatementPrint( statement )
         elif statement.isStatementReturn():

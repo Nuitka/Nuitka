@@ -68,7 +68,7 @@ def createNodeTree( filename ):
         )
 
     # Then optimize the tree and potentially recursed modules.
-    result = Optimization.optimizeWhole(
+    Optimization.optimizeWhole(
         main_module = result
     )
 

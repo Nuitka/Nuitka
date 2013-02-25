@@ -18,44 +18,21 @@
 """ Operations on the tree.
 
 This is mostly for the different kinds of visits that the node tree can have. You
-can visit a scope, a tree (module), every scope of a tree (module) and the whole
-forest of modules.
+can visit a scope, a tree (module), or every scope of a tree (module).
 
 """
 
-class ExitNodeVisit( BaseException ):
-    pass
+def visitTree( tree, visitor ):
+    visitor.onEnterNode( tree )
 
-class ExitVisit( BaseException ):
-    pass
+    for visitable in tree.getVisitableNodes():
+        if visitable is None:
+            raise AssertionError( "'None' child encountered", tree, tree.source_ref )
 
-class RestartVisit( BaseException ):
-    pass
-
-def _visitTree( tree, visitor ):
-    try:
-        visitor.onEnterNode( tree )
-
-        visit_children = True
-    except ExitNodeVisit:
-        visit_children = False
-
-    if visit_children:
-        for visitable in tree.getVisitableNodes():
-            if visitable is None:
-                raise AssertionError( "'None' child encountered", tree, tree.source_ref )
-
-            _visitTree( visitable, visitor )
+        visitTree( visitable, visitor )
 
     visitor.onLeaveNode( tree )
 
-def visitTree( tree, visitor ):
-    try:
-        _visitTree( tree, visitor )
-    except ExitVisit:
-        pass
-    except RestartVisit:
-        visitTree( tree, visitor )
 
 def visitScopes( tree, visitor ):
     visitTree( tree, visitor )
