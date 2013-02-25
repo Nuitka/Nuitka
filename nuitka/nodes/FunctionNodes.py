@@ -527,6 +527,25 @@ class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):
         )
 
     def computeNode( self, constraint_collection ):
+        function = self.getFunction()
+
+        if function.willRaiseException( BaseException ):
+            return function, "new_raise", "Called function is a raise"
+
+        values = self.getArgumentValues()
+
+        for count, value in enumerate( values ):
+            if value.willRaiseException( BaseException ):
+                from .NodeMakingHelpers import wrapExpressionWithSideEffects
+
+                result = wrapExpressionWithSideEffects(
+                    side_effects = [ function ] + list( values[ : count ] ),
+                    new_node     = value,
+                    old_node     = self
+                )
+
+                return result, "new_raise", "Called function arguments raise"
+
         return self, None, None
 
     getFunction = CPythonExpressionChildrenHavingBase.childGetter( "function" )

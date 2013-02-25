@@ -66,6 +66,9 @@ class CPythonExpressionAttributeLookup( CPythonExpressionChildrenHavingBase ):
     def computeNode( self, constraint_collection ):
         lookup_source = self.getLookupSource()
 
+        if lookup_source.willRaiseException( BaseException ):
+            return lookup_source, "new_raise", "Attribute lookup source raises exception."
+
         return lookup_source.computeNodeAttribute(
             lookup_node           = self,
             attribute_name        = self.getAttributeName(),
@@ -82,6 +85,11 @@ class CPythonExpressionSpecialAttributeLookup( CPythonExpressionAttributeLookup 
 
     # TODO: Special lookups should be treated somehow different.
     def computeNode( self, constraint_collection ):
+        lookup_source = self.getLookupSource()
+
+        if lookup_source.willRaiseException( BaseException ):
+            return lookup_source, "new_raise", "Special attribute lookup source raises exception."
+
         # TODO: Special lookups may reuse "computeNodeAttribute"
         return self, None, None
 

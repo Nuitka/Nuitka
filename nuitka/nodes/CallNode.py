@@ -57,7 +57,38 @@ class CPythonExpressionCall( CPythonExpressionChildrenHavingBase ):
         return True
 
     def computeNode( self, constraint_collection ):
-        return self.getCalled().computeNodeCall(
+        called = self.getCalled()
+
+        if called.willRaiseException( BaseException ):
+            return called, "new_raise", "Called expression raises exception"
+
+        args = self.getCallArgs()
+
+        if args.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import wrapExpressionWithSideEffects
+
+            result = wrapExpressionWithSideEffects(
+                side_effects = ( called, ),
+                old_node     = self,
+                new_node     = args
+            )
+
+            return result, "new_raise", "Call arguments raise exception"
+
+        kw = self.getCallKw()
+
+        if kw.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import wrapExpressionWithSideEffects
+
+            result = wrapExpressionWithSideEffects(
+                side_effects = ( called, args ),
+                old_node     = self,
+                new_node     = kw
+            )
+
+            return result, "new_raise", "Call keyword arguments raise exception"
+
+        return called.computeNodeCall(
             call_node             = self,
             constraint_collection = constraint_collection
         )

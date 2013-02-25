@@ -51,6 +51,10 @@ class CPythonExpressionConditional( CPythonExpressionChildrenHavingBase ):
     def computeNode( self, constraint_collection ):
         condition = self.getCondition()
 
+        # If the condition raises, we let that escape.
+        if condition.willRaiseException( BaseException ):
+            return condition, "new_raise", "Conditional expression raises in condition"
+
         # Decide this based on truth value of condition.
         truth_value = condition.getTruthValue( constraint_collection )
 

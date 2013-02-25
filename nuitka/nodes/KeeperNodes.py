@@ -63,8 +63,13 @@ class CPythonExpressionAssignmentTempKeeper( CPythonExpressionChildrenHavingBase
     getAssignSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
 
     def computeNode( self, constraint_collection ):
+        source = self.getAssignSource()
+
         if self.variable.getReferenced().isWriteOnly():
-            return self.getAssignSource(), "new_expression", "Removed useless temporary keeper assignment."
+            return source, "new_expression", "Removed useless temporary keeper assignment."
+
+        if source.willRaiseException( BaseException ):
+            return source, "new_raise", "Keeper assignment raises"
 
         return self, None, None
 

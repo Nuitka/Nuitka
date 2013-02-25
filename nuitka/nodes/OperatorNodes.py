@@ -81,6 +81,20 @@ class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
 
         left, right = operands
 
+        if left.willRaiseException( BaseException ):
+            return left, "new_raise", "Left argument of binary operation raises exception"
+
+        if right.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+
+            result = wrapExpressionWithNodeSideEffects(
+                new_node = right,
+                old_node = left
+            )
+
+            return result, "new_raise", "Right argument of binary operation raises exception"
+
+
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
             left_value = left.getCompileTimeConstant()
             right_value = right.getCompileTimeConstant()
@@ -177,7 +191,12 @@ class CPythonExpressionOperationNOT( CPythonExpressionOperationUnary ):
         )
 
     def computeNode( self, constraint_collection ):
-        return self.getOperand().computeNodeOperationNot(
+        operand = self.getOperand()
+
+        if operand.willRaiseException( BaseException ):
+            return operand, "new_raise", "Argument of 'not' operation raises exception"
+
+        return operand.computeNodeOperationNot(
             not_node              = self,
             constraint_collection = constraint_collection
         )

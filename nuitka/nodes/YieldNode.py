@@ -51,6 +51,12 @@ class CPythonExpressionYield( CPythonExpressionChildrenHavingBase ):
     getExpression = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
 
     def computeNode( self, constraint_collection ):
+        value = self.getExpression()
+
+        if value.willRaiseException( BaseException ):
+            return value, "new_raise", "Yield raises exception"
+
         # Nothing possible really here.
+
 
         return self, None, None

@@ -57,25 +57,40 @@ class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
         return None
 
     def computeNode( self, constraint_collection ):
-        for element in self.getElements():
+        elements = self.getElements()
+
+        for count, element in enumerate( elements ):
+            if element.willRaiseException( BaseException ):
+                from .NodeMakingHelpers import wrapExpressionWithSideEffects
+
+                result = wrapExpressionWithSideEffects(
+                    side_effects = elements[ : count ],
+                    new_node     = element,
+                    old_node     = self
+                )
+
+                return result, "new_raise", "Sequence creation raises exception"
+
+        # TODO: CompileTimeConstant should be good enough.
+        for element in elements:
             if not element.isExpressionConstantRef() or element.isMutable():
                 return self, None, None
-        else:
-            simulator = self.getSimulator()
-            assert simulator is not None
 
-            from .NodeMakingHelpers import getComputationResult
+        simulator = self.getSimulator()
+        assert simulator is not None
 
-            # The simulator is in fact callable if not None, pylint: disable=E1102
-            return getComputationResult(
-                node        = self,
-                computation = lambda : simulator(
-                    element.getConstant()
-                    for element in
-                    self.getElements()
-                ),
-                description = "%s with constant arguments" % simulator
-            )
+        from .NodeMakingHelpers import getComputationResult
+
+        # The simulator is in fact callable if not None, pylint: disable=E1102
+        return getComputationResult(
+            node        = self,
+            computation = lambda : simulator(
+                element.getConstant()
+                for element in
+                self.getElements()
+            ),
+            description = "%s with constant arguments" % simulator
+        )
 
     def mayHaveSideEffectsBool( self, constraint_collection ):
         return False
@@ -164,6 +179,24 @@ class CPythonExpressionKeyValuePair( CPythonSideEffectsFromChildrenMixin,
     getValue = CPythonExpressionChildrenHavingBase.childGetter( "value" )
 
     def computeNode( self, constraint_collection ):
+        key = self.getKey()
+
+        if key.willRaiseException( BaseException ):
+            return key, "new_raise", "Dictionary key raises exception"
+
+        value = self.getValue()
+
+        if value.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+
+            result = wrapExpressionWithNodeSideEffects(
+                new_node = value,
+                old_node = key
+            )
+
+            return result, "new_raise", "Dictionary value raises exception"
+
+
         return self, None, None
 
 
@@ -186,6 +219,18 @@ class CPythonExpressionMakeDict( CPythonSideEffectsFromChildrenMixin, \
 
     def computeNode( self, constraint_collection ):
         pairs = self.getPairs()
+
+        for count, pair in enumerate( pairs ):
+            if pair.willRaiseException( BaseException ):
+                from .NodeMakingHelpers import wrapExpressionWithSideEffects
+
+                result = wrapExpressionWithSideEffects(
+                    side_effects = pairs[ : count ],
+                    new_node     = pair,
+                    old_node     = self
+                )
+
+                return result, "new_raise", "Dict creation raises exception"
 
         for pair in pairs:
             key = pair.getKey()
