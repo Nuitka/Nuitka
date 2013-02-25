@@ -1496,7 +1496,8 @@ def generateRaiseCode( statement, context ):
             ),
             exception_tb_maker         = Generator.getTracebackMakingIdentifier(
                 context = context,
-            )
+            ),
+            implicit                   = statement.isImplicit()
         )
     elif exception_tb is None:
         return Generator.getRaiseExceptionCode(
@@ -1512,7 +1513,8 @@ def generateRaiseCode( statement, context ):
             exception_cause_identifier = None,
             exception_tb_maker         = Generator.getTracebackMakingIdentifier(
                 context = context,
-            )
+            ),
+            implicit                   = statement.isImplicit()
         )
     else:
         return Generator.getRaiseExceptionCode(
@@ -1529,7 +1531,8 @@ def generateRaiseCode( statement, context ):
                 context    = context
             ),
             exception_cause_identifier = None,
-            exception_tb_maker         = None
+            exception_tb_maker         = None,
+            implicit                   = statement.isImplicit()
         )
 
 def generateImportModuleCode( expression, context ):

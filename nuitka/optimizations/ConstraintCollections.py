@@ -35,6 +35,7 @@ from nuitka.nodes.NodeMakingHelpers import (
     wrapStatementWithSideEffects
 )
 
+from nuitka.nodes.ExceptionNodes import CPythonStatementRaiseExceptionImplicit
 from nuitka.nodes.ConditionalNodes import CPythonStatementConditional
 from nuitka.nodes.OperatorNodes import CPythonExpressionOperationNOT
 
@@ -812,11 +813,29 @@ class ConstraintCollectionBase:
                 assert False, expression
             else:
                 self.onExpression( expression )
+                expression = statement.getExpression()
 
-                if statement.mayHaveSideEffects( self ):
-                    return statement
-                else:
+                if not expression.mayHaveSideEffects( self ):
+
+                    self.signalChange(
+                        "new_statements",
+                        statement.getSourceReference(),
+                        "Removed statement without effect."
+                    )
+
                     return None
+
+                if expression.isExpressionRaiseException():
+                    return CPythonStatementRaiseExceptionImplicit(
+                        exception_type  = expression.getExceptionType(),
+                        exception_value = expression.getExceptionValue(),
+                        exception_trace = None,
+                        exception_cause = None,
+                        source_ref      = expression.getSourceReference()
+                    )
+
+
+                return statement
         elif statement.isStatementPrint():
             return self._onStatementPrint( statement )
         elif statement.isStatementReturn():

@@ -83,6 +83,19 @@ class CPythonStatementRaiseException( CPythonChildrenHaving, CPythonNodeBase ):
     def needsLineNumber( self ):
         return not self.isReraiseException()
 
+    def isImplicit( self ):
+        return False
+
+
+class CPythonStatementRaiseExceptionImplicit( CPythonStatementRaiseException ):
+    kind = "STATEMENT_RAISE_EXCEPTION_IMPLICIT"
+
+    def isStatementRaiseException( self ):
+        return True
+
+    def isImplicit( self ):
+        return True
+
 
 class CPythonExpressionRaiseException( CPythonExpressionChildrenHavingBase ):
     """ This node type is only produced via optimization.

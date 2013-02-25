@@ -1083,25 +1083,34 @@ def getTryNextExceptStopIterationCode( source_identifier, handler_code, assign_c
 
 def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier,
                            exception_tb_identifier, exception_cause_identifier,
-                           exception_tb_maker ):
+                           exception_tb_maker, implicit ):
     if exception_cause_identifier is not None:
+        assert not exception_value_identifier
+        assert not exception_tb_identifier
+        assert not implicit
+
         return "RAISE_EXCEPTION_WITH_CAUSE( %s, %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_cause_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
         )
     elif exception_value_identifier is None and exception_tb_identifier is None:
+        assert not implicit
+
         return "RAISE_EXCEPTION_WITH_TYPE( %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
         )
     elif exception_tb_identifier is None:
-        return "RAISE_EXCEPTION_WITH_VALUE( %s, %s, %s );" % (
+        return "RAISE_EXCEPTION_WITH_VALUE%s( %s, %s, %s );" % (
+            "_NO_NORMALIZE" if implicit else "",
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
         )
     else:
+        assert not implicit
+
         return "RAISE_EXCEPTION_WITH_TRACEBACK( %s, %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
@@ -1186,7 +1195,7 @@ def getExceptionRefCode( exception_type ):
 
 def getMakeBuiltinExceptionCode( context, exception_type, exception_args ):
     return getCallCode(
-        called_identifier   = Identifier( "PyExc_%s" % exception_type, 0 ),
+        called_identifier   = getExceptionRefCode( exception_type ),
         argument_tuple      = getTupleCreationCode(
             element_identifiers = exception_args,
             context             = context,
