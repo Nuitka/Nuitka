@@ -25,10 +25,10 @@ not know where their value goes.
 
 
 from .NodeBases import (
-    NodeBase,
-    ChildrenHavingMixin,
+    ExpressionBuiltinSingleArgBase,
+    StatementChildrenHavingBase,
     ExpressionMixin,
-    ExpressionBuiltinSingleArgBase
+    NodeBase
 )
 
 
@@ -56,25 +56,24 @@ class ExpressionBuiltinLocals( NodeBase, ExpressionMixin ):
                ( not self.getParent().isStatementReturn() or self.getParent().isExceptionDriven() )
 
 
-class StatementSetLocals( ChildrenHavingMixin, NodeBase ):
+class StatementSetLocals( StatementChildrenHavingBase ):
     kind = "STATEMENT_SET_LOCALS"
 
     named_children = ( "new_locals", )
 
     def __init__( self, new_locals, source_ref ):
-        NodeBase.__init__( self, source_ref = source_ref )
-
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
             values     = {
                 "new_locals" : new_locals,
-            }
+            },
+            source_ref = source_ref
         )
 
     def needsLocalsDict( self ):
         return True
 
-    getNewLocals = ChildrenHavingMixin.childGetter( "new_locals" )
+    getNewLocals = StatementChildrenHavingBase.childGetter( "new_locals" )
 
 
 class ExpressionBuiltinDir0( NodeBase, ExpressionMixin ):

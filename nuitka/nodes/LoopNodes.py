@@ -23,28 +23,30 @@ which is more general, the 'Forever' loop, with breaks
 
 """
 
-from .NodeBases import ChildrenHavingMixin, NodeBase
+from .NodeBases import (
+    StatementChildrenHavingBase,
+    NodeBase
+)
 
 
-class StatementLoop( ChildrenHavingMixin, NodeBase ):
+class StatementLoop( StatementChildrenHavingBase ):
     kind = "STATEMENT_LOOP"
 
     named_children = ( "frame", )
 
     def __init__( self, body, source_ref ):
-        NodeBase.__init__( self, source_ref = source_ref )
-
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "frame" : body
-            }
+            },
+            source_ref = source_ref
         )
 
         self.break_exception = False
         self.continue_exception = False
 
-    getLoopBody = ChildrenHavingMixin.childGetter( "frame" )
+    getLoopBody = StatementChildrenHavingBase.childGetter( "frame" )
 
     def markAsExceptionContinue( self ):
         self.continue_exception = True

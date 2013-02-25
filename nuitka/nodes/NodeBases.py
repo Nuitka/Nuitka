@@ -979,6 +979,14 @@ class ExpressionChildrenHavingBase( ChildrenHavingMixin, NodeBase, ExpressionMix
             values = values
         )
 
+class StatementChildrenHavingBase( ChildrenHavingMixin, NodeBase ):
+    def __init__( self, values, source_ref ):
+        NodeBase.__init__( self, source_ref = source_ref )
+
+        ChildrenHavingMixin.__init__(
+            self,
+            values = values
+        )
 
 class ExpressionBuiltinNoArgBase( NodeBase, ExpressionMixin ):
     def __init__( self, builtin_function, source_ref ):

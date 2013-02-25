@@ -25,8 +25,7 @@ important optimization issue.
 from .NodeBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase,
-    ChildrenHavingMixin,
-    NodeBase
+    StatementChildrenHavingBase
 )
 
 from .ValueFriends import ValueFriendBase
@@ -245,19 +244,18 @@ class ExpressionSpecialUnpack( ExpressionBuiltinNext1 ):
         return self.count
 
 
-class StatementSpecialUnpackCheck( ChildrenHavingMixin, NodeBase ):
+class StatementSpecialUnpackCheck( StatementChildrenHavingBase ):
     kind = "STATEMENT_SPECIAL_UNPACK_CHECK"
 
     named_children = ( "iterator", )
 
     def __init__( self, iterator, count, source_ref ):
-        NodeBase.__init__( self, source_ref = source_ref )
-
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "iterator" : iterator
-            }
+            },
+            source_ref = source_ref
         )
 
         self.count = count
@@ -270,7 +268,7 @@ class StatementSpecialUnpackCheck( ChildrenHavingMixin, NodeBase ):
     def getCount( self ):
         return self.count
 
-    getIterator = ExpressionChildrenHavingBase.childGetter( "iterator" )
+    getIterator = StatementChildrenHavingBase.childGetter( "iterator" )
 
 
 class ExpressionBuiltinIter2( ExpressionChildrenHavingBase ):

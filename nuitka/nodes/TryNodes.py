@@ -21,34 +21,33 @@ The try/except needs handlers, and these blocks are complex control flow.
 
 """
 
-from .NodeBases import ChildrenHavingMixin, NodeBase
+from .NodeBases import StatementChildrenHavingBase
 
 
-class StatementTryFinally( ChildrenHavingMixin, NodeBase ):
+class StatementTryFinally( StatementChildrenHavingBase ):
     kind = "STATEMENT_TRY_FINALLY"
 
     named_children = ( "tried", "final" )
 
     def __init__( self, tried, final, source_ref ):
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "tried" : tried,
                 "final" : final
-            }
+            },
+            source_ref = source_ref
         )
-
-        NodeBase.__init__( self, source_ref = source_ref )
 
         self.break_exception = False
         self.continue_exception = False
         self.return_value_exception_catch = False
         self.return_value_exception_reraise = False
 
-    getBlockTry = ChildrenHavingMixin.childGetter( "tried" )
-    setBlockTry = ChildrenHavingMixin.childSetter( "tried" )
-    getBlockFinal = ChildrenHavingMixin.childGetter( "final" )
-    setBlockFinal = ChildrenHavingMixin.childSetter( "final" )
+    getBlockTry = StatementChildrenHavingBase.childGetter( "tried" )
+    setBlockTry = StatementChildrenHavingBase.childSetter( "tried" )
+    getBlockFinal = StatementChildrenHavingBase.childGetter( "final" )
+    setBlockFinal = StatementChildrenHavingBase.childSetter( "final" )
 
     def isStatementAborting( self ):
         # In try/finally there are two chances to raise or return a value, so we need to
@@ -91,47 +90,45 @@ class StatementTryFinally( ChildrenHavingMixin, NodeBase ):
         return self.return_value_exception_reraise
 
 
-class StatementExceptHandler( ChildrenHavingMixin, NodeBase ):
+class StatementExceptHandler( StatementChildrenHavingBase ):
     kind = "STATEMENT_EXCEPT_HANDLER"
 
     named_children = ( "exception_types", "body" )
 
     def __init__( self, exception_types, body, source_ref ):
-        NodeBase.__init__( self, source_ref = source_ref )
-
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "exception_types" : tuple( exception_types ),
                 "body"            : body,
-            }
+            },
+            source_ref = source_ref
         )
 
-    getExceptionTypes  = ChildrenHavingMixin.childGetter( "exception_types" )
-    getExceptionBranch = ChildrenHavingMixin.childGetter( "body" )
-    setExceptionBranch = ChildrenHavingMixin.childSetter( "body" )
+    getExceptionTypes  = StatementChildrenHavingBase.childGetter( "exception_types" )
+    getExceptionBranch = StatementChildrenHavingBase.childGetter( "body" )
+    setExceptionBranch = StatementChildrenHavingBase.childSetter( "body" )
 
 
-class StatementTryExcept( ChildrenHavingMixin, NodeBase ):
+class StatementTryExcept( StatementChildrenHavingBase ):
     kind = "STATEMENT_TRY_EXCEPT"
 
     named_children = ( "tried", "handlers" )
 
     def __init__( self, tried, handlers, source_ref ):
-        NodeBase.__init__( self, source_ref = source_ref )
-
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "tried"    : tried,
                 "handlers" : tuple( handlers )
-            }
+            },
+            source_ref = source_ref
         )
 
-    getBlockTry = ChildrenHavingMixin.childGetter( "tried" )
-    setBlockTry = ChildrenHavingMixin.childSetter( "tried" )
+    getBlockTry = StatementChildrenHavingBase.childGetter( "tried" )
+    setBlockTry = StatementChildrenHavingBase.childSetter( "tried" )
 
-    getExceptionHandlers = ChildrenHavingMixin.childGetter( "handlers" )
+    getExceptionHandlers = StatementChildrenHavingBase.childGetter( "handlers" )
 
     def isStatementAborting( self ):
         tried_block = self.getBlockTry()

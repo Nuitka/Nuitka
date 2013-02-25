@@ -25,7 +25,7 @@ what it normally could. The import expression node can recurse. An "__import__" 
 
 """
 
-from .NodeBases import ExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 
 from .ConstantRefNodes import ExpressionConstantRef
 
@@ -323,13 +323,13 @@ class ExpressionBuiltinImport( ExpressionChildrenHavingBase ):
         return self, None, None
 
 
-class StatementImportStar( ExpressionChildrenHavingBase ):
+class StatementImportStar( StatementChildrenHavingBase ):
     kind = "STATEMENT_IMPORT_STAR"
 
     named_children = ( "module", )
 
     def __init__( self, module_import, source_ref ):
-        ExpressionChildrenHavingBase.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
             values     = {
                 "module" : module_import
@@ -337,7 +337,7 @@ class StatementImportStar( ExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getModule = ExpressionChildrenHavingBase.childGetter( "module" )
+    getModule = StatementChildrenHavingBase.childGetter( "module" )
 
     def computeStatement( self, constraint_collection ):
         constraint_collection.onExpression( self.getModule() )

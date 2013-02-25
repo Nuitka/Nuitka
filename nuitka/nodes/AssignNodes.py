@@ -22,14 +22,10 @@ located here. These are the core of value control flow.
 
 """
 
-from .NodeBases import (
-    ExpressionChildrenHavingBase,
-    ChildrenHavingMixin,
-    NodeBase
-)
+from .NodeBases import StatementChildrenHavingBase
 
 
-class StatementAssignmentVariable( ChildrenHavingMixin, NodeBase ):
+class StatementAssignmentVariable( StatementChildrenHavingBase ):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE"
 
     named_children = ( "source", "variable_ref" )
@@ -40,40 +36,38 @@ class StatementAssignmentVariable( ChildrenHavingMixin, NodeBase ):
 
         assert not variable_ref.isExpressionVariableRef()
 
-        NodeBase.__init__( self, source_ref = source_ref )
-
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "source"       : source,
                 "variable_ref" : variable_ref
-            }
+            },
+            source_ref = source_ref
         )
 
     def getDetail( self ):
         return "%s from %s" % ( self.getTargetVariableRef(), self.getAssignSource() )
 
-    getTargetVariableRef = ChildrenHavingMixin.childGetter( "variable_ref" )
-    getAssignSource = ChildrenHavingMixin.childGetter( "source" )
+    getTargetVariableRef = StatementChildrenHavingBase.childGetter( "variable_ref" )
+    getAssignSource = StatementChildrenHavingBase.childGetter( "source" )
 
     def mayRaiseException( self, exception_type ):
         return self.getAssignSource().mayRaiseException( exception_type )
 
 
-class StatementAssignmentAttribute( ChildrenHavingMixin, NodeBase ):
+class StatementAssignmentAttribute( StatementChildrenHavingBase ):
     kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
 
     named_children = ( "source", "expression" )
 
     def __init__( self, expression, attribute_name, source, source_ref ):
-        NodeBase.__init__( self, source_ref = source_ref )
-
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "expression" : expression,
                 "source"     : source,
-            }
+            },
+            source_ref = source_ref
         )
 
         self.attribute_name = attribute_name
@@ -90,8 +84,8 @@ class StatementAssignmentAttribute( ChildrenHavingMixin, NodeBase ):
     def setAttributeName( self, attribute_name ):
         self.attribute_name = attribute_name
 
-    getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
-    getAssignSource = ExpressionChildrenHavingBase.childGetter( "source" )
+    getLookupSource = StatementChildrenHavingBase.childGetter( "expression" )
+    getAssignSource = StatementChildrenHavingBase.childGetter( "source" )
 
     def computeStatement( self, constraint_collection ):
         constraint_collection.onExpression( self.getAssignSource() )
@@ -126,26 +120,25 @@ class StatementAssignmentAttribute( ChildrenHavingMixin, NodeBase ):
         return self, None, None
 
 
-class StatementAssignmentSubscript( ChildrenHavingMixin, NodeBase ):
+class StatementAssignmentSubscript( StatementChildrenHavingBase ):
     kind = "STATEMENT_ASSIGNMENT_SUBSCRIPT"
 
     named_children = ( "source", "expression", "subscript" )
 
     def __init__( self, expression, subscript, source, source_ref ):
-        NodeBase.__init__( self, source_ref = source_ref )
-
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
             values     = {
                 "source"     : source,
                 "expression" : expression,
                 "subscript"  : subscript
-            }
+            },
+            source_ref = source_ref
         )
 
-    getSubscribed = ExpressionChildrenHavingBase.childGetter( "expression" )
-    getSubscript = ExpressionChildrenHavingBase.childGetter( "subscript" )
-    getAssignSource = ExpressionChildrenHavingBase.childGetter( "source" )
+    getSubscribed = StatementChildrenHavingBase.childGetter( "expression" )
+    getSubscript = StatementChildrenHavingBase.childGetter( "subscript" )
+    getAssignSource = StatementChildrenHavingBase.childGetter( "source" )
 
     def computeStatement( self, constraint_collection ):
         constraint_collection.onExpression( self.getAssignSource() )
@@ -196,28 +189,27 @@ class StatementAssignmentSubscript( ChildrenHavingMixin, NodeBase ):
         return self, None, None
 
 
-class StatementAssignmentSlice( ChildrenHavingMixin, NodeBase ):
+class StatementAssignmentSlice( StatementChildrenHavingBase ):
     kind = "STATEMENT_ASSIGNMENT_SLICE"
 
     named_children = ( "source", "expression", "lower", "upper" )
 
     def __init__( self, expression, lower, upper, source, source_ref ):
-        NodeBase.__init__( self, source_ref = source_ref )
-
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
             values     = {
                 "source"     : source,
                 "expression" : expression,
                 "lower"      : lower,
                 "upper"      : upper
-            }
+            },
+            source_ref = source_ref
         )
 
-    getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
-    getLower = ExpressionChildrenHavingBase.childGetter( "lower" )
-    getUpper = ExpressionChildrenHavingBase.childGetter( "upper" )
-    getAssignSource = ExpressionChildrenHavingBase.childGetter( "source" )
+    getLookupSource = StatementChildrenHavingBase.childGetter( "expression" )
+    getLower = StatementChildrenHavingBase.childGetter( "lower" )
+    getUpper = StatementChildrenHavingBase.childGetter( "upper" )
+    getAssignSource = StatementChildrenHavingBase.childGetter( "source" )
 
     def computeStatement( self, constraint_collection ):
         constraint_collection.onExpression( self.getAssignSource() )
@@ -285,7 +277,7 @@ class StatementAssignmentSlice( ChildrenHavingMixin, NodeBase ):
         return self, None, None
 
 
-class StatementDelVariable( ChildrenHavingMixin, NodeBase ):
+class StatementDelVariable( StatementChildrenHavingBase ):
     kind = "STATEMENT_DEL_VARIABLE"
 
     named_children = ( "variable_ref", )
@@ -295,13 +287,12 @@ class StatementDelVariable( ChildrenHavingMixin, NodeBase ):
         assert not variable_ref.isExpressionVariableRef()
         assert tolerant is True or tolerant is False
 
-        NodeBase.__init__( self, source_ref = source_ref )
-
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "variable_ref" : variable_ref
-            }
+            },
+            source_ref = source_ref
         )
 
         self.tolerant = tolerant
@@ -319,22 +310,21 @@ class StatementDelVariable( ChildrenHavingMixin, NodeBase ):
     def isTolerant( self ):
         return self.tolerant
 
-    getTargetVariableRef = ChildrenHavingMixin.childGetter( "variable_ref" )
+    getTargetVariableRef = StatementChildrenHavingBase.childGetter( "variable_ref" )
 
 
-class StatementDelAttribute( ChildrenHavingMixin, NodeBase ):
+class StatementDelAttribute( StatementChildrenHavingBase ):
     kind = "STATEMENT_DEL_ATTRIBUTE"
 
     named_children = ( "expression", )
 
     def __init__( self, expression, attribute_name, source_ref ):
-        NodeBase.__init__( self, source_ref = source_ref )
-
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "expression" : expression
-            }
+            },
+            source_ref = source_ref
         )
 
         self.attribute_name = attribute_name
@@ -351,7 +341,7 @@ class StatementDelAttribute( ChildrenHavingMixin, NodeBase ):
     def setAttributeName( self, attribute_name ):
         self.attribute_name = attribute_name
 
-    getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
+    getLookupSource = StatementChildrenHavingBase.childGetter( "expression" )
 
     def computeStatement( self, constraint_collection ):
         constraint_collection.onExpression( self.getLookupSource() )
@@ -368,24 +358,23 @@ class StatementDelAttribute( ChildrenHavingMixin, NodeBase ):
         return self, None, None
 
 
-class StatementDelSubscript( ChildrenHavingMixin, NodeBase ):
+class StatementDelSubscript( StatementChildrenHavingBase ):
     kind = "STATEMENT_DEL_SUBSCRIPT"
 
     named_children = ( "expression", "subscript" )
 
     def __init__( self, expression, subscript, source_ref ):
-        NodeBase.__init__( self, source_ref = source_ref )
-
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
             values     = {
                 "expression" : expression,
                 "subscript"  : subscript
-            }
+            },
+            source_ref = source_ref
         )
 
-    getSubscribed = ExpressionChildrenHavingBase.childGetter( "expression" )
-    getSubscript = ExpressionChildrenHavingBase.childGetter( "subscript" )
+    getSubscribed = StatementChildrenHavingBase.childGetter( "expression" )
+    getSubscript = StatementChildrenHavingBase.childGetter( "subscript" )
 
     def computeStatement( self, constraint_collection ):
         constraint_collection.onExpression( self.getSubscribed() )
@@ -420,26 +409,25 @@ class StatementDelSubscript( ChildrenHavingMixin, NodeBase ):
         return self, None, None
 
 
-class StatementDelSlice( ChildrenHavingMixin, NodeBase ):
+class StatementDelSlice( StatementChildrenHavingBase ):
     kind = "STATEMENT_DEL_SLICE"
 
     named_children = ( "expression", "lower", "upper" )
 
     def __init__( self, expression, lower, upper, source_ref ):
-        NodeBase.__init__( self, source_ref = source_ref )
-
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
             values     = {
                 "expression" : expression,
                 "lower"      : lower,
                 "upper"      : upper
-            }
+            },
+            source_ref = source_ref
         )
 
-    getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
-    getLower = ExpressionChildrenHavingBase.childGetter( "lower" )
-    getUpper = ExpressionChildrenHavingBase.childGetter( "upper" )
+    getLookupSource = StatementChildrenHavingBase.childGetter( "expression" )
+    getLower = StatementChildrenHavingBase.childGetter( "lower" )
+    getUpper = StatementChildrenHavingBase.childGetter( "upper" )
 
     def computeStatement( self, constraint_collection ):
         constraint_collection.onExpression( self.getLookupSource() )

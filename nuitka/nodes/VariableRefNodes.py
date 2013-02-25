@@ -24,8 +24,12 @@ expressions, changing the meaning of course dramatically.
 
 from nuitka import Variables, Builtins, Options
 
-from .NodeBases import ChildrenHavingMixin, NodeBase, ExpressionMixin
-
+from .NodeBases import (
+    StatementChildrenHavingBase,
+    ChildrenHavingMixin,
+    ExpressionMixin,
+    NodeBase
+)
 
 from .ConstantRefNodes import ExpressionConstantRef
 
@@ -262,28 +266,24 @@ class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
             return None
 
 
-class StatementTempBlock( ChildrenHavingMixin, NodeBase ):
+class StatementTempBlock( StatementChildrenHavingBase ):
     kind = "STATEMENT_TEMP_BLOCK"
 
     named_children = ( "body", )
 
     def __init__( self, source_ref ):
-        NodeBase.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            source_ref = source_ref.atInternal()
-        )
-
-        ChildrenHavingMixin.__init__(
-            self,
-            values = {
+            values     = {
                 "body" : None
-            }
+            },
+            source_ref = source_ref.atInternal()
         )
 
         self.temp_variables = {}
 
-    getBody = ChildrenHavingMixin.childGetter( "body" )
-    setBody = ChildrenHavingMixin.childSetter( "body" )
+    getBody = StatementChildrenHavingBase.childGetter( "body" )
+    setBody = StatementChildrenHavingBase.childSetter( "body" )
 
     def getTempVariable( self, name ):
         assert name not in self.temp_variables, name

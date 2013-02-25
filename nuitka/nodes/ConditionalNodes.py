@@ -22,7 +22,7 @@ would be 'if a: ... else: ...' and there is no 'elif', because that is expressed
 nesting of conditional statements.
 """
 
-from .NodeBases import ExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 
 
 class ExpressionConditional( ExpressionChildrenHavingBase ):
@@ -99,13 +99,13 @@ class ExpressionConditional( ExpressionChildrenHavingBase ):
         return self.getExpressionYes().mayProvideReference() or self.getExpressionNo().mayProvideReference()
 
 
-class StatementConditional( ExpressionChildrenHavingBase ):
+class StatementConditional( StatementChildrenHavingBase ):
     kind = "STATEMENT_CONDITIONAL"
 
     named_children = ( "condition", "yes_branch", "no_branch" )
 
     def __init__( self, condition, yes_branch, no_branch, source_ref ):
-        ExpressionChildrenHavingBase.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
             values     = {
                 "condition"  : condition,
@@ -115,11 +115,11 @@ class StatementConditional( ExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getCondition = ExpressionChildrenHavingBase.childGetter( "condition" )
-    getBranchYes = ExpressionChildrenHavingBase.childGetter( "yes_branch" )
-    setBranchYes = ExpressionChildrenHavingBase.childSetter( "yes_branch" )
-    getBranchNo = ExpressionChildrenHavingBase.childGetter( "no_branch" )
-    setBranchNo = ExpressionChildrenHavingBase.childSetter( "no_branch" )
+    getCondition = StatementChildrenHavingBase.childGetter( "condition" )
+    getBranchYes = StatementChildrenHavingBase.childGetter( "yes_branch" )
+    setBranchYes = StatementChildrenHavingBase.childSetter( "yes_branch" )
+    getBranchNo = StatementChildrenHavingBase.childGetter( "no_branch" )
+    setBranchNo = StatementChildrenHavingBase.childSetter( "no_branch" )
 
     def isStatementAborting( self ):
         yes_branch = self.getBranchYes()

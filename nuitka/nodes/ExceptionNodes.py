@@ -21,42 +21,41 @@
 
 from .NodeBases import (
     ExpressionChildrenHavingBase,
+    StatementChildrenHavingBase,
     ExpressionMixin,
-    ChildrenHavingMixin,
     NodeBase
 )
 
-class StatementRaiseException( ChildrenHavingMixin, NodeBase ):
+class StatementRaiseException( StatementChildrenHavingBase ):
     kind = "STATEMENT_RAISE_EXCEPTION"
 
     named_children = ( "exception_type", "exception_value", "exception_trace", "exception_cause" )
 
     def __init__( self, exception_type, exception_value, exception_trace, exception_cause, source_ref ):
-        NodeBase.__init__( self, source_ref = source_ref )
-
         if exception_type is None:
             assert exception_value is None
 
         if exception_value is None:
             assert exception_trace is None
 
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "exception_type"  : exception_type,
                 "exception_value" : exception_value,
                 "exception_trace" : exception_trace,
                 "exception_cause" : exception_cause
-            }
+            },
+            source_ref = source_ref
         )
 
         self.reraise_local = False
         self.reraise_finally = False
 
-    getExceptionType = ChildrenHavingMixin.childGetter( "exception_type" )
-    getExceptionValue = ChildrenHavingMixin.childGetter( "exception_value" )
-    getExceptionTrace = ChildrenHavingMixin.childGetter( "exception_trace" )
-    getExceptionCause = ChildrenHavingMixin.childGetter( "exception_cause" )
+    getExceptionType = StatementChildrenHavingBase.childGetter( "exception_type" )
+    getExceptionValue = StatementChildrenHavingBase.childGetter( "exception_value" )
+    getExceptionTrace = StatementChildrenHavingBase.childGetter( "exception_trace" )
+    getExceptionCause = StatementChildrenHavingBase.childGetter( "exception_cause" )
 
     def isReraiseException( self ):
         return self.getExceptionType() is None

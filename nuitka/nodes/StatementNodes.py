@@ -19,7 +19,7 @@
 
 """
 
-from .NodeBases import ChildrenHavingMixin, NodeBase
+from .NodeBases import StatementChildrenHavingBase
 
 from nuitka.Utils import python_version
 
@@ -38,30 +38,29 @@ def mergeStatements( statements ):
     return merged_statements
 
 
-class StatementsSequence( ChildrenHavingMixin, NodeBase ):
+class StatementsSequence( StatementChildrenHavingBase ):
     kind = "STATEMENTS_SEQUENCE"
 
     named_children = ( "statements", )
 
     def __init__( self, statements, source_ref ):
-        NodeBase.__init__( self, source_ref = source_ref )
-
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "statements" : tuple( statements )
-            }
+            },
+            source_ref = source_ref
         )
 
-    getStatements = ChildrenHavingMixin.childGetter( "statements" )
-    setStatements = ChildrenHavingMixin.childSetterNotNone( "statements" )
+    getStatements = StatementChildrenHavingBase.childGetter( "statements" )
+    setStatements = StatementChildrenHavingBase.childSetterNotNone( "statements" )
 
     def setChild( self, name, value ):
         assert name == "statements"
 
         assert None not in value, value
 
-        return ChildrenHavingMixin.setChild(
+        return StatementChildrenHavingBase.setChild(
             self,
             name  = name,
             value = mergeStatements( value )
@@ -182,19 +181,20 @@ class StatementsFrame( StatementsSequence ):
         )
 
 
-class StatementExpressionOnly( ChildrenHavingMixin, NodeBase ):
+class StatementExpressionOnly( StatementChildrenHavingBase ):
     kind = "STATEMENT_EXPRESSION_ONLY"
 
     named_children = ( "expression", )
 
     def __init__( self, expression, source_ref ):
-        NodeBase.__init__( self, source_ref = source_ref )
+        assert expression.isExpression()
 
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "expression" : expression
-            }
+            },
+            source_ref = source_ref
         )
 
     def getDetail( self ):
@@ -203,7 +203,7 @@ class StatementExpressionOnly( ChildrenHavingMixin, NodeBase ):
     def mayHaveSideEffects( self, constraint_collection ):
         return self.getExpression().mayHaveSideEffects( constraint_collection )
 
-    getExpression = ChildrenHavingMixin.childGetter( "expression" )
+    getExpression = StatementChildrenHavingBase.childGetter( "expression" )
 
     def computeStatement( self, constraint_collection ):
         constraint_collection.onExpression( self.getExpression() )

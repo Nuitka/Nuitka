@@ -19,7 +19,10 @@
 
 """
 
-from .NodeBases import ExpressionChildrenHavingBase, ChildrenHavingMixin, NodeBase
+from .NodeBases import (
+    ExpressionChildrenHavingBase,
+    StatementChildrenHavingBase
+)
 
 
 class ExpressionListOperationAppend( ExpressionChildrenHavingBase ):
@@ -106,7 +109,7 @@ class ExpressionDictOperationSet( ExpressionChildrenHavingBase ):
         return self, None, None
 
 
-class StatementDictOperationRemove( ChildrenHavingMixin, NodeBase ):
+class StatementDictOperationRemove( StatementChildrenHavingBase ):
     kind = "STATEMENT_DICT_OPERATION_REMOVE"
 
     named_children = ( "dict", "key" )
@@ -115,18 +118,17 @@ class StatementDictOperationRemove( ChildrenHavingMixin, NodeBase ):
         assert dicte is not None
         assert key is not None
 
-        NodeBase.__init__( self, source_ref = source_ref )
-
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
             values     = {
                 "dict"    : dicte,
                 "key"     : key,
-            }
+            },
+            source_ref = source_ref
         )
 
-    getDict = ExpressionChildrenHavingBase.childGetter( "dict" )
-    getKey = ExpressionChildrenHavingBase.childGetter( "key" )
+    getDict = StatementChildrenHavingBase.childGetter( "dict" )
+    getKey = StatementChildrenHavingBase.childGetter( "key" )
 
 
 class ExpressionDictOperationGet( ExpressionChildrenHavingBase ):

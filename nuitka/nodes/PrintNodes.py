@@ -24,27 +24,25 @@ detected to fail, which would be perfect.
 Predicting the behavior of 'print' is not trivial at all, due to many special cases.
 """
 
-from .NodeBases import ChildrenHavingMixin, NodeBase
+from .NodeBases import StatementChildrenHavingBase
 
 
-class StatementPrint( ChildrenHavingMixin, NodeBase ):
+class StatementPrint( StatementChildrenHavingBase ):
     kind = "STATEMENT_PRINT"
 
     named_children = ( "dest", "values" )
 
     def __init__( self, dest, values, newline, source_ref ):
-        NodeBase.__init__( self, source_ref = source_ref )
-
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "values" : tuple( values ),
                 "dest"   : dest
-            }
+            },
+            source_ref = source_ref
         )
 
         self.newline = newline
-
 
     def isNewlinePrint( self ):
         return self.newline
@@ -52,6 +50,6 @@ class StatementPrint( ChildrenHavingMixin, NodeBase ):
     def removeNewlinePrint( self ):
         self.newline = False
 
-    getDestination = ChildrenHavingMixin.childGetter( "dest" )
-    getValues = ChildrenHavingMixin.childGetter( "values" )
-    setValues = ChildrenHavingMixin.childSetter( "values" )
+    getDestination = StatementChildrenHavingBase.childGetter( "dest" )
+    getValues = StatementChildrenHavingBase.childGetter( "values" )
+    setValues = StatementChildrenHavingBase.childSetter( "values" )

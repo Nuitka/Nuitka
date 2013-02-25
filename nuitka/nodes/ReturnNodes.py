@@ -21,16 +21,16 @@ This one exits functions. The only other exit is the default exit of functions w
 value, if no return is done.
 """
 
-from .NodeBases import ExpressionChildrenHavingBase
+from .NodeBases import StatementChildrenHavingBase
 
 
-class StatementReturn( ExpressionChildrenHavingBase ):
+class StatementReturn( StatementChildrenHavingBase ):
     kind = "STATEMENT_RETURN"
 
     named_children = ( "expression", )
 
     def __init__( self, expression, source_ref ):
-        ExpressionChildrenHavingBase.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
             values     = {
                 "expression" : expression
@@ -40,7 +40,7 @@ class StatementReturn( ExpressionChildrenHavingBase ):
 
         self.exception_driven = None
 
-    getExpression = ExpressionChildrenHavingBase.childGetter( "expression" )
+    getExpression = StatementChildrenHavingBase.childGetter( "expression" )
 
     def isStatementAborting( self ):
         return True

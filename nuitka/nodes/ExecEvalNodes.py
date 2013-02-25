@@ -24,8 +24,7 @@ to do.
 
 from .NodeBases import (
     ExpressionChildrenHavingBase,
-    ChildrenHavingMixin,
-    NodeBase
+    StatementChildrenHavingBase,
 )
 
 from nuitka import Utils
@@ -98,21 +97,20 @@ def _couldBeNone( node ):
         # assert False, node
         return True
 
-class StatementExec( ChildrenHavingMixin, NodeBase ):
+class StatementExec( StatementChildrenHavingBase ):
     kind = "STATEMENT_EXEC"
 
     named_children = ( "source", "globals", "locals" )
 
     def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
-        NodeBase.__init__( self, source_ref = source_ref )
-
-        ChildrenHavingMixin.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "globals" : globals_arg,
                 "locals"  : locals_arg,
                 "source"  : source_code
-            }
+            },
+            source_ref = source_ref,
         )
 
     def setChild( self, name, value ):
@@ -121,11 +119,11 @@ class StatementExec( ChildrenHavingMixin, NodeBase ):
 
             value = convertNoneConstantToNone( value )
 
-        return ChildrenHavingMixin.setChild( self, name, value )
+        return StatementChildrenHavingBase.setChild( self, name, value )
 
-    getSourceCode = ChildrenHavingMixin.childGetter( "source" )
-    getGlobals = ChildrenHavingMixin.childGetter( "globals" )
-    getLocals = ChildrenHavingMixin.childGetter( "locals" )
+    getSourceCode = StatementChildrenHavingBase.childGetter( "source" )
+    getGlobals = StatementChildrenHavingBase.childGetter( "globals" )
+    getLocals = StatementChildrenHavingBase.childGetter( "locals" )
 
     def needsLocalsDict( self ):
         return _couldBeNone( self.getGlobals() ) or \
