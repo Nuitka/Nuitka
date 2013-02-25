@@ -452,27 +452,40 @@ class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
     getAnnotations = CPythonExpressionChildrenHavingBase.childGetter( "annotations" )
 
     def mayRaiseException( self, exception_type ):
-        kw_defaults = self.getKwDefaults()
-        defaults = self.getDefaults()
-        annotations = self.getAnnotations()
+        for default in self.getDefaults():
+            result = default.mayRaiseException( exception_type )
 
+            if result is True or result is None:
+                return result
+
+        kw_defaults = self.getKwDefaults()
         if kw_defaults is not None:
             result = kw_defaults.mayRaiseException( exception_type )
 
             if result is True or result is None:
                 return result
 
-        for default in defaults:
-            result = default.mayRaiseException( exception_type )
-
-            if result is True or result is None:
-                return result
-
+        annotations = self.getAnnotations()
         if annotations is not None:
             result = annotations.mayRaiseException( exception_type )
 
             if result is True or result is None:
                 return result
+
+        return False
+
+    def mayHaveSideEffects( self, constraint_collection ):
+        for default in self.getDefaults():
+            if defaults.mayHaveSideEffects( constraint_collection ):
+                return True
+
+        kw_defaults = self.getKwDefaults()
+        if kw_defaults is not None and kw_defaults.mayHaveSideEffects( constraint_collection ):
+            return True
+
+        annotations = self.getAnnotations()
+        if annotations is not None and annotations.mayHaveSideEffects( constraint_collection ):
+            return True
 
         return False
 
@@ -507,6 +520,10 @@ class CPythonExpressionFunctionRef( CPythonNodeBase, CPythonExpressionMixin ):
     def computeNode( self, constraint_collection ):
         # TODO: Function body may know something.
         return self, None, None
+
+    def mayHaveSideEffects( self, constraint_collection ):
+        # Using a function has no side effects.
+        return False
 
 
 class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):

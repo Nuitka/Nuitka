@@ -853,7 +853,6 @@ class ConstraintCollectionBase:
                 expression = statement.getExpression()
 
                 if not expression.mayHaveSideEffects( self ):
-
                     self.signalChange(
                         "new_statements",
                         statement.getSourceReference(),
