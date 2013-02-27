@@ -31,13 +31,7 @@ from nuitka.nodes import ValueFriends
 from nuitka.nodes.NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
     makeStatementsSequenceReplacementNode,
-    makeConstantReplacementNode,
-    wrapStatementWithSideEffects
 )
-
-from nuitka.nodes.ExceptionNodes import StatementRaiseExceptionImplicit
-from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 
 from nuitka import Options, Utils, Importing
 from nuitka.tree import Recursion
@@ -105,8 +99,14 @@ class VariableUsageTrackingMixin:
 
 # TODO: This code is only here while staging it, will live in a dedicated module later on
 class ConstraintCollectionBase:
-    def __init__( self, parent, signal_change, copy_of = None ):
-        self.signalChange = signal_change
+    def __init__( self, parent, signal_change = None, copy_of = None ):
+        assert signal_change is None or parent is None
+
+        if signal_change is not None:
+            self.signalChange = signal_change
+        else:
+            self.signalChange = parent.signalChange
+
         self.parent = parent
 
         if copy_of is None:
@@ -333,7 +333,7 @@ class ConstraintCollectionBase:
 
     def onSubExpressions( self, owner ):
         if owner.isExpressionFunctionRef():
-            collector = ConstraintCollectionFunction( self, self.signalChange )
+            collector = ConstraintCollectionFunction( self )
             collector.process( owner.getFunctionBody() )
         elif owner.isExpressionFunctionBody():
             assert False, owner
@@ -484,7 +484,7 @@ class ConstraintCollectionBase:
 
             return statement
         elif statement.isStatementLoop():
-            other_loop_run = ConstraintCollectionLoopOther( self, self.signalChange )
+            other_loop_run = ConstraintCollectionLoopOther( self )
             other_loop_run.process( self, statement )
 
             self.mergeBranch(
@@ -527,11 +527,10 @@ class ConstraintCollectionBranch( ConstraintCollectionBase ):
 
 
 class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrackingMixin ):
-    def __init__( self, parent, signal_change ):
+    def __init__( self, parent ):
         ConstraintCollectionBase.__init__(
             self,
-            parent        = parent,
-            signal_change = signal_change
+            parent = parent
         )
 
         VariableUsageTrackingMixin.__init__( self )
@@ -574,7 +573,10 @@ class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrack
 
 class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackingMixin ):
     def __init__( self, signal_change ):
-        ConstraintCollectionBase.__init__( self, None, signal_change )
+        ConstraintCollectionBase.__init__(
+            self,
+            None,
+            signal_change = signal_change )
 
         VariableUsageTrackingMixin.__init__( self )
 

@@ -24,6 +24,7 @@ located here. These are the core of value control flow.
 
 from .NodeBases import StatementChildrenHavingBase
 
+# Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
 class StatementAssignmentVariable( StatementChildrenHavingBase ):
     kind = "STATEMENT_ASSIGNMENT_VARIABLE"
@@ -255,7 +256,8 @@ class StatementAssignmentSlice( StatementChildrenHavingBase ):
                 )
             )
 
-            return result, "new_raise", "Slice assignment raises exception in lower slice boundary value, removed assignment"
+            return result, "new_raise", """\
+Slice assignment raises exception in lower slice boundary value, removed assignment."""
 
         constraint_collection.onExpression( self.getUpper(), allow_none = True )
         upper = self.getUpper()
@@ -272,7 +274,8 @@ class StatementAssignmentSlice( StatementChildrenHavingBase ):
                 )
             )
 
-            return result, "new_raise", "Slice assignment raises exception in upper slice boundary value, removed assignment"
+            return result, "new_raise", """\
+Slice assignment raises exception in upper slice boundary value, removed assignment."""
 
         return self, None, None
 

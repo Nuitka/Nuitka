@@ -24,6 +24,7 @@ nesting of conditional statements.
 
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 
+# Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
 class ExpressionConditional( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_CONDITIONAL"
@@ -84,6 +85,8 @@ class ExpressionConditional( ExpressionChildrenHavingBase ):
             return self, None, None
 
     def mayHaveSideEffectsBool( self, constraint_collection ):
+        condition = self.getCondition()
+
         if condition.mayHaveSideEffectsBool( constraint_collection ):
             return True
 
@@ -150,7 +153,8 @@ class StatementConditional( StatementChildrenHavingBase ):
         yes_branch = self.getBranchYes()
 
         if yes_branch is not None:
-            branch_yes_collection = ConstraintCollectionBranch( constraint_collection, constraint_collection.signalChange )
+            branch_yes_collection = ConstraintCollectionBranch( constraint_collection )
+
             branch_yes_collection.process( yes_branch )
 
             # May have just gone away.
@@ -159,7 +163,7 @@ class StatementConditional( StatementChildrenHavingBase ):
         no_branch = self.getBranchNo()
 
         if no_branch is not None:
-            branch_no_collection = ConstraintCollectionBranch( constraint_collection, constraint_collection.signalChange )
+            branch_no_collection = ConstraintCollectionBranch( constraint_collection )
 
             branch_no_collection.process( no_branch )
 
@@ -185,7 +189,8 @@ class StatementConditional( StatementChildrenHavingBase ):
                 node       = self
             )
 
-            return result, "new_statements", "Both branches have no effect, drop branch nature, only evaluate condition."
+            return result, "new_statements", """\
+Both branches have no effect, drop branch nature, only evaluate condition."""
 
         if yes_branch is None:
             # Would be eliminated already, if there wasn't any "no" branch either.
@@ -203,7 +208,8 @@ class StatementConditional( StatementChildrenHavingBase ):
                 source_ref = self.getSourceReference()
             )
 
-            return new_statement, "new_statements", "Empty true branch for condition was replaced with inverted condition check."
+            return new_statement, "new_statements", """\
+Empty true branch for condition was replaced with inverted condition check."""
 
         # Note: Checking the condition late, so that the surviving branches got processed
         # already. Returning without doing that, will lead to errorneous assumptions.
@@ -227,7 +233,8 @@ class StatementConditional( StatementChildrenHavingBase ):
                 allow_none = True # surviving branch may empty
             )
 
-            return new_statement, "new_statements", "Condition for branch was predicted to be always %s." % choice
+            return new_statement, "new_statements", """\
+Condition for branch was predicted to be always %s.""" % choice
         elif condition.willRaiseException( BaseException ):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
@@ -236,6 +243,7 @@ class StatementConditional( StatementChildrenHavingBase ):
                 node       = self
             )
 
-            return result, "new_raise", "Conditional statements already raises implicitely in condition, removing branches"
+            return result, "new_raise", """\
+Conditional statements already raises implicitely in condition, removing branches"""
 
         return self, None, None

@@ -47,13 +47,8 @@ from nuitka.nodes.BuiltinDecodingNodes import (
     ExpressionBuiltinOrd,
     ExpressionBuiltinOrd0
 )
-from nuitka.nodes.ExecEvalNodes import (
-    ExpressionBuiltinEval,
-    StatementExec
-)
-
+from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinEval
 from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
-
 from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinGlobals,
     ExpressionBuiltinLocals,

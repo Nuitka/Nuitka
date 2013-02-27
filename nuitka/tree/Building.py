@@ -157,7 +157,7 @@ from .Helpers import (
 
 from .SourceReading import readSourceCodeFromFilename
 
-import ast, sys, re
+import ast, sys
 
 def buildVariableReferenceNode( provider, node, source_ref ):
     # Python3 is influenced by the mere use of a variable name. So we need to remember it,

@@ -262,6 +262,7 @@ class StatementExpressionOnly( StatementChildrenHavingBase ):
                     source_ref  = expression.getSourceReference()
                 )
 
-                return result, "new_statements", "Replaced builtin exec call to exec statement in early closure context."
+                return result, "new_statements", """\
+Replaced builtin exec call to exec statement in early closure context."""
 
         return self, None, None

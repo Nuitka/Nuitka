@@ -23,6 +23,7 @@ from .NodeBases import ExpressionChildrenHavingBase
 
 from nuitka import PythonOperators
 
+# Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
 class ExpressionComparison( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_COMPARISON"
@@ -147,7 +148,8 @@ class ExpressionComparisonIsIsNotBase( ExpressionComparison ):
                     new_node     = result
                 )
 
-            return result, "new_constant", "Determined values to alias and therefore result of %s comparison" % self.comparator
+            return result, "new_constant", """\
+Determined values to alias and therefore result of %s comparison.""" % self.comparator
 
         if constraint_collection.mustNotAlias( left, right ):
             from .NodeMakingHelpers import makeConstantReplacementNode, wrapExpressionWithSideEffects
@@ -165,7 +167,8 @@ class ExpressionComparisonIsIsNotBase( ExpressionComparison ):
                     new_node     = result
                 )
 
-            return result, "new_constant", "Determined values to not alias and therefore result of %s comparison" % self.comparator
+            return result, "new_constant", """\
+Determined values to not alias and therefore result of %s comparison.""" % self.comparator
 
         return ExpressionComparison.computeExpression( self, constraint_collection )
 

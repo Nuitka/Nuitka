@@ -247,7 +247,7 @@ class StatementTryExcept( StatementChildrenHavingBase ):
         # may have happened. A similar approach to loops should be taken to invalidate
         # the state before.
         for handler in self.getExceptionHandlers():
-            exception_branch = ConstraintCollectionHandler( constraint_collection, constraint_collection.signalChange )
+            exception_branch = ConstraintCollectionHandler( constraint_collection )
             exception_branch.process( handler )
 
         # Without exception handlers remaining, nothing else to do. They may e.g. be

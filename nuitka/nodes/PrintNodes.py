@@ -26,6 +26,7 @@ Predicting the behavior of 'print' is not trivial at all, due to many special ca
 
 from .NodeBases import StatementChildrenHavingBase
 
+# Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
 class StatementPrint( StatementChildrenHavingBase ):
     kind = "STATEMENT_PRINT"
@@ -111,8 +112,6 @@ class StatementPrint( StatementChildrenHavingBase ):
             new_node = value.getStrValue( self )
 
             if new_node is not None and new_node is not value:
-                from .NodeMakingHelpers import wrapExpressionWithSideEffects
-
                 value.replaceWith( new_node )
 
                 constraint_collection.signalChange(

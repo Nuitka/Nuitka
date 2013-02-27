@@ -22,12 +22,14 @@ to eliminate or limit their impact as much as possible, but it's difficult
 to do.
 """
 
+from nuitka import Utils
+
 from .NodeBases import (
     ExpressionChildrenHavingBase,
     StatementChildrenHavingBase,
 )
 
-from nuitka import Utils
+# Delayed import into multiple branches is not an issue, pylint: disable=W0404
 
 class ExpressionBuiltinEval( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_EVAL"
