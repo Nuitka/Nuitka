@@ -21,8 +21,9 @@ from nuitka import Utils
 from nuitka.nodes.ParameterSpec import ParameterSpec
 
 from nuitka.nodes.VariableRefNodes import (
-    ExpressionVariableRef,
+    ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef,
+    ExpressionVariableRef,
     StatementTempBlock
 )
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
@@ -172,7 +173,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
 
         statements = [
             StatementAssignmentVariable(
-                variable_ref = ExpressionTempVariableRef(
+                variable_ref = ExpressionTargetTempVariableRef(
                     variable   = container_tmp.makeReference( temp_block ),
                     source_ref = source_ref
                 ),
@@ -265,7 +266,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
         # First create the iterator and store it, next should be loop body
         nested_statements = [
             StatementAssignmentVariable(
-                variable_ref = ExpressionTempVariableRef(
+                variable_ref = ExpressionTargetTempVariableRef(
                     variable   = tmp_iter_variable.makeReference( nested_temp_block ),
                     source_ref = source_ref
                 ),
@@ -279,7 +280,7 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
                 tried      = StatementsSequence(
                     statements = (
                         StatementAssignmentVariable(
-                            variable_ref = ExpressionTempVariableRef(
+                            variable_ref = ExpressionTargetTempVariableRef(
                                 variable   = tmp_value_variable.makeReference( nested_temp_block ),
                                 source_ref = source_ref
                             ),

@@ -157,14 +157,14 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
             "doc"        : self.doc
         }
 
+    def getDetail( self ):
+        return "named %s with %s" % ( self.name, self.parameters )
+
     def getParent( self ):
         assert False
 
     def isClassDictCreation( self ):
         return self.is_class
-
-    def getDetail( self ):
-        return "named %s with %s" % ( self.name, self.parameters )
 
     def getFunctionName( self ):
         if self.is_lambda:

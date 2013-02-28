@@ -19,6 +19,7 @@
 from nuitka import Utils
 
 from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef,
     StatementTempBlock
 )
@@ -68,7 +69,7 @@ def makeTryExceptNoRaise( tried, handlers, no_raise, source_ref ):
             makeStatementsSequence(
                 statements = (
                     StatementAssignmentVariable(
-                        variable_ref = ExpressionTempVariableRef(
+                        variable_ref = ExpressionTargetTempVariableRef(
                             variable   = tmp_handler_indicator_variable.makeReference( result ),
                             source_ref = source_ref.atInternal()
                         ),
@@ -89,7 +90,7 @@ def makeTryExceptNoRaise( tried, handlers, no_raise, source_ref ):
         StatementsSequence(
             statements = (
                 StatementAssignmentVariable(
-                    variable_ref = ExpressionTempVariableRef(
+                    variable_ref = ExpressionTargetTempVariableRef(
                         variable   = tmp_handler_indicator_variable.makeReference( result ),
                         source_ref = source_ref.atInternal()
                     ),

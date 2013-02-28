@@ -17,6 +17,7 @@
 #
 
 from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
     ExpressionTargetVariableRef,
     ExpressionTempVariableRef,
     ExpressionVariableRef,
@@ -142,7 +143,7 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source, source
 
         statements = [
             StatementAssignmentVariable(
-                variable_ref = ExpressionTempVariableRef(
+                variable_ref = ExpressionTargetTempVariableRef(
                     variable   = source_iter_var.makeReference( result ),
                     source_ref = source_ref
                 ),
@@ -166,7 +167,7 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source, source
             if element[0] != "Starred":
                 statements.append(
                     StatementAssignmentVariable(
-                        variable_ref = ExpressionTempVariableRef(
+                        variable_ref = ExpressionTargetTempVariableRef(
                             variable   = element_vars[ element_index ].makeReference( result ),
                             source_ref = source_ref
                         ),
@@ -186,7 +187,7 @@ def buildAssignmentStatementsFromDecoded( provider, kind, detail, source, source
 
                 statements.append(
                     StatementAssignmentVariable(
-                        variable_ref = ExpressionTempVariableRef(
+                        variable_ref = ExpressionTargetTempVariableRef(
                             variable   = element_vars[ element_index ].makeReference( result ),
                             source_ref = source_ref
                         ),
@@ -368,7 +369,7 @@ def buildAssignNode( provider, node, source_ref ):
 
         statements = [
             StatementAssignmentVariable(
-                variable_ref = ExpressionTempVariableRef(
+                variable_ref = ExpressionTargetTempVariableRef(
                     variable   = tmp_source.makeReference( result ),
                     source_ref = source_ref
                 ),
@@ -488,7 +489,7 @@ def _buildInplaceAssignVariableNode( result, variable_ref, tmp_variable1, tmp_va
     return (
         # First assign the target value to a temporary variable.
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_variable1.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -500,7 +501,7 @@ def _buildInplaceAssignVariableNode( result, variable_ref, tmp_variable1, tmp_va
         ),
         # Second assign the inplace result to a temporary variable.
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_variable2.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -551,7 +552,7 @@ def _buildInplaceAssignAttributeNode( result, lookup_source, attribute_name, tmp
     return (
         # First assign the target value to a temporary variable.
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_variable1.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -564,7 +565,7 @@ def _buildInplaceAssignAttributeNode( result, lookup_source, attribute_name, tmp
         ),
         # Second assign the inplace result to a temporary variable.
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_variable2.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -616,7 +617,7 @@ def _buildInplaceAssignSubscriptNode( result, subscribed, subscript, tmp_variabl
     return (
         # First assign the target value and subscript to temporary variables.
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_variable1.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -624,7 +625,7 @@ def _buildInplaceAssignSubscriptNode( result, subscribed, subscript, tmp_variabl
             source_ref = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_variable2.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -668,7 +669,7 @@ def _buildInplaceAssignSliceNode( result, lookup_source, lower, upper, tmp_varia
     # First assign the target value, lower and upper to temporary variables.
     statements = [
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_variable1.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -680,7 +681,7 @@ def _buildInplaceAssignSliceNode( result, lookup_source, lower, upper, tmp_varia
     if lower is not None:
         statements.append(
             StatementAssignmentVariable(
-                variable_ref = ExpressionTempVariableRef(
+                variable_ref = ExpressionTargetTempVariableRef(
                     variable   = tmp_variable2.makeReference( result ),
                     source_ref = source_ref
                 ),
@@ -705,7 +706,7 @@ def _buildInplaceAssignSliceNode( result, lookup_source, lower, upper, tmp_varia
     if upper is not None:
         statements.append(
             StatementAssignmentVariable(
-                variable_ref = ExpressionTempVariableRef(
+                variable_ref = ExpressionTargetTempVariableRef(
                     variable   = tmp_variable3.makeReference( result ),
                     source_ref = source_ref
                 ),

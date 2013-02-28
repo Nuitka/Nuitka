@@ -19,6 +19,7 @@
 from nuitka import Utils
 
 from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef,
     StatementTempBlock
 )
@@ -40,8 +41,8 @@ from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 
 from .ReformulationFunctionStatements import (
-    buildParameterKwDefaults,
     buildParameterAnnotations,
+    buildParameterKwDefaults,
     buildParameterSpec
 )
 
@@ -81,7 +82,7 @@ def buildLambdaNode( provider, node, source_ref ):
 
             statements = (
                 StatementAssignmentVariable(
-                    variable_ref = ExpressionTempVariableRef(
+                    variable_ref = ExpressionTargetTempVariableRef(
                         variable = tmp_return_value.makeReference( temp_block ),
                         source_ref = source_ref,
                     ),

@@ -120,18 +120,18 @@ class NodeBase( NodeMetaClassBase ):
         return "%s at %s" % ( self.kind, self.source_ref.getAsString() )
 
     def getDetails( self ):
-        """ Details of the node, intented for use in __repr__ and dumps.
+        """ Details of the node, intended for use in __repr__ and dumps.
 
         """
         # Virtual method, pylint: disable=R0201
         return {}
 
     def getDetail( self ):
-        """ Details of the node, intented for use in __repr__ and graphical display.
+        """ Details of the node, intended for use in __repr__ and graphical display.
 
         """
         # Virtual method, pylint: disable=R0201
-        return self.getDetails()
+        return str( self.getDetails() )[1:-1]
 
     def getParent( self ):
         """ Parent of the node. Every node except modules have to have a parent.

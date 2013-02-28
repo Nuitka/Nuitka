@@ -38,17 +38,18 @@ from .TypeNodes import (
     ExpressionBuiltinType1
 )
 from .BuiltinRefNodes import (
-    ExpressionBuiltinRef,
     ExpressionBuiltinExceptionRef,
-    ExpressionBuiltinAnonymousRef
+    ExpressionBuiltinAnonymousRef,
+    ExpressionBuiltinRef
 )
 from .ConditionalNodes import StatementConditional
 from .ComparisonNodes import ExpressionComparison
 from .VariableRefNodes import (
-    ExpressionVariableRef,
+    ExpressionTargetTempVariableRef,
     ExpressionTargetVariableRef,
-    StatementTempBlock,
-    ExpressionTempVariableRef
+    ExpressionTempVariableRef,
+    ExpressionVariableRef,
+    StatementTempBlock
 )
 from .CallNodes import (
     ExpressionCallKeywordsOnly,
@@ -58,8 +59,8 @@ from .CallNodes import (
 )
 from .ReturnNodes import StatementReturn
 from .TryNodes import (
-    StatementTryExcept,
-    StatementExceptHandler
+    StatementExceptHandler,
+    StatementTryExcept
 )
 from .AssignNodes import (
     StatementAssignmentVariable,
@@ -506,7 +507,7 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
             tried      = StatementsSequence(
                 statements = (
                     StatementAssignmentVariable(
-                        variable_ref = ExpressionTempVariableRef(
+                        variable_ref = ExpressionTargetTempVariableRef(
                             variable   = tmp_key_variable.makeReference( temp_block ),
                             source_ref = source_ref
                         ),
@@ -574,7 +575,7 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
         # does not yet detect that case properly. TODO: Can be removed once code
         # generation is apt enough.
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_keys_variable.makeReference( temp_block ),
                 source_ref = source_ref
             ),
@@ -588,7 +589,7 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
             tried      = StatementsSequence(
                 statements = (
                     StatementAssignmentVariable(
-                        variable_ref = ExpressionTempVariableRef(
+                        variable_ref = ExpressionTargetTempVariableRef(
                             variable   = tmp_keys_variable.makeReference( temp_block ),
                             source_ref = source_ref
                         ),
@@ -625,7 +626,7 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
             source_ref = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_iter_variable.makeReference( temp_block ),
                 source_ref = source_ref
             ),
@@ -639,7 +640,7 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
             source_ref = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_dict_variable.makeReference( temp_block ),
                 source_ref = source_ref
             ),
@@ -808,7 +809,7 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
             tried      = StatementsSequence(
                 statements = (
                     StatementAssignmentVariable(
-                        variable_ref = ExpressionTempVariableRef(
+                        variable_ref = ExpressionTargetTempVariableRef(
                             variable   = tmp_key_variable.makeReference( mapping_case ),
                             source_ref = source_ref
                         ),
@@ -890,7 +891,7 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
         # does not yet detect that case properly. TODO: Can be removed once code
         # generation is apt enough.
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_keys_variable.makeReference( mapping_case ),
                 source_ref = source_ref
             ),
@@ -904,7 +905,7 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
             tried      = StatementsSequence(
                 statements = (
                     StatementAssignmentVariable(
-                        variable_ref = ExpressionTempVariableRef(
+                        variable_ref = ExpressionTargetTempVariableRef(
                             variable   = tmp_keys_variable.makeReference( mapping_case ),
                             source_ref = source_ref
                         ),
@@ -941,7 +942,7 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
             source_ref = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_iter_variable.makeReference( mapping_case ),
                 source_ref = source_ref
             ),
@@ -955,7 +956,7 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
             source_ref = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_dict_variable.makeReference( mapping_case ),
                 source_ref = source_ref
             ),
@@ -996,7 +997,7 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
             tried      = StatementsSequence(
                 statements = (
                     StatementAssignmentVariable(
-                        variable_ref = ExpressionTempVariableRef(
+                        variable_ref = ExpressionTargetTempVariableRef(
                             variable   = tmp_item_variable.makeReference( dict_case ),
                             source_ref = source_ref
                         ),
@@ -1032,7 +1033,7 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
             source_ref = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_key_variable.makeReference( dict_case ),
                 source_ref = source_ref
             ),
@@ -1103,7 +1104,7 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
             source_ref   = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_iter_variable.makeReference( dict_case ),
                 source_ref = source_ref
             ),

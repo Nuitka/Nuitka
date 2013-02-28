@@ -19,6 +19,7 @@
 from nuitka import Utils
 
 from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef,
     StatementTempBlock
 )
@@ -102,7 +103,7 @@ def buildWithNode( provider, node, source_ref ):
     statements = [
         # First assign the with context to a temporary variable.
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_source_variable.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -111,7 +112,7 @@ def buildWithNode( provider, node, source_ref ):
         ),
         # Next, assign "__enter__" and "__exit__" attributes to temporary variables.
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_exit_variable.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -126,7 +127,7 @@ def buildWithNode( provider, node, source_ref ):
             source_ref   = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_enter_variable.makeReference( result ),
                 source_ref = source_ref
             ),

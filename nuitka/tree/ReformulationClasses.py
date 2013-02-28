@@ -23,9 +23,10 @@ comments with developer manual sections.
 """
 
 from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
     ExpressionTargetVariableRef,
-    ExpressionVariableRef,
     ExpressionTempVariableRef,
+    ExpressionVariableRef,
     StatementTempBlock
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
@@ -259,7 +260,7 @@ def _buildClassNode3( provider, node, source_ref ):
 
     statements = [
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_bases.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -270,7 +271,7 @@ def _buildClassNode3( provider, node, source_ref ):
             source_ref   = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_class_decl_dict.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -292,7 +293,7 @@ def _buildClassNode3( provider, node, source_ref ):
             source_ref = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_metaclass.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -389,7 +390,7 @@ def _buildClassNode3( provider, node, source_ref ):
             source_ref = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_prepared.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -552,7 +553,7 @@ def _buildClassNode2( provider, node, source_ref ):
 
     statements = [
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_bases.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -563,7 +564,7 @@ def _buildClassNode2( provider, node, source_ref ):
             source_ref   = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_class_dict.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -584,7 +585,7 @@ def _buildClassNode2( provider, node, source_ref ):
             source_ref   = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_metaclass.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -625,7 +626,7 @@ def _buildClassNode2( provider, node, source_ref ):
             source_ref = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_class.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -660,7 +661,7 @@ def _buildClassNode2( provider, node, source_ref ):
     for decorator in buildNodeList( provider, reversed( node.decorator_list ), source_ref ):
         statements.append(
             StatementAssignmentVariable(
-                variable_ref = ExpressionTempVariableRef(
+                variable_ref = ExpressionTargetTempVariableRef(
                     variable   = tmp_class.makeReference( result ),
                     source_ref = source_ref
                 ),

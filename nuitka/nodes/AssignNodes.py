@@ -35,7 +35,7 @@ class StatementAssignmentVariable( StatementChildrenHavingBase ):
         assert variable_ref is not None, source_ref
         assert source is not None, source_ref
 
-        assert not variable_ref.isExpressionVariableRef()
+        assert variable_ref.isTargetVariableRef()
 
         StatementChildrenHavingBase.__init__(
             self,
@@ -45,9 +45,6 @@ class StatementAssignmentVariable( StatementChildrenHavingBase ):
             },
             source_ref = source_ref
         )
-
-    def getDetail( self ):
-        return "%s from %s" % ( self.getTargetVariableRef(), self.getAssignSource() )
 
     getTargetVariableRef = StatementChildrenHavingBase.childGetter( "variable_ref" )
     getAssignSource = StatementChildrenHavingBase.childGetter( "source" )

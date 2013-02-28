@@ -17,6 +17,7 @@
 #
 
 from nuitka.nodes.VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef,
     StatementTempBlock
 )
@@ -79,7 +80,7 @@ def buildForLoopNode( provider, node, source_ref ):
 
         statements = [
             StatementAssignmentVariable(
-                variable_ref = ExpressionTempVariableRef(
+                variable_ref = ExpressionTargetTempVariableRef(
                     variable   = tmp_break_indicator_variable.makeReference( result ),
                     source_ref = source_ref
                 ),
@@ -110,7 +111,7 @@ def buildForLoopNode( provider, node, source_ref ):
             tried      = StatementsSequence(
                 statements = (
                     StatementAssignmentVariable(
-                        variable_ref = ExpressionTempVariableRef(
+                        variable_ref = ExpressionTargetTempVariableRef(
                             variable   = tmp_value_variable.makeReference( iterate_tmp_block ),
                             source_ref = source_ref
                         ),
@@ -176,7 +177,7 @@ def buildForLoopNode( provider, node, source_ref ):
     if else_block is not None:
         statements = [
             StatementAssignmentVariable(
-                variable_ref = ExpressionTempVariableRef(
+                variable_ref = ExpressionTargetTempVariableRef(
                     variable   = tmp_break_indicator_variable.makeReference( result ),
                     source_ref = source_ref
                 ),
@@ -193,7 +194,7 @@ def buildForLoopNode( provider, node, source_ref ):
     statements += [
         # First create the iterator and store it.
         StatementAssignmentVariable(
-            variable_ref = ExpressionTempVariableRef(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_iter_variable.makeReference( result ),
                 source_ref = source_ref
             ),
@@ -259,7 +260,7 @@ def buildWhileLoopNode( provider, node, source_ref ):
 
         statements = (
             StatementAssignmentVariable(
-                variable_ref = ExpressionTempVariableRef(
+                variable_ref = ExpressionTargetTempVariableRef(
                     variable   = tmp_break_indicator_variable.makeReference( temp_block ),
                     source_ref = source_ref
                 ),
@@ -313,7 +314,7 @@ def buildWhileLoopNode( provider, node, source_ref ):
     else:
         statements = (
             StatementAssignmentVariable(
-                variable_ref = ExpressionTempVariableRef(
+                variable_ref = ExpressionTargetTempVariableRef(
                     variable   = tmp_break_indicator_variable.makeReference( temp_block ),
                     source_ref = source_ref
                 ),

@@ -70,6 +70,9 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
 
         return result
 
+    def isTargetVariableRef( self ):
+        return False
+
     def getVariableName( self ):
         return self.variable_name
 
@@ -196,6 +199,9 @@ class ExpressionTargetVariableRef( ExpressionVariableRef ):
     def computeExpression( self, constraint_collection ):
         assert False
 
+    def isTargetVariableRef( self ):
+        return True
+
 
 class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"
@@ -223,8 +229,8 @@ class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
     def getVariable( self ):
         return self.variable
 
-    def setVariable( self, variable ):
-        self.variable = variable
+    def isTargetVariableRef( self ):
+        return False
 
     def computeExpression( self, constraint_collection ):
         # Nothing to do here.
@@ -265,6 +271,16 @@ class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
             )
         else:
             return None
+
+
+class ExpressionTargetTempVariableRef( ExpressionTempVariableRef ):
+    kind = "EXPRESSION_TARGET_TEMP_VARIABLE_REF"
+
+    def computeExpression( self, constraint_collection ):
+        assert False, self.parent
+
+    def isTargetVariableRef( self ):
+        return True
 
 
 class StatementTempBlock( StatementChildrenHavingBase ):
