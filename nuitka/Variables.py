@@ -37,6 +37,8 @@ class Variable:
         self.read_only_indicator = None
         self.has_del = False
 
+        self.version_number = 0
+
     def getName( self ):
         return self.variable_name
 
@@ -75,6 +77,10 @@ class Variable:
     def setHasDelIndicator( self ):
         self.has_del = True
 
+    def allocateTargetNumber( self ):
+        self.version_number += 1
+
+        return self.version_number
 
     # pylint: disable=R0201
     def isLocalVariable( self ):

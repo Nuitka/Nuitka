@@ -79,10 +79,9 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
     def getVariable( self ):
         return self.variable
 
-    def setVariable( self, variable, replace = False ):
+    def setVariable( self, variable ):
         assert isinstance( variable, Variables.Variable ), repr( variable )
-
-        assert self.variable is None or replace
+        assert self.variable is None
 
         self.variable = variable
 
@@ -196,11 +195,48 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
 class ExpressionTargetVariableRef( ExpressionVariableRef ):
     kind = "EXPRESSION_TARGET_VARIABLE_REF"
 
+    def __init__( self, variable_name, source_ref ):
+        ExpressionVariableRef.__init__( self, variable_name, source_ref )
+
+        self.variable_version = None
+
+    def getDetails( self ):
+        if self.variable is None:
+            return { "name" : self.variable_name }
+        else:
+            return {
+                "name"     : self.variable_name,
+                "variable" : self.variable,
+                "version"  : self.variable_version
+            }
+
+    def makeCloneAt( self, source_ref ):
+        result = self.__class__(
+            variable_name = self.variable_name,
+            source_ref    = source_ref
+        )
+
+        if self.variable is not None:
+            result.setVariable( self.variable )
+
+        return result
+
     def computeExpression( self, constraint_collection ):
         assert False
 
     def isTargetVariableRef( self ):
         return True
+
+    def getVariableVersion( self ):
+        assert self.variable_version is not None, self
+
+        return self.variable_version
+
+    def setVariable( self, variable ):
+        ExpressionVariableRef.setVariable( self, variable )
+
+        self.variable_version = variable.allocateTargetNumber()
+        assert self.variable_version is not None
 
 
 class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
@@ -211,17 +247,17 @@ class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
 
         self.variable = variable
 
-    def makeCloneAt( self, source_ref ):
-        return self.__class__(
-            variable   = self.variable,
-            source_ref = source_ref
-        )
-
     def getDetails( self ):
         return { "name" : self.variable.getName() }
 
     def getDetail( self ):
         return self.variable.getName()
+
+    def makeCloneAt( self, source_ref ):
+        return self.__class__(
+            variable   = self.variable,
+            source_ref = source_ref
+        )
 
     def getVariableName( self ):
         return self.variable.getName()
@@ -273,14 +309,33 @@ class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
             return None
 
 
+    # Python3 only, it updates temporary variables that are closure variables.
+    def setVariable( self, variable ):
+        self.variable = variable
+
+
 class ExpressionTargetTempVariableRef( ExpressionTempVariableRef ):
     kind = "EXPRESSION_TARGET_TEMP_VARIABLE_REF"
+
+    def __init__( self, variable, source_ref ):
+        ExpressionTempVariableRef.__init__( self, variable, source_ref )
+
+        self.variable_version = variable.allocateTargetNumber()
 
     def computeExpression( self, constraint_collection ):
         assert False, self.parent
 
     def isTargetVariableRef( self ):
         return True
+
+    def getVariableVersion( self ):
+        return self.variable_version
+
+    # Python3 only, it updates temporary variables that are closure variables.
+    def setVariable( self, variable ):
+        ExpressionTempVariableRef.setVariable( self, variable )
+
+        self.variable_version = self.variable.allocateTargetNumber()
 
 
 class StatementTempBlock( StatementChildrenHavingBase ):

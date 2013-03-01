@@ -39,14 +39,14 @@ class ExpressionOperationBase( ExpressionChildrenHavingBase ):
 
         self.simulator = simulator
 
-    def getOperator( self ):
-        return self.operator
-
     def getDetail( self ):
         return self.operator
 
     def getDetails( self ):
         return { "operator" : self.operator }
+
+    def getOperator( self ):
+        return self.operator
 
     def getSimulator( self ):
         return self.simulator
