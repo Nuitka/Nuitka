@@ -109,17 +109,6 @@ class StatementPrint( StatementChildrenHavingBase ):
 
                 return result, "new_raise", "Known exception raise in print statement arguments converted to explicit raise."
 
-            new_node = value.getStrValue( self )
-
-            if new_node is not None and new_node is not value:
-                value.replaceWith( new_node )
-
-                constraint_collection.signalChange(
-                    "new_expression",
-                    value.getSourceReference(),
-                    "Converted print argument to 'str' at compile time"
-                )
-
         printeds = self.getValues()
 
         for count in range( len( printeds ) - 1 ):

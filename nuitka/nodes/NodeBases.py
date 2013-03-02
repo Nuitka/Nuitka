@@ -1045,6 +1045,9 @@ class ExpressionBuiltinSingleArgBase( ExpressionChildrenHavingBase,
         if value is None:
             return self.computeBuiltinSpec( () )
         else:
+            if value.willRaiseException( BaseException ):
+                return value, "new_raise", "Builtin call raises exception while building argument"
+
             return self.computeBuiltinSpec( ( value, ) )
 
 

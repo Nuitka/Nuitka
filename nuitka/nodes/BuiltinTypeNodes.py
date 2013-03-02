@@ -22,8 +22,8 @@ that should allow some important optimizations.
 """
 
 from .NodeBases import (
-    ExpressionBuiltinSingleArgBase,
     ExpressionSpecBasedComputationMixin,
+    ExpressionBuiltinSingleArgBase,
     ChildrenHavingMixin,
     NodeBase
 )

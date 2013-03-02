@@ -91,7 +91,6 @@ from nuitka.nodes.ConditionalNodes import (
 from nuitka.nodes.YieldNodes import ExpressionYield
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
-from nuitka.nodes.PrintNodes import StatementPrint
 from nuitka.nodes.ModuleNodes import (
     PythonPackage,
     PythonModule
@@ -126,6 +125,8 @@ from .ReformulationLoopStatements import (
 )
 
 from .ReformulationAssertStatements import buildAssertNode
+
+from .ReformulationPrintStatements import buildPrintNode
 
 from .ReformulationFunctionStatements import buildFunctionNode
 
@@ -588,16 +589,6 @@ def buildImportFromNode( provider, node, source_ref ):
             statements = import_nodes,
             source_ref = source_ref
         )
-
-def buildPrintNode( provider, node, source_ref ):
-    # "print" statements, should only occur with Python2.
-
-    return StatementPrint(
-        newline    = node.nl,
-        dest       = buildNode( provider, node.dest, source_ref, allow_none = True ),
-        values     = buildNodeList( provider, node.values, source_ref ),
-        source_ref = source_ref
-    )
 
 def buildExecNode( provider, node, source_ref ):
     # "exec" statements, should only occur with Python2.
