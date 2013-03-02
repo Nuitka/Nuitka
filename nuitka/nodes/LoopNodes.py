@@ -60,6 +60,18 @@ class StatementLoop( StatementChildrenHavingBase ):
     def needsExceptionBreak( self ):
         return self.break_exception
 
+    def computeStatement( self, constraint_collection ):
+        from nuitka.optimizations.ConstraintCollections import ConstraintCollectionLoopOther
+
+        other_loop_run = ConstraintCollectionLoopOther( constraint_collection )
+        other_loop_run.process( self )
+
+        constraint_collection.mergeBranch(
+            other_loop_run
+        )
+
+        return self, None, None
+
 
 class StatementContinueLoop( NodeBase ):
     kind = "STATEMENT_CONTINUE_LOOP"

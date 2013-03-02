@@ -52,6 +52,20 @@ class StatementAssignmentVariable( StatementChildrenHavingBase ):
     def mayRaiseException( self, exception_type ):
         return self.getAssignSource().mayRaiseException( exception_type )
 
+    def computeStatement( self, constraint_collection ):
+        # Assignment source may re-compute here:
+        constraint_collection.onExpression( self.getAssignSource() )
+
+        source = self.getAssignSource()
+
+        constraint_collection.onVariableSet(
+            target_node  = self.getTargetVariableRef(),
+            value_friend = source.getValueFriend( constraint_collection )
+        )
+
+        # TODO: Remove this, it's old.
+        return constraint_collection._onStatementAssignmentVariable( self )
+
 
 class StatementAssignmentAttribute( StatementChildrenHavingBase ):
     kind = "STATEMENT_ASSIGNMENT_ATTRIBUTE"
@@ -311,6 +325,15 @@ class StatementDelVariable( StatementChildrenHavingBase ):
         return self.tolerant
 
     getTargetVariableRef = StatementChildrenHavingBase.childGetter( "variable_ref" )
+    def computeStatement( self, constraint_collection ):
+        variable = self.getTargetVariableRef()
+
+        if variable in constraint_collection.variables:
+            constraint_collection.variables[ variable ].onRelease( constraint_collection )
+
+            del constraint_collection.variables[ variable ]
+
+        return self, None, None
 
 
 class StatementDelAttribute( StatementChildrenHavingBase ):

@@ -109,12 +109,12 @@ class ConstraintCollectionBase:
 
         self.parent = parent
 
-        if copy_of is None:
-            self.variables = {}
-        else:
-            assert copy_of.__class__ is ConstraintCollectionBase
+        # Variable assignments performed in here.
+        self.variable_targets = {}
+        self.variable_versions = {}
+        self.variable_escaped = {}
 
-            self.variables = dict( copy_of.variables )
+        self.variables = {}
 
     def mustAlias( self, a, b ):
         if a.isExpressionVariableRef() and b.isExpressionVariableRef():
@@ -277,26 +277,68 @@ class ConstraintCollectionBase:
         else:
             return statements_sequence
 
+    def _addVariableUsageInfo( self, variable, version, info ):
+        if version == 0:
+            # If we have no knowledge yet, use "0" still. We will treat it special
+            # depending on context. Unknown will "-1".
+            version = self.variable_versions.get( variable, 0 )
+        else:
+            self.variable_versions[ variable ] = version
+
+        key = variable, version
+
+        if key in self.variable_targets:
+            self.variable_targets[ key ].append( info )
+        else:
+            self.variable_targets[ key ] = [ info ]
+
+
+    def onVariableSet( self, target_node, value_friend ):
+        # Remember the node that updates plus the then current value in the trace.
+        self._addVariableUsageInfo(
+            variable = target_node.getVariable(),
+            version  = target_node.getVariableVersion(),
+            info     = ( target_node, value_friend )
+        )
+
+    def onVariableUsage( self, ref_node ):
+        self._addVariableUsageInfo(
+            variable = ref_node.getVariable(),
+            version  = 0,
+            info     = ( ref_node )
+        )
+
+    def onVariableContentEscapes( self, variable ):
+        version = self.variable_versions.get( variable, 0 )
+
+        if version != 0:
+            key = variable, version
+
+            if key not in self.variable_escaped:
+                # Indicate when the variable value escaped.
+                self.variable_escaped[ key ] = len( self.variable_targets[ key ] )
+
     def onExpression( self, expression, allow_none = False ):
         if expression is None and allow_none:
             return
 
         assert expression.isExpression(), expression
 
-        # print( "CONSIDER expression", expression )
-
+        # First apply the sub-expressions, as they are evaluated before.
         self.onSubExpressions( expression )
 
+        # Now compute this expression, allowing it to replace itself with something else
+        # as part of a local peephole optimization.
         r = expression.computeExpression( self )
         assert type(r) is tuple, expression
 
         new_node, change_tags, change_desc = expression.computeExpression( self )
 
         if new_node is not expression:
-            # print expression, "->", new_node
-
             expression.replaceWith( new_node )
 
+            # This is mostly for tracing and indication that a change occured and it may
+            # be interesting to look again.
             self.signalChange(
                 change_tags,
                 expression.getSourceReference(),
@@ -304,8 +346,15 @@ class ConstraintCollectionBase:
             )
 
         if new_node.isExpressionVariableRef():
+            # OLD:
             if not new_node.getVariable().isModuleVariableReference():
                 self.onLocalVariableRead( new_node.getVariable() )
+
+            # Remember this for constraint collection. Any variable that we access has a
+            # version already that we can query. TODO: May do this as a
+            # "computeReference".
+
+            self.onVariableUsage( new_node )
         elif new_node.isExpressionAssignmentTempKeeper():
             variable = new_node.getVariable()
             assert variable is not None
@@ -325,11 +374,6 @@ class ConstraintCollectionBase:
             self.onTempVariableRead( variable )
 
         return new_node
-
-    def onStatementUsingChildExpressions( self, statement ):
-        self.onSubExpressions( statement )
-
-        return statement
 
     def onSubExpressions( self, owner ):
         if owner.isExpressionFunctionRef():
@@ -359,17 +403,17 @@ class ConstraintCollectionBase:
         self.parent.onTempVariableRead( variable )
 
     def _onStatementAssignmentVariable( self, statement ):
-        # Assignment source may re-compute here:
-        self.onExpression( statement.getAssignSource() )
-
         # But now it cannot re-compute anymore:
         source = statement.getAssignSource()
 
         if source.willRaiseException( BaseException ):
-            return makeStatementExpressionOnlyReplacementNode(
+            result = makeStatementExpressionOnlyReplacementNode(
                 expression = source,
                 node       = statement
             )
+
+            return result, "new_raise", """\
+Removed assignment that has source that will raise."""
 
         variable_ref = statement.getTargetVariableRef()
         variable = variable_ref.getVariable()
@@ -383,24 +427,16 @@ class ConstraintCollectionBase:
              source.isExpressionVariableRef() and \
              source.getVariable() == variable:
             if source.mayHaveSideEffects( self ):
-                self.signalChange(
-                    "new_statements",
-                    statement.getSourceReference(),
-                    "Reduced assignment of variable from itself to access of it."
-                )
-
-                return makeStatementExpressionOnlyReplacementNode(
+                result = makeStatementExpressionOnlyReplacementNode(
                     expression = source,
                     node       = statement
                 )
-            else:
-                self.signalChange(
-                    "new_statements",
-                    statement.getSourceReference(),
-                    "Removed assignment of variable from itself which is known to be defined."
-                )
 
-                return None
+                return result, "new_statements", """\
+Reduced assignment of variable from itself to access of it."""
+            else:
+                return None, "new_statements", """\
+Removed assignment of variable from itself which is known to be defined."""
 
         # If the assignment source has side effects, we can simply evaluate them
         # beforehand, we have already visited and evaluated them before.
@@ -426,23 +462,15 @@ class ConstraintCollectionBase:
             # Need to update it.
             source = statement.getAssignSource()
 
-            self.signalChange(
-                "new_statements",
-                statement.getSourceReference(),
-                "Side effects of assignments promoted to statements."
-            )
+            result = result, "new_statements", """\
+Side effects of assignments promoted to statements."""
         else:
-            result = statement
+            result = statement, None, None
 
         value_friend = source.getValueFriend( self )
         assert value_friend is not None
 
-        if variable in self.variables:
-            old_value_friend = self.variables[ variable  ]
-        else:
-            old_value_friend = None
-
-        self.variables[ variable  ] = value_friend
+        old_value_friend = None
 
         if variable.isModuleVariableReference():
             self.onModuleVariableAssigned( variable, value_friend )
@@ -456,44 +484,19 @@ class ConstraintCollectionBase:
 
         return result
 
-
     def onStatement( self, statement ):
         assert statement.isStatement(), statement
 
-        if hasattr( statement, "computeStatement" ):
-            new_statement, change_tags, change_desc = statement.computeStatement( self )
+        new_statement, change_tags, change_desc = statement.computeStatement( self )
 
-            if new_statement is not statement:
-                self.signalChange(
-                    change_tags,
-                    statement.getSourceReference(),
-                    change_desc
-                )
-
-            return new_statement
-
-        elif statement.isStatementAssignmentVariable():
-            return self._onStatementAssignmentVariable( statement )
-        elif statement.isStatementDelVariable():
-            variable = statement.getTargetVariableRef()
-
-            if variable in self.variables:
-                self.variables[ variable ].onRelease( self )
-
-                del self.variables[ variable ]
-
-            return statement
-        elif statement.isStatementLoop():
-            other_loop_run = ConstraintCollectionLoopOther( self )
-            other_loop_run.process( self, statement )
-
-            self.mergeBranch(
-                other_loop_run
+        if new_statement is not statement:
+            self.signalChange(
+                change_tags,
+                statement.getSourceReference(),
+                change_desc
             )
 
-            return statement
-        else:
-            assert False, statement
+        return new_statement
 
 
 class ConstraintCollectionHandler( ConstraintCollectionBase ):
@@ -551,6 +554,17 @@ class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrack
 
         self.setIndications()
 
+    def dumpTrace( self ):
+        for i in range(5):
+            print( "*" * 80 )
+
+        for variable, traces in iterItems( self.variable_targets ):
+            print( variable )
+            print( "*" * 80 )
+            for trace in traces:
+                print( trace )
+            print( "*" * 80 )
+
     def onLocalVariableAssigned( self, variable, value_friend ):
         self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
 
@@ -576,7 +590,8 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
         ConstraintCollectionBase.__init__(
             self,
             None,
-            signal_change = signal_change )
+            signal_change = signal_change
+        )
 
         VariableUsageTrackingMixin.__init__( self )
 
@@ -654,11 +669,7 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
 
 
 class ConstraintCollectionLoopOther( ConstraintCollectionBase ):
-    def process( self, start_state, loop ):
-        # TODO: Somehow should copy that start state over, assuming nothing won't be wrong
-        # for a start.
-        self.start_state = start_state
-
+    def process( self, loop ):
         assert loop.isStatementLoop()
 
         loop_body = loop.getLoopBody()

@@ -172,6 +172,9 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
 
         return self, None, None
 
+    def onContentEscapes( self, constraint_collection ):
+        constraint_collection.onVariableContentEscapes( self.variable )
+
     def isKnownToBeIterable( self, count ):
         return None
 
@@ -271,6 +274,9 @@ class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
     def computeExpression( self, constraint_collection ):
         # Nothing to do here.
         return self, None, None
+
+    def onContentEscapes( self, constraint_collection ):
+        constraint_collection.onVariableContentEscapes( self.variable )
 
     def mayRaiseException( self, exception_type ):
         # Can't happen

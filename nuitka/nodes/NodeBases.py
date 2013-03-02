@@ -859,7 +859,7 @@ class ExpressionMixin:
         return lookup_node, None, None
 
     def computeExpressionCall( self, call_node, constraint_collection ):
-        constraint_collection.removeKnowledge( call_node )
+        call_node.getCalled().onContentEscapes( constraint_collection )
 
         return call_node, None, None
 
@@ -868,6 +868,8 @@ class ExpressionMixin:
 
         return not_node, None, None
 
+    def onContentEscapes( self, constraint_collection ):
+        pass
 
 class CompileTimeConstantExpressionMixin( ExpressionMixin ):
     def isCompileTimeConstant( self ):
