@@ -342,10 +342,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE( PyObject *value )
 #define TO_UNICODE3( value, encoding, errors ) _TO_UNICODE3( EVAL_ORDERED_3( value, encoding, errors ) )
 NUITKA_MAY_BE_UNUSED static PyObject *_TO_UNICODE3( EVAL_ORDERED_3( PyObject *value, PyObject *encoding, PyObject *errors ) )
 {
-    char *encoding_str;
+    assertObject( encoding );
 
-    PyObject *uarg2 = NULL;
-    PyObject *uarg3 = NULL;
+    char *encoding_str;
 
     if ( encoding == NULL )
     {
@@ -358,7 +357,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_TO_UNICODE3( EVAL_ORDERED_3( PyObject *va
 #if PYTHON_VERSION < 300
     else if ( PyUnicode_Check( encoding ) )
     {
-        uarg2 = _PyUnicode_AsDefaultEncodedString( encoding, NULL );
+        PyObject *uarg2 = _PyUnicode_AsDefaultEncodedString( encoding, NULL );
         assertObject( uarg2 );
 
         encoding_str = Nuitka_String_AsString_Unchecked( uarg2 );
@@ -383,7 +382,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_TO_UNICODE3( EVAL_ORDERED_3( PyObject *va
 #if PYTHON_VERSION < 300
     else if ( PyUnicode_Check( errors ) )
     {
-        uarg3 = _PyUnicode_AsDefaultEncodedString( errors, NULL );
+        PyObject *uarg3 = _PyUnicode_AsDefaultEncodedString( errors, NULL );
         assertObject( uarg3 );
 
         errors_str = Nuitka_String_AsString_Unchecked( uarg3 );
@@ -391,16 +390,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *_TO_UNICODE3( EVAL_ORDERED_3( PyObject *va
 #endif
     else
     {
-        Py_XDECREF( uarg2 );
-
         PyErr_Format( PyExc_TypeError, "unicode() argument 3 must be string, not %s", Py_TYPE( errors )->tp_name );
         throw _PythonException();
     }
 
     PyObject *result = PyUnicode_FromEncodedObject( value, encoding_str, errors_str );
-
-    Py_XDECREF( uarg2 );
-    Py_XDECREF( uarg3 );
 
     if (unlikely( result == NULL ))
     {
