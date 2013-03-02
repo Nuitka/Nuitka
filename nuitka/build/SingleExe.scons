@@ -219,16 +219,19 @@ if "g++" in env[ "CXX" ]:
 
 # Detect compiler to be used from supported ones, if there is no usable g++ link.
 if os.name != "nt" and "CXX" not in env:
-    for candidate in ( "g++-4.7", "g++-4.6", "g++-4.5", "g++-4.4", "clang++" ):
-        if os.path.exists( os.path.join( "/usr/bin", candidate ) ):
-            env[ "CXX" ] = candidate
-
-            # Update CXXVERSION in env, after we changed it.
-            env[ "CXXVERSION" ] = getGccVersion()
-
-            break
+    if "freebsd" in sys.platform:
+        env[ "CXX" ] = "clang++"
     else:
-        sys.exit( "The g++ compiler '%s' (version %s) doesn't have the sufficient version (>= 4.4)." % ( orig_cxx, orig_cxx_version ) )
+        for candidate in ( "g++-4.7", "g++-4.6", "g++-4.5", "g++-4.4", "clang++" ):
+            if os.path.exists( os.path.join( "/usr/bin", candidate ) ):
+                env[ "CXX" ] = candidate
+
+                # Update CXXVERSION in env, after we changed it.
+                env[ "CXXVERSION" ] = getGccVersion()
+
+                break
+        else:
+            sys.exit( "The g++ compiler '%s' (version %s) doesn't have the sufficient version (>= 4.4)." % ( orig_cxx, orig_cxx_version ) )
 
 gcc_mode = "g++" in env[ "CXX" ] or "clang" in env[ "CXX" ]
 msvc_mode = win_target and not gcc_mode
