@@ -110,22 +110,22 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
         PyObject *asObject0() const
         {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
+            PyObject *result = GET_STRING_DICT_VALUE( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
 
-            if (likely( entry->me_value != NULL ))
+            if (likely( result != NULL ))
             {
-                assertObject( entry->me_value );
+                assertObject( result );
 
-                return entry->me_value;
+                return result;
             }
 
-            entry = GET_PYDICT_ENTRY( module_builtin, *this->var_name );
+            result = GET_STRING_DICT_VALUE( module_builtin, *this->var_name );
 
-            if (likely( entry->me_value != NULL ))
+            if (likely( result != NULL ))
             {
-                assertObject( entry->me_value );
+                assertObject( result );
 
-                return entry->me_value;
+                return result;
             }
 
             PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
@@ -153,14 +153,15 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
         void assign0( PyObject *value ) const
         {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
+            Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY( MODULE_DICT( _module_%(module_identifier)s ), *this->var_name );
+
+            PyObject *old = GET_DICT_ENTRY_VALUE( entry );
 
             // Values are more likely set than not set, in that case speculatively try the
             // quickest access method.
-            if (likely( entry->me_value != NULL ))
+            if (likely( old != NULL ))
             {
-                PyObject *old = entry->me_value;
-                entry->me_value = INCREASE_REFCOUNT( value );
+                SET_DICT_ENTRY_VALUE( entry, INCREASE_REFCOUNT( value ) );
 
                 Py_DECREF( old );
             }
@@ -172,14 +173,15 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
         void assign1( PyObject *value ) const
         {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
+            Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY( MODULE_DICT( _module_%(module_identifier)s ), *this->var_name );
+
+            PyObject *old = GET_DICT_ENTRY_VALUE( entry );
 
             // Values are more likely set than not set, in that case speculatively try the
             // quickest access method.
-            if (likely( entry->me_value != NULL ))
+            if (likely( old != NULL ))
             {
-                PyObject *old = entry->me_value;
-                entry->me_value = value;
+                SET_DICT_ENTRY_VALUE( entry, value );
 
                 Py_DECREF( old );
             }
@@ -204,18 +206,18 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
         bool isInitialized( bool allow_builtins = true ) const
         {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
+            PyObject *result = GET_STRING_DICT_VALUE( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
 
-            if (likely( entry->me_value != NULL ))
+            if (likely( result ))
             {
                 return true;
             }
 
             if ( allow_builtins )
             {
-                entry = GET_PYDICT_ENTRY( module_builtin, *this->var_name );
+                result = GET_STRING_DICT_VALUE( module_builtin, *this->var_name );
 
-                return entry->me_value != NULL;
+                return result != NULL;
             }
             else
             {

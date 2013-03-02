@@ -110,7 +110,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 #if PYTHON_VERSION >= 300
 static char *_PyUnicode_AS_STRING( PyObject *unicode )
 {
+#if PYTHON_VERSION < 330
     PyObject *bytes = _PyUnicode_AsDefaultEncodedString( unicode, NULL );
+#else
+    PyObject *bytes = PyUnicode_AsEncodedString( unicode, "utf-8", NULL );
+#endif
 
     if (unlikely( bytes == NULL ))
     {
@@ -774,7 +778,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
 #if PYTHON_VERSION < 300
 NUITKA_MAY_BE_UNUSED static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *klass, PyObject *attr_name )
 {
-    PyObject *result = GET_PYDICT_ENTRY( (PyDictObject *)klass->cl_dict, (PyStringObject *)attr_name )->me_value;
+    PyObject *result = GET_STRING_DICT_VALUE( (PyDictObject *)klass->cl_dict, (PyStringObject *)attr_name );
 
     if ( result == NULL )
     {
@@ -819,7 +823,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
     else
     {
         // Try the instance dict first.
-        PyObject *result = GET_PYDICT_ENTRY( (PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name )->me_value;
+        PyObject *result = GET_STRING_DICT_VALUE( (PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name );
 
         if ( result )
         {
