@@ -1372,14 +1372,44 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyO
 
     if (likely( PyType_Check( metaclass ) ))
     {
-        PyObject *winner = (PyObject *)_PyType_CalculateMetaclass( (PyTypeObject *)metaclass, bases );
+        // Determine the proper metatype
+        Py_ssize_t nbases = PyTuple_GET_SIZE( bases );
+        PyTypeObject *winner = (PyTypeObject *)metaclass;
+
+        for ( int i = 0; i < nbases; i++ )
+        {
+            PyObject *base = PyTuple_GET_ITEM( bases, i );
+
+            PyTypeObject *base_type = Py_TYPE( base );
+
+            if ( PyType_IsSubtype( winner, base_type ) )
+            {
+                // Ignore if current winner is already a subtype.
+                continue;
+            }
+            else if ( PyType_IsSubtype( base_type, winner ) )
+            {
+                // Use if, if it's a subtype of the current winner.
+                winner = base_type;
+                continue;
+            }
+            else
+            {
+                PyErr_Format(
+                    PyExc_TypeError,
+                    "metaclass conflict: the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases"
+                );
+
+                throw _PythonException();
+            }
+        }
 
         if (unlikely( winner == NULL ))
         {
             throw _PythonException();
         }
 
-        return INCREASE_REFCOUNT( winner );
+        return INCREASE_REFCOUNT( (PyObject *)winner );
     }
     else
     {
