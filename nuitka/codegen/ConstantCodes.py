@@ -28,6 +28,7 @@ from ..__past__ import unicode, long
 # pylint: enable=W0622
 
 from ..Utils import python_version
+from ..Constants import compareConstants
 
 import re
 
@@ -68,9 +69,71 @@ def getConstantsInitCode( context ):
 
     statements = []
 
-    for constant_desc, constant_identifier in context.getConstants():
+    # Generate tuples first, so we can pick from their values.
+    tuple_constants = []
+
+    # Generate dictionaries last, so they can benefit from interned strings.
+    later_constants = []
+
+    # The constants descriptions, get them only once, as this implies a sorting to occur.
+    constants = context.getConstants()
+
+    for constant_desc, constant_identifier in constants:
         constant_type, constant_value = constant_desc
         constant_value = constant_value.getConstant()
+
+        if constant_type is tuple:
+            tuple_constants.append( ( constant_value, constant_identifier ) )
+
+            statements.append(
+                _getUnstreamCode( constant_value, constant_identifier )
+            )
+
+        if constant_type in ( dict, list, set, frozenset ):
+            later_constants.append( ( constant_desc, constant_identifier ) )
+
+
+    for constant_desc, constant_identifier in constants:
+        constant_type, constant_value = constant_desc
+        constant_value = constant_value.getConstant()
+
+        # These have been dealt with already.
+        if constant_type in ( tuple, dict, list, set ):
+            continue
+
+        # Search value in tuple constants from above.
+        found = False
+        for tuple_constant_value, tuple_constant_identifier in tuple_constants:
+            for count, tuple_element in enumerate( tuple_constant_value ):
+                if compareConstants( tuple_element, constant_value ):
+                    statements.append(
+                        "%s = INCREASE_REFCOUNT( PyTuple_GET_ITEM( %s, %s ) );" % (
+                            constant_identifier,
+                            tuple_constant_identifier,
+                            count
+                        )
+                    )
+
+                    if constant_type is str and _isAttributeName( constant_value ):
+                        statements.append(
+                            "Nuitka_StringIntern( &%s );" % constant_identifier
+                        )
+
+                        statements.append(
+                            "PyTuple_SET_ITEM( %s, %s, %s );" % (
+                                tuple_constant_identifier,
+                                count,
+                                constant_identifier,
+                            )
+                        )
+
+                    found = True
+                    break
+            if found:
+                break
+
+        if found:
+            continue
 
         # Use shortest code for ints and longs, except when they are big, then fall
         # fallback to pickling.
@@ -90,34 +153,6 @@ def getConstantsInitCode( context ):
                     constant_identifier,
                     constant_value
                 )
-            )
-
-            continue
-
-        if constant_type is dict and constant_value == {}:
-            statements.append(
-                "%s = PyDict_New();" % constant_identifier
-            )
-
-            continue
-
-        if constant_type is tuple and constant_value == ():
-            statements.append(
-                "%s = PyTuple_New( 0 );" % constant_identifier
-            )
-
-            continue
-
-        if constant_type is list and constant_value == []:
-            statements.append(
-                "%s = PyList_New( 0 );" % constant_identifier
-            )
-
-            continue
-
-        if constant_type is set and constant_value == set():
-            statements.append(
-                "%s = PySet_New( NULL );" % constant_identifier
             )
 
             continue
@@ -151,6 +186,7 @@ def getConstantsInitCode( context ):
 
                     continue
                 except UnicodeEncodeError:
+                    # So fall back to below code, which will unstream it then.
                     pass
 
         if constant_value is None:
@@ -162,7 +198,7 @@ def getConstantsInitCode( context ):
         if constant_value is True:
             continue
 
-        if constant_type in ( tuple, list, float, complex, unicode, int, long, dict, frozenset, set, bytes, range ):
+        if constant_type in ( float, complex, unicode, int, long, bytes, range ):
             statements.append(
                 _getUnstreamCode( constant_value, constant_identifier )
             )
@@ -170,6 +206,48 @@ def getConstantsInitCode( context ):
             continue
 
         assert False, (type(constant_value), constant_value, constant_identifier)
+
+    for constant_desc, constant_identifier in later_constants:
+        constant_type, constant_value = constant_desc
+        constant_value = constant_value.getConstant()
+
+        if constant_type is dict and constant_value == {}:
+            statements.append(
+                "%s = PyDict_New();" % constant_identifier
+            )
+
+            continue
+
+        if constant_type is tuple and constant_value == ():
+            statements.append(
+                "%s = PyTuple_New( 0 );" % constant_identifier
+            )
+
+            continue
+
+        if constant_type is list and constant_value == []:
+            statements.append(
+                "%s = PyList_New( 0 );" % constant_identifier
+            )
+
+            continue
+
+        if constant_type is set and constant_value == set():
+            statements.append(
+                "%s = PySet_New( NULL );" % constant_identifier
+            )
+
+            continue
+
+        if constant_type in ( dict, list, set, frozenset ):
+            statements.append(
+                _getUnstreamCode( constant_value, constant_identifier )
+            )
+
+            continue
+
+        assert False, (type(constant_value), constant_value, constant_identifier)
+
 
     for code_object_key, code_identifier in context.getCodeObjects():
         co_flags = []

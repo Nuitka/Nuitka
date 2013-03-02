@@ -988,11 +988,8 @@ PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
 
     if ( intern )
     {
-#if PYTHON_VERSION < 300
-        PyString_InternInPlace( &result );
-#else
-        PyUnicode_InternInPlace( &result );
-#endif
+        Nuitka_StringIntern( &result );
+
         assertObject( result );
         assert( Nuitka_String_Check( result ) );
 

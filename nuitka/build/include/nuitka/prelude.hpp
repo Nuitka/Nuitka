@@ -96,12 +96,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 #define Nuitka_String_AsString_Unchecked PyString_AS_STRING
 #define Nuitka_String_Check PyString_Check
 #define Nuitka_StringObject PyStringObject
+#define Nuitka_StringIntern PyString_InternInPlace
 #else
 #define Nuitka_String_AsString _PyUnicode_AsString
 // Note: There seems to be no variant that does it without checks, so rolled our own.
 #define Nuitka_String_AsString_Unchecked _PyUnicode_AS_STRING
 #define Nuitka_String_Check PyUnicode_Check
 #define Nuitka_StringObject PyUnicodeObject
+#define Nuitka_StringIntern PyUnicode_InternInPlace
 #endif
 
 
