@@ -33,6 +33,9 @@ two_step_execution = "two_step_execution" in sys.argv or os.name == "nt"
 trace_command = "trace_command" in sys.argv
 remove_output = "remove_output" in sys.argv
 
+if "PYTHONHASHSEED" not in os.environ:
+    os.environ[ "PYTHONHASHSEED" ] = "27"
+
 if "PYTHON" not in os.environ:
     os.environ[ "PYTHON" ] = "python"
 
