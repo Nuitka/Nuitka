@@ -94,7 +94,7 @@ Current State
 
 Nuitka top level works like this:
 
-   - ``TreeBuilding`` outputs node tree
+   - ``tree.Building`` outputs node tree
    - ``Optimization`` enhances it as best as it can
    - ``Finalization`` marks the tree for code generation
    - ``CodeGeneration`` creates identifier objects and code snippets
@@ -1336,6 +1336,24 @@ The call to "_complex_call" is be a direct function call with no parameter parsi
 overhead. And the call in its end, is a special call operation, which relates to the
 "PyObject_Call" C-API.
 
+Print statements
+----------------
+
+The ``print`` statement exists only in Python2. It implicitly coverts its arguments to
+strings before printing them. In order to make this accessible and compile time
+optimized, this is made visible in the node tree.
+
+.. code-block:: python
+
+    print arg1, "1", 1
+
+.. code-block:: python
+
+    print str(arg1), "1", str(1)
+
+Only string objects are spared from the ``str`` built-in wrapper, because that would only
+cause noise in optimization stage.
+
 
 Nodes that serve special purposes
 =================================
@@ -1390,6 +1408,15 @@ Modelling side effects explicitely has the advantage of recognizing them easily 
 allowing to drop the call to the tuple building and checking its length, only to release
 it.
 
+Caught Exception Type/Value References
+--------------------------------------
+
+When catching an exception, in C++, an exception object is used. Exception handler code is
+being re-formulated to assign the caught exception to a name, to check its type for
+values, etc.
+
+For these, not ``sys.exc_info()`` is used, instead there are special nodes dedicated to these values: ``CaughtExceptionTypeRef`` and ``CaughtExceptionValueRef``.
+
 
 
 Plan to replace "python-qt" for the GUI
@@ -1429,6 +1456,26 @@ Type Inference - The Discussion
 Main goal is to forward value knowledge. When you have ``a = b``, that means that a and b
 now "alias". And if you know the value of ``b`` you can assume to know the value of
 ``a``. This is called "Aliasing".
+
+When assigning ``a`` to something new, that won't change ``b`` at all. But when an
+attribute is set, a method called of it, that impacts both, or actually the value. We need
+to understand mutable vs. immutable though.
+
+.. code-block:: python
+
+   a = 3
+   b = 3
+
+   b += 4 # a is not changed
+
+   a = [ 3 ]
+   b = [ 3 ]
+
+   b += [ 4 ] # a is changed
+
+If we cannot tell, we must assume that ``a`` might be changed. It's either ``b`` or what
+``a`` was before. If the type is not mutable, we can assume the aliasing to be broken up,
+and if it is, we can assume both to be the same value still.
 
 When that value is a compile time constant, we will want to push it forward, because
 storing such a constant under a variable name has a cost and loading it back from the
@@ -1686,16 +1733,19 @@ Excursion to Loops
 
    a = 1
 
-   for i in range( 10 ):
+   while 1:
        b = a + 1
        a = b
 
+       if cond():
+          break
+
    print a
 
-The handling of loops (both "for" and "while") has its own problem. The loop start and may
-have an assumption from before it started, that "a" is constant, but that is only true for
-the first iteration. So, we can't pass knowledge from outside loop forward directly into
-the for loop body.
+The handling of loops (both "for" and "while" are re-formulated to loops with breaks) has
+its own problem. The loop start and may have an assumption from before it started, that
+"a" is constant, but that is only true for the first iteration. So, we can't pass
+knowledge from outside loop forward directly into the for loop body.
 
 So while we pass through the loop, we need to collect in-validations of this outside
 knowledge. The assignment to "a" should make it an alternative to what we knew about
@@ -1706,6 +1756,9 @@ For a start, it will be done like this though. At loop entry, all knowledge is r
 about everything, and so is at loop exit. That way, only the loop inner working is
 optimized, and before and after the loop as separate things. The optimal handling of "a"
 in the example code will take a while.
+
+For a general solution, it would be sweet to trace different exit paths differently. One
+loop exit may be good enough.
 
 
 Excursion to Conditions
