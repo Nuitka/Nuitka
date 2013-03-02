@@ -284,7 +284,7 @@ static int Nuitka_Function_set_annotations( Nuitka_FunctionObject *object, PyObj
 
     PyObject *old = object->m_annotations;
     object->m_annotations = INCREASE_REFCOUNT( value );
-    Py_DECREF( old );
+    Py_XDECREF( old );
 
     return 0;
 }
