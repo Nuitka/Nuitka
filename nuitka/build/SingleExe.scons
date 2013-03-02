@@ -129,8 +129,6 @@ elif win_target and not isExecutable( env[ "CXX" ] ):
     )
 
 # To work around Windows not supporting command lines of greater than 10K by default:
-
-
 def setupSpawn( env ):
     def spawn( sh, escape, cmd, args, env ):
         newargs = ' '.join(args[1:])
@@ -220,7 +218,7 @@ if "g++" in env[ "CXX" ]:
         del env[ "CXX" ]
 
 # Detect compiler to be used from supported ones, if there is no usable g++ link.
-if "linux" in sys.platform and "CXX" not in env:
+if os.name != "nt" and "CXX" not in env:
     for candidate in ( "g++-4.7", "g++-4.6", "g++-4.5", "g++-4.4", "clang++" ):
         if os.path.exists( os.path.join( "/usr/bin", candidate ) ):
             env[ "CXX" ] = candidate
