@@ -83,11 +83,13 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
 
             for non_local_names, source_ref in node.getNonlocalDeclarations():
                 for non_local_name in non_local_names:
-                    variable = node.getParentVariableProvider().getVariableForReference(
+                    # print( "nonlocal reference from", node, "to name", non_local_name )
+
+                    variable = node.getClosureVariable(
                         variable_name = non_local_name
                     )
 
-                    node.addClosureVariable( variable )
+                    node.registerProvidedVariable( variable )
 
                     if variable.isModuleVariableReference():
                         SyntaxErrors.raiseSyntaxError(
