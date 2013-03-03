@@ -119,14 +119,6 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
 
                 change_tags = "new_constant"
                 change_desc = "Replaced read-only module attribute '__name__' with constant value."
-            elif self.variable_name == "__doc__":
-                new_node = ExpressionConstantRef(
-                    constant   = self.variable.getReferenced().getOwner().getDoc(),
-                    source_ref = self.getSourceReference()
-                )
-
-                change_tags = "new_constant"
-                change_desc = "Replaced read-only module attribute '__doc__' with constant value."
             elif self.variable_name == "__package__":
                 new_node = ExpressionConstantRef(
                     constant   = self.variable.getReferenced().getOwner().getPackage(),
@@ -135,15 +127,6 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
 
                 change_tags = "new_constant"
                 change_desc = "Replaced read-only module attribute '__package__' with constant value."
-            elif self.variable_name == "__file__":
-                # TODO: We have had talks of this becoming more dynamic, but currently it isn't so.
-                new_node = ExpressionConstantRef(
-                    constant   = self.variable.getReferenced().getOwner().getFilename(),
-                    source_ref = self.getSourceReference()
-                )
-
-                change_tags = "new_constant"
-                change_desc = "Replaced read-only module attribute '__file__' with constant value."
             else:
                 # Probably should give a warning once about it.
                 new_node = self

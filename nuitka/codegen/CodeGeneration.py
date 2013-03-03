@@ -2029,21 +2029,8 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
 
     codes = codes or []
 
-    if module.isPythonPackage():
-        path_identifier = context.getConstantHandle(
-            constant = module.getPathAttribute()
-        )
-    else:
-        path_identifier = None
-
     source_code = Generator.getModuleCode(
         module_name        = module_name,
-        package_name       = module.getPackage(),
-        doc_identifier     = context.getConstantHandle(
-            constant = module.getDoc()
-        ),
-        source_ref         = module.getSourceReference(),
-        path_identifier    = path_identifier,
         codes              = codes,
         tmp_keepers        = context.getTempKeeperUsages(),
         other_module_names = [

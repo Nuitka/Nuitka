@@ -1692,24 +1692,11 @@ def getModuleIdentifier( module_name ):
 def getPackageIdentifier( module_name ):
     return module_name.replace( ".", "__" )
 
-def getModuleCode( context, module_name, package_name, codes, tmp_keepers,
-                   doc_identifier, path_identifier, other_module_names, source_ref ):
-
+def getModuleCode( context, module_name, codes, tmp_keepers, other_module_names ):
     # For the module code, lots of attributes come together. pylint: disable=R0914
 
     functions_decl = getFunctionsDecl( context = context )
     functions_code = getFunctionsCode( context = context )
-
-    module_var_names = context.getGlobalVariableNames()
-
-    # These ones are used in the init code to set these variables to their values
-    # after module creation.
-    module_var_names.add( "__file__" )
-    module_var_names.add( "__doc__" )
-    module_var_names.add( "__package__" )
-
-    if path_identifier is not None:
-        module_var_names.add( "__path__" )
 
     module_identifier = getModuleIdentifier( module_name )
 
@@ -1723,39 +1710,9 @@ def getModuleCode( context, module_name, package_name, codes, tmp_keepers,
                 getConstantCode( constant = var_name, context = context )
             )
             for var_name in
-            sorted( module_var_names )
+            context.getGlobalVariableNames()
         ]
     )
-
-    if package_name is None:
-        module_inits = CodeTemplates.module_init_no_package_template % {
-            "module_identifier"   : module_identifier,
-            "filename_identifier" : getConstantCode(
-                constant = source_ref.getFilename(),
-                context  = context
-            ),
-            "doc_identifier"      : doc_identifier.getCode(),
-            "is_package"          : 0 if path_identifier is None else 1,
-            "path_identifier"     : path_identifier.getCode() if path_identifier else "",
-        }
-    else:
-        module_inits = CodeTemplates.module_init_in_package_template % {
-            "module_identifier"       : module_identifier,
-            "module_name"             : getConstantCode(
-                constant = module_name.split(".")[-1],
-                context  = context
-            ),
-            "filename_identifier"     : getConstantCode(
-                constant = source_ref.getFilename(),
-                context  = context
-            ),
-            "is_package"              : 0 if path_identifier is None else 1,
-            "path_identifier"         : path_identifier.getCode() if path_identifier else "",
-            "doc_identifier"          : doc_identifier.getCode(),
-            "package_identifier"      : getPackageIdentifier( package_name )
-        }
-
-    assert module_inits.endswith( "\n" )
 
     header = CodeTemplates.global_copyright % {
         "name"    : module_name,
@@ -1789,7 +1746,7 @@ def getModuleCode( context, module_name, package_name, codes, tmp_keepers,
         "module_functions_decl" : functions_decl,
         "module_functions_code" : functions_code,
         "module_globals"        : module_globals,
-        "module_inits"          : module_inits + indented( module_local_decl ),
+        "module_inits"          : indented( module_local_decl ),
         "module_code"           : indented( codes ),
         "module_inittab"        : indented( sorted( module_inittab ) ),
         "use_unfreezer"         : 1 if other_module_names else 0

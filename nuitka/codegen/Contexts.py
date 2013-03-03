@@ -363,7 +363,7 @@ class PythonModuleContext( PythonContextBase ):
         self.global_var_names.add( var_name )
 
     def getGlobalVariableNames( self ):
-        return self.global_var_names
+        return sorted( self.global_var_names )
 
     def addEvalOrderUse( self, value ):
         self.global_context.addEvalOrderUse( value )

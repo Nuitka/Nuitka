@@ -67,7 +67,6 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
         MarkContainsTryExceptIndicator.__init__( self )
 
         self.package = package
-        self.doc = None
 
         # Indicator, if this is the top level module.
         self.is_main = is_main
@@ -107,12 +106,6 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
 
     def getVariables( self ):
         return self.variables
-
-    def getDoc( self ):
-        return self.doc
-
-    def setDoc( self, doc ):
-        self.doc = doc
 
     def getFilename( self ):
         return self.source_ref.getFilename()
@@ -184,6 +177,3 @@ class PythonPackage( PythonModule ):
             is_main    = False,
             source_ref = source_ref
         )
-
-    def getPathAttribute( self ):
-        return [ Utils.dirname( self.getFilename() ) ]

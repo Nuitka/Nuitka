@@ -386,18 +386,7 @@ MOD_INIT_DECL( %(module_identifier)s )
         assert( res == 0 );
     }
 
-#if PYTHON_VERSION >= 300
-    {
-#ifndef __NUITKA_NO_ASSERT__
-        int res =
-#endif
-            PyDict_SetItem( module_dict, _python_str_plain___cached__, Py_None );
-
-        assert( res == 0 );
-    }
-#endif
-
-    // Initialize the standard module attributes.
+    // Temporary variables if any
 %(module_inits)s
 
     // Module code
@@ -405,31 +394,6 @@ MOD_INIT_DECL( %(module_identifier)s )
 
    return MOD_RETURN_VALUE( _module_%(module_identifier)s );
 }
-"""
-
-module_init_no_package_template = """\
-    _mvar_%(module_identifier)s___doc__.assign0( %(doc_identifier)s );
-    _mvar_%(module_identifier)s___file__.assign0( %(filename_identifier)s );
-#if %(is_package)d
-    _mvar_%(module_identifier)s___path__.assign0( %(path_identifier)s );
-#endif
-"""
-
-module_init_in_package_template = """\
-    _mvar_%(module_identifier)s___doc__.assign0( %(doc_identifier)s );
-    _mvar_%(module_identifier)s___file__.assign0( %(filename_identifier)s );
-#if %(is_package)d
-    _mvar_%(module_identifier)s___path__.assign0( %(path_identifier)s );
-#endif
-
-    // The package must already be imported.
-    assertObject( _module_%(package_identifier)s );
-
-    SET_ATTRIBUTE(
-        _module_%(module_identifier)s,
-        _module_%(package_identifier)s,
-        %(module_name)s
-    );
 """
 
 template_header_guard = """\

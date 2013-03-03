@@ -148,6 +148,7 @@ from .ReformulationCallExpressions import buildCallNode
 # Some helpers.
 from .Helpers import (
     makeStatementsSequenceOrStatement,
+    makeStatementsSequence,
     buildStatementsNode,
     setBuildDispatchers,
     extractDocFromBody,
@@ -926,7 +927,96 @@ def buildParseTree( provider, source_code, source_ref ):
         frame      = True
     )
 
-    provider.setDoc( doc )
+    internal_source_ref = source_ref.atInternal()
+
+    statements = []
+
+    statements.append(
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetVariableRef(
+                variable_name = "__doc__",
+                source_ref    = internal_source_ref
+            ),
+            source       = ExpressionConstantRef(
+                constant   = doc,
+                source_ref = internal_source_ref
+            ),
+            source_ref   = internal_source_ref
+        )
+    )
+
+    statements.append(
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetVariableRef(
+                variable_name = "__file__",
+                source_ref    = internal_source_ref
+            ),
+            source       = ExpressionConstantRef(
+                constant   = source_ref.getFilename(),
+                source_ref = internal_source_ref
+            ),
+            source_ref   = internal_source_ref
+        )
+    )
+
+    statements.append(
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetVariableRef(
+                variable_name = "__file__",
+                source_ref    = internal_source_ref
+            ),
+            source       = ExpressionConstantRef(
+                constant   = source_ref.getFilename(),
+                source_ref = internal_source_ref
+            ),
+            source_ref   = internal_source_ref
+        )
+    )
+
+    if provider.isPythonPackage():
+        # TODO: __package__ is not set here, but automatically, which makes it invisible
+        # though.
+
+        statements.append(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetVariableRef(
+                    variable_name = "__path__",
+                    source_ref    = internal_source_ref
+                ),
+                source       = ExpressionConstantRef(
+                    constant   = [ Utils.dirname( source_ref.getFilename() ) ],
+                    source_ref = internal_source_ref
+                ),
+                source_ref   = internal_source_ref
+            )
+        )
+
+    if Utils.python_version >= 300:
+        statements.append(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetVariableRef(
+                    variable_name = "__cached__",
+                    source_ref    = internal_source_ref
+                ),
+                source       = ExpressionConstantRef(
+                    constant   = None,
+                    source_ref = internal_source_ref
+                ),
+                source_ref   = internal_source_ref
+            )
+        )
+
+    if result is None:
+        result = makeStatementsSequence(
+            statements = statements,
+            source_ref = internal_source_ref,
+            allow_none = False
+        )
+    else:
+        statements.extend( result.getStatements() )
+
+        result.setStatements( statements )
+
     provider.setBody( result )
 
     return result
