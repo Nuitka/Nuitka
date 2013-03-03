@@ -975,8 +975,7 @@ def buildParseTree( provider, source_code, source_ref ):
 
     if provider.isPythonPackage():
         # TODO: __package__ is not set here, but automatically, which makes it invisible
-        # though.
-
+        # though
         statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
@@ -1000,6 +999,23 @@ def buildParseTree( provider, source_code, source_ref ):
                 ),
                 source       = ExpressionConstantRef(
                     constant   = None,
+                    source_ref = internal_source_ref
+                ),
+                source_ref   = internal_source_ref
+            )
+        )
+
+
+    if Utils.python_version >= 330:
+        # For Python3.3, it's set for both packages and non-packages.
+        statements.append(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetVariableRef(
+                    variable_name = "__package__",
+                    source_ref    = internal_source_ref
+                ),
+                source       = ExpressionConstantRef(
+                    constant   = provider.getPackage(),
                     source_ref = internal_source_ref
                 ),
                 source_ref   = internal_source_ref
