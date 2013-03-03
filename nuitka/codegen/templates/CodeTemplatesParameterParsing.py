@@ -211,6 +211,7 @@ else
 {
     if ( ((PyDictObject *)kw)->ma_used > 0 )
     {
+#if PYTHON_VERSION < 330
         _python_par_%(dict_star_parameter_name)s = _PyDict_NewPresized( ((PyDictObject *)kw)->ma_used  );
 
         for ( int i = 0; i <= ((PyDictObject *)kw)->ma_mask; i++ )
@@ -238,6 +239,79 @@ else
                 }
             }
         }
+#else
+    if ( _PyDict_HasSplitTable( ((PyDictObject *)kw) ) )
+    {
+        PyDictObject *mp = (PyDictObject *)kw;
+
+        PyObject **newvalues = PyMem_NEW( PyObject *, mp->ma_keys->dk_size );
+        assert (newvalues != NULL);
+
+        PyDictObject *split_copy = PyObject_GC_New( PyDictObject, &PyDict_Type );
+        assert( split_copy != NULL );
+
+        split_copy->ma_values = newvalues;
+        split_copy->ma_keys = mp->ma_keys;
+        split_copy->ma_used = mp->ma_used;
+
+        mp->ma_keys->dk_refcnt += 1;
+
+        _PyObject_GC_TRACK( split_copy );
+
+        int size = mp->ma_keys->dk_size;
+        for ( int i = 0; i < size; i++ )
+        {
+            split_copy->ma_values[ i ] = INCREASE_REFCOUNT_X( mp->ma_values[ i ] );
+
+            if (unlikely( !PyUnicode_Check( split_copy->ma_values[ i ] ) ))
+            {
+                PyErr_Format( PyExc_TypeError, "%(function_name)s() keywords must be strings" );
+                goto error_exit;
+            }
+        }
+
+        _python_par_%(dict_star_parameter_name)s = (PyObject *)split_copy;
+    }
+    else
+    {
+        PyDictObject *mp = (PyDictObject *)kw;
+
+        PyDictObject *split_copy = PyObject_GC_New( PyDictObject, &PyDict_Type );
+
+        int size = mp->ma_keys->dk_size;
+        for ( int i = 0; i < size; i++ )
+        {
+            PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
+
+            // TODO: One of these cases has been dealt with above.
+            PyObject *value;
+            if ( mp->ma_values )
+            {
+                value = mp->ma_values[ i ];
+            }
+            else
+            {
+                value = entry->me_value;
+            }
+
+            if ( value != NULL )
+            {
+                if (unlikely( !PyUnicode_Check( value ) ))
+                {
+                    PyErr_Format( PyExc_TypeError, "%(function_name)s() keywords must be strings" );
+                    goto error_exit;
+                }
+
+                int res = PyDict_SetItem( _python_par_%(dict_star_parameter_name)s, entry->me_key, value );
+
+                if (unlikely( res == -1 ))
+                {
+                    goto error_exit;
+                }
+            }
+        }
+    }
+#endif
     }
     else
     {
