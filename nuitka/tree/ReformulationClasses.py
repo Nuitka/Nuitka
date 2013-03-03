@@ -174,6 +174,26 @@ def _buildClassNode3( provider, node, source_ref ):
             )
         )
 
+    if Utils.python_version >= 330:
+        if provider.isExpressionFunctionBody():
+            qualname = provider.getName() + ".<locals>." + node.name
+        else:
+            qualname = node.name
+
+        statements.append(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetVariableRef(
+                    variable_name = "__qualname__",
+                    source_ref    = source_ref
+                ),
+                source        = ExpressionConstantRef(
+                    constant   = qualname,
+                    source_ref = source_ref
+                ),
+                source_ref   = source_ref.atInternal()
+            )
+        )
+
     statements += [
         body,
         StatementAssignmentVariable(
