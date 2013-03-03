@@ -16,6 +16,19 @@ New Features
   Actually only the minor issue of default compiler detection was standing in the way of
   this, and more generally "Unix" should work now.
 
+- Python 3.3 experimental support
+
+  * Now compiles many basic tests. Ported the dictionary quick access and update code to a
+    more generic and useful interface.
+
+  * Added support for ``__qualname__`` to classes.
+
+  * Small compatibility changes. Some exceptions changed, absolute imports are now
+    default, etc.
+
+  * For comparison tests, the hash randomization is disabled.
+
+
 - Python 3.2 support has been expanded.
 
   The Python 3.2 on Ubuntu is not providing a helper function that was used by Nuitka,
@@ -341,7 +354,7 @@ Cleanups
   implemented in code generation. This was moved to tree building as a re-formulation,
   making it subject to normal optimization.
 
-- Mangling of attribute names in functions contained in classes, has been removed into the
+- Mangling of attribute names in functions contained in classes, has been moved into the
   early tree building. So far it was done during code generation, making it invisible to
   the optimization stages.
 
