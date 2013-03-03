@@ -18,7 +18,13 @@
 
 #include "nuitka/prelude.hpp"
 
+// For Python3.3, the loader is a module attribute, that it will access from this
+// variable.
+#if PYTHON_VERSION < 330
 static PyObject *loader_frozen_modules = NULL;
+#else
+PyObject *loader_frozen_modules = NULL;
+#endif
 
 static struct _inittab *frozen_modules = NULL;
 
@@ -190,6 +196,7 @@ void registerMetaPathBasedUnfreezer( struct _inittab *_frozen_modules )
 
     assertObject( loader_frozen_modules );
 
+    // And also provide it as a meta path loader.
     res = PyList_Insert( PySys_GetObject( ( char *)"meta_path" ), 0, loader_frozen_modules );
     assert( res == 0 );
 }

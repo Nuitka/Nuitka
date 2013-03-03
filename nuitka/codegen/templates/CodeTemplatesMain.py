@@ -284,6 +284,12 @@ static struct _inittab _frozen_modules[] =
 %(module_inittab)s
     { NULL, NULL }
 };
+
+// For loader attribute.
+#if PYTHON_VERSION >= 330
+extern PyObject *loader_frozen_modules;
+#endif
+
 #endif
 
 #ifdef _NUITKA_EXE
@@ -385,6 +391,14 @@ MOD_INIT_DECL( %(module_identifier)s )
 
         assert( res == 0 );
     }
+
+#if PYTHON_VERSION >= 330
+#if _MODULE_UNFREEZER
+    PyDict_SetItem( module_dict, _python_str_plain___loader__, loader_frozen_module );
+#else
+    PyDict_SetItem( module_dict, _python_str_plain___loader__, Py_None );
+#endif
+#endif
 
     // Temporary variables if any
 %(module_inits)s
