@@ -483,8 +483,19 @@ static PyFrameObject *duplicateFrame( PyFrameObject *old_frame )
     Py_XINCREF( new_frame->f_code );
 
     // Copy attributes.
-    new_frame->f_locals = NULL;
     new_frame->f_globals = INCREASE_REFCOUNT( old_frame->f_globals );
+
+    // TODO: Detach is called for module frames, where it is totally not necessary, as
+    // these cannot be reused. Remove the need for this code.
+    if ( old_frame->f_globals == old_frame->f_locals )
+    {
+        new_frame->f_locals = INCREASE_REFCOUNT( old_frame->f_globals );
+    }
+    else
+    {
+        new_frame->f_locals = NULL;
+    }
+
     new_frame->f_builtins = INCREASE_REFCOUNT( old_frame->f_builtins );
 
     new_frame->f_exc_type = INCREASE_REFCOUNT_X( old_frame->f_exc_type );
