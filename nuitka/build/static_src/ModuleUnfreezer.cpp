@@ -20,7 +20,7 @@
 
 static PyObject *loader_frozen_modules = NULL;
 
-static struct _inittab *frozes_modules = NULL;
+static struct _inittab *frozen_modules = NULL;
 
 static char *_kwlist[] = { (char *)"fullname", (char *)"unused", NULL };
 
@@ -49,7 +49,7 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, Py
     printf( "Looking for module '%s'...\n", name );
 #endif
 
-    struct _inittab *current = frozes_modules;
+    struct _inittab *current = frozen_modules;
 
     while ( current->name != NULL )
     {
@@ -92,7 +92,7 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
 
     char *name = Nuitka_String_AsString( module_name );
 
-    struct _inittab *current = frozes_modules;
+    struct _inittab *current = frozen_modules;
 
     while ( current->name != NULL )
     {
@@ -148,20 +148,20 @@ static PyMethodDef _method_def_loader_load_module =
     NULL
 };
 
-void registerMetaPathBasedUnfreezer( struct _inittab *_frozes_modules )
+void registerMetaPathBasedUnfreezer( struct _inittab *_frozen_modules )
 {
     // Do it only once.
-    if ( frozes_modules )
+    if ( frozen_modules )
     {
-        assert( _frozes_modules == frozes_modules );
+        assert( _frozen_modules == frozen_modules );
 
         return;
     }
 
-    frozes_modules = _frozes_modules;
+    frozen_modules = _frozen_modules;
 
     // Register the initialization functions for modules included in the traditional way.
-    int res = PyImport_ExtendInittab( _frozes_modules );
+    int res = PyImport_ExtendInittab( _frozen_modules );
     assert( res != -1 );
 
     PyObject *method_dict = PyDict_New();

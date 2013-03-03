@@ -276,10 +276,10 @@ static struct PyModuleDef _moduledef =
 
 #if _MODULE_UNFREEZER
 // For embedded modules, to be unpacked. Used by main program/package only
-extern void registerMetaPathBasedUnfreezer( struct _inittab *_frozes_modules );
+extern void registerMetaPathBasedUnfreezer( struct _inittab *_frozen_modules );
 
 // Our own inittab for lookup of "frozen" modules, i.e. the ones included in this binary.
-static struct _inittab _frozes_modules[] =
+static struct _inittab _frozen_modules[] =
 {
 %(module_inittab)s
     { NULL, NULL }
@@ -326,7 +326,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 #endif
 
 #if _MODULE_UNFREEZER
-    registerMetaPathBasedUnfreezer( _frozes_modules );
+    registerMetaPathBasedUnfreezer( _frozen_modules );
 #endif
 
     // puts( "in init%(module_identifier)s" );
