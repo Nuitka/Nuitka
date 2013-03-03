@@ -80,8 +80,10 @@ x64_linux_target = getBoolOption( "x64_linux_target", "linux" in sys.platform an
 # Unstriped mode: Do not remove debug symbols.
 unstriped_mode = getBoolOption( "unstriped_mode", False )
 
-# Clang compiler mode, default on MacOS X, optional on Linux.
-clang_mode = getBoolOption( "clang_mode", False ) or sys.platform == "darwin"
+# Clang compiler mode, default on MacOS X and FreeBSD, optional on Linux.
+clang_mode = getBoolOption( "clang_mode", False )
+if sys.platform == "darwin" or "freebsd" in sys.platform:
+    clang_mode = True
 
 def createEnvironment( compiler_tools ):
     return Environment(
@@ -97,12 +99,15 @@ def createEnvironment( compiler_tools ):
     )
 
 def isExecutable( filename ):
+    # Variable substitution from environment.
     if filename.startswith( "$" ):
         filename = env[ filename[1:] ]
 
+    # Append exe suffix if not already present.
     if os.name == "nt" and not filename.lower().endswith( ".exe" ):
         filename += ".exe"
 
+    # Search in PATH environment variable for a file named like it.
     for path_element in os.environ[ "PATH" ].split( ";" if os.name == "nt" else ":" ):
         full = os.path.join( path_element, filename )
 
@@ -119,14 +124,18 @@ env = createEnvironment(
 )
 
 if clang_mode:
+    # If requested by the user, use the clang compiler.
     env[ "CXX" ] = "clang"
 elif "CXX" in os.environ:
+    # If the environment variable CXX is set, use that.
     env[ "CXX" ] = os.environ[ "CXX" ]
 elif win_target and not isExecutable( env[ "CXX" ] ):
-    # The MingW compiler is attemted if no C++ compiler was found.
+    # The MingW compiler is attemted if no C++ compiler was found, in which case env[
+    # "CXX" ] is still set, but not valid.
     env = createEnvironment(
         compiler_tools = [ "mingw" ]
     )
+
 
 # To work around Windows not supporting command lines of greater than 10K by default:
 def setupSpawn( env ):
@@ -219,19 +228,17 @@ if "g++" in env[ "CXX" ]:
 
 # Detect compiler to be used from supported ones, if there is no usable g++ link.
 if os.name != "nt" and "CXX" not in env:
-    if "freebsd" in sys.platform:
-        env[ "CXX" ] = "clang++"
-    else:
-        for candidate in ( "g++-4.7", "g++-4.6", "g++-4.5", "g++-4.4", "clang++" ):
-            if os.path.exists( os.path.join( "/usr/bin", candidate ) ):
-                env[ "CXX" ] = candidate
+    for candidate in ( "g++-4.7", "g++-4.6", "g++-4.5", "g++-4.4", "clang" ):
+        if os.path.exists( os.path.join( "/usr/bin", candidate ) ):
+            env[ "CXX" ] = candidate
 
+            if "clang" not in candidate:
                 # Update CXXVERSION in env, after we changed it.
                 env[ "CXXVERSION" ] = getGccVersion()
 
-                break
-        else:
-            sys.exit( "The g++ compiler '%s' (version %s) doesn't have the sufficient version (>= 4.4)." % ( orig_cxx, orig_cxx_version ) )
+            break
+    else:
+        sys.exit( "The g++ compiler '%s' (version %s) doesn't have the sufficient version (>= 4.4)." % ( orig_cxx, orig_cxx_version ) )
 
 gcc_mode = "g++" in env[ "CXX" ] or "clang" in env[ "CXX" ]
 msvc_mode = win_target and not gcc_mode
