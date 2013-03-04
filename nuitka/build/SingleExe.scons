@@ -398,6 +398,10 @@ else:
         if os.path.exists( alternate_path ):
             python_header_path = alternate_path
 
+    # The Python library path is not in the standard path for freebsd.
+    if "freebsd" in sys.platform:
+        env.Append( LIBPATH = [ "/usr/local/lib" ] )
+
 if not os.path.exists( os.path.join( python_header_path, "Python.h" ) ):
     sys.exit( "Error, no 'Python.h' development headers can be found at '%s', dependency not satisfied!" % python_header_path )
 
