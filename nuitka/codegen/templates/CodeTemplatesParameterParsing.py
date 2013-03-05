@@ -70,7 +70,24 @@ int args_usable_count;
 template_parameter_function_refuses = r"""
 if (unlikely( args_given + kw_size > 0 ))
 {
+#if PYTHON_VERSION < 330
     PyErr_Format( PyExc_TypeError, "%(function_name)s() takes no arguments (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_size );
+#else
+    if ( kw_size == 0 )
+    {
+       PyErr_Format( PyExc_TypeError, "%(function_name)s() takes 0 positional arguments but %%" PY_FORMAT_SIZE_T "d was given", args_given );
+    }
+    else
+    {
+       PyObject *tmp_iter = PyObject_GetIter( kw );
+       PyObject *tmp_arg_name = PyIter_Next( tmp_iter );
+       Py_DECREF( tmp_iter );
+
+       PyErr_Format( PyExc_TypeError, "%(function_name)s() got an unexpected keyword argument '%%s'", Nuitka_String_AsString( tmp_arg_name ) );
+
+       Py_DECREF( tmp_arg_name );
+    }
+#endif
     goto error_exit;
 }
 """
@@ -109,18 +126,29 @@ if (unlikely( args_given > %(top_level_parameter_count)d ))
     {
 #if PYTHON_VERSION < 300
         PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_found );
-#else
+#elif PYTHON_VERSION < 330
         PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 positional argument (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_only_found );
+#else
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes 1 positional argument but %%" PY_FORMAT_SIZE_T "d were given", args_given + kw_only_found );
 #endif
     }
     else
     {
 #if PYTHON_VERSION < 300
         PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_size );
-#else
+#elif PYTHON_VERSION < 330
         if ( %(top_level_parameter_count)d == %(required_parameter_count)d )
         {
             PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d positional arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_only_found );
+        }
+        else
+        {
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at most %%d positional arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_only_found );
+        }
+#else
+        if ( %(top_level_parameter_count)d == %(required_parameter_count)d )
+        {
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes %%d positional arguments but %%" PY_FORMAT_SIZE_T "d were given", %(top_level_parameter_count)d, args_given + kw_only_found );
         }
         else
         {
