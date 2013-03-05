@@ -139,6 +139,7 @@ class PythonChildContextBase( PythonContextBase ):
 class PythonGlobalContext:
     def __init__( self ):
         self.constants = {}
+        self.contained_constants = {}
 
         # Basic values that the code uses all the times.
         self.getConstantHandle( () )
@@ -231,8 +232,27 @@ class PythonGlobalContext:
 
             return ConstantIdentifier( self.constants[ key ], constant )
 
+    def getConstantCodeName( self, constant ):
+        if constant is None:
+            return SpecialConstantIdentifier( None ).getCode()
+        elif constant is True:
+            return SpecialConstantIdentifier( True ).getCode()
+        elif constant is False:
+            return SpecialConstantIdentifier( False ).getCode()
+        elif constant is Ellipsis:
+            return SpecialConstantIdentifier( Ellipsis ).getCode()
+        else:
+            return "_python_" + namifyConstant( constant )
+
+
     def getConstants( self ):
-        return sorted( self.constants.items(), key = lambda x: x[1] )
+        return self.constants
+
+    def setContainedConstants( self, contained_constants ):
+        self.contained_constants = contained_constants
+
+    def getContainedConstants( self ):
+        return self.contained_constants
 
     def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, kw_only_count,
                              is_generator, is_optimized ):

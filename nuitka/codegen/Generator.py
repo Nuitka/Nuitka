@@ -43,6 +43,7 @@ from .OrderedEvaluation import getEvalOrderedCode
 
 from .ConstantCodes import (
     getConstantsInitCode,
+    getConstantsDeclCode,
     getConstantHandle,
     getConstantCode
 )
@@ -2387,28 +2388,6 @@ def getStatementTrace( source_desc, statement_repr ):
         CppStrings.encodeString( statement_repr )
     )
 
-
-def _getConstantsDeclarationCode( context, for_header ):
-    statements = []
-
-    for _code_object_key, code_identifier in context.getCodeObjects():
-        declaration = "PyCodeObject *%s;" % code_identifier.getCode()
-
-        if for_header:
-            declaration = "extern " + declaration
-
-        statements.append( declaration )
-
-    for _constant_desc, constant_identifier in context.getConstants():
-        declaration = "PyObject *%s;" % constant_identifier
-
-        if for_header:
-            declaration = "extern " + declaration
-
-        statements.append( declaration )
-
-    return "\n".join( statements )
-
 def getReversionMacrosCode( context ):
     reverse_macros = []
     noreverse_macros = []
@@ -2554,10 +2533,10 @@ def getMakeDictsCode( context ):
 
 def getConstantsDeclarationCode( context ):
     constants_declarations = CodeTemplates.template_constants_declaration % {
-        "constant_declarations" : _getConstantsDeclarationCode(
+        "constant_declarations" : getConstantsDeclCode(
             context    = context,
             for_header = True
-        ),
+        )
     }
 
     return CodeTemplates.template_header_guard % {
@@ -2567,12 +2546,12 @@ def getConstantsDeclarationCode( context ):
 
 def getConstantsDefinitionCode( context ):
     return CodeTemplates.template_constants_reading % {
-        "constant_inits"        : getConstantsInitCode(
-            context    = context
-        ),
-        "constant_declarations" : _getConstantsDeclarationCode(
+        "constant_declarations" : getConstantsDeclCode(
             context    = context,
             for_header = False
+        ),
+        "constant_inits"        : getConstantsInitCode(
+            context    = context
         )
     }
 

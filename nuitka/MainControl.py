@@ -250,21 +250,15 @@ def makeSourceDirectory( main_module ):
         )
 
     writeSourceCode(
-        filename    = Utils.joinpath( source_dir, "__constants.cpp" ),
-        source_code = CodeGeneration.generateConstantsDefinitionCode(
+        filename    = Utils.joinpath( source_dir, "__constants.hpp" ),
+        source_code = CodeGeneration.generateConstantsDeclarationCode(
             context = global_context
         )
     )
 
-    module_hpp_include = [
-        '#include "%s"\n' % Utils.basename( module_hpp )
-        for module_hpp in
-        module_hpps
-    ]
-
     writeSourceCode(
-        filename    = Utils.joinpath( source_dir, "__constants.hpp" ),
-        source_code = CodeGeneration.generateConstantsDeclarationCode(
+        filename    = Utils.joinpath( source_dir, "__constants.cpp" ),
+        source_code = CodeGeneration.generateConstantsDefinitionCode(
             context = global_context
         )
     )
@@ -275,6 +269,12 @@ def makeSourceDirectory( main_module ):
             context = global_context
         )
     )
+
+    module_hpp_include = [
+        '#include "%s"\n' % Utils.basename( module_hpp )
+        for module_hpp in
+        module_hpps
+    ]
 
     writeSourceCode(
         filename    = Utils.joinpath( source_dir, "__modules.hpp" ),
