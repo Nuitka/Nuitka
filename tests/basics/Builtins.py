@@ -59,14 +59,24 @@ print "Testing locals():"
 print someFunctionWritingLocals()
 print someFunctionWritingLocalsContainingExec()
 
-print "Vars on module level", vars()
+def displayDict( d ):
+    d = dict(d)
+    if "__loader__" in d:
+        d[ "__loader__" ] = "<loader removed>"
+
+    return repr( d )
+
+print "Vars on module level", displayDict( vars() )
 
 module_locals = locals()
 
+# Patch away __file__ path in a hard to detect way. This will make sure, repeated calls to
+# locals really get the same dictionary.
 import os
 module_locals[ "__file__" ] = os.path.basename( module_locals[ "__file__" ] )
+del module_locals
 
-print "Use of locals on the module level", module_locals
+print "Use of locals on the module level", displayDict( locals() )
 
 def someFunctionUsingGlobals():
     g = globals()
@@ -141,8 +151,16 @@ print "Found during optimization", str( float( "3.3" ) ), str( object = float( 1
 print "Bools from constants", bool( "3.3" ), bool( x = 9.1 ), bool(0), bool()
 print "Found during optimization", bool( float( "3.3" ) ), bool( x = float( 0.0 ) )
 
-print "Ints from constants", int( "3" ), int( x = "9" ), int( "f", 16 ), int( x = "e", base = 16 ), int( base = 2 ), int( "0101", base = 2 ), int(0), int()
+print "Ints from constants", int( "3" ), int( x = "9" ), int( "f", 16 ), int( x = "e", base = 16 ), int( "0101", base = 2 ), int(0), int()
 print "Found during optimization", int( int( "3" ) ), int( x = int( 0.0 ) )
+
+try:
+    print "Int with only base", int( base = 2 ),
+except Exception as e:
+    print "Caused", repr(e)
+else:
+    print "Worked"
+
 
 print "Oct from constants", oct( 467 ), oct( 0 )
 print "Found during optimization", oct( int( "3" ) )

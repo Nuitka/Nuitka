@@ -39,7 +39,7 @@ def checkFromFunction():
     def displayDict( d ):
         d = dict(d)
         if "__loader__" in d:
-            del d[ "__loader__" ]
+            d[ "__loader__" ] = "<loader removed>"
 
         return repr( d )
 

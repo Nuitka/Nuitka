@@ -120,19 +120,17 @@ class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
         given_values = []
 
         if value is None:
-            if Utils.python_version >= 330:
-                from .NodeMakingHelpers import getComputationResult
+            if base is not None:
+                if Utils.python_version >= 330:
+                    from .NodeMakingHelpers import getComputationResult
 
-                return getComputationResult(
-                    node        = self,
-                    computation = lambda : int( base = 2 ),
-                    description = "int builtin call with only base argument"
-                )
-            else:
-                # Note: Prevented that case above.
-                assert base is not None
+                    return getComputationResult(
+                        node        = self,
+                        computation = lambda : int( base = 2 ),
+                        description = "int builtin call with only base argument"
+                    )
 
-                given_values = ()
+            given_values = ()
         elif base is None:
             given_values = ( value, )
         else:
