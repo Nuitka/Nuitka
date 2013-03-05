@@ -80,8 +80,10 @@ x64_linux_target = getBoolOption( "x64_linux_target", "linux" in sys.platform an
 # Unstriped mode: Do not remove debug symbols.
 unstriped_mode = getBoolOption( "unstriped_mode", False )
 
-# Clang compiler mode, default on MacOS X, optional on Linux.
-clang_mode = getBoolOption( "clang_mode", False ) or sys.platform == "darwin"
+# Clang compiler mode, default on MacOS X and FreeBSD, optional on Linux.
+clang_mode = getBoolOption( "clang_mode", False )
+if sys.platform == "darwin" or "freebsd" in sys.platform:
+    clang_mode = True
 
 def createEnvironment( compiler_tools ):
     return Environment(
@@ -97,12 +99,15 @@ def createEnvironment( compiler_tools ):
     )
 
 def isExecutable( filename ):
+    # Variable substitution from environment.
     if filename.startswith( "$" ):
         filename = env[ filename[1:] ]
 
+    # Append exe suffix if not already present.
     if os.name == "nt" and not filename.lower().endswith( ".exe" ):
         filename += ".exe"
 
+    # Search in PATH environment variable for a file named like it.
     for path_element in os.environ[ "PATH" ].split( ";" if os.name == "nt" else ":" ):
         full = os.path.join( path_element, filename )
 
@@ -119,18 +124,20 @@ env = createEnvironment(
 )
 
 if clang_mode:
+    # If requested by the user, use the clang compiler.
     env[ "CXX" ] = "clang"
 elif "CXX" in os.environ:
+    # If the environment variable CXX is set, use that.
     env[ "CXX" ] = os.environ[ "CXX" ]
 elif win_target and not isExecutable( env[ "CXX" ] ):
-    # The MingW compiler is attemted if no C++ compiler was found.
+    # The MingW compiler is attemted if no C++ compiler was found, in which case env[
+    # "CXX" ] is still set, but not valid.
     env = createEnvironment(
         compiler_tools = [ "mingw" ]
     )
 
+
 # To work around Windows not supporting command lines of greater than 10K by default:
-
-
 def setupSpawn( env ):
     def spawn( sh, escape, cmd, args, env ):
         newargs = ' '.join(args[1:])
@@ -220,13 +227,14 @@ if "g++" in env[ "CXX" ]:
         del env[ "CXX" ]
 
 # Detect compiler to be used from supported ones, if there is no usable g++ link.
-if "linux" in sys.platform and "CXX" not in env:
-    for candidate in ( "g++-4.7", "g++-4.6", "g++-4.5", "g++-4.4", "clang++" ):
+if os.name != "nt" and "CXX" not in env:
+    for candidate in ( "g++-4.7", "g++-4.6", "g++-4.5", "g++-4.4", "clang" ):
         if os.path.exists( os.path.join( "/usr/bin", candidate ) ):
             env[ "CXX" ] = candidate
 
-            # Update CXXVERSION in env, after we changed it.
-            env[ "CXXVERSION" ] = getGccVersion()
+            if "clang" not in candidate:
+                # Update CXXVERSION in env, after we changed it.
+                env[ "CXXVERSION" ] = getGccVersion()
 
             break
     else:
@@ -382,6 +390,17 @@ else:
     # The python header path is a combination of python version and debug indication, make
     # sure the headers are found by adding it to the C++ include path.
     python_header_path = "/usr/include/python" + python_version
+
+    # If that directory doesn't exist, give it another shot, under /usr/local
+    if not os.path.exists( python_header_path ):
+        alternate_path = "/usr/local/include/python" + python_version
+
+        if os.path.exists( alternate_path ):
+            python_header_path = alternate_path
+
+    # The Python library path is not in the standard path for freebsd.
+    if "freebsd" in sys.platform:
+        env.Append( LIBPATH = [ "/usr/local/lib" ] )
 
 if not os.path.exists( os.path.join( python_header_path, "Python.h" ) ):
     sys.exit( "Error, no 'Python.h' development headers can be found at '%s', dependency not satisfied!" % python_header_path )

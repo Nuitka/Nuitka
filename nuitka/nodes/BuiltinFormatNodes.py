@@ -22,21 +22,21 @@ result prediction will help to be smarter, but generally these should not be tha
 about performance critical.
 
 """
-from .NodeBases import CPythonExpressionBuiltinSingleArgBase
+from .NodeBases import ExpressionBuiltinSingleArgBase
 
 from nuitka.optimizations import BuiltinOptimization
 
-class CPythonExpressionBuiltinBin( CPythonExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinBin( ExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_BIN"
 
     builtin_spec = BuiltinOptimization.builtin_bin_spec
 
-class CPythonExpressionBuiltinOct( CPythonExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinOct( ExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_OCT"
 
     builtin_spec = BuiltinOptimization.builtin_oct_spec
 
-class CPythonExpressionBuiltinHex( CPythonExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinHex( ExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_HEX"
 
     builtin_spec = BuiltinOptimization.builtin_hex_spec

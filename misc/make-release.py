@@ -135,6 +135,27 @@ branch_name = subprocess.check_output( "git name-rev --name-only HEAD".split() )
 
 assert branch_name in ( b"master", b"develop", b"release/" + nuitka_version, b"hotfix/" + nuitka_version ), branch_name
 
+def checkChangeLog( message ):
+    for line in open( "debian/changelog" ):
+        print line,
+
+        if line.startswith( " --" ):
+            return False
+
+        if message in line:
+            return True
+    else:
+        assert False, message # No new messages.
+
+
+if branch_name.startswith( "release" ) or branch_name == "master":
+    if nuitka_version.count( "." ) == 2:
+        assert checkChangeLog( "New upstream release." )
+    else:
+        assert checkChangeLog( "New upstream hotfix release." )
+else:
+    assert checkChangeLog( "New upstream pre-release." )
+
 shutil.rmtree( "dist", ignore_errors = True )
 shutil.rmtree( "build", ignore_errors = True )
 

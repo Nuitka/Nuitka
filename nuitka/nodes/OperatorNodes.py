@@ -21,15 +21,15 @@ No short-circuit involved, boolean 'not' is an unary operation like '-' is, no r
 difference.
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase
 
 from nuitka import PythonOperators
 
 import math
 
-class CPythonExpressionOperationBase( CPythonExpressionChildrenHavingBase ):
+class ExpressionOperationBase( ExpressionChildrenHavingBase ):
     def __init__( self, operator, simulator, values, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = values,
             source_ref = source_ref
@@ -39,14 +39,14 @@ class CPythonExpressionOperationBase( CPythonExpressionChildrenHavingBase ):
 
         self.simulator = simulator
 
-    def getOperator( self ):
-        return self.operator
-
     def getDetail( self ):
         return self.operator
 
     def getDetails( self ):
         return { "operator" : self.operator }
+
+    def getOperator( self ):
+        return self.operator
 
     def getSimulator( self ):
         return self.simulator
@@ -56,7 +56,7 @@ class CPythonExpressionOperationBase( CPythonExpressionChildrenHavingBase ):
         return None
 
 
-class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
+class ExpressionOperationBinary( ExpressionOperationBase ):
     kind = "EXPRESSION_OPERATION_BINARY"
 
     named_children = ( "left", "right" )
@@ -64,7 +64,7 @@ class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
     def __init__( self, operator, left, right, source_ref ):
         assert left.isExpression() and right.isExpression, ( left, right )
 
-        CPythonExpressionOperationBase.__init__(
+        ExpressionOperationBase.__init__(
             self,
             operator   = operator,
             simulator  = PythonOperators.binary_operator_functions[ operator ],
@@ -75,11 +75,25 @@ class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
             source_ref = source_ref
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         operator = self.getOperator()
         operands = self.getOperands()
 
         left, right = operands
+
+        if left.willRaiseException( BaseException ):
+            return left, "new_raise", "Left argument of binary operation raises exception"
+
+        if right.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+
+            result = wrapExpressionWithNodeSideEffects(
+                new_node = right,
+                old_node = left
+            )
+
+            return result, "new_raise", "Right argument of binary operation raises exception"
+
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
             left_value = left.getCompileTimeConstant()
@@ -118,11 +132,11 @@ class CPythonExpressionOperationBinary( CPythonExpressionOperationBase ):
     def getOperands( self ):
         return ( self.getLeft(), self.getRight() )
 
-    getLeft = CPythonExpressionChildrenHavingBase.childGetter( "left" )
-    getRight = CPythonExpressionChildrenHavingBase.childGetter( "right" )
+    getLeft = ExpressionChildrenHavingBase.childGetter( "left" )
+    getRight = ExpressionChildrenHavingBase.childGetter( "right" )
 
 
-class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
+class ExpressionOperationUnary( ExpressionOperationBase ):
     kind = "EXPRESSION_OPERATION_UNARY"
 
     named_children = ( "operand", )
@@ -130,7 +144,7 @@ class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
     def __init__( self, operator, operand, source_ref ):
         assert operand.isExpression(), operand
 
-        CPythonExpressionOperationBase.__init__(
+        ExpressionOperationBase.__init__(
             self,
             operator   = operator,
             simulator  = PythonOperators.unary_operator_functions[ operator ],
@@ -140,7 +154,7 @@ class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
             source_ref = source_ref
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         operator = self.getOperator()
         operand = self.getOperand()
 
@@ -159,25 +173,30 @@ class CPythonExpressionOperationUnary( CPythonExpressionOperationBase ):
         else:
             return self, None, None
 
-    getOperand = CPythonExpressionChildrenHavingBase.childGetter( "operand" )
+    getOperand = ExpressionChildrenHavingBase.childGetter( "operand" )
 
     def getOperands( self ):
         return ( self.getOperand(), )
 
 
-class CPythonExpressionOperationNOT( CPythonExpressionOperationUnary ):
+class ExpressionOperationNOT( ExpressionOperationUnary ):
     kind = "EXPRESSION_OPERATION_NOT"
 
     def __init__( self, operand, source_ref ):
-        CPythonExpressionOperationUnary.__init__(
+        ExpressionOperationUnary.__init__(
             self,
             operator   = "Not",
             operand    = operand,
             source_ref = source_ref
         )
 
-    def computeNode( self, constraint_collection ):
-        return self.getOperand().computeNodeOperationNot(
+    def computeExpression( self, constraint_collection ):
+        operand = self.getOperand()
+
+        if operand.willRaiseException( BaseException ):
+            return operand, "new_raise", "Argument of 'not' operation raises exception"
+
+        return operand.computeExpressionOperationNot(
             not_node              = self,
             constraint_collection = constraint_collection
         )
@@ -216,13 +235,13 @@ class CPythonExpressionOperationNOT( CPythonExpressionOperationUnary ):
         return False
 
 
-class CPythonExpressionOperationBinaryInplace( CPythonExpressionOperationBinary ):
+class ExpressionOperationBinaryInplace( ExpressionOperationBinary ):
     kind = "EXPRESSION_OPERATION_BINARY_INPLACE"
 
     def __init__( self, operator, left, right, source_ref ):
         operator = "I" + operator
 
-        CPythonExpressionOperationBinary.__init__(
+        ExpressionOperationBinary.__init__(
             self,
             operator   = operator,
             left       = left,
@@ -230,6 +249,6 @@ class CPythonExpressionOperationBinaryInplace( CPythonExpressionOperationBinary 
             source_ref = source_ref
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Inplace operation requires extra care to avoid corruption of values.
         return self, None, None

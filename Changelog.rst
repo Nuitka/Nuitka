@@ -1,13 +1,176 @@
-Nuitka Release 0.4 (Draft)
-==========================
+Nuitka Release 0.4.1 (Draft)
+============================
+
+This release is the first follow-up with a focus on optimization. The major highlight is
+progress towards SSA form in the node tree.
+
+Also a lot of cleanups have been performed, for both the tree building, which is now
+considered mostly finished, and will be only reviewed. And for the optimization part there
+have been large amounts of changes.
+
+New Features
+------------
+
+- Support for FreeBSD.
+
+  Actually only the minor issue of default compiler detection was standing in the way of
+  this, and more generally "Unix" should work now.
+
+- Python 3.3 experimental support
+
+  * Now compiles many basic tests. Ported the dictionary quick access and update code to a
+    more generic and useful interface.
+
+  * Added support for ``__qualname__`` to classes.
+
+  * Small compatibility changes. Some exceptions changed, absolute imports are now
+    default, etc.
+
+  * For comparison tests, the hash randomization is disabled.
+
+
+- Python 3.2 support has been expanded.
+
+  The Python 3.2 on Ubuntu is not providing a helper function that was used by Nuitka,
+  replaced it with out own code.
+
+Bug fixes
+---------
+
+- Default values were not "is" identical.
+
+  .. code-block:: python
+
+     def defaultKeepsIdentity( arg = "str_value" ):
+         print arg is "str_value"
+
+     defaultKeepsIdentity()
+
+  This now prints "True" as it does with CPython. The solution is actually a general code
+  optimization, see below.
+
+- Usage of ``unicode`` built-in with more than one argument could corrupt the encoding
+  argument string.
+
+  An implementation error of the ``unicode`` was releasing references to arguments
+  converted to default encoding, which could corrupt it.
+
+- Assigning Python3 function annotations could cause a segmentation fault.
+
+New Optimization
+----------------
+
+- Improved propagation of exception raise statements, eliminating more code. They are now
+  also propagated from all kinds of expressions. Previously this was more limited. An
+  assertion added will make sure that all raises are propagated. Also finally, raise
+  expressions are converted into raise statements, but without any normalization.
+
+  .. code-block:: python
+
+     # Now optimizing:
+     raise TypeError, 1/0
+     # into (minus normalization):
+     raise ZeroDivisionError, "integer division or modulo by zero"
+
+     # Now optimizing:
+     (1/0).something
+     # into (minus normalization):
+     raise ZeroDivisionError, "integer division or modulo by zero"
+
+     # Now optimizing:
+     function( a, 1/0 ).something
+     # into (minus normalization), notice the side effects of first checking
+     # function and a as names to be defined, these may be removed only if
+     # they can be demonstrated to have no effect.
+     function
+     a
+     raise ZeroDivisionError, "integer division or modulo by zero"
+
+  There is more examples, where the raise propagation is new, but you get the idea.
+
+- Conditional expression nodes are now optimized according to the truth value of the
+  condition, and not only for compile time constants. This covers e.g. container
+  creations, and other things.
+
+  .. code-block:: python
+
+     # This was already optimized, as it's a compile time constant.
+     a if ( "a", ) else b
+     a if True else b
+
+     # These are now optimized, as their truth value is known.
+     a if ( c, ) else b
+     a if not (c, ) else b
+
+  This is simply taking advantage of infrastructure that now exists. Each node kind can
+  overload "getTruthValue" and benefit from it. Help would be welcome to review which ones
+  can be added.
+
+- Function creations only have side effects, when their defaults or annotations (Python3)
+  do. This allows to remove them entirely, should they be found to be unused.
+
+- Code generation for constants now shares element values used in tuples.
+
+  The general case is currently too complex to solve, but we now make sure constant tuples
+  (as e.g. used in the default value for the compiled function), and string constants
+  share the value. This should reduce memory usage and speed up program start-up.
+
+Cleanups
+--------
+
+- Optimization was initially designed around visitors that each did one thing, and did it
+  well. It turns out though, that this approach is unnecessary, and constraint collection,
+  allows for the most consistent results. All remaining optimization has been merged into
+  constraint collection.
+
+- The names of modules containing node classes were harmonized to always be plural. In the
+  beginning, this was used to convey the information that only a single node kind would be
+  contained, but that has long changed, and is unimportant information.
+
+- The class names of nodes were stripped from the "CPython" prefix. Originally the intent
+  was to express strict correlation to CPython, but with increasing amounts of
+  re-formulations, this was not used at all, and it's also not important enough to
+  dominate the class name.
+
+- The re-formulations performed in tree building have moved out of the "Building" module,
+  into names "ReformulationClasses" e.g., so they are easier to locate and review. Helpers
+  for node building are now in a separate module, and generally it's much easier to find
+  the content of interest now.
+
+- Added new re-formulation of ``print`` statements. The conversion to strings is now made
+  explicit in the node tree.
+
+New Tests
+---------
+
+- Added test to cover default value identity.
+
+Organizational
+--------------
+
+- The upload of `Nuitka to PyPI <http://pypi.python.org/pypi/Nuitka/>`_ has been repaired.
+
+Summary
+-------
+
+The release is mostly a consolidation effort, without much performance progress. The
+progress towards SSA form matter a lot on the outlook front. Once this is finished,
+standard compiler algorithms can be added to Nuitka which go beyond the current peephole
+optimization.
+
+
+Nuitka Release 0.4.0
+====================
 
 This release brings massive progress on all fronts. The big highlight is of course: Full
-Python3.2 support. With this release, the test suite of CPython3.2 is considered passing.
+Python3.2 support. With this release, the test suite of CPython3.2 is considered passing
+when compiled with Nuitka.
 
 Then lots of work on optimization and infrastructure. The major goal of this release was
 to get in shape for actual optimization. This is also why for the first time, it is tested
 that some things are indeed compile time optimized to spot regressions easier. And we are
-having performance diagrams.
+having performance diagrams, `even if weak ones
+<http://nuitka.net/pages/performance.html>`_:
 
 New Features
 ------------
@@ -49,17 +212,32 @@ Bug fixes
 - Don't crash on imported modules with syntax errors. Instead, the attempted recursion is
   simply not done.
 
-- Doing a ``del`` on ``__defaults`` and ``__module`` of compiled functions was
-  crashing. Noticed by a Python3 test for ``__kwdefaults__`` that exhibited this weakness.
+- Doing a ``del`` on ``__defaults`` and ``__module__`` of compiled functions was
+  crashing. This was noticed by a Python3 test for ``__kwdefaults__`` that exposed this
+  compiled functions weakness.
 
-- Wasn't detecting duplicate arguments, if one of them was not normal. Star arguments can
-  collide with normal ones.
+- Wasn't detecting duplicate arguments, if one of them was not a plain arguments. Star
+  arguments could collide with normal ones.
 
 - The ``__doc__`` of classes is now only set, where it was in fact specified. Otherwise it
-  polluted the name space of ``locals()``.
+  only polluted the name space of ``locals()``.
 
 - When ``return`` from the tried statements of a ``try/finally`` block, was overridden, by
-  the final block, a reference was leaked.
+  the final block, a reference was leaked. Example code:
+
+  .. code-block:: python
+
+     try:
+         return 1
+     finally:
+         return 2
+
+- Raising exception instances with value, was leaking references, and not raising the
+  ``TypeError`` error it is supposed to do.
+
+- When raising with multiple arguments, the evaluation order of them was not enforced, it
+  now is. This fixes a reference leak when raising exceptions, where building the
+  exception was raising an exception.
 
 New Optimization
 ----------------
@@ -75,6 +253,13 @@ New Optimization
   constant value".
 
 - Optimizing calls to constant nodes directly into exceptions.
+
+- Optimizing built-in ``bool`` for arguments with known truth value. This would be
+  creations of tuples, lists, and dictionaries.
+
+- Optimizing ``a is b`` and ``a is not b`` based on aliasing interface, which at this time
+  effectively is limited to telling that ``a is a`` is true and ``a is not a`` is false,
+  but this will expand.
 
 - Added support for optimizing ``hasattr``, ``getattr``, and ``setattr`` built-ins as
   well. The ``hasattr`` was needed for the ``class`` re-formulation of Python3 anyway.
@@ -154,14 +339,40 @@ Cleanups
 
   * Added comments explaining things a bit better.
 
+  * Now an early step done directly after building a tree.
+
 - The special code generation used for unpacking from iterators and catching
   "StopIteration" was cleaned up.
 
   * Now uses template, Generator functions, and proper identifiers.
 
+- The ``return`` statements in generators are now re-formulated into ``raise
+  StopIteration`` for generators, because that's what they really are. Allowed to remove
+  special handling of ``return`` nodes in generators.
+
+- The specialty of CPython2.6 yielding non-None values of lambda generators, was so far
+  implemented in code generation. This was moved to tree building as a re-formulation,
+  making it subject to normal optimization.
+
+- Mangling of attribute names in functions contained in classes, has been moved into the
+  early tree building. So far it was done during code generation, making it invisible to
+  the optimization stages.
+
+- Removed tags attribute from node classes. This was once intended to make up for
+  non-inheritance of similar node kinds, but since we have function references, the
+  structure got so clean, it's no more needed.
+
+- Introduced new package ``nuitka.tree``, where the building of node trees, and operations
+  on them live, as well as recursion and variable closure.
+
+- Removed ``nuitka.transform`` and move its former children ``nuitka.optimization`` and
+  ``nuitka.finalization`` one level up. The deeply nested structure turned out to have no
+  advantage.
+
 - Checks for Python version was sometimes "> 300", where of course ">= 300" is the only
   thing that makes sense.
 
+- Split out helper code for exception raising from the handling of exception objects.
 
 New Tests
 ---------
@@ -181,6 +392,8 @@ New Tests
 
 - Added tests to cover ``try/finally`` and ``return`` in one or both branches correctly
   handling the references.
+
+- Added tests to cover evaluation order of arguments when raising exceptions.
 
 Organizational
 --------------
@@ -209,6 +422,8 @@ with the assignment keepers from the ``or`` and ``and`` re-formulation being opt
 away. This will be about achieving goals from the "ctypes" plan as discussed in the
 developer manual.
 
+Also the performance page will be expanded with more benchmarks and diagrams as I go
+forward. I have finally given up on "codespeed", and do my own diagrams.
 
 Nuitka Release 0.3.25
 =====================

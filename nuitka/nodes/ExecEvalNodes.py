@@ -22,15 +22,16 @@ to eliminate or limit their impact as much as possible, but it's difficult
 to do.
 """
 
-from .NodeBases import (
-    CPythonExpressionChildrenHavingBase,
-    CPythonChildrenHaving,
-    CPythonNodeBase
-)
-
 from nuitka import Utils
 
-class CPythonExpressionBuiltinEval( CPythonExpressionChildrenHavingBase ):
+from .NodeBases import (
+    ExpressionChildrenHavingBase,
+    StatementChildrenHavingBase,
+)
+
+# Delayed import into multiple branches is not an issue, pylint: disable=W0404
+
+class ExpressionBuiltinEval( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_EVAL"
 
     named_children = ( "source", "globals", "locals" )
@@ -39,7 +40,7 @@ class CPythonExpressionBuiltinEval( CPythonExpressionChildrenHavingBase ):
     # pylint: disable=W0622
 
     def __init__( self, source, globals, locals, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "source"  : source,
@@ -49,47 +50,37 @@ class CPythonExpressionBuiltinEval( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getSourceCode = CPythonExpressionChildrenHavingBase.childGetter( "source" )
-    getGlobals = CPythonExpressionChildrenHavingBase.childGetter( "globals" )
-    getLocals = CPythonExpressionChildrenHavingBase.childGetter( "locals" )
+    getSourceCode = ExpressionChildrenHavingBase.childGetter( "source" )
+    getGlobals = ExpressionChildrenHavingBase.childGetter( "globals" )
+    getLocals = ExpressionChildrenHavingBase.childGetter( "locals" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Attempt for constant values to do it.
         return self, None, None
 
 
 # Note: Python3 only so far.
 if Utils.python_version >= 300:
-    class CPythonExpressionBuiltinExec( CPythonExpressionBuiltinEval ):
+    class ExpressionBuiltinExec( ExpressionBuiltinEval ):
         kind = "EXPRESSION_BUILTIN_EXEC"
 
         def needsLocalsDict( self ):
             return True
 
-        def computeNode( self, constraint_collection ):
+        def computeExpression( self, constraint_collection ):
             # TODO: Attempt for constant values to do it.
-            if self.getParent().isStatementExpressionOnly() and self.getParentVariableProvider().isEarlyClosure():
-                result = CPythonStatementExec(
-                    source_code = self.getSourceCode(),
-                    globals_arg = self.getGlobals(),
-                    locals_arg  = self.getLocals(),
-                    source_ref  = self.source_ref,
-                )
-
-                return result, "new_statements", "Replaced builtin exec call to exec statement in early closure context."
-
             return self, None, None
 
 
 # Note: Python2 only
 if Utils.python_version < 300:
-    class CPythonExpressionBuiltinExecfile( CPythonExpressionBuiltinEval ):
+    class ExpressionBuiltinExecfile( ExpressionBuiltinEval ):
         kind = "EXPRESSION_BUILTIN_EXECFILE"
 
         named_children = ( "source", "globals", "locals" )
 
         def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
-            CPythonExpressionBuiltinEval.__init__( self, source_code, globals_arg, locals_arg, source_ref )
+            ExpressionBuiltinEval.__init__( self, source_code, globals_arg, locals_arg, source_ref )
 
         def needsLocalsDict( self ):
             return True
@@ -108,21 +99,20 @@ def _couldBeNone( node ):
         # assert False, node
         return True
 
-class CPythonStatementExec( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementExec( StatementChildrenHavingBase ):
     kind = "STATEMENT_EXEC"
 
     named_children = ( "source", "globals", "locals" )
 
     def __init__( self, source_code, globals_arg, locals_arg, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "globals" : globals_arg,
                 "locals"  : locals_arg,
                 "source"  : source_code
-            }
+            },
+            source_ref = source_ref,
         )
 
     def setChild( self, name, value ):
@@ -131,13 +121,55 @@ class CPythonStatementExec( CPythonChildrenHaving, CPythonNodeBase ):
 
             value = convertNoneConstantToNone( value )
 
-        return CPythonChildrenHaving.setChild( self, name, value )
+        return StatementChildrenHavingBase.setChild( self, name, value )
 
-    getSourceCode = CPythonChildrenHaving.childGetter( "source" )
-    getGlobals = CPythonChildrenHaving.childGetter( "globals" )
-    getLocals = CPythonChildrenHaving.childGetter( "locals" )
+    getSourceCode = StatementChildrenHavingBase.childGetter( "source" )
+    getGlobals = StatementChildrenHavingBase.childGetter( "globals" )
+    getLocals = StatementChildrenHavingBase.childGetter( "locals" )
 
     def needsLocalsDict( self ):
         return _couldBeNone( self.getGlobals() ) or \
                self.getGlobals().isExpressionBuiltinLocals() or \
                self.getLocals() is not None and self.getLocals().isExpressionBuiltinLocals()
+
+    def computeStatement( self, constraint_collection ):
+        constraint_collection.onExpression( self.getSourceCode() )
+        source_code = self.getSourceCode()
+
+        if source_code.willRaiseException( BaseException ):
+            result = source_code
+
+            return result, "new_raise", "Exec statement raises implicitely when determining source code argument."
+
+        constraint_collection.onExpression( self.getGlobals(), allow_none = True )
+        globals_arg = self.getGlobals()
+
+        if globals_arg is not None and globals_arg.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+            result = makeStatementOnlyNodesFromExpressions(
+                expressions = (
+                    source_code,
+                    globals_arg
+                )
+            )
+
+            return result, "new_raise", "Exec statement raises implicitely when determining globals argument."
+
+        constraint_collection.onExpression( self.getLocals(), allow_none = True )
+        locals_arg = self.getLocals()
+
+        if locals_arg is not None and locals_arg.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+
+            result = makeStatementOnlyNodesFromExpressions(
+                expressions = (
+                    source_code,
+                    globals_arg,
+                    locals_arg
+                )
+            )
+
+            return result, "new_raise", "Exec statement raises implicitely when determining locals argument."
+
+        return self, None, None

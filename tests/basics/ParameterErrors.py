@@ -60,6 +60,14 @@ try:
 except TypeError, e:
     print repr(e)
 
+print "Call a function with two parameters with three plain arguments:"
+
+try:
+    functionTwoParameters( 1, 2, 3 )
+except TypeError, e:
+    print repr(e)
+
+
 print "Call a function with two parameters with one keyword argument:"
 
 try:

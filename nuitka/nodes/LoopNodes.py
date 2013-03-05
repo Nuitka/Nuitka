@@ -23,28 +23,30 @@ which is more general, the 'Forever' loop, with breaks
 
 """
 
-from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
+from .NodeBases import (
+    StatementChildrenHavingBase,
+    NodeBase
+)
 
 
-class CPythonStatementLoop( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementLoop( StatementChildrenHavingBase ):
     kind = "STATEMENT_LOOP"
 
     named_children = ( "frame", )
 
     def __init__( self, body, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "frame" : body
-            }
+            },
+            source_ref = source_ref
         )
 
         self.break_exception = False
         self.continue_exception = False
 
-    getLoopBody = CPythonChildrenHaving.childGetter( "frame" )
+    getLoopBody = StatementChildrenHavingBase.childGetter( "frame" )
 
     def markAsExceptionContinue( self ):
         self.continue_exception = True
@@ -58,12 +60,24 @@ class CPythonStatementLoop( CPythonChildrenHaving, CPythonNodeBase ):
     def needsExceptionBreak( self ):
         return self.break_exception
 
+    def computeStatement( self, constraint_collection ):
+        from nuitka.optimizations.ConstraintCollections import ConstraintCollectionLoopOther
 
-class CPythonStatementContinueLoop( CPythonNodeBase ):
+        other_loop_run = ConstraintCollectionLoopOther( constraint_collection )
+        other_loop_run.process( self )
+
+        constraint_collection.mergeBranch(
+            other_loop_run
+        )
+
+        return self, None, None
+
+
+class StatementContinueLoop( NodeBase ):
     kind = "STATEMENT_CONTINUE_LOOP"
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
         self.exception_driven = False
 
@@ -76,12 +90,18 @@ class CPythonStatementContinueLoop( CPythonNodeBase ):
     def isExceptionDriven( self ):
         return self.exception_driven
 
+    def computeStatement( self, constraint_collection ):
+        # This statement being aborting, will already tell everything. TODO: The fine
+        # difference that this jumps to loop start for sure, should be represented somehow
+        # one day.
+        return self, None, None
 
-class CPythonStatementBreakLoop( CPythonNodeBase ):
+
+class StatementBreakLoop( NodeBase ):
     kind = "STATEMENT_BREAK_LOOP"
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
         self.exception_driven = False
 
@@ -93,3 +113,9 @@ class CPythonStatementBreakLoop( CPythonNodeBase ):
 
     def isExceptionDriven( self ):
         return self.exception_driven
+
+    def computeStatement( self, constraint_collection ):
+        # This statement being aborting, will already tell everything. TODO: The fine
+        # difference that this exits the loop for sure, should be represented somehow one
+        # day.
+        return self, None, None

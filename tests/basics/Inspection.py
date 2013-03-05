@@ -64,7 +64,7 @@ someFunction()
 import sys
 
 class C:
-    print "Class locals", str( sys._getframe().f_locals ).replace( ", '__locals__': {...}", "" )
+    print "Class locals", str( sys._getframe().f_locals ).replace( "'__locals__': {...}, ", "" )
     print "Class flags", sys._getframe().f_code.co_flags | 64
 
 def f():

@@ -33,13 +33,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN( PyObject *name )
     assert( Nuitka_String_Check( name ) );
 
 #if PYTHON_VERSION < 300
-    PyDictEntry *entry = GET_PYDICT_ENTRY(
+    PyObject *result = GET_STRING_DICT_VALUE(
         dict_builtin,
         (Nuitka_StringObject *)name
     );
-
-    PyObject *result = entry->me_value;
 #else
+    // TODO: Use dict_builtin instead.
     PyObject *result = PyObject_GetAttr( (PyObject *)module_builtin, name );
 #endif
 
@@ -61,12 +60,7 @@ public:
     {
         if ( this->value == NULL )
         {
-            PyDictEntry *entry = GET_PYDICT_ENTRY(
-                dict_builtin,
-                *this->name
-            );
-
-            this->value = entry->me_value;
+            this->refresh();
         }
 
         assertObject( this->value );
@@ -76,12 +70,7 @@ public:
 
     void refresh( void )
     {
-        PyDictEntry *entry = GET_PYDICT_ENTRY(
-            dict_builtin,
-            *this->name
-        );
-
-        this->value = entry->me_value;
+        this->value = LOOKUP_BUILTIN( (PyObject *)*this->name );
     }
 
     PyObject *call()

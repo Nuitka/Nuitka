@@ -21,34 +21,33 @@ The try/except needs handlers, and these blocks are complex control flow.
 
 """
 
-from .NodeBases import CPythonChildrenHaving, CPythonNodeBase
+from .NodeBases import StatementChildrenHavingBase
 
 
-class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementTryFinally( StatementChildrenHavingBase ):
     kind = "STATEMENT_TRY_FINALLY"
 
     named_children = ( "tried", "final" )
 
     def __init__( self, tried, final, source_ref ):
-        CPythonChildrenHaving.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "tried" : tried,
                 "final" : final
-            }
+            },
+            source_ref = source_ref
         )
-
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
 
         self.break_exception = False
         self.continue_exception = False
         self.return_value_exception_catch = False
         self.return_value_exception_reraise = False
 
-    getBlockTry = CPythonChildrenHaving.childGetter( "tried" )
-    setBlockTry = CPythonChildrenHaving.childSetter( "tried" )
-    getBlockFinal = CPythonChildrenHaving.childGetter( "final" )
-    setBlockFinal = CPythonChildrenHaving.childSetter( "final" )
+    getBlockTry = StatementChildrenHavingBase.childGetter( "tried" )
+    setBlockTry = StatementChildrenHavingBase.childSetter( "tried" )
+    getBlockFinal = StatementChildrenHavingBase.childGetter( "final" )
+    setBlockFinal = StatementChildrenHavingBase.childSetter( "final" )
 
     def isStatementAborting( self ):
         # In try/finally there are two chances to raise or return a value, so we need to
@@ -90,48 +89,93 @@ class CPythonStatementTryFinally( CPythonChildrenHaving, CPythonNodeBase ):
     def needsExceptionReturnValueReraiser( self ):
         return self.return_value_exception_reraise
 
+    def computeStatement( self, constraint_collection ):
+        # The tried block can be processed normally, if it is not empty already.
+        tried_statement_sequence = self.getBlockTry()
 
-class CPythonStatementExceptHandler( CPythonChildrenHaving, CPythonNodeBase ):
+        # May be None from the outset, so guard against that, later we are going to remove
+        # it.
+        if tried_statement_sequence is not None:
+            result = constraint_collection.onStatementsSequence( tried_statement_sequence )
+
+            if result is not tried_statement_sequence:
+                self.setBlockTry( result )
+
+                tried_statement_sequence = result
+
+        final_statement_sequence = self.getBlockFinal()
+
+        # TODO: The final must not assume that all of tried was executed, instead it may
+        # have aborted after any part of it, which is a rather complex definition.
+
+        if final_statement_sequence is not None:
+            # TODO: Can't really merge it yet.
+            constraint_collection.removeAllKnowledge()
+
+            # Then assuming no exception, the no raise block if present.
+            result = constraint_collection.onStatementsSequence( final_statement_sequence )
+
+            if result is not final_statement_sequence:
+                self.setBlockFinal( result )
+
+                final_statement_sequence = result
+
+        # Note: Need to query again, because the object may have changed in the
+        # "onStatementsSequence" calls.
+
+        if tried_statement_sequence is None:
+            # If the tried block is empty, go to the final block directly, if any.
+            return final_statement_sequence, "new_statements", "Removed try/finally with empty tried block."
+        elif final_statement_sequence is None:
+            # If the final block is empty, just need to execute the tried block then.
+            return tried_statement_sequence, "new_statements", "Removed try/finally with empty final block."
+        else:
+            # TODO: Can't really merge it yet.
+            constraint_collection.removeAllKnowledge()
+
+            # Otherwise keep it as it.
+            return self, None, None
+
+
+class StatementExceptHandler( StatementChildrenHavingBase ):
     kind = "STATEMENT_EXCEPT_HANDLER"
 
     named_children = ( "exception_types", "body" )
 
     def __init__( self, exception_types, body, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "exception_types" : tuple( exception_types ),
                 "body"            : body,
-            }
+            },
+            source_ref = source_ref
         )
 
-    getExceptionTypes  = CPythonChildrenHaving.childGetter( "exception_types" )
-    getExceptionBranch = CPythonChildrenHaving.childGetter( "body" )
-    setExceptionBranch = CPythonChildrenHaving.childSetter( "body" )
+    getExceptionTypes  = StatementChildrenHavingBase.childGetter( "exception_types" )
+    getExceptionBranch = StatementChildrenHavingBase.childGetter( "body" )
+    setExceptionBranch = StatementChildrenHavingBase.childSetter( "body" )
 
 
-class CPythonStatementTryExcept( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementTryExcept( StatementChildrenHavingBase ):
     kind = "STATEMENT_TRY_EXCEPT"
 
     named_children = ( "tried", "handlers" )
 
     def __init__( self, tried, handlers, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "tried"    : tried,
                 "handlers" : tuple( handlers )
-            }
+            },
+            source_ref = source_ref
         )
 
-    getBlockTry = CPythonChildrenHaving.childGetter( "tried" )
-    setBlockTry = CPythonChildrenHaving.childSetter( "tried" )
+    getBlockTry = StatementChildrenHavingBase.childGetter( "tried" )
+    setBlockTry = StatementChildrenHavingBase.childSetter( "tried" )
 
-    getExceptionHandlers = CPythonChildrenHaving.childGetter( "handlers" )
+    getExceptionHandlers = StatementChildrenHavingBase.childGetter( "handlers" )
 
     def isStatementAborting( self ):
         tried_block = self.getBlockTry()
@@ -179,3 +223,41 @@ class CPythonStatementTryExcept( CPythonChildrenHaving, CPythonNodeBase ):
                                             return True
 
         return False
+
+
+    def computeStatement( self, constraint_collection ):
+        # The tried block can be processed normally.
+        tried_statement_sequence = self.getBlockTry()
+
+        # May be None from the outset, so guard against that, later we are going to remove
+        # it.
+        if tried_statement_sequence is not None:
+            result = constraint_collection.onStatementsSequence( tried_statement_sequence )
+
+            if result is not tried_statement_sequence:
+                self.setBlockTry( result )
+
+                tried_statement_sequence = result
+
+        if tried_statement_sequence is None:
+            return None, "new_statements", "Removed try/except with empty tried block."
+
+        from nuitka.optimizations.ConstraintCollections import ConstraintCollectionHandler
+        # The exception branches triggers in unknown state, any amount of tried code
+        # may have happened. A similar approach to loops should be taken to invalidate
+        # the state before.
+        for handler in self.getExceptionHandlers():
+            exception_branch = ConstraintCollectionHandler( constraint_collection )
+            exception_branch.process( handler )
+
+        # Without exception handlers remaining, nothing else to do. They may e.g. be
+        # removed as only re-raising.
+        if not self.getExceptionHandlers():
+            return tried_statement_sequence, "new_statements", "Removed try/except without any remaing handlers"
+
+        # Give up, merging this is too hard for now, any amount of the tried sequence may
+        # have executed together with one of the handlers, or all of tried and no
+        # handlers.
+        constraint_collection.removeAllKnowledge()
+
+        return self, None, None

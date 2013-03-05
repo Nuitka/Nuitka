@@ -25,17 +25,17 @@ fact.
 """
 
 from .NodeBases import (
-    CPythonExpressionBuiltinSingleArgBase,
-    CPythonExpressionChildrenHavingBase
+    ExpressionBuiltinSingleArgBase,
+    ExpressionChildrenHavingBase
 )
 
 from nuitka.Builtins import builtin_names
 
 
-class CPythonExpressionBuiltinType1( CPythonExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinType1( ExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_TYPE1"
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         value = self.getValue()
 
         if value.isCompileTimeConstant():
@@ -43,15 +43,18 @@ class CPythonExpressionBuiltinType1( CPythonExpressionBuiltinSingleArgBase ):
 
             type_name = value.__class__.__name__
 
-            from . import BuiltinReferenceNodes
+            from .BuiltinRefNodes import (
+                ExpressionBuiltinAnonymousRef,
+                ExpressionBuiltinRef
+            )
 
             if type_name in builtin_names:
-                new_node = BuiltinReferenceNodes.CPythonExpressionBuiltinRef(
+                new_node = ExpressionBuiltinRef(
                     builtin_name = type_name,
                     source_ref   = self.getSourceReference()
                 )
             else:
-                new_node = BuiltinReferenceNodes.CPythonExpressionBuiltinAnonymousRef(
+                new_node = ExpressionBuiltinAnonymousRef(
                     builtin_name = type_name,
                     source_ref   = self.getSourceReference()
                 )
@@ -65,13 +68,13 @@ class CPythonExpressionBuiltinType1( CPythonExpressionBuiltinSingleArgBase ):
         return self, None, None
 
 
-class CPythonExpressionBuiltinSuper( CPythonExpressionChildrenHavingBase ):
+class ExpressionBuiltinSuper( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_SUPER"
 
     named_children = ( "type", "object" )
 
     def __init__( self, super_type, super_object, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "type"   : super_type,
@@ -80,21 +83,21 @@ class CPythonExpressionBuiltinSuper( CPythonExpressionChildrenHavingBase ):
             },
             source_ref = source_ref )
 
-    getType = CPythonExpressionChildrenHavingBase.childGetter( "type" )
-    getObject = CPythonExpressionChildrenHavingBase.childGetter( "object" )
+    getType = ExpressionChildrenHavingBase.childGetter( "type" )
+    getObject = ExpressionChildrenHavingBase.childGetter( "object" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
 
 
-class CPythonExpressionBuiltinIsinstance( CPythonExpressionChildrenHavingBase ):
+class ExpressionBuiltinIsinstance( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_ISINSTANCE"
 
     named_children = ( "instance", "cls" )
 
     def __init__( self, instance, cls, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "instance" : instance,
@@ -103,10 +106,10 @@ class CPythonExpressionBuiltinIsinstance( CPythonExpressionChildrenHavingBase ):
             },
             source_ref = source_ref )
 
-    getInstance = CPythonExpressionChildrenHavingBase.childGetter( "instance" )
-    getCls = CPythonExpressionChildrenHavingBase.childGetter( "cls" )
+    getInstance = ExpressionChildrenHavingBase.childGetter( "instance" )
+    getCls = ExpressionChildrenHavingBase.childGetter( "cls" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
 

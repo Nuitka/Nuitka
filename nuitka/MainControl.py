@@ -68,7 +68,7 @@ def createNodeTree( filename ):
         )
 
     # Then optimize the tree and potentially recursed modules.
-    result = Optimization.optimizeWhole(
+    Optimization.optimizeWhole(
         main_module = result
     )
 
@@ -103,7 +103,7 @@ def getTreeFilenameWithSuffix( tree, suffix ):
 
     assert os.path.exists( main_filename )
 
-    if tree.isPackage():
+    if tree.isPythonPackage():
         return Utils.dirname( main_filename ) + suffix
     elif main_filename.endswith( ".py" ):
         return main_filename[:-3] + suffix
@@ -111,7 +111,7 @@ def getTreeFilenameWithSuffix( tree, suffix ):
         return main_filename + suffix
 
 def getSourceDirectoryPath( main_module ):
-    assert main_module.isModule()
+    assert main_module.isPythonModule()
 
     return Options.getOutputPath(
         path = Utils.basename(
@@ -120,7 +120,7 @@ def getSourceDirectoryPath( main_module ):
     )
 
 def getResultPath( main_module ):
-    assert main_module.isModule()
+    assert main_module.isPythonModule()
 
     return Options.getOutputPath(
         path = Utils.basename(
@@ -187,7 +187,7 @@ def _pickSourceFilenames( source_dir, modules ):
     return module_filenames
 
 def makeSourceDirectory( main_module ):
-    assert main_module.isModule()
+    assert main_module.isPythonModule()
 
     source_dir = getSourceDirectoryPath( main_module )
 

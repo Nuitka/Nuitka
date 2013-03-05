@@ -30,8 +30,8 @@ from nuitka.Options import isFullCompat
 
 from .Operations import VisitorNoopMixin, visitScopes
 
-from nuitka.nodes.ExceptionNodes import CPythonStatementRaiseException
-from nuitka.nodes.BuiltinReferenceNodes import CPythonExpressionBuiltinExceptionRef
+from nuitka.nodes.ExceptionNodes import StatementRaiseException
+from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
 # Note: We do the variable scope assignment, as an extra step from tree building, because
 # it will build the tree without any consideration of evaluation order. And only the way
@@ -83,11 +83,13 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
 
             for non_local_names, source_ref in node.getNonlocalDeclarations():
                 for non_local_name in non_local_names:
-                    variable = node.getParentVariableProvider().getVariableForReference(
+                    # print( "nonlocal reference from", node, "to name", non_local_name )
+
+                    variable = node.getClosureVariable(
                         variable_name = non_local_name
                     )
 
-                    node.addClosureVariable( variable )
+                    node.registerProvidedVariable( variable )
 
                     if variable.isModuleVariableReference():
                         SyntaxErrors.raiseSyntaxError(
@@ -112,7 +114,7 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
                 while True:
                     current = current.getParentVariableProvider()
 
-                    if current.isModule():
+                    if current.isPythonModule():
                         break
 
                     assert current.isExpressionFunctionBody()
@@ -133,8 +135,8 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
         # pass.
         if node.isStatementReturn() and node.getParentVariableProvider().isGenerator():
             node.replaceWith(
-                CPythonStatementRaiseException(
-                    exception_type  = CPythonExpressionBuiltinExceptionRef(
+                StatementRaiseException(
+                    exception_type  = ExpressionBuiltinExceptionRef(
                         exception_name = "StopIteration",
                         source_ref     = node.getSourceReference()
                     ),

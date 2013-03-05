@@ -25,30 +25,30 @@ not know where their value goes.
 
 
 from .NodeBases import (
-    CPythonNodeBase,
-    CPythonChildrenHaving,
-    CPythonExpressionMixin,
-    CPythonExpressionBuiltinSingleArgBase
+    ExpressionBuiltinSingleArgBase,
+    StatementChildrenHavingBase,
+    ExpressionMixin,
+    NodeBase
 )
 
 
-class CPythonExpressionBuiltinGlobals( CPythonNodeBase, CPythonExpressionMixin ):
+class ExpressionBuiltinGlobals( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_BUILTIN_GLOBALS"
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         return self, None, None
 
 
-class CPythonExpressionBuiltinLocals( CPythonNodeBase, CPythonExpressionMixin ):
+class ExpressionBuiltinLocals( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_BUILTIN_LOCALS"
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         return self, None, None
 
     def needsLocalsDict( self ):
@@ -56,40 +56,59 @@ class CPythonExpressionBuiltinLocals( CPythonNodeBase, CPythonExpressionMixin ):
                ( not self.getParent().isStatementReturn() or self.getParent().isExceptionDriven() )
 
 
-class CPythonStatementSetLocals( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementSetLocals( StatementChildrenHavingBase ):
     kind = "STATEMENT_SET_LOCALS"
 
     named_children = ( "new_locals", )
 
     def __init__( self, new_locals, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
             values     = {
                 "new_locals" : new_locals,
-            }
+            },
+            source_ref = source_ref
         )
 
     def needsLocalsDict( self ):
         return True
 
-    getNewLocals = CPythonChildrenHaving.childGetter( "new_locals" )
+    getNewLocals = StatementChildrenHavingBase.childGetter( "new_locals" )
 
+    def computeStatement( self, constraint_collection ):
+        # Make sure that we don't even assume "unset" of things not set yet for anything.
+        constraint_collection.removeAllKnowledge()
 
-class CPythonExpressionBuiltinDir0( CPythonNodeBase, CPythonExpressionMixin ):
-    kind = "EXPRESSION_BUILTIN_DIR0"
+        constraint_collection.onExpression( self.getNewLocals() )
+        new_locals = self.getNewLocals()
 
-    def __init__( self, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        if new_locals.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
-    def computeNode( self, constraint_collection ):
+            result = makeStatementExpressionOnlyReplacementNode(
+                expression = new_locals,
+                node       = self
+            )
+
+            return result, "new_raise", "Setting locals already raises implicitely building new locals."
+
         return self, None, None
 
 
-class CPythonExpressionBuiltinDir1( CPythonExpressionBuiltinSingleArgBase ):
+
+class ExpressionBuiltinDir0( NodeBase, ExpressionMixin ):
+    kind = "EXPRESSION_BUILTIN_DIR0"
+
+    def __init__( self, source_ref ):
+        NodeBase.__init__( self, source_ref = source_ref )
+
+    def computeExpression( self, constraint_collection ):
+        return self, None, None
+
+
+class ExpressionBuiltinDir1( ExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_DIR1"
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Quite some cases should be possible to predict.
         return self, None, None

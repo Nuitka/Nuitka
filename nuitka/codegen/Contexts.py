@@ -167,6 +167,9 @@ class PythonGlobalContext:
         if python_version >= 300:
             self.getConstantHandle( "__cached__" )
 
+        if python_version >= 330:
+            self.getConstantHandle( "__loader__" )
+
         # For patching Python2 internal class type
         if python_version < 300:
             self.getConstantHandle( "__getattr__" )
@@ -363,7 +366,7 @@ class PythonModuleContext( PythonContextBase ):
         self.global_var_names.add( var_name )
 
     def getGlobalVariableNames( self ):
-        return self.global_var_names
+        return sorted( self.global_var_names )
 
     def addEvalOrderUse( self, value ):
         self.global_context.addEvalOrderUse( value )

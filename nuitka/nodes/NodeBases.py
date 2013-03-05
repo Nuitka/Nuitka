@@ -69,14 +69,11 @@ class NodeCheckMetaClass( type ):
             # Automatically add checker methods for everything to the common base class
             checker_method = "is" + kind_to_name_part
 
-            if name.startswith( "CPython" ):
-                checker_method = checker_method.replace( "CPython", "" )
-
             def checkKind( self ):
                 return self.kind == kind
 
-            if not hasattr( CPythonNodeBase, checker_method ):
-                setattr( CPythonNodeBase, checker_method, checkKind )
+            if not hasattr( NodeBase, checker_method ):
+                setattr( NodeBase, checker_method, checkKind )
 
         type.__init__( mcs, name, bases, dictionary )
 
@@ -84,9 +81,9 @@ class NodeCheckMetaClass( type ):
 
 # For Python2/3 compatible source, we create a base class that has the metaclass used and
 # doesn't require making a choice.
-CPythonNodeMetaClassBase = NodeCheckMetaClass( "CPythonNodeMetaClassBase", (object, ), {} )
+NodeMetaClassBase = NodeCheckMetaClass( "NodeMetaClassBase", (object, ), {} )
 
-class CPythonNodeBase( CPythonNodeMetaClassBase ):
+class NodeBase( NodeMetaClassBase ):
     kind = None
 
     # Must be overloaded by expressions.
@@ -123,25 +120,25 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         return "%s at %s" % ( self.kind, self.source_ref.getAsString() )
 
     def getDetails( self ):
-        """ Details of the node, intented for use in __repr__ and dumps.
+        """ Details of the node, intended for use in __repr__ and dumps.
 
         """
         # Virtual method, pylint: disable=R0201
         return {}
 
     def getDetail( self ):
-        """ Details of the node, intented for use in __repr__ and graphical display.
+        """ Details of the node, intended for use in __repr__ and graphical display.
 
         """
         # Virtual method, pylint: disable=R0201
-        return self.getDetails()
+        return str( self.getDetails() )[1:-1]
 
     def getParent( self ):
         """ Parent of the node. Every node except modules have to have a parent.
 
         """
 
-        if self.parent is None and not self.isModule():
+        if self.parent is None and not self.isPythonModule():
             assert False, ( self,  self.source_ref )
 
         return self.parent
@@ -164,7 +161,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         """
         parent = self
 
-        while not parent.isModule():
+        while not parent.isPythonModule():
             if hasattr( parent, "provider" ):
                 # After we checked, we can use it, will be much faster, pylint: disable=E1101
                 parent = parent.provider
@@ -176,7 +173,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
     def isParentVariableProvider( self ):
         # Check if it's a closure giver, in which cases it can provide variables,
         # pylint: disable=E1101
-        return isinstance( self, CPythonClosureGiverNodeBase )
+        return isinstance( self, ClosureGiverNodeBase )
 
     def getParentVariableProvider( self ):
         parent = self.getParent()
@@ -192,7 +189,7 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
     def asXml( self ):
         result = lxml.etree.Element(
             "node",
-            kind = self.__class__.__name__.replace( "CPython", "" ),
+            kind = self.__class__.__name__,
             line = "%s" % self.getSourceReference().getLineNumber()
         )
 
@@ -231,9 +228,6 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
             visitable.dump( level + 1 )
 
         Tracing.printSeparator( level )
-
-    def isModule( self ):
-        return self.kind in ( "MODULE", "PACKAGE" )
 
     def isExpression( self ):
         return self.kind.startswith( "EXPRESSION_" )
@@ -349,13 +343,13 @@ class CPythonNodeBase( CPythonNodeMetaClassBase ):
         return None
 
 
-class CPythonCodeNodeBase( CPythonNodeBase ):
+class CodeNodeBase( NodeBase ):
     def __init__( self, name, code_prefix, source_ref ):
         assert name is not None
         assert " " not in name, name
         assert "<" not in name, name
 
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
         self.name = name
         self.code_prefix = code_prefix
@@ -396,7 +390,7 @@ class CPythonCodeNodeBase( CPythonNodeBase ):
 
             uid = "_%d" % provider.getChildUID( self )
 
-            assert isinstance( self, CPythonCodeNodeBase )
+            assert isinstance( self, CodeNodeBase )
 
             if self.name:
                 name = uid + "_" + self.name
@@ -415,7 +409,7 @@ class CPythonCodeNodeBase( CPythonNodeBase ):
 
         return self.uids[ node.kind ]
 
-class CPythonChildrenHaving:
+class ChildrenHavingMixin:
     named_children = ()
 
     def __init__( self, values ):
@@ -497,7 +491,7 @@ class CPythonChildrenHaving:
                 pass
             elif type( value ) is tuple:
                 result += list( value )
-            elif isinstance( value, CPythonNodeBase ):
+            elif isinstance( value, NodeBase ):
                 result.append( value )
             else:
                 raise AssertionError( self, "has illegal child", name, value, value.__class__ )
@@ -515,7 +509,7 @@ class CPythonChildrenHaving:
         return result
 
     def replaceChild( self, old_node, new_node ):
-        if new_node is not None and not isinstance( new_node, CPythonNodeBase ):
+        if new_node is not None and not isinstance( new_node, NodeBase ):
             raise AssertionError( "Cannot replace with", new_node, "old", old_node, "in", self )
 
         for key, value in self.child_values.items():
@@ -523,17 +517,30 @@ class CPythonChildrenHaving:
                 pass
             elif type( value ) is tuple:
                 if old_node in value:
-                    self.setChild(
-                        key,
-                        tuple(
-                            (val if val is not old_node else new_node)
-                            for val in
-                            value
+                    if new_node is not None:
+                        self.setChild(
+                            key,
+                            tuple(
+                                (val if val is not old_node else new_node)
+                                for val in
+                                value
+                            )
                         )
-                    )
+                    else:
+                        self.setChild(
+                            key,
+                            tuple(
+                                val
+                                for val in
+                                value
+                                if val is not old_node
+                            )
+                        )
+
+
 
                     break
-            elif isinstance( value, CPythonNodeBase ):
+            elif isinstance( value, NodeBase ):
                 if old_node is value:
                     self.setChild( key, new_node )
 
@@ -585,10 +592,10 @@ class CPythonChildrenHaving:
             raise
 
 
-class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
+class ClosureGiverNodeBase( CodeNodeBase ):
     """ Mixin for nodes that provide variables for closure takers. """
     def __init__( self, name, code_prefix, source_ref ):
-        CPythonCodeNodeBase.__init__(
+        CodeNodeBase.__init__(
             self,
             name        = name,
             code_prefix = code_prefix,
@@ -643,9 +650,9 @@ class CPythonClosureGiverNodeBase( CPythonCodeNodeBase ):
         return result
 
 
-class CPythonParameterHavingNodeBase( CPythonClosureGiverNodeBase ):
+class ParameterHavingNodeBase( ClosureGiverNodeBase ):
     def __init__( self, name, code_prefix, parameters, source_ref ):
-        CPythonClosureGiverNodeBase.__init__(
+        ClosureGiverNodeBase.__init__(
             self,
             name        = name,
             code_prefix = code_prefix,
@@ -663,7 +670,7 @@ class CPythonParameterHavingNodeBase( CPythonClosureGiverNodeBase ):
         return self.parameters
 
 
-class CPythonClosureTaker:
+class ClosureTakerMixin:
     """ Mixin for nodes that accept variables from closure givers. """
 
     def __init__( self, provider, early_closure ):
@@ -739,7 +746,7 @@ class CPythonClosureTaker:
         return self.early_closure
 
 
-class CPythonExpressionMixin:
+class ExpressionMixin:
     def getValueFriend( self, constraint_collection ):
         return self
 
@@ -832,37 +839,39 @@ class CPythonExpressionMixin:
         # print "onRelease", self
         pass
 
-    def computeNodeAttribute( self, lookup_node, attribute_name, constraint_collection ):
+    def computeExpressionAttribute( self, lookup_node, attribute_name, constraint_collection ):
         # By default, an attribute lookup may change everything about the lookup source.
         # Virtual method, pylint: disable=R0201,W0613
         constraint_collection.removeKnowledge( lookup_node )
 
         return lookup_node, None, None
 
-    def computeNodeSubscript( self, lookup_node, subscript, constraint_collection ):
+    def computeExpressionSubscript( self, lookup_node, subscript, constraint_collection ):
         # By default, an subscript may change everything about the lookup source.
         constraint_collection.removeKnowledge( lookup_node )
 
         return lookup_node, None, None
 
-    def computeNodeSlice( self, lookup_node, lower, upper, constraint_collection ):
+    def computeExpressionSlice( self, lookup_node, lower, upper, constraint_collection ):
         # By default, a slicing may change everything about the lookup source.
         constraint_collection.removeKnowledge( lookup_node )
 
         return lookup_node, None, None
 
-    def computeNodeCall( self, call_node, constraint_collection ):
-        constraint_collection.removeKnowledge( call_node )
+    def computeExpressionCall( self, call_node, constraint_collection ):
+        call_node.getCalled().onContentEscapes( constraint_collection )
 
         return call_node, None, None
 
-    def computeNodeOperationNot( self, not_node, constraint_collection ):
+    def computeExpressionOperationNot( self, not_node, constraint_collection ):
         constraint_collection.removeKnowledge( not_node )
 
         return not_node, None, None
 
+    def onContentEscapes( self, constraint_collection ):
+        pass
 
-class CompileTimeConstantExpressionMixin( CPythonExpressionMixin ):
+class CompileTimeConstantExpressionMixin( ExpressionMixin ):
     def isCompileTimeConstant( self ):
         """ Has a value that we can use at compile time.
 
@@ -879,7 +888,7 @@ class CompileTimeConstantExpressionMixin( CPythonExpressionMixin ):
     def mayHaveSideEffectsBool( self, constraint_collection ):
         return False
 
-    def computeNodeOperationNot( self, not_node, constraint_collection ):
+    def computeExpressionOperationNot( self, not_node, constraint_collection ):
         from .NodeMakingHelpers import getComputationResult
 
         return getComputationResult(
@@ -889,7 +898,7 @@ class CompileTimeConstantExpressionMixin( CPythonExpressionMixin ):
         )
 
 
-    def computeNodeAttribute( self, lookup_node, attribute_name, constraint_collection ):
+    def computeExpressionAttribute( self, lookup_node, attribute_name, constraint_collection ):
         from .NodeMakingHelpers import getComputationResult
 
         return getComputationResult(
@@ -898,7 +907,7 @@ class CompileTimeConstantExpressionMixin( CPythonExpressionMixin ):
             description = "Attribute lookup to %s precomputed." % attribute_name
         )
 
-    def computeNodeSubscript( self, lookup_node, subscript, constraint_collection ):
+    def computeExpressionSubscript( self, lookup_node, subscript, constraint_collection ):
         from .NodeMakingHelpers import getComputationResult
 
         if subscript.isCompileTimeConstant():
@@ -910,7 +919,7 @@ class CompileTimeConstantExpressionMixin( CPythonExpressionMixin ):
 
         return lookup_node, None, None
 
-    def computeNodeSlice( self, lookup_node, lower, upper, constraint_collection ):
+    def computeExpressionSlice( self, lookup_node, lower, upper, constraint_collection ):
         from .NodeMakingHelpers import getComputationResult
 
         # TODO: Could be happy with predictable index values and not require constants.
@@ -954,7 +963,7 @@ class CompileTimeConstantExpressionMixin( CPythonExpressionMixin ):
         return lookup_node, None, None
 
 
-class CPythonExpressionSpecBasedComputationMixin( CPythonExpressionMixin ):
+class ExpressionSpecBasedComputationMixin( ExpressionMixin ):
     builtin_spec = None
 
     def computeBuiltinSpec( self, given_values ):
@@ -976,26 +985,34 @@ class CPythonExpressionSpecBasedComputationMixin( CPythonExpressionMixin ):
         )
 
 
-class CPythonExpressionChildrenHavingBase( CPythonChildrenHaving, CPythonNodeBase, CPythonExpressionMixin ):
+class ExpressionChildrenHavingBase( ChildrenHavingMixin, NodeBase, ExpressionMixin ):
     def __init__( self, values, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = values
         )
 
+class StatementChildrenHavingBase( ChildrenHavingMixin, NodeBase ):
+    def __init__( self, values, source_ref ):
+        NodeBase.__init__( self, source_ref = source_ref )
 
-class CPythonExpressionBuiltinNoArgBase( CPythonNodeBase, CPythonExpressionMixin ):
+        ChildrenHavingMixin.__init__(
+            self,
+            values = values
+        )
+
+class ExpressionBuiltinNoArgBase( NodeBase, ExpressionMixin ):
     def __init__( self, builtin_function, source_ref ):
-        CPythonNodeBase.__init__(
+        NodeBase.__init__(
             self,
             source_ref = source_ref
         )
 
         self.builtin_function = builtin_function
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         from .NodeMakingHelpers import getComputationResult
 
         # The lamba is there for make sure that no argument parsing will reach the builtin
@@ -1007,12 +1024,12 @@ class CPythonExpressionBuiltinNoArgBase( CPythonNodeBase, CPythonExpressionMixin
         )
 
 
-class CPythonExpressionBuiltinSingleArgBase( CPythonExpressionChildrenHavingBase, \
-                                             CPythonExpressionSpecBasedComputationMixin ):
+class ExpressionBuiltinSingleArgBase( ExpressionChildrenHavingBase,
+                                      ExpressionSpecBasedComputationMixin ):
     named_children = ( "value", )
 
     def __init__( self, value, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values = {
                 "value" : value,
@@ -1020,9 +1037,9 @@ class CPythonExpressionBuiltinSingleArgBase( CPythonExpressionChildrenHavingBase
             source_ref = source_ref
         )
 
-    getValue = CPythonExpressionChildrenHavingBase.childGetter( "value" )
+    getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         value = self.getValue()
 
         assert self.builtin_spec is not None, self
@@ -1030,10 +1047,13 @@ class CPythonExpressionBuiltinSingleArgBase( CPythonExpressionChildrenHavingBase
         if value is None:
             return self.computeBuiltinSpec( () )
         else:
+            if value.willRaiseException( BaseException ):
+                return value, "new_raise", "Builtin call raises exception while building argument"
+
             return self.computeBuiltinSpec( ( value, ) )
 
 
-class CPythonSideEffectsFromChildrenMixin:
+class SideEffectsFromChildrenMixin:
     def mayHaveSideEffects( self, constraint_collection ):
         for child in self.getVisitableNodes():
             if child.mayHaveSideEffects( constraint_collection ):

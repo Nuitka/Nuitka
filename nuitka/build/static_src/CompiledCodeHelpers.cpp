@@ -747,18 +747,9 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
     // mean time.
     Py_INCREF( file );
 
-    PyObject *str = PyObject_Str( object );
-    PyObject *print;
     bool softspace;
 
-    if ( str == NULL )
-    {
-        PyErr_Clear();
-
-        print = object;
-        softspace = false;
-    }
-    else
+    if ( PyString_Check( object ) )
     {
         char *buffer;
         Py_ssize_t length;
@@ -766,12 +757,14 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
 #ifndef __NUITKA_NO_ASSERT__
         int status =
 #endif
-            PyString_AsStringAndSize( str, &buffer, &length );
+            PyString_AsStringAndSize( object, &buffer, &length );
         assert( status != -1 );
 
         softspace = length > 0 && buffer[ length - 1 ] == '\t';
-
-        print = str;
+    }
+    else
+    {
+        softspace = false;
     }
 
     // Check for soft space indicator
@@ -780,19 +773,15 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
         if (unlikely( PyFile_WriteString( " ", file ) == -1 ))
         {
             Py_DECREF( file );
-            Py_DECREF( str );
             throw _PythonException();
         }
     }
 
-    if ( unlikely( PyFile_WriteObject( print, file, Py_PRINT_RAW ) == -1 ))
+    if ( unlikely( PyFile_WriteObject( object, file, Py_PRINT_RAW ) == -1 ))
     {
         Py_DECREF( file );
-        Py_XDECREF( str );
         throw _PythonException();
     }
-
-    Py_XDECREF( str );
 
     if ( softspace )
     {
@@ -988,11 +977,8 @@ PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
 
     if ( intern )
     {
-#if PYTHON_VERSION < 300
-        PyString_InternInPlace( &result );
-#else
-        PyUnicode_InternInPlace( &result );
-#endif
+        Nuitka_StringIntern( &result );
+
         assertObject( result );
         assert( Nuitka_String_Check( result ) );
 

@@ -21,16 +21,16 @@ This one exits functions. The only other exit is the default exit of functions w
 value, if no return is done.
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import StatementChildrenHavingBase
 
 
-class CPythonStatementReturn( CPythonExpressionChildrenHavingBase ):
+class StatementReturn( StatementChildrenHavingBase ):
     kind = "STATEMENT_RETURN"
 
     named_children = ( "expression", )
 
     def __init__( self, expression, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
             values     = {
                 "expression" : expression
@@ -40,7 +40,7 @@ class CPythonStatementReturn( CPythonExpressionChildrenHavingBase ):
 
         self.exception_driven = None
 
-    getExpression = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
+    getExpression = StatementChildrenHavingBase.childGetter( "expression" )
 
     def isStatementAborting( self ):
         return True
@@ -55,3 +55,19 @@ class CPythonStatementReturn( CPythonExpressionChildrenHavingBase ):
         assert self.exception_driven is not None
 
         return self.exception_driven
+
+    def computeStatement( self, constraint_collection ):
+        constraint_collection.onExpression( self.getExpression() )
+        expression = self.getExpression()
+
+        if expression.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+
+            result = makeStatementExpressionOnlyReplacementNode(
+                expression = expression,
+                node       = self
+            )
+
+            return result, "new_raise", "Return statement raises in returned expression, removed return"
+
+        return self, None, None

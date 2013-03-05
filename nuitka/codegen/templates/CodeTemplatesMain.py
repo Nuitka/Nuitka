@@ -110,22 +110,22 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
         PyObject *asObject0() const
         {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
+            PyObject *result = GET_STRING_DICT_VALUE( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
 
-            if (likely( entry->me_value != NULL ))
+            if (likely( result != NULL ))
             {
-                assertObject( entry->me_value );
+                assertObject( result );
 
-                return entry->me_value;
+                return result;
             }
 
-            entry = GET_PYDICT_ENTRY( module_builtin, *this->var_name );
+            result = GET_STRING_DICT_VALUE( module_builtin, *this->var_name );
 
-            if (likely( entry->me_value != NULL ))
+            if (likely( result != NULL ))
             {
-                assertObject( entry->me_value );
+                assertObject( result );
 
-                return entry->me_value;
+                return result;
             }
 
             PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
@@ -153,14 +153,15 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
         void assign0( PyObject *value ) const
         {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
+            Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY( MODULE_DICT( _module_%(module_identifier)s ), *this->var_name );
+
+            PyObject *old = GET_DICT_ENTRY_VALUE( entry );
 
             // Values are more likely set than not set, in that case speculatively try the
             // quickest access method.
-            if (likely( entry->me_value != NULL ))
+            if (likely( old != NULL ))
             {
-                PyObject *old = entry->me_value;
-                entry->me_value = INCREASE_REFCOUNT( value );
+                SET_DICT_ENTRY_VALUE( entry, INCREASE_REFCOUNT( value ) );
 
                 Py_DECREF( old );
             }
@@ -172,14 +173,15 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
         void assign1( PyObject *value ) const
         {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
+            Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY( MODULE_DICT( _module_%(module_identifier)s ), *this->var_name );
+
+            PyObject *old = GET_DICT_ENTRY_VALUE( entry );
 
             // Values are more likely set than not set, in that case speculatively try the
             // quickest access method.
-            if (likely( entry->me_value != NULL ))
+            if (likely( old != NULL ))
             {
-                PyObject *old = entry->me_value;
-                entry->me_value = value;
+                SET_DICT_ENTRY_VALUE( entry, value );
 
                 Py_DECREF( old );
             }
@@ -204,18 +206,18 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
         bool isInitialized( bool allow_builtins = true ) const
         {
-            PyDictEntry *entry = GET_PYDICT_ENTRY( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
+            PyObject *result = GET_STRING_DICT_VALUE( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
 
-            if (likely( entry->me_value != NULL ))
+            if (likely( result ))
             {
                 return true;
             }
 
             if ( allow_builtins )
             {
-                entry = GET_PYDICT_ENTRY( module_builtin, *this->var_name );
+                result = GET_STRING_DICT_VALUE( module_builtin, *this->var_name );
 
-                return entry->me_value != NULL;
+                return result != NULL;
             }
             else
             {
@@ -274,14 +276,20 @@ static struct PyModuleDef _moduledef =
 
 #if _MODULE_UNFREEZER
 // For embedded modules, to be unpacked. Used by main program/package only
-extern void registerMetaPathBasedUnfreezer( struct _inittab *_frozes_modules );
+extern void registerMetaPathBasedUnfreezer( struct _inittab *_frozen_modules );
 
 // Our own inittab for lookup of "frozen" modules, i.e. the ones included in this binary.
-static struct _inittab _frozes_modules[] =
+static struct _inittab _frozen_modules[] =
 {
 %(module_inittab)s
     { NULL, NULL }
 };
+
+// For loader attribute.
+#if PYTHON_VERSION >= 330
+extern PyObject *loader_frozen_modules;
+#endif
+
 #endif
 
 #ifdef _NUITKA_EXE
@@ -324,7 +332,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 #endif
 
 #if _MODULE_UNFREEZER
-    registerMetaPathBasedUnfreezer( _frozes_modules );
+    registerMetaPathBasedUnfreezer( _frozen_modules );
 #endif
 
     // puts( "in init%(module_identifier)s" );
@@ -384,18 +392,15 @@ MOD_INIT_DECL( %(module_identifier)s )
         assert( res == 0 );
     }
 
-#if PYTHON_VERSION >= 300
-    {
-#ifndef __NUITKA_NO_ASSERT__
-        int res =
+#if PYTHON_VERSION >= 330
+#if _MODULE_UNFREEZER
+    PyDict_SetItem( module_dict, _python_str_plain___loader__, loader_frozen_module );
+#else
+    PyDict_SetItem( module_dict, _python_str_plain___loader__, Py_None );
 #endif
-            PyDict_SetItem( module_dict, _python_str_plain___cached__, Py_None );
-
-        assert( res == 0 );
-    }
 #endif
 
-    // Initialize the standard module attributes.
+    // Temporary variables if any
 %(module_inits)s
 
     // Module code
@@ -403,31 +408,6 @@ MOD_INIT_DECL( %(module_identifier)s )
 
    return MOD_RETURN_VALUE( _module_%(module_identifier)s );
 }
-"""
-
-module_init_no_package_template = """\
-    _mvar_%(module_identifier)s___doc__.assign0( %(doc_identifier)s );
-    _mvar_%(module_identifier)s___file__.assign0( %(filename_identifier)s );
-#if %(is_package)d
-    _mvar_%(module_identifier)s___path__.assign0( %(path_identifier)s );
-#endif
-"""
-
-module_init_in_package_template = """\
-    _mvar_%(module_identifier)s___doc__.assign0( %(doc_identifier)s );
-    _mvar_%(module_identifier)s___file__.assign0( %(filename_identifier)s );
-#if %(is_package)d
-    _mvar_%(module_identifier)s___path__.assign0( %(path_identifier)s );
-#endif
-
-    // The package must already be imported.
-    assertObject( _module_%(package_identifier)s );
-
-    SET_ATTRIBUTE(
-        _module_%(module_identifier)s,
-        _module_%(package_identifier)s,
-        %(module_name)s
-    );
 """
 
 template_header_guard = """\

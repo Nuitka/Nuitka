@@ -21,16 +21,16 @@ Sometimes, the effect of an expression needs to be had, but the value itself doe
 not matter at all.
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase
 
 
-class CPythonExpressionSideEffects( CPythonExpressionChildrenHavingBase ):
+class ExpressionSideEffects( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_SIDE_EFFECTS"
 
     named_children = ( "side_effects", "expression" )
 
     def __init__( self, side_effects, expression, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values = {
                 "side_effects" : tuple( side_effects ),
@@ -39,10 +39,10 @@ class CPythonExpressionSideEffects( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getSideEffects  = CPythonExpressionChildrenHavingBase.childGetter( "side_effects" )
-    getExpression = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
+    getSideEffects  = ExpressionChildrenHavingBase.childGetter( "side_effects" )
+    getExpression = ExpressionChildrenHavingBase.childGetter( "expression" )
 
-    setSideEffects  = CPythonExpressionChildrenHavingBase.childSetter( "side_effects" )
+    setSideEffects  = ExpressionChildrenHavingBase.childSetter( "side_effects" )
 
     def setChild( self, name, value ):
         if name == "side_effects":
@@ -59,9 +59,9 @@ class CPythonExpressionSideEffects( CPythonExpressionChildrenHavingBase ):
 
             value = real_value
 
-        return CPythonExpressionChildrenHavingBase.setChild( self, name, value )
+        return ExpressionChildrenHavingBase.setChild( self, name, value )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         side_effects = self.getSideEffects()
         new_side_effects = []
 
@@ -69,11 +69,20 @@ class CPythonExpressionSideEffects( CPythonExpressionChildrenHavingBase ):
             if side_effect.mayHaveSideEffects( constraint_collection ):
                 new_side_effects.append( side_effect )
 
+        expression = self.getExpression()
+
+        if expression.isExpressionSideEffects():
+            new_side_effects.extend( expression.getSideEffects() )
+
+            expression.setSideEffects( new_side_effects )
+
+            return expression, "new_expression", "Remove nested side effects"
+
         if new_side_effects != side_effects:
             self.setSideEffects( new_side_effects )
 
         if not new_side_effects:
-            return self.getExpression(), "new_expression", "Removed empty side effects."
+            return expression, "new_expression", "Removed empty side effects."
 
         return self, None, None
 

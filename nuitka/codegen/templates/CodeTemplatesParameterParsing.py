@@ -70,7 +70,24 @@ int args_usable_count;
 template_parameter_function_refuses = r"""
 if (unlikely( args_given + kw_size > 0 ))
 {
+#if PYTHON_VERSION < 330
     PyErr_Format( PyExc_TypeError, "%(function_name)s() takes no arguments (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_size );
+#else
+    if ( kw_size == 0 )
+    {
+       PyErr_Format( PyExc_TypeError, "%(function_name)s() takes 0 positional arguments but %%" PY_FORMAT_SIZE_T "d was given", args_given );
+    }
+    else
+    {
+       PyObject *tmp_iter = PyObject_GetIter( kw );
+       PyObject *tmp_arg_name = PyIter_Next( tmp_iter );
+       Py_DECREF( tmp_iter );
+
+       PyErr_Format( PyExc_TypeError, "%(function_name)s() got an unexpected keyword argument '%%s'", Nuitka_String_AsString( tmp_arg_name ) );
+
+       Py_DECREF( tmp_arg_name );
+    }
+#endif
     goto error_exit;
 }
 """
@@ -109,18 +126,29 @@ if (unlikely( args_given > %(top_level_parameter_count)d ))
     {
 #if PYTHON_VERSION < 300
         PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 argument (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_found );
-#else
+#elif PYTHON_VERSION < 330
         PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly 1 positional argument (%%" PY_FORMAT_SIZE_T "d given)", args_given + kw_only_found );
+#else
+        PyErr_Format( PyExc_TypeError, "%(function_name)s() takes 1 positional argument but %%" PY_FORMAT_SIZE_T "d were given", args_given + kw_only_found );
 #endif
     }
     else
     {
 #if PYTHON_VERSION < 300
         PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_size );
-#else
+#elif PYTHON_VERSION < 330
         if ( %(top_level_parameter_count)d == %(required_parameter_count)d )
         {
             PyErr_Format( PyExc_TypeError, "%(function_name)s() takes exactly %%d positional arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_only_found );
+        }
+        else
+        {
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes at most %%d positional arguments (%%" PY_FORMAT_SIZE_T "d given)", %(top_level_parameter_count)d, args_given + kw_only_found );
+        }
+#else
+        if ( %(top_level_parameter_count)d == %(required_parameter_count)d )
+        {
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() takes %%d positional arguments but %%" PY_FORMAT_SIZE_T "d were given", %(top_level_parameter_count)d, args_given + kw_only_found );
         }
         else
         {
@@ -211,6 +239,7 @@ else
 {
     if ( ((PyDictObject *)kw)->ma_used > 0 )
     {
+#if PYTHON_VERSION < 330
         _python_par_%(dict_star_parameter_name)s = _PyDict_NewPresized( ((PyDictObject *)kw)->ma_used  );
 
         for ( int i = 0; i <= ((PyDictObject *)kw)->ma_mask; i++ )
@@ -238,6 +267,79 @@ else
                 }
             }
         }
+#else
+    if ( _PyDict_HasSplitTable( ((PyDictObject *)kw) ) )
+    {
+        PyDictObject *mp = (PyDictObject *)kw;
+
+        PyObject **newvalues = PyMem_NEW( PyObject *, mp->ma_keys->dk_size );
+        assert (newvalues != NULL);
+
+        PyDictObject *split_copy = PyObject_GC_New( PyDictObject, &PyDict_Type );
+        assert( split_copy != NULL );
+
+        split_copy->ma_values = newvalues;
+        split_copy->ma_keys = mp->ma_keys;
+        split_copy->ma_used = mp->ma_used;
+
+        mp->ma_keys->dk_refcnt += 1;
+
+        _PyObject_GC_TRACK( split_copy );
+
+        int size = mp->ma_keys->dk_size;
+        for ( int i = 0; i < size; i++ )
+        {
+            split_copy->ma_values[ i ] = INCREASE_REFCOUNT_X( mp->ma_values[ i ] );
+
+            if (unlikely( !PyUnicode_Check( split_copy->ma_values[ i ] ) ))
+            {
+                PyErr_Format( PyExc_TypeError, "%(function_name)s() keywords must be strings" );
+                goto error_exit;
+            }
+        }
+
+        _python_par_%(dict_star_parameter_name)s = (PyObject *)split_copy;
+    }
+    else
+    {
+        PyDictObject *mp = (PyDictObject *)kw;
+
+        PyDictObject *split_copy = PyObject_GC_New( PyDictObject, &PyDict_Type );
+
+        int size = mp->ma_keys->dk_size;
+        for ( int i = 0; i < size; i++ )
+        {
+            PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
+
+            // TODO: One of these cases has been dealt with above.
+            PyObject *value;
+            if ( mp->ma_values )
+            {
+                value = mp->ma_values[ i ];
+            }
+            else
+            {
+                value = entry->me_value;
+            }
+
+            if ( value != NULL )
+            {
+                if (unlikely( !PyUnicode_Check( value ) ))
+                {
+                    PyErr_Format( PyExc_TypeError, "%(function_name)s() keywords must be strings" );
+                    goto error_exit;
+                }
+
+                int res = PyDict_SetItem( _python_par_%(dict_star_parameter_name)s, entry->me_key, value );
+
+                if (unlikely( res == -1 ))
+                {
+                    goto error_exit;
+                }
+            }
+        }
+    }
+#endif
     }
     else
     {

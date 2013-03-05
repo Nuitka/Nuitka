@@ -23,12 +23,13 @@ complexities.
 """
 
 from .NodeBases import (
-    CPythonExpressionChildrenHavingBase,
-    CPythonParameterHavingNodeBase,
-    CPythonExpressionMixin,
-    CPythonChildrenHaving,
-    CPythonClosureTaker,
-    CPythonNodeBase
+    ExpressionChildrenHavingBase,
+    SideEffectsFromChildrenMixin,
+    ParameterHavingNodeBase,
+    ExpressionMixin,
+    ChildrenHavingMixin,
+    ClosureTakerMixin,
+    NodeBase
 )
 
 from .IndicatorMixins import (
@@ -45,8 +46,8 @@ from nuitka import Variables, Utils
 from nuitka.__past__ import iterItems
 
 
-class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
-                                     CPythonParameterHavingNodeBase, CPythonExpressionMixin,
+class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
+                                     ParameterHavingNodeBase, ExpressionMixin,
                                      MarkContainsTryExceptIndicator,
                                      MarkGeneratorIndicator,
                                      MarkLocalsDictIndicator, MarkUnoptimizedFunctionIndicator ):
@@ -101,13 +102,13 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
 
         self.non_local_declarations = []
 
-        CPythonClosureTaker.__init__(
+        ClosureTakerMixin.__init__(
             self,
             provider      = provider,
             early_closure = is_class
         )
 
-        CPythonParameterHavingNodeBase.__init__(
+        ParameterHavingNodeBase.__init__(
             self,
             name        = name,
             code_prefix = code_prefix,
@@ -115,7 +116,7 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
             source_ref  = source_ref
         )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {}
         )
@@ -156,14 +157,14 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
             "doc"        : self.doc
         }
 
+    def getDetail( self ):
+        return "named %s with %s" % ( self.name, self.parameters )
+
     def getParent( self ):
         assert False
 
     def isClassDictCreation( self ):
         return self.is_class
-
-    def getDetail( self ):
-        return "named %s with %s" % ( self.name, self.parameters )
 
     def getFunctionName( self ):
         if self.is_lambda:
@@ -295,8 +296,8 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
     def getNonlocalDeclarations( self ):
         return self.non_local_declarations
 
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
+    getBody = ChildrenHavingMixin.childGetter( "body" )
+    setBody = ChildrenHavingMixin.childSetter( "body" )
 
     def needsCreation( self ):
         # TODO: This looks kind of arbitrary, the users should decide, if they need it.
@@ -317,11 +318,11 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
     def markAsCrossModuleUsed( self ):
         self.cross_module_use = True
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # Function body is quite irreplacable.
         return self, None, None
 
-    def computeNodeCall( self, call_node, constraint_collection ):
+    def computeExpressionCall( self, call_node, constraint_collection ):
         # TODO: Until we have something to re-order the arguments, we need to skip this. For
         # the immediate need, we avoid this complexity, as a re-ordering will be needed.
         if call_node.getNamedArgumentPairs():
@@ -347,7 +348,7 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
                     if arg_value is positional_arg:
                         values.append( arg_value )
 
-            result = CPythonExpressionFunctionCall(
+            result = ExpressionFunctionCall(
                 function_body = self,
                 values        = values,
                 source_ref    = call_node.getSourceReference()
@@ -419,7 +420,8 @@ class CPythonExpressionFunctionBody( CPythonClosureTaker, CPythonChildrenHaving,
         return self.return_exception
 
 
-class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
+class ExpressionFunctionCreation( SideEffectsFromChildrenMixin,
+                                  ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_FUNCTION_CREATION"
 
     # Note: The order of evaluation for these is a bit unexpected, but true. Keyword
@@ -431,7 +433,7 @@ class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
         assert annotations is None or annotations.isExpression()
         assert function_ref.isExpressionFunctionRef()
 
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "function_ref"  : function_ref,
@@ -442,32 +444,30 @@ class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Function body may know something.
         return self, None, None
 
-    getFunctionRef = CPythonExpressionChildrenHavingBase.childGetter( "function_ref" )
-    getDefaults = CPythonExpressionChildrenHavingBase.childGetter( "defaults" )
-    getKwDefaults = CPythonExpressionChildrenHavingBase.childGetter( "kw_defaults" )
-    getAnnotations = CPythonExpressionChildrenHavingBase.childGetter( "annotations" )
+    getFunctionRef = ExpressionChildrenHavingBase.childGetter( "function_ref" )
+    getDefaults = ExpressionChildrenHavingBase.childGetter( "defaults" )
+    getKwDefaults = ExpressionChildrenHavingBase.childGetter( "kw_defaults" )
+    getAnnotations = ExpressionChildrenHavingBase.childGetter( "annotations" )
 
     def mayRaiseException( self, exception_type ):
-        kw_defaults = self.getKwDefaults()
-        defaults = self.getDefaults()
-        annotations = self.getAnnotations()
+        for default in self.getDefaults():
+            result = default.mayRaiseException( exception_type )
 
+            if result is True or result is None:
+                return result
+
+        kw_defaults = self.getKwDefaults()
         if kw_defaults is not None:
             result = kw_defaults.mayRaiseException( exception_type )
 
             if result is True or result is None:
                 return result
 
-        for default in defaults:
-            result = default.mayRaiseException( exception_type )
-
-            if result is True or result is None:
-                return result
-
+        annotations = self.getAnnotations()
         if annotations is not None:
             result = annotations.mayRaiseException( exception_type )
 
@@ -477,13 +477,13 @@ class CPythonExpressionFunctionCreation( CPythonExpressionChildrenHavingBase ):
         return False
 
 
-class CPythonExpressionFunctionRef( CPythonNodeBase, CPythonExpressionMixin ):
+class ExpressionFunctionRef( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_FUNCTION_REF"
 
     def __init__( self, function_body, source_ref ):
         assert function_body.isExpressionFunctionBody()
 
-        CPythonNodeBase.__init__(
+        NodeBase.__init__(
             self,
             source_ref = source_ref
         )
@@ -496,7 +496,7 @@ class CPythonExpressionFunctionRef( CPythonNodeBase, CPythonExpressionMixin ):
         }
 
     def makeCloneAt( self, source_ref ):
-        return CPythonExpressionFunctionRef(
+        return ExpressionFunctionRef(
             function_body = self.function_body,
             source_ref    = source_ref
         )
@@ -504,12 +504,16 @@ class CPythonExpressionFunctionRef( CPythonNodeBase, CPythonExpressionMixin ):
     def getFunctionBody( self ):
         return self.function_body
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Function body may know something.
         return self, None, None
 
+    def mayHaveSideEffects( self, constraint_collection ):
+        # Using a function has no side effects.
+        return False
 
-class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):
+
+class ExpressionFunctionCall( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_FUNCTION_CALL"
 
     named_children = ( "function", "values" )
@@ -517,7 +521,7 @@ class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):
     def __init__( self, function, values, source_ref ):
         assert function.isExpressionFunctionCreation()
 
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "function" : function,
@@ -526,8 +530,27 @@ class CPythonExpressionFunctionCall( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
+        function = self.getFunction()
+
+        if function.willRaiseException( BaseException ):
+            return function, "new_raise", "Called function is a raise"
+
+        values = self.getArgumentValues()
+
+        for count, value in enumerate( values ):
+            if value.willRaiseException( BaseException ):
+                from .NodeMakingHelpers import wrapExpressionWithSideEffects
+
+                result = wrapExpressionWithSideEffects(
+                    side_effects = [ function ] + list( values[ : count ] ),
+                    new_node     = value,
+                    old_node     = self
+                )
+
+                return result, "new_raise", "Called function arguments raise"
+
         return self, None, None
 
-    getFunction = CPythonExpressionChildrenHavingBase.childGetter( "function" )
-    getArgumentValues = CPythonExpressionChildrenHavingBase.childGetter( "values" )
+    getFunction = ExpressionChildrenHavingBase.childGetter( "function" )
+    getArgumentValues = ExpressionChildrenHavingBase.childGetter( "values" )

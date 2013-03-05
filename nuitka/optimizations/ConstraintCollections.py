@@ -31,12 +31,7 @@ from nuitka.nodes import ValueFriends
 from nuitka.nodes.NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
     makeStatementsSequenceReplacementNode,
-    makeConstantReplacementNode,
-    wrapStatementWithSideEffects
 )
-
-from nuitka.nodes.ConditionalNodes import CPythonStatementConditional
-from nuitka.nodes.OperatorNodes import CPythonExpressionOperationNOT
 
 from nuitka import Options, Utils, Importing
 from nuitka.tree import Recursion
@@ -104,16 +99,22 @@ class VariableUsageTrackingMixin:
 
 # TODO: This code is only here while staging it, will live in a dedicated module later on
 class ConstraintCollectionBase:
-    def __init__( self, parent, signal_change, copy_of = None ):
-        self.signalChange = signal_change
+    def __init__( self, parent, signal_change = None, copy_of = None ):
+        assert signal_change is None or parent is None
+
+        if signal_change is not None:
+            self.signalChange = signal_change
+        else:
+            self.signalChange = parent.signalChange
+
         self.parent = parent
 
-        if copy_of is None:
-            self.variables = {}
-        else:
-            assert copy_of.__class__ is ConstraintCollectionBase
+        # Variable assignments performed in here.
+        self.variable_targets = {}
+        self.variable_versions = {}
+        self.variable_escaped = {}
 
-            self.variables = dict( copy_of.variables )
+        self.variables = {}
 
     def mustAlias( self, a, b ):
         if a.isExpressionVariableRef() and b.isExpressionVariableRef():
@@ -124,7 +125,6 @@ class ConstraintCollectionBase:
     def mustNotAlias( self, a, b ):
         return False
 
-
     def removeKnowledge( self, value_friend ):
         to_remove = []
 
@@ -134,6 +134,9 @@ class ConstraintCollectionBase:
 
         for remove in to_remove:
             del self.variables[ remove ]
+
+    def removeAllKnowledge( self ):
+        self.variables = {}
 
     @staticmethod
     def mergeBranchVariables( a, b ):
@@ -274,26 +277,68 @@ class ConstraintCollectionBase:
         else:
             return statements_sequence
 
+    def _addVariableUsageInfo( self, variable, version, info ):
+        if version == 0:
+            # If we have no knowledge yet, use "0" still. We will treat it special
+            # depending on context. Unknown will "-1".
+            version = self.variable_versions.get( variable, 0 )
+        else:
+            self.variable_versions[ variable ] = version
+
+        key = variable, version
+
+        if key in self.variable_targets:
+            self.variable_targets[ key ].append( info )
+        else:
+            self.variable_targets[ key ] = [ info ]
+
+
+    def onVariableSet( self, target_node, value_friend ):
+        # Remember the node that updates plus the then current value in the trace.
+        self._addVariableUsageInfo(
+            variable = target_node.getVariable(),
+            version  = target_node.getVariableVersion(),
+            info     = ( target_node, value_friend )
+        )
+
+    def onVariableUsage( self, ref_node ):
+        self._addVariableUsageInfo(
+            variable = ref_node.getVariable(),
+            version  = 0,
+            info     = ( ref_node )
+        )
+
+    def onVariableContentEscapes( self, variable ):
+        version = self.variable_versions.get( variable, 0 )
+
+        if version != 0:
+            key = variable, version
+
+            if key not in self.variable_escaped:
+                # Indicate when the variable value escaped.
+                self.variable_escaped[ key ] = len( self.variable_targets[ key ] )
+
     def onExpression( self, expression, allow_none = False ):
         if expression is None and allow_none:
             return
 
         assert expression.isExpression(), expression
 
-        # print( "CONSIDER expression", expression )
-
+        # First apply the sub-expressions, as they are evaluated before.
         self.onSubExpressions( expression )
 
-        r = expression.computeNode( self )
+        # Now compute this expression, allowing it to replace itself with something else
+        # as part of a local peephole optimization.
+        r = expression.computeExpression( self )
         assert type(r) is tuple, expression
 
-        new_node, change_tags, change_desc = expression.computeNode( self )
+        new_node, change_tags, change_desc = expression.computeExpression( self )
 
         if new_node is not expression:
-            # print expression, "->", new_node
-
             expression.replaceWith( new_node )
 
+            # This is mostly for tracing and indication that a change occured and it may
+            # be interesting to look again.
             self.signalChange(
                 change_tags,
                 expression.getSourceReference(),
@@ -301,8 +346,15 @@ class ConstraintCollectionBase:
             )
 
         if new_node.isExpressionVariableRef():
+            # OLD:
             if not new_node.getVariable().isModuleVariableReference():
                 self.onLocalVariableRead( new_node.getVariable() )
+
+            # Remember this for constraint collection. Any variable that we access has a
+            # version already that we can query. TODO: May do this as a
+            # "computeReference".
+
+            self.onVariableUsage( new_node )
         elif new_node.isExpressionAssignmentTempKeeper():
             variable = new_node.getVariable()
             assert variable is not None
@@ -323,14 +375,9 @@ class ConstraintCollectionBase:
 
         return new_node
 
-    def onStatementUsingChildExpressions( self, statement ):
-        self.onSubExpressions( statement )
-
-        return statement
-
     def onSubExpressions( self, owner ):
         if owner.isExpressionFunctionRef():
-            collector = ConstraintCollectionFunction( self, self.signalChange )
+            collector = ConstraintCollectionFunction( self )
             collector.process( owner.getFunctionBody() )
         elif owner.isExpressionFunctionBody():
             assert False, owner
@@ -356,7 +403,17 @@ class ConstraintCollectionBase:
         self.parent.onTempVariableRead( variable )
 
     def _onStatementAssignmentVariable( self, statement ):
-        self.onExpression( statement.getAssignSource() )
+        # But now it cannot re-compute anymore:
+        source = statement.getAssignSource()
+
+        if source.willRaiseException( BaseException ):
+            result = makeStatementExpressionOnlyReplacementNode(
+                expression = source,
+                node       = statement
+            )
+
+            return result, "new_raise", """\
+Removed assignment that has source that will raise."""
 
         variable_ref = statement.getTargetVariableRef()
         variable = variable_ref.getVariable()
@@ -367,38 +424,30 @@ class ConstraintCollectionBase:
         # there is no point in doing it. Exceptions are of course module variables
         # that collide with builtin names.
         if not variable.isModuleVariableReference() and \
-             statement.getAssignSource().isExpressionVariableRef() and \
-             statement.getAssignSource().getVariable() == variable:
-            if statement.getAssignSource().mayHaveSideEffects( self ):
-                self.signalChange(
-                    "new_statements",
-                    statement.getSourceReference(),
-                    "Reduced assignment of variable from itself to access of it."
-                )
-
-                return makeStatementExpressionOnlyReplacementNode(
-                    expression = statement.getAssignSource(),
+             source.isExpressionVariableRef() and \
+             source.getVariable() == variable:
+            if source.mayHaveSideEffects( self ):
+                result = makeStatementExpressionOnlyReplacementNode(
+                    expression = source,
                     node       = statement
                 )
-            else:
-                self.signalChange(
-                    "new_statements",
-                    statement.getSourceReference(),
-                    "Removed assignment of variable from itself which is known to be defined."
-                )
 
-                return None
+                return result, "new_statements", """\
+Reduced assignment of variable from itself to access of it."""
+            else:
+                return None, "new_statements", """\
+Removed assignment of variable from itself which is known to be defined."""
 
         # If the assignment source has side effects, we can simply evaluate them
         # beforehand, we have already visited and evaluated them before.
-        if statement.getAssignSource().isExpressionSideEffects():
+        if source.isExpressionSideEffects():
             statements = [
                 makeStatementExpressionOnlyReplacementNode(
                     side_effect,
                     statement
                 )
                 for side_effect in
-                statement.getAssignSource().getSideEffects()
+                source.getSideEffects()
             ]
 
             statements.append( statement )
@@ -408,25 +457,20 @@ class ConstraintCollectionBase:
                 node       = statement,
             )
 
-            statement.getAssignSource().replaceWith( statement.getAssignSource().getExpression() )
+            source.replaceWith( source.getExpression() )
 
-            self.signalChange(
-                "new_statements",
-                statement.getSourceReference(),
-                "Side effects of assignments promoted to statements."
-            )
+            # Need to update it.
+            source = statement.getAssignSource()
+
+            result = result, "new_statements", """\
+Side effects of assignments promoted to statements."""
         else:
-            result = statement
+            result = statement, None, None
 
-        value_friend = statement.getAssignSource().getValueFriend( self )
+        value_friend = source.getValueFriend( self )
         assert value_friend is not None
 
-        if variable in self.variables:
-            old_value_friend = self.variables[ variable  ]
-        else:
-            old_value_friend = None
-
-        self.variables[ variable  ] = value_friend
+        old_value_friend = None
 
         if variable.isModuleVariableReference():
             self.onModuleVariableAssigned( variable, value_friend )
@@ -440,459 +484,19 @@ class ConstraintCollectionBase:
 
         return result
 
-    def _onStatementConditional( self, statement ):
-        no_branch = statement.getBranchNo()
-
-        if no_branch is not None and not no_branch.mayHaveSideEffects( None ):
-            self.signalChange(
-                "new_statements",
-                no_branch.getSourceReference(),
-                "Removed else branch without side effects."
-            )
-
-            statement.setBranchNo( None )
-
-            no_branch = None
-
-        yes_branch = statement.getBranchYes()
-
-        if yes_branch is not None and not yes_branch.mayHaveSideEffects( None ):
-            statement.setBranchYes( None )
-
-            self.signalChange(
-                "new_statements",
-                yes_branch.getSourceReference(),
-                "Removed else branch without side effects."
-            )
-
-            yes_branch = None
-
-        self.onExpression( statement.getCondition() )
-
-        # TODO: We now know that condition evaluates to true for the yes branch
-        # and to not true for no branch
-
-        branch_yes_collection = ConstraintCollectionBranch( self, self.signalChange )
-
-        if yes_branch is not None:
-            branch_yes_collection.process( self, yes_branch )
-
-        if no_branch is not None:
-            branch_no_collection = ConstraintCollectionBranch( self, self.signalChange )
-
-            branch_no_collection.process( self, statement.getBranchNo() )
-
-            self.variables = self.mergeBranchVariables(
-                branch_yes_collection.variables,
-                branch_no_collection.variables
-            )
-        else:
-            self.mergeBranch( branch_yes_collection )
-
-        if statement.getBranchNo() is None and statement.getBranchYes() is None:
-            self.signalChange(
-                "new_statements",
-                statement.getSourceReference(),
-                "Both branches have no effect, drop branch nature, only evaluate condition."
-            )
-
-            return makeStatementExpressionOnlyReplacementNode(
-                expression = statement.getCondition(),
-                node       = statement
-            )
-
-
-        truth_value = statement.getCondition().getTruthValue( self )
-
-        if truth_value is not None:
-            if truth_value is True:
-                choice = "true"
-
-                new_statement = statement.getBranchYes()
-            else:
-                choice = "false"
-
-                new_statement = statement.getBranchNo()
-
-            new_statement = wrapStatementWithSideEffects(
-                new_node   = new_statement,
-                old_node   = statement.getCondition(),
-                allow_none = True # surviving branch may empty
-            )
-
-            self.signalChange(
-                "new_statements",
-                statement.getSourceReference(),
-                "Condition for branch was predicted to be always %s." % choice
-            )
-
-            return new_statement
-
-        if statement.getBranchYes() is None:
-            # Would be eliminated already.
-            assert statement.getBranchNo() is not None
-
-            new_statement = CPythonStatementConditional(
-                condition = CPythonExpressionOperationNOT(
-                    operand    = statement.getCondition(),
-                    source_ref = statement.getCondition().getSourceReference()
-                ),
-                yes_branch = statement.getBranchNo(),
-                no_branch  = None,
-                source_ref = statement.getSourceReference()
-            )
-
-            self.signalChange(
-                "new_statements",
-                statement.getSourceReference(),
-                "Empty true branch for condition was replaced with inverted condition check."
-            )
-
-            return new_statement
-
-        return statement
-
-    def _onStatementPrint( self, statement ):
-        self.onStatementUsingChildExpressions( statement )
-
-        dest = statement.getDestination()
-
-        if dest is not None:
-            if dest.willRaiseException( BaseException ):
-                return makeStatementExpressionOnlyReplacementNode(
-                    expression = dest,
-                    node       = statement
-                )
-
-        values = statement.getValues()
-
-        for value in values:
-            if value.willRaiseException( BaseException ):
-
-                # Trim to values up to this only.
-                values = list( values )[:values.index( value ) ]
-
-                self.signalChange(
-                    "new_raise new_statements",
-                    statement.getSourceReference(),
-                    "Known exception raise in print statement converted to explicit raise."
-                )
-
-                if values:
-                    statement.setValues( values )
-                    statement.removeNewlinePrint()
-
-                    return makeStatementsSequenceReplacementNode(
-                        statements = (
-                            statement,
-                            makeStatementExpressionOnlyReplacementNode(
-                                expression = value,
-                                node       = value
-                            ),
-                        ),
-                        node = statement
-                    )
-                else:
-                    return makeStatementExpressionOnlyReplacementNode(
-                        expression = value,
-                        node       = statement
-                    )
-
-
-
-        for printed in statement.getValues():
-            new_node = printed.getStrValue( self )
-
-            if new_node is not None and new_node is not printed:
-                printed.replaceWith( new_node )
-
-                self.signalChange(
-                    "new_expression",
-                    printed.getSourceReference(),
-                    "Converted print argument to 'str' at compile time"
-                )
-
-        printeds = statement.getValues()
-
-        for count in range( len( printeds ) - 1 ):
-            if printeds[ count ].isExpressionConstantRef():
-                new_value = printeds[ count ].getConstant()
-                assert type( new_value ) is str, statement
-
-                stop_count = count + 1
-
-                while True:
-                    candidate = printeds[ stop_count ]
-
-                    if candidate.isExpressionConstantRef() and candidate.isStringConstant():
-                        if not new_value.endswith( "\t" ):
-                            new_value += " "
-
-                        new_value += candidate.getConstant()
-
-                        stop_count += 1
-
-                        if stop_count >= len( printeds ):
-                            break
-
-                    else:
-                        break
-
-                if stop_count != count + 1:
-                    new_node = makeConstantReplacementNode(
-                        constant = new_value,
-                        node     = printeds[ count ]
-                    )
-
-                    new_printeds = printeds[ : count ] + ( new_node, ) + printeds[ stop_count: ]
-
-                    statement.setValues( new_printeds )
-
-                    self.signalChange(
-                        "new_expression",
-                        printeds[ count ].getSourceReference(),
-                        "Combined print string arguments at compile time"
-                    )
-
-                    break
-
-        if dest is None:
-            values = statement.getValues()
-
-            if values:
-                if values[0].isExpressionSideEffects():
-                    statements = [
-                        makeStatementExpressionOnlyReplacementNode(
-                            side_effect,
-                            statement
-                        )
-                        for side_effect in
-                        values[0].getSideEffects()
-                    ]
-
-                    statements.append( statement )
-
-                    statement.setValues(
-                        ( values[0].getExpression(), ) + values[ 1: ]
-                    )
-
-                    self.signalChange(
-                        "new_statements",
-                        statement.getSourceReference(),
-                        "Side effects first printed item promoted to statements."
-                    )
-
-                    return makeStatementsSequenceReplacementNode(
-                        statements = statements,
-                        node       = statement,
-                    )
-
-        return statement
-
-    def _onStatementTryFinally( self, statement ):
-        # The tried block can be processed normally, if it is not empty already.
-        tried_statement_sequence = statement.getBlockTry()
-
-        if tried_statement_sequence is not None:
-            result = self.onStatementsSequence( tried_statement_sequence )
-
-            if result is not tried_statement_sequence:
-                statement.setBlockTry( result )
-
-        final_statement_sequence = statement.getBlockFinal()
-
-        # TODO: The final must not assume that all of tried was executed, instead it may
-        # have aborted after any part of it, which is a rather complex definition.
-
-        if final_statement_sequence is not None:
-            # Then assuming no exception, the no raise block if present.
-            result = self.onStatementsSequence( final_statement_sequence )
-
-            if result is not final_statement_sequence:
-                statement.setBlockFinal( result )
-
-        # Note: Need to query again, because the object may have changed in the
-        # "onStatementsSequence" calls.
-
-        if statement.getBlockTry() is None:
-            # If the tried block is empty, go to the final block directly, if any.
-            result = statement.getBlockFinal()
-        elif statement.getBlockFinal() is None:
-            # If the final block is empty, just need to execute the tried block then.
-            result = statement.getBlockTry()
-        else:
-            # Otherwise keep it as it.
-            result = statement
-
-        return result
-
-
-    def _onStatementTryExcept( self, statement ):
-        # The tried block can be processed normally.
-        tried_statement_sequence = statement.getBlockTry()
-
-        if tried_statement_sequence is not None:
-            result = self.onStatementsSequence( tried_statement_sequence )
-
-            if result is not tried_statement_sequence:
-                statement.setBlockTry( result )
-
-        # The exception branches triggers in unknown state, any amount of tried code
-        # may have happened. A similar approach to loops should be taken to invalidate
-        # the state before.
-        for handler in statement.getExceptionHandlers():
-            exception_branch = ConstraintCollectionHandler( self, self.signalChange )
-            exception_branch.process( handler )
-
-        # Give up, merging this is too hard for now.
-        self.variables = {}
-
-        if statement.getBlockTry() is None:
-            return None
-        else:
-            return statement
-
-
     def onStatement( self, statement ):
         assert statement.isStatement(), statement
 
-        if statement.isStatementAssignmentVariable():
-            return self._onStatementAssignmentVariable( statement )
-        elif statement.isStatementAssignmentAttribute():
-            self.onExpression( statement.getAssignSource() )
-            self.onExpression( statement.getLookupSource() )
+        new_statement, change_tags, change_desc = statement.computeStatement( self )
 
-            return statement
-        elif statement.isStatementAssignmentSubscript():
-            self.onExpression( statement.getAssignSource() )
-
-            self.onExpression( statement.getSubscribed() )
-            self.onExpression( statement.getSubscript() )
-
-            return statement
-        elif statement.isStatementAssignmentSlice():
-            self.onExpression( statement.getAssignSource() )
-
-            self.onExpression( statement.getLookupSource() )
-            self.onExpression( statement.getLower(), allow_none = True )
-            self.onExpression( statement.getUpper(), allow_none = True )
-
-            return statement
-        elif statement.isStatementDelVariable():
-            variable = statement.getTargetVariableRef()
-
-            if variable in self.variables:
-                self.variables[ variable ].onRelease( self )
-
-                del self.variables[ variable ]
-
-            return statement
-        elif statement.isStatementDelAttribute():
-            self.onExpression( statement.getLookupSource() )
-
-            return statement
-        elif statement.isStatementDelSubscript():
-            self.onExpression( statement.getSubscribed() )
-            self.onExpression( statement.getSubscript() )
-
-            return statement
-        elif statement.isStatementDelSlice():
-            self.onExpression( statement.getLookupSource() )
-            self.onExpression( statement.getLower(), allow_none = True )
-            self.onExpression( statement.getUpper(), allow_none = True )
-
-            return statement
-        elif statement.isStatementExpressionOnly():
-            expression = statement.getExpression()
-
-            # Workaround for possibilty of generating a statement here.
-            if expression.isStatement():
-                return self.onStatement( expression )
-            elif expression.isExpressionSideEffects():
-                assert False, expression
-            else:
-                self.onExpression( expression )
-
-                if statement.mayHaveSideEffects( self ):
-                    return statement
-                else:
-                    return None
-        elif statement.isStatementPrint():
-            return self._onStatementPrint( statement )
-        elif statement.isStatementReturn():
-            # TODO: The merging will need to consider if merged branches really can exit
-            # or not.
-            return self.onStatementUsingChildExpressions( statement )
-        elif statement.isStatementRaiseException():
-            return self.onStatementUsingChildExpressions( statement )
-        elif statement.isStatementExec():
-            return self.onStatementUsingChildExpressions( statement )
-        elif statement.isStatementConditional():
-            return self._onStatementConditional( statement )
-        elif statement.isStatementLoop():
-            other_loop_run = ConstraintCollectionLoopOther( self, self.signalChange )
-            other_loop_run.process( self, statement )
-
-            self.mergeBranch(
-                other_loop_run
+        if new_statement is not statement:
+            self.signalChange(
+                change_tags,
+                statement.getSourceReference(),
+                change_desc
             )
 
-            return statement
-        elif statement.isStatementTryFinally():
-            return self._onStatementTryFinally( statement )
-
-        elif statement.isStatementTryExcept():
-            return self._onStatementTryExcept( statement )
-
-        elif statement.isStatementImportStar():
-            # TODO: Need to invalidate everything, and everything could be assigned now.
-            return self.onStatementUsingChildExpressions( statement )
-        elif statement.isStatementContinueLoop():
-            # TODO: Not clear how to handle these, the statement sequence processing
-            # should abort here.
-            return statement
-        elif statement.isStatementBreakLoop():
-            # TODO: Not clear how to handle these, the statement sequence processing
-            # should abort here.
-            return statement
-        elif statement.isStatementTempBlock():
-            temp_block_body = statement.getBody()
-
-            result = self.onStatementsSequence( temp_block_body )
-
-            if result is not temp_block_body:
-                statement.setBody( result )
-
-            for variable, friend in iterItems( dict( self.variables ) ):
-                if variable.getOwner() is statement:
-                    del self.variables[ variable ]
-
-                    # TODO: Back propagate now.
-                    friend.onRelease( self )
-
-            if statement.mayHaveSideEffects( None ):
-                return statement
-            else:
-                return None
-        elif statement.isStatementSpecialUnpackCheck():
-            self.onExpression( statement.getIterator() )
-
-            # Remove the check if it can be decided at compile time.
-            if statement.getIterator().isKnownToBeIterableAtMax( 0, self ):
-                return None
-
-            return statement
-        elif statement.isStatementDictOperationRemove():
-            # TODO: Be less lossly about it.
-            self.removeKnowledge( statement.getDict() )
-
-            return statement
-        elif statement.isStatementSetLocals():
-            # TODO: All should be forgotten, anything could be set now.
-
-            return statement
-        else:
-            assert False, statement
+        return new_statement
 
 
 class ConstraintCollectionHandler( ConstraintCollectionBase ):
@@ -916,7 +520,7 @@ class ConstraintCollectionHandler( ConstraintCollectionBase ):
 
 
 class ConstraintCollectionBranch( ConstraintCollectionBase ):
-    def process( self, start_state, branch ):
+    def process( self, branch ):
         assert branch.isStatementsSequence(), branch
 
         result = self.onStatementsSequence( branch )
@@ -924,12 +528,12 @@ class ConstraintCollectionBranch( ConstraintCollectionBase ):
         if result is not branch:
             branch.replaceWith( result )
 
+
 class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrackingMixin ):
-    def __init__( self, parent, signal_change ):
+    def __init__( self, parent ):
         ConstraintCollectionBase.__init__(
             self,
-            parent        = parent,
-            signal_change = signal_change
+            parent = parent
         )
 
         VariableUsageTrackingMixin.__init__( self )
@@ -949,6 +553,17 @@ class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrack
                 function_body.setBody( result )
 
         self.setIndications()
+
+    def dumpTrace( self ):
+        for i in range(5):
+            print( "*" * 80 )
+
+        for variable, traces in iterItems( self.variable_targets ):
+            print( variable )
+            print( "*" * 80 )
+            for trace in traces:
+                print( trace )
+            print( "*" * 80 )
 
     def onLocalVariableAssigned( self, variable, value_friend ):
         self._getVariableUsage( variable ).markAsWrittenTo( value_friend )
@@ -972,14 +587,18 @@ class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrack
 
 class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackingMixin ):
     def __init__( self, signal_change ):
-        ConstraintCollectionBase.__init__( self, None, signal_change )
+        ConstraintCollectionBase.__init__(
+            self,
+            None,
+            signal_change = signal_change
+        )
 
         VariableUsageTrackingMixin.__init__( self )
 
         self.module = None
 
     def process( self, module ):
-        assert module.isModule()
+        assert module.isPythonModule()
         self.module = module
 
         module_body = module.getBody()
@@ -1050,11 +669,7 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
 
 
 class ConstraintCollectionLoopOther( ConstraintCollectionBase ):
-    def process( self, start_state, loop ):
-        # TODO: Somehow should copy that start state over, assuming nothing won't be wrong
-        # for a start.
-        self.start_state = start_state
-
+    def process( self, loop ):
         assert loop.isStatementLoop()
 
         loop_body = loop.getLoopBody()

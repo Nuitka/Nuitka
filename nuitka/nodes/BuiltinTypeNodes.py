@@ -21,40 +21,42 @@ These are all very simple and have predictable properties, because we know their
 that should allow some important optimizations.
 """
 
+from nuitka import Utils
+
 from .NodeBases import (
-    CPythonExpressionBuiltinSingleArgBase,
-    CPythonExpressionSpecBasedComputationMixin,
-    CPythonChildrenHaving,
-    CPythonNodeBase
+    ExpressionSpecBasedComputationMixin,
+    ExpressionBuiltinSingleArgBase,
+    ChildrenHavingMixin,
+    NodeBase
 )
 
 from nuitka.optimizations import BuiltinOptimization
 
 from nuitka.Utils import python_version
 
-class CPythonExpressionBuiltinTypeBase( CPythonExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinTypeBase( ExpressionBuiltinSingleArgBase ):
     pass
 
 
-class CPythonExpressionBuiltinTuple( CPythonExpressionBuiltinTypeBase ):
+class ExpressionBuiltinTuple( ExpressionBuiltinTypeBase ):
     kind = "EXPRESSION_BUILTIN_TUPLE"
 
     builtin_spec = BuiltinOptimization.builtin_tuple_spec
 
 
-class CPythonExpressionBuiltinList( CPythonExpressionBuiltinTypeBase ):
+class ExpressionBuiltinList( ExpressionBuiltinTypeBase ):
     kind = "EXPRESSION_BUILTIN_LIST"
 
     builtin_spec = BuiltinOptimization.builtin_list_spec
 
 
-class CPythonExpressionBuiltinFloat( CPythonExpressionBuiltinTypeBase ):
+class ExpressionBuiltinFloat( ExpressionBuiltinTypeBase ):
     kind = "EXPRESSION_BUILTIN_FLOAT"
 
     builtin_spec = BuiltinOptimization.builtin_float_spec
 
 
-class CPythonExpressionBuiltinBool( CPythonExpressionBuiltinTypeBase ):
+class ExpressionBuiltinBool( ExpressionBuiltinTypeBase ):
     kind = "EXPRESSION_BUILTIN_BOOL"
 
     builtin_spec = BuiltinOptimization.builtin_bool_spec
@@ -63,7 +65,7 @@ class CPythonExpressionBuiltinBool( CPythonExpressionBuiltinTypeBase ):
         # Dedicated code returns "True" or "False" only, which requires no reference
         return False
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         value = self.getValue()
 
         if value is not None:
@@ -82,25 +84,25 @@ class CPythonExpressionBuiltinBool( CPythonExpressionBuiltinTypeBase ):
 
                 return result, "new_constant", "Predicted truth value of builtin bool argument"
 
-        return CPythonExpressionBuiltinTypeBase.computeNode( self, constraint_collection )
+        return ExpressionBuiltinTypeBase.computeExpression( self, constraint_collection )
 
 
-class CPythonExpressionBuiltinIntLongBase( CPythonChildrenHaving, CPythonNodeBase, \
-                                           CPythonExpressionSpecBasedComputationMixin ):
+class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
+                                    ExpressionSpecBasedComputationMixin ):
     named_children = ( "value", "base" )
 
     def __init__( self, value, base, source_ref ):
         from .NodeMakingHelpers import makeConstantReplacementNode
 
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        if value is None:
+        if value is None and Utils.python_version < 330:
             value = makeConstantReplacementNode(
                 constant = "0",
                 node     = self
             )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {
                 "value" : value,
@@ -108,18 +110,25 @@ class CPythonExpressionBuiltinIntLongBase( CPythonChildrenHaving, CPythonNodeBas
             }
         )
 
-    getValue = CPythonChildrenHaving.childGetter( "value" )
-    getBase = CPythonChildrenHaving.childGetter( "base" )
+    getValue = ChildrenHavingMixin.childGetter( "value" )
+    getBase = ChildrenHavingMixin.childGetter( "base" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         value = self.getValue()
         base = self.getBase()
 
         given_values = []
 
         if value is None:
-            # Note: Prevented that case above.
-            assert base is not None
+            if base is not None:
+                if Utils.python_version >= 330:
+                    from .NodeMakingHelpers import getComputationResult
+
+                    return getComputationResult(
+                        node        = self,
+                        computation = lambda : int( base = 2 ),
+                        description = "int builtin call with only base argument"
+                    )
 
             given_values = ()
         elif base is None:
@@ -130,19 +139,20 @@ class CPythonExpressionBuiltinIntLongBase( CPythonChildrenHaving, CPythonNodeBas
         return self.computeBuiltinSpec( given_values )
 
 
-class CPythonExpressionBuiltinInt( CPythonExpressionBuiltinIntLongBase ):
+class ExpressionBuiltinInt( ExpressionBuiltinIntLongBase ):
     kind = "EXPRESSION_BUILTIN_INT"
 
     builtin_spec = BuiltinOptimization.builtin_int_spec
 
-class CPythonExpressionBuiltinUnicodeBase( CPythonChildrenHaving, CPythonNodeBase, \
-                                           CPythonExpressionSpecBasedComputationMixin ):
+
+class ExpressionBuiltinUnicodeBase( ChildrenHavingMixin, NodeBase,
+                                    ExpressionSpecBasedComputationMixin ):
     named_children = ( "value", "encoding", "errors" )
 
     def __init__( self, value, encoding, errors, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
-        CPythonChildrenHaving.__init__(
+        ChildrenHavingMixin.__init__(
             self,
             values = {
                 "value"    : value,
@@ -151,11 +161,11 @@ class CPythonExpressionBuiltinUnicodeBase( CPythonChildrenHaving, CPythonNodeBas
             }
         )
 
-    getValue = CPythonChildrenHaving.childGetter( "value" )
-    getEncoding = CPythonChildrenHaving.childGetter( "encoding" )
-    getErrors = CPythonChildrenHaving.childGetter( "errors" )
+    getValue = ChildrenHavingMixin.childGetter( "value" )
+    getEncoding = ChildrenHavingMixin.childGetter( "encoding" )
+    getErrors = ChildrenHavingMixin.childGetter( "errors" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         args = [
             self.getValue(),
             self.getEncoding(),
@@ -169,13 +179,13 @@ class CPythonExpressionBuiltinUnicodeBase( CPythonChildrenHaving, CPythonNodeBas
 
 
 if python_version < 300:
-    class CPythonExpressionBuiltinStr( CPythonExpressionBuiltinTypeBase ):
+    class ExpressionBuiltinStr( ExpressionBuiltinTypeBase ):
         kind = "EXPRESSION_BUILTIN_STR"
 
         builtin_spec = BuiltinOptimization.builtin_str_spec
 
-        def computeNode( self, constraint_collection ):
-            new_node, change_tags, change_desc = CPythonExpressionBuiltinTypeBase.computeNode(
+        def computeExpression( self, constraint_collection ):
+            new_node, change_tags, change_desc = ExpressionBuiltinTypeBase.computeExpression(
                 self,
                 constraint_collection
             )
@@ -197,18 +207,18 @@ if python_version < 300:
             return new_node, change_tags, change_desc
 
 
-    class CPythonExpressionBuiltinLong( CPythonExpressionBuiltinIntLongBase ):
+    class ExpressionBuiltinLong( ExpressionBuiltinIntLongBase ):
         kind = "EXPRESSION_BUILTIN_LONG"
 
         builtin_spec = BuiltinOptimization.builtin_long_spec
 
 
-    class CPythonExpressionBuiltinUnicode( CPythonExpressionBuiltinUnicodeBase ):
+    class ExpressionBuiltinUnicode( ExpressionBuiltinUnicodeBase ):
         kind = "EXPRESSION_BUILTIN_UNICODE"
 
         builtin_spec = BuiltinOptimization.builtin_unicode_spec
 else:
-    class CPythonExpressionBuiltinStr( CPythonExpressionBuiltinUnicodeBase ):
+    class ExpressionBuiltinStr( ExpressionBuiltinUnicodeBase ):
         kind = "EXPRESSION_BUILTIN_STR"
 
         builtin_spec = BuiltinOptimization.builtin_str_spec

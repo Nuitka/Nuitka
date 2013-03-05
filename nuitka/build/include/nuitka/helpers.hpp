@@ -110,7 +110,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
 #if PYTHON_VERSION >= 300
 static char *_PyUnicode_AS_STRING( PyObject *unicode )
 {
+#if PYTHON_VERSION < 330
     PyObject *bytes = _PyUnicode_AsDefaultEncodedString( unicode, NULL );
+#else
+    PyObject *bytes = PyUnicode_AsEncodedString( unicode, "utf-8", NULL );
+#endif
 
     if (unlikely( bytes == NULL ))
     {
@@ -342,10 +346,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE( PyObject *value )
 #define TO_UNICODE3( value, encoding, errors ) _TO_UNICODE3( EVAL_ORDERED_3( value, encoding, errors ) )
 NUITKA_MAY_BE_UNUSED static PyObject *_TO_UNICODE3( EVAL_ORDERED_3( PyObject *value, PyObject *encoding, PyObject *errors ) )
 {
-    char *encoding_str;
+    assertObject( encoding );
 
-    PyObject *uarg2 = NULL;
-    PyObject *uarg3 = NULL;
+    char *encoding_str;
 
     if ( encoding == NULL )
     {
@@ -358,7 +361,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_TO_UNICODE3( EVAL_ORDERED_3( PyObject *va
 #if PYTHON_VERSION < 300
     else if ( PyUnicode_Check( encoding ) )
     {
-        uarg2 = _PyUnicode_AsDefaultEncodedString( encoding, NULL );
+        PyObject *uarg2 = _PyUnicode_AsDefaultEncodedString( encoding, NULL );
         assertObject( uarg2 );
 
         encoding_str = Nuitka_String_AsString_Unchecked( uarg2 );
@@ -383,7 +386,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_TO_UNICODE3( EVAL_ORDERED_3( PyObject *va
 #if PYTHON_VERSION < 300
     else if ( PyUnicode_Check( errors ) )
     {
-        uarg3 = _PyUnicode_AsDefaultEncodedString( errors, NULL );
+        PyObject *uarg3 = _PyUnicode_AsDefaultEncodedString( errors, NULL );
         assertObject( uarg3 );
 
         errors_str = Nuitka_String_AsString_Unchecked( uarg3 );
@@ -391,16 +394,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *_TO_UNICODE3( EVAL_ORDERED_3( PyObject *va
 #endif
     else
     {
-        Py_XDECREF( uarg2 );
-
         PyErr_Format( PyExc_TypeError, "unicode() argument 3 must be string, not %s", Py_TYPE( errors )->tp_name );
         throw _PythonException();
     }
 
     PyObject *result = PyUnicode_FromEncodedObject( value, encoding_str, errors_str );
-
-    Py_XDECREF( uarg2 );
-    Py_XDECREF( uarg3 );
 
     if (unlikely( result == NULL ))
     {
@@ -780,7 +778,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
 #if PYTHON_VERSION < 300
 NUITKA_MAY_BE_UNUSED static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *klass, PyObject *attr_name )
 {
-    PyObject *result = GET_PYDICT_ENTRY( (PyDictObject *)klass->cl_dict, (PyStringObject *)attr_name )->me_value;
+    PyObject *result = GET_STRING_DICT_VALUE( (PyDictObject *)klass->cl_dict, (PyStringObject *)attr_name );
 
     if ( result == NULL )
     {
@@ -825,7 +823,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
     else
     {
         // Try the instance dict first.
-        PyObject *result = GET_PYDICT_ENTRY( (PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name )->me_value;
+        PyObject *result = GET_STRING_DICT_VALUE( (PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name );
 
         if ( result )
         {
@@ -1378,14 +1376,44 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyO
 
     if (likely( PyType_Check( metaclass ) ))
     {
-        PyObject *winner = (PyObject *)_PyType_CalculateMetaclass( (PyTypeObject *)metaclass, bases );
+        // Determine the proper metatype
+        Py_ssize_t nbases = PyTuple_GET_SIZE( bases );
+        PyTypeObject *winner = (PyTypeObject *)metaclass;
+
+        for ( int i = 0; i < nbases; i++ )
+        {
+            PyObject *base = PyTuple_GET_ITEM( bases, i );
+
+            PyTypeObject *base_type = Py_TYPE( base );
+
+            if ( PyType_IsSubtype( winner, base_type ) )
+            {
+                // Ignore if current winner is already a subtype.
+                continue;
+            }
+            else if ( PyType_IsSubtype( base_type, winner ) )
+            {
+                // Use if, if it's a subtype of the current winner.
+                winner = base_type;
+                continue;
+            }
+            else
+            {
+                PyErr_Format(
+                    PyExc_TypeError,
+                    "metaclass conflict: the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases"
+                );
+
+                throw _PythonException();
+            }
+        }
 
         if (unlikely( winner == NULL ))
         {
             throw _PythonException();
         }
 
-        return INCREASE_REFCOUNT( winner );
+        return INCREASE_REFCOUNT( (PyObject *)winner );
     }
     else
     {

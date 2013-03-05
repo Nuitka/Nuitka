@@ -24,19 +24,19 @@ all other constructs use real temporary variables.
 """
 
 from .NodeBases import (
-    CPythonExpressionChildrenHavingBase,
-    CPythonExpressionMixin,
-    CPythonNodeBase
+    ExpressionChildrenHavingBase,
+    ExpressionMixin,
+    NodeBase
 )
 
 
-class CPythonExpressionAssignmentTempKeeper( CPythonExpressionChildrenHavingBase ):
+class ExpressionAssignmentTempKeeper( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_ASSIGNMENT_TEMP_KEEPER"
 
     named_children = ( "source", )
 
     def __init__( self, variable, source, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "source" : source,
@@ -60,20 +60,25 @@ class CPythonExpressionAssignmentTempKeeper( CPythonExpressionChildrenHavingBase
     def getVariableName( self ):
         return self.variable.getName()
 
-    getAssignSource = CPythonExpressionChildrenHavingBase.childGetter( "source" )
+    getAssignSource = ExpressionChildrenHavingBase.childGetter( "source" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
+        source = self.getAssignSource()
+
         if self.variable.getReferenced().isWriteOnly():
-            return self.getAssignSource(), "new_expression", "Removed useless temporary keeper assignment."
+            return source, "new_expression", "Removed useless temporary keeper assignment."
+
+        if source.willRaiseException( BaseException ):
+            return source, "new_raise", "Keeper assignment raises"
 
         return self, None, None
 
 
-class CPythonExpressionTempKeeperRef( CPythonNodeBase, CPythonExpressionMixin ):
+class ExpressionTempKeeperRef( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_TEMP_KEEPER_REF"
 
     def __init__( self, variable, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
         self.variable = variable
 
@@ -91,7 +96,7 @@ class CPythonExpressionTempKeeperRef( CPythonNodeBase, CPythonExpressionMixin ):
     def getVariableName( self ):
         return self.variable.getName()
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         friend = constraint_collection.getVariableValueFriend( self.getVariable() )
 
         if friend is not None and not friend.mayHaveSideEffects( None ) and friend.isNode():

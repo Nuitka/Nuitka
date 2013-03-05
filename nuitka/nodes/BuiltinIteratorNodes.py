@@ -23,22 +23,21 @@ important optimization issue.
 """
 
 from .NodeBases import (
-    CPythonExpressionBuiltinSingleArgBase,
-    CPythonExpressionChildrenHavingBase,
-    CPythonChildrenHaving,
-    CPythonNodeBase
+    ExpressionBuiltinSingleArgBase,
+    ExpressionChildrenHavingBase,
+    StatementChildrenHavingBase
 )
 
 from .ValueFriends import ValueFriendBase
 
-from .SideEffectNode import CPythonExpressionSideEffects
+from .SideEffectNodes import ExpressionSideEffects
 
 from nuitka.optimizations import BuiltinOptimization
 
 from nuitka import Options
 
 
-class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinLen( ExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_LEN"
 
     builtin_spec = BuiltinOptimization.builtin_len_spec
@@ -46,10 +45,10 @@ class CPythonExpressionBuiltinLen( CPythonExpressionBuiltinSingleArgBase ):
     def getIntegerValue( self, constraint_collection ):
         return self.getValue().getIterationLength( constraint_collection )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         from .NodeMakingHelpers import makeConstantReplacementNode, wrapExpressionWithNodeSideEffects
 
-        new_node, change_tags, change_desc = CPythonExpressionBuiltinSingleArgBase.computeNode(
+        new_node, change_tags, change_desc = ExpressionBuiltinSingleArgBase.computeExpression(
             self,
             constraint_collection = constraint_collection
         )
@@ -127,13 +126,13 @@ class ValueFriendBuiltinIter1( ValueFriendBase ):
         pass
 
 
-class CPythonExpressionBuiltinIter1( CPythonExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinIter1( ExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_ITER1"
 
     def getValueFriend( self, constraint_collection ):
         return ValueFriendBuiltinIter1( self.getValue().getValueFriend( constraint_collection ) )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         value = self.getValue()
 
         if value.isIteratorMaking():
@@ -169,7 +168,7 @@ class CPythonExpressionBuiltinIter1( CPythonExpressionBuiltinSingleArgBase ):
         return None
 
 
-class CPythonExpressionBuiltinNext1( CPythonExpressionBuiltinSingleArgBase ):
+class ExpressionBuiltinNext1( ExpressionBuiltinSingleArgBase ):
     kind = "EXPRESSION_BUILTIN_NEXT1"
 
     def getDetails( self ):
@@ -183,7 +182,7 @@ class CPythonExpressionBuiltinNext1( CPythonExpressionBuiltinSingleArgBase ):
             source_ref = source_ref
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         if not Options.isExperimental():
             return self, None, None
 
@@ -197,7 +196,7 @@ class CPythonExpressionBuiltinNext1( CPythonExpressionBuiltinSingleArgBase ):
                     # As a side effect, keep the iteration, later checks may depend on it,
                     # or if absent, optimizations will remove it.
                     if not self.parent.isExpressionSideEffects():
-                        value = CPythonExpressionSideEffects(
+                        value = ExpressionSideEffects(
                             expression   = value.makeCloneAt(
                                 source_ref = self.getSourceReference()
                             ),
@@ -216,11 +215,11 @@ class CPythonExpressionBuiltinNext1( CPythonExpressionBuiltinSingleArgBase ):
         return self, None, None
 
 
-class CPythonExpressionSpecialUnpack( CPythonExpressionBuiltinNext1 ):
+class ExpressionSpecialUnpack( ExpressionBuiltinNext1 ):
     kind = "EXPRESSION_SPECIAL_UNPACK"
 
     def __init__( self, value, count, source_ref ):
-        CPythonExpressionBuiltinNext1.__init__(
+        ExpressionBuiltinNext1.__init__(
             self,
             value      = value,
             source_ref = source_ref
@@ -236,7 +235,7 @@ class CPythonExpressionSpecialUnpack( CPythonExpressionBuiltinNext1 ):
         )
 
     def getDetails( self ):
-        result = CPythonExpressionBuiltinNext1.getDetails( self )
+        result = ExpressionBuiltinNext1.getDetails( self )
         result[ "element_index" ] = self.getCount()
 
         return result
@@ -245,19 +244,18 @@ class CPythonExpressionSpecialUnpack( CPythonExpressionBuiltinNext1 ):
         return self.count
 
 
-class CPythonStatementSpecialUnpackCheck( CPythonChildrenHaving, CPythonNodeBase ):
+class StatementSpecialUnpackCheck( StatementChildrenHavingBase ):
     kind = "STATEMENT_SPECIAL_UNPACK_CHECK"
 
     named_children = ( "iterator", )
 
     def __init__( self, iterator, count, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
-
-        CPythonChildrenHaving.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            values = {
+            values     = {
                 "iterator" : iterator
-            }
+            },
+            source_ref = source_ref
         )
 
         self.count = count
@@ -270,16 +268,36 @@ class CPythonStatementSpecialUnpackCheck( CPythonChildrenHaving, CPythonNodeBase
     def getCount( self ):
         return self.count
 
-    getIterator = CPythonExpressionChildrenHavingBase.childGetter( "iterator" )
+    getIterator = StatementChildrenHavingBase.childGetter( "iterator" )
+
+    def computeStatement( self, constraint_collection ):
+        constraint_collection.onExpression( self.getIterator() )
+        iterator = self.getIterator()
+
+        if iterator.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+
+            result = makeStatementExpressionOnlyReplacementNode(
+                expression = iterator,
+                node       = self
+            )
+
+            return result, "new_raise", "Explicit raise already raises implicitely building exception type"
+
+        # Remove the check if it can be decided at compile time.
+        if iterator.isKnownToBeIterableAtMax( 0, constraint_collection ):
+            return None, "new_statements", "Determined iteration end check to be always true."
+
+        return self, None, None
 
 
-class CPythonExpressionBuiltinIter2( CPythonExpressionChildrenHavingBase ):
+class ExpressionBuiltinIter2( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_ITER2"
 
     named_children = ( "callable", "sentinel", )
 
     def __init__( self, callable, sentinel, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values = {
                 "callable" : callable,
@@ -288,23 +306,23 @@ class CPythonExpressionBuiltinIter2( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getCallable = CPythonExpressionChildrenHavingBase.childGetter( "callable" )
-    getSentinel = CPythonExpressionChildrenHavingBase.childGetter( "sentinel" )
+    getCallable = ExpressionChildrenHavingBase.childGetter( "callable" )
+    getSentinel = ExpressionChildrenHavingBase.childGetter( "sentinel" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         return self, None, None
 
     def isIteratorMaking( self ):
         return True
 
 
-class CPythonExpressionBuiltinNext2( CPythonExpressionChildrenHavingBase ):
+class ExpressionBuiltinNext2( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_NEXT2"
 
     named_children = ( "iterator", "default", )
 
     def __init__( self, iterator, default, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values = {
                 "iterator" : iterator,
@@ -313,8 +331,8 @@ class CPythonExpressionBuiltinNext2( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getIterator = CPythonExpressionChildrenHavingBase.childGetter( "iterator" )
-    getDefault = CPythonExpressionChildrenHavingBase.childGetter( "default" )
+    getIterator = ExpressionChildrenHavingBase.childGetter( "iterator" )
+    getDefault = ExpressionChildrenHavingBase.childGetter( "default" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         return self, None, None

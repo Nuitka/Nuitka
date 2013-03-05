@@ -37,6 +37,8 @@ class Variable:
         self.read_only_indicator = None
         self.has_del = False
 
+        self.version_number = 0
+
     def getName( self ):
         return self.variable_name
 
@@ -75,6 +77,10 @@ class Variable:
     def setHasDelIndicator( self ):
         self.has_del = True
 
+    def allocateTargetNumber( self ):
+        self.version_number += 1
+
+        return self.version_number
 
     # pylint: disable=R0201
     def isLocalVariable( self ):
@@ -150,9 +156,6 @@ class Variable:
         # Need to provider a reference class, or else making references cannot work.
         assert self.reference_class, self
 
-        if self.__class__ == TempVariableReference:
-            assert self.reference_class == TempVariableReference2, ( self.__class__, self.reference_class )
-
         # Search for existing references to be re-used before making a new one.
         for reference in self.references:
             if reference.getOwner() is owner:
@@ -199,7 +202,10 @@ class VariableReferenceBase( Variable ):
         return self.getReferenced().read_only_indicator
 
     def __repr__( self ):
-        return "<%s to %s>" % ( self.__class__.__name__, str( self.variable )[1:-1] )
+        return "<%s to %s>" % (
+            self.__class__.__name__,
+            str( self.variable )[1:-1]
+        )
 
     def getReferenced( self ):
         return self.variable

@@ -21,15 +21,15 @@ The classes are are at the core of the language and have their complexities.
 
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase
 
-class CPythonExpressionSelectMetaclass( CPythonExpressionChildrenHavingBase ):
+class ExpressionSelectMetaclass( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_SELECT_METACLASS"
 
     named_children = ( "metaclass", "bases", )
 
     def __init__( self, metaclass, bases, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values = {
                 "metaclass" : metaclass,
@@ -38,21 +38,21 @@ class CPythonExpressionSelectMetaclass( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Meta class selection is very computable, and should be done.
         return self, None, None
 
-    getMetaclass = CPythonExpressionChildrenHavingBase.childGetter( "metaclass" )
-    getBases = CPythonExpressionChildrenHavingBase.childGetter( "bases" )
+    getMetaclass = ExpressionChildrenHavingBase.childGetter( "metaclass" )
+    getBases = ExpressionChildrenHavingBase.childGetter( "bases" )
 
 
-class CPythonExpressionBuiltinType3( CPythonExpressionChildrenHavingBase ):
+class ExpressionBuiltinType3( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_TYPE3"
 
     named_children = ( "type_name", "bases", "dict" )
 
     def __init__( self, type_name, bases, type_dict, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "type_name" : type_name,
@@ -62,11 +62,11 @@ class CPythonExpressionBuiltinType3( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getTypeName = CPythonExpressionChildrenHavingBase.childGetter( "type_name" )
-    getBases = CPythonExpressionChildrenHavingBase.childGetter( "bases" )
-    getDict = CPythonExpressionChildrenHavingBase.childGetter( "dict" )
+    getTypeName = ExpressionChildrenHavingBase.childGetter( "type_name" )
+    getBases = ExpressionChildrenHavingBase.childGetter( "bases" )
+    getDict = ExpressionChildrenHavingBase.childGetter( "dict" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Should be compile time computable if bases and dict are.
 
         return self, None, None

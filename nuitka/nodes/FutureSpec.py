@@ -25,12 +25,13 @@ statements with their own future imports, or inlining of code from other modules
 from nuitka import Utils
 
 _future_division_default = Utils.python_version >= 300
+_future_absolute_import_default = Utils.python_version >= 330
 
 class FutureSpec:
     def __init__( self ):
         self._future_division   = _future_division_default
         self._unicode_literals  = False
-        self._absolute_import   = False
+        self._absolute_import   = _future_absolute_import_default
         self._future_print      = False
         self._barry_bdfl        = False
 

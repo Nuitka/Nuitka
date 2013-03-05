@@ -26,12 +26,25 @@ print "filename:", __file__
 print "builtins:", __builtins__
 print "debug", __debug__
 
+print "__initialised__",
+try:
+    print __initialised__
+except NameError:
+    print "not found"
+
 def checkFromFunction():
     frame = sys._getframe(1)
     locals = frame.f_locals
 
-    print "Globals", frame.f_globals
-    print "Locals", frame.f_locals
+    def displayDict( d ):
+        d = dict(d)
+        if "__loader__" in d:
+            d[ "__loader__" ] = "<loader removed>"
+
+        return repr( d )
+
+    print "Globals", displayDict( frame.f_globals )
+    print "Locals", displayDict( frame.f_locals )
     print "Is identical", frame.f_locals is frame.f_globals
 
 checkFromFunction()

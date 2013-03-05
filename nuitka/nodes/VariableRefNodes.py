@@ -24,21 +24,26 @@ expressions, changing the meaning of course dramatically.
 
 from nuitka import Variables, Builtins, Options
 
-from .NodeBases import CPythonChildrenHaving, CPythonNodeBase, CPythonExpressionMixin
+from .NodeBases import (
+    StatementChildrenHavingBase,
+    ExpressionMixin,
+    NodeBase
+)
 
+from nuitka.__past__ import iterItems
 
-from .ConstantRefNode import CPythonExpressionConstantRef
+from .ConstantRefNodes import ExpressionConstantRef
 
 def _isReadOnlyModuleVariable( variable ):
     return ( variable.isModuleVariable() and variable.getReadOnlyIndicator() is True ) or \
            variable.isMaybeLocalVariable()
 
 
-class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
+class ExpressionVariableRef( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_VARIABLE_REF"
 
     def __init__( self, variable_name, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
         self.variable_name = variable_name
         self.variable = None
@@ -65,27 +70,29 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
 
         return result
 
+    def isTargetVariableRef( self ):
+        return False
+
     def getVariableName( self ):
         return self.variable_name
 
     def getVariable( self ):
         return self.variable
 
-    def setVariable( self, variable, replace = False ):
+    def setVariable( self, variable ):
         assert isinstance( variable, Variables.Variable ), repr( variable )
-
-        assert self.variable is None or replace
+        assert self.variable is None
 
         self.variable = variable
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         assert self.variable is not None
 
         if _isReadOnlyModuleVariable( self.variable ):
             if self.variable_name in Builtins.builtin_exception_names:
-                from .BuiltinReferenceNodes import CPythonExpressionBuiltinExceptionRef
+                from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
-                new_node = CPythonExpressionBuiltinExceptionRef(
+                new_node = ExpressionBuiltinExceptionRef(
                     exception_name = self.variable_name,
                     source_ref     = self.getSourceReference()
                 )
@@ -94,9 +101,9 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
                 change_tags = "new_builtin"
                 change_desc = "Module variable '%s' found to be builtin exception reference." % self.variable_name
             elif self.variable_name in Builtins.builtin_names:
-                from .BuiltinReferenceNodes import CPythonExpressionBuiltinRef
+                from .BuiltinRefNodes import ExpressionBuiltinRef
 
-                new_node = CPythonExpressionBuiltinRef(
+                new_node = ExpressionBuiltinRef(
                     builtin_name = self.variable_name,
                     source_ref   = self.getSourceReference()
                 )
@@ -105,38 +112,21 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
                 change_tags = "new_builtin"
                 change_desc = "Module variable '%s' found to be builtin reference." % self.variable_name
             elif self.variable_name == "__name__":
-                new_node = CPythonExpressionConstantRef(
+                new_node = ExpressionConstantRef(
                     constant   = self.variable.getReferenced().getOwner().getFullName(),
                     source_ref = self.getSourceReference()
                 )
 
                 change_tags = "new_constant"
                 change_desc = "Replaced read-only module attribute '__name__' with constant value."
-            elif self.variable_name == "__doc__":
-                new_node = CPythonExpressionConstantRef(
-                    constant   = self.variable.getReferenced().getOwner().getDoc(),
-                    source_ref = self.getSourceReference()
-                )
-
-                change_tags = "new_constant"
-                change_desc = "Replaced read-only module attribute '__doc__' with constant value."
             elif self.variable_name == "__package__":
-                new_node = CPythonExpressionConstantRef(
+                new_node = ExpressionConstantRef(
                     constant   = self.variable.getReferenced().getOwner().getPackage(),
                     source_ref = self.getSourceReference()
                 )
 
                 change_tags = "new_constant"
                 change_desc = "Replaced read-only module attribute '__package__' with constant value."
-            elif self.variable_name == "__file__":
-                # TODO: We have had talks of this becoming more dynamic, but currently it isn't so.
-                new_node = CPythonExpressionConstantRef(
-                    constant   = self.variable.getReferenced().getOwner().getFilename(),
-                    source_ref = self.getSourceReference()
-                )
-
-                change_tags = "new_constant"
-                change_desc = "Replaced read-only module attribute '__file__' with constant value."
             else:
                 # Probably should give a warning once about it.
                 new_node = self
@@ -165,6 +155,9 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
 
         return self, None, None
 
+    def onContentEscapes( self, constraint_collection ):
+        constraint_collection.onVariableContentEscapes( self.variable )
+
     def isKnownToBeIterable( self, count ):
         return None
 
@@ -185,26 +178,60 @@ class CPythonExpressionVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
             return True
 
 
-class CPythonExpressionTargetVariableRef( CPythonExpressionVariableRef ):
+class ExpressionTargetVariableRef( ExpressionVariableRef ):
     kind = "EXPRESSION_TARGET_VARIABLE_REF"
 
-    def computeNode( self, constraint_collection ):
+    def __init__( self, variable_name, source_ref ):
+        ExpressionVariableRef.__init__( self, variable_name, source_ref )
+
+        self.variable_version = None
+
+    def getDetails( self ):
+        if self.variable is None:
+            return { "name" : self.variable_name }
+        else:
+            return {
+                "name"     : self.variable_name,
+                "variable" : self.variable,
+                "version"  : self.variable_version
+            }
+
+    def makeCloneAt( self, source_ref ):
+        result = self.__class__(
+            variable_name = self.variable_name,
+            source_ref    = source_ref
+        )
+
+        if self.variable is not None:
+            result.setVariable( self.variable )
+
+        return result
+
+    def computeExpression( self, constraint_collection ):
         assert False
 
+    def isTargetVariableRef( self ):
+        return True
 
-class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin ):
+    def getVariableVersion( self ):
+        assert self.variable_version is not None, self
+
+        return self.variable_version
+
+    def setVariable( self, variable ):
+        ExpressionVariableRef.setVariable( self, variable )
+
+        self.variable_version = variable.allocateTargetNumber()
+        assert self.variable_version is not None
+
+
+class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"
 
     def __init__( self, variable, source_ref ):
-        CPythonNodeBase.__init__( self, source_ref = source_ref )
+        NodeBase.__init__( self, source_ref = source_ref )
 
         self.variable = variable
-
-    def makeCloneAt( self, source_ref ):
-        return self.__class__(
-            variable   = self.variable,
-            source_ref = source_ref
-        )
 
     def getDetails( self ):
         return { "name" : self.variable.getName() }
@@ -212,18 +239,27 @@ class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin 
     def getDetail( self ):
         return self.variable.getName()
 
+    def makeCloneAt( self, source_ref ):
+        return self.__class__(
+            variable   = self.variable,
+            source_ref = source_ref
+        )
+
     def getVariableName( self ):
         return self.variable.getName()
 
     def getVariable( self ):
         return self.variable
 
-    def setVariable( self, variable ):
-        self.variable = variable
+    def isTargetVariableRef( self ):
+        return False
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # Nothing to do here.
         return self, None, None
+
+    def onContentEscapes( self, constraint_collection ):
+        constraint_collection.onVariableContentEscapes( self.variable )
 
     def mayRaiseException( self, exception_type ):
         # Can't happen
@@ -262,28 +298,53 @@ class CPythonExpressionTempVariableRef( CPythonNodeBase, CPythonExpressionMixin 
             return None
 
 
-class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
+    # Python3 only, it updates temporary variables that are closure variables.
+    def setVariable( self, variable ):
+        self.variable = variable
+
+
+class ExpressionTargetTempVariableRef( ExpressionTempVariableRef ):
+    kind = "EXPRESSION_TARGET_TEMP_VARIABLE_REF"
+
+    def __init__( self, variable, source_ref ):
+        ExpressionTempVariableRef.__init__( self, variable, source_ref )
+
+        self.variable_version = variable.allocateTargetNumber()
+
+    def computeExpression( self, constraint_collection ):
+        assert False, self.parent
+
+    def isTargetVariableRef( self ):
+        return True
+
+    def getVariableVersion( self ):
+        return self.variable_version
+
+    # Python3 only, it updates temporary variables that are closure variables.
+    def setVariable( self, variable ):
+        ExpressionTempVariableRef.setVariable( self, variable )
+
+        self.variable_version = self.variable.allocateTargetNumber()
+
+
+class StatementTempBlock( StatementChildrenHavingBase ):
     kind = "STATEMENT_TEMP_BLOCK"
 
     named_children = ( "body", )
 
     def __init__( self, source_ref ):
-        CPythonNodeBase.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
-            source_ref = source_ref.atInternal()
-        )
-
-        CPythonChildrenHaving.__init__(
-            self,
-            values = {
+            values     = {
                 "body" : None
-            }
+            },
+            source_ref = source_ref.atInternal()
         )
 
         self.temp_variables = {}
 
-    getBody = CPythonChildrenHaving.childGetter( "body" )
-    setBody = CPythonChildrenHaving.childSetter( "body" )
+    getBody = StatementChildrenHavingBase.childGetter( "body" )
+    setBody = StatementChildrenHavingBase.childSetter( "body" )
 
     def getTempVariable( self, name ):
         assert name not in self.temp_variables, name
@@ -302,3 +363,23 @@ class CPythonStatementTempBlock( CPythonChildrenHaving, CPythonNodeBase ):
 
     def mayHaveSideEffects( self, constraint_collection ):
         return self.getBody().mayHaveSideEffects( constraint_collection )
+
+    def computeStatement( self, constraint_collection ):
+        old_body = self.getBody()
+        result = constraint_collection.onStatementsSequence( old_body )
+
+        if result is not old_body:
+            self.setBody( result )
+
+        # TODO: That should be a method of the constraint_collection
+        for variable, friend in iterItems( dict( constraint_collection.variables ) ):
+            if variable.getOwner() is self:
+                del constraint_collection.variables[ variable ]
+
+                # TODO: Back propagate now.
+                friend.onRelease( self )
+
+        if result is None:
+            return None, "new_statements", "Removed empty temporary block"
+
+        return self, None, None

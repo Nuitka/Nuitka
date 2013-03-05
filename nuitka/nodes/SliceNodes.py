@@ -20,20 +20,20 @@
 Slices are important when working with lists. Tracking them can allow to achieve more
 compact code, or predict results at compile time.
 
-There will be a method "computeNodeSlice" to aid predicting them.
+There will be a method "computeExpressionSlice" to aid predicting them.
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import convertNoneConstantToNone
 
 
-class CPythonExpressionSliceLookup( CPythonExpressionChildrenHavingBase ):
+class ExpressionSliceLookup( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_SLICE_LOOKUP"
 
     named_children = ( "expression", "lower", "upper" )
 
     def __init__( self, expression, lower, upper, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "expression" : expression,
@@ -49,20 +49,20 @@ class CPythonExpressionSliceLookup( CPythonExpressionChildrenHavingBase ):
         if name in ( "lower", "upper" ):
             value = convertNoneConstantToNone( value )
 
-        return CPythonExpressionChildrenHavingBase.setChild( self, name, value )
+        return ExpressionChildrenHavingBase.setChild( self, name, value )
 
-    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
+    getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
 
-    getLower = CPythonExpressionChildrenHavingBase.childGetter( "lower" )
-    setLower = CPythonExpressionChildrenHavingBase.childSetter( "lower" )
+    getLower = ExpressionChildrenHavingBase.childGetter( "lower" )
+    setLower = ExpressionChildrenHavingBase.childSetter( "lower" )
 
-    getUpper = CPythonExpressionChildrenHavingBase.childGetter( "upper" )
-    setUpper = CPythonExpressionChildrenHavingBase.childSetter( "upper" )
+    getUpper = ExpressionChildrenHavingBase.childGetter( "upper" )
+    setUpper = ExpressionChildrenHavingBase.childSetter( "upper" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         lookup_source = self.getLookupSource()
 
-        return lookup_source.computeNodeSlice(
+        return lookup_source.computeExpressionSlice(
             lookup_node           = self,
             lower                 = self.getLower(),
             upper                 = self.getUpper(),
@@ -74,13 +74,13 @@ class CPythonExpressionSliceLookup( CPythonExpressionChildrenHavingBase ):
         return None
 
 
-class CPythonExpressionSliceObject( CPythonExpressionChildrenHavingBase ):
+class ExpressionSliceObject( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_SLICE_OBJECT"
 
     named_children = ( "lower", "upper", "step" )
 
     def __init__( self, lower, upper, step, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "upper"      : upper,
@@ -90,10 +90,10 @@ class CPythonExpressionSliceObject( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getLower = CPythonExpressionChildrenHavingBase.childGetter( "lower" )
-    getUpper = CPythonExpressionChildrenHavingBase.childGetter( "upper" )
-    getStep  = CPythonExpressionChildrenHavingBase.childGetter( "step" )
+    getLower = ExpressionChildrenHavingBase.childGetter( "lower" )
+    getUpper = ExpressionChildrenHavingBase.childGetter( "upper" )
+    getStep  = ExpressionChildrenHavingBase.childGetter( "step" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         # TODO: Not much to do, potentially simplify to slice instead?
         return self, None, None

@@ -641,7 +641,7 @@ def createGraphs():
 
     import matplotlib.pyplot as plt
 
-    plt.title( "PyStone ticks after entering __main__" )
+    plt.title( "PyStone ticks after entering '__main__' (i.e. without initialisation)" )
     plt.ylabel( "ticks" )
     plt.xlabel( "version" )
 
@@ -653,19 +653,16 @@ def createGraphs():
     plt.yticks( ( 900000000, 950000000, 1000000000, ), ( "900M", "950M", "1000M", ) )
 
     sizes = plt.gcf().get_size_inches()
-    plt.gcf().set_size_inches( sizes[0]*1.5, sizes[1]*1.5 )
-
-    # plt.savefig( os.path.join( orig_dir, options.graphs_output_dir, "pystone27-nuitka.svg" ) )
-    # plt.close()
 
     counts = [ i*3 for i in range( 0, len( values_pystone_26 ) ) ]
 
     p26 = plt.bar( counts, values_pystone_26, width = 1 )
 
-    plt.legend( ( p26[0], p27[0] ), ( "Python2.6", "Python2.7" ), bbox_to_anchor=(1.005, 1), loc=2, borderaxespad=0.,  )
-
     sizes = plt.gcf().get_size_inches()
     plt.gcf().set_size_inches( sizes[0]*1.5, sizes[1]*1.5 )
+
+    plt.legend( ( p26[0], p27[0] ), ( "2.6", "2.7" ), bbox_to_anchor=(1.005, 1), loc=2, borderaxespad=0.0,  )
+
     plt.savefig( os.path.join( orig_dir, options.graphs_output_dir, "pystone-nuitka.svg" ) )
 
 

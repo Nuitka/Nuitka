@@ -21,47 +21,32 @@ These are for use in optimizations and computations, and therefore cover mostly 
 and constants. Otherwise the thread of cyclic dependency kicks in.
 """
 
-from .ConstantRefNode import CPythonExpressionConstantRef
+from .ConstantRefNodes import ExpressionConstantRef
 
 from nuitka.Constants import isConstant
 from nuitka.Builtins import builtin_names
 
-from .BuiltinReferenceNodes import (
-    CPythonExpressionBuiltinExceptionRef,
-    CPythonExpressionBuiltinRef
+from .BuiltinRefNodes import (
+    ExpressionBuiltinExceptionRef,
+    ExpressionBuiltinRef
 )
-from .ExceptionNodes import (
-    CPythonExpressionRaiseException,
-    CPythonStatementRaiseException
-)
+from .ExceptionNodes import ExpressionRaiseException
 from .StatementNodes import (
-    CPythonStatementExpressionOnly,
-    CPythonStatementsSequence
+    StatementExpressionOnly,
+    StatementsSequence
 )
-from .ComparisonNode import (
-    CPythonExpressionComparison,
-    CPythonExpressionComparisonIs,
-    CPythonExpressionComparisonIsNOT
+from .ComparisonNodes import (
+    ExpressionComparison,
+    ExpressionComparisonIs,
+    ExpressionComparisonIsNOT
 )
-from .SideEffectNode import CPythonExpressionSideEffects
+from .SideEffectNodes import ExpressionSideEffects
 
 
 def makeConstantReplacementNode( constant, node ):
-    return CPythonExpressionConstantRef(
+    return ExpressionConstantRef(
         constant   = constant,
         source_ref = node.getSourceReference()
-    )
-
-def makeBuiltinExceptionRefReplacementNode( exception_name, node ):
-    return CPythonExpressionBuiltinExceptionRef(
-        exception_name = exception_name,
-        source_ref     = node.getSourceReference()
-    )
-
-def makeBuiltinRefReplacementNode( builtin_name, node ):
-    return CPythonExpressionBuiltinRef(
-        builtin_name = builtin_name,
-        source_ref   = node.getSourceReference()
     )
 
 def makeRaiseExceptionReplacementExpression( expression, exception_type, exception_value ):
@@ -69,8 +54,8 @@ def makeRaiseExceptionReplacementExpression( expression, exception_type, excepti
 
     assert type( exception_type ) is str
 
-    result = CPythonExpressionRaiseException(
-        exception_type  = CPythonExpressionBuiltinExceptionRef(
+    result = ExpressionRaiseException(
+        exception_type  = ExpressionBuiltinExceptionRef(
             exception_name = exception_type,
             source_ref     = source_ref
         ),
@@ -103,7 +88,7 @@ def makeCompileTimeConstantReplacementNode( value, node ):
         )
     elif type( value ) is type:
         if value.__name__ in builtin_names:
-            return CPythonExpressionBuiltinRef(
+            return ExpressionBuiltinRef(
                 builtin_name = value.__name__,
                 source_ref    = node.getSourceReference()
             )
@@ -128,7 +113,7 @@ def getComputationResult( node, computation, description ):
         )
 
         change_tags = "new_raise"
-        change_desc = description + " was predicted to raise an exception."
+        change_desc = description + " Was predicted to raise an exception."
     else:
         new_node = makeCompileTimeConstantReplacementNode(
             value = result,
@@ -137,41 +122,21 @@ def getComputationResult( node, computation, description ):
 
         if new_node is not node:
             change_tags = "new_constant"
-            change_desc = description + " was predicted to constant result."
+            change_desc = description + " Was predicted to constant result."
         else:
             change_tags = None
             change_desc = None
 
     return new_node, change_tags, change_desc
 
-def makeRaiseExceptionReplacementStatement( statement, exception_type, exception_value ):
-    source_ref = statement.getSourceReference()
-
-    assert type( exception_type ) is str
-
-    result = CPythonStatementRaiseException(
-        exception_type  = makeBuiltinExceptionRefReplacementNode(
-            exception_name = exception_type,
-            node           = statement
-        ),
-        exception_value = makeConstantReplacementNode(
-            constant = exception_value,
-            node     = statement
-        ),
-        exception_trace = None,
-        source_ref = source_ref
-    )
-
-    return result
-
 def makeStatementExpressionOnlyReplacementNode( expression, node ):
-    return CPythonStatementExpressionOnly(
+    return StatementExpressionOnly(
         expression = expression,
         source_ref = node.getSourceReference()
     )
 
 def makeStatementsSequenceReplacementNode( statements, node ):
-    return CPythonStatementsSequence(
+    return StatementsSequence(
         statements = statements,
         source_ref = node.getSourceReference()
     )
@@ -188,7 +153,7 @@ def wrapExpressionWithSideEffects( side_effects, old_node, new_node ):
     assert new_node.isExpression()
 
     if side_effects:
-        new_node = CPythonExpressionSideEffects(
+        new_node = ExpressionSideEffects(
             expression   = new_node,
             side_effects = side_effects,
             source_ref   = old_node.getSourceReference()
@@ -210,7 +175,7 @@ def wrapStatementWithSideEffects( new_node, old_node, allow_none = False ):
 
     if side_effects:
         side_effects = tuple(
-            CPythonStatementExpressionOnly(
+            StatementExpressionOnly(
                 expression = side_effect,
                 source_ref = side_effect.getSourceReference()
             )
@@ -230,21 +195,40 @@ def wrapStatementWithSideEffects( new_node, old_node, allow_none = False ):
 
     return new_node
 
+def makeStatementOnlyNodesFromExpressions( expressions ):
+    statements = tuple(
+        StatementExpressionOnly(
+            expression = expression,
+            source_ref = expression.getSourceReference()
+        )
+        for expression in expressions
+    )
+
+    if not statements:
+        return None
+    elif len( statements ) == 1:
+        return statements[ 0 ]
+    else:
+        return StatementsSequence(
+            statements = statements,
+            source_ref = statements[0].getSourceReference()
+        )
+
 def makeComparisonNode( left, right, comparator, source_ref ):
     if comparator == "Is":
-        return CPythonExpressionComparisonIs(
+        return ExpressionComparisonIs(
             left       = left,
             right      = right,
             source_ref = source_ref
         )
     elif comparator == "IsNot":
-        return CPythonExpressionComparisonIsNOT(
+        return ExpressionComparisonIsNOT(
                 left       = left,
                 right      = right,
                 source_ref = source_ref
             )
     else:
-        return CPythonExpressionComparison(
+        return ExpressionComparison(
             left       = left,
             right      = right,
             comparator = comparator,

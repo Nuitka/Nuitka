@@ -274,7 +274,7 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
         return _generated_functions[ function_identifier ]
 
     # TODO: Actually that will become possible to happen and should be dealt with.
-    assert not function_body.needsCreation() or not function_body.needsDirectCall()
+    assert not function_body.needsCreation() or not function_body.needsDirectCall(), function_body
 
     if function_body.needsCreation():
         function_context = Contexts.PythonFunctionCreatedContext(
@@ -1004,6 +1004,10 @@ def generateExpressionCode( expression, context, allow_none = False ):
             identifier = makeExpressionCode( expression.getValue() )
         )
     elif expression.isExpressionRaiseException():
+        # Missed optimization opportunity, please report.
+        if Options.isDebug():
+            assert expression.parent.isExpressionSideEffects(), ( expression, expression.parent )
+
         identifier = Generator.getRaiseExceptionExpressionCode(
             exception_type_identifier  = makeExpressionCode(
                 expression = expression.getExceptionType()
@@ -1496,7 +1500,8 @@ def generateRaiseCode( statement, context ):
             ),
             exception_tb_maker         = Generator.getTracebackMakingIdentifier(
                 context = context,
-            )
+            ),
+            implicit                   = statement.isImplicit()
         )
     elif exception_tb is None:
         return Generator.getRaiseExceptionCode(
@@ -1512,7 +1517,8 @@ def generateRaiseCode( statement, context ):
             exception_cause_identifier = None,
             exception_tb_maker         = Generator.getTracebackMakingIdentifier(
                 context = context,
-            )
+            ),
+            implicit                   = statement.isImplicit()
         )
     else:
         return Generator.getRaiseExceptionCode(
@@ -1529,7 +1535,8 @@ def generateRaiseCode( statement, context ):
                 context    = context
             ),
             exception_cause_identifier = None,
-            exception_tb_maker         = None
+            exception_tb_maker         = None,
+            implicit                   = statement.isImplicit()
         )
 
 def generateImportModuleCode( expression, context ):
@@ -1539,7 +1546,7 @@ def generateImportModuleCode( expression, context ):
         context = context
     )
 
-    if provider.isModule():
+    if provider.isPythonModule():
         locals_dict = globals_dict
     else:
         locals_dict  = generateBuiltinLocalsCode(
@@ -1585,7 +1592,7 @@ def generateBuiltinImportCode( expression, context ):
     if locals_dict is None:
         provider = expression.getParentVariableProvider()
 
-        if provider.isModule():
+        if provider.isPythonModule():
             locals_dict = globals_dict
         else:
             locals_dict  = generateBuiltinLocalsCode(
@@ -2003,7 +2010,7 @@ def generateStatementSequenceCode( statement_sequence, context, allow_none = Fal
     return codes
 
 def generateModuleCode( global_context, module, module_name, other_modules ):
-    assert module.isModule(), module
+    assert module.isPythonModule(), module
 
     context = Contexts.PythonModuleContext(
         module_name    = module_name,
@@ -2022,21 +2029,8 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
 
     codes = codes or []
 
-    if module.isPackage():
-        path_identifier = context.getConstantHandle(
-            constant = module.getPathAttribute()
-        )
-    else:
-        path_identifier = None
-
     source_code = Generator.getModuleCode(
         module_name        = module_name,
-        package_name       = module.getPackage(),
-        doc_identifier     = context.getConstantHandle(
-            constant = module.getDoc()
-        ),
-        source_ref         = module.getSourceReference(),
-        path_identifier    = path_identifier,
         codes              = codes,
         tmp_keepers        = context.getTempKeeperUsages(),
         other_module_names = [

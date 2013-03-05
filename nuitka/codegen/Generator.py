@@ -39,11 +39,13 @@ from .Identifiers import (
 
 from .Indentation import indented
 
-from .Pickling import getStreamedConstant
-
 from .OrderedEvaluation import getEvalOrderedCode
 
-from .ConstantCodes import getConstantHandle, getConstantCode
+from .ConstantCodes import (
+    getConstantsInitCode,
+    getConstantHandle,
+    getConstantCode
+)
 
 # These are here to be imported from here
 # pylint: disable=W0611
@@ -75,11 +77,9 @@ from nuitka import (
     Utils
 )
 
-# pylint: disable=W0622
-from ..__past__ import long, unicode, iterItems
-# pylint: enable=W0622
+from ..__past__ import iterItems
 
-import re, sys
+import sys
 
 def getConstantAccess( context, constant ):
     # Many cases, because for each type, we may copy or optimize by creating empty.
@@ -906,7 +906,8 @@ def getAssignmentTempKeeperCode( source_identifier, variable, context ):
     variable_name = variable.getName()
 
     assert variable.getReferenced().getNeedsFree() == bool( ref_count ), \
-           ( variable, variable.getReferenced().getNeedsFree(), ref_count, source_identifier )
+           ( variable, variable.getReferenced().getNeedsFree(), ref_count,
+             source_identifier, source_identifier.__class__ )
 
     context.addTempKeeperUsage( variable_name, ref_count )
 
@@ -1083,25 +1084,34 @@ def getTryNextExceptStopIterationCode( source_identifier, handler_code, assign_c
 
 def getRaiseExceptionCode( exception_type_identifier, exception_value_identifier,
                            exception_tb_identifier, exception_cause_identifier,
-                           exception_tb_maker ):
+                           exception_tb_maker, implicit ):
     if exception_cause_identifier is not None:
+        assert not exception_value_identifier
+        assert not exception_tb_identifier
+        assert not implicit
+
         return "RAISE_EXCEPTION_WITH_CAUSE( %s, %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_cause_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
         )
     elif exception_value_identifier is None and exception_tb_identifier is None:
+        assert not implicit
+
         return "RAISE_EXCEPTION_WITH_TYPE( %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
         )
     elif exception_tb_identifier is None:
-        return "RAISE_EXCEPTION_WITH_VALUE( %s, %s, %s );" % (
+        return "RAISE_EXCEPTION_WITH_VALUE%s( %s, %s, %s );" % (
+            "_NO_NORMALIZE" if implicit else "",
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
             exception_tb_maker.getCodeExportRef()
         )
     else:
+        assert not implicit
+
         return "RAISE_EXCEPTION_WITH_TRACEBACK( %s, %s, %s );" % (
             exception_type_identifier.getCodeExportRef(),
             exception_value_identifier.getCodeExportRef(),
@@ -1186,7 +1196,7 @@ def getExceptionRefCode( exception_type ):
 
 def getMakeBuiltinExceptionCode( context, exception_type, exception_args ):
     return getCallCode(
-        called_identifier   = Identifier( "PyExc_%s" % exception_type, 0 ),
+        called_identifier   = getExceptionRefCode( exception_type ),
         argument_tuple      = getTupleCreationCode(
             element_identifiers = exception_args,
             context             = context,
@@ -1229,7 +1239,7 @@ def _getLocalVariableList( context, provider ):
 
 
 def getLoadDirCode( context, provider ):
-    if provider.isModule():
+    if provider.isPythonModule():
         globals_identifier = getLoadGlobalsCode(
             context = context
         )
@@ -1287,7 +1297,7 @@ def getLoadGlobalsCode( context ):
     )
 
 def getLoadLocalsCode( context, provider, mode ):
-    if provider.isModule():
+    if provider.isPythonModule():
         return getLoadGlobalsCode( context )
     elif not context.hasLocalsDict():
         local_list = _getLocalVariableList(
@@ -1341,7 +1351,7 @@ def getSetLocalsCode( new_locals_identifier ):
     return "locals_dict.assign1( %s );" % new_locals_identifier.getCodeExportRef()
 
 def getStoreLocalsCode( context, source_identifier, provider ):
-    assert not provider.isModule()
+    assert not provider.isPythonModule()
 
     code = ""
 
@@ -1682,24 +1692,11 @@ def getModuleIdentifier( module_name ):
 def getPackageIdentifier( module_name ):
     return module_name.replace( ".", "__" )
 
-def getModuleCode( context, module_name, package_name, codes, tmp_keepers,
-                   doc_identifier, path_identifier, other_module_names, source_ref ):
-
+def getModuleCode( context, module_name, codes, tmp_keepers, other_module_names ):
     # For the module code, lots of attributes come together. pylint: disable=R0914
 
     functions_decl = getFunctionsDecl( context = context )
     functions_code = getFunctionsCode( context = context )
-
-    module_var_names = context.getGlobalVariableNames()
-
-    # These ones are used in the init code to set these variables to their values
-    # after module creation.
-    module_var_names.add( "__file__" )
-    module_var_names.add( "__doc__" )
-    module_var_names.add( "__package__" )
-
-    if path_identifier is not None:
-        module_var_names.add( "__path__" )
 
     module_identifier = getModuleIdentifier( module_name )
 
@@ -1713,39 +1710,9 @@ def getModuleCode( context, module_name, package_name, codes, tmp_keepers,
                 getConstantCode( constant = var_name, context = context )
             )
             for var_name in
-            sorted( module_var_names )
+            context.getGlobalVariableNames()
         ]
     )
-
-    if package_name is None:
-        module_inits = CodeTemplates.module_init_no_package_template % {
-            "module_identifier"   : module_identifier,
-            "filename_identifier" : getConstantCode(
-                constant = source_ref.getFilename(),
-                context  = context
-            ),
-            "doc_identifier"      : doc_identifier.getCode(),
-            "is_package"          : 0 if path_identifier is None else 1,
-            "path_identifier"     : path_identifier.getCode() if path_identifier else "",
-        }
-    else:
-        module_inits = CodeTemplates.module_init_in_package_template % {
-            "module_identifier"       : module_identifier,
-            "module_name"             : getConstantCode(
-                constant = module_name.split(".")[-1],
-                context  = context
-            ),
-            "filename_identifier"     : getConstantCode(
-                constant = source_ref.getFilename(),
-                context  = context
-            ),
-            "is_package"              : 0 if path_identifier is None else 1,
-            "path_identifier"         : path_identifier.getCode() if path_identifier else "",
-            "doc_identifier"          : doc_identifier.getCode(),
-            "package_identifier"      : getPackageIdentifier( package_name )
-        }
-
-    assert module_inits.endswith( "\n" )
 
     header = CodeTemplates.global_copyright % {
         "name"    : module_name,
@@ -1779,7 +1746,7 @@ def getModuleCode( context, module_name, package_name, codes, tmp_keepers,
         "module_functions_decl" : functions_decl,
         "module_functions_code" : functions_code,
         "module_globals"        : module_globals,
-        "module_inits"          : module_inits + indented( module_local_decl ),
+        "module_inits"          : indented( module_local_decl ),
         "module_code"           : indented( codes ),
         "module_inittab"        : indented( sorted( module_inittab ) ),
         "use_unfreezer"         : 1 if other_module_names else 0
@@ -2442,192 +2409,6 @@ def _getConstantsDeclarationCode( context, for_header ):
 
     return "\n".join( statements )
 
-# TODO: The determination of this should already happen in Building or in a helper not
-# during code generation.
-_match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
-
-def _isAttributeName( value ):
-    return _match_attribute_names.match( value )
-
-def _getUnstreamCode( constant_value, constant_identifier ):
-    saved = getStreamedConstant(
-        constant_value = constant_value
-    )
-
-    assert type( saved ) is bytes
-
-    return "%s = UNSTREAM_CONSTANT( %s, %d );" % (
-        constant_identifier,
-        CppStrings.encodeString( saved ),
-        len( saved )
-    )
-
-def _getConstantsDefinitionCode( context ):
-    # There are many cases for constants to be created in the most efficient way,
-    # pylint: disable=R0912
-
-    statements = []
-
-    for constant_desc, constant_identifier in context.getConstants():
-        constant_type, constant_value = constant_desc
-        constant_value = constant_value.getConstant()
-
-        # Use shortest code for ints and longs, except when they are big, then fall
-        # fallback to pickling.
-        if constant_type is int and abs( constant_value ) < 2**31:
-            statements.append(
-                "%s = PyInt_FromLong( %s );" % (
-                    constant_identifier,
-                    constant_value
-                )
-            )
-
-            continue
-
-        if constant_type is long and abs( constant_value ) < 2**31:
-            statements.append(
-                "%s = PyLong_FromLong( %s );" % (
-                    constant_identifier,
-                    constant_value
-                )
-            )
-
-            continue
-
-        if constant_type is dict and constant_value == {}:
-            statements.append(
-                "%s = PyDict_New();" % constant_identifier
-            )
-
-            continue
-
-        if constant_type is tuple and constant_value == ():
-            statements.append(
-                "%s = PyTuple_New( 0 );" % constant_identifier
-            )
-
-            continue
-
-        if constant_type is list and constant_value == []:
-            statements.append(
-                "%s = PyList_New( 0 );" % constant_identifier
-            )
-
-            continue
-
-        if constant_type is set and constant_value == set():
-            statements.append(
-                "%s = PySet_New( NULL );" % constant_identifier
-            )
-
-            continue
-
-        if constant_type is str:
-            if str is not unicode:
-                statements.append(
-                    '%s = UNSTREAM_STRING( %s, %d, %d );assert( %s );' % (
-                        constant_identifier,
-                        CppStrings.encodeString( constant_value ),
-                        len( constant_value ),
-                        1 if _isAttributeName( constant_value ) else 0,
-                        constant_identifier
-                    )
-                )
-
-                continue
-            else:
-                try:
-                    encoded = constant_value.encode( "utf-8" )
-
-                    statements.append(
-                        '%s = UNSTREAM_STRING( %s, %d, %d );assert( %s );' % (
-                            constant_identifier,
-                            CppStrings.encodeString( encoded ),
-                            len( encoded ),
-                            1 if _isAttributeName( constant_value ) else 0,
-                            constant_identifier
-                        )
-                    )
-
-                    continue
-                except UnicodeEncodeError:
-                    pass
-
-        if constant_value is None:
-            continue
-
-        if constant_value is False:
-            continue
-
-        if constant_value is True:
-            continue
-
-        if constant_type in ( tuple, list, float, complex, unicode, int, long, dict, frozenset, set, bytes, range ):
-            statements.append(
-                _getUnstreamCode( constant_value, constant_identifier )
-            )
-
-            continue
-
-        assert False, (type(constant_value), constant_value, constant_identifier)
-
-    for code_object_key, code_identifier in context.getCodeObjects():
-        co_flags = []
-
-        if code_object_key[2] != 0:
-            co_flags.append( "CO_NEWLOCALS" )
-
-        if code_object_key[5]:
-            co_flags.append( "CO_GENERATOR" )
-
-        if code_object_key[6]:
-            co_flags.append( "CO_OPTIMIZED" )
-
-        if Utils.python_version < 300:
-            code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (
-                code_identifier.getCode(),
-                getConstantCode(
-                    constant = code_object_key[0],
-                    context  = context
-                ),
-                getConstantCode(
-                    constant = code_object_key[1],
-                    context  = context
-                ),
-                code_object_key[2],
-                getConstantCode(
-                    constant = code_object_key[3],
-                    context  = context
-                ),
-                len( code_object_key[3] ),
-                " | ".join( co_flags ) or "0",
-            )
-        else:
-            code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %d, %s );" % (
-                code_identifier.getCode(),
-                getConstantCode(
-                    constant = code_object_key[0],
-                    context  = context
-                ),
-                getConstantCode(
-                    constant = code_object_key[1],
-                    context  = context
-                ),
-                code_object_key[2],
-                getConstantCode(
-                    constant = code_object_key[3],
-                    context  = context
-                ),
-                len( code_object_key[3] ),
-                code_object_key[4],
-                " | ".join( co_flags ) or  "0",
-            )
-
-
-        statements.append( code )
-
-    return indented( statements )
-
 def getReversionMacrosCode( context ):
     reverse_macros = []
     noreverse_macros = []
@@ -2786,7 +2567,7 @@ def getConstantsDeclarationCode( context ):
 
 def getConstantsDefinitionCode( context ):
     return CodeTemplates.template_constants_reading % {
-        "constant_inits"        : _getConstantsDefinitionCode(
+        "constant_inits"        : getConstantsInitCode(
             context    = context
         ),
         "constant_declarations" : _getConstantsDeclarationCode(

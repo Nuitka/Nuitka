@@ -20,19 +20,19 @@
 Subscripts are important when working with lists and dictionaries. Tracking them can allow
 to achieve more compact code, or predict results at compile time.
 
-There will be a method "computeNodeSubscript" to aid predicting them.
+There will be a method "computeExpressionSubscript" to aid predicting them.
 """
 
-from .NodeBases import CPythonExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase
 
 
-class CPythonExpressionSubscriptLookup( CPythonExpressionChildrenHavingBase ):
+class ExpressionSubscriptLookup( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_SUBSCRIPT_LOOKUP"
 
     named_children = ( "expression", "subscript" )
 
     def __init__( self, expression, subscript, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "expression" : expression,
@@ -41,13 +41,13 @@ class CPythonExpressionSubscriptLookup( CPythonExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    getLookupSource = CPythonExpressionChildrenHavingBase.childGetter( "expression" )
-    getSubscript = CPythonExpressionChildrenHavingBase.childGetter( "subscript" )
+    getLookupSource = ExpressionChildrenHavingBase.childGetter( "expression" )
+    getSubscript = ExpressionChildrenHavingBase.childGetter( "subscript" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         lookup_source = self.getLookupSource()
 
-        return lookup_source.computeNodeSubscript(
+        return lookup_source.computeExpressionSubscript(
             lookup_node           = self,
             subscript             = self.getSubscript(),
             constraint_collection = constraint_collection

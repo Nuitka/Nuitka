@@ -43,6 +43,9 @@ struct Nuitka_FunctionObject {
     PyObject_HEAD
 
     PyObject *m_name;
+#if PYTHON_VERSION >= 330
+    PyObject *m_qualname;
+#endif
 
     void *m_context;
     releaser m_cleanup;

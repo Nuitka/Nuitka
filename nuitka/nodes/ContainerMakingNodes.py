@@ -20,11 +20,11 @@
 """
 
 
-from .NodeBases import CPythonExpressionChildrenHavingBase, CPythonSideEffectsFromChildrenMixin
+from .NodeBases import ExpressionChildrenHavingBase, SideEffectsFromChildrenMixin
 
 
-class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
-                                         CPythonExpressionChildrenHavingBase ):
+class ExpressionMakeSequenceBase( SideEffectsFromChildrenMixin,
+                                  ExpressionChildrenHavingBase ):
     named_children = ( "elements", )
 
     def __init__( self, sequence_kind, elements, source_ref ):
@@ -35,7 +35,7 @@ class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
 
         self.sequence_kind = sequence_kind.lower()
 
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "elements" : tuple( elements ),
@@ -50,32 +50,47 @@ class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
     def getSequenceKind( self ):
         return self.sequence_kind
 
-    getElements = CPythonExpressionChildrenHavingBase.childGetter( "elements" )
+    getElements = ExpressionChildrenHavingBase.childGetter( "elements" )
 
     def getSimulator( self ):
         # Abstract method, pylint: disable=R0201,W0613
         return None
 
-    def computeNode( self, constraint_collection ):
-        for element in self.getElements():
+    def computeExpression( self, constraint_collection ):
+        elements = self.getElements()
+
+        for count, element in enumerate( elements ):
+            if element.willRaiseException( BaseException ):
+                from .NodeMakingHelpers import wrapExpressionWithSideEffects
+
+                result = wrapExpressionWithSideEffects(
+                    side_effects = elements[ : count ],
+                    new_node     = element,
+                    old_node     = self
+                )
+
+                return result, "new_raise", "Sequence creation raises exception"
+
+        # TODO: CompileTimeConstant should be good enough.
+        for element in elements:
             if not element.isExpressionConstantRef() or element.isMutable():
                 return self, None, None
-        else:
-            simulator = self.getSimulator()
-            assert simulator is not None
 
-            from .NodeMakingHelpers import getComputationResult
+        simulator = self.getSimulator()
+        assert simulator is not None
 
-            # The simulator is in fact callable if not None, pylint: disable=E1102
-            return getComputationResult(
-                node        = self,
-                computation = lambda : simulator(
-                    element.getConstant()
-                    for element in
-                    self.getElements()
-                ),
-                description = "%s with constant arguments" % simulator
-            )
+        from .NodeMakingHelpers import getComputationResult
+
+        # The simulator is in fact callable if not None, pylint: disable=E1102
+        return getComputationResult(
+            node        = self,
+            computation = lambda : simulator(
+                element.getConstant()
+                for element in
+                self.getElements()
+            ),
+            description = "%s with constant arguments" % simulator
+        )
 
     def mayHaveSideEffectsBool( self, constraint_collection ):
         return False
@@ -99,11 +114,11 @@ class CPythonExpressionMakeSequenceBase( CPythonSideEffectsFromChildrenMixin, \
         return self.getIterationLength( constraint_collection ) > 0
 
 
-class CPythonExpressionMakeTuple( CPythonExpressionMakeSequenceBase ):
+class ExpressionMakeTuple( ExpressionMakeSequenceBase ):
     kind = "EXPRESSION_MAKE_TUPLE"
 
     def __init__( self, elements, source_ref ):
-        CPythonExpressionMakeSequenceBase.__init__(
+        ExpressionMakeSequenceBase.__init__(
             self,
             sequence_kind = "TUPLE",
             elements      = elements,
@@ -114,11 +129,11 @@ class CPythonExpressionMakeTuple( CPythonExpressionMakeSequenceBase ):
         return tuple
 
 
-class CPythonExpressionMakeList( CPythonExpressionMakeSequenceBase ):
+class ExpressionMakeList( ExpressionMakeSequenceBase ):
     kind = "EXPRESSION_MAKE_LIST"
 
     def __init__( self, elements, source_ref ):
-        CPythonExpressionMakeSequenceBase.__init__(
+        ExpressionMakeSequenceBase.__init__(
             self,
             sequence_kind = "LIST",
             elements      = elements,
@@ -129,11 +144,11 @@ class CPythonExpressionMakeList( CPythonExpressionMakeSequenceBase ):
         return list
 
 
-class CPythonExpressionMakeSet( CPythonExpressionMakeSequenceBase ):
+class ExpressionMakeSet( ExpressionMakeSequenceBase ):
     kind = "EXPRESSION_MAKE_SET"
 
     def __init__( self, elements, source_ref ):
-        CPythonExpressionMakeSequenceBase.__init__(
+        ExpressionMakeSequenceBase.__init__(
             self,
             sequence_kind = "SET",
             elements      = elements,
@@ -144,14 +159,14 @@ class CPythonExpressionMakeSet( CPythonExpressionMakeSequenceBase ):
         return set
 
 
-class CPythonExpressionKeyValuePair( CPythonSideEffectsFromChildrenMixin,
-                                     CPythonExpressionChildrenHavingBase ):
+class ExpressionKeyValuePair( SideEffectsFromChildrenMixin,
+                              ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_KEY_VALUE_PAIR"
 
     named_children = ( "key", "value" )
 
     def __init__( self, key, value, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "key"   : key,
@@ -160,21 +175,39 @@ class CPythonExpressionKeyValuePair( CPythonSideEffectsFromChildrenMixin,
             source_ref = source_ref
         )
 
-    getKey = CPythonExpressionChildrenHavingBase.childGetter( "key" )
-    getValue = CPythonExpressionChildrenHavingBase.childGetter( "value" )
+    getKey = ExpressionChildrenHavingBase.childGetter( "key" )
+    getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
+        key = self.getKey()
+
+        if key.willRaiseException( BaseException ):
+            return key, "new_raise", "Dictionary key raises exception"
+
+        value = self.getValue()
+
+        if value.willRaiseException( BaseException ):
+            from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+
+            result = wrapExpressionWithNodeSideEffects(
+                new_node = value,
+                old_node = key
+            )
+
+            return result, "new_raise", "Dictionary value raises exception"
+
+
         return self, None, None
 
 
-class CPythonExpressionMakeDict( CPythonSideEffectsFromChildrenMixin, \
-                                 CPythonExpressionChildrenHavingBase ):
+class ExpressionMakeDict( SideEffectsFromChildrenMixin,
+                          ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_MAKE_DICT"
 
     named_children = ( "pairs", )
 
     def __init__( self, pairs, source_ref ):
-        CPythonExpressionChildrenHavingBase.__init__(
+        ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
                 "pairs" : tuple( pairs ),
@@ -182,10 +215,22 @@ class CPythonExpressionMakeDict( CPythonSideEffectsFromChildrenMixin, \
             source_ref = source_ref
         )
 
-    getPairs = CPythonExpressionChildrenHavingBase.childGetter( "pairs" )
+    getPairs = ExpressionChildrenHavingBase.childGetter( "pairs" )
 
-    def computeNode( self, constraint_collection ):
+    def computeExpression( self, constraint_collection ):
         pairs = self.getPairs()
+
+        for count, pair in enumerate( pairs ):
+            if pair.willRaiseException( BaseException ):
+                from .NodeMakingHelpers import wrapExpressionWithSideEffects
+
+                result = wrapExpressionWithSideEffects(
+                    side_effects = pairs[ : count ],
+                    new_node     = pair,
+                    old_node     = self
+                )
+
+                return result, "new_raise", "Dict creation raises exception"
 
         for pair in pairs:
             key = pair.getKey()

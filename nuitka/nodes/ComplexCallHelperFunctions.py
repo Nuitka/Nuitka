@@ -20,69 +20,70 @@
 One for each type of call. """
 
 from .FunctionNodes import (
-    CPythonExpressionFunctionBody,
-    CPythonExpressionFunctionCreation,
-    CPythonExpressionFunctionCall,
-    CPythonExpressionFunctionRef
+    ExpressionFunctionBody,
+    ExpressionFunctionCreation,
+    ExpressionFunctionCall,
+    ExpressionFunctionRef
 )
 from .StatementNodes import (
-    CPythonStatementsSequence,
-    CPythonStatementsFrame
+    StatementsSequence,
+    StatementsFrame
 )
 from .LoopNodes import (
-    CPythonStatementLoop,
-    CPythonStatementBreakLoop
+    StatementLoop,
+    StatementBreakLoop
 )
-from .TypeNode import (
-    CPythonExpressionBuiltinIsinstance,
-    CPythonExpressionBuiltinType1
+from .TypeNodes import (
+    ExpressionBuiltinIsinstance,
+    ExpressionBuiltinType1
 )
-from .BuiltinReferenceNodes import (
-    CPythonExpressionBuiltinRef,
-    CPythonExpressionBuiltinExceptionRef,
-    CPythonExpressionBuiltinAnonymousRef
+from .BuiltinRefNodes import (
+    ExpressionBuiltinExceptionRef,
+    ExpressionBuiltinAnonymousRef,
+    ExpressionBuiltinRef
 )
-from .ConditionalNodes import CPythonStatementConditional
-from .ComparisonNode import CPythonExpressionComparison
-from .VariableRefNode import (
-    CPythonExpressionVariableRef,
-    CPythonExpressionTargetVariableRef,
-    CPythonStatementTempBlock,
-    CPythonExpressionTempVariableRef
+from .ConditionalNodes import StatementConditional
+from .ComparisonNodes import ExpressionComparison
+from .VariableRefNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTargetVariableRef,
+    ExpressionTempVariableRef,
+    ExpressionVariableRef,
+    StatementTempBlock
 )
-from .CallNode import (
-    CPythonExpressionCallKeywordsOnly,
-    CPythonExpressionCallNoKeywords,
-    CPythonExpressionCallEmpty,
-    CPythonExpressionCall
+from .CallNodes import (
+    ExpressionCallKeywordsOnly,
+    ExpressionCallNoKeywords,
+    ExpressionCallEmpty,
+    ExpressionCall
 )
-from .ReturnNode import CPythonStatementReturn
+from .ReturnNodes import StatementReturn
 from .TryNodes import (
-    CPythonStatementTryExcept,
-    CPythonStatementExceptHandler
+    StatementExceptHandler,
+    StatementTryExcept
 )
 from .AssignNodes import (
-    CPythonStatementAssignmentVariable,
-    CPythonStatementAssignmentSubscript
+    StatementAssignmentVariable,
+    StatementAssignmentSubscript
 )
 from .ExceptionNodes import (
-    CPythonStatementRaiseException,
-    CPythonExpressionBuiltinMakeException
+    StatementRaiseException,
+    ExpressionBuiltinMakeException
 )
-from .ConstantRefNode import CPythonExpressionConstantRef
-from .AttributeNodes import CPythonExpressionAttributeLookup
-from .ContainerMakingNodes import CPythonExpressionMakeTuple
-from .BuiltinTypeNodes import CPythonExpressionBuiltinTuple
+from .ConstantRefNodes import ExpressionConstantRef
+from .AttributeNodes import ExpressionAttributeLookup
+from .ContainerMakingNodes import ExpressionMakeTuple
+from .BuiltinTypeNodes import ExpressionBuiltinTuple
 from .OperatorNodes import (
-    CPythonExpressionOperationBinary,
-    CPythonExpressionOperationNOT
+    ExpressionOperationBinary,
+    ExpressionOperationNOT
 )
 from .BuiltinIteratorNodes import (
-    CPythonExpressionBuiltinIter1,
-    CPythonExpressionBuiltinNext1
+    ExpressionBuiltinIter1,
+    ExpressionBuiltinNext1
 )
-from .SubscriptNode import CPythonExpressionSubscriptLookup
-from .BuiltinDictNode import CPythonExpressionBuiltinDict
+from .SubscriptNodes import ExpressionSubscriptLookup
+from .BuiltinDictNodes import ExpressionBuiltinDict
 
 from .ParameterSpec import ParameterSpec
 
@@ -109,7 +110,7 @@ def once_decorator( func ):
 def getCallableNameDescBody( provider ):
     helper_name = "get_callable_name_desc"
 
-    result = CPythonExpressionFunctionBody(
+    result = ExpressionFunctionBody(
         provider   = provider, # We shouldn't need that.
         name       = helper_name,
         doc        = None,
@@ -143,7 +144,7 @@ def getCallableNameDescBody( provider ):
     called_variable, = result.getParameters().getAllVariables()
 
     def makeCalledVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = called_variable.getName(),
             source_ref    = source_ref
         )
@@ -153,22 +154,22 @@ def getCallableNameDescBody( provider ):
         return variable_ref
 
     def makeNameAttributeLookup( node, attribute_name = "__name__" ):
-        return CPythonExpressionAttributeLookup(
+        return ExpressionAttributeLookup(
             expression     = node,
             attribute_name = attribute_name,
             source_ref     = source_ref
         )
 
-    temp_block = CPythonStatementTempBlock(
+    temp_block = StatementTempBlock(
         source_ref = source_ref
     )
 
-    functions_case = CPythonStatementsSequence(
+    functions_case = StatementsSequence(
         statements = (
-            CPythonStatementReturn(
-                expression = CPythonExpressionOperationBinary(
+            StatementReturn(
+                expression = ExpressionOperationBinary(
                     operator   = "Add",
-                    right      = CPythonExpressionConstantRef(
+                    right      = ExpressionConstantRef(
                         constant = "()",
                         source_ref = source_ref
                     ),
@@ -184,17 +185,17 @@ def getCallableNameDescBody( provider ):
         source_ref = source_ref
     )
 
-    no_branch = CPythonStatementsSequence(
+    no_branch = StatementsSequence(
         statements = (
-            CPythonStatementReturn(
-                expression = CPythonExpressionOperationBinary(
+            StatementReturn(
+                expression = ExpressionOperationBinary(
                     operator   = "Add",
-                    right      = CPythonExpressionConstantRef(
+                    right      = ExpressionConstantRef(
                         constant = " object",
                         source_ref = source_ref
                     ),
                     left       = makeNameAttributeLookup(
-                        CPythonExpressionBuiltinType1(
+                        ExpressionBuiltinType1(
                             value      = makeCalledVariableRef(),
                             source_ref = source_ref
                         )
@@ -208,12 +209,12 @@ def getCallableNameDescBody( provider ):
     )
 
     if python_version < 300:
-        instance_case = CPythonStatementsSequence(
+        instance_case = StatementsSequence(
             statements = (
-                CPythonStatementReturn(
-                    expression = CPythonExpressionOperationBinary(
+                StatementReturn(
+                    expression = ExpressionOperationBinary(
                         operator   = "Add",
-                        right      = CPythonExpressionConstantRef(
+                        right      = ExpressionConstantRef(
                             constant = " instance",
                             source_ref = source_ref
                         ),
@@ -231,12 +232,12 @@ def getCallableNameDescBody( provider ):
             source_ref = source_ref
         )
 
-        no_branch = CPythonStatementsSequence(
+        no_branch = StatementsSequence(
             statements = (
-                CPythonStatementConditional(
-                    condition  = CPythonExpressionBuiltinIsinstance(
+                StatementConditional(
+                    condition  = ExpressionBuiltinIsinstance(
                         instance   = makeCalledVariableRef(),
-                        cls        = CPythonExpressionBuiltinAnonymousRef(
+                        cls        = ExpressionBuiltinAnonymousRef(
                             builtin_name = "instance",
                             source_ref   = source_ref
                         ),
@@ -250,12 +251,12 @@ def getCallableNameDescBody( provider ):
             source_ref = source_ref
         )
 
-        class_case = CPythonStatementsSequence(
+        class_case = StatementsSequence(
             statements = (
-                CPythonStatementReturn(
-                    expression = CPythonExpressionOperationBinary(
+                StatementReturn(
+                    expression = ExpressionOperationBinary(
                         operator   = "Add",
-                        right      = CPythonExpressionConstantRef(
+                        right      = ExpressionConstantRef(
                             constant = " constructor",
                             source_ref = source_ref
                         ),
@@ -270,12 +271,12 @@ def getCallableNameDescBody( provider ):
             source_ref = source_ref
         )
 
-        no_branch = CPythonStatementsSequence(
+        no_branch = StatementsSequence(
             statements = (
-                CPythonStatementConditional(
-                    condition  = CPythonExpressionBuiltinIsinstance(
+                StatementConditional(
+                    condition  = ExpressionBuiltinIsinstance(
                         instance   = makeCalledVariableRef(),
-                        cls        = CPythonExpressionBuiltinAnonymousRef(
+                        cls        = ExpressionBuiltinAnonymousRef(
                             builtin_name = "classobj",
                             source_ref   = source_ref
                         ),
@@ -295,12 +296,12 @@ def getCallableNameDescBody( provider ):
         normal_cases = ( "function", "builtin_function_or_method" )
 
     statements = (
-        CPythonStatementConditional(
-            condition = CPythonExpressionBuiltinIsinstance(
+        StatementConditional(
+            condition = ExpressionBuiltinIsinstance(
                 instance   = makeCalledVariableRef(),
-                cls        = CPythonExpressionMakeTuple(
+                cls        = ExpressionMakeTuple(
                     elements   = tuple(
-                        CPythonExpressionBuiltinAnonymousRef(
+                        ExpressionBuiltinAnonymousRef(
                             builtin_name = builtin_name,
                             source_ref   = source_ref
                         )
@@ -318,14 +319,14 @@ def getCallableNameDescBody( provider ):
     )
 
     temp_block.setBody(
-        CPythonStatementsSequence(
+        StatementsSequence(
             statements = statements,
             source_ref = source_ref
         )
     )
 
     result.setBody(
-        CPythonStatementsSequence(
+        StatementsSequence(
             statements = ( temp_block, ),
             source_ref = source_ref
         )
@@ -337,21 +338,21 @@ def getCallableNameDescBody( provider ):
 def _makeStarListArgumentToTupleStatement( provider, called_variable_ref,
                                            star_list_target_variable_ref,
                                            star_list_variable_ref ):
-    raise_statement = CPythonStatementRaiseException(
-        exception_type  = CPythonExpressionBuiltinMakeException(
+    raise_statement = StatementRaiseException(
+        exception_type  = ExpressionBuiltinMakeException(
             exception_name = "TypeError",
             args           = (
-                CPythonExpressionOperationBinary(
+                ExpressionOperationBinary(
                     operator = "Mod",
-                    left     =  CPythonExpressionConstantRef(
+                    left     =  ExpressionConstantRef(
                         constant   = "%s argument after * must be a sequence, not %s",
                         source_ref = source_ref
                     ),
-                    right = CPythonExpressionMakeTuple(
+                    right = ExpressionMakeTuple(
                         elements = (
-                            CPythonExpressionFunctionCall(
-                                function   = CPythonExpressionFunctionCreation(
-                                    function_ref = CPythonExpressionFunctionRef(
+                            ExpressionFunctionCall(
+                                function   = ExpressionFunctionCreation(
+                                    function_ref = ExpressionFunctionRef(
                                         function_body = getCallableNameDescBody( provider = provider ),
                                         source_ref    = source_ref
                                     ),
@@ -365,8 +366,8 @@ def _makeStarListArgumentToTupleStatement( provider, called_variable_ref,
                                 ),
                                 source_ref = source_ref
                             ),
-                            CPythonExpressionAttributeLookup(
-                                expression = CPythonExpressionBuiltinType1(
+                            ExpressionAttributeLookup(
+                                expression = ExpressionBuiltinType1(
                                     value      = star_list_variable_ref.makeCloneAt( source_ref ),
                                     source_ref = source_ref
                                 ),
@@ -387,14 +388,14 @@ def _makeStarListArgumentToTupleStatement( provider, called_variable_ref,
         source_ref      = source_ref
     )
 
-    handler = CPythonStatementExceptHandler(
+    handler = StatementExceptHandler(
         exception_types = (
-            CPythonExpressionBuiltinExceptionRef(
+            ExpressionBuiltinExceptionRef(
                 exception_name = "TypeError",
                 source_ref     = source_ref
             ),
         ),
-        body           = CPythonStatementsSequence(
+        body           = StatementsSequence(
             statements = (
                 raise_statement,
             ),
@@ -403,24 +404,24 @@ def _makeStarListArgumentToTupleStatement( provider, called_variable_ref,
         source_ref     = source_ref
     )
 
-    return CPythonStatementConditional(
-        condition  = CPythonExpressionBuiltinIsinstance(
+    return StatementConditional(
+        condition  = ExpressionBuiltinIsinstance(
             instance   = star_list_variable_ref.makeCloneAt( source_ref ),
-            cls        = CPythonExpressionBuiltinRef(
+            cls        = ExpressionBuiltinRef(
                 builtin_name = "tuple",
                 source_ref   = source_ref
             ),
             source_ref = source_ref
         ),
         yes_branch = None,
-        no_branch  = CPythonStatementsSequence(
+        no_branch  = StatementsSequence(
             statements = (
-                CPythonStatementTryExcept(
-                    tried      = CPythonStatementsSequence(
+                StatementTryExcept(
+                    tried      = StatementsSequence(
                         statements = (
-                            CPythonStatementAssignmentVariable(
+                            StatementAssignmentVariable(
                                 variable_ref = star_list_target_variable_ref.makeCloneAt( source_ref ),
-                                source       = CPythonExpressionBuiltinTuple(
+                                source       = ExpressionBuiltinTuple(
                                     value      = star_list_variable_ref.makeCloneAt( source_ref ),
                                     source_ref = source_ref
                                 ),
@@ -442,21 +443,21 @@ def _makeStarListArgumentToTupleStatement( provider, called_variable_ref,
 def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
                                           star_dict_target_variable_ref,
                                           star_dict_variable_ref ):
-    raise_statement = CPythonStatementRaiseException(
-        exception_type  = CPythonExpressionBuiltinMakeException(
+    raise_statement = StatementRaiseException(
+        exception_type  = ExpressionBuiltinMakeException(
             exception_name = "TypeError",
             args           = (
-                CPythonExpressionOperationBinary(
+                ExpressionOperationBinary(
                     operator = "Mod",
-                    left     =  CPythonExpressionConstantRef(
+                    left     =  ExpressionConstantRef(
                         constant   = "%s argument after ** must be a mapping, not %s",
                         source_ref = source_ref
                     ),
-                    right = CPythonExpressionMakeTuple(
+                    right = ExpressionMakeTuple(
                         elements = (
-                            CPythonExpressionFunctionCall(
-                                function   = CPythonExpressionFunctionCreation(
-                                    function_ref = CPythonExpressionFunctionRef(
+                            ExpressionFunctionCall(
+                                function   = ExpressionFunctionCreation(
+                                    function_ref = ExpressionFunctionRef(
                                         function_body = getCallableNameDescBody( provider = provider ),
                                         source_ref    = source_ref
                                     ),
@@ -470,8 +471,8 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
                                 ),
                                 source_ref = source_ref
                             ),
-                            CPythonExpressionAttributeLookup(
-                                expression = CPythonExpressionBuiltinType1(
+                            ExpressionAttributeLookup(
+                                expression = ExpressionBuiltinType1(
                                     value      = star_dict_variable_ref.makeCloneAt( source_ref ),
                                     source_ref = source_ref
                                 ),
@@ -492,7 +493,7 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
         source_ref      = source_ref
     )
 
-    temp_block = CPythonStatementTempBlock(
+    temp_block = StatementTempBlock(
         source_ref = source_ref
     )
 
@@ -502,16 +503,16 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
     tmp_key_variable = temp_block.getTempVariable( "key" )
 
     statements = (
-        CPythonStatementTryExcept(
-            tried      = CPythonStatementsSequence(
+        StatementTryExcept(
+            tried      = StatementsSequence(
                 statements = (
-                    CPythonStatementAssignmentVariable(
-                        variable_ref = CPythonExpressionTempVariableRef(
+                    StatementAssignmentVariable(
+                        variable_ref = ExpressionTargetTempVariableRef(
                             variable   = tmp_key_variable.makeReference( temp_block ),
                             source_ref = source_ref
                         ),
-                        source     = CPythonExpressionBuiltinNext1(
-                            value      = CPythonExpressionTempVariableRef(
+                        source     = ExpressionBuiltinNext1(
+                            value      = ExpressionTempVariableRef(
                                 variable   = tmp_iter_variable.makeReference( temp_block ),
                                 source_ref = source_ref
                             ),
@@ -523,16 +524,16 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
                 source_ref = source_ref
             ),
             handlers   = (
-                CPythonStatementExceptHandler(
+                StatementExceptHandler(
                     exception_types = (
-                        CPythonExpressionBuiltinExceptionRef(
+                        ExpressionBuiltinExceptionRef(
                             exception_name = "StopIteration",
                             source_ref     = source_ref
                         ),
                     ),
-                    body           = CPythonStatementsSequence(
+                    body           = StatementsSequence(
                         statements = (
-                            CPythonStatementBreakLoop(
+                            StatementBreakLoop(
                                 source_ref = source_ref
                             ),
                         ),
@@ -543,18 +544,18 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
             ),
             source_ref = source_ref
         ),
-        CPythonStatementAssignmentSubscript(
-            expression = CPythonExpressionTempVariableRef(
+        StatementAssignmentSubscript(
+            expression = ExpressionTempVariableRef(
                 variable   = tmp_dict_variable.makeReference( temp_block ),
                 source_ref = source_ref
             ),
-            subscript  = CPythonExpressionTempVariableRef(
+            subscript  = ExpressionTempVariableRef(
                 variable   = tmp_key_variable.makeReference( temp_block ),
                 source_ref = source_ref
             ),
-            source     = CPythonExpressionSubscriptLookup(
+            source     = ExpressionSubscriptLookup(
                 expression = star_dict_variable_ref.makeCloneAt( source_ref ),
-                subscript  = CPythonExpressionTempVariableRef(
+                subscript  = ExpressionTempVariableRef(
                     variable   = tmp_key_variable.makeReference( temp_block ),
                     source_ref = source_ref
                 ),
@@ -564,7 +565,7 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
         )
     )
 
-    loop_body = CPythonStatementsSequence(
+    loop_body = StatementsSequence(
         statements = statements,
         source_ref = source_ref
     )
@@ -573,27 +574,27 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
         # Initializing the temp variable outside of try/except, because code generation
         # does not yet detect that case properly. TODO: Can be removed once code
         # generation is apt enough.
-        CPythonStatementAssignmentVariable(
-            variable_ref = CPythonExpressionTempVariableRef(
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_keys_variable.makeReference( temp_block ),
                 source_ref = source_ref
             ),
-            source     = CPythonExpressionConstantRef(
+            source     = ExpressionConstantRef(
                 constant   = None,
                 source_ref = source_ref
             ),
             source_ref = source_ref
         ),
-        CPythonStatementTryExcept(
-            tried      = CPythonStatementsSequence(
+        StatementTryExcept(
+            tried      = StatementsSequence(
                 statements = (
-                    CPythonStatementAssignmentVariable(
-                        variable_ref = CPythonExpressionTempVariableRef(
+                    StatementAssignmentVariable(
+                        variable_ref = ExpressionTargetTempVariableRef(
                             variable   = tmp_keys_variable.makeReference( temp_block ),
                             source_ref = source_ref
                         ),
-                        source     = CPythonExpressionCallEmpty(
-                            called = CPythonExpressionAttributeLookup(
+                        source     = ExpressionCallEmpty(
+                            called = ExpressionAttributeLookup(
                                 expression     = star_dict_variable_ref.makeCloneAt( source_ref ),
                                 attribute_name = "keys",
                                 source_ref     = source_ref
@@ -606,14 +607,14 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
                 source_ref = source_ref
             ),
             handlers   = (
-                CPythonStatementExceptHandler(
+                StatementExceptHandler(
                     exception_types = (
-                        CPythonExpressionBuiltinExceptionRef(
+                        ExpressionBuiltinExceptionRef(
                             exception_name = "AttributeError",
                             source_ref     = source_ref
                         ),
                     ),
-                    body           = CPythonStatementsSequence(
+                    body           = StatementsSequence(
                         statements = (
                             raise_statement,
                         ),
@@ -624,13 +625,13 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
             ),
             source_ref = source_ref
         ),
-        CPythonStatementAssignmentVariable(
-            variable_ref = CPythonExpressionTempVariableRef(
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_iter_variable.makeReference( temp_block ),
                 source_ref = source_ref
             ),
-            source     = CPythonExpressionBuiltinIter1(
-                value      = CPythonExpressionTempVariableRef(
+            source     = ExpressionBuiltinIter1(
+                value      = ExpressionTempVariableRef(
                     variable   = tmp_keys_variable.makeReference( temp_block ),
                     source_ref = source_ref
                 ),
@@ -638,24 +639,24 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
             ),
             source_ref = source_ref
         ),
-        CPythonStatementAssignmentVariable(
-            variable_ref = CPythonExpressionTempVariableRef(
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_dict_variable.makeReference( temp_block ),
                 source_ref = source_ref
             ),
-            source     = CPythonExpressionConstantRef(
+            source     = ExpressionConstantRef(
                 constant   = {},
                 source_ref = source_ref
             ),
             source_ref = source_ref
         ),
-        CPythonStatementLoop(
+        StatementLoop(
             body       = loop_body,
             source_ref = source_ref
         ),
-        CPythonStatementAssignmentVariable(
+        StatementAssignmentVariable(
             variable_ref = star_dict_target_variable_ref.makeCloneAt( source_ref ),
-            source     = CPythonExpressionTempVariableRef(
+            source     = ExpressionTempVariableRef(
                 variable   = tmp_dict_variable.makeReference( temp_block ),
                 source_ref = source_ref
             ),
@@ -663,23 +664,23 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
         ),
     )
 
-    mapping_case = CPythonStatementsSequence(
+    mapping_case = StatementsSequence(
         statements = statements,
         source_ref = source_ref
     )
 
     temp_block.setBody( mapping_case )
 
-    mapping_case = CPythonStatementsSequence(
+    mapping_case = StatementsSequence(
         statements = ( temp_block, ),
         source_ref = source_ref
     )
 
-    return CPythonStatementConditional(
-            condition  = CPythonExpressionOperationNOT(
-                operand    = CPythonExpressionBuiltinIsinstance(
+    return StatementConditional(
+            condition  = ExpressionOperationNOT(
+                operand    = ExpressionBuiltinIsinstance(
                     instance   = star_dict_variable_ref.makeCloneAt( source_ref ),
-                    cls        = CPythonExpressionBuiltinRef(
+                    cls        = ExpressionBuiltinRef(
                         builtin_name = "dict",
                         source_ref   = source_ref
                     ),
@@ -698,21 +699,21 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
                                              star_dict_variable_ref ):
     # This is plain terribly complex, pylint: disable=R0914
 
-    raise_statement = CPythonStatementRaiseException(
-        exception_type  = CPythonExpressionBuiltinMakeException(
+    raise_statement = StatementRaiseException(
+        exception_type  = ExpressionBuiltinMakeException(
             exception_name = "TypeError",
             args           = (
-                CPythonExpressionOperationBinary(
+                ExpressionOperationBinary(
                     operator = "Mod",
-                    left     =  CPythonExpressionConstantRef(
+                    left     =  ExpressionConstantRef(
                         constant   = "%s argument after ** must be a mapping, not %s",
                         source_ref = source_ref
                     ),
-                    right = CPythonExpressionMakeTuple(
+                    right = ExpressionMakeTuple(
                         elements = (
-                            CPythonExpressionFunctionCall(
-                                function   = CPythonExpressionFunctionCreation(
-                                    function_ref = CPythonExpressionFunctionRef(
+                            ExpressionFunctionCall(
+                                function   = ExpressionFunctionCreation(
+                                    function_ref = ExpressionFunctionRef(
                                         function_body = getCallableNameDescBody( provider = provider ),
                                         source_ref    = source_ref
                                     ),
@@ -726,8 +727,8 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
                                 ),
                                 source_ref = source_ref
                             ),
-                            CPythonExpressionAttributeLookup(
-                                expression = CPythonExpressionBuiltinType1(
+                            ExpressionAttributeLookup(
+                                expression = ExpressionBuiltinType1(
                                     value      = star_dict_variable_ref.makeCloneAt( source_ref ),
                                     source_ref = source_ref
                                 ),
@@ -748,7 +749,7 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
         source_ref      = source_ref
     )
 
-    mapping_case = CPythonStatementTempBlock(
+    mapping_case = StatementTempBlock(
         source_ref = source_ref
     )
 
@@ -757,21 +758,21 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
     tmp_key_variable = mapping_case.getTempVariable( "key" )
     tmp_iter_variable = mapping_case.getTempVariable( "iter" )
 
-    raise_duplicate = CPythonStatementRaiseException(
-        exception_type  = CPythonExpressionBuiltinMakeException(
+    raise_duplicate = StatementRaiseException(
+        exception_type  = ExpressionBuiltinMakeException(
             exception_name = "TypeError",
             args           = (
-                CPythonExpressionOperationBinary(
+                ExpressionOperationBinary(
                     operator = "Mod",
-                    left     =  CPythonExpressionConstantRef(
+                    left     =  ExpressionConstantRef(
                         constant   = "%s got multiple values for keyword argument '%s'",
                         source_ref = source_ref
                     ),
-                    right = CPythonExpressionMakeTuple(
+                    right = ExpressionMakeTuple(
                         elements = (
-                            CPythonExpressionFunctionCall(
-                                function   = CPythonExpressionFunctionCreation(
-                                    function_ref = CPythonExpressionFunctionRef(
+                            ExpressionFunctionCall(
+                                function   = ExpressionFunctionCreation(
+                                    function_ref = ExpressionFunctionRef(
                                         function_body = getCallableNameDescBody( provider = provider ),
                                         source_ref    = source_ref
                                     ),
@@ -785,7 +786,7 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
                                 ),
                                 source_ref = source_ref
                             ),
-                            CPythonExpressionTempVariableRef(
+                            ExpressionTempVariableRef(
                                 variable   = tmp_key_variable.makeReference( mapping_case ),
                                 source_ref = source_ref
                             )
@@ -804,16 +805,16 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
     )
 
     statements = (
-        CPythonStatementTryExcept(
-            tried      = CPythonStatementsSequence(
+        StatementTryExcept(
+            tried      = StatementsSequence(
                 statements = (
-                    CPythonStatementAssignmentVariable(
-                        variable_ref = CPythonExpressionTempVariableRef(
+                    StatementAssignmentVariable(
+                        variable_ref = ExpressionTargetTempVariableRef(
                             variable   = tmp_key_variable.makeReference( mapping_case ),
                             source_ref = source_ref
                         ),
-                        source     = CPythonExpressionBuiltinNext1(
-                            value      = CPythonExpressionTempVariableRef(
+                        source     = ExpressionBuiltinNext1(
+                            value      = ExpressionTempVariableRef(
                                 variable   = tmp_iter_variable.makeReference( mapping_case ),
                                 source_ref = source_ref
                             ),
@@ -825,16 +826,16 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
                 source_ref = source_ref
             ),
             handlers   = (
-                CPythonStatementExceptHandler(
+                StatementExceptHandler(
                     exception_types = (
-                        CPythonExpressionBuiltinExceptionRef(
+                        ExpressionBuiltinExceptionRef(
                             exception_name = "StopIteration",
                             source_ref     = source_ref
                         ),
                     ),
-                    body           = CPythonStatementsSequence(
+                    body           = StatementsSequence(
                         statements = (
-                            CPythonStatementBreakLoop(
+                            StatementBreakLoop(
                                 source_ref = source_ref
                             ),
                         ),
@@ -845,32 +846,32 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
             ),
             source_ref = source_ref
         ),
-        CPythonStatementConditional(
-            condition = CPythonExpressionComparison(
+        StatementConditional(
+            condition = ExpressionComparison(
                 comparator = "In",
-                left       = CPythonExpressionTempVariableRef(
+                left       = ExpressionTempVariableRef(
                     variable   = tmp_key_variable.makeReference( mapping_case ),
                     source_ref = source_ref
                 ),
                 right      = kw_variable_ref.makeCloneAt( source_ref ),
                 source_ref = source_ref
             ),
-            yes_branch = CPythonStatementsSequence(
+            yes_branch = StatementsSequence(
                 statements = ( raise_duplicate, ),
                 source_ref = source_ref
             ),
             no_branch  = None,
             source_ref = source_ref
         ),
-        CPythonStatementAssignmentSubscript(
+        StatementAssignmentSubscript(
             expression = kw_variable_ref.makeCloneAt( source_ref ),
-            subscript  = CPythonExpressionTempVariableRef(
+            subscript  = ExpressionTempVariableRef(
                 variable   = tmp_key_variable.makeReference( mapping_case ),
                 source_ref = source_ref
             ),
-            source     = CPythonExpressionSubscriptLookup(
+            source     = ExpressionSubscriptLookup(
                 expression = star_dict_variable_ref.makeCloneAt( source_ref ),
-                subscript  = CPythonExpressionTempVariableRef(
+                subscript  = ExpressionTempVariableRef(
                     variable   = tmp_key_variable.makeReference( mapping_case ),
                     source_ref = source_ref
                 ),
@@ -880,7 +881,7 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
         )
     )
 
-    mapping_loop_body = CPythonStatementsSequence(
+    mapping_loop_body = StatementsSequence(
         statements = statements,
         source_ref = source_ref
     )
@@ -889,27 +890,27 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
         # Initializing the temp variable outside of try/except, because code generation
         # does not yet detect that case properly. TODO: Can be removed once code
         # generation is apt enough.
-        CPythonStatementAssignmentVariable(
-            variable_ref = CPythonExpressionTempVariableRef(
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_keys_variable.makeReference( mapping_case ),
                 source_ref = source_ref
             ),
-            source     = CPythonExpressionConstantRef(
+            source     = ExpressionConstantRef(
                 constant   = None,
                 source_ref = source_ref
             ),
             source_ref = source_ref
         ),
-        CPythonStatementTryExcept(
-            tried      = CPythonStatementsSequence(
+        StatementTryExcept(
+            tried      = StatementsSequence(
                 statements = (
-                    CPythonStatementAssignmentVariable(
-                        variable_ref = CPythonExpressionTempVariableRef(
+                    StatementAssignmentVariable(
+                        variable_ref = ExpressionTargetTempVariableRef(
                             variable   = tmp_keys_variable.makeReference( mapping_case ),
                             source_ref = source_ref
                         ),
-                        source     = CPythonExpressionCallEmpty(
-                            called = CPythonExpressionAttributeLookup(
+                        source     = ExpressionCallEmpty(
+                            called = ExpressionAttributeLookup(
                                 expression     = star_dict_variable_ref.makeCloneAt( source_ref ),
                                 attribute_name = "keys",
                                 source_ref     = source_ref
@@ -922,14 +923,14 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
                 source_ref = source_ref
             ),
             handlers   = (
-                CPythonStatementExceptHandler(
+                StatementExceptHandler(
                     exception_types = (
-                        CPythonExpressionBuiltinExceptionRef(
+                        ExpressionBuiltinExceptionRef(
                             exception_name = "AttributeError",
                             source_ref     = source_ref
                         ),
                     ),
-                    body           = CPythonStatementsSequence(
+                    body           = StatementsSequence(
                         statements = (
                             raise_statement,
                         ),
@@ -940,13 +941,13 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
             ),
             source_ref = source_ref
         ),
-        CPythonStatementAssignmentVariable(
-            variable_ref = CPythonExpressionTempVariableRef(
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_iter_variable.makeReference( mapping_case ),
                 source_ref = source_ref
             ),
-            source     = CPythonExpressionBuiltinIter1(
-                value      = CPythonExpressionTempVariableRef(
+            source     = ExpressionBuiltinIter1(
+                value      = ExpressionTempVariableRef(
                     variable   = tmp_keys_variable.makeReference( mapping_case ),
                     source_ref = source_ref
                 ),
@@ -954,36 +955,36 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
             ),
             source_ref = source_ref
         ),
-        CPythonStatementAssignmentVariable(
-            variable_ref = CPythonExpressionTempVariableRef(
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_dict_variable.makeReference( mapping_case ),
                 source_ref = source_ref
             ),
-            source     = CPythonExpressionConstantRef(
+            source     = ExpressionConstantRef(
                 constant   = {},
                 source_ref = source_ref
             ),
             source_ref = source_ref
         ),
-        CPythonStatementLoop(
+        StatementLoop(
             body       = mapping_loop_body,
             source_ref = source_ref
         ),
     )
 
     mapping_case.setBody(
-        CPythonStatementsSequence(
+        StatementsSequence(
             statements = statements,
             source_ref = source_ref
         )
     )
 
-    mapping_case = CPythonStatementsSequence(
+    mapping_case = StatementsSequence(
         statements = ( mapping_case, ),
         source_ref = source_ref
     )
 
-    dict_case = CPythonStatementTempBlock(
+    dict_case = StatementTempBlock(
         source_ref = source_ref
     )
 
@@ -992,16 +993,16 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
     tmp_key_variable = dict_case.getTempVariable( "key" )
 
     statements = (
-        CPythonStatementTryExcept(
-            tried      = CPythonStatementsSequence(
+        StatementTryExcept(
+            tried      = StatementsSequence(
                 statements = (
-                    CPythonStatementAssignmentVariable(
-                        variable_ref = CPythonExpressionTempVariableRef(
+                    StatementAssignmentVariable(
+                        variable_ref = ExpressionTargetTempVariableRef(
                             variable   = tmp_item_variable.makeReference( dict_case ),
                             source_ref = source_ref
                         ),
-                        source     = CPythonExpressionBuiltinNext1(
-                            value      = CPythonExpressionTempVariableRef(
+                        source     = ExpressionBuiltinNext1(
+                            value      = ExpressionTempVariableRef(
                                 variable   = tmp_iter_variable.makeReference( dict_case ),
                                 source_ref = source_ref
                             ),
@@ -1013,16 +1014,16 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
                 source_ref = source_ref
             ),
             handlers   = (
-                CPythonStatementExceptHandler(
+                StatementExceptHandler(
                     exception_types = (
-                        CPythonExpressionBuiltinExceptionRef(
+                        ExpressionBuiltinExceptionRef(
                             exception_name = "StopIteration",
                             source_ref     = source_ref
                         ),
                     ),
-                    body           = CPythonStatementsSequence(
+                    body           = StatementsSequence(
                         statements = (
-                            CPythonStatementBreakLoop( source_ref ),
+                            StatementBreakLoop( source_ref ),
                         ),
                         source_ref = source_ref
                     ),
@@ -1031,17 +1032,17 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
             ),
             source_ref = source_ref
         ),
-        CPythonStatementAssignmentVariable(
-            variable_ref = CPythonExpressionTempVariableRef(
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_key_variable.makeReference( dict_case ),
                 source_ref = source_ref
             ),
-            source     = CPythonExpressionSubscriptLookup(
-                expression = CPythonExpressionTempVariableRef(
+            source     = ExpressionSubscriptLookup(
+                expression = ExpressionTempVariableRef(
                     variable   = tmp_item_variable.makeReference( dict_case ),
                     source_ref = source_ref
                 ),
-                subscript  = CPythonExpressionConstantRef(
+                subscript  = ExpressionConstantRef(
                     constant    = 0,
                     source_ref = source_ref
                 ),
@@ -1049,35 +1050,35 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
             ),
             source_ref = source_ref
         ),
-        CPythonStatementConditional(
-            condition = CPythonExpressionComparison(
+        StatementConditional(
+            condition = ExpressionComparison(
                 comparator = "In",
-                left       = CPythonExpressionTempVariableRef(
+                left       = ExpressionTempVariableRef(
                     variable   = tmp_key_variable.makeReference( dict_case ),
                     source_ref = source_ref
                 ),
                 right      = kw_variable_ref.makeCloneAt( source_ref ),
                 source_ref = source_ref
             ),
-            yes_branch = CPythonStatementsSequence(
+            yes_branch = StatementsSequence(
                 statements = ( raise_duplicate, ),
                 source_ref = source_ref
             ),
             no_branch  = None,
             source_ref = source_ref
         ),
-        CPythonStatementAssignmentSubscript(
+        StatementAssignmentSubscript(
             expression = kw_variable_ref.makeCloneAt( source_ref ),
-            subscript  = CPythonExpressionTempVariableRef(
+            subscript  = ExpressionTempVariableRef(
                 variable   = tmp_key_variable.makeReference( dict_case ),
                 source_ref = source_ref
             ),
-            source     = CPythonExpressionSubscriptLookup(
-                expression = CPythonExpressionTempVariableRef(
+            source     = ExpressionSubscriptLookup(
+                expression = ExpressionTempVariableRef(
                     variable   = tmp_item_variable.makeReference( dict_case ),
                     source_ref = source_ref
                 ),
-                subscript  = CPythonExpressionConstantRef(
+                subscript  = ExpressionConstantRef(
                     constant   = 1,
                     source_ref = source_ref
                 ),
@@ -1087,29 +1088,29 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
         )
     )
 
-    dict_loop_body = CPythonStatementsSequence(
+    dict_loop_body = StatementsSequence(
         statements = statements,
         source_ref = source_ref
     )
 
     statements = (
-        CPythonStatementAssignmentVariable(
+        StatementAssignmentVariable(
             variable_ref = kw_target_variable_ref.makeCloneAt( source_ref ),
-            source       = CPythonExpressionBuiltinDict(
+            source       = ExpressionBuiltinDict(
                 pos_arg    = kw_variable_ref.makeCloneAt( source_ref ),
                 pairs      = (),
                 source_ref = source_ref
             ),
             source_ref   = source_ref
         ),
-        CPythonStatementAssignmentVariable(
-            variable_ref = CPythonExpressionTempVariableRef(
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_iter_variable.makeReference( dict_case ),
                 source_ref = source_ref
             ),
-            source       = CPythonExpressionBuiltinIter1(
-                value = CPythonExpressionCallEmpty(
-                    called = CPythonExpressionAttributeLookup(
+            source       = ExpressionBuiltinIter1(
+                value = ExpressionCallEmpty(
+                    called = ExpressionAttributeLookup(
                         expression     = star_dict_variable_ref.makeCloneAt( source_ref ),
                         attribute_name = "iteritems" if python_version < 300 else "items",
                         source_ref     = source_ref
@@ -1120,26 +1121,26 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
             ),
             source_ref   = source_ref
         ),
-        CPythonStatementLoop(
+        StatementLoop(
             body       = dict_loop_body,
             source_ref = source_ref
         ),
     )
 
     dict_case.setBody(
-        CPythonStatementsSequence(
+        StatementsSequence(
             statements = statements,
             source_ref = source_ref
         )
     )
 
-    dict_case = CPythonStatementsSequence(
+    dict_case = StatementsSequence(
         statements = ( dict_case, ),
         source_ref = source_ref
     )
 
     statements = (
-        CPythonStatementConditional(
+        StatementConditional(
             condition  = star_dict_variable_ref.makeCloneAt( source_ref ),
             yes_branch = dict_case,
             no_branch  = None,
@@ -1147,16 +1148,16 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
         ),
     )
 
-    dict_case = CPythonStatementsSequence(
+    dict_case = StatementsSequence(
         statements = statements,
         source_ref = source_ref
     )
 
-    return CPythonStatementConditional(
-        condition  = CPythonExpressionOperationNOT(
-            operand    = CPythonExpressionBuiltinIsinstance(
+    return StatementConditional(
+        condition  = ExpressionOperationNOT(
+            operand    = ExpressionBuiltinIsinstance(
                 instance   = star_dict_variable_ref.makeCloneAt( source_ref ),
-                cls        = CPythonExpressionBuiltinRef(
+                cls        = ExpressionBuiltinRef(
                     builtin_name = "dict",
                     source_ref   = source_ref
                 ),
@@ -1175,7 +1176,7 @@ def getFunctionCallHelperStarList( provider ):
     helper_name = "complex_call_helper_star_list"
 
     # Only need to check if the star argument value is a sequence and then convert to tuple.
-    result = CPythonExpressionFunctionBody(
+    result = ExpressionFunctionBody(
         provider   = provider, # We shouldn't need that.
         name       = helper_name,
         doc        = None,
@@ -1194,7 +1195,7 @@ def getFunctionCallHelperStarList( provider ):
     called_variable, star_arg_list_variable = result.getParameters().getAllVariables()
 
     def makeStarListArgVariableRef( assign ):
-        variable_ref_class = CPythonExpressionTargetVariableRef if assign else CPythonExpressionVariableRef
+        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = star_arg_list_variable.getName(),
@@ -1206,7 +1207,7 @@ def getFunctionCallHelperStarList( provider ):
         return variable_ref
 
     def makeCalledVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = called_variable.getName(),
             source_ref    = source_ref
         )
@@ -1237,8 +1238,8 @@ def getFunctionCallHelperStarList( provider ):
             star_list_variable_ref        = makeStarListArgVariableRef( assign = False ),
             star_list_target_variable_ref = makeStarListArgVariableRef( assign = True )
         ),
-        CPythonStatementReturn(
-            expression = CPythonExpressionCallNoKeywords(
+        StatementReturn(
+            expression = ExpressionCallNoKeywords(
                 called     = makeCalledVariableRef(),
                 args       = makeStarListArgVariableRef( assign = False ),
                 source_ref = source_ref
@@ -1250,7 +1251,7 @@ def getFunctionCallHelperStarList( provider ):
     # TODO: Code generation should become capable of not generating actual exceptions for the
     # TypeError caught immediately and then unused, then the frame will be unnecessary.
     result.setBody(
-        CPythonStatementsFrame(
+        StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
             arg_names     = (),
@@ -1267,7 +1268,7 @@ def getFunctionCallHelperKeywordsStarList( provider ):
     helper_name = "complex_call_helper_keywords_star_list"
 
     # Only need to check if the star argument value is a sequence and then convert to tuple.
-    result = CPythonExpressionFunctionBody(
+    result = ExpressionFunctionBody(
         provider   = provider, # We shouldn't need that.
         name       = helper_name,
         doc        = None,
@@ -1286,7 +1287,7 @@ def getFunctionCallHelperKeywordsStarList( provider ):
     called_variable, kw_variable, star_arg_list_variable = result.getParameters().getAllVariables()
 
     def makeCalledVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = called_variable.getName(),
             source_ref    = source_ref
         )
@@ -1296,7 +1297,7 @@ def getFunctionCallHelperKeywordsStarList( provider ):
         return variable_ref
 
     def makeKwVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = kw_variable.getName(),
             source_ref    = source_ref
         )
@@ -1306,7 +1307,7 @@ def getFunctionCallHelperKeywordsStarList( provider ):
         return variable_ref
 
     def makeStarListArgVariableRef( assign ):
-        variable_ref_class = CPythonExpressionTargetVariableRef if assign else CPythonExpressionVariableRef
+        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = star_arg_list_variable.getName(),
@@ -1339,8 +1340,8 @@ def getFunctionCallHelperKeywordsStarList( provider ):
             star_list_variable_ref        = makeStarListArgVariableRef( assign = False ),
             star_list_target_variable_ref = makeStarListArgVariableRef( assign = True )
         ),
-        CPythonStatementReturn(
-            expression = CPythonExpressionCall(
+        StatementReturn(
+            expression = ExpressionCall(
                 called     = makeCalledVariableRef(),
                 args       = makeStarListArgVariableRef( assign = False ),
                 kw         = makeKwVariableRef(),
@@ -1353,7 +1354,7 @@ def getFunctionCallHelperKeywordsStarList( provider ):
     # TODO: Code generation should become capable of not generating actual exceptions for the
     # TypeError caught immediately and then unused, then the frame will be unnecessary.
     result.setBody(
-        CPythonStatementsFrame(
+        StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
             arg_names     = (),
@@ -1370,7 +1371,7 @@ def getFunctionCallHelperPosStarList( provider ):
     helper_name = "complex_call_helper_pos_star_list"
 
     # Only need to check if the star argument value is a sequence and then convert to tuple.
-    result = CPythonExpressionFunctionBody(
+    result = ExpressionFunctionBody(
         provider   = provider, # We shouldn't need that.
         name       = helper_name,
         doc        = None,
@@ -1389,7 +1390,7 @@ def getFunctionCallHelperPosStarList( provider ):
     called_variable, args_variable, star_arg_list_variable = result.getParameters().getAllVariables()
 
     def makeCalledVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = called_variable.getName(),
             source_ref    = source_ref
         )
@@ -1399,7 +1400,7 @@ def getFunctionCallHelperPosStarList( provider ):
         return variable_ref
 
     def makeArgsVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = args_variable.getName(),
             source_ref    = source_ref
         )
@@ -1409,7 +1410,7 @@ def getFunctionCallHelperPosStarList( provider ):
         return variable_ref
 
     def makeStarListArgVariableRef( assign ):
-        variable_ref_class = CPythonExpressionTargetVariableRef if assign else CPythonExpressionVariableRef
+        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = star_arg_list_variable.getName(),
@@ -1442,10 +1443,10 @@ def getFunctionCallHelperPosStarList( provider ):
             star_list_variable_ref        = makeStarListArgVariableRef( assign = False ),
             star_list_target_variable_ref = makeStarListArgVariableRef( assign = True )
         ),
-        CPythonStatementReturn(
-            expression = CPythonExpressionCallNoKeywords(
+        StatementReturn(
+            expression = ExpressionCallNoKeywords(
                 called     = makeCalledVariableRef(),
-                args       = CPythonExpressionOperationBinary(
+                args       = ExpressionOperationBinary(
                     operator   = "Add",
                     left       = makeArgsVariableRef(),
                     right      = makeStarListArgVariableRef( assign = False ),
@@ -1460,7 +1461,7 @@ def getFunctionCallHelperPosStarList( provider ):
     # TODO: Code generation should become capable of not generating actual exceptions for the
     # TypeError caught immediately and then unused, then the frame will be unnecessary.
     result.setBody(
-        CPythonStatementsFrame(
+        StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
             arg_names     = (),
@@ -1476,7 +1477,7 @@ def getFunctionCallHelperPosKeywordsStarList( provider ):
     helper_name = "complex_call_helper_pos_keywords_star_list"
 
     # Only need to check if the star argument value is a sequence and then convert to tuple.
-    result = CPythonExpressionFunctionBody(
+    result = ExpressionFunctionBody(
         provider   = provider, # We shouldn't need that.
         name       = helper_name,
         doc        = None,
@@ -1495,7 +1496,7 @@ def getFunctionCallHelperPosKeywordsStarList( provider ):
     called_variable, args_variable, kw_variable, star_arg_list_variable = result.getParameters().getAllVariables()
 
     def makeCalledVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = called_variable.getName(),
             source_ref    = source_ref
         )
@@ -1505,7 +1506,7 @@ def getFunctionCallHelperPosKeywordsStarList( provider ):
         return variable_ref
 
     def makeArgsVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = args_variable.getName(),
             source_ref    = source_ref
         )
@@ -1515,7 +1516,7 @@ def getFunctionCallHelperPosKeywordsStarList( provider ):
         return variable_ref
 
     def makeKwVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = kw_variable.getName(),
             source_ref    = source_ref
         )
@@ -1525,7 +1526,7 @@ def getFunctionCallHelperPosKeywordsStarList( provider ):
         return variable_ref
 
     def makeStarListArgVariableRef( assign ):
-        variable_ref_class = CPythonExpressionTargetVariableRef if assign else CPythonExpressionVariableRef
+        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = star_arg_list_variable.getName(),
@@ -1558,10 +1559,10 @@ def getFunctionCallHelperPosKeywordsStarList( provider ):
             star_list_variable_ref        = makeStarListArgVariableRef( assign = False ),
             star_list_target_variable_ref = makeStarListArgVariableRef( assign = True )
         ),
-        CPythonStatementReturn(
-            expression = CPythonExpressionCall(
+        StatementReturn(
+            expression = ExpressionCall(
                 called     = makeCalledVariableRef(),
-                args       = CPythonExpressionOperationBinary(
+                args       = ExpressionOperationBinary(
                     operator   = "Add",
                     left       = makeArgsVariableRef(),
                     right      = makeStarListArgVariableRef( assign = False ),
@@ -1577,7 +1578,7 @@ def getFunctionCallHelperPosKeywordsStarList( provider ):
     # TODO: Code generation should become capable of not generating actual exceptions for the
     # TypeError caught immediately and then unused, then the frame will be unnecessary.
     result.setBody(
-        CPythonStatementsFrame(
+        StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
             arg_names     = (),
@@ -1594,7 +1595,7 @@ def getFunctionCallHelperStarDict( provider ):
     helper_name = "complex_call_helper_star_dict"
 
     # Only need to check if the star argument value is a sequence and then convert to tuple.
-    result = CPythonExpressionFunctionBody(
+    result = ExpressionFunctionBody(
         provider   = provider, # We shouldn't need that.
         name       = helper_name,
         doc        = None,
@@ -1613,7 +1614,7 @@ def getFunctionCallHelperStarDict( provider ):
     called_variable, star_arg_dict_variable = result.getParameters().getAllVariables()
 
     def makeCalledVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = called_variable.getName(),
             source_ref    = source_ref
         )
@@ -1623,7 +1624,7 @@ def getFunctionCallHelperStarDict( provider ):
         return variable_ref
 
     def makeStarDictArgVariableRef( assign ):
-        variable_ref_class = CPythonExpressionTargetVariableRef if assign else CPythonExpressionVariableRef
+        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = star_arg_dict_variable.getName(),
@@ -1670,8 +1671,8 @@ def getFunctionCallHelperStarDict( provider ):
             star_dict_variable_ref        = makeStarDictArgVariableRef( assign = False ),
             star_dict_target_variable_ref = makeStarDictArgVariableRef( assign = True )
         ),
-        CPythonStatementReturn(
-            expression = CPythonExpressionCallKeywordsOnly(
+        StatementReturn(
+            expression = ExpressionCallKeywordsOnly(
                 called     = makeCalledVariableRef(),
                 kw         = makeStarDictArgVariableRef( assign = False ),
                 source_ref = source_ref
@@ -1681,7 +1682,7 @@ def getFunctionCallHelperStarDict( provider ):
     )
 
     result.setBody(
-        CPythonStatementsFrame(
+        StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
             arg_names     = (),
@@ -1698,7 +1699,7 @@ def getFunctionCallHelperPosStarDict( provider ):
     helper_name = "complex_call_helper_pos_star_dict"
 
     # Only need to check if the star argument value is a sequence and then convert to tuple.
-    result = CPythonExpressionFunctionBody(
+    result = ExpressionFunctionBody(
         provider   = provider, # We shouldn't need that.
         name       = helper_name,
         doc        = None,
@@ -1717,7 +1718,7 @@ def getFunctionCallHelperPosStarDict( provider ):
     called_variable, args_variable, star_arg_dict_variable = result.getParameters().getAllVariables()
 
     def makeCalledVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = called_variable.getName(),
             source_ref    = source_ref
         )
@@ -1727,7 +1728,7 @@ def getFunctionCallHelperPosStarDict( provider ):
         return variable_ref
 
     def makeArgsVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = args_variable.getName(),
             source_ref    = source_ref
         )
@@ -1737,7 +1738,7 @@ def getFunctionCallHelperPosStarDict( provider ):
         return variable_ref
 
     def makeStarDictArgVariableRef( assign ):
-        variable_ref_class = CPythonExpressionTargetVariableRef if assign else CPythonExpressionVariableRef
+        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = star_arg_dict_variable.getName(),
@@ -1784,8 +1785,8 @@ def getFunctionCallHelperPosStarDict( provider ):
             star_dict_variable_ref        = makeStarDictArgVariableRef( assign = False ),
             star_dict_target_variable_ref = makeStarDictArgVariableRef( assign = True )
         ),
-        CPythonStatementReturn(
-            expression = CPythonExpressionCall(
+        StatementReturn(
+            expression = ExpressionCall(
                 called     = makeCalledVariableRef(),
                 args       = makeArgsVariableRef(),
                 kw         = makeStarDictArgVariableRef( assign = False ),
@@ -1796,7 +1797,7 @@ def getFunctionCallHelperPosStarDict( provider ):
     )
 
     result.setBody(
-        CPythonStatementsFrame(
+        StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
             arg_names     = (),
@@ -1814,7 +1815,7 @@ def getFunctionCallHelperKeywordsStarDict( provider ):
     helper_name = "complex_call_helper_keywords_star_dict"
 
     # Only need to check if the star argument value is a sequence and then convert to tuple.
-    result = CPythonExpressionFunctionBody(
+    result = ExpressionFunctionBody(
         provider   = provider, # We shouldn't need that.
         name       = helper_name,
         doc        = None,
@@ -1833,7 +1834,7 @@ def getFunctionCallHelperKeywordsStarDict( provider ):
     called_variable, kw_variable, star_arg_dict_variable = result.getParameters().getAllVariables()
 
     def makeCalledVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = called_variable.getName(),
             source_ref    = source_ref
         )
@@ -1843,7 +1844,7 @@ def getFunctionCallHelperKeywordsStarDict( provider ):
         return variable_ref
 
     def makeStarDictArgVariableRef():
-        variable_ref_class = CPythonExpressionVariableRef
+        variable_ref_class = ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = star_arg_dict_variable.getName(),
@@ -1855,7 +1856,7 @@ def getFunctionCallHelperKeywordsStarDict( provider ):
         return variable_ref
 
     def makeKwVariableRef( assign ):
-        variable_ref_class = CPythonExpressionTargetVariableRef if assign else CPythonExpressionVariableRef
+        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = kw_variable.getName(),
@@ -1930,8 +1931,8 @@ def getFunctionCallHelperKeywordsStarDict( provider ):
             kw_target_variable_ref        = makeKwVariableRef( assign = True ),
             star_dict_variable_ref        = makeStarDictArgVariableRef()
         ),
-        CPythonStatementReturn(
-            expression = CPythonExpressionCallKeywordsOnly(
+        StatementReturn(
+            expression = ExpressionCallKeywordsOnly(
                 called     = makeCalledVariableRef(),
                 kw         = makeKwVariableRef( assign = False ),
                 source_ref = source_ref
@@ -1941,7 +1942,7 @@ def getFunctionCallHelperKeywordsStarDict( provider ):
     )
 
     result.setBody(
-        CPythonStatementsFrame(
+        StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
             arg_names     = (),
@@ -1958,7 +1959,7 @@ def getFunctionCallHelperPosKeywordsStarDict( provider ):
     helper_name = "complex_call_helper_pos_keywords_star_dict"
 
     # Only need to check if the star argument value is a sequence and then convert to tuple.
-    result = CPythonExpressionFunctionBody(
+    result = ExpressionFunctionBody(
         provider   = provider, # We shouldn't need that.
         name       = helper_name,
         doc        = None,
@@ -1977,7 +1978,7 @@ def getFunctionCallHelperPosKeywordsStarDict( provider ):
     called_variable, args_variable, kw_variable, star_arg_dict_variable = result.getParameters().getAllVariables()
 
     def makeCalledVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = called_variable.getName(),
             source_ref    = source_ref
         )
@@ -1987,7 +1988,7 @@ def getFunctionCallHelperPosKeywordsStarDict( provider ):
         return variable_ref
 
     def makeArgsVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = args_variable.getName(),
             source_ref    = source_ref
         )
@@ -1997,7 +1998,7 @@ def getFunctionCallHelperPosKeywordsStarDict( provider ):
         return variable_ref
 
     def makeStarDictArgVariableRef():
-        variable_ref_class = CPythonExpressionVariableRef
+        variable_ref_class = ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = star_arg_dict_variable.getName(),
@@ -2009,7 +2010,7 @@ def getFunctionCallHelperPosKeywordsStarDict( provider ):
         return variable_ref
 
     def makeKwVariableRef( assign ):
-        variable_ref_class = CPythonExpressionTargetVariableRef if assign else CPythonExpressionVariableRef
+        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = kw_variable.getName(),
@@ -2084,8 +2085,8 @@ def getFunctionCallHelperPosKeywordsStarDict( provider ):
             kw_target_variable_ref        = makeKwVariableRef( assign = True ),
             star_dict_variable_ref        = makeStarDictArgVariableRef()
         ),
-        CPythonStatementReturn(
-            expression = CPythonExpressionCall(
+        StatementReturn(
+            expression = ExpressionCall(
                 called     = makeCalledVariableRef(),
                 args       = makeArgsVariableRef(),
                 kw         = makeKwVariableRef( assign = False ),
@@ -2096,7 +2097,7 @@ def getFunctionCallHelperPosKeywordsStarDict( provider ):
     )
 
     result.setBody(
-        CPythonStatementsFrame(
+        StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
             arg_names     = (),
@@ -2114,7 +2115,7 @@ def getFunctionCallHelperStarListStarDict( provider ):
     helper_name = "complex_call_helper_star_list_star_dict"
 
     # Only need to check if the star argument value is a sequence and then convert to tuple.
-    result = CPythonExpressionFunctionBody(
+    result = ExpressionFunctionBody(
         provider   = provider, # We shouldn't need that.
         name       = helper_name,
         doc        = None,
@@ -2133,7 +2134,7 @@ def getFunctionCallHelperStarListStarDict( provider ):
     called_variable, star_arg_list_variable, star_arg_dict_variable = result.getParameters().getAllVariables()
 
     def makeCalledVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = called_variable.getName(),
             source_ref    = source_ref
         )
@@ -2143,7 +2144,7 @@ def getFunctionCallHelperStarListStarDict( provider ):
         return variable_ref
 
     def makeStarListArgVariableRef( assign ):
-        variable_ref_class = CPythonExpressionTargetVariableRef if assign else CPythonExpressionVariableRef
+        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = star_arg_list_variable.getName(),
@@ -2155,7 +2156,7 @@ def getFunctionCallHelperStarListStarDict( provider ):
         return variable_ref
 
     def makeStarDictArgVariableRef( assign ):
-        variable_ref_class = CPythonExpressionTargetVariableRef if assign else CPythonExpressionVariableRef
+        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = star_arg_dict_variable.getName(),
@@ -2179,8 +2180,8 @@ def getFunctionCallHelperStarListStarDict( provider ):
             star_list_variable_ref        = makeStarListArgVariableRef( assign = False ),
             star_list_target_variable_ref = makeStarListArgVariableRef( assign = True )
         ),
-        CPythonStatementReturn(
-            expression = CPythonExpressionCall(
+        StatementReturn(
+            expression = ExpressionCall(
                 called     = makeCalledVariableRef(),
                 args       = makeStarListArgVariableRef( assign = False ),
                 kw         = makeStarDictArgVariableRef( assign = False ),
@@ -2191,7 +2192,7 @@ def getFunctionCallHelperStarListStarDict( provider ):
     )
 
     result.setBody(
-        CPythonStatementsFrame(
+        StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
             arg_names     = (),
@@ -2208,7 +2209,7 @@ def getFunctionCallHelperPosStarListStarDict( provider ):
     helper_name = "complex_call_helper_pos_star_list_star_dict"
 
     # Only need to check if the star argument value is a sequence and then convert to tuple.
-    result = CPythonExpressionFunctionBody(
+    result = ExpressionFunctionBody(
         provider   = provider, # We shouldn't need that.
         name       = helper_name,
         doc        = None,
@@ -2228,7 +2229,7 @@ def getFunctionCallHelperPosStarListStarDict( provider ):
         result.getParameters().getAllVariables()
 
     def makeCalledVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = called_variable.getName(),
             source_ref    = source_ref
         )
@@ -2238,7 +2239,7 @@ def getFunctionCallHelperPosStarListStarDict( provider ):
         return variable_ref
 
     def makeArgsVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = args_variable.getName(),
             source_ref    = source_ref
         )
@@ -2248,7 +2249,7 @@ def getFunctionCallHelperPosStarListStarDict( provider ):
         return variable_ref
 
     def makeStarListArgVariableRef( assign ):
-        variable_ref_class = CPythonExpressionTargetVariableRef if assign else CPythonExpressionVariableRef
+        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = star_arg_list_variable.getName(),
@@ -2260,7 +2261,7 @@ def getFunctionCallHelperPosStarListStarDict( provider ):
         return variable_ref
 
     def makeStarDictArgVariableRef( assign ):
-        variable_ref_class = CPythonExpressionTargetVariableRef if assign else CPythonExpressionVariableRef
+        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = star_arg_dict_variable.getName(),
@@ -2284,10 +2285,10 @@ def getFunctionCallHelperPosStarListStarDict( provider ):
             star_list_variable_ref        = makeStarListArgVariableRef( assign = False ),
             star_list_target_variable_ref = makeStarListArgVariableRef( assign = True )
         ),
-        CPythonStatementReturn(
-            expression = CPythonExpressionCall(
+        StatementReturn(
+            expression = ExpressionCall(
                 called     = makeCalledVariableRef(),
-                args       = CPythonExpressionOperationBinary(
+                args       = ExpressionOperationBinary(
                     operator   = "Add",
                     left       = makeArgsVariableRef(),
                     right      = makeStarListArgVariableRef( assign = False ),
@@ -2301,7 +2302,7 @@ def getFunctionCallHelperPosStarListStarDict( provider ):
     )
 
     result.setBody(
-        CPythonStatementsFrame(
+        StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
             arg_names     = (),
@@ -2319,7 +2320,7 @@ def getFunctionCallHelperKeywordsStarListStarDict( provider ):
     helper_name = "complex_call_helper_keywords_star_list_star_dict"
 
     # Only need to check if the star argument value is a sequence and then convert to tuple.
-    result = CPythonExpressionFunctionBody(
+    result = ExpressionFunctionBody(
         provider   = provider, # We shouldn't need that.
         name       = helper_name,
         doc        = None,
@@ -2339,7 +2340,7 @@ def getFunctionCallHelperKeywordsStarListStarDict( provider ):
         result.getParameters().getAllVariables()
 
     def makeCalledVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = called_variable.getName(),
             source_ref    = source_ref
         )
@@ -2349,7 +2350,7 @@ def getFunctionCallHelperKeywordsStarListStarDict( provider ):
         return variable_ref
 
     def makeKwVariableRef( assign ):
-        variable_ref_class = CPythonExpressionTargetVariableRef if assign else CPythonExpressionVariableRef
+        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = kw_variable.getName(),
@@ -2361,7 +2362,7 @@ def getFunctionCallHelperKeywordsStarListStarDict( provider ):
         return variable_ref
 
     def makeStarListArgVariableRef( assign ):
-        variable_ref_class = CPythonExpressionTargetVariableRef if assign else CPythonExpressionVariableRef
+        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = star_arg_list_variable.getName(),
@@ -2373,7 +2374,7 @@ def getFunctionCallHelperKeywordsStarListStarDict( provider ):
         return variable_ref
 
     def makeStarDictArgVariableRef():
-        variable_ref_class = CPythonExpressionVariableRef
+        variable_ref_class = ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = star_arg_dict_variable.getName(),
@@ -2398,8 +2399,8 @@ def getFunctionCallHelperKeywordsStarListStarDict( provider ):
             star_list_variable_ref        = makeStarListArgVariableRef( assign = False ),
             star_list_target_variable_ref = makeStarListArgVariableRef( assign = True )
         ),
-        CPythonStatementReturn(
-            expression = CPythonExpressionCall(
+        StatementReturn(
+            expression = ExpressionCall(
                 called     = makeCalledVariableRef(),
                 args       = makeStarListArgVariableRef( assign = False ),
                 kw         = makeKwVariableRef( assign = False ),
@@ -2410,7 +2411,7 @@ def getFunctionCallHelperKeywordsStarListStarDict( provider ):
     )
 
     result.setBody(
-        CPythonStatementsFrame(
+        StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
             arg_names     = (),
@@ -2428,7 +2429,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict( provider ):
     helper_name = "complex_call_helper_pos_keywords_star_list_star_dict"
 
     # Only need to check if the star argument value is a sequence and then convert to tuple.
-    result = CPythonExpressionFunctionBody(
+    result = ExpressionFunctionBody(
         provider   = provider, # We shouldn't need that.
         name       = helper_name,
         doc        = None,
@@ -2448,7 +2449,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict( provider ):
         result.getParameters().getAllVariables()
 
     def makeCalledVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = called_variable.getName(),
             source_ref    = source_ref
         )
@@ -2458,7 +2459,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict( provider ):
         return variable_ref
 
     def makeArgsVariableRef():
-        variable_ref = CPythonExpressionVariableRef(
+        variable_ref = ExpressionVariableRef(
             variable_name = args_variable.getName(),
             source_ref    = source_ref
         )
@@ -2468,7 +2469,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict( provider ):
         return variable_ref
 
     def makeKwVariableRef( assign ):
-        variable_ref_class = CPythonExpressionTargetVariableRef if assign else CPythonExpressionVariableRef
+        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = kw_variable.getName(),
@@ -2480,7 +2481,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict( provider ):
         return variable_ref
 
     def makeStarListArgVariableRef( assign ):
-        variable_ref_class = CPythonExpressionTargetVariableRef if assign else CPythonExpressionVariableRef
+        variable_ref_class = ExpressionTargetVariableRef if assign else ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = star_arg_list_variable.getName(),
@@ -2492,7 +2493,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict( provider ):
         return variable_ref
 
     def makeStarDictArgVariableRef():
-        variable_ref_class = CPythonExpressionVariableRef
+        variable_ref_class = ExpressionVariableRef
 
         variable_ref = variable_ref_class(
             variable_name = star_arg_dict_variable.getName(),
@@ -2517,10 +2518,10 @@ def getFunctionCallHelperPosKeywordsStarListStarDict( provider ):
             star_list_variable_ref        = makeStarListArgVariableRef( assign = False ),
             star_list_target_variable_ref = makeStarListArgVariableRef( assign = True )
         ),
-        CPythonStatementReturn(
-            expression = CPythonExpressionCall(
+        StatementReturn(
+            expression = ExpressionCall(
                 called     = makeCalledVariableRef(),
-                args       = CPythonExpressionOperationBinary(
+                args       = ExpressionOperationBinary(
                     operator   = "Add",
                     left       = makeArgsVariableRef(),
                     right      = makeStarListArgVariableRef( assign = False ),
@@ -2534,7 +2535,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict( provider ):
     )
 
     result.setBody(
-        CPythonStatementsFrame(
+        StatementsFrame(
             code_name     = "unused",
             guard_mode    = "pass_through",
             arg_names     = (),

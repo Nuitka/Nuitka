@@ -80,10 +80,11 @@ def compilePath( path ):
             if not active:
                 continue
 
-            command = "%s %s --output-dir %s --recurse-none --remove-output %s" % (
+            command = "%s %s --output-dir %s --recurse-none --remove-output %s %s" % (
                 sys.executable,
                 os.path.join( os.path.dirname( __file__ ), "..", "..", "bin", "nuitka" ),
                 stage_dir,
+                os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ),
                 path,
             )
 
