@@ -203,6 +203,27 @@ def getGccVersion():
     else:
         return None
 
+def getClangVersion():
+    # Update CXXVERSION in env, after we changed it.
+    import SCons
+
+    pipe = SCons.Action._subproc(
+        env, [ env[ "CXX" ], '--version' ],
+        stdin = 'devnull',
+        stderr = 'devnull',
+        stdout = subprocess.PIPE
+    )
+
+    line = pipe.stdout.readline()
+
+    match = re.search( r'LLVM ([0-9]+(\.[0-9]+){1})', line )
+
+    if match:
+        return match.group(1)
+    else:
+        return None
+
+
 # To support cross-compiling under Linux for a  windows target, a cross compiler linked or
 # installed to /opt/mingw will win over a system installed one.
 if win_target and "linux" in sys.platform:
@@ -261,6 +282,14 @@ if "clang" in env[ "CXX" ]:
     env.Append( CCFLAGS = [ "-w", "-D _XOPEN_SOURCE" ] )
     env.Append( LINKFLAGS = [ "-lstdc++" ])
 
+    env.Append( CCFLAGS = [ "-fvisibility=hidden", "-fvisibility-inlines-hidden" ] )
+
+    if debug_mode:
+        env.Append( CCFLAGS = [ "-Wunused-but-set-variable" ] )
+
+    clang_version = getClangVersion()
+
+    clang_version = int( clang_version.replace( ".", "" ) + "0" )
 
 # Support for g++.
 if "g++" in env[ "CXX" ]:
@@ -346,7 +375,7 @@ if debug_mode:
         env.Append( CCFLAGS = [ "-Wno-sequence-point" ] )
 
     # Benefit from clang checking memory accesses.
-    if "clang" in env[ "CXX" ]:
+    if "clang" in env[ "CXX" ] and clang_version >= 330:
         env.Append( CCFLAGS = [ "-fsanatize=address,bounds,return" ] )
 
 # Python version, use the scons one if not given.
@@ -459,9 +488,12 @@ if optimize_mode:
     elif msvc_mode:
         env.Append( CCFLAGS = [ "/Ox" ] )
 
+# Tell compiler to create a shared library or program.
 if module_mode:
-    if gcc_mode:
+    if "g++" in env[ "CXX" ]:
         env.Append( CCFLAGS = [ "-shared" ] )
+    elif "clang" in env[ "CXX" ]:
+        pass
     elif msvc_mode:
         env.Append( CCFLAGS = [ "/LD" ] )
     else:

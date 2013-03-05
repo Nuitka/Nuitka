@@ -249,6 +249,10 @@ def makeDiffable( output ):
         if line == "Exception RuntimeError: 'maximum recursion depth exceeded while calling a Python object' in <type 'exceptions.AttributeError'> ignored":
             continue
 
+        # This is a bug with clang potentially, can't find out why it says that.
+        if line == "/usr/bin/ld: warning: .init_array section has zero size":
+            continue
+
         result.append( line )
 
     return result
