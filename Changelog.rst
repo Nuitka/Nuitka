@@ -1,5 +1,34 @@
-Nuitka Release 0.4.1 (Draft)
+Nuitka Release 0.4.2 (Draft)
 ============================
+
+New Features
+------------
+
+- Support for FreeBSD.
+
+  Issues of default compiler detection was standing in the way of this, as well as path
+  issues, and clang issues that got addressed.
+
+New Optimization
+----------------
+
+- Constants are now much less often created with ``pickle`` module, and nested constants,
+  now become ``is`` identical instead of only ``==`` identical, which indicates a
+  duplicate memory usage.
+
+  .. code-block:: python
+
+     a = ( "something_special", )
+     b = "something_special"
+
+     assert a[0] is b # Now true
+
+  This is not only about memory efficiency, but also about performance. Less memory usage
+  is more cache friendly, and the "==" operator will be able to shortcut dramatically in
+  cases of identical objects.
+
+Nuitka Release 0.4.1
+====================
 
 This release is the first follow-up with a focus on optimization. The major highlight is
 progress towards SSA form in the node tree.
@@ -11,23 +40,17 @@ have been large amounts of changes.
 New Features
 ------------
 
-- Support for FreeBSD.
-
-  Actually only the minor issue of default compiler detection was standing in the way of
-  this, and more generally "Unix" should work now.
-
 - Python 3.3 experimental support
 
   * Now compiles many basic tests. Ported the dictionary quick access and update code to a
     more generic and useful interface.
 
-  * Added support for ``__qualname__`` to classes.
+  * Added support for ``__qualname__`` to classes and functions.
 
   * Small compatibility changes. Some exceptions changed, absolute imports are now
     default, etc.
 
   * For comparison tests, the hash randomization is disabled.
-
 
 - Python 3.2 support has been expanded.
 
@@ -47,7 +70,7 @@ Bug fixes
      defaultKeepsIdentity()
 
   This now prints "True" as it does with CPython. The solution is actually a general code
-  optimization, see below.
+  optimization, see below. `Issue#55 <http://bugs.nuitka.net/issue55>`_
 
 - Usage of ``unicode`` built-in with more than one argument could corrupt the encoding
   argument string.
@@ -148,15 +171,16 @@ New Tests
 Organizational
 --------------
 
-- The upload of `Nuitka to PyPI <http://pypi.python.org/pypi/Nuitka/>`_ has been repaired.
+- The upload of `Nuitka to PyPI <http://pypi.python.org/pypi/Nuitka/>`_ has been repaired
+  and now properly displays project information again.
 
 Summary
 -------
 
-The release is mostly a consolidation effort, without much performance progress. The
-progress towards SSA form matter a lot on the outlook front. Once this is finished,
-standard compiler algorithms can be added to Nuitka which go beyond the current peephole
-optimization.
+The quicker release is mostly a consolidation effort, without actual performance
+progress. The progress towards SSA form matter a lot on the outlook front. Once this is
+finished, standard compiler algorithms can be added to Nuitka which go beyond the current
+peephole optimization.
 
 
 Nuitka Release 0.4.0
