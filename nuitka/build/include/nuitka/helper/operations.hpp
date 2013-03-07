@@ -64,7 +64,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD( PyObject *operand1, 
             {
                 if ( x == 0 )
                 {
-                    throw _PythonException();
+                    throw PythonException();
                 }
 
                 return x;
@@ -80,7 +80,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD( PyObject *operand1, 
         {
             if ( x == 0 )
             {
-                throw _PythonException();
+                throw PythonException();
             }
 
             return x;
@@ -97,7 +97,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD( PyObject *operand1, 
         {
             if ( x == 0 )
             {
-                throw _PythonException();
+                throw PythonException();
             }
 
             return x;
@@ -113,7 +113,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD( PyObject *operand1, 
 
         if ( err < 0 )
         {
-            throw _PythonException();
+            throw PythonException();
         }
 
         if ( err == 0 )
@@ -133,7 +133,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD( PyObject *operand1, 
 
                     if ( x == NULL )
                     {
-                        throw _PythonException();
+                        throw PythonException();
                     }
 
                     return x;
@@ -156,7 +156,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD( PyObject *operand1, 
 
         if ( result == NULL )
         {
-            throw _PythonException();
+            throw PythonException();
         }
 
         return result;
@@ -169,7 +169,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD( PyObject *operand1, 
         type2->tp_name
     );
 
-    throw _PythonException();
+    throw PythonException();
 }
 
 static PyObject *SEQUENCE_REPEAT( ssizeargfunc repeatfunc, PyObject *seq, PyObject *n )
@@ -182,14 +182,14 @@ static PyObject *SEQUENCE_REPEAT( ssizeargfunc repeatfunc, PyObject *seq, PyObje
             Py_TYPE( n )->tp_name
         );
 
-        throw _PythonException();
+        throw PythonException();
     }
 
     PyObject *index_value = PyNumber_Index( n );
 
     if (unlikely( index_value == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     /* We're done if PyInt_AsSsize_t() returns without error. */
@@ -209,7 +209,7 @@ static PyObject *SEQUENCE_REPEAT( ssizeargfunc repeatfunc, PyObject *seq, PyObje
         {
             if ( !PyErr_GivenExceptionMatches( exception, PyExc_OverflowError ) )
             {
-                throw _PythonException();
+                throw PythonException();
             }
 
             PyErr_Format(
@@ -218,7 +218,7 @@ static PyObject *SEQUENCE_REPEAT( ssizeargfunc repeatfunc, PyObject *seq, PyObje
                 Py_TYPE( n )->tp_name
             );
 
-            throw _PythonException();
+            throw PythonException();
         }
     }
 
@@ -226,7 +226,7 @@ static PyObject *SEQUENCE_REPEAT( ssizeargfunc repeatfunc, PyObject *seq, PyObje
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -272,7 +272,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_MUL( PyObject *operand1, 
             {
                 if ( x == 0 )
                 {
-                    throw _PythonException();
+                    throw PythonException();
                 }
 
                 return x;
@@ -288,7 +288,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_MUL( PyObject *operand1, 
         {
             if ( x == 0 )
             {
-                throw _PythonException();
+                throw PythonException();
             }
 
             return x;
@@ -305,7 +305,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_MUL( PyObject *operand1, 
         {
             if ( x == 0 )
             {
-                throw _PythonException();
+                throw PythonException();
             }
 
             return x;
@@ -321,7 +321,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_MUL( PyObject *operand1, 
 
         if ( err < 0 )
         {
-            throw _PythonException();
+            throw PythonException();
         }
 
         if ( err == 0 )
@@ -341,7 +341,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_MUL( PyObject *operand1, 
 
                     if ( x == NULL )
                     {
-                        throw _PythonException();
+                        throw PythonException();
                     }
 
                     return x;
@@ -376,7 +376,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_MUL( PyObject *operand1, 
         type2->tp_name
     );
 
-    throw _PythonException();
+    throw PythonException();
 
 }
 
@@ -421,7 +421,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_SUB( PyObject *operand1, 
             {
                 if ( x == 0 )
                 {
-                    throw _PythonException();
+                    throw PythonException();
                 }
 
                 return x;
@@ -437,7 +437,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_SUB( PyObject *operand1, 
         {
             if ( x == 0 )
             {
-                throw _PythonException();
+                throw PythonException();
             }
 
             return x;
@@ -454,7 +454,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_SUB( PyObject *operand1, 
         {
             if ( x == 0 )
             {
-                throw _PythonException();
+                throw PythonException();
             }
 
             return x;
@@ -470,7 +470,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_SUB( PyObject *operand1, 
 
         if ( err < 0 )
         {
-            throw _PythonException();
+            throw PythonException();
         }
 
         if ( err == 0 )
@@ -490,7 +490,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_SUB( PyObject *operand1, 
 
                     if ( x == NULL )
                     {
-                        throw _PythonException();
+                        throw PythonException();
                     }
 
                     return x;
@@ -511,7 +511,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_SUB( PyObject *operand1, 
         type2->tp_name
     );
 
-    throw _PythonException();
+    throw PythonException();
 }
 
 #if PYTHON_VERSION < 300
@@ -554,7 +554,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_DIV( PyObject *operand1, 
             {
                 if ( x == 0 )
                 {
-                    throw _PythonException();
+                    throw PythonException();
                 }
 
                 return x;
@@ -570,7 +570,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_DIV( PyObject *operand1, 
         {
             if ( x == 0 )
             {
-                throw _PythonException();
+                throw PythonException();
             }
 
             return x;
@@ -587,7 +587,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_DIV( PyObject *operand1, 
         {
             if ( x == 0 )
             {
-                throw _PythonException();
+                throw PythonException();
             }
 
             return x;
@@ -603,7 +603,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_DIV( PyObject *operand1, 
 
         if ( err < 0 )
         {
-            throw _PythonException();
+            throw PythonException();
         }
 
         if ( err == 0 )
@@ -623,7 +623,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_DIV( PyObject *operand1, 
 
                     if ( x == NULL )
                     {
-                        throw _PythonException();
+                        throw PythonException();
                     }
 
                     return x;
@@ -644,7 +644,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_DIV( PyObject *operand1, 
         type2->tp_name
     );
 
-    throw _PythonException();
+    throw PythonException();
 }
 #endif
 
@@ -687,7 +687,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_REMAINDER( PyObject *oper
             {
                 if ( x == 0 )
                 {
-                    throw _PythonException();
+                    throw PythonException();
                 }
 
                 return x;
@@ -703,7 +703,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_REMAINDER( PyObject *oper
         {
             if ( x == 0 )
             {
-                throw _PythonException();
+                throw PythonException();
             }
 
             return x;
@@ -720,7 +720,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_REMAINDER( PyObject *oper
         {
             if ( x == 0 )
             {
-                throw _PythonException();
+                throw PythonException();
             }
 
             return x;
@@ -736,7 +736,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_REMAINDER( PyObject *oper
 
         if ( err < 0 )
         {
-            throw _PythonException();
+            throw PythonException();
         }
 
         if ( err == 0 )
@@ -756,7 +756,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_REMAINDER( PyObject *oper
 
                     if ( x == NULL )
                     {
-                        throw _PythonException();
+                        throw PythonException();
                     }
 
                     return x;
@@ -777,7 +777,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_REMAINDER( PyObject *oper
         type2->tp_name
     );
 
-    throw _PythonException();
+    throw PythonException();
 }
 
 

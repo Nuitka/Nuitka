@@ -355,7 +355,7 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     PyFrameObject *frame = &result->m_frame;
@@ -392,7 +392,7 @@ PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module )
         if (unlikely( frame->f_locals == NULL ))
         {
             Py_DECREF( result );
-            throw _PythonException();
+            throw PythonException();
         }
 
         PyDict_SetItem( frame->f_locals, _python_str_plain___module__, MODULE_NAME( module ) );
@@ -460,7 +460,7 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;

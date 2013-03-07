@@ -28,7 +28,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_LIST%(argument_count)d( EVAL_ORDERED
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
 %(add_elements_code)s

@@ -152,7 +152,7 @@ try
     assert( Py_REFCNT( frame_%(frame_identifier)s ) == 2 ); // Frame stack
 %(codes)s
 }
-catch ( _PythonException &_exception )
+catch ( PythonException &_exception )
 {
     if ( !_exception.hasTraceback() )
     {
@@ -193,7 +193,7 @@ try
     assert( Py_REFCNT( frame_%(frame_identifier)s ) == 2 ); // Frame stack
 %(codes)s
 }
-catch ( _PythonException &_exception )
+catch ( PythonException &_exception )
 {
     if ( !_exception.hasTraceback() )
     {

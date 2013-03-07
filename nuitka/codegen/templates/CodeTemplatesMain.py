@@ -129,7 +129,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
             }
 
             PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
-            throw _PythonException();
+            throw PythonException();
         }
 
         PyObject *asObject() const
@@ -200,7 +200,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
             if (unlikely( status == -1 && tolerant == false ))
             {
                 PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
-                throw _PythonException();
+                throw PythonException();
             }
         }
 

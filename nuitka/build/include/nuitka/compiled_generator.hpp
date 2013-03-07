@@ -104,7 +104,7 @@ static inline void CHECK_EXCEPTION( Nuitka_GeneratorObject *generator )
         generator->m_exception_value = NULL;
         generator->m_exception_tb = NULL;
 
-        throw _PythonException();
+        throw PythonException();
     }
 }
 

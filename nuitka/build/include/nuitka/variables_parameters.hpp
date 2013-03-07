@@ -85,7 +85,7 @@ public:
         if ( this->object == NULL )
         {
             PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
-            throw _PythonException();
+            throw PythonException();
         }
 
         assertObject( this->object );
@@ -110,7 +110,7 @@ public:
             if ( tolerant == false )
             {
                 PyErr_Format( PyExc_UnboundLocalError, "local variable '%s' referenced before assignment", Nuitka_String_AsString( this->var_name ) );
-                throw _PythonException();
+                throw PythonException();
             }
         }
         else
@@ -141,7 +141,7 @@ public:
 
             if (unlikely( status == -1 ))
             {
-                throw _PythonException();
+                throw PythonException();
             }
         }
 
@@ -161,7 +161,7 @@ public:
 
             if (unlikely( status == -1 ))
             {
-                throw _PythonException();
+                throw PythonException();
             }
         }
 
@@ -275,7 +275,7 @@ public:
 
             if (unlikely( status == -1 ))
             {
-                throw _PythonException();
+                throw PythonException();
             }
         }
 
@@ -295,7 +295,7 @@ public:
 
             if (unlikely( status == -1 ))
             {
-                throw _PythonException();
+                throw PythonException();
             }
         }
 

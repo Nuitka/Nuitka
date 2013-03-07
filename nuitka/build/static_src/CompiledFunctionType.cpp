@@ -502,7 +502,7 @@ static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, Py
     if (unlikely( result == NULL ))
     {
         PyErr_Format( PyExc_RuntimeError, "cannot create function %s", Nuitka_String_AsString( name ) );
-        throw _PythonException();
+        throw PythonException();
     }
 
     result->m_code = code;

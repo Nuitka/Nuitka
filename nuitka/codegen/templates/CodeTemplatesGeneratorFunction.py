@@ -191,7 +191,7 @@ try
 
     PyErr_SetNone( PyExc_StopIteration );
 }
-catch ( _PythonException &_exception )
+catch ( PythonException &_exception )
 {
     if ( !_exception.hasTraceback() )
     {
@@ -257,7 +257,7 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 
         return result;
     }
-    catch ( _PythonException &_exception )
+    catch ( PythonException &_exception )
     {
         _exception.toPython();
 

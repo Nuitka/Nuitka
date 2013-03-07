@@ -50,7 +50,7 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
 
         if (unlikely( source == NULL ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }
 #if PYTHON_VERSION < 300
@@ -61,7 +61,7 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
 
         if (unlikely( source == NULL ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }
 #endif
@@ -144,7 +144,7 @@ PyObject *BUILTIN_CHR( PyObject *value )
     if ( x < 0 || x >= 256 )
     {
         PyErr_Format( PyExc_ValueError, "chr() arg not in range(256)" );
-        throw _PythonException();
+        throw PythonException();
     }
 
     // TODO: A switch statement might be faster, because no object needs to be created at
@@ -158,7 +158,7 @@ PyObject *BUILTIN_CHR( PyObject *value )
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     assert( PyUnicode_Check( result ));
@@ -182,7 +182,7 @@ PyObject *BUILTIN_ORD( PyObject *value )
         else
         {
             PyErr_Format( PyExc_TypeError, "ord() expected a character, but string of length %" PY_FORMAT_SIZE_T "d found", size );
-            throw _PythonException();
+            throw PythonException();
         }
     }
     else if ( PyByteArray_Check( value ) )
@@ -196,7 +196,7 @@ PyObject *BUILTIN_ORD( PyObject *value )
         else
         {
             PyErr_Format( PyExc_TypeError, "ord() expected a character, but byte array of length %" PY_FORMAT_SIZE_T "d found", size );
-            throw _PythonException();
+            throw PythonException();
         }
     }
     else if ( PyUnicode_Check( value ) )
@@ -210,13 +210,13 @@ PyObject *BUILTIN_ORD( PyObject *value )
         else
         {
             PyErr_Format( PyExc_TypeError, "ord() expected a character, but unicode string of length %" PY_FORMAT_SIZE_T "d found", size );
-            throw _PythonException();
+            throw PythonException();
         }
     }
     else
     {
         PyErr_Format( PyExc_TypeError, "ord() expected string of length 1, but %s found", Py_TYPE( value )->tp_name );
-        throw _PythonException();
+        throw PythonException();
     }
 
     return PyInt_FromLong( result );
@@ -229,7 +229,7 @@ PyObject *BUILTIN_BIN( PyObject *value )
 
     if ( unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -242,7 +242,7 @@ PyObject *BUILTIN_OCT( PyObject *value )
 
     if ( unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -285,7 +285,7 @@ PyObject *BUILTIN_HEX( PyObject *value )
 
     if ( unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -334,7 +334,7 @@ PyObject *_BUILTIN_ITER2( EVAL_ORDERED_2( PyObject *callable, PyObject *sentinel
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     // Note: References were taken at call site already.
@@ -363,7 +363,7 @@ PyObject *_BUILTIN_TYPE3( EVAL_ORDERED_4( PyObject *module_name, PyObject *name,
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     PyTypeObject *type = Py_TYPE( result );
@@ -382,7 +382,7 @@ PyObject *_BUILTIN_TYPE3( EVAL_ORDERED_4( PyObject *module_name, PyObject *name,
             if (unlikely( res < 0 ))
             {
                 Py_DECREF( result );
-                throw _PythonException();
+                throw PythonException();
             }
         }
     }
@@ -391,7 +391,7 @@ PyObject *_BUILTIN_TYPE3( EVAL_ORDERED_4( PyObject *module_name, PyObject *name,
 
     if ( res == -1 )
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -468,14 +468,14 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
        )
     {
         PyErr_Format( PyExc_TypeError, "range() integer %s argument expected, got %s.", name, type->tp_name );
-        throw _PythonException();
+        throw PythonException();
     }
 
     PyObject *result = tp_as_number->nb_int( value );
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -598,7 +598,7 @@ PyObject *_BUILTIN_RANGE3( EVAL_ORDERED_3( PyObject *low, PyObject *high, PyObje
         if (unlikely( step_long == 0 ))
         {
             PyErr_Format( PyExc_ValueError, "range() step argument must not be zero" );
-            throw _PythonException();
+            throw PythonException();
         }
 
         return _BUILTIN_RANGE_INT3( start, end, step_long );
@@ -618,7 +618,7 @@ PyObject *BUILTIN_LEN( PyObject *value )
 
     if (unlikely( res < 0 && ERROR_OCCURED() ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return PyInt_FromSsize_t( res );
@@ -632,7 +632,7 @@ PyObject *BUILTIN_DIR1( PyObject *arg )
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -691,7 +691,7 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
     }
     else
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     while ( PyObject *item = ITERATOR_NEXT( iter ) )
@@ -773,14 +773,14 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
         if (unlikely( PyFile_WriteString( " ", file ) == -1 ))
         {
             Py_DECREF( file );
-            throw _PythonException();
+            throw PythonException();
         }
     }
 
     if ( unlikely( PyFile_WriteObject( object, file, Py_PRINT_RAW ) == -1 ))
     {
         Py_DECREF( file );
-        throw _PythonException();
+        throw PythonException();
     }
 
     if ( softspace )
@@ -836,7 +836,7 @@ void PRINT_NEW_LINE_TO( PyObject *file )
     if (unlikely( PyFile_WriteString( "\n", file ) == -1))
     {
         Py_DECREF( file );
-        throw _PythonException();
+        throw PythonException();
     }
 
     PyFile_SoftSpace( file, 0 );
@@ -872,7 +872,7 @@ void PRINT_REFCOUNT( PyObject *object )
 
    if (unlikely( PyFile_WriteString( buffer, GET_STDOUT() ) == -1 ))
    {
-      throw _PythonException();
+      throw PythonException();
    }
 #else
    assert( false );
@@ -889,7 +889,7 @@ PyObject *GET_STDOUT()
     if (unlikely( result == NULL ))
     {
         PyErr_Format( PyExc_RuntimeError, "lost sys.stdout" );
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -902,7 +902,7 @@ PyObject *GET_STDERR()
     if (unlikely( result == NULL ))
     {
         PyErr_Format( PyExc_RuntimeError, "lost sys.stderr" );
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -1320,7 +1320,7 @@ PyObject *_BUILTIN_SUPER( EVAL_ORDERED_2( PyObject *type, PyObject *object ) )
                     "super(type, obj): obj must be an instance or subtype of type"
                 );
 
-                throw _PythonException();
+                throw PythonException();
             }
         }
     }
@@ -1407,7 +1407,7 @@ bool _BUILTIN_ISINSTANCE_BOOL( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) )
 
     if (unlikely( res < 0 ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return res != 0;
@@ -1423,20 +1423,20 @@ PyObject *_BUILTIN_GETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribut
 
         if (unlikely( attribute == NULL ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }
 
     if (unlikely( !PyString_Check( attribute ) ))
     {
         PyErr_Format( PyExc_TypeError, "getattr(): attribute name must be string" );
-        throw _PythonException();
+        throw PythonException();
     }
 #else
     if (!PyUnicode_Check( attribute ))
     {
         PyErr_Format( PyExc_TypeError, "getattr(): attribute name must be string" );
-        throw _PythonException();
+        throw PythonException();
     }
 #endif
 
@@ -1452,7 +1452,7 @@ PyObject *_BUILTIN_GETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribut
         }
         else
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }
     else
@@ -1467,6 +1467,6 @@ void _BUILTIN_SETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, Py
 
     if (unlikely( res != 0 ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 }

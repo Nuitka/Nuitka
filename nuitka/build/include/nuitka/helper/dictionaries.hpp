@@ -182,7 +182,7 @@ NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, P
 
     if (unlikely( status == -1 ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 }
 
@@ -192,7 +192,7 @@ NUITKA_MAY_BE_UNUSED static void DICT_REMOVE_ITEM( PyObject *dict, PyObject *key
 
     if (unlikely( status == -1 ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 }
 
@@ -210,11 +210,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *DICT_GET_ITEM( PyObject *dict, PyObject *k
     {
         if (unlikely( PyErr_Occurred() ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
 
         PyErr_SetObject( PyExc_KeyError, key );
-        throw _PythonException();
+        throw PythonException();
     }
     else
     {
@@ -243,7 +243,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict
 
         if ( res == -1 )
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }
 
@@ -253,7 +253,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict
 
         if ( res == -1 )
         {
-            throw _PythonException();
+            throw PythonException();
         }
 
     }

@@ -438,7 +438,7 @@ PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject 
             Nuitka_String_AsString( name )
         );
 
-        throw _PythonException();
+        throw PythonException();
     }
 
     result->m_code = (void *)code;

@@ -28,7 +28,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_DICT%(pair_count)d( EVAL_ORDERED_%(a
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
 %(add_elements_code)s
@@ -48,6 +48,6 @@ template_add_dict_element_code = """\
 
         if (unlikely( status == -1 ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }"""

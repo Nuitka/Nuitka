@@ -64,7 +64,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_SLICE( EVAL_ORDERED_3( PyObject *s
 
         if (unlikely( result == NULL ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
 
         return result;
@@ -75,7 +75,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_SLICE( EVAL_ORDERED_3( PyObject *s
 
         if (unlikely( slice == NULL ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
 
         PyObject *result = PyObject_GetItem( source, slice );
@@ -83,7 +83,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_SLICE( EVAL_ORDERED_3( PyObject *s
 
         if (unlikely( result == NULL ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
 
         return result;
@@ -100,7 +100,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_INDEX_SLICE( EVAL_ORDERED_3( PyObj
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -137,7 +137,7 @@ NUITKA_MAY_BE_UNUSED static void _SET_SLICE( EVAL_ORDERED_4( PyObject *value, Py
 
         if (unlikely( status == -1 ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }
     else
@@ -146,7 +146,7 @@ NUITKA_MAY_BE_UNUSED static void _SET_SLICE( EVAL_ORDERED_4( PyObject *value, Py
 
         if (unlikely( slice == NULL ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
 
         int status = PyObject_SetItem( target, slice, value );
@@ -154,7 +154,7 @@ NUITKA_MAY_BE_UNUSED static void _SET_SLICE( EVAL_ORDERED_4( PyObject *value, Py
 
         if (unlikely( status == -1 ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }
 }
@@ -170,7 +170,7 @@ NUITKA_MAY_BE_UNUSED static void _SET_INDEX_SLICE( EVAL_ORDERED_4( PyObject *tar
 
     if (unlikely( status == -1 ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 }
 
@@ -187,7 +187,7 @@ NUITKA_MAY_BE_UNUSED static void _DEL_SLICE( EVAL_ORDERED_3( PyObject *target, P
 
         if (unlikely( status == -1 ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }
     else
@@ -199,7 +199,7 @@ NUITKA_MAY_BE_UNUSED static void _DEL_SLICE( EVAL_ORDERED_3( PyObject *target, P
 
         if (unlikely( slice == NULL ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
 
         int status = PyObject_DelItem( target, slice );
@@ -208,7 +208,7 @@ NUITKA_MAY_BE_UNUSED static void _DEL_SLICE( EVAL_ORDERED_3( PyObject *target, P
 
         if (unlikely( status == -1 ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }
 }
@@ -227,7 +227,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_SLICEOBJ( EVAL_ORDERED_3( PyObject *
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;

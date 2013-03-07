@@ -118,7 +118,7 @@ static char *_PyUnicode_AS_STRING( PyObject *unicode )
 
     if (unlikely( bytes == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return PyBytes_AS_STRING( bytes );
@@ -138,7 +138,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION( binary_api api, PyObject
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -155,7 +155,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNARY_OPERATION( unary_api api, PyObject *
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -167,7 +167,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION( PyObject *operand1, PyObj
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -179,7 +179,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION_INPLACE( PyObject *operand
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -230,7 +230,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT( PyObject *value )
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -242,7 +242,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT( PyObject *value )
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -262,14 +262,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *_TO_INT2( EVAL_ORDERED_2( PyObject *value,
 
     if (unlikely( value_str == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     PyObject *result = PyInt_FromString( value_str, NULL, base_int );
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -281,7 +281,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG( PyObject *value )
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -301,14 +301,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *_TO_LONG2( EVAL_ORDERED_2( PyObject *value
 
     if (unlikely( value_str == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     PyObject *result = PyLong_FromString( value_str, NULL, base_int );
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -325,7 +325,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_STR( PyObject *value )
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -337,7 +337,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE( PyObject *value )
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -370,7 +370,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_TO_UNICODE3( EVAL_ORDERED_3( PyObject *va
     else
     {
         PyErr_Format( PyExc_TypeError, "unicode() argument 2 must be string, not %s", Py_TYPE( encoding )->tp_name );
-        throw _PythonException();
+        throw PythonException();
     }
 
     char *errors_str;
@@ -395,14 +395,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *_TO_UNICODE3( EVAL_ORDERED_3( PyObject *va
     else
     {
         PyErr_Format( PyExc_TypeError, "unicode() argument 3 must be string, not %s", Py_TYPE( errors )->tp_name );
-        throw _PythonException();
+        throw PythonException();
     }
 
     PyObject *result = PyUnicode_FromEncodedObject( value, encoding_str, errors_str );
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     assert( PyUnicode_Check( result ) );
@@ -417,7 +417,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SET()
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -432,7 +432,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SET( PyObject *tuple )
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -487,14 +487,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
                 PyErr_Format( PyExc_TypeError, "iter() returned non-iterator of type '%s'", Py_TYPE( result )->tp_name );
 
                 Py_DECREF( result );
-                throw _PythonException();
+                throw PythonException();
             }
 
             return result;
         }
         else
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }
     else if ( PySequence_Check( iterated ) )
@@ -512,7 +512,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
     else
     {
         PyErr_Format( PyExc_TypeError, "'%s' object is not iterable", Py_TYPE( iterated )->tp_name );
-        throw _PythonException();
+        throw PythonException();
     }
 }
 
@@ -550,10 +550,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
         // The iteration can return NULL with no error, which means StopIteration.
         if ( !ERROR_OCCURED() )
         {
-            throw _PythonException( PyExc_StopIteration );
+            throw PythonException( PyExc_StopIteration );
         }
 
-        throw _PythonException();
+        throw PythonException();
     }
     else
     {
@@ -584,7 +584,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_BUILTIN_NEXT2( EVAL_ORDERED_2( PyObject *
             }
             else
             {
-                throw _PythonException();
+                throw PythonException();
             }
         }
         else
@@ -626,7 +626,7 @@ NUITKA_MAY_BE_UNUSED static inline PyObject *UNPACK_NEXT( PyObject *iterator, in
             }
         }
 
-        throw _PythonException();
+        throw PythonException();
     }
 
     assertObject( result );
@@ -691,7 +691,7 @@ NUITKA_MAY_BE_UNUSED static inline void UNPACK_ITERATOR_CHECK( PyObject *iterato
 #else
         PyErr_Format( PyExc_ValueError, "too many values to unpack (expected %d)", count );
 #endif
-        throw _PythonException();
+        throw PythonException();
     }
 }
 
@@ -744,7 +744,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -764,7 +764,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
             PyErr_Format( PyExc_ImportError, "cannot import name %s", Nuitka_String_AsString( import_name ));
         }
 
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -843,7 +843,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 
                 if (unlikely( result == NULL ))
                 {
-                    throw _PythonException();
+                    throw PythonException();
                 }
 
                 assertObject( result );
@@ -863,7 +863,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
         {
             PyErr_Format( PyExc_AttributeError, "%s instance has no attribute '%s'", PyString_AS_STRING( source_instance->in_class->cl_name ), PyString_AS_STRING( attr_name ) );
 
-            throw _PythonException();
+            throw PythonException();
         }
         else
         {
@@ -906,7 +906,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
 
             if (unlikely( result == NULL ))
             {
-                throw _PythonException();
+                throw PythonException();
             }
 
             assertObject( result );
@@ -918,7 +918,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
 
             if (unlikely( result == NULL ))
             {
-                throw _PythonException();
+                throw PythonException();
             }
 
             assertObject( result );
@@ -927,7 +927,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
         else
         {
             PyErr_Format( PyExc_AttributeError, "'%s' object has no attribute '%s'", type->tp_name, Nuitka_String_AsString_Unchecked( attr_name ) );
-            throw _PythonException();
+            throw PythonException();
         }
     }
 }
@@ -941,7 +941,7 @@ NUITKA_MAY_BE_UNUSED static bool HAS_ATTRIBUTE( PyObject *source, PyObject *attr
 
     if (unlikely( res == -1 ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return res == 1;
@@ -967,7 +967,7 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
         if (unlikely( !PyDict_Check( value ) ))
         {
             PyErr_SetString( PyExc_TypeError, "__dict__ must be set to a dictionary" );
-            throw _PythonException();
+            throw PythonException();
         }
 
         PyObjectTemporary old_dict( target_instance->in_dict );
@@ -979,7 +979,7 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
         if (unlikely( !PyClass_Check( value ) ))
         {
             PyErr_SetString( PyExc_TypeError, "__class__ must be set to a class" );
-            throw _PythonException();
+            throw PythonException();
         }
 
         PyObjectTemporary old_class( (PyObject *)target_instance->in_class );
@@ -1004,7 +1004,7 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
 
             if (unlikely( status == -1 ))
             {
-                throw _PythonException();
+                throw PythonException();
             }
         }
     }
@@ -1034,7 +1034,7 @@ NUITKA_MAY_BE_UNUSED static void _SET_ATTRIBUTE( EVAL_ORDERED_3( PyObject *value
 
             if (unlikely( status == -1 ))
             {
-                throw _PythonException();
+                throw PythonException();
             }
         }
         else if ( type->tp_setattr != NULL )
@@ -1043,7 +1043,7 @@ NUITKA_MAY_BE_UNUSED static void _SET_ATTRIBUTE( EVAL_ORDERED_3( PyObject *value
 
             if (unlikely( status == -1 ))
             {
-                throw _PythonException();
+                throw PythonException();
             }
         }
         else if ( type->tp_getattr == NULL && type->tp_getattro == NULL )
@@ -1055,7 +1055,7 @@ NUITKA_MAY_BE_UNUSED static void _SET_ATTRIBUTE( EVAL_ORDERED_3( PyObject *value
                 Nuitka_String_AsString_Unchecked( attr_name )
             );
 
-            throw _PythonException();
+            throw PythonException();
         }
         else
         {
@@ -1066,7 +1066,7 @@ NUITKA_MAY_BE_UNUSED static void _SET_ATTRIBUTE( EVAL_ORDERED_3( PyObject *value
                 Nuitka_String_AsString_Unchecked( attr_name )
             );
 
-            throw _PythonException();
+            throw PythonException();
         }
     }
 }
@@ -1080,7 +1080,7 @@ NUITKA_MAY_BE_UNUSED static void DEL_ATTRIBUTE( PyObject *target, PyObject *attr
 
     if (unlikely( status == -1 ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 }
 
@@ -1112,7 +1112,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject
 
             if (unlikely( func_result == NULL ))
             {
-                throw _PythonException();
+                throw PythonException();
             }
 
             return func_result;
@@ -1120,7 +1120,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject
     }
 
     PyErr_SetObject( PyExc_AttributeError, attr_name );
-    throw _PythonException();
+    throw PythonException();
 }
 
 // Necessary to abstract the with statement lookup difference between pre-Python2.7 and
@@ -1153,7 +1153,7 @@ NUITKA_MAY_BE_UNUSED static void APPEND_TO_LIST( PyObject *list, PyObject *item 
 
     if (unlikely( status == -1 ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 }
 
@@ -1163,7 +1163,7 @@ NUITKA_MAY_BE_UNUSED static void ADD_TO_SET( PyObject *set, PyObject *item )
 
     if (unlikely( status == -1 ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 }
 
@@ -1175,7 +1175,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject 
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -1203,7 +1203,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TUPLE_COPY( PyObject *tuple )
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     for ( Py_ssize_t i = 0; i < size; i++ )
@@ -1226,7 +1226,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     for ( Py_ssize_t i = 0; i < size; i++ )
@@ -1313,7 +1313,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
     if ( PyDict_Check( globals ) == 0 )
     {
         PyErr_Format( PyExc_TypeError, "exec: arg 2 must be a dictionary or None" );
-        throw _PythonException();
+        throw PythonException();
     }
 
     if ( locals == NULL || locals == Py_None )
@@ -1324,7 +1324,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
     if ( PyMapping_Check( locals ) == 0 )
     {
         PyErr_Format( PyExc_TypeError, "exec: arg 3 must be a mapping or None" );
-        throw _PythonException();
+        throw PythonException();
     }
 
     // Set the __builtins__ in globals, it is expected to be present.
@@ -1332,7 +1332,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
     {
         if ( PyDict_SetItem( globals, _python_str_plain___builtins__, (PyObject *)module_builtin ) == -1 )
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }
 
@@ -1344,7 +1344,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *EVAL_CODE( PyObject *code, PyObject *globa
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -1404,13 +1404,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyO
                     "metaclass conflict: the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases"
                 );
 
-                throw _PythonException();
+                throw PythonException();
             }
         }
 
         if (unlikely( winner == NULL ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
 
         return INCREASE_REFCOUNT( (PyObject *)winner );

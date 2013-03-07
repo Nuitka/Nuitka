@@ -610,7 +610,7 @@ PyObject *Nuitka_Method_New( Nuitka_FunctionObject *function, PyObject *object, 
             Nuitka_String_AsString( function->m_name )
         );
 
-        throw _PythonException();
+        throw PythonException();
     }
 
     result->m_function = (Nuitka_FunctionObject * )INCREASE_REFCOUNT( (PyObject *)function );

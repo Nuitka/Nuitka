@@ -29,7 +29,7 @@ import_from_template = """\
     {
 %(lookup_code)s
     }
-    catch( _PythonException &_exception )
+    catch( PythonException &_exception )
     {
         _exception.setType( PyExc_ImportError );
         throw _exception;
