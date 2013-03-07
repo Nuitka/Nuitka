@@ -1,12 +1,12 @@
 
+Developer Manual
+~~~~~~~~~~~~~~~~
+
 .. contents::
 
 .. raw:: pdf
 
    PageBreak
-
-Developer Manual
-~~~~~~~~~~~~~~~~
 
 The purpose of this developer manual is to present the current design of Nuitka, the
 coding rules, and the intentions of choices made. It is intended to be a guide to the
@@ -94,23 +94,24 @@ Current State
 
 Nuitka top level works like this:
 
-   - ``tree.Building`` outputs node tree
-   - ``Optimization`` enhances it as best as it can
-   - ``Finalization`` marks the tree for code generation
-   - ``CodeGeneration`` creates identifier objects and code snippets
-   - ``Generator`` knows how identifiers and code is constructed
-   - ``MainControl`` keeps it all together
+- ``nuitka.tree.Building`` outputs node tree
+- ``nuitka.optimization`` enhances it as best as it can
+- ``nuitka.finalization`` marks the tree for code generation
+- ``nuitka.codegen.CodeGeneration`` creates identifier objects and code snippets
+- ``nuitka.codegen.Generator`` knows how identifiers and code is constructed
+- ``nuitka.MainControl`` keeps it all together
 
 This design is intended to last.
 
 Regarding Types, the state is:
 
-   - Types are always ``PyObject *``, implicitly
-   - The only more specific use of type is "constant", which can be used to predict some
-     operations, conditions, etc.
-   - Every operation is expected to have ``PyObject *`` as result, if it is not a constant,
-     then we know nothing about it.
+- Types are always ``PyObject *``, implicitly
+- The only more specific use of type is "compile time constant", which can be used to
+  predict some operations, conditions, etc.
+- Every operation is expected to have ``PyObject *`` as result, if it is not a constant,
+  then we know nothing about it.
 
+The limitation to only ``PyObject *`` will go away.
 
 Coding Rules
 ============
@@ -213,12 +214,13 @@ Names of modules should be plurals if they contain classes. Example is ``Nodes``
 ``Node`` classes.
 
 
-Prefer list contractions over ``map``, ``filter``, and ``apply``
-----------------------------------------------------------------
+Prefer list contractions over built-ins
+---------------------------------------
 
-Using ``map`` and friends is considered worth a warning by "PyLint" e.g. "Used builtin
-function 'map'". We should use list comprehensions instead, because they are more
-readable.
+This concerns ``map``, ``filter``, and ``apply``. Usage of these built-ins is highly
+discouraged within Nuitka source code. Using them is considered worth a warning by
+"PyLint" e.g. "Used builtin function 'map'". We should use list comprehensions instead,
+because they are more readable.
 
 List contractions are a generalization for all of them. We love readable and with Nuitka
 as a compiler will there won't be any performance difference at all.
@@ -482,15 +484,15 @@ other languages, I need to check myself.
 
 The *decision for C++03* is ultimately:
 
-  * for portability
-  * for language knowledge
+* for portability
+* for language knowledge
 
 All of these are important advantages.
 
-For C++11 initially spoke easy code generation.
+For C++11 initially spoke easy code generation:
 
-   * variadic templates
-   * raw strings
+* variadic templates
+* raw strings
 
 Yet, as it turns out, variadic templates do not help with evaluation order, so that code
 that used it, needed to be changed to generating instances of their code. And raw strings
