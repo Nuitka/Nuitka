@@ -35,9 +35,10 @@ output_binary = os.path.join(
 )
 
 os.system(
-    "%s --exe --output-dir=%s --unstriped %s %s" % (
+    "%s --exe --output-dir=%s %s %s %s" % (
         nuitka_binary,
         tempdir,
+        "" if "number" in sys.argv else "--unstriped",
         os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ),
         input_file
     )
