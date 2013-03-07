@@ -582,10 +582,12 @@ def createGraphs():
     graphs = {}
 
     dates_pystone_26 = []
+    sizes_pystone_26 = []
     values_pystone_26 = []
     names_pystone_26 = []
 
     dates_pystone_27 = []
+    sizes_pystone_27 = []
     values_pystone_27 = []
     names_pystone_27 = []
 
@@ -614,10 +616,12 @@ def createGraphs():
             if executable == "nuitka-python2.7":
                 dates_pystone_27.append( commit_date )
                 values_pystone_27.append( ticks )
+                sizes_pystone_27.append( size )
                 names_pystone_27.append( commit_id )
             elif executable == "nuitka-python2.6":
                 dates_pystone_26.append( commit_date )
                 values_pystone_26.append( ticks )
+                sizes_pystone_26.append( size )
                 names_pystone_26.append( commit_id )
             else:
                 assert False, executable
@@ -653,7 +657,6 @@ def createGraphs():
     plt.yticks( ( 900000000, 950000000, 1000000000, ), ( "900M", "950M", "1000M", ) )
 
     sizes = plt.gcf().get_size_inches()
-
     counts = [ i*3 for i in range( 0, len( values_pystone_26 ) ) ]
 
     p26 = plt.bar( counts, values_pystone_26, width = 1 )
@@ -664,6 +667,19 @@ def createGraphs():
     plt.legend( ( p26[0], p27[0] ), ( "2.6", "2.7" ), bbox_to_anchor=(1.005, 1), loc=2, borderaxespad=0.0,  )
 
     plt.savefig( os.path.join( orig_dir, options.graphs_output_dir, "pystone-nuitka.svg" ) )
+
+    plt.clf()
+
+    plt.title( "PyStone created binary size" )
+    plt.ylabel( "bytes" )
+    plt.xlabel( "version" )
+
+    counts = [ i*3+1.2 for i in range( 0, len( values_pystone_27 ) ) ]
+
+    p27 = plt.bar( counts, sizes_pystone_27, width = 1, color = "orange" )
+    plt.xticks( counts, names_pystone_27 )
+
+    plt.savefig( os.path.join( orig_dir, options.graphs_output_dir, "pystone-binary-nuitka.svg" ) )
 
 
 if options.graphs_output_dir is not None:
