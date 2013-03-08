@@ -18,11 +18,8 @@
 #ifndef __NUITKA_BUILTINS_H__
 #define __NUITKA_BUILTINS_H__
 
-extern PyDictObject *dict_builtin;
-
-#if PYTHON_VERSION >= 300
 extern PyModuleObject *module_builtin;
-#endif
+extern PyDictObject *dict_builtin;
 
 #include "nuitka/calling.hpp"
 

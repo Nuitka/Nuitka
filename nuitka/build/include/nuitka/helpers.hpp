@@ -1189,8 +1189,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONCAT( PyObject *seq1, PyObject 
 #include "nuitka/variables_locals.hpp"
 #include "nuitka/variables_shared.hpp"
 
-extern PyModuleObject *module_builtin;
-
 NUITKA_MAY_BE_UNUSED static PyObject *TUPLE_COPY( PyObject *tuple )
 {
     assertObject( tuple );

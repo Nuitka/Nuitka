@@ -84,16 +84,6 @@ static PyObject *GET_STRING_DICT_VALUE( PyDictObject *dict, Nuitka_StringObject 
     return GET_STRING_DICT_ENTRY( dict, key )->me_value;
 }
 
-// Quick module lookup for a string value.
-NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE( PyModuleObject *module, Nuitka_StringObject *key )
-{
-    // Idea similar to LOAD_GLOBAL in CPython. Because the variable name is a string, we
-    // can shortcut much of the dictionary code by using its hash and dictionary knowledge
-    // here.
-
-    return GET_STRING_DICT_VALUE( MODULE_DICT( module ), key );
-}
-
 #else
 
 // Quick dictionary lookup for a string value.
@@ -164,16 +154,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE( PyDictObject *dict,
     return GET_DICT_ENTRY_VALUE( handle );
 }
 
-// Quick module lookup for a string value.
-NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE( PyModuleObject *module, Nuitka_StringObject *key )
-{
-    // Idea similar to LOAD_GLOBAL in CPython. Because the variable name is a string, we
-    // can shortcut much of the dictionary code by using its hash and dictionary knowledge
-    // here.
-
-    return GET_STRING_DICT_VALUE( MODULE_DICT( module ), key );
-}
-
 #endif
 
 NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, PyObject *value )
@@ -184,6 +164,11 @@ NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, P
     {
         throw PythonException();
     }
+}
+
+NUITKA_MAY_BE_UNUSED static inline void DICT_SET_ITEM( PyDictObject *dict, PyObject *key, PyObject *value )
+{
+    return DICT_SET_ITEM( (PyObject *)dict, key, value );
 }
 
 NUITKA_MAY_BE_UNUSED static void DICT_REMOVE_ITEM( PyObject *dict, PyObject *key )
