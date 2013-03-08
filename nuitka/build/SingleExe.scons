@@ -189,7 +189,7 @@ def getGccVersion():
 
     pipe = SCons.Action._subproc(
         env, [ env[ "CXX" ], '--version' ],
-        stdin = 'devnull',
+        stdin  = 'devnull',
         stderr = 'devnull',
         stdout = subprocess.PIPE
     )
@@ -204,12 +204,11 @@ def getGccVersion():
         return None
 
 def getClangVersion():
-    # Update CXXVERSION in env, after we changed it.
     import SCons
 
     pipe = SCons.Action._subproc(
         env, [ env[ "CXX" ], '--version' ],
-        stdin = 'devnull',
+        stdin  = 'devnull',
         stderr = 'devnull',
         stdout = subprocess.PIPE
     )
@@ -217,6 +216,11 @@ def getClangVersion():
     line = pipe.stdout.readline()
 
     match = re.search( r'LLVM ([0-9]+(\.[0-9]+){1})', line )
+
+    if match:
+        return match.group(1)
+
+    match = re.search( r'([0-9]+(\.[0-9]+){1})', line )
 
     if match:
         return match.group(1)
