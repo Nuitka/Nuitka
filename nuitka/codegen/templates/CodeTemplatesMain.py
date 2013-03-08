@@ -154,44 +154,12 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
         void assign0( PyObject *value ) const
         {
-            Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY( _moduledict_%(module_identifier)s, *this->var_name );
-
-            PyObject *old = GET_DICT_ENTRY_VALUE( entry );
-
-            // Values are more likely set than not set, in that case speculatively try the
-            // quickest access method.
-            if (likely( old != NULL ))
-            {
-                SET_DICT_ENTRY_VALUE( entry, INCREASE_REFCOUNT( value ) );
-
-                Py_DECREF( old );
-            }
-            else
-            {
-                DICT_SET_ITEM( _moduledict_%(module_identifier)s, (PyObject *)*this->var_name, value );
-            }
+            UPDATE_STRING_DICT0( _moduledict_%(module_identifier)s, *this->var_name, value );
         }
 
         void assign1( PyObject *value ) const
         {
-            Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY( _moduledict_%(module_identifier)s, *this->var_name );
-
-            PyObject *old = GET_DICT_ENTRY_VALUE( entry );
-
-            // Values are more likely set than not set, in that case speculatively try the
-            // quickest access method.
-            if (likely( old != NULL ))
-            {
-                SET_DICT_ENTRY_VALUE( entry, value );
-
-                Py_DECREF( old );
-            }
-            else
-            {
-                DICT_SET_ITEM( _moduledict_%(module_identifier)s, (PyObject *)*this->var_name, value );
-
-                Py_DECREF( value );
-            }
+            UPDATE_STRING_DICT1( _moduledict_%(module_identifier)s, *this->var_name, value );
         }
 
         void del( bool tolerant ) const
@@ -227,6 +195,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
         }
 
     private:
+
         Nuitka_StringObject **var_name;
 };
 

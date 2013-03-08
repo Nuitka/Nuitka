@@ -246,6 +246,47 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict
     return result;
 }
 
+NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0( PyDictObject *dict, Nuitka_StringObject *key, PyObject *value )
+{
+    Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY( dict, key );
+
+    PyObject *old = GET_DICT_ENTRY_VALUE( entry );
+
+    // Values are more likely (more often) set than not set, in that case speculatively
+    // try the quickest access method.
+    if (likely( old != NULL ))
+    {
+        SET_DICT_ENTRY_VALUE( entry, INCREASE_REFCOUNT( value ) );
+
+        Py_DECREF( old );
+    }
+    else
+    {
+        DICT_SET_ITEM( dict, (PyObject *)key, value );
+    }
+}
+
+NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1( PyDictObject *dict, Nuitka_StringObject *key, PyObject *value )
+{
+    Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY( dict, key );
+
+    PyObject *old = GET_DICT_ENTRY_VALUE( entry );
+
+    // Values are more likely (more often) set than not set, in that case speculatively
+    // try the quickest access method.
+    if (likely( old != NULL ))
+    {
+        SET_DICT_ENTRY_VALUE( entry, value );
+
+        Py_DECREF( old );
+    }
+    else
+    {
+        DICT_SET_ITEM( dict, (PyObject *)key, value );
+
+        Py_DECREF( value );
+    }
+}
 
 
 #endif
