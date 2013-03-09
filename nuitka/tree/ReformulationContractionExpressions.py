@@ -26,7 +26,6 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef,
     StatementTempBlock
 )
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.StatementNodes import (
@@ -56,10 +55,6 @@ from nuitka.nodes.ContainerOperationNodes import (
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.YieldNodes import ExpressionYield
-from nuitka.nodes.TryNodes import (
-    StatementExceptHandler,
-    StatementTryExcept
-)
 
 make_contraction_parameters = ParameterSpec(
     name          = "contraction",
@@ -70,8 +65,8 @@ make_contraction_parameters = ParameterSpec(
     kw_only_args  = ()
 )
 
+from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationAssignmentStatements import buildAssignmentStatements
-
 from .ReformulationBooleanExpressions import buildAndNode
 
 from .Helpers import (
@@ -276,8 +271,8 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
         ]
 
         loop_statements = [
-            StatementTryExcept(
-                tried      = StatementsSequence(
+            makeTryExceptSingleHandlerNode(
+                tried          = StatementsSequence(
                     statements = (
                         StatementAssignmentVariable(
                             variable_ref = ExpressionTargetTempVariableRef(
@@ -296,26 +291,16 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
                     ),
                     source_ref = source_ref
                 ),
-                handlers   = (
-                    StatementExceptHandler(
-                        exception_types = (
-                            ExpressionBuiltinExceptionRef(
-                                exception_name = "StopIteration",
-                                source_ref     = source_ref
+                exception_name = "StopIteration",
+                handler_body   = StatementsSequence(
+                    statements = (
+                        StatementBreakLoop(
+                            source_ref = source_ref.atInternal()
                             ),
                         ),
-                        body           = StatementsSequence(
-                            statements = (
-                                StatementBreakLoop(
-                                    source_ref = source_ref.atInternal()
-                                ),
-                            ),
-                            source_ref = source_ref
-                        ),
-                        source_ref     = source_ref
-                    ),
+                    source_ref = source_ref
                 ),
-                source_ref = source_ref
+                source_ref     = source_ref
             ),
             buildAssignmentStatements(
                 provider   = provider if assign_provider else function_body,

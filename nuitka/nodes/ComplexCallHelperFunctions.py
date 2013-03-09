@@ -38,7 +38,6 @@ from .TypeNodes import (
     ExpressionBuiltinType1
 )
 from .BuiltinRefNodes import (
-    ExpressionBuiltinExceptionRef,
     ExpressionBuiltinAnonymousRef,
     ExpressionBuiltinRef
 )
@@ -58,10 +57,6 @@ from .CallNodes import (
     ExpressionCall
 )
 from .ReturnNodes import StatementReturn
-from .TryNodes import (
-    StatementExceptHandler,
-    StatementTryExcept
-)
 from .AssignNodes import (
     StatementAssignmentVariable,
     StatementAssignmentSubscript
@@ -89,6 +84,8 @@ from .ParameterSpec import ParameterSpec
 
 from ..SourceCodeReferences import fromFilename
 from .FutureSpec import FutureSpec
+
+from nuitka.tree.ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 
 source_ref = fromFilename( "internal", FutureSpec() ).atInternal()
 
@@ -388,20 +385,11 @@ def _makeStarListArgumentToTupleStatement( provider, called_variable_ref,
         source_ref      = source_ref
     )
 
-    handler = StatementExceptHandler(
-        exception_types = (
-            ExpressionBuiltinExceptionRef(
-                exception_name = "TypeError",
-                source_ref     = source_ref
-            ),
+    handler_body = StatementsSequence(
+        statements = (
+            raise_statement,
         ),
-        body           = StatementsSequence(
-            statements = (
-                raise_statement,
-            ),
-            source_ref = source_ref
-        ),
-        source_ref     = source_ref
+        source_ref = source_ref
     )
 
     return StatementConditional(
@@ -416,8 +404,8 @@ def _makeStarListArgumentToTupleStatement( provider, called_variable_ref,
         yes_branch = None,
         no_branch  = StatementsSequence(
             statements = (
-                StatementTryExcept(
-                    tried      = StatementsSequence(
+                makeTryExceptSingleHandlerNode(
+                    tried          =  StatementsSequence(
                         statements = (
                             StatementAssignmentVariable(
                                 variable_ref = star_list_target_variable_ref.makeCloneAt( source_ref ),
@@ -430,8 +418,9 @@ def _makeStarListArgumentToTupleStatement( provider, called_variable_ref,
                         ),
                         source_ref = source_ref
                     ),
-                    handlers   = ( handler, ),
-                    source_ref = source_ref
+                    exception_name = "TypeError",
+                    handler_body   = handler_body,
+                    source_ref     = source_ref
                 ),
             ),
             source_ref = source_ref
@@ -503,8 +492,8 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
     tmp_key_variable = temp_block.getTempVariable( "key" )
 
     statements = (
-        StatementTryExcept(
-            tried      = StatementsSequence(
+        makeTryExceptSingleHandlerNode(
+            tried          = StatementsSequence(
                 statements = (
                     StatementAssignmentVariable(
                         variable_ref = ExpressionTargetTempVariableRef(
@@ -523,26 +512,16 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
                 ),
                 source_ref = source_ref
             ),
-            handlers   = (
-                StatementExceptHandler(
-                    exception_types = (
-                        ExpressionBuiltinExceptionRef(
-                            exception_name = "StopIteration",
-                            source_ref     = source_ref
-                        ),
-                    ),
-                    body           = StatementsSequence(
-                        statements = (
-                            StatementBreakLoop(
-                                source_ref = source_ref
-                            ),
-                        ),
+            exception_name = "StopIteration",
+            handler_body   = StatementsSequence(
+                statements = (
+                    StatementBreakLoop(
                         source_ref = source_ref
                     ),
-                    source_ref     = source_ref
                 ),
+                source_ref = source_ref
             ),
-            source_ref = source_ref
+            source_ref     = source_ref
         ),
         StatementAssignmentSubscript(
             expression = ExpressionTempVariableRef(
@@ -585,8 +564,8 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
             ),
             source_ref = source_ref
         ),
-        StatementTryExcept(
-            tried      = StatementsSequence(
+        makeTryExceptSingleHandlerNode(
+            tried          = StatementsSequence(
                 statements = (
                     StatementAssignmentVariable(
                         variable_ref = ExpressionTargetTempVariableRef(
@@ -606,24 +585,14 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
                 ),
                 source_ref = source_ref
             ),
-            handlers   = (
-                StatementExceptHandler(
-                    exception_types = (
-                        ExpressionBuiltinExceptionRef(
-                            exception_name = "AttributeError",
-                            source_ref     = source_ref
-                        ),
-                    ),
-                    body           = StatementsSequence(
-                        statements = (
-                            raise_statement,
-                        ),
-                        source_ref = source_ref
-                    ),
-                    source_ref     = source_ref
+            exception_name = "AttributeError",
+            handler_body   = StatementsSequence(
+                statements = (
+                    raise_statement,
                 ),
+                source_ref = source_ref
             ),
-            source_ref = source_ref
+            source_ref     = source_ref
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
@@ -805,8 +774,8 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
     )
 
     statements = (
-        StatementTryExcept(
-            tried      = StatementsSequence(
+        makeTryExceptSingleHandlerNode(
+            tried          = StatementsSequence(
                 statements = (
                     StatementAssignmentVariable(
                         variable_ref = ExpressionTargetTempVariableRef(
@@ -825,26 +794,16 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
                 ),
                 source_ref = source_ref
             ),
-            handlers   = (
-                StatementExceptHandler(
-                    exception_types = (
-                        ExpressionBuiltinExceptionRef(
-                            exception_name = "StopIteration",
-                            source_ref     = source_ref
-                        ),
-                    ),
-                    body           = StatementsSequence(
-                        statements = (
-                            StatementBreakLoop(
-                                source_ref = source_ref
-                            ),
-                        ),
+            exception_name = "StopIteration",
+            handler_body   = StatementsSequence(
+                statements = (
+                    StatementBreakLoop(
                         source_ref = source_ref
                     ),
-                    source_ref     = source_ref
                 ),
+                source_ref = source_ref
             ),
-            source_ref = source_ref
+            source_ref     = source_ref
         ),
         StatementConditional(
             condition = ExpressionComparison(
@@ -901,8 +860,8 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
             ),
             source_ref = source_ref
         ),
-        StatementTryExcept(
-            tried      = StatementsSequence(
+        makeTryExceptSingleHandlerNode(
+            tried          = StatementsSequence(
                 statements = (
                     StatementAssignmentVariable(
                         variable_ref = ExpressionTargetTempVariableRef(
@@ -922,22 +881,12 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
                 ),
                 source_ref = source_ref
             ),
-            handlers   = (
-                StatementExceptHandler(
-                    exception_types = (
-                        ExpressionBuiltinExceptionRef(
-                            exception_name = "AttributeError",
-                            source_ref     = source_ref
-                        ),
-                    ),
-                    body           = StatementsSequence(
-                        statements = (
-                            raise_statement,
-                        ),
-                        source_ref = source_ref
-                    ),
-                    source_ref     = source_ref
+            exception_name = "AttributeError",
+            handler_body   = StatementsSequence(
+                statements = (
+                    raise_statement,
                 ),
+                source_ref = source_ref
             ),
             source_ref = source_ref
         ),
@@ -993,8 +942,8 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
     tmp_key_variable = dict_case.getTempVariable( "key" )
 
     statements = (
-        StatementTryExcept(
-            tried      = StatementsSequence(
+        makeTryExceptSingleHandlerNode(
+            tried          = StatementsSequence(
                 statements = (
                     StatementAssignmentVariable(
                         variable_ref = ExpressionTargetTempVariableRef(
@@ -1013,24 +962,14 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
                 ),
                 source_ref = source_ref
             ),
-            handlers   = (
-                StatementExceptHandler(
-                    exception_types = (
-                        ExpressionBuiltinExceptionRef(
-                            exception_name = "StopIteration",
-                            source_ref     = source_ref
-                        ),
-                    ),
-                    body           = StatementsSequence(
-                        statements = (
-                            StatementBreakLoop( source_ref ),
-                        ),
-                        source_ref = source_ref
-                    ),
-                    source_ref     = source_ref
+            exception_name = "StopIteration",
+            handler_body   = StatementsSequence(
+                statements = (
+                    StatementBreakLoop( source_ref ),
                 ),
+                source_ref = source_ref
             ),
-            source_ref = source_ref
+            source_ref     = source_ref
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(

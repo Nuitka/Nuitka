@@ -22,7 +22,6 @@ from nuitka.nodes.VariableRefNodes import (
     StatementTempBlock
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinNext1,
@@ -36,10 +35,6 @@ from nuitka.nodes.LoopNodes import (
 )
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
-from nuitka.nodes.TryNodes import (
-    StatementExceptHandler,
-    StatementTryExcept
-)
 
 from .Helpers import (
     makeStatementsSequence,
@@ -48,6 +43,8 @@ from .Helpers import (
 )
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
+from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
+
 
 def buildForLoopNode( provider, node, source_ref ):
     # The for loop is re-formulated according to developer manual. An iterator is created,
@@ -102,13 +99,13 @@ def buildForLoopNode( provider, node, source_ref ):
 
     handler_body = makeStatementsSequence(
         statements = statements,
-        allow_none = True,
+        allow_none = False,
         source_ref = source_ref
     )
 
     statements = (
-        StatementTryExcept(
-            tried      = StatementsSequence(
+        makeTryExceptSingleHandlerNode(
+            tried         = StatementsSequence(
                 statements = (
                     StatementAssignmentVariable(
                         variable_ref = ExpressionTargetTempVariableRef(
@@ -127,19 +124,9 @@ def buildForLoopNode( provider, node, source_ref ):
                 ),
                 source_ref = source_ref
             ),
-            handlers   = (
-                StatementExceptHandler(
-                    exception_types = (
-                        ExpressionBuiltinExceptionRef(
-                            exception_name = "StopIteration",
-                            source_ref     = source_ref
-                        ),
-                    ),
-                    body           = handler_body,
-                    source_ref     = source_ref
-                ),
-            ),
-            source_ref = source_ref
+            exception_name = "StopIteration",
+            handler_body   = handler_body,
+            source_ref     = source_ref
         ),
         buildAssignmentStatements(
             provider   = provider,
