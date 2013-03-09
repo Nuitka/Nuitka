@@ -888,12 +888,24 @@ def getVariableAssignmentCode( context, variable, identifier ):
 
     if identifier.getCheapRefCount() == 0:
         identifier_code = identifier.getCodeTemporaryRef()
-        assign_code = "assign0"
+        assign_code = "0"
     else:
         identifier_code = identifier.getCodeExportRef()
-        assign_code = "assign1"
+        assign_code = "1"
 
-    return "%s.%s( %s );" % (
+    # TODO: Move the assignment code to the variable object.
+    if variable.isModuleVariable():
+        return "UPDATE_STRING_DICT%s( _moduledict_%s, (Nuitka_StringObject *)%s, %s );" % (
+            assign_code,
+            context.getModuleCodeName(),
+            getConstantCode(
+                constant = variable.getName(),
+                context  = context
+            ),
+            identifier_code
+        )
+
+    return "%s.assign%s( %s );" % (
         getVariableCode(
             variable = variable,
             context  = context

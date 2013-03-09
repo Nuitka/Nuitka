@@ -152,16 +152,6 @@ class PyObjectGlobalVariable_%(module_identifier)s
             }
         }
 
-        void assign0( PyObject *value ) const
-        {
-            UPDATE_STRING_DICT0( _moduledict_%(module_identifier)s, *this->var_name, value );
-        }
-
-        void assign1( PyObject *value ) const
-        {
-            UPDATE_STRING_DICT1( _moduledict_%(module_identifier)s, *this->var_name, value );
-        }
-
         void del( bool tolerant ) const
         {
             int status = PyDict_DelItem( (PyObject *)_moduledict_%(module_identifier)s, (PyObject *)*this->var_name );
