@@ -36,6 +36,9 @@ a good start (number is from version 0.3.11).
 %build
 %{__python} setup.py build
 
+%check
+./misc/check-release
+
 %install
 rm -rf %{buildroot}
 %{__python} setup.py install --skip-build --prefix %{_prefix} --root=%{buildroot}
