@@ -37,6 +37,7 @@ from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 
 from .Helpers import (
+    makeStatementsSequenceFromStatement,
     makeStatementsSequence,
     buildStatementsNode,
     buildNode
@@ -105,24 +106,21 @@ def buildForLoopNode( provider, node, source_ref ):
 
     statements = (
         makeTryExceptSingleHandlerNode(
-            tried         = StatementsSequence(
-                statements = (
-                    StatementAssignmentVariable(
-                        variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = tmp_value_variable.makeReference( iterate_tmp_block ),
-                            source_ref = source_ref
-                        ),
-                        source     = ExpressionBuiltinNext1(
-                            value      = ExpressionTempVariableRef(
-                                variable   = tmp_iter_variable.makeReference( result ),
-                                source_ref = source_ref
-                            ),
+            tried         = makeStatementsSequenceFromStatement(
+                statement = StatementAssignmentVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = tmp_value_variable.makeReference( iterate_tmp_block ),
+                        source_ref = source_ref
+                    ),
+                    source     = ExpressionBuiltinNext1(
+                        value      = ExpressionTempVariableRef(
+                            variable   = tmp_iter_variable.makeReference( result ),
                             source_ref = source_ref
                         ),
                         source_ref = source_ref
                     ),
-                ),
-                source_ref = source_ref
+                    source_ref = source_ref
+                )
             ),
             exception_name = "StopIteration",
             handler_body   = handler_body,

@@ -28,10 +28,7 @@ from .NodeBases import (
 
 from .IndicatorMixins import MarkContainsTryExceptIndicator
 
-from nuitka import (
-    Variables,
-    Utils
-)
+from nuitka import Variables
 
 from nuitka.oset import OrderedSet
 

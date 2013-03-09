@@ -99,7 +99,7 @@ class VariableUsageTrackingMixin:
 
 # TODO: This code is only here while staging it, will live in a dedicated module later on
 class ConstraintCollectionBase:
-    def __init__( self, parent, signal_change = None, copy_of = None ):
+    def __init__( self, parent, signal_change = None ):
         assert signal_change is None or parent is None
 
         if signal_change is not None:

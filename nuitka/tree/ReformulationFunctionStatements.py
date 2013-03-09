@@ -39,8 +39,9 @@ from nuitka.nodes.ContainerMakingNodes import (
 )
 
 from .Helpers import (
-    extractDocFromBody,
+    makeStatementsSequenceFromStatement,
     buildStatementsNode,
+    extractDocFromBody,
     buildNodeList,
     buildNode,
     getKind
@@ -78,17 +79,14 @@ def buildFunctionNode( provider, node, source_ref ):
         # TODO: raise generator exit?
         pass
     elif function_statements_body is None:
-        function_statements_body = StatementsSequence(
-            statements = (
-                StatementReturn(
-                    expression = ExpressionConstantRef(
-                        constant   = None,
-                        source_ref = source_ref.atInternal()
-                    ),
+        function_statements_body = makeStatementsSequenceFromStatement(
+            statement = StatementReturn(
+                expression = ExpressionConstantRef(
+                    constant   = None,
                     source_ref = source_ref.atInternal()
                 ),
-            ),
-            source_ref = source_ref
+                source_ref = source_ref.atInternal()
+            )
         )
     elif not function_statements_body.isStatementAborting():
         function_statements_body.setStatements(

@@ -70,6 +70,7 @@ from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationBooleanExpressions import buildAndNode
 
 from .Helpers import (
+    makeStatementsSequenceFromStatement,
     buildNodeList,
     buildNode,
     getKind
@@ -272,33 +273,27 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
 
         loop_statements = [
             makeTryExceptSingleHandlerNode(
-                tried          = StatementsSequence(
-                    statements = (
-                        StatementAssignmentVariable(
-                            variable_ref = ExpressionTargetTempVariableRef(
-                                variable   = tmp_value_variable.makeReference( nested_temp_block ),
-                                source_ref = source_ref
-                            ),
-                            source     = ExpressionBuiltinNext1(
-                                value      = ExpressionTempVariableRef(
-                                    variable   = tmp_iter_variable.makeReference( nested_temp_block ),
-                                    source_ref = source_ref
-                                ),
+                tried          = makeStatementsSequenceFromStatement(
+                    statement = StatementAssignmentVariable(
+                        variable_ref = ExpressionTargetTempVariableRef(
+                            variable   = tmp_value_variable.makeReference( nested_temp_block ),
+                            source_ref = source_ref
+                        ),
+                        source     = ExpressionBuiltinNext1(
+                            value      = ExpressionTempVariableRef(
+                                variable   = tmp_iter_variable.makeReference( nested_temp_block ),
                                 source_ref = source_ref
                             ),
                             source_ref = source_ref
                         ),
-                    ),
-                    source_ref = source_ref
+                        source_ref = source_ref
+                    )
                 ),
                 exception_name = "StopIteration",
-                handler_body   = StatementsSequence(
-                    statements = (
-                        StatementBreakLoop(
-                            source_ref = source_ref.atInternal()
-                            ),
-                        ),
-                    source_ref = source_ref
+                handler_body   = makeStatementsSequenceFromStatement(
+                    statement = StatementBreakLoop(
+                        source_ref = source_ref.atInternal()
+                    )
                 ),
                 source_ref     = source_ref
             ),
@@ -323,9 +318,8 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
             loop_statements.append(
                 StatementConditional(
                     condition  = conditions[0],
-                    yes_branch = StatementsSequence(
-                        statements = ( current_body, ),
-                        source_ref = source_ref
+                    yes_branch = makeStatementsSequenceFromStatement(
+                        statement = current_body
                     ),
                     no_branch  = None,
                     source_ref = source_ref
@@ -339,9 +333,8 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
                         values     = conditions,
                         source_ref = source_ref
                     ),
-                    yes_branch = StatementsSequence(
-                        statements = ( current_body, ),
-                        source_ref = source_ref
+                    yes_branch = makeStatementsSequenceFromStatement(
+                        statement = current_body
                     ),
                     no_branch  = None,
                     source_ref = source_ref
