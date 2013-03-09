@@ -15,7 +15,7 @@
 %endif # with_python3
 
 Name:		nuitka
-Version:		0.4.1
+Version:		0.4.2pre1
 Release:		2%{?dist}
 Summary:		A Python compiler translates the Python into a C++ program.
 Group:		Development/Languages
@@ -64,8 +64,6 @@ a good start (number is from version 0.3.11).
 
 %prep
 %setup -q -n Nuitka-%{version}
-%patch0 -p1 -b .python3-setup
-%patch1 -p1 -b .python3-exec
 
 %if 0%{?with_python3}
 rm -rf %{py3dir}
