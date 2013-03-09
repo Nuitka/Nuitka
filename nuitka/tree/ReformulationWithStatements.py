@@ -24,7 +24,6 @@ from nuitka.nodes.VariableRefNodes import (
     StatementTempBlock
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTracebackRef,
@@ -45,14 +44,16 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence
 )
 from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
-from nuitka.nodes.TryNodes import StatementExceptHandler
+from nuitka.nodes.TryNodes import StatementTryFinally
 
-from .ReformulationTryExceptStatements import makeTryExceptNoRaise
+from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
+
 from .ReformulationAssignmentStatements import buildAssignmentStatements
 
-
 from .Helpers import (
+    makeStatementsSequenceFromStatement,
     makeStatementsSequence,
     buildStatementsNode,
     buildNode
@@ -72,6 +73,7 @@ def buildWithNode( provider, node, source_ref ):
     tmp_source_variable = result.getTempVariable( "with_source" )
     tmp_exit_variable = result.getTempVariable( "with_exit" )
     tmp_enter_variable = result.getTempVariable( "with_enter" )
+    tmp_indicator_variable = result.getTempVariable( "indicator" )
 
     statements = (
         buildAssignmentStatements(
@@ -143,26 +145,44 @@ def buildWithNode( provider, node, source_ref ):
                 source_ref      = source_ref
             ),
             source_ref   = source_ref
-        )
+        ),
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_indicator_variable.makeReference( result ),
+                source_ref = source_ref
+            ),
+            source       = ExpressionConstantRef(
+                constant   = True,
+                source_ref = source_ref
+            ),
+            source_ref   = source_ref
+        ),
     ]
 
     source_ref = source_ref.atInternal()
 
     statements += [
-        makeTryExceptNoRaise(
-            tried      = with_body,
-            handlers   = (
-                StatementExceptHandler(
-                    exception_types = (
-                        ExpressionBuiltinExceptionRef(
-                            exception_name = "BaseException",
-                            source_ref     = source_ref
-                        ),
-                    ),
-                    body           = StatementsSequence(
+        StatementTryFinally(
+            tried      = makeStatementsSequenceFromStatement(
+                statement = makeTryExceptSingleHandlerNode(
+                    tried          = with_body,
+                    exception_name = "BaseException",
+                    handler_body   = StatementsSequence(
                         statements = (
+                            # Prevents final block from calling __exit__ as well.
+                            StatementAssignmentVariable(
+                                variable_ref = ExpressionTargetTempVariableRef(
+                                    variable   = tmp_indicator_variable.makeReference( result ),
+                                    source_ref = source_ref
+                                ),
+                                source       = ExpressionConstantRef(
+                                    constant   = False,
+                                    source_ref = source_ref
+                                ),
+                                source_ref   = source_ref
+                            ),
                             StatementConditional(
-                                condition     = ExpressionCallNoKeywords(
+                                condition  = ExpressionCallNoKeywords(
                                     called          = ExpressionTempVariableRef(
                                         variable   = tmp_exit_variable.makeReference( result ),
                                         source_ref = source_ref
@@ -183,19 +203,16 @@ def buildWithNode( provider, node, source_ref ):
                                     ),
                                     source_ref      = source_ref
                                 ),
-                                no_branch = StatementsSequence(
-                                    statements = (
-                                        StatementRaiseException(
-                                            exception_type  = None,
-                                            exception_value = None,
-                                            exception_trace = None,
-                                            exception_cause = None,
-                                            source_ref      = source_ref
-                                        ),
-                                    ),
-                                    source_ref = source_ref
+                                no_branch  = makeStatementsSequenceFromStatement(
+                                    statement = StatementRaiseException(
+                                        exception_type  = None,
+                                        exception_value = None,
+                                        exception_trace = None,
+                                        exception_cause = None,
+                                        source_ref      = source_ref
+                                    )
                                 ),
-                                yes_branch  = None,
+                                yes_branch = None,
                                 source_ref = source_ref
                             ),
                         ),
@@ -204,24 +221,38 @@ def buildWithNode( provider, node, source_ref ):
                     source_ref = source_ref
                 ),
             ),
-            no_raise   = StatementsSequence(
-                statements = (
-                    StatementExpressionOnly(
-                        expression = ExpressionCallNoKeywords(
-                            called     = ExpressionTempVariableRef(
-                                variable   = tmp_exit_variable.makeReference( result ),
-                                source_ref = source_ref
-                            ),
-                            args       = ExpressionConstantRef(
-                                constant   = ( None, None, None ),
-                                source_ref = source_ref
-                            ),
+            final      = makeStatementsSequenceFromStatement(
+                statement = StatementConditional(
+                    condition      = ExpressionComparisonIs(
+                        left       = ExpressionTempVariableRef(
+                            variable   = tmp_indicator_variable.makeReference( result ),
                             source_ref = source_ref
                         ),
-                        source_ref     = source_ref
+                        right      = ExpressionConstantRef(
+                            constant    = True,
+                            source_ref = source_ref
+                        ),
+                        source_ref = source_ref
                     ),
-                ),
-                source_ref     = source_ref
+                    yes_branch = makeStatementsSequenceFromStatement(
+                        statement = StatementExpressionOnly(
+                            expression = ExpressionCallNoKeywords(
+                                called     = ExpressionTempVariableRef(
+                                    variable   = tmp_exit_variable.makeReference( result ),
+                                    source_ref = source_ref
+                                ),
+                                args       = ExpressionConstantRef(
+                                    constant   = ( None, None, None ),
+                                    source_ref = source_ref
+                                ),
+                                source_ref = source_ref
+                            ),
+                            source_ref     = source_ref
+                        )
+                    ),
+                    no_branch  = None,
+                    source_ref = source_ref
+                )
             ),
             source_ref = source_ref
         )

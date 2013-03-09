@@ -18,6 +18,8 @@
 
 x = 0
 
+# This is used to trace the exact interaction with the context manager to uncover and
+# decide orddering and correctness of calls.
 class MyContextManager(object):
     def __getattribute__( self, attribute_name ):
         print "Asking context manager attribute", attribute_name
@@ -27,7 +29,7 @@ class MyContextManager(object):
         global x
         x += 1
 
-        print "Entered context manager", x
+        print "Entered context manager with counter value", x
 
         return x
 
@@ -36,6 +38,7 @@ class MyContextManager(object):
 
         return False
 
+print "Use context manager and raise exception in the body:"
 with MyContextManager() as x:
     print "x has become", x
 
@@ -50,6 +53,7 @@ except Exception, e:
 
 l = range(3)
 
+print "Use context manager and assign to subscription target:"
 with MyContextManager() as l[0]:
     print "Complex assignment target works", l[0]
 
@@ -61,6 +65,7 @@ except BaseException as e:
     print "Caught base exception", repr(e)
 
 
+print "Use context manager and fail to assign to attribute:"
 try:
     import sys
     with MyContextManager() as l.wontwork:
@@ -68,8 +73,19 @@ try:
 except BaseException as e:
     print "Caught base exception", repr(e)
 
+print "Use context manager to do nothing inside:"
 with MyContextManager() as x:
     pass
+
+# Use context manager and fail to assign.
+def returnFromContextBlock():
+    # Use context manager to do nothing.
+    with MyContextManager() as x:
+        return 7
+
+print "Use context manager to return value:"
+r = returnFromContextBlock()
+print "Return value", r
 
 class NonContextManager1:
     def __enter__( self ):

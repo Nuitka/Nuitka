@@ -915,6 +915,9 @@ instead.
     # should not be called.
     tmp_enter_result = tmp_source.__enter__()
 
+    # Indicator variable to know if "tmp_exit" has been called.
+    tmp_indicator = False
+
     try:
         # Now the assignment is to be done, if there is any name for the manager given,
         # this may become multiple assignment statements and even unpacking ones.
@@ -923,16 +926,18 @@ instead.
         # Then the code of the "with" block.
         something( x )
     except Exception:
-
         # Note: This part of the code must not set line numbers, which we indicate with
         # special source code references, which we call "internal". Otherwise the line
         # of the frame would get corrupted.
 
+        tmp_indicator = True
+
         if not tmp_exit( *sys.exc_info() ):
             raise
-    else:
-        # Call the exit if no exception occurred with all arguments as "None".
-        tmp_exit( None, None, None )
+    finally:
+        if not tmp_indicator
+            # Call the exit if no exception occurred with all arguments as "None".
+            tmp_exit( None, None, None )
 
 .. note::
 
