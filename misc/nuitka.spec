@@ -1,16 +1,17 @@
 # detect python site-packages path, use get_python_lib(0) as nuitka using
 %global python_sitearch %(%{__python} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
 
-Name:		nuitka
-Version:		0.4.2pre1
-Release:		3%{?dist}
-Summary:		A Python compiler translates the Python into a C++ program.
-Group:		Development/Languages
-License:		Apache License 2.0
-URL:			http://nuitka.net/
-Source0:		http://nuitka.net/releases/Nuitka-%{version}.tar.gz
-Source1:		nuitka-python3
-BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+Name:           nuitka
+Version:        0.4.2pre1
+Release:        4%{?dist}
+Summary:        A Python compiler translates the Python into a C++ program.
+Group:          Development/Languages
+License:        Apache License 2.0
+URL:            http://nuitka.net/
+Source0:        http://nuitka.net/releases/Nuitka-%{version}.tar.gz
+Source1:        nuitka-python3
+Source2:        nuitka-rpmlintrc
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  python
 BuildRequires:  python-devel
@@ -37,7 +38,7 @@ a good start (number is from version 0.3.11).
 
 %install
 rm -rf %{buildroot}
-%{__python} setup.py install --skip-build --root=%{buildroot}
+%{__python} setup.py install --skip-build --prefix %{_prefix} --root=%{buildroot}
 install -D -m755 %{SOURCE1} %{buildroot}%{_bindir}/nuitka3
 install -D -m755 %{SOURCE1} %{buildroot}%{_bindir}/nuitka-python3
 mkdir -p %{buildroot}%{_mandir}/man1
