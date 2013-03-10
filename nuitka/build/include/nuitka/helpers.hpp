@@ -127,63 +127,7 @@ static char *_PyUnicode_AS_STRING( PyObject *unicode )
 
 #include "nuitka/helper/raising.hpp"
 
-typedef PyObject *(binary_api)( PyObject *, PyObject * );
-
-NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION( binary_api api, PyObject *operand1, PyObject *operand2 )
-{
-    assertObject( operand1 );
-    assertObject( operand2 );
-
-    PyObject *result = api( operand1, operand2 );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    return result;
-}
-
 #include "helper/operations.hpp"
-
-
-typedef PyObject *(unary_api)( PyObject * );
-
-NUITKA_MAY_BE_UNUSED static PyObject *UNARY_OPERATION( unary_api api, PyObject *operand )
-{
-    PyObject *result = api( operand );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION( PyObject *operand1, PyObject *operand2 )
-{
-    PyObject *result = PyNumber_Power( operand1, operand2, Py_None );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    return result;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION_INPLACE( PyObject *operand1, PyObject *operand2 )
-{
-    PyObject *result = PyNumber_InPlacePower( operand1, operand2, Py_None );
-
-    if (unlikely( result == NULL ))
-    {
-        throw PythonException();
-    }
-
-    return result;
-}
 
 #include "nuitka/helper/richcomparisons.hpp"
 #include "nuitka/helper/sequences.hpp"

@@ -164,6 +164,29 @@ def compareOrderCheck():
     print ">", lvalue() > rvalue()
     print "<", lvalue() < rvalue()
 
+def operatorOrderCheck():
+    def left():
+        print "left",
+
+        return 1
+
+    def middle():
+        print "middle",
+
+        return 3
+
+    def right():
+        print "right",
+
+        return 2
+
+    print "+", left() + middle() + right()
+    print "-", left() - middle() - right()
+    print "*", left() * middle() * right()
+    print "/", left() / middle() / right()
+    print "%", left() % middle() % right()
+    print "**", left() ** middle() ** right()
+
 def generatorOrderCheck():
     def default1():
         print "default1",
@@ -358,6 +381,7 @@ dictOrderCheck()
 listOrderCheck()
 subscriptOrderCheck()
 attributeOrderCheck()
+operatorOrderCheck()
 compareOrderCheck()
 sliceOrderCheck()
 generatorOrderCheck()
