@@ -307,6 +307,7 @@ def runScons( main_module, quiet ):
         "unstriped_mode" : asBoolStr( Options.isUnstriped() ),
         "module_mode"    : asBoolStr( Options.shallMakeModule() ),
         "optimize_mode"  : asBoolStr( Options.isOptimize() ),
+        "full_compat"    : asBoolStr( Options.isFullCompat() ),
         "python_version" : python_version,
         "lto_mode"       : asBoolStr( Options.isLto() ),
         "clang_mode"     : asBoolStr( Options.isClang() )
