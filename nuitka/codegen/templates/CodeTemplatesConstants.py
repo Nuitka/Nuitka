@@ -57,6 +57,7 @@ void _initConstants( void )
 #endif
         assert( module_builtin );
         dict_builtin = (PyDictObject *)module_builtin->md_dict;
+        assert( PyDict_Check( dict_builtin ) );
 
         __initConstants();
     }
