@@ -959,20 +959,6 @@ def buildParseTree( provider, source_code, source_ref ):
         )
     )
 
-    statements.append(
-        StatementAssignmentVariable(
-            variable_ref = ExpressionTargetVariableRef(
-                variable_name = "__file__",
-                source_ref    = internal_source_ref
-            ),
-            source       = ExpressionConstantRef(
-                constant   = source_ref.getFilename(),
-                source_ref = internal_source_ref
-            ),
-            source_ref   = internal_source_ref
-        )
-    )
-
     if provider.isPythonPackage():
         # TODO: __package__ is not set here, but automatically, which makes it invisible
         # though
