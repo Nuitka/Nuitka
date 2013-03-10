@@ -321,9 +321,9 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( void )
     RAISE_EXCEPTION_WITH_TRACEBACK( type, value, tb );
 }
 
-// Throw an exception from within an expression, this is without normalization. TODO: There needs
-// to be a form that is like a statement, and doesn't do it, so it won't impact "raise", but can
-// be used in optimization.
+// Throw an exception from within an expression, this is without normalization. Note:
+// There is also a form for use as a statement, and also doesn't do it, seeing this used
+// normally means, the implicit exception was not propagated.
 NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static PyObject *THROW_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *traceback )
 {
     RAISE_EXCEPTION_WITH_VALUE_NO_NORMALIZE( exception_type, exception_value, traceback );
