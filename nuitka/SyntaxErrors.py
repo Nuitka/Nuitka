@@ -24,6 +24,9 @@ raise it for the given source code reference.
 def formatOutput( e ):
     if len( e.args ) > 1:
         reason, ( filename, lineno, colno, message ) = e.args
+
+        if message is None and colno is not None:
+            colno = None
     else:
         reason, = e.args
 
@@ -31,8 +34,6 @@ def formatOutput( e ):
         lineno = None
         colno = None
         message = None
-
-    message = message or ""
 
     if colno is not None:
         colno = colno - len( message ) + len( message.lstrip() )
