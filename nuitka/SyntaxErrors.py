@@ -32,6 +32,8 @@ def formatOutput( e ):
         colno = None
         message = None
 
+    message = message or ""
+
     if colno is not None:
         colno = colno - len( message ) + len( message.lstrip() )
 
