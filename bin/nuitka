@@ -75,12 +75,18 @@ if intended_version is not None:
         os.execl( *args )
 
 
-from nuitka import MainControl, SyntaxErrors
+from nuitka import MainControl, SyntaxErrors, Importing
 
 positional_args = Options.getPositionalArgs()
 assert len( positional_args ) > 0
 
 filename = Options.getPositionalArgs()[0]
+
+# Inform the importing layer about the main script directory, so it can use it when
+# attempting to follow imports.
+Importing.setMainScriptDirectory(
+    main_dir = os.path.dirname( os.path.abspath( filename ) )
+)
 
 # Turn that source code into a node tree structure.
 try:

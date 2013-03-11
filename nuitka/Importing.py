@@ -43,6 +43,13 @@ _debug_module_finding = False
 
 _warned_about = set()
 
+# Directory where the main script lives. Should attempt to import from there.
+main_path = None
+
+def setMainScriptDirectory( main_dir ):
+    global main_path
+    main_path = main_dir
+
 def isPackageDir( dirname ):
     return Utils.isDir( dirname ) and Utils.isFile( Utils.joinpath( dirname, "__init__.py" ))
 
@@ -66,13 +73,31 @@ def findModule( source_ref, module_name, parent_package, level, warn = True ):
                 if key not in _warned_about:
                     _warned_about.add( key )
 
-                    warning(
-                        "%s: Cannot find '%s' in '%s' on level %d",
-                        source_ref.getAsString(),
-                        module_name,
-                        parent_package,
-                        level
-                    )
+                    if level == 0:
+                        level_desc = "as absolute import"
+                    elif level == -1:
+                        level_desc = "as relative or absolute import"
+                    elif level == 1:
+                        level_desc = "one package level up" % level
+                    else:
+                        level_desc = "%d package levels up" % level
+
+                    if parent_package is not None:
+                        warning(
+                            "%s: Cannot find '%s' in package '%s' on level %s.",
+                            source_ref.getAsString(),
+                            module_name,
+                            parent_package,
+                            level_desc
+                        )
+                    else:
+                        warning(
+                            "%s: Cannot find '%s' on level %s.",
+                            source_ref.getAsString(),
+                            module_name,
+                            level_desc
+                        )
+
 
             if "." in module_name:
                 module_package_name = module_name[ : module_name.rfind( "." ) ]
@@ -97,6 +122,9 @@ def _findModuleInPath( module_name, package_name ):
     if _debug_module_finding:
         print( "_findModuleInPath: Enter", module_name, package_name )
 
+    assert main_path is not None
+    extra_paths = [ os.getcwd(), main_path  ]
+
     if package_name is not None:
         # Work around imp.find_module bug on at least Windows. Won't handle
         # module name empty in find_module. And thinking of it, how could it
@@ -111,7 +139,7 @@ def _findModuleInPath( module_name, package_name ):
         ext_path = [
             getPackageDirname( element )
             for element in
-            sys.path + [ os.getcwd() ]
+            sys.path + extra_paths
             if isPackageDir( getPackageDirname( element ) )
         ]
 
@@ -138,8 +166,7 @@ def _findModuleInPath( module_name, package_name ):
             if _debug_module_finding:
                 print( "_findModuleInPath: imp.find_module failed with syntax error" )
 
-
-    ext_path = sys.path + [ os.getcwd() ]
+    ext_path = sys.path + extra_paths
 
     if _debug_module_finding:
         print( "_findModuleInPath: Non-package, using extended path", ext_path )
