@@ -362,9 +362,9 @@ def executeMain( binary_filename, tree, clean_path ):
     main_filename = tree.getFilename()
 
     if main_filename.endswith( ".py" ):
-        name = Utils.basename( main_filename[:-3]  )
+        name = main_filename[:-3]
     else:
-        name = Utils.basename( main_filename )
+        name = main_filename
 
     if not Options.isWindowsTarget() or os.name == "nt":
         args = ( binary_filename, name )
