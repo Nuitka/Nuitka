@@ -103,7 +103,7 @@ def getTreeFilenameWithSuffix( tree, suffix ):
 
     assert os.path.exists( main_filename )
 
-    if tree.isPythonPackage():
+    if tree.isPythonPackage() or Utils.basename( tree.getFilename() ) == "__main__.py":
         return Utils.dirname( main_filename ) + suffix
     elif main_filename.endswith( ".py" ):
         return main_filename[:-3] + suffix
