@@ -171,3 +171,6 @@ def f():
 
 
 print f()
+
+global global_already
+global_already = 1

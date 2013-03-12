@@ -652,6 +652,10 @@ def buildExecNode( provider, node, source_ref ):
 def handleGlobalDeclarationNode( provider, node, source_ref ):
     # The source reference of the global really doesn't matter, pylint: disable=W0613
 
+    # On the module level, there is nothing to do.
+    if provider.isPythonModule():
+        return None
+
     # Need to catch the error of declaring a parameter variable as global ourselves
     # here. The AST parsing doesn't catch it.
     try:
