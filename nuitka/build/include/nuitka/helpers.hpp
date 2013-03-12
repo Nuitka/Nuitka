@@ -1415,4 +1415,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME( PyObject *module )
 #endif
 }
 
+#include <nuitka/threading.hpp>
+
 #endif

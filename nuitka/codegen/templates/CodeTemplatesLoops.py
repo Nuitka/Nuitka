@@ -64,4 +64,6 @@ template_loop_simple = """\
 while( true )
 {
 %(loop_body_codes)s
+
+   CONSIDER_THREADING();
 }"""
