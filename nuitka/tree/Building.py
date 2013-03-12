@@ -502,6 +502,9 @@ def enableFutureFeature( object_name, future_spec, source_ref ):
             source_ref
         )
 
+# For checking afterwards, if it was at the beginning of the file.
+_future_import_nodes = []
+
 def buildImportFromNode( provider, node, source_ref ):
     # "from .. import .." statements. This may trigger a star import, or multiple names
     # being looked up from the given module variable name.
@@ -521,6 +524,10 @@ def buildImportFromNode( provider, node, source_ref ):
                 future_spec = source_ref.getFutureSpec(),
                 source_ref  = source_ref
             )
+
+        # Remember it for checks to be applied once module is complete.
+        node.source_ref = source_ref
+        _future_import_nodes.append( node )
 
     target_names = []
     import_names = []
@@ -930,6 +937,18 @@ def buildParseTree( provider, source_code, source_ref ):
         source_ref = source_ref,
         frame      = True
     )
+
+    # Check if a __future__ imports really were at the beginning of the file.
+    for node in body:
+        if node in _future_import_nodes:
+            _future_import_nodes.remove( node )
+        else:
+            if _future_import_nodes:
+                SyntaxErrors.raiseSyntaxError(
+                    reason     = "from __future__ imports must occur at the beginning of the file",
+                    col_offset = 1 if Utils.python_version >= 300 or not Options.isFullCompat() else None,
+                    source_ref = _future_import_nodes[0].source_ref
+                )
 
     internal_source_ref = source_ref.atInternal()
 
