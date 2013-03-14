@@ -64,7 +64,7 @@ someFunction()
 import sys
 
 class C:
-    print "Class locals", str( sys._getframe().f_locals ).replace( "'__locals__': {...}, ", "" )
+    print "Class locals", str( sys._getframe().f_locals ).replace( "'__locals__': {...}, ", "" ).replace( "'__qualname__': 'C', ", "" )
     print "Class flags", sys._getframe().f_code.co_flags | 64
 
 def f():
@@ -73,5 +73,12 @@ def f():
 
 f()
 
-print "Module frame locals", sys._getframe().f_locals
+def displayDict( d ):
+    d = dict(d)
+    if "__loader__" in d:
+        d[ "__loader__" ] = "<loader removed>"
+
+    return repr( d )
+
+print "Module frame locals", displayDict( sys._getframe().f_locals )
 print "Module flags", sys._getframe().f_code.co_flags  | 64
