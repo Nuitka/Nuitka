@@ -171,7 +171,19 @@ def _findModuleInPath( module_name, package_name ):
     if _debug_module_finding:
         print( "_findModuleInPath: Non-package, using extended path", ext_path )
 
-    _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
+    try:
+        _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
+    except SyntaxError:
+        # Warn user, as this is kind of unusual.
+        warning(
+            "%s: Module cannot be imported due to syntax errors",
+            module_name,
+        )
+
+        if _debug_module_finding:
+            print( "_findModuleInPath: imp.find_module failed with syntax error" )
+
+        module_filename = None
 
     if _debug_module_finding:
         print( "_findModuleInPath: imp.find_module gave", module_filename )
