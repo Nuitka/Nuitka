@@ -289,22 +289,24 @@ else
         int size = mp->ma_keys->dk_size;
         for ( int i = 0; i < size; i++ )
         {
-            split_copy->ma_values[ i ] = INCREASE_REFCOUNT_X( mp->ma_values[ i ] );
+            PyDictKeyEntry *entry = &split_copy->ma_keys->dk_entries[ i ];
 
-            if (unlikely( !PyUnicode_Check( split_copy->ma_values[ i ] ) ))
+            if (unlikely( !PyUnicode_Check( entry->me_key ) ))
             {
                 PyErr_Format( PyExc_TypeError, "%(function_name)s() keywords must be strings" );
                 goto error_exit;
             }
+
+            split_copy->ma_values[ i ] = INCREASE_REFCOUNT_X( mp->ma_values[ i ] );
         }
 
         _python_par_%(dict_star_parameter_name)s = (PyObject *)split_copy;
     }
     else
     {
-        PyDictObject *mp = (PyDictObject *)kw;
+        _python_par_%(dict_star_parameter_name)s = PyDict_New();
 
-        PyDictObject *split_copy = PyObject_GC_New( PyDictObject, &PyDict_Type );
+        PyDictObject *mp = (PyDictObject *)kw;
 
         int size = mp->ma_keys->dk_size;
         for ( int i = 0; i < size; i++ )
@@ -324,7 +326,7 @@ else
 
             if ( value != NULL )
             {
-                if (unlikely( !PyUnicode_Check( value ) ))
+                if (unlikely( !PyUnicode_Check( entry->me_key ) ))
                 {
                     PyErr_Format( PyExc_TypeError, "%(function_name)s() keywords must be strings" );
                     goto error_exit;
