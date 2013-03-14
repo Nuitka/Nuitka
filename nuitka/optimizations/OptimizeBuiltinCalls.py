@@ -21,6 +21,7 @@ For builtin name references, we check if it's one of the supported builtin types
 """
 
 from nuitka.Utils import python_version
+from nuitka.Options import isDebug, shallMakeModule
 
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinNext1,
@@ -609,7 +610,7 @@ def computeBuiltinCall( call_node, called ):
             inspect_node = inspect_node.getExpression()
 
         if inspect_node.isExpressionBuiltinImport():
-            tags    = "new_builtin new_import"
+            tags    = "new_import"
             message = "Replaced dynamic builtin import %s with static module import." % inspect_node.kind
         elif inspect_node.isExpressionBuiltin() or inspect_node.isStatementExec():
             tags = "new_builtin"
@@ -622,6 +623,49 @@ def computeBuiltinCall( call_node, called ):
             message = "Replaced call to builtin %s with exception raising call." % inspect_node.kind
         else:
             assert False, ( builtin_name, "->", inspect_node )
+
+        # TODO: One day, this should be enabled by default and call either the original
+        # built-in or the optimized above one. That should be done, once we can eliminate
+        # the condition for most cases.
+        if False and isDebug() and not shallMakeModule() and builtin_name:
+            from nuitka.nodes.ConditionalNodes import ExpressionConditional
+            from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
+            from nuitka.nodes.BuiltinRefNodes import (
+                ExpressionBuiltinExceptionRef,
+                ExpressionBuiltinOriginalRef,
+                ExpressionBuiltinRef,
+            )
+            from nuitka.nodes.ExceptionNodes import ExpressionRaiseException
+
+            source_ref = called.getSourceReference()
+
+            new_node = ExpressionConditional(
+                condition      = ExpressionComparisonIs(
+                    left  = ExpressionBuiltinRef(
+                        builtin_name = builtin_name,
+                        source_ref   = source_ref
+                    ),
+                    right = ExpressionBuiltinOriginalRef(
+                        builtin_name = builtin_name,
+                        source_ref   = source_ref
+                    ),
+                    source_ref   = source_ref
+                ),
+                yes_expression = new_node,
+                no_expression  = ExpressionRaiseException(
+                    exception_type = ExpressionBuiltinExceptionRef(
+                        exception_name = "RuntimeError",
+                        source_ref     = source_ref
+                    ),
+                    exception_value = ExpressionConstantRef(
+                        constant     = "Builtin '%s' was overloaded'" % builtin_name,
+                        source_ref   = source_ref
+                    ),
+                    source_ref   = source_ref
+                ),
+                source_ref     = source_ref
+            )
+
 
         return new_node, tags, message
     else:

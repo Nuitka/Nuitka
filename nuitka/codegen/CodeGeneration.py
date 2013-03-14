@@ -1008,7 +1008,10 @@ def generateExpressionCode( expression, context, allow_none = False ):
     elif expression.isExpressionRaiseException():
         # Missed optimization opportunity, please report.
         if Options.isDebug():
-            assert expression.parent.isExpressionSideEffects(), ( expression, expression.parent )
+            parent = expression.parent
+            assert parent.isExpressionSideEffects() or \
+                   parent.isExpressionConditional(), \
+                   ( expression, expression.parent )
 
         identifier = Generator.getRaiseExceptionExpressionCode(
             exception_type_identifier  = makeExpressionCode(
@@ -1030,6 +1033,13 @@ def generateExpressionCode( expression, context, allow_none = False ):
                 context     = context
             ),
             context        = context
+        )
+    elif expression.isExpressionBuiltinOriginalRef():
+        assert not expression.isExpressionBuiltinRef()
+
+        identifier = Generator.getBuiltinOriginalRefCode(
+            builtin_name = expression.getBuiltinName(),
+            context      = context
         )
     elif expression.isExpressionBuiltinRef():
         identifier = Generator.getBuiltinRefCode(

@@ -73,10 +73,6 @@ class ExpressionBuiltinRef( ExpressionBuiltinRefBase ):
             source_ref   = source_ref
         )
 
-    def isExpressionBuiltin( self ):
-        # Means if it's a builtin function call.
-        return False
-
     def isCompileTimeConstant( self ):
         # Virtual method, pylint: disable=R0201
         return True
@@ -123,6 +119,22 @@ class ExpressionBuiltinRef( ExpressionBuiltinRefBase ):
 
         return python_version >= 300
 
+
+class ExpressionBuiltinOriginalRef( ExpressionBuiltinRef ):
+    kind = "EXPRESSION_BUILTIN_ORIGINAL_REF"
+
+    def isCompileTimeConstant( self ):
+        # TODO: Actually the base class should not be constant and this one should be.
+
+        # Virtual method, pylint: disable=R0201
+        return False
+
+    def computeExpression( self, constraint_collection ):
+
+        # Needs whole program analysis, we don't really know much about it.
+        return self, None, None
+
+
 class ExpressionBuiltinAnonymousRef( ExpressionBuiltinRefBase ):
     kind = "EXPRESSION_BUILTIN_ANONYMOUS_REF"
 
@@ -134,10 +146,6 @@ class ExpressionBuiltinAnonymousRef( ExpressionBuiltinRefBase ):
             builtin_name = builtin_name,
             source_ref   = source_ref
         )
-
-    def isExpressionBuiltin( self ):
-        # Means if it's a builtin function call.
-        return False
 
     def isCompileTimeConstant( self ):
         # Virtual method, pylint: disable=R0201
@@ -175,10 +183,6 @@ class ExpressionBuiltinExceptionRef( ExpressionBuiltinRefBase ):
         return { "exception_name" : self.builtin_name }
 
     getExceptionName = ExpressionBuiltinRefBase.getBuiltinName
-
-    def isExpressionBuiltin( self ):
-        # Means if it's a builtin function call.
-        return False
 
     def isCompileTimeConstant( self ):
         # Virtual method, pylint: disable=R0201

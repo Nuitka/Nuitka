@@ -115,4 +115,19 @@ private:
     PyObject *value;
 };
 
+extern void _initBuiltinModule();
+
+#ifdef _NUITKA_EXE
+// Original builtin values, currently only used for assertions.
+extern PyObject *_python_original_builtin_value_type;
+extern PyObject *_python_original_builtin_value_len;
+extern PyObject *_python_original_builtin_value_range;
+extern PyObject *_python_original_builtin_value_repr;
+extern PyObject *_python_original_builtin_value_int;
+extern PyObject *_python_original_builtin_value_iter;
+extern PyObject *_python_original_builtin_value_long;
+
+extern void _initBuiltinOriginalValues();
+#endif
+
 #endif

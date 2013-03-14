@@ -1472,3 +1472,54 @@ void _BUILTIN_SETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, Py
         throw PythonException();
     }
 }
+
+PyDictObject *dict_builtin = NULL;
+PyModuleObject *module_builtin = NULL;
+
+#define ASSIGN_BUILTIN( name ) _python_original_builtin_value_##name = LOOKUP_BUILTIN( _python_str_plain_##name );
+
+void _initBuiltinModule()
+{
+#if _NUITKA_MODULE
+    if ( module_builtin ) return;
+#else
+    assert( module_builtin == NULL );
+#endif
+
+#if PYTHON_VERSION < 300
+    module_builtin = (PyModuleObject *)PyImport_ImportModule( "__builtin__" );
+#else
+    module_builtin = (PyModuleObject *)PyImport_ImportModule( "builtins" );
+#endif
+    assert( module_builtin );
+    dict_builtin = (PyDictObject *)module_builtin->md_dict;
+    assert( PyDict_Check( dict_builtin ) );
+
+}
+
+#ifdef _NUITKA_EXE
+
+#define DEFINE_BUILTIN( name ) extern PyObject *_python_str_plain_##name; PyObject *_python_original_builtin_value_##name = NULL;
+
+DEFINE_BUILTIN( type )
+DEFINE_BUILTIN( len )
+DEFINE_BUILTIN( range )
+DEFINE_BUILTIN( repr )
+DEFINE_BUILTIN( int )
+DEFINE_BUILTIN( iter )
+DEFINE_BUILTIN( long )
+
+void _initBuiltinOriginalValues()
+{
+    ASSIGN_BUILTIN( type );
+    ASSIGN_BUILTIN( len );
+    ASSIGN_BUILTIN( range );
+    ASSIGN_BUILTIN( repr );
+    ASSIGN_BUILTIN( int );
+    ASSIGN_BUILTIN( iter );
+    ASSIGN_BUILTIN( long );
+
+    assertObject( _python_original_builtin_value_range );
+}
+
+#endif

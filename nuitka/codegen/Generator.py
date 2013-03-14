@@ -1189,6 +1189,12 @@ def getBuiltinRefCode( context, builtin_name ):
         0
     )
 
+def getBuiltinOriginalRefCode( context, builtin_name ):
+    return Identifier(
+        "_python_original_builtin_value_%s" % builtin_name,
+        0
+    )
+
 def getBuiltinAnonymousRefCode( builtin_name ):
     return Identifier(
         "(PyObject *)%s" % Builtins.builtin_anon_codes[ builtin_name ],

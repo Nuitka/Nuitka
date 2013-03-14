@@ -35,6 +35,8 @@ from nuitka.__past__ import iterItems
 
 from nuitka.Utils import python_version
 
+from nuitka import Options
+
 # False alarms about "hashlib.md5" due to its strange way of defining what is
 # exported, pylint won't understand it. pylint: disable=E1101
 
@@ -186,6 +188,16 @@ class PythonGlobalContext:
         self.getConstantHandle( "open" )
         self.getConstantHandle( "print" )
         self.getConstantHandle( "__import__" )
+
+        # Names of builtins replace, maybe used by helpers
+        if Options.isDebug and not Options.shallMakeModule():
+            self.getConstantHandle( "type" )
+            self.getConstantHandle( "len" )
+            self.getConstantHandle( "range" )
+            self.getConstantHandle( "repr" )
+            self.getConstantHandle( "int" )
+            self.getConstantHandle( "iter" )
+            self.getConstantHandle( "long" )
 
         # The print builtin needs some argument names.
         self.getConstantHandle( "end" )

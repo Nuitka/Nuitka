@@ -51,7 +51,9 @@ int main( int argc, char *argv[] )
     setCommandLineParameters( argc, argv );
 
     // Initialize the constant values used.
+    _initBuiltinModule();
     _initConstants();
+    _initBuiltinOriginalValues();
 
     // Initialize the compiled types of Nuitka.
     PyType_Ready( &Nuitka_Generator_Type );
@@ -279,6 +281,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     // because that's how we are going to get called here.
 
     // Initialize the constant values used.
+    _initBuiltinModule();
     _initConstants();
 
     // Initialize the compiled types of Nuitka.

@@ -26,9 +26,6 @@ template_constants_reading = """
 // a PyCObject pointing to NULL. It's address is unique, and that's enough.
 PyObject *_sentinel_value = NULL;
 
-PyDictObject *dict_builtin = NULL;
-PyModuleObject *module_builtin = NULL;
-
 %(constant_declarations)s
 
 static void __initConstants( void )
@@ -49,15 +46,6 @@ void _initConstants( void )
         _sentinel_value = PyCapsule_New( (void *)27, "sentinel", NULL );
 #endif
         assert( _sentinel_value );
-
-#if PYTHON_VERSION < 300
-        module_builtin = (PyModuleObject *)PyImport_ImportModule( "__builtin__" );
-#else
-        module_builtin = (PyModuleObject *)PyImport_ImportModule( "builtins" );
-#endif
-        assert( module_builtin );
-        dict_builtin = (PyDictObject *)module_builtin->md_dict;
-        assert( PyDict_Check( dict_builtin ) );
 
         __initConstants();
     }
