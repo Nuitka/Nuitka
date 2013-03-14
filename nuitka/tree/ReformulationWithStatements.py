@@ -59,12 +59,8 @@ from .Helpers import (
     buildNode
 )
 
-def buildWithNode( provider, node, source_ref ):
-    # "with" statements are re-formulated as described in the developer manual. Catches
-    # exceptions, and provides them to "__exit__", while making the "__enter__" value
-    # available under a given name.
-
-    with_source = buildNode( provider, node.context_expr, source_ref )
+def _buildWithNode( provider, context_expr, assign_target, body, source_ref ):
+    with_source = buildNode( provider, context_expr, source_ref )
 
     result = StatementTempBlock(
         source_ref = source_ref
@@ -78,7 +74,7 @@ def buildWithNode( provider, node, source_ref ):
     statements = (
         buildAssignmentStatements(
             provider   = provider,
-            node       = node.optional_vars,
+            node       = assign_target,
             allow_none = True,
             source     = ExpressionTempVariableRef(
                 variable   = tmp_enter_variable.makeReference( result ),
@@ -86,7 +82,7 @@ def buildWithNode( provider, node, source_ref ):
             ),
             source_ref = source_ref
         ),
-        buildStatementsNode( provider, node.body, source_ref )
+        body
     )
 
     with_body = makeStatementsSequence(
@@ -266,3 +262,35 @@ def buildWithNode( provider, node, source_ref ):
     )
 
     return result
+
+def buildWithNode( provider, node, source_ref ):
+    # "with" statements are re-formulated as described in the developer manual. Catches
+    # exceptions, and provides them to "__exit__", while making the "__enter__" value
+    # available under a given name.
+
+    # Before Python3.3, multiple context managers are not visible in the parse tree, now
+    # we need to handle it ourselves.
+    if hasattr( node, "items" ):
+        context_exprs = [ item.context_expr for item in node.items ]
+        assign_targets = [ item.optional_vars for item in node.items ]
+    else:
+        # Make it a list for before Python3.3
+        context_exprs = [ node.context_expr ]
+        assign_targets = [ node.optional_vars ]
+
+
+    # The body for the first context manager is the other things.
+    body = buildStatementsNode( provider, node.body, source_ref )
+
+    assert len( context_exprs ) > 0 and len( context_exprs ) == len( assign_targets )
+
+    for context_expr, assign_target in zip( reversed( context_exprs ), reversed( assign_targets ) ):
+        body = _buildWithNode(
+            provider      = provider,
+            body          = body,
+            context_expr  = context_expr,
+            assign_target = assign_target,
+            source_ref    = source_ref
+        )
+
+    return body
