@@ -61,6 +61,9 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
         %(fparse_function_identifier)s,
         %(mparse_function_identifier)s,
         %(function_name_obj)s,
+#if PYTHON_VERSION >= 330
+        %(function_qualname_obj)s,
+#endif
         %(code_identifier)s,
         %(defaults)s,
 #if PYTHON_VERSION >= 300
@@ -84,6 +87,9 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
         %(fparse_function_identifier)s,
         %(mparse_function_identifier)s,
         %(function_name_obj)s,
+#if PYTHON_VERSION >= 330
+        %(function_qualname_obj)s,
+#endif
         %(code_identifier)s,
         %(defaults)s,
 #if PYTHON_VERSION >= 300

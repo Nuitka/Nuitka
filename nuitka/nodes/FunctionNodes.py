@@ -174,6 +174,16 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
         else:
             return self.name
 
+    def getFunctionQualname( self ):
+        function_name = self.getFunctionName()
+
+        provider = self.getParentVariableProvider()
+
+        if provider.isPythonModule():
+            return function_name
+        else:
+            return provider.getFunctionQualname() + ".<locals>." + function_name
+
     def getDoc( self ):
         return self.doc
 

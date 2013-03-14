@@ -1912,9 +1912,10 @@ def _getFuncKwDefaultValue( kw_defaults_identifier ):
     else:
         return Identifier( "kwdefaults", 1 )
 
-def getGeneratorFunctionCode( context, function_name, function_identifier, parameters,
-                              closure_variables, user_variables, defaults_identifier,
-                              kw_defaults_identifier, annotations_identifier, tmp_keepers,
+def getGeneratorFunctionCode( context, function_name, function_qualname, function_identifier,
+                              parameters, closure_variables, user_variables,
+                              defaults_identifier, kw_defaults_identifier,
+                              annotations_identifier, tmp_keepers,
                               function_codes, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
@@ -2122,6 +2123,14 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
     if annotations_identifier is None:
         annotations_identifier = NullIdentifier()
 
+    if Utils.python_version < 330 or function_qualname == function_name:
+        function_qualname_obj = "NULL"
+    else:
+        function_qualname_obj = getConstantCode(
+            constant = function_qualname,
+            context  = context
+        )
+
     if context.isForCreatedFunction():
         result += entry_point_code
 
@@ -2131,6 +2140,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
                     context  = context,
                     constant = function_name
                 ),
+                "function_qualname_obj"      : function_qualname_obj,
                 "function_identifier"        : function_identifier,
                 "fparse_function_identifier" : getParameterEntryPointIdentifier(
                     function_identifier = function_identifier,
@@ -2157,6 +2167,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
                     context  = context,
                     constant = function_name
                 ),
+                "function_qualname_obj"      : function_qualname_obj,
                 "function_identifier"        : function_identifier,
                 "fparse_function_identifier" : getParameterEntryPointIdentifier(
                     function_identifier = function_identifier,
@@ -2179,9 +2190,10 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 
     return result
 
-def getFunctionCode( context, function_name, function_identifier, parameters, closure_variables,
-                     user_variables, tmp_keepers, defaults_identifier, kw_defaults_identifier,
-                     annotations_identifier, function_codes, source_ref, function_doc ):
+def getFunctionCode( context, function_name, function_qualname, function_identifier,
+                     parameters, closure_variables, user_variables, tmp_keepers,
+                     defaults_identifier, kw_defaults_identifier, annotations_identifier,
+                     function_codes, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
 
@@ -2318,6 +2330,14 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
     if annotations_identifier is None:
         annotations_identifier = NullIdentifier()
 
+    if Utils.python_version < 330 or function_qualname == function_name:
+        function_qualname_obj = "NULL"
+    else:
+        function_qualname_obj = getConstantCode(
+            constant = function_qualname,
+            context  = context
+        )
+
     if context.isForCreatedFunction():
         code_identifier = context.getCodeObjectHandle(
             filename      = source_ref.getFilename(),
@@ -2332,6 +2352,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         if context_decl:
             result += CodeTemplates.make_function_with_context_template % {
                 "function_name_obj"          : function_name_obj,
+                "function_qualname_obj"      : function_qualname_obj,
                 "function_identifier"        : function_identifier,
                 "fparse_function_identifier" : getParameterEntryPointIdentifier(
                     function_identifier = function_identifier,
@@ -2353,6 +2374,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         else:
             result += CodeTemplates.make_function_without_context_template % {
                 "function_name_obj"          : function_name_obj,
+                "function_qualname_obj"      : function_qualname_obj,
                 "function_identifier"        : function_identifier,
                 "fparse_function_identifier" : getParameterEntryPointIdentifier(
                     function_identifier = function_identifier,

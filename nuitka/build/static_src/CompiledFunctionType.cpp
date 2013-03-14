@@ -493,8 +493,10 @@ PyTypeObject Nuitka_Function_Type =
 
 #if PYTHON_VERSION < 300
 static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, bool has_args, void *context, releaser cleanup )
-#else
+#elif PYTHON_VERSION < 330
 static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, bool has_args, void *context, releaser cleanup )
+#else
+static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, bool has_args, void *context, releaser cleanup )
 #endif
 {
     Nuitka_FunctionObject *result = PyObject_GC_New( Nuitka_FunctionObject, &Nuitka_Function_Type );
@@ -512,7 +514,7 @@ static inline PyObject *make_kfunction( void *code, method_arg_parser mparse, Py
     result->m_name = INCREASE_REFCOUNT( name );
 
 #if PYTHON_VERSION >= 330
-    result->m_qualname = INCREASE_REFCOUNT( name );
+    result->m_qualname = INCREASE_REFCOUNT( qualname ? qualname : name );
 #endif
 
     result->m_context = context;
@@ -551,10 +553,15 @@ PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mpa
 {
     return make_kfunction( (void *)fparse, mparse, name, code_object, defaults, module, doc, true, NULL, NULL );
 }
-#else
+#elif PYTHON_VERSION < 330
 PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc )
 {
     return make_kfunction( (void *)fparse, mparse, name, code_object, defaults, kwdefaults, annotations, module, doc, true, NULL, NULL );
+}
+#else
+PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc )
+{
+    return make_kfunction( (void *)fparse, mparse, name, qualname, code_object, defaults, kwdefaults, annotations, module, doc, true, NULL, NULL );
 }
 #endif
 
@@ -564,10 +571,15 @@ PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mpa
 {
     return make_kfunction( (void *)fparse, mparse, name, code_object, defaults, module, doc, true, context, cleanup );
 }
-#else
+#elif PYTHON_VERSION < 330
 PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup )
 {
     return make_kfunction( (void *)fparse, mparse, name, code_object, defaults, kwdefaults, annotations, module, doc, true, context, cleanup );
+}
+#else
+PyObject *Nuitka_Function_New( function_arg_parser fparse, method_arg_parser mparse, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup )
+{
+    return make_kfunction( (void *)fparse, mparse, name, qualname, code_object, defaults, kwdefaults, annotations, module, doc, true, context, cleanup );
 }
 #endif
 
@@ -576,7 +588,9 @@ PyObject *Nuitka_Function_New( argless_code code, PyObject *name, PyObject *modu
 {
 #if PYTHON_VERSION < 300
     return make_kfunction( (void *)code, NULL, name, NULL, _python_tuple_empty, module, doc, false, context, cleanup );
-#else
+#elif PYTHON_VERSION < 330
     return make_kfunction( (void *)code, NULL, name, NULL, _python_tuple_empty, Py_None, PyDict_New(), module, doc, false, context, cleanup );
+#else
+    return make_kfunction( (void *)code, NULL, name, NULL, NULL, _python_tuple_empty, Py_None, PyDict_New(), module, doc, false, context, cleanup );
 #endif
 }
