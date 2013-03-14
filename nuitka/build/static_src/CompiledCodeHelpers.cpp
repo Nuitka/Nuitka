@@ -89,6 +89,8 @@ static PythonBuiltin _python_builtin_open( &_python_str_plain_open );
 
 PyObject *_OPEN_FILE( EVAL_ORDERED_3( PyObject *file_name, PyObject *mode, PyObject *buffering ) )
 {
+    _python_builtin_open.refresh();
+
     if ( file_name == NULL )
     {
         return _python_builtin_open.call();
