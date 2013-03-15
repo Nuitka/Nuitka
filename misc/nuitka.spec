@@ -3,21 +3,21 @@
 
 Name:           nuitka
 Version:        0.4.2pre2
-Release:        4%{?dist}
-Summary:        A Python compiler translates the Python into a C++ program.
-Group:          Development/Languages
+Release:        5%{?dist}
+Summary:        A Python compiler translates the Python into a C++ program
+Group:          Development/Languages/Python
 License:        Apache License 2.0
 URL:            http://nuitka.net/
 Source0:        http://nuitka.net/releases/Nuitka-%{version}.tar.gz
 Source1:        nuitka-python3
 Source2:        nuitka-rpmlintrc
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-
 BuildRequires:  python
 BuildRequires:  python-devel
 BuildRequires:  gcc-c++
-Requires: python-devel
-Requires: gcc-c++
+Requires:       python-devel
+Requires:       gcc-c++
+BuildArchitectures: noarch
 
 %description
 Nuitka is a good replacement for the Python interpreter and compiles
@@ -46,7 +46,9 @@ install -D -m755 %{SOURCE1} %{buildroot}%{_bindir}/nuitka3
 install -D -m755 %{SOURCE1} %{buildroot}%{_bindir}/nuitka-python3
 mkdir -p %{buildroot}%{_mandir}/man1
 gzip -c doc/nuitka.1 > %{buildroot}%{_mandir}/man1/nuitka.1.gz
+cp %{buildroot}%{_mandir}/man1/nuitka.1.gz %{buildroot}%{_mandir}/man1/nuitka3.1.gz
 gzip -c doc/nuitka-python.1 > %{buildroot}%{_mandir}/man1/nuitka-python.1.gz
+cp %{buildroot}%{_mandir}/man1/nuitka-python.1.gz %{buildroot}%{_mandir}/man1/nuitka-python3.1.gz
 
 %clean
 rm -rf %{buildroot}
@@ -62,6 +64,12 @@ rm -rf %{buildroot}
 %{python_sitearch}/*
 
 %changelog
+* Fri Mar 15 2013 Kay Hayen <kay.hayen@gmail.com 0.4.2
+- addressed complaints from opensuse buildservice
+- moved to group "/Development/Languages/Python"
+- no trailing dot for description,
+- man pages also for Python3 related binaries
+
 * Sun Mar 10 2013 ownssh <ownssh@gmail.com> - 0.4.1-3
 - use shortcut files to support python3 (remove python3 base package)
 - change requires python to python-devel
