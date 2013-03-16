@@ -923,7 +923,7 @@ void PRINT_NEW_LINE( void )
 static PyObject *_module_cPickle = NULL;
 static PyObject *_module_cPickle_function_loads = NULL;
 
-void UNSTREAM_INIT( void )
+void UNSTREAM_INIT()
 {
 #if PYTHON_VERSION < 300
     _module_cPickle = PyImport_ImportModule( "cPickle" );
@@ -939,6 +939,7 @@ void UNSTREAM_INIT( void )
 PyObject *UNSTREAM_CONSTANT( char const *buffer, Py_ssize_t size )
 {
     assert( buffer );
+    assert( _module_cPickle_function_loads );
 
     PyObject *result = PyObject_CallFunction(
         _module_cPickle_function_loads,
@@ -990,6 +991,17 @@ PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
         assert( PyUnicode_GET_SIZE( result ) == size );
 #endif
     }
+
+    return result;
+}
+
+PyObject *UNSTREAM_FLOAT( char const *buffer )
+{
+    double x = _PyFloat_Unpack8( (unsigned char *)buffer, 0 );
+    assert( x != -1.0 || !PyErr_Occurred() );
+
+    PyObject *result = PyFloat_FromDouble(x);
+    assert( result != NULL );
 
     return result;
 }

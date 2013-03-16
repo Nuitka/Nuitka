@@ -30,7 +30,10 @@ PyObject *_sentinel_value = NULL;
 
 static void __initConstants( void )
 {
-    UNSTREAM_INIT();
+    if ( %(needs_pickle)s )
+    {
+        UNSTREAM_INIT();
+    }
 
 %(constant_inits)s
 }

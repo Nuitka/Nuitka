@@ -45,7 +45,8 @@ from .ConstantCodes import (
     getConstantsInitCode,
     getConstantsDeclCode,
     getConstantHandle,
-    getConstantCode
+    getConstantCode,
+    needsPickleInit
 )
 
 # These are here to be imported from here
@@ -2592,7 +2593,8 @@ def getConstantsDefinitionCode( context ):
         ),
         "constant_inits"        : getConstantsInitCode(
             context    = context
-        )
+        ),
+        "needs_pickle"          : "true" if needsPickleInit() else "false"
     }
 
 def getCurrentExceptionTypeCode():
