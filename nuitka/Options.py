@@ -289,7 +289,7 @@ production. Defaults to off."""
 )
 
 debug_group.add_option(
-    "--unstriped",
+    "--unstripped", "--no-strip", "--unstriped",
     action  = "store_true",
     dest    = "unstriped",
     default = False,
