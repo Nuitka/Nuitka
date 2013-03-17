@@ -40,6 +40,7 @@ class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
 
     def __init__( self, constant, source_ref ):
         NodeBase.__init__( self, source_ref = source_ref )
+        CompileTimeConstantExpressionMixin.__init__( self )
 
         assert isConstant( constant ), constant
 

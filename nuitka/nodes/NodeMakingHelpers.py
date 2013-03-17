@@ -80,7 +80,17 @@ def makeRaiseExceptionReplacementExpressionFromInstance( expression, exception )
         exception_value = args[0]
     )
 
+def isCompileTimeConstantValue( value ):
+    # This needs to match code in makeCompileTimeConstantReplacementNode
+    if isConstant( value ):
+        return True
+    elif type( value ) is type:
+        return True
+    else:
+        return False
+
 def makeCompileTimeConstantReplacementNode( value, node ):
+    # This needs to match code in isCompileTimeConstantValue
     if isConstant( value ):
         return makeConstantReplacementNode(
             constant = value,

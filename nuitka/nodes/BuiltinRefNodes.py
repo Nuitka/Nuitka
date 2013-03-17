@@ -44,6 +44,7 @@ from nuitka.Utils import python_version
 class ExpressionBuiltinRefBase( CompileTimeConstantExpressionMixin, NodeBase ):
     def __init__( self, builtin_name, source_ref ):
         NodeBase.__init__( self, source_ref = source_ref )
+        CompileTimeConstantExpressionMixin.__init__( self )
 
         self.builtin_name = builtin_name
 
