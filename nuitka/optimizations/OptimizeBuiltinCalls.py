@@ -620,7 +620,7 @@ def computeBuiltinCall( call_node, called ):
             message = "Replaced call to builtin %s with exception raising call." % inspect_node.kind
         elif inspect_node.isExpressionOperationUnary():
             tags = "new_expression"
-            message = "Replaced call to builtin %s with exception raising call." % inspect_node.kind
+            message = "Replaced call to builtin %s with unary operation %s." % ( inspect_node.kind, inspect_node.getOperator() )
         else:
             assert False, ( builtin_name, "->", inspect_node )
 
