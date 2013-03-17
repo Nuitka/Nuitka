@@ -29,7 +29,7 @@ from nuitka.__past__ import long, unicode
 
 from logging import warning
 
-import hashlib, re
+import hashlib, re, math
 
 # False alarms about "hashlib.md5" due to its strange way of defining what is
 # exported, pylint won't understand it. pylint: disable=E1101
@@ -75,6 +75,11 @@ def namifyConstant( constant ):
             # Others are better digested to not cause compiler trouble
             return "unicode_digest_" + _digest( repr( constant ) )
     elif type( constant ) is float:
+        if math.isnan( constant ):
+            return "float_%s_nan" % (
+                "minus" if math.copysign( 1, constant ) < 0 else "plus"
+            )
+
         return "float_%s" % repr( constant ).replace( ".", "_" ).replace( "-", "_minus_" ).replace( "+", "" )
     elif type( constant ) is complex:
         value = str( constant ).replace( "+", "p" ).replace( "-", "m" ).replace( ".", "_" )
