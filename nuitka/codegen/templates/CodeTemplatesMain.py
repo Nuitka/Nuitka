@@ -360,7 +360,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 
 #if PYTHON_VERSION >= 330
 #if _MODULE_UNFREEZER
-    PyDict_SetItem( module_dict, _python_str_plain___loader__, loader_frozen_module );
+    PyDict_SetItem( module_dict, _python_str_plain___loader__, loader_frozen_modules );
 #else
     PyDict_SetItem( module_dict, _python_str_plain___loader__, Py_None );
 #endif
