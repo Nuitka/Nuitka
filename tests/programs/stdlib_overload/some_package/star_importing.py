@@ -15,13 +15,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-print "some_package.star_importing, doing the star import"
+print( "some_package.star_importing, doing the star import" )
 
-print "Before", sorted( dir() )
+print( "Before", sorted( dir() ) )
 
 from posix import *
 
 lala = 1
-print "After", sorted( dir() )
+print( "After", sorted( dir() ) )
 
-print "Finished"
+print( "Finished" )

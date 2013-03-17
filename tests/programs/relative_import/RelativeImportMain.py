@@ -19,4 +19,4 @@
 from __future__ import absolute_import
 
 import dircache
-print dircache
+print( dircache )

@@ -16,14 +16,13 @@
 #     limitations under the License.
 #
 
+print( "Running as", __file__ )
 try:
     from SyntaxErroring import x
 except Exception as e:
-    print "Importing with syntax error gave", type(e), e
+    print( "Importing with syntax error gave", type(e), e )
 
 try:
     from IndentationErroring import x
 except Exception as e:
-    print "Importing with indentation error gave", type(e), e
-
-
+    print( "Importing with indentation error gave", type(e), e )

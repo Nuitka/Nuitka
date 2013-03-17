@@ -16,7 +16,7 @@
 #     limitations under the License.
 #
 
-print( "*** Child2: Begin" )
+print( "*** Child2: Begin", __name__ )
 
 import Child1
 
