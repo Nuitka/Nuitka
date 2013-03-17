@@ -652,16 +652,10 @@ def computeBuiltinCall( call_node, called ):
                     source_ref   = source_ref
                 ),
                 yes_expression = new_node,
-                no_expression  = ExpressionRaiseException(
-                    exception_type = ExpressionBuiltinExceptionRef(
-                        exception_name = "RuntimeError",
-                        source_ref     = source_ref
-                    ),
-                    exception_value = ExpressionConstantRef(
-                        constant     = "Builtin '%s' was overloaded'" % builtin_name,
-                        source_ref   = source_ref
-                    ),
-                    source_ref   = source_ref
+                no_expression  = makeRaiseExceptionReplacementExpression(
+                    exception_type  = "RuntimeError",
+                    exception_value = "Builtin '%s' was overloaded'" % builtin_name,
+                    expression      = call_node
                 ),
                 source_ref     = source_ref
             )

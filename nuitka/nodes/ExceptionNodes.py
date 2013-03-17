@@ -164,9 +164,6 @@ class ExpressionRaiseException( ExpressionChildrenHavingBase ):
     CPython only knows exception raising as a statement, but often the raising
     of exceptions can be predicted to occur as part of an expression, which it
     replaces then.
-
-    The side_effects is there, to represent that an exception is to be raised
-    after doing certain things first.
     """
 
     kind = "EXPRESSION_RAISE_EXCEPTION"

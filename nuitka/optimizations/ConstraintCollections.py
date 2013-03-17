@@ -332,7 +332,7 @@ class ConstraintCollectionBase:
         r = expression.computeExpression( self )
         assert type(r) is tuple, expression
 
-        new_node, change_tags, change_desc = expression.computeExpression( self )
+        new_node, change_tags, change_desc = r
 
         if new_node is not expression:
             expression.replaceWith( new_node )
