@@ -524,12 +524,14 @@ parse_argument_template_nested_argument_assign = """
 template_kwonly_argument_default = """
     if (_python_par_%(parameter_name)s == NULL )
     {
-       _python_par_%(parameter_name)s = PyDict_GetItem( self->m_kwdefaults, %(parameter_name_object)s );
+        _python_par_%(parameter_name)s = PyDict_GetItem( self->m_kwdefaults, %(parameter_name_object)s );
 
-       if (unlikely (_python_par_%(parameter_name)s == NULL ))
-       {
-           PyErr_Format( PyExc_TypeError, "%(function_name)s() needs keyword-only argument %(parameter_name)s" );
-           goto error_exit;
+        if (unlikely (_python_par_%(parameter_name)s == NULL ))
+        {
+            PyErr_Format( PyExc_TypeError, "%(function_name)s() needs keyword-only argument %(parameter_name)s" );
+            goto error_exit;
         }
+
+        Py_INCREF( _python_par_%(parameter_name)s );
     }
 """
