@@ -165,7 +165,7 @@ class ExpressionBuiltinIter1( ExpressionBuiltinSingleArgBase ):
         if self.getValue().isCompileTimeConstant():
             return self.getValue().isKnownToBeIterable( None )
 
-        return None
+        return True
 
 
 class ExpressionBuiltinNext1( ExpressionBuiltinSingleArgBase ):

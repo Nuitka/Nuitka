@@ -240,3 +240,13 @@ try:
     print "Instance check with too many arguments", isinstance( a )
 except Exception, e:
     print "Too few args", repr(e)
+
+def usingIterToCheckIterable(a):
+    try:
+        iter(a)
+    except TypeError:
+        print "not iterable"
+    else:
+        print "ok"
+
+usingIterToCheckIterable(1)
