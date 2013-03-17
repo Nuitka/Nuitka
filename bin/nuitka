@@ -69,7 +69,7 @@ if intended_version is not None:
         else:
             python_binary = "/usr/bin/python" + intended_version
 
-        args = [ python_binary, "python" ] + sys.argv
+        args = [ python_binary, os.path.basename( python_binary ) ] + sys.argv
 
         # That's the API of execl, pylint: disable=W0142
         os.execl( *args )
