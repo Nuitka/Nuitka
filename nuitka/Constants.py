@@ -99,8 +99,22 @@ def compareConstants( a, b ):
 def isConstant( constant ):
     constant_type = type( constant )
 
-    if constant_type in ( str, tuple, dict, list, unicode, complex, int, long, bool, float, \
-                          NoneType, range, bytes, set ):
+    if constant_type is dict:
+        for key, value in iterItems( constant ):
+            if not isConstant( key ):
+                return False
+            if not isConstant( value ):
+                return False
+        else:
+            return True
+    elif constant_type in ( tuple, list ):
+        for element_value in constant:
+            if not isConstant( element_value ):
+                return False
+        else:
+            return True
+    elif constant_type in ( str, unicode, complex, int, long, bool, float, NoneType,
+                            range, bytes, set ):
         return True
     elif constant in ( Ellipsis, NoneType ):
         return True

@@ -966,7 +966,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
             identifier = makeExpressionCode( expression.getValue() )
         )
     elif expression.isExpressionBuiltinDict():
-        assert not expression.hasOnlyConstantArguments()
+        # assert not expression.hasOnlyConstantArguments()
 
         identifier = Generator.getBuiltinDictCode(
             seq_identifier  = makeExpressionCode(
