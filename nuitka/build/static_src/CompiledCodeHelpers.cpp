@@ -1292,10 +1292,20 @@ extern PyObject *_python_str_plain___class__;
 PyObject *_BUILTIN_SUPER( EVAL_ORDERED_2( PyObject *type, PyObject *object ) )
 {
     assertObject( type );
-    assert( PyType_Check( type ));
 
     superobject *result = PyObject_GC_New( superobject, &PySuper_Type );
     assert( result );
+
+    if ( object == Py_None )
+    {
+        object = NULL;
+    }
+
+    if (unlikely( PyType_Check( type ) == false ))
+    {
+        PyErr_Format( PyExc_TypeError, "must be type, not %s", Py_TYPE( type )->tp_name );
+        throw PythonException();
+    }
 
     result->type = (PyTypeObject *)INCREASE_REFCOUNT( type );
     if ( object )
@@ -1347,9 +1357,7 @@ PyObject *_BUILTIN_SUPER( EVAL_ORDERED_2( PyObject *type, PyObject *object ) )
     Nuitka_GC_Track( result );
 
     assertObject( (PyObject *)result );
-
     assert( Py_TYPE( result ) == &PySuper_Type );
-    Py_INCREF( result );
 
     return (PyObject *)result;
 }
