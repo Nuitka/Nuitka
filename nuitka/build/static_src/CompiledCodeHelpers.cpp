@@ -1519,7 +1519,9 @@ DEFINE_BUILTIN( range )
 DEFINE_BUILTIN( repr )
 DEFINE_BUILTIN( int )
 DEFINE_BUILTIN( iter )
+#if PYTHON_VERSION < 300
 DEFINE_BUILTIN( long )
+#endif
 
 void _initBuiltinOriginalValues()
 {
@@ -1529,7 +1531,9 @@ void _initBuiltinOriginalValues()
     ASSIGN_BUILTIN( repr );
     ASSIGN_BUILTIN( int );
     ASSIGN_BUILTIN( iter );
+#if PYTHON_VERSION < 300
     ASSIGN_BUILTIN( long );
+#endif
 
     assertObject( _python_original_builtin_value_range );
 }
