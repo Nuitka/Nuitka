@@ -366,6 +366,8 @@ def executeMain( binary_filename, tree, clean_path ):
     else:
         name = main_filename
 
+    name = os.path.abspath( name )
+
     if not Options.isWindowsTarget() or os.name == "nt":
         args = ( binary_filename, name )
     else:
