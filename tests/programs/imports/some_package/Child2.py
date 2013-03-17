@@ -17,8 +17,11 @@
 #
 
 print( "*** Child2: Begin", __name__ )
-
-import Child1
+try:
+    import Child1
+except ImportError:
+    print( "This must be Python3, doing local import then." )
+    from . import Child1
 
 print( "*** Child2: Child2 is in", __package__ )
 print( "*** Child2: Imported nearby child", Child1 )
