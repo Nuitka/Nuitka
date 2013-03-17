@@ -422,6 +422,15 @@ Allow minor devitations from CPython behaviour, e.g. better tracebacks, which ar
 really incompatible, but different.""",
 )
 
+parser.add_option(
+    "--warn-implicit-exceptions",
+    action  = "store_true",
+    dest    = "warn_implicit_exceptions",
+    default = False,
+    help    = """\
+Given warnings for implicit exceptions detected at compile time.""",
+)
+
 
 if is_nuitka_python:
     count = 0
@@ -496,6 +505,9 @@ def getShallFollowInNoCase():
 
 def getShallFollowExtra():
     return sum( [ x.split( "," ) for x in options.recurse_extra ], [] )
+
+def shallWarnImplicitRaises():
+    return options.warn_implicit_exceptions
 
 def isDebug():
     return options.debug

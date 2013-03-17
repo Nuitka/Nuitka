@@ -25,6 +25,7 @@ from .ConstantRefNodes import ExpressionConstantRef
 
 from nuitka.Constants import isConstant
 from nuitka.Builtins import builtin_names
+from nuitka.Options import shallWarnImplicitRaises
 
 from .BuiltinRefNodes import (
     ExpressionBuiltinExceptionRef,
@@ -42,6 +43,7 @@ from .ComparisonNodes import (
 )
 from .SideEffectNodes import ExpressionSideEffects
 
+from logging import warning
 
 def makeConstantReplacementNode( constant, node ):
     return ExpressionConstantRef(
@@ -53,6 +55,12 @@ def makeRaiseExceptionReplacementExpression( expression, exception_type, excepti
     source_ref = expression.getSourceReference()
 
     assert type( exception_type ) is str
+
+    if shallWarnImplicitRaises():
+        warning(
+            "%s: Static exception raise",
+            expression.getSourceReference().getAsString(),
+        )
 
     result = ExpressionRaiseException(
         exception_type  = ExpressionBuiltinExceptionRef(
