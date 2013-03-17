@@ -1031,6 +1031,43 @@ def buildParseTree( provider, source_code, source_ref ):
             )
         )
 
+    if Utils.python_version >= 330:
+        # Set initialzing at the beginning to True
+        statements.append(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetVariableRef(
+                    variable_name = "__initializing__",
+                    source_ref    = internal_source_ref
+                ),
+                source       = ExpressionConstantRef(
+                    constant   = True,
+                    source_ref = internal_source_ref
+                ),
+                source_ref   = internal_source_ref
+            )
+        )
+
+
+    # Now the module body if there is any at all.
+    if result is not None:
+        statements.extend( result.getStatements() )
+
+    if Utils.python_version >= 330:
+        # Set initialzing at the beginning to True
+        statements.append(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetVariableRef(
+                    variable_name = "__initializing__",
+                    source_ref    = internal_source_ref
+                ),
+                source       = ExpressionConstantRef(
+                    constant   = False,
+                    source_ref = internal_source_ref
+                ),
+                source_ref   = internal_source_ref
+            )
+        )
+
     if result is None:
         result = makeStatementsSequence(
             statements = statements,
@@ -1038,8 +1075,6 @@ def buildParseTree( provider, source_code, source_ref ):
             allow_none = False
         )
     else:
-        statements.extend( result.getStatements() )
-
         result.setStatements( statements )
 
     provider.setBody( result )
