@@ -226,7 +226,7 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void _RAISE_EXCEPTION_WITH_VALUE( E
         {
             Py_DECREF( exception_type );
             Py_XDECREF( value );
-            Py_DECREF( traceback );
+            Py_XDECREF( traceback );
 
             PyErr_Format(
                 PyExc_TypeError,
@@ -292,11 +292,20 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static inline void _RAISE_EXCEPTION_WITH_T
 {
     if ( traceback == Py_None )
     {
+        Py_DECREF( traceback );
         traceback = NULL;
     }
 
     // Check traceback
-    assert( traceback == NULL || PyTraceBack_Check( traceback ) );
+    if( traceback != NULL && !PyTraceBack_Check( traceback ) )
+    {
+        Py_DECREF( exception_type );
+        Py_DECREF( value );
+        Py_DECREF( traceback );
+
+        PyErr_Format( PyExc_TypeError, "raise: arg 3 must be a traceback or None" );
+        throw PythonException();
+    }
 
     RAISE_EXCEPTION_WITH_VALUE( exception_type, value, (PyTracebackObject *)traceback );
 }
