@@ -90,7 +90,10 @@ static char const *GET_CLASS_NAME( PyObject *klass )
                 return "?";
             }
 
-            return Nuitka_String_AsString_Unchecked( name );
+            char *const result = Nuitka_String_AsString_Unchecked( name );
+            Py_DECREF( name );
+
+            return result;
         }
     }
 }
