@@ -139,14 +139,26 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( Py
         }
     }
 
+#if PYTHON_VERSION >= 330
     // None is not a cause.
     if ( exception_cause == Py_None )
     {
+        Py_DECREF( exception_cause );
         exception_cause = NULL;
-    }
 
+    }
+#endif
+
+#if PYTHON_VERSION >= 330
     if (unlikely( exception_cause != NULL && !PyExceptionInstance_Check( exception_cause ) ))
+#else
+    if (unlikely( !PyExceptionInstance_Check( exception_cause ) ))
+#endif
     {
+        Py_DECREF( exception_type );
+        Py_DECREF( exception_cause );
+        Py_DECREF( traceback );
+
         PyErr_Format( PyExc_TypeError, "exception causes must derive from BaseException" );
         throw PythonException();
     }
