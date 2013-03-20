@@ -25,8 +25,6 @@ from . import Building
 
 from logging import info, warning
 
-_warned_about = set()
-
 def recurseTo( module_package, module_filename, module_relpath ):
     if not Building.isImportedPath( module_relpath ):
         info( "Recurse to import %s", module_relpath )
@@ -39,8 +37,8 @@ def recurseTo( module_package, module_filename, module_relpath ):
                 is_main  = False
             )
         except ( SyntaxError, IndentationError ) as e:
-            if module_filename not in _warned_about:
-                _warned_about.add( module_filename )
+            if module_filename not in Importing.warned_about:
+                Importing.warned_about.add( module_filename )
 
                 warning(
                     "Cannot recurse to import module '%s' (%s) because of '%s'",

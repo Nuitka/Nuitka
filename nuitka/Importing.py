@@ -41,7 +41,7 @@ from logging import warning
 
 _debug_module_finding = False
 
-_warned_about = set()
+warned_about = set()
 
 # Directory where the main script lives. Should attempt to import from there.
 main_path = None
@@ -70,8 +70,8 @@ def findModule( source_ref, module_name, parent_package, level, warn = True ):
             if warn and not _isWhiteListedNotExistingModule( module_name ):
                 key = module_name, parent_package, level
 
-                if key not in _warned_about:
-                    _warned_about.add( key )
+                if key not in warned_about:
+                    warned_about.add( key )
 
                     if level == 0:
                         level_desc = "as absolute import"
