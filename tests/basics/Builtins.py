@@ -250,3 +250,18 @@ def usingIterToCheckIterable(a):
         print "ok"
 
 usingIterToCheckIterable(1)
+
+print "Nested constant, dict inside a list, referencing a built-in compile time constant",
+print( [dict(type=int)] )
+
+print "nan and -nan sign checks:"
+from math import copysign
+print copysign(1.0, float('nan'))
+print copysign(1.0, float('-nan'))
+
+print "Using != to detect nan floats:"
+a = float("nan")
+if a != a:
+    print("is nan")
+else:
+    print("isn't nan")
