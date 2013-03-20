@@ -487,8 +487,56 @@ def simpleFunction60():
    except Exception:
       pass
 
+def simpleFunction61():
+   try:
+      raise ValueError, 2, None
+   except Exception:
+      pass
+
+def simpleFunction62():
+   try:
+      raise ValueError, 2, 3
+   except Exception:
+      pass
+
+class X:
+   def __del__( self ):
+      # Super used to reference leak.
+      x = super()
+
+      raise ValueError, ValueError(1)
+
+def simpleFunction63():
+   def superUser():
+      X()
+
+   try:
+      superUser()
+   except Exception:
+      pass
 
 x = 17
+
+m1 = {}
+m2 = {}
+
+def snapObjRefCntMap( before ):
+   if before:
+      global m1
+      m = m1
+   else:
+      global m2
+      m = m2
+
+   for x in gc.get_objects():
+      if x is m1:
+         continue
+
+      if x is m2:
+         continue
+
+      m[ str( x ) ] = sys.getrefcount( x )
+
 
 def checkReferenceCount( checked_function, max_rounds = 10 ):
    assert sys.exc_info() == ( None, None, None ), sys.exc_info()
@@ -498,13 +546,17 @@ def checkReferenceCount( checked_function, max_rounds = 10 ):
    ref_count1 = 17
    ref_count2 = 17
 
+   explain = False
+
    for count in range( max_rounds ):
       x1 = 0
       x2 = 0
 
       gc.collect()
       ref_count1 = sys.gettotalrefcount()
-      x1 = len( gc.get_objects() )
+
+      if explain and count == max_rounds - 1:
+         snapObjRefCntMap( True )
 
       checked_function()
 
@@ -512,20 +564,33 @@ def checkReferenceCount( checked_function, max_rounds = 10 ):
 
       gc.collect()
 
+      if explain and count == max_rounds - 1:
+         snapObjRefCntMap( False )
+
       ref_count2 = sys.gettotalrefcount()
 
       if ref_count1 == ref_count2:
          print "PASSED"
          break
 
-      x2 = len( gc.get_objects() )
-
-      if False and count == max_rounds - 1:
-         print gc.get_objects()[ x1 : x2 ][0].f_code
-
       # print count, ref_count1, ref_count2
    else:
       print "FAILED", ref_count1, ref_count2
+
+      if explain:
+         assert m1
+         assert m2
+
+         for key in m1.keys():
+            if key not in m2:
+               print "*" * 80
+               print key
+            elif m1[key] != m2[key]:
+               print "*" * 80
+               print key
+            else:
+               pass
+               # print m1[key]
 
    assert sys.exc_info() == ( None, None, None ), sys.exc_info()
 
@@ -594,3 +659,14 @@ checkReferenceCount( simpleFunction57 )
 checkReferenceCount( simpleFunction58 )
 checkReferenceCount( simpleFunction59 )
 checkReferenceCount( simpleFunction60 )
+checkReferenceCount( simpleFunction61 )
+checkReferenceCount( simpleFunction62 )
+
+# Avoid unraisable output.
+old_stderr = sys.stderr
+try:
+   sys.stderr = open( "/dev/null", "wb" )
+except Exception: # Windows
+   pass
+checkReferenceCount( simpleFunction63 )
+sys.stderr = old_stderr
