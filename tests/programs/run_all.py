@@ -86,7 +86,7 @@ for filename in sorted( os.listdir( "." ) ):
         else:
             extra_flags = [ "expect_failure" ]
 
-        if filename in ( "package_missing_init", "dash_import", ):
+        if filename in ( "package_missing_init", "dash_import", "reimport_main" ):
             extra_flags.append( "ignore_stderr" )
 
         extra_flags.append( "remove_output" )

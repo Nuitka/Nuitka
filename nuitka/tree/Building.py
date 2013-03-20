@@ -161,6 +161,8 @@ from .SourceReading import readSourceCodeFromFilename
 
 import ast, sys
 
+from logging import warning
+
 def buildVariableReferenceNode( provider, node, source_ref ):
     # Python3 is influenced by the mere use of a variable name. So we need to remember it,
     # esp. for cases, where it is optimized away.
@@ -1084,17 +1086,35 @@ def buildParseTree( provider, source_code, source_ref ):
 imported_modules = {}
 
 def addImportedModule( module_relpath, imported_module ):
-    imported_modules[ module_relpath ] = imported_module
+    if ( module_relpath, "__main__" ) in imported_modules:
+        warning( "Re-importing __main__ module via its filename duplicates the module." )
+
+    key = module_relpath, imported_module.getName()
+
+    imported_modules[ key ] = imported_module
 
 def isImportedPath( module_relpath ):
-    return module_relpath in imported_modules
+    module_name = Utils.basename( module_relpath )
+
+    if module_name.endswith( ".py" ):
+        module_name = module_name[:-3]
+
+    key = module_relpath, module_name
+
+    return key in imported_modules
 
 def getImportedModule( module_relpath ):
-    return imported_modules[ module_relpath ]
+    module_name = Utils.basename( module_relpath )
+
+    if module_name.endswith( ".py" ):
+        module_name = module_name[:-3]
+
+    key = module_relpath, module_name
+
+    return imported_modules[ key ]
 
 def getImportedModules():
     return imported_modules.values()
-
 
 def buildModuleTree( filename, package, is_top, is_main ):
     # Many variables, branches, due to the many cases, pylint: disable=R0912
