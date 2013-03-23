@@ -336,7 +336,7 @@ Running all Tests
 
 The top level access to the tests is as simple as this:
 
-.. code-block:: shell
+.. code-block:: bash
 
    ./misc/check-release
 
@@ -380,7 +380,7 @@ Basic Tests
 
 You can run the "basic" tests like this:
 
-.. code-block:: shell
+.. code-block:: bash
 
    ./tests/basics/run_all.py search
 
@@ -399,7 +399,7 @@ It sometimes happens that Nuitka must do this itself, because the ``ast.parse`` 
 the problem. Using ``global`` on a function argument is an example of this. These tests make
 sure that the errors of Nuitka and CPython are totally the same for this:
 
-.. code-block:: shell
+.. code-block:: bash
 
    ./tests/syntax/run_all.py search
 
@@ -409,7 +409,7 @@ Program Tests
 Then there are small programs tests, that exercise all kinds of import tricks and problems
 with inter-module behavior. These can be run like this:
 
-.. code-block:: shell
+.. code-block:: bash
 
    ./tests/programs/run_all.py search
 
@@ -423,7 +423,7 @@ every module of Nuitka into an extension module and all of Nuitka into a single 
 That test case also gives good coverage of the ``import`` mechanisms, because Nuitka uses a
 lot of packages.
 
-.. code-block:: shell
+.. code-block:: bash
 
    ./tests/reflected/compile_itself.py
 
@@ -2693,13 +2693,101 @@ into action, which could be code changes, plan changes, issues created, etc.
 
   Calling "upx" on the created binaries, would be easy.
 
+* The timing of ``__del__`` calls.
+
+  When you do a(b(c())) in Python, it deletes the argument value, i.e. return
+  value of c() immediately after calling b().
+
+  Currently we translate that to C++ roughly like this: a(b(c())) as well. Only that in
+  C++, b returns an object, that has a scope. It appears, the d-tor is executed at the end
+  of the statement. In C++ the ";" is a sequence point, i.e. things must be done by then.
+
+  Unfortunately C++ loves temporaries so much, it won't immediately delete them after use,
+  but only after full expression, which means ")" or ";", and attempts with fake sequence
+  points all failed.
+
+  But, there may be another way. Right now, ``PyObject *`` is the interface for about
+  everything passed around. And "PyObjectTemporary" releases values that are needed by the
+  interface to have a reference, and deleted afterwards.
+
+  But it could, and should be different. All helper functions should be template functions
+  that accept ``PyObjectRef1`` and ``PyObjectRef0``, and know about the reference, and
+  then manage ``PyObjectRef1`` instances to release their reference as soon as they are
+  not needed. With ``PyObjectRef0`` that would be a no-op.
+
+  This is a lot of work. The good news, is that it's work that will be needed, to support
+  types other than ``PyObject *`` efficiently. Them being converted to ``PyObject *`` and
+  releasing that reference, it would be transparent to all code.
+
+* In-lining constant "exec" and "eval".
+
+  It should be possible to re-formulate at least cases without "locals" or "globals"
+  given.
+
+  .. code-block:: python
+
+     def f():
+        a = 1
+        b = 2
+
+        exec( """a+=b;c=1""" )
+
+        return a, c
+
+  Should become this here:
+
+  .. code-block:: python
+
+     def f():
+        a = 1
+        b = 2
+
+        a+=b  #
+        c=1   # MaybeLocalVariables for everything except known local ones.
+
+        return a, c
+
+  If this holds up, inlining ``exec`` should be relatively easy.
+
+* Original and overloaded built-ins
+
+  This is about making things visible in the node tree. In Nuitka things that are not
+  visible in the node tree tend to be wrong. We already pushed around information to the
+  node tree a lot.
+
+  Later versions, Nuitka will become able to determine it has to be the original built-in
+  at compilt time, then a condition that checks will be optimized away, together with the
+  slow path. Or the other path, if it won't be.  Then it will be optimized away, or if
+  doubt exists, it will be correct. That is the goal.
+
+  Right now, the change would mean to effectively disable all built-in call
+  optimization, which is why we don't immediately do it.
+
+  Making the compatible version, will also require a full listing of all built-ins, which
+  is typing work merely, but not needed now. And a way to stop built-in optimization from
+  optimizing builtin calls that it used in a wrap. Probably just some flag to indicate it
+  when it visits it to skip it. That's for later.
+
+  But should we have that both, I figure, we could not raise a ``RuntimeError`` error, but
+  just do the correct thing, in all cases. An earlier step may raise ``RuntimeError``
+  error, when built-in module values are written to, that we don't support.
+
+* SSA form for Nuitka nodes
+
+  * Assignments collect a counter from the variable, which becomes the variable version.
+
+  * References need to back track to the last assignment on their path, which may be a
+    merge. Constraint collection can do that.
+
 .. header::
 
    Nuitka - Developer Manual
 
 .. footer::
 
-   © Kay Hayen, 2013 | Page ###Page### of ###Total### | Section ###Section###
+   |copy| Kay Hayen, 2013 | Page ###Page### of ###Total### | Section ###Section###
+
+.. |copy|   unicode:: U+000A9
 
 .. raw:: pdf
 
