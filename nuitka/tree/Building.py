@@ -93,7 +93,8 @@ from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.ModuleNodes import (
     PythonPackage,
-    PythonModule
+    PythonModule,
+    PythonMainModule
 )
 from nuitka.nodes.TryNodes import StatementTryFinally
 
@@ -1135,6 +1136,10 @@ def buildModuleTree( filename, package, is_top, is_main ):
 
         filename = source_filename
 
+        main_added = True
+    else:
+        main_added = False
+
     if Utils.isFile( filename ):
         source_filename = filename
 
@@ -1160,12 +1165,17 @@ def buildModuleTree( filename, package, is_top, is_main ):
 
                 sys.exit( 2 )
 
-        result = PythonModule(
-            name       = module_name,
-            package    = package,
-            is_main    = is_main,
-            source_ref = source_ref
-        )
+        if is_main:
+            result = PythonMainModule(
+                source_ref = source_ref,
+                main_added = main_added
+            )
+        else:
+            result = PythonModule(
+                name       = module_name,
+                package    = package,
+                source_ref = source_ref
+            )
     elif Utils.isDir( filename ) and Utils.isFile( Utils.joinpath( filename, "__init__.py" ) ):
         source_filename = Utils.joinpath( filename, "__init__.py" )
 

@@ -99,16 +99,7 @@ def displayTree( tree ):
     TreeDisplay.displayTreeInspector( tree )
 
 def getTreeFilenameWithSuffix( tree, suffix ):
-    main_filename = tree.getFilename()
-
-    assert os.path.exists( main_filename )
-
-    if tree.isPythonPackage() or Utils.basename( tree.getFilename() ) == "__main__.py":
-        return Utils.dirname( main_filename ) + suffix
-    elif main_filename.endswith( ".py" ):
-        return main_filename[:-3] + suffix
-    else:
-        return main_filename + suffix
+    return tree.getOutputFilename() + suffix
 
 def getSourceDirectoryPath( main_module ):
     assert main_module.isPythonModule()
