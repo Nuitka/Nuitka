@@ -89,8 +89,6 @@ static PythonBuiltin _python_builtin_open( &_python_str_plain_open );
 
 PyObject *_OPEN_FILE( EVAL_ORDERED_3( PyObject *file_name, PyObject *mode, PyObject *buffering ) )
 {
-    _python_builtin_open.refresh();
-
     if ( file_name == NULL )
     {
         return _python_builtin_open.call();
@@ -653,8 +651,6 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *loc
 
     PyObject *import_result;
 
-    _python_builtin_import.refresh();
-
     import_result = _python_builtin_import.call_args(
         MAKE_TUPLE5(
             module_name,
@@ -794,8 +790,6 @@ void PRINT_ITEM_TO( PyObject *file, PyObject *object )
 
     Py_DECREF( file );
 #else
-    _python_builtin_print.refresh();
-
     if (likely( file == NULL ))
     {
         _python_builtin_print.call1(
@@ -1498,6 +1492,76 @@ PyModuleObject *module_builtin = NULL;
 
 #define ASSIGN_BUILTIN( name ) _python_original_builtin_value_##name = LOOKUP_BUILTIN( _python_str_plain_##name );
 
+PyTypeObject PyBuiltinModule_Type =
+{
+    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+    "compiled_module",                           // tp_name
+    sizeof(PyModuleObject),                      // tp_size
+};
+
+extern PyObject *_python_str_plain_open;
+
+int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObject *value )
+{
+    assertObject( (PyObject *)module );
+    assertObject( name );
+
+    // This is used for "del" as well.
+    assert( value == NULL || Py_REFCNT( value ) > 0 );
+
+    // only checks the builtins that we can refresh at this time, if we have many value to
+    // check maybe need create a dict first.
+    bool found = false;
+
+    int res = PyObject_RichCompareBool( name, _python_str_plain_open, Py_EQ );
+
+    if (unlikely( res == -1 ))
+    {
+        return -1;
+    }
+    if ( res == 1 )
+    {
+        _python_builtin_open.update( value );
+        found = true;
+    }
+
+    if ( found == false )
+    {
+        res = PyObject_RichCompareBool( name, _python_str_plain___import__, Py_EQ );
+
+        if (unlikely( res == -1 ))
+        {
+            return -1;
+        }
+
+        if ( res == 1 )
+        {
+            _python_builtin_import.update( value );
+            found = true;
+        }
+    }
+
+#if PYTHON_VERSION >= 300
+    if ( found == false )
+    {
+        res = PyObject_RichCompareBool( name, _python_str_plain_print, Py_EQ );
+
+        if (unlikely( res == -1 ))
+        {
+            return -1;
+        }
+
+        if ( res == 1 )
+        {
+            _python_builtin_print.update( value );
+            found = true;
+        }
+    }
+#endif
+
+    return PyObject_GenericSetAttr( (PyObject *)module, name, value );
+}
+
 void _initBuiltinModule()
 {
 #if _NUITKA_MODULE
@@ -1515,6 +1579,31 @@ void _initBuiltinModule()
     dict_builtin = (PyDictObject *)module_builtin->md_dict;
     assert( PyDict_Check( dict_builtin ) );
 
+    /* init PyBuiltinModule_Type, PyType_Ready wont copy all member from base type,
+       so we need copy all members from PyModule_Type manual for safety.
+       PyType_Ready will change tp_flags, we need define it again.
+       set tp_setattro to PyBuiltinModule_SetAttr and we can detect value change.
+       set tp_base to PyModule_Type and PyModule_Check will pass. */
+    PyBuiltinModule_Type.tp_dealloc = PyModule_Type.tp_dealloc;
+    PyBuiltinModule_Type.tp_repr = PyModule_Type.tp_repr;
+    PyBuiltinModule_Type.tp_setattro = (setattrofunc) Nuitka_BuiltinModule_SetAttr;
+    PyBuiltinModule_Type.tp_getattro = PyModule_Type.tp_getattro;
+    PyBuiltinModule_Type.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_BASETYPE;
+    PyBuiltinModule_Type.tp_doc = PyModule_Type.tp_doc;
+    PyBuiltinModule_Type.tp_traverse = PyModule_Type.tp_traverse;
+    PyBuiltinModule_Type.tp_members = PyModule_Type.tp_members;
+    PyBuiltinModule_Type.tp_base = &PyModule_Type;
+    PyBuiltinModule_Type.tp_dictoffset = PyModule_Type.tp_dictoffset;
+    PyBuiltinModule_Type.tp_init = PyModule_Type.tp_init;
+    PyBuiltinModule_Type.tp_alloc = PyModule_Type.tp_alloc;
+    PyBuiltinModule_Type.tp_new = PyModule_Type.tp_new;
+    PyBuiltinModule_Type.tp_free = PyModule_Type.tp_free;
+    int ret = PyType_Ready( &PyBuiltinModule_Type );
+    assert( ret == 0 );
+
+    // replace type of builtin module
+    ((PyObject *)module_builtin)->ob_type = &PyBuiltinModule_Type;
+    assert( PyModule_Check( module_builtin ) == 1 );
 }
 
 #ifdef _NUITKA_EXE

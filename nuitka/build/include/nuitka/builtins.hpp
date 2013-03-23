@@ -52,7 +52,7 @@ public:
     {
         if ( this->value == NULL )
         {
-            this->refresh();
+            this->value = LOOKUP_BUILTIN( (PyObject *)*this->name );
         }
 
         assertObject( this->value );
@@ -60,9 +60,11 @@ public:
         return this->value;
     }
 
-    void refresh( void )
+    void update( PyObject *new_value )
     {
-        this->value = LOOKUP_BUILTIN( (PyObject *)*this->name );
+        assertObject( new_value );
+
+        this->value = new_value;
     }
 
     PyObject *call()
