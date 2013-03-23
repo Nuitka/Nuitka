@@ -150,42 +150,42 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
         return
 
     if constant_type is dict:
-         if constant_value == {}:
-             emit( "%s = PyDict_New();" % constant_identifier )
-         else:
-             length = len( constant_value )
-             context.addMakeDictUse( length )
+        if constant_value == {}:
+            emit( "%s = PyDict_New();" % constant_identifier )
+        else:
+            length = len( constant_value )
+            context.addMakeDictUse( length )
 
-             for key, value in iterItems( constant_value ):
-                 _addConstantInitCode(
-                     emit                = emit,
-                     constant_type       = type( key ),
-                     constant_value      = key,
-                     constant_identifier = context.getConstantCodeName( key ),
-                     context             = context
-                 )
-                 _addConstantInitCode(
-                     emit                = emit,
-                     constant_type       = type( value ),
-                     constant_value      = value,
-                     constant_identifier = context.getConstantCodeName( value ),
-                     context             = context
-                 )
+            for key, value in iterItems( constant_value ):
+                _addConstantInitCode(
+                    emit                = emit,
+                    constant_type       = type( key ),
+                    constant_value      = key,
+                    constant_identifier = context.getConstantCodeName( key ),
+                    context             = context
+                )
+                _addConstantInitCode(
+                    emit                = emit,
+                    constant_type       = type( value ),
+                    constant_value      = value,
+                    constant_identifier = context.getConstantCodeName( value ),
+                    context             = context
+                )
 
-             emit(
-                 "%s = MAKE_DICT%d( %s );" % (
-                     constant_identifier,
-                     length,
-                     ", ".join(
-                         context.getConstantCodeName( value ) + "," + context.getConstantCodeName( key )
-                         for key, value
-                         in
-                         iterItems( constant_value )
-                     )
-                 )
-             )
+            emit(
+                "%s = MAKE_DICT%d( %s );" % (
+                    constant_identifier,
+                    length,
+                    ", ".join(
+                        context.getConstantCodeName( value ) + "," + context.getConstantCodeName( key )
+                        for key, value
+                        in
+                        iterItems( constant_value )
+                    )
+                )
+            )
 
-         return
+        return
 
     if constant_type is tuple:
         if constant_value == ():
@@ -221,33 +221,33 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
 
     if constant_type is list:
         if constant_value == []:
-             emit( "%s = PyList_New( 0 );" % constant_identifier )
+            emit( "%s = PyList_New( 0 );" % constant_identifier )
         else:
-             length = len( constant_value )
-             context.addMakeListUse( length )
+            length = len( constant_value )
+            context.addMakeListUse( length )
 
-             # Make elements earlier than list itself.
-             for element in constant_value:
-                 _addConstantInitCode(
-                     emit                = emit,
-                     constant_type       = type( element ),
-                     constant_value      = element,
-                     constant_identifier = context.getConstantCodeName( element ),
-                     context             = context
-                 )
+            # Make elements earlier than list itself.
+            for element in constant_value:
+                _addConstantInitCode(
+                    emit                = emit,
+                    constant_type       = type( element ),
+                    constant_value      = element,
+                    constant_identifier = context.getConstantCodeName( element ),
+                    context             = context
+                )
 
-             emit(
-                 "%s = MAKE_LIST%d( %s );" % (
-                     constant_identifier,
-                     length,
-                     ", ".join(
-                         context.getConstantCodeName( element )
-                         for element
-                         in
-                         constant_value
-                     )
-                 )
-             )
+            emit(
+                "%s = MAKE_LIST%d( %s );" % (
+                    constant_identifier,
+                    length,
+                    ", ".join(
+                        context.getConstantCodeName( element )
+                        for element
+                        in
+                        constant_value
+                    )
+                )
+            )
 
         return
 

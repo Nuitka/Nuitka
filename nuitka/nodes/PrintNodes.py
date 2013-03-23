@@ -69,7 +69,8 @@ class StatementPrint( StatementChildrenHavingBase ):
                 node       = self
             )
 
-            return result, "new_raise", "Known exception raise in print statement destination converted to explicit raise."
+            return result, "new_raise", """\
+Known exception raise in print statement destination converted to explicit raise."""
 
         for count, value in enumerate( self.getValues() ):
             constraint_collection.onExpression( value )
@@ -107,7 +108,8 @@ class StatementPrint( StatementChildrenHavingBase ):
                         node       = self
                     )
 
-                return result, "new_raise", "Known exception raise in print statement arguments converted to explicit raise."
+                return result, "new_raise", """\
+Known exception raise in print statement arguments converted to explicit raise."""
 
         printeds = self.getValues()
 
@@ -187,6 +189,7 @@ class StatementPrint( StatementChildrenHavingBase ):
                         node       = self,
                     )
 
-                    return result, "new_statements", "Side effects first printed item promoted to statements."
+                    return result, "new_statements", """\
+Side effects first printed item promoted to statements."""
 
         return self, None, None

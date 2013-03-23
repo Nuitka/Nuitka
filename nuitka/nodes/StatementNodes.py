@@ -218,7 +218,8 @@ class StatementExpressionOnly( StatementChildrenHavingBase ):
                               ( expression.getExpression(), )
             )
 
-            return result, "new_statements", "Turned side effects of expression only statement into statements."
+            return result, "new_statements", """\
+Turned side effects of expression only statement into statements."""
 
         elif not expression.mayHaveSideEffects( constraint_collection ):
             return None, "new_statements", "Removed statement without effect."
@@ -234,7 +235,8 @@ class StatementExpressionOnly( StatementChildrenHavingBase ):
                 source_ref      = expression.getSourceReference()
             )
 
-            return result, "new_raise", "Propgated implict raise expression to raise statement."
+            return result, "new_raise", """\
+Propgated implict raise expression to raise statement."""
         elif python_version < 300 and expression.isExpressionBuiltinExecfile():
             # In this case, the copy-back must be done and will only be done correctly by
             # the code for exec statements.
@@ -250,7 +252,8 @@ class StatementExpressionOnly( StatementChildrenHavingBase ):
                     source_ref  = expression.getSourceReference()
                 )
 
-                return result, "new_statements", "Changed execfile to exec on class level"
+                return result, "new_statements", """\
+Changed execfile to exec on class level"""
         elif python_version >= 300 and expression.isExpressionBuiltinExec():
             if self.getParentVariableProvider().isEarlyClosure():
                 from .ExecEvalNodes import StatementExec

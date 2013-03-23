@@ -136,7 +136,6 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
                         message = "'continue' not properly in loop"
                         col_offset   = 16 if python_version >= 300 else None
                         display_line = True
-                        display_file = False
                         source_line  = None
                     else:
                         message = "'break' outside loop"
@@ -148,7 +147,6 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
                         else:
                             col_offset   = 13
                             display_line = True
-                            display_file = True
                             source_line  = None
 
                     source_ref = node.getSourceReference()

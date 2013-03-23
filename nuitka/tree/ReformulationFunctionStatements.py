@@ -30,7 +30,6 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef
 )
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
-from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.ContainerMakingNodes import (
