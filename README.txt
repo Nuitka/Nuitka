@@ -29,13 +29,13 @@ add the directory with them to the PATH variable:
 
 Linux/MacOS X/MSYS shell:
 
-.. code-block:: sh
+.. code-block:: bash
 
    eval `misc/create-environment`
 
 With some luck this also works:
 
-.. code-block:: sh
+.. code-block:: bash
 
    . misc/create-environment
 
@@ -49,7 +49,7 @@ Command Line
 
 Nuitka has a "--help" option to output what it can do:
 
-.. code-block:: sh
+.. code-block:: bash
 
     nuitka --help
 
@@ -70,7 +70,7 @@ Use Case 1 - Program compilation with all modules embedded
 If you want to compile a whole program recursively, and not only the single file that is
 the main program, do it like this:
 
-.. code-block:: sh
+.. code-block:: bash
 
     nuitka-python --recurse-all program.py
 
@@ -83,7 +83,7 @@ In case you have a plugin directory, i.e. one which is not found by recursing af
 import statements (recommended way), you can always require that a given directory shall
 also be included in the executable:
 
-.. code-block:: sh
+.. code-block:: bash
 
     nuitka-python --recurse-all --recurse-directory=plugin_dir program.py
 
@@ -105,7 +105,7 @@ Use Case 3 - Extension Module compilation
 
 If you want to compile a single extension module, all you have to do is this:
 
-.. code-block:: sh
+.. code-block:: bash
 
     nuitka some_module.py
 
@@ -116,6 +116,8 @@ Use Case 3 - Package compilation with all modules embedded
 
 If you need to compile a whole package and embedded all modules, that is also feasible,
 use it like this:
+
+.. code-block:: bash
 
     nuitka some_package --recurse-directory=some_package
 
@@ -568,48 +570,63 @@ The order is sorted by time.
 
 - Pete Hunt: Submitted patches for MacOS X support.
 
+- ownssh: Submitted patches for builtins module guarding, and made massive efforts to make
+  high quality bug reports.
+
 Projects used by Nuitka
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The CPython project http://www.python.org/
-------------------------------------------
+The `CPython project <http://www.python.org>`_
+----------------------------------------------
 
-Thanks for giving us CPython, which is the base of Nuitka.
+Thanks for giving us CPython, which is the base of Nuitka. We are nothing without it.
 
-The gcc project http://gcc.gnu.org/
------------------------------------
+The `GCC project <http://gcc.gnu.org>`_
+---------------------------------------
 
 Thanks for not only the best compiler suite, but also thanks for supporting C++11 which
 helped to get Nuitka off the ground. Your compiler was the first usable for Nuitka and
 with little effort.
 
-The Scons project http://www.scons.org/
----------------------------------------
+The `Scons project <http://www.scons.org>`_
+-------------------------------------------
 
 Thanks for tackling the difficult points and providing a Python environment to make the
 build results. This is such a perfect fit to Nuitka and a dependency that will likely
 remain.
 
-The valgrind project http://valgrind.org/
------------------------------------------
+The `valgrind project <http://valgrind.org>`_
+----------------------------------------------
 
 Luckily we can use Valgrind to determine if something is an actual improvement without the
 noise. And it's also helpful to determine what's actually happening when comparing.
 
-The MinGW project http://www.mingw.org/
----------------------------------------
+The `NeuroDebian project <http://neuro.debian.net>`_
+----------------------------------------------------
+
+Thanks for hosting the build infrastructure that the Debian and sponsor Yaroslav Halchenko
+uses to provide packages for all Ubuntu versions.
+
+The `openSUSE Buildservice <http://openbuildservice.org>`_
+----------------------------------------------------------
+
+Thanks for hosting this excellent service that allows us to provide RPMs for a large
+variety of platforms and make them available immediately nearly at release time.
+
+The `MinGW project <http://www.mingw.org>`_
+-------------------------------------------
 
 Thanks for porting the best compiler to Windows. This allows portability of Nuitka with
 relatively little effort.
 
-The mingw-cross-env project http://mingw-cross-env.nongnu.org
--------------------------------------------------------------
+The `mingw-cross-env project <http://mingw-cross-env.nongnu.org>`_
+------------------------------------------------------------------
 
 Thanks for enabling us to easily setup a cross compiler for my Debian that will produce
 working Windows binaries.
 
-The wine project http://www.winehq.org/
----------------------------------------
+The `Wine project <http://www.winehq.org>`_
+-------------------------------------------
 
 Thanks for enabling us to run the cross compiled binaries without have to maintain a
 windows installation at all.
@@ -620,8 +637,9 @@ windows installation at all.
 
 .. footer::
 
-   © Kay Hayen, 2013 | Page ###Page### of ###Total### | Section ###Section###
+   |copy| Kay Hayen, 2013 | Page ###Page### of ###Total### | Section ###Section###
 
+.. |copy|   unicode:: U+000A9
 
 Updates for this Manual
 =======================
