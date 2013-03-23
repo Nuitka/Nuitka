@@ -18,7 +18,7 @@
 
 from nuitka import Utils
 
-from nuitka.nodes.ParameterSpec import ParameterSpec
+from nuitka.nodes.ParameterSpecs import ParameterSpec
 
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,

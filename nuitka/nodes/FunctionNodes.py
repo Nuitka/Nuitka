@@ -39,7 +39,7 @@ from .IndicatorMixins import (
     MarkGeneratorIndicator
 )
 
-from .ParameterSpec import TooManyArguments, matchCall
+from .ParameterSpecs import TooManyArguments, matchCall
 
 from nuitka import Variables, Utils
 

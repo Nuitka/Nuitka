@@ -44,7 +44,7 @@ from nuitka import (
     Utils
 )
 
-from nuitka.nodes.FutureSpec import FutureSpec
+from nuitka.nodes.FutureSpecs import FutureSpec
 
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetVariableRef,

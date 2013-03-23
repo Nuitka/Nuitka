@@ -18,7 +18,7 @@
 """ Optimizations of builtins to builtin calls.
 
 """
-from nuitka.nodes.ParameterSpec import ParameterSpec, TooManyArguments, matchCall
+from nuitka.nodes.ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 
 from nuitka.Utils import python_version
 

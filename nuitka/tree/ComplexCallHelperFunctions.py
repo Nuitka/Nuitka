@@ -80,8 +80,8 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 
-from nuitka.nodes.ParameterSpec import ParameterSpec
-from nuitka.nodes.FutureSpec import FutureSpec
+from nuitka.nodes.ParameterSpecs import ParameterSpec
+from nuitka.nodes.FutureSpecs import FutureSpec
 
 from nuitka.SourceCodeReferences import fromFilename
 

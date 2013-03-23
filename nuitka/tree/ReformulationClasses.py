@@ -69,11 +69,11 @@ from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 
 from nuitka.nodes.GlobalsLocalsNodes import (
-    StatementSetLocals,
-    ExpressionBuiltinLocals
+    ExpressionBuiltinLocals,
+    StatementSetLocals
 )
 
-from nuitka.nodes.ParameterSpec import ParameterSpec
+from nuitka.nodes.ParameterSpecs import ParameterSpec
 
 from .Helpers import (
     makeStatementsSequenceFromStatement,
