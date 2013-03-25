@@ -21,11 +21,13 @@
 #if PYTHON_VERSION < 300
 // We share this with CPython bytecode main loop.
 PyAPI_DATA(volatile int) _Py_Ticker;
+#else
+extern volatile int _Py_Ticker;
+#define _Py_CheckInterval 20
 #endif
 
 NUITKA_MAY_BE_UNUSED static void CONSIDER_THREADING( void )
 {
-#if PYTHON_VERSION < 300
     // Decrease ticker
     if ( --_Py_Ticker < 0 )
     {
@@ -37,11 +39,17 @@ NUITKA_MAY_BE_UNUSED static void CONSIDER_THREADING( void )
         {
             throw PythonException();
         }
-    }
-#else
-    // TODO: Cannot access internals of CPython yet.
 
-#endif
+        PyThreadState *tstate = PyThreadState_GET();
+
+        if (unlikely( tstate->async_exc != NULL))
+        {
+            PyObjectTemporary tmp_async_exc( tstate->async_exc );
+            tstate->async_exc = NULL;
+
+            throw PythonException( tmp_async_exc.asObject() );
+        }
+    }
 }
 
 #endif

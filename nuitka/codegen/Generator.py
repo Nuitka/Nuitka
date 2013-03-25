@@ -675,7 +675,7 @@ def getLoopContinueCode( needs_exceptions ):
     if needs_exceptions:
         return "throw ContinueException();"
     else:
-        return "continue;"
+        return "CONSIDER_THREADING(); continue;"
 
 def getLoopBreakCode( needs_exceptions ):
     if needs_exceptions:
