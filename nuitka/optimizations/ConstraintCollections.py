@@ -668,14 +668,9 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
         ]
 
 
-class ConstraintCollectionLoopOther( ConstraintCollectionBase ):
-    def process( self, loop ):
-        assert loop.isStatementLoop()
+class ConstraintCollectionLoop( ConstraintCollectionBase ):
+    def process( self, loop_body ):
+        result = self.onStatementsSequence( loop_body )
 
-        loop_body = loop.getLoopBody()
-
-        if loop_body is not None:
-            result = self.onStatementsSequence( loop_body )
-
-            if result is not loop_body:
-                loop_body.replaceWith( result )
+        if result is not loop_body:
+            loop_body.replaceWith( result )

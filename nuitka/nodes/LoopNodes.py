@@ -61,14 +61,52 @@ class StatementLoop( StatementChildrenHavingBase ):
         return self.break_exception
 
     def computeStatement( self, constraint_collection ):
-        from nuitka.optimizations.ConstraintCollections import ConstraintCollectionLoopOther
+        loop_body = self.getLoopBody()
 
-        other_loop_run = ConstraintCollectionLoopOther( constraint_collection )
-        other_loop_run.process( self )
+        if loop_body is not None:
+            from nuitka.optimizations.ConstraintCollections import ConstraintCollectionLoop
 
-        constraint_collection.mergeBranch(
-            other_loop_run
-        )
+            loop_collection = ConstraintCollectionLoop( constraint_collection )
+            loop_collection.process( loop_body )
+
+            # Might be changed.
+            loop_body = self.getLoopBody()
+
+        # Consider trailing "continue" statements, these have no effect, so we can remove
+        # them.
+        if loop_body is not None:
+            assert loop_body.isStatementsSequence()
+
+            statements = loop_body.getStatements()
+            assert statements # Cannot be empty
+
+            last_statement = statements[-1]
+            if last_statement.isStatementContinueLoop():
+                loop_body.removeStatement( last_statement )
+                statements = loop_body.getStatements()
+
+                if not statements:
+                    loop_body.replaceWith( None )
+                    loop_body = None
+
+                constraint_collection.signalChange(
+                    "new_statements",
+                    last_statement.getSourceReference(),
+                    "Removed continue as last statement of loop."
+                )
+
+        # Consider leading "break" statements, they should be the only, and should lead to
+        # removing the whole loop statement. Trailing "break" statements could also be
+        # handled, but that would need to consider if there are other "break" statements
+        # too. Numbering loop exits is nothing we have yet.
+        if loop_body is not None:
+            assert loop_body.isStatementsSequence()
+
+            statements = loop_body.getStatements()
+            assert statements # Cannot be empty
+
+            if len( statements ) == 1 and statements[-1].isStatementBreakLoop():
+                return None, "new_statements", "Removed loop immediately broken."
 
         return self, None, None
 
