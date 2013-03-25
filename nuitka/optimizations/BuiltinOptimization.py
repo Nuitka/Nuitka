@@ -134,11 +134,11 @@ class BuiltinParameterSpecNoKeywords( BuiltinParameterSpec ):
 
 
 class BuiltinParameterSpecExceptions( BuiltinParameterSpec ):
-    def __init__( self, name, default_count ):
+    def __init__( self, exception_name, default_count ):
         # TODO: Parameter default_count makes no sense for exceptions probably.
         BuiltinParameterSpec.__init__(
             self,
-            name          = name,
+            name          = exception_name,
             arg_names     = (),
             default_count = default_count,
             list_star_arg = "args"
@@ -153,6 +153,17 @@ class BuiltinParameterSpecExceptions( BuiltinParameterSpec ):
     def getCallableName( self ):
         return "exceptions." + self.getName()
 
+
+def makeBuiltinParameterSpec( exception_name ):
+    if exception_name == "ImportError" and python_version >= 330:
+        # TODO: Create this beast, needs keyword only arguments to be supported, currently
+        # user of this function must take care to not have them.
+        pass
+
+    return BuiltinParameterSpecExceptions(
+        exception_name = exception_name,
+        default_count  = 0
+    )
 
 builtin_int_spec = BuiltinParameterSpec( "int", ( "x", "base" ), 2 )
 # These builtins are only available for Python2

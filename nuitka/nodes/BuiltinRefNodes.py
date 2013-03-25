@@ -203,6 +203,13 @@ class ExpressionBuiltinExceptionRef( ExpressionBuiltinRefBase ):
     def computeExpressionCall( self, call_node, constraint_collection ):
         exception_name = self.getExceptionName()
 
+        # TODO: Keyword only arguments of it, are not properly handled yet.
+        if exception_name == "ImportError" and python_version >= 330:
+            kw = call_node.getCallKw()
+
+            if not kw.isExpressionConstantRef() and kw.getConstant() == {}:
+                return call_node, None, None
+
         def createBuiltinMakeException( args, source_ref ):
             from nuitka.nodes.ExceptionNodes import ExpressionBuiltinMakeException
 
@@ -215,9 +222,8 @@ class ExpressionBuiltinExceptionRef( ExpressionBuiltinRefBase ):
         new_node = BuiltinOptimization.extractBuiltinArgs(
             node          = call_node,
             builtin_class = createBuiltinMakeException,
-            builtin_spec  = BuiltinOptimization.BuiltinParameterSpecExceptions(
-                name          = exception_name,
-                default_count = 0
+            builtin_spec  = BuiltinOptimization.makeBuiltinParameterSpec(
+                exception_name = exception_name
             )
         )
 
