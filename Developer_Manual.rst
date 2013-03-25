@@ -1073,14 +1073,11 @@ Therefore, the ``else`` becomes a real conditional statement in the node tree, c
 indicator variable and guarding the execution of the ``else`` branch.
 
 
-Classes Creation
-----------------
+Class Creation (Python2)
+------------------------
 
-Python2
-=======
-
-Classes have a body that only serves to build the class dictionary and is a normal
-function otherwise. This is expressed with the following re-formulation:
+Classes in Python2 have a body that only serves to build the class dictionary and is a
+normal function otherwise. This is expressed with the following re-formulation:
 
 .. code-block:: python
 
@@ -1121,8 +1118,8 @@ in class creation. They don't really appear after the tree building stage anymor
 type inference will of course have to become able to understand ``make_class`` quite well,
 so it can recognize the created class again.
 
-Python 3
-========
+Class Creation (Python3)
+------------------------
 
 In Python3, classes are a complicated way to write a function call, that can interact with
 its body. The body starts with a dictionary provided by the metaclass, so that is
@@ -2431,7 +2428,8 @@ into action, which could be code changes, plan changes, issues created, etc.
         something( x )
 
   Otherwise, code generation suffers from assuming the list may be mutated and is making a
-  copy before using it. Instead, it would be needed to track, if that list becomes writable, and if it's used as a list.
+  copy before using it. Instead, it would be needed to track, if that list becomes
+  writable, and if it's used as a list.
 
   .. code-block:: python
 
@@ -2521,21 +2519,24 @@ into action, which could be code changes, plan changes, issues created, etc.
      b = next( a )
      del a
 
-  When "a" is assigned, it is receiving a value friend, "fresh iterator", for the unused
-  iterator, one that hasn't be used at all.
+  When ``a`` is assigned, it is receiving a value friend from the ``iter`` call, a fresh
+  iterator, one that hasn't been used at all. The variable trace of ``a`` will contain
+  that.
 
-  Then when next() is called on "a" value, it creates *another* value friend, and changes
-  the value friend in the collection for "a" to "used iterator 1 time". It is very
-  important to make a copy.
+  Then when ``next`` is called on ``a`` value, it creates *another* value friend, based on
+  the un-escaped ``a`` value friend. Using ``a`` it in ``next`` would let escape, if it
+  didn't know what ``next`` does to it. For tuples, it knows though, so it marks "a" as
+  referenced, and its value friend as used once for iteration.
 
-  It is then asked for a value friend to be assigned to "b". It can tell which value that
-  would be, but it has to record, that before "a" can be used, it would have to execute a
-  "next" on it. This is delaying that action until we see if it's necessary at all. We
-  know it cannot fail, because the value friend said so.
+  The ``next`` is then asked for a value friend to be assigned to ``b``. The value friend
+  can decide which value that is. We now have to choose if we want to use the value friend
+  produced that could determine the value ``2`` or the actual value. If it's a cheap thing
+  (constant, local variable access), we will propagate it, otherwise we probably won't do
+  it.
 
-  This repeats and again a new "value friend" is created, this time "used iterator 2
-  times", which is asked for a value friend too. It will keep record of the need to
-  execute next 2 times (which we may have optimized code for).
+  This repeats and again a new value friend is created, this time "used iterator 2 times"
+  is attched to ``a`` value friend. It will keep record of the need to execute next 2
+  times (which we may have optimized code for).
 
   .. code-block:: python
 
@@ -2546,7 +2547,7 @@ into action, which could be code changes, plan changes, issues created, etc.
      # Remember b has two delayed iteration
      del a
 
-  When then "a" is deleted, it's being told "onReleased". The value friend will then
+  When then ``a`` is deleted, it's being told "onReleased". The value friend will then
   decide through the value friend state "used iterator 2 times", that it may drop them.
 
   .. code-block:: python
@@ -2588,7 +2589,6 @@ into action, which could be code changes, plan changes, issues created, etc.
   that per variable, a history of states is needed, where that history connects value
   friends to nodes.
 
-
   .. code-block:: python
 
      a = iter(
@@ -2597,8 +2597,8 @@ into action, which could be code changes, plan changes, issues created, etc.
           g()
        )
      )
-     # 1. For the assignment, ask right hand side, for computation. Enter computeNode for
-     # iterator making, and decide that it gives a fresh iterator value, with a known
+     # 1. For the assignment, ask right hand side, for computation. Enter computeExpression
+     # for iterator making, and decide that it gives a fresh iterator value, with a known
      # "iterated" value.
      # 2. Link the "a" assignment to the assignment node.
      b = next( a )
@@ -2667,16 +2667,6 @@ into action, which could be code changes, plan changes, issues created, etc.
 
   The aliasing is only broken when a is assigned to a new value. And when then "b" is
   subscribed, it may understand what that value is or not.
-
-* Value Life Time Analysis
-
-  A value may be assigned, or consumed directly. When consumed directly, it's life ends
-  immediately, and that's one thing. When assigned, it doesn't do that, but when the last
-  reference goes away, which may happen when the name is used for another value.
-
-  In the mean time, the value may be exposed through attribute lookup, call, etc. which
-  may modify what we can tell about it. An unknown usage must mark it as "exists, maybe"
-  and no more knowledge.
 
 * Shelve for caching
 
@@ -2778,6 +2768,102 @@ into action, which could be code changes, plan changes, issues created, etc.
 
   * References need to back track to the last assignment on their path, which may be a
     merge. Constraint collection can do that.
+
+  * Data structures
+
+    Every constraint collection has these:
+
+    * variable_versions
+
+      Dictionary, where per "variable" the current version is the value. It is used to
+      determine, what variable reads need to go.
+
+    * variable_targets
+
+      Dictionary, where "variable" and "version" form the key. The values are lists, which
+      start out empty.
+
+      They are only appended to. In "onVariableSet", a new version is allocated, which an
+      empty list, because each write starts a new version. in "onVariableUsage" the
+      version is detected from the current version. It may be the first element, but then
+      it's a read of an undefined value.
+
+    * variable_escaped
+
+      Dictionary, where again "variable" and "version" form the key. It contains indexes
+      to the lists pointed to by variable_targets. And these indicate the first time a
+      variable version escaped.
+
+
+  * When merging branches of conditional statements, the PHI function shall apply as
+    follows.
+
+    * Case a) One branch only.
+
+      Continue constraint collection in that branch. As usual new assignments generate a
+      new version, references use pre-existing versions. In terms of this, it's only about
+      the version generated in the branch not being accessible directly to outside the
+      branch.
+
+      Then, when the branch merges, for all new versions of variables, that are alive,
+      another, newer version shall be generated, that merges it with the version that was
+      alive before.
+
+    * Case b) Two branches.
+
+      When there are two branches, they both as usual turn new assignments into new
+      versions, and reference pre-existing versions from before the branches.
+
+      Then, when merging the branches, it's just the same as if two times one branch
+      occurred, no difference really. Consider this:
+
+      .. code-block:: python
+
+         if cond:
+            a = b
+         else:
+            a = c
+
+      This is quite the same as:
+
+      .. code-block:: python
+
+         _tmp = cond
+
+         if _tmp:
+            a = b
+         if not _tmp:
+            a = c
+
+      So, we can deal with the branches one by one without any issue. In fact, this raises
+      the point, if we actually need conditional statements with two branches as a
+      structure.
+
+      .. note::
+
+         For conditional expressions, there are always two branches.
+
+
+  * Trace structure
+
+    * Initial write of the version
+
+      There may be a initial write for each version. It can only occur at the start of it,
+      but not later, and there is only one. The "value friend" of it.
+
+    * Merge of other one or two other versions
+
+      One could be empty, i.e. the variable would not be assigned. This is kind of the
+      initial write, and the merge references one or multiple "value friends", which are
+      optional.
+
+    * Bunch of read usages. They may allow escape of the value or not. When they do, it's
+      a change. The value friend must be informed of it. If it's a real escape, usage is
+      not known. If it's merely an alias, e.g. the value is now in another variable trace,
+      they could be linked. Otherwise the "value friend" must be demoted immediately to
+      one that gives more vague information.
+
+    This should be reflected in a class "VariableTrace".
 
 .. header::
 
