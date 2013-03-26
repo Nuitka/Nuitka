@@ -1,21 +1,27 @@
-Nuitka Release 0.4.3 (Draft)
-============================
-
-New Features
-------------
-
-- Support for FreeBSD.
-
-  Issues of default compiler detection was standing in the way of this, as well as path
-  issues, and clang issues that got addressed.
-
-
 Nuitka Release 0.4.2 (Draft)
 ============================
 
 This release comes with many bug fixes, some of which are severe. It also contains new
-features, like basic Python 3.3 support, which means it passes 3.2 test suite as well as
-CPython3.2 does. The missing features were highlighted in a recent post.
+features, like basic Python 3.3 support.
+
+New Features
+------------
+
+- Support for FreeBSD and NetBSD.
+
+  Nuitka works for FreeBSD 9.1, and NetBSD 6.0, older versions may not work. This required
+  only fixing some "Linuxisms" in the build process.
+
+- New option for warning about compile time detected exception raises.
+
+  Nuitka can now warn about exceptions that will be raised at run time.
+
+- Basic Python3.3 support.
+
+  The test suite of CPython3.2 passes and fails in a compatible way. New feature "yield
+  from" is not yet supported, and the improved argument parsing error messages are not
+  implemented yet.
+
 
 Bug Fixes
 ---------
@@ -159,9 +165,10 @@ Bug Fixes
 New Optimization
 ----------------
 
-- Constants are now much less often created with ``pickle`` module, and nested constants,
-  now become ``is`` identical instead of only ``==`` identical, which indicates a
-  duplicate memory usage.
+- Constants are now much less often created with ``pickle`` module, but created directly.
+
+  This esp. applies for nested constants, now more values become ``is`` identical instead
+  of only ``==`` identical, which indicates a reduced memory usage.
 
   .. code-block:: python
 
@@ -177,6 +184,35 @@ New Optimization
   Constants now created without ``pickle`` usage, cover ``float``, ``list``, and ``dict``,
   which is enough for PyStone to not use it at all, which has been added support for as
   well.
+
+- Continue statements might be optimized away.
+
+  A terminal ``continue`` in a loop, was not optimized away:
+
+  .. code-block:: python
+
+     while 1:
+         something
+         continue   # Now optimized away
+
+  The trailing ``continue``has no effect and can therefore be removed.
+
+  .. code-block:: python
+
+     while 1:
+         something
+
+- Loops with only break statements are optimized away.
+
+  .. code-block:: python
+
+     while 1:
+         break
+
+  A loop immediately broken has of course no effect. Loop conditions are re-formulated to
+  immediate "if ... : break" checks. Effectively this means that loops with conditions
+  detected to be always false to see the loop entirely removed.
+
 
 New Tests
 =========
@@ -196,7 +232,10 @@ Organizational
   CentOS6, F17, F18, and openSUSE 12.1, 12.2, 12.3. This large coverage is thanks to
   openSUSE build service and "ownssh" for contributing an RPM spec file.
 
-  The page got improved with logos for the distribution.
+  The page got improved with logos for the distributions.
+
+- Revamped the `User Manual <http://nuitka.net/doc/user-manual.html>`_ in terms of layout,
+  structure, and content.
 
 - Added "ownssh" as contributor.
 
