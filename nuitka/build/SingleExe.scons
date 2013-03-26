@@ -63,6 +63,9 @@ optimize_mode = getBoolOption( "optimize_mode", True )
 # compatability to absurd.
 full_compat_mode = getBoolOption( "full_compat", False )
 
+# Experimental mode. Do things that are not yet safe to do.
+experimental_mode = getBoolOption( "experimental", False )
+
 # LTO mode: Use link time optimizations of g++ compiler if available and known good with
 # the compiler in question. The 4.5 one didn't have good enough support, the compiled
 # result would not run correctly.
@@ -390,6 +393,9 @@ if debug_mode:
 
 if full_compat_mode:
     env.Append( CPPDEFINES = [ "_NUITKA_FULL_COMPAT" ] )
+
+if experimental_mode:
+    env.Append( CPPDEFINES = [ "_NUITKA_EXPERIMENTAL" ] )
 
 # Python version, use the scons one if not given.
 python_version = ARGUMENTS.get( "python_version", None )

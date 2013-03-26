@@ -137,7 +137,7 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
 
         # TODO: Enable the below, once we can trust that the corruption of mutable
         # constants is detected.
-        if not Options.isExperimental():
+        if True or not Options.isExperimental():
             return self, None, None
 
         friend = constraint_collection.getVariableValueFriend( self.variable )

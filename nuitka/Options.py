@@ -318,32 +318,15 @@ Compile the would-be regenerated source file. Allows compiling edited C++ files 
 C++ compiler for quick debugging changes to the generated source. Defaults to off."""
 )
 
-def decideExperimental():
-    git_branch_name_filename = os.path.join( os.path.dirname( __file__ ), "..", ".git", "HEAD" )
-
-    if not os.path.exists( git_branch_name_filename ):
-        return False
-
-    branch_name = open( git_branch_name_filename ).read().strip()
-    branch_name = branch_name.split( "/" )[-1]
-
-    if branch_name == "master":
-        return os.path.exists( os.path.join( os.path.dirname( __file__ ), "..", "public-repo" ) )
-    elif branch_name.startswith( "hotfix/" ):
-        return False
-    else:
-        return True
-
-if decideExperimental():
-    debug_group.add_option(
-        "--experimental",
-        action  = "store_true",
-        dest    = "experimental",
-        default = False,
-        help    = """\
+debug_group.add_option(
+    "--experimental",
+    action  = "store_true",
+    dest    = "experimental",
+    default = False,
+    help    = """\
 Use features declared as 'experimental'. May have no effect if no experimental features
 are present in the code. Defaults to off."""
-    )
+)
 
 parser.add_option_group( debug_group )
 
