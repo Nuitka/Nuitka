@@ -195,7 +195,7 @@ New Optimization
          something
          continue   # Now optimized away
 
-  The trailing ``continue``has no effect and can therefore be removed.
+  The trailing ``continue`` has no effect and can therefore be removed.
 
   .. code-block:: python
 
