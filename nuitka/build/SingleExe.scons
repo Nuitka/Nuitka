@@ -434,23 +434,26 @@ if win_target:
 else:
     # The python header path is a combination of python version and debug indication, make
     # sure the headers are found by adding it to the C++ include path.
-    python_header_path = "/usr/include/python" + python_version
 
-    # If that directory doesn't exist, give it another shot, under /usr/local
-    if not os.path.exists( python_header_path ):
-        alternate_path = "/usr/local/include/python" + python_version
+    for candidate_path in ( "/usr/include", "/usr/local/include", "/usr/pkg/include" ):
+        python_header_path = os.path.join( candidate_path, "python" + python_version )
 
-        if os.path.exists( alternate_path ):
-            python_header_path = alternate_path
-
-    # The Python library path is not in the standard path for freebsd.
-    if "freebsd" in sys.platform:
-        env.Append( LIBPATH = [ "/usr/local/lib" ] )
+        if os.path.exists( python_header_path ):
+            break
 
 if not os.path.exists( os.path.join( python_header_path, "Python.h" ) ):
-    sys.exit( "Error, no 'Python.h' development headers can be found at '%s', dependency not satisfied!" % python_header_path )
+    sys.exit( "Error, no 'Python.h' development headers can be found, dependency not satisfied!" )
 
 env.Append( CPPPATH  = [ python_header_path ] )
+
+# The Python library path is not in the standard path for FreeBSD, add it manually.
+if "freebsd" in sys.platform:
+    env.Append( LIBPATH = [ "/usr/local/lib" ] )
+
+# The Python library path is not in the standard path for NetBSD, add it manually.
+if "netbsd" in sys.platform:
+    env.Append( LIBPATH = [ "/usr/pkg/lib" ] )
+    env.Append( LINKFLAGS = [ "-rpath=/usr/pkg/lib" ] )
 
 def detectHostMultiarch():
     import commands
