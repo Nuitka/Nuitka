@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -58,13 +59,17 @@ if options.mode == "prerelease":
 elif options.mode == "release":
     if "pre" in old_version:
         old_version = old_version[ : old_version.find( "pre" ) ]
+        was_pre = True
+    else:
+        was_pre = False
 
     new_version = ".".join( old_version.split( "." )[:3] )
 
-    parts = new_version.split( "." )
-    parts[-1] = str( int( parts[-1] ) + 1 )
+    if not was_pre:
+        parts = new_version.split( "." )
+        parts[-1] = str( int( parts[-1] ) + 1 )
 
-    new_version = ".".join( parts )
+        new_version = ".".join( parts )
 elif options.mode == "hotfix":
     assert "pre" not in old_version
 
@@ -92,17 +97,30 @@ with open( "nuitka/Options.py", "w" ) as options_file:
         options_file.write( line )
 
 print old_version, "->", new_version
+debian_version = new_version.replace( "pre", "~pre" ) + "+ds-1"
 
 if "pre" in new_version:
-    debian_version = new_version.replace( "pre", "~pre" ) + "+ds-1"
     if "pre1" in new_version:
-
         os.system( 'debchange -R "New upstream pre-release."' )
         os.system( 'debchange --newversion=%s ""'  % debian_version )
     else:
         os.system( 'debchange --newversion=%s ""'  % debian_version )
 else:
-    assert False
+    if "pre" in version_line:
+        changelog_lines = open( "debian/changelog" ).readlines()
+        with open( "debian/changelog", "w" ) as output:
+            first = True
+            for line in changelog_lines[1:]:
+                if line.startswith( "nuitka" ) and first:
+                    first = False
+
+                if not first:
+                    output.write( line )
+
+        os.system( 'debchange -R "New upstream release."' )
+        os.system( 'debchange --newversion=%s ""'  % debian_version )
+    else:
+        assert False
 
 
 spec_lines = [ line for line in open( "misc/nuitka.spec" ) ]
@@ -110,6 +128,6 @@ spec_lines = [ line for line in open( "misc/nuitka.spec" ) ]
 with open( "misc/nuitka.spec", "w" ) as spec_file:
     for line in spec_lines:
         if line.startswith( "Version:" ):
-            line = line.replace( old_version, new_version )
+            line = "Version:        %s\n" % new_version
 
         spec_file.write( line )

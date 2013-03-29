@@ -1,15 +1,26 @@
-Nuitka Release 0.4.2 (Draft)
-============================
 
-This release comes with many bug fixes, some of which are severe. It also contains new
-features, like basic Python 3.3 support.
+Nuitka Release 0.4.3 (Draft)
+============================
 
 New Features
 ------------
 
-- Support for FreeBSD and NetBSD.
+- Support for NetBSD.
 
-  Nuitka works for FreeBSD 9.1, and NetBSD 6.0, older versions may not work. This required
+
+Nuitka Release 0.4.2
+====================
+
+This release comes with many bug fixes, some of which are severe. It also contains new
+features, like basic Python 3.3 support. And the `performance diagrams
+<http://nuitka.net/pages/performance.html>`_ got expanded.
+
+New Features
+------------
+
+- Support for FreeBSD.
+
+  Nuitka works for at least FreeBSD 9.1, older versions may or may not work. This required
   only fixing some "Linuxisms" in the build process.
 
 - New option for warning about compile time detected exception raises.
@@ -195,7 +206,7 @@ New Optimization
          something
          continue   # Now optimized away
 
-  The trailing ``continue``has no effect and can therefore be removed.
+  The trailing ``continue`` has no effect and can therefore be removed.
 
   .. code-block:: python
 
@@ -234,10 +245,16 @@ Organizational
 
   The page got improved with logos for the distributions.
 
+- Added "ownssh" as contributor.
+
 - Revamped the `User Manual <http://nuitka.net/doc/user-manual.html>`_ in terms of layout,
   structure, and content.
 
-- Added "ownssh" as contributor.
+Summary
+-------
+
+This release is the result of much validation work. The amount of fixes the largest of any
+release so far. New platforms, basic Python3.3 support, consolidation all around.
 
 
 Nuitka Release 0.4.1
