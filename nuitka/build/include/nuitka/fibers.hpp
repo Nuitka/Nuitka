@@ -33,6 +33,7 @@ typedef struct _Fiber
     CONTEXT f_context;
 #else
     ucontext_t f_context;
+    void *start_stack;
 #endif
 } Fiber;
 

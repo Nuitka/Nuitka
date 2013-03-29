@@ -28,6 +28,7 @@ void initFiber( Fiber *to )
 {
     to->f_context.uc_stack.ss_sp = NULL;
     to->f_context.uc_link = NULL;
+    to->start_stack = NULL;
 }
 
 void prepareFiber( Fiber *to, void *code, unsigned long arg )
@@ -37,6 +38,8 @@ void prepareFiber( Fiber *to, void *code, unsigned long arg )
 
     to->f_context.uc_stack.ss_size = STACK_SIZE;
     to->f_context.uc_stack.ss_sp = last_stack ? (char *)last_stack : (char *)malloc( STACK_SIZE );
+    to->start_stack = to->f_context.uc_stack.ss_sp;
+    to->f_context.uc_link = NULL;
     last_stack = NULL;
 
     makecontext( &to->f_context, (void (*)())code, 1, (unsigned long)arg );
@@ -46,11 +49,11 @@ void releaseFiber( Fiber *to )
 {
     if ( last_stack == NULL )
     {
-        last_stack = to->f_context.uc_stack.ss_sp;
+        last_stack = to->start_stack;
     }
     else
     {
-        free( to->f_context.uc_stack.ss_sp );
+        free( to->start_stack );
     }
 }
 
