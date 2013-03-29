@@ -224,9 +224,8 @@ New Optimization
   immediate "if ... : break" checks. Effectively this means that loops with conditions
   detected to be always false to see the loop entirely removed.
 
-
 New Tests
-=========
+---------
 
 - Added tests for the found issues.
 
