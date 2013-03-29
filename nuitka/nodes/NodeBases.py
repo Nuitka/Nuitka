@@ -872,6 +872,9 @@ class ExpressionMixin:
         pass
 
 class CompileTimeConstantExpressionMixin( ExpressionMixin ):
+    def __init__( self ):
+        self.computed_attribute = False
+
     def isCompileTimeConstant( self ):
         """ Has a value that we can use at compile time.
 
@@ -899,13 +902,25 @@ class CompileTimeConstantExpressionMixin( ExpressionMixin ):
 
 
     def computeExpressionAttribute( self, lookup_node, attribute_name, constraint_collection ):
-        from .NodeMakingHelpers import getComputationResult
+        if self.computed_attribute:
+            return lookup_node, None, None
 
-        return getComputationResult(
-            node        = lookup_node,
-            computation = lambda : getattr( self.getCompileTimeConstant(), attribute_name ),
-            description = "Attribute lookup to %s precomputed." % attribute_name
-        )
+        value = self.getCompileTimeConstant()
+
+        from .NodeMakingHelpers import getComputationResult, isCompileTimeConstantValue
+
+        if not hasattr( value, attribute_name ) or isCompileTimeConstantValue( getattr( value, attribute_name ) ):
+
+            return getComputationResult(
+                node        = lookup_node,
+                computation = lambda : getattr( value, attribute_name ),
+                description = "Attribute lookup to %s precomputed." % attribute_name
+            )
+
+        self.computed_attribute = True
+
+        return lookup_node, None, None
+
 
     def computeExpressionSubscript( self, lookup_node, subscript, constraint_collection ):
         from .NodeMakingHelpers import getComputationResult

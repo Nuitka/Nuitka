@@ -41,6 +41,17 @@ def _readSourceCodeFromFilename3( source_filename ):
         if line_match:
             encoding = line_match.group(1).decode( "ascii" )
 
+            # Detect encoding problem, as decode won't raise the compatible thing.
+            try:
+                import codecs
+                codecs.lookup( encoding )
+            except LookupError:
+                SyntaxErrors.raiseSyntaxError(
+                    reason       = "unknown encoding: %s" % encoding,
+                    source_ref   = SourceCodeReferences.fromFilename( source_filename, None ),
+                    display_line = False
+                )
+
             return source_code[ new_line + 1 : ].decode( encoding )
 
         new_line = source_code.find( b"\n", new_line+1 )

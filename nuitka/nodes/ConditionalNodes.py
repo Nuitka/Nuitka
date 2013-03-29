@@ -190,7 +190,7 @@ class StatementConditional( StatementChildrenHavingBase ):
             )
 
             return result, "new_statements", """\
-Both branches have no effect, drop branch nature, only evaluate condition."""
+Both branches have no effect, reduced to evaluate condition."""
 
         if yes_branch is None:
             # Would be eliminated already, if there wasn't any "no" branch either.
@@ -209,7 +209,7 @@ Both branches have no effect, drop branch nature, only evaluate condition."""
             )
 
             return new_statement, "new_statements", """\
-Empty true branch for condition was replaced with inverted condition check."""
+Empty 'yes' branch for condition was replaced with inverted condition check."""
 
         # Note: Checking the condition late, so that the surviving branches got processed
         # already. Returning without doing that, will lead to errorneous assumptions.

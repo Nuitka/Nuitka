@@ -166,10 +166,15 @@ class ValgrindBenchmarkBase:
                 benchmark_path,
                 "number"
             )
-        ).strip()
+        )
 
-        self.result[ "EXE_SIZE" ] = int( output.split( "\n" )[-2].split("=")[1] )
-        self.result[ "CPU_TICKS" ] = int( output.split( "\n" )[-1].split("=")[1] )
+        for line in output.split( "\n" ):
+            if line.startswith( "SIZE=" ):
+                self.result[ "EXE_SIZE" ] = int( line.split("=")[1] )
+            elif line.startswith( "TICKS=" ):
+                self.result[ "CPU_TICKS" ] = int( line.split("=")[1] )
+            elif line.startswith( "MEM=" ):
+                self.result[ "MEM_PEAK" ] = int( line.split("=")[1] )
 
     def getResults( self ):
         return dict( self.result )
@@ -186,7 +191,7 @@ class ValgrindBenchmarkBase:
         assert False
 
     def getProvided( self ):
-        return "CPU_TICKS", "EXE_SIZE"
+        return "CPU_TICKS", "EXE_SIZE", "MEM_PEAK"
 
 
 class ValgrindBenchmark( ValgrindBenchmarkBase ):
@@ -582,12 +587,16 @@ def createGraphs():
     graphs = {}
 
     dates_pystone_26 = []
+    sizes_pystone_26 = []
     values_pystone_26 = []
     names_pystone_26 = []
+    mempeaks_pystone_26 = []
 
     dates_pystone_27 = []
+    sizes_pystone_27 = []
     values_pystone_27 = []
     names_pystone_27 = []
+    mempeaks_pystone_27 = []
 
     def isInterestingVersion( name ):
         if name in ( "master", "develop", "0.3.13a" ):
@@ -601,7 +610,7 @@ def createGraphs():
 
         return True
 
-    def considerResult( environment, executable, commit_id, benchmark, size, ticks ):
+    def considerResult( environment, executable, commit_id, benchmark, size, ticks, mempeak ):
         commit_date = getCommitDate( commit_id )
         commit_date = datetime.datetime.fromtimestamp( commit_date )
 
@@ -614,11 +623,16 @@ def createGraphs():
             if executable == "nuitka-python2.7":
                 dates_pystone_27.append( commit_date )
                 values_pystone_27.append( ticks )
+                sizes_pystone_27.append( size )
+                mempeaks_pystone_27.append( mempeak )
                 names_pystone_27.append( commit_id )
             elif executable == "nuitka-python2.6":
                 dates_pystone_26.append( commit_date )
                 values_pystone_26.append( ticks )
+                sizes_pystone_26.append( size )
+                mempeaks_pystone_26.append( mempeak )
                 names_pystone_26.append( commit_id )
+
             else:
                 assert False, executable
 
@@ -633,11 +647,15 @@ def createGraphs():
                 commit_id   = task.getVersion().getNuitkaVersion(),
                 benchmark   = task.getBenchmark().getName(),
                 size        = int( task.getData()[ "EXE_SIZE" ] ),
-                ticks       = int( task.getData()[ "CPU_TICKS" ] )
+                ticks       = int( task.getData()[ "CPU_TICKS" ] ),
+                mempeak     = int( task.getData()[ "MEM_PEAK" ] ),
             )
 
 
     assert len( values_pystone_27 ) == len( values_pystone_26 )
+    assert names_pystone_26 == names_pystone_27
+
+    names_pystone = names_pystone_26
 
     import matplotlib.pyplot as plt
 
@@ -648,12 +666,11 @@ def createGraphs():
     counts = [ i*3+1.2 for i in range( 0, len( values_pystone_27 ) ) ]
 
     p27 = plt.bar( counts, values_pystone_27, width = 1, color = "orange" )
-    plt.xticks( counts, names_pystone_27 )
+    plt.xticks( counts, names_pystone )
 
     plt.yticks( ( 900000000, 950000000, 1000000000, ), ( "900M", "950M", "1000M", ) )
 
     sizes = plt.gcf().get_size_inches()
-
     counts = [ i*3 for i in range( 0, len( values_pystone_26 ) ) ]
 
     p26 = plt.bar( counts, values_pystone_26, width = 1 )
@@ -664,6 +681,66 @@ def createGraphs():
     plt.legend( ( p26[0], p27[0] ), ( "2.6", "2.7" ), bbox_to_anchor=(1.005, 1), loc=2, borderaxespad=0.0,  )
 
     plt.savefig( os.path.join( orig_dir, options.graphs_output_dir, "pystone-nuitka.svg" ) )
+
+    plt.clf()
+
+    filename = os.path.join( orig_dir, options.graphs_output_dir, "..", "tables", "pystone-nuitka.inc" )
+    with open( filename, "w" ) as output_file:
+        print >>output_file, """\
+.. csv-table:: Nuitka Pystone ticks, raw numbers
+  :header: "Version", "Ticks Python 2.6 based", "Ticks Python 2.7 based"
+
+"""
+        for name, value26, value27 in zip( names_pystone, values_pystone_26, values_pystone_27 ):
+            print >>output_file, "  %s, %s, %s" % ( name, value26, value27 )
+
+    plt.title( "PyStone created binary size" )
+    plt.ylabel( "bytes" )
+    plt.xlabel( "version" )
+
+    counts = [ i*3+1.2 for i in range( 0, len( values_pystone_27 ) ) ]
+
+    p27 = plt.bar( counts, sizes_pystone_27, width = 1, color = "orange" )
+    plt.xticks( counts, names_pystone )
+
+    plt.savefig( os.path.join( orig_dir, options.graphs_output_dir, "pystone-binary-nuitka.svg" ) )
+
+    plt.clf()
+
+    filename = os.path.join( orig_dir, options.graphs_output_dir, "..", "tables", "pystone-binary-nuitka.inc" )
+    with open( filename, "w" ) as output_file:
+        print >>output_file, """\
+.. csv-table:: Nuitka compiled Pystone binary size, raw numbers
+  :header: "Version", "Size Python 2.6 based", "Size Python 2.7 based"
+
+"""
+        for name, value26, value27 in zip( names_pystone, sizes_pystone_26, sizes_pystone_27 ):
+            print >>output_file, "  %s, %s, %s" % ( name, value26, value27 )
+
+
+    plt.title( "PyStone peak memory usage" )
+    plt.ylabel( "bytes" )
+    plt.xlabel( "version" )
+
+    counts = [ i*3+1.2 for i in range( 0, len( mempeaks_pystone_27 ) ) ]
+
+    p27 = plt.bar( counts, mempeaks_pystone_27, width = 1, color = "orange" )
+    plt.xticks( counts, names_pystone )
+
+    plt.savefig( os.path.join( orig_dir, options.graphs_output_dir, "pystone-memory-nuitka.svg" ) )
+
+    plt.clf()
+
+    filename = os.path.join( orig_dir, options.graphs_output_dir, "..", "tables", "pystone-memory-nuitka.inc" )
+    with open( filename, "w" ) as output_file:
+        print >>output_file, """\
+.. csv-table:: Nuitka compiled Pystone binary size, raw numbers
+  :header: "Version", "Peak memory Python 2.6 based", "Peak memory Python 2.7 based"
+
+"""
+        for name, value26, value27 in zip( names_pystone, mempeaks_pystone_26, mempeaks_pystone_27 ):
+            print >>output_file, "  %s, %s, %s" % ( name, value26, value27 )
+
 
 
 if options.graphs_output_dir is not None:

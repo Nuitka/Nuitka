@@ -59,11 +59,9 @@ def _getBuiltinExceptionNames():
     except ImportError:
         exceptions = {}
 
-        for x in dir( sys.modules[ "builtins" ] ):
-            name = str( x )
-
-            if isExceptionName( name ):
-                exceptions[ name ] = x
+        for key, value in  sys.modules[ "builtins" ].__dict__.items():
+            if isExceptionName( key ):
+                exceptions[ key ] = value
 
         names = [
             key for key, value in exceptions.items()

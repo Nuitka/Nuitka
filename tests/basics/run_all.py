@@ -74,7 +74,7 @@ for filename in sorted( os.listdir( "." ) ):
         continue
 
     # Skip tests that require Python 3.2 at least.
-    if filename.endswith( "32.py" ) and not python_version.startswith( b"3.2" ):
+    if filename.endswith( "32.py" ) and not python_version.startswith( b"3" ):
         continue
 
     # The overflow functions test gives syntax error on Python 3.x and can be ignored.
@@ -89,7 +89,7 @@ for filename in sorted( os.listdir( "." ) ):
     extra_flags = [ "expect_success", "remove_output" ]
 
     if active:
-        if filename == "Referencing.py":
+        if filename in ( "Referencing.py", "Referencing32.py" ):
             debug_python = os.environ[ "PYTHON" ]
             if not debug_python.endswith( "-dbg" ):
                 debug_python += "-dbg"

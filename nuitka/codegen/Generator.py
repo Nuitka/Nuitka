@@ -43,8 +43,10 @@ from .OrderedEvaluation import getEvalOrderedCode
 
 from .ConstantCodes import (
     getConstantsInitCode,
+    getConstantsDeclCode,
     getConstantHandle,
-    getConstantCode
+    getConstantCode,
+    needsPickleInit
 )
 
 # These are here to be imported from here
@@ -673,7 +675,7 @@ def getLoopContinueCode( needs_exceptions ):
     if needs_exceptions:
         return "throw ContinueException();"
     else:
-        return "continue;"
+        return "CONSIDER_THREADING(); continue;"
 
 def getLoopBreakCode( needs_exceptions ):
     if needs_exceptions:
@@ -887,12 +889,24 @@ def getVariableAssignmentCode( context, variable, identifier ):
 
     if identifier.getCheapRefCount() == 0:
         identifier_code = identifier.getCodeTemporaryRef()
-        assign_code = "assign0"
+        assign_code = "0"
     else:
         identifier_code = identifier.getCodeExportRef()
-        assign_code = "assign1"
+        assign_code = "1"
 
-    return "%s.%s( %s );" % (
+    # TODO: Move the assignment code to the variable object.
+    if variable.isModuleVariable():
+        return "UPDATE_STRING_DICT%s( _moduledict_%s, (Nuitka_StringObject *)%s, %s );" % (
+            assign_code,
+            context.getModuleCodeName(),
+            getConstantCode(
+                constant = variable.getName(),
+                context  = context
+            ),
+            identifier_code
+        )
+
+    return "%s.assign%s( %s );" % (
         getVariableCode(
             variable = variable,
             context  = context
@@ -1173,7 +1187,13 @@ def getBuiltinRefCode( context, builtin_name ):
             constant = builtin_name,
             context  = context
         ),
-        0 if Utils.python_version < 300 else 1
+        0
+    )
+
+def getBuiltinOriginalRefCode( context, builtin_name ):
+    return Identifier(
+        "_python_original_builtin_value_%s" % builtin_name,
+        0
     )
 
 def getBuiltinAnonymousRefCode( builtin_name ):
@@ -1899,9 +1919,10 @@ def _getFuncKwDefaultValue( kw_defaults_identifier ):
     else:
         return Identifier( "kwdefaults", 1 )
 
-def getGeneratorFunctionCode( context, function_name, function_identifier, parameters,
-                              closure_variables, user_variables, defaults_identifier,
-                              kw_defaults_identifier, annotations_identifier, tmp_keepers,
+def getGeneratorFunctionCode( context, function_name, function_qualname, function_identifier,
+                              parameters, closure_variables, user_variables,
+                              defaults_identifier, kw_defaults_identifier,
+                              annotations_identifier, tmp_keepers,
                               function_codes, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
@@ -2109,6 +2130,14 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
     if annotations_identifier is None:
         annotations_identifier = NullIdentifier()
 
+    if Utils.python_version < 330 or function_qualname == function_name:
+        function_qualname_obj = "NULL"
+    else:
+        function_qualname_obj = getConstantCode(
+            constant = function_qualname,
+            context  = context
+        )
+
     if context.isForCreatedFunction():
         result += entry_point_code
 
@@ -2118,6 +2147,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
                     context  = context,
                     constant = function_name
                 ),
+                "function_qualname_obj"      : function_qualname_obj,
                 "function_identifier"        : function_identifier,
                 "fparse_function_identifier" : getParameterEntryPointIdentifier(
                     function_identifier = function_identifier,
@@ -2144,6 +2174,7 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
                     context  = context,
                     constant = function_name
                 ),
+                "function_qualname_obj"      : function_qualname_obj,
                 "function_identifier"        : function_identifier,
                 "fparse_function_identifier" : getParameterEntryPointIdentifier(
                     function_identifier = function_identifier,
@@ -2166,9 +2197,10 @@ def getGeneratorFunctionCode( context, function_name, function_identifier, param
 
     return result
 
-def getFunctionCode( context, function_name, function_identifier, parameters, closure_variables,
-                     user_variables, tmp_keepers, defaults_identifier, kw_defaults_identifier,
-                     annotations_identifier, function_codes, source_ref, function_doc ):
+def getFunctionCode( context, function_name, function_qualname, function_identifier,
+                     parameters, closure_variables, user_variables, tmp_keepers,
+                     defaults_identifier, kw_defaults_identifier, annotations_identifier,
+                     function_codes, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
 
@@ -2305,6 +2337,14 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
     if annotations_identifier is None:
         annotations_identifier = NullIdentifier()
 
+    if Utils.python_version < 330 or function_qualname == function_name:
+        function_qualname_obj = "NULL"
+    else:
+        function_qualname_obj = getConstantCode(
+            constant = function_qualname,
+            context  = context
+        )
+
     if context.isForCreatedFunction():
         code_identifier = context.getCodeObjectHandle(
             filename      = source_ref.getFilename(),
@@ -2319,6 +2359,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         if context_decl:
             result += CodeTemplates.make_function_with_context_template % {
                 "function_name_obj"          : function_name_obj,
+                "function_qualname_obj"      : function_qualname_obj,
                 "function_identifier"        : function_identifier,
                 "fparse_function_identifier" : getParameterEntryPointIdentifier(
                     function_identifier = function_identifier,
@@ -2340,6 +2381,7 @@ def getFunctionCode( context, function_name, function_identifier, parameters, cl
         else:
             result += CodeTemplates.make_function_without_context_template % {
                 "function_name_obj"          : function_name_obj,
+                "function_qualname_obj"      : function_qualname_obj,
                 "function_identifier"        : function_identifier,
                 "fparse_function_identifier" : getParameterEntryPointIdentifier(
                     function_identifier = function_identifier,
@@ -2386,28 +2428,6 @@ def getStatementTrace( source_desc, statement_repr ):
         source_desc,
         CppStrings.encodeString( statement_repr )
     )
-
-
-def _getConstantsDeclarationCode( context, for_header ):
-    statements = []
-
-    for _code_object_key, code_identifier in context.getCodeObjects():
-        declaration = "PyCodeObject *%s;" % code_identifier.getCode()
-
-        if for_header:
-            declaration = "extern " + declaration
-
-        statements.append( declaration )
-
-    for _constant_desc, constant_identifier in context.getConstants():
-        declaration = "PyObject *%s;" % constant_identifier
-
-        if for_header:
-            declaration = "extern " + declaration
-
-        statements.append( declaration )
-
-    return "\n".join( statements )
 
 def getReversionMacrosCode( context ):
     reverse_macros = []
@@ -2554,10 +2574,10 @@ def getMakeDictsCode( context ):
 
 def getConstantsDeclarationCode( context ):
     constants_declarations = CodeTemplates.template_constants_declaration % {
-        "constant_declarations" : _getConstantsDeclarationCode(
+        "constant_declarations" : getConstantsDeclCode(
             context    = context,
             for_header = True
-        ),
+        )
     }
 
     return CodeTemplates.template_header_guard % {
@@ -2567,13 +2587,14 @@ def getConstantsDeclarationCode( context ):
 
 def getConstantsDefinitionCode( context ):
     return CodeTemplates.template_constants_reading % {
+        "constant_declarations" : getConstantsDeclCode(
+            context    = context,
+            for_header = False
+        ),
         "constant_inits"        : getConstantsInitCode(
             context    = context
         ),
-        "constant_declarations" : _getConstantsDeclarationCode(
-            context    = context,
-            for_header = False
-        )
+        "needs_pickle"          : "true" if needsPickleInit() else "false"
     }
 
 def getCurrentExceptionTypeCode():

@@ -35,9 +35,10 @@ output_binary = os.path.join(
 )
 
 os.system(
-    "%s --exe --output-dir=%s --unstriped %s %s" % (
+    "%s --exe --output-dir=%s %s %s %s" % (
         nuitka_binary,
         tempdir,
+        "" if "number" in sys.argv else "--unstriped",
         os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ),
         input_file
     )
@@ -46,7 +47,9 @@ os.system(
 if not os.path.exists( output_binary ):
     print "Seeming failure of Nuitka to compile."
 
-log_file = ( basename[:-3] if input_file.endswith( ".py" ) else basename ) + ".log"
+
+log_base = basename[:-3] if input_file.endswith( ".py" ) else basename
+log_file = log_base + ".log"
 
 sys.stdout.flush()
 
@@ -64,6 +67,20 @@ if "number" in sys.argv:
             break
     else:
         assert False
+
+    log_mem = log_base + ".mem"
+    valgrind_options = "-q --tool=massif --massif-out-file=%s" % log_mem
+
+    subprocess.check_call( [ "valgrind" ] + valgrind_options.split() + [ output_binary ] )
+
+    max_mem = 0
+
+    for line in open( log_mem ):
+        if line.startswith( "mem_heap_B=" ):
+            mem = int( line.split("=")[1] )
+            max_mem = max( mem, max_mem )
+
+    print "MEM=%s" % max_mem
 
     shutil.rmtree( tempdir )
 else:

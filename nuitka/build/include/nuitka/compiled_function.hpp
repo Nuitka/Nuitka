@@ -83,15 +83,19 @@ extern PyTypeObject Nuitka_Function_Type;
 // Make a function without context.
 #if PYTHON_VERSION < 300
 extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc );
-#else
+#elif PYTHON_VERSION < 330
 extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc );
+#else
+extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc );
 #endif
 
 // Make a function with context.
 #if PYTHON_VERSION < 300
 extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, void *context, releaser cleanup );
-#else
+#elif PYTHON_VERSION < 330
 extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup );
+#else
+extern PyObject *Nuitka_Function_New( function_arg_parser code, method_arg_parser, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, void *context, releaser cleanup );
 #endif
 
 // Make a function that is only a yielder, no args.

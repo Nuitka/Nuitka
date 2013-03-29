@@ -24,7 +24,6 @@ from nuitka.nodes.VariableRefNodes import (
     StatementTempBlock
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTracebackRef,
@@ -45,25 +44,23 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence
 )
 from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
-from nuitka.nodes.TryNodes import StatementExceptHandler
+from nuitka.nodes.TryNodes import StatementTryFinally
 
-from .ReformulationTryExceptStatements import makeTryExceptNoRaise
+from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
+
 from .ReformulationAssignmentStatements import buildAssignmentStatements
 
-
 from .Helpers import (
+    makeStatementsSequenceFromStatement,
     makeStatementsSequence,
     buildStatementsNode,
     buildNode
 )
 
-def buildWithNode( provider, node, source_ref ):
-    # "with" statements are re-formulated as described in the developer manual. Catches
-    # exceptions, and provides them to "__exit__", while making the "__enter__" value
-    # available under a given name.
-
-    with_source = buildNode( provider, node.context_expr, source_ref )
+def _buildWithNode( provider, context_expr, assign_target, body, source_ref ):
+    with_source = buildNode( provider, context_expr, source_ref )
 
     result = StatementTempBlock(
         source_ref = source_ref
@@ -72,11 +69,12 @@ def buildWithNode( provider, node, source_ref ):
     tmp_source_variable = result.getTempVariable( "with_source" )
     tmp_exit_variable = result.getTempVariable( "with_exit" )
     tmp_enter_variable = result.getTempVariable( "with_enter" )
+    tmp_indicator_variable = result.getTempVariable( "indicator" )
 
     statements = (
         buildAssignmentStatements(
             provider   = provider,
-            node       = node.optional_vars,
+            node       = assign_target,
             allow_none = True,
             source     = ExpressionTempVariableRef(
                 variable   = tmp_enter_variable.makeReference( result ),
@@ -84,7 +82,7 @@ def buildWithNode( provider, node, source_ref ):
             ),
             source_ref = source_ref
         ),
-        buildStatementsNode( provider, node.body, source_ref )
+        body
     )
 
     with_body = makeStatementsSequence(
@@ -143,26 +141,44 @@ def buildWithNode( provider, node, source_ref ):
                 source_ref      = source_ref
             ),
             source_ref   = source_ref
-        )
+        ),
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_indicator_variable.makeReference( result ),
+                source_ref = source_ref
+            ),
+            source       = ExpressionConstantRef(
+                constant   = True,
+                source_ref = source_ref
+            ),
+            source_ref   = source_ref
+        ),
     ]
 
     source_ref = source_ref.atInternal()
 
     statements += [
-        makeTryExceptNoRaise(
-            tried      = with_body,
-            handlers   = (
-                StatementExceptHandler(
-                    exception_types = (
-                        ExpressionBuiltinExceptionRef(
-                            exception_name = "BaseException",
-                            source_ref     = source_ref
-                        ),
-                    ),
-                    body           = StatementsSequence(
+        StatementTryFinally(
+            tried      = makeStatementsSequenceFromStatement(
+                statement = makeTryExceptSingleHandlerNode(
+                    tried          = with_body,
+                    exception_name = "BaseException",
+                    handler_body   = StatementsSequence(
                         statements = (
+                            # Prevents final block from calling __exit__ as well.
+                            StatementAssignmentVariable(
+                                variable_ref = ExpressionTargetTempVariableRef(
+                                    variable   = tmp_indicator_variable.makeReference( result ),
+                                    source_ref = source_ref
+                                ),
+                                source       = ExpressionConstantRef(
+                                    constant   = False,
+                                    source_ref = source_ref
+                                ),
+                                source_ref   = source_ref
+                            ),
                             StatementConditional(
-                                condition     = ExpressionCallNoKeywords(
+                                condition  = ExpressionCallNoKeywords(
                                     called          = ExpressionTempVariableRef(
                                         variable   = tmp_exit_variable.makeReference( result ),
                                         source_ref = source_ref
@@ -183,19 +199,16 @@ def buildWithNode( provider, node, source_ref ):
                                     ),
                                     source_ref      = source_ref
                                 ),
-                                no_branch = StatementsSequence(
-                                    statements = (
-                                        StatementRaiseException(
-                                            exception_type  = None,
-                                            exception_value = None,
-                                            exception_trace = None,
-                                            exception_cause = None,
-                                            source_ref      = source_ref
-                                        ),
-                                    ),
-                                    source_ref = source_ref
+                                no_branch  = makeStatementsSequenceFromStatement(
+                                    statement = StatementRaiseException(
+                                        exception_type  = None,
+                                        exception_value = None,
+                                        exception_trace = None,
+                                        exception_cause = None,
+                                        source_ref      = source_ref
+                                    )
                                 ),
-                                yes_branch  = None,
+                                yes_branch = None,
                                 source_ref = source_ref
                             ),
                         ),
@@ -204,24 +217,38 @@ def buildWithNode( provider, node, source_ref ):
                     source_ref = source_ref
                 ),
             ),
-            no_raise   = StatementsSequence(
-                statements = (
-                    StatementExpressionOnly(
-                        expression = ExpressionCallNoKeywords(
-                            called     = ExpressionTempVariableRef(
-                                variable   = tmp_exit_variable.makeReference( result ),
-                                source_ref = source_ref
-                            ),
-                            args       = ExpressionConstantRef(
-                                constant   = ( None, None, None ),
-                                source_ref = source_ref
-                            ),
+            final      = makeStatementsSequenceFromStatement(
+                statement = StatementConditional(
+                    condition      = ExpressionComparisonIs(
+                        left       = ExpressionTempVariableRef(
+                            variable   = tmp_indicator_variable.makeReference( result ),
                             source_ref = source_ref
                         ),
-                        source_ref     = source_ref
+                        right      = ExpressionConstantRef(
+                            constant    = True,
+                            source_ref = source_ref
+                        ),
+                        source_ref = source_ref
                     ),
-                ),
-                source_ref     = source_ref
+                    yes_branch = makeStatementsSequenceFromStatement(
+                        statement = StatementExpressionOnly(
+                            expression = ExpressionCallNoKeywords(
+                                called     = ExpressionTempVariableRef(
+                                    variable   = tmp_exit_variable.makeReference( result ),
+                                    source_ref = source_ref
+                                ),
+                                args       = ExpressionConstantRef(
+                                    constant   = ( None, None, None ),
+                                    source_ref = source_ref
+                                ),
+                                source_ref = source_ref
+                            ),
+                            source_ref     = source_ref
+                        )
+                    ),
+                    no_branch  = None,
+                    source_ref = source_ref
+                )
             ),
             source_ref = source_ref
         )
@@ -235,3 +262,35 @@ def buildWithNode( provider, node, source_ref ):
     )
 
     return result
+
+def buildWithNode( provider, node, source_ref ):
+    # "with" statements are re-formulated as described in the developer manual. Catches
+    # exceptions, and provides them to "__exit__", while making the "__enter__" value
+    # available under a given name.
+
+    # Before Python3.3, multiple context managers are not visible in the parse tree, now
+    # we need to handle it ourselves.
+    if hasattr( node, "items" ):
+        context_exprs = [ item.context_expr for item in node.items ]
+        assign_targets = [ item.optional_vars for item in node.items ]
+    else:
+        # Make it a list for before Python3.3
+        context_exprs = [ node.context_expr ]
+        assign_targets = [ node.optional_vars ]
+
+
+    # The body for the first context manager is the other things.
+    body = buildStatementsNode( provider, node.body, source_ref )
+
+    assert len( context_exprs ) > 0 and len( context_exprs ) == len( assign_targets )
+
+    for context_expr, assign_target in zip( reversed( context_exprs ), reversed( assign_targets ) ):
+        body = _buildWithNode(
+            provider      = provider,
+            body          = body,
+            context_expr  = context_expr,
+            assign_target = assign_target,
+            source_ref    = source_ref
+        )
+
+    return body

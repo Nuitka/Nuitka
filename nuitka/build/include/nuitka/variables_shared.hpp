@@ -90,7 +90,7 @@ public:
         else if ( !tolerant )
         {
             PyErr_Format( PyExc_NameError, "free variable '%s' referenced before assignment in enclosing scope", Nuitka_String_AsString( this->var_name ) );
-            throw _PythonException();
+            throw PythonException();
         }
 
         this->object = NULL;
@@ -191,7 +191,7 @@ public:
                 Nuitka_String_AsString( this->storage->getVarName() )
             );
 
-            throw _PythonException();
+            throw PythonException();
         }
 
         if ( Py_REFCNT( this->storage->object ) == 0 )
@@ -202,7 +202,7 @@ public:
                 Nuitka_String_AsString( this->storage->getVarName() )
             );
 
-            throw _PythonException();
+            throw PythonException();
         }
 
         return this->storage->object;
@@ -239,7 +239,7 @@ public:
 
             if (unlikely( status == -1 ))
             {
-                throw _PythonException();
+                throw PythonException();
             }
         }
 
@@ -259,7 +259,7 @@ public:
 
             if (unlikely( status == -1 ))
             {
-                throw _PythonException();
+                throw PythonException();
             }
         }
 
@@ -296,7 +296,7 @@ public:
                 Nuitka_String_AsString( this->storage->getVarName() )
             );
 
-            throw _PythonException();
+            throw PythonException();
         }
 
         if ( Py_REFCNT( this->storage->object ) == 0 )
@@ -307,7 +307,7 @@ public:
                 Nuitka_String_AsString( this->storage->getVarName() )
             );
 
-            throw _PythonException();
+            throw PythonException();
         }
 
         return this->storage->object;

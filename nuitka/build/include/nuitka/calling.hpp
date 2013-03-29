@@ -45,12 +45,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION( EVAL_ORDERED_3( PyObject *
             function_object->ob_type->tp_name
         );
 
-        throw _PythonException();
+        throw PythonException();
     }
 
     if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object") ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     PyObject *result = (*call_slot)( function_object, positional_args, named_args );
@@ -67,7 +67,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION( EVAL_ORDERED_3( PyObject *
             );
         }
 
-        throw _PythonException();
+        throw PythonException();
     }
     else
     {

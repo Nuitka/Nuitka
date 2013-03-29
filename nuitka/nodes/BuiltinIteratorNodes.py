@@ -165,7 +165,7 @@ class ExpressionBuiltinIter1( ExpressionBuiltinSingleArgBase ):
         if self.getValue().isCompileTimeConstant():
             return self.getValue().isKnownToBeIterable( None )
 
-        return None
+        return True
 
 
 class ExpressionBuiltinNext1( ExpressionBuiltinSingleArgBase ):
@@ -183,7 +183,8 @@ class ExpressionBuiltinNext1( ExpressionBuiltinSingleArgBase ):
         )
 
     def computeExpression( self, constraint_collection ):
-        if not Options.isExperimental():
+        # TODO: Enable below code once safer.
+        if True or not Options.isExperimental():
             return self, None, None
 
         target = self.getValue().getValueFriend( constraint_collection )

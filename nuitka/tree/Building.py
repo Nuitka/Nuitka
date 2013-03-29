@@ -44,7 +44,7 @@ from nuitka import (
     Utils
 )
 
-from nuitka.nodes.FutureSpec import FutureSpec
+from nuitka.nodes.FutureSpecs import FutureSpec
 
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetVariableRef,
@@ -93,7 +93,8 @@ from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.ModuleNodes import (
     PythonPackage,
-    PythonModule
+    PythonModule,
+    PythonMainModule
 )
 from nuitka.nodes.TryNodes import StatementTryFinally
 
@@ -160,6 +161,8 @@ from .Helpers import (
 from .SourceReading import readSourceCodeFromFilename
 
 import ast, sys
+
+from logging import warning
 
 def buildVariableReferenceNode( provider, node, source_ref ):
     # Python3 is influenced by the mere use of a variable name. So we need to remember it,
@@ -502,6 +505,9 @@ def enableFutureFeature( object_name, future_spec, source_ref ):
             source_ref
         )
 
+# For checking afterwards, if it was at the beginning of the file.
+_future_import_nodes = []
+
 def buildImportFromNode( provider, node, source_ref ):
     # "from .. import .." statements. This may trigger a star import, or multiple names
     # being looked up from the given module variable name.
@@ -521,6 +527,10 @@ def buildImportFromNode( provider, node, source_ref ):
                 future_spec = source_ref.getFutureSpec(),
                 source_ref  = source_ref
             )
+
+        # Remember it for checks to be applied once module is complete.
+        node.source_ref = source_ref
+        _future_import_nodes.append( node )
 
     target_names = []
     import_names = []
@@ -651,6 +661,10 @@ def buildExecNode( provider, node, source_ref ):
 
 def handleGlobalDeclarationNode( provider, node, source_ref ):
     # The source reference of the global really doesn't matter, pylint: disable=W0613
+
+    # On the module level, there is nothing to do.
+    if provider.isPythonModule():
+        return None
 
     # Need to catch the error of declaring a parameter variable as global ourselves
     # here. The AST parsing doesn't catch it.
@@ -927,6 +941,18 @@ def buildParseTree( provider, source_code, source_ref ):
         frame      = True
     )
 
+    # Check if a __future__ imports really were at the beginning of the file.
+    for node in body:
+        if node in _future_import_nodes:
+            _future_import_nodes.remove( node )
+        else:
+            if _future_import_nodes:
+                SyntaxErrors.raiseSyntaxError(
+                    reason     = "from __future__ imports must occur at the beginning of the file",
+                    col_offset = 1 if Utils.python_version >= 300 or not Options.isFullCompat() else None,
+                    source_ref = _future_import_nodes[0].source_ref
+                )
+
     internal_source_ref = source_ref.atInternal()
 
     statements = []
@@ -939,20 +965,6 @@ def buildParseTree( provider, source_code, source_ref ):
             ),
             source       = ExpressionConstantRef(
                 constant   = doc,
-                source_ref = internal_source_ref
-            ),
-            source_ref   = internal_source_ref
-        )
-    )
-
-    statements.append(
-        StatementAssignmentVariable(
-            variable_ref = ExpressionTargetVariableRef(
-                variable_name = "__file__",
-                source_ref    = internal_source_ref
-            ),
-            source       = ExpressionConstantRef(
-                constant   = source_ref.getFilename(),
                 source_ref = internal_source_ref
             ),
             source_ref   = internal_source_ref
@@ -1022,6 +1034,43 @@ def buildParseTree( provider, source_code, source_ref ):
             )
         )
 
+    if Utils.python_version >= 330:
+        # Set initialzing at the beginning to True
+        statements.append(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetVariableRef(
+                    variable_name = "__initializing__",
+                    source_ref    = internal_source_ref
+                ),
+                source       = ExpressionConstantRef(
+                    constant   = True,
+                    source_ref = internal_source_ref
+                ),
+                source_ref   = internal_source_ref
+            )
+        )
+
+
+    # Now the module body if there is any at all.
+    if result is not None:
+        statements.extend( result.getStatements() )
+
+    if Utils.python_version >= 330:
+        # Set initialzing at the beginning to True
+        statements.append(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetVariableRef(
+                    variable_name = "__initializing__",
+                    source_ref    = internal_source_ref
+                ),
+                source       = ExpressionConstantRef(
+                    constant   = False,
+                    source_ref = internal_source_ref
+                ),
+                source_ref   = internal_source_ref
+            )
+        )
+
     if result is None:
         result = makeStatementsSequence(
             statements = statements,
@@ -1029,8 +1078,6 @@ def buildParseTree( provider, source_code, source_ref ):
             allow_none = False
         )
     else:
-        statements.extend( result.getStatements() )
-
         result.setStatements( statements )
 
     provider.setBody( result )
@@ -1040,17 +1087,35 @@ def buildParseTree( provider, source_code, source_ref ):
 imported_modules = {}
 
 def addImportedModule( module_relpath, imported_module ):
-    imported_modules[ module_relpath ] = imported_module
+    if ( module_relpath, "__main__" ) in imported_modules:
+        warning( "Re-importing __main__ module via its filename duplicates the module." )
+
+    key = module_relpath, imported_module.getName()
+
+    imported_modules[ key ] = imported_module
 
 def isImportedPath( module_relpath ):
-    return module_relpath in imported_modules
+    module_name = Utils.basename( module_relpath )
+
+    if module_name.endswith( ".py" ):
+        module_name = module_name[:-3]
+
+    key = module_relpath, module_name
+
+    return key in imported_modules
 
 def getImportedModule( module_relpath ):
-    return imported_modules[ module_relpath ]
+    module_name = Utils.basename( module_relpath )
+
+    if module_name.endswith( ".py" ):
+        module_name = module_name[:-3]
+
+    key = module_relpath, module_name
+
+    return imported_modules[ key ]
 
 def getImportedModules():
     return imported_modules.values()
-
 
 def buildModuleTree( filename, package, is_top, is_main ):
     # Many variables, branches, due to the many cases, pylint: disable=R0912
@@ -1070,6 +1135,10 @@ def buildModuleTree( filename, package, is_top, is_main ):
             sys.exit( 2 )
 
         filename = source_filename
+
+        main_added = True
+    else:
+        main_added = False
 
     if Utils.isFile( filename ):
         source_filename = filename
@@ -1096,12 +1165,17 @@ def buildModuleTree( filename, package, is_top, is_main ):
 
                 sys.exit( 2 )
 
-        result = PythonModule(
-            name       = module_name,
-            package    = package,
-            is_main    = is_main,
-            source_ref = source_ref
-        )
+        if is_main:
+            result = PythonMainModule(
+                source_ref = source_ref,
+                main_added = main_added
+            )
+        else:
+            result = PythonModule(
+                name       = module_name,
+                package    = package,
+                source_ref = source_ref
+            )
     elif Utils.isDir( filename ) and Utils.isFile( Utils.joinpath( filename, "__init__.py" ) ):
         source_filename = Utils.joinpath( filename, "__init__.py" )
 

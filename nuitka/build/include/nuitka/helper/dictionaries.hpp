@@ -84,16 +84,6 @@ static PyObject *GET_STRING_DICT_VALUE( PyDictObject *dict, Nuitka_StringObject 
     return GET_STRING_DICT_ENTRY( dict, key )->me_value;
 }
 
-// Quick module lookup for a string value.
-NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE( PyModuleObject *module, Nuitka_StringObject *key )
-{
-    // Idea similar to LOAD_GLOBAL in CPython. Because the variable name is a string, we
-    // can shortcut much of the dictionary code by using its hash and dictionary knowledge
-    // here.
-
-    return GET_STRING_DICT_VALUE( MODULE_DICT( module ), key );
-}
-
 #else
 
 // Quick dictionary lookup for a string value.
@@ -164,16 +154,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE( PyDictObject *dict,
     return GET_DICT_ENTRY_VALUE( handle );
 }
 
-// Quick module lookup for a string value.
-NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE( PyModuleObject *module, Nuitka_StringObject *key )
-{
-    // Idea similar to LOAD_GLOBAL in CPython. Because the variable name is a string, we
-    // can shortcut much of the dictionary code by using its hash and dictionary knowledge
-    // here.
-
-    return GET_STRING_DICT_VALUE( MODULE_DICT( module ), key );
-}
-
 #endif
 
 NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, PyObject *value )
@@ -182,8 +162,13 @@ NUITKA_MAY_BE_UNUSED static void DICT_SET_ITEM( PyObject *dict, PyObject *key, P
 
     if (unlikely( status == -1 ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
+}
+
+NUITKA_MAY_BE_UNUSED static inline void DICT_SET_ITEM( PyDictObject *dict, PyObject *key, PyObject *value )
+{
+    return DICT_SET_ITEM( (PyObject *)dict, key, value );
 }
 
 NUITKA_MAY_BE_UNUSED static void DICT_REMOVE_ITEM( PyObject *dict, PyObject *key )
@@ -192,7 +177,7 @@ NUITKA_MAY_BE_UNUSED static void DICT_REMOVE_ITEM( PyObject *dict, PyObject *key
 
     if (unlikely( status == -1 ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 }
 
@@ -210,11 +195,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *DICT_GET_ITEM( PyObject *dict, PyObject *k
     {
         if (unlikely( PyErr_Occurred() ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
 
         PyErr_SetObject( PyExc_KeyError, key );
-        throw _PythonException();
+        throw PythonException();
     }
     else
     {
@@ -243,7 +228,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict
 
         if ( res == -1 )
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }
 
@@ -253,7 +238,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict
 
         if ( res == -1 )
         {
-            throw _PythonException();
+            throw PythonException();
         }
 
     }
@@ -261,6 +246,47 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict
     return result;
 }
 
+NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0( PyDictObject *dict, Nuitka_StringObject *key, PyObject *value )
+{
+    Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY( dict, key );
+
+    PyObject *old = GET_DICT_ENTRY_VALUE( entry );
+
+    // Values are more likely (more often) set than not set, in that case speculatively
+    // try the quickest access method.
+    if (likely( old != NULL ))
+    {
+        SET_DICT_ENTRY_VALUE( entry, INCREASE_REFCOUNT( value ) );
+
+        Py_DECREF( old );
+    }
+    else
+    {
+        DICT_SET_ITEM( dict, (PyObject *)key, value );
+    }
+}
+
+NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1( PyDictObject *dict, Nuitka_StringObject *key, PyObject *value )
+{
+    Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY( dict, key );
+
+    PyObject *old = GET_DICT_ENTRY_VALUE( entry );
+
+    // Values are more likely (more often) set than not set, in that case speculatively
+    // try the quickest access method.
+    if (likely( old != NULL ))
+    {
+        SET_DICT_ENTRY_VALUE( entry, value );
+
+        Py_DECREF( old );
+    }
+    else
+    {
+        DICT_SET_ITEM( dict, (PyObject *)key, value );
+
+        Py_DECREF( value );
+    }
+}
 
 
 #endif

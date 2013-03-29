@@ -24,13 +24,13 @@ from .CppStrings import encodeString
 from .Indentation import indented
 
 # pylint: disable=W0622
-from ..__past__ import unicode, long
+from ..__past__ import unicode, long, iterItems
 # pylint: enable=W0622
 
 from ..Utils import python_version
-from ..Constants import compareConstants
+from ..Constants import HashableConstant
 
-import re
+import re, struct
 
 def getConstantHandle( context, constant ):
     return context.getConstantHandle( constant )
@@ -49,12 +49,20 @@ _match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
 def _isAttributeName( value ):
     return _match_attribute_names.match( value )
 
+_needs_pickle = False
+
+def needsPickleInit():
+    return _needs_pickle
+
 def _getUnstreamCode( constant_value, constant_identifier ):
     saved = getStreamedConstant(
         constant_value = constant_value
     )
 
     assert type( saved ) is bytes
+
+    global _needs_pickle
+    _needs_pickle = True
 
     return "%s = UNSTREAM_CONSTANT( %s, %d );" % (
         constant_identifier,
@@ -63,191 +71,231 @@ def _getUnstreamCode( constant_value, constant_identifier ):
     )
 
 
+def _addConstantInitCode( context, emit, constant_type, constant_value, constant_identifier ):
+    # Use shortest code for ints and longs, except when they are big, then fall fallback
+    # to pickling. TODO: Avoid the use of pickle even for larger values.
+    if constant_type is int and abs( constant_value ) < 2**31:
+        emit(
+            "%s = PyInt_FromLong( %s );" % (
+                constant_identifier,
+                constant_value
+            )
+        )
+
+        return
+
+    # See above, same for long values. Note: These are of course not existant with Python3
+    # which would have covered it before.
+    if constant_type is long and abs( constant_value ) < 2**31:
+        emit (
+            "%s = PyLong_FromLong( %s );" % (
+                constant_identifier,
+                constant_value
+            )
+        )
+
+        return
+
+    # Strings that can be encoded as UTF-8 are done more or less directly. When they
+    # cannot be expressed as UTF-8, that is rare not we can indeed use pickling.
+    if constant_type is str:
+        if str is not unicode:
+            emit(
+                "%s = UNSTREAM_STRING( %s, %d, %d );assert( %s );" % (
+                    constant_identifier,
+                    encodeString( constant_value ),
+                    len( constant_value ),
+                    1 if _isAttributeName( constant_value ) else 0,
+                    constant_identifier
+                )
+            )
+
+            return
+        else:
+            try:
+                encoded = constant_value.encode( "utf-8" )
+
+                emit(
+                    "%s = UNSTREAM_STRING( %s, %d, %d );assert( %s );" % (
+                        constant_identifier,
+                        encodeString( encoded ),
+                        len( encoded ),
+                        1 if _isAttributeName( constant_value ) else 0,
+                        constant_identifier
+                    )
+                )
+
+                return
+            except UnicodeEncodeError:
+                # So fall back to below code, which will unstream it then.
+                pass
+
+    if constant_type is float:
+        emit(
+            "%s = UNSTREAM_FLOAT( %s );" % (
+                constant_identifier,
+                encodeString( struct.pack( ">d", constant_value ) )
+            )
+        )
+
+        return
+
+    if constant_value is None:
+        return
+
+    if constant_value is False:
+        return
+
+    if constant_value is True:
+        return
+
+    if constant_type is dict:
+        if constant_value == {}:
+            emit( "%s = PyDict_New();" % constant_identifier )
+        else:
+            length = len( constant_value )
+            context.addMakeDictUse( length )
+
+            for key, value in iterItems( constant_value ):
+                _addConstantInitCode(
+                    emit                = emit,
+                    constant_type       = type( key ),
+                    constant_value      = key,
+                    constant_identifier = context.getConstantCodeName( key ),
+                    context             = context
+                )
+                _addConstantInitCode(
+                    emit                = emit,
+                    constant_type       = type( value ),
+                    constant_value      = value,
+                    constant_identifier = context.getConstantCodeName( value ),
+                    context             = context
+                )
+
+            emit(
+                "%s = MAKE_DICT%d( %s );" % (
+                    constant_identifier,
+                    length,
+                    ", ".join(
+                        context.getConstantCodeName( value ) + "," + context.getConstantCodeName( key )
+                        for key, value
+                        in
+                        iterItems( constant_value )
+                    )
+                )
+            )
+
+        return
+
+    if constant_type is tuple:
+        if constant_value == ():
+            emit( "%s = PyTuple_New( 0 );" % constant_identifier )
+        else:
+            length = len( constant_value )
+            context.addMakeTupleUse( length )
+
+            # Make elements earlier than tuple itself.
+            for element in constant_value:
+                _addConstantInitCode(
+                    emit                = emit,
+                    constant_type       = type( element ),
+                    constant_value      = element,
+                    constant_identifier = context.getConstantCodeName( element ),
+                    context             = context
+                )
+
+            emit(
+                "%s = MAKE_TUPLE%d( %s );" % (
+                    constant_identifier,
+                    length,
+                    ", ".join(
+                        context.getConstantCodeName( element )
+                        for element
+                        in
+                        constant_value
+                    )
+                )
+            )
+
+        return
+
+    if constant_type is list:
+        if constant_value == []:
+            emit( "%s = PyList_New( 0 );" % constant_identifier )
+        else:
+            length = len( constant_value )
+            context.addMakeListUse( length )
+
+            # Make elements earlier than list itself.
+            for element in constant_value:
+                _addConstantInitCode(
+                    emit                = emit,
+                    constant_type       = type( element ),
+                    constant_value      = element,
+                    constant_identifier = context.getConstantCodeName( element ),
+                    context             = context
+                )
+
+            emit(
+                "%s = MAKE_LIST%d( %s );" % (
+                    constant_identifier,
+                    length,
+                    ", ".join(
+                        context.getConstantCodeName( element )
+                        for element
+                        in
+                        constant_value
+                    )
+                )
+            )
+
+        return
+
+    if constant_type is list and constant_value == []:
+        emit( "%s = PyList_New( 0 );" % constant_identifier )
+
+        return
+
+    if constant_type is set and constant_value == set():
+        emit( "%s = PySet_New( NULL );" % constant_identifier )
+
+        return
+
+
+    if constant_type in ( set, frozenset, complex, unicode, int, long, bytes, range ):
+        emit(  _getUnstreamCode( constant_value, constant_identifier ) )
+
+        return
+
+    assert False, (type(constant_value), constant_value, constant_identifier)
+
+def _lengthKey( value ):
+    return len( value[1] ), value[1]
+
 def getConstantsInitCode( context ):
     # There are many cases for constants to be created in the most efficient way,
     # pylint: disable=R0912
 
     statements = []
 
-    # Generate tuples first, so we can pick from their values.
-    tuple_constants = []
+    all_constants = context.getContainedConstants()
+    all_constants.update( context.getConstants() )
 
-    # Generate dictionaries last, so they can benefit from interned strings.
-    later_constants = []
+    def receiveStatement( statement ):
+        assert statement is not None
 
-    # The constants descriptions, get them only once, as this implies a sorting to occur.
-    constants = context.getConstants()
+        if statement not in statements:
+            statements.append( statement )
 
-    for constant_desc, constant_identifier in constants:
-        constant_type, constant_value = constant_desc
-        constant_value = constant_value.getConstant()
-
-        if constant_type is tuple:
-            tuple_constants.append( ( constant_value, constant_identifier ) )
-
-            statements.append(
-                _getUnstreamCode( constant_value, constant_identifier )
-            )
-
-        if constant_type in ( dict, list, set, frozenset ):
-            later_constants.append( ( constant_desc, constant_identifier ) )
-
-
-    for constant_desc, constant_identifier in constants:
-        constant_type, constant_value = constant_desc
-        constant_value = constant_value.getConstant()
-
-        # These have been dealt with already.
-        if constant_type in ( tuple, dict, list, set ):
-            continue
-
-        # Search value in tuple constants from above.
-        found = False
-        for tuple_constant_value, tuple_constant_identifier in tuple_constants:
-            for count, tuple_element in enumerate( tuple_constant_value ):
-                if compareConstants( tuple_element, constant_value ):
-                    statements.append(
-                        "%s = INCREASE_REFCOUNT( PyTuple_GET_ITEM( %s, %s ) );" % (
-                            constant_identifier,
-                            tuple_constant_identifier,
-                            count
-                        )
-                    )
-
-                    if constant_type is str and _isAttributeName( constant_value ):
-                        statements.append(
-                            "Nuitka_StringIntern( &%s );" % constant_identifier
-                        )
-
-                        statements.append(
-                            "PyTuple_SET_ITEM( %s, %s, %s );" % (
-                                tuple_constant_identifier,
-                                count,
-                                constant_identifier,
-                            )
-                        )
-
-                    found = True
-                    break
-            if found:
-                break
-
-        if found:
-            continue
-
-        # Use shortest code for ints and longs, except when they are big, then fall
-        # fallback to pickling.
-        if constant_type is int and abs( constant_value ) < 2**31:
-            statements.append(
-                "%s = PyInt_FromLong( %s );" % (
-                    constant_identifier,
-                    constant_value
-                )
-            )
-
-            continue
-
-        if constant_type is long and abs( constant_value ) < 2**31:
-            statements.append(
-                "%s = PyLong_FromLong( %s );" % (
-                    constant_identifier,
-                    constant_value
-                )
-            )
-
-            continue
-
-        if constant_type is str:
-            if str is not unicode:
-                statements.append(
-                    '%s = UNSTREAM_STRING( %s, %d, %d );assert( %s );' % (
-                        constant_identifier,
-                        encodeString( constant_value ),
-                        len( constant_value ),
-                        1 if _isAttributeName( constant_value ) else 0,
-                        constant_identifier
-                    )
-                )
-
-                continue
-            else:
-                try:
-                    encoded = constant_value.encode( "utf-8" )
-
-                    statements.append(
-                        '%s = UNSTREAM_STRING( %s, %d, %d );assert( %s );' % (
-                            constant_identifier,
-                            encodeString( encoded ),
-                            len( encoded ),
-                            1 if _isAttributeName( constant_value ) else 0,
-                            constant_identifier
-                        )
-                    )
-
-                    continue
-                except UnicodeEncodeError:
-                    # So fall back to below code, which will unstream it then.
-                    pass
-
-        if constant_value is None:
-            continue
-
-        if constant_value is False:
-            continue
-
-        if constant_value is True:
-            continue
-
-        if constant_type in ( float, complex, unicode, int, long, bytes, range ):
-            statements.append(
-                _getUnstreamCode( constant_value, constant_identifier )
-            )
-
-            continue
-
-        assert False, (type(constant_value), constant_value, constant_identifier)
-
-    for constant_desc, constant_identifier in later_constants:
-        constant_type, constant_value = constant_desc
-        constant_value = constant_value.getConstant()
-
-        if constant_type is dict and constant_value == {}:
-            statements.append(
-                "%s = PyDict_New();" % constant_identifier
-            )
-
-            continue
-
-        if constant_type is tuple and constant_value == ():
-            statements.append(
-                "%s = PyTuple_New( 0 );" % constant_identifier
-            )
-
-            continue
-
-        if constant_type is list and constant_value == []:
-            statements.append(
-                "%s = PyList_New( 0 );" % constant_identifier
-            )
-
-            continue
-
-        if constant_type is set and constant_value == set():
-            statements.append(
-                "%s = PySet_New( NULL );" % constant_identifier
-            )
-
-            continue
-
-        if constant_type in ( dict, list, set, frozenset ):
-            statements.append(
-                _getUnstreamCode( constant_value, constant_identifier )
-            )
-
-            continue
-
-        assert False, (type(constant_value), constant_value, constant_identifier)
-
+    for ( constant_type, constant_value ), constant_identifier in \
+          sorted( all_constants.items(), key = _lengthKey ):
+        _addConstantInitCode(
+            emit                = receiveStatement,
+            constant_type       = constant_type,
+            constant_value      = constant_value.getConstant(),
+            constant_identifier = constant_identifier,
+            context             = context
+        )
 
     for code_object_key, code_identifier in context.getCodeObjects():
         co_flags = []
@@ -305,3 +353,67 @@ def getConstantsInitCode( context ):
         statements.append( code )
 
     return indented( statements )
+
+def getConstantsDeclCode( context, for_header ):
+    statements = []
+
+    for _code_object_key, code_identifier in context.getCodeObjects():
+        declaration = "PyCodeObject *%s;" % code_identifier.getCode()
+
+        if for_header:
+            declaration = "extern " + declaration
+
+        statements.append( declaration )
+
+    constants = context.getConstants()
+    contained_constants = {}
+
+    def considerForDeferral( constant_value ):
+        if constant_value is None:
+            return
+
+        if constant_value is False:
+            return
+
+        if constant_value is True:
+            return
+
+        constant_identifier = context.getConstantCodeName( constant_value )
+
+        constant_type = type( constant_value )
+        key = constant_type, HashableConstant( constant_value )
+
+        if key not in contained_constants:
+            contained_constants[ key ] = constant_identifier
+
+            if constant_type in ( tuple, list ):
+                for element in constant_value:
+                    considerForDeferral( element )
+
+            if constant_type is dict:
+                for key, value in iterItems( constant_value ):
+                    considerForDeferral( key )
+                    considerForDeferral( value )
+
+
+    for ( constant_type, constant_value ), constant_identifier in sorted( constants.items(), key = _lengthKey ):
+        declaration = "PyObject *%s;" % constant_identifier
+
+        if for_header:
+            declaration = "extern " + declaration
+        else:
+            if constant_type in ( tuple, dict, list ):
+                considerForDeferral( constant_value.getConstant() )
+
+        statements.append( declaration )
+
+    for key, value in sorted( contained_constants.items(), key = _lengthKey ):
+        if key not in constants:
+            declaration = "static PyObject *%s;" % value
+
+            statements.append( declaration )
+
+    if not for_header:
+        context.setContainedConstants( contained_constants )
+
+    return "\n".join( statements )

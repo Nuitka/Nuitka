@@ -24,7 +24,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_LIST( PyObject *seq_obj )
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -36,7 +36,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_TUPLE( PyObject *seq_obj )
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -50,7 +50,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_SEQUENCE_CONTAINS( EVAL_ORDERED_2( PyObje
 
     if (unlikely( result == -1 ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return BOOL_FROM( result == 1 );
@@ -64,7 +64,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_SEQUENCE_CONTAINS_NOT( EVAL_ORDERED_2( Py
 
     if (unlikely( result == -1 ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return BOOL_FROM( result == 0 );
@@ -78,7 +78,7 @@ NUITKA_MAY_BE_UNUSED static bool _SEQUENCE_CONTAINS_BOOL( EVAL_ORDERED_2( PyObje
 
     if (unlikely( result == -1 ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result == 1;
@@ -92,7 +92,7 @@ NUITKA_MAY_BE_UNUSED static bool _SEQUENCE_CONTAINS_NOT_BOOL( EVAL_ORDERED_2( Py
 
     if (unlikely( result == -1 ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result == 0;
@@ -115,7 +115,7 @@ NUITKA_MAY_BE_UNUSED static void SEQUENCE_SETITEM( PyObject *sequence, Py_ssize_
 
                 if ( length < 0 )
                 {
-                    throw _PythonException();
+                    throw PythonException();
                 }
 
                 index += length;
@@ -126,7 +126,7 @@ NUITKA_MAY_BE_UNUSED static void SEQUENCE_SETITEM( PyObject *sequence, Py_ssize_
 
         if (unlikely( res == -1 ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }
     else
@@ -137,7 +137,7 @@ NUITKA_MAY_BE_UNUSED static void SEQUENCE_SETITEM( PyObject *sequence, Py_ssize_
             Py_TYPE( sequence )->tp_name
         );
 
-        throw _PythonException();
+        throw PythonException();
     }
 }
 

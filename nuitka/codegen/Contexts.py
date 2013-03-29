@@ -35,6 +35,8 @@ from nuitka.__past__ import iterItems
 
 from nuitka.Utils import python_version
 
+from nuitka import Options
+
 # False alarms about "hashlib.md5" due to its strange way of defining what is
 # exported, pylint won't understand it. pylint: disable=E1101
 
@@ -139,6 +141,7 @@ class PythonChildContextBase( PythonContextBase ):
 class PythonGlobalContext:
     def __init__( self ):
         self.constants = {}
+        self.contained_constants = {}
 
         # Basic values that the code uses all the times.
         self.getConstantHandle( () )
@@ -186,6 +189,16 @@ class PythonGlobalContext:
         self.getConstantHandle( "print" )
         self.getConstantHandle( "__import__" )
 
+        # Names of builtins replace, maybe used by helpers
+        if Options.isDebug and not Options.shallMakeModule():
+            self.getConstantHandle( "type" )
+            self.getConstantHandle( "len" )
+            self.getConstantHandle( "range" )
+            self.getConstantHandle( "repr" )
+            self.getConstantHandle( "int" )
+            self.getConstantHandle( "iter" )
+            self.getConstantHandle( "long" )
+
         # The print builtin needs some argument names.
         self.getConstantHandle( "end" )
         self.getConstantHandle( "file" )
@@ -231,8 +244,27 @@ class PythonGlobalContext:
 
             return ConstantIdentifier( self.constants[ key ], constant )
 
+    def getConstantCodeName( self, constant ):
+        if constant is None:
+            return SpecialConstantIdentifier( None ).getCode()
+        elif constant is True:
+            return SpecialConstantIdentifier( True ).getCode()
+        elif constant is False:
+            return SpecialConstantIdentifier( False ).getCode()
+        elif constant is Ellipsis:
+            return SpecialConstantIdentifier( Ellipsis ).getCode()
+        else:
+            return "_python_" + namifyConstant( constant )
+
+
     def getConstants( self ):
-        return sorted( self.constants.items(), key = lambda x: x[1] )
+        return self.constants
+
+    def setContainedConstants( self, contained_constants ):
+        self.contained_constants = contained_constants
+
+    def getContainedConstants( self ):
+        return self.contained_constants
 
     def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, kw_only_count,
                              is_generator, is_optimized ):

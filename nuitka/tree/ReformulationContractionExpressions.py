@@ -18,7 +18,7 @@
 
 from nuitka import Utils
 
-from nuitka.nodes.ParameterSpec import ParameterSpec
+from nuitka.nodes.ParameterSpecs import ParameterSpec
 
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
@@ -26,7 +26,6 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef,
     StatementTempBlock
 )
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.StatementNodes import (
@@ -56,10 +55,6 @@ from nuitka.nodes.ContainerOperationNodes import (
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.YieldNodes import ExpressionYield
-from nuitka.nodes.TryNodes import (
-    StatementExceptHandler,
-    StatementTryExcept
-)
 
 make_contraction_parameters = ParameterSpec(
     name          = "contraction",
@@ -70,11 +65,12 @@ make_contraction_parameters = ParameterSpec(
     kw_only_args  = ()
 )
 
+from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationAssignmentStatements import buildAssignmentStatements
-
 from .ReformulationBooleanExpressions import buildAndNode
 
 from .Helpers import (
+    makeStatementsSequenceFromStatement,
     buildNodeList,
     buildNode,
     getKind
@@ -276,46 +272,30 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
         ]
 
         loop_statements = [
-            StatementTryExcept(
-                tried      = StatementsSequence(
-                    statements = (
-                        StatementAssignmentVariable(
-                            variable_ref = ExpressionTargetTempVariableRef(
-                                variable   = tmp_value_variable.makeReference( nested_temp_block ),
-                                source_ref = source_ref
-                            ),
-                            source     = ExpressionBuiltinNext1(
-                                value      = ExpressionTempVariableRef(
-                                    variable   = tmp_iter_variable.makeReference( nested_temp_block ),
-                                    source_ref = source_ref
-                                ),
+            makeTryExceptSingleHandlerNode(
+                tried          = makeStatementsSequenceFromStatement(
+                    statement = StatementAssignmentVariable(
+                        variable_ref = ExpressionTargetTempVariableRef(
+                            variable   = tmp_value_variable.makeReference( nested_temp_block ),
+                            source_ref = source_ref
+                        ),
+                        source     = ExpressionBuiltinNext1(
+                            value      = ExpressionTempVariableRef(
+                                variable   = tmp_iter_variable.makeReference( nested_temp_block ),
                                 source_ref = source_ref
                             ),
                             source_ref = source_ref
                         ),
-                    ),
-                    source_ref = source_ref
+                        source_ref = source_ref
+                    )
                 ),
-                handlers   = (
-                    StatementExceptHandler(
-                        exception_types = (
-                            ExpressionBuiltinExceptionRef(
-                                exception_name = "StopIteration",
-                                source_ref     = source_ref
-                            ),
-                        ),
-                        body           = StatementsSequence(
-                            statements = (
-                                StatementBreakLoop(
-                                    source_ref = source_ref.atInternal()
-                                ),
-                            ),
-                            source_ref = source_ref
-                        ),
-                        source_ref     = source_ref
-                    ),
+                exception_name = "StopIteration",
+                handler_body   = makeStatementsSequenceFromStatement(
+                    statement = StatementBreakLoop(
+                        source_ref = source_ref.atInternal()
+                    )
                 ),
-                source_ref = source_ref
+                source_ref     = source_ref
             ),
             buildAssignmentStatements(
                 provider   = provider if assign_provider else function_body,
@@ -338,9 +318,8 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
             loop_statements.append(
                 StatementConditional(
                     condition  = conditions[0],
-                    yes_branch = StatementsSequence(
-                        statements = ( current_body, ),
-                        source_ref = source_ref
+                    yes_branch = makeStatementsSequenceFromStatement(
+                        statement = current_body
                     ),
                     no_branch  = None,
                     source_ref = source_ref
@@ -354,9 +333,8 @@ def _buildContractionNode( provider, node, name, emit_class, start_value, assign
                         values     = conditions,
                         source_ref = source_ref
                     ),
-                    yes_branch = StatementsSequence(
-                        statements = ( current_body, ),
-                        source_ref = source_ref
+                    yes_branch = makeStatementsSequenceFromStatement(
+                        statement = current_body
                     ),
                     no_branch  = None,
                     source_ref = source_ref

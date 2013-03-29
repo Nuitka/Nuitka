@@ -69,18 +69,24 @@ if intended_version is not None:
         else:
             python_binary = "/usr/bin/python" + intended_version
 
-        args = [ python_binary, "python" ] + sys.argv
+        args = [ python_binary, os.path.basename( python_binary ) ] + sys.argv
 
         # That's the API of execl, pylint: disable=W0142
         os.execl( *args )
 
 
-from nuitka import MainControl, SyntaxErrors
+from nuitka import MainControl, SyntaxErrors, Importing
 
 positional_args = Options.getPositionalArgs()
 assert len( positional_args ) > 0
 
 filename = Options.getPositionalArgs()[0]
+
+# Inform the importing layer about the main script directory, so it can use it when
+# attempting to follow imports.
+Importing.setMainScriptDirectory(
+    main_dir = os.path.dirname( os.path.abspath( filename ) )
+)
 
 # Turn that source code into a node tree structure.
 try:
@@ -88,6 +94,9 @@ try:
         filename = filename
     )
 except (SyntaxError, IndentationError) as e:
+    if Options.isFullCompat() and e.args[0].startswith( "unknown encoding:" ):
+        e.args = ( "encoding problem: with BOM", ( e.args[1][0], 1, None, None ) )
+
     sys.exit( SyntaxErrors.formatOutput( e ) )
 
 if Options.shallDumpBuiltTree():

@@ -1,12 +1,12 @@
 
+Developer Manual
+~~~~~~~~~~~~~~~~
+
 .. contents::
 
 .. raw:: pdf
 
    PageBreak
-
-Developer Manual
-~~~~~~~~~~~~~~~~
 
 The purpose of this developer manual is to present the current design of Nuitka, the
 coding rules, and the intentions of choices made. It is intended to be a guide to the
@@ -94,23 +94,24 @@ Current State
 
 Nuitka top level works like this:
 
-   - ``tree.Building`` outputs node tree
-   - ``Optimization`` enhances it as best as it can
-   - ``Finalization`` marks the tree for code generation
-   - ``CodeGeneration`` creates identifier objects and code snippets
-   - ``Generator`` knows how identifiers and code is constructed
-   - ``MainControl`` keeps it all together
+- ``nuitka.tree.Building`` outputs node tree
+- ``nuitka.optimization`` enhances it as best as it can
+- ``nuitka.finalization`` marks the tree for code generation
+- ``nuitka.codegen.CodeGeneration`` creates identifier objects and code snippets
+- ``nuitka.codegen.Generator`` knows how identifiers and code is constructed
+- ``nuitka.MainControl`` keeps it all together
 
 This design is intended to last.
 
 Regarding Types, the state is:
 
-   - Types are always ``PyObject *``, implicitly
-   - The only more specific use of type is "constant", which can be used to predict some
-     operations, conditions, etc.
-   - Every operation is expected to have ``PyObject *`` as result, if it is not a constant,
-     then we know nothing about it.
+- Types are always ``PyObject *``, implicitly
+- The only more specific use of type is "compile time constant", which can be used to
+  predict some operations, conditions, etc.
+- Every operation is expected to have ``PyObject *`` as result, if it is not a constant,
+  then we know nothing about it.
 
+The limitation to only ``PyObject *`` will go away.
 
 Coding Rules
 ============
@@ -213,12 +214,13 @@ Names of modules should be plurals if they contain classes. Example is ``Nodes``
 ``Node`` classes.
 
 
-Prefer list contractions over ``map``, ``filter``, and ``apply``
-----------------------------------------------------------------
+Prefer list contractions over built-ins
+---------------------------------------
 
-Using ``map`` and friends is considered worth a warning by "PyLint" e.g. "Used builtin
-function 'map'". We should use list comprehensions instead, because they are more
-readable.
+This concerns ``map``, ``filter``, and ``apply``. Usage of these built-ins is highly
+discouraged within Nuitka source code. Using them is considered worth a warning by
+"PyLint" e.g. "Used builtin function 'map'". We should use list comprehensions instead,
+because they are more readable.
 
 List contractions are a generalization for all of them. We love readable and with Nuitka
 as a compiler will there won't be any performance difference at all.
@@ -334,7 +336,7 @@ Running all Tests
 
 The top level access to the tests is as simple as this:
 
-.. code-block:: shell
+.. code-block:: bash
 
    ./misc/check-release
 
@@ -378,7 +380,7 @@ Basic Tests
 
 You can run the "basic" tests like this:
 
-.. code-block:: shell
+.. code-block:: bash
 
    ./tests/basics/run_all.py search
 
@@ -397,7 +399,7 @@ It sometimes happens that Nuitka must do this itself, because the ``ast.parse`` 
 the problem. Using ``global`` on a function argument is an example of this. These tests make
 sure that the errors of Nuitka and CPython are totally the same for this:
 
-.. code-block:: shell
+.. code-block:: bash
 
    ./tests/syntax/run_all.py search
 
@@ -407,7 +409,7 @@ Program Tests
 Then there are small programs tests, that exercise all kinds of import tricks and problems
 with inter-module behavior. These can be run like this:
 
-.. code-block:: shell
+.. code-block:: bash
 
    ./tests/programs/run_all.py search
 
@@ -421,7 +423,7 @@ every module of Nuitka into an extension module and all of Nuitka into a single 
 That test case also gives good coverage of the ``import`` mechanisms, because Nuitka uses a
 lot of packages.
 
-.. code-block:: shell
+.. code-block:: bash
 
    ./tests/reflected/compile_itself.py
 
@@ -482,15 +484,15 @@ other languages, I need to check myself.
 
 The *decision for C++03* is ultimately:
 
-  * for portability
-  * for language knowledge
+* for portability
+* for language knowledge
 
 All of these are important advantages.
 
-For C++11 initially spoke easy code generation.
+For C++11 initially spoke easy code generation:
 
-   * variadic templates
-   * raw strings
+* variadic templates
+* raw strings
 
 Yet, as it turns out, variadic templates do not help with evaluation order, so that code
 that used it, needed to be changed to generating instances of their code. And raw strings
@@ -913,6 +915,9 @@ instead.
     # should not be called.
     tmp_enter_result = tmp_source.__enter__()
 
+    # Indicator variable to know if "tmp_exit" has been called.
+    tmp_indicator = False
+
     try:
         # Now the assignment is to be done, if there is any name for the manager given,
         # this may become multiple assignment statements and even unpacking ones.
@@ -921,16 +926,18 @@ instead.
         # Then the code of the "with" block.
         something( x )
     except Exception:
-
         # Note: This part of the code must not set line numbers, which we indicate with
         # special source code references, which we call "internal". Otherwise the line
         # of the frame would get corrupted.
 
+        tmp_indicator = True
+
         if not tmp_exit( *sys.exc_info() ):
             raise
-    else:
-        # Call the exit if no exception occurred with all arguments as "None".
-        tmp_exit( None, None, None )
+    finally:
+        if not tmp_indicator
+            # Call the exit if no exception occurred with all arguments as "None".
+            tmp_exit( None, None, None )
 
 .. note::
 
@@ -1066,14 +1073,11 @@ Therefore, the ``else`` becomes a real conditional statement in the node tree, c
 indicator variable and guarding the execution of the ``else`` branch.
 
 
-Classes Creation
-----------------
+Class Creation (Python2)
+------------------------
 
-Python2
-=======
-
-Classes have a body that only serves to build the class dictionary and is a normal
-function otherwise. This is expressed with the following re-formulation:
+Classes in Python2 have a body that only serves to build the class dictionary and is a
+normal function otherwise. This is expressed with the following re-formulation:
 
 .. code-block:: python
 
@@ -1114,8 +1118,8 @@ in class creation. They don't really appear after the tree building stage anymor
 type inference will of course have to become able to understand ``make_class`` quite well,
 so it can recognize the created class again.
 
-Python 3
-========
+Class Creation (Python3)
+------------------------
 
 In Python3, classes are a complicated way to write a function call, that can interact with
 its body. The body starts with a dictionary provided by the metaclass, so that is
@@ -2424,7 +2428,8 @@ into action, which could be code changes, plan changes, issues created, etc.
         something( x )
 
   Otherwise, code generation suffers from assuming the list may be mutated and is making a
-  copy before using it. Instead, it would be needed to track, if that list becomes writable, and if it's used as a list.
+  copy before using it. Instead, it would be needed to track, if that list becomes
+  writable, and if it's used as a list.
 
   .. code-block:: python
 
@@ -2514,21 +2519,24 @@ into action, which could be code changes, plan changes, issues created, etc.
      b = next( a )
      del a
 
-  When "a" is assigned, it is receiving a value friend, "fresh iterator", for the unused
-  iterator, one that hasn't be used at all.
+  When ``a`` is assigned, it is receiving a value friend from the ``iter`` call, a fresh
+  iterator, one that hasn't been used at all. The variable trace of ``a`` will contain
+  that.
 
-  Then when next() is called on "a" value, it creates *another* value friend, and changes
-  the value friend in the collection for "a" to "used iterator 1 time". It is very
-  important to make a copy.
+  Then when ``next`` is called on ``a`` value, it creates *another* value friend, based on
+  the un-escaped ``a`` value friend. Using ``a`` it in ``next`` would let escape, if it
+  didn't know what ``next`` does to it. For tuples, it knows though, so it marks "a" as
+  referenced, and its value friend as used once for iteration.
 
-  It is then asked for a value friend to be assigned to "b". It can tell which value that
-  would be, but it has to record, that before "a" can be used, it would have to execute a
-  "next" on it. This is delaying that action until we see if it's necessary at all. We
-  know it cannot fail, because the value friend said so.
+  The ``next`` is then asked for a value friend to be assigned to ``b``. The value friend
+  can decide which value that is. We now have to choose if we want to use the value friend
+  produced that could determine the value ``2`` or the actual value. If it's a cheap thing
+  (constant, local variable access), we will propagate it, otherwise we probably won't do
+  it.
 
-  This repeats and again a new "value friend" is created, this time "used iterator 2
-  times", which is asked for a value friend too. It will keep record of the need to
-  execute next 2 times (which we may have optimized code for).
+  This repeats and again a new value friend is created, this time "used iterator 2 times"
+  is attched to ``a`` value friend. It will keep record of the need to execute next 2
+  times (which we may have optimized code for).
 
   .. code-block:: python
 
@@ -2539,7 +2547,7 @@ into action, which could be code changes, plan changes, issues created, etc.
      # Remember b has two delayed iteration
      del a
 
-  When then "a" is deleted, it's being told "onReleased". The value friend will then
+  When then ``a`` is deleted, it's being told "onReleased". The value friend will then
   decide through the value friend state "used iterator 2 times", that it may drop them.
 
   .. code-block:: python
@@ -2581,7 +2589,6 @@ into action, which could be code changes, plan changes, issues created, etc.
   that per variable, a history of states is needed, where that history connects value
   friends to nodes.
 
-
   .. code-block:: python
 
      a = iter(
@@ -2590,8 +2597,8 @@ into action, which could be code changes, plan changes, issues created, etc.
           g()
        )
      )
-     # 1. For the assignment, ask right hand side, for computation. Enter computeNode for
-     # iterator making, and decide that it gives a fresh iterator value, with a known
+     # 1. For the assignment, ask right hand side, for computation. Enter computeExpression
+     # for iterator making, and decide that it gives a fresh iterator value, with a known
      # "iterated" value.
      # 2. Link the "a" assignment to the assignment node.
      b = next( a )
@@ -2661,16 +2668,6 @@ into action, which could be code changes, plan changes, issues created, etc.
   The aliasing is only broken when a is assigned to a new value. And when then "b" is
   subscribed, it may understand what that value is or not.
 
-* Value Life Time Analysis
-
-  A value may be assigned, or consumed directly. When consumed directly, it's life ends
-  immediately, and that's one thing. When assigned, it doesn't do that, but when the last
-  reference goes away, which may happen when the name is used for another value.
-
-  In the mean time, the value may be exposed through attribute lookup, call, etc. which
-  may modify what we can tell about it. An unknown usage must mark it as "exists, maybe"
-  and no more knowledge.
-
 * Shelve for caching
 
   If we ever came to the conclusion to want and cache complex results of analysis, we
@@ -2686,13 +2683,197 @@ into action, which could be code changes, plan changes, issues created, etc.
 
   Calling "upx" on the created binaries, would be easy.
 
+* The timing of ``__del__`` calls.
+
+  When you do a(b(c())) in Python, it deletes the argument value, i.e. return
+  value of c() immediately after calling b().
+
+  Currently we translate that to C++ roughly like this: a(b(c())) as well. Only that in
+  C++, b returns an object, that has a scope. It appears, the d-tor is executed at the end
+  of the statement. In C++ the ";" is a sequence point, i.e. things must be done by then.
+
+  Unfortunately C++ loves temporaries so much, it won't immediately delete them after use,
+  but only after full expression, which means ")" or ";", and attempts with fake sequence
+  points all failed.
+
+  But, there may be another way. Right now, ``PyObject *`` is the interface for about
+  everything passed around. And "PyObjectTemporary" releases values that are needed by the
+  interface to have a reference, and deleted afterwards.
+
+  But it could, and should be different. All helper functions should be template functions
+  that accept ``PyObjectRef1`` and ``PyObjectRef0``, and know about the reference, and
+  then manage ``PyObjectRef1`` instances to release their reference as soon as they are
+  not needed. With ``PyObjectRef0`` that would be a no-op.
+
+  This is a lot of work. The good news, is that it's work that will be needed, to support
+  types other than ``PyObject *`` efficiently. Them being converted to ``PyObject *`` and
+  releasing that reference, it would be transparent to all code.
+
+* In-lining constant "exec" and "eval".
+
+  It should be possible to re-formulate at least cases without "locals" or "globals"
+  given.
+
+  .. code-block:: python
+
+     def f():
+        a = 1
+        b = 2
+
+        exec( """a+=b;c=1""" )
+
+        return a, c
+
+  Should become this here:
+
+  .. code-block:: python
+
+     def f():
+        a = 1
+        b = 2
+
+        a+=b  #
+        c=1   # MaybeLocalVariables for everything except known local ones.
+
+        return a, c
+
+  If this holds up, inlining ``exec`` should be relatively easy.
+
+* Original and overloaded built-ins
+
+  This is about making things visible in the node tree. In Nuitka things that are not
+  visible in the node tree tend to be wrong. We already pushed around information to the
+  node tree a lot.
+
+  Later versions, Nuitka will become able to determine it has to be the original built-in
+  at compilt time, then a condition that checks will be optimized away, together with the
+  slow path. Or the other path, if it won't be.  Then it will be optimized away, or if
+  doubt exists, it will be correct. That is the goal.
+
+  Right now, the change would mean to effectively disable all built-in call
+  optimization, which is why we don't immediately do it.
+
+  Making the compatible version, will also require a full listing of all built-ins, which
+  is typing work merely, but not needed now. And a way to stop built-in optimization from
+  optimizing builtin calls that it used in a wrap. Probably just some flag to indicate it
+  when it visits it to skip it. That's for later.
+
+  But should we have that both, I figure, we could not raise a ``RuntimeError`` error, but
+  just do the correct thing, in all cases. An earlier step may raise ``RuntimeError``
+  error, when built-in module values are written to, that we don't support.
+
+* SSA form for Nuitka nodes
+
+  * Assignments collect a counter from the variable, which becomes the variable version.
+
+  * References need to back track to the last assignment on their path, which may be a
+    merge. Constraint collection can do that.
+
+  * Data structures
+
+    Every constraint collection has these:
+
+    * variable_versions
+
+      Dictionary, where per "variable" the current version is the value. It is used to
+      determine, what variable reads need to go.
+
+    * variable_targets
+
+      Dictionary, where "variable" and "version" form the key. The values are lists, which
+      start out empty.
+
+      They are only appended to. In "onVariableSet", a new version is allocated, which an
+      empty list, because each write starts a new version. in "onVariableUsage" the
+      version is detected from the current version. It may be the first element, but then
+      it's a read of an undefined value.
+
+    * variable_escaped
+
+      Dictionary, where again "variable" and "version" form the key. It contains indexes
+      to the lists pointed to by variable_targets. And these indicate the first time a
+      variable version escaped.
+
+
+  * When merging branches of conditional statements, the PHI function shall apply as
+    follows.
+
+    * Case a) One branch only.
+
+      Continue constraint collection in that branch. As usual new assignments generate a
+      new version, references use pre-existing versions. In terms of this, it's only about
+      the version generated in the branch not being accessible directly to outside the
+      branch.
+
+      Then, when the branch merges, for all new versions of variables, that are alive,
+      another, newer version shall be generated, that merges it with the version that was
+      alive before.
+
+    * Case b) Two branches.
+
+      When there are two branches, they both as usual turn new assignments into new
+      versions, and reference pre-existing versions from before the branches.
+
+      Then, when merging the branches, it's just the same as if two times one branch
+      occurred, no difference really. Consider this:
+
+      .. code-block:: python
+
+         if cond:
+            a = b
+         else:
+            a = c
+
+      This is quite the same as:
+
+      .. code-block:: python
+
+         _tmp = cond
+
+         if _tmp:
+            a = b
+         if not _tmp:
+            a = c
+
+      So, we can deal with the branches one by one without any issue. In fact, this raises
+      the point, if we actually need conditional statements with two branches as a
+      structure.
+
+      .. note::
+
+         For conditional expressions, there are always two branches.
+
+
+  * Trace structure
+
+    * Initial write of the version
+
+      There may be a initial write for each version. It can only occur at the start of it,
+      but not later, and there is only one. The "value friend" of it.
+
+    * Merge of other one or two other versions
+
+      One could be empty, i.e. the variable would not be assigned. This is kind of the
+      initial write, and the merge references one or multiple "value friends", which are
+      optional.
+
+    * Bunch of read usages. They may allow escape of the value or not. When they do, it's
+      a change. The value friend must be informed of it. If it's a real escape, usage is
+      not known. If it's merely an alias, e.g. the value is now in another variable trace,
+      they could be linked. Otherwise the "value friend" must be demoted immediately to
+      one that gives more vague information.
+
+    This should be reflected in a class "VariableTrace".
+
 .. header::
 
    Nuitka - Developer Manual
 
 .. footer::
 
-   © Kay Hayen, 2013 | Page ###Page### of ###Total### | Section ###Section###
+   |copy| Kay Hayen, 2013 | Page ###Page### of ###Total### | Section ###Section###
+
+.. |copy|   unicode:: U+000A9
 
 .. raw:: pdf
 

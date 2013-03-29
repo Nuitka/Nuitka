@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.4.1
+Nuitka V0.4.2
 Copyright (C) 2013 Kay Hayen."""
 
 from . import Utils
@@ -29,7 +29,7 @@ import os, sys, logging
 
 # Indicator if we were called as "nuitka-python" in which case we assume some other
 # defaults and work a bit different with parameters.
-is_nuitka_python = Utils.basename( sys.argv[0] ).lower() == "nuitka-python"
+is_nuitka_python = Utils.basename( sys.argv[0] ).lower().startswith( "nuitka-python" )
 
 def getVersion():
     return version_string.split()[1][1:]
@@ -289,7 +289,7 @@ production. Defaults to off."""
 )
 
 debug_group.add_option(
-    "--unstriped",
+    "--unstripped", "--no-strip", "--unstriped",
     action  = "store_true",
     dest    = "unstriped",
     default = False,
@@ -318,32 +318,15 @@ Compile the would-be regenerated source file. Allows compiling edited C++ files 
 C++ compiler for quick debugging changes to the generated source. Defaults to off."""
 )
 
-def decideExperimental():
-    git_branch_name_filename = os.path.join( os.path.dirname( __file__ ), "..", ".git", "HEAD" )
-
-    if not os.path.exists( git_branch_name_filename ):
-        return False
-
-    branch_name = open( git_branch_name_filename ).read().strip()
-    branch_name = branch_name.split( "/" )[-1]
-
-    if branch_name == "master":
-        return os.path.exists( os.path.join( os.path.dirname( __file__ ), "..", "public-repo" ) )
-    elif branch_name.startswith( "hotfix/" ):
-        return False
-    else:
-        return True
-
-if decideExperimental():
-    debug_group.add_option(
-        "--experimental",
-        action  = "store_true",
-        dest    = "experimental",
-        default = False,
-        help    = """\
+debug_group.add_option(
+    "--experimental",
+    action  = "store_true",
+    dest    = "experimental",
+    default = False,
+    help    = """\
 Use features declared as 'experimental'. May have no effect if no experimental features
 are present in the code. Defaults to off."""
-    )
+)
 
 parser.add_option_group( debug_group )
 
@@ -422,6 +405,15 @@ Allow minor devitations from CPython behaviour, e.g. better tracebacks, which ar
 really incompatible, but different.""",
 )
 
+parser.add_option(
+    "--warn-implicit-exceptions",
+    action  = "store_true",
+    dest    = "warn_implicit_exceptions",
+    default = False,
+    help    = """\
+Given warnings for implicit exceptions detected at compile time.""",
+)
+
 
 if is_nuitka_python:
     count = 0
@@ -496,6 +488,9 @@ def getShallFollowInNoCase():
 
 def getShallFollowExtra():
     return sum( [ x.split( "," ) for x in options.recurse_extra ], [] )
+
+def shallWarnImplicitRaises():
+    return options.warn_implicit_exceptions
 
 def isDebug():
     return options.debug

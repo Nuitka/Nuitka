@@ -126,7 +126,44 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
                         break
                     else:
                         seen_function = True
+        # Check if continue and break are properly in loops. If not, raise a syntax error.
+        elif node.isStatementBreakLoop() or node.isStatementContinueLoop():
+            current = node
 
+            while True:
+                if current.isPythonModule() or current.isExpressionFunctionBody():
+                    if node.isStatementContinueLoop():
+                        message = "'continue' not properly in loop"
+                        col_offset   = 16 if python_version >= 300 else None
+                        display_line = True
+                        source_line  = None
+                    else:
+                        message = "'break' outside loop"
+
+                        if isFullCompat():
+                            col_offset   = 2 if python_version >= 300 else None
+                            display_line = True
+                            source_line  = "" if python_version >= 300 else None
+                        else:
+                            col_offset   = 13
+                            display_line = True
+                            source_line  = None
+
+                    source_ref = node.getSourceReference()
+                    # source_ref.line += 1
+
+                    SyntaxErrors.raiseSyntaxError(
+                        message,
+                        source_ref   = node.getSourceReference(),
+                        col_offset   = col_offset,
+                        display_line = display_line,
+                        source_line  = source_line
+                    )
+
+                current = current.getParent()
+
+                if current.isStatementLoop():
+                    break
 
     def onLeaveNode( self, node ):
         # Return statements in generators are not really that, instead they are exception

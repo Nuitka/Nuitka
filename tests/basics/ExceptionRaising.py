@@ -460,3 +460,8 @@ def raiseValueWithValue():
         print "Gives", e
 
 print "Check exception given when value is raised with value", raiseValueWithValue()
+
+# Make sure the repr is fine, at one time for Python3, they were actually really string objects, unnoticed:
+
+a = IOError
+print repr(a)

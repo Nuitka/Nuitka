@@ -99,7 +99,7 @@ class VariableUsageTrackingMixin:
 
 # TODO: This code is only here while staging it, will live in a dedicated module later on
 class ConstraintCollectionBase:
-    def __init__( self, parent, signal_change = None, copy_of = None ):
+    def __init__( self, parent, signal_change = None ):
         assert signal_change is None or parent is None
 
         if signal_change is not None:
@@ -332,7 +332,7 @@ class ConstraintCollectionBase:
         r = expression.computeExpression( self )
         assert type(r) is tuple, expression
 
-        new_node, change_tags, change_desc = expression.computeExpression( self )
+        new_node, change_tags, change_desc = r
 
         if new_node is not expression:
             expression.replaceWith( new_node )
@@ -668,14 +668,9 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
         ]
 
 
-class ConstraintCollectionLoopOther( ConstraintCollectionBase ):
-    def process( self, loop ):
-        assert loop.isStatementLoop()
+class ConstraintCollectionLoop( ConstraintCollectionBase ):
+    def process( self, loop_body ):
+        result = self.onStatementsSequence( loop_body )
 
-        loop_body = loop.getLoopBody()
-
-        if loop_body is not None:
-            result = self.onStatementsSequence( loop_body )
-
-            if result is not loop_body:
-                loop_body.replaceWith( result )
+        if result is not loop_body:
+            loop_body.replaceWith( result )

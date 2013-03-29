@@ -114,7 +114,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 #if defined( _NUITKA_EXE )
 #define NUITKA_MODULE_INIT_FUNCTION void
 #elif defined( __GNUC__ )
-#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__((visibility( "default" )))
+#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__(( visibility( "default" )))
 #else
 #define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC
 #endif

@@ -87,7 +87,7 @@ def _makeCallNode( provider, called, positional_args, pairs, list_star_arg, dict
 
         key = len( positional_args ) > 0, len( pairs ) > 0, list_star_arg is not None, dict_star_arg is not None
 
-        from nuitka.nodes.ComplexCallHelperFunctions import (
+        from .ComplexCallHelperFunctions import (
             getFunctionCallHelperPosKeywordsStarList,
             getFunctionCallHelperPosStarList,
             getFunctionCallHelperKeywordsStarList,

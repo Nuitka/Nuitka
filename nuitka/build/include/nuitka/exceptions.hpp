@@ -124,15 +124,15 @@ inline void NORMALIZE_EXCEPTION( PyObject **exception_type, PyObject **exception
 }
 
 
-class _PythonException
+class PythonException
 {
 public:
-    _PythonException()
+    PythonException()
     {
         this->_importFromPython();
     }
 
-    _PythonException( PyObject *exception )
+    PythonException( PyObject *exception )
     {
         assertObject( exception );
 
@@ -143,7 +143,7 @@ public:
         this->exception_tb = NULL;
     }
 
-    _PythonException( PyObject *exception, PyTracebackObject *traceback )
+    PythonException( PyObject *exception, PyTracebackObject *traceback )
     {
         assertObject( exception );
         assertObject( traceback );
@@ -153,7 +153,7 @@ public:
         this->exception_tb = traceback;
     }
 
-    _PythonException( PyObject *exception, PyObject *value, PyTracebackObject *traceback )
+    PythonException( PyObject *exception, PyObject *value, PyTracebackObject *traceback )
     {
         assertObject( exception );
         assert( value == NULL || Py_REFCNT( value ) > 0 );
@@ -164,7 +164,7 @@ public:
         this->exception_tb = traceback;
     }
 
-    _PythonException( const _PythonException &other )
+    PythonException( const PythonException &other )
     {
         this->exception_type  = other.exception_type;
         this->exception_value = other.exception_value;
@@ -175,7 +175,7 @@ public:
         Py_XINCREF( this->exception_tb );
     }
 
-    void operator=( const _PythonException &other )
+    void operator=( const PythonException &other )
     {
         Py_XINCREF( other.exception_type );
         Py_XINCREF( other.exception_value );
@@ -190,7 +190,7 @@ public:
         this->exception_tb    = other.exception_tb;
     }
 
-    ~_PythonException()
+    ~PythonException()
     {
         Py_XDECREF( this->exception_type );
         Py_XDECREF( this->exception_value );
@@ -227,14 +227,14 @@ public:
                 if (unlikely( !PyExceptionClass_Check( element ) ))
                 {
                     PyErr_Format( PyExc_TypeError, "catching classes that do not inherit from BaseException is not allowed" );
-                    throw _PythonException();
+                    throw PythonException();
                 }
             }
         }
         else if (unlikely( !PyExceptionClass_Check( exception ) ))
         {
             PyErr_Format( PyExc_TypeError, "catching classes that do not inherit from BaseException is not allowed" );
-            throw _PythonException();
+            throw PythonException();
         }
 #endif
 
@@ -348,10 +348,10 @@ public:
 
 private:
 
-    friend class _PythonExceptionKeeper;
+    friend class PythonExceptionKeeper;
 
     // For the restore of saved ones.
-    _PythonException( PyObject *exception, PyObject *value, PyObject *traceback )
+    PythonException( PyObject *exception, PyObject *value, PyObject *traceback )
     {
         this->exception_type = exception;
         this->exception_value = value;
@@ -364,10 +364,10 @@ private:
 };
 
 
-class _PythonExceptionKeeper
+class PythonExceptionKeeper
 {
 public:
-    _PythonExceptionKeeper()
+    PythonExceptionKeeper()
     {
         this->keeping = false;
 
@@ -378,7 +378,7 @@ public:
 #endif
     }
 
-    ~_PythonExceptionKeeper()
+    ~PythonExceptionKeeper()
     {
         if ( this->keeping )
         {
@@ -388,7 +388,7 @@ public:
         }
     }
 
-    void save( const _PythonException &e )
+    void save( const PythonException &e )
     {
         this->exception_type  = INCREASE_REFCOUNT_X( e.exception_type );
         this->exception_value = INCREASE_REFCOUNT_X( e.exception_value );
@@ -412,7 +412,7 @@ public:
                 this->exception_tb->tb_frame->f_lineno = this->exception_tb->tb_lineno;
             }
 
-            throw _PythonException( this->exception_type, this->exception_value, this->exception_tb );
+            throw PythonException( this->exception_type, this->exception_value, this->exception_tb );
         }
     }
 

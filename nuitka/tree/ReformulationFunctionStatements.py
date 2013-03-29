@@ -18,7 +18,7 @@
 
 from nuitka import Utils, SyntaxErrors
 
-from nuitka.nodes.ParameterSpec import ParameterSpec
+from nuitka.nodes.ParameterSpecs import ParameterSpec
 
 from nuitka.nodes.VariableRefNodes import ExpressionTargetVariableRef
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
@@ -30,7 +30,6 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef
 )
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
-from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.ContainerMakingNodes import (
@@ -39,8 +38,9 @@ from nuitka.nodes.ContainerMakingNodes import (
 )
 
 from .Helpers import (
-    extractDocFromBody,
+    makeStatementsSequenceFromStatement,
     buildStatementsNode,
+    extractDocFromBody,
     buildNodeList,
     buildNode,
     getKind
@@ -78,17 +78,14 @@ def buildFunctionNode( provider, node, source_ref ):
         # TODO: raise generator exit?
         pass
     elif function_statements_body is None:
-        function_statements_body = StatementsSequence(
-            statements = (
-                StatementReturn(
-                    expression = ExpressionConstantRef(
-                        constant   = None,
-                        source_ref = source_ref.atInternal()
-                    ),
+        function_statements_body = makeStatementsSequenceFromStatement(
+            statement = StatementReturn(
+                expression = ExpressionConstantRef(
+                    constant   = None,
                     source_ref = source_ref.atInternal()
                 ),
-            ),
-            source_ref = source_ref
+                source_ref = source_ref.atInternal()
+            )
         )
     elif not function_statements_body.isStatementAborting():
         function_statements_body.setStatements(

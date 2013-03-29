@@ -18,11 +18,8 @@
 #ifndef __NUITKA_BUILTINS_H__
 #define __NUITKA_BUILTINS_H__
 
-extern PyDictObject *dict_builtin;
-
-#if PYTHON_VERSION >= 300
 extern PyModuleObject *module_builtin;
-#endif
+extern PyDictObject *dict_builtin;
 
 #include "nuitka/calling.hpp"
 
@@ -32,15 +29,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN( PyObject *name )
     assertObject( name );
     assert( Nuitka_String_Check( name ) );
 
-#if PYTHON_VERSION < 300
     PyObject *result = GET_STRING_DICT_VALUE(
         dict_builtin,
         (Nuitka_StringObject *)name
     );
-#else
-    // TODO: Use dict_builtin instead.
-    PyObject *result = PyObject_GetAttr( (PyObject *)module_builtin, name );
-#endif
 
     assertObject( result );
 
@@ -60,7 +52,7 @@ public:
     {
         if ( this->value == NULL )
         {
-            this->refresh();
+            this->value = LOOKUP_BUILTIN( (PyObject *)*this->name );
         }
 
         assertObject( this->value );
@@ -68,9 +60,11 @@ public:
         return this->value;
     }
 
-    void refresh( void )
+    void update( PyObject *new_value )
     {
-        this->value = LOOKUP_BUILTIN( (PyObject *)*this->name );
+        assertObject( new_value );
+
+        this->value = new_value;
     }
 
     PyObject *call()
@@ -122,5 +116,20 @@ private:
     Nuitka_StringObject **name;
     PyObject *value;
 };
+
+extern void _initBuiltinModule();
+
+#ifdef _NUITKA_EXE
+// Original builtin values, currently only used for assertions.
+extern PyObject *_python_original_builtin_value_type;
+extern PyObject *_python_original_builtin_value_len;
+extern PyObject *_python_original_builtin_value_range;
+extern PyObject *_python_original_builtin_value_repr;
+extern PyObject *_python_original_builtin_value_int;
+extern PyObject *_python_original_builtin_value_iter;
+extern PyObject *_python_original_builtin_value_long;
+
+extern void _initBuiltinOriginalValues();
+#endif
 
 #endif

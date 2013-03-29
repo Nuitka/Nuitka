@@ -19,76 +19,75 @@
 
 One for each type of call. """
 
-from .FunctionNodes import (
+from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCreation,
     ExpressionFunctionCall,
     ExpressionFunctionRef
 )
-from .StatementNodes import (
+from nuitka.nodes.StatementNodes import (
     StatementsSequence,
     StatementsFrame
 )
-from .LoopNodes import (
+from nuitka.nodes.LoopNodes import (
     StatementLoop,
     StatementBreakLoop
 )
-from .TypeNodes import (
+from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,
     ExpressionBuiltinType1
 )
-from .BuiltinRefNodes import (
-    ExpressionBuiltinExceptionRef,
+from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
     ExpressionBuiltinRef
 )
-from .ConditionalNodes import StatementConditional
-from .ComparisonNodes import ExpressionComparison
-from .VariableRefNodes import (
+from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ComparisonNodes import ExpressionComparison
+from nuitka.nodes.VariableRefNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTargetVariableRef,
     ExpressionTempVariableRef,
     ExpressionVariableRef,
     StatementTempBlock
 )
-from .CallNodes import (
+from nuitka.nodes.CallNodes import (
     ExpressionCallKeywordsOnly,
     ExpressionCallNoKeywords,
     ExpressionCallEmpty,
     ExpressionCall
 )
-from .ReturnNodes import StatementReturn
-from .TryNodes import (
-    StatementExceptHandler,
-    StatementTryExcept
-)
-from .AssignNodes import (
+from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementAssignmentSubscript
 )
-from .ExceptionNodes import (
+from nuitka.nodes.ExceptionNodes import (
     StatementRaiseException,
     ExpressionBuiltinMakeException
 )
-from .ConstantRefNodes import ExpressionConstantRef
-from .AttributeNodes import ExpressionAttributeLookup
-from .ContainerMakingNodes import ExpressionMakeTuple
-from .BuiltinTypeNodes import ExpressionBuiltinTuple
-from .OperatorNodes import (
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
+from nuitka.nodes.OperatorNodes import (
     ExpressionOperationBinary,
     ExpressionOperationNOT
 )
-from .BuiltinIteratorNodes import (
+from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
     ExpressionBuiltinNext1
 )
-from .SubscriptNodes import ExpressionSubscriptLookup
-from .BuiltinDictNodes import ExpressionBuiltinDict
+from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
+from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 
-from .ParameterSpec import ParameterSpec
+from nuitka.nodes.ParameterSpecs import ParameterSpec
+from nuitka.nodes.FutureSpecs import FutureSpec
 
-from ..SourceCodeReferences import fromFilename
-from .FutureSpec import FutureSpec
+from nuitka.SourceCodeReferences import fromFilename
+
+from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
+
+from .Helpers import makeStatementsSequenceFromStatement
 
 source_ref = fromFilename( "internal", FutureSpec() ).atInternal()
 
@@ -164,8 +163,8 @@ def getCallableNameDescBody( provider ):
         source_ref = source_ref
     )
 
-    functions_case = StatementsSequence(
-        statements = (
+    functions_case = makeStatementsSequenceFromStatement(
+        statement = (
             StatementReturn(
                 expression = ExpressionOperationBinary(
                     operator   = "Add",
@@ -180,114 +179,98 @@ def getCallableNameDescBody( provider ):
 
                 ),
                 source_ref = source_ref
-            ),
-        ),
-        source_ref = source_ref
+            )
+        )
     )
 
-    no_branch = StatementsSequence(
-        statements = (
-            StatementReturn(
+    no_branch = makeStatementsSequenceFromStatement(
+        statement = StatementReturn(
+            expression = ExpressionOperationBinary(
+                operator   = "Add",
+                right      = ExpressionConstantRef(
+                    constant = " object",
+                    source_ref = source_ref
+                ),
+                left       = makeNameAttributeLookup(
+                    ExpressionBuiltinType1(
+                        value      = makeCalledVariableRef(),
+                        source_ref = source_ref
+                    )
+                ),
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        ),
+    )
+
+    if python_version < 300:
+        instance_case = makeStatementsSequenceFromStatement(
+            statement = StatementReturn(
                 expression = ExpressionOperationBinary(
                     operator   = "Add",
                     right      = ExpressionConstantRef(
-                        constant = " object",
+                        constant = " instance",
                         source_ref = source_ref
                     ),
                     left       = makeNameAttributeLookup(
-                        ExpressionBuiltinType1(
-                            value      = makeCalledVariableRef(),
-                            source_ref = source_ref
+                        makeNameAttributeLookup(
+                            makeCalledVariableRef(),
+                            attribute_name = "__class__",
                         )
                     ),
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
-            ),
-        ),
-        source_ref = source_ref
-    )
-
-    if python_version < 300:
-        instance_case = StatementsSequence(
-            statements = (
-                StatementReturn(
-                    expression = ExpressionOperationBinary(
-                        operator   = "Add",
-                        right      = ExpressionConstantRef(
-                            constant = " instance",
-                            source_ref = source_ref
-                        ),
-                        left       = makeNameAttributeLookup(
-                            makeNameAttributeLookup(
-                                makeCalledVariableRef(),
-                                attribute_name = "__class__",
-                            )
-                        ),
-                        source_ref = source_ref
-                    ),
-                    source_ref = source_ref
-                ),
-            ),
-            source_ref = source_ref
+            )
         )
 
-        no_branch = StatementsSequence(
-            statements = (
-                StatementConditional(
-                    condition  = ExpressionBuiltinIsinstance(
-                        instance   = makeCalledVariableRef(),
-                        cls        = ExpressionBuiltinAnonymousRef(
-                            builtin_name = "instance",
-                            source_ref   = source_ref
-                        ),
-                        source_ref = source_ref
+        no_branch = makeStatementsSequenceFromStatement(
+            statement = StatementConditional(
+                condition  = ExpressionBuiltinIsinstance(
+                    instance   = makeCalledVariableRef(),
+                    cls        = ExpressionBuiltinAnonymousRef(
+                        builtin_name = "instance",
+                        source_ref   = source_ref
                     ),
-                    yes_branch = instance_case,
-                    no_branch  = no_branch,
                     source_ref = source_ref
                 ),
-            ),
-            source_ref = source_ref
+                yes_branch = instance_case,
+                no_branch  = no_branch,
+                source_ref = source_ref
+            )
         )
 
-        class_case = StatementsSequence(
-            statements = (
-                StatementReturn(
-                    expression = ExpressionOperationBinary(
-                        operator   = "Add",
-                        right      = ExpressionConstantRef(
-                            constant = " constructor",
-                            source_ref = source_ref
-                        ),
-                        left       = makeNameAttributeLookup(
-                            makeCalledVariableRef(),
-                        ),
+        class_case = makeStatementsSequenceFromStatement(
+            statement = StatementReturn(
+                expression = ExpressionOperationBinary(
+                    operator   = "Add",
+                    right      = ExpressionConstantRef(
+                        constant = " constructor",
                         source_ref = source_ref
+                    ),
+                    left       = makeNameAttributeLookup(
+                        makeCalledVariableRef(),
                     ),
                     source_ref = source_ref
                 ),
-            ),
-            source_ref = source_ref
+                source_ref = source_ref
+            )
         )
 
-        no_branch = StatementsSequence(
-            statements = (
-                StatementConditional(
-                    condition  = ExpressionBuiltinIsinstance(
-                        instance   = makeCalledVariableRef(),
-                        cls        = ExpressionBuiltinAnonymousRef(
-                            builtin_name = "classobj",
-                            source_ref   = source_ref
-                        ),
-                        source_ref = source_ref
+        no_branch = makeStatementsSequenceFromStatement(
+            statement = StatementConditional(
+                condition  = ExpressionBuiltinIsinstance(
+                    instance   = makeCalledVariableRef(),
+                    cls        = ExpressionBuiltinAnonymousRef(
+                        builtin_name = "classobj",
+                        source_ref   = source_ref
                     ),
-                    yes_branch = class_case,
-                    no_branch  = no_branch,
                     source_ref = source_ref
                 ),
-            ),
-            source_ref = source_ref
+                yes_branch = class_case,
+                no_branch  = no_branch,
+                source_ref = source_ref
+            )
         )
 
     if python_version < 300:
@@ -326,9 +309,8 @@ def getCallableNameDescBody( provider ):
     )
 
     result.setBody(
-        StatementsSequence(
-            statements = ( temp_block, ),
-            source_ref = source_ref
+        makeStatementsSequenceFromStatement(
+            statement = temp_block
         )
     )
 
@@ -388,20 +370,8 @@ def _makeStarListArgumentToTupleStatement( provider, called_variable_ref,
         source_ref      = source_ref
     )
 
-    handler = StatementExceptHandler(
-        exception_types = (
-            ExpressionBuiltinExceptionRef(
-                exception_name = "TypeError",
-                source_ref     = source_ref
-            ),
-        ),
-        body           = StatementsSequence(
-            statements = (
-                raise_statement,
-            ),
-            source_ref = source_ref
-        ),
-        source_ref     = source_ref
+    handler_body = makeStatementsSequenceFromStatement(
+        statement = raise_statement
     )
 
     return StatementConditional(
@@ -414,27 +384,22 @@ def _makeStarListArgumentToTupleStatement( provider, called_variable_ref,
             source_ref = source_ref
         ),
         yes_branch = None,
-        no_branch  = StatementsSequence(
-            statements = (
-                StatementTryExcept(
-                    tried      = StatementsSequence(
-                        statements = (
-                            StatementAssignmentVariable(
-                                variable_ref = star_list_target_variable_ref.makeCloneAt( source_ref ),
-                                source       = ExpressionBuiltinTuple(
-                                    value      = star_list_variable_ref.makeCloneAt( source_ref ),
-                                    source_ref = source_ref
-                                ),
-                                source_ref   = source_ref
-                            ),
+        no_branch  = makeStatementsSequenceFromStatement(
+            statement = makeTryExceptSingleHandlerNode(
+                tried          =  makeStatementsSequenceFromStatement(
+                    statement = StatementAssignmentVariable(
+                        variable_ref = star_list_target_variable_ref.makeCloneAt( source_ref ),
+                        source       = ExpressionBuiltinTuple(
+                            value      = star_list_variable_ref.makeCloneAt( source_ref ),
+                            source_ref = source_ref
                         ),
-                        source_ref = source_ref
-                    ),
-                    handlers   = ( handler, ),
-                    source_ref = source_ref
+                        source_ref   = source_ref
+                    )
                 ),
+                exception_name = "TypeError",
+                handler_body   = handler_body,
+                source_ref     = source_ref
             ),
-            source_ref = source_ref
         ),
         source_ref = source_ref
     )
@@ -503,46 +468,30 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
     tmp_key_variable = temp_block.getTempVariable( "key" )
 
     statements = (
-        StatementTryExcept(
-            tried      = StatementsSequence(
-                statements = (
-                    StatementAssignmentVariable(
-                        variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = tmp_key_variable.makeReference( temp_block ),
-                            source_ref = source_ref
-                        ),
-                        source     = ExpressionBuiltinNext1(
-                            value      = ExpressionTempVariableRef(
-                                variable   = tmp_iter_variable.makeReference( temp_block ),
-                                source_ref = source_ref
-                            ),
+        makeTryExceptSingleHandlerNode(
+            tried          = makeStatementsSequenceFromStatement(
+                statement = StatementAssignmentVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = tmp_key_variable.makeReference( temp_block ),
+                        source_ref = source_ref
+                    ),
+                    source     = ExpressionBuiltinNext1(
+                        value      = ExpressionTempVariableRef(
+                            variable   = tmp_iter_variable.makeReference( temp_block ),
                             source_ref = source_ref
                         ),
                         source_ref = source_ref
                     ),
-                ),
-                source_ref = source_ref
+                    source_ref = source_ref
+                )
             ),
-            handlers   = (
-                StatementExceptHandler(
-                    exception_types = (
-                        ExpressionBuiltinExceptionRef(
-                            exception_name = "StopIteration",
-                            source_ref     = source_ref
-                        ),
-                    ),
-                    body           = StatementsSequence(
-                        statements = (
-                            StatementBreakLoop(
-                                source_ref = source_ref
-                            ),
-                        ),
-                        source_ref = source_ref
-                    ),
-                    source_ref     = source_ref
-                ),
+            exception_name = "StopIteration",
+            handler_body   = makeStatementsSequenceFromStatement(
+                statement = StatementBreakLoop(
+                    source_ref = source_ref
+                )
             ),
-            source_ref = source_ref
+            source_ref     = source_ref
         ),
         StatementAssignmentSubscript(
             expression = ExpressionTempVariableRef(
@@ -585,45 +534,29 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
             ),
             source_ref = source_ref
         ),
-        StatementTryExcept(
-            tried      = StatementsSequence(
-                statements = (
-                    StatementAssignmentVariable(
-                        variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = tmp_keys_variable.makeReference( temp_block ),
-                            source_ref = source_ref
-                        ),
-                        source     = ExpressionCallEmpty(
-                            called = ExpressionAttributeLookup(
-                                expression     = star_dict_variable_ref.makeCloneAt( source_ref ),
-                                attribute_name = "keys",
-                                source_ref     = source_ref
-                            ),
-                            source_ref = source_ref
-                        ),
+        makeTryExceptSingleHandlerNode(
+            tried          = makeStatementsSequenceFromStatement(
+                statement = StatementAssignmentVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = tmp_keys_variable.makeReference( temp_block ),
                         source_ref = source_ref
                     ),
-                ),
-                source_ref = source_ref
-            ),
-            handlers   = (
-                StatementExceptHandler(
-                    exception_types = (
-                        ExpressionBuiltinExceptionRef(
-                            exception_name = "AttributeError",
+                    source     = ExpressionCallEmpty(
+                        called = ExpressionAttributeLookup(
+                            expression     = star_dict_variable_ref.makeCloneAt( source_ref ),
+                            attribute_name = "keys",
                             source_ref     = source_ref
                         ),
-                    ),
-                    body           = StatementsSequence(
-                        statements = (
-                            raise_statement,
-                        ),
                         source_ref = source_ref
                     ),
-                    source_ref     = source_ref
+                    source_ref = source_ref
                 ),
             ),
-            source_ref = source_ref
+            exception_name = "AttributeError",
+            handler_body   = makeStatementsSequenceFromStatement(
+                statement = raise_statement
+            ),
+            source_ref     = source_ref
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
@@ -671,9 +604,8 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
 
     temp_block.setBody( mapping_case )
 
-    mapping_case = StatementsSequence(
-        statements = ( temp_block, ),
-        source_ref = source_ref
+    mapping_case = makeStatementsSequenceFromStatement(
+        statement = temp_block
     )
 
     return StatementConditional(
@@ -805,46 +737,30 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
     )
 
     statements = (
-        StatementTryExcept(
-            tried      = StatementsSequence(
-                statements = (
-                    StatementAssignmentVariable(
-                        variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = tmp_key_variable.makeReference( mapping_case ),
-                            source_ref = source_ref
-                        ),
-                        source     = ExpressionBuiltinNext1(
-                            value      = ExpressionTempVariableRef(
-                                variable   = tmp_iter_variable.makeReference( mapping_case ),
-                                source_ref = source_ref
-                            ),
+        makeTryExceptSingleHandlerNode(
+            tried          = makeStatementsSequenceFromStatement(
+                statement = StatementAssignmentVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = tmp_key_variable.makeReference( mapping_case ),
+                        source_ref = source_ref
+                    ),
+                    source     = ExpressionBuiltinNext1(
+                        value      = ExpressionTempVariableRef(
+                            variable   = tmp_iter_variable.makeReference( mapping_case ),
                             source_ref = source_ref
                         ),
                         source_ref = source_ref
                     ),
-                ),
-                source_ref = source_ref
+                    source_ref = source_ref
+                )
             ),
-            handlers   = (
-                StatementExceptHandler(
-                    exception_types = (
-                        ExpressionBuiltinExceptionRef(
-                            exception_name = "StopIteration",
-                            source_ref     = source_ref
-                        ),
-                    ),
-                    body           = StatementsSequence(
-                        statements = (
-                            StatementBreakLoop(
-                                source_ref = source_ref
-                            ),
-                        ),
-                        source_ref = source_ref
-                    ),
-                    source_ref     = source_ref
-                ),
+            exception_name = "StopIteration",
+            handler_body   = makeStatementsSequenceFromStatement(
+                statement = StatementBreakLoop(
+                    source_ref = source_ref
+                )
             ),
-            source_ref = source_ref
+            source_ref     = source_ref
         ),
         StatementConditional(
             condition = ExpressionComparison(
@@ -856,9 +772,8 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
                 right      = kw_variable_ref.makeCloneAt( source_ref ),
                 source_ref = source_ref
             ),
-            yes_branch = StatementsSequence(
-                statements = ( raise_duplicate, ),
-                source_ref = source_ref
+            yes_branch = makeStatementsSequenceFromStatement(
+                statement = raise_duplicate
             ),
             no_branch  = None,
             source_ref = source_ref
@@ -901,43 +816,27 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
             ),
             source_ref = source_ref
         ),
-        StatementTryExcept(
-            tried      = StatementsSequence(
-                statements = (
-                    StatementAssignmentVariable(
-                        variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = tmp_keys_variable.makeReference( mapping_case ),
-                            source_ref = source_ref
-                        ),
-                        source     = ExpressionCallEmpty(
-                            called = ExpressionAttributeLookup(
-                                expression     = star_dict_variable_ref.makeCloneAt( source_ref ),
-                                attribute_name = "keys",
-                                source_ref     = source_ref
-                            ),
-                            source_ref = source_ref
-                        ),
+        makeTryExceptSingleHandlerNode(
+            tried          = makeStatementsSequenceFromStatement(
+                statement = StatementAssignmentVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = tmp_keys_variable.makeReference( mapping_case ),
                         source_ref = source_ref
                     ),
-                ),
-                source_ref = source_ref
-            ),
-            handlers   = (
-                StatementExceptHandler(
-                    exception_types = (
-                        ExpressionBuiltinExceptionRef(
-                            exception_name = "AttributeError",
+                    source     = ExpressionCallEmpty(
+                        called = ExpressionAttributeLookup(
+                            expression     = star_dict_variable_ref.makeCloneAt( source_ref ),
+                            attribute_name = "keys",
                             source_ref     = source_ref
                         ),
-                    ),
-                    body           = StatementsSequence(
-                        statements = (
-                            raise_statement,
-                        ),
                         source_ref = source_ref
                     ),
-                    source_ref     = source_ref
-                ),
+                    source_ref = source_ref
+                )
+            ),
+            exception_name = "AttributeError",
+            handler_body   = makeStatementsSequenceFromStatement(
+                statement = raise_statement
             ),
             source_ref = source_ref
         ),
@@ -979,9 +878,8 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
         )
     )
 
-    mapping_case = StatementsSequence(
-        statements = ( mapping_case, ),
-        source_ref = source_ref
+    mapping_case = makeStatementsSequenceFromStatement(
+        statement = mapping_case
     )
 
     dict_case = StatementTempBlock(
@@ -993,44 +891,28 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
     tmp_key_variable = dict_case.getTempVariable( "key" )
 
     statements = (
-        StatementTryExcept(
-            tried      = StatementsSequence(
-                statements = (
-                    StatementAssignmentVariable(
-                        variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = tmp_item_variable.makeReference( dict_case ),
-                            source_ref = source_ref
-                        ),
-                        source     = ExpressionBuiltinNext1(
-                            value      = ExpressionTempVariableRef(
-                                variable   = tmp_iter_variable.makeReference( dict_case ),
-                                source_ref = source_ref
-                            ),
+        makeTryExceptSingleHandlerNode(
+            tried          = makeStatementsSequenceFromStatement(
+                statement = StatementAssignmentVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = tmp_item_variable.makeReference( dict_case ),
+                        source_ref = source_ref
+                    ),
+                    source     = ExpressionBuiltinNext1(
+                        value      = ExpressionTempVariableRef(
+                            variable   = tmp_iter_variable.makeReference( dict_case ),
                             source_ref = source_ref
                         ),
                         source_ref = source_ref
                     ),
-                ),
-                source_ref = source_ref
+                    source_ref = source_ref
+                )
             ),
-            handlers   = (
-                StatementExceptHandler(
-                    exception_types = (
-                        ExpressionBuiltinExceptionRef(
-                            exception_name = "StopIteration",
-                            source_ref     = source_ref
-                        ),
-                    ),
-                    body           = StatementsSequence(
-                        statements = (
-                            StatementBreakLoop( source_ref ),
-                        ),
-                        source_ref = source_ref
-                    ),
-                    source_ref     = source_ref
-                ),
+            exception_name = "StopIteration",
+            handler_body   = makeStatementsSequenceFromStatement(
+                statement = StatementBreakLoop( source_ref )
             ),
-            source_ref = source_ref
+            source_ref     = source_ref
         ),
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
@@ -1060,9 +942,8 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
                 right      = kw_variable_ref.makeCloneAt( source_ref ),
                 source_ref = source_ref
             ),
-            yes_branch = StatementsSequence(
-                statements = ( raise_duplicate, ),
-                source_ref = source_ref
+            yes_branch = makeStatementsSequenceFromStatement(
+                statement = raise_duplicate,
             ),
             no_branch  = None,
             source_ref = source_ref
@@ -1134,9 +1015,8 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
         )
     )
 
-    dict_case = StatementsSequence(
-        statements = ( dict_case, ),
-        source_ref = source_ref
+    dict_case = makeStatementsSequenceFromStatement(
+        statement = dict_case
     )
 
     statements = (

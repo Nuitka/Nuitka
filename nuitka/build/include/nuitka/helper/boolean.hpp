@@ -65,7 +65,7 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_IF_TRUE( PyObject *object )
         }
         else
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }
 }

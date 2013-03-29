@@ -109,10 +109,10 @@ class nuitka_installscripts( install_scripts ):
             fp.close()
 
             # skip binary files
-            if '\0' in data:
+            if b'\0' in data:
                 continue
 
-            data = data.replace( "@LIBDIR@", libdir.encode( "string_escape" ) )
+            data = data.replace( b"@LIBDIR@", libdir.encode( "unicode_escape" ) )
             fp = open( outfile, "wb" )
             fp.write( data )
             fp.close()

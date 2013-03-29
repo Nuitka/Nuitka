@@ -17,10 +17,26 @@
 #     limitations under the License.
 #
 
-import os, sys
+import os, sys, shutil, subprocess
 
 assert os.path.isfile( "setup.py" ) and open( ".git/description" ).read().strip() == "Nuitka Staging"
+
+nuitka_version = subprocess.check_output( "./bin/nuitka --version", shell = True ).strip()
+branch_name = subprocess.check_output( "git name-rev --name-only HEAD".split() ).strip()
+
+assert branch_name in ( b"master", b"develop", b"release/" + nuitka_version, b"hotfix/" + nuitka_version ), branch_name
 
 assert 0 == os.system( "rsync -rvlpt --exclude=deb_dist dist/ root@nuitka.net:/var/www/releases/" )
 
 assert 0 == os.system( "scp README.pdf Changelog.pdf Developer_Manual.pdf doc/man-nuitka.html doc/man-nuitka-python.html root@nuitka.net:/var/www/doc/" )
+
+# Upload only stable releases to OpenSUSE Build Service: TODO: Not yet there.
+if branch_name.startswith( "release" ) or branch_name == "master":
+    # Cleanup the osc directory.
+    shutil.rmtree( "osc", ignore_errors = True )
+
+    os.makedirs( "osc" )
+    os.system( "cd osc && osc init home:kayhayen Nuitka && osc repairwc && cp ../dist/Nuitka-*.tar.gz . && cp ../misc/nuitka.spec . && cp ../misc/nuitka-python3 . && cp ../misc/nuitka-rpmlintrc . && osc addremove && echo 'New release' >ci_message && osc ci --file ci_message" )
+
+    # Cleanup the osc directory.
+    shutil.rmtree( "osc", ignore_errors = True )

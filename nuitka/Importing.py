@@ -41,7 +41,14 @@ from logging import warning
 
 _debug_module_finding = False
 
-_warned_about = set()
+warned_about = set()
+
+# Directory where the main script lives. Should attempt to import from there.
+main_path = None
+
+def setMainScriptDirectory( main_dir ):
+    global main_path
+    main_path = main_dir
 
 def isPackageDir( dirname ):
     return Utils.isDir( dirname ) and Utils.isFile( Utils.joinpath( dirname, "__init__.py" ))
@@ -63,16 +70,34 @@ def findModule( source_ref, module_name, parent_package, level, warn = True ):
             if warn and not _isWhiteListedNotExistingModule( module_name ):
                 key = module_name, parent_package, level
 
-                if key not in _warned_about:
-                    _warned_about.add( key )
+                if key not in warned_about:
+                    warned_about.add( key )
 
-                    warning(
-                        "%s: Cannot find '%s' in '%s' on level %d",
-                        source_ref.getAsString(),
-                        module_name,
-                        parent_package,
-                        level
-                    )
+                    if level == 0:
+                        level_desc = "as absolute import"
+                    elif level == -1:
+                        level_desc = "as relative or absolute import"
+                    elif level == 1:
+                        level_desc = "one package level up" % level
+                    else:
+                        level_desc = "%d package levels up" % level
+
+                    if parent_package is not None:
+                        warning(
+                            "%s: Cannot find '%s' in package '%s' on level %s.",
+                            source_ref.getAsString(),
+                            module_name,
+                            parent_package,
+                            level_desc
+                        )
+                    else:
+                        warning(
+                            "%s: Cannot find '%s' on level %s.",
+                            source_ref.getAsString(),
+                            module_name,
+                            level_desc
+                        )
+
 
             if "." in module_name:
                 module_package_name = module_name[ : module_name.rfind( "." ) ]
@@ -97,6 +122,9 @@ def _findModuleInPath( module_name, package_name ):
     if _debug_module_finding:
         print( "_findModuleInPath: Enter", module_name, package_name )
 
+    assert main_path is not None
+    extra_paths = [ os.getcwd(), main_path  ]
+
     if package_name is not None:
         # Work around imp.find_module bug on at least Windows. Won't handle
         # module name empty in find_module. And thinking of it, how could it
@@ -111,7 +139,7 @@ def _findModuleInPath( module_name, package_name ):
         ext_path = [
             getPackageDirname( element )
             for element in
-            sys.path + [ os.getcwd() ]
+            sys.path + extra_paths
             if isPackageDir( getPackageDirname( element ) )
         ]
 
@@ -138,13 +166,24 @@ def _findModuleInPath( module_name, package_name ):
             if _debug_module_finding:
                 print( "_findModuleInPath: imp.find_module failed with syntax error" )
 
-
-    ext_path = sys.path + [ os.getcwd() ]
+    ext_path = sys.path + extra_paths
 
     if _debug_module_finding:
         print( "_findModuleInPath: Non-package, using extended path", ext_path )
 
-    _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
+    try:
+        _module_fh, module_filename, _module_desc = imp.find_module( module_name, ext_path )
+    except SyntaxError:
+        # Warn user, as this is kind of unusual.
+        warning(
+            "%s: Module cannot be imported due to syntax errors",
+            module_name,
+        )
+
+        if _debug_module_finding:
+            print( "_findModuleInPath: imp.find_module failed with syntax error" )
+
+        module_filename = None
 
     if _debug_module_finding:
         print( "_findModuleInPath: imp.find_module gave", module_filename )
@@ -205,8 +244,10 @@ def _isWhiteListedNotExistingModule( module_name ):
         "sys", "itertools", "cStringIO", "time", "zlib", "thread", "math", "errno",
         "operator", "signal", "gc", "exceptions", "win32process", "unicodedata",
         "__builtin__", "fcntl", "_socket", "_ssl", "pwd", "spwd", "_random", "grp",
-        "select", "__main__", "_winreg", "_warnings", "_sre", "_functools", "_hashlib",
-        "_collections", "_locale", "_codecs", "_weakref", "_struct", "_dummy_threading",
+        "_io", "_string", "select", "__main__", "_winreg", "_warnings", "_sre",
+        "_functools", "_hashlib", "_collections", "_locale", "_codecs", "_weakref",
+        "_struct",
+        "_dummy_threading",
         "binascii", "datetime", "_ast", "xxsubtype", "_bytesio", "cmath", "_fileio",
         "aetypes", "aepack", "MacOS", "cd", "cl", "gdbm", "gl", "GL", "aetools",
 

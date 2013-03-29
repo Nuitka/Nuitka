@@ -16,4 +16,8 @@
 #     limitations under the License.
 #
 
-import PackageLocal
+try:
+    import PackageLocal
+except ImportError:
+    print( "This must be Python3, doing local import then." )
+    from . import PackageLocal

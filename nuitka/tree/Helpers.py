@@ -191,3 +191,9 @@ def makeStatementsSequence( statements, allow_none, source_ref ):
         )
     else:
         return None
+
+def makeStatementsSequenceFromStatement( statement ):
+    return StatementsSequence(
+        statements = ( statement, ),
+        source_ref = statement.getSourceReference()
+    )

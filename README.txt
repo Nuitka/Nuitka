@@ -5,64 +5,56 @@ Usage
 =====
 
 Requirements
-~~~~~~~~~~~~~
+------------
 
 - C++ Compiler: You need a compiler with support for C++03
 
   Currently this means, you need to use the GNU g++ compiler of at least version 4.4 on
-  Linux or the clang 3.0 compiler on MacOS X, or else the compilation may fail.
+  Linux or the clang compiler on MacOS X or FreeBSD, or else the compilation may fail.
 
-  On Windows the MinGW g++ compiler is known to work start with at least version 4.5, the
-  VC++ compiler is not known at this time.
+  On Windows the MinGW g++ compiler is known to work starting with at least version 4.5,
+  newest versions are of course recommended. The VC++ compiler is not known at this time.
 
 - Python: Version 2.6, 2.7 or 3.2
 
-  You need at least CPython to execute Nuitka and then also to execute the created binary,
-  because it uses the shared library of CPython.
+  You need Python to execute Nuitka and then also to execute the created binary, because
+  it uses the shared library of Python. Nuitka is tightly bound to the reference
+  implementation of Python, called "CPython".
 
-Environment
-~~~~~~~~~~~
+- Operating System: Linux, FreeBSD, MacOS X, and Windows (32 bit),
 
-No changes are required, you can call the "nuitka" and "nuitka-python" executables
-directly without any changes to the environment. For convinience, it might be easier to
-add the directory with them to the PATH variable:
+  Others may work as well. The portability is expected to be generally good, but the Scons
+  usage may have to be adapted.
 
-Linux/MacOS X/MSYS shell:
+- Architectures: x86, x86_64 (amd64), and arm.
 
-.. code-block:: sh
-
-   eval `misc/create-environment`
-
-With some luck this also works:
-
-.. code-block:: sh
-
-   . misc/create-environment
-
-Windows: Extend "PATH" with the directory containing Nuitka executables. Either have MinGW
-installed to "C:\MinGW" (then Nuitka will find and use it automatically) or also add it to
-the PATH environment.
-
+  Other architectures may also work, but only for these the order of
 
 Command Line
-~~~~~~~~~~~~
+------------
 
-Nuitka has a "--help" option to output what it can do:
+No environment variable changes are needed, you can call the "nuitka" and "nuitka-python"
+executables directly without any changes to the environment. You may want to add them to
+your ``PATH`` for your convenience, but these steps are optional.
 
-.. code-block:: sh
+Nuitka has a ``--help`` option to output what it can do:
+
+.. code-block:: bash
 
     nuitka --help
 
-The "nuitka-python" command is "nuitka", but with different defaults and tries to compile
-and directly execute a script:
+The "nuitka-python" command is the same as "nuitka", but with different defaults. It tries
+to compile and directly execute a Python script:
 
-.. code-block:: sh
+.. code-block:: bash
 
     nuitka-python --help
 
-These options with different defaults are "--exe" and "--execute", so it is somewhat
-similar to what plain "python" will do. Note: In the future, the intention is to support
-CPython's "python" command lines in a compatible way, but currently it isn't so.
+These options with different defaults are ``--exe`` and ``--execute``, so it is somewhat
+more similar to what plain "python" will do.
+
+Use Cases
+=========
 
 Use Case 1 - Program compilation with all modules embedded
 ----------------------------------------------------------
@@ -70,52 +62,55 @@ Use Case 1 - Program compilation with all modules embedded
 If you want to compile a whole program recursively, and not only the single file that is
 the main program, do it like this:
 
-.. code-block:: sh
+.. code-block:: bash
 
     nuitka-python --recurse-all program.py
 
 .. note::
 
-   The is more fine grained control than "--recurse-all" available. Consider the output of
-   "nuitka-python --help".
+   The is more fine grained control than ``--recurse-all`` available. Consider the output
+   of ``nuitka-python --help``.
 
 In case you have a plugin directory, i.e. one which is not found by recursing after normal
 import statements (recommended way), you can always require that a given directory shall
 also be included in the executable:
 
-.. code-block:: sh
+.. code-block:: bash
 
     nuitka-python --recurse-all --recurse-directory=plugin_dir program.py
 
 .. note::
 
-   If you don't do any dynamic imports, setting your "PYTHONPATH" at compilation time will
-   be sufficient for all your needs normally. Use "--recurse-directory" only if you make
-   "__import__()" calls that Nuitka cannot predict, because they e.g. depend on command
-   line parameters.
+   If you don't do any dynamic imports, setting your ``PYTHONPATH`` at compilation time
+   will be sufficient for all your needs normally. Use ``--recurse-directory`` only if you
+   make ``__import__()`` calls that Nuitka cannot predict, because they e.g. depend on
+   command line parameters. Nuitka also warns about these, and point to the option.
 
 .. note::
 
-   The resulting binary still depends on Python and used C extension modules being
+   The resulting binary still depends on CPython and used C extension modules being
    installed. Sorry about that, it's not yet a "py2exe" replacement. Please come and help
    to add that functionality if you would like to see it in Nuitka.
 
-Use Case 3 - Extension Module compilation
+Use Case 2 - Extension Module compilation
 -----------------------------------------
 
 If you want to compile a single extension module, all you have to do is this:
 
-.. code-block:: sh
+.. code-block:: bash
 
     nuitka some_module.py
 
-The resulting "some_module.so" can then be used instead of "some_module.py".
+The resulting file "some_module.so" can then be used instead of "some_module.py". It's
+left as an exercise to the reader, what happens if both are present.
 
-Use Case 3 - Package compilation with all modules embedded
-----------------------------------------------------------
+Use Case 3 - Package compilation
+--------------------------------
 
 If you need to compile a whole package and embedded all modules, that is also feasible,
-use it like this:
+use Nuitka like this:
+
+.. code-block:: bash
 
     nuitka some_package --recurse-directory=some_package
 
@@ -125,7 +120,7 @@ use it like this:
    package is empty. Data files located inside the package will not be embedded yet.
 
 Where to go next
-~~~~~~~~~~~~~~~~
+================
 
 Remember, this project is not completed yet. Although the CPython test suite works near
 perfect, there is still more work needed, to make it do enough optimizations to be worth
@@ -147,10 +142,11 @@ Should you encounter and issues or bugs, please visit the `Nuitka bug tracker
 Contact me via email with your questions
 ----------------------------------------
 
-You are welcome to `contact me via email <mailto:Kay.Hayen@gmail.com>`_ with your questions.
+You are welcome to `contact me via email <mailto:Kay.Hayen@gmail.com>`_ with your
+questions.
 
 Word of Warning
-~~~~~~~~~~~~~~~
+---------------
 
 Consider using this software with caution. Your feedback and patches are very welcome.
 
@@ -193,9 +189,6 @@ The development of Nuitka occurs in git. We currently have these 2 branches:
 Unsupported functionality
 =========================
 
-General
-~~~~~~~
-
 The "co_code" attribute of code objects
 ---------------------------------------
 
@@ -234,7 +227,7 @@ Optimization
 ============
 
 Constant Folding
-~~~~~~~~~~~~~~~~
+----------------
 
 The most important form of optimization is the constant folding. This is when an operation
 can be predicted. Currently Nuitka does these for some builtins (but not all yet), and it
@@ -258,7 +251,7 @@ incomplete. Please report it as a bug when you find an operation in Nuitka that 
 constants are input and is not folded.
 
 Constant Propagation
-~~~~~~~~~~~~~~~~~~~~
+--------------------
 
 At the core of optimizations there is an attempt to determine values of variables at run
 time and predictions of assignments. It determines if their inputs are constants or of
@@ -290,7 +283,7 @@ read only variables:
       pass
 
 Builtin Call Prediction
-~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
 
 For builtin calls like ``type``, ``len``, or ``range`` it is often possible to predict the
 result at compile time, esp. for constant inputs the resulting value often can be
@@ -319,7 +312,7 @@ Status: This is considered mostly implemented. Please file bugs for built-ins th
 predictable but are not computed by Nuitka at compile time.
 
 Conditional Statement Prediction
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------
 
 For conditional statements, some branches may not ever be taken, because of the conditions
 being possible to predict. In these cases, the branch not taken and the condition check is
@@ -354,7 +347,7 @@ Status: This is considered implemented, but for the maximum benefit, more consta
 to be determined at compile time.
 
 Exception Propagation
-~~~~~~~~~~~~~~~~~~~~~
+---------------------
 
 For exceptions that are determined at compile time, there is an expression that will simply do
 raise the exception. These can be propagated, collecting potentially "side effects", i.e. parts
@@ -382,7 +375,7 @@ exceptions will not propagate through all different expression and statement typ
 work progresses or examples arise, the coverage will be extended.
 
 Exception Scope Reduction
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------
 
 Consider the following code:
 
@@ -411,7 +404,7 @@ Status: Not yet done yet. The infrastructure is in place, but until exception bl
 works perfectly, there is not much of a point.
 
 Exception Block Inlining
-~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------
 
 With the exception propagation it is then possible to transform this code:
 
@@ -440,7 +433,7 @@ print e
 Status: This is not implemented yet.
 
 Empty branch removal
-~~~~~~~~~~~~~~~~~~~~
+--------------------
 
 For loops and conditional statements that contain only code without effect, it should be
 possible to remove the whole construct:
@@ -467,7 +460,7 @@ be possible.
 Status: This is not implemented yet.
 
 Unpacking Prediction
-~~~~~~~~~~~~~~~~~~~~
+--------------------
 
 When the length of the right hand side of an assignment to a sequence can be predicted,
 the unpacking can be replaced with multiple assignments.
@@ -492,7 +485,7 @@ Status: Not really implemented, and should use "mayHaveSideEffect()" to be actua
 at things.
 
 Builtin Type Inference
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 When a construct like "in xrange()" or "in range()" is used, it is possible to know what
 the iteration does and represent that, so that iterator users can use that instead.
@@ -511,7 +504,7 @@ case for a dedicated class.
 Status: Future work, not even started.
 
 Quicker function calls
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 Functions are structured so that their parameter parsing and "tp_call" interface is separate
 from the actual function code. This way the call can be optimized away. One problem is that
@@ -540,7 +533,7 @@ Credits
 =======
 
 Contributors to Nuitka
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 Thanks go to these individuals for their much valued contributions to Nuitka. Contributors
 have the license to use Nuitka for their own code even if Closed Source.
@@ -568,51 +561,57 @@ The order is sorted by time.
 
 - Pete Hunt: Submitted patches for MacOS X support.
 
+- ownssh: Submitted patches for builtins module guarding, and made massive efforts to make
+  high quality bug reports.
+
 Projects used by Nuitka
-~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
 
-The CPython project http://www.python.org/
-------------------------------------------
+* The `CPython project <http://www.python.org>`_
 
-Thanks for giving us CPython, which is the base of Nuitka.
+  Thanks for giving us CPython, which is the base of Nuitka. We are nothing without it.
 
-The gcc project http://gcc.gnu.org/
------------------------------------
+* The `GCC project <http://gcc.gnu.org>`_
 
-Thanks for not only the best compiler suite, but also thanks for supporting C++11 which
-helped to get Nuitka off the ground. Your compiler was the first usable for Nuitka and
-with little effort.
+  Thanks for not only the best compiler suite, but also thanks for supporting C++11 which
+  helped to get Nuitka off the ground. Your compiler was the first usable for Nuitka and
+  with little effort.
 
-The Scons project http://www.scons.org/
----------------------------------------
+* The `Scons project <http://www.scons.org>`_
 
-Thanks for tackling the difficult points and providing a Python environment to make the
-build results. This is such a perfect fit to Nuitka and a dependency that will likely
-remain.
+  Thanks for tackling the difficult points and providing a Python environment to make the
+  build results. This is such a perfect fit to Nuitka and a dependency that will likely
+  remain.
 
-The valgrind project http://valgrind.org/
------------------------------------------
+* The `valgrind project <http://valgrind.org>`_
 
-Luckily we can use Valgrind to determine if something is an actual improvement without the
-noise. And it's also helpful to determine what's actually happening when comparing.
+  Luckily we can use Valgrind to determine if something is an actual improvement without
+  the noise. And it's also helpful to determine what's actually happening when comparing.
 
-The MinGW project http://www.mingw.org/
----------------------------------------
+* The `NeuroDebian project <http://neuro.debian.net>`_
 
-Thanks for porting the best compiler to Windows. This allows portability of Nuitka with
-relatively little effort.
+  Thanks for hosting the build infrastructure that the Debian and sponsor Yaroslav
+  Halchenko uses to provide packages for all Ubuntu versions.
 
-The mingw-cross-env project http://mingw-cross-env.nongnu.org
--------------------------------------------------------------
+* The `openSUSE Buildservice <http://openbuildservice.org>`_
 
-Thanks for enabling us to easily setup a cross compiler for my Debian that will produce
-working Windows binaries.
+  Thanks for hosting this excellent service that allows us to provide RPMs for a large
+  variety of platforms and make them available immediately nearly at release time.
 
-The wine project http://www.winehq.org/
----------------------------------------
+* The `MinGW project <http://www.mingw.org>`_
 
-Thanks for enabling us to run the cross compiled binaries without have to maintain a
-windows installation at all.
+  Thanks for porting the best compiler to Windows. This allows portability of Nuitka with
+  relatively little effort.
+
+* The `mingw-cross-env project <http://mingw-cross-env.nongnu.org>`_
+
+  Thanks for enabling us to easily setup a cross compiler for my Debian that will produce
+  working Windows binaries.
+
+* The `Wine project <http://www.winehq.org>`_
+
+  Thanks for enabling us to run the cross compiled binaries without have to maintain a
+  windows installation at all.
 
 .. header::
 
@@ -620,8 +619,9 @@ windows installation at all.
 
 .. footer::
 
-   © Kay Hayen, 2013 | Page ###Page### of ###Total### | Section ###Section###
+   |copy| Kay Hayen, 2013 | Page ###Page### of ###Total### | Section ###Section###
 
+.. |copy|   unicode:: U+000A9
 
 Updates for this Manual
 =======================

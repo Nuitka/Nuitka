@@ -15,8 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-print "Main importing from package"
+print( "Main importing from package" )
 
 from some_package import star_importing
 
-print "Done."
+print( "Done." )

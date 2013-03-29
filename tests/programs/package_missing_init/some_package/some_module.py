@@ -15,3 +15,5 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+
+print( "This must be Python3.3, which no longer needs __init__.py to accept a package." )

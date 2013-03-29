@@ -45,7 +45,7 @@ NUITKA_MAY_BE_UNUSED static Py_ssize_t CONVERT_TO_INDEX( PyObject *value )
     else
     {
         PyErr_Format( PyExc_TypeError, "slice indices must be integers or None or have an __index__ method" );
-        throw _PythonException();
+        throw PythonException();
     }
 }
 

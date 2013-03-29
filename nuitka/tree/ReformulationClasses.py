@@ -69,13 +69,14 @@ from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 
 from nuitka.nodes.GlobalsLocalsNodes import (
-    StatementSetLocals,
-    ExpressionBuiltinLocals
+    ExpressionBuiltinLocals,
+    StatementSetLocals
 )
 
-from nuitka.nodes.ParameterSpec import ParameterSpec
+from nuitka.nodes.ParameterSpecs import ParameterSpec
 
 from .Helpers import (
+    makeStatementsSequenceFromStatement,
     makeStatementsSequence,
     buildStatementsNode,
     extractDocFromBody,
@@ -391,21 +392,18 @@ def _buildClassNode3( provider, node, source_ref ):
                 source_ref = source_ref
             ),
             no_branch  = None,
-            yes_branch = StatementsSequence(
-                statements = (
-                    StatementDictOperationRemove(
-                        dicte = ExpressionTempVariableRef(
-                            variable   = tmp_class_decl_dict.makeReference( result ),
-                            source_ref = source_ref
-                        ),
-                        key   = ExpressionConstantRef(
-                            constant   = "metaclass",
-                            source_ref = source_ref
-                        ),
+            yes_branch = makeStatementsSequenceFromStatement(
+                statement = StatementDictOperationRemove(
+                    dicte = ExpressionTempVariableRef(
+                        variable   = tmp_class_decl_dict.makeReference( result ),
                         source_ref = source_ref
                     ),
-                ),
-                source_ref = source_ref
+                    key   = ExpressionConstantRef(
+                        constant   = "metaclass",
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                )
             ),
             source_ref = source_ref
         ),

@@ -39,7 +39,7 @@ from .IndicatorMixins import (
     MarkGeneratorIndicator
 )
 
-from .ParameterSpec import TooManyArguments, matchCall
+from .ParameterSpecs import TooManyArguments, matchCall
 
 from nuitka import Variables, Utils
 
@@ -173,6 +173,16 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
             return "<genexpr>"
         else:
             return self.name
+
+    def getFunctionQualname( self ):
+        function_name = self.getFunctionName()
+
+        provider = self.getParentVariableProvider()
+
+        if provider.isPythonModule():
+            return function_name
+        else:
+            return provider.getFunctionQualname() + ".<locals>." + function_name
 
     def getDoc( self ):
         return self.doc

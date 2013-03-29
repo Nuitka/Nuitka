@@ -41,12 +41,13 @@ def compareConstants( a, b ):
         return compareConstants( a.imag, b.imag ) and compareConstants( a.real, b.real )
 
     if type( a ) is float:
-        if math.isnan( a ) and math.isnan( b ):
-            return True
-
-        # For float, -0.0 is not 0.0, it has a different sign for a start.
+        # Check sign first, -0.0 is not 0.0, or -nan is not nan, it has a different sign
+        # for a start.
         if math.copysign( 1.0, a ) != math.copysign( 1.0, b ):
             return False
+
+        if math.isnan( a ) and math.isnan( b ):
+            return True
 
         return a == b
 
@@ -99,8 +100,22 @@ def compareConstants( a, b ):
 def isConstant( constant ):
     constant_type = type( constant )
 
-    if constant_type in ( str, tuple, dict, list, unicode, complex, int, long, bool, float, \
-                          NoneType, range, bytes, set ):
+    if constant_type is dict:
+        for key, value in iterItems( constant ):
+            if not isConstant( key ):
+                return False
+            if not isConstant( value ):
+                return False
+        else:
+            return True
+    elif constant_type in ( tuple, list ):
+        for element_value in constant:
+            if not isConstant( element_value ):
+                return False
+        else:
+            return True
+    elif constant_type in ( str, unicode, complex, int, long, bool, float, NoneType,
+                            range, bytes, set ):
         return True
     elif constant in ( Ellipsis, NoneType ):
         return True

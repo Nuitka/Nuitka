@@ -332,6 +332,7 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
         function_code = Generator.getGeneratorFunctionCode(
             context                = function_context,
             function_name          = function_body.getFunctionName(),
+            function_qualname      = function_body.getFunctionQualname(),
             function_identifier    = function_identifier,
             parameters             = parameters,
             closure_variables      = function_body.getClosureVariables(),
@@ -348,6 +349,7 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
         function_code = Generator.getFunctionCode(
             context                = function_context,
             function_name          = function_body.getFunctionName(),
+            function_qualname      = function_body.getFunctionQualname(),
             function_identifier    = function_identifier,
             parameters             = parameters,
             closure_variables      = function_body.getClosureVariables(),
@@ -964,7 +966,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
             identifier = makeExpressionCode( expression.getValue() )
         )
     elif expression.isExpressionBuiltinDict():
-        assert not expression.hasOnlyConstantArguments()
+        # assert not expression.hasOnlyConstantArguments()
 
         identifier = Generator.getBuiltinDictCode(
             seq_identifier  = makeExpressionCode(
@@ -1006,7 +1008,10 @@ def generateExpressionCode( expression, context, allow_none = False ):
     elif expression.isExpressionRaiseException():
         # Missed optimization opportunity, please report.
         if Options.isDebug():
-            assert expression.parent.isExpressionSideEffects(), ( expression, expression.parent )
+            parent = expression.parent
+            assert parent.isExpressionSideEffects() or \
+                   parent.isExpressionConditional(), \
+                   ( expression, expression.parent )
 
         identifier = Generator.getRaiseExceptionExpressionCode(
             exception_type_identifier  = makeExpressionCode(
@@ -1028,6 +1033,13 @@ def generateExpressionCode( expression, context, allow_none = False ):
                 context     = context
             ),
             context        = context
+        )
+    elif expression.isExpressionBuiltinOriginalRef():
+        assert not expression.isExpressionBuiltinRef()
+
+        identifier = Generator.getBuiltinOriginalRefCode(
+            builtin_name = expression.getBuiltinName(),
+            context      = context
         )
     elif expression.isExpressionBuiltinRef():
         identifier = Generator.getBuiltinRefCode(

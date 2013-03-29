@@ -28,10 +28,7 @@ from .NodeBases import (
 
 from .IndicatorMixins import MarkContainsTryExceptIndicator
 
-from nuitka import (
-    Variables,
-    Utils
-)
+from nuitka import Variables, Utils
 
 from nuitka.oset import OrderedSet
 
@@ -47,7 +44,7 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
 
     named_children = ( "body", )
 
-    def __init__( self, name, package, is_main, source_ref ):
+    def __init__( self, name, package, source_ref ):
         assert type(name) is str, type(name)
         assert "." not in name, name
         assert package is None or ( type( package ) is str and package != "" )
@@ -67,9 +64,6 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
         MarkContainsTryExceptIndicator.__init__( self )
 
         self.package = package
-
-        # Indicator, if this is the top level module.
-        self.is_main = is_main
 
         self.variables = set()
 
@@ -150,7 +144,7 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
         return True
 
     def isMainModule( self ):
-        return self.is_main
+        return False
 
     def getCodeName( self ):
         return "module_" + self.getFullName().replace( ".", "__" ).replace( "-", "_" )
@@ -163,6 +157,40 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
     def getFunctions( self ):
         return self.functions
 
+    def getOutputFilename( self ):
+        main_filename = self.getFilename()
+
+        if main_filename.endswith( ".py" ):
+            return main_filename[:-3]
+        else:
+            return main_filename
+
+
+class PythonMainModule( PythonModule ):
+    kind = "PYTHON_MAIN_MODULE"
+
+    def __init__( self, main_added, source_ref ):
+        PythonModule.__init__(
+            self,
+            name        = "__main__",
+            package     = None,
+            source_ref  = source_ref
+        )
+
+        self.main_added = main_added
+
+    def isMainModule( self ):
+        return True
+
+    def isMainAdded( self ):
+        return self.main_added
+
+    def getOutputFilename( self ):
+        if self.main_added:
+            return Utils.dirname( self.getFilename() )
+        else:
+            return PythonModule.getOutputFilename( self )
+
 
 class PythonPackage( PythonModule ):
     kind = "PYTHON_PACKAGE"
@@ -174,6 +202,8 @@ class PythonPackage( PythonModule ):
             self,
             name       = name,
             package    = package,
-            is_main    = False,
             source_ref = source_ref
         )
+
+    def getOutputFilename( self ):
+        return Utils.dirname( self.getFilename() )

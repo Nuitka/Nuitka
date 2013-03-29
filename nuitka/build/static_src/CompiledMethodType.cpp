@@ -90,7 +90,10 @@ static char const *GET_CLASS_NAME( PyObject *klass )
                 return "?";
             }
 
-            return Nuitka_String_AsString_Unchecked( name );
+            char *const result = Nuitka_String_AsString_Unchecked( name );
+            Py_DECREF( name );
+
+            return result;
         }
     }
 }
@@ -610,7 +613,7 @@ PyObject *Nuitka_Method_New( Nuitka_FunctionObject *function, PyObject *object, 
             Nuitka_String_AsString( function->m_name )
         );
 
-        throw _PythonException();
+        throw PythonException();
     }
 
     result->m_function = (Nuitka_FunctionObject * )INCREASE_REFCOUNT( (PyObject *)function );

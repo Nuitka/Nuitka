@@ -81,7 +81,7 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void _RAISE_EXCEPTION_WITH_TYPE( EV
                 Py_TYPE( value )->tp_name
             );
 
-            throw _PythonException();
+            throw PythonException();
         }
 #endif
 
@@ -89,7 +89,7 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void _RAISE_EXCEPTION_WITH_TYPE( EV
         CHAIN_EXCEPTION( exception_type, value );
 #endif
 
-        throw _PythonException( exception_type, value, traceback );
+        throw PythonException( exception_type, value, traceback );
     }
     else if ( PyExceptionInstance_Check( exception_type ) )
     {
@@ -110,13 +110,13 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void _RAISE_EXCEPTION_WITH_TYPE( EV
         PyException_SetTraceback( value, (PyObject *)traceback );
 #endif
 
-        throw _PythonException( exception_type, value, traceback );
+        throw PythonException( exception_type, value, traceback );
     }
     else
     {
         PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
 
-        _PythonException to_throw;
+        PythonException to_throw;
         to_throw.setTraceback( traceback );
 
         throw to_throw;
@@ -135,14 +135,32 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( Py
 
         if (unlikely( exception_cause == NULL ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }
 
-    if (unlikely( !PyExceptionInstance_Check( exception_cause ) ))
+#if PYTHON_VERSION >= 330
+    // None is not a cause.
+    if ( exception_cause == Py_None )
     {
+        Py_DECREF( exception_cause );
+        exception_cause = NULL;
+
+    }
+#endif
+
+#if PYTHON_VERSION >= 330
+    if (unlikely( exception_cause != NULL && !PyExceptionInstance_Check( exception_cause ) ))
+#else
+    if (unlikely( !PyExceptionInstance_Check( exception_cause ) ))
+#endif
+    {
+        Py_DECREF( exception_type );
+        Py_DECREF( exception_cause );
+        Py_DECREF( traceback );
+
         PyErr_Format( PyExc_TypeError, "exception causes must derive from BaseException" );
-        throw _PythonException();
+        throw PythonException();
     }
 
     if ( PyExceptionClass_Check( exception_type ) )
@@ -159,22 +177,22 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( Py
                 Py_TYPE( value )->tp_name
             );
 
-            throw _PythonException();
+            throw PythonException();
         }
 
-        _PythonException to_throw( exception_type, value, traceback );
+        PythonException to_throw( exception_type, value, traceback );
         to_throw.setCause( exception_cause );
         throw to_throw;
     }
     else if ( PyExceptionInstance_Check( exception_type ) )
     {
-        throw _PythonException( INCREASE_REFCOUNT( PyExceptionInstance_Class( exception_type ) ), exception_type, traceback );
+        throw PythonException( INCREASE_REFCOUNT( PyExceptionInstance_Class( exception_type ) ), exception_type, traceback );
     }
     else
     {
         PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
 
-        _PythonException to_throw;
+        PythonException to_throw;
         to_throw.setTraceback( traceback );
 
         throw to_throw;
@@ -208,11 +226,11 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void _RAISE_EXCEPTION_WITH_VALUE( E
                 Py_TYPE( value )->tp_name
             );
 
-            throw _PythonException();
+            throw PythonException();
         }
 #endif
 
-        throw _PythonException( exception_type, value, traceback );
+        throw PythonException( exception_type, value, traceback );
     }
     else if ( PyExceptionInstance_Check( exception_type ) )
     {
@@ -220,14 +238,14 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void _RAISE_EXCEPTION_WITH_VALUE( E
         {
             Py_DECREF( exception_type );
             Py_XDECREF( value );
-            Py_DECREF( traceback );
+            Py_XDECREF( traceback );
 
             PyErr_Format(
                 PyExc_TypeError,
                 "instance exception may not have a separate value"
             );
 
-            throw _PythonException();
+            throw PythonException();
         }
 
         // The type is rather a value, so we are overriding it here.
@@ -236,13 +254,13 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void _RAISE_EXCEPTION_WITH_VALUE( E
         value = exception_type;
         exception_type = INCREASE_REFCOUNT( PyExceptionInstance_Class( exception_type ) );
 
-        throw _PythonException( exception_type, value, traceback );
+        throw PythonException( exception_type, value, traceback );
     }
     else
     {
         PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
 
-        throw _PythonException();
+        throw PythonException();
     }
 }
 
@@ -255,7 +273,7 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void _RAISE_EXCEPTION_WITH_VALUE_NO
 
     if ( PyExceptionClass_Check( exception_type ) )
     {
-        throw _PythonException( exception_type, value, traceback );
+        throw PythonException( exception_type, value, traceback );
     }
     else if ( PyExceptionInstance_Check( exception_type ) )
     {
@@ -267,7 +285,7 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void _RAISE_EXCEPTION_WITH_VALUE_NO
         value = exception_type;
         exception_type = INCREASE_REFCOUNT( PyExceptionInstance_Class( exception_type ) );
 
-        throw _PythonException( exception_type, value, traceback );
+        throw PythonException( exception_type, value, traceback );
     }
     else
     {
@@ -275,7 +293,7 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void _RAISE_EXCEPTION_WITH_VALUE_NO
 
         PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( exception_type )->tp_name );
 
-        throw _PythonException();
+        throw PythonException();
     }
 }
 
@@ -286,11 +304,20 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static inline void _RAISE_EXCEPTION_WITH_T
 {
     if ( traceback == Py_None )
     {
+        Py_DECREF( traceback );
         traceback = NULL;
     }
 
     // Check traceback
-    assert( traceback == NULL || PyTraceBack_Check( traceback ) );
+    if( traceback != NULL && !PyTraceBack_Check( traceback ) )
+    {
+        Py_DECREF( exception_type );
+        Py_DECREF( value );
+        Py_DECREF( traceback );
+
+        PyErr_Format( PyExc_TypeError, "raise: arg 3 must be a traceback or None" );
+        throw PythonException();
+    }
 
     RAISE_EXCEPTION_WITH_VALUE( exception_type, value, (PyTracebackObject *)traceback );
 }
@@ -310,7 +337,7 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( void )
     if ( type == Py_None )
     {
         PyErr_Format( PyExc_RuntimeError, "No active exception to reraise" );
-        throw _PythonException();
+        throw PythonException();
     }
 #endif
 
@@ -321,9 +348,9 @@ NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( void )
     RAISE_EXCEPTION_WITH_TRACEBACK( type, value, tb );
 }
 
-// Throw an exception from within an expression, this is without normalization. TODO: There needs
-// to be a form that is like a statement, and doesn't do it, so it won't impact "raise", but can
-// be used in optimization.
+// Throw an exception from within an expression, this is without normalization. Note:
+// There is also a form for use as a statement, and also doesn't do it, seeing this used
+// normally means, the implicit exception was not propagated.
 NUITKA_NO_RETURN NUITKA_MAY_BE_UNUSED static PyObject *THROW_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *traceback )
 {
     RAISE_EXCEPTION_WITH_VALUE_NO_NORMALIZE( exception_type, exception_value, traceback );
@@ -335,7 +362,7 @@ NUITKA_MAY_BE_UNUSED static void THROW_IF_ERROR_OCCURED( void )
 {
     if ( ERROR_OCCURED() )
     {
-        throw _PythonException();
+        throw PythonException();
     }
 }
 
@@ -349,7 +376,7 @@ NUITKA_MAY_BE_UNUSED static void THROW_IF_ERROR_OCCURED_NOT( PyObject *ignored )
         }
         else
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }
 }

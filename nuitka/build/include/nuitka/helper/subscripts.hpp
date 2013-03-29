@@ -41,7 +41,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
                 if ( -int_subscript > list_size )
                 {
                     PyErr_Format( PyExc_IndexError, "list index out of range" );
-                    throw _PythonException();
+                    throw PythonException();
                 }
 
                 int_subscript += list_size;
@@ -51,7 +51,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
                 if ( int_subscript >= list_size )
                 {
                     PyErr_Format( PyExc_IndexError, "list index out of range" );
-                    throw _PythonException();
+                    throw PythonException();
                 }
             }
 
@@ -68,7 +68,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
                 if ( -int_subscript > string_size )
                 {
                     PyErr_Format( PyExc_IndexError, "string index out of range" );
-                    throw _PythonException();
+                    throw PythonException();
                 }
 
                 int_subscript += string_size;
@@ -78,7 +78,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
                 if ( int_subscript >= string_size )
                 {
                     PyErr_Format( PyExc_IndexError, "string index out of range" );
-                    throw _PythonException();
+                    throw PythonException();
                 }
             }
 
@@ -106,12 +106,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
 #endif
             Py_TYPE( source )->tp_name
         );
-        throw _PythonException();
+        throw PythonException();
     }
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -142,7 +142,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_SUBSCRIPT( EVAL_ORDERED_2( PyObjec
         else if ( type->tp_as_sequence->sq_item )
         {
             PyErr_Format( PyExc_TypeError, "sequence index must be integer, not '%s'", Py_TYPE( subscript )->tp_name );
-            throw _PythonException();
+            throw PythonException();
         }
         else
         {
@@ -155,7 +155,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_SUBSCRIPT( EVAL_ORDERED_2( PyObjec
 #endif
                 Py_TYPE( source )->tp_name
             );
-            throw _PythonException();
+            throw PythonException();
         }
     }
     else
@@ -170,12 +170,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_SUBSCRIPT( EVAL_ORDERED_2( PyObjec
             Py_TYPE( source )->tp_name
         );
 
-        throw _PythonException();
+        throw PythonException();
     }
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -197,7 +197,7 @@ NUITKA_MAY_BE_UNUSED static void _SET_SUBSCRIPT( EVAL_ORDERED_3( PyObject *value
 
         if (unlikely( res == -1 ))
         {
-            throw _PythonException();
+            throw PythonException();
         }
     }
     else if ( Py_TYPE( target )->tp_as_sequence )
@@ -222,7 +222,7 @@ NUITKA_MAY_BE_UNUSED static void _SET_SUBSCRIPT( EVAL_ORDERED_3( PyObject *value
                 Py_TYPE( subscript )->tp_name
             );
 
-            throw _PythonException();
+            throw PythonException();
         }
         else
         {
@@ -232,7 +232,7 @@ NUITKA_MAY_BE_UNUSED static void _SET_SUBSCRIPT( EVAL_ORDERED_3( PyObject *value
                 Py_TYPE( target )->tp_name
             );
 
-            throw _PythonException();
+            throw PythonException();
         }
     }
     else
@@ -243,7 +243,7 @@ NUITKA_MAY_BE_UNUSED static void _SET_SUBSCRIPT( EVAL_ORDERED_3( PyObject *value
             Py_TYPE( target )->tp_name
         );
 
-        throw _PythonException();
+        throw PythonException();
     }
 }
 
@@ -258,7 +258,7 @@ NUITKA_MAY_BE_UNUSED static void _DEL_SUBSCRIPT( EVAL_ORDERED_2( PyObject *targe
 
     if (unlikely( status == -1 ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 }
 

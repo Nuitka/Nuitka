@@ -202,6 +202,11 @@ non_ascii_error_rt = re.compile( r"(SyntaxError: Non-ASCII character.*? on line)
 def makeDiffable( output ):
     result = []
 
+    # fix import readline cause output sometimes startswith \x1b[?1034h
+    m = re.match( r'\x1b\[[^h]+h', output )
+    if m:
+        output = output[len( m.group() ):]
+
     for line in output.split( b"\n" ):
         if type( line ) is not str:
             line = line.decode( "utf-8" )
@@ -247,6 +252,10 @@ def makeDiffable( output ):
         # This is a bug potentially, occurs only for CPython when re-directed, we are
         # going to ignore the issue as Nuitka is fine.
         if line == "Exception RuntimeError: 'maximum recursion depth exceeded while calling a Python object' in <type 'exceptions.AttributeError'> ignored":
+            continue
+
+        # This is a bug with clang potentially, can't find out why it says that.
+        if line == "/usr/bin/ld: warning: .init_array section has zero size":
             continue
 
         result.append( line )

@@ -58,6 +58,14 @@ debug_mode = getBoolOption( "debug_mode", False )
 # Optimization mode: Optimize as much as currently possible.
 optimize_mode = getBoolOption( "optimize_mode", True )
 
+# Full compatibility, even where it's stupid, i.e. do not provide information, even if
+# available, in order to assert maximum compatbility. Intended to control level of
+# compatability to absurd.
+full_compat_mode = getBoolOption( "full_compat", False )
+
+# Experimental mode. Do things that are not yet safe to do.
+experimental_mode = getBoolOption( "experimental", False )
+
 # LTO mode: Use link time optimizations of g++ compiler if available and known good with
 # the compiler in question. The 4.5 one didn't have good enough support, the compiled
 # result would not run correctly.
@@ -189,7 +197,7 @@ def getGccVersion():
 
     pipe = SCons.Action._subproc(
         env, [ env[ "CXX" ], '--version' ],
-        stdin = 'devnull',
+        stdin  = 'devnull',
         stderr = 'devnull',
         stdout = subprocess.PIPE
     )
@@ -202,6 +210,31 @@ def getGccVersion():
         return match.group(0)
     else:
         return None
+
+def getClangVersion():
+    import SCons
+
+    pipe = SCons.Action._subproc(
+        env, [ env[ "CXX" ], '--version' ],
+        stdin  = 'devnull',
+        stderr = 'devnull',
+        stdout = subprocess.PIPE
+    )
+
+    line = pipe.stdout.readline()
+
+    match = re.search( r'LLVM ([0-9]+(\.[0-9]+){1})', line )
+
+    if match:
+        return match.group(1)
+
+    match = re.search( r'([0-9]+(\.[0-9]+){1})', line )
+
+    if match:
+        return match.group(1)
+    else:
+        return None
+
 
 # To support cross-compiling under Linux for a  windows target, a cross compiler linked or
 # installed to /opt/mingw will win over a system installed one.
@@ -258,9 +291,18 @@ env.SConsignFile( sconsign_dir )
 
 # Support for clang.
 if "clang" in env[ "CXX" ]:
-    env.Append( CCFLAGS = [ "-w", "-D _XOPEN_SOURCE" ] )
+    env.Append( CCFLAGS = [ "-w" ] )
+    env.Append( CPPDEFINES = [ "_XOPEN_SOURCE" ] )
     env.Append( LINKFLAGS = [ "-lstdc++" ])
 
+    # Don't export anything by default, this should create smaller executables.
+    env.Append( CCFLAGS = [ "-fvisibility=hidden", "-fvisibility-inlines-hidden" ] )
+
+    if debug_mode:
+        env.Append( CCFLAGS = [ "-Wunused-but-set-variable" ] )
+
+    clang_version = getClangVersion()
+    clang_version = int( clang_version.replace( ".", "" ) + "0" )
 
 # Support for g++.
 if "g++" in env[ "CXX" ]:
@@ -346,8 +388,14 @@ if debug_mode:
         env.Append( CCFLAGS = [ "-Wno-sequence-point" ] )
 
     # Benefit from clang checking memory accesses.
-    if "clang" in env[ "CXX" ]:
+    if "clang" in env[ "CXX" ] and clang_version >= 330:
         env.Append( CCFLAGS = [ "-fsanatize=address,bounds,return" ] )
+
+if full_compat_mode:
+    env.Append( CPPDEFINES = [ "_NUITKA_FULL_COMPAT" ] )
+
+if experimental_mode:
+    env.Append( CPPDEFINES = [ "_NUITKA_EXPERIMENTAL" ] )
 
 # Python version, use the scons one if not given.
 python_version = ARGUMENTS.get( "python_version", None )
@@ -382,9 +430,6 @@ if win_target:
             env.Append( LINKFLAGS = [ "-Wl,--subsystem,windows" ] )
 
     python_header_path = os.path.join( python_home, "include" )
-
-    # Might be required for native current MinGW to not have a link time issue.
-    # -D__MSVCRT_VERSION__=0x0800 -DWINVER=0x0800
 
 else:
     # The python header path is a combination of python version and debug indication, make
@@ -459,9 +504,12 @@ if optimize_mode:
     elif msvc_mode:
         env.Append( CCFLAGS = [ "/Ox" ] )
 
+# Tell compiler to create a shared library or program.
 if module_mode:
-    if gcc_mode:
+    if "g++" in env[ "CXX" ]:
         env.Append( CCFLAGS = [ "-shared" ] )
+    elif "clang" in env[ "CXX" ]:
+        pass
     elif msvc_mode:
         env.Append( CCFLAGS = [ "/LD" ] )
     else:

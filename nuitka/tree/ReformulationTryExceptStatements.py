@@ -25,6 +25,7 @@ from nuitka.nodes.VariableRefNodes import (
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ExceptionNodes import ExpressionCaughtExceptionValueRef
+from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.ConditionalNodes import StatementConditional
@@ -127,6 +128,25 @@ def makeTryExceptNoRaise( tried, handlers, no_raise, source_ref ):
     )
 
     return result
+
+def makeTryExceptSingleHandlerNode( tried, exception_name, handler_body, source_ref ):
+    return StatementTryExcept(
+        tried      = tried,
+        handlers   = (
+            StatementExceptHandler(
+                exception_types = (
+                    ExpressionBuiltinExceptionRef(
+                        exception_name = exception_name,
+                        source_ref     = source_ref
+                    ),
+                ),
+                body            = handler_body,
+                source_ref      = source_ref
+            ),
+        ),
+        source_ref = source_ref
+    )
+
 
 def buildTryExceptionNode( provider, node, source_ref ):
     # Try/except nodes. Re-formulated as described in the developer manual. Exception

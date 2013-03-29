@@ -30,6 +30,9 @@ class StatementTryFinally( StatementChildrenHavingBase ):
     named_children = ( "tried", "final" )
 
     def __init__( self, tried, final, source_ref ):
+        assert tried is None or tried.isStatementsSequence()
+        assert final is None or final.isStatementsSequence()
+
         StatementChildrenHavingBase.__init__(
             self,
             values     = {

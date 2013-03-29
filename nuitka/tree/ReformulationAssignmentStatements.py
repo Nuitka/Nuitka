@@ -51,6 +51,7 @@ from nuitka.nodes.SliceNodes import ExpressionSliceLookup
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 
 from .Helpers import (
+    makeStatementsSequenceFromStatement,
     makeStatementsSequenceOrStatement,
     buildNode,
     getKind
@@ -529,18 +530,15 @@ def _buildInplaceAssignVariableNode( result, variable_ref, tmp_variable1, tmp_va
                 ),
                 source_ref = source_ref
             ),
-            yes_branch = StatementsSequence(
-                statements = (
-                    StatementAssignmentVariable(
-                        variable_ref = variable_ref.makeCloneAt( source_ref ),
-                        source     = ExpressionTempVariableRef(
-                            variable   = tmp_variable2.makeReference( result ),
-                            source_ref = source_ref
-                        ),
+            yes_branch = makeStatementsSequenceFromStatement(
+                statement = StatementAssignmentVariable(
+                    variable_ref = variable_ref.makeCloneAt( source_ref ),
+                    source     = ExpressionTempVariableRef(
+                        variable   = tmp_variable2.makeReference( result ),
                         source_ref = source_ref
                     ),
-                ),
-                source_ref = source_ref
+                    source_ref = source_ref
+                )
             ),
             no_branch = None,
             source_ref = source_ref
@@ -593,19 +591,16 @@ def _buildInplaceAssignAttributeNode( result, lookup_source, attribute_name, tmp
                 ),
                 source_ref = source_ref
             ),
-            yes_branch = StatementsSequence(
-                statements = (
-                    StatementAssignmentAttribute(
-                        expression = lookup_source.makeCloneAt( source_ref ),
-                        attribute_name = attribute_name,
-                        source     = ExpressionTempVariableRef(
-                            variable   = tmp_variable2.makeReference( result ),
-                            source_ref = source_ref
-                        ),
+            yes_branch = makeStatementsSequenceFromStatement(
+                statement = StatementAssignmentAttribute(
+                    expression = lookup_source.makeCloneAt( source_ref ),
+                    attribute_name = attribute_name,
+                    source     = ExpressionTempVariableRef(
+                        variable   = tmp_variable2.makeReference( result ),
                         source_ref = source_ref
                     ),
-                ),
-                source_ref = source_ref
+                    source_ref = source_ref
+                )
             ),
             no_branch = None,
             source_ref = source_ref

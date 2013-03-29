@@ -33,6 +33,8 @@ while( true )
     { /* Break the loop */
        break;
     }
+
+   CONSIDER_THREADING();
 }"""
 
 template_loop_break_catching = """\
@@ -46,6 +48,8 @@ while( true )
     { /* Break the loop */
        break;
     }
+
+   CONSIDER_THREADING();
 }"""
 
 template_loop_continue_catching = """\
@@ -58,10 +62,14 @@ while( true )
     catch( ContinueException & )
     { /* Nothing to do */
     }
+
+   CONSIDER_THREADING();
 }"""
 
 template_loop_simple = """\
 while( true )
 {
 %(loop_body_codes)s
+
+   CONSIDER_THREADING();
 }"""

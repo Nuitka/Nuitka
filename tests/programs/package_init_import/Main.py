@@ -18,4 +18,4 @@
 
 import some_package
 
-print some_package.PackageLocal
+print( some_package.PackageLocal )

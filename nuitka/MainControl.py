@@ -99,16 +99,7 @@ def displayTree( tree ):
     TreeDisplay.displayTreeInspector( tree )
 
 def getTreeFilenameWithSuffix( tree, suffix ):
-    main_filename = tree.getFilename()
-
-    assert os.path.exists( main_filename )
-
-    if tree.isPythonPackage():
-        return Utils.dirname( main_filename ) + suffix
-    elif main_filename.endswith( ".py" ):
-        return main_filename[:-3] + suffix
-    else:
-        return main_filename + suffix
+    return tree.getOutputFilename() + suffix
 
 def getSourceDirectoryPath( main_module ):
     assert main_module.isPythonModule()
@@ -250,21 +241,15 @@ def makeSourceDirectory( main_module ):
         )
 
     writeSourceCode(
-        filename    = Utils.joinpath( source_dir, "__constants.cpp" ),
-        source_code = CodeGeneration.generateConstantsDefinitionCode(
+        filename    = Utils.joinpath( source_dir, "__constants.hpp" ),
+        source_code = CodeGeneration.generateConstantsDeclarationCode(
             context = global_context
         )
     )
 
-    module_hpp_include = [
-        '#include "%s"\n' % Utils.basename( module_hpp )
-        for module_hpp in
-        module_hpps
-    ]
-
     writeSourceCode(
-        filename    = Utils.joinpath( source_dir, "__constants.hpp" ),
-        source_code = CodeGeneration.generateConstantsDeclarationCode(
+        filename    = Utils.joinpath( source_dir, "__constants.cpp" ),
+        source_code = CodeGeneration.generateConstantsDefinitionCode(
             context = global_context
         )
     )
@@ -275,6 +260,12 @@ def makeSourceDirectory( main_module ):
             context = global_context
         )
     )
+
+    module_hpp_include = [
+        '#include "%s"\n' % Utils.basename( module_hpp )
+        for module_hpp in
+        module_hpps
+    ]
 
     writeSourceCode(
         filename    = Utils.joinpath( source_dir, "__modules.hpp" ),
@@ -307,6 +298,8 @@ def runScons( main_module, quiet ):
         "unstriped_mode" : asBoolStr( Options.isUnstriped() ),
         "module_mode"    : asBoolStr( Options.shallMakeModule() ),
         "optimize_mode"  : asBoolStr( Options.isOptimize() ),
+        "full_compat"    : asBoolStr( Options.isFullCompat() ),
+        "experimental"   : asBoolStr( Options.isExperimental() ),
         "python_version" : python_version,
         "lto_mode"       : asBoolStr( Options.isLto() ),
         "clang_mode"     : asBoolStr( Options.isClang() )
@@ -361,9 +354,11 @@ def executeMain( binary_filename, tree, clean_path ):
     main_filename = tree.getFilename()
 
     if main_filename.endswith( ".py" ):
-        name = Utils.basename( main_filename[:-3]  )
+        name = main_filename[:-3]
     else:
-        name = Utils.basename( main_filename )
+        name = main_filename
+
+    name = os.path.abspath( name )
 
     if not Options.isWindowsTarget() or os.name == "nt":
         args = ( binary_filename, name )

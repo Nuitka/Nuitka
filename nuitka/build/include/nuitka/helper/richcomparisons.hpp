@@ -26,7 +26,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_LT( EVAL_ORDERED_2( PyObject
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -40,7 +40,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_LE( EVAL_ORDERED_2( PyObject
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -54,7 +54,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_EQ( EVAL_ORDERED_2( PyObject
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -68,7 +68,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_NE( EVAL_ORDERED_2( PyObject
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -82,7 +82,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_GT( EVAL_ORDERED_2( PyObject
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -96,7 +96,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_RICH_COMPARE_GE( EVAL_ORDERED_2( PyObject
 
     if (unlikely( result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     return result;
@@ -110,7 +110,7 @@ NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_LT( EVAL_ORDERED_2( PyObject
 
     if (unlikely( rich_result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     bool result;
@@ -139,17 +139,11 @@ NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_LT( EVAL_ORDERED_2( PyObject
 
 NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_LE( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
-    // Quick path for avoidable checks.
-    if ( operand1 == operand2 )
-    {
-        return true;
-    }
-
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_LE );
 
     if (unlikely( rich_result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     bool result;
@@ -210,17 +204,11 @@ NUITKA_MAY_BE_UNUSED static bool RICH_COMPARE_BOOL_EQ_PARAMETERS( PyObject *oper
 
 NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_EQ( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
-    // Quick path for avoidable checks, compatible with CPython.
-    if ( operand1 == operand2 )
-    {
-        return true;
-    }
-
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_EQ );
 
     if (unlikely( rich_result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     bool result;
@@ -249,17 +237,11 @@ NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_EQ( EVAL_ORDERED_2( PyObject
 
 NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_NE( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
 {
-    // Quick path for avoidable checks.
-    if ( operand1 == operand2 )
-    {
-        return false;
-    }
-
     PyObject *rich_result = PyObject_RichCompare( operand1, operand2, Py_NE );
 
     if (unlikely( rich_result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     bool result;
@@ -292,7 +274,7 @@ NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_GT( EVAL_ORDERED_2( PyObject
 
     if (unlikely( rich_result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     bool result;
@@ -331,7 +313,7 @@ NUITKA_MAY_BE_UNUSED static bool _RICH_COMPARE_BOOL_GE( EVAL_ORDERED_2( PyObject
 
     if (unlikely( rich_result == NULL ))
     {
-        throw _PythonException();
+        throw PythonException();
     }
 
     bool result;

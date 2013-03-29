@@ -51,7 +51,9 @@ int main( int argc, char *argv[] )
     setCommandLineParameters( argc, argv );
 
     // Initialize the constant values used.
+    _initBuiltinModule();
     _initConstants();
+    _initBuiltinOriginalValues();
 
     // Initialize the compiled types of Nuitka.
     PyType_Ready( &Nuitka_Generator_Type );
@@ -97,6 +99,7 @@ module_header_template = """\
 MOD_INIT_DECL( %(module_identifier)s );
 
 extern PyObject *_module_%(module_identifier)s;
+extern PyDictObject *_moduledict_%(module_identifier)s;
 
 class PyObjectGlobalVariable_%(module_identifier)s
 {
@@ -110,7 +113,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
         PyObject *asObject0() const
         {
-            PyObject *result = GET_STRING_DICT_VALUE( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
+            PyObject *result = GET_STRING_DICT_VALUE( _moduledict_%(module_identifier)s, *this->var_name );
 
             if (likely( result != NULL ))
             {
@@ -119,7 +122,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
                 return result;
             }
 
-            result = GET_STRING_DICT_VALUE( module_builtin, *this->var_name );
+            result = GET_STRING_DICT_VALUE( dict_builtin, *this->var_name );
 
             if (likely( result != NULL ))
             {
@@ -129,7 +132,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
             }
 
             PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
-            throw _PythonException();
+            throw PythonException();
         }
 
         PyObject *asObject() const
@@ -151,62 +154,20 @@ class PyObjectGlobalVariable_%(module_identifier)s
             }
         }
 
-        void assign0( PyObject *value ) const
-        {
-            Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY( MODULE_DICT( _module_%(module_identifier)s ), *this->var_name );
-
-            PyObject *old = GET_DICT_ENTRY_VALUE( entry );
-
-            // Values are more likely set than not set, in that case speculatively try the
-            // quickest access method.
-            if (likely( old != NULL ))
-            {
-                SET_DICT_ENTRY_VALUE( entry, INCREASE_REFCOUNT( value ) );
-
-                Py_DECREF( old );
-            }
-            else
-            {
-                DICT_SET_ITEM( ((PyModuleObject *)_module_%(module_identifier)s)->md_dict, (PyObject *)*this->var_name, value );
-            }
-        }
-
-        void assign1( PyObject *value ) const
-        {
-            Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY( MODULE_DICT( _module_%(module_identifier)s ), *this->var_name );
-
-            PyObject *old = GET_DICT_ENTRY_VALUE( entry );
-
-            // Values are more likely set than not set, in that case speculatively try the
-            // quickest access method.
-            if (likely( old != NULL ))
-            {
-                SET_DICT_ENTRY_VALUE( entry, value );
-
-                Py_DECREF( old );
-            }
-            else
-            {
-                DICT_SET_ITEM( ((PyModuleObject *)_module_%(module_identifier)s)->md_dict, (PyObject *)*this->var_name, value );
-
-                Py_DECREF( value );
-            }
-        }
-
         void del( bool tolerant ) const
         {
-            int status = PyDict_DelItem( ((PyModuleObject *)_module_%(module_identifier)s)->md_dict, (PyObject *)*this->var_name );
+            int status = PyDict_DelItem( (PyObject *)_moduledict_%(module_identifier)s, (PyObject *)*this->var_name );
 
             if (unlikely( status == -1 && tolerant == false ))
             {
                 PyErr_Format( PyExc_NameError, "global name '%%s' is not defined", Nuitka_String_AsString( (PyObject *)*this->var_name ) );
-                throw _PythonException();
+                throw PythonException();
             }
         }
 
         bool isInitialized( bool allow_builtins = true ) const
         {
-            PyObject *result = GET_STRING_DICT_VALUE( (PyModuleObject *)_module_%(module_identifier)s, *this->var_name );
+            PyObject *result = GET_STRING_DICT_VALUE( _moduledict_%(module_identifier)s, *this->var_name );
 
             if (likely( result ))
             {
@@ -215,7 +176,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
 
             if ( allow_builtins )
             {
-                result = GET_STRING_DICT_VALUE( module_builtin, *this->var_name );
+                result = GET_STRING_DICT_VALUE( dict_builtin, *this->var_name );
 
                 return result != NULL;
             }
@@ -226,6 +187,7 @@ class PyObjectGlobalVariable_%(module_identifier)s
         }
 
     private:
+
         Nuitka_StringObject **var_name;
 };
 
@@ -247,6 +209,7 @@ module_body_template = """
 // time.
 
 PyObject *_module_%(module_identifier)s;
+PyDictObject *_moduledict_%(module_identifier)s;
 
 // The module level variables.
 %(module_globals)s
@@ -318,6 +281,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     // because that's how we are going to get called here.
 
     // Initialize the constant values used.
+    _initBuiltinModule();
     _initConstants();
 
     // Initialize the compiled types of Nuitka.
@@ -353,6 +317,8 @@ MOD_INIT_DECL( %(module_identifier)s )
     _module_%(module_identifier)s = PyModule_Create( &_moduledef );
 #endif
 
+    _moduledict_%(module_identifier)s = (PyDictObject *)((PyModuleObject *)_module_%(module_identifier)s)->md_dict;
+
     assertObject( _module_%(module_identifier)s );
 
 #ifndef _NUITKA_MODULE
@@ -377,7 +343,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     {
         PyObject *value = ( PyObject *)module_builtin;
 
-#ifndef _NUITKA_MODULE
+#ifdef _NUITKA_EXE
         if ( _module_%(module_identifier)s != _module___main__ )
         {
             value = PyModule_GetDict( value );
@@ -394,7 +360,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 
 #if PYTHON_VERSION >= 330
 #if _MODULE_UNFREEZER
-    PyDict_SetItem( module_dict, _python_str_plain___loader__, loader_frozen_module );
+    PyDict_SetItem( module_dict, _python_str_plain___loader__, loader_frozen_modules );
 #else
     PyDict_SetItem( module_dict, _python_str_plain___loader__, Py_None );
 #endif

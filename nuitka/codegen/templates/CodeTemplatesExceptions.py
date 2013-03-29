@@ -24,7 +24,7 @@ try
 {
 %(tried_code)s
 }
-catch ( _PythonException &_exception )
+catch ( PythonException &_exception )
 {
     if ( !_exception.hasTraceback() )
     {
@@ -80,14 +80,14 @@ else
 }"""
 
 try_finally_template = """\
-_PythonExceptionKeeper _caught_%(try_count)d;
+PythonExceptionKeeper _caught_%(try_count)d;
 
 %(rethrow_setups)s
 try
 {
 %(tried_code)s
 }
-catch ( _PythonException &_exception )
+catch ( PythonException &_exception )
 {
     if ( !_exception.hasTraceback() )
     {

@@ -44,6 +44,7 @@ from nuitka.Utils import python_version
 class ExpressionBuiltinRefBase( CompileTimeConstantExpressionMixin, NodeBase ):
     def __init__( self, builtin_name, source_ref ):
         NodeBase.__init__( self, source_ref = source_ref )
+        CompileTimeConstantExpressionMixin.__init__( self )
 
         self.builtin_name = builtin_name
 
@@ -72,10 +73,6 @@ class ExpressionBuiltinRef( ExpressionBuiltinRefBase ):
             builtin_name = builtin_name,
             source_ref   = source_ref
         )
-
-    def isExpressionBuiltin( self ):
-        # Means if it's a builtin function call.
-        return False
 
     def isCompileTimeConstant( self ):
         # Virtual method, pylint: disable=R0201
@@ -123,6 +120,22 @@ class ExpressionBuiltinRef( ExpressionBuiltinRefBase ):
 
         return python_version >= 300
 
+
+class ExpressionBuiltinOriginalRef( ExpressionBuiltinRef ):
+    kind = "EXPRESSION_BUILTIN_ORIGINAL_REF"
+
+    def isCompileTimeConstant( self ):
+        # TODO: Actually the base class should not be constant and this one should be.
+
+        # Virtual method, pylint: disable=R0201
+        return False
+
+    def computeExpression( self, constraint_collection ):
+
+        # Needs whole program analysis, we don't really know much about it.
+        return self, None, None
+
+
 class ExpressionBuiltinAnonymousRef( ExpressionBuiltinRefBase ):
     kind = "EXPRESSION_BUILTIN_ANONYMOUS_REF"
 
@@ -134,10 +147,6 @@ class ExpressionBuiltinAnonymousRef( ExpressionBuiltinRefBase ):
             builtin_name = builtin_name,
             source_ref   = source_ref
         )
-
-    def isExpressionBuiltin( self ):
-        # Means if it's a builtin function call.
-        return False
 
     def isCompileTimeConstant( self ):
         # Virtual method, pylint: disable=R0201
@@ -176,10 +185,6 @@ class ExpressionBuiltinExceptionRef( ExpressionBuiltinRefBase ):
 
     getExceptionName = ExpressionBuiltinRefBase.getBuiltinName
 
-    def isExpressionBuiltin( self ):
-        # Means if it's a builtin function call.
-        return False
-
     def isCompileTimeConstant( self ):
         # Virtual method, pylint: disable=R0201
         return True
@@ -198,6 +203,13 @@ class ExpressionBuiltinExceptionRef( ExpressionBuiltinRefBase ):
     def computeExpressionCall( self, call_node, constraint_collection ):
         exception_name = self.getExceptionName()
 
+        # TODO: Keyword only arguments of it, are not properly handled yet.
+        if exception_name == "ImportError" and python_version >= 330:
+            kw = call_node.getCallKw()
+
+            if not kw.isExpressionConstantRef() and kw.getConstant() == {}:
+                return call_node, None, None
+
         def createBuiltinMakeException( args, source_ref ):
             from nuitka.nodes.ExceptionNodes import ExpressionBuiltinMakeException
 
@@ -210,9 +222,8 @@ class ExpressionBuiltinExceptionRef( ExpressionBuiltinRefBase ):
         new_node = BuiltinOptimization.extractBuiltinArgs(
             node          = call_node,
             builtin_class = createBuiltinMakeException,
-            builtin_spec  = BuiltinOptimization.BuiltinParameterSpecExceptions(
-                name          = exception_name,
-                default_count = 0
+            builtin_spec  = BuiltinOptimization.makeBuiltinParameterSpec(
+                exception_name = exception_name
             )
         )
 

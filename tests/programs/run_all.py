@@ -72,21 +72,26 @@ for filename in sorted( os.listdir( "." ) ):
         active = True
 
     if active:
-        if filename not in ( "module_exits", "package_missing_init", "main_raises", "main_raises2" ):
+        expected_errors = [
+            "module_exits", "main_raises", "main_raises2"
+        ]
+
+        # Allowed after Python3, packages need no more "__init__.py"
+
+        if python_version < "3.3":
+            expected_errors.append( "package_missing_init" )
+
+        if filename not in expected_errors:
             extra_flags = [ "expect_success" ]
         else:
             extra_flags = [ "expect_failure" ]
 
-        if filename in ( "package_missing_init", "dash_import", ):
+        if filename in ( "package_missing_init", "dash_import", "reimport_main" ):
             extra_flags.append( "ignore_stderr" )
 
         extra_flags.append( "remove_output" )
 
-        os.environ[ "PYTHONPATH" ] = os.path.abspath( filename )
-
-        if filename == "syntax_errors":
-            os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--recurse-all --execute-with-pythonpath"
-        elif filename == "plugin_import":
+        if filename == "plugin_import":
             os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--recurse-all --recurse-directory=%s/some_package" % filename
         else:
             os.environ[ "NUITKA_EXTRA_OPTIONS" ] = "--recurse-all"

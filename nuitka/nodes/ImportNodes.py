@@ -21,7 +21,8 @@ Normally imports are mostly relatively static, but Nuitka also attempts to cover
 of "__import__" builtin and other import techniques, that allow dynamic values.
 
 If other optimizations make it possible to predict these, the compiler can go deeper that
-what it normally could. The import expression node can recurse. An "__import__" builtin may be converted to it, once the module name becomes a compile time constant.
+what it normally could. The import expression node can recurse. An "__import__" builtin may
+be converted to it, once the module name becomes a compile time constant.
 
 """
 

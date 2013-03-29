@@ -47,6 +47,7 @@ from .ReformulationFunctionStatements import (
 )
 
 from .Helpers import (
+    makeStatementsSequenceFromStatement,
     buildNodeList,
     buildNode,
     getKind
@@ -101,20 +102,17 @@ def buildLambdaNode( provider, node, source_ref ):
                         ),
                         source_ref = source_ref
                     ),
-                    yes_branch = StatementsSequence(
-                        statements = (
-                            StatementExpressionOnly(
-                                expression = ExpressionYield(
-                                    expression = ExpressionTempVariableRef(
-                                        variable = tmp_return_value.makeReference( temp_block ),
-                                        source_ref = source_ref,
-                                    ),
-                                    source_ref = source_ref
+                    yes_branch = makeStatementsSequenceFromStatement(
+                        statement = StatementExpressionOnly(
+                            expression = ExpressionYield(
+                                expression = ExpressionTempVariableRef(
+                                    variable = tmp_return_value.makeReference( temp_block ),
+                                    source_ref = source_ref,
                                 ),
                                 source_ref = source_ref
                             ),
-                        ),
-                        source_ref = source_ref
+                            source_ref = source_ref
+                        )
                     ),
                     no_branch  = None,
                     source_ref = source_ref
