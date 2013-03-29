@@ -32,12 +32,12 @@ void initFiber( Fiber *to )
 
 void prepareFiber( Fiber *to, void *code, unsigned long arg )
 {
+    int res = getcontext( &to->f_context );
+    assert( res == 0 );
+
     to->f_context.uc_stack.ss_size = STACK_SIZE;
     to->f_context.uc_stack.ss_sp = last_stack ? (char *)last_stack : (char *)malloc( STACK_SIZE );
     last_stack = NULL;
-
-    int res = getcontext( &to->f_context );
-    assert( res == 0 );
 
     makecontext( &to->f_context, (void (*)())code, 1, (unsigned long)arg );
 }
