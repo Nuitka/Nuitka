@@ -624,6 +624,12 @@ else:
 
     target = env.Program( result_file + ".exe", discoverSourceFiles() )
 
+if "CCFLAGS" in os.environ:
+    env.Append( CCFLAGS = os.environ[ "CCFLAGS" ].split() )
+
+if "LDFLAGS" in os.environ:
+    env.Append( LINKFLAGS = os.environ[ "LDFLAGS" ].split() )
+
 # Remove the target file to avoid cases where it falsely didn't get rebuilt.
 if os.path.exists( target[0].abspath ):
     os.unlink( target[0].abspath )
