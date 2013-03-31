@@ -275,8 +275,8 @@ def makeSourceDirectory( main_module ):
 def runScons( main_module, quiet ):
     python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
 
-    if Utils.python_version >= 320:
-        # The Python3 really has sys.abiflags pylint: disable=E1101
+    if hasattr( sys, "abiflags" ):
+        # The Python3 for some platforms has sys.abiflags pylint: disable=E1101
         if Options.options.python_debug is not None or hasattr( sys, "getobjects" ):
             if sys.abiflags.startswith( "d" ):
                 python_version += sys.abiflags
