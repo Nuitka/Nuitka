@@ -67,10 +67,14 @@ for filename in sorted( os.listdir( my_dir ) ):
 
             path = new_path
 
-            # No idea how to make this portable to Windows, but we can delay it until
-            # Python3 is fully functional under Linux first.
+            # On Windows, we cannot rely on 2to3 to be in the path.
+            if os.name == "nt":
+               command = sys.executable + " " + os.path.join( os.path.dirname( sys.executable ), "Tools/Scripts/2to3.py" )
+            else:
+               command = "2to3"
+
             result = subprocess.call(
-                "2to3 -w -n --no-diffs " + path,
+                command + " -w -n --no-diffs " + path,
                 stderr = open( "/dev/null", "w" ),
                 shell  = True
             )
