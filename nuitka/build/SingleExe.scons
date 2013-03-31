@@ -404,8 +404,6 @@ if python_version is None:
     python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
 
 if win_target:
-    python_version = python_version.replace( ".", "" )
-
     def guessPythonHome():
         """ Guess the Python home directory.
 
@@ -415,9 +413,12 @@ if win_target:
         """
 
         if os.name == "nt":
-            return os.path.dirname( sys.executable )
+            if python_version == "%d.%d" % ( sys.version_info[0], sys.version_info[1] ):
+                return os.path.dirname( sys.executable )
+            else:
+                return r"C:\Python" + python_version.replace( ".", "" )
         else:
-            return os.path.expanduser( "~/.wine/drive_c/Python" + python_version )
+            return os.path.expanduser( "~/.wine/drive_c/Python" + python_version.replace( ".", "" ) )
 
     python_home = os.environ.get( "PYTHON_HOME", guessPythonHome() )
 
@@ -471,7 +472,10 @@ if gcc_mode and "linux" in sys.platform:
         if host_multiarch is not None:
             env.Append( CCFLAGS = [ "-I/usr/include/" + host_multiarch + "/python" + python_version ] )
 
-env.Append( LIBS = [ "python" + python_version ] )
+if win_target:
+    env.Append( LIBS = [ "python" + python_version.replace( ".", "" ) ] )
+else:
+    env.Append( LIBS = [ "python" + python_version ] )
 
 nuitka_include = os.path.join( os.environ[ "NUITKA_SCONS" ], "include" )
 env.Append( CPPPATH = [ source_dir, nuitka_include ] )
