@@ -203,7 +203,7 @@ def makeDiffable( output ):
     result = []
 
     # fix import readline cause output sometimes startswith \x1b[?1034h
-    m = re.match( r'\x1b\[[^h]+h', output )
+    m = re.match( b'\\x1b\\[[^h]+h', output )
     if m:
         output = output[len( m.group() ):]
 
