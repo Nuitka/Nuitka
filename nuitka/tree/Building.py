@@ -1034,7 +1034,7 @@ def buildParseTree( provider, source_code, source_ref ):
             )
         )
 
-    if Utils.python_version >= 330:
+    if Utils.python_version >= 330 and not provider.isMainModule():
         # Set initialzing at the beginning to True
         statements.append(
             StatementAssignmentVariable(
@@ -1055,7 +1055,7 @@ def buildParseTree( provider, source_code, source_ref ):
     if result is not None:
         statements.extend( result.getStatements() )
 
-    if Utils.python_version >= 330:
+    if Utils.python_version >= 330 and not provider.isMainModule():
         # Set initialzing at the beginning to True
         statements.append(
             StatementAssignmentVariable(

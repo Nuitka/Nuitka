@@ -26,9 +26,9 @@ print "filename:", __file__
 print "builtins:", __builtins__
 print "debug", __debug__
 
-print "__initialised__",
+print "__initializing__",
 try:
-    print __initialised__
+    print __initializing__
 except NameError:
     print "not found"
 
