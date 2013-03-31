@@ -7,6 +7,8 @@ New Features
 
 - Support for NetBSD.
 
+  Nuitka works for at least NetBSD 6.0, older versions may or may not work. This required
+  fixing bugs in the generic "fibers" implementation.
 
 Nuitka Release 0.4.2
 ====================
