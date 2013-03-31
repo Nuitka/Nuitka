@@ -105,9 +105,13 @@ for filename in sorted( os.listdir( "." ) ):
             extra_flags.append( "ignore_stderr" )
             extra_flags.append( "python_debug" )
 
-        # Apply 2to3 conversion if necessary.
         assert type( python_version ) is bytes
 
+        if python_version.startswith( b"3.3" ) and filename in ( "ParameterErrors.py", "ParameterErrors32.py" ):
+            print( "Skip parameter errors test", filename, "not yet compatible." )
+            continue
+
+        # Apply 2to3 conversion if necessary.
         if python_version.startswith( b"3" ) and not filename.endswith( "32.py" ):
             new_path = os.path.join( tempfile.gettempdir(), filename )
             shutil.copy( path, new_path )
