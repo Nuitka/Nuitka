@@ -906,7 +906,7 @@ instead.
 
     tmp_source = some_context
 
-    # Actually it needs to be "special lookup" for Python2.7, so attribute lookup won't
+    # Actually it needs to be "special look-up" for Python2.7, so attribute look-up won't
     # be exactly what is there.
     tmp_exit = tmp_source.__exit__
 
@@ -1029,10 +1029,10 @@ detect such a situation, consider e.g. endless loops.
 
 .. note::
 
-   Loop analysis can therefore work on a reduced problem (which breaks are executed under
-   which conditions) and be very general, but it cannot take advantage of the knowledge
-   encoded directly anymore. The fact that the loop body may not be entered at all, if the
-   condition is not met, is something harder to discover.
+   Loop analysis can therefore work on a reduced problem (which ``break`` statements are
+   executed under which conditions) and be very general, but it cannot take advantage of
+   the knowledge encoded directly anymore. The fact that the loop body may not be entered
+   at all, if the condition is not met, is something harder to discover.
 
 
 Exception Handler Values
@@ -1377,7 +1377,7 @@ Consider this code:
 
 The second argument will create a ``ZeroDivisionError`` exception, but before that ``a()``
 must be executed, but the call to ``f`` will never happen and no code is needed for that,
-but the name lookup must still succeed. This then leads to code that is internally like
+but the name look-up must still succeed. This then leads to code that is internally like
 this:
 
 .. code-block:: python
@@ -1508,10 +1508,10 @@ want to forward propagate abstract properties of the values.
 
 .. note::
 
-   Builtin exceptions, and built-in names are also compile time constants.
+   Built-in exceptions, and built-in names are also compile time constants.
 
 In order to fully benefit from type knowledge, the new type system must be able to be
-fully friends with existing builtin types.  The behavior of a type ``long``, ``str``,
+fully friends with existing built-in types.  The behavior of a type ``long``, ``str``,
 etc. ought to be implemented as far as possible with the builtin ``long``, ``str`` as
 well.
 
@@ -1537,7 +1537,7 @@ feasible, puts an unacceptable burden on the compilation.
 
 Esp. we wouldn't want to produce such a huge constant and stream it, the C++ code would
 become too huge. So, we need to stop the ``*`` operator from being used at compile time
-and live with reduced knowledge, already here:
+and cope with reduced knowledge, already here:
 
 .. code-block:: python
 
@@ -1547,7 +1547,7 @@ Instead, we would probably say that for this expression:
 
    - The result is a ``str`` or ``PyStringObject``.
    - We know its length exactly, it's ``10000000000000``.
-   - Can predict every of its elements when subscripted, sliced, etc., if need be, with a
+   - Can predict every of its elements when sub-scripted, sliced, etc., if need be, with a
      function we may create.
 
 Similar is true for this horrible thing:
@@ -1564,10 +1564,10 @@ So it's a rather general problem, this time we know:
      function.
 
 Again, we wouldn't want to create the list. Therefore Nuitka avoids executing these
-calculation, when they result in constants larger than a treshold of 256. It's also
+calculation, when they result in constants larger than a threshold of 256. It's also
 applied to integers and more CPU and memory traps.
 
-Now lets look at a use case:
+Now lets look at a more common use case:
 
 .. code-block:: python
 
@@ -1575,9 +1575,9 @@ Now lets look at a use case:
        doSomething()
 
 Looking at this example, one traditional way to look at it, would be to turn ``range``
-into ``xrange``, note that ``x`` is unused. That would already perform better. But really
-better is to notice that ``range()`` generated values are not used, but only the length of
-the expression matters.
+into ``xrange``, and to note that ``x`` is unused. That would already perform better. But
+really better is to notice that ``range()`` generated values are not used at all, but only
+the length of the expression matters.
 
 And even if ``x`` were used, only the ability to predict the value from a function would
 be interesting, so we would use that computation function instead of having an iteration
@@ -1590,9 +1590,9 @@ usage at all.
    Of course, it would only make sense where such calculations are "O(1)" complexity,
    i.e. do not require recursion like "n!" does.
 
-The other thing is that CPython appears to at run time take length hints from objects for
-some operations, and there it would help too, to track length of objects, and provide it,
-to outside code.
+The other thing is that CPython appears to at - run time - take length hints from objects
+for some operations, and there it would help too, to track length of objects, and provide
+it, to outside code.
 
 Back to the original example:
 
@@ -1606,7 +1606,7 @@ expression result, more or less.
 
 Here we have ``len`` to look at an argument that we know the size of. Great. We need to ask
 if there are any side effects, and if there are, we need to maintain them of course, but
-generally this appears feasible, and is already being done by existing optimizations if an
+generally this appears feasible, and is already being done by existing optimization if an
 operation generates an exception.
 
 .. note::
@@ -1782,9 +1782,19 @@ conditional block, it must be clear to the outside, that things changed inside t
 may not necessarily apply. Even worse, one of 2 things might be true. In one branch, the
 variable "x" is constant, in the other too, but it's a different value.
 
-So we need to have the constraint collection know when it enters a conditional branch, and
-then it does, it must take special precautions, to merge the existing state at condition
-exit. When exiting both the branches, these branches must be merged, with new information.
+So the constraint collection tracks when it enters a conditional branch, and then merge
+the existing state at conditional statement exit.
+
+.. note::
+
+   A branch is called "exiting" if it is not abortive. Should it end in a ``raise``,
+   ``break``, ``continue``, or ``return``, there is no need to merge that branch, as
+   execution of that branch is terminated.
+
+   Should both branches be abortive, that makes things really simple, as there is no need
+   to even continue.
+
+When exiting both the branches, these branches must both be merged, with their new information.
 
 In the above case:
 
@@ -1795,7 +1805,12 @@ That should be collapsed to:
 
    - The variable ``x`` is an integer of value in ``(1,2)``
 
-When should allow to precompute the value of this:
+We are doing the merging based on SSA (Single State Assignment) form. That is, we put
+versions to all assignments of ``x``. And when the branches are merged, we are assigning a
+new version of ``x``, that references the potential versions, and the condition that
+guards it.
+
+Given this, we then should be able to precompute the value of this:
 
 .. code-block:: python
 
@@ -1806,7 +1821,8 @@ result is always the same. Because if it is, and it is, then it can tell:
 
     - The variable ``b`` is a boolean of constant value ``True``.
 
-For conditional statements optimization, the following is note-worthy:
+
+For conditional statements optimization, the following is also note-worthy:
 
    - The value of the condition is known to pass truth check or not inside either branch.
 
@@ -1820,39 +1836,17 @@ For conditional statements optimization, the following is note-worthy:
              a += ( x, )
 
      In this case, the knowledge that ``a`` is a list, could be used to generate better
-     code and with definite knowledge that ``a`` is of type list. With that knowledge the
-     ``append`` attribute call will become the ``list`` built-in type operation.
-
-   - If 2 branches exist, or one makes a difference.
-
-       If both branches exist, both should fork existing state and continue it, and
-       afterwards merge those 2 and replace the state before the statement.
-
-       If only one branch exist, that one should fork existing state and continue it, but
-       afterwards, it needs to be merged back to the state before the statement.
-
-   - Branches that abort make a difference.
-
-     .. code-block:: python
-
-         if type( a ) is list:
-             a.append( x )
-         else:
-             raise ValueError
-
-     Here it is obvious, that the conditional statement exit, requires no merging. We can
-     fully inherit the state of the non-exiting branch, including the knowledge that ``a``
-     is in fact a ``list`` built-in object.
-
+     code and with the definite knowledge that ``a`` is of type list. With that knowledge
+     the ``append`` attribute call will become the ``list`` built-in type operation.
 
 Excursion to ``return`` statements
 ----------------------------------
 
-The return statement (like ``break``, ``continue``, ``raise``) is "aborting" to control
-flow. It is always the last statement of inspected block.
+The ``return`` statement (like ``break``, ``continue``, ``raise``) is "aborting" to
+control flow. It is always the last statement of inspected block. Were there statements to follow it, optimization will remove it as dead code.
 
 If all branches of a conditional statement are "aborting", the statement is decided
-"aborting" too. If a loop doesn't break, it is "aborting" too.
+"aborting" too. If a loop doesn't break, it should be considered "aborting" too.
 
 .. note::
 
@@ -1860,11 +1854,8 @@ If all branches of a conditional statement are "aborting", the statement is deci
    discovery of abortative conditional statements. It's not yet done for loops, temp
    blocks, etc. though.
 
-So, return statements are easy for local optimization. In the general picture, it would be
-sweet to collect all return statements, and analyze the commonality of them. This would
-give us the "my_append" information from above. And were we to do this for exception
-raises too, we could tell exceptions from a function too.
-
+So, ``return`` statements are easy for local optimization. In the general picture, it
+would be sweet to collect all return statements, and analyze the commonality of them.
 
 Excursion to ``yield`` expressions
 ----------------------------------
@@ -1873,7 +1864,6 @@ The ``yield`` expression can be treated like a normal function call, and as such
 invalidates some known constraints just as much as they do. It executes outside code for
 an unknown amount of time, and then returns, with little about the outside world known
 anymore.
-
 
 Mixed Types
 -----------
@@ -1887,8 +1877,9 @@ Consider the following inside a function or module:
    else:
       a = ()
 
-A programmer will often not make a difference between ``list`` and ``tuple``. In fact, using a
-tuple is a good way to express that something won't be changed later, as these are mutable.
+A programmer will often not make a difference between ``list`` and ``tuple``. In fact,
+using a ``tuple`` is a good way to express that something won't be changed later, as these
+are mutable.
 
 .. note::
 
@@ -1907,9 +1898,15 @@ tuple is a good way to express that something won't be changed later, as these a
    make no difference in performance for it.
 
 To Nuitka though this means, that if ``cond`` is not predictable, after the conditional
-statement we may either have a ``tuple`` or a ``list``. In order to represent that without
-resorting to "I know nothing about it", we need a kind of ``min``/``max`` operating mechanism
-that is capable of say what is common with multiple alternative values.
+statement we may either have a ``tuple`` or a ``list`` type object in ``a``. In order to
+represent that without resorting to "I know nothing about it", we need a kind of
+``min``/``max`` operating mechanism that is capable of say what is common with multiple
+alternative values.
+
+.. note::
+
+   At this time, we don't really have that mechanism to find the commonality between
+   values.
 
 
 Back to "ctypes"
@@ -1939,19 +1936,19 @@ The following is the intended interface
   the case of the later, optimizations may not be able do much about it. Lets call these
   values "tri-state".
 
-  Part of the interface is a method ``computeNode`` which gives the node the chance to
-  return another node instead, which may also be an exception.
+  Part of the interface is a method ``computeExpression`` which gives the node the chance
+  to return another node instead, which may also be an exception.
 
-  The ``computeNode`` may be able to produce exceptions or constants even for non-constant
+  The ``computeExpression`` may be able to produce exceptions or constants even for non-constant
   inputs depending on the operation being performed. For every expression it will be
   executed in the order in which the program control flow goes for a function or module.
 
-  In this sense, attribute lookup is also a computation, as its value might be computed as
-  well. Most often an attribute lookup will produce a new value, which is not assigned,
+  In this sense, attribute look-up is also a computation, as its value might be computed as
+  well. Most often an attribute look-up will produce a new value, which is not assigned,
   but e.g. called. In this case, the call value friend may be able to query its called
   expression for the attribute call prediction.
 
-  By default, attribute lookup, should turn an expression to unknown, unless something in
+  By default, attribute look-up, should turn an expression to unknown, unless something in
   the registry can say something about it. That way, ``some_list.append`` produces something
   which when called, invalidates ``some_list``, but only then.
 
@@ -2009,13 +2006,6 @@ The following is the intended interface
 
   - The walk should initially be single pass, that means it does not maintain the history.
 
-.. note:: Warning
-
-   With this, the order of node walking becomes vital to correctness. The evaluation
-   order of the generated code is now absolutely needed.
-
-   This may carry bug potential. We will need tests that cover this.
-
 
 Discussing with examples
 ------------------------
@@ -2027,7 +2017,7 @@ The following examples:
    # Assignment, the source decides the type of the assigned expression
    a = b
 
-   # Operator "attribute lookup", the looked up expression decides via its "ValueFriend"
+   # Operator "attribute look-up", the looked up expression decides via its "ValueFriend"
    ctypes.c_int
 
    # Call operator, the called expressions decides with help of arguments, which may
@@ -2044,30 +2034,28 @@ The following examples:
    # "ValueFriend"s.
    a + b
 
-The walking of the tree is done in a specialized optimization "value propagation" and can
-be used to implement optimizations in a consistent and fast way. It walks the tree and
-asks each node to compute. When it encounters assignments, it asks for value friends that
-can be queries for arguments, and these can be used for the builtins own "computeNode" or
-value friend decisions.
+The optimization is mostly performed by walking of the tree and performing constraint
+collection. When it encounters assignments and references, it considers current state of
+value friends and uses it for ``computeExpression``.
 
 .. note::
 
    Assignments to attributes, indexes, slices, etc. will also need to follow the flow of
-   "append", so it cannot escape attention that a list may be modified. Usages of "append"
-   that we cannot be sure about, must be traced to exist, and disallow the list to be
-   considered known value again.
+   ``append``, so it cannot escape attention that a list may be modified. Usages of
+   ``append`` that we cannot be sure about, must be traced to exist, and disallow the list
+   to be considered known value again.
 
 
 Code Generation Impact
 ----------------------
 
-Right now, code generation assumes that everything is a "PyObject \*", i.e. a Python
-object, and does not take "int" or these at all, and it should remain like that for some
-time to come.
+Right now, code generation assumes that everything is a ``PyObject *``, i.e. a Python
+object, and does not take knowledge of ``int`` or other types into consideration at all,
+and it should remain like that for some time to come.
 
-Instead, "ctypes" value friend will be asked give "Identifiers", like other codes do too
-from calls. And these need to be able to convert themselves to objects to work with the
-other things.
+Instead, ``ctypes`` value friend will be asked give ``Identifiers``, like other codes do
+too. And these need to be able to convert themselves to objects to work with the other
+things.
 
 But Code Generation should no longer require that operations must be performed on that
 level. Imagine e.g. the following calls:
@@ -2076,14 +2064,14 @@ level. Imagine e.g. the following calls:
 
    c_call( other_c_call() )
 
-Value return by other_c_call() of say "c_int" type, should be possible to be fed directly
-into another call. That should be easy by having a "asIntC()" in the identifier classes,
-which the "ctypes" Identifiers handle without conversions.
+Value return by other_c_call() of say ``c_int`` type, should be possible to be fed
+directly into another call. That should be easy by having a ``asIntC()`` in the identifier
+classes, which the ``ctypes`` Identifiers handle without conversions.
 
 Code Generation should one day also become able to tell that all uses of a variable have
-only "c_int" value, and use "int" instead of "PyObjectLocalVariable" directly, or at least
-a "PyIntLocalVariable" of similar complexity as "int" after the C++ compiler performed its
-inlining.
+only ``c_int`` value, and use ``int`` instead of ``PyObjectLocalVariable`` more or less
+directly. We could consider ``PyIntLocalVariable`` of similar complexity as ``int`` after
+the C++ compiler performed its in-lining.
 
 Such decisions would be prepared by finalization, which then would track the history of
 values throughout a function or part of it.
@@ -2092,8 +2080,8 @@ values throughout a function or part of it.
 Initial Implementation
 ----------------------
 
-The "ValueFriendBase" interface will be added to *all* expressions and a node may offer it
-for itself (constant reference is an obvious example) or may delegate the task to an
+The ``ValueFriendBase`` interface will be added to *all* expressions and a node may offer
+it for itself (constant reference is an obvious example) or may delegate the task to an
 instantiated object of "ValueFriendBase" inheritance. This will e.g. be done, if a state
 is attached, e.g. the current iteration value.
 
@@ -2101,7 +2089,7 @@ Goal 1
 ++++++
 
 Initially most things will only be able to give up on about anything. And it will be
-little more than a tool to do simple lookups in a general form. It will then be the first
+little more than a tool to do simple look-ups in a general form. It will then be the first
 goal to turn the following code into better performing one:
 
 .. code-block:: python
@@ -2138,33 +2126,27 @@ and then:
    c = 0
    return 0
 
-.. note::
+This depends on SSA form to be able to tell us the values of ``a``, ``b``, and ``c`` to be
+written to by constants, which can be forward propagated at no cost.
 
-   This is implemented, but not active for releases, because it's not yet safe, because we
-   are missing detections for mutable values, which later goals will give.
+Goal 2
+++++++
 
-The assignments to "a", "b", and "c" shall become prey to "unused" assignment analysis in
-the next step. Also "3 / 7" could be optimized while going through it, but there is
-already code that does this "OptimizeConstantOperations" easily. So that would be a later
-step.
+The assignments to ``a``, ``b``, and ``c`` shall all become prey to "unused" assignment
+analysis in the next step. They are all only assigned to, and the assignment source has no
+effect, so they can be simply dropped.
 
 .. code-block:: python
 
    return 0
 
+In the SSA form, these are then assignments without references. These assignments, can be
+removed if the assignment source has no side effect. Or at least they could be made
+"anonymous", i.e. use a temporary variable instead of the named one. That would have to
+take into account though, that the old version still needs a release.
 
-Goal 2
-++++++
-
-It appears, that "dead value analysis" for "a" and "b" requires that we trace to the
-end of the scope, if a variable value is or might become used.
-
-For that, we trace the last assignment of each variable, or a new assignment, or "del"
-statement on it, we decide, if the original assignment to the name was needed or not. If
-the value wasn't used, but it did provide a reference, we remove the name from it. If it
-didn't provide a reference, we can make it an expression only.
-
-That would, starting with:
+The most general form would first merely remove assignments that have no impact, and leave
+the value as a side effect, so we arrive at this first:
 
 .. code-block:: python
 
@@ -2173,16 +2155,15 @@ That would, starting with:
    0
    return 0
 
-give us:
+When applying the removal of expression only statements without effect, this gives us:
 
 .. code-block:: python
 
    return 0
 
-which is the perfect result.
+which is the perfect result. Doing it in one step would only be an optimization.
 
-In order to be able to manipulate statements that made assignments to names later on, we
-need to track the exact node(s) that did it. It may be multiple in case of conditions.
+In order to be able to manipulate nodes related to a variable trace, we need to attach the nodes that did it. Consider this:
 
 .. code-block:: python
 
@@ -2194,18 +2175,16 @@ need to track the exact node(s) that did it. It may be multiple in case of condi
    # Not using "x".
    return 0
 
-In the above case, the merge of the value friends, should say that "x" may be undefined,
-or one of "1" or "3", but since "x" is not used, apply the "dead value" trick to each
+In the above case, the merge of the value friends, should say that ``x`` may be undefined,
+or one of ``1`` or ``3``, but since ``x`` is not used, apply the "dead value" trick to each
 branch.
 
-.. note::
-
-   This is totally unimplemented.
+The removal of the "merge" of the 3 ``x`` versions, should exhibit that the other versions are also only assigned to, and can be removed. These merges of course appear as usages of the ``x`` versions.
 
 Goal 3
 ++++++
 
-Then second goal is to understand all of this:
+Then third goal is to understand all of this:
 
 .. code-block:: python
 
@@ -2226,11 +2205,11 @@ Then second goal is to understand all of this:
    There are many operations in this, and all of them should be properly handled, or at
    least ignored in safe way.
 
-The first goal code gave us that the "list" has an annotation from the assignment of "[]"
-and that it will be copied to "a" until the for loop in encountered. Then it must be
-removed, because the "for" loop somehow says so.
+The first goal code gave us that the ``list`` has an annotation from the assignment of
+``[]`` and that it will be copied to ``a`` until the for loop in encountered. Then it must
+be removed, because the ``for`` loop somehow says so.
 
-The "a" may change its value, due to the unknown attribute lookup of it already, not even
+The ``a`` may change its value, due to the unknown attribute look-up of it already, not even
 the call. The for loop must be able to say "may change value" due to that, of course also
 due to the call of that attribute too.
 
@@ -2257,11 +2236,10 @@ With that, we would handle this code correctly and have some form constant value
 propagation in place, handle loops at least correctly, and while it is not much, it is
 important demonstration of the concept.
 
-.. note::
+Goal 4
+++++++
 
-   This part is implemented.
-
-The third goal is to understand the following:
+The fourth goal is to understand the following:
 
 .. code-block:: python
 
@@ -2320,17 +2298,7 @@ analyzed at compile time.
 Limitations for now
 -------------------
 
-- The collection of value friends will have a limited history only and be mutated as the
-  processing goes.
-
-- Only enough to trace "ctypes" information through the code
-
-  We won't cover everything immediately. We need to consider re-factoring existing
-  optimizations into such that happen during the pass with value information. The builtins
-  have already been mentioned as a worth-while target. It would also validate the new
-  design. But it should not block to reach the ability to implement "ctypes".
-
-- Aim only for limited examples. For "ctypes" that means to compile time evaluate:
+- Aim only for limited examples. For ``ctypes`` that means to compile time evaluate:
 
   .. code-block:: python
 
@@ -2339,53 +2307,34 @@ Limitations for now
   Later then call to "libc" or something else universally available, e.g. "strlen()" or
   "strcmp()" from full blown declarations of the callable.
 
-- We won't have the ability to test that optimizations are actually performed, we will
+- We won't have the ability to test that optimization are actually performed, we will
   check the generated code by hand.
 
-  With time, Kay will add XML based checks with "xpath" queries, expressed as hints, but
+  With time, we will add XML based checks with "xpath" queries, expressed as hints, but
   that is some work that will be based on this work here. The "hints" fits into the
   "ValueFriends" concept nicely or so the hope is.
 
 - No inter-function optimization functions yet
 
-  It's not needed yet or so we think. Of course, once in place, it will make the "ctypes"
-  annotation even more usable. Using "ctypes" objects inside functions, while creating
-  them on the module level, is therefore not immediately going to work.
+  Of course, once in place, it will make the ``ctypes`` annotation even more usable. Using
+  ``ctypes`` objects inside functions, while creating them on the module level, is therefore
+  not immediately going to work.
 
 - No loops yet
 
-  Loops break value propagation. For the "ctypes" use case, this won't be much of a
+  Loops break value propagation. For the ``ctypes`` use case, this won't be much of a
   difficulty. Due to the strangeness of the task, it should be tackled later on at a
   higher priority.
 
 - Not too much.
 
   Try and get simple things to work now. We shall see, what kinds of constraints really
-  make the most sense. Understanding "list" subscript/slice values e.g. is not strictly
+  make the most sense. Understanding ``list`` subscript/slice values e.g. is not strictly
   useful for much code and should not block us.
 
 .. note::
 
-   This new design is not the final one likely, it just needs to be better than existing
-   optimizations design.
-
-Realization
------------
-
-Kay will attempt to provide the framework parts that provide the interface and Christopher
-will work on the "ctypes" as an example.
-
-The work is likely to happen on a git feature branch named "ctypes_annotation". It will
-likely be long lived, and Kay will move usable bits out of it for releases, and an
-occasional ``git flow feature rebase`` at agreed times.
-
-.. note::
-
-   After handing over the work in a usable state, Kay will focus on allowing other
-   developers to push branches like these at their own discretion and with some form of
-   git commit emails for better collaboration. In the mean time, "git format-patch" will
-   do.
-
+   This design is not likely to be the final one.
 
 .. raw:: pdf
 
@@ -2439,21 +2388,6 @@ into action, which could be code changes, plan changes, issues created, etc.
 
   The best approach is probably to track down ``in`` and other potential users, that don't
   use the list nature and just convert then.
-
-* Terminal assignments without effect removal.
-
-  In order to optimize away unused assignments, Nuitka should not try and find variables
-  that are only assigned. It should instead for each assignment find the uses of the
-  value. Two cases then
-
-  1. No more read use before next assignment or end of scope.
-
-     Can remove the assignment nature and make it instead a temp variable of the scope, if
-     the release has an impact (will "__del__" have an effect?).
-
-  2. Value is read.
-
-     Keep it.
 
 * Friends that keep track
 
@@ -2597,13 +2531,13 @@ into action, which could be code changes, plan changes, issues created, etc.
           g()
        )
      )
-     # 1. For the assignment, ask right hand side, for computation. Enter computeExpression
+     # 1. For the assignment, ask right hand side, for computation. Enter "computeExpression"
      # for iterator making, and decide that it gives a fresh iterator value, with a known
      # "iterated" value.
      # 2. Link the "a" assignment to the assignment node.
      b = next( a )
-     # 1. ask the right hand side, for computation. Enter computeNode for next iterator
-     # value, which will look up a.
+     # 1. ask the right hand side, for computation. Enter "computeExpression"
+     # for next iterator value, which will look up a.
      b = next( a )
      del a
 
