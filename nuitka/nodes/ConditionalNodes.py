@@ -142,7 +142,12 @@ class StatementConditional( StatementChildrenHavingBase ):
 
 
     def computeStatement( self, constraint_collection ):
-        constraint_collection.onExpression( self.getCondition() )
+        # Query the truth value before the expression is evaluated, once it is evaluated
+        # in onExpression, it may change.
+        condition = self.getCondition()
+        truth_value = condition.getTruthValue( constraint_collection )
+
+        constraint_collection.onExpression( condition )
         condition = self.getCondition()
 
         from nuitka.optimizations.ConstraintCollections import ConstraintCollectionBranch
@@ -213,8 +218,6 @@ Empty 'yes' branch for condition was replaced with inverted condition check."""
 
         # Note: Checking the condition late, so that the surviving branches got processed
         # already. Returning without doing that, will lead to errorneous assumptions.
-        truth_value = condition.getTruthValue( constraint_collection )
-
         if truth_value is not None:
             from .NodeMakingHelpers import wrapStatementWithSideEffects
 
