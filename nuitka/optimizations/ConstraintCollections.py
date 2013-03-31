@@ -38,6 +38,51 @@ from nuitka.tree import Recursion
 
 from logging import debug
 
+
+class VariableTrace:
+    def __init__( self, variable, version ):
+        self.variable     = variable
+        self.version      = version
+
+        self.usages = []
+
+    def addUsage( self, ref_node ):
+        self.usages.append( ref_node )
+
+
+class VariableAssignTrace( VariableTrace ):
+    def __init__( self, target_node, variable, version, value_friend ):
+        VariableTrace.__init__(
+            self,
+            variable = variable,
+            version  = version
+        )
+
+        self.target_node = target_node
+        self.value_friend = value_friend
+
+
+    def onValueEscape( self ):
+        # TODO: Tell value friend to degrade intelligently.
+        self.value_friend = None
+
+
+class VariableReferenceTrace( VariableTrace ):
+    def __init__( self, ref_node, variable, version ):
+        VariableTrace.__init__(
+            self,
+            variable = variable,
+            version  = version
+        )
+
+        self.ref_node = ref_node
+
+        self.usages.append( ref_node )
+
+    def onValueEscape( self ):
+        pass
+
+
 class VariableUsageProfile:
     def __init__( self, variable ):
         self.variable = variable
@@ -110,9 +155,8 @@ class ConstraintCollectionBase:
         self.parent = parent
 
         # Variable assignments performed in here.
-        self.variable_targets = {}
         self.variable_versions = {}
-        self.variable_escaped = {}
+        self.variable_traces = {}
 
         self.variables = {}
 
@@ -277,46 +321,50 @@ class ConstraintCollectionBase:
         else:
             return statements_sequence
 
-    def _addVariableUsageInfo( self, variable, version, info ):
-        if version == 0:
-            # If we have no knowledge yet, use "0" still. We will treat it special
-            # depending on context. Unknown will "-1".
-            version = self.variable_versions.get( variable, 0 )
-        else:
-            self.variable_versions[ variable ] = version
+
+    def onVariableSet( self, target_node, value_friend ):
+        # Add a new trace, allocating a new version for the variable, and remember the value
+        # friend.
+        variable = target_node.getVariable()
+        version  = target_node.getVariableVersion()
 
         key = variable, version
 
-        if key in self.variable_targets:
-            self.variable_targets[ key ].append( info )
-        else:
-            self.variable_targets[ key ] = [ info ]
-
-
-    def onVariableSet( self, target_node, value_friend ):
-        # Remember the node that updates plus the then current value in the trace.
-        self._addVariableUsageInfo(
-            variable = target_node.getVariable(),
-            version  = target_node.getVariableVersion(),
-            info     = ( target_node, value_friend )
+        self.variable_traces[ key ] = VariableAssignTrace(
+            target_node  = target_node,
+            variable     = variable,
+            version      = version,
+            value_friend = value_friend
         )
+
+        self.variable_versions[ variable ] = version
 
     def onVariableUsage( self, ref_node ):
-        self._addVariableUsageInfo(
-            variable = ref_node.getVariable(),
-            version  = 0,
-            info     = ( ref_node )
-        )
+        variable = ref_node.getVariable()
+        version  = self.variable_versions.get( variable, 0 )
+
+        key = variable, version
+
+        if key in self.variable_traces:
+            self.variable_traces[ key ].addUsage( ref_node )
+        else:
+            self.variable_traces[ key ] = VariableReferenceTrace(
+                ref_node = ref_node,
+                variable = variable,
+                version  = version
+            )
+
+            self.variable_versions[ variable ] = version
+
 
     def onVariableContentEscapes( self, variable ):
         version = self.variable_versions.get( variable, 0 )
 
-        if version != 0:
-            key = variable, version
+        key = variable, version
 
-            if key not in self.variable_escaped:
-                # Indicate when the variable value escaped.
-                self.variable_escaped[ key ] = len( self.variable_targets[ key ] )
+        if key in self.variable_traces:
+            # Indicate when the variable value escaped.
+            self.variable_traces[ key ].onValueEscape()
 
     def onExpression( self, expression, allow_none = False ):
         if expression is None and allow_none:
