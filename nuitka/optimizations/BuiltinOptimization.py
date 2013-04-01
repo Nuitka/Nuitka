@@ -77,7 +77,7 @@ class BuiltinParameterSpec( ParameterSpec ):
                     arg_dict[ arg_name ] = given_value.getCompileTimeConstant()
 
             if given_dict_star_args:
-                for given_dict_star_arg in given_dict_star_args:
+                for given_dict_star_arg in reversed( given_dict_star_args ):
                     arg_name = given_dict_star_arg.getKey()
                     arg_value = given_dict_star_arg.getValue()
 

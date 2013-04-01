@@ -10,6 +10,20 @@ New Features
   Nuitka works for at least NetBSD 6.0, older versions may or may not work. This required
   fixing bugs in the generic "fibers" implementation.
 
+
+Bug Fixes
+---------
+
+- Dictionary creation was not fully compatible.
+
+  As revealed by using Nuitka with CPython3.3, the order in which dictionaries are to be
+  populated needs to be reversed, i.e. CPython adds the last item first. We didn't observe
+  this before, and it's likely the new dictionary implementation that finds it.
+
+  Given that hash randomization makes dictionaries item order undetermined anyway, this is
+  more an issue of testing.
+
+
 Nuitka Release 0.4.2
 ====================
 
