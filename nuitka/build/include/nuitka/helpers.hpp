@@ -112,9 +112,6 @@ static char *_PyUnicode_AS_STRING( PyObject *unicode )
 {
 #if PYTHON_VERSION < 330
     PyObject *bytes = _PyUnicode_AsDefaultEncodedString( unicode, NULL );
-#else
-    PyObject *bytes = PyUnicode_AsEncodedString( unicode, "utf-8", NULL );
-#endif
 
     if (unlikely( bytes == NULL ))
     {
@@ -122,6 +119,9 @@ static char *_PyUnicode_AS_STRING( PyObject *unicode )
     }
 
     return PyBytes_AS_STRING( bytes );
+#else
+    return PyUnicode_AsUTF8( unicode );
+#endif
 }
 #endif
 
