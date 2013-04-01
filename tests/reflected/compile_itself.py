@@ -21,6 +21,10 @@ from __future__ import print_function
 
 import os, sys, shutil, tempfile, time, difflib, subprocess
 
+# No random hashing, it makes comparing outputs futile.
+if "PYTHONHASHSEED" not in os.environ:
+    os.environ[ "PYTHONHASHSEED" ] = "27"
+
 # Go its own directory, to have it easy with path knowledge.
 os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
 
