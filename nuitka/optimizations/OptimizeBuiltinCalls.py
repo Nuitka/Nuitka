@@ -478,7 +478,7 @@ def super_extractor( node ):
             if not type.getVariable().isClosureReference():
                 return makeRaiseExceptionReplacementExpression(
                     expression      = node,
-                    exception_type  = "SystemError" if python_version < 330 else "RuntimeError",
+                    exception_type  = "SystemError" if python_version < 331 else "RuntimeError",
                     exception_value = "super(): __class__ cell not found",
                 )
 
