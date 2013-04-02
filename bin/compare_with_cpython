@@ -169,6 +169,8 @@ else:
         exit_nuitka = exit_nuitka1
         stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
     else:
+        os.environ[ "PYTHONPATH" ] = ":".join( [ os.path.dirname( filename ) ] + os.environ.get( "PYTHONPATH", "" ).split( ":" ) )
+
         process = subprocess.Popen(
             args   = nuitka_cmd2,
             stdout = subprocess.PIPE,
