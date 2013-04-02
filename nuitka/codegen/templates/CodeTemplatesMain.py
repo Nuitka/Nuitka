@@ -47,6 +47,10 @@ main_program = """\
 
 int main( int argc, char *argv[] )
 {
+#ifdef _NUITKA_PORTABLE
+    _initPortableEnvironment( argv[0] );
+#endif
+
     Py_Initialize();
     setCommandLineParameters( argc, argv );
 

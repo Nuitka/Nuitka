@@ -93,6 +93,9 @@ clang_mode = getBoolOption( "clang_mode", False )
 if sys.platform == "darwin" or "freebsd" in sys.platform:
     clang_mode = True
 
+# Portable mode
+portable_mode = getBoolOption( "portable_mode", False )
+
 def createEnvironment( compiler_tools ):
     return Environment(
         # We want the outside environment to be passed through.
@@ -397,6 +400,9 @@ if full_compat_mode:
 if experimental_mode:
     env.Append( CPPDEFINES = [ "_NUITKA_EXPERIMENTAL" ] )
 
+if portable_mode:
+    env.Append( CPPDEFINES = [ "_NUITKA_PORTABLE" ] )
+
 # Python version, use the scons one if not given.
 python_version = ARGUMENTS.get( "python_version", None )
 
@@ -510,6 +516,14 @@ if optimize_mode:
         env.Append( CCFLAGS = [ "-O3" ] )
     elif msvc_mode:
         env.Append( CCFLAGS = [ "/Ox" ] )
+
+
+# Set default load module from origin directory
+if portable_mode:
+    if gcc_mode:
+        env.Append( LINKFLAGS = [ "-Wl,-R,'$$ORIGIN'" ] )
+    else:
+        sys.exit( "Portable mode only supported with gcc/clang at this time." )
 
 # Tell compiler to create a shared library or program.
 if module_mode:

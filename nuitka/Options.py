@@ -414,6 +414,14 @@ parser.add_option(
 Given warnings for implicit exceptions detected at compile time.""",
 )
 
+parser.add_option(
+    "--portable",
+    action  = "store_true",
+    dest    = "is_portable_mode",
+    default = False,
+    help    = """\
+Enable portable mode in build.""",
+)
 
 if is_nuitka_python:
     count = 0
@@ -554,3 +562,6 @@ def getIntendedPythonVersion():
 
 def isExperimental():
     return hasattr( options, "experimental" ) and options.experimental
+
+def isPortableMode():
+	return options.is_portable_mode

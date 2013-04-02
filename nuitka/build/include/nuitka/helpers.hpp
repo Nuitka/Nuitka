@@ -1416,6 +1416,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME( PyObject *module )
 #endif
 }
 
+extern void _initPortableEnvironment( char *binary_path );
+
 #include <nuitka/threading.hpp>
 
 #endif

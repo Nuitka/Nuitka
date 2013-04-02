@@ -1606,6 +1606,96 @@ void _initBuiltinModule()
     assert( PyModule_Check( module_builtin ) == 1 );
 }
 
+#ifdef _NUITKA_PORTABLE
+char *getBinaryDirectory( char *binary_path )
+{
+    int i;
+    char *path = ( char* ) malloc( PATH_MAX + 1 );
+    memset ( path, 0, PATH_MAX + 1 );
+#if defined( _WIN32 )
+    HMODULE hModule = GetModuleHandle( NULL );
+    if ( !hModule )
+    {
+        fprintf( stderr, "getBinaryDirectory: get module handle failed\n" );
+        free( path );
+        return NULL;
+    }
+    GetModuleFileName( hModule , path, PATH_MAX + 1 );
+    char sep = '\\';
+#else
+    if ( !realpath( binary_path, path ) )
+    {
+        fprintf( stderr, "getBinaryDirectory: get real path failed\n" );
+        free( path );
+        return NULL;
+    }
+    char sep = '/';
+#endif
+    for ( i = PATH_MAX; i > 0; i-- )
+    {
+        // need handle unicode here ?
+        if ( path[i] == sep )
+        {
+            path[i] = '\x00';
+            break;
+        }
+    }
+    return path;
+}
+
+void _initPortableEnvironment( char *binary_path )
+{
+    // setup environ
+    // orignal_value;binary_directory/_python;binary_directory/_python.zip
+    char *binary_directory = getBinaryDirectory( binary_path );
+    if ( !binary_directory )
+        abort();
+
+    // get orignal value
+    char *orignal_home = getenv( "PYTHONHOME" );
+    char *orignal_path = getenv( "PYTHONPATH" );
+    size_t orignal_home_size = ( orignal_home ) ? strlen( orignal_home ) : 0;
+    size_t orignal_path_size = ( orignal_path ) ? strlen( orignal_path ) : 0;
+
+    // get insert value
+    size_t insert_size = strlen( binary_directory ) * 2 + 50;
+    char *insert_path = (char *) malloc( insert_size );
+    memset( insert_path, 0, insert_size );
+#if defined( _WIN32 )
+    char env_string[] = "%s\\%s;%s\\%s;";
+#else
+    char env_string[] = "%s/%s:%s/%s:";
+#endif
+    snprintf( insert_path, insert_size, env_string,
+        binary_directory, "_python",
+        binary_directory, "_python.zip"
+    );
+
+    // set environment
+    size_t python_home_size = orignal_home_size + insert_size;
+    size_t python_path_size = orignal_path_size + insert_size;
+    char *python_home = (char *) malloc( python_home_size );
+    char *python_path = (char *) malloc( python_path_size );
+    memset( python_home, 0, python_home_size );
+    memset( python_path, 0, python_path_size );
+    snprintf( python_home, python_home_size, "%s%s",
+        insert_path, orignal_home ? orignal_home : "" );
+    snprintf( python_path, python_path_size, "%s%s",
+        insert_path, orignal_path ? orignal_path : "" );
+#if defined( _WIN32 )
+    Py_SetPythonHome( python_home );
+#else
+    setenv( "PYTHONHOME", python_home, 1 );
+    setenv( "PYTHONPATH", python_path, 1 );
+#endif
+
+    // clean up
+    // TODO: need free old environ string pointer ?
+    free( binary_directory );
+    free( insert_path );
+}
+#endif
+
 #ifdef _NUITKA_EXE
 
 #define DEFINE_BUILTIN( name ) extern PyObject *_python_str_plain_##name; PyObject *_python_original_builtin_value_##name = NULL;

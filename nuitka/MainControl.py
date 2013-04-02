@@ -311,6 +311,9 @@ def runScons( main_module, quiet ):
     if Options.shallDisableConsoleWindow():
         options[ "win_disable_console" ] = "true"
 
+    if Options.isPortableMode():
+        options[ "portable_mode" ] = "true"
+
     return SconsInterface.runScons( options, quiet ), options
 
 def writeSourceCode( filename, source_code ):
@@ -353,7 +356,9 @@ def callExec( args, clean_path, add_path ):
 def executeMain( binary_filename, tree, clean_path ):
     main_filename = tree.getFilename()
 
-    if main_filename.endswith( ".py" ):
+    if Options.isPortableMode():
+        name = binary_filename
+    elif main_filename.endswith( ".py" ):
         name = main_filename[:-3]
     else:
         name = main_filename
