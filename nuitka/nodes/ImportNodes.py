@@ -212,7 +212,8 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
             source_ref     = self.source_ref,
             module_name    = self.getModuleName(),
             parent_package = parent_package,
-            level          = self.getLevel()
+            level          = self.getLevel(),
+            warn           = True
         )
 
         # That would be an illegal package name, catch it.

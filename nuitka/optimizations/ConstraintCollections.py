@@ -671,7 +671,8 @@ class ConstraintCollectionModule( ConstraintCollectionBase, VariableUsageTrackin
                     source_ref     = module.getSourceReference(),
                     module_name    = module_package,
                     parent_package = None,
-                    level          = 1
+                    level          = 1,
+                    warn           = True
                 )
 
                 imported_module, added_flag = Recursion.recurseTo(

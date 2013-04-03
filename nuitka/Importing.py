@@ -53,14 +53,14 @@ def setMainScriptDirectory( main_dir ):
 def isPackageDir( dirname ):
     return Utils.isDir( dirname ) and Utils.isFile( Utils.joinpath( dirname, "__init__.py" ))
 
-def findModule( source_ref, module_name, parent_package, level, warn = True ):
+def findModule( source_ref, module_name, parent_package, level, warn ):
     if level > 1 and parent_package is not None:
         parent_package = ".".join( parent_package.split(".")[ : -level+1 ] )
 
         if parent_package == "":
             parent_package = None
 
-    if not Options.shallMakeModule() and ( module_name != "" or parent_package is not None ):
+    if module_name != "" or parent_package is not None:
         try:
             module_filename, module_package_name = _findModule(
                 module_name    = module_name,
@@ -84,7 +84,7 @@ def findModule( source_ref, module_name, parent_package, level, warn = True ):
 
                     if parent_package is not None:
                         warning(
-                            "%s: Cannot find '%s' in package '%s' on level %s.",
+                            "%s: Cannot find '%s' in package '%s' %s.",
                             source_ref.getAsString(),
                             module_name,
                             parent_package,
@@ -92,7 +92,7 @@ def findModule( source_ref, module_name, parent_package, level, warn = True ):
                         )
                     else:
                         warning(
-                            "%s: Cannot find '%s' on level %s.",
+                            "%s: Cannot find '%s' %s.",
                             source_ref.getAsString(),
                             module_name,
                             level_desc

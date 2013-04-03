@@ -449,12 +449,6 @@ if not positional_args:
 if options.verbose:
     logging.getLogger().setLevel( logging.DEBUG )
 
-if options.recurse_all and not options.executable:
-    sys.exit( "Error, options '--recurse-all' makes no sense without option '--exe'." )
-
-if options.recurse_stdlib and not options.executable:
-    sys.exit( "Error, options '--recurse-stdlib' makes no sense without option '--exe'." )
-
 def shallTraceExecution():
     return options.trace_execution
 

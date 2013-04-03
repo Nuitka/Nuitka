@@ -164,7 +164,7 @@ def executePASS1():
                 print( "Compiling", path )
 
                 result = subprocess.call(
-                    "%s %s %s --output-dir %s %s" % (
+                    "%s %s %s --recurse-none --output-dir %s %s" % (
                         os.environ[ "PYTHON" ],
                         nuitka_main_path,
                         path,
@@ -242,7 +242,7 @@ def compileAndCompareWith( nuitka ):
                     shutil.rmtree( target_dir )
 
                 result = subprocess.call(
-                    "%s %s --output-dir %s %s" % (
+                    "%s %s --recurse-none --output-dir %s %s" % (
                         nuitka,
                         path,
                         tmp_dir,
@@ -314,7 +314,7 @@ def executePASS5():
     path = os.path.join( "..", "..", "nuitka" )
 
     result = subprocess.call(
-        "%s %s %s --output-dir %s --recurse-dir=%s" % (
+        "%s %s %s --recurse-all --output-dir %s --recurse-dir=%s" % (
             os.environ[ "PYTHON" ],
             nuitka_main_path,
             path,
