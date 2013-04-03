@@ -2712,70 +2712,72 @@ into action, which could be code changes, plan changes, issues created, etc.
       Dictionary, where per "variable" the current version is the value. It is used to
       determine, what variable reads need to go.
 
-    * variable_targets
+    * variable_traces
 
-      Dictionary, where "variable" and "version" form the key. The values are lists, which
-      start out empty.
+      Dictionary, where "variable" and "version" form the key. The values are objects with
+      or without an assignment, and a list of usages, which starts out empty.
 
-      They are only appended to. In "onVariableSet", a new version is allocated, which an
-      empty list, because each write starts a new version. in "onVariableUsage" the
-      version is detected from the current version. It may be the first element, but then
-      it's a read of an undefined value.
+      These objects have usages appended to them. In "onVariableSet", a new version is
+      allocated, which gives a new object for the dictionary, with an empty usages list,
+      because each write starts a new version. In "onVariableUsage" the version is
+      detected from the current version. It may be not set yet, which means, it's a read
+      of an undefined value (local variable, not a parameter name), or unknown in case of
+      global variable.
 
-    * variable_escaped
+      These objects may be told that their value has escaped. This should influence the
+      value friend they attached to the initial assignment. Each usage may have a current
+      value friend state that is different.
 
-      Dictionary, where again "variable" and "version" form the key. It contains indexes
-      to the lists pointed to by variable_targets. And these indicate the first time a
-      variable version escaped.
+    Then branches have this:
 
+    * branch_only_traces
+
+      Set of "variable" and "version" tuples. They start out as empty, and then when
+      assigning or referencing inside a branch, it's propagating to the parent collection
+      directly, but then remembers things that were created in that branch.
+
+      For this, the parent collection must return newly added "variable" and "version"
+      pairs added to the traces.
 
   * When merging branches of conditional statements, the PHI function shall apply as
     follows.
 
+    * Branches are children of an outer collections
+
     * Case a) One branch only.
 
-      Continue constraint collection in that branch. As usual new assignments generate a
-      new version, references use pre-existing versions. In terms of this, it's only about
-      the version generated in the branch not being accessible directly to outside the
-      branch.
+      Continue constraint collection in that one branch. As usual new assignments generate
+      a new version, references use pre-existing versions. In terms of this, it's only
+      about the version generated in the branch not being accessible directly to outside
+      the branch.
 
-      Then, when the branch merges, for all new versions of variables, that are alive,
-      another, newer version shall be generated, that merges it with the version that was
-      alive before.
+      Then, when the branch merges, for all new versions of variables, that are alive and
+      not replaced by another version already, a newer version shall be generated, that
+      merges it with the version that was alive before.
+
+      The single branch constraint collection therefore can pass assignments of versions
+      on to its version, as it can do with references. Only for the assignments, it should
+      track the ones new to the branch, so it can apply the merging.
 
     * Case b) Two branches.
 
       When there are two branches, they both as usual turn new assignments into new
-      versions, and reference pre-existing versions from before the branches.
+      versions, and reference pre-existing versions from before the branches. Because the
+      do it both to the parent, they track things there.
 
-      Then, when merging the branches, it's just the same as if two times one branch
-      occurred, no difference really. Consider this:
+      In terms of references, usages in a branch could be annotation, that they are
+      guarded by a condition. This could help to identify cases, where a value is
+      constructed, and only used inside a branch, and should be moved there. But this is
+      only sugar at this time.
 
-      .. code-block:: python
+      Then, when merging the both branches, we have tracked too the assignments, and the merge should consider the other branch as source for the variable version to merge.
 
-         if cond:
-            a = b
-         else:
-            a = c
 
-      This is quite the same as:
+    .. note::
 
-      .. code-block:: python
-
-         _tmp = cond
-
-         if _tmp:
-            a = b
-         if not _tmp:
-            a = c
-
-      So, we can deal with the branches one by one without any issue. In fact, this raises
-      the point, if we actually need conditional statements with two branches as a
-      structure.
-
-      .. note::
-
-         For conditional expressions, there are always two branches.
+       For conditional expressions, there are always only two branches. Even if you think
+       you have more than one branch, you do not. It's always nested branches, already
+       when it comes out of the parser.
 
 
   * Trace structure
