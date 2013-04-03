@@ -10,6 +10,12 @@ New Features
   Nuitka works for at least NetBSD 6.0, older versions may or may not work. This required
   fixing bugs in the generic "fibers" implementation.
 
+- Portable Binaries.
+
+  Nuitka has gained the ``--portable`` option which creates compiled binaries with enough
+  of Python included to run independent of the Python installation. This has often been
+  requested, and finally been contributed by ownssh.
+
 
 Bug Fixes
 ---------
