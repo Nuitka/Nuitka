@@ -36,7 +36,7 @@ def importList( *names ):
         __import__( name )
 
 DependencyResolver = {
-	"_ssl": ( importList, "socket", "_socket" ),
+    "_ssl": ( importList, "socket", "_socket" ),
 }
 
 def isPythonScript( path ):

@@ -1685,12 +1685,13 @@ void _initPortableEnvironment( char *binary_path )
 #if defined( _WIN32 )
     Py_SetPythonHome( python_home );
 #else
-    setenv( "PYTHONHOME", python_home, 1 );
-    setenv( "PYTHONPATH", python_path, 1 );
+    if ( !( orignal_home && strstr( orignal_home, insert_path ) ) )
+        setenv( "PYTHONHOME", python_home, 1 );
+    if ( !( orignal_path && strstr( orignal_path, insert_path ) ) )
+        setenv( "PYTHONPATH", python_path, 1 );
 #endif
 
     // clean up
-    // TODO: need free old environ string pointer ?
     free( binary_directory );
     free( insert_path );
 }

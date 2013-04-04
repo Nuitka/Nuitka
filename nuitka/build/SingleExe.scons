@@ -518,12 +518,9 @@ if optimize_mode:
         env.Append( CCFLAGS = [ "/Ox" ] )
 
 
-# Set default load module from origin directory
-if portable_mode:
-    if gcc_mode:
-        env.Append( LINKFLAGS = [ "-Wl,-R,'$$ORIGIN'" ] )
-    else:
-        sys.exit( "Portable mode only supported with gcc/clang at this time." )
+# Set load libpython from binary directory default
+if portable_mode and gcc_mode:
+    env.Append( LINKFLAGS = [ "-Wl,-R,'$$ORIGIN'" ] )
 
 # Tell compiler to create a shared library or program.
 if module_mode:
