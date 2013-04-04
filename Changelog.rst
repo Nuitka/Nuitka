@@ -16,6 +16,29 @@ New Features
   of Python included to run independent of the Python installation. This has often been
   requested, and finally been contributed by ownssh.
 
+- Added warning when a user compiles a module and executes it immediately when that references
+  ``__name__``.
+
+  Because very likely the intention was to create an executable. And esp. if there is code
+  like this:
+
+  .. code-block:: python
+
+     if __name__ == "__main__":
+        main()
+
+  In module mode, Nuitka will optimize it away, and nothing will happen on execution. This
+  is because the command
+
+  .. code-block:: sh
+
+     nuitka --execute module
+
+  is behavioral more like
+
+     python -c "import module"
+
+  and that was a trap for new users.
 
 Bug Fixes
 ---------

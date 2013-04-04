@@ -198,5 +198,5 @@ def setup( mainscript, outputdir ):
 if __name__ == "__main__":
     main(
         mainscript = os.path.abspath( sys.argv[1] ),
-        outputdir = os.path.abspath( sys.argv[2] ),
+        outputdir  = os.path.abspath( sys.argv[2] )
     )
