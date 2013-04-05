@@ -339,6 +339,8 @@ class ConstraintCollectionBase:
 
         self.variable_versions[ variable ] = version
 
+        return key
+
     def onVariableUsage( self, ref_node ):
         variable = ref_node.getVariable()
         version  = self.variable_versions.get( variable, 0 )
@@ -347,6 +349,8 @@ class ConstraintCollectionBase:
 
         if key in self.variable_traces:
             self.variable_traces[ key ].addUsage( ref_node )
+
+            return None
         else:
             self.variable_traces[ key ] = VariableReferenceTrace(
                 ref_node = ref_node,
@@ -356,6 +360,7 @@ class ConstraintCollectionBase:
 
             self.variable_versions[ variable ] = version
 
+            return key
 
     def onVariableContentEscapes( self, variable ):
         version = self.variable_versions.get( variable, 0 )
@@ -568,6 +573,14 @@ class ConstraintCollectionHandler( ConstraintCollectionBase ):
 
 
 class ConstraintCollectionBranch( ConstraintCollectionBase ):
+    def __init__( self, parent ):
+        ConstraintCollectionBase.__init__(
+            self,
+            parent = parent
+        )
+
+        self.branch_only_traces = set()
+
     def process( self, branch ):
         assert branch.isStatementsSequence(), branch
 
@@ -575,6 +588,30 @@ class ConstraintCollectionBranch( ConstraintCollectionBase ):
 
         if result is not branch:
             branch.replaceWith( result )
+
+    def onVariableSet( self, target_node, value_friend ):
+        # Add a new trace, allocating a new version for the variable, and remember the value
+        # friend.
+        key = self.parent.onVariableSet(
+            target_node  = target_node,
+            value_friend = value_friend
+        )
+
+        # Remember the version, because it was added to this branch only, which matters
+        # for merge later.
+        self.branch_only_traces.add( key )
+
+        return key
+
+    def onVariableUsage( self, ref_node ):
+        key = self.parent.onVariableUsage(
+            ref_node = ref_node
+        )
+
+        if key is not None:
+            self.branch_only_traces.add( key )
+
+        return key
 
 
 class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrackingMixin ):
