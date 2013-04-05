@@ -1,6 +1,9 @@
 nuitka (0.4.3~pre1+ds-1) UNRELEASED; urgency=low
 
   * New upstream pre-release.
+  * Moved X-Python-Version to the source package, where it actually
+    is used. Otherwise Squeeze attempts to build it with Python2.5
+    which is not supported by upstream.
 
  -- Kay Hayen <kayhayen@gmx.de>  Fri, 29 Mar 2013 14:24:43 +0100
 
