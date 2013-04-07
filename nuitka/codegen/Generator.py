@@ -257,6 +257,10 @@ def getCallCode( called_identifier, argument_tuple, argument_dictionary ):
        argument_dictionary.getConstant() == {}:
         argument_dictionary = None
 
+    if argument_tuple is not None and argument_tuple.isConstantIdentifier() and \
+       argument_tuple.getConstant() == ():
+        argument_tuple = None
+
     if argument_dictionary is None:
         if argument_tuple is None:
             return Identifier(
