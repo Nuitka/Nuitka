@@ -257,7 +257,7 @@ def _isWhiteListedNotExistingModule( module_name ):
         "PyQt4.uic.port_v3.as_string",
 
         # CPython3 does these:
-        "builtins", "UserDict", "os.path",
+        "builtins", "UserDict", "os.path", "StringIO",
 
         # test_frozen.py
         "__hello__", "__phello__", "__phello__.spam", "__phello__.foo",
