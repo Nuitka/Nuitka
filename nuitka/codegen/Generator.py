@@ -225,43 +225,6 @@ def getIndexCode( identifier ):
         0
     )
 
-def _getCallNoStarArgsCode( called_identifier, argument_tuple, argument_dictionary ):
-    if argument_dictionary is None:
-        if argument_tuple is None:
-            return Identifier(
-                "CALL_FUNCTION_NO_ARGS( %(function)s )" % {
-                    "function"   : called_identifier.getCodeTemporaryRef(),
-                },
-                1
-            )
-        else:
-            return Identifier(
-                "CALL_FUNCTION_WITH_POSARGS( %(function)s, %(pos_args)s )" % {
-                    "function"   : called_identifier.getCodeTemporaryRef(),
-                    "pos_args"   : argument_tuple.getCodeTemporaryRef()
-                },
-                1
-            )
-    else:
-        if argument_tuple is None:
-            return Identifier(
-                "CALL_FUNCTION_WITH_KEYARGS( %(function)s, %(named_args)s )" % {
-                    "function"   : called_identifier.getCodeTemporaryRef(),
-                    "named_args" : argument_dictionary.getCodeTemporaryRef()
-                },
-                1
-            )
-        else:
-            return Identifier(
-                "CALL_FUNCTION( %(function)s, %(pos_args)s, %(named_args)s )" % {
-                    "function"   : called_identifier.getCodeTemporaryRef(),
-                    "pos_args"   : argument_tuple.getCodeTemporaryRef(),
-                    "named_args" : argument_dictionary.getCodeTemporaryRef()
-                },
-                1
-            )
-
-
 def getDirectionFunctionCallCode( function_identifier, arguments, closure_variables, extra_arguments, context ):
     function_identifier = getDirectFunctionEntryPointIdentifier(
         function_identifier = function_identifier
