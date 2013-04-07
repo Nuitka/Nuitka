@@ -10,11 +10,24 @@ New Features
   Nuitka works for at least NetBSD 6.0, older versions may or may not work. This required
   fixing bugs in the generic "fibers" implementation.
 
+- Support for Python3 under Windows too.
+
+  Nuitka uses Scons to build the generated C++ files. Unfortunately it requires Python2 to
+  execute, which is not readily available to call from Python3. It now guesses the default
+  installation paths of CPython 2.7 or CPython 2.6 and it will use it for running Scons
+  instead. You have to install it to" C:\Python26" or "C:\Python27" for Nuitka to be able
+  to find it.
+
+- Enhanced Python 3.3 compatibility.
+
+  The support the newest version of Python has been extended, improving compatibility for
+  minor corner cases.
+
 - Portable Binaries.
 
-  Nuitka has gained the ``--portable`` option which creates compiled binaries with enough
-  of Python included to run independent of the Python installation. This has often been
-  requested, and finally been contributed by ownssh.
+  Nuitka has gained the ``--portable`` option which adds the Python libraries, and a zip
+  files with the modules, sufficient to run independent of the Python installation. This
+  has often been requested, and finally been contributed by ownssh.
 
 - Added warning when a user compiles a module and executes it immediately when that references
   ``__name__``.
@@ -51,6 +64,33 @@ Bug Fixes
 
   Given that hash randomization makes dictionaries item order undetermined anyway, this is
   more an issue of testing.
+
+
+New Optimization
+----------------
+
+- Calls with no positional arguments are now using the faster call methods.
+
+  The code was using the "()" constant at call site, when doing calls that use no
+  positional arguments, which is of course useless.
+
+- Windows uses OS "Fiber" for Nuitka "Fiber".
+
+  Using threads for fibers was causing only overhead and with this API, MSVC had less
+  issues too.
+
+Cleanups
+--------
+
+- Removed useless manifest and resource file creation under Windows.
+
+  Turns out this is no longer needed at all. Either CPython, MinGW, or Windows improved to
+  no longer need it.
+
+Summary
+-------
+
+The release is not complete yet.
 
 
 Nuitka Release 0.4.2
