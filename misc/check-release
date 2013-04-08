@@ -104,7 +104,7 @@ if positional_args:
 os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
 os.chdir( ".." )
 
-path_sep = ";" if os.name == "nt" in sys.platform else ":"
+path_sep = ";" if os.name == "nt" else ":"
 
 # Add the local bin directory to search path start.
 os.environ[ "PATH" ] = os.path.join( os.getcwd(), "bin" ) + path_sep + os.environ[ "PATH" ]
