@@ -284,7 +284,7 @@ else
 
         mp->ma_keys->dk_refcnt += 1;
 
-        _PyObject_GC_TRACK( split_copy );
+        Nuitka_GC_Track( split_copy );
 
         int size = mp->ma_keys->dk_size;
         for ( int i = 0; i < size; i++ )
