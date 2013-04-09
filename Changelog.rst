@@ -5,6 +5,10 @@ Nuitka Release 0.4.3 (Draft)
 New Features
 ------------
 
+- Support for new compiler: Microsoft Visual C++.
+
+  You can now use Visual Studio 2008 or Visual Studio 2010 for compiling under Windows.
+
 - Support for NetBSD.
 
   Nuitka works for at least NetBSD 6.0, older versions may or may not work. This required
