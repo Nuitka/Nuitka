@@ -28,7 +28,7 @@ from ..__past__ import unicode, long, iterItems
 # pylint: enable=W0622
 
 from ..Utils import python_version
-from ..Constants import HashableConstant
+from ..Constants import HashableConstant, constant_builtin_types
 
 import re, struct
 
@@ -45,6 +45,9 @@ def getConstantCode( context, constant ):
 # TODO: The determination of this should already happen in Building or in a helper not
 # during code generation.
 _match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
+
+def getConstantCodeName( context, constant ):
+    return context.getConstantHandle( constant, real_use = False ).getCode()
 
 def _isAttributeName( value ):
     return _match_attribute_names.match( value )
@@ -161,14 +164,14 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
                     emit                = emit,
                     constant_type       = type( key ),
                     constant_value      = key,
-                    constant_identifier = context.getConstantCodeName( key ),
+                    constant_identifier = getConstantCodeName( context, key ),
                     context             = context
                 )
                 _addConstantInitCode(
                     emit                = emit,
                     constant_type       = type( value ),
                     constant_value      = value,
-                    constant_identifier = context.getConstantCodeName( value ),
+                    constant_identifier = getConstantCodeName( context, value ),
                     context             = context
                 )
 
@@ -177,7 +180,10 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
                     constant_identifier,
                     length,
                     ", ".join(
-                        context.getConstantCodeName( value ) + "," + context.getConstantCodeName( key )
+                        "%s, %s" % (
+                            getConstantCodeName( context, value ),
+                            getConstantCodeName( context, key )
+                        )
                         for key, value
                         in
                         iterItems( constant_value )
@@ -200,7 +206,7 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
                     emit                = emit,
                     constant_type       = type( element ),
                     constant_value      = element,
-                    constant_identifier = context.getConstantCodeName( element ),
+                    constant_identifier = getConstantCodeName( context, element ),
                     context             = context
                 )
 
@@ -209,7 +215,7 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
                     constant_identifier,
                     length,
                     ", ".join(
-                        context.getConstantCodeName( element )
+                        getConstantCodeName( context, element )
                         for element
                         in
                         constant_value
@@ -232,7 +238,7 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
                     emit                = emit,
                     constant_type       = type( element ),
                     constant_value      = element,
-                    constant_identifier = context.getConstantCodeName( element ),
+                    constant_identifier = getConstantCodeName( context, element ),
                     context             = context
                 )
 
@@ -241,7 +247,7 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
                     constant_identifier,
                     length,
                     ", ".join(
-                        context.getConstantCodeName( element )
+                        getConstantCodeName( context, element )
                         for element
                         in
                         constant_value
@@ -261,10 +267,12 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
 
         return
 
-
     if constant_type in ( set, frozenset, complex, unicode, int, long, bytes, range ):
         emit(  _getUnstreamCode( constant_value, constant_identifier ) )
 
+        return
+
+    if constant_value in constant_builtin_types:
         return
 
     assert False, (type(constant_value), constant_value, constant_identifier)
@@ -378,12 +386,16 @@ def getConstantsDeclCode( context, for_header ):
         if constant_value is True:
             return
 
-        constant_identifier = context.getConstantCodeName( constant_value )
-
         constant_type = type( constant_value )
+
+        if constant_type is type:
+            return
+
         key = constant_type, HashableConstant( constant_value )
 
         if key not in contained_constants:
+            constant_identifier = getConstantCodeName( context, constant_value )
+
             contained_constants[ key ] = constant_identifier
 
             if constant_type in ( tuple, list ):
@@ -397,6 +409,10 @@ def getConstantsDeclCode( context, for_header ):
 
 
     for ( constant_type, constant_value ), constant_identifier in sorted( constants.items(), key = _lengthKey ):
+        # Need not declare built-in types.
+        if constant_type is type:
+            continue
+
         declaration = "PyObject *%s;" % constant_identifier
 
         if for_header:

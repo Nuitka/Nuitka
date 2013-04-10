@@ -29,7 +29,7 @@ from .Identifiers import (
 
 from .Namify import namifyConstant
 
-from nuitka.Constants import HashableConstant
+from nuitka.Constants import HashableConstant, constant_builtin_types
 
 from nuitka.__past__ import iterItems
 
@@ -227,7 +227,7 @@ class PythonGlobalContext:
         # Code objects needed.
         self.code_objects = {}
 
-    def getConstantHandle( self, constant ):
+    def getConstantHandle( self, constant, real_use = True ):
         if constant is None:
             return SpecialConstantIdentifier( None )
         elif constant is True:
@@ -236,26 +236,29 @@ class PythonGlobalContext:
             return SpecialConstantIdentifier( False )
         elif constant is Ellipsis:
             return SpecialConstantIdentifier( Ellipsis )
+        elif constant in constant_builtin_types:
+            type_name = constant.__name__
+
+            if constant is int and python_version >= 300:
+                type_name = "long"
+
+            if constant is str and python_version < 300:
+                type_name = "string"
+
+            if constant is str and python_version > 300:
+                type_name = "unicode"
+
+            return Identifier( "(PyObject *)&Py%s_Type" % type_name.title(), 0 )
         else:
-            key = ( type( constant ), HashableConstant( constant ) )
+            if real_use:
+                key = ( type( constant ), HashableConstant( constant ) )
 
-            if key not in self.constants:
-                self.constants[ key ] = "_python_" + namifyConstant( constant )
+                if real_use and key not in self.constants:
+                    self.constants[ key ] = "_python_" + namifyConstant( constant )
 
-            return ConstantIdentifier( self.constants[ key ], constant )
-
-    def getConstantCodeName( self, constant ):
-        if constant is None:
-            return SpecialConstantIdentifier( None ).getCode()
-        elif constant is True:
-            return SpecialConstantIdentifier( True ).getCode()
-        elif constant is False:
-            return SpecialConstantIdentifier( False ).getCode()
-        elif constant is Ellipsis:
-            return SpecialConstantIdentifier( Ellipsis ).getCode()
-        else:
-            return "_python_" + namifyConstant( constant )
-
+                return ConstantIdentifier( self.constants[ key ], constant )
+            else:
+                return Identifier( "_python_" + namifyConstant( constant ), 0 )
 
     def getConstants( self ):
         return self.constants

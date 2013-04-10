@@ -26,6 +26,9 @@ import math
 from .__past__ import long, unicode, iterItems
 # pylint: enable=W0622
 
+from .Builtins import builtin_anon_names
+from .Utils import python_version
+
 NoneType = type( None )
 
 def compareConstants( a, b ):
@@ -97,6 +100,23 @@ def compareConstants( a, b ):
     # built in the same way.
     return a == b
 
+# These builtin type references are kind of constant too. TODO: The list is totally not
+# complete.
+constant_builtin_types = int, set, str, float, list, tuple, dict, complex
+
+if python_version >= 300:
+    constant_builtin_types += (
+        range,
+        bytes,
+    )
+else:
+    constant_builtin_types += (
+        unicode,
+        long,
+        # This has no name in Python, but the natural one in C-API.
+        builtin_anon_names[ "instance" ]
+    )
+
 def isConstant( constant ):
     constant_type = type( constant )
 
@@ -119,6 +139,8 @@ def isConstant( constant ):
         return True
     elif constant in ( Ellipsis, NoneType ):
         return True
+    elif constant_type is type:
+        return constant in constant_builtin_types
     else:
         return False
 
