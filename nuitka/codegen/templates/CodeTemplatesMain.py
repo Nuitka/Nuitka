@@ -51,7 +51,10 @@ int main( int argc, char *argv[] )
     _initPortableEnvironment( argv[0] );
 #endif
 
+    // Initialize Python environment.
+    Py_OptimizeFlag = %(python_optimize_flag)d;
     Py_Initialize();
+
     setCommandLineParameters( argc, argv );
 
     // Initialize the constant values used.

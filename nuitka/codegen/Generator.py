@@ -1757,11 +1757,12 @@ def getMainCode( codes, code_identifier, context ):
         code_identifier = NullIdentifier()
 
     main_code = CodeTemplates.main_program % {
-        "sys_executable"  : getConstantCode(
+        "sys_executable"       : getConstantCode(
             constant = "python.exe" if Options.isWindowsTarget() else sys.executable,
             context  = context
         ),
-        "code_identifier" : code_identifier.getCodeTemporaryRef()
+        "python_optimize_flag" : 0 if __debug__ else 1,
+        "code_identifier"      : code_identifier.getCodeTemporaryRef()
     }
 
     return codes + main_code

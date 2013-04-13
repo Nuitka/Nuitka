@@ -25,6 +25,7 @@ print "doc:", __doc__
 print "filename:", __file__
 print "builtins:", __builtins__
 print "debug", __debug__
+print "debug in builtins", __builtins__.__debug__
 
 print "__initializing__",
 try:
