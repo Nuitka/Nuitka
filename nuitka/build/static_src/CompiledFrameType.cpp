@@ -223,9 +223,9 @@ static int Nuitka_Frame_tp_traverse( PyFrameObject *frame, visitproc visit, void
     Py_VISIT( frame->f_exc_traceback );
 
     // locals
-    int slots = frame->f_code->co_nlocals + PyTuple_GET_SIZE( frame->f_code->co_cellvars ) + PyTuple_GET_SIZE( frame->f_code->co_freevars );
+    Py_ssize_t slots = frame->f_code->co_nlocals + PyTuple_GET_SIZE( frame->f_code->co_cellvars ) + PyTuple_GET_SIZE( frame->f_code->co_freevars );
     PyObject **fastlocals = frame->f_localsplus;
-    for ( int i = slots; --i >= 0; ++fastlocals )
+    for ( Py_ssize_t i = slots; --i >= 0; ++fastlocals )
     {
         Py_VISIT( *fastlocals );
     }
@@ -253,10 +253,10 @@ static void Nuitka_Frame_tp_clear( PyFrameObject *frame )
     Py_CLEAR( frame->f_trace );
 
     // locals
-    int slots = frame->f_code->co_nlocals + PyTuple_GET_SIZE( frame->f_code->co_cellvars ) + PyTuple_GET_SIZE( frame->f_code->co_freevars );
+    Py_ssize_t slots = frame->f_code->co_nlocals + PyTuple_GET_SIZE( frame->f_code->co_cellvars ) + PyTuple_GET_SIZE( frame->f_code->co_freevars );
     PyObject **fastlocals = frame->f_localsplus;
 
-    for ( int i = slots; --i >= 0; ++fastlocals )
+    for ( Py_ssize_t i = slots; --i >= 0; ++fastlocals )
     {
         Py_CLEAR( *fastlocals );
     }
