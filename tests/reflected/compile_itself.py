@@ -31,7 +31,7 @@ os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
 nuitka_main_path = os.path.join( "..", "..", "bin", "nuitka" )
 
 if "PYTHON" not in os.environ:
-    os.environ[ "PYTHON" ] = "python"
+    os.environ[ "PYTHON" ] = sys.executable
 
 def check_output(*popenargs, **kwargs):
     from subprocess import Popen, PIPE, CalledProcessError
