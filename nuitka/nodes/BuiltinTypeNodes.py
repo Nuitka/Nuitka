@@ -96,7 +96,7 @@ class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
 
         NodeBase.__init__( self, source_ref = source_ref )
 
-        if value is None and Utils.python_version < 330:
+        if value is None and Utils.python_version < 330 and Utils.python_version != 274:
             value = makeConstantReplacementNode(
                 constant = "0",
                 node     = self
@@ -121,7 +121,7 @@ class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
 
         if value is None:
             if base is not None:
-                if Utils.python_version >= 330:
+                if Utils.python_version >= 330 or Utils.python_version == 274:
                     from .NodeMakingHelpers import getComputationResult
 
                     return getComputationResult(
