@@ -1761,7 +1761,27 @@ def getMainCode( codes, code_identifier, context ):
             constant = "python.exe" if Options.isWindowsTarget() else sys.executable,
             context  = context
         ),
-        "python_optimize_flag" : 0 if __debug__ else 1,
+        "python_sysflag_debug" : sys.flags.debug,
+        "python_sysflag_py3k_warning" : ( sys.flags.py3k_warning
+            if hasattr( sys.flags, "py3k_warning" ) else 0 ),
+        "python_sysflag_division_warning" : ( sys.flags.division_warning
+            if hasattr( sys.flags, "division_warning" ) else 0 ),
+        #"python_sysflag_division_new" : sys.flags.division_new, #not supported
+        "python_sysflag_inspect" : sys.flags.inspect,
+        "python_sysflag_interactive" : sys.flags.interactive,
+        "python_sysflag_optimize" : sys.flags.optimize,
+        "python_sysflag_dont_write_bytecode" : sys.flags.dont_write_bytecode,
+        "python_sysflag_no_user_site" : sys.flags.no_user_site,
+        "python_sysflag_no_site" : sys.flags.no_site,
+        "python_sysflag_ignore_environment" : sys.flags.ignore_environment,
+        "python_sysflag_tabcheck" : ( sys.flags.tabcheck
+            if hasattr( sys.flags, "tabcheck" ) else 0 ),
+        "python_sysflag_verbose" : sys.flags.verbose,
+        "python_sysflag_unicode" : ( sys.flags.unicode
+            if hasattr( sys.flags, "unicode" ) else 0 ),
+        "python_sysflag_bytes_warning" : sys.flags.bytes_warning,
+        "python_sysflag_hash_randomization" : ( sys.flags.hash_randomization
+            if hasattr( sys.flags, "hash_randomization" ) else 0 ),
         "code_identifier"      : code_identifier.getCodeTemporaryRef()
     }
 
