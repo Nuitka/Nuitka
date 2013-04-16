@@ -26,8 +26,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
 """
 
 template_function_direct_declaration = """\
-#define impl_%(function_identifier)s( %(direct_call_arg_names)s ) _impl_%(function_identifier)s( %(direct_call_arg_reversal)s )
-%(file_scope)s PyObject *_impl_%(function_identifier)s( %(direct_call_arg_spec)s );
+%(file_scope)s PyObject *impl_%(function_identifier)s( %(direct_call_arg_spec)s );
 """
 
 function_context_body_template = """
@@ -118,7 +117,7 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 """
 
 function_direct_body_template = """\
-%(file_scope)s PyObject *_impl_%(function_identifier)s( %(direct_call_arg_spec)s )
+%(file_scope)s PyObject *impl_%(function_identifier)s( %(direct_call_arg_spec)s )
 {
 %(context_access_function_impl)s
 

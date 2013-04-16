@@ -254,12 +254,23 @@ def generateFunctionCallCode( call_node, context ):
 
     extra_arguments = []
 
+    argument_values = call_node.getArgumentValues()
+
+    # TODO: This is finalization work, should use the last constraint collection
+    # knowledge.
+    order_relevance = [
+        argument_value.mayHaveSideEffects( None )
+        for argument_value in
+        argument_values
+    ]
+
     return Generator.getDirectionFunctionCallCode(
         function_identifier = function_identifier,
         arguments           = generateExpressionsCode(
             expressions = call_node.getArgumentValues(),
             context     = context
         ),
+        order_relevance     = order_relevance,
         closure_variables   = function_body.getClosureVariables(),
         extra_arguments     = extra_arguments,
         context             = context

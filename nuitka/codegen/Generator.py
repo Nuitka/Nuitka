@@ -225,7 +225,8 @@ def getIndexCode( identifier ):
         0
     )
 
-def getDirectionFunctionCallCode( function_identifier, arguments, closure_variables, extra_arguments, context ):
+def getDirectionFunctionCallCode( function_identifier, arguments, order_relevance,
+                                  closure_variables, extra_arguments, context ):
     function_identifier = getDirectFunctionEntryPointIdentifier(
         function_identifier = function_identifier
     )
@@ -236,20 +237,61 @@ def getDirectionFunctionCallCode( function_identifier, arguments, closure_variab
         extra_arguments
     ]
 
-    call_args += getCodeExportRefs( arguments )
 
-    call_args += getClosureVariableProvisionCode(
-        context           = context,
-        closure_variables = closure_variables
-    )
+    if order_relevance.count( True ) >= 2:
+        order_codes = []
 
-    return Identifier(
-        "%s( %s )" % (
-            function_identifier,
-            ", ".join( call_args )
-        ),
-        1
-    )
+        for argument, order_relevant in zip( arguments, order_relevance ):
+            variable_name = "call_tmp%d" % context.allocateCallTempNumber()
+
+            if order_relevant:
+                order_codes.append(
+                    _getAssignmentTempKeeperCode(
+                        source_identifier = argument,
+                        variable_name     = variable_name,
+                        context           = context
+                    ).getCode()
+                )
+
+                call_args.append( variable_name + ".asObject()" )
+            else:
+                # TODO: Should delete the reference immediately after call, if ref_count = 1
+
+                call_args.append( argument.getCodeExportRef() )
+
+        call_args += getClosureVariableProvisionCode(
+            context           = context,
+            closure_variables = closure_variables
+        )
+
+        order_codes.append(
+            "%s( %s )" % (
+                function_identifier,
+                ", ".join( call_args )
+            )
+        )
+
+        return Identifier(
+            "( %s )" % (
+               ", ".join( order_codes )
+            ),
+            1
+        )
+    else:
+        call_args += getCodeExportRefs( arguments )
+
+        call_args += getClosureVariableProvisionCode(
+            context           = context,
+            closure_variables = closure_variables
+        )
+
+        return Identifier(
+            "%s( %s )" % (
+                function_identifier,
+                ", ".join( call_args )
+            ),
+            1
+        )
 
 
 def getCallCode( called_identifier, argument_tuple, argument_dictionary ):
@@ -882,13 +924,8 @@ def getVariableAssignmentCode( context, variable, identifier ):
         identifier_code
     )
 
-def getAssignmentTempKeeperCode( source_identifier, variable, context ):
+def _getAssignmentTempKeeperCode( source_identifier, variable_name, context ):
     ref_count = source_identifier.getCheapRefCount()
-    variable_name = variable.getName()
-
-    assert variable.getReferenced().getNeedsFree() == bool( ref_count ), \
-           ( variable, variable.getReferenced().getNeedsFree(), ref_count,
-             source_identifier, source_identifier.__class__ )
 
     context.addTempKeeperUsage( variable_name, ref_count )
 
@@ -899,6 +936,17 @@ def getAssignmentTempKeeperCode( source_identifier, variable, context ):
         ),
         0
     )
+
+def getAssignmentTempKeeperCode( source_identifier, variable, context ):
+    ref_count = source_identifier.getCheapRefCount()
+    variable_name = variable.getName()
+
+    assert variable.getReferenced().getNeedsFree() == bool( ref_count ), \
+           ( variable, variable.getReferenced().getNeedsFree(), ref_count,
+             source_identifier, source_identifier.__class__ )
+
+
+    return _getAssignmentTempKeeperCode( source_identifier, variable_name, context )
 
 def getTempKeeperHandle( variable, context ):
     variable_name = variable.getName()
@@ -1871,20 +1919,10 @@ def getFunctionDecl( context, function_identifier, defaults_identifier, kw_defau
                 closure_variable.getDeclarationCode()
             )
 
-        direct_call_arg_names = _extractArgNames( parameter_objects_decl )
-
         result = CodeTemplates.template_function_direct_declaration % {
-            "file_scope"               : context.getExportScope(),
-            "function_identifier"      : function_identifier,
-            "direct_call_arg_names"    : ", ".join( direct_call_arg_names ),
-            "direct_call_arg_reversal" : getEvalOrderedCode(
-                context = context,
-                args    = direct_call_arg_names
-            ),
-            "direct_call_arg_spec"     : getEvalOrderedCode(
-                context = context,
-                args    = parameter_objects_decl
-            )
+            "file_scope"           : context.getExportScope(),
+            "function_identifier"  : function_identifier,
+            "direct_call_arg_spec" : ", ".join( parameter_objects_decl ),
         }
 
         if context.isForCrossModuleUsage():
@@ -2295,10 +2333,7 @@ def getFunctionCode( context, function_name, function_qualname, function_identif
             "file_scope"                   : context.getExportScope(),
             "function_identifier"          : function_identifier,
             "context_access_function_impl" : context_access_function_impl,
-            "direct_call_arg_spec"         : getEvalOrderedCode(
-                context = context,
-                args    = parameter_objects_decl
-            ),
+            "direct_call_arg_spec"         : ",".join( parameter_objects_decl ),
             "function_locals"              : indented( function_locals ),
             "function_body"                : indented( function_codes ),
         }

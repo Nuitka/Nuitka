@@ -65,6 +65,8 @@ class PythonContextBase:
 
         self.try_finally_counts = []
 
+        self.call_temp_count = 0
+
     def allocateTryNumber( self ):
         self.try_count += 1
 
@@ -84,6 +86,11 @@ class PythonContextBase:
             return self.try_finally_counts[-1]
         else:
             return None
+
+    def allocateCallTempNumber( self ):
+        self.call_temp_count += 1
+
+        return self.call_temp_count
 
 
 class PythonChildContextBase( PythonContextBase ):
