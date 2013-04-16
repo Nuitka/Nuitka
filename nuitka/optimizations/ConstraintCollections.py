@@ -25,6 +25,7 @@ and to manage them.
 
 # Python3 compatibility.
 from nuitka.__past__ import iterItems
+from nuitka.oset import OrderedSet
 
 from nuitka.nodes import ValueFriends
 
@@ -36,7 +37,7 @@ from nuitka.nodes.NodeMakingHelpers import (
 from nuitka import Options, Utils, Importing
 from nuitka.tree import Recursion
 
-from logging import debug
+from logging import debug, warning
 
 
 class VariableTrace:
@@ -61,7 +62,6 @@ class VariableAssignTrace( VariableTrace ):
         self.target_node = target_node
         self.value_friend = value_friend
 
-
     def onValueEscape( self ):
         # TODO: Tell value friend to degrade intelligently.
         self.value_friend = None
@@ -78,6 +78,18 @@ class VariableReferenceTrace( VariableTrace ):
         self.ref_node = ref_node
 
         self.usages.append( ref_node )
+
+    def onValueEscape( self ):
+        pass
+
+
+class VariableMergeTrace( VariableTrace ):
+    def __init__( self, variable, version, trace_yes, trace_no ):
+        VariableTrace.__init__(
+            self,
+            variable = variable,
+            version  = version
+        )
 
     def onValueEscape( self ):
         pass
@@ -326,6 +338,12 @@ class ConstraintCollectionBase:
         # Add a new trace, allocating a new version for the variable, and remember the value
         # friend.
         variable = target_node.getVariable()
+
+        while variable.isReference():
+            variable = variable.getReferenced()
+
+        assert not variable.isModuleVariableReference()
+
         version  = target_node.getVariableVersion()
 
         key = variable, version
@@ -343,6 +361,12 @@ class ConstraintCollectionBase:
 
     def onVariableUsage( self, ref_node ):
         variable = ref_node.getVariable()
+
+        while variable.isReference():
+            variable = variable.getReferenced()
+
+        assert not variable.isModuleVariableReference()
+
         version  = self.variable_versions.get( variable, 0 )
 
         key = variable, version
@@ -538,18 +562,96 @@ Side effects of assignments promoted to statements."""
         return result
 
     def onStatement( self, statement ):
-        assert statement.isStatement(), statement
+        try:
+            assert statement.isStatement(), statement
 
-        new_statement, change_tags, change_desc = statement.computeStatement( self )
+            new_statement, change_tags, change_desc = statement.computeStatement( self )
 
-        if new_statement is not statement:
-            self.signalChange(
-                change_tags,
-                statement.getSourceReference(),
-                change_desc
+            if new_statement is not statement:
+                self.signalChange(
+                    change_tags,
+                    statement.getSourceReference(),
+                    change_desc
+                )
+
+            return new_statement
+        except Exception:
+            warning( "Problem with statement at %s:", statement.getSourceReference() )
+            raise
+
+    def mergeBranches( self, collection_yes, collection_no ):
+        def getParentVariableVersion( variable ):
+            return self.parent.getVariableVersions().get( variable, None )
+
+        def mergeSingleBranchChange( variable, version ):
+            key = variable, variable.allocateTargetNumber()
+
+            # Now we didn't find it in yes, so it's up to merging.
+            if variable in self.variable_versions:
+                trace_old = self.variable_traces[ variable, self.variable_versions[ variable ] ]
+            else:
+                trace_old = None
+
+            self.variable_traces[ key ] = VariableMergeTrace(
+                variable     = variable,
+                version      = key[1],
+                trace_yes    = self.variable_traces[ variable, version ],
+                trace_no     = trace_old
             )
 
-        return new_statement
+        if collection_yes is not None:
+            added_yes = collection_yes.getBranchOnlyTraces()
+
+            if collection_no is not None:
+                added_no = collection_no.getBranchOnlyTraces()
+
+                # Merge yes branch assignments with either existing ones from "no" branch,
+                # or with the original start point.
+                for yes_variable, yes_version in reversed( added_yes ):
+                    key = yes_variable, yes_variable.allocateTargetNumber()
+
+                    for no_variable, no_version in reversed( added_no ):
+                        if yes_variable == no_variable:
+                            self.variable_traces[ key ] = VariableMergeTrace(
+                                variable     = yes_variable,
+                                # TODO: Get this from ourselves.
+                                version      = key[1],
+                                trace_yes    = self.variable_traces[ yes_variable, yes_version ],
+                                trace_no     = self.variable_traces[ no_variable, no_version ]
+                            )
+
+                            break
+                    else:
+                        if yes_variable in self.variable_versions:
+                            trace_no = self.variable_traces[ yes_variable, self.variable_versions[ yes_variable ] ]
+                        else:
+                            trace_no = None
+
+                        self.variable_traces[ key ] = VariableMergeTrace(
+                            variable     = yes_variable,
+                            # TODO: Get this from ourselves.
+                            version      = key[1],
+                            trace_yes    = self.variable_traces[ yes_variable, yes_version ],
+                            trace_no     = trace_no
+                        )
+
+
+                # Merge no branch variables if their version is higher, meaning it's
+                # actually still a newer assignment, and wasn't merged yet.
+                for no_variable, no_version in reversed( added_no ):
+                    for yes_variable, yes_version in reversed( added_yes ):
+                        if yes_variable == no_variable:
+                            break
+                    else:
+                        mergeSingleBranchChange( no_variable, no_version )
+            else:
+                for yes_variable, yes_version in reversed( added_yes ):
+                    mergeSingleBranchChange( yes_variable, yes_version )
+        elif collection_no is not None:
+            added_no = collection_no.getBranchOnlyTraces()
+
+            for no_variable, no_version in reversed( added_no ):
+                mergeSingleBranchChange( no_variable, no_version )
 
 
 class ConstraintCollectionHandler( ConstraintCollectionBase ):
@@ -579,7 +681,7 @@ class ConstraintCollectionBranch( ConstraintCollectionBase ):
             parent = parent
         )
 
-        self.branch_only_traces = set()
+        self.branch_only_traces = OrderedSet()
 
     def process( self, branch ):
         assert branch.isStatementsSequence(), branch
@@ -612,6 +714,13 @@ class ConstraintCollectionBranch( ConstraintCollectionBase ):
             self.branch_only_traces.add( key )
 
         return key
+
+    def getBranchOnlyTraces( self ):
+        return self.branch_only_traces
+
+    def mergeBranches( self, collection_yes, collection_no ):
+        # Branches in branches, should ask parent about merging them.
+        return self.parent.mergeBranches( collection_yes, collection_no )
 
 
 class ConstraintCollectionFunction( ConstraintCollectionBase, VariableUsageTrackingMixin ):

@@ -164,6 +164,8 @@ class StatementConditional( StatementChildrenHavingBase ):
 
             # May have just gone away.
             yes_branch = self.getBranchYes()
+        else:
+            branch_yes_collection = None
 
         no_branch = self.getBranchNo()
 
@@ -174,6 +176,12 @@ class StatementConditional( StatementChildrenHavingBase ):
 
             # May have just gone away.
             no_branch = self.getBranchNo()
+        else:
+            branch_no_collection = None
+
+
+        # Merge into parent constraint collection.
+        constraint_collection.mergeBranches( branch_yes_collection, branch_no_collection )
 
         if yes_branch is not None and no_branch is not None:
             # TODO: Merging should be done by method.
