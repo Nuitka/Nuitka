@@ -43,7 +43,7 @@ def encodeString( value ):
 
             octal = True
         elif cv >= 32 and cv <= 127:
-            if octal and c in b'01234567':
+            if octal and c in b'0123456789':
                 result += '" "'
 
             result += chr( cv )
