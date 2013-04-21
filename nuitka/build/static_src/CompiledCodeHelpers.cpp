@@ -721,12 +721,14 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 
 // Helper functions for print. Need to play nice with Python softspace behaviour.
 
+#if PYTHON_VERSION >= 300
 extern PyObject *_python_str_plain_print;
 extern PyObject *_python_str_plain_end;
 extern PyObject *_python_str_plain_file;
 extern PyObject *_python_str_empty;
 
 static PythonBuiltin _python_builtin_print( &_python_str_plain_print );
+#endif
 
 void PRINT_ITEM_TO( PyObject *file, PyObject *object )
 {
