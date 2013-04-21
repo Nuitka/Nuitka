@@ -1,51 +1,57 @@
-
 Nuitka Release 0.4.3 (Draft)
 ============================
+
+This release expands the reach of Nuitka substantially, as new platforms and
+compilers are now supported. A whole new use case opens up with "portable"
+binaries, and otherwise, polish has been applied. Under the hood there is the
+continued and in-progress effort to implement SSA form in Nuitka.
 
 New Features
 ------------
 
 - Support for new compiler: Microsoft Visual C++.
 
-  You can now use Visual Studio 2008 or Visual Studio 2010 for compiling under Windows.
+  You can now use Visual Studio 2008 or Visual Studio 2010 for compiling under
+  Windows.
 
 - Support for NetBSD.
 
-  Nuitka works for at least NetBSD 6.0, older versions may or may not work. This required
-  fixing bugs in the generic "fibers" implementation.
+  Nuitka works for at least NetBSD 6.0, older versions may or may not work. This
+  required fixing bugs in the generic "fibers" implementation.
 
 - Support for Python3 under Windows too.
 
-  Nuitka uses Scons to build the generated C++ files. Unfortunately it requires Python2 to
-  execute, which is not readily available to call from Python3. It now guesses the default
-  installation paths of CPython 2.7 or CPython 2.6 and it will use it for running Scons
-  instead. You have to install it to" C:\Python26" or "C:\Python27" for Nuitka to be able
-  to find it.
+  Nuitka uses Scons to build the generated C++ files. Unfortunately it requires
+  Python2 to execute, which is not readily available to call from Python3. It
+  now guesses the default installation paths of CPython 2.7 or CPython 2.6 and
+  it will use it for running Scons instead. You have to install it to"
+  C:\Python26" or "C:\Python27" for Nuitka to be able to find it.
 
 - Enhanced Python 3.3 compatibility.
 
-  The support the newest version of Python has been extended, improving compatibility for
-  minor corner cases.
+  The support the newest version of Python has been extended, improving
+  compatibility for minor corner cases.
 
 - Portable Binaries.
 
-  Nuitka has gained the ``--portable`` option which adds the Python libraries, and a zip
-  files with the modules, sufficient to run independent of the Python installation. This
-  has often been requested, and finally been contributed by ownssh.
+  Nuitka has gained the ``--portable`` option which adds the Python libraries,
+  and a zip files with the modules, sufficient to run independent of the Python
+  installation. This has often been requested, and finally been contributed by
+  ownssh.
 
-- Added warning when a user compiles a module and executes it immediately when that references
-  ``__name__``.
+- Added warning when a user compiles a module and executes it immediately when
+  that references ``__name__``.
 
-  Because very likely the intention was to create an executable. And esp. if there is code
-  like this:
+  Because very likely the intention was to create an executable. And esp. if
+  there is code like this:
 
   .. code-block:: python
 
      if __name__ == "__main__":
         main()
 
-  In module mode, Nuitka will optimize it away, and nothing will happen on execution. This
-  is because the command
+  In module mode, Nuitka will optimize it away, and nothing will happen on
+  execution. This is because the command
 
   .. code-block:: sh
 
@@ -62,39 +68,89 @@ Bug Fixes
 
 - Dictionary creation was not fully compatible.
 
-  As revealed by using Nuitka with CPython3.3, the order in which dictionaries are to be
-  populated needs to be reversed, i.e. CPython adds the last item first. We didn't observe
-  this before, and it's likely the new dictionary implementation that finds it.
+  As revealed by using Nuitka with CPython3.3, the order in which dictionaries
+  are to be populated needs to be reversed, i.e. CPython adds the last item
+  first. We didn't observe this before, and it's likely the new dictionary
+  implementation that finds it.
 
-  Given that hash randomization makes dictionaries item order undetermined anyway, this is
-  more an issue of testing.
+  Given that hash randomization makes dictionaries item order undetermined
+  anyway, this is more an issue of testing.
 
+- Python3: Do not set the attributes ``sys.exc_type``, ``sys.exc_value``,
+  ``sys.exc_traceback``.
+
+- Order of arguments for calls was not properly enforced.
 
 New Optimization
 ----------------
 
 - Calls with no positional arguments are now using the faster call methods.
 
-  The code was using the "()" constant at call site, when doing calls that use no
-  positional arguments, which is of course useless.
+  The generated C++ code was using the ``()`` constant at call site, when doing
+  calls that use no positional arguments, which is of course useless.
 
-- Windows uses OS "Fiber" for Nuitka "Fiber".
+- For Windows now uses OS "Fibers" for Nuitka "Fibers".
 
-  Using threads for fibers was causing only overhead and with this API, MSVC had less
-  issues too.
+  Using threads for fibers was causing only overhead and with this API, MSVC had
+  less issues too.
+
+Organizational
+--------------
+
+- Accepting `Donations <http://nuitka.net/pages/donations.html>`_ via Paypal,
+  please support funding travels, website, etc.
+
+- The `User Manual <http://nuitka.net/doc/user-manual.html>`_ has been updated
+  with new content. We now have portable mode, we support MSVC, document needed
+  LLVM version for clang, Win64 and modules may include modules too, etc. Lots
+  of information was no longer accurate and has been updated.
+
+- The Changelog has been improved for consistency, wordings, and styles.
+
+- Nuitka is now available on the social code platforms as well
+
+  * `Bitbucket <https://bitbucket.org/kayhayen/nuitka>`_
+  * `Github <https://github.com/kayhayen/Nuitka>`_
+  * `Gitorious <https://gitorious.org/nuitka/nuitka>`_
+  * `Google Code <https://code.google.com/p/nuitka/>`_
+
+- Removed "clean-up.sh", which is practically useless, as tests now clean up
+  after themselves reasonably, and with ``git clean -dfx`` working better.
+
+- Removed "create-environment.sh" script, which was only setting the ``PATH``
+  variable, which is not necessary.
+
+- Added ``check-with-pylint --emacs`` option to make output its work with Emacs
+  compilation mode, to allow easier fixing of warnings from PyLint.
+
+- Documentation is formatted for 80 columns now, source code will gradually aim
+  at it too. So far 90 columns were used, and up to 100 tolerated.
 
 Cleanups
 --------
 
 - Removed useless manifest and resource file creation under Windows.
 
-  Turns out this is no longer needed at all. Either CPython, MinGW, or Windows improved to
-  no longer need it.
+  Turns out this is no longer needed at all. Either CPython, MinGW, or Windows
+  improved to no longer need it.
+
+- PyLint massive cleanups and annotations bringing down the number of warnings
+  by a lot.
+
+- Avoid use of strings and built-ins that are not needed for specific Python
+  versions, or Nuitka modes.
 
 Summary
 -------
 
-The release is not complete yet.
+The release is clearly major. The contributed "portable" code opens up a whole
+new area of use for Nuitka. We may see it evolved to replace "py2exe" for more
+and more people now. The new platforms, and MSVC support brought a whole range
+of improvements, and means this is truly complete now.
+
+Also there is very much polish in this release, reducing the number of warnings,
+updated documentation, the only thing really missing is visible progress with
+optimization.
 
 
 Nuitka Release 0.4.2
@@ -1988,8 +2044,8 @@ expression" to a "temporary variable ref", these become the same as user code us
 variable. There will be more of these to find.
 
 So, that is where the focus is. The release now was mostly aiming at getting involved
-fixes out. The bug fixed by comparison chain reworking, and the ``__import__`` related one,
-were not suitable for hotfix releases, so that is why the 0.3.19 release had to occur
+fixes out. The bug fixed by comparison chain reworking, and the ``__import__`` related
+one, were not suitable for hotfix releases, so that is why the 0.3.19 release had to occur
 now. But with plugin support, with this comparison chain cleanup, with improved Python3
 support, and so on, there was plenty of good stuff already, also worth to get out.
 
@@ -2106,17 +2162,17 @@ Nuitka Release 0.3.17
 
 This is to inform you about the new stable release of Nuitka. This time there are a few
 bug fixes, lots of very important organisational work, and yet again improved
-compatibility and cleanups. Also huge is the advance in making ``--deep`` go away and making
-the recursion of Nuitka controllable, which means a lot for scalability of projects that
-use a lot of packages that use other packages, because now you can choose which ones to
-embed and which ones one.
+compatibility and cleanups. Also huge is the advance in making ``--deep`` go away and
+making the recursion of Nuitka controllable, which means a lot for scalability of projects
+that use a lot of packages that use other packages, because now you can choose which ones
+to embed and which ones one.
 
 The release cycle had a focus on improving the quality of the test scripts, the packaging,
 and generally to prepare the work on "type inference" in a new feature branch.
 
 I have also continued to work towards CPython3.2 compatibility, and this version, while
 not there, supports Python3 with a large subset of the basic tests programs running fine
-(of course via "2to3" conversion) without trouble. There is still work to do, exceptions
+(of course via ``2to3`` conversion) without trouble. There is still work to do, exceptions
 don't seem to work fully yet, parameter parsing seems to have changed, etc. but it seems
 that CPython3.2 is going to work one day.
 
@@ -2302,11 +2358,10 @@ Nuitka's recursion more accessible with the new options, so that was done first.
 And of course, the real excitement is the the "type inference" work. It will give a huge
 boost to Nuitka, and I am happy that it seems to go well. With this in place, new
 benchmarks may make sense. I am working on getting it off the ground, so other people can
-work on it too. My idea of ``ctypes`` native calls may become true sooner than expected. To
-support that, I would like to add more tools to make sure we discover changes earlier on,
-checking the XML representations of tests to discover improvements and regressions more
-clearly.
-
+work on it too. My idea of ``ctypes`` native calls may become true sooner than
+expected. To support that, I would like to add more tools to make sure we discover changes
+earlier on, checking the XML representations of tests to discover improvements and
+regressions more clearly.
 
 
 Nuitka Release 0.3.16
@@ -2735,8 +2790,8 @@ Nuitka Release 0.3.13
 
 This release is mostly the result of working towards compilation of a real programs
 (Mercurial) and to merge and finalize the frame stack work. Now Nuitka has a correct frame
-stack at all times, and supports ``func_code`` and ``gi_code`` objects, something previously
-thought to be impossible.
+stack at all times, and supports ``func_code`` and ``gi_code`` objects, something
+previously thought to be impossible.
 
 Actually now it's only the "bytecode" objects that won't be there. And not attributes of
 ``func_code`` are meaningful yet, but in theory can be supported.
@@ -2792,8 +2847,8 @@ Bug fixes
 New Optimization
 ----------------
 
-- The built-ins ``GeneratorExit`` and ``StopIteration`` are optimized to their Python C/API
-  names where possible as well.
+- The built-ins ``GeneratorExit`` and ``StopIteration`` are optimized to their Python
+  C/API names where possible as well.
 
 Cleanups
 --------
@@ -2805,8 +2860,8 @@ Cleanups
 
 - Make use of ``assertObject`` in more places.
 
-- Instead of using ``os.path.sep`` all over, added a helper ``Utils.joinpath`` that hides this
-  and using ``os.path.join``. This gives more readable code.
+- Instead of using ``os.path.sep`` all over, added a helper ``Utils.joinpath`` that hides
+  this and using ``os.path.join``. This gives more readable code.
 
 - Added traces to the "unfreezer" guarded by a define. Helpful in analyzing import
   problems.
@@ -2816,8 +2871,8 @@ Cleanups
 New Tests
 ---------
 
-- New tests to cover ``SyntaxError`` and ``IndentationError`` from ``--deep`` imports and in
-  main program.
+- New tests to cover ``SyntaxError`` and ``IndentationError`` from ``--deep`` imports and
+  in main program.
 
 - New test to cover evaluation order of ``in`` and ``not in`` comparisons.
 
@@ -2878,8 +2933,8 @@ Bug fixes
   Python linked, because then the garbage collector makes searches. Fixed in 0.3.11b
   already.
 
-- Set ``sys.executable`` on Linux as well. On Debian it is otherwise ``/usr/bin/python`` which
-  might be a different version of Python entirely. Fixed in 0.3.11c already.
+- Set ``sys.executable`` on Linux as well. On Debian it is otherwise ``/usr/bin/python``
+  which might be a different version of Python entirely. Fixed in 0.3.11c already.
 
 - Embedded modules inside a package could hide package variables of the same name. Learned
   during PyCON DE about this corner case. Fixed in 0.3.11d already.
@@ -2914,13 +2969,14 @@ Bug fixes
   Windows and therefore wasn't effective there.
 
 - From imports where part of the imported were found modules and parts were not, didn't
-  work. Solved by the feature branch ``meta_path_import`` that was merged for this release.
+  work. Solved by the feature branch ``meta_path_import`` that was merged for this
+  release.
 
 - Newer MinGW gave warnings about the default visibility not being possible to apply to
   class members. Fixed by not setting this default visibility anymore on Windows.
 
-- The ``sys.executable`` gave warnings on Windows because of backslashes in the path. Using
-  a raw string to prevent such problems.
+- The ``sys.executable`` gave warnings on Windows because of backslashes in the
+  path. Using a raw string to prevent such problems.
 
 - The standard library path was hard coded. Changed to run time detection.
 
@@ -2931,14 +2987,14 @@ Cleanups
   easier. I don't like ``PY_VERSION_HEX``, because it is so unreadable. Makes some of the
   checks a lot more safe.
 
-- The ``sys.meta_path`` based import from the ``meta_path_import`` feature branch allowed the
-  cleanup the way importing is done. It's a lot less code now.
+- The ``sys.meta_path`` based import from the ``meta_path_import`` feature branch allowed
+  the cleanup the way importing is done. It's a lot less code now.
 
 - Removed some unused code. We will aim at making Nuitka the tool to detect dead code
   really.
 
-- Moved ``nuitka.Nodes`` to ``nuitka.nodes.Nodes``, that is what the package is intended for,
-  the split will come later.
+- Moved ``nuitka.Nodes`` to ``nuitka.nodes.Nodes``, that is what the package is intended
+  for, the split will come later.
 
 New Tests
 ---------
@@ -2983,16 +3039,18 @@ Organizational
 - The release archives are now built using ``setuptools``. You can now also download a zip
   file, which is probably more Windows friendly. The intention is to work on that to make
   ``setup.py`` produce a Nuitka install that won't rely on any environment variables at
-  all. Right now ``setup.py`` won't even allow any other options than ``sdist`` to be given.
+  all. Right now ``setup.py`` won't even allow any other options than ``sdist`` to be
+  given.
 
 - Ported "compile_itself.sh" to "compile_itself.py", i.e. ported it to Python. This way,
   we can execute it easily on Windows too, where it currently still fails. Replacing
-  ``diff``, ``rm -rf``, etc. is a challenge, but it reduces the dependency on MSYS tools on
-  Windows.
+  ``diff``, ``rm -rf``, etc. is a challenge, but it reduces the dependency on MSYS tools
+  on Windows.
 
 - The compilation of standard library is disabled by default, but ``site`` or ``dist``
-  packages are now embedded. To include even standard library, there is a ``--really-deep``
-  option that has to be given in addition to ``--deep``, which forces this.
+  packages are now embedded. To include even standard library, there is a
+  ``--really-deep`` option that has to be given in addition to ``--deep``, which forces
+  this.
 
 Summary
 -------
@@ -3051,8 +3109,8 @@ Cleanups
   argument evaluation order of C++ under x86/x64, but on ARM that broke. Correcting it
   highlighted this issue.
 
-- The deletion of slices, was not using ``Py_ssize`` for indexes, disallowing some kinds of
-  optimizations, so that was harmonized.
+- The deletion of slices, was not using ``Py_ssize`` for indexes, disallowing some kinds
+  of optimizations, so that was harmonized.
 
 - The function call code generation got a general overhaul. It is now more consistent, has
   more helpers available, and creates more readable code.
@@ -3078,15 +3136,15 @@ Organizational
 - The Nuitka git repository now uses "git flow". The new git policy will be detailed in
   another `separate posting <http://nuitka.net/posts/nuitka-git-flow.html>`_.
 
-- There is an unstable ``develop`` branch in which the development occurs. For this release
-  ca. 40 commits were done to this branch, before merging it. I am also doing more fine
-  grained commits now.
+- There is an unstable ``develop`` branch in which the development occurs. For this
+  release ca. 40 commits were done to this branch, before merging it. I am also doing more
+  fine grained commits now.
 
 - Unlike previously, there is ``master`` branch for the stable release.
 
-- There is a script "make-dependency-graph.sh" (now called "make-dependency-graph.py") to
-  produce a dependency graphs of Nuitka. I detected a couple of strange things through
-  this.
+- There is a script "make-dependency-graph.sh" (Update: meanwhile it was renamed to
+  "make-dependency-graph.py") to produce a dependency graphs of Nuitka. I detected a
+  couple of strange things through this.
 
 - The Python3 ``__pycache__`` directories get removed too by the cleanup script.
 
@@ -3131,8 +3189,8 @@ Bug fixes
 - Exceptions now correctly stack.
 
   When you catch an exception, there always was the exception set, but calling a new
-  function, and it catching the exception, the values of ``sys.exc_info()`` didn't get reset
-  after the function returned.
+  function, and it catching the exception, the values of ``sys.exc_info()`` didn't get
+  reset after the function returned.
 
   This was a small difference (of which there are nearly none left now) but one that might
   effect existing code, which affects code that calls functions in exception handling to
@@ -3163,8 +3221,8 @@ New Optimization
   This is brand new and doesn't do everything possible yet. Most notable, the matching of
   raised exception to handlers is not yet performed.
 
-- Built-in exception name references and creation of instances of them are now optimized as
-  well, which leads to faster exception raising/catching for these cases.
+- Built-in exception name references and creation of instances of them are now optimized
+  as well, which leads to faster exception raising/catching for these cases.
 
 - More kinds of calls to built-ins are handled, positional parameters are checked and more
   built-ins are covered.
@@ -3192,8 +3250,8 @@ Cleanups
   function, which exists for every operator and comparison. This one is then used in a
   prediction call, shared with the built-in predictions.
 
-- Added a ``Tracing`` module to avoid future imports of ``print_function``, which annoyed me
-  many times by causing syntax failures for when I quickly added a print statement, not
+- Added a ``Tracing`` module to avoid future imports of ``print_function``, which annoyed
+  me many times by causing syntax failures for when I quickly added a print statement, not
   noting it must have the braces.
 
 - PyLint is happier than ever.
@@ -3218,7 +3276,8 @@ New Tests
      def y():
          yield((yield 1),(yield 2))
 
-- Added to ``ExecEval`` a case where the ``exec`` is inside a generator, to cover that too.
+- Added to ``ExecEval`` a case where the ``exec`` is inside a generator, to cover that
+  too.
 
 - Activated the testing of ``sys.exc_info()`` in ``ExceptionRaising`` test. This was
   previously commented out, and now I added stuff to illustrate all of the behaviour of
@@ -3298,7 +3357,8 @@ Bug fixes
 New Optimization
 ----------------
 
-This time there are so many new optimizations, it makes sense to group them by the subject.
+This time there are so many new optimizations, it makes sense to group them by the
+subject.
 
 Exceptions
 ~~~~~~~~~~
@@ -3321,8 +3381,8 @@ Exceptions
 Function Calls
 ~~~~~~~~~~~~~~
 
-- Uses of PyObject_Call provide ``NULL`` as the dictionary, instead of an empty dictionary,
-  which is slightly faster for function calls.
+- Uses of PyObject_Call provide ``NULL`` as the dictionary, instead of an empty
+  dictionary, which is slightly faster for function calls.
 
 - There are now dedicated variants for complex function calls with ``*`` and ``**``
   arguments in all forms. These can take advantage of easier cases. For example, a merge
@@ -3373,8 +3433,8 @@ Constants
 
 - The constant creation with the g++ bug worked around, can now use raw strings to create
   string constants, without resorting to un-pickling them as a work around. This allows us
-  to use ``PyString_FromStringAndSize`` to create strings again, which is obviously faster,
-  and had not been done, because of the confusion caused by the g++ bug.
+  to use ``PyString_FromStringAndSize`` to create strings again, which is obviously
+  faster, and had not been done, because of the confusion caused by the g++ bug.
 
 - For string constants that are usable as attributes (i.e. match the identifier regular
   expression), these are now interned, directly after creation. With this, the check for
@@ -3389,9 +3449,9 @@ Constants
   copying the constant, but instead with the API functions to create new ones. This makes
   code like ``a = []`` a tiny bit faster.
 
-- For slice indices the code generation now takes advantage of creating a C++ ``Py_ssize_t``
-  from constant value if possible. Before it was converting the integer constant at run
-  time, which was of course wasteful even if not (very) slow.
+- For slice indices the code generation now takes advantage of creating a C++
+  ``Py_ssize_t`` from constant value if possible. Before it was converting the integer
+  constant at run time, which was of course wasteful even if not (very) slow.
 
 Iteration
 ~~~~~~~~~
@@ -3409,15 +3469,15 @@ Iteration
 Built-ins
 ~~~~~~~~~
 
-- Added support for the ``list``, ``tuple``, ``dict``, ``str``, ``float`` and ``bool`` built-ins along
-  with optimizing their use with constant parameter.
+- Added support for the ``list``, ``tuple``, ``dict``, ``str``, ``float`` and ``bool``
+  built-ins along with optimizing their use with constant parameter.
 
-- Added support for the ``int`` and ``long`` built-ins, based on a new "call spec" object, that
-  detects parameter errors at compile time and raises appropriate exceptions as required,
-  plus it deals with keyword arguments just as well.
+- Added support for the ``int`` and ``long`` built-ins, based on a new "call spec" object,
+  that detects parameter errors at compile time and raises appropriate exceptions as
+  required, plus it deals with keyword arguments just as well.
 
-  So, to Nuitka it doesn't matter now it you write ``int( value ) ``or ``int( x = value )``
-  anymore. The ``base`` parameter of these built-ins is also supported.
+  So, to Nuitka it doesn't matter now it you write ``int( value ) ``or ``int( x = value
+  )`` anymore. The ``base`` parameter of these built-ins is also supported.
 
   The use of this call spec mechanism will the expanded, currently it is not applied to
   the built-ins that take only one parameter. This is a work in progress as is the whole
@@ -3439,15 +3499,15 @@ Cleanups
 - Some ``PyLint`` cleanups were done, reducing the number of reports a bit, but there is
   still a lot to do.
 
-- Added a ``DefaultValueIdentifier`` class that encapsulates the access to default values in
-  the parameter parsing more cleanly.
+- Added a ``DefaultValueIdentifier`` class that encapsulates the access to default values
+  in the parameter parsing more cleanly.
 
-- The module ``CodeTemplatesListContractions`` was renamed to ``CodeTemplatesContractions`` to
-  reflect the fact that it deals with all kinds of contractions (also set and dict
-  contractions), not just list contractions.
+- The module ``CodeTemplatesListContractions`` was renamed to
+  ``CodeTemplatesContractions`` to reflect the fact that it deals with all kinds of
+  contractions (also set and dict contractions), not just list contractions.
 
-- Moved the with related template to its own module ``CodeTemplatesWith``, so its easier to
-  find.
+- Moved the with related template to its own module ``CodeTemplatesWith``, so its easier
+  to find.
 
 - The options handling for g++ based compilers was cleaned up, so that g++ 4.6 and MinGW
   are better supported now.
@@ -3456,8 +3516,8 @@ Cleanups
 
 - Some more generated code white space fixes.
 
-- Moved some helpers to dedicated files. There is now ``calling.hpp`` for function calls, an
-  ``importing.cpp`` for import related stuff.
+- Moved some helpers to dedicated files. There is now ``calling.hpp`` for function calls,
+  an ``importing.cpp`` for import related stuff.
 
 - Moved the manifest generation to the scons file, which now produces ready to use
   executables.
@@ -3494,8 +3554,8 @@ Organizational
   require scons and which version of Python (2.6 or 2.7).
 
 - The is now a codespeed implementation up and running with historical data for up to
-  Nuitka 0.3.8 runs of "PyStone" and with pybench. It will be updated for 0.3.9 once I have
-  the infrastructure in place to do that automatically.
+  Nuitka 0.3.8 runs of "PyStone" and with pybench. It will be updated for 0.3.9 once I
+  have the infrastructure in place to do that automatically.
 
 - The cleanup script now also removes .so files.
 
@@ -3517,8 +3577,8 @@ run Nuitka on Windows too and have it produce working executables against either
 standard Python distribution or a MinGW compiled Python.
 
 There are still some small things to iron out, and clearly documentation needs to be
-created, and esp. the DLL hell problem of ``msvcr90.dll`` vs. ``msvcrt.dll``, is not yet fully
-resolved, but appears to be not as harmful, at least not on native Windows.
+created, and esp. the DLL hell problem of ``msvcr90.dll`` vs. ``msvcrt.dll``, is not yet
+fully resolved, but appears to be not as harmful, at least not on native Windows.
 
 I am thanking Khalid Abu Bakr for making this possible.  I was surprised to see this
 happen. I clearly didn't make it easy. He found a good way around ``ucontext``, identifier
@@ -3542,8 +3602,8 @@ Bug fixes
 - The given parameter count cited in the error message in case of too many parameters,
   didn't include the given keyword parameters in the error message.
 
-- There was an ``assert False`` right after warning about not found modules in the ``--deep``
-  mode, which was of course unnecessary.
+- There was an ``assert False`` right after warning about not found modules in the
+  ``--deep`` mode, which was of course unnecessary.
 
 New Optimization
 ----------------
@@ -3562,8 +3622,8 @@ New Optimization
   infrastructure cannot tell yet, which these would be. This will improve with more
   milestone 3 work.
 
-- Branches with only ``pass`` inside are removed, ``pass`` statements are removed before the
-  code generation stage. This makes it easier to achieve and decide empty branches.
+- Branches with only ``pass`` inside are removed, ``pass`` statements are removed before
+  the code generation stage. This makes it easier to achieve and decide empty branches.
 
 - There is now a global variable class per module. It appears that it is indeed faster to
   roll out a class per module accessing the ``module *`` rather than having one class and
@@ -3579,8 +3639,8 @@ New Optimization
   less verbose C++ code which the compiler threw away, but was strange to have in the
   first place.
 
-- In conditions the ``or`` and ``and`` were evaluated with Python objects instead of with C++
-  bool, which was unnecessary overhead.
+- In conditions the ``or`` and ``and`` were evaluated with Python objects instead of with
+  C++ bool, which was unnecessary overhead.
 
 - List contractions got more clever in how they assign from the iterator value.
 
@@ -3592,17 +3652,17 @@ New Optimization
 Cleanups
 --------
 
-- The ``if``, ``for``, and ``while`` statements had always empty ``else`` nodes which were then
-  also in the generated C++ code as empty branches. No harm to performance, but this got
-  cleaned up.
+- The ``if``, ``for``, and ``while`` statements had always empty ``else`` nodes which were
+  then also in the generated C++ code as empty branches. No harm to performance, but this
+  got cleaned up.
 
 - Some more generated code white space fixes.
 
 New Tests
 ---------
 
-- The CPython 2.7 test suite now also has the ``doctests`` extracted to static tests, which
-  improves test coverage for Nuitka again.
+- The CPython 2.7 test suite now also has the ``doctests`` extracted to static tests,
+  which improves test coverage for Nuitka again.
 
   This was previously only done for CPython 2.6 test suite, but the test suites are
   different enough to make this useful, e.g. to discover newly changed behavior like with
@@ -3698,8 +3758,8 @@ New Optimization
 - Our new compiled method objects support dedicated method parsing code, where ``self`` is
   passed directly, allowing to make calls taking a fast path in parameter parsing.
 
-  This avoids allocating/freeing a ``tuple`` object per method call, while reduced 3% ticks
-  in "PyStone" benchmark, so that's significant.
+  This avoids allocating/freeing a ``tuple`` object per method call, while reduced 3%
+  ticks in "PyStone" benchmark, so that's significant.
 
 - Solved a TODO of ``BUILTIN_RANGE`` to change it to pre-allocating the list in the final
   size as we normally do everywhere else. This was a tick reduction of 0.4% in "PyStone"
@@ -3730,9 +3790,9 @@ Cleanups
 - More "PyLint" work, many of the reported warnings have been addressed, but it's not yet
   happy.
 
-- Defaults for ``yield`` and ``return`` are ``None`` and these values are now already added (as
-  constants) during tree building so that no such special cases need to be dealt with in
-  ``CodeGeneration`` and future analysis steps.
+- Defaults for ``yield`` and ``return`` are ``None`` and these values are now already
+  added (as constants) during tree building so that no such special cases need to be dealt
+  with in ``CodeGeneration`` and future analysis steps.
 
 - Parameter parsing code has been unified even further, now the whole entry point is
   generated by one of the function in the new ``nuitka.codegen.ParameterParsing`` module.
@@ -3797,7 +3857,8 @@ a performance improvement at all.
 Bug fixes
 ---------
 
-- Imports were not respecting the ``level`` yet. Code like this was not working, now it is.
+- Imports were not respecting the ``level`` yet. Code like this was not working, now it
+  is:
 
   .. code-block:: python
 
@@ -3807,11 +3868,12 @@ Bug fixes
   absolute or relative imports, it will be attempted in the same way than CPython
   does. This can make a difference with compatibility.
 
-- Functions with a "locals dict" (using ``locals`` built-in or ``exec`` statement) were not
-  100% compatible in the way the locals dictionary was updated, this got fixed. It seems
-  that directly updating a dict is not what CPython does at all, instead it only pushes
-  things to the dictionary, when it believes it has to. Nuitka now does the same thing,
-  making it faster and more compatible at the same time with these kind of corner cases.
+- Functions with a "locals dict" (using ``locals`` built-in or ``exec`` statement) were
+  not 100% compatible in the way the locals dictionary was updated, this got fixed. It
+  seems that directly updating a dict is not what CPython does at all, instead it only
+  pushes things to the dictionary, when it believes it has to. Nuitka now does the same
+  thing, making it faster and more compatible at the same time with these kind of corner
+  cases.
 
 - Nested packages didn't work, they do now. Nuitka itself is now successsfully using
   nested packages (e.g. ``nuitka.transform.optimizations``)
@@ -3832,9 +3894,9 @@ New Optimization
 Cleanups
 --------
 
-- There is now a ``getVariableForClosure`` that a variable provider can use. Before that it
-  guessed from ``getVariableForReference`` or ``getVariableForAssignment`` what might be the
-  intention. This makes some corner cases easier.
+- There is now a ``getVariableForClosure`` that a variable provider can use. Before that
+  it guessed from ``getVariableForReference`` or ``getVariableForAssignment`` what might
+  be the intention. This makes some corner cases easier.
 
 - Classes, functions and lambdas now also have separate builder and body nodes, which
   enabled to make getSameScopeNodes() really simple. Either something has children which
@@ -3845,8 +3907,8 @@ Cleanups
 
 - New packages ``nuitka.transform.optimizations`` and ``nuitka.transform.finalizations``,
   where the first was ``nuitka.optimizations`` before. There is also code in
-  ``nuitka.transform`` that was previously in a dedicated module. This allowed to move a lot
-  of displaced code.
+  ``nuitka.transform`` that was previously in a dedicated module. This allowed to move a
+  lot of displaced code.
 
 - ``TreeBuilding`` now has fast paths for all 3 forms, things that need a "provider",
   "node", and "source_ref"; things that need "node" and "source_ref"; things that need
@@ -3910,22 +3972,31 @@ Bug fixes
 - Nicolas found a reference counting bug with nested parameter calls. Where a function had
   parameters of the form ``a, (b,c)`` it could crash. This got fixed and covered with a
   reference count test.
+
 - Another reference count problem when accessing the locals dictionary was corrected.
+
 - Values ``0.0`` and ``-0.0`` were treated as the same. They are not though, they have a
   different sign that should not get lost.
+
 - Nested contractions didn't work correctly, when the contraction was to iterate over
   another contraction which needs a closure. The problem was addressing by splitting the
   building of a contraction from the body of the contraction, so that these are now 2
   nodes, making it easy for the closure handling to get things right.
+
 - Global statements in function with local ``exec()`` would still use the value from the
   locals dictionary. Nuitka is now compatible to CPython with this too.
+
 - Nicolas fixed problems with modules of the same name inside different packages. We now
   use the full name including parent package names for code generation and lookups.
+
 - The ``__module__`` attribute of classes was only set after the class was created. Now it
   is already available in the class body.
+
 - The ``__doc__`` attribute of classes was not set at all. Now it is.
+
 - The relative import inside nested packages now works correctly. With Nicolas moving all
   of Nuitka to a package, the compile itself exposed many weaknesses.
+
 - A local re-raise of an exception didn't have the original line attached but the re-raise
   statement line.
 
@@ -3934,20 +4005,26 @@ New Features
 
 - Modules and packages have been unified. Packages can now also have code in "__init__.py"
   and then it will be executed when the package is imported.
+
 - Nicolas added the ability to create deep output directory structures without having to
   create them beforehand. This makes ``--output-dir=some/deep/path`` usable.
+
 - Parallel build by Scons was added as an option and enabled by default, which enhances
   scalability for ``--deep`` compilations a lot.
+
 - Nicolas enhanced the CPU count detection used for the parallel build. Turned out that
   ``multithreading.cpu_count()`` doesn't give us the number of available cores, so he
   contributed code to determine that.
-- Support for upcoming g++ 4.6 has been added. The use of the new option ``--lto`` has been
-  been prepared, but right now it appears that the C++ compiler will need more fixes,
+
+- Support for upcoming g++ 4.6 has been added. The use of the new option ``--lto`` has
+  been been prepared, but right now it appears that the C++ compiler will need more fixes,
   before we can this feature with Nuitka.
+
 - The ``--display-tree`` feature got an overhaul and now displays the node tree along with
   the source code. It puts the cursor on the line of the node you selected. Unfortunately
   I cannot get it to work two-way yet. I will ask for help with this in a separate posting
   as we can really use a "python-qt" expert it seems.
+
 - Added meaningful error messages in the "file not found" case. Previously I just didn't
   care, but we sort of approach end user usability with this.
 
@@ -3979,14 +4056,18 @@ Cleanups
 
 - Nicolas moved the Nuitka source code to its own ``nuitka`` package. That is going to make
   packaging it a lot easier and allows cleaner code.
+
 - Nicolas introduced a fast path in the tree building which often delegates (or should do
   that) to a function. This reduced a lot of the dispatching code and highlights more
   clearly where such is missing right now.
+
 - Together we worked on the line length issues of Nuitka. We agreed on a style and very
   long lines will vanish from Nuitka with time. Thanks for pushing me there.
+
 - Nicolas also did provide many style fixes and general improvements, e.g. using
-  ``PyObjectTemporary`` in more places in the C++ code, or not using ``str.find`` where ``x in
-  y`` is a better choice.
+  ``PyObjectTemporary`` in more places in the C++ code, or not using ``str.find`` where
+  ``x in y`` is a better choice.
+
 - The node structure got cleaned up towards the direction that assigments always have an
   assignment as a child. A function definition, or a class definition, are effectively
   assignments, and in order to not have to treat this as special cases everywhere, they
@@ -3994,24 +4075,34 @@ Cleanups
 
   Without such changes, optimizations will have to take too many things into account. This
   is not yet completed.
+
 - Nicolas merged some node tree building functions that previously handled deletion and
   assigning differently, giving us better code reuse.
+
 - The constants code generation was moved to a ``__constants.cpp`` where it doesn't make
   __main__.cpp so much harder to read anymore.
+
 - The module declarations have been moved to their own header files.
+
 - Nicolas cleaned up the scripts used to test Nuitka big time, removing repetitive code
   and improving the logic. Very much appreciated.
+
 - Nicolas also documented a things in the Nuitka source code or got me to document things
   that looked strange, but have reasons behind it.
-- Nicolas solved the TODO related to built-in module accesses. These will now be way faster
-  than before.
+
+- Nicolas solved the TODO related to built-in module accesses. These will now be way
+  faster than before.
+
 - Nicolas also solved the TODO related to the performance of "locals dict" variable
   accesses.
+
 - Generator.py no longer contains classes. The Contexts objects are supposed to contain
   the state, and as such the generator objects never made much sense.
+
 - Also with the help of Scons community, I figured out how to avoid having object files
   inside the ``src`` directory of Nuitka. That should also help packaging, now all build
   products go to the .build directory as they should.
+
 - The vertical white space of the generated C++ got a few cleanups, trailing/leading new
   line is more consistent now, and there were some assertions added that it doesn't
   happen.
@@ -4021,9 +4112,13 @@ New Tests
 
 - The CPython 2.6 tests are now also run by CPython 2.7 and the other way around and need
   to report the same test failure reports, which found a couple of issues.
+
 - Now the test suite is run with and without ``--debug`` mode.
+
 - Basic tests got extended to cover more topics and catch more issues.
+
 - Program tests got extended to cover code in packages.
+
 - Added more exec scope tests. Currently inlining of exec statements is disabled though,
   because it requires entirely different rules to be done right, it has been pushed back
   to the next release.
@@ -4033,23 +4128,30 @@ Organizational
 
 - The ``g++-nuitka`` script is no more. With the help of the Scons community, this is now
   performed inside the scons and only once instead of each time for every C++ file.
+
 - When using ``--debug``, the generated C++ is compiled with ``-Wall`` and ``-Werror`` so that
   some form of bugs in the generated C++ code will be detected immediately. This found a
   few issues already.
+
 - There is a new git merge policy in place. Basically it says, that if you submit me a
   pull request, that I will deal with it before publishing anything new, so you can rely
   on the current git to provide you a good base to work on. I am doing more frequent
   pre-releases already and I would like to merge from your git.
+
 - The "README.txt" was updated to reflect current optimization status and plans. There is
   still a lot to do before constant propagation can work, but this explains things a bit
   better now. I hope to expand this more and more with time.
+
 - There is now a "misc/clean-up.sh" script that prints the commands to erase all the
   temporary files sticking around in the source tree. That is for you if you like me, have
   other directories inside, ignored, that you don't want to delete.
+
 - Then there is now a script that prints all source filenames, so you can more easily open
   them all in your editor.
+
 - And very important, there is now a "check-release.sh" script that performs all the tests
   I think should be done before making a release.
+
 - Pylint got more happy with the current Nuitka source. In some places, I added comments
   where rules should be granted exceptions.
 
@@ -4104,23 +4206,30 @@ Bug fixes
 
 - Imports of modules local to packages now work correctly, closing the small compatibility
   gap that was there.
+
 - Modules with a "-" in the name are allowed in CPython. This lead to wrong C++ code
   created. (Thanks to Li Xuan Ji for reporting and submitting a patch to fix it.)
+
 - There were warnings about wrong format used for ``Ssize_t`` type of CPython. (Again,
   thanks to Li Xuan Ji for reporting and submitting the patch to fix it.)
+
 - When a wrong exception type is raised, the traceback should still be the one of the
   original one.
+
 - Set and dict contractions (Python 2.7 features) declared local variables for global
   variables used. This went unnoticed, because list contractions don't generate code for
   local variables at all, as they cannot have such.
-- Using the ``type()`` built-in to create a new class could attribute it to the wrong module,
-  this is now corrected.
+
+- Using the ``type()`` built-in to create a new class could attribute it to the wrong
+  module, this is now corrected.
 
 New Features
 ------------
 
 - Uses Scons to execute the actual C++ build, giving some immediate improvements.
+
 - Now caches build results and Scons will only rebuild as needed.
+
 - The direct use of ``__import__()`` with a constant module name as parameter is also
   followed in "deep" mode. With time, non-constants may still become predictable, right
   now it must be a real CPython constant string.
@@ -4143,12 +4252,16 @@ Cleanups
 - Using scons is a big cleanup for the way how C++ compiler related options are
   applied. It also makes it easier to re-build without Nuitka, e.g. if you were using
   Nuitka in your packages, you can easily build in the same way than Nuitka does.
+
 - Static helpers source code has been moved to ".hpp" and ".cpp" files, instead of being
   in ".py" files. This makes C++ compiler messages more readable and allows us to use C++
   mode in Emacs etc., making it easier to write things.
+
 - Generated code for each module ends up in a separate file per module or package.
+
 - Constants etc. go to their own file (although not named sensible yet, likely going to
   change too)
+
 - Module variables are now created by the ``CPythonModule`` node only and are unique, this
   is to make optimizations of these feasible. This is a pre-step to module variable
   optimizations.
@@ -4157,8 +4270,11 @@ New Tests
 ---------
 
 - Added ExtremeClosure from my Python quiz, it was not covered by existing tests.
+
 - Added test case for program that imports a module with a dash in its name.
+
 - Added test case for main program that starts with a dash.
+
 - Extended the built-in tests to cover ``type()`` as well.
 
 Organizational
@@ -4168,10 +4284,18 @@ Organizational
   directory with the ``SingleExe.scons`` file for Nuitka. The scons file could be named
   better, because it is actually one and the same who builds extension modules and
   executables.
+
 - There is now a new environment variable ``NUITKA_CPP`` which should point to the directory
   with the C++ helper code of Nuitka.
-- The "create-environment.sh" can now be sourced (if you are in the top level directory of
-  Nuitka) or be used with eval. In either case it also reports what it does.
+
+- The script "create-environment.sh" can now be sourced (if you are in the top level
+  directory of Nuitka) or be used with eval. In either case it also reports what it does.
+
+  .. admonition:: Update
+
+     The script has become obsolete now, as the environment variables are no longer
+     necessary.
+
 - To cleanup the many "Program.build" directories, there is now a "clean-up.sh" script for
   your use. Can be handy, but if you use git, you may prefer its clean command.
 
@@ -4211,10 +4335,13 @@ Generators
 
 - Generator functions tracked references to the common and the instance context
   independently, now the common context is not released before the instance contexts are.
+
 - Generator functions didn't check the arguments to ``throw()`` the way they are in CPython,
   now they are.
+
 - Generator functions didn't trace exceptions to "stderr" if they occurred while closing
   unfinished ones in "del".
+
 - Generator functions used the slightly different wordings for some error messages.
 
 Function Calls
@@ -4222,10 +4349,13 @@ Function Calls
 
 - Extended call syntax with ``**`` allows that to use a mapping, and it is now checked if
   it really is a mapping and if the contents has string keys.
+
 - Similarly, extended call syntax with ``*`` allows a sequence, it is now checked if it
   really is a sequence.
+
 - Error message for duplicate keyword arguments or too little arguments now describe the
   duplicate parameter and the callable the same way CPython does.
+
 - Now checks to the keyword argument list first before considering the parameter
   counts. This is slower in the error case, but more compatible with CPython.
 
@@ -4234,12 +4364,14 @@ Classes
 
 - The "locals()" built-in when used in the class scope (not in a method) now is correctly
   writable and writes to it change the resulting class.
+
 - Name mangling for private identifiers was not always done entirely correct.
 
 Others
 ~~~~~~
 
 - Exceptions didn't always have the correct stack reported.
+
 - The pickling of some tuples showed that "cPickle" can have non-reproducible results,
   using "pickle" to stream constants now
 
@@ -4275,6 +4407,7 @@ New Tests
 - The script to extract the "doctests" from the CPython test suite has been rewritten
   entirely and works with more doctests now. Running these tests created increased the
   test coverage a lot.
+
 - The Python 2.7 test suite has been added.
 
 Organizational
@@ -4282,6 +4415,7 @@ Organizational
 
 - One can now run multiple "compare_with_cpython" instances in parallel, which enables
   background test runs.
+
 - There is now a new environment variable "NUITKA_INCLUDE" which needs to point to the
   directory Nuitka's C++ includes live in. Of course the "create-environment.sh" script
   generates that for you easily.
@@ -4526,9 +4660,11 @@ New Features
 - Added option to control ``--debug``. With this option the C++ debug information is present
   in the file, otherwise it is not. This will give much smaller ".so" and ".exe" files
   than before.
+
 - Added option ``--no-optimization`` to disable all optimizations. It enables C++ asserts
   and compiles with less aggressive C++ compiler optimization, so it can be used for
   debugging purposes.
+
 - Support for Python 2.7 set literals has been added.
 
 Performance Enhancements
@@ -4543,15 +4679,17 @@ Performance Enhancements
   ``try``/``finally`` in ``while`` or ``for`` loops.
 
   This was very slow and had very bad performance. Now it is checked if this is at all
-  necessary and then it's only done for the rare case where a ``break``/``continue`` really is
-  inside the tried block. Otherwise it is now translated to a C++ ``break``/``continue``
-  which the C++ compiler handles more efficiently.
+  necessary and then it's only done for the rare case where a ``break``/``continue``
+  really is inside the tried block. Otherwise it is now translated to a C++
+  ``break``/``continue`` which the C++ compiler handles more efficiently.
 
-- Added ``unlikely()`` compiler hints to all errors handling cases to allow the C++ compiler
-  to generate more efficient branch code.
+- Added ``unlikely()`` compiler hints to all errors handling cases to allow the C++
+  compiler to generate more efficient branch code.
+
 - The for loop code was using an exception handler to make sure the iterated value was
   released, using ``PyObjectTemporary`` for that instead now, which should lead to better
   generated code.
+
 - Using constant dictionaries and copy from them instead of building them at run time even
   when contents was constant.
 
@@ -4560,8 +4698,10 @@ New Tests
 
 - Merged some bits from the CPython 2.7 test suite that do not harm 2.6, but generally
   it's a lot due to some ``unittest`` module interface changes.
+
 - Added CPython 2.7 tests ``test_dictcomps.py`` and ``test_dictviews.py`` which both pass
   when using Python 2.7.
+
 - Added another benchmark extract from "PyStone" which uses a while loop with break.
 
 Numbers
@@ -4597,6 +4737,7 @@ New Features
 ------------
 
 - The use of exec in a local function now adds local variables to scope it is in.
+
 - The same applies to ``from module_name import *`` which is now compiled correctly and
   adds variables to the local variables.
 
@@ -4604,9 +4745,11 @@ Bug Fixes
 ---------
 
 - Raises ``UnboundLocalError`` when deleting a local variable with ``del`` twice.
+
 - Raises ``NameError`` when deleting a global variable with ``del`` twice.
-- Read of to uninitialized closure variables gave ``NameError``, but ``UnboundLocalError`` is
-  correct and raised now.
+
+- Read of to uninitialized closure variables gave ``NameError``, but ``UnboundLocalError``
+  is correct and raised now.
 
 Cleanups
 --------
@@ -4648,6 +4791,7 @@ Bug Fixes
 ---------
 
 - Generator functions no longer leak references when started, but not finished.
+
 - Yield can in fact be used as an expression and returns values that the generator user
   ``send()`` to it.
 
@@ -4673,18 +4817,20 @@ Tests Work
 
 - The "test_contextlib" is now working perfectly due to the generator functions having a
   correct ``throw()``. Added that test back, so context managers are now fully covered.
+
 - Added a basic test for "overflow functions" has been added, these are the ones which
   have an unknown number of locals due to the use of language constructs ``exec`` or
   ``from bla import *`` on the function level. This one currently only highlights the
   failure to support it.
+
 - Reverted removals of extended slice syntax from some parts of the CPython test suite.
 
 Cleanups
 --------
 
 - The compiled generator types are using the new C++0x type safe enums feature.
-- Resolved a circular dependency between ``TreeBuilding`` and ``TreeTransforming`` modules.
-
+- Resolved a circular dependency between ``TreeBuilding`` and ``TreeTransforming``
+  modules.
 
 
 Nuitka Release 0.2.2
@@ -4729,31 +4875,47 @@ Cleanups
 --------
 
 - The compiled function type got further enhanced and cleaned up.
+
 - The compiled generator expression function type lead to a massive cleanup of the code
   for generator expressions.
+
 - Cleaned up namespaces, was still using old names, or "Py*" which is reserved to core
   CPython.
-- Overhaul of the code responsible for ``eval`` and ``exec``, it has been split, and it pushed
-  the detection defaults to the C++ compiler which means, we can do it at run time or
-  compile time, depending on circumstances.
+
+- Overhaul of the code responsible for ``eval`` and ``exec``, it has been split, and it
+  pushed the detection defaults to the C++ compiler which means, we can do it at run time
+  or compile time, depending on circumstances.
+
 - Made ``PyTemporaryObject`` safer to use, disabling copy constructor it should be also a
   relief to the C++ compiler if it doesn't have to eliminate all its uses.
-- The way delayed work is handled in ``TreeBuilding`` step has been changed to use closured
-  functions, should be more readable.
+
+- The way delayed work is handled in ``TreeBuilding`` step has been changed to use
+  closured functions, should be more readable.
+
 - Some more code templates have been created, making the code generation more readable in
   some parts. More to come.
 
-Optimizations / New Features
-----------------------------
+New Features
+------------
+
+- As I start to consider announcing Nuitka, I moved the version logic so that the version
+  can now be queried with ``--version``.
+
+Optimizations
+-------------
 
 - Name lookups for ``None``, ``True`` and ``False`` and now always detected as constants,
   eliminating many useless module variable lookups.
-- As I start to consider announcing Nuitka, I moved the version logic so that the version
-  can now be queries with ``--version``
+
+New Tests
+---------
+
 - More complete test of generator expressions.
+
 - Added test program for packages with relative imports inside the package.
-- The built-in ``dir()`` in a function was not having fully deterministic output list, now it
-  does.
+
+- The built-in ``dir()`` in a function was not having fully deterministic output list, now
+  it does.
 
 Summary
 -------
@@ -4771,9 +4933,11 @@ they have their own implementation. Now that this is done, I will repeat it with
 functions.
 
 Generator functions already work quite fine, but like generator expressions did before
-this release, they can leak references if not finished , and they don't have the ``throw()``
-method, which seems very important to the correct operation of ``contextlib``. So I will
-introduce a decicated type for these too, possibly in the next release.
+this release, they can leak references if not finished , and they don't have the
+``throw()`` method, which seems very important to the correct operation of
+``contextlib``. So I will introduce a decicated type for these too, possibly in the next
+release.
+
 
 Nuitka Release 0.2.1
 ====================
@@ -4783,8 +4947,9 @@ The march goes on, this is another minor release with a bunch of substantial imp
 Bug Fixes
 ---------
 
-- Packages now also can be embedded with the ``--deep`` option too, before they could not be
-  imported from the executable.
+- Packages now also can be embedded with the ``--deep`` option too, before they could not
+  be imported from the executable.
+
 - Inlined exec with their own future statements leaked these to the surrounding code.
 
 Reduced Differences
@@ -4821,19 +4986,22 @@ Good day, this is a major step ahead, improvements everywhere.
 Bug fixes
 ---------
 
-- Migrated the Python parser from the deprecated and problematic ``compiler`` module to the
-  ``ast`` module which fixes the ``d[a,] = b`` parser problem. A pity it was not available at
-  the time I started, but the migration was relatively painless now.
+- Migrated the Python parser from the deprecated and problematic ``compiler`` module to
+  the ``ast`` module which fixes the ``d[a,] = b`` parser problem. A pity it was not
+  available at the time I started, but the migration was relatively painless now.
+
 - I found and fixed wrong encoding of binary data into C++ literals. Now Nuitka uses C++0x
   raw strings, and these problems are gone.
+
 - The decoding of constants was done with the ``marshal`` module, but that appears to not
   deeply care enough about unicode encoding it seems. Using ``cPickle`` now, which seems
   less efficient, but is more correct.
-- Another difference is gone: The ``continue`` and ``break`` inside loops do no longer prevent
-  the execution of finally blocks inside the loop.
 
-Project Management
-------------------
+- Another difference is gone: The ``continue`` and ``break`` inside loops do no longer
+  prevent the execution of finally blocks inside the loop.
+
+Organizational
+--------------
 
 - I now maintain the "README.txt" in org-mode, and intend to use it as the issue tracker,
   but I am still a beginner at that.
@@ -4853,8 +5021,8 @@ Project Management
 Reduced Differences
 -------------------
 
-- Did you know you could write ``lambda : (yield something)`` and it gives you a lambda that
-  creates a generator that produces that one value? Well, now Nuitka has support for
+- Did you know you could write ``lambda : (yield something)`` and it gives you a lambda
+  that creates a generator that produces that one value? Well, now Nuitka has support for
   lambda generator functions.
 
 - The ``from __future__ import division`` statement works as expected now, leading to some
@@ -4866,8 +5034,9 @@ Reduced Differences
 New Features
 ------------
 
-- The ``Python`` binary provided and ``Nuitka.py`` are now capable of accepting parameters for
-  the program executed, in order to make it even more of a dropin replacement to ``python``.
+- The ``Python`` binary provided and ``Nuitka.py`` are now capable of accepting parameters
+  for the program executed, in order to make it even more of a dropin replacement to
+  ``python``.
 
 - Inlining of exec statements with constant expressions. These are now compiled at compile
   time, not at run time anymore. I observed that an increasing number of CPython tests use
@@ -4889,18 +5058,24 @@ Nuitka Release 0.1.1
 I just have just updated Nuitka to version 0.1.1 which is a bug fix release to 0.1, which
 corrects many of the small things:
 
-- Updated the CPython test suite to 2.6.6rc, minimized much of existing differences.
+- Updated the CPython test suite to 2.6.6rc and minimized much of existing differences in
+  the course.
+
 - Compiles standalone executable that includes modules (with --deep option), but packages
   are not yet included successfully.
+
 - Reference leaks with exceptions are no more.
+
 - sys.exc_info() works now mostly as expected (it's not a stack of exceptions).
+
 - More readable generated code, better organisation of C++ template code.
+
 - Restored debug option ``--g++-only``.
 
 The biggest thing probably is the progress with exception tracebacks objects in exception
-handlers, which were not there before (always ``None``). Having these in place will make it
-much more compatible. Also with manually raised exceptions and assertions, tracebacks will
-now be more correct to the line.
+handlers, which were not there before (always ``None``). Having these in place will make
+it much more compatible. Also with manually raised exceptions and assertions, tracebacks
+will now be more correct to the line.
 
 On a bad news, I discovered that the ``compiler`` module that I use to create the AST from
 Python source code, is not only deprecated, but also broken. I created the `CPython bug
@@ -4933,7 +5108,9 @@ I want to have infrastructure in the code place, before doing lots of possible
 optimizations that just make Nuitka unmaintainable. And I will want to have a look at what
 others did so far in the domain of type inference and how to apply that for my project.
 
-I look forward to the reactions about getting this far. The supported language volume is amazing, and I have a set of nice tricks used. For example the way generator functions are done is a clever hack.
+I look forward to the reactions about getting this far. The supported language volume is
+amazing, and I have a set of nice tricks used. For example the way generator functions are
+done is a clever hack.
 
 Where to go from here? Well, I guess, I am going to judge it by the feedback I receive. I
 personally see "constant propagation" as a laudable first low hanging fruit, that could be
