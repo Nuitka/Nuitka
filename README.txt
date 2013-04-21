@@ -9,33 +9,43 @@ Requirements
 
 - C++ Compiler: You need a compiler with support for C++03
 
-  Currently this means, you need to use the GNU g++ compiler of at least version 4.4 on
-  Linux or the clang compiler on MacOS X or FreeBSD, or else the compilation may fail.
+  Currently this means, you need to use either of these compilers:
 
-  On Windows the MinGW g++ compiler is known to work starting with at least version 4.5,
-  newest versions are of course recommended. The VC++ compiler is not known at this time.
+  * GNU g++ compiler of at least version 4.4
 
-- Python: Version 2.6, 2.7 or 3.2
+  * The clang compiler on MacOS X or FreeBSD, based on LLVM version 3.2
 
-  You need Python to execute Nuitka and then also to execute the created binary, because
-  it uses the shared library of Python. Nuitka is tightly bound to the reference
+  * The MinGW compiler on Windows
+
+  * Visual Studion 2008 and 2010 on Windows
+
+- Python: Version 2.6, 2.7 or 3.2, 3.3 (partially)
+
+  You need CPython to execute Nuitka, because itis tightly bound to the reference
   implementation of Python, called "CPython".
 
-- Operating System: Linux, FreeBSD, MacOS X, and Windows (32 bit),
+  .. note::
+
+     The created binaries can be made executable independent of the Python installation,
+     with ``--portable`` option.
+
+- Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits),
 
   Others may work as well. The portability is expected to be generally good, but the Scons
   usage may have to be adapted.
 
 - Architectures: x86, x86_64 (amd64), and arm.
 
-  Other architectures may also work, but only for these the order of
+  Other architectures may also work, these are just the only ones tested. Feedback is
+  welcome.
 
 Command Line
 ------------
 
-No environment variable changes are needed, you can call the "nuitka" and "nuitka-python"
-executables directly without any changes to the environment. You may want to add them to
-your ``PATH`` for your convenience, but these steps are optional.
+No environment variable changes are needed, you can call the ``nuitka`` and
+``nuitka-python`` scripts directly without any changes to the environment. You may want to
+add the ``bin`` directory to your ``PATH`` for your convenience, but that step is
+optional.
 
 Nuitka has a ``--help`` option to output what it can do:
 
@@ -43,15 +53,15 @@ Nuitka has a ``--help`` option to output what it can do:
 
     nuitka --help
 
-The "nuitka-python" command is the same as "nuitka", but with different defaults. It tries
-to compile and directly execute a Python script:
+The ``nuitka-python`` command is the same as ``nuitka``, but with different defaults. It
+tries to compile and directly execute a Python script:
 
 .. code-block:: bash
 
     nuitka-python --help
 
 These options with different defaults are ``--exe`` and ``--execute``, so it is somewhat
-more similar to what plain "python" will do.
+more similar to what plain ``python`` will do.
 
 Use Cases
 =========
@@ -89,8 +99,8 @@ also be included in the executable:
 .. note::
 
    The resulting binary still depends on CPython and used C extension modules being
-   installed. Sorry about that, it's not yet a "py2exe" replacement. Please come and help
-   to add that functionality if you would like to see it in Nuitka.
+   installed. If you want to be able to copy it to another machine, use ``--portable`` and
+   copy the generated "_python" directory and "_python.zip" archives as well.
 
 Use Case 2 - Extension Module compilation
 -----------------------------------------
@@ -103,6 +113,10 @@ If you want to compile a single extension module, all you have to do is this:
 
 The resulting file "some_module.so" can then be used instead of "some_module.py". It's
 left as an exercise to the reader, what happens if both are present.
+
+.. note::
+
+   The option ``--recurse-all`` and other variants work as well.
 
 Use Case 3 - Package compilation
 --------------------------------
@@ -123,8 +137,7 @@ Where to go next
 ================
 
 Remember, this project is not completed yet. Although the CPython test suite works near
-perfect, there is still more work needed, to make it do enough optimizations to be worth
-while. Try it out.
+perfect, there is still more work needed, to make it do more optimization. Try it out.
 
 Subscribe to its mailing lists
 ------------------------------
@@ -136,7 +149,7 @@ discussed there.
 Report issues or bugs
 ---------------------
 
-Should you encounter and issues or bugs, please visit the `Nuitka bug tracker
+Should you encounter any issues, bugs, or ideas, please visit the `Nuitka bug tracker
 <http://bugs.nuitka.net>`_ and report them.
 
 Contact me via email with your questions
@@ -148,7 +161,8 @@ questions.
 Word of Warning
 ---------------
 
-Consider using this software with caution. Your feedback and patches are very welcome.
+Consider using this software with caution. Your feedback and patches to Nuitka are very
+welcome.
 
 Especially report it please, if you find that anything doesn't work, because the project
 is now at the stage that this should not happen.
@@ -185,35 +199,46 @@ The development of Nuitka occurs in git. We currently have these 2 branches:
    branches and hotfix releases, the Nuitka design and much more. Consider reading it to
    become a contributor. This document is intended for Nuitka users.
 
+Donations
+=========
+
+Should you feel that you cannot help Nuitka directly, but still want to support, please
+consider `making a donation <http://nuitka.net/pages/donations.html>`_ and help this way.
 
 Unsupported functionality
 =========================
 
-The "co_code" attribute of code objects
----------------------------------------
+The ``co_code`` attribute of code objects
+-----------------------------------------
 
 The code objects are empty for for native compiled functions. There is no bytecode with
-Nuitka's compiled function objects, so there is no way to provide bytecode.
+Nuitka's compiled function objects, so there is no way to provide it.
 
 Threading can block it seems
 ----------------------------
 
-Bug tracker link: `"Threading is not supported, never yields the execution to other threads" <http://bugs.nuitka.net/issue10>`_
+Bug tracker link: `"Threading is not supported, never yields the execution to other
+threads" <http://bugs.nuitka.net/issue10>`_
 
 The generated code never lets the CPython run time switch threads, so its chances to do so
 are reduced, which may lead to dead lock problems.
 
-Help is welcome to add support for threading to Nuitka.
+.. note::
+
+   There is an option ``--experimental`` which adds support for it. Future versions will
+   support threading.
+
 
 Start of function call vs. end of function call in traceback output
 -------------------------------------------------------------------
 
-Bug tracker link: `"In tracebacks Nuitka uses start of call line, whereas CPython uses end of call line" <http://bugs.nuitka.net/issue9>`_
+Bug tracker link: `"In tracebacks Nuitka uses start of call line, whereas CPython uses end
+of call line" <http://bugs.nuitka.net/issue9>`_
 
 In CPython the traceback points to the end of the function call, whereas in Nuitka they
 point to the first line of the function call.
 
-This is due to the use of the "ast.parse" over bytecode it seems and not easy to
+This is due to the use of the ``ast.parse`` over bytecode it seems and not easy to
 overcome. It would require parsing the Python source on our own and search for the end of
 the function call.
 
@@ -269,8 +294,8 @@ as input to the constant folding.
       # Your test code might be here
       use_something_not_use_by_program()
 
-From modules attributes, only "__name__" is currently actually optimized. Also possible
-would be at least "__doc__".
+From modules attributes, only ``__name__`` is currently actually optimized. Also possible
+would be at least ``__doc__``.
 
 Also builtins exception name references are optimized if they are uses as module level
 read only variables:
@@ -301,7 +326,7 @@ The builtin call prediction is considered implemented. We can simply during comp
 emulate the call and use its result or raised exception. But we may not cover all the
 builtins there are yet.
 
-Sometimes builtins should not be predicted when the result is big. A "range()" call
+Sometimes builtins should not be predicted when the result is big. A ``range()`` call
 e.g. may give too big values to include the result in the binary. Then it is not done.
 
 .. code-block:: python
@@ -360,12 +385,13 @@ Consider the following code:
    print side_effect_having() + (1 / 0)
    print something_else()
 
-The (1 / 0) can be predicted to raise a "ZeroDivisionError" exception, which will be
-propagated through the "+" operation. That part is just Constant Propagation as normal.
+The ``(1 / 0)`` can be predicted to raise a ``ZeroDivisionError`` exception, which will be
+propagated through the ``+`` operation. That part is just Constant Propagation as normal.
 
-The call to "side_effect_having" will have to be retained though, but the print statement,
-can be turned into an explicit raise. The statement sequence can then be aborted and as
-such the "something_else" call needs no code generation or consideration anymore.
+The call to ``side_effect_having`` will have to be retained though, but the print
+statement, can be turned into an explicit raise. The statement sequence can then be
+aborted and as such the ``something_else`` call needs no code generation or consideration
+anymore.
 
 To that end, Nuitka works with a special node that raises an exception and has so called
 "side_effects" children, yet can be used in generated code as an expression.
@@ -388,8 +414,8 @@ Consider the following code:
     except ValueError, e:
         print e
 
-The try block is bigger than it needs to be. The statement "b = 8" cannot cause a
-"ValueError" to be raised. As such it can be moved to outside the try without any risk.
+The try block is bigger than it needs to be. The statement ``b = 8`` cannot cause a
+``ValueError`` to be raised. As such it can be moved to outside the try without any risk.
 
 .. code-block:: python
 
@@ -427,8 +453,10 @@ With the exception propagation it is then possible to transform this code:
 Which then can be reduced by avoiding the raise and catch of the exception, making
 it:
 
-e = ValueError( "range() step argument must not be zero" )
-print e
+.. code-block:: python
+
+   e = ValueError( "range() step argument must not be zero" )
+   print e
 
 Status: This is not implemented yet.
 
@@ -444,7 +472,7 @@ possible to remove the whole construct:
        pass
 
 The loop could be removed, at maximum it should be considered an assignment of variable
-"i" to 999 and no more.
+``i`` to ``999`` and no more.
 
 Another example:
 
@@ -454,8 +482,8 @@ Another example:
       pass
 
 The condition should be removed in this case, as its evaluation is not needed. It may be
-difficult to predict that side_effect_free has no side effects, but many times this might
-be possible.
+difficult to predict that ``side_effect_free`` has no side effects, but many times this
+might be possible.
 
 Status: This is not implemented yet.
 
@@ -481,13 +509,13 @@ building the assignment targets.
 We do this now, but only for constants, because we currently have no ability to predict if
 an expression can raise an exception or not.
 
-Status: Not really implemented, and should use "mayHaveSideEffect()" to be actually good
+Status: Not really implemented, and should use ``mayHaveSideEffect()`` to be actually good
 at things.
 
 Builtin Type Inference
 ----------------------
 
-When a construct like "in xrange()" or "in range()" is used, it is possible to know what
+When a construct like ``in xrange()`` or ``in range()`` is used, it is possible to know what
 the iteration does and represent that, so that iterator users can use that instead.
 
 I consider that:
@@ -497,8 +525,8 @@ I consider that:
     for i in xrange(1000):
         something(i)
 
-could translate "xrange(1000)" into an object of a special class that does the integer
-looping more efficiently. In case "i" is only assigned from there, this could be a nice
+could translate ``xrange(1000)`` into an object of a special class that does the integer
+looping more efficiently. In case ``i`` is only assigned from there, this could be a nice
 case for a dedicated class.
 
 Status: Future work, not even started.
@@ -506,7 +534,7 @@ Status: Future work, not even started.
 Quicker function calls
 ----------------------
 
-Functions are structured so that their parameter parsing and "tp_call" interface is separate
+Functions are structured so that their parameter parsing and ``tp_call`` interface is separate
 from the actual function code. This way the call can be optimized away. One problem is that
 the evaluation order can differ.
 
@@ -556,8 +584,7 @@ The order is sorted by time.
   helped me make the Windows port more usable through his testing and information.
 
 - Christopher Tott: Submitted patches for Windows, and general as well as structural
-  cleanups, he is also attempting to support direct "ctypes" calls to be evaluated at
-  compile time.
+  cleanups.
 
 - Pete Hunt: Submitted patches for MacOS X support.
 
