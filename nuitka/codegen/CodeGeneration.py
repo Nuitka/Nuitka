@@ -74,7 +74,8 @@ def generateListCreationCode( elements, context ):
 
 def generateConditionCode( condition, context, inverted = False, allow_none = False ):
     # The complexity is needed to avoid unnecessary complex generated C++, so
-    # e.g. inverted is typically a branch inside every optimizable case. pylint: disable=R0912
+    # e.g. inverted is typically a branch inside every optimizable case.
+    # pylint: disable=R0912,R0915
 
     if condition is None and allow_none:
         assert not inverted
@@ -259,7 +260,7 @@ def generateFunctionCallCode( call_node, context ):
     # TODO: This is finalization work, should use the last constraint collection
     # knowledge.
     order_relevance = [
-        argument_value.mayHaveSideEffects( None )
+        argument_value.mayHaveSideEffects()
         for argument_value in
         argument_values
     ]
@@ -1050,7 +1051,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
 
         identifier = Generator.getBuiltinOriginalRefCode(
             builtin_name = expression.getBuiltinName(),
-            context      = context
         )
     elif expression.isExpressionBuiltinRef():
         identifier = Generator.getBuiltinRefCode(
@@ -1911,6 +1911,9 @@ def _generateStatementCode( statement, context ):
     return code
 
 def generateStatementSequenceCode( statement_sequence, context, allow_none = False ):
+    # The complexity is related to frame guard types, which are also handled in here.
+    # pylint: disable=R0912
+
     if allow_none and statement_sequence is None:
         return None
 

@@ -70,6 +70,8 @@ class ExpressionComparison( ExpressionChildrenHavingBase ):
         return PythonOperators.all_comparison_functions[ self.comparator ]
 
     def computeExpression( self, constraint_collection ):
+        # Left and right is all we need, pylint: disable=W0613
+
         left, right = self.getOperands()
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
@@ -127,21 +129,24 @@ class ExpressionComparisonIsIsNotBase( ExpressionComparison ):
         self.match_value = comparator == "Is"
 
     def isExpressionComparison( self ):
+        # Virtual method, pylint: disable=R0201
         return True
 
     def computeExpression( self, constraint_collection ):
         left, right = self.getOperands()
 
         if constraint_collection.mustAlias( left, right ):
-            from .NodeMakingHelpers import makeConstantReplacementNode, wrapExpressionWithSideEffects
+            from .NodeMakingHelpers import (
+                makeConstantReplacementNode,
+                wrapExpressionWithSideEffects
+            )
 
             result = makeConstantReplacementNode(
                 constant = self.match_value,
                 node     = self
             )
 
-            if left.mayHaveSideEffects( constraint_collection ) or \
-               right.mayHaveSideEffects( constraint_collection ):
+            if left.mayHaveSideEffects() or right.mayHaveSideEffects():
                 result = wrapExpressionWithSideEffects(
                     side_effects = self.extractSideEffects(),
                     old_node     = self,
@@ -159,8 +164,7 @@ Determined values to alias and therefore result of %s comparison.""" % self.comp
                 node     = self
             )
 
-            if left.mayHaveSideEffects( constraint_collection ) or \
-               right.mayHaveSideEffects( constraint_collection ):
+            if left.mayHaveSideEffects() or right.mayHaveSideEffects():
                 result = wrapExpressionWithSideEffects(
                     side_effects = self.extractSideEffects(),
                     old_node     = self,

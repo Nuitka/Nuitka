@@ -78,8 +78,9 @@ def formatOutput( e ):
          )
 
 
-def raiseSyntaxError( reason, source_ref, col_offset = None, display_file = True,
-                      display_line = True, source_line = None ):
+def raiseSyntaxError( reason, source_ref, col_offset = None,
+                      display_file = True, display_line = True,
+                      source_line = None ):
     def readSource():
         source = open( source_ref.getFilename(), 'rU' ).readlines()
 

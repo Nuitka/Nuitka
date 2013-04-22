@@ -142,14 +142,16 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
 
         friend = constraint_collection.getVariableValueFriend( self.variable )
 
-        if friend is not None and not friend.mayHaveSideEffects( None ) and friend.isNode():
+        if friend is not None and not friend.mayHaveSideEffects() and friend.isNode():
             assert hasattr( friend, "makeCloneAt" ), friend
 
             new_node = friend.makeCloneAt(
                 source_ref = self.source_ref,
             )
 
-            change_desc = "Assignment source of '%s' propagated, as it has no side effects." % self.variable.getName()
+            change_desc = "Assignment source of '%s' propagated, as it has no side effects." % (
+                self.variable.getName()
+            )
 
             return new_node, "new_expression", change_desc
 
@@ -165,17 +167,9 @@ class ExpressionVariableRef( NodeBase, ExpressionMixin ):
         # Variables are capable of "asObject0".
         return False
 
-    def mayHaveSideEffects( self, constraint_collection ):
-        if constraint_collection is None:
-            return True
-
-        friend = constraint_collection.getVariableValueFriend( self.variable )
-
-        if friend is not None:
-            # TODO: There is no friend that say "known to not be defined"
-            return False
-        else:
-            return True
+    def mayHaveSideEffects( self ):
+        # TODO: Remembered traced could tell better.
+        return True
 
 
 class ExpressionTargetVariableRef( ExpressionVariableRef ):
@@ -265,7 +259,9 @@ class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
         # Can't happen
         return False
 
-    def isKnownToBeIterableAtMin( self, count, constraint_collection ):
+    def isKnownToBeIterableAtMin( self, count ):
+        return None
+
         friend = constraint_collection.getVariableValueFriend( self.variable )
 
         if friend is not None:
@@ -276,7 +272,9 @@ class ExpressionTempVariableRef( NodeBase, ExpressionMixin ):
         else:
             return None
 
-    def isKnownToBeIterableAtMax( self, count, constraint_collection ):
+    def isKnownToBeIterableAtMax( self, count ):
+        return None
+
         friend = constraint_collection.getVariableValueFriend( self.variable )
 
         if friend is not None:
@@ -361,8 +359,8 @@ class StatementTempBlock( StatementChildrenHavingBase ):
     def getTempVariables( self ):
         return self.temp_variables.values()
 
-    def mayHaveSideEffects( self, constraint_collection ):
-        return self.getBody().mayHaveSideEffects( constraint_collection )
+    def mayHaveSideEffects( self ):
+        return self.getBody().mayHaveSideEffects()
 
     def computeStatement( self, constraint_collection ):
         old_body = self.getBody()

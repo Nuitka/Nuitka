@@ -188,4 +188,6 @@ class ExpressionDictOperationGet( ExpressionChildrenHavingBase ):
     getKey = ExpressionChildrenHavingBase.childGetter( "key" )
 
     def computeExpression( self, constraint_collection ):
+        # Children can tell all we need to know, pylint: disable=W0613
+
         return self, None, None

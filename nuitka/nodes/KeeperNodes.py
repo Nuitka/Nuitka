@@ -99,7 +99,7 @@ class ExpressionTempKeeperRef( NodeBase, ExpressionMixin ):
     def computeExpression( self, constraint_collection ):
         friend = constraint_collection.getVariableValueFriend( self.getVariable() )
 
-        if friend is not None and not friend.mayHaveSideEffects( None ) and friend.isNode():
+        if friend is not None and not friend.mayHaveSideEffects() and friend.isNode():
             assert hasattr( friend, "makeCloneAt" ), friend
 
             new_node = friend.makeCloneAt(

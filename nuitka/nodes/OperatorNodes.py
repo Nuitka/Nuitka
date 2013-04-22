@@ -100,7 +100,7 @@ class ExpressionOperationBinary( ExpressionOperationBase ):
             right_value = right.getCompileTimeConstant()
 
             if operator == "Mult" and right.isNumberConstant():
-                iter_length = left.getIterationLength( constraint_collection )
+                iter_length = left.getIterationLength()
 
                 if iter_length is not None:
                     if iter_length * right_value > 256:
@@ -201,21 +201,21 @@ class ExpressionOperationNOT( ExpressionOperationUnary ):
             constraint_collection = constraint_collection
         )
 
-    def getTruthValue( self, constraint_collection ):
-        result = self.getOperand().getTruthValue( constraint_collection )
+    def getTruthValue( self ):
+        result = self.getOperand().getTruthValue()
 
         return None if result is None else not result
 
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         operand = self.getOperand()
 
-        if operand.mayHaveSideEffects( constraint_collection ):
+        if operand.mayHaveSideEffects():
             return True
 
-        return operand.mayHaveSideEffectsBool( constraint_collection )
+        return operand.mayHaveSideEffectsBool()
 
-    def mayHaveSideEffectsBool( self, constraint_collection ):
-        return self.getOperand().mayHaveSideEffectsBool( constraint_collection )
+    def mayHaveSideEffectsBool( self ):
+        return self.getOperand().mayHaveSideEffectsBool()
 
     def extractSideEffects( self ):
         operand = self.getOperand()

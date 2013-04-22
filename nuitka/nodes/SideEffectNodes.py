@@ -66,7 +66,7 @@ class ExpressionSideEffects( ExpressionChildrenHavingBase ):
         new_side_effects = []
 
         for side_effect in side_effects:
-            if side_effect.mayHaveSideEffects( constraint_collection ):
+            if side_effect.mayHaveSideEffects():
                 new_side_effects.append( side_effect )
 
         expression = self.getExpression()

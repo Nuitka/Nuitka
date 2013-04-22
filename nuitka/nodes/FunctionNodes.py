@@ -396,7 +396,7 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
         # TODO: It's actually pretty much compile time accessible mayhaps.
         return None
 
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         # The function definition has no side effects, calculating the defaults would be,
         # but that is done outside of this.
         return False
@@ -518,7 +518,7 @@ class ExpressionFunctionRef( NodeBase, ExpressionMixin ):
         # TODO: Function body may know something.
         return self, None, None
 
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         # Using a function has no side effects.
         return False
 

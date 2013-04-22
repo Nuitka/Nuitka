@@ -69,7 +69,7 @@ class ExpressionBuiltinBool( ExpressionBuiltinTypeBase ):
         value = self.getValue()
 
         if value is not None:
-            truth_value = self.getValue().getTruthValue( constraint_collection )
+            truth_value = self.getValue().getTruthValue()
 
             if truth_value is not None:
                 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects, makeConstantReplacementNode
@@ -114,6 +114,8 @@ class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
     getBase = ChildrenHavingMixin.childGetter( "base" )
 
     def computeExpression( self, constraint_collection ):
+        # Children can tell all we need to know, pylint: disable=W0613
+
         value = self.getValue()
         base = self.getBase()
 
@@ -166,6 +168,8 @@ class ExpressionBuiltinUnicodeBase( ChildrenHavingMixin, NodeBase,
     getErrors = ChildrenHavingMixin.childGetter( "errors" )
 
     def computeExpression( self, constraint_collection ):
+        # Children can tell all we need to know, pylint: disable=W0613
+
         args = [
             self.getValue(),
             self.getEncoding(),
@@ -191,7 +195,7 @@ if python_version < 300:
             )
 
             if new_node is self:
-                str_value = self.getValue().getStrValue( constraint_collection )
+                str_value = self.getValue().getStrValue()
 
                 if str_value is not None:
                     from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects

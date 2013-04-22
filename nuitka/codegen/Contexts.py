@@ -145,82 +145,105 @@ class PythonChildContextBase( PythonContextBase ):
         )
 
 
+def _getConstantDefaultPopulation():
+    result = (
+        # Basic values that the helper code uses all the times.
+        (),
+        {},
+        "",
+        True,
+        False,
+        0,
+
+        # For Python3 empty bytes, no effect for Python2, same as "", used for code
+        # objects.
+        b"",
+
+        # Python mechanics, used in various helpers.
+        "__module__",
+        "__class__",
+        "__name__",
+        "__metaclass__",
+        "__dict__",
+        "__doc__",
+        "__file__",
+        "__enter__",
+        "__exit__",
+        "__builtins__",
+        "__all__",
+
+        # Patched module name.
+        "inspect",
+
+        # Names of builtins used in helper code.
+        "compile",
+        "range",
+        "open",
+        "__import__",
+
+        # COMPILE_CODE uses read/strip method lookups.
+        "read",
+        "strip",
+
+    )
+
+    # For Python3 modules
+    if python_version >= 300:
+        result += ( "__cached__",  )
+
+    # For Python3 print
+    if python_version >= 300:
+        result += ( "print", "end", "file" )
+
+    if python_version >= 330:
+        result += ( "__loader__", )
+
+    # For patching Python2 internal class type
+    if python_version < 300:
+        result += (
+            "__getattr__",
+            "__setattr__",
+            "__delattr__"
+        )
+
+    # For patching Python2 sys attributes for current exception
+    if python_version < 300:
+        result += (
+            "exc_type",
+            "exc_value",
+            "exc_traceback"
+        )
+
+    # Executables only
+    if not Options.shallMakeModule():
+        result += ( "__main__", )
+
+    # Builtin original values
+    if not Options.shallMakeModule():
+        result += (
+            "type",
+            "len",
+            "range",
+            "repr",
+            "int",
+            "iter",
+        )
+
+        if python_version < 300:
+            result += (
+                "long",
+            )
+
+    return result
+
+
 class PythonGlobalContext:
     def __init__( self ):
         self.constants = {}
         self.contained_constants = {}
 
-        # Basic values that the code uses all the times.
-        self.getConstantHandle( () )
-        self.getConstantHandle( {} )
-        self.getConstantHandle( "" )
-        self.getConstantHandle( True )
-        self.getConstantHandle( False )
-        self.getConstantHandle( 0 )
-        # For Python3 empty bytes, no effect for Python2, same as ""
-        self.getConstantHandle( b"" )
-
-        # Python mechanics.
-        self.getConstantHandle( "__module__" )
-        self.getConstantHandle( "__class__" )
-        self.getConstantHandle( "__name__" )
-        self.getConstantHandle( "__metaclass__" )
-        self.getConstantHandle( "__dict__" )
-        self.getConstantHandle( "__doc__" )
-        self.getConstantHandle( "__file__" )
-        self.getConstantHandle( "__enter__" )
-        self.getConstantHandle( "__exit__" )
-        self.getConstantHandle( "__builtins__" )
-        self.getConstantHandle( "__all__" )
-
-        # For Python3 modules
-        if python_version >= 300:
-            self.getConstantHandle( "__cached__" )
-
-        if python_version >= 330:
-            self.getConstantHandle( "__loader__" )
-
-        # For patching Python2 internal class type
-        if python_version < 300:
-            self.getConstantHandle( "__getattr__" )
-            self.getConstantHandle( "__setattr__" )
-            self.getConstantHandle( "__delattr__" )
-
-        # Patched module name.
-        self.getConstantHandle( "inspect" )
-
-        # Names of builtins used in helper code.
-        self.getConstantHandle( "compile" )
-        self.getConstantHandle( "range" )
-        self.getConstantHandle( "open" )
-        self.getConstantHandle( "print" )
-        self.getConstantHandle( "__import__" )
-
-        # Names of builtins replace, maybe used by helpers
-        if Options.isDebug and not Options.shallMakeModule():
-            self.getConstantHandle( "type" )
-            self.getConstantHandle( "len" )
-            self.getConstantHandle( "range" )
-            self.getConstantHandle( "repr" )
-            self.getConstantHandle( "int" )
-            self.getConstantHandle( "iter" )
-            self.getConstantHandle( "long" )
-
-        # The print builtin needs some argument names.
-        self.getConstantHandle( "end" )
-        self.getConstantHandle( "file" )
-
-        # COMPILE_CODE uses read/strip method lookups.
-        self.getConstantHandle( "read" )
-        self.getConstantHandle( "strip" )
-
-        # Executables only
-        self.getConstantHandle( "__main__" )
-
-        # sys exception attributes
-        self.getConstantHandle( "exc_type" )
-        self.getConstantHandle( "exc_value" )
-        self.getConstantHandle( "exc_traceback" )
+        for value in _getConstantDefaultPopulation():
+            self.getConstantHandle( value )
 
         # Have EVAL_ORDER for 1..6 in any case, so we can use it in the C++ code freely
         # without concern.
@@ -235,6 +258,8 @@ class PythonGlobalContext:
         self.code_objects = {}
 
     def getConstantHandle( self, constant, real_use = True ):
+        # There are many branches, each supposed to return, pylint: disable=R0911
+
         if constant is None:
             return SpecialConstantIdentifier( None )
         elif constant is True:

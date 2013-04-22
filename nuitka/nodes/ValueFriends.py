@@ -58,9 +58,9 @@ class ValueFriendChooseOne( ValueFriendBase ):
 
         ValueFriendBase.__init__( self )
 
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         for choice in self.choices:
-            if choice.mayHaveSideEffects( constraint_collection ):
+            if choice.mayHaveSideEffects():
                 return True
         else:
             return False

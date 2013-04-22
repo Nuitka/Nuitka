@@ -105,12 +105,12 @@ class StatementsSequence( StatementChildrenHavingBase ):
         self.setChild( "statements", new_statements )
 
 
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         assert constraint_collection is None
 
         # Statement sequences have a side effect if one of the statements does.
         for statement in self.getStatements():
-            if statement.mayHaveSideEffects( None ):
+            if statement.mayHaveSideEffects():
                 return True
         else:
             return False
@@ -200,8 +200,8 @@ class StatementExpressionOnly( StatementChildrenHavingBase ):
     def getDetail( self ):
         return "expression %s" % self.getExpression()
 
-    def mayHaveSideEffects( self, constraint_collection ):
-        return self.getExpression().mayHaveSideEffects( constraint_collection )
+    def mayHaveSideEffects( self ):
+        return self.getExpression().mayHaveSideEffects()
 
     getExpression = StatementChildrenHavingBase.childGetter( "expression" )
 
@@ -221,7 +221,7 @@ class StatementExpressionOnly( StatementChildrenHavingBase ):
             return result, "new_statements", """\
 Turned side effects of expression only statement into statements."""
 
-        elif not expression.mayHaveSideEffects( constraint_collection ):
+        elif not expression.mayHaveSideEffects():
             return None, "new_statements", "Removed statement without effect."
 
         elif expression.isExpressionRaiseException():

@@ -131,7 +131,8 @@ else:
     if Options.shallMakeModule() and Options.shallExecuteImmediately():
         for variable in tree.getVariables():
             if variable.getName() == "__name__":
-                warning( "Compiling to extension module, which will not have '__name__' as '__main__', did you intend '--exe' or to use 'nuitka-python' instead." )
+                warning( """Compiling to extension module, which will not have '__name__' \
+as '__main__', did you intend '--exe' or to use 'nuitka-python' instead.""" )
                 break
 
     # Execute the module immediately if option was given.

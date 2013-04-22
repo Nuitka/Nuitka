@@ -71,6 +71,8 @@ class ExpressionBuiltinDict( ExpressionChildrenHavingBase ):
         return True
 
     def computeExpression( self, constraint_collection ):
+        # Children can tell all we need to know, pylint: disable=W0613
+
         if self.hasOnlyConstantArguments():
             pos_arg = self.getPositionalArgument()
 

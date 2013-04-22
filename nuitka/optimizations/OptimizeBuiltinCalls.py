@@ -119,7 +119,7 @@ def import_extractor( node ):
 
 def type_extractor( node ):
     args = node.getCallArgs()
-    length = args.getIterationLength( None )
+    length = args.getIterationLength()
 
     if length == 1:
         return BuiltinOptimization.extractBuiltinArgs(
@@ -611,16 +611,25 @@ def computeBuiltinCall( call_node, called ):
 
         if inspect_node.isExpressionBuiltinImport():
             tags    = "new_import"
-            message = "Replaced dynamic builtin import %s with static module import." % inspect_node.kind
+            message = "Replaced dynamic builtin import %s with static module import." % (
+                inspect_node.kind,
+            )
         elif inspect_node.isExpressionBuiltin() or inspect_node.isStatementExec():
             tags = "new_builtin"
-            message = "Replaced call to builtin with builtin call %s." % inspect_node.kind
+            message = "Replaced call to builtin with builtin call %s." % (
+                inspect_node.kind,
+            )
         elif inspect_node.isExpressionRaiseException():
             tags = "new_raise"
-            message = "Replaced call to builtin %s with exception raising call." % inspect_node.kind
+            message = "Replaced call to builtin %s with exception raising call." % (
+                inspect_node.kind,
+            )
         elif inspect_node.isExpressionOperationUnary():
             tags = "new_expression"
-            message = "Replaced call to builtin %s with unary operation %s." % ( inspect_node.kind, inspect_node.getOperator() )
+            message = "Replaced call to builtin %s with unary operation %s." % (
+                inspect_node.kind,
+                inspect_node.getOperator()
+            )
         else:
             assert False, ( builtin_name, "->", inspect_node )
 
@@ -631,11 +640,10 @@ def computeBuiltinCall( call_node, called ):
             from nuitka.nodes.ConditionalNodes import ExpressionConditional
             from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
             from nuitka.nodes.BuiltinRefNodes import (
-                ExpressionBuiltinExceptionRef,
                 ExpressionBuiltinOriginalRef,
                 ExpressionBuiltinRef,
             )
-            from nuitka.nodes.ExceptionNodes import ExpressionRaiseException
+            from nuitka.nodes.NodeMakingHelpers import makeRaiseExceptionReplacementExpression
 
             source_ref = called.getSourceReference()
 

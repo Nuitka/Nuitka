@@ -64,6 +64,7 @@ def _getUnstreamCode( constant_value, constant_identifier ):
 
     assert type( saved ) is bytes
 
+    # We need to remember having to use pickle, pylint: disable=W0603
     global _needs_pickle
     _needs_pickle = True
 
@@ -74,7 +75,10 @@ def _getUnstreamCode( constant_value, constant_identifier ):
     )
 
 
-def _addConstantInitCode( context, emit, constant_type, constant_value, constant_identifier ):
+def _addConstantInitCode( context, emit, constant_type, constant_value,
+                          constant_identifier ):
+    # This has many cases, that all return, and do a lot pylint: disable=R0911,R0912,R0915
+
     # Use shortest code for ints and longs, except when they are big, then fall fallback
     # to pickling. TODO: Avoid the use of pickle even for larger values.
     if constant_type is int and abs( constant_value ) < 2**31:
@@ -363,6 +367,7 @@ def getConstantsInitCode( context ):
     return indented( statements )
 
 def getConstantsDeclCode( context, for_header ):
+    # There are many cases for constants of different types, pylint: disable=R0912
     statements = []
 
     for _code_object_key, code_identifier in context.getCodeObjects():

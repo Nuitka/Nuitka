@@ -118,6 +118,9 @@ else:
     )
 
 def isConstant( constant ):
+    # Too many cases and all return, that is how we do it here,
+    # pylint: disable=R0911,R0912
+
     constant_type = type( constant )
 
     if constant_type is dict:

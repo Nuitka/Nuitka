@@ -39,7 +39,7 @@ from logging import warning
 class FinalizeMarkups( FinalizationVisitorBase ):
     def onEnterNode( self, node ):
         # This has many different things it deals with, so there need to be a lot of
-        # branches. pylint: disable=R0912
+        # branches and statements, pylint: disable=R0912,R0915
         if node.isExpressionFunctionBody():
             if node.isUnoptimized():
                 node.markAsLocalsDict()

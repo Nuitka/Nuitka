@@ -17,12 +17,12 @@
 #
 """ Generator for C++ and Python C/API.
 
-This is the actual C++ code generator. It has methods and should be the only place to know
-what C++ is like. Ideally it would be possible to replace the target language by changing
-this one and the templates, and otherwise nothing else.
+This is the actual C++ code generator. It has methods and should be the only
+place to know what C++ is like. Ideally it would be possible to replace the
+target language by changing this one and the templates, and otherwise nothing
+else.
 
 """
-
 
 from .Identifiers import (
     Identifier,
@@ -1205,7 +1205,7 @@ def getBuiltinRefCode( context, builtin_name ):
         0
     )
 
-def getBuiltinOriginalRefCode( context, builtin_name ):
+def getBuiltinOriginalRefCode( builtin_name ):
     return Identifier(
         "_python_original_builtin_value_%s" % builtin_name,
         0
@@ -1950,8 +1950,10 @@ def getGeneratorFunctionCode( context, function_name, function_qualname, functio
                               defaults_identifier, kw_defaults_identifier,
                               annotations_identifier, tmp_keepers,
                               function_codes, source_ref, function_doc ):
-    # We really need this many parameters here.
-    # pylint: disable=R0913
+    # We really need this many parameters here.  pylint: disable=R0913
+
+    # Functions have many details, that we express as variables, with many branches to
+    # decide, pylint: disable=R0912,R0914,R0915
 
     parameter_variables, entry_point_code, parameter_objects_decl, mparse_identifier = getParameterParsingCode(
         function_identifier     = function_identifier,
@@ -2229,6 +2231,9 @@ def getFunctionCode( context, function_name, function_qualname, function_identif
                      function_codes, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
+
+    # Functions have many details, that we express as variables, with many branches to
+    # decide, pylint: disable=R0912,R0914
 
     parameter_variables, entry_point_code, parameter_objects_decl, mparse_identifier = getParameterParsingCode(
         function_identifier     = function_identifier,

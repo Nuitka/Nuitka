@@ -306,10 +306,10 @@ def extractBuiltinArgs( node, builtin_spec, builtin_class, empty_special_class =
 
         args = node.getCallArgs()
 
-        if not args.canPredictIterationValues( None ):
+        if not args.canPredictIterationValues():
             return None
 
-        positional = args.getIterationValues( None )
+        positional = args.getIterationValues()
 
         if not positional and not pairs and empty_special_class is not None:
             return empty_special_class( source_ref = node.getSourceReference() )

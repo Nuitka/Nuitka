@@ -64,9 +64,9 @@ class ExpressionCall( ExpressionChildrenHavingBase ):
 
         args = self.getCallArgs()
 
-        if args.willRaiseException( BaseException ):
-            from .NodeMakingHelpers import wrapExpressionWithSideEffects
+        from .NodeMakingHelpers import wrapExpressionWithSideEffects
 
+        if args.willRaiseException( BaseException ):
             result = wrapExpressionWithSideEffects(
                 side_effects = ( called, ),
                 old_node     = self,
@@ -78,8 +78,6 @@ class ExpressionCall( ExpressionChildrenHavingBase ):
         kw = self.getCallKw()
 
         if kw.willRaiseException( BaseException ):
-            from .NodeMakingHelpers import wrapExpressionWithSideEffects
-
             result = wrapExpressionWithSideEffects(
                 side_effects = ( called, args ),
                 old_node     = self,

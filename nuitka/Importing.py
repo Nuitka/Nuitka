@@ -47,6 +47,8 @@ warned_about = set()
 main_path = None
 
 def setMainScriptDirectory( main_dir ):
+    # We need to set this from the outside, pylint: disable=W0603
+
     global main_path
     main_path = main_dir
 
@@ -54,6 +56,9 @@ def isPackageDir( dirname ):
     return Utils.isDir( dirname ) and Utils.isFile( Utils.joinpath( dirname, "__init__.py" ))
 
 def findModule( source_ref, module_name, parent_package, level, warn ):
+    # We have many branches here, because there are a lot of cases to try.
+    # pylint: disable=R0912
+
     if level > 1 and parent_package is not None:
         parent_package = ".".join( parent_package.split(".")[ : -level+1 ] )
 
@@ -119,6 +124,9 @@ def findModule( source_ref, module_name, parent_package, level, warn ):
     return module_package_name, module_name, module_filename
 
 def _findModuleInPath( module_name, package_name ):
+    # We have many branches here, because there are a lot of cases to try.
+    # pylint: disable=R0912
+
     if _debug_module_finding:
         print( "_findModuleInPath: Enter", module_name, package_name )
 

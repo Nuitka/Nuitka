@@ -25,7 +25,7 @@ from . import Utils
 
 from optparse import OptionParser, OptionGroup
 
-import os, sys, logging
+import sys, logging
 
 # Indicator if we were called as "nuitka-python" in which case we assume some other
 # defaults and work a bit different with parameters.
@@ -558,4 +558,4 @@ def isExperimental():
     return hasattr( options, "experimental" ) and options.experimental
 
 def isPortableMode():
-	return options.is_portable_mode
+    return options.is_portable_mode

@@ -61,7 +61,8 @@ def runScons( options, quiet ):
         elif os.path.exists( r"c:\Python26\python.exe" ):
             python_exe = r"c:\Python26\python.exe"
         else:
-            sys.exit( r"Error, need to find Python2 executable under C:\Python26 or C:\Python27 to execute scons which is not Python3 compatible." )
+            sys.exit( """Error, need to find Python2 executable under C:\\Python26 or \
+C:\\Python27 to execute scons which is not Python3 compatible.""" )
     else:
         python_exe = "python"
 

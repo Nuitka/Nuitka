@@ -91,6 +91,9 @@ class VariableMergeTrace( VariableTrace ):
             version  = version
         )
 
+        self.trace_yes = trace_yes
+        self.trace_no = trace_no
+
     def onValueEscape( self ):
         pass
 
@@ -503,7 +506,7 @@ Removed assignment that has source that will raise."""
         if not variable.isModuleVariableReference() and \
              source.isExpressionVariableRef() and \
              source.getVariable() == variable:
-            if source.mayHaveSideEffects( self ):
+            if source.mayHaveSideEffects():
                 result = makeStatementExpressionOnlyReplacementNode(
                     expression = source,
                     node       = statement

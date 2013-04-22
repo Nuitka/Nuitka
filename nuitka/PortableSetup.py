@@ -23,8 +23,6 @@ usage: PortableSetup.py mainscript outputdir
 import sys
 import os
 import zipfile
-import zipimport
-import imp
 
 LibraryArchiveName = "_python.zip"
 LibraryDirectoryName = "_python"
@@ -55,13 +53,15 @@ def copyFile( src, dst ):
         p.flush()
 
 def getImportedDict( mainscript ):
+    # importing a lot of stuff, just because they are dependencies, pylint: disable=W0612,R0914
+
     # chdir to mainscript directory and add it to sys.path
     main_dir = os.path.dirname( mainscript )
     os.chdir( main_dir )
     sys.path.insert( 0, main_dir )
 
-    # import modules need but not list in sys.modules
-    import site, io, marshal, pickle
+    # import modules needed but not listed in sys.modules
+    import imp, zipimport, site, io, marshal, pickle
     import encodings, encodings.aliases, codecs
     import zlib, inspect, threading, traceback
     import ctypes
@@ -149,11 +149,14 @@ def copyPythonLibrary( outputdir ):
         getname.argtypes = ( HANDLE, LPCSTR, DWORD )
         getname.restype = DWORD
         result = ctypes.create_string_buffer( 1024 )
-        size = getname( dll._handle, result, 1024 )
+        size = getname( dll._handle, result, 1024 ) # needed for this call, pylint: disable=W0212
         src = result.value[ :size ]
         dst = os.path.join( outputdir, os.path.basename ( src ) )
         copyFile( src, dst )
-    #need support bsd and osx here
+    else:
+        # TODO: need support bsd and osx here
+        sys.exit( "Error, unsupported platform for portable binaries." )
+
 
 def main( mainscript, outputdir ):
     imported_dict = getImportedDict( mainscript )
