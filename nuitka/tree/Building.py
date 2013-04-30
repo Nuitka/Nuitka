@@ -517,7 +517,13 @@ def buildImportFromNode( provider, node, source_ref ):
 
     # Importing from "__future__" module may enable flags.
     if module_name == "__future__":
-        assert provider.isPythonModule() or source_ref.isExecReference()
+        if not provider.isPythonModule() and not source_ref.isExecReference():
+            SyntaxErrors.raiseSyntaxError(
+                reason     = "from __future__ imports must occur at the beginning of the file",
+                col_offset = 8 if Utils.python_version >= 300 or not Options.isFullCompat() else None,
+                source_ref = source_ref
+            )
+
 
         for import_desc in node.names:
             object_name, _local_name = import_desc.name, import_desc.asname
