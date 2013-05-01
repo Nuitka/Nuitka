@@ -666,40 +666,58 @@ def buildExecNode( provider, node, source_ref ):
 
 
 def handleGlobalDeclarationNode( provider, node, source_ref ):
-    # The source reference of the global really doesn't matter, pylint: disable=W0613
 
-    # On the module level, there is nothing to do.
-    if provider.isPythonModule():
-        return None
+    if not source_ref.isExecReference():
+        # On the module level, there is nothing to do.
+        if provider.isPythonModule():
+            return None
 
-    # Need to catch the error of declaring a parameter variable as global ourselves
-    # here. The AST parsing doesn't catch it.
-    try:
-        parameters = provider.getParameters()
+        # Need to catch the error of declaring a parameter variable as global ourselves
+        # here. The AST parsing doesn't catch it.
+        try:
+            parameters = provider.getParameters()
 
-        for variable_name in node.names:
-            if variable_name in parameters.getParameterNames():
-                SyntaxErrors.raiseSyntaxError(
-                    reason     = "name '%s' is %s and global" % (
-                        variable_name,
-                        "local" if Utils.python_version < 300 else "parameter"
-                    ),
-                    source_ref = provider.getSourceReference()
-                )
-    except AttributeError:
-        pass
+            for variable_name in node.names:
+                if variable_name in parameters.getParameterNames():
+                    SyntaxErrors.raiseSyntaxError(
+                        reason     = "name '%s' is %s and global" % (
+                            variable_name,
+                            "local" if Utils.python_version < 300 else "parameter"
+                        ),
+                        source_ref = provider.getSourceReference()
+                    )
+        except AttributeError:
+            pass
 
     module = provider.getParentModule()
 
     for variable_name in node.names:
-        module_variable = module.getVariableForAssignment(
-            variable_name = variable_name
-        )
+        closure_variable = None
 
-        closure_variable = provider.addClosureVariable(
-            variable         = module_variable,
-            global_statement = True
-        )
+        # Re-use already taken global variables, in order to avoid creating yet
+        # another instance, esp. as the markups could then potentially not be
+        # shared.
+        if provider.hasTakenVariable( variable_name ):
+            closure_variable = provider.getTakenVariable( variable_name )
+
+            if not closure_variable.isModuleVariableReference():
+                closure_variable = None
+
+        if closure_variable is None:
+            module_variable = module.getVariableForAssignment(
+                variable_name = variable_name
+            )
+
+            closure_variable = provider.addClosureVariable(
+                variable = module_variable
+            )
+
+        assert closure_variable.isModuleVariableReference()
+
+        closure_variable.markFromGlobalStatement()
+
+        if source_ref.isExecReference():
+            closure_variable.markFromExecStatement()
 
         provider.registerProvidedVariable(
             variable = closure_variable
@@ -922,7 +940,7 @@ setBuildDispatchers(
     }
 )
 
-def buildParseTree( provider, source_code, source_ref ):
+def buildParseTree( provider, source_code, source_ref, is_module ):
     # Workaround: ast.parse cannot cope with some situations where a file is not terminated
     # by a new line.
     if not source_code.endswith( "\n" ):
@@ -944,7 +962,7 @@ def buildParseTree( provider, source_code, source_ref ):
         provider   = provider,
         nodes      = body,
         source_ref = source_ref,
-        frame      = True
+        frame      = is_module
     )
 
     # Check if a __future__ imports really were at the beginning of the file.
@@ -963,50 +981,51 @@ def buildParseTree( provider, source_code, source_ref ):
 
     statements = []
 
-    statements.append(
-        StatementAssignmentVariable(
-            variable_ref = ExpressionTargetVariableRef(
-                variable_name = "__doc__",
-                source_ref    = internal_source_ref
-            ),
-            source       = ExpressionConstantRef(
-                constant   = doc,
-                source_ref = internal_source_ref
-            ),
-            source_ref   = internal_source_ref
-        )
-    )
-
-    statements.append(
-        StatementAssignmentVariable(
-            variable_ref = ExpressionTargetVariableRef(
-                variable_name = "__file__",
-                source_ref    = internal_source_ref
-            ),
-            source       = ExpressionConstantRef(
-                constant   = source_ref.getFilename(),
-                source_ref = internal_source_ref
-            ),
-            source_ref   = internal_source_ref
-        )
-    )
-
-    if provider.isPythonPackage():
-        # TODO: __package__ is not set here, but automatically, which makes it invisible
-        # though
+    if is_module:
         statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
-                    variable_name = "__path__",
+                    variable_name = "__doc__",
                     source_ref    = internal_source_ref
                 ),
                 source       = ExpressionConstantRef(
-                    constant   = [ Utils.dirname( source_ref.getFilename() ) ],
+                    constant   = doc,
                     source_ref = internal_source_ref
                 ),
                 source_ref   = internal_source_ref
             )
         )
+
+        statements.append(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetVariableRef(
+                    variable_name = "__file__",
+                    source_ref    = internal_source_ref
+                ),
+                source       = ExpressionConstantRef(
+                    constant   = source_ref.getFilename(),
+                    source_ref = internal_source_ref
+                ),
+                source_ref   = internal_source_ref
+            )
+        )
+
+        if provider.isPythonPackage():
+            # TODO: __package__ is not set here, but automatically, which makes it invisible
+            # though
+            statements.append(
+                StatementAssignmentVariable(
+                    variable_ref = ExpressionTargetVariableRef(
+                        variable_name = "__path__",
+                        source_ref    = internal_source_ref
+                    ),
+                    source       = ExpressionConstantRef(
+                        constant   = [ Utils.dirname( source_ref.getFilename() ) ],
+                        source_ref = internal_source_ref
+                    ),
+                    source_ref   = internal_source_ref
+                )
+            )
 
     if Utils.python_version >= 300:
         statements.append(
@@ -1085,8 +1104,6 @@ def buildParseTree( provider, source_code, source_ref ):
         )
     else:
         result.setStatements( statements )
-
-    provider.setBody( result )
 
     return result
 
@@ -1219,11 +1236,14 @@ def buildModuleTree( filename, package, is_top, is_main ):
 
     source_code = readSourceCodeFromFilename( source_filename )
 
-    buildParseTree(
+    module_body = buildParseTree(
         provider    = result,
         source_code = source_code,
-        source_ref  = source_ref
+        source_ref  = source_ref,
+        is_module   = True
     )
+
+    result.setBody( module_body )
 
     addImportedModule( Utils.relpath( filename ), result )
 

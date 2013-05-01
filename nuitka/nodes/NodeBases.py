@@ -703,11 +703,8 @@ class ClosureTakerMixin:
 
         return self.addClosureVariable( result )
 
-    def addClosureVariable( self, variable, global_statement = False ):
+    def addClosureVariable( self, variable ):
         variable = variable.makeReference( self )
-
-        if variable.isModuleVariable() and global_statement:
-            variable.markFromGlobalStatement()
 
         self.taken.add( variable )
 
