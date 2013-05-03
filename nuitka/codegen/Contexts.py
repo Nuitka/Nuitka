@@ -20,11 +20,9 @@
 """
 
 from .Identifiers import (
-    Identifier,
+    SpecialConstantIdentifier,
     ConstantIdentifier,
-    LocalVariableIdentifier,
-    ClosureVariableIdentifier,
-    SpecialConstantIdentifier
+    Identifier
 )
 
 from .Namify import namifyConstant
@@ -67,13 +65,16 @@ class PythonContextBase:
 
         self.call_temp_count = 0
 
+    def isPythonModule( self ):
+        return False
+
+    def hasLocalsDict( self ):
+        return False
+
     def allocateTryNumber( self ):
         self.try_count += 1
 
         return self.try_count
-
-    def hasLocalsDict( self ):
-        return False
 
     def setTryFinallyCount( self, value ):
         self.try_finally_counts.append( value )
@@ -111,9 +112,6 @@ class PythonChildContextBase( PythonContextBase ):
     def addMakeDictUse( self, value ):
         self.parent.addMakeDictUse( value )
 
-    def getParent( self ):
-        return self.parent
-
     def getConstantHandle( self, constant ):
         return self.parent.getConstantHandle( constant )
 
@@ -143,7 +141,6 @@ class PythonChildContextBase( PythonContextBase ):
             is_generator  = is_generator,
             is_optimized  = is_optimized
         )
-
 
 def _getConstantDefaultPopulation():
     result = (
@@ -380,14 +377,14 @@ class PythonModuleContext( PythonContextBase ):
     def __repr__( self ):
         return "<PythonModuleContext instance for module %s>" % self.filename
 
+    def isPythonModule( self ):
+        return True
+
     def getFrameHandle( self ):
         return Identifier( "frame_guard.getFrame()", 1 )
 
     def getFrameGuardClass( self ):
         return "FrameGuard"
-
-    def getParent( self ):
-        return None
 
     def getConstantHandle( self, constant ):
         return self.global_context.getConstantHandle( constant )
@@ -469,13 +466,13 @@ class PythonModuleContext( PythonContextBase ):
         return "return MOD_RETURN_VALUE( _module_%s );" % self.getModuleCodeName()
 
 
+
+
 class PythonFunctionContext( PythonChildContextBase ):
     def __init__( self, parent, function ):
         PythonChildContextBase.__init__( self, parent = parent )
 
         self.function = function
-
-        self.needs_creation = function.needsCreation()
 
         # Make sure the local names are available as constants
         for local_name in function.getLocalVariableNames():
@@ -490,6 +487,9 @@ class PythonFunctionContext( PythonChildContextBase ):
             "function" if not self.function.isClassDictCreation() else "class",
             self.function.getName()
         )
+
+    def getFunction( self ):
+        return self.function
 
     def hasLocalsDict( self ):
         return self.function.hasLocalsDict()
@@ -522,21 +522,6 @@ class PythonFunctionContext( PythonChildContextBase ):
         else:
             assert False, (self, self.guard_mode)
 
-    def getLocalHandle( self, var_name ):
-        return LocalVariableIdentifier( var_name, from_context = self.function.isGenerator() )
-
-    def getClosureHandle( self, var_name ):
-        if self.needs_creation:
-            if self.function.isGenerator():
-                return ClosureVariableIdentifier( var_name, from_context = "_python_context->common_context->" )
-            else:
-                return ClosureVariableIdentifier( var_name, from_context = "_python_context->" )
-        else:
-            if self.function.isGenerator():
-                return ClosureVariableIdentifier( var_name, from_context = "_python_context->" )
-            else:
-                return ClosureVariableIdentifier( var_name, from_context = "" )
-
     def addTempKeeperUsage( self, variable_name, ref_count ):
         self.temp_keepers[ variable_name ] = ref_count
 
@@ -567,3 +552,45 @@ class PythonFunctionCreatedContext( PythonFunctionContext ):
 
     def isForCreatedFunction( self ):
         return True
+
+class PythonStatementContext( PythonChildContextBase ):
+
+    def getFrameHandle( self ):
+        return self.parent.getFrameHandle()
+
+    def getFrameGuardClass( self ):
+        return self.parent.getFrameGuardClass()
+
+    def hasLocalsDict( self ):
+        return self.parent.hasLocalsDict()
+
+    def isPythonModule( self ):
+        return self.parent.isPythonModule()
+
+    def getFunction( self ):
+        return self.parent.getFunction()
+
+    def addTempKeeperUsage( self, variable_name, ref_count ):
+        # TODO: Store these locally, that is our task.
+        return self.parent.addTempKeeperUsage( variable_name, ref_count )
+
+    def allocateCallTempNumber( self ):
+        return self.parent.allocateCallTempNumber()
+
+    def getTempKeeperRefCount( self, variable_name ):
+        return self.parent.getTempKeeperRefCount( variable_name )
+
+    def getTempKeeperUsages( self ):
+        return self.parent.getTempKeeperUsages()
+
+    def allocateTryNumber( self ):
+        return self.parent.allocateTryNumber()
+
+    def setTryFinallyCount( self, value ):
+        self.parent.setTryFinallyCount( value )
+
+    def removeFinallyCount( self ):
+        self.parent.removeFinallyCount()
+
+    def getTryFinallyCount( self ):
+        return self.parent.getTryFinallyCount()

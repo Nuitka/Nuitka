@@ -932,7 +932,9 @@ def _getAssignmentTempKeeperCode( source_identifier, variable_name, context ):
     return Identifier(
         "%s.assign( %s )" % (
             variable_name,
-            source_identifier.getCodeExportRef() if ref_count else source_identifier.getCodeTemporaryRef()
+            source_identifier.getCodeExportRef()
+              if ref_count else
+            source_identifier.getCodeTemporaryRef()
         ),
         0
     )
@@ -1427,7 +1429,7 @@ def getFutureFlagsCode( future_spec ):
 
 def getEvalCode( context, exec_code, filename_identifier, globals_identifier,
                  locals_identifier, mode_identifier, future_flags, provider ):
-    if context.getParent() is None:
+    if context.isPythonModule():
         return Identifier(
             CodeTemplates.eval_global_template % {
                 "globals_identifier"      : globals_identifier.getCodeTemporaryRef(),
@@ -1471,7 +1473,7 @@ def getExecCode( context, exec_code, globals_identifier, locals_identifier, futu
         context = context
     )
 
-    if context.getParent() is None:
+    if context.isPythonModule():
         return CodeTemplates.exec_global_template % {
             "globals_identifier"      : globals_identifier.getCodeExportRef(),
             "locals_identifier"       : locals_identifier.getCodeExportRef(),
@@ -1506,7 +1508,6 @@ def getExecCode( context, exec_code, globals_identifier, locals_identifier, futu
                 constant = "<string at %s>" % source_ref.getAsString(),
                 context  = context
             )
-
 
         return CodeTemplates.exec_local_template % {
             "globals_identifier"      : globals_identifier.getCodeExportRef(),

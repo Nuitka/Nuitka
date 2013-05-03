@@ -22,8 +22,10 @@
 from nuitka import Variables
 
 from .Identifiers import (
-    ModuleVariableIdentifier,
     MaybeModuleVariableIdentifier,
+    ClosureVariableIdentifier,
+    ModuleVariableIdentifier,
+    LocalVariableIdentifier,
     TempVariableIdentifier,
     TempObjectIdentifier,
     encodeNonAscii
@@ -37,8 +39,9 @@ def getVariableHandle( context, variable ):
     var_name = variable.getName()
 
     if variable.isLocalVariable() or variable.isClassVariable():
-        return context.getLocalHandle(
-            var_name = var_name
+        return LocalVariableIdentifier(
+            var_name     = var_name,
+            from_context = context.getFunction().isGenerator()
         )
     elif variable.isTempVariableReference():
         if not variable.getOwner().isStatementTempBlock():
@@ -53,13 +56,30 @@ def getVariableHandle( context, variable ):
                 var_name = var_name
             )
     elif variable.isClosureReference():
-        return context.getClosureHandle(
-            var_name = var_name
+        function = context.getFunction()
+
+        # Context access is variant depending on if that's a created function or
+        # not. For generators, they even share closure variables in the common
+        # context.
+        if function.needsCreation():
+            if function.isGenerator():
+                from_context = "_python_context->common_context->"
+            else:
+                from_context = "_python_context->"
+        else:
+            if function.isGenerator():
+                from_context = "_python_context->"
+            else:
+                from_context = ""
+
+        return ClosureVariableIdentifier(
+            var_name     = var_name,
+            from_context = from_context
         )
     elif variable.isMaybeLocalVariable():
         context.addGlobalVariableNameUsage( var_name )
 
-        assert context.hasLocalsDict(), context
+        assert context.getFunction().hasLocalsDict(), context
 
         return MaybeModuleVariableIdentifier(
             var_name         = var_name,

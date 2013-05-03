@@ -285,8 +285,10 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
     if function_identifier in _generated_functions:
         return _generated_functions[ function_identifier ]
 
-    # TODO: Actually that will become possible to happen and should be dealt with.
-    assert not function_body.needsCreation() or not function_body.needsDirectCall(), function_body
+    # TODO: Actually that will become possible to happen and should be dealt
+    # with.
+    assert not function_body.needsCreation() or \
+           not function_body.needsDirectCall(), function_body
 
     if function_body.needsCreation():
         function_context = Contexts.PythonFunctionCreatedContext(
@@ -1725,7 +1727,9 @@ def generateReturnCode( statement, context ):
 
 def generateStatementCode( statement, context ):
     try:
-        return _generateStatementCode( statement, context )
+        statement_context = Contexts.PythonStatementContext( context )
+
+        return _generateStatementCode( statement, statement_context )
     except:
         Tracing.printError( "Problem with %r at %s" % ( statement, statement.getSourceReference() ) )
         raise
