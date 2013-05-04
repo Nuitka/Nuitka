@@ -401,9 +401,6 @@ MOD_INIT_DECL( %(module_identifier)s )
 #endif
 #endif
 
-    // Temporary variables if any
-%(module_inits)s
-
     // Module code
 %(module_code)s
 

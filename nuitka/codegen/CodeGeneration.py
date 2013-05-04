@@ -351,7 +351,6 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
             parameters             = parameters,
             closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
-            tmp_keepers            = function_context.getTempKeeperUsages(),
             defaults_identifier    = defaults_identifier,
             kw_defaults_identifier = kw_defaults_identifier,
             annotations_identifier = annotations_identifier,
@@ -368,7 +367,6 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
             parameters             = parameters,
             closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
-            tmp_keepers            = function_context.getTempKeeperUsages(),
             defaults_identifier    = defaults_identifier,
             kw_defaults_identifier = kw_defaults_identifier,
             annotations_identifier = annotations_identifier,
@@ -1729,7 +1727,15 @@ def generateStatementCode( statement, context ):
     try:
         statement_context = Contexts.PythonStatementContext( context )
 
-        return _generateStatementCode( statement, statement_context )
+        result = _generateStatementCode( statement, statement_context )
+        local_inits = Generator.getTempKeeperDecl( statement_context )
+
+        if local_inits:
+            return Generator.getBlockCode(
+                local_inits + [ result ]
+            )
+        else:
+            return result
     except:
         Tracing.printError( "Problem with %r at %s" % ( statement, statement.getSourceReference() ) )
         raise
@@ -2062,7 +2068,6 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
     source_code = Generator.getModuleCode(
         module_name        = module_name,
         codes              = codes,
-        tmp_keepers        = context.getTempKeeperUsages(),
         other_module_names = [
             other_module.getFullName()
             for other_module in

@@ -370,8 +370,6 @@ class PythonModuleContext( PythonContextBase ):
 
         self.global_var_names = set()
 
-        self.temp_keepers = {}
-
         self.export_declarations = []
 
     def __repr__( self ):
@@ -447,15 +445,6 @@ class PythonModuleContext( PythonContextBase ):
     def addExportDeclarations( self, declarations ):
         self.export_declarations.append( declarations )
 
-    def addTempKeeperUsage( self, variable_name, ref_count ):
-        self.temp_keepers[ variable_name ] = ref_count
-
-    def getTempKeeperRefCount( self, variable_name ):
-        return self.temp_keepers[ variable_name ]
-
-    def getTempKeeperUsages( self ):
-        return self.temp_keepers
-
     def getExportDeclarations( self ):
         return "\n".join( self.export_declarations )
 
@@ -477,8 +466,6 @@ class PythonFunctionContext( PythonChildContextBase ):
         # Make sure the local names are available as constants
         for local_name in function.getLocalVariableNames():
             self.getConstantHandle( constant = local_name )
-
-        self.temp_keepers = {}
 
         self.guard_mode = None
 
@@ -522,15 +509,6 @@ class PythonFunctionContext( PythonChildContextBase ):
         else:
             assert False, (self, self.guard_mode)
 
-    def addTempKeeperUsage( self, variable_name, ref_count ):
-        self.temp_keepers[ variable_name ] = ref_count
-
-    def getTempKeeperRefCount( self, variable_name ):
-        return self.temp_keepers[ variable_name ]
-
-    def getTempKeeperUsages( self ):
-        return self.temp_keepers
-
 
 class PythonFunctionDirectContext( PythonFunctionContext ):
     def isForDirectCall( self ):
@@ -554,6 +532,10 @@ class PythonFunctionCreatedContext( PythonFunctionContext ):
         return True
 
 class PythonStatementContext( PythonChildContextBase ):
+    def __init__( self, parent ):
+        PythonChildContextBase.__init__( self, parent = parent )
+
+        self.temp_keepers = {}
 
     def getFrameHandle( self ):
         return self.parent.getFrameHandle()
@@ -570,18 +552,17 @@ class PythonStatementContext( PythonChildContextBase ):
     def getFunction( self ):
         return self.parent.getFunction()
 
-    def addTempKeeperUsage( self, variable_name, ref_count ):
-        # TODO: Store these locally, that is our task.
-        return self.parent.addTempKeeperUsage( variable_name, ref_count )
-
     def allocateCallTempNumber( self ):
         return self.parent.allocateCallTempNumber()
 
+    def addTempKeeperUsage( self, variable_name, ref_count ):
+        self.temp_keepers[ variable_name ] = ref_count
+
     def getTempKeeperRefCount( self, variable_name ):
-        return self.parent.getTempKeeperRefCount( variable_name )
+        return self.temp_keepers[ variable_name ]
 
     def getTempKeeperUsages( self ):
-        return self.parent.getTempKeeperUsages()
+        return self.temp_keepers
 
     def allocateTryNumber( self ):
         return self.parent.allocateTryNumber()

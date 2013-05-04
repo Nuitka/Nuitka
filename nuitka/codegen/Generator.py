@@ -947,8 +947,11 @@ def getAssignmentTempKeeperCode( source_identifier, variable, context ):
            ( variable, variable.getReferenced().getNeedsFree(), ref_count,
              source_identifier, source_identifier.__class__ )
 
-
-    return _getAssignmentTempKeeperCode( source_identifier, variable_name, context )
+    return _getAssignmentTempKeeperCode(
+        source_identifier = source_identifier,
+        variable_name     = variable_name,
+        context           = context
+    )
 
 def getTempKeeperHandle( variable, context ):
     variable_name = variable.getName()
@@ -1728,8 +1731,9 @@ def getModuleIdentifier( module_name ):
 def getPackageIdentifier( module_name ):
     return module_name.replace( ".", "__" )
 
-def getModuleCode( context, module_name, codes, tmp_keepers, other_module_names ):
-    # For the module code, lots of attributes come together. pylint: disable=R0914
+def getModuleCode( context, module_name, codes, other_module_names ):
+    # For the module code, lots of attributes come together.
+    # pylint: disable=R0914
 
     functions_decl = getFunctionsDecl( context = context )
     functions_code = getFunctionsCode( context = context )
@@ -1755,12 +1759,6 @@ def getModuleCode( context, module_name, codes, tmp_keepers, other_module_names 
         "version" : Options.getVersion()
     }
 
-    # These are for keeping values during evaluation.
-    module_local_decl = [
-        "PyObjectTempKeeper%s %s;" % ( ref_count, tmp_variable )
-        for tmp_variable, ref_count in sorted( iterItems( tmp_keepers ) )
-    ]
-
     # Create for for "inittab" to use in unfreezing of modules if that is used.
     module_inittab = []
 
@@ -1782,7 +1780,6 @@ def getModuleCode( context, module_name, codes, tmp_keepers, other_module_names 
         "module_functions_decl" : functions_decl,
         "module_functions_code" : functions_code,
         "module_globals"        : module_globals,
-        "module_inits"          : indented( module_local_decl ),
         "module_code"           : indented( codes ),
         "module_inittab"        : indented( sorted( module_inittab ) ),
         "use_unfreezer"         : 1 if other_module_names else 0
@@ -1952,8 +1949,8 @@ def getGeneratorFunctionCode( context, function_name, function_qualname,
                               function_identifier, parameters,
                               closure_variables, user_variables,
                               defaults_identifier, kw_defaults_identifier,
-                              annotations_identifier, tmp_keepers,
-                              function_codes, source_ref, function_doc ):
+                              annotations_identifier, function_codes,
+                              source_ref, function_doc ):
     # We really need this many parameters here. pylint: disable=R0913
 
     # Functions have many details, that we express as variables, with many
@@ -2015,12 +2012,6 @@ def getGeneratorFunctionCode( context, function_name, function_qualname,
                 )
             )
         )
-
-    # These are for keeping values during evaluation.
-    function_var_inits += [
-        "PyObjectTempKeeper%s %s;" % ( ref_count, tmp_variable )
-        for tmp_variable, ref_count in sorted( iterItems( tmp_keepers ) )
-    ]
 
     for closure_variable in closure_variables:
         assert closure_variable.isShared()
@@ -2229,9 +2220,16 @@ def getGeneratorFunctionCode( context, function_name, function_qualname,
 
     return result
 
+def getTempKeeperDecl( context ):
+    tmp_keepers = context.getTempKeeperUsages()
+    return [
+        "PyObjectTempKeeper%s %s;" % ( ref_count, tmp_variable )
+        for tmp_variable, ref_count in sorted( iterItems( tmp_keepers ) )
+    ]
+
 def getFunctionCode( context, function_name, function_qualname,
                      function_identifier, parameters, closure_variables,
-                     user_variables, tmp_keepers, defaults_identifier,
+                     user_variables, defaults_identifier,
                      kw_defaults_identifier, annotations_identifier,
                      function_codes, source_ref, function_doc ):
     # We really need this many parameters here.
@@ -2292,12 +2290,6 @@ def getFunctionCode( context, function_name, function_qualname,
         )
         for variable in
         user_variables
-    ]
-
-    # These are for keeping values during evaluation.
-    local_var_inits += [
-        "PyObjectTempKeeper%s %s;" % ( ref_count, tmp_variable )
-        for tmp_variable, ref_count in sorted( iterItems( tmp_keepers ) )
     ]
 
     function_doc = getConstantCode(
