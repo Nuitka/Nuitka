@@ -1805,9 +1805,11 @@ def getMainCode( codes, code_identifier, context ):
     if code_identifier is None:
         code_identifier = NullIdentifier()
 
-    main_code = CodeTemplates.main_program % {
+    main_code        = CodeTemplates.main_program % {
         "sys_executable"       : getConstantCode(
-            constant = "python.exe" if Options.isWindowsTarget() else sys.executable,
+            constant = "python.exe"
+                         if Options.isWindowsTarget()
+                       else sys.executable,
             context  = context
         ),
         "python_sysflag_debug" : sys.flags.debug,
@@ -1946,15 +1948,16 @@ def _getFuncKwDefaultValue( kw_defaults_identifier ):
     else:
         return Identifier( "kwdefaults", 1 )
 
-def getGeneratorFunctionCode( context, function_name, function_qualname, function_identifier,
-                              parameters, closure_variables, user_variables,
+def getGeneratorFunctionCode( context, function_name, function_qualname,
+                              function_identifier, parameters,
+                              closure_variables, user_variables,
                               defaults_identifier, kw_defaults_identifier,
                               annotations_identifier, tmp_keepers,
                               function_codes, source_ref, function_doc ):
-    # We really need this many parameters here.  pylint: disable=R0913
+    # We really need this many parameters here. pylint: disable=R0913
 
-    # Functions have many details, that we express as variables, with many branches to
-    # decide, pylint: disable=R0912,R0914,R0915
+    # Functions have many details, that we express as variables, with many
+    # branches to decide, pylint: disable=R0912,R0914,R0915
 
     parameter_variables, entry_point_code, parameter_objects_decl, mparse_identifier = getParameterParsingCode(
         function_identifier     = function_identifier,
@@ -2107,11 +2110,11 @@ def getGeneratorFunctionCode( context, function_name, function_qualname, functio
     if context_decl or instance_context_decl:
         if context_decl:
             context_making = CodeTemplates.genfunc_common_context_use_template % {
-                "function_identifier"        : function_identifier,
+                "function_identifier" : function_identifier,
             }
         else:
             context_making = CodeTemplates.genfunc_local_context_use_template  % {
-                "function_identifier"        : function_identifier,
+                "function_identifier" : function_identifier,
             }
 
         context_making = context_making.split( "\n" )
@@ -2226,9 +2229,10 @@ def getGeneratorFunctionCode( context, function_name, function_qualname, functio
 
     return result
 
-def getFunctionCode( context, function_name, function_qualname, function_identifier,
-                     parameters, closure_variables, user_variables, tmp_keepers,
-                     defaults_identifier, kw_defaults_identifier, annotations_identifier,
+def getFunctionCode( context, function_name, function_qualname,
+                     function_identifier, parameters, closure_variables,
+                     user_variables, tmp_keepers, defaults_identifier,
+                     kw_defaults_identifier, annotations_identifier,
                      function_codes, source_ref, function_doc ):
     # We really need this many parameters here.
     # pylint: disable=R0913
@@ -2237,11 +2241,11 @@ def getFunctionCode( context, function_name, function_qualname, function_identif
     # decide, pylint: disable=R0912,R0914
 
     parameter_variables, entry_point_code, parameter_objects_decl, mparse_identifier = getParameterParsingCode(
-        function_identifier     = function_identifier,
-        function_name           = function_name,
-        parameters              = parameters,
-        needs_creation          = context.isForCreatedFunction(),
-        context                 = context,
+        function_identifier = function_identifier,
+        function_name       = function_name,
+        parameters          = parameters,
+        needs_creation      = context.isForCreatedFunction(),
+        context             = context,
     )
 
     context_decl = []
@@ -2478,8 +2482,8 @@ def getReversionMacrosCode( context ):
         reverse_macros.append( reverse_macro.rstrip() )
 
         noreverse_macro = CodeTemplates.template_noreverse_macro % {
-            "count"    : value,
-            "args"     : ", ".join(
+            "count" : value,
+            "args"  : ", ".join(
                 "arg%s" % (d+1) for d in range( value )
             )
         }
@@ -2512,16 +2516,16 @@ def getMakeTuplesCode( context ):
 
         make_tuples_codes.append(
             CodeTemplates.template_make_tuple_function % {
-                "argument_count"             : arg_count,
-                "args"                       : ", ".join(
+                "argument_count"    : arg_count,
+                "args"              : ", ".join(
                     "arg%s" % (arg_index+1) for arg_index in range( arg_count )
                 ),
-                "argument_decl"              : ", ".join(
+                "argument_decl"     : ", ".join(
                     "PyObject *element%d" % arg_index
                     for arg_index in
                     range( arg_count )
                 ),
-                "add_elements_code"          : "\n".join( add_elements_code ),
+                "add_elements_code" : "\n".join( add_elements_code ),
             }
         )
 
@@ -2546,16 +2550,16 @@ def getMakeListsCode( context ):
 
         make_lists_codes.append(
             CodeTemplates.template_make_list_function % {
-                "argument_count"             : arg_count,
-                "args"                       : ", ".join(
+                "argument_count"    : arg_count,
+                "args"              : ", ".join(
                     "arg%s" % (arg_index+1) for arg_index in range( arg_count )
                 ),
-                "argument_decl"              : ", ".join(
+                "argument_decl"     : ", ".join(
                     "PyObject *element%d" % arg_index
                     for arg_index in
                     range( arg_count )
                 ),
-                "add_elements_code"          : "\n".join( add_elements_code ),
+                "add_elements_code" : "\n".join( add_elements_code ),
             }
         )
 
@@ -2580,19 +2584,23 @@ def getMakeDictsCode( context ):
 
         make_dicts_codes.append(
             CodeTemplates.template_make_dict_function % {
-                "pair_count"                 : arg_count,
-                "argument_count"             : arg_count * 2,
-                "args"                       : ", ".join(
-                    "value%(index)d, key%(index)d" % { "index" : (arg_index+1) }
+                "pair_count"        : arg_count,
+                "argument_count"    : arg_count * 2,
+                "args"              : ", ".join(
+                    "value%(index)d, key%(index)d" % {
+                        "index" : (arg_index+1)
+                    }
                     for arg_index in
                     range( arg_count )
                 ),
-                "argument_decl"              : ", ".join(
-                    "PyObject *value%(index)d, PyObject *key%(index)d" % { "index" : (arg_index+1) }
+                "argument_decl"     : ", ".join(
+                    "PyObject *value%(index)d, PyObject *key%(index)d" % {
+                        "index" : (arg_index+1)
+                    }
                     for arg_index in
                     range( arg_count )
                 ),
-                "add_elements_code"          : "\n".join( add_elements_code ),
+                "add_elements_code" : "\n".join( add_elements_code ),
             }
         )
 
@@ -2688,14 +2696,16 @@ def getDictOperationRemoveCode( dict_identifier, key_identifier ):
     )
 
 def getFrameLocalsUpdateCode( locals_identifier ):
-    if locals_identifier.isConstantIdentifier() and locals_identifier.getConstant() == {}:
+    if locals_identifier.isConstantIdentifier() and \
+         locals_identifier.getConstant() == {}:
         return ""
     else:
         return CodeTemplates.template_frame_locals_update % {
             "locals_identifier" : locals_identifier.getCodeExportRef()
         }
 
-def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes, locals_code, context ):
+def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes,
+                            locals_code, context ):
     if context.isForDirectCall():
         return_code = CodeTemplates.frame_guard_cpp_return
     else:
@@ -2713,7 +2723,8 @@ def getFrameGuardHeavyCode( frame_identifier, code_identifier, codes, locals_cod
         "return_code"       : return_code
     }
 
-def getFrameGuardOnceCode( frame_identifier, code_identifier, locals_identifier, codes, context ):
+def getFrameGuardOnceCode( frame_identifier, code_identifier, locals_identifier,
+                           codes, context ):
     tb_making = getTracebackMakingIdentifier( context )
 
     return CodeTemplates.frame_guard_once_template % {
