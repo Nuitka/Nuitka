@@ -20,25 +20,20 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from .Identifiers import getCodeTemporaryRefs, CallIdentifier
+from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
 
-def getDictionaryCreationCode( context, keys, values ):
-    key_codes = getCodeTemporaryRefs( keys )
-    value_codes = getCodeTemporaryRefs( values )
+def getDictionaryCreationCode( context, order_relevance, args_identifiers ):
+    assert len( args_identifiers ) % 2 == 0
 
-    arg_codes = []
-
-    # Strange as it is, CPython evalutes the key/value pairs strictly in order, but for
-    # each pair, the value first.
-    for key_code, value_code in zip( key_codes, value_codes ):
-        arg_codes.append( value_code )
-        arg_codes.append( key_code )
-
-    args_length = len( keys )
-
+    args_length = len( args_identifiers ) // 2
     context.addMakeDictUse( args_length )
 
-    return CallIdentifier(
-        called  = "MAKE_DICT%d" % args_length,
-        args    = arg_codes
+    return getOrderRelevanceEnforcedArgsCode(
+        helper          = "MAKE_DICT%d" % args_length,
+        export_ref      = 0,
+        ref_count       = 1,
+        tmp_scope       = "make_dict",
+        order_relevance = order_relevance,
+        args            = args_identifiers,
+        context         = context
     )

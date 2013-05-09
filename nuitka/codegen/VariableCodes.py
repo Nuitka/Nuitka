@@ -105,7 +105,8 @@ def getVariableCode( context, variable ):
 
     return var_identifier.getCode()
 
-def getLocalVariableInitCode( context, variable, init_from = None, in_context = False ):
+def getLocalVariableInitCode( context, variable, init_from = None,
+                              in_context = False ):
     # This has many cases to deal with, so there need to be a lot of branches.
     # pylint: disable=R0912
 

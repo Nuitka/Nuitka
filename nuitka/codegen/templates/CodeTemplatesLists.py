@@ -20,9 +20,7 @@
 """
 
 template_make_list_function = """\
-#define MAKE_LIST%(argument_count)d( %(args)s ) _MAKE_LIST%(argument_count)d( EVAL_ORDERED_%(argument_count)d( %(args)s ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_LIST%(argument_count)d( EVAL_ORDERED_%(argument_count)d( %(argument_decl)s ) )
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_LIST%(argument_count)d( %(argument_decl)s )
 {
     PyObject *result = PyList_New( %(argument_count)d );
 

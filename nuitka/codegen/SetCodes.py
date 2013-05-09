@@ -24,8 +24,9 @@ from .Identifiers import CallIdentifier
 
 from .TupleCodes import getTupleCreationCode
 
-def getSetCreationCode( context, element_identifiers ):
+def getSetCreationCode( context, order_relevance, element_identifiers ):
     tuple_identifier = getTupleCreationCode(
+        order_relevance     = order_relevance,
         element_identifiers = element_identifiers,
         context             = context
     )

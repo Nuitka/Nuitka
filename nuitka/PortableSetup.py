@@ -16,6 +16,7 @@
 #     limitations under the License.
 #
 """ Pack and copy files for portable mode.
+
 usage: PortableSetup.py mainscript outputdir
 
 """
@@ -24,10 +25,11 @@ import sys
 import os
 import zipfile
 
-LibraryArchiveName = "_python.zip"
-LibraryDirectoryName = "_python"
-PythonMIMETypes = ( ".py", ".pyc", ".pyo" )
-BuiltinModuleNames = list( sys.builtin_module_names ) + [ "_io" ]
+python_library_archive_name = "_python.zip"
+python_dll_dir_name = "_python"
+
+python_executable_suffixes = ( ".py", ".pyc", ".pyo" )
+builtin_module_names = list( sys.builtin_module_names ) + [ "_io" ]
 
 def importList( *names ):
     for name in names:
@@ -38,7 +40,7 @@ DependencyResolver = {
 }
 
 def isPythonScript( path ):
-    for end in PythonMIMETypes:
+    for end in python_executable_suffixes:
         if path.endswith( end ):
             return 1
     return 0
@@ -97,13 +99,17 @@ def getImportedPathList( imported_dict ):
     imported_list = []
     module_base = os.path.dirname( os.__file__ )
     if os.name == "nt":
-        module_base_dlls = os.path.join( os.path.dirname( sys.executable ), "DLLs" )
+        module_base_dlls = os.path.join(
+            os.path.dirname( sys.executable ),
+            "DLLs"
+        )
     for name, mod in imported_dict.items():
         if not mod:
             continue
         if not hasattr( mod, "__file__" ) or mod.__file__ is None:
-            # builtin module, if mod is modulefinder.Module then __file__ will be None
-            if name not in BuiltinModuleNames:
+            # builtin module, if mod is modulefinder.Module then __file__ will
+            # be None
+            if name not in builtin_module_names:
                 import warnings
                 warnings.warn( "unknown builtin module %s\n" % repr( name ), Warning )
             continue
@@ -123,7 +129,7 @@ def getCopyList( imported_list ):
     for path in imported_list:
         if isPythonScript( path ):
             path_base = path.rsplit( ".", 1 )[0]
-            for end in PythonMIMETypes:
+            for end in python_executable_suffixes:
                 path_pack = path_base + end
                 if os.path.isfile( path_pack ):
                     zip_list.append( path_pack )
@@ -154,9 +160,8 @@ def copyPythonLibrary( outputdir ):
         dst = os.path.join( outputdir, os.path.basename ( src ) )
         copyFile( src, dst )
     else:
-        # TODO: need support bsd and osx here
+        # TODO: Add support for bsd and osx here
         sys.exit( "Error, unsupported platform for portable binaries." )
-
 
 def main( mainscript, outputdir ):
     imported_dict = getImportedDict( mainscript )
@@ -165,15 +170,15 @@ def main( mainscript, outputdir ):
 
     # pack script to archive
     base_length = len( os.path.dirname( os.__file__ ) ) + 1
-    zip_path = os.path.join( outputdir, LibraryArchiveName )
-    zip_file = zipfile.ZipFile( zip_path, "w", zipfile.ZIP_STORED )
-    for path in zip_list:
-        zip_file.write( path, path[ base_length: ] )
-    zip_file.close()
+    zip_path = os.path.join( outputdir, python_library_archive_name )
+
+    with zipfile.ZipFile( zip_path, "w", zipfile.ZIP_STORED ) as zip_file:
+        for path in zip_list:
+            zip_file.write( path, path[ base_length: ] )
 
     # copy extensions to directory
     import shutil
-    library_directory = os.path.join( outputdir, LibraryDirectoryName )
+    library_directory = os.path.join( outputdir, python_dll_dir_name )
     if os.path.isdir( library_directory ):
         shutil.rmtree( library_directory )
     if not os.path.isdir( library_directory ):
@@ -189,11 +194,11 @@ def setup( mainscript, outputdir ):
     # if use this script as module, use this method
     import subprocess
     proc = subprocess.Popen(
-        args = ( sys.executable, __file__, mainscript, outputdir ),
+        args   = ( sys.executable, __file__, mainscript, outputdir ),
         stdout = sys.stdout,
         stderr = sys.stderr,
-        stdin = sys.stdin,
-        shell = 0
+        stdin  = sys.stdin,
+        shell  = 0
     )
     proc.wait()
     return ( proc.poll() == 0 )

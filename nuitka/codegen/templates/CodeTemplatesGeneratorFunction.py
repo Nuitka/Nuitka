@@ -80,7 +80,7 @@ static void _context_generator_%(function_identifier)s_destructor( void *context
 """
 
 make_genfunc_with_context_template = """
-static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
+static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     struct _context_common_%(function_identifier)s_t *_python_context = new _context_common_%(function_identifier)s_t;
     _python_context->ref_count = 1;
@@ -110,7 +110,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
 """
 
 make_genfunc_without_context_template = """
-static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
+static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     return Nuitka_Function_New(
         %(fparse_function_identifier)s,

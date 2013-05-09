@@ -20,18 +20,24 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from .Identifiers import getCodeTemporaryRefs, CallIdentifier, ConstantIdentifier
+from .Identifiers import ConstantIdentifier
 
-def getTupleCreationCode( context, element_identifiers ):
+from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
+
+def getTupleCreationCode( context, order_relevance, element_identifiers ):
     if len( element_identifiers ) == 0:
         return ConstantIdentifier( "_python_tuple_empty", () )
 
-    arg_codes = getCodeTemporaryRefs( element_identifiers )
     args_length = len( element_identifiers )
 
     context.addMakeTupleUse( args_length )
 
-    return CallIdentifier(
-        called  = "MAKE_TUPLE%d" % args_length,
-        args    = arg_codes
+    return getOrderRelevanceEnforcedArgsCode(
+        helper          = "MAKE_TUPLE%d" % args_length,
+        export_ref      = 0,
+        ref_count       = 1,
+        tmp_scope       = "make_tuple",
+        order_relevance = order_relevance,
+        args            = element_identifiers,
+        context         = context
     )

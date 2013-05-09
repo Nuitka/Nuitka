@@ -37,3 +37,9 @@ def indented( codes, level = 1, vert_block = False ):
         codes.append( "" )
 
     return _indentedCode( codes, level * 4 )
+
+def getBlockCode( codes ):
+    if type( codes ) is str:
+        assert codes == codes.rstrip(), codes
+
+    return "{\n%s\n}" % indented( codes )

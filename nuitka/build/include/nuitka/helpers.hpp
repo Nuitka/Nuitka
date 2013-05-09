@@ -22,8 +22,6 @@
 #define _DEBUG_FRAME 0
 #define _DEBUG_REFRAME 0
 
-#include "nuitka/eval_order.hpp"
-
 extern PyObject *_python_tuple_empty;
 extern PyObject *_python_str_plain___dict__;
 extern PyObject *_python_str_plain___class__;
@@ -187,8 +185,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT( PyObject *value )
     return result;
 }
 
-#define TO_INT2( value, base ) _TO_INT2( EVAL_ORDERED_2( value, base ) )
-NUITKA_MAY_BE_UNUSED static PyObject *_TO_INT2( EVAL_ORDERED_2( PyObject *value, PyObject *base ) )
+NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
 {
     int base_int = PyInt_AsLong( base );
 
@@ -226,8 +223,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG( PyObject *value )
     return result;
 }
 
-#define TO_LONG2( value, base ) _TO_LONG2( EVAL_ORDERED_2( value, base ) )
-NUITKA_MAY_BE_UNUSED static PyObject *_TO_LONG2( EVAL_ORDERED_2( PyObject *value, PyObject *base ) )
+NUITKA_MAY_BE_UNUSED static PyObject *TO_LONG2( PyObject *value, PyObject *base )
 {
     int base_int = PyInt_AsLong( base );
 
@@ -282,8 +278,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE( PyObject *value )
     return result;
 }
 
-#define TO_UNICODE3( value, encoding, errors ) _TO_UNICODE3( EVAL_ORDERED_3( value, encoding, errors ) )
-NUITKA_MAY_BE_UNUSED static PyObject *_TO_UNICODE3( EVAL_ORDERED_3( PyObject *value, PyObject *encoding, PyObject *errors ) )
+NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *encoding, PyObject *errors )
 {
     assertObject( encoding );
 
@@ -503,8 +498,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
 }
 
 
-#define BUILTIN_NEXT2( iterator, default_value ) _BUILTIN_NEXT2( EVAL_ORDERED_2( iterator, default_value ) )
-NUITKA_MAY_BE_UNUSED static PyObject *_BUILTIN_NEXT2( EVAL_ORDERED_2( PyObject *iterator, PyObject *default_value ) )
+NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObject *default_value )
 {
     assertObject( iterator );
     assertObject( default_value );
@@ -950,8 +944,7 @@ static void SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
 }
 #endif
 
-#define SET_ATTRIBUTE( value, target, attr_name ) _SET_ATTRIBUTE( EVAL_ORDERED_3( value, target, attr_name ) )
-NUITKA_MAY_BE_UNUSED static void _SET_ATTRIBUTE( EVAL_ORDERED_3( PyObject *value, PyObject *target, PyObject *attr_name ) )
+NUITKA_MAY_BE_UNUSED static void SET_ATTRIBUTE( PyObject *value, PyObject *target, PyObject *attr_name )
 {
     assertObject( target );
     assertObject( attr_name );
@@ -1062,9 +1055,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject
     throw PythonException();
 }
 
-// Necessary to abstract the with statement lookup difference between pre-Python2.7 and
-// others. Since Python 2.7 the code does no full attribute lookup anymore, but instead
-// treats enter and exit as specials.
+// Necessary to abstract the with statement lookup difference between
+// pre-Python2.7 and others. Since Python 2.7 the code does no full attribute
+// lookup anymore, but instead treats enter and exit as specials.
 NUITKA_MAY_BE_UNUSED static inline PyObject *LOOKUP_WITH_ENTER( PyObject *source )
 {
 #if PYTHON_VERSION < 270
@@ -1179,8 +1172,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 extern PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, int flags );
 
 // For quicker builtin open() functionality.
-#define OPEN_FILE( file_name, mode, buffer ) _OPEN_FILE( EVAL_ORDERED_3( file_name, mode, buffer ) )
-extern PyObject *_OPEN_FILE( EVAL_ORDERED_3( PyObject *file_name, PyObject *mode, PyObject *buffering ) );
+extern PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering );
 
 // For quicker builtin chr() functionality.
 extern PyObject *BUILTIN_CHR( PyObject *value );
@@ -1201,21 +1193,18 @@ extern PyObject *BUILTIN_HEX( PyObject *value );
 extern PyObject *BUILTIN_CALLABLE( PyObject *value );
 
 // For quicker iter() functionality if 2 arguments arg given.
-#define BUILTIN_ITER2( callable, sentinel ) _BUILTIN_ITER2( EVAL_ORDERED_2( callable, sentinel ) )
-extern PyObject *_BUILTIN_ITER2( EVAL_ORDERED_2( PyObject *callable, PyObject *sentinel ) );
+extern PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel );
 
 // For quicker type() functionality if 1 argument is given.
 extern PyObject *BUILTIN_TYPE1( PyObject *arg );
 
-// For quicker type() functionality if 3 arguments are given (to build a new type).
-#define BUILTIN_TYPE3( module_name, name, bases, dict ) _BUILTIN_TYPE3( EVAL_ORDERED_4( module_name, name, bases, dict ) )
-extern PyObject *_BUILTIN_TYPE3( EVAL_ORDERED_4( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict ) );
+// For quicker type() functionality if 3 arguments are given (to build a new
+// type).
+extern PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict );
 
 // For quicker builtin range() functionality.
-#define BUILTIN_RANGE3( low, high, step ) _BUILTIN_RANGE3( EVAL_ORDERED_3( low, high, step ) )
-extern PyObject *_BUILTIN_RANGE3( EVAL_ORDERED_3( PyObject *low, PyObject *high, PyObject *step ) );
-#define BUILTIN_RANGE2( low, high ) _BUILTIN_RANGE2( EVAL_ORDERED_2( low, high ) )
-extern PyObject *_BUILTIN_RANGE2( EVAL_ORDERED_2( PyObject *low, PyObject *high ) );
+extern PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step );
+extern PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high );
 extern PyObject *BUILTIN_RANGE( PyObject *boundary );
 
 // For quicker builtin len() functionality.
@@ -1225,23 +1214,18 @@ extern PyObject *BUILTIN_LEN( PyObject *boundary );
 extern PyObject *BUILTIN_DIR1( PyObject *arg );
 
 // For quicker builtin super() functionality.
-#define BUILTIN_SUPER( type, object ) _BUILTIN_SUPER( EVAL_ORDERED_2( type, object ) )
-extern PyObject *_BUILTIN_SUPER( EVAL_ORDERED_2( PyObject *type, PyObject *object ) );
+extern PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object );
 
 // For quicker isinstance() functionality.
-#define BUILTIN_ISINSTANCE( inst, cls ) _BUILTIN_ISINSTANCE( EVAL_ORDERED_2( inst, cls ) )
-extern PyObject *_BUILTIN_ISINSTANCE( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) );
+extern PyObject *BUILTIN_ISINSTANCE( PyObject *inst, PyObject *cls );
 
-#define BUILTIN_ISINSTANCE_BOOL( inst, cls ) _BUILTIN_ISINSTANCE_BOOL( EVAL_ORDERED_2( inst, cls ) )
-extern bool _BUILTIN_ISINSTANCE_BOOL( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) );
+extern bool BUILTIN_ISINSTANCE_BOOL( PyObject *inst, PyObject *cls );
 
 // For quicker getattr() functionality.
-#define BUILTIN_GETATTR( object, attribute, default_value ) _BUILTIN_GETATTR( EVAL_ORDERED_3( object, attribute, default_value ) )
-extern PyObject *_BUILTIN_GETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *default_value ) );
+extern PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObject *default_value );
 
 // For quicker setattr() functionality.
-#define BUILTIN_SETATTR( object, attribute, value ) _BUILTIN_SETATTR( EVAL_ORDERED_3( object, attribute, value ) )
-extern void _BUILTIN_SETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *value ) );
+extern void BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *value );
 
 extern PyObject *_python_str_plain___builtins__;
 

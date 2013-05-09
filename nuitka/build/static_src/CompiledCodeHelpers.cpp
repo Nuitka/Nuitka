@@ -87,7 +87,7 @@ extern PyObject *_python_str_plain_open;
 
 static PythonBuiltin _python_builtin_open( &_python_str_plain_open );
 
-PyObject *_OPEN_FILE( EVAL_ORDERED_3( PyObject *file_name, PyObject *mode, PyObject *buffering ) )
+PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
 {
     if ( file_name == NULL )
     {
@@ -328,7 +328,7 @@ typedef struct {
     PyObject *it_sentinel;
 } calliterobject;
 
-PyObject *_BUILTIN_ITER2( EVAL_ORDERED_2( PyObject *callable, PyObject *sentinel ) )
+PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel )
 {
     calliterobject *result = PyObject_GC_New( calliterobject, &PyCallIter_Type );
 
@@ -338,8 +338,8 @@ PyObject *_BUILTIN_ITER2( EVAL_ORDERED_2( PyObject *callable, PyObject *sentinel
     }
 
     // Note: References were taken at call site already.
-    result->it_callable = callable;
-    result->it_sentinel = sentinel;
+    result->it_callable = INCREASE_REFCOUNT( callable );
+    result->it_sentinel = INCREASE_REFCOUNT( sentinel );
 
     Nuitka_GC_Track( result );
 
@@ -353,7 +353,7 @@ PyObject *BUILTIN_TYPE1( PyObject *arg )
 
 extern PyObject *_python_str_plain___module__;
 
-PyObject *_BUILTIN_TYPE3( EVAL_ORDERED_4( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict ) )
+PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict )
 {
     PyObject *result = PyType_Type.tp_new(
         &PyType_Type,
@@ -506,7 +506,7 @@ PyObject *BUILTIN_RANGE( PyObject *boundary )
 #endif
 }
 
-PyObject *_BUILTIN_RANGE2( EVAL_ORDERED_2( PyObject *low, PyObject *high ) )
+PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
 {
 #if PYTHON_VERSION < 300
     PyObjectTemporary low_temp( TO_RANGE_ARG( low, "start" ) );
@@ -550,7 +550,7 @@ PyObject *_BUILTIN_RANGE2( EVAL_ORDERED_2( PyObject *low, PyObject *high ) )
 #endif
 }
 
-PyObject *_BUILTIN_RANGE3( EVAL_ORDERED_3( PyObject *low, PyObject *high, PyObject *step ) )
+PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 {
 #if PYTHON_VERSION < 300
     PyObjectTemporary low_temp( TO_RANGE_ARG( low, "start" ) );
@@ -644,7 +644,7 @@ static PythonBuiltin _python_builtin_import( &_python_str_plain___import__ );
 
 PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
 {
-    assert( Nuitka_String_Check( module_name ) );
+    assertObject( module_name );
     assertObject( globals );
     assertObject( locals );
     assertObject( import_items );
@@ -1285,7 +1285,7 @@ typedef struct {
 
 extern PyObject *_python_str_plain___class__;
 
-PyObject *_BUILTIN_SUPER( EVAL_ORDERED_2( PyObject *type, PyObject *object ) )
+PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
 {
     assertObject( type );
 
@@ -1419,7 +1419,7 @@ int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
     }
 }
 
-bool _BUILTIN_ISINSTANCE_BOOL( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) )
+bool BUILTIN_ISINSTANCE_BOOL( PyObject *inst, PyObject *cls )
 {
     int res = Nuitka_IsInstance( inst, cls );
 
@@ -1432,7 +1432,7 @@ bool _BUILTIN_ISINSTANCE_BOOL( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) )
 }
 
 
-PyObject *_BUILTIN_GETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *default_value ) )
+PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObject *default_value )
 {
 #if PYTHON_VERSION < 300
     if ( PyUnicode_Check( attribute ) )
@@ -1479,7 +1479,7 @@ PyObject *_BUILTIN_GETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribut
     }
 }
 
-void _BUILTIN_SETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *value ) )
+void BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *value )
 {
     int res = PyObject_SetAttr( object, attribute, value );
 

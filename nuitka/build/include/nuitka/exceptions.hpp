@@ -72,7 +72,7 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *INCREASE_REFCOUNT_X( PyTracebackO
     return traceback_object;
 }
 
-NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *frame )
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TRACEBACK( PyFrameObject *frame )
 {
     // assertFrameObject( frame );
 
@@ -86,7 +86,7 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *fr
 
     Nuitka_GC_Track( result );
 
-    return result;
+    return (PyObject *)result;
 }
 
 #if PYTHON_VERSION < 300
@@ -309,7 +309,7 @@ public:
         if ( this->exception_tb->tb_frame != frame || this->exception_tb->tb_lineno != frame->f_lineno )
         {
             Py_INCREF( frame );
-            PyTracebackObject *traceback_new = MAKE_TRACEBACK( frame );
+            PyTracebackObject *traceback_new = (PyTracebackObject *)MAKE_TRACEBACK( frame );
 
             traceback_new->tb_next = this->exception_tb;
             this->exception_tb = traceback_new;
@@ -325,6 +325,12 @@ public:
         this->exception_tb = traceback;
 
         Py_XDECREF( old );
+    }
+
+    inline void setTraceback( PyObject *traceback )
+    {
+        assert( PyTraceBack_Check( traceback ) );
+        return this->setTraceback( (PyTracebackObject *)traceback );
     }
 
     inline bool hasTraceback() const

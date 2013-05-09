@@ -20,17 +20,18 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
+from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
 
-from .Identifiers import getCodeExportRefs, CallIdentifier
-
-def getListCreationCode( context, element_identifiers ):
-    arg_codes = getCodeExportRefs( element_identifiers )
-
+def getListCreationCode( context, order_relevance, element_identifiers ):
     args_length = len( element_identifiers )
-
     context.addMakeListUse( args_length )
 
-    return CallIdentifier(
-        called  = "MAKE_LIST%d" % args_length,
-        args    = arg_codes
+    return getOrderRelevanceEnforcedArgsCode(
+        helper          = "MAKE_LIST%d" % args_length,
+        export_ref      = 1,
+        ref_count       = 1,
+        tmp_scope       = "make_list",
+        order_relevance = order_relevance,
+        args            = element_identifiers,
+        context         = context
     )

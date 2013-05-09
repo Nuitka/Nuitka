@@ -100,9 +100,6 @@ class PythonChildContextBase( PythonContextBase ):
 
         self.parent = parent
 
-    def addEvalOrderUse( self, value ):
-        self.parent.addEvalOrderUse( value )
-
     def addMakeTupleUse( self, value ):
         self.parent.addMakeTupleUse( value )
 
@@ -248,9 +245,6 @@ class PythonGlobalContext:
         self.make_lists_used = set( range( 0, 1 ) )
         self.make_dicts_used = set( range( 0, 3 ) )
 
-        # Include 0, so list and tuple making can use it without being special.
-        self.eval_orders_used = set( range( 0, 6 ) )
-
         # Code objects needed.
         self.code_objects = {}
 
@@ -317,30 +311,19 @@ class PythonGlobalContext:
     def getCodeObjects( self ):
         return sorted( iterItems( self.code_objects ) )
 
-    def addEvalOrderUse( self, value ):
-        assert type( value ) is int
-
-        self.eval_orders_used.add( value )
-
-    def getEvalOrdersUsed( self ):
-        return sorted( self.eval_orders_used )
-
     def addMakeTupleUse( self, value ):
         assert type( value ) is int
 
-        self.addEvalOrderUse( value ) # generated code uses it
         self.make_tuples_used.add( value )
 
     def addMakeListUse( self, value ):
         assert type( value ) is int
 
-        self.addEvalOrderUse( value ) # generated code uses it
         self.make_lists_used.add( value )
 
     def addMakeDictUse( self, value ):
         assert type( value ) is int
 
-        self.addEvalOrderUse( value * 2 ) # generated code uses it
         self.make_dicts_used.add( value )
 
     def getMakeTuplesUsed( self ):
@@ -429,9 +412,6 @@ class PythonModuleContext( PythonContextBase ):
 
     def getGlobalVariableNames( self ):
         return sorted( self.global_var_names )
-
-    def addEvalOrderUse( self, value ):
-        self.global_context.addEvalOrderUse( value )
 
     def addMakeTupleUse( self, value ):
         self.global_context.addMakeTupleUse( value )

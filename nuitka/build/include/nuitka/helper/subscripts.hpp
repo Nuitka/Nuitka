@@ -117,9 +117,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
     return result;
 }
 
-#define LOOKUP_SUBSCRIPT( source, subscript ) _LOOKUP_SUBSCRIPT( EVAL_ORDERED_2( source, subscript ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_SUBSCRIPT( EVAL_ORDERED_2( PyObject *source, PyObject *subscript ) )
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObject *subscript )
 {
     assertObject( source );
     assertObject( subscript );
@@ -181,9 +179,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_SUBSCRIPT( EVAL_ORDERED_2( PyObjec
     return result;
 }
 
-#define SET_SUBSCRIPT( value, target, subscript ) _SET_SUBSCRIPT( EVAL_ORDERED_3( value, target, subscript ) )
-
-NUITKA_MAY_BE_UNUSED static void _SET_SUBSCRIPT( EVAL_ORDERED_3( PyObject *value, PyObject *target, PyObject *subscript ) )
+NUITKA_MAY_BE_UNUSED static void SET_SUBSCRIPT( PyObject *value, PyObject *target, PyObject *subscript )
 {
     assertObject( value );
     assertObject( target );
@@ -247,9 +243,7 @@ NUITKA_MAY_BE_UNUSED static void _SET_SUBSCRIPT( EVAL_ORDERED_3( PyObject *value
     }
 }
 
-#define DEL_SUBSCRIPT( target, subscript ) _DEL_SUBSCRIPT( EVAL_ORDERED_2( target, subscript ) )
-
-NUITKA_MAY_BE_UNUSED static void _DEL_SUBSCRIPT( EVAL_ORDERED_2( PyObject *target, PyObject *subscript ) )
+NUITKA_MAY_BE_UNUSED static void DEL_SUBSCRIPT( PyObject *target, PyObject *subscript )
 {
     assertObject( target );
     assertObject( subscript );

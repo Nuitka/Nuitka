@@ -105,6 +105,9 @@ for filename in sorted( os.listdir( "." ) ):
             extra_flags.append( "ignore_stderr" )
             extra_flags.append( "python_debug" )
 
+        if filename == "OrderChecks.py":
+            extra_flags.append( "ignore_stderr" )
+
         assert type( python_version ) is bytes
 
         if python_version.startswith( b"3.3" ) and filename in ( "ParameterErrors.py", "ParameterErrors32.py" ):

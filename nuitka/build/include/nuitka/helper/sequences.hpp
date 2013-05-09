@@ -42,9 +42,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_TUPLE( PyObject *seq_obj )
     return result;
 }
 
-#define SEQUENCE_CONTAINS( element, sequence ) _SEQUENCE_CONTAINS( EVAL_ORDERED_2( element, sequence ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_SEQUENCE_CONTAINS( EVAL_ORDERED_2( PyObject *element, PyObject *sequence ) )
+NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONTAINS( PyObject *element, PyObject *sequence )
 {
     int result = PySequence_Contains( sequence, element );
 
@@ -56,9 +54,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_SEQUENCE_CONTAINS( EVAL_ORDERED_2( PyObje
     return BOOL_FROM( result == 1 );
 }
 
-#define SEQUENCE_CONTAINS_NOT( element, sequence ) _SEQUENCE_CONTAINS_NOT( EVAL_ORDERED_2( element, sequence ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_SEQUENCE_CONTAINS_NOT( EVAL_ORDERED_2( PyObject *element, PyObject *sequence ) )
+NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONTAINS_NOT( PyObject *element, PyObject *sequence )
 {
     int result = PySequence_Contains( sequence, element );
 
@@ -70,9 +66,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_SEQUENCE_CONTAINS_NOT( EVAL_ORDERED_2( Py
     return BOOL_FROM( result == 0 );
 }
 
-#define SEQUENCE_CONTAINS_BOOL( element, sequence ) _SEQUENCE_CONTAINS_BOOL( EVAL_ORDERED_2( element, sequence ) )
-
-NUITKA_MAY_BE_UNUSED static bool _SEQUENCE_CONTAINS_BOOL( EVAL_ORDERED_2( PyObject *element, PyObject *sequence ) )
+NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_BOOL( PyObject *element, PyObject *sequence )
 {
     int result = PySequence_Contains( sequence, element );
 
@@ -84,9 +78,7 @@ NUITKA_MAY_BE_UNUSED static bool _SEQUENCE_CONTAINS_BOOL( EVAL_ORDERED_2( PyObje
     return result == 1;
 }
 
-#define SEQUENCE_CONTAINS_NOT_BOOL( element, sequence ) _SEQUENCE_CONTAINS_NOT_BOOL( EVAL_ORDERED_2( element, sequence ) )
-
-NUITKA_MAY_BE_UNUSED static bool _SEQUENCE_CONTAINS_NOT_BOOL( EVAL_ORDERED_2( PyObject *element, PyObject *sequence ) )
+NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_NOT_BOOL( PyObject *element, PyObject *sequence )
 {
     int result = PySequence_Contains( sequence, element );
 
@@ -140,6 +132,5 @@ NUITKA_MAY_BE_UNUSED static void SEQUENCE_SETITEM( PyObject *sequence, Py_ssize_
         throw PythonException();
     }
 }
-
 
 #endif

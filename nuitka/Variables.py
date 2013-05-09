@@ -179,7 +179,7 @@ class Variable:
 
     def getCodeName( self ):
         # Abstract method, pylint: disable=R0201
-        assert False
+        assert False, self
 
 
 class VariableReferenceBase( Variable ):
@@ -550,6 +550,14 @@ class TempVariable( Variable ):
         assert needs_free is not None
 
         self.needs_free = needs_free
+
+    def isDeclared( self ):
+        return self.declared
+
+    def markAsDeclared( self ):
+        assert not self.declared
+
+        self.declared = True
 
     def getDeclarationTypeCode( self, in_context ):
         assert self.needs_free is not None, self

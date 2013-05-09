@@ -575,7 +575,7 @@ def checkReferenceCount( checked_function, max_rounds = 10 ):
 
       # print count, ref_count1, ref_count2
    else:
-      print "FAILED", ref_count1, ref_count2
+      print "FAILED", ref_count1, ref_count2, "leaked", ref_count2 - ref_count1
 
       if explain:
          assert m1

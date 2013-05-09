@@ -61,9 +61,3 @@ void _initConstants( void );
 
 %(constant_declarations)s
 """
-
-template_reverse_macro = """\
-#define EVAL_ORDERED_%(count)d( %(args)s ) %(expanded)s"""
-
-template_noreverse_macro = """\
-#define EVAL_ORDERED_%(count)d( %(args)s ) %(args)s"""

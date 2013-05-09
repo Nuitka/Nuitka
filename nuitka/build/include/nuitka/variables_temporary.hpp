@@ -18,14 +18,15 @@
 #ifndef __NUITKA_VARIABLES_TEMPORARY_H__
 #define __NUITKA_VARIABLES_TEMPORARY_H__
 
-// Wraps a "PyObject *" you received or acquired from another container to simplify refcount
-// handling when you're not going to use the object beyond the local scope. It will hold a
-// reference to the wrapped object as long as the PyObjectTemporary is alive, and will
-// release the reference when the wrapper is destroyed: this eliminates the need for
-// manual DECREF calls on Python objects before returning from a method call.
+// Wraps a "PyObject *" you received or acquired from another container to
+// simplify refcount handling when you're not going to use the object beyond the
+// local scope. It will hold a reference to the wrapped object as long as the
+// PyObjectTemporary is alive, and will release the reference when the wrapper
+// is destroyed: this eliminates the need for manual DECREF calls on Python
+// objects before returning from a method call.
 //
-// In effect, wrapping an object inside a PyObjectTemporary is equivalent to a deferred
-// Py_DECREF() call on the wrapped object.
+// In effect, wrapping an object inside a PyObjectTemporary is equivalent to a
+// deferred Py_DECREF() call on the wrapped object.
 
 class PyObjectTemporary
 {
@@ -92,6 +93,13 @@ public:
 
         this->object = NULL;
         return result;
+    }
+
+    PyObject *asObject0()
+    {
+        assertObject( this->object );
+
+        return this->object;
     }
 
     PyObject *assign( PyObject *value )
