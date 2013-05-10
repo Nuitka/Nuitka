@@ -86,7 +86,9 @@ def diffRecursive( dir1, dir2 ):
         done.add( path1 )
 
         # Skip these binary files of course.
-        if filename.endswith( ".o" ) or filename.endswith( ".os" ):
+        if filename.endswith( ".o" ) or \
+           filename.endswith( ".os" ) or \
+           filename.endswith( ".obj" ):
             continue
 
         # Skip scons build database
