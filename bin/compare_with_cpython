@@ -201,6 +201,7 @@ compiled_generator_object_re = re.compile( r"'compiled_generator' object" )
 global_name_error_re = re.compile( r"global (name ')(.*?)(' is not defined)" )
 module_repr_re = re.compile( r"(\<module '.*?' from ').*?('\>)" )
 non_ascii_error_rt = re.compile( r"(SyntaxError: Non-ASCII character.*? on line) \d+" )
+python_win_lib_re = re.compile( r"[Pp]ython(\d\d\\\\?)[Ll]ib" )
 
 def makeDiffable( output ):
     result = []
@@ -256,6 +257,10 @@ def makeDiffable( output ):
         # going to ignore the issue as Nuitka is fine.
         if line == "Exception RuntimeError: 'maximum recursion depth exceeded while calling a Python object' in <type 'exceptions.AttributeError'> ignored":
             continue
+
+        # This is also a bug potentially, but only visible under
+        # CPython
+        line = python_win_lib_re.sub( r"Python\1Lib", line )
 
         # This is a bug with clang potentially, can't find out why it says that.
         if line == "/usr/bin/ld: warning: .init_array section has zero size":
