@@ -288,13 +288,15 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
 def _lengthKey( value ):
     return len( value[1] ), value[1]
 
+the_contained_constants = {}
+
 def getConstantsInitCode( context ):
     # There are many cases for constants to be created in the most efficient way,
     # pylint: disable=R0912
 
     statements = []
 
-    all_constants = context.getContainedConstants()
+    all_constants = the_contained_constants
     all_constants.update( context.getConstants() )
 
     def receiveStatement( statement ):
@@ -371,7 +373,8 @@ def getConstantsInitCode( context ):
     return indented( statements )
 
 def getConstantsDeclCode( context, for_header ):
-    # There are many cases for constants of different types, pylint: disable=R0912
+    # There are many cases for constants of different types.
+    # pylint: disable=R0912
     statements = []
 
     for _code_object_key, code_identifier in context.getCodeObjects():
@@ -383,6 +386,7 @@ def getConstantsDeclCode( context, for_header ):
         statements.append( declaration )
 
     constants = context.getConstants()
+
     contained_constants = {}
 
     def considerForDeferral( constant_value ):
@@ -439,6 +443,7 @@ def getConstantsDeclCode( context, for_header ):
             statements.append( declaration )
 
     if not for_header:
-        context.setContainedConstants( contained_constants )
+        global the_contained_constants
+        the_contained_constants = contained_constants
 
     return "\n".join( statements )

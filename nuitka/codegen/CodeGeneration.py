@@ -876,15 +876,17 @@ def generateExpressionCode( expression, context, allow_none = False ):
         )
     elif expression.isExpressionAttributeLookup():
         identifier = Generator.getAttributeLookupCode(
-            attribute = context.getConstantHandle(
-                expression.getAttributeName()
+            attribute = Generator.getConstantHandle(
+                context  = context,
+                constant = expression.getAttributeName()
             ),
             source    = makeExpressionCode( expression.getLookupSource() ),
         )
     elif expression.isExpressionSpecialAttributeLookup():
         identifier = Generator.getSpecialAttributeLookupCode(
-            attribute = context.getConstantHandle(
-                expression.getAttributeName()
+            attribute = Generator.getConstantHandle(
+                context  = context,
+                constant = expression.getAttributeName()
             ),
             source    = makeExpressionCode( expression.getLookupSource() ),
         )
@@ -941,8 +943,9 @@ def generateExpressionCode( expression, context, allow_none = False ):
         )
     elif expression.isExpressionImportName():
         identifier = Generator.getImportNameCode(
-            import_name = context.getConstantHandle(
-                expression.getImportName()
+            import_name = Generator.getConstantHandle(
+                context  = context,
+                constant = expression.getImportName()
             ),
             module      = makeExpressionCode(
                 expression.getModule()
@@ -1462,7 +1465,8 @@ def generateAssignmentAttributeCode( lookup_source, attribute_name, value,
             expression = lookup_source,
             context    = context
         ),
-        attribute       = context.getConstantHandle(
+        attribute       = Generator.getConstantHandle(
+            context  = context,
             constant = attribute_name
         ),
         identifier      = generateExpressionCode(
@@ -1623,7 +1627,8 @@ def generateDelAttributeCode( statement, context ):
             expression = statement.getLookupSource(),
             context    = context
         ),
-        attribute = context.getConstantHandle(
+        attribute = Generator.getConstantHandle(
+            context  = context,
             constant = statement.getAttributeName()
         )
     )

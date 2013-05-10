@@ -147,7 +147,8 @@ def getConstantAccess( context, constant ):
                 1
             )
     else:
-        return context.getConstantHandle(
+        return getConstantHandle(
+            context  = context,
             constant = constant
         )
 

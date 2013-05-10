@@ -225,7 +225,6 @@ def _getConstantDefaultPopulation():
 class PythonGlobalContext:
     def __init__( self ):
         self.constants = {}
-        self.contained_constants = {}
 
         for value in _getConstantDefaultPopulation():
             self.getConstantHandle( value )
@@ -265,7 +264,7 @@ class PythonGlobalContext:
             if real_use:
                 key = ( type( constant ), HashableConstant( constant ) )
 
-                if real_use and key not in self.constants:
+                if key not in self.constants:
                     self.constants[ key ] = "_python_" + namifyConstant(
                         constant
                     )
@@ -276,12 +275,6 @@ class PythonGlobalContext:
 
     def getConstants( self ):
         return self.constants
-
-    def setContainedConstants( self, contained_constants ):
-        self.contained_constants = contained_constants
-
-    def getContainedConstants( self ):
-        return self.contained_constants
 
     def getCodeObjectHandle( self, filename, code_name, line_number, arg_names,
                              kw_only_count, is_generator, is_optimized ):
