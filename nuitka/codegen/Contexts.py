@@ -100,15 +100,6 @@ class PythonChildContextBase( PythonContextBase ):
 
         self.parent = parent
 
-    def addMakeTupleUse( self, value ):
-        self.parent.addMakeTupleUse( value )
-
-    def addMakeListUse( self, value ):
-        self.parent.addMakeListUse( value )
-
-    def addMakeDictUse( self, value ):
-        self.parent.addMakeDictUse( value )
-
     def getConstantHandle( self, constant ):
         return self.parent.getConstantHandle( constant )
 
@@ -149,8 +140,8 @@ def _getConstantDefaultPopulation():
         False,
         0,
 
-        # For Python3 empty bytes, no effect for Python2, same as "", used for code
-        # objects.
+        # For Python3 empty bytes, no effect for Python2, same as "", used for
+        # code objects.
         b"",
 
         # Python mechanics, used in various helpers.
@@ -239,17 +230,12 @@ class PythonGlobalContext:
         for value in _getConstantDefaultPopulation():
             self.getConstantHandle( value )
 
-        # Have EVAL_ORDER for 1..6 in any case, so we can use it in the C++ code freely
-        # without concern.
-        self.make_tuples_used = set( range( 1, 6 ) )
-        self.make_lists_used = set( range( 0, 1 ) )
-        self.make_dicts_used = set( range( 0, 3 ) )
-
         # Code objects needed.
         self.code_objects = {}
 
     def getConstantHandle( self, constant, real_use = True ):
-        # There are many branches, each supposed to return, pylint: disable=R0911
+        # There are many branches, each supposed to return.
+        # pylint: disable=R0911
 
         if constant is None:
             return SpecialConstantIdentifier( None )
@@ -271,13 +257,18 @@ class PythonGlobalContext:
             if constant is str and python_version > 300:
                 type_name = "unicode"
 
-            return Identifier( "(PyObject *)&Py%s_Type" % type_name.title(), 0 )
+            return Identifier(
+                "(PyObject *)&Py%s_Type" % type_name.title(),
+                0
+            )
         else:
             if real_use:
                 key = ( type( constant ), HashableConstant( constant ) )
 
                 if real_use and key not in self.constants:
-                    self.constants[ key ] = "_python_" + namifyConstant( constant )
+                    self.constants[ key ] = "_python_" + namifyConstant(
+                        constant
+                    )
 
                 return ConstantIdentifier( self.constants[ key ], constant )
             else:
@@ -292,9 +283,17 @@ class PythonGlobalContext:
     def getContainedConstants( self ):
         return self.contained_constants
 
-    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, kw_only_count,
-                             is_generator, is_optimized ):
-        key = ( filename, code_name, line_number, arg_names, kw_only_count, is_generator, is_optimized )
+    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names,
+                             kw_only_count, is_generator, is_optimized ):
+        key = (
+            filename,
+            code_name,
+            line_number,
+            arg_names,
+            kw_only_count,
+            is_generator,
+            is_optimized
+        )
 
         if key not in self.code_objects:
             self.code_objects[ key ] = Identifier(
@@ -310,30 +309,6 @@ class PythonGlobalContext:
 
     def getCodeObjects( self ):
         return sorted( iterItems( self.code_objects ) )
-
-    def addMakeTupleUse( self, value ):
-        assert type( value ) is int
-
-        self.make_tuples_used.add( value )
-
-    def addMakeListUse( self, value ):
-        assert type( value ) is int
-
-        self.make_lists_used.add( value )
-
-    def addMakeDictUse( self, value ):
-        assert type( value ) is int
-
-        self.make_dicts_used.add( value )
-
-    def getMakeTuplesUsed( self ):
-        return sorted( self.make_tuples_used )
-
-    def getMakeListsUsed( self ):
-        return sorted( self.make_lists_used )
-
-    def getMakeDictsUsed( self ):
-        return sorted( self.make_dicts_used )
 
 
 class PythonModuleContext( PythonContextBase ):
@@ -370,8 +345,8 @@ class PythonModuleContext( PythonContextBase ):
     def getConstantHandle( self, constant ):
         return self.global_context.getConstantHandle( constant )
 
-    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names, kw_only_count,
-                             is_generator, is_optimized ):
+    def getCodeObjectHandle( self, filename, code_name, line_number, arg_names,
+                             kw_only_count, is_generator, is_optimized ):
         return self.global_context.getCodeObjectHandle(
             filename      = filename,
             code_name     = code_name,
@@ -398,7 +373,7 @@ class PythonModuleContext( PythonContextBase ):
     def getModuleCodeName( self ):
         return self.code_name
 
-    # There cannot ne local variable in modules no need to consider the name.
+    # There cannot be local variable in modules no need to consider the name.
     # pylint: disable=W0613
     def hasLocalVariable( self, var_name ):
         return False
@@ -413,15 +388,6 @@ class PythonModuleContext( PythonContextBase ):
     def getGlobalVariableNames( self ):
         return sorted( self.global_var_names )
 
-    def addMakeTupleUse( self, value ):
-        self.global_context.addMakeTupleUse( value )
-
-    def addMakeListUse( self, value ):
-        self.global_context.addMakeListUse( value )
-
-    def addMakeDictUse( self, value ):
-        self.global_context.addMakeDictUse( value )
-
     def addExportDeclarations( self, declarations ):
         self.export_declarations.append( declarations )
 
@@ -432,9 +398,9 @@ class PythonModuleContext( PythonContextBase ):
         assert guard_mode == "once"
 
     def getReturnCode( self ):
-        return "return MOD_RETURN_VALUE( _module_%s );" % self.getModuleCodeName()
-
-
+        return "return MOD_RETURN_VALUE( _module_%s );" % (
+            self.getModuleCodeName()
+        )
 
 
 class PythonFunctionContext( PythonChildContextBase ):
@@ -495,7 +461,10 @@ class PythonFunctionDirectContext( PythonFunctionContext ):
         return True
 
     def getExportScope( self ):
-        return "NUITKA_CROSS_MODULE" if self.function.isCrossModuleUsed() else "NUITKA_LOCAL_MODULE"
+        if self.function.isCrossModuleUsed():
+            return "NUITKA_CROSS_MODULE"
+        else:
+            return "NUITKA_LOCAL_MODULE"
 
     def isForCrossModuleUsage( self ):
         return self.function.isCrossModuleUsed()

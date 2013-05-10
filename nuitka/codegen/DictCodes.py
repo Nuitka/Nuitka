@@ -20,13 +20,22 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
+from . import CodeTemplates
+
+make_dicts_used = set( range( 0, 3 ) )
+
+def addMakeDictUse( args_length ):
+    assert type( args_length ) is int
+
+    make_dicts_used.add( args_length )
 
 def getDictionaryCreationCode( context, order_relevance, args_identifiers ):
+    from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
+
     assert len( args_identifiers ) % 2 == 0
 
     args_length = len( args_identifiers ) // 2
-    context.addMakeDictUse( args_length )
+    addMakeDictUse( args_length )
 
     return getOrderRelevanceEnforcedArgsCode(
         helper          = "MAKE_DICT%d" % args_length,
@@ -37,3 +46,36 @@ def getDictionaryCreationCode( context, order_relevance, args_identifiers ):
         args            = args_identifiers,
         context         = context
     )
+
+def getMakeDictsCode():
+    make_dicts_codes = []
+
+    for arg_count in sorted( make_dicts_used ):
+        add_elements_code = []
+
+        for arg_index in reversed( range( arg_count ) ):
+            add_elements_code.append(
+                CodeTemplates.template_add_dict_element_code % {
+                    "dict_key"   : "key%d" % ( arg_index + 1 ),
+                    "dict_value" : "value%d" % ( arg_index + 1 )
+                }
+            )
+
+        make_dicts_codes.append(
+            CodeTemplates.template_make_dict_function % {
+                "pair_count"        : arg_count,
+                "argument_decl"     : ", ".join(
+                    "PyObject *value%(index)d, PyObject *key%(index)d" % {
+                        "index" : (arg_index+1)
+                    }
+                    for arg_index in
+                    range( arg_count )
+                ),
+                "add_elements_code" : "\n".join( add_elements_code ),
+            }
+        )
+
+    return CodeTemplates.template_header_guard % {
+        "header_guard_name" : "__NUITKA_DICTS_H__",
+        "header_body"       : "\n".join( make_dicts_codes )
+    }

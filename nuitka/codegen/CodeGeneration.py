@@ -2340,9 +2340,10 @@ def _generateStatementCode( statement, context ):
 
     return code
 
-def generateStatementSequenceCode( statement_sequence, context, allow_none = False ):
-    # The complexity is related to frame guard types, which are also handled in here.
-    # pylint: disable=R0912
+def generateStatementSequenceCode( statement_sequence, context,
+                                   allow_none = False ):
+    # The complexity is related to frame guard types, which are also handled in
+    # here.  pylint: disable=R0912
 
     if allow_none and statement_sequence is None:
         return None
@@ -2534,25 +2535,11 @@ def generateConstantsDefinitionCode( context ):
         context = context
     )
 
-def generateMakeTuplesCode( context ):
-    return Generator.getMakeTuplesCode(
-        context = context
-    )
 
-def generateMakeListsCode( context ):
-    return Generator.getMakeListsCode(
-        context = context
-    )
-
-def generateMakeDictsCode( context ):
-    return Generator.getMakeDictsCode(
-        context = context
-    )
-
-def generateHelpersCode( context ):
-    return generateMakeTuplesCode( context ) + \
-           generateMakeListsCode( context ) + \
-           generateMakeDictsCode( context )
+def generateHelpersCode():
+    return Generator.getMakeTuplesCode() + \
+           Generator.getMakeListsCode() + \
+           Generator.getMakeDictsCode()
 
 def makeGlobalContext():
     return Contexts.PythonGlobalContext()

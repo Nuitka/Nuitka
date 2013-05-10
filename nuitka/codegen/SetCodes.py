@@ -20,7 +20,7 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from .Identifiers import CallIdentifier
+from .Identifiers import HelperCallIdentifier
 
 from .TupleCodes import getTupleCreationCode
 
@@ -31,7 +31,7 @@ def getSetCreationCode( context, order_relevance, element_identifiers ):
         context             = context
     )
 
-    return CallIdentifier(
-        called  = "MAKE_SET",
-        args    = ( tuple_identifier.getCodeTemporaryRef(), )
+    return HelperCallIdentifier(
+        "MAKE_SET",
+        tuple_identifier
     )

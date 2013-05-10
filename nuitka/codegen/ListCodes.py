@@ -20,11 +20,20 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
+from . import CodeTemplates
+
+make_lists_used = set( range( 0, 1 ) )
+
+def addMakeListUse( value ):
+    assert type( value ) is int
+
+    make_lists_used.add( value )
 
 def getListCreationCode( context, order_relevance, element_identifiers ):
+    from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
+
     args_length = len( element_identifiers )
-    context.addMakeListUse( args_length )
+    addMakeListUse( args_length )
 
     return getOrderRelevanceEnforcedArgsCode(
         helper          = "MAKE_LIST%d" % args_length,
@@ -35,3 +44,34 @@ def getListCreationCode( context, order_relevance, element_identifiers ):
         args            = element_identifiers,
         context         = context
     )
+
+def getMakeListsCode():
+    make_lists_codes = []
+
+    for arg_count in sorted( make_lists_used ):
+        add_elements_code = []
+
+        for arg_index in range( arg_count ):
+            add_elements_code.append(
+                CodeTemplates.template_add_list_element_code % {
+                    "list_index" : arg_index,
+                    "list_value" : "element%d" % arg_index
+                }
+            )
+
+        make_lists_codes.append(
+            CodeTemplates.template_make_list_function % {
+                "argument_count"    : arg_count,
+                "argument_decl"     : ", ".join(
+                    "PyObject *element%d" % arg_index
+                    for arg_index in
+                    range( arg_count )
+                ),
+                "add_elements_code" : "\n".join( add_elements_code ),
+            }
+        )
+
+    return CodeTemplates.template_header_guard % {
+        "header_guard_name" : "__NUITKA_LISTS_H__",
+        "header_body"       : "\n".join( make_lists_codes )
+    }

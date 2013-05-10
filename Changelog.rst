@@ -154,6 +154,9 @@ Cleanups
 - Avoid use of strings and built-ins as run time pre-computed constants that are
   not needed for specific Python versions, or Nuitka modes.
 
+- Do not track needed tuple, list, and dict creation code variants in context,
+  but e.g. in ``nuitka.codegen.TupleCodes`` module instead.
+
 New Tests
 ---------
 

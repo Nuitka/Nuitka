@@ -100,8 +100,8 @@ def compareConstants( a, b ):
     # built in the same way.
     return a == b
 
-# These builtin type references are kind of constant too. TODO: The list is totally not
-# complete.
+# These builtin type references are kind of constant too. TODO: The list is
+# totally not complete.
 constant_builtin_types = int, set, str, float, list, tuple, dict, complex
 
 if python_version >= 300:

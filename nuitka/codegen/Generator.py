@@ -46,6 +46,22 @@ from .OrderedEvaluation import (
     _getAssignmentTempKeeperCode
 )
 
+# imported from here pylint: disable=W0611
+from .TupleCodes import (
+    getTupleCreationCode,
+    getMakeTuplesCode
+)
+from .ListCodes import (
+    getListCreationCode,
+    getMakeListsCode
+)
+from .DictCodes import (
+    getDictionaryCreationCode,
+    getMakeDictsCode
+)
+from .SetCodes import getSetCreationCode
+# imported from here pylint: enable=W0611
+
 from .ConstantCodes import (
     getConstantsInitCode,
     getConstantsDeclCode,
@@ -56,13 +72,12 @@ from .ConstantCodes import (
 
 # These are here to be imported from here
 # pylint: disable=W0611
-from .VariableCodes import getVariableHandle, getVariableCode, getLocalVariableInitCode
+from .VariableCodes import (
+    getLocalVariableInitCode,
+    getVariableHandle,
+    getVariableCode
+)
 # pylint: enable=W0611
-
-from .TupleCodes import getTupleCreationCode
-from .ListCodes import getListCreationCode # imported from here pylint: disable=W0611
-from .SetCodes import getSetCreationCode # imported from here pylint: disable=W0611
-from .DictCodes import getDictionaryCreationCode # imported from here pylint: disable=W0611
 
 from .ParameterParsing import (
     getDirectFunctionEntryPointIdentifier,
@@ -2526,7 +2541,9 @@ def getFunctionCode( context, function_name, function_qualname,
                 "defaults"                   : func_defaults.getCodeExportRef(),
                 "kwdefaults"                 : func_kwdefaults.getCodeExportRef(),
                 "annotations"                : func_annotations.getCodeExportRef(),
-                "module_identifier"          : getModuleAccessCode( context = context ),
+                "module_identifier"          : getModuleAccessCode(
+                    context = context
+                ),
             }
         else:
             result += CodeTemplates.make_function_without_context_template % {
@@ -2546,7 +2563,9 @@ def getFunctionCode( context, function_name, function_qualname,
                 "defaults"                   : func_defaults.getCodeExportRef(),
                 "kwdefaults"                 : func_kwdefaults.getCodeExportRef(),
                 "annotations"                : func_annotations.getCodeExportRef(),
-                "module_identifier"          : getModuleAccessCode( context = context ),
+                "module_identifier"          : getModuleAccessCode(
+                    context = context
+                ),
             }
 
     return result
@@ -2575,100 +2594,6 @@ def getStatementTrace( source_desc, statement_repr ):
         CppStrings.encodeString( statement_repr )
     )
 
-def getMakeTuplesCode( context ):
-    make_tuples_codes = []
-
-    for arg_count in context.getMakeTuplesUsed():
-        add_elements_code = []
-
-        for arg_index in range( arg_count ):
-            add_elements_code.append(
-                CodeTemplates.template_add_tuple_element_code % {
-                    "tuple_index" : arg_index,
-                    "tuple_value" : "element%d" % arg_index
-                }
-            )
-
-        make_tuples_codes.append(
-            CodeTemplates.template_make_tuple_function % {
-                "argument_count"    : arg_count,
-                "argument_decl"     : ", ".join(
-                    "PyObject *element%d" % arg_index
-                    for arg_index in
-                    range( arg_count )
-                ),
-                "add_elements_code" : "\n".join( add_elements_code ),
-            }
-        )
-
-    return CodeTemplates.template_header_guard % {
-        "header_guard_name" : "__NUITKA_TUPLES_H__",
-        "header_body"       : "\n".join( make_tuples_codes )
-    }
-
-def getMakeListsCode( context ):
-    make_lists_codes = []
-
-    for arg_count in context.getMakeListsUsed():
-        add_elements_code = []
-
-        for arg_index in range( arg_count ):
-            add_elements_code.append(
-                CodeTemplates.template_add_list_element_code % {
-                    "list_index" : arg_index,
-                    "list_value" : "element%d" % arg_index
-                }
-            )
-
-        make_lists_codes.append(
-            CodeTemplates.template_make_list_function % {
-                "argument_count"    : arg_count,
-                "argument_decl"     : ", ".join(
-                    "PyObject *element%d" % arg_index
-                    for arg_index in
-                    range( arg_count )
-                ),
-                "add_elements_code" : "\n".join( add_elements_code ),
-            }
-        )
-
-    return CodeTemplates.template_header_guard % {
-        "header_guard_name" : "__NUITKA_LISTS_H__",
-        "header_body"       : "\n".join( make_lists_codes )
-    }
-
-def getMakeDictsCode( context ):
-    make_dicts_codes = []
-
-    for arg_count in context.getMakeDictsUsed():
-        add_elements_code = []
-
-        for arg_index in reversed( range( arg_count ) ):
-            add_elements_code.append(
-                CodeTemplates.template_add_dict_element_code % {
-                    "dict_key"   : "key%d" % ( arg_index + 1 ),
-                    "dict_value" : "value%d" % ( arg_index + 1 )
-                }
-            )
-
-        make_dicts_codes.append(
-            CodeTemplates.template_make_dict_function % {
-                "pair_count"        : arg_count,
-                "argument_decl"     : ", ".join(
-                    "PyObject *value%(index)d, PyObject *key%(index)d" % {
-                        "index" : (arg_index+1)
-                    }
-                    for arg_index in
-                    range( arg_count )
-                ),
-                "add_elements_code" : "\n".join( add_elements_code ),
-            }
-        )
-
-    return CodeTemplates.template_header_guard % {
-        "header_guard_name" : "__NUITKA_DICTS_H__",
-        "header_body"       : "\n".join( make_dicts_codes )
-    }
 
 def getConstantsDeclarationCode( context ):
     constants_declarations = CodeTemplates.template_constants_declaration % {
@@ -2731,7 +2656,8 @@ def getSetOperationAddCode( set_identifier, value_identifier ):
         0
     )
 
-def getDictOperationSetCode( dict_identifier, key_identifier, value_identifier ):
+def getDictOperationSetCode( dict_identifier, key_identifier,
+                             value_identifier ):
     return Identifier(
         "DICT_SET_ITEM( %s, %s, %s ), Py_None" % (
             dict_identifier.getCodeTemporaryRef(),

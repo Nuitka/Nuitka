@@ -23,6 +23,10 @@ from .Pickling import getStreamedConstant
 from .CppStrings import encodeString
 from .Indentation import indented
 
+from .TupleCodes import addMakeTupleUse
+from .ListCodes import addMakeListUse
+from .DictCodes import addMakeDictUse
+
 # pylint: disable=W0622
 from ..__past__ import unicode, long, iterItems
 # pylint: enable=W0622
@@ -161,7 +165,7 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
             emit( "%s = PyDict_New();" % constant_identifier )
         else:
             length = len( constant_value )
-            context.addMakeDictUse( length )
+            addMakeDictUse( length )
 
             for key, value in iterItems( constant_value ):
                 _addConstantInitCode(
@@ -202,7 +206,7 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
             emit( "%s = PyTuple_New( 0 );" % constant_identifier )
         else:
             length = len( constant_value )
-            context.addMakeTupleUse( length )
+            addMakeTupleUse( length )
 
             # Make elements earlier than tuple itself.
             for element in constant_value:
@@ -234,7 +238,7 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
             emit( "%s = PyList_New( 0 );" % constant_identifier )
         else:
             length = len( constant_value )
-            context.addMakeListUse( length )
+            addMakeListUse( length )
 
             # Make elements earlier than list itself.
             for element in constant_value:
