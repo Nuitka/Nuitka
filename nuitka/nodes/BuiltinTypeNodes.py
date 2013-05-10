@@ -21,8 +21,6 @@ These are all very simple and have predictable properties, because we know their
 that should allow some important optimizations.
 """
 
-from nuitka import Utils
-
 from .NodeBases import (
     ExpressionSpecBasedComputationMixin,
     ExpressionBuiltinSingleArgBase,
@@ -91,12 +89,19 @@ class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
                                     ExpressionSpecBasedComputationMixin ):
     named_children = ( "value", "base" )
 
+    try:
+        int( base = 2 )
+    except TypeError:
+        base_only_value = False
+    else:
+        base_only_value = True
+
     def __init__( self, value, base, source_ref ):
         from .NodeMakingHelpers import makeConstantReplacementNode
 
         NodeBase.__init__( self, source_ref = source_ref )
 
-        if value is None and Utils.python_version < 330 and Utils.python_version != 274:
+        if value is None and self.base_only_value:
             value = makeConstantReplacementNode(
                 constant = "0",
                 node     = self
@@ -123,7 +128,7 @@ class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
 
         if value is None:
             if base is not None:
-                if Utils.python_version >= 330 or Utils.python_version == 274:
+                if not self.base_only_value:
                     from .NodeMakingHelpers import getComputationResult
 
                     return getComputationResult(
