@@ -35,8 +35,9 @@ def importList( *names ):
     for name in names:
         __import__( name )
 
-DependencyResolver = {
+dependency_resolver = {
     "_ssl": ( importList, "socket", "_socket" ),
+    "PyQt4.QtGui" : ( importList, "sip" ),
 }
 
 def isPythonScript( path ):
@@ -55,7 +56,8 @@ def copyFile( src, dst ):
         p.flush()
 
 def getImportedDict( mainscript ):
-    # importing a lot of stuff, just because they are dependencies, pylint: disable=W0612,R0914
+    # importing a lot of stuff, just because they are dependencies.
+    # pylint: disable=W0612,R0914
 
     # chdir to mainscript directory and add it to sys.path
     main_dir = os.path.dirname( mainscript )
@@ -84,7 +86,7 @@ def getImportedDict( mainscript ):
 
     # resolve dependency
     for name in finder.modules.keys():
-        method = DependencyResolver.get( name )
+        method = dependency_resolver.get( name )
         if not method:
             continue
         method[0]( *method[1:] )
@@ -201,7 +203,7 @@ def setup( mainscript, outputdir ):
         shell  = 0
     )
     proc.wait()
-    return ( proc.poll() == 0 )
+    return proc.poll() == 0
 
 if __name__ == "__main__":
     main(
