@@ -30,7 +30,7 @@ New Features
 - Enhanced Python 3.3 compatibility.
 
   The support the newest version of Python has been extended, improving
-  compatibility for minor corner cases.
+  compatibility for many minor corner cases.
 
 - Portable Binaries.
 
@@ -63,6 +63,10 @@ New Features
 
   and that was a trap for new users.
 
+- All Linux architectures are now supported. Due to changes in how evaluation
+  order is enforced, we don't have to implement for specific architectures
+  anymore.
+
 Bug Fixes
 ---------
 
@@ -76,13 +80,19 @@ Bug Fixes
   Given that hash randomization makes dictionaries item order undetermined
   anyway, this is more an issue of testing.
 
-- Python3: Do not set the attributes ``sys.exc_type``, ``sys.exc_value``,
-  ``sys.exc_traceback``.
-
-- Evaluation order for arguments of calls was not properly enforced.
+- Evaluation order for arguments of calls was not effectively enforced. It is
+  now done in a standards compliant and therefore fully portable way. The
+  compilers and platforms so far supported were not affected, but the newly
+  supported Visual Studio C++ compiler was.
 
 - Using a ``__future__`` import inside a function was giving an assertion,
   instead of the proper syntax error.
+
+- Python3: Do not set the attributes ``sys.exc_type``, ``sys.exc_value``,
+  ``sys.exc_traceback``.
+
+- Python3: Annotations of function worked only as long as their definition was
+  not referring to local variables.
 
 New Optimization
 ----------------
@@ -104,9 +114,10 @@ Organizational
   please support funding travels, website, etc.
 
 - The `User Manual <http://nuitka.net/doc/user-manual.html>`_ has been updated
-  with new content. We now have portable mode, we support MSVC, document needed
-  LLVM version for clang, Win64 and modules may include modules too, etc. Lots
-  of information was no longer accurate and has been updated.
+  with new content. We now have portable mode, we now do support Visual Studio,
+  documented the required LLVM version for clang, Win64 and modules may include
+  modules too, etc. Lots of information was no longer accurate and has been
+  updated.
 
 - The Changelog has been improved for consistency, wordings, and styles.
 
@@ -140,16 +151,26 @@ Cleanups
 - PyLint massive cleanups and annotations bringing down the number of warnings
   by a lot.
 
-- Avoid use of strings and built-ins that are not needed for specific Python
-  versions, or Nuitka modes.
+- Avoid use of strings and built-ins as run time pre-computed constants that are
+  not needed for specific Python versions, or Nuitka modes.
+
+New Tests
+---------
+
+- Added basic tests for order evaluation, where there currently were None.
+
+- Added support for "2to3" execution under Windows too, so we can run tests for
+  Python3 installations too.
 
 Summary
 -------
 
 The release is clearly major. The contributed "portable" code opens up a whole
 new area of use for Nuitka. We may see it evolved to replace "py2exe" for more
-and more people now. The new platforms, and MSVC support brought a whole range
-of improvements, and means this is truly complete now.
+and more people now.
+
+The new platforms, and Visual Studio support triggered a whole range of
+improvements, and means this is truly complete now.
 
 Also there is very much polish in this release, reducing the number of warnings,
 updated documentation, the only thing really missing is visible progress with
