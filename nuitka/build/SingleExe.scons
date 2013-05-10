@@ -382,8 +382,8 @@ if debug_mode:
         # Allow g++/clang to point out all kinds of inconsistency to us by raising an error.
         env.Append( CCFLAGS = [ "-Wall", "-Werror" ] )
     elif msvc_mode:
-        # Disable warnings that system headers already show
-        env.Append( CCFLAGS = [ "/W4", "/wd4505", "/wd4127", "/wd4100", "/wd4702", "/wd4189" ] )
+        # Disable warnings that system headers already show.
+        env.Append( CCFLAGS = [ "/W4", "/wd4505", "/wd4127", "/wd4100", "/wd4702", "/wd4189", "/wd4211" ] )
 
 
     # As for sequence points, we are abusing it, so we have to allow it.
