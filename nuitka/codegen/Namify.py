@@ -44,18 +44,28 @@ def namifyConstant( constant ):
 
     if type( constant ) is int:
         if constant == 0:
-            return "int_0"
+            result = "int_0"
         elif constant > 0:
-            return "int_pos_%d" % constant
+            result = "int_pos_%d" % constant
         else:
-            return "int_neg_%d" % abs( constant )
+            result = "int_neg_%d" % abs( constant )
+
+        if len( result ) > 20:
+            result = _digest( result )
+
+        return result
     elif type( constant ) is long:
         if constant == 0:
-            return "long_0"
+            result = "long_0"
         elif constant > 0:
-            return "long_pos_%d" % constant
+            result = "long_pos_%d" % constant
         else:
-            return "long_neg_%d" % abs( constant )
+            result = "long_neg_%d" % abs( constant )
+
+        if len( result ) > 20:
+            result = _digest( result )
+
+        return result
     elif constant is None:
         return "none"
     elif constant is True:
