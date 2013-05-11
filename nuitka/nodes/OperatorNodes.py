@@ -108,13 +108,21 @@ class ExpressionOperationBinary( ExpressionOperationBase ):
 
                 if left.isNumberConstant():
                     if left.isIndexConstant() and right.isIndexConstant():
-                        # Estimate with logarithm, if the result of number calculations is
-                        # computable with acceptable effort, otherwise, we will have to do
-                        # it at runtime.
+                        # Estimate with logarithm, if the result of number
+                        # calculations is computable with acceptable effort,
+                        # otherwise, we will have to do it at runtime.
 
                         if left_value != 0 and right_value != 0:
                             if math.log10( abs( left_value ) ) + math.log10( abs( right_value ) ) > 20:
                                 return self, None, None
+
+            elif operator == "Mult" and left.isNumberConstant():
+                iter_length = right.getIterationLength()
+
+                if iter_length is not None:
+                    if iter_length * left_value > 256:
+                        return self, None, None
+
 
             from .NodeMakingHelpers import getComputationResult
 

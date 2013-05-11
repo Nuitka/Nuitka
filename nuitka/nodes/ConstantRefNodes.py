@@ -46,6 +46,9 @@ class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
 
         self.constant = constant
 
+        # TODO: Make this a warning, and cover all constant types.
+        # assert type( constant ) is not str or len( constant ) < 30000
+
     def __repr__( self ):
         return "<Node %s value %s at %s>" % ( self.kind, self.constant, self.source_ref )
 
