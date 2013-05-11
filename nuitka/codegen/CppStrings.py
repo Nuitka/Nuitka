@@ -17,15 +17,16 @@
 #
 """ C++ string encoding
 
-This contains the code to create string literals for C++ to represent the given values and
-little more.
+This contains the code to create string literals for C++ to represent the given
+values and little more.
 """
 
 from nuitka.__past__ import unicode # pylint: disable=W0622
 
-def encodeString( value ):
+def _encodeString( value ):
     """ Encode a string, so that it gives a C++ string literal.
 
+        This doesn't handle limits.
     """
     assert type( value ) is bytes, type( value )
 
@@ -57,3 +58,19 @@ def encodeString( value ):
     result = result.replace( '" "\\', "\\" )
 
     return '"%s"' % result
+
+def encodeString( value ):
+    """ Encode a string, so that it gives a C++ string literal.
+
+    """
+
+    # Not all compilers don't allow arbitrary large C++ strings.
+    result = _encodeString( value[:16000 ] )
+    value = value[16000:]
+
+    while len( value ) > 0:
+        result += " "
+        result += _encodeString( value[:16000 ] )
+        value = value[16000:]
+
+    return result
