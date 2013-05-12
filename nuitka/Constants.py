@@ -171,7 +171,7 @@ def isMutable( constant ):
         assert False, constant_type
 
 def isIterableConstant( constant ):
-    return type( constant ) in ( str, unicode, list, tuple, set, frozenset, dict, range )
+    return type( constant ) in ( str, unicode, list, tuple, set, frozenset, dict, range, bytes )
 
 def getConstantIterationLength( constant ):
     assert isIterableConstant( constant )
