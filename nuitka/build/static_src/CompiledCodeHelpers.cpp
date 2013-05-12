@@ -202,11 +202,24 @@ PyObject *BUILTIN_ORD( PyObject *value )
     }
     else if ( PyUnicode_Check( value ) )
     {
+#if PYTHON_VERSION >= 330
+        if (unlikely( PyUnicode_READY( value ) == -1 ))
+        {
+            throw PythonException();
+        }
+
+        Py_ssize_t size = PyUnicode_GET_LENGTH( value );
+#else
         Py_ssize_t size = PyUnicode_GET_SIZE( value );
+#endif
 
         if (likely( size == 1 ))
         {
+#if PYTHON_VERSION >= 330
+            result = long( PyUnicode_READ_CHAR( value, 0 ) );
+#else
             result = long( *PyUnicode_AS_UNICODE( value ) );
+#endif
         }
         else
         {
