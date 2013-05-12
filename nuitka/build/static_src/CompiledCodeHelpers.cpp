@@ -67,9 +67,10 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
 #endif
     else
     {
-        source = source_code;
+        source = INCREASE_REFCOUNT( source_code );
     }
 
+    PyObjectTemporary source_temp( source );
     PyObjectTemporary future_flags( PyInt_FromLong( flags ) );
 
     return _python_builtin_compile.call_args(
