@@ -19,57 +19,28 @@
 
 """
 
-exec_local_template = """\
+exec_template = """\
+PyObjectTemporary globals( %(globals_identifier)s );
+PyObjectTemporary locals( %(locals_identifier)s );
+
+PyObjectTemporary code( COMPILE_CODE( %(source_identifier)s, %(filename_identifier)s, %(mode_identifier)s, %(future_flags)s ) );
+
+PyObject *result = EVAL_CODE( code.asObject(), globals.asObject(), locals.asObject() );
+Py_DECREF( result );"""
+
+exec_copy_back_template = """
+PyObject *locals_source = NULL;
+
+if ( locals.asObject() == locals_dict.asObject() )
 {
-    PyObjectTemporary globals( %(globals_identifier)s );
-    PyObjectTemporary locals( %(locals_identifier)s );
+    locals_source = locals.asObject();
+}
+else if ( globals.asObject() == locals_dict.asObject() )
+{
+    locals_source = globals.asObject();
+}
 
-    bool own_locals;
-
-    if ( locals.asObject() == Py_None && globals.asObject() == Py_None )
-    {
-        globals.assign1( %(make_globals_identifier)s );
-        locals.assign1( %(make_locals_identifier)s );
-
-        own_locals = true;
-    }
-    else
-    {
-        own_locals = false;
-    }
-
-    PyObjectTemporary code( COMPILE_CODE( %(source_identifier)s, %(filename_identifier)s, %(mode_identifier)s, %(future_flags)s ) );
-
-    PyObject *result = EVAL_CODE( code.asObject(), globals.asObject(), locals.asObject() );
-    Py_DECREF( result );
-
-    if ( own_locals )
-    {
+if ( locals_source != NULL )
+{
 %(store_locals_code)s
-    }
 }"""
-
-exec_global_template = """\
-{
-    PyObjectTemporary globals( %(globals_identifier)s );
-    PyObjectTemporary locals( %(locals_identifier)s );
-
-    if ( globals.asObject() == Py_None )
-    {
-        globals.assign1( %(make_globals_identifier)s );
-    }
-
-    PyObjectTemporary code( COMPILE_CODE( %(source_identifier)s, %(filename_identifier)s, %(mode_identifier)s, %(future_flags)s ) );
-
-    PyObject *result = EVAL_CODE( code.asObject(), globals.asObject(), locals.asObject() );
-    Py_DECREF( result );
-}"""
-
-# Bad to read, but we wan't all on same line
-# pylint: disable=C0301
-
-eval_local_template = """\
-EVAL_CODE( PyObjectTemporary( COMPILE_CODE( %(source_identifier)s, %(filename_identifier)s, %(mode_identifier)s, %(future_flags)s ) ).asObject(), ( _eval_globals_tmp = %(globals_identifier)s ) == Py_None ? %(make_globals_identifier)s : _eval_globals_tmp, ( _eval_locals_tmp = %(locals_identifier)s ) == Py_None ? ( _eval_globals_tmp = %(globals_identifier)s ) == Py_None ?  %(make_locals_identifier)s : _eval_globals_tmp : _eval_locals_tmp )"""
-
-eval_global_template = """\
-EVAL_CODE( PyObjectTemporary( COMPILE_CODE(  %(source_identifier)s, %(filename_identifier)s, %(mode_identifier)s, %(future_flags)s ) ).asObject(), ( _eval_globals_tmp = %(globals_identifier)s ) == Py_None ? %(make_globals_identifier)s : _eval_globals_tmp, %(locals_identifier)s )"""

@@ -17,19 +17,21 @@
 #
 """ Build the internal node tree from source code.
 
-Does all the Python parsing and puts it into a tree structure for use in later stages of
-the compiler.
+Does all the Python parsing and puts it into a tree structure for use in later
+stages of the compilation process.
 
-At the bottom of the file, the dispatching is happening. One function deals with every
-node kind as found in the AST. The parsing is centered around the module "ast" output.
+At the bottom of the file, the dispatching is happening. One function deals
+with every node kind as found in the AST. The parsing is centered around the
+module "ast" output.
 
-Many higher level language features and translated into lower level ones. Inplace
-assignments, for loops, while loops, classes, complex calls, with statements, and even
-or/and etc. are all translated to simpler constructs.
+Many higher level language features and translated into lower level ones.
 
-The output of this module is a node tree, which contains only relatively low level
-operations. A property of the output module is also an overlaid tree of provider structure
-that indicates variable provision.
+Inplace assignments, for loops, while loops, classes, complex calls, with
+statements, and even or/and etc. are all translated to simpler constructs.
+
+The output of this module is a node tree, which contains only relatively low
+level operations. A property of the output module is also an overlaid tree
+of provider structure that indicates variable provision.
 
 """
 
@@ -53,7 +55,6 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
-from nuitka.nodes.ExecEvalNodes import StatementExec
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.SliceNodes import (
@@ -100,17 +101,18 @@ from nuitka.nodes.TryNodes import StatementTryFinally
 
 from .VariableClosure import completeVariableClosures
 
-# Classes are handled in a separate file. They are re-formulated into functions producing
-# dictionaries used to call the metaclass with.
+# Classes are handled in a separate file. They are re-formulated into functions
+# producing dictionaries used to call the metaclass with.
 from .ReformulationClasses import buildClassNode
 
-# Try/except/else statements are handled in a separate file. They are re-formulated into
-# using a temporary variable to track if the else branch should execute.
+# Try/except/else statements are handled in a separate file. They are
+# re-formulated into using a temporary variable to track if the else branch
+# should execute.
 from .ReformulationTryExceptStatements import buildTryExceptionNode
 
-# With statements are handled in a separate file. They are re-formulated into special
-# attribute lookups for "__enter__" and "__exit__", calls of them, catching and passing in
-# exceptions raised.
+# With statements are handled in a separate file. They are re-formulated into
+# special attribute lookups for "__enter__" and "__exit__", calls of them,
+# catching and passing in exceptions raised.
 from .ReformulationWithStatements import buildWithNode
 
 from .ReformulationAssignmentStatements import (
@@ -145,6 +147,8 @@ from .ReformulationContractionExpressions import (
 )
 
 from .ReformulationCallExpressions import buildCallNode
+
+from .ReformulationExecStatements import buildExecNode
 
 # Some helpers.
 from .Helpers import (
@@ -606,63 +610,6 @@ def buildImportFromNode( provider, node, source_ref ):
             statements = import_nodes,
             source_ref = source_ref
         )
-
-def buildExecNode( provider, node, source_ref ):
-    # "exec" statements, should only occur with Python2.
-
-    exec_globals = node.globals
-    exec_locals = node.locals
-    body = node.body
-
-    orig_globals = exec_globals
-
-    # Handle exec(a,b,c) to be same as exec a, b, c
-    if exec_locals is None and exec_globals is None and getKind( body ) == "Tuple":
-        parts = body.elts
-        body  = parts[0]
-
-        if len( parts ) > 1:
-            exec_globals = parts[1]
-
-            if len( parts ) > 2:
-                exec_locals = parts[2]
-        else:
-            return StatementRaiseException(
-                exception_type = ExpressionBuiltinExceptionRef(
-                    exception_name = "TypeError",
-                    source_ref     = source_ref
-                ),
-                exception_value = ExpressionConstantRef(
-                    constant   = "exec: arg 1 must be a string, file, or code object",
-                    source_ref = source_ref
-                ),
-                exception_trace = None,
-                exception_cause = None,
-                source_ref      = source_ref
-            )
-
-    globals_node = buildNode( provider, exec_globals, source_ref, True )
-    locals_node = buildNode( provider, exec_locals, source_ref, True )
-
-    if provider.isExpressionFunctionBody():
-        provider.markAsExecContaining()
-
-        if orig_globals is None:
-            provider.markAsUnqualifiedExecContaining( source_ref )
-
-    if locals_node is not None and locals_node.isExpressionConstantRef() and locals_node.getConstant() is None:
-        locals_node = None
-
-    if locals_node is None and globals_node is not None:
-        if globals_node.isExpressionConstantRef() and globals_node.getConstant() is None:
-            globals_node = None
-
-    return StatementExec(
-        source_code = buildNode( provider, body, source_ref ),
-        globals_arg = globals_node,
-        locals_arg  = locals_node,
-        source_ref  = source_ref
-    )
 
 
 def handleGlobalDeclarationNode( provider, node, source_ref ):

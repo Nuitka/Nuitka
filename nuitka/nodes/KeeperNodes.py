@@ -36,6 +36,8 @@ class ExpressionAssignmentTempKeeper( ExpressionChildrenHavingBase ):
     named_children = ( "source", )
 
     def __init__( self, variable, source, source_ref ):
+        assert source is not None
+
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -115,6 +117,12 @@ class ExpressionTempKeeperRef( NodeBase, ExpressionMixin ):
     def mayRaiseException( self, exception_type ):
         # Can't happen
         return False
+
+    def mayHaveSideEffects( self ):
+        return False
+
+    def isOrderRelevant( self ):
+        return True
 
     def mayProvideReference( self ):
         return self.variable.getReferenced().getNeedsFree()

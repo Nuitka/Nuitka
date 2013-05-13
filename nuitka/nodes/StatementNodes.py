@@ -238,8 +238,8 @@ Turned side effects of expression only statement into statements."""
             return result, "new_raise", """\
 Propgated implict raise expression to raise statement."""
         elif python_version < 300 and expression.isExpressionBuiltinExecfile():
-            # In this case, the copy-back must be done and will only be done correctly by
-            # the code for exec statements.
+            # In this case, the copy-back must be done and will only be done
+            # correctly by the code for exec statements.
             provider = self.getParentVariableProvider()
 
             if provider.isExpressionFunctionBody() and provider.isClassDictCreation():

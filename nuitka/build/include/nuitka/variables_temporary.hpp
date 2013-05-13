@@ -89,10 +89,7 @@ public:
     {
         assertObject( this->object );
 
-        PyObject *result = this->object;
-
-        this->object = NULL;
-        return result;
+        return INCREASE_REFCOUNT( this->object );
     }
 
     PyObject *asObject0()
@@ -138,20 +135,14 @@ public:
     {
         assertObject( this->object );
 
-        PyObject *result = this->object;
-
-        this->object = NULL;
-        return result;
+        return this->object;
     }
 
     PyObject *asObject()
     {
         assertObject( this->object );
 
-        PyObject *result = INCREASE_REFCOUNT( this->object );
-
-        this->object = NULL;
-        return result;
+        return INCREASE_REFCOUNT( this->object );
     }
 
     PyObject *assign( PyObject *value )

@@ -666,6 +666,8 @@ NUITKA_MAY_BE_UNUSED static bool HAS_KEY( PyObject *source, PyObject *key )
     assertObject( source );
     assertObject( key );
 
+    assert( PyMapping_Check( source ) );
+
     return PyMapping_HasKey( source, key ) != 0;
 }
 

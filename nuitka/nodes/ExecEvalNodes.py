@@ -36,8 +36,8 @@ class ExpressionBuiltinEval( ExpressionChildrenHavingBase ):
 
     named_children = ( "source", "globals", "locals" )
 
-    # Need to accept globals and local keyword argument, that is just the API of eval,
-    # pylint: disable=W0622
+    # Need to accept globals and local keyword argument, that is just the API of
+    # eval, pylint: disable=W0622
 
     def __init__( self, source, globals, locals, source_ref ):
         ExpressionChildrenHavingBase.__init__(

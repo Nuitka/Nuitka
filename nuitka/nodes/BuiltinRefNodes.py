@@ -30,7 +30,6 @@ from .NodeBases import NodeBase, CompileTimeConstantExpressionMixin
 from .ConstantRefNodes import ExpressionConstantRef
 
 from nuitka.optimizations import BuiltinOptimization
-from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
 
 from nuitka.Builtins import (
     builtin_exception_names,
@@ -101,6 +100,7 @@ class ExpressionBuiltinRef( ExpressionBuiltinRefBase ):
         return self, None, None
 
     def computeExpressionCall( self, call_node, constraint_collection ):
+        from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
 
         return computeBuiltinCall(
             call_node = call_node,

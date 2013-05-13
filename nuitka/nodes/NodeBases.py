@@ -290,6 +290,9 @@ class NodeBase( NodeMetaClassBase ):
 
         return True
 
+    def isOrderRelevant( self ):
+        return self.mayHaveSideEffects()
+
     def mayHaveSideEffectsBool( self ):
         """ Unless we are told otherwise, everything may have a side effect. """
         # Virtual method, pylint: disable=R0201,W0613

@@ -27,6 +27,7 @@ else.
 from .Identifiers import (
     SpecialConstantIdentifier,
     ModuleVariableIdentifier,
+    KeeperAccessIdentifier,
     HelperCallIdentifier,
     EmptyDictIdentifier,
     ThrowingIdentifier,
@@ -920,7 +921,7 @@ def getAssignmentTempKeeperCode( source_identifier, variable, context ):
     ref_count = source_identifier.getCheapRefCount()
     variable_name = variable.getName()
 
-    assert variable.getReferenced().getNeedsFree() == bool( ref_count ), \
+    assert not ref_count or variable.getReferenced().getNeedsFree(), \
            ( variable, variable.getReferenced().getNeedsFree(), ref_count,
              source_identifier, source_identifier.__class__ )
 
@@ -935,9 +936,8 @@ def getTempKeeperHandle( variable, context ):
     ref_count = context.getTempKeeperRefCount( variable_name )
 
     if ref_count == 1:
-        return Identifier(
-            "%s.asObject()" % variable_name,
-            1
+        return KeeperAccessIdentifier(
+            "%s.asObject()" % variable_name
         )
     else:
         # TODO: Could create an identifier, where 0 is just cheap, and 1 is
@@ -1459,7 +1459,7 @@ def getStoreLocalsCode( context, source_identifier, provider ):
 
             code += getBlockCode( var_assign_code ) + "\n"
 
-    return code
+    return code.rstrip( "\n" )
 
 def getFutureFlagsCode( future_spec ):
     flags = future_spec.asFlags()
@@ -1469,112 +1469,95 @@ def getFutureFlagsCode( future_spec ):
     else:
         return 0
 
-
-def getEvalCode( context, exec_code, filename_identifier, globals_identifier,
-                 locals_identifier, mode_identifier, future_flags, provider ):
-    # TODO: Evaluation order of its arguments seems not enforced properly.
-
-    if context.isPythonModule():
-        return Identifier(
-            CodeTemplates.eval_global_template % {
-                "globals_identifier"      : globals_identifier.getCodeTemporaryRef(),
-                "locals_identifier"       : locals_identifier.getCodeTemporaryRef(),
-                "make_globals_identifier" : getLoadGlobalsCode(
-                    context = context
-                ).getCodeExportRef(),
-                "source_identifier"       : exec_code.getCodeTemporaryRef(),
-                "filename_identifier"     : filename_identifier,
-                "mode_identifier"         : mode_identifier,
-                "future_flags"            : future_flags,
-            },
-            1
-        )
-    else:
-        make_globals_identifier = getLoadGlobalsCode(
-            context = context
-        )
-        make_locals_identifier = getLoadLocalsCode(
-            context  = context,
-            provider = provider,
-            mode     = "updated"
-        )
-
-        return Identifier(
-            CodeTemplates.eval_local_template % {
-                "globals_identifier"      : globals_identifier.getCodeTemporaryRef(),
-                "locals_identifier"       : locals_identifier.getCodeTemporaryRef(),
-                "make_globals_identifier" : make_globals_identifier.getCodeExportRef(),
-                "make_locals_identifier"  : make_locals_identifier.getCodeExportRef(),
-                "source_identifier"       : exec_code.getCodeTemporaryRef(),
-                "filename_identifier"     : filename_identifier,
-                "mode_identifier"         : mode_identifier,
-                "future_flags"            : future_flags,
-            },
-            1
-        )
-
-def getExecCode( context, exec_code, globals_identifier, locals_identifier, future_flags, provider, source_ref ):
-    make_globals_identifier = getLoadGlobalsCode(
-        context = context
+def getCompileCode( context, order_relevance, source_identifier,
+                    filename_identifier, mode_identifier, future_flags ):
+    return getOrderRelevanceEnforcedArgsCode(
+        helper          = "COMPILE_CODE",
+        export_ref      = 0,
+        ref_count       = 1,
+        tmp_scope       = "compile",
+        order_relevance = order_relevance,
+        args            = (
+            source_identifier,
+            filename_identifier,
+            mode_identifier,
+            future_flags
+        ),
+        context         = context
     )
 
-    if context.isPythonModule():
-        return CodeTemplates.exec_global_template % {
-            "globals_identifier"      : globals_identifier.getCodeExportRef(),
-            "locals_identifier"       : locals_identifier.getCodeExportRef(),
-            "make_globals_identifier" : make_globals_identifier.getCodeExportRef(),
-            "source_identifier"       : exec_code.getCodeTemporaryRef(),
-            "filename_identifier"     : getConstantCode(
-                constant = "<string>",
-                context  = context
-            ),
-            "mode_identifier"         : getConstantCode(
-                constant = "exec",
-                context  = context
-            ),
-            "future_flags"            : future_flags,
-        }
-    else:
-        locals_temp_identifier = Identifier( "locals.asObject()", 0 )
 
-        make_locals_identifier = getLoadLocalsCode(
-            context  = context,
-            provider = provider,
-            mode     = "updated"
+def getEvalCode( context, order_relevance, exec_code, filename_identifier,
+                 globals_identifier, locals_identifier, mode_identifier,
+                 future_flags ):
+    code_identifier = getCompileCode(
+        order_relevance     = [ False ] * 4,
+        source_identifier   = exec_code,
+        filename_identifier = filename_identifier,
+        mode_identifier     = mode_identifier,
+        future_flags        = Identifier( str( future_flags ), 0 ),
+        context             = context
+    )
+
+    return getOrderRelevanceEnforcedArgsCode(
+        helper          = "EVAL_CODE",
+        export_ref      = 0,
+        ref_count       = 1,
+        tmp_scope       = "eval",
+        order_relevance = order_relevance,
+        args            = (
+            code_identifier,
+            globals_identifier,
+            locals_identifier
+        ),
+        context         = context
+    )
+
+
+
+def getExecCode( context, exec_code, globals_identifier, locals_identifier, future_flags, provider, source_ref ):
+
+    # Filename with origin if improved mode.
+    if Options.isFullCompat():
+        filename_identifier = getConstantCode(
+            constant = "<string>",
+            context  = context
+        )
+    else:
+        filename_identifier = getConstantCode(
+            constant = "<string at %s>" % source_ref.getAsString(),
+            context  = context
         )
 
-        if Options.isFullCompat():
-            filename_identifier = getConstantCode(
-                constant = "<string>",
-                context  = context
-            )
-        else:
-            filename_identifier = getConstantCode(
-                constant = "<string at %s>" % source_ref.getAsString(),
-                context  = context
-            )
+    result = CodeTemplates.exec_template % {
+        "globals_identifier"      : globals_identifier.getCodeExportRef(),
+        "locals_identifier"       : locals_identifier.getCodeExportRef(),
+        "source_identifier"       : exec_code.getCodeTemporaryRef(),
+        "filename_identifier"     : getConstantCode(
+            constant = "<string>",
+            context  = context
+        ),
+        "mode_identifier"         : getConstantCode(
+            constant = "exec",
+            context  = context
+        ),
+        "future_flags"            : future_flags,
+    }
 
-        return CodeTemplates.exec_local_template % {
-            "globals_identifier"      : globals_identifier.getCodeExportRef(),
-            "locals_identifier"       : locals_identifier.getCodeExportRef(),
-            "make_globals_identifier" : make_globals_identifier.getCodeExportRef(),
-            "make_locals_identifier"  : make_locals_identifier.getCodeExportRef(),
-            "source_identifier"       : exec_code.getCodeTemporaryRef(),
-            "filename_identifier"     : filename_identifier,
-            "mode_identifier"         : getConstantCode(
-                constant = "exec",
-                context  = context
-            ),
-            "future_flags"            : future_flags,
+    if provider.isExpressionFunctionBody() and provider.isUnqualifiedExec():
+        locals_temp_identifier = Identifier( "locals_source", 0 )
+
+        result += CodeTemplates.exec_copy_back_template % {
             "store_locals_code"       : indented(
                 getStoreLocalsCode(
                     context           = context,
                     source_identifier = locals_temp_identifier,
                     provider          = provider
                 ),
-                2
             )
         }
+
+    return getBlockCode( result )
 
 def getBuiltinSuperCode( order_relevance, type_identifier, object_identifier,
                          context ):

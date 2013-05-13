@@ -515,6 +515,25 @@ def simpleFunction63():
    except Exception:
       pass
 
+def simpleFunction64():
+    x = 2
+    y = 3
+    z = eval( "x * y" )
+
+def simpleFunction65():
+    import array
+
+    a = array.array("b", "")
+    assert a == eval(repr(a), {"array": array.array})
+
+    d = {
+        "x" : 2,
+        "y" : 3
+    }
+    z = eval( repr(d), d )
+
+
+
 x = 17
 
 m1 = {}
@@ -670,3 +689,6 @@ except Exception: # Windows
    pass
 checkReferenceCount( simpleFunction63 )
 sys.stderr = old_stderr
+
+checkReferenceCount( simpleFunction64 )
+checkReferenceCount( simpleFunction65 )

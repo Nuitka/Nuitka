@@ -782,13 +782,13 @@ def generateExpressionsCode( expressions, context, allow_none = False ):
 def getOrderRelevance( expressions, allow_none = False ):
     if allow_none:
         return [
-            expression.mayHaveSideEffects() if expression is not None else None
+            expression.isOrderRelevant() if expression is not None else None
             for expression in
             expressions
         ]
     else:
         return [
-            expression.mayHaveSideEffects()
+            expression.isOrderRelevant()
             for expression in
             expressions
         ]
@@ -1666,26 +1666,31 @@ def _generateEvalCode( node, context ):
     else:
         filename = "<execfile>"
 
+    order_relevance = getOrderRelevance(
+        ( node.getSourceCode(), globals_value, locals_value ),
+        allow_none = True
+    )
+
     identifier = Generator.getEvalCode(
+        order_relevance     = order_relevance,
         exec_code           = generateExpressionCode(
             expression = node.getSourceCode(),
             context    = context
         ),
         globals_identifier  = globals_identifier,
         locals_identifier   = locals_identifier,
-        filename_identifier = Generator.getConstantCode(
+        filename_identifier = Generator.getConstantHandle(
             constant = filename,
             context  = context
         ),
-        mode_identifier    = Generator.getConstantCode(
+        mode_identifier    = Generator.getConstantHandle(
             constant = "eval" if node.isExpressionBuiltinEval() else "exec",
             context  = context
         ),
-        future_flags        = Generator.getFutureFlagsCode(
+        future_flags       = Generator.getFutureFlagsCode(
             future_spec = node.getSourceReference().getFutureSpec()
         ),
-        provider            = node.getParentVariableProvider(),
-        context             = context
+        context            = context
     )
 
     return identifier

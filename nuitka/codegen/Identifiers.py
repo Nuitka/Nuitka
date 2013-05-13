@@ -234,6 +234,15 @@ class TempObjectIdentifier( Identifier ):
         return self.code
 
 
+
+class KeeperAccessIdentifier( Identifier ):
+    def __init__( self, var_name ):
+        Identifier.__init__( self, var_name, 1 )
+
+    def getCheapRefCount( self ):
+        return 0
+
+
 class ClosureVariableIdentifier( Identifier ):
     def __init__( self, var_name, from_context ):
         assert type( from_context ) is str
