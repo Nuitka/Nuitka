@@ -17,16 +17,17 @@
 #
 """ Finalize the markups
 
-Set flags on functions and classes to indicate if a locals dict is really needed.
+Set flags on functions and classes to indicate if a locals dict is really
+needed.
 
-Set a flag on loops if they really need to catch Continue and Break exceptions or if it
-can be more simple code.
+Set a flag on loops if they really need to catch Continue and Break exceptions
+or if it can be more simple code.
 
-Set a flag on return statements and functions that require the use of ReturnValue
-exceptions, or if it can be more simple code.
+Set a flag on return statements and functions that require the use of
+"ReturnValue" exceptions, or if it can be more simple code.
 
-Set a flag on re-raises of exceptions if they can be simple throws or if they are in
-another context.
+Set a flag on re-raises of exceptions if they can be simple throws or if they
+are in another context.
 
 """
 
@@ -73,7 +74,8 @@ class FinalizeMarkups( FinalizationVisitorBase ):
                 last_search = search
                 search = search.getParent()
 
-                if search.isStatementTryFinally() and last_search == search.getBlockTry():
+                if search.isStatementTryFinally() and \
+                   last_search == search.getBlockTry():
                     search.markAsExceptionContinue()
                     node.markAsExceptionDriven()
 
@@ -87,8 +89,9 @@ class FinalizeMarkups( FinalizationVisitorBase ):
                 last_search = search
                 search = search.getParent()
 
-                if Utils.python_version >= 300 and search.isStatementTryFinally() and \
-                     last_search == search.getBlockTry():
+                if Utils.python_version >= 300 and \
+                   search.isStatementTryFinally() and \
+                   last_search == search.getBlockTry():
                     node.markAsExceptionPreserving()
                     break
 
@@ -108,7 +111,8 @@ class FinalizeMarkups( FinalizationVisitorBase ):
                 last_search = search
                 search = search.getParent()
 
-                if search.isStatementTryFinally() and last_search == search.getBlockTry():
+                if search.isStatementTryFinally() and \
+                   last_search == search.getBlockTry():
                     search.markAsExceptionReturnValueCatch()
 
                     exception_driven = True
@@ -133,7 +137,8 @@ class FinalizeMarkups( FinalizationVisitorBase ):
                         node.markAsReraiseLocal()
                         break
 
-                    if search.getParent().isStatementTryFinally() and Utils.python_version >= 300:
+                    if search.getParent().isStatementTryFinally() and \
+                       Utils.python_version >= 300:
                         node.markAsReraiseFinally()
 
                 search = search.getParent()
@@ -158,9 +163,10 @@ class FinalizeMarkups( FinalizationVisitorBase ):
 
             provider.markAsRaiseContaining()
 
-        if node.isExpressionBuiltinImport() and not Options.getShallFollowExtra():
-            warning( """\
-Unresolved '__import__' call at '%s' may require use of '--recurse-directory'.""" % (
+        if node.isExpressionBuiltinImport() and \
+           not Options.getShallFollowExtra():
+            warning( """Unresolved '__import__' call at '%s' may require use \
+of '--recurse-directory'.""" % (
                     node.getSourceReference().getAsString()
                 )
             )
@@ -170,8 +176,13 @@ Unresolved '__import__' call at '%s' may require use of '--recurse-directory'.""
                 node.getFunctionRef().getFunctionBody().markAsNeedsCreation()
 
         if node.isExpressionFunctionCall():
-            node.getFunction().getFunctionRef().getFunctionBody().markAsDirectlyCalled()
+            node.getFunction().getFunctionRef().getFunctionBody().\
+              markAsDirectlyCalled()
 
         if node.isExpressionFunctionRef():
-            if node.getParentModule() is not node.getFunctionBody().getParentModule():
+            parent_module = node.getFunctionBody().getParentModule()
+
+            if node.getParentModule() is not parent_module:
                 node.getFunctionBody().markAsCrossModuleUsed()
+
+            node.getFunctionBody().markAsUsed()

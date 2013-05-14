@@ -17,8 +17,8 @@
 #
 """ Module/Package nodes
 
-The top of the tree. Packages are also modules. Modules are what hold a program together
-and cross-module optimizations are the most difficult to tackle.
+The top of the tree. Packages are also modules. Modules are what hold a program
+together and cross-module optimizations are the most difficult to tackle.
 """
 
 from .NodeBases import (
@@ -27,6 +27,8 @@ from .NodeBases import (
 )
 
 from .IndicatorMixins import MarkContainsTryExceptIndicator
+from nuitka.SourceCodeReferences import SourceCodeReference
+from nuitka.nodes.FutureSpecs import FutureSpec
 
 from nuitka import Variables, Utils
 
@@ -36,8 +38,8 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
                     MarkContainsTryExceptIndicator ):
     """ Module
 
-        The module is the only possible root of a tree. When there are many modules
-        they form a forrest.
+        The module is the only possible root of a tree. When there are many
+        modules they form a forrest.
     """
 
     kind = "PYTHON_MODULE"
@@ -140,10 +142,14 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
         return result
 
     def isEarlyClosure( self ):
-        # Modules should immediately closure variables on use, pylint: disable=R0201
+        # Modules should immediately closure variables on use.
+        # pylint: disable=R0201
         return True
 
     def isMainModule( self ):
+        return False
+
+    def isInternalModule( self ):
         return False
 
     def getCodeName( self ):
@@ -166,7 +172,15 @@ class PythonModule( ChildrenHavingMixin, ClosureGiverNodeBase,
             return main_filename
 
 
-class PythonMainModule( PythonModule ):
+class SingleCreationMixin:
+    created = set()
+
+    def __init__( self ):
+        assert self.__class__ not in self.created
+        self.created.add( self.__class__ )
+
+
+class PythonMainModule( PythonModule, SingleCreationMixin ):
     kind = "PYTHON_MAIN_MODULE"
 
     def __init__( self, main_added, source_ref ):
@@ -177,19 +191,43 @@ class PythonMainModule( PythonModule ):
             source_ref  = source_ref
         )
 
+        SingleCreationMixin.__init__( self )
+
         self.main_added = main_added
 
     def isMainModule( self ):
         return True
-
-    def isMainAdded( self ):
-        return self.main_added
 
     def getOutputFilename( self ):
         if self.main_added:
             return Utils.dirname( self.getFilename() )
         else:
             return PythonModule.getOutputFilename( self )
+
+
+class PythonInternalModule( PythonModule, SingleCreationMixin ):
+    kind = "PYTHON_INTERNAL_MODULE"
+
+    def __init__( self ):
+        PythonModule.__init__(
+            self,
+            name        = "__internal__",
+            package     = None,
+            source_ref  = SourceCodeReference.fromFilenameAndLine(
+                filename    = "internal",
+                line        = 0,
+                future_spec = FutureSpec(),
+                inside_exec = False
+            )
+        )
+
+        SingleCreationMixin.__init__( self )
+
+    def isInternalModule( self ):
+        return True
+
+    def getOutputFilename( self ):
+        return "__internal"
 
 
 class PythonPackage( PythonModule ):

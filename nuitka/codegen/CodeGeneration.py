@@ -17,12 +17,13 @@
 #
 """ The code generation.
 
-No language specifics at all are supposed to be present here. Instead it is using
-primitives from the given generator to build either Identifiers (referenced counted
-expressions) or code sequences (list of strings).
+No language specifics at all are supposed to be present here. Instead it is
+using primitives from the given generator to build either Identifiers
+(referenced counted expressions) or code sequences (list of strings).
 
-As such this is the place that knows how to take a condition and two code branches and
-make a code block out of it. But it doesn't contain any target language syntax.
+As such this is the place that knows how to take a condition and two code
+branches and make a code block out of it. But it doesn't contain any target
+language syntax.
 """
 
 from . import (
@@ -37,6 +38,8 @@ from nuitka import (
     Options,
     Utils
 )
+
+from nuitka.__past__ import iterItems
 
 def generateTupleCreationCode( elements, context ):
     if _areConstants( elements ):
@@ -253,20 +256,7 @@ def generateFunctionCallCode( call_node, context ):
 
     function_body = call_node.getFunction().getFunctionRef().getFunctionBody()
 
-    # TODO: Can't be right and needs improvement. We may not be the exclusive
-    # owners of the function body. Instead of may be called directly, and with
-    # defaults both. For that, two instances of the function will be needed, one
-    # with, and one without the defaults and annotations.  Currently the case
-    # cannot happen, for as don't as we only do this ourselves, or only for
-    # functions without defaults and annotations.
-
-    function_identifier = generateFunctionBodyCode(
-        function_body  = function_body,
-        defaults       = (),
-        kw_defaults    = (),
-        annotations    = None,
-        context        = context
-    )
+    function_identifier = function_body.getCodeName()
 
     extra_arguments = []
 
@@ -286,37 +276,9 @@ def generateFunctionCallCode( call_node, context ):
 
 _generated_functions = {}
 
-def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
-                              context ):
-    function_identifier = function_body.getCodeName()
-
-    if function_identifier in _generated_functions:
-        return _generated_functions[ function_identifier ]
-
-    # TODO: Actually that will become possible to happen and should be dealt
-    # with.
-    assert not function_body.needsCreation() or \
-           not function_body.needsDirectCall(), function_body
-
-    if function_body.needsCreation():
-        function_context = Contexts.PythonFunctionCreatedContext(
-            parent   = context,
-            function = function_body
-        )
-    else:
-        function_context = Contexts.PythonFunctionDirectContext(
-            parent   = context,
-            function = function_body
-        )
-
-    # TODO: Generate both codes, and base direct/etc. decisions on context.
-    function_codes = generateStatementSequenceCode(
-        statement_sequence = function_body.getBody(),
-        allow_none         = True,
-        context            = function_context
-    )
-
-    function_codes = function_codes or []
+def generateFunctionCreationCode( function_body, defaults, kw_defaults,
+                                  annotations, context ):
+    assert function_body.needsCreation(), function_body
 
     parameters = function_body.getParameters()
 
@@ -350,18 +312,101 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
         context    = context,
     )
 
+    default_args = []
+
+    if not kw_defaults_identifier.isConstantIdentifier():
+        default_args.append( kw_defaults_identifier )
+
+    if not defaults_identifier.isConstantIdentifier():
+        default_args.append( defaults_identifier )
+
+    if annotations_identifier is not None and \
+       not annotations_identifier.isConstantIdentifier():
+        default_args.append( annotations_identifier )
+
+    function_identifier = function_body.getCodeName()
+
+    maker_code = Generator.getFunctionMakerCode(
+        context                = context,
+        function_name          = function_body.getFunctionName(),
+        function_qualname      = function_body.getFunctionQualname(),
+        function_identifier    = function_identifier,
+        parameters             = parameters,
+        closure_variables      = function_body.getClosureVariables(),
+        defaults_identifier    = defaults_identifier,
+        kw_defaults_identifier = kw_defaults_identifier,
+        annotations_identifier = annotations_identifier,
+        source_ref             = function_body.getSourceReference(),
+        function_doc           = function_body.getDoc(),
+        is_generator           = function_body.isGenerator()
+    )
+
+    context.addHelperCode( function_identifier, maker_code )
+
+    function_decl = Generator.getFunctionMakerDecl(
+        function_identifier    = function_body.getCodeName(),
+        defaults_identifier    = defaults_identifier,
+        kw_defaults_identifier = kw_defaults_identifier,
+        annotations_identifier = annotations_identifier,
+        closure_variables      = function_body.getClosureVariables()
+    )
+
+    if function_body.getClosureVariables() and not function_body.isGenerator():
+        function_decl += "\n"
+
+        function_decl += Generator.getFunctionContextDefinitionCode(
+            context              = context,
+            function_identifier  = function_body.getCodeName(),
+            closure_variables    = function_body.getClosureVariables(),
+        )
+
+    context.addDeclaration( function_identifier, function_decl )
+
+    return Generator.getFunctionCreationCode(
+        function_identifier = function_body.getCodeName(),
+        order_relevance     = [ True ] * len( default_args ),
+        default_args        = default_args,
+        closure_variables   = function_body.getClosureVariables(),
+        context             = context
+    )
+
+
+def generateFunctionBodyCode( function_body, context ):
+    function_identifier = function_body.getCodeName()
+
+    if function_identifier in _generated_functions:
+        return _generated_functions[ function_identifier ]
+
+    if function_body.needsCreation():
+        function_context = Contexts.PythonFunctionCreatedContext(
+            parent   = context,
+            function = function_body
+        )
+    else:
+        function_context = Contexts.PythonFunctionDirectContext(
+            parent   = context,
+            function = function_body
+        )
+
+    # TODO: Generate both codes, and base direct/etc. decisions on context.
+    function_codes = generateStatementSequenceCode(
+        statement_sequence = function_body.getBody(),
+        allow_none         = True,
+        context            = function_context
+    )
+
+    function_codes = function_codes or []
+
+    parameters = function_body.getParameters()
+
     if function_body.isGenerator():
         function_code = Generator.getGeneratorFunctionCode(
             context                = function_context,
             function_name          = function_body.getFunctionName(),
-            function_qualname      = function_body.getFunctionQualname(),
             function_identifier    = function_identifier,
             parameters             = parameters,
             closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
-            defaults_identifier    = defaults_identifier,
-            kw_defaults_identifier = kw_defaults_identifier,
-            annotations_identifier = annotations_identifier,
             source_ref             = function_body.getSourceReference(),
             function_codes         = function_codes,
             function_doc           = function_body.getDoc()
@@ -370,61 +415,20 @@ def generateFunctionBodyCode( function_body, defaults, kw_defaults, annotations,
         function_code = Generator.getFunctionCode(
             context                = function_context,
             function_name          = function_body.getFunctionName(),
-            function_qualname      = function_body.getFunctionQualname(),
             function_identifier    = function_identifier,
             parameters             = parameters,
             closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
-            defaults_identifier    = defaults_identifier,
-            kw_defaults_identifier = kw_defaults_identifier,
-            annotations_identifier = annotations_identifier,
-            source_ref             = function_body.getSourceReference(),
             function_codes         = function_codes,
-            function_doc           = function_body.getDoc()
+            function_doc           = function_body.getDoc(),
+            file_scope             = Generator.getExportScopeCode(
+                cross_module = function_body.isCrossModuleUsed()
+            )
         )
 
-    function_decl = Generator.getFunctionDecl(
-        function_identifier          = function_identifier,
-        defaults_identifier          = defaults_identifier,
-        kw_defaults_identifier       = kw_defaults_identifier,
-        annotations_identifier       = annotations_identifier,
-        closure_variables            = function_body.getClosureVariables(),
-        function_parameter_variables = function_body.getParameters().getVariables(),
-        context                      = function_context
-    )
 
-    context.addFunctionCodes(
-        code_name     = function_identifier,
-        function_decl = function_decl,
-        function_code = function_code
-    )
 
-    if function_body.needsCreation():
-        default_args = []
-
-        if not kw_defaults_identifier.isConstantIdentifier():
-            default_args.append( kw_defaults_identifier )
-
-        if not defaults_identifier.isConstantIdentifier():
-            default_args.append( defaults_identifier )
-
-        if annotations_identifier is not None and \
-           not annotations_identifier.isConstantIdentifier():
-            default_args.append( annotations_identifier )
-
-        result = Generator.getFunctionCreationCode(
-            function_identifier = function_body.getCodeName(),
-            order_relevance     = [ True ] * len( default_args ),
-            default_args        = default_args,
-            closure_variables   = function_body.getClosureVariables(),
-            context             = context
-        )
-    else:
-        result = function_body.getCodeName()
-
-    _generated_functions[ function_identifier ] = result
-
-    return result
+    return function_code
 
 def generateOperationCode( operator, operands, context ):
     return Generator.getOperationCode(
@@ -794,8 +798,9 @@ def getOrderRelevance( expressions, allow_none = False ):
         ]
 
 def generateExpressionCode( expression, context, allow_none = False ):
-    # This is a dispatching function with a branch per expression node type, and therefore
-    # many statements even if every branch is small pylint: disable=R0912,R0915
+    # This is a dispatching function with a branch per expression node type, and
+    # therefore many statements even if every branch is small
+    # pylint: disable=R0912,R0915
 
     if expression is None and allow_none:
         return None
@@ -1070,7 +1075,7 @@ def generateExpressionCode( expression, context, allow_none = False ):
             context         = context
         )
     elif expression.isExpressionFunctionCreation():
-        identifier = generateFunctionBodyCode(
+        identifier = generateFunctionCreationCode(
             function_body  = expression.getFunctionRef().getFunctionBody(),
             defaults       = expression.getDefaults(),
             kw_defaults    = expression.getKwDefaults(),
@@ -1445,7 +1450,6 @@ def generateExpressionCode( expression, context, allow_none = False ):
         raise AssertionError( "not a code object?", repr( identifier ) )
 
     return identifier
-
 
 def generateAssignmentVariableCode( variable_ref, value, context ):
     return Generator.getVariableAssignmentCode(
@@ -2496,7 +2500,49 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
 
     codes = codes or []
 
-    source_code = Generator.getModuleCode(
+    function_decl_codes = []
+    function_body_codes = []
+    extra_declarations = []
+
+    for function_body in module.getFunctions():
+        if not function_body.isUsed():
+            continue
+
+        function_code = generateFunctionBodyCode(
+            function_body = function_body,
+            context       = context
+        )
+
+        assert type( function_code ) is str
+
+        function_body_codes.append( function_code )
+
+        if function_body.needsDirectCall():
+            function_decl = Generator.getFunctionDirectDecl(
+                context = context,
+                function_identifier = function_body.getCodeName(),
+                closure_variables   = function_body.getClosureVariables(),
+                parameter_variables = function_body.getParameters().getAllVariables(),
+                file_scope          = Generator.getExportScopeCode(
+                    cross_module = function_body.isCrossModuleUsed()
+                )
+            )
+
+            if function_body.isCrossModuleUsed():
+                extra_declarations.append( function_decl )
+            else:
+                function_decl_codes.append( function_decl )
+
+    for _identifier, code in sorted( iterItems( context.getHelperCodes() ) ):
+        function_body_codes.append( code )
+
+    for _identifier, code in sorted( iterItems( context.getDeclarations() ) ):
+        function_decl_codes.append( code )
+
+    function_body_codes = "\n\n".join( function_body_codes )
+    function_decl_codes = "\n\n".join( function_decl_codes )
+
+    module_source_code = Generator.getModuleCode(
         module_name        = module_name,
         codes              = codes,
         other_module_names = [
@@ -2504,16 +2550,20 @@ def generateModuleCode( global_context, module, module_name, other_modules ):
             for other_module in
             other_modules
         ],
+        function_decl_codes = function_decl_codes,
+        function_body_codes = function_body_codes,
         context             = context,
     )
 
-    return source_code, context
+    extra_declarations = "\n".join( extra_declarations )
 
-def generateModuleDeclarationCode( module_name, context ):
-    return Generator.getModuleDeclarationCode(
+    module_header_code = Generator.getModuleDeclarationCode(
         module_name        = module_name,
-        extra_declarations = context.getExportDeclarations()
+        extra_declarations = extra_declarations
     )
+
+    return module_source_code, module_header_code, context
+
 
 def generateMainCode( module, codes, context ):
     if module.getBody() is not None:

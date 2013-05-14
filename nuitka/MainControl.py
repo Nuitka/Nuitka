@@ -158,6 +158,8 @@ def _pickSourceFilenames( source_dir, modules ):
         base_filename = Utils.joinpath(
             source_dir,
             "module." + module.getFullName()
+              if not module.isInternalModule()
+            else module.getFullName()
         )
 
         collision_filename = Utils.normcase( base_filename )
@@ -192,8 +194,17 @@ def makeSourceDirectory( main_module ):
     modules = Building.getImportedModules()
     assert main_module in modules
 
+    from nuitka.tree import ComplexCallHelperFunctions
+    if ComplexCallHelperFunctions.internal_module is not None:
+        modules.append( ComplexCallHelperFunctions.internal_module )
+
     # Sometimes we need to talk about all modules except main module.
-    other_modules = tuple( m for m in modules if m is not main_module )
+    other_modules = tuple(
+        m
+        for m in
+        modules
+        if not m.isMainModule() and not m.isInternalModule()
+    )
 
     # Prepare code generation, i.e. execute finalization for it.
     for module in sorted( modules, key = lambda x : x.getFullName() ):
@@ -210,11 +221,12 @@ def makeSourceDirectory( main_module ):
     for module in sorted( modules, key = lambda x : x.getFullName() ):
         cpp_filename, hpp_filename = module_filenames[ module ]
 
-        source_code, module_context = CodeGeneration.generateModuleCode(
+        source_code, header_code, module_context = \
+          CodeGeneration.generateModuleCode(
             global_context = global_context,
             module         = module,
             module_name    = module.getFullName(),
-            other_modules  = other_modules if module is main_module else ()
+            other_modules  = other_modules if module.isMainModule() else ()
         )
 
         # The main of an executable module gets a bit different code.
@@ -234,10 +246,7 @@ def makeSourceDirectory( main_module ):
 
         writeSourceCode(
             filename     = hpp_filename,
-            source_code  = CodeGeneration.generateModuleDeclarationCode(
-                module_name = module.getFullName(),
-                context     = module_context
-            )
+            source_code  = header_code
         )
 
     writeSourceCode(

@@ -64,7 +64,8 @@ def buildCallNode( provider, node, source_ref ):
         source_ref      = source_ref,
     )
 
-def _makeCallNode( provider, called, positional_args, pairs, list_star_arg, dict_star_arg, source_ref ):
+def _makeCallNode( provider, called, positional_args, pairs, list_star_arg,
+                   dict_star_arg, source_ref ):
     # Many variables, but only to cover the many complex call cases.
     # pylint: disable=R0914
 
@@ -82,8 +83,8 @@ def _makeCallNode( provider, called, positional_args, pairs, list_star_arg, dict
             source_ref      = source_ref,
         )
     else:
-        # Dispatch to complex helper function for each case. These do re-formulation of
-        # complex calls according to developer manual.
+        # Dispatch to complex helper function for each case. These do
+        # re-formulation of complex calls according to developer manual.
 
         key = len( positional_args ) > 0, len( pairs ) > 0, list_star_arg is not None, dict_star_arg is not None
 
@@ -146,7 +147,7 @@ def _makeCallNode( provider, called, positional_args, pairs, list_star_arg, dict
         return ExpressionFunctionCall(
             function   = ExpressionFunctionCreation(
                 function_ref = ExpressionFunctionRef(
-                    function_body = get_helper( provider ),
+                    function_body = get_helper(),
                     source_ref    = source_ref
                 ),
                 defaults     = (),

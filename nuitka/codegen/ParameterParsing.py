@@ -36,7 +36,8 @@ def getDirectFunctionEntryPointIdentifier( function_identifier ):
 
 
 def _getParameterParsingCode( context, parameters, function_name, is_method ):
-    # There is really no way this could be any less complex, pylint: disable=R0912,R0914
+    # There is really no way this could be any less complex.
+    # pylint: disable=R0912,R0914
 
     parameter_parsing_code = "".join(
         [
@@ -251,8 +252,8 @@ def _getParameterParsingCode( context, parameters, function_name, is_method ):
 
     return indented( parameter_parsing_code )
 
-def getParameterParsingCode( context, function_identifier, function_name, parameters,
-                             needs_creation ):
+def getParameterParsingCode( context, function_identifier, function_name,
+                             parameters, needs_creation ):
 
     function_parameter_variables = parameters.getVariables()
 
@@ -303,14 +304,7 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
         "parameter_release_code"    : parameter_release_code,
     }
 
-    # Note: It's only a convention, but one generally adhered, so use the presence of a "self"
-    # to detect of a "method" entry point makes sense.
-    if function_parameter_variables and function_parameter_variables[0].getName() == "self":
-        mparse_identifier = getParameterEntryPointIdentifier(
-            function_identifier = function_identifier,
-            is_method           = True
-        )
-
+    if parameters.mightBeClassMethod():
         parameter_entry_point_code += CodeTemplates.template_parameter_method_entry_point % {
             "parameter_parsing_code"    : _getParameterParsingCode(
                 context             = context,
@@ -318,19 +312,36 @@ def getParameterParsingCode( context, function_identifier, function_name, parame
                 parameters          = parameters,
                 is_method           = True
             ),
-            "parse_function_identifier" : mparse_identifier,
+            "parse_function_identifier" : getMethodEntryPointIdentifier(
+                parameters          = parameters,
+                function_identifier = function_identifier
+            ),
             "impl_function_identifier"  : getDirectFunctionEntryPointIdentifier(
                 function_identifier = function_identifier
             ),
             "parameter_objects_list"    : ", ".join( parameter_objects_list ),
             "parameter_release_code"    : parameter_release_code
         }
-    else:
-        mparse_identifier = "NULL"
 
     return (
         function_parameter_variables,
         parameter_entry_point_code,
-        parameter_objects_decl,
-        mparse_identifier
+        parameter_objects_decl
     )
+
+def getMethodEntryPointIdentifier( function_identifier, parameters ):
+    # Note: It's only a convention, but one generally adhered, so use the
+    # presence of a "self" to detect of a "method" entry point makes sense.
+
+    parameter_variables = parameters.getVariables()
+
+    might_be_method = parameter_variables and \
+                      parameter_variables[0].getName() == "self"
+
+    if might_be_method:
+        return getParameterEntryPointIdentifier(
+            function_identifier = function_identifier,
+            is_method           = True
+        )
+    else:
+        return "NULL"

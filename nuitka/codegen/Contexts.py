@@ -103,14 +103,8 @@ class PythonChildContextBase( PythonContextBase ):
     def getConstantHandle( self, constant ):
         return self.parent.getConstantHandle( constant )
 
-    def addFunctionCodes( self, code_name, function_decl, function_code ):
-        self.parent.addFunctionCodes( code_name, function_decl, function_code )
-
     def addGlobalVariableNameUsage( self, var_name ):
         self.parent.addGlobalVariableNameUsage( var_name )
-
-    def addExportDeclarations( self, declarations ):
-        self.parent.addExportDeclarations( declarations )
 
     def getModuleCodeName( self ):
         return self.parent.getModuleCodeName()
@@ -129,6 +123,13 @@ class PythonChildContextBase( PythonContextBase ):
             is_generator  = is_generator,
             is_optimized  = is_optimized
         )
+
+    def addHelperCode( self, key, code ):
+        self.parent.addHelperCode( key, code )
+
+    def addDeclaration( self, key, code ):
+        self.parent.addDeclaration( key, code )
+
 
 def _getConstantDefaultPopulation():
     result = (
@@ -317,11 +318,10 @@ class PythonModuleContext( PythonContextBase ):
 
         self.global_context = global_context
 
-        self.function_codes = {}
+        self.declaration_codes = {}
+        self.helper_codes = {}
 
         self.global_var_names = set()
-
-        self.export_declarations = []
 
     def __repr__( self ):
         return "<PythonModuleContext instance for module %s>" % self.filename
@@ -350,14 +350,6 @@ class PythonModuleContext( PythonContextBase ):
             is_optimized  = is_optimized
         )
 
-    def addFunctionCodes( self, code_name, function_decl, function_code ):
-        assert code_name not in self.function_codes, code_name
-
-        self.function_codes[ code_name ] = ( function_decl, function_code )
-
-    def getFunctionsCodes( self ):
-        return self.function_codes
-
     def getName( self ):
         return self.name
 
@@ -381,12 +373,6 @@ class PythonModuleContext( PythonContextBase ):
     def getGlobalVariableNames( self ):
         return sorted( self.global_var_names )
 
-    def addExportDeclarations( self, declarations ):
-        self.export_declarations.append( declarations )
-
-    def getExportDeclarations( self ):
-        return "\n".join( self.export_declarations )
-
     def setFrameGuardMode( self, guard_mode ):
         assert guard_mode == "once"
 
@@ -394,6 +380,22 @@ class PythonModuleContext( PythonContextBase ):
         return "return MOD_RETURN_VALUE( _module_%s );" % (
             self.getModuleCodeName()
         )
+
+    def addHelperCode( self, key, code ):
+        assert key not in self.helper_codes
+
+        self.helper_codes[ key ] = code
+
+    def getHelperCodes( self ):
+        return self.helper_codes
+
+    def addDeclaration( self, key, code ):
+        assert key not in self.declaration_codes
+
+        self.declaration_codes[ key ] = code
+
+    def getDeclarations( self ):
+        return self.declaration_codes
 
 
 class PythonFunctionContext( PythonChildContextBase ):
@@ -453,12 +455,6 @@ class PythonFunctionDirectContext( PythonFunctionContext ):
     def isForDirectCall( self ):
         return True
 
-    def getExportScope( self ):
-        if self.function.isCrossModuleUsed():
-            return "NUITKA_CROSS_MODULE"
-        else:
-            return "NUITKA_LOCAL_MODULE"
-
     def isForCrossModuleUsage( self ):
         return self.function.isCrossModuleUsed()
 
@@ -472,6 +468,7 @@ class PythonFunctionCreatedContext( PythonFunctionContext ):
 
     def isForCreatedFunction( self ):
         return True
+
 
 class PythonStatementContext( PythonChildContextBase ):
     def __init__( self, parent ):

@@ -297,6 +297,14 @@ class ParameterSpec( ParameterSpecTuple ):
 
         return tuple( result )
 
+    def mightBeClassMethod( self ):
+        # Note: It's only a convention, but one generally adhered, so use the
+        # presence of a "self" to detect of a "method" entry point makes sense.
+
+        # TODO: Not need to use variable, this got moved to here.
+        return self.normal_args and self.normal_args[0] == "self"
+
+
 # Note: Based loosley on "inspect.getcallargs" with corrections.
 def matchCall( func_name, args, star_list_arg, star_dict_arg, num_defaults, positional, pairs, improved = False  ):
     # This is of incredible code complexity, but there really is no other way to express
