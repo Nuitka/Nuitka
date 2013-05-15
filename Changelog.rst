@@ -1,10 +1,9 @@
-Nuitka Release 0.4.3 (Draft)
-============================
+Nuitka Release 0.4.3
+====================
 
 This release expands the reach of Nuitka substantially, as new platforms and
-compilers are now supported. A whole new use case opens up with "portable"
-binaries, and otherwise, polish has been applied. Under the hood there is the
-continued and in-progress effort to implement SSA form in Nuitka.
+compilers are now supported. A lot of polish has been applied. Under the hood
+there is the continued and in-progress effort to implement SSA form in Nuitka.
 
 New Features
 ------------
@@ -31,13 +30,6 @@ New Features
 
   The support the newest version of Python has been extended, improving
   compatibility for many minor corner cases.
-
-- Portable Binaries.
-
-  Nuitka has gained the ``--portable`` option which adds the Python libraries,
-  and a zip files with the modules, sufficient to run independent of the Python
-  installation. This has often been requested, and finally been contributed by
-  ownssh.
 
 - Added warning when a user compiles a module and executes it immediately when
   that references ``__name__``.
@@ -114,10 +106,9 @@ Organizational
   please support funding travels, website, etc.
 
 - The `User Manual <http://nuitka.net/doc/user-manual.html>`_ has been updated
-  with new content. We now have portable mode, we now do support Visual Studio,
-  documented the required LLVM version for clang, Win64 and modules may include
-  modules too, etc. Lots of information was no longer accurate and has been
-  updated.
+  with new content. We now do support Visual Studio, documented the required
+  LLVM version for clang, Win64 and modules may include modules too, etc. Lots
+  of information was no longer accurate and has been updated.
 
 - The Changelog has been improved for consistency, wordings, and styles.
 
@@ -157,6 +148,9 @@ Cleanups
 - Do not track needed tuple, list, and dict creation code variants in context,
   but e.g. in ``nuitka.codegen.TupleCodes`` module instead.
 
+- Introduced an "internal" module to host the complex call helper functions,
+  instead of just adding it to any module that first uses it.
+
 New Tests
 ---------
 
@@ -168,12 +162,8 @@ New Tests
 Summary
 -------
 
-The release is clearly major. The contributed "portable" code opens up a whole
-new area of use for Nuitka. We may see it evolved to replace "py2exe" for more
-and more people now.
-
-The new platforms, and Visual Studio support triggered a whole range of
-improvements, and means this is truly complete now.
+The release is clearly major step ahead. The new platform support triggered a
+whole range of improvements, and means this is truly complete now.
 
 Also there is very much polish in this release, reducing the number of warnings,
 updated documentation, the only thing really missing is visible progress with
