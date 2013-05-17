@@ -59,6 +59,8 @@ def getOrderRelevanceEnforcedArgsCode( helper, tmp_scope, order_relevance, args,
     assert len( args ) == len( order_relevance )
 
     if order_relevance.count( True ) >= 2:
+        order_relevance = _getMinimalOrderRelevance( order_relevance )
+
         order_codes = []
         arg_codes = []
 
@@ -125,9 +127,27 @@ def getOrderRelevanceEnforcedArgsCode( helper, tmp_scope, order_relevance, args,
                 ref_count
             )
 
+def _getMinimalOrderRelevance( order_relevance ):
+    if order_relevance:
+        last_true = None
+        for count, value in enumerate( order_relevance ):
+            if value:
+                last_true = count
+
+
+        if last_true is not None:
+            new_order_relevance = list( order_relevance )
+            new_order_relevance[ last_true ] = False
+
+            return new_order_relevance
+
+    return order_relevance
+
 def _getTempDeclCode( order_relevance, names, values ):
     assert len( names ) == len( values )
     assert len( names ) == len( order_relevance )
+
+    order_relevance = _getMinimalOrderRelevance( order_relevance )
 
     usages = []
     decls = []
