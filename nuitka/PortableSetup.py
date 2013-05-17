@@ -47,6 +47,11 @@ def isPythonScript( path ):
     return 0
 
 def copyFile( src, dst ):
+    target_dir = os.path.dirname( dst )
+
+    if not os.path.isdir( target_dir ):
+        os.makedirs( target_dir )
+
     if os.path.isfile( dst ):
         os.remove( dst )
     with open( src, "rb" ) as p:
@@ -85,7 +90,7 @@ def getImportedDict( mainscript ):
     finder.run_script( mainscript )
 
     # resolve dependency
-    for name in finder.modules.keys():
+    for name in finder.modules:
         method = dependency_resolver.get( name )
         if not method:
             continue
@@ -97,8 +102,7 @@ def getImportedDict( mainscript ):
     imported_dict.update( finder.modules )
     return imported_dict
 
-def getImportedPathList( imported_dict ):
-    imported_list = []
+def yieldImportedPaths( imported_dict ):
     module_base = os.path.dirname( os.__file__ )
     if os.name == "nt":
         module_base_dlls = os.path.join(
@@ -108,6 +112,7 @@ def getImportedPathList( imported_dict ):
     for name, mod in imported_dict.items():
         if not mod:
             continue
+
         if not hasattr( mod, "__file__" ) or mod.__file__ is None:
             # builtin module, if mod is modulefinder.Module then __file__ will
             # be None
@@ -115,29 +120,14 @@ def getImportedPathList( imported_dict ):
                 import warnings
                 warnings.warn( "unknown builtin module %s\n" % repr( name ), Warning )
             continue
+
         path = mod.__file__
         if path.startswith( module_base ):
-            imported_list.append( path )
+            yield name, path
+        elif os.name == "nt" and not isPythonScript( path ) and \
+           path.startswith( module_base_dlls ):
+            yield name, path
             continue
-        if ( os.name == "nt" and not isPythonScript( path )
-            and path.startswith( module_base_dlls ) ):
-            imported_list.append( path )
-            continue
-    return imported_list
-
-def getCopyList( imported_list ):
-    zip_list = []
-    bin_list = []
-    for path in imported_list:
-        if isPythonScript( path ):
-            path_base = path.rsplit( ".", 1 )[0]
-            for end in python_executable_suffixes:
-                path_pack = path_base + end
-                if os.path.isfile( path_pack ):
-                    zip_list.append( path_pack )
-        else:
-            bin_list.append( path )
-    return zip_list, bin_list
 
 def copyPythonLibrary( outputdir ):
     if os.name == "posix" and os.uname()[0] == "Linux":
@@ -167,16 +157,40 @@ def copyPythonLibrary( outputdir ):
 
 def main( mainscript, outputdir ):
     imported_dict = getImportedDict( mainscript )
-    imported_list = getImportedPathList( imported_dict )
-    zip_list, bin_list = getCopyList( imported_list )
 
-    # pack script to archive
-    base_length = len( os.path.dirname( os.__file__ ) ) + 1
+    zip_list = []
+    bin_list = []
+
+    for name, path in yieldImportedPaths( imported_dict ):
+        if isPythonScript( path ):
+            path_base = path.rsplit( ".", 1 )[0]
+            for end in python_executable_suffixes:
+                path_pack = path_base + end
+                if os.path.isfile( path_pack ):
+                    if path_base.endswith( "__init__" ):
+                        import_base = os.path.dirname( path_base )
+                    else:
+                        import_base = path_base
+
+                    for _i in range( name.count(".") + 1 ):
+                        import_base = os.path.dirname( import_base )
+
+                    zip_list.append( ( path_pack, import_base ) )
+                    break
+        else:
+            import_base = path
+            for _i in range( name.count(".") + 1 ):
+                import_base = os.path.dirname( import_base )
+
+            export_path = path[ len( import_base ) + 1 : ]
+
+            bin_list.append( ( path, export_path ) )
+
+    # pack scripts to archive
     zip_path = os.path.join( outputdir, python_library_archive_name )
-
     with zipfile.ZipFile( zip_path, "w", zipfile.ZIP_STORED ) as zip_file:
-        for path in zip_list:
-            zip_file.write( path, path[ base_length: ] )
+        for path_pack, import_base in sorted( zip_list ):
+            zip_file.write( path_pack, path_pack[ len( import_base ): ] )
 
     # copy extensions to directory
     import shutil
@@ -185,8 +199,8 @@ def main( mainscript, outputdir ):
         shutil.rmtree( library_directory )
     if not os.path.isdir( library_directory ):
         os.makedirs( library_directory )
-    for src in bin_list:
-        dst = os.path.join( library_directory, os.path.basename( src ) )
+    for src, export_path in bin_list:
+        dst = os.path.join( library_directory, export_path )
         copyFile( src, dst )
 
     # copy libpython
