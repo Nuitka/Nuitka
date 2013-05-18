@@ -23,12 +23,16 @@ from .Pickling import getStreamedConstant
 from .CppStrings import encodeString
 from .Indentation import indented
 
+from .TupleCodes import addMakeTupleUse
+from .ListCodes import addMakeListUse
+from .DictCodes import addMakeDictUse
+
 # pylint: disable=W0622
 from ..__past__ import unicode, long, iterItems
 # pylint: enable=W0622
 
 from ..Utils import python_version
-from ..Constants import HashableConstant
+from ..Constants import HashableConstant, constant_builtin_types
 
 import re, struct
 
@@ -42,9 +46,12 @@ def getConstantCode( context, constant ):
 
     return constant_identifier.getCode()
 
-# TODO: The determination of this should already happen in Building or in a helper not
-# during code generation.
+# TODO: The determination of this should already happen in Building or in a
+# helper not during code generation.
 _match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
+
+def getConstantCodeName( context, constant ):
+    return context.getConstantHandle( constant, real_use = False ).getCode()
 
 def _isAttributeName( value ):
     return _match_attribute_names.match( value )
@@ -61,6 +68,7 @@ def _getUnstreamCode( constant_value, constant_identifier ):
 
     assert type( saved ) is bytes
 
+    # We need to remember having to use pickle, pylint: disable=W0603
     global _needs_pickle
     _needs_pickle = True
 
@@ -71,9 +79,17 @@ def _getUnstreamCode( constant_value, constant_identifier ):
     )
 
 
-def _addConstantInitCode( context, emit, constant_type, constant_value, constant_identifier ):
-    # Use shortest code for ints and longs, except when they are big, then fall fallback
-    # to pickling. TODO: Avoid the use of pickle even for larger values.
+def _packFloat( value ):
+    return struct.pack( "<d", value )
+
+def _addConstantInitCode( context, emit, constant_type, constant_value,
+                          constant_identifier ):
+    # This has many cases, that all return, and do a lot.
+    #  pylint: disable=R0911,R0912,R0915
+
+    # Use shortest code for ints and longs, except when they are big, then fall
+    # fallback to pickling. TODO: Avoid the use of pickle even for larger
+    # values.
     if constant_type is int and abs( constant_value ) < 2**31:
         emit(
             "%s = PyInt_FromLong( %s );" % (
@@ -84,8 +100,8 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
 
         return
 
-    # See above, same for long values. Note: These are of course not existant with Python3
-    # which would have covered it before.
+    # See above, same for long values. Note: These are of course not existant
+    # with Python3 which would have covered it before.
     if constant_type is long and abs( constant_value ) < 2**31:
         emit (
             "%s = PyLong_FromLong( %s );" % (
@@ -96,8 +112,9 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
 
         return
 
-    # Strings that can be encoded as UTF-8 are done more or less directly. When they
-    # cannot be expressed as UTF-8, that is rare not we can indeed use pickling.
+    # Strings that can be encoded as UTF-8 are done more or less directly. When
+    # they cannot be expressed as UTF-8, that is rare not we can indeed use
+    # pickling.
     if constant_type is str:
         if str is not unicode:
             emit(
@@ -134,7 +151,7 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
         emit(
             "%s = UNSTREAM_FLOAT( %s );" % (
                 constant_identifier,
-                encodeString( struct.pack( ">d", constant_value ) )
+                encodeString( _packFloat( constant_value ) )
             )
         )
 
@@ -154,21 +171,21 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
             emit( "%s = PyDict_New();" % constant_identifier )
         else:
             length = len( constant_value )
-            context.addMakeDictUse( length )
+            addMakeDictUse( length )
 
             for key, value in iterItems( constant_value ):
                 _addConstantInitCode(
                     emit                = emit,
                     constant_type       = type( key ),
                     constant_value      = key,
-                    constant_identifier = context.getConstantCodeName( key ),
+                    constant_identifier = getConstantCodeName( context, key ),
                     context             = context
                 )
                 _addConstantInitCode(
                     emit                = emit,
                     constant_type       = type( value ),
                     constant_value      = value,
-                    constant_identifier = context.getConstantCodeName( value ),
+                    constant_identifier = getConstantCodeName( context, value ),
                     context             = context
                 )
 
@@ -177,7 +194,10 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
                     constant_identifier,
                     length,
                     ", ".join(
-                        context.getConstantCodeName( value ) + "," + context.getConstantCodeName( key )
+                        "%s, %s" % (
+                            getConstantCodeName( context, value ),
+                            getConstantCodeName( context, key )
+                        )
                         for key, value
                         in
                         iterItems( constant_value )
@@ -192,7 +212,7 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
             emit( "%s = PyTuple_New( 0 );" % constant_identifier )
         else:
             length = len( constant_value )
-            context.addMakeTupleUse( length )
+            addMakeTupleUse( length )
 
             # Make elements earlier than tuple itself.
             for element in constant_value:
@@ -200,7 +220,7 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
                     emit                = emit,
                     constant_type       = type( element ),
                     constant_value      = element,
-                    constant_identifier = context.getConstantCodeName( element ),
+                    constant_identifier = getConstantCodeName( context, element ),
                     context             = context
                 )
 
@@ -209,7 +229,7 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
                     constant_identifier,
                     length,
                     ", ".join(
-                        context.getConstantCodeName( element )
+                        getConstantCodeName( context, element )
                         for element
                         in
                         constant_value
@@ -224,7 +244,7 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
             emit( "%s = PyList_New( 0 );" % constant_identifier )
         else:
             length = len( constant_value )
-            context.addMakeListUse( length )
+            addMakeListUse( length )
 
             # Make elements earlier than list itself.
             for element in constant_value:
@@ -232,7 +252,7 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
                     emit                = emit,
                     constant_type       = type( element ),
                     constant_value      = element,
-                    constant_identifier = context.getConstantCodeName( element ),
+                    constant_identifier = getConstantCodeName( context, element ),
                     context             = context
                 )
 
@@ -241,7 +261,7 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
                     constant_identifier,
                     length,
                     ", ".join(
-                        context.getConstantCodeName( element )
+                        getConstantCodeName( context, element )
                         for element
                         in
                         constant_value
@@ -261,10 +281,12 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
 
         return
 
-
     if constant_type in ( set, frozenset, complex, unicode, int, long, bytes, range ):
         emit(  _getUnstreamCode( constant_value, constant_identifier ) )
 
+        return
+
+    if constant_value in constant_builtin_types:
         return
 
     assert False, (type(constant_value), constant_value, constant_identifier)
@@ -272,13 +294,15 @@ def _addConstantInitCode( context, emit, constant_type, constant_value, constant
 def _lengthKey( value ):
     return len( value[1] ), value[1]
 
+the_contained_constants = {}
+
 def getConstantsInitCode( context ):
     # There are many cases for constants to be created in the most efficient way,
     # pylint: disable=R0912
 
     statements = []
 
-    all_constants = context.getContainedConstants()
+    all_constants = the_contained_constants
     all_constants.update( context.getConstants() )
 
     def receiveStatement( statement ):
@@ -355,6 +379,8 @@ def getConstantsInitCode( context ):
     return indented( statements )
 
 def getConstantsDeclCode( context, for_header ):
+    # There are many cases for constants of different types.
+    # pylint: disable=R0912
     statements = []
 
     for _code_object_key, code_identifier in context.getCodeObjects():
@@ -366,6 +392,7 @@ def getConstantsDeclCode( context, for_header ):
         statements.append( declaration )
 
     constants = context.getConstants()
+
     contained_constants = {}
 
     def considerForDeferral( constant_value ):
@@ -378,12 +405,16 @@ def getConstantsDeclCode( context, for_header ):
         if constant_value is True:
             return
 
-        constant_identifier = context.getConstantCodeName( constant_value )
-
         constant_type = type( constant_value )
+
+        if constant_type is type:
+            return
+
         key = constant_type, HashableConstant( constant_value )
 
         if key not in contained_constants:
+            constant_identifier = getConstantCodeName( context, constant_value )
+
             contained_constants[ key ] = constant_identifier
 
             if constant_type in ( tuple, list ):
@@ -397,6 +428,10 @@ def getConstantsDeclCode( context, for_header ):
 
 
     for ( constant_type, constant_value ), constant_identifier in sorted( constants.items(), key = _lengthKey ):
+        # Need not declare built-in types.
+        if constant_type is type:
+            continue
+
         declaration = "PyObject *%s;" % constant_identifier
 
         if for_header:
@@ -414,6 +449,7 @@ def getConstantsDeclCode( context, for_header ):
             statements.append( declaration )
 
     if not for_header:
-        context.setContainedConstants( contained_constants )
+        global the_contained_constants
+        the_contained_constants = contained_constants
 
     return "\n".join( statements )

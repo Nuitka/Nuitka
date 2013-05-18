@@ -44,7 +44,7 @@ class ExpressionBuiltinRange0( ExpressionBuiltinNoArgBase ):
             source_ref       = source_ref
         )
 
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         return False
 
 
@@ -58,20 +58,20 @@ class ExpressionBuiltinRangeBase( ExpressionChildrenHavingBase ):
             source_ref = source_ref
         )
 
-    def getTruthValue( self, constraint_collection ):
-        length = self.getIterationLength( constraint_collection )
+    def getTruthValue( self ):
+        length = self.getIterationLength()
 
         if length is None:
             return None
         else:
             return length > 0
 
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         for child in self.getVisitableNodes():
-            if child.mayHaveSideEffects( constraint_collection ):
+            if child.mayHaveSideEffects():
                 return True
 
-            if child.getIntegerValue( constraint_collection ) is None:
+            if child.getIntegerValue() is None:
                 return True
 
         else:
@@ -97,6 +97,8 @@ class ExpressionBuiltinRange1( ExpressionBuiltinRangeBase ):
     getLow = ExpressionChildrenHavingBase.childGetter( "low" )
 
     def computeExpression( self, constraint_collection ):
+        # Children can tell all we need to know, pylint: disable=W0613
+
         # TODO: Support Python3 range objects too.
         if python_version >= 300:
             return self, None, None
@@ -114,19 +116,19 @@ class ExpressionBuiltinRange1( ExpressionBuiltinRangeBase ):
             description = "Builtin call to range precomputed."
         )
 
-    def getIterationLength( self, constraint_collection ):
-        low = self.getLow().getIntegerValue( constraint_collection )
+    def getIterationLength( self ):
+        low = self.getLow().getIntegerValue()
 
         if low is None:
             return None
 
         return max( 0, low )
 
-    def canPredictIterationValues( self, constraint_collection ):
-        return self.getIterationLength( constraint_collection ) is not None
+    def canPredictIterationValues( self ):
+        return self.getIterationLength() is not None
 
-    def getIterationValue( self, element_index, constraint_collection ):
-        length = self.getIterationLength( constraint_collection )
+    def getIterationValue( self, element_index ):
+        length = self.getIterationLength()
 
         if length is None:
             return None
@@ -182,6 +184,8 @@ class ExpressionBuiltinRange2( ExpressionBuiltinRangeBase ):
         )
 
     def computeExpression( self, constraint_collection ):
+        # Children can tell all we need to know, pylint: disable=W0613
+
         if python_version >= 300:
             return self, None, None
 
@@ -190,35 +194,35 @@ class ExpressionBuiltinRange2( ExpressionBuiltinRangeBase ):
 
         return self.computeBuiltinSpec( ( low, high ) )
 
-    def getIterationLength( self, constraint_collection ):
+    def getIterationLength( self ):
         low  = self.getLow()
         high = self.getHigh()
 
-        low = low.getIntegerValue( constraint_collection )
+        low = low.getIntegerValue()
 
         if low is None:
             return None
 
-        high = high.getIntegerValue( constraint_collection )
+        high = high.getIntegerValue()
 
         if high is None:
             return None
 
         return max( 0, high - low )
 
-    def canPredictIterationValues( self, constraint_collection ):
-        return self.getIterationLength( constraint_collection ) is not None
+    def canPredictIterationValues( self ):
+        return self.getIterationLength() is not None
 
-    def getIterationValue( self, element_index, constraint_collection ):
+    def getIterationValue( self, element_index ):
         low  = self.getLow()
         high = self.getHigh()
 
-        low = low.getIntegerValue( constraint_collection )
+        low = low.getIntegerValue()
 
         if low is None:
             return None
 
-        high = high.getIntegerValue( constraint_collection )
+        high = high.getIntegerValue()
 
         if high is None:
             return None
@@ -276,6 +280,8 @@ class ExpressionBuiltinRange3( ExpressionBuiltinRangeBase ):
         )
 
     def computeExpression( self, constraint_collection ):
+        # Children can tell all we need to know, pylint: disable=W0613
+
         if python_version >= 300:
             return self, None, None
 
@@ -285,22 +291,22 @@ class ExpressionBuiltinRange3( ExpressionBuiltinRangeBase ):
 
         return self.computeBuiltinSpec( ( low, high, step ) )
 
-    def getIterationLength( self, constraint_collection ):
+    def getIterationLength( self ):
         low  = self.getLow()
         high = self.getHigh()
         step = self.getStep()
 
-        low = low.getIntegerValue( constraint_collection )
+        low = low.getIntegerValue()
 
         if low is None:
             return None
 
-        high = high.getIntegerValue( constraint_collection )
+        high = high.getIntegerValue()
 
         if high is None:
             return None
 
-        step = step.getIntegerValue( constraint_collection )
+        step = step.getIntegerValue()
 
         if step is None:
             return None
@@ -326,21 +332,21 @@ class ExpressionBuiltinRange3( ExpressionBuiltinRangeBase ):
 
         return int( estimate )
 
-    def canPredictIterationValues( self, constraint_collection ):
-        return self.getIterationLength( constraint_collection ) is not None
+    def canPredictIterationValues( self ):
+        return self.getIterationLength() is not None
 
-    def getIterationValue( self, element_index, constraint_collection ):
-        low  = self.getLow().getIntegerValue( constraint_collection )
+    def getIterationValue( self, element_index ):
+        low  = self.getLow().getIntegerValue()
 
         if low is None:
             return None
 
-        high = self.getHigh().getIntegerValue( constraint_collection )
+        high = self.getHigh().getIntegerValue()
 
         if high is None:
             return None
 
-        step = self.getStep().getIntegerValue( constraint_collection )
+        step = self.getStep().getIntegerValue()
 
         result = low + step * element_index
 

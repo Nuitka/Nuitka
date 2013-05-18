@@ -50,6 +50,7 @@ class ExpressionConditional( ExpressionChildrenHavingBase ):
     getCondition = ExpressionChildrenHavingBase.childGetter( "condition" )
 
     def computeExpression( self, constraint_collection ):
+        # Children can tell all we need to know, pylint: disable=W0613
         condition = self.getCondition()
 
         # If the condition raises, we let that escape.
@@ -57,7 +58,7 @@ class ExpressionConditional( ExpressionChildrenHavingBase ):
             return condition, "new_raise", "Conditional expression raises in condition"
 
         # Decide this based on truth value of condition.
-        truth_value = condition.getTruthValue( constraint_collection )
+        truth_value = condition.getTruthValue()
 
         if truth_value is True:
             from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
@@ -84,22 +85,23 @@ class ExpressionConditional( ExpressionChildrenHavingBase ):
         else:
             return self, None, None
 
-    def mayHaveSideEffectsBool( self, constraint_collection ):
+    def mayHaveSideEffectsBool( self ):
         condition = self.getCondition()
 
-        if condition.mayHaveSideEffectsBool( constraint_collection ):
+        if condition.mayHaveSideEffectsBool():
             return True
 
-        if self.getExpressionYes().mayHaveSideEffectsBool( constraint_collection ):
+        if self.getExpressionYes().mayHaveSideEffectsBool():
             return True
 
-        if self.getExpressionNo().mayHaveSideEffectsBool( constraint_collection ):
+        if self.getExpressionNo().mayHaveSideEffectsBool():
             return True
 
         return False
 
     def mayProvideReference( self ):
-        return self.getExpressionYes().mayProvideReference() or self.getExpressionNo().mayProvideReference()
+        return self.getExpressionYes().mayProvideReference() or \
+               self.getExpressionNo().mayProvideReference()
 
 
 class StatementConditional( StatementChildrenHavingBase ):
@@ -142,7 +144,14 @@ class StatementConditional( StatementChildrenHavingBase ):
 
 
     def computeStatement( self, constraint_collection ):
-        constraint_collection.onExpression( self.getCondition() )
+        # This is rather complex stuff, pylint: disable=R0912
+
+        # Query the truth value before the expression is evaluated, once it is evaluated
+        # in onExpression, it may change.
+        condition = self.getCondition()
+        truth_value = condition.getTruthValue()
+
+        constraint_collection.onExpression( condition )
         condition = self.getCondition()
 
         from nuitka.optimizations.ConstraintCollections import ConstraintCollectionBranch
@@ -159,6 +168,8 @@ class StatementConditional( StatementChildrenHavingBase ):
 
             # May have just gone away.
             yes_branch = self.getBranchYes()
+        else:
+            branch_yes_collection = None
 
         no_branch = self.getBranchNo()
 
@@ -169,6 +180,12 @@ class StatementConditional( StatementChildrenHavingBase ):
 
             # May have just gone away.
             no_branch = self.getBranchNo()
+        else:
+            branch_no_collection = None
+
+
+        # Merge into parent constraint collection.
+        constraint_collection.mergeBranches( branch_yes_collection, branch_no_collection )
 
         if yes_branch is not None and no_branch is not None:
             # TODO: Merging should be done by method.
@@ -213,8 +230,6 @@ Empty 'yes' branch for condition was replaced with inverted condition check."""
 
         # Note: Checking the condition late, so that the surviving branches got processed
         # already. Returning without doing that, will lead to errorneous assumptions.
-        truth_value = condition.getTruthValue( constraint_collection )
-
         if truth_value is not None:
             from .NodeMakingHelpers import wrapStatementWithSideEffects
 

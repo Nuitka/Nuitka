@@ -16,9 +16,9 @@
 #     limitations under the License.
 #
 """ Namify constants.
-
-This determines the identifier names of constants in the generated code. We try to have
-readable names where possible, and resort to hash codes only when it is really necessary.
+This determines the identifier names of constants in the generated code. We
+try to have readable names where possible, and resort to hash codes only when
+it is really necessary.
 
 """
 
@@ -39,23 +39,33 @@ class ExceptionCannotNamify( Exception ):
 
 def namifyConstant( constant ):
     # Many branches, statements and every case has a return, this is a huge case
-    # statement, that encodes the naming policy of constants, with often complex decisions
-    # to make, pylint: disable=R0911,R0912,R0915
+    # statement, that encodes the naming policy of constants, with often complex
+    # decisions to make, pylint: disable=R0911,R0912,R0915
 
     if type( constant ) is int:
         if constant == 0:
-            return "int_0"
+            result = "int_0"
         elif constant > 0:
-            return "int_pos_%d" % constant
+            result = "int_pos_%d" % constant
         else:
-            return "int_neg_%d" % abs( constant )
+            result = "int_neg_%d" % abs( constant )
+
+        if len( result ) > 20:
+            result = _digest( result )
+
+        return result
     elif type( constant ) is long:
         if constant == 0:
-            return "long_0"
+            result = "long_0"
         elif constant > 0:
-            return "long_pos_%d" % constant
+            result = "long_pos_%d" % constant
         else:
-            return "long_neg_%d" % abs( constant )
+            result = "long_neg_%d" % abs( constant )
+
+        if len( result ) > 20:
+            result = _digest( result )
+
+        return result
     elif constant is None:
         return "none"
     elif constant is True:
@@ -80,9 +90,11 @@ def namifyConstant( constant ):
                 "minus" if math.copysign( 1, constant ) < 0 else "plus"
             )
 
-        return "float_%s" % repr( constant ).replace( ".", "_" ).replace( "-", "_minus_" ).replace( "+", "" )
+        return "float_%s" % repr( constant ).replace( ".", "_" ).\
+          replace( "-", "_minus_" ).replace( "+", "" )
     elif type( constant ) is complex:
-        value = str( constant ).replace( "+", "p" ).replace( "-", "m" ).replace( ".", "_" )
+        value = str( constant ).replace( "+", "p" ).replace( "-", "m" ).\
+          replace( ".", "_" )
 
         if value.startswith( "(" ) and value.endswith( ")" ):
             value = value[1:-1]
@@ -107,47 +119,53 @@ def namifyConstant( constant ):
         if constant == ():
             return "tuple_empty"
         else:
-            result = "tuple_"
-
             try:
-                parts = []
+                result = "_".join(
+                    namifyConstant( value )
+                    for value in
+                    constant
+                )
 
-                for value in constant:
-                    parts.append( namifyConstant( value ) )
+                if len( result ) > 60:
+                    result = _digest( repr( constant ) )
 
-                return result + "_".join( parts ) + "_tuple"
+                return "tuple_" + result + "_tuple"
             except ExceptionCannotNamify:
                 warning( "Couldn't namify '%r'" % value )
 
-                return "tuple_" + hashlib.md5( repr( constant ) ).hexdigest()
+                return "tuple_" + _digest( repr( constant ) )
     elif type( constant ) is list:
         if constant == []:
             return "list_empty"
         else:
-            result = "list_"
-
             try:
-                parts = []
+                result = "_".join(
+                    namifyConstant( value )
+                    for value in
+                    constant
+                )
 
-                for value in constant:
-                    parts.append( namifyConstant( value ) )
+                if len( result ) > 60:
+                    result = _digest( repr( constant ) )
 
-                return result + "_".join( parts )  + "_list"
+                return "list_" + result + "_list"
             except ExceptionCannotNamify:
                 warning( "Couldn't namify '%r'" % value )
 
-                return "list_" + hashlib.md5( repr( constant ) ).hexdigest()
+                return "list_" + _digest( repr( constant ) )
     elif type( constant ) is range:
         # Python3 type only.
-        return "range_%s" % ( str( constant )[6:-1].replace( " ", "" ).replace( ",", "_" ) )
+        return "range_%s" % (
+            str( constant )[6:-1].replace( " ", "" ).replace( ",", "_" )
+        )
 
     raise ExceptionCannotNamify( "%r" % constant )
 
 _re_str_needs_no_digest = re.compile( r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.S )
 
 def _namifyString( string ):
-    # Many branches case has a return, encodes the naming policy of strings constants,
-    # with often complex decisions to make, pylint: disable=R0911
+    # Many branches case has a return, encodes the naming policy of strings
+    # constants, with often complex decisions to make, pylint: disable=R0911
 
     if string in ( "", b"" ):
         return "empty"
@@ -155,13 +173,16 @@ def _namifyString( string ):
         return "space"
     elif string == ".":
         return "dot"
-    elif type( string ) is str and _re_str_needs_no_digest.match( string ) and "\n" not in string:
+    elif type( string ) is str and \
+         _re_str_needs_no_digest.match( string ) and \
+         "\n" not in string:
         # Some strings can be left intact for source code readability.
         return "plain_" + string
     elif len( string ) == 1:
         return "chr_%d" % ord( string )
     elif len( string ) > 2 and string[0] == "<" and string[-1] == ">" and \
-           _re_str_needs_no_digest.match( string[1:-1] ) and "\n" not in string:
+         _re_str_needs_no_digest.match( string[1:-1] ) and \
+         "\n" not in string:
         return "angle_" + string[1:-1]
     else:
         # Others are better digested to not cause compiler trouble

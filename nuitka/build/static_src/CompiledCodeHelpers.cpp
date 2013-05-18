@@ -67,9 +67,10 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
 #endif
     else
     {
-        source = source_code;
+        source = INCREASE_REFCOUNT( source_code );
     }
 
+    PyObjectTemporary source_temp( source );
     PyObjectTemporary future_flags( PyInt_FromLong( flags ) );
 
     return _python_builtin_compile.call_args(
@@ -87,7 +88,7 @@ extern PyObject *_python_str_plain_open;
 
 static PythonBuiltin _python_builtin_open( &_python_str_plain_open );
 
-PyObject *_OPEN_FILE( EVAL_ORDERED_3( PyObject *file_name, PyObject *mode, PyObject *buffering ) )
+PyObject *OPEN_FILE( PyObject *file_name, PyObject *mode, PyObject *buffering )
 {
     if ( file_name == NULL )
     {
@@ -181,7 +182,7 @@ PyObject *BUILTIN_ORD( PyObject *value )
         }
         else
         {
-            PyErr_Format( PyExc_TypeError, "ord() expected a character, but string of length %" PY_FORMAT_SIZE_T "d found", size );
+            PyErr_Format( PyExc_TypeError, "ord() expected a character, but string of length %zd found", size );
             throw PythonException();
         }
     }
@@ -195,21 +196,34 @@ PyObject *BUILTIN_ORD( PyObject *value )
         }
         else
         {
-            PyErr_Format( PyExc_TypeError, "ord() expected a character, but byte array of length %" PY_FORMAT_SIZE_T "d found", size );
+            PyErr_Format( PyExc_TypeError, "ord() expected a character, but byte array of length %zd found", size );
             throw PythonException();
         }
     }
     else if ( PyUnicode_Check( value ) )
     {
+#if PYTHON_VERSION >= 330
+        if (unlikely( PyUnicode_READY( value ) == -1 ))
+        {
+            throw PythonException();
+        }
+
+        Py_ssize_t size = PyUnicode_GET_LENGTH( value );
+#else
         Py_ssize_t size = PyUnicode_GET_SIZE( value );
+#endif
 
         if (likely( size == 1 ))
         {
+#if PYTHON_VERSION >= 330
+            result = long( PyUnicode_READ_CHAR( value, 0 ) );
+#else
             result = long( *PyUnicode_AS_UNICODE( value ) );
+#endif
         }
         else
         {
-            PyErr_Format( PyExc_TypeError, "ord() expected a character, but unicode string of length %" PY_FORMAT_SIZE_T "d found", size );
+            PyErr_Format( PyExc_TypeError, "ord() expected a character, but unicode string of length %zd found", size );
             throw PythonException();
         }
     }
@@ -328,7 +342,7 @@ typedef struct {
     PyObject *it_sentinel;
 } calliterobject;
 
-PyObject *_BUILTIN_ITER2( EVAL_ORDERED_2( PyObject *callable, PyObject *sentinel ) )
+PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel )
 {
     calliterobject *result = PyObject_GC_New( calliterobject, &PyCallIter_Type );
 
@@ -338,8 +352,8 @@ PyObject *_BUILTIN_ITER2( EVAL_ORDERED_2( PyObject *callable, PyObject *sentinel
     }
 
     // Note: References were taken at call site already.
-    result->it_callable = callable;
-    result->it_sentinel = sentinel;
+    result->it_callable = INCREASE_REFCOUNT( callable );
+    result->it_sentinel = INCREASE_REFCOUNT( sentinel );
 
     Nuitka_GC_Track( result );
 
@@ -353,7 +367,7 @@ PyObject *BUILTIN_TYPE1( PyObject *arg )
 
 extern PyObject *_python_str_plain___module__;
 
-PyObject *_BUILTIN_TYPE3( EVAL_ORDERED_4( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict ) )
+PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict )
 {
     PyObject *result = PyType_Type.tp_new(
         &PyType_Type,
@@ -506,7 +520,7 @@ PyObject *BUILTIN_RANGE( PyObject *boundary )
 #endif
 }
 
-PyObject *_BUILTIN_RANGE2( EVAL_ORDERED_2( PyObject *low, PyObject *high ) )
+PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
 {
 #if PYTHON_VERSION < 300
     PyObjectTemporary low_temp( TO_RANGE_ARG( low, "start" ) );
@@ -550,7 +564,7 @@ PyObject *_BUILTIN_RANGE2( EVAL_ORDERED_2( PyObject *low, PyObject *high ) )
 #endif
 }
 
-PyObject *_BUILTIN_RANGE3( EVAL_ORDERED_3( PyObject *low, PyObject *high, PyObject *step ) )
+PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 {
 #if PYTHON_VERSION < 300
     PyObjectTemporary low_temp( TO_RANGE_ARG( low, "start" ) );
@@ -644,7 +658,7 @@ static PythonBuiltin _python_builtin_import( &_python_str_plain___import__ );
 
 PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
 {
-    assert( Nuitka_String_Check( module_name ) );
+    assertObject( module_name );
     assertObject( globals );
     assertObject( locals );
     assertObject( import_items );
@@ -721,12 +735,14 @@ void IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 
 // Helper functions for print. Need to play nice with Python softspace behaviour.
 
+#if PYTHON_VERSION >= 300
 extern PyObject *_python_str_plain_print;
 extern PyObject *_python_str_plain_end;
 extern PyObject *_python_str_plain_file;
 extern PyObject *_python_str_empty;
 
 static PythonBuiltin _python_builtin_print( &_python_str_plain_print );
+#endif
 
 void PRINT_ITEM_TO( PyObject *file, PyObject *object )
 {
@@ -991,7 +1007,7 @@ PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
 
 PyObject *UNSTREAM_FLOAT( char const *buffer )
 {
-    double x = _PyFloat_Unpack8( (unsigned char *)buffer, 0 );
+    double x = _PyFloat_Unpack8( (unsigned char *)buffer, 1 );
     assert( x != -1.0 || !PyErr_Occurred() );
 
     PyObject *result = PyFloat_FromDouble(x);
@@ -1283,7 +1299,7 @@ typedef struct {
 
 extern PyObject *_python_str_plain___class__;
 
-PyObject *_BUILTIN_SUPER( EVAL_ORDERED_2( PyObject *type, PyObject *object ) )
+PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
 {
     assertObject( type );
 
@@ -1417,7 +1433,7 @@ int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
     }
 }
 
-bool _BUILTIN_ISINSTANCE_BOOL( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) )
+bool BUILTIN_ISINSTANCE_BOOL( PyObject *inst, PyObject *cls )
 {
     int res = Nuitka_IsInstance( inst, cls );
 
@@ -1430,7 +1446,7 @@ bool _BUILTIN_ISINSTANCE_BOOL( EVAL_ORDERED_2( PyObject *inst, PyObject *cls ) )
 }
 
 
-PyObject *_BUILTIN_GETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *default_value ) )
+PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObject *default_value )
 {
 #if PYTHON_VERSION < 300
     if ( PyUnicode_Check( attribute ) )
@@ -1477,7 +1493,7 @@ PyObject *_BUILTIN_GETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribut
     }
 }
 
-void _BUILTIN_SETATTR( EVAL_ORDERED_3( PyObject *object, PyObject *attribute, PyObject *value ) )
+void BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *value )
 {
     int res = PyObject_SetAttr( object, attribute, value );
 
@@ -1605,6 +1621,97 @@ void _initBuiltinModule()
     ((PyObject *)module_builtin)->ob_type = &PyBuiltinModule_Type;
     assert( PyModule_Check( module_builtin ) == 1 );
 }
+
+#ifdef _NUITKA_PORTABLE
+char *getBinaryDirectory( char *binary_path )
+{
+    int i;
+    char *path = ( char* ) malloc( PATH_MAX + 1 );
+    memset ( path, 0, PATH_MAX + 1 );
+#if defined( _WIN32 )
+    HMODULE hModule = GetModuleHandle( NULL );
+    if ( !hModule )
+    {
+        fprintf( stderr, "getBinaryDirectory: get module handle failed\n" );
+        free( path );
+        return NULL;
+    }
+    GetModuleFileName( hModule , path, PATH_MAX + 1 );
+    char sep = '\\';
+#else
+    if ( !realpath( binary_path, path ) )
+    {
+        fprintf( stderr, "getBinaryDirectory: get real path failed\n" );
+        free( path );
+        return NULL;
+    }
+    char sep = '/';
+#endif
+    for ( i = PATH_MAX; i > 0; i-- )
+    {
+        // need handle unicode here ?
+        if ( path[i] == sep )
+        {
+            path[i] = '\x00';
+            break;
+        }
+    }
+    return path;
+}
+
+void _initPortableEnvironment( char *binary_path )
+{
+    // setup environ
+    // orignal_value;binary_directory/_python;binary_directory/_python.zip
+    char *binary_directory = getBinaryDirectory( binary_path );
+    if ( !binary_directory )
+        abort();
+
+    // get orignal value
+    char *orignal_home = getenv( "PYTHONHOME" );
+    char *orignal_path = getenv( "PYTHONPATH" );
+    size_t orignal_home_size = ( orignal_home ) ? strlen( orignal_home ) : 0;
+    size_t orignal_path_size = ( orignal_path ) ? strlen( orignal_path ) : 0;
+
+    // get insert value
+    size_t insert_size = strlen( binary_directory ) * 2 + 50;
+    char *insert_path = (char *) malloc( insert_size );
+    memset( insert_path, 0, insert_size );
+#if defined( _WIN32 )
+    char env_string[] = "%s\\%s;%s\\%s;";
+#else
+    char env_string[] = "%s/%s:%s/%s:";
+#endif
+    snprintf( insert_path, insert_size, env_string,
+        binary_directory, "_python",
+        binary_directory, "_python.zip"
+    );
+
+    // set environment
+    size_t python_home_size = orignal_home_size + insert_size;
+    size_t python_path_size = orignal_path_size + insert_size;
+    char *python_home = (char *) malloc( python_home_size );
+    char *python_path = (char *) malloc( python_path_size );
+    memset( python_home, 0, python_home_size );
+    memset( python_path, 0, python_path_size );
+    snprintf( python_home, python_home_size, "%s%s",
+        insert_path, orignal_home ? orignal_home : "" );
+    snprintf( python_path, python_path_size, "%s%s",
+        insert_path, orignal_path ? orignal_path : "" );
+#if defined( _WIN32 )
+    Py_SetPythonHome( python_home );
+#else
+    if ( !( orignal_home && strstr( orignal_home, insert_path ) ) )
+        setenv( "PYTHONHOME", python_home, 1 );
+    if ( !( orignal_path && strstr( orignal_path, insert_path ) ) )
+        setenv( "PYTHONPATH", python_path, 1 );
+#endif
+
+    // clean up
+    free( binary_directory );
+    free( insert_path );
+}
+#endif
 
 #ifdef _NUITKA_EXE
 

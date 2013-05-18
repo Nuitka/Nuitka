@@ -34,12 +34,12 @@ trace_command = "trace_command" in sys.argv
 remove_output = "remove_output" in sys.argv
 
 if "PYTHONHASHSEED" not in os.environ:
-    os.environ[ "PYTHONHASHSEED" ] = "27"
+    os.environ[ "PYTHONHASHSEED" ] = "0"
 
 if "PYTHON" not in os.environ:
-    os.environ[ "PYTHON" ] = "python"
+    os.environ[ "PYTHON" ] = sys.executable
 
-if python_debug and os.path.exists( "/usr/bin/" + os.environ[ "PYTHON" ] + "-dbg" ):
+if python_debug and os.path.exists( os.path.join( "/usr/bin/", os.environ[ "PYTHON" ] + "-dbg" ) ):
     os.environ[ "PYTHON" ] += "-dbg"
 
 
@@ -169,6 +169,9 @@ else:
         exit_nuitka = exit_nuitka1
         stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
     else:
+        path_sep = ";" if os.name == "nt" else ":"
+        os.environ[ "PYTHONPATH" ] = path_sep.join( [ os.path.dirname( filename ) ] + os.environ.get( "PYTHONPATH", "" ).split( path_sep ) )
+
         process = subprocess.Popen(
             args   = nuitka_cmd2,
             stdout = subprocess.PIPE,
@@ -198,12 +201,13 @@ compiled_generator_object_re = re.compile( r"'compiled_generator' object" )
 global_name_error_re = re.compile( r"global (name ')(.*?)(' is not defined)" )
 module_repr_re = re.compile( r"(\<module '.*?' from ').*?('\>)" )
 non_ascii_error_rt = re.compile( r"(SyntaxError: Non-ASCII character.*? on line) \d+" )
+python_win_lib_re = re.compile( r"[a-zA-Z]:\\\\?[Pp]ython(\d\d\\\\?)[Ll]ib" )
 
 def makeDiffable( output ):
     result = []
 
     # fix import readline cause output sometimes startswith \x1b[?1034h
-    m = re.match( r'\x1b\[[^h]+h', output )
+    m = re.match( b'\\x1b\\[[^h]+h', output )
     if m:
         output = output[len( m.group() ):]
 
@@ -254,8 +258,16 @@ def makeDiffable( output ):
         if line == "Exception RuntimeError: 'maximum recursion depth exceeded while calling a Python object' in <type 'exceptions.AttributeError'> ignored":
             continue
 
+        # This is also a bug potentially, but only visible under
+        # CPython
+        line = python_win_lib_re.sub( r"C:\Python\1Lib", line )
+
         # This is a bug with clang potentially, can't find out why it says that.
         if line == "/usr/bin/ld: warning: .init_array section has zero size":
+            continue
+
+        # This is for NetBSD, which seems to build libpython so it gives such warnings.
+        if "() possibly used unsafely, use mkstemp() or mkdtemp()" in line:
             continue
 
         result.append( line )

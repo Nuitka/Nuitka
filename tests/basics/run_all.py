@@ -34,7 +34,7 @@ else:
     active = True
 
 if "PYTHON" not in os.environ:
-    os.environ[ "PYTHON" ] = "python" if os.name != "nt" else sys.executable
+    os.environ[ "PYTHON" ] = sys.executable
 
 if "PYTHONIOENCODING" not in os.environ:
     os.environ[ "PYTHONIOENCODING" ] = "utf-8"
@@ -105,20 +105,31 @@ for filename in sorted( os.listdir( "." ) ):
             extra_flags.append( "ignore_stderr" )
             extra_flags.append( "python_debug" )
 
-        # Apply 2to3 conversion if necessary.
+        if filename == "OrderChecks.py":
+            extra_flags.append( "ignore_stderr" )
+
         assert type( python_version ) is bytes
 
+        if python_version.startswith( b"3.3" ) and filename in ( "ParameterErrors.py", "ParameterErrors32.py" ):
+            print( "Skip parameter errors test", filename, "not yet compatible." )
+            continue
+
+        # Apply 2to3 conversion if necessary.
         if python_version.startswith( b"3" ) and not filename.endswith( "32.py" ):
             new_path = os.path.join( tempfile.gettempdir(), filename )
             shutil.copy( path, new_path )
 
             path = new_path
 
-            # No idea how to make this portable to Windows, but we can delay it until
-            # Python3 is fully functional under Linux first.
+            # On Windows, we cannot rely on 2to3 to be in the path.
+            if os.name == "nt":
+               command = sys.executable + " " + os.path.join( os.path.dirname( sys.executable ), "Tools/Scripts/2to3.py" )
+            else:
+               command = "2to3"
+
             result = subprocess.call(
-                "2to3 -w -n --no-diffs " + path,
-                stderr = open( "/dev/null", "w" ),
+                command + " -w -n --no-diffs " + path,
+                stderr = open( os.devnull, "w" ),
                 shell  = True
             )
 

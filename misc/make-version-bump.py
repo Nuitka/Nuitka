@@ -55,7 +55,10 @@ if options.mode == "prerelease":
         new_version = "pre".join( [ parts[0], str( int( parts[1] ) + 1 ) ] )
     else:
         old_version = ".".join( old_version.split( "." )[:3] )
-        new_version = old_version + "pre1"
+        parts = old_version.split( "." )
+        parts[-1] = str( int( parts[-1] ) + 1 )
+
+        new_version = ".".join( parts ) + "pre1"
 elif options.mode == "release":
     if "pre" in old_version:
         old_version = old_version[ : old_version.find( "pre" ) ]

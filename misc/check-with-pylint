@@ -71,6 +71,16 @@ parser.add_option(
     Default is %default."""
 )
 
+parser.add_option(
+    "--emacs",
+    action  = "store_true",
+    dest    = "emacs",
+    default = False,
+    help    = """\
+    Default is %default."""
+)
+
+
 options, positional_args = parser.parse_args()
 
 if os.environ.get( "TODO", 0 ) or options.no_todos:
@@ -103,7 +113,16 @@ def executePyLint( filename ):
     assert not _stderr
     if stdout:
         for line in stdout.split( b"\n" ):
-            print( line.decode() )
+            output = line.decode()
+
+            if options.emacs and ":" in output:
+                parts = output.split( ":" )
+                output = filename + ":" + parts[1].split(",")[0].strip() + ": " + \
+                         parts[0] + " " + ":".join( parts[2:] )
+
+                sys.stderr.write( output + "\n" )
+            else:
+                print( output )
 
     sys.stdout.flush()
 

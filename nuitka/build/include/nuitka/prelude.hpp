@@ -38,6 +38,7 @@
 #include "Python.h"
 #include "methodobject.h"
 #include "frameobject.h"
+#include "pydebug.h"
 
 #if PYTHON_VERSION < 300
 #undef initproc
@@ -133,6 +134,17 @@ NUITKA_MAY_BE_UNUSED static PyObject *_eval_locals_tmp;
 #endif
 #define MOD_RETURN_VALUE( value ) value
 
+#endif
+
+// These two express if a directly called function should be exported (C++ level) or if it
+// can be local to the file.
+#ifdef _MSC_VER
+#define NUITKA_CROSS_MODULE __declspec(noinline)
+#define NUITKA_LOCAL_MODULE static __declspec(noinline)
+// static
+#else
+#define NUITKA_CROSS_MODULE
+#define NUITKA_LOCAL_MODULE static
 #endif
 
 #include "nuitka/helpers.hpp"

@@ -27,6 +27,8 @@ an executable or an extension module.
 
 import sys, os
 
+from logging import warning
+
 # LIBDIR trick start (marker for removal on platforms that don't need it)
 libdir = '@LIBDIR@'
 
@@ -117,6 +119,21 @@ else:
     # Remove the source directory (now build directory too) if asked to.
     if Options.isRemoveBuildDir():
         shutil.rmtree( MainControl.getSourceDirectoryPath( tree ) )
+
+    # Pack and copy files in portable mode
+    if Options.isPortableMode():
+        from nuitka import PortableSetup
+        if not PortableSetup.setup( filename, Options.getOutputDir() ):
+            sys.exit( 1 )
+
+    # Sanity check, warn people if "__main__" is used in the compiled module, it may not
+    # be the appropiate usage.
+    if Options.shallMakeModule() and Options.shallExecuteImmediately():
+        for variable in tree.getVariables():
+            if variable.getName() == "__name__":
+                warning( """Compiling to extension module, which will not have '__name__' \
+as '__main__', did you intend '--exe' or to use 'nuitka-python' instead.""" )
+                break
 
     # Execute the module immediately if option was given.
     if Options.shallExecuteImmediately():

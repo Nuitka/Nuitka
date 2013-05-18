@@ -40,9 +40,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNARY_OPERATION( unary_api api, PyObject *
 
 typedef PyObject *(binary_api)( PyObject *, PyObject * );
 
-#define BINARY_OPERATION( api, operand1, operand2 ) _BINARY_OPERATION( EVAL_ORDERED_3( api, operand1, operand2 ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_BINARY_OPERATION( EVAL_ORDERED_3( binary_api api, PyObject *operand1, PyObject *operand2 ) )
+NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION( binary_api api, PyObject *operand1, PyObject *operand2 )
 {
     assertObject( operand1 );
     assertObject( operand2 );
@@ -57,9 +55,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_BINARY_OPERATION( EVAL_ORDERED_3( binary_
     return result;
 }
 
-#define BINARY_OPERATION_ADD( operand1, operand2 ) _BINARY_OPERATION_ADD( EVAL_ORDERED_2( operand1, operand2 ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_BINARY_OPERATION_ADD( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
+NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD( PyObject *operand1, PyObject *operand2 )
 {
     assertObject( operand1 );
     assertObject( operand2 );
@@ -266,9 +262,7 @@ static PyObject *SEQUENCE_REPEAT( ssizeargfunc repeatfunc, PyObject *seq, PyObje
     return result;
 }
 
-#define BINARY_OPERATION_MUL( operand1, operand2 ) _BINARY_OPERATION_MUL( EVAL_ORDERED_2( operand1, operand2 ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_BINARY_OPERATION_MUL( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
+NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_MUL( PyObject *operand1, PyObject *operand2 )
 {
     assertObject( operand1 );
     assertObject( operand2 );
@@ -415,9 +409,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_BINARY_OPERATION_MUL( EVAL_ORDERED_2( PyO
 
 }
 
-#define BINARY_OPERATION_SUB( operand1, operand2 ) _BINARY_OPERATION_SUB( EVAL_ORDERED_2( operand1, operand2 ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_BINARY_OPERATION_SUB( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
+NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_SUB( PyObject *operand1, PyObject *operand2 )
 {
     assertObject( operand1 );
     assertObject( operand2 );
@@ -551,9 +543,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_BINARY_OPERATION_SUB( EVAL_ORDERED_2( PyO
 
 #if PYTHON_VERSION < 300
 
-#define BINARY_OPERATION_DIV( operand1, operand2 ) _BINARY_OPERATION_DIV( EVAL_ORDERED_2( operand1, operand2 ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_BINARY_OPERATION_DIV( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
+NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_DIV( PyObject *operand1, PyObject *operand2 )
 {
     assertObject( operand1 );
     assertObject( operand2 );
@@ -686,9 +676,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_BINARY_OPERATION_DIV( EVAL_ORDERED_2( PyO
 }
 #endif
 
-#define BINARY_OPERATION_REMAINDER( operand1, operand2 ) _BINARY_OPERATION_REMAINDER( EVAL_ORDERED_2( operand1, operand2 ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_BINARY_OPERATION_REMAINDER( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
+NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_REMAINDER( PyObject *operand1, PyObject *operand2 )
 {
     assertObject( operand1 );
     assertObject( operand2 );
@@ -820,9 +808,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_BINARY_OPERATION_REMAINDER( EVAL_ORDERED_
     throw PythonException();
 }
 
-#define POWER_OPERATION( operand1, operand2 ) _POWER_OPERATION( EVAL_ORDERED_2( operand1, operand2 ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_POWER_OPERATION( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
+NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION( PyObject *operand1, PyObject *operand2 )
 {
     PyObject *result = PyNumber_Power( operand1, operand2, Py_None );
 
@@ -834,9 +820,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_POWER_OPERATION( EVAL_ORDERED_2( PyObject
     return result;
 }
 
-#define POWER_OPERATION_INPLACE( operand1, operand2 ) _POWER_OPERATION_INPLACE( EVAL_ORDERED_2( operand1, operand2 ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_POWER_OPERATION_INPLACE( EVAL_ORDERED_2( PyObject *operand1, PyObject *operand2 ) )
+NUITKA_MAY_BE_UNUSED static PyObject *POWER_OPERATION_INPLACE( PyObject *operand1, PyObject *operand2 )
 {
     PyObject *result = PyNumber_InPlacePower( operand1, operand2, Py_None );
 

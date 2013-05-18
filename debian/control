@@ -15,6 +15,7 @@ Vcs-Git: http://git.nuitka.net/Nuitka.git
 Vcs-browser: http://nuitka.net/gitweb/?p=Nuitka.git;a=summary
 Homepage: http://nuitka.net
 Standards-Version: 3.9.3
+X-Python-Version: >= 2.6
 
 Package: nuitka
 Architecture: all
@@ -28,6 +29,5 @@ Recommends: python-lxml (>=2.3),
 Suggests: ccache
 Description: Python compiler with full language support and CPython compatibility
  This Python compiler achieves full language compatibility and compiles Python
- code into compiled objects that are not second class to pure Python objects
- at all.
-X-Python-Version: >= 2.6
+ code into compiled objects that are not second class at all. Instead they can
+ be used in the same way as pure Python objects.

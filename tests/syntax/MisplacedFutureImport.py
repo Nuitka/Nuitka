@@ -1,7 +1,7 @@
 #     Copyright 2013, Kay Hayen, mailto:kay.hayen@gmail.com
 #
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
+#     Python tests originally created or extracted from other peoples work. The
+#     parts were too small to be protected.
 #
 #     Licensed under the Apache License, Version 2.0 (the "License");
 #     you may not use this file except in compliance with the License.
@@ -15,16 +15,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Call related templates.
 
-"""
+def f():
+    from __future__ import print_function
 
-template_reverse_macros_declaration = """\
-#include "nuitka/eval_order.hpp"
-
-#if NUITKA_REVERSED_ARGS == 0
-%(noreverse_macros)s
-#else
-%(reverse_macros)s
-#endif
-"""
+    print( locals() )

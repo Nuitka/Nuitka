@@ -82,6 +82,10 @@ from nuitka.nodes.AttributeNodes import (
     ExpressionBuiltinSetattr,
     ExpressionBuiltinHasattr
 )
+from nuitka.nodes.ConditionalNodes import ExpressionConditional
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
+
+from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
 
 from . import BuiltinOptimization
 
@@ -119,7 +123,7 @@ def import_extractor( node ):
 
 def type_extractor( node ):
     args = node.getCallArgs()
-    length = args.getIterationLength( None )
+    length = args.getIterationLength()
 
     if length == 1:
         return BuiltinOptimization.extractBuiltinArgs(
@@ -136,10 +140,9 @@ def type_extractor( node ):
         )
 
 def iter_extractor( node ):
-    # Note: Iter in fact names its first argument if the default applies "collection", but
-    # it won't matter much, fixed up in a wrapper.  The "callable" is part of the API,
-    # pylint: disable=W0622
-
+    # Note: Iter in fact names its first argument if the default applies
+    # "collection", but it won't matter much, fixed up in a wrapper.  The
+    # "callable" is part of the API, pylint: disable=W0622
 
     def wrapIterCreation( callable, sentinel, source_ref ):
         if sentinel is None:
@@ -163,8 +166,8 @@ def iter_extractor( node ):
 
 def next_extractor( node ):
 
-    # Split up next with and without defaults, they are not going to behave really very
-    # similar.
+    # Split up next with and without defaults, they are not going to behave
+    # really very similar.
     def selectNextBuiltinClass( iterator, default, source_ref ):
         if default is None:
             return ExpressionBuiltinNext1(
@@ -186,8 +189,8 @@ def next_extractor( node ):
 
 
 def dict_extractor( node ):
-    # The dict is a bit strange in that it accepts a position parameter, or not, but
-    # won't have a default.
+    # The dict is a bit strange in that it accepts a position parameter, or not,
+    # but won't have a default.
 
     def wrapExpressionBuiltinDictCreation( positional_args, dict_star_arg, source_ref ):
         if len( positional_args ) > 1:
@@ -394,12 +397,24 @@ if python_version < 300:
     from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExecfile
 
     def execfile_extractor( node ):
-        def wrapExpressionBuiltinExecfileCreation( filename, globals_arg, locals_arg, source_ref ):
-
+        def wrapExpressionBuiltinExecfileCreation( filename, globals, locals,
+                                                   source_ref ):
             provider = node.getParentVariableProvider()
 
+            # TODO: Can't really be true, can it?
             if provider.isExpressionFunctionBody():
                 provider.markAsExecContaining()
+
+                if provider.isClassDictCreation():
+                    provider.markAsUnqualifiedExecContaining( source_ref )
+
+            globals_wrap, locals_wrap = wrapEvalGlobalsAndLocals(
+                provider   = provider,
+                globals    = globals,
+                locals     = locals,
+                exec_mode  = False,
+                source_ref = source_ref
+            )
 
             return ExpressionBuiltinExecfile(
                 source_code = ExpressionCallEmpty(
@@ -418,8 +433,8 @@ if python_version < 300:
                     ),
                     source_ref = source_ref
                 ),
-                globals_arg = globals_arg,
-                locals_arg  = locals_arg,
+                globals_arg = globals_wrap,
+                locals_arg  = locals_wrap,
                 source_ref  = source_ref
             )
 
@@ -430,9 +445,25 @@ if python_version < 300:
         )
 
 def eval_extractor( node ):
+    def wrapEvalBuiltin( source, globals, locals, source_ref ):
+        globals_wrap, locals_wrap = wrapEvalGlobalsAndLocals(
+            provider   = node.getParentVariableProvider(),
+            globals    = globals,
+            locals     = locals,
+            exec_mode  = False,
+            source_ref = source_ref
+        )
+
+        return ExpressionBuiltinEval(
+            source     = source,
+            globals    = globals_wrap,
+            locals     = locals_wrap,
+            source_ref = source_ref
+        )
+
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
-        builtin_class = ExpressionBuiltinEval,
+        builtin_class = wrapEvalBuiltin,
         builtin_spec  = BuiltinOptimization.builtin_eval_spec
     )
 
@@ -441,9 +472,35 @@ if python_version >= 300:
     from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
 
     def exec_extractor( node ):
+        def wrapExpressionBuiltinExecCreation( source, globals, locals,
+                                               source_ref ):
+            provider = node.getParentVariableProvider()
+
+            # TODO: Can't really be true, can it?
+            if provider.isExpressionFunctionBody():
+                provider.markAsExecContaining()
+
+                if provider.isClassDictCreation():
+                    provider.markAsUnqualifiedExecContaining( source_ref )
+
+            globals_wrap, locals_wrap = wrapEvalGlobalsAndLocals(
+                provider   = provider,
+                globals    = globals,
+                locals     = locals,
+                exec_mode  = False,
+                source_ref = source_ref
+            )
+
+            return ExpressionBuiltinExec(
+                source     = source,
+                globals    = globals_wrap,
+                locals     = locals_wrap,
+                source_ref = source_ref
+            )
+
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
-            builtin_class = ExpressionBuiltinExec,
+            builtin_class = wrapExpressionBuiltinExecCreation,
             builtin_spec  = BuiltinOptimization.builtin_eval_spec
         )
 
@@ -478,13 +535,16 @@ def super_extractor( node ):
             if not type.getVariable().isClosureReference():
                 return makeRaiseExceptionReplacementExpression(
                     expression      = node,
-                    exception_type  = "SystemError" if python_version < 330 else "RuntimeError",
+                    exception_type  = "SystemError"
+                                        if python_version < 331 else
+                                      "RuntimeError",
                     exception_value = "super(): __class__ cell not found",
                 )
 
             if object is None and provider.getParameters().getArgumentCount() > 0:
                 par1_name = provider.getParameters().getArgumentNames()[0]
-                # TODO: Nested first argument would kill us here, need a test for that.
+                # TODO: Nested first argument would kill us here, need a test
+                # for that.
 
                 object = ExpressionVariableRef(
                     variable_name = par1_name,
@@ -500,7 +560,9 @@ def super_extractor( node ):
                 if not object.getVariable().isParameterVariable():
                     return makeRaiseExceptionReplacementExpression(
                         expression      = node,
-                        exception_type  = "SystemError" if python_version < 330 else "RuntimeError",
+                        exception_type  = "SystemError"
+                                            if python_version < 330 else
+                                          "RuntimeError",
                         exception_value = "super(): __class__ cell not found",
                     )
 
@@ -611,31 +673,37 @@ def computeBuiltinCall( call_node, called ):
 
         if inspect_node.isExpressionBuiltinImport():
             tags    = "new_import"
-            message = "Replaced dynamic builtin import %s with static module import." % inspect_node.kind
+            message = "Replaced dynamic __import__ %s with static module import." % (
+                inspect_node.kind,
+            )
         elif inspect_node.isExpressionBuiltin() or inspect_node.isStatementExec():
             tags = "new_builtin"
-            message = "Replaced call to builtin with builtin call %s." % inspect_node.kind
+            message = "Replaced call to builtin with builtin call %s." % (
+                inspect_node.kind,
+            )
         elif inspect_node.isExpressionRaiseException():
             tags = "new_raise"
-            message = "Replaced call to builtin %s with exception raising call." % inspect_node.kind
+            message = "Replaced call to builtin %s with exception raising call." % (
+                inspect_node.kind,
+            )
         elif inspect_node.isExpressionOperationUnary():
             tags = "new_expression"
-            message = "Replaced call to builtin %s with unary operation %s." % ( inspect_node.kind, inspect_node.getOperator() )
+            message = "Replaced call to builtin %s with unary operation %s." % (
+                inspect_node.kind,
+                inspect_node.getOperator()
+            )
         else:
             assert False, ( builtin_name, "->", inspect_node )
 
-        # TODO: One day, this should be enabled by default and call either the original
-        # built-in or the optimized above one. That should be done, once we can eliminate
-        # the condition for most cases.
+        # TODO: One day, this should be enabled by default and call either the
+        # original built-in or the optimized above one. That should be done,
+        # once we can eliminate the condition for most cases.
         if False and isDebug() and not shallMakeModule() and builtin_name:
-            from nuitka.nodes.ConditionalNodes import ExpressionConditional
-            from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
             from nuitka.nodes.BuiltinRefNodes import (
-                ExpressionBuiltinExceptionRef,
                 ExpressionBuiltinOriginalRef,
                 ExpressionBuiltinRef,
             )
-            from nuitka.nodes.ExceptionNodes import ExpressionRaiseException
+            from nuitka.nodes.NodeMakingHelpers import makeRaiseExceptionReplacementExpression
 
             source_ref = called.getSourceReference()
 

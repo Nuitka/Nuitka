@@ -27,12 +27,10 @@
 typedef struct _Fiber
 {
 #if defined( _WIN32 )
-    void *ss_sp;
-    size_t ss_size;
-
-    CONTEXT f_context;
+    LPVOID fiber;
 #else
     ucontext_t f_context;
+    void *start_stack;
 #endif
 } Fiber;
 

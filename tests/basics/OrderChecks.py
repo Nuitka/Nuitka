@@ -82,13 +82,13 @@ def sliceOrderCheck():
 
         return 2
 
-    print "Complex slice lookup", lvalue()[ low() : high() : step() ]
+    print "Complex slice lookup:", lvalue()[ low() : high() : step() ]
 
-    print "Complex slice assignment",
+    print "Complex slice assignment:",
     lvalue()[ low() : high() : step() ] = rvalue()
     print d
 
-    print "Complex slice del",
+    print "Complex slice del:",
     del lvalue()[ low() : high() : step() ]
     print d
 
@@ -132,15 +132,33 @@ def subscriptOrderCheck():
 
         return 1
 
+    print "Assigning subscript:"
     lvalue()[ subscript() ] = rvalue()
     print d
 
+    print "Lookup subscript:"
     print lvalue()[ subscript() ]
 
+    print "Deleting subscript:"
     del lvalue()[ subscript() ]
     print d
 
 def attributeOrderCheck():
+    def lvalue():
+        print "lvalue",
+
+        return lvalue
+
+    def rvalue():
+        print "rvalue",
+
+        return 2
+
+    print "Attribute assigment order:"
+
+    lvalue().xxx = rvalue()
+    print lvalue.xxx
+
     try:
         zzz.xxx = yyy
     except Exception as e:
@@ -157,12 +175,22 @@ def compareOrderCheck():
 
         return 2
 
+    print "Comparisons:"
     print "==", lvalue() == rvalue()
     print "<=", lvalue() <= rvalue()
     print ">=", lvalue() >= rvalue()
     print "!=", lvalue() != rvalue()
     print ">", lvalue() > rvalue()
     print "<", lvalue() < rvalue()
+
+    print "Comparison used in bool context:"
+    print "==", "yes" if lvalue() == rvalue() else "no"
+    print "<=", "yes" if lvalue() <= rvalue() else "no"
+    print ">=", "yes" if lvalue() >= rvalue() else "no"
+    print "!=", "yes" if lvalue() != rvalue() else "no"
+    print ">", "yes" if lvalue() > rvalue() else "no"
+    print "<", "yes" if lvalue() < rvalue() else "no"
+
 
 def operatorOrderCheck():
     def left():
@@ -180,6 +208,7 @@ def operatorOrderCheck():
 
         return 2
 
+    print "Operations:"
     print "+", left() + middle() + right()
     print "-", left() - middle() - right()
     print "*", left() * middle() * right()
@@ -261,6 +290,7 @@ def inOrderCheck():
         return 3
 
     print searched() in container()
+    print searched() not in container()
 
 def unpackOrderCheck():
     class Iterable:
@@ -292,54 +322,106 @@ def superOrderCheck():
     try:
         super( zzz, xxx )
     except Exception as e:
-        print "Caught", repr(e)
+        print "Caught super 2", repr(e)
+
+def isinstanceOrderCheck():
+    try:
+        isinstance( zzz, xxx )
+    except Exception as e:
+        print "Caught isinstance 2", repr(e)
 
 def rangeOrderCheck():
     try:
         range( zzz, yyy, xxx )
     except Exception as e:
-        print "Caught", repr(e)
+        print "Caught range 3", repr(e)
 
     try:
         range( zzz, xxx )
     except Exception as e:
-        print "Caught", repr(e)
+        print "Caught range 2", repr(e)
+
+def importOrderCheck():
+    def name():
+        print "name",
+
+    def globals():
+        print "globals",
+
+    def locals():
+        print "locals",
+
+    def fromlist():
+        print "fromlist",
+
+    def level():
+        print "level",
+
+    try:
+        print "__import__ builtin:"
+        __import__( name(), globals(), locals(), fromlist(), level() )
+    except Exception as e:
+        print "Caught __import__", repr(e)
+
+
+def hasattrOrderCheck():
+    try:
+        hasattr( zzz, yyy )
+    except Exception as e:
+        print "Caught hasattr", repr(e)
+
+def getattrOrderCheck():
+    try:
+        getattr( zzz, yyy )
+    except Exception as e:
+        print "Caught getattr 2", repr(e)
+
+    try:
+        getattr( zzz, yyy, xxx )
+    except Exception as e:
+        print "Caught getattr 3", repr(e)
 
 def typeOrderCheck():
     try:
         type( zzz, yyy, xxx )
     except Exception as e:
-        print "Caught", repr(e)
+        print "Caught type 3", repr(e)
 
 def iterOrderCheck():
     try:
         iter( zzz, xxx )
     except Exception as e:
-        print "Caught", repr(e)
+        print "Caught iter 2", repr(e)
 
 def openOrderCheck():
     try:
         open( zzz, yyy, xxx )
     except Exception as e:
-        print "Caught", repr(e)
+        print "Caught open 3", repr(e)
+
+def unicodeOrderCheck():
+    try:
+        unicode( zzz, yyy, xxx )
+    except Exception as e:
+        print "Caught unicode", repr(e)
 
 def longOrderCheck():
     try:
         long( zzz, xxx )
     except Exception as e:
-        print "Caught", repr(e)
+        print "Caught long 2", repr(e)
 
 def intOrderCheck():
     try:
         int( zzz, xxx )
     except Exception as e:
-        print "Caught", repr(e)
+        print "Caught int", repr(e)
 
 def nextOrderCheck():
     try:
         next( zzz, xxx )
     except Exception as e:
-        print "Caught", repr(e)
+        print "Caught next 2", repr(e)
 
 def raiseOrderCheck():
     print "Checking order of raises:"
@@ -389,10 +471,15 @@ classOrderCheck()
 inOrderCheck()
 unpackOrderCheck()
 superOrderCheck()
+isinstanceOrderCheck()
 rangeOrderCheck()
+importOrderCheck()
+hasattrOrderCheck()
+getattrOrderCheck()
 typeOrderCheck()
 iterOrderCheck()
 openOrderCheck()
+unicodeOrderCheck()
 nextOrderCheck()
 longOrderCheck()
 intOrderCheck()

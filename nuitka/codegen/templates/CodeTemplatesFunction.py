@@ -20,14 +20,11 @@
 """
 
 template_function_make_declaration = """\
-#define MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg_names)s ) _MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg_reversal)s )
-
-static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg_spec)s );
+static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg_spec)s );
 """
 
 template_function_direct_declaration = """\
-#define impl_%(function_identifier)s( %(direct_call_arg_names)s ) _impl_%(function_identifier)s( %(direct_call_arg_reversal)s )
-%(file_scope)s PyObject *_impl_%(function_identifier)s( %(direct_call_arg_spec)s );
+%(file_scope)s PyObject *impl_%(function_identifier)s( %(direct_call_arg_spec)s );
 """
 
 function_context_body_template = """
@@ -49,8 +46,11 @@ static void _context_%(function_identifier)s_destructor( void *context_voidptr )
 }
 """
 
+function_context_variable_init_template = """\
+_python_context->python_closure_%s(variable_name).shareWith( python_closure_%(variable_name)s );"""
+
 make_function_with_context_template = """
-static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
+static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     struct _context_%(function_identifier)s_t *_python_context = new _context_%(function_identifier)s_t;
 
@@ -81,7 +81,7 @@ static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_arg
 """
 
 make_function_without_context_template = """
-static PyObject *_MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
+static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     PyObject *result = Nuitka_Function_New(
         %(fparse_function_identifier)s,
@@ -118,7 +118,7 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 """
 
 function_direct_body_template = """\
-%(file_scope)s PyObject *_impl_%(function_identifier)s( %(direct_call_arg_spec)s )
+%(file_scope)s PyObject *impl_%(function_identifier)s( %(direct_call_arg_spec)s )
 {
 %(context_access_function_impl)s
 

@@ -47,20 +47,25 @@ warned_about = set()
 main_path = None
 
 def setMainScriptDirectory( main_dir ):
+    # We need to set this from the outside, pylint: disable=W0603
+
     global main_path
     main_path = main_dir
 
 def isPackageDir( dirname ):
     return Utils.isDir( dirname ) and Utils.isFile( Utils.joinpath( dirname, "__init__.py" ))
 
-def findModule( source_ref, module_name, parent_package, level, warn = True ):
+def findModule( source_ref, module_name, parent_package, level, warn ):
+    # We have many branches here, because there are a lot of cases to try.
+    # pylint: disable=R0912
+
     if level > 1 and parent_package is not None:
         parent_package = ".".join( parent_package.split(".")[ : -level+1 ] )
 
         if parent_package == "":
             parent_package = None
 
-    if not Options.shallMakeModule() and ( module_name != "" or parent_package is not None ):
+    if module_name != "" or parent_package is not None:
         try:
             module_filename, module_package_name = _findModule(
                 module_name    = module_name,
@@ -84,7 +89,7 @@ def findModule( source_ref, module_name, parent_package, level, warn = True ):
 
                     if parent_package is not None:
                         warning(
-                            "%s: Cannot find '%s' in package '%s' on level %s.",
+                            "%s: Cannot find '%s' in package '%s' %s.",
                             source_ref.getAsString(),
                             module_name,
                             parent_package,
@@ -92,7 +97,7 @@ def findModule( source_ref, module_name, parent_package, level, warn = True ):
                         )
                     else:
                         warning(
-                            "%s: Cannot find '%s' on level %s.",
+                            "%s: Cannot find '%s' %s.",
                             source_ref.getAsString(),
                             module_name,
                             level_desc
@@ -119,6 +124,9 @@ def findModule( source_ref, module_name, parent_package, level, warn = True ):
     return module_package_name, module_name, module_filename
 
 def _findModuleInPath( module_name, package_name ):
+    # We have many branches here, because there are a lot of cases to try.
+    # pylint: disable=R0912
+
     if _debug_module_finding:
         print( "_findModuleInPath: Enter", module_name, package_name )
 
@@ -237,19 +245,21 @@ def _findModule( module_name, parent_package ):
         return module_filename, package
 
 def _isWhiteListedNotExistingModule( module_name ):
-    return module_name in (
+    white_list = (
         "mac", "nt", "os2", "posix", "_emx_link", "riscos", "ce", "riscospath",
-        "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256", "array",
-        "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle", "marshal", "imp",
-        "sys", "itertools", "cStringIO", "time", "zlib", "thread", "math", "errno",
-        "operator", "signal", "gc", "exceptions", "win32process", "unicodedata",
-        "__builtin__", "fcntl", "_socket", "_ssl", "pwd", "spwd", "_random", "grp",
-        "_io", "_string", "select", "__main__", "_winreg", "_warnings", "_sre",
-        "_functools", "_hashlib", "_collections", "_locale", "_codecs", "_weakref",
-        "_struct",
-        "_dummy_threading",
-        "binascii", "datetime", "_ast", "xxsubtype", "_bytesio", "cmath", "_fileio",
-        "aetypes", "aepack", "MacOS", "cd", "cl", "gdbm", "gl", "GL", "aetools",
+        "riscosenviron", "Carbon.File", "org.python.core", "_sha", "_sha256",
+        "array", "_sha512", "_md5", "_subprocess", "msvcrt", "cPickle",
+        "marshal", "imp", "sys", "itertools", "cStringIO", "time", "zlib",
+        "thread", "math", "errno", "operator", "signal", "gc", "exceptions",
+        "win32process", "unicodedata", "__builtin__", "fcntl", "_socket",
+        "_ssl", "pwd", "spwd", "_random", "grp", "_io", "_string", "select",
+        "__main__", "_winreg", "_warnings", "_sre", "_functools", "_hashlib",
+        "_collections", "_locale", "_codecs", "_weakref", "_struct",
+        "_dummy_threading", "binascii", "datetime", "_ast", "xxsubtype",
+        "_bytesio", "cmath", "_fileio", "aetypes", "aepack", "MacOS", "cd",
+        "cl", "gdbm", "gl", "GL", "aetools", "_bisect", "_heapq", "_symtable",
+        "syslog", "_datetime", "_elementtree", "_pickle", "_posixsubprocess",
+        "_thread", "atexit", "pyexpat", "_imp", "_sha1", "faulthandler",
 
         # Python-Qt4 does these if missing python3 parts:
         "PyQt4.uic.port_v3.string_io", "PyQt4.uic.port_v3.load_plugin",
@@ -257,7 +267,7 @@ def _isWhiteListedNotExistingModule( module_name ):
         "PyQt4.uic.port_v3.as_string",
 
         # CPython3 does these:
-        "builtins", "UserDict", "os.path",
+        "builtins", "UserDict", "os.path", "StringIO",
 
         # test_frozen.py
         "__hello__", "__phello__", "__phello__.spam", "__phello__.foo",
@@ -266,17 +276,17 @@ def _isWhiteListedNotExistingModule( module_name ):
         "RAnDoM", "infinite_reload", "test_trailing_slash",
 
         # test_importhooks.py
-        "hooktestmodule", "hooktestpackage", "hooktestpackage.sub", "reloadmodule",
-        "hooktestpackage.sub.subber", "hooktestpackage.oldabs", "hooktestpackage.newrel",
-        "hooktestpackage.sub.subber.subest", "hooktestpackage.futrel", "sub",
-        "hooktestpackage.newabs",
+        "hooktestmodule", "hooktestpackage", "hooktestpackage.sub",
+        "reloadmodule", "hooktestpackage.sub.subber", "hooktestpackage.oldabs",
+        "hooktestpackage.newrel", "hooktestpackage.sub.subber.subest",
+        "hooktestpackage.futrel", "sub", "hooktestpackage.newabs",
 
         # test_new.py
         "Spam",
 
         # test_pkg.py
-        "t1", "t2", "t2.sub", "t2.sub.subsub", "t3.sub.subsub", "t5", "t6", "t7",
-        "t7.sub", "t7.sub.subsub",
+        "t1", "t2", "t2.sub", "t2.sub.subsub", "t3.sub.subsub", "t5", "t6",
+        "t7", "t7.sub", "t7.sub.subsub",
 
         # test_pkgutil.py
         "foo", "zipimport",
@@ -285,7 +295,8 @@ def _isWhiteListedNotExistingModule( module_name ):
         "gestalt",
 
         # test_repr.py
-        "areallylongpackageandmodulenametotestreprtruncation.areallylongpackageandmodulenametotestreprtruncation",
+        """areallylongpackageandmodulenametotestreprtruncation.\
+areallylongpackageandmodulenametotestreprtruncation""",
 
         # test_runpy.py
         "test.script_helper",
@@ -338,6 +349,13 @@ def _isWhiteListedNotExistingModule( module_name ):
         # Python3 modules that no longer exist
         "commands",
     )
+
+    # TODO: Turn this into a warning that encourages reporting.
+    if False and Options.isDebug():
+        for module_name in sys.builtin_module_names:
+            assert module_name in white_list, module_name
+
+    return module_name in white_list
 
 def isStandardLibraryPath( path ):
     path = Utils.normcase( path )

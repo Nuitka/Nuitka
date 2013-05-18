@@ -57,6 +57,8 @@ class ExpressionMakeSequenceBase( SideEffectsFromChildrenMixin,
         return None
 
     def computeExpression( self, constraint_collection ):
+        # Children can tell all we need to know, pylint: disable=W0613
+
         elements = self.getElements()
 
         for count, element in enumerate( elements ):
@@ -92,26 +94,26 @@ class ExpressionMakeSequenceBase( SideEffectsFromChildrenMixin,
             description = "%s with constant arguments" % simulator
         )
 
-    def mayHaveSideEffectsBool( self, constraint_collection ):
+    def mayHaveSideEffectsBool( self ):
         return False
 
     def isKnownToBeIterable( self, count ):
         return count is None or count == len( self.getElements() )
 
-    def getIterationValue( self, count, constraint_collection ):
+    def getIterationValue( self, count ):
         return self.getElements()[ count ]
 
-    def getIterationLength( self, constraint_collection ):
+    def getIterationLength( self ):
         return len( self.getElements() )
 
-    def canPredictIterationValues( self, constraint_collection ):
+    def canPredictIterationValues( self ):
         return True
 
-    def getIterationValues( self, constraint_collection ):
+    def getIterationValues( self ):
         return self.getElements()
 
-    def getTruthValue( self, constraint_collection ):
-        return self.getIterationLength( constraint_collection ) > 0
+    def getTruthValue( self ):
+        return self.getIterationLength() > 0
 
 
 class ExpressionMakeTuple( ExpressionMakeSequenceBase ):
@@ -179,6 +181,7 @@ class ExpressionKeyValuePair( SideEffectsFromChildrenMixin,
     getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
     def computeExpression( self, constraint_collection ):
+        # Children can tell all we need to know, pylint: disable=W0613
         key = self.getKey()
 
         if key.willRaiseException( BaseException ):
@@ -218,6 +221,7 @@ class ExpressionMakeDict( SideEffectsFromChildrenMixin,
     getPairs = ExpressionChildrenHavingBase.childGetter( "pairs" )
 
     def computeExpression( self, constraint_collection ):
+        # Children can tell all we need to know, pylint: disable=W0613
         pairs = self.getPairs()
 
         for count, pair in enumerate( pairs ):
@@ -264,25 +268,28 @@ class ExpressionMakeDict( SideEffectsFromChildrenMixin,
 
         return new_node, "new_constant", "Created dictionary found to be constant."
 
-    def mayHaveSideEffectsBool( self, constraint_collection ):
+    def mayHaveSideEffectsBool( self ):
         return False
 
     def isKnownToBeIterable( self, count ):
         return count is None or count == len( self.getPairs() )
 
-    def getIterationLength( self, constraint_collection ):
+    def getIterationLength( self ):
         return len( self.getPairs() )
 
-    def canPredictIterationValues( self, constraint_collection ):
+    def canPredictIterationValues( self ):
+        # Dictionaries are fully predictable, pylint: disable=R0201
         return True
 
-    def getIterationValue( self, count, constraint_collection ):
+    def getIterationValue( self, count ):
         return self.getPairs()[ count ].getKey()
 
-    def getTruthValue( self, constraint_collection ):
-        return self.getIterationLength( constraint_collection ) > 0
+    def getTruthValue( self ):
+        return self.getIterationLength() > 0
 
     def isMapping( self ):
+        # Dictionaries are always mappings, but this is a virtual method,
+        # pylint: disable=R0201
         return True
 
     def isMappingWithConstantStringKeys( self ):

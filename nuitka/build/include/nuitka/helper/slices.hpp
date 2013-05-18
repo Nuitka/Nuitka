@@ -30,13 +30,11 @@ static inline bool IS_INDEXABLE( PyObject *value )
 }
 
 #if PYTHON_VERSION < 300
-// Note: It appears that Python3 has no index slicing operations anymore, but uses slice
-// objects all the time. That's fine and make sure we adhere to it by guarding the
-// presence of the helpers.
+// Note: It appears that Python3 has no index slicing operations anymore, but
+// uses slice objects all the time. That's fine and make sure we adhere to it by
+// guarding the presence of the helpers.
 
-#define LOOKUP_SLICE( source, lower, upper ) _LOOKUP_SLICE( EVAL_ORDERED_3( source, lower, upper ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_SLICE( EVAL_ORDERED_3( PyObject *source, PyObject *lower, PyObject *upper ) )
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SLICE( PyObject *source, PyObject *lower, PyObject *upper )
 {
     assertObject( source );
     assertObject( lower );
@@ -90,9 +88,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_SLICE( EVAL_ORDERED_3( PyObject *s
     }
 }
 
-#define LOOKUP_INDEX_SLICE( source, lower, upper ) _LOOKUP_INDEX_SLICE( EVAL_ORDERED_3( source, lower, upper ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_INDEX_SLICE( EVAL_ORDERED_3( PyObject *source, Py_ssize_t lower, Py_ssize_t upper ) )
+NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_INDEX_SLICE( PyObject *source, Py_ssize_t lower, Py_ssize_t upper )
 {
     assertObject( source );
 
@@ -106,9 +102,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_LOOKUP_INDEX_SLICE( EVAL_ORDERED_3( PyObj
     return result;
 }
 
-#define SET_SLICE( value, target, upper, lower ) _SET_SLICE( EVAL_ORDERED_4( value, target, upper, lower ) )
-
-NUITKA_MAY_BE_UNUSED static void _SET_SLICE( EVAL_ORDERED_4( PyObject *value, PyObject *target, PyObject *lower, PyObject *upper ) )
+NUITKA_MAY_BE_UNUSED static void SET_SLICE( PyObject *value, PyObject *target, PyObject *lower, PyObject *upper )
 {
     assertObject( target );
     assertObject( lower );
@@ -159,9 +153,7 @@ NUITKA_MAY_BE_UNUSED static void _SET_SLICE( EVAL_ORDERED_4( PyObject *value, Py
     }
 }
 
-#define SET_INDEX_SLICE( target, lower, upper, value ) _SET_INDEX_SLICE( EVAL_ORDERED_4( target, lower, upper, value ) )
-
-NUITKA_MAY_BE_UNUSED static void _SET_INDEX_SLICE( EVAL_ORDERED_4( PyObject *target, Py_ssize_t lower, Py_ssize_t upper, PyObject *value ) )
+NUITKA_MAY_BE_UNUSED static void SET_INDEX_SLICE( PyObject *target, Py_ssize_t lower, Py_ssize_t upper, PyObject *value )
 {
     assertObject( target );
     assertObject( value );
@@ -174,10 +166,7 @@ NUITKA_MAY_BE_UNUSED static void _SET_INDEX_SLICE( EVAL_ORDERED_4( PyObject *tar
     }
 }
 
-#define DEL_SLICE( target, lower, upper ) _DEL_SLICE( EVAL_ORDERED_3( target, lower, upper ) )
-
-
-NUITKA_MAY_BE_UNUSED static void _DEL_SLICE( EVAL_ORDERED_3( PyObject *target, Py_ssize_t lower, Py_ssize_t upper ) )
+NUITKA_MAY_BE_UNUSED static void DEL_SLICE( PyObject *target, Py_ssize_t lower, Py_ssize_t upper )
 {
     assertObject( target );
 
@@ -215,9 +204,7 @@ NUITKA_MAY_BE_UNUSED static void _DEL_SLICE( EVAL_ORDERED_3( PyObject *target, P
 
 #endif
 
-#define MAKE_SLICEOBJ( start, stop, step ) _MAKE_SLICEOBJ( EVAL_ORDERED_3( start, stop, step ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_MAKE_SLICEOBJ( EVAL_ORDERED_3( PyObject *start, PyObject *stop, PyObject *step ) )
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_SLICEOBJ( PyObject *start, PyObject *stop, PyObject *step )
 {
     assertObject( start );
     assertObject( stop );

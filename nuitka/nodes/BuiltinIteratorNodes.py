@@ -42,8 +42,8 @@ class ExpressionBuiltinLen( ExpressionBuiltinSingleArgBase ):
 
     builtin_spec = BuiltinOptimization.builtin_len_spec
 
-    def getIntegerValue( self, constraint_collection ):
-        return self.getValue().getIterationLength( constraint_collection )
+    def getIntegerValue( self ):
+        return self.getValue().getIterationLength()
 
     def computeExpression( self, constraint_collection ):
         from .NodeMakingHelpers import makeConstantReplacementNode, wrapExpressionWithNodeSideEffects
@@ -54,7 +54,7 @@ class ExpressionBuiltinLen( ExpressionBuiltinSingleArgBase ):
         )
 
         if new_node is self:
-            arg_length = self.getIntegerValue( constraint_collection )
+            arg_length = self.getIntegerValue()
 
             if arg_length is not None:
                 change_tags = "new_constant"
@@ -88,29 +88,26 @@ class ValueFriendBuiltinIter1( ValueFriendBase ):
         return self.iterated == other.iterated and self.consumed == other.consumed
 
     def mayProvideReference( self ):
+        # Virtual method overload, where it's fixed by type, pylint: disable=R0201
         return True
 
-    def isKnownToBeIterableAtMin( self, count, constraint_collection ):
+    def isKnownToBeIterableAtMin( self, count ):
         if self.iter_length is None:
-            self.iter_length = self.iterated.getIterationLength(
-                constraint_collection = constraint_collection
-            )
+            self.iter_length = self.iterated.getIterationLength()
 
         return self.iter_length is not None and self.iter_length - self.consumed >= count
 
-    def isKnownToBeIterableAtMax( self, count, constraint_collection ):
+    def isKnownToBeIterableAtMax( self, count ):
         if self.iter_length is None:
-            self.iter_length = self.iterated.getIterationLength(
-                constraint_collection = constraint_collection
-            )
+            self.iter_length = self.iterated.getIterationLength()
 
         return self.iter_length is not None and self.iter_length - self.consumed <= count
 
-    def getIterationNext( self, constraint_collection ):
+    def getIterationNext( self ):
         # print self.iterated, self.consumed, self.iterated.getVisitableNodes()
 
-        if self.iterated.canPredictIterationValues( constraint_collection ):
-            result = self.iterated.getIterationValue( self.consumed, constraint_collection )
+        if self.iterated.canPredictIterationValues():
+            result = self.iterated.getIterationValue( self.consumed )
         else:
             result = None
 
@@ -150,8 +147,8 @@ class ExpressionBuiltinIter1( ExpressionBuiltinSingleArgBase ):
         # TODO: Should ask value if it is.
         return None
 
-    def getIterationLength( self, constraint_collection ):
-        return self.getValue().getIterationLength( constraint_collection )
+    def getIterationLength( self ):
+        return self.getValue().getIterationLength()
 
     def extractSideEffects( self ):
         # Iterator making is the side effect itself.
@@ -161,7 +158,7 @@ class ExpressionBuiltinIter1( ExpressionBuiltinSingleArgBase ):
             return ( self, )
 
 
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         if self.getValue().isCompileTimeConstant():
             return self.getValue().isKnownToBeIterable( None )
 
@@ -189,8 +186,8 @@ class ExpressionBuiltinNext1( ExpressionBuiltinSingleArgBase ):
 
         target = self.getValue().getValueFriend( constraint_collection )
 
-        if target.isKnownToBeIterableAtMin( 1, constraint_collection ):
-            value = target.getIterationNext( constraint_collection )
+        if target.isKnownToBeIterableAtMin( 1 ):
+            value = target.getIterationNext()
 
             if value is not None:
                 if value.isNode() and not self.parent.isStatementExpressionOnly():
@@ -286,7 +283,7 @@ class StatementSpecialUnpackCheck( StatementChildrenHavingBase ):
             return result, "new_raise", "Explicit raise already raises implicitely building exception type"
 
         # Remove the check if it can be decided at compile time.
-        if iterator.isKnownToBeIterableAtMax( 0, constraint_collection ):
+        if iterator.isKnownToBeIterableAtMax( 0 ):
             return None, "new_statements", "Determined iteration end check to be always true."
 
         return self, None, None
@@ -296,6 +293,9 @@ class ExpressionBuiltinIter2( ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_BUILTIN_ITER2"
 
     named_children = ( "callable", "sentinel", )
+
+    # Need to accept 'callable' keyword argument, that is just the API of iter,
+    # pylint: disable=W0622
 
     def __init__( self, callable, sentinel, source_ref ):
         ExpressionChildrenHavingBase.__init__(
@@ -311,6 +311,8 @@ class ExpressionBuiltinIter2( ExpressionChildrenHavingBase ):
     getSentinel = ExpressionChildrenHavingBase.childGetter( "sentinel" )
 
     def computeExpression( self, constraint_collection ):
+        # TODO: The "callable" should be investigated here, pylint: disable=W0613
+
         return self, None, None
 
     def isIteratorMaking( self ):
@@ -336,4 +338,6 @@ class ExpressionBuiltinNext2( ExpressionChildrenHavingBase ):
     getDefault = ExpressionChildrenHavingBase.childGetter( "default" )
 
     def computeExpression( self, constraint_collection ):
+        # TODO: The "iterator" should be investigated here, pylint: disable=W0613
+
         return self, None, None

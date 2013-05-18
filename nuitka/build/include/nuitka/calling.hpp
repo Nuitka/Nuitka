@@ -27,15 +27,13 @@
 
 extern PyObject *_python_tuple_empty;
 
-#define CALL_FUNCTION( function_object, positional_args, named_args ) _CALL_FUNCTION( EVAL_ORDERED_3( function_object, positional_args, named_args ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION( EVAL_ORDERED_3( PyObject *function_object, PyObject *positional_args, PyObject *named_args ) )
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *function_object, PyObject *positional_args, PyObject *named_args )
 {
     assertObject( function_object );
     assertObject( positional_args );
     assert( named_args == NULL || Py_REFCNT( named_args ) > 0 );
 
-    ternaryfunc call_slot = function_object->ob_type->tp_call;
+    ternaryfunc call_slot = Py_TYPE( function_object )->tp_call;
 
     if (unlikely( call_slot == NULL ))
     {
@@ -86,9 +84,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_NO_ARGS( PyObject *function_
     );
 }
 
-#define CALL_FUNCTION_WITH_POSARGS( function_object, positional_args ) _CALL_FUNCTION_WITH_POSARGS( EVAL_ORDERED_2( function_object, positional_args ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_POSARGS( EVAL_ORDERED_2( PyObject *function_object, PyObject *positional_args ) )
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_POSARGS( PyObject *function_object, PyObject *positional_args )
 {
     return CALL_FUNCTION(
         function_object,
@@ -97,9 +93,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_POSARGS( EVAL_ORDERED_
     );
 }
 
-#define CALL_FUNCTION_WITH_KEYARGS( function_object, named_args ) _CALL_FUNCTION_WITH_KEYARGS( EVAL_ORDERED_2( function_object, named_args ) )
-
-NUITKA_MAY_BE_UNUSED static PyObject *_CALL_FUNCTION_WITH_KEYARGS( EVAL_ORDERED_2( PyObject *function_object, PyObject *named_args ) )
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS( PyObject *function_object, PyObject *named_args )
 {
     return CALL_FUNCTION(
         function_object,

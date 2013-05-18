@@ -41,5 +41,5 @@ class ExpressionBuiltinVars( ExpressionChildrenHavingBase ):
     getSource = ExpressionChildrenHavingBase.childGetter( "source" )
 
     def computeExpression( self, constraint_collection ):
-        # TODO: Should be possible.
+        # TODO: Should be possible. pylint: disable=W0613
         return self, None, None

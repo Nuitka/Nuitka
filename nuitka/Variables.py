@@ -179,7 +179,7 @@ class Variable:
 
     def getCodeName( self ):
         # Abstract method, pylint: disable=R0201
-        assert False
+        assert False, self
 
 
 class VariableReferenceBase( Variable ):
@@ -284,12 +284,27 @@ class ModuleVariableReference( VariableReferenceBase ):
         )
 
         self.global_statement = False
+        self.exec_statement = False
+
+    def __repr__( self ):
+        return "<ModuleVariableReference '%s' of '%s'%s%s>" % (
+            self.variable_name,
+            self.getReferenced().getModuleName(),
+            " from global statement" if self.global_statement else "",
+            " from exec statement" if self.exec_statement else "",
+        )
 
     def markFromGlobalStatement( self ):
         self.global_statement = True
 
     def isFromGlobalStatement( self ):
         return self.global_statement
+
+    def markFromExecStatement( self ):
+        self.exec_statement = True
+
+    def isFromExecStatement( self ):
+        return self.exec_statement
 
     def isModuleVariableReference( self ):
         return True
@@ -535,6 +550,14 @@ class TempVariable( Variable ):
         assert needs_free is not None
 
         self.needs_free = needs_free
+
+    def isDeclared( self ):
+        return self.declared
+
+    def markAsDeclared( self ):
+        assert not self.declared
+
+        self.declared = True
 
     def getDeclarationTypeCode( self, in_context ):
         assert self.needs_free is not None, self

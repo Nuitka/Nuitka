@@ -47,18 +47,20 @@ from nuitka.__past__ import iterItems
 
 
 class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
-                                     ParameterHavingNodeBase, ExpressionMixin,
-                                     MarkContainsTryExceptIndicator,
-                                     MarkGeneratorIndicator,
-                                     MarkLocalsDictIndicator, MarkUnoptimizedFunctionIndicator ):
-    # We really want these many ancestors, as per design, we add properties via base class
-    # mixins a lot, pylint: disable=R0901
+                              ParameterHavingNodeBase, ExpressionMixin,
+                              MarkContainsTryExceptIndicator,
+                              MarkGeneratorIndicator,
+                              MarkLocalsDictIndicator,
+                              MarkUnoptimizedFunctionIndicator ):
+    # We really want these many ancestors, as per design, we add properties via
+    # base class mixins a lot, pylint: disable=R0901
 
     kind = "EXPRESSION_FUNCTION_BODY"
 
     named_children = ( "body", )
 
-    def __init__( self, provider, name, doc, parameters, source_ref, is_class = False ):
+    def __init__( self, provider, name, doc, parameters, source_ref,
+                  is_class = False ):
         # Register ourselves immediately with the module.
         provider.getParentModule().addFunction( self )
 
@@ -132,8 +134,8 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
         self.is_class = is_class
         self.doc = doc
 
-        # Indicator, if this is a function that uses "super", because if it does, it would
-        # like to get the final "__class__" attached.
+        # Indicator, if this is a function that uses "super", because if it
+        # does, it would like to get the final "__class__" attached.
         self.has_super = False
 
         # Indicator if the return value exception might be required.
@@ -147,6 +149,9 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
 
         # Indicator if the function is used outside of where it's defined.
         self.cross_module_use = False
+
+        # Indicator if the function is reached by any module code.
+        self.is_used = False
 
     def getDetails( self ):
         return {
@@ -226,7 +231,8 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
             result = self.getTakenVariable( variable_name )
 
             if self.isClassDictCreation():
-                if result.isModuleVariableReference() and not result.isFromGlobalStatement():
+                if result.isModuleVariableReference() and \
+                   not result.isFromGlobalStatement():
                     result = self.getProvidedVariable( variable_name )
 
                     if result.isModuleVariableReference():
@@ -244,8 +250,9 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
         if self.hasProvidedVariable( variable_name ):
             result = self.getProvidedVariable( variable_name )
         else:
-            # For exec containing/star import containing, get a closure variable and if it
-            # is a module variable, only then make it a maybe local variable.
+            # For exec containing/star import containing, get a closure variable
+            # and if it is a module variable, only then make it a maybe local
+            # variable.
             result = self.getClosureVariable(
                 variable_name = variable_name
             )
@@ -264,8 +271,8 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
     def getVariableForClosure( self, variable_name ):
         # print( "createProvidedVariable", self, variable_name )
 
-        # The class bodies provide no closure, except under CPython3, "__class__" and
-        # nothing else.
+        # The class bodies provide no closure, except under CPython3,
+        # "__class__" and nothing else.
 
         if self.isClassDictCreation() and ( variable_name != "__class__" or Utils.python_version < 300 ):
             return self.provider.getVariableForReference( variable_name )
@@ -290,8 +297,8 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
                     variable_name = variable_name
                 )
         else:
-            # Make sure the provider knows it has to provide a variable of this name for
-            # the assigment.
+            # Make sure the provider knows it has to provide a variable of this
+            # name for the assigment.
             self.provider.getVariableForAssignment(
                 variable_name = variable_name
             )
@@ -328,13 +335,20 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
     def markAsCrossModuleUsed( self ):
         self.cross_module_use = True
 
+    def markAsUsed( self ):
+        self.is_used = True
+
+    def isUsed( self ):
+        return self.is_used
+
     def computeExpression( self, constraint_collection ):
         # Function body is quite irreplacable.
         return self, None, None
 
     def computeExpressionCall( self, call_node, constraint_collection ):
-        # TODO: Until we have something to re-order the arguments, we need to skip this. For
-        # the immediate need, we avoid this complexity, as a re-ordering will be needed.
+        # TODO: Until we have something to re-order the arguments, we need to
+        # skip this. For the immediate need, we avoid this complexity, as a
+        # re-ordering will be needed.
         if call_node.getNamedArgumentPairs():
             return call_node, None, None
 
@@ -367,7 +381,8 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
             return (
                 result,
                 "new_statements", # TODO: More appropiate tag maybe.
-                "Replaced call to created function body '%s' with direct function call" % self.getName()
+                """Replaced call to created function body '%s' with direct \
+function call""" % self.getName()
             )
 
         except TooManyArguments as e:
@@ -388,7 +403,8 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
             return (
                 result,
                 "new_statements,new_raise", # TODO: More appropiate tag maybe.
-                "Replaced call to created function body '%s' to argument error" % self.getName()
+                """Replaced call to created function body '%s' to argument \
+error""" % self.getName()
             )
 
 
@@ -396,9 +412,9 @@ class ExpressionFunctionBody( ClosureTakerMixin, ChildrenHavingMixin,
         # TODO: It's actually pretty much compile time accessible mayhaps.
         return None
 
-    def mayHaveSideEffects( self, constraint_collection ):
-        # The function definition has no side effects, calculating the defaults would be,
-        # but that is done outside of this.
+    def mayHaveSideEffects( self ):
+        # The function definition has no side effects, calculating the defaults
+        # would be, but that is done outside of this.
         return False
 
     def markAsClassClosureTaker( self ):
@@ -434,11 +450,15 @@ class ExpressionFunctionCreation( SideEffectsFromChildrenMixin,
                                   ExpressionChildrenHavingBase ):
     kind = "EXPRESSION_FUNCTION_CREATION"
 
-    # Note: The order of evaluation for these is a bit unexpected, but true. Keyword
-    # defaults go first, then normal defaults, and annotations of all kinds go last.
-    named_children = ( "kw_defaults", "defaults", "annotations", "function_ref" )
+    # Note: The order of evaluation for these is a bit unexpected, but
+    # true. Keyword defaults go first, then normal defaults, and annotations of
+    # all kinds go last.
+    named_children = (
+        "kw_defaults", "defaults", "annotations", "function_ref"
+    )
 
-    def __init__( self, function_ref, defaults, kw_defaults, annotations, source_ref ):
+    def __init__( self, function_ref, defaults, kw_defaults, annotations,
+                  source_ref ):
         assert kw_defaults is None or kw_defaults.isExpression()
         assert annotations is None or annotations.isExpression()
         assert function_ref.isExpressionFunctionRef()
@@ -518,7 +538,7 @@ class ExpressionFunctionRef( NodeBase, ExpressionMixin ):
         # TODO: Function body may know something.
         return self, None, None
 
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         # Using a function has no side effects.
         return False
 

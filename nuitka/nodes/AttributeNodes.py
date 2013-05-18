@@ -99,7 +99,7 @@ class ExpressionBuiltinGetattr( ExpressionChildrenHavingBase ):
 
     named_children = ( "source", "attribute", "default" )
 
-    # Need to accept object keyword argument, that is just the API of getattr,
+    # Need to accept 'object' keyword argument, that is just the API of getattr,
     # pylint: disable=W0622
 
     def __init__( self, object, name, default, source_ref ):
@@ -118,19 +118,21 @@ class ExpressionBuiltinGetattr( ExpressionChildrenHavingBase ):
     getDefault = ExpressionChildrenHavingBase.childGetter( "default" )
 
     def computeExpression( self, constraint_collection ):
+        # Children can tell all we need to know, pylint: disable=W0613
+
         default = self.getDefault()
 
         if default is None:
             attribute = self.getAttribute()
 
-            attribute_name = attribute.getStringValue( constraint_collection )
+            attribute_name = attribute.getStringValue()
 
             if attribute_name is not None:
                 source = self.getLookupSource()
-                # If source has sideeffects, it must be evaluated, before the lookup, meaning,
-                # a temporary variable should be assigned. For now, we give up in this
-                # case. TODO: Replace source with a temporary variable assignment as a side
-                # effect.
+                # If source has sideeffects, it must be evaluated, before the lookup,
+                # meaning, a temporary variable should be assigned. For now, we give up in
+                # this case. TODO: Replace source with a temporary variable assignment as
+                # a side effect.
 
                 side_effects = source.extractSideEffects()
 
@@ -148,7 +150,12 @@ class ExpressionBuiltinGetattr( ExpressionChildrenHavingBase ):
                         old_node = attribute
                     )
 
-                    return result, "new_expression", "Replaced call to built-in 'getattr' with constant attribute '%s' to mere attribute lookup" % attribute_name # pylint: disable=C0301
+                    return (
+                        result,
+                        "new_expression",
+                        """Replaced call to built-in 'getattr' with constant \
+attribute '%s' to mere attribute lookup""" % attribute_name
+                    )
 
         return self, None, None
 
@@ -158,7 +165,7 @@ class ExpressionBuiltinSetattr( ExpressionChildrenHavingBase ):
 
     named_children = ( "source", "attribute", "value" )
 
-    # Need to accept object keyword argument, that is just the API of setattr,
+    # Need to accept 'object' keyword argument, that is just the API of setattr,
     # pylint: disable=W0622
 
     def __init__( self, object, name, value, source_ref ):
@@ -177,6 +184,8 @@ class ExpressionBuiltinSetattr( ExpressionChildrenHavingBase ):
     getValue = ExpressionChildrenHavingBase.childGetter( "value" )
 
     def computeExpression( self, constraint_collection ):
+        # Children can tell all we need to know, pylint: disable=W0613
+
         # Note: Might be possible to predict or downgrade to mere attribute set.
         return self, None, None
 
@@ -203,6 +212,8 @@ class ExpressionBuiltinHasattr( ExpressionChildrenHavingBase ):
     getAttribute = ExpressionChildrenHavingBase.childGetter( "attribute" )
 
     def computeExpression( self, constraint_collection ):
+        # Children can tell all we need to know, pylint: disable=W0613
+
         # Note: Might be possible to predict or downgrade to mere attribute check.
 
         return self, None, None

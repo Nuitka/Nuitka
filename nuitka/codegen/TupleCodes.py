@@ -20,18 +20,64 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from .Identifiers import getCodeTemporaryRefs, CallIdentifier, ConstantIdentifier
+from .Identifiers import ConstantIdentifier
+from . import CodeTemplates
 
-def getTupleCreationCode( context, element_identifiers ):
+# Have EVAL_ORDER for 1..6 in any case, so we can use it in the C++ code freely
+# without concern.
+make_tuples_used = set( range( 1, 6 ) )
+
+def addMakeTupleUse( value ):
+    assert type( value ) is int
+
+    make_tuples_used.add( value )
+
+def getTupleCreationCode( context, order_relevance, element_identifiers ):
     if len( element_identifiers ) == 0:
         return ConstantIdentifier( "_python_tuple_empty", () )
 
-    arg_codes = getCodeTemporaryRefs( element_identifiers )
+    from .OrderedEvaluation import getOrderRelevanceEnforcedArgsCode
+
     args_length = len( element_identifiers )
+    addMakeTupleUse( args_length )
 
-    context.addMakeTupleUse( args_length )
-
-    return CallIdentifier(
-        called  = "MAKE_TUPLE%d" % args_length,
-        args    = arg_codes
+    return getOrderRelevanceEnforcedArgsCode(
+        helper          = "MAKE_TUPLE%d" % args_length,
+        export_ref      = 0,
+        ref_count       = 1,
+        tmp_scope       = "make_tuple",
+        order_relevance = order_relevance,
+        args            = element_identifiers,
+        context         = context
     )
+
+def getMakeTuplesCode():
+    make_tuples_codes = []
+
+    for arg_count in sorted( make_tuples_used ):
+        add_elements_code = []
+
+        for arg_index in range( arg_count ):
+            add_elements_code.append(
+                CodeTemplates.template_add_tuple_element_code % {
+                    "tuple_index" : arg_index,
+                    "tuple_value" : "element%d" % arg_index
+                }
+            )
+
+        make_tuples_codes.append(
+            CodeTemplates.template_make_tuple_function % {
+                "argument_count"    : arg_count,
+                "argument_decl"     : ", ".join(
+                    "PyObject *element%d" % arg_index
+                    for arg_index in
+                    range( arg_count )
+                ),
+                "add_elements_code" : "\n".join( add_elements_code ),
+            }
+        )
+
+    return CodeTemplates.template_header_guard % {
+        "header_guard_name" : "__NUITKA_TUPLES_H__",
+        "header_body"       : "\n".join( make_tuples_codes )
+    }

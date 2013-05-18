@@ -100,7 +100,7 @@ class ExpressionOperationBinary( ExpressionOperationBase ):
             right_value = right.getCompileTimeConstant()
 
             if operator == "Mult" and right.isNumberConstant():
-                iter_length = left.getIterationLength( constraint_collection )
+                iter_length = left.getIterationLength()
 
                 if iter_length is not None:
                     if iter_length * right_value > 256:
@@ -108,13 +108,21 @@ class ExpressionOperationBinary( ExpressionOperationBase ):
 
                 if left.isNumberConstant():
                     if left.isIndexConstant() and right.isIndexConstant():
-                        # Estimate with logarithm, if the result of number calculations is
-                        # computable with acceptable effort, otherwise, we will have to do
-                        # it at runtime.
+                        # Estimate with logarithm, if the result of number
+                        # calculations is computable with acceptable effort,
+                        # otherwise, we will have to do it at runtime.
 
                         if left_value != 0 and right_value != 0:
                             if math.log10( abs( left_value ) ) + math.log10( abs( right_value ) ) > 20:
                                 return self, None, None
+
+            elif operator == "Mult" and left.isNumberConstant():
+                iter_length = right.getIterationLength()
+
+                if iter_length is not None:
+                    if iter_length * left_value > 256:
+                        return self, None, None
+
 
             from .NodeMakingHelpers import getComputationResult
 
@@ -201,21 +209,21 @@ class ExpressionOperationNOT( ExpressionOperationUnary ):
             constraint_collection = constraint_collection
         )
 
-    def getTruthValue( self, constraint_collection ):
-        result = self.getOperand().getTruthValue( constraint_collection )
+    def getTruthValue( self ):
+        result = self.getOperand().getTruthValue()
 
         return None if result is None else not result
 
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         operand = self.getOperand()
 
-        if operand.mayHaveSideEffects( constraint_collection ):
+        if operand.mayHaveSideEffects():
             return True
 
-        return operand.mayHaveSideEffectsBool( constraint_collection )
+        return operand.mayHaveSideEffectsBool()
 
-    def mayHaveSideEffectsBool( self, constraint_collection ):
-        return self.getOperand().mayHaveSideEffectsBool( constraint_collection )
+    def mayHaveSideEffectsBool( self ):
+        return self.getOperand().mayHaveSideEffectsBool()
 
     def extractSideEffects( self ):
         operand = self.getOperand()

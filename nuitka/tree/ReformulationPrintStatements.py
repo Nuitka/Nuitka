@@ -32,7 +32,7 @@ def buildPrintNode( provider, node, source_ref ):
 
     def wrapValue( value ):
         if value.isExpressionConstantRef():
-            return value.getStrValue( None )
+            return value.getStrValue()
         else:
             return ExpressionBuiltinStr(
                 value      = value,

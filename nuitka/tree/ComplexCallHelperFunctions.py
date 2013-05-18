@@ -79,6 +79,7 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 )
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
+from nuitka.nodes.ModuleNodes import PythonInternalModule
 
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.FutureSpecs import FutureSpec
@@ -93,24 +94,36 @@ source_ref = fromFilename( "internal", FutureSpec() ).atInternal()
 
 from nuitka.Utils import python_version
 
-# Special decorator, we can cache although provider may change.
+# Cache result. TODO: no more as special as it used to be, maybe can be found in
+# stdlib.
 def once_decorator( func ):
     func.cached_value = None
 
-    def replacement( provider ):
+    def replacement():
         if func.cached_value is None:
-            func.cached_value = func( provider )
+            func.cached_value = func()
 
         return func.cached_value
 
     return replacement
 
+
+internal_module = None
+
+def getInternalModule():
+    global internal_module
+
+    if internal_module is None:
+        internal_module = PythonInternalModule()
+
+    return internal_module
+
 @once_decorator
-def getCallableNameDescBody( provider ):
+def getCallableNameDescBody():
     helper_name = "get_callable_name_desc"
 
     result = ExpressionFunctionBody(
-        provider   = provider, # We shouldn't need that.
+        provider   = getInternalModule(),
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
@@ -131,7 +144,7 @@ def getCallableNameDescBody( provider ):
     #
     # called_type = type( BuiltinFunctionType )
     #
-    # if ininstance( called, ( FunctionType, MethodType, BuiltinFunctionType ) ):
+    # if ininstance( called, (FunctionType, MethodType, BuiltinFunctionType) ):
     #     return called.__name__
     # elif python_version < 3 and isinstance( called, ClassType ):
     #     return called_type.__name__ + " constructor"
@@ -317,7 +330,7 @@ def getCallableNameDescBody( provider ):
     return result
 
 
-def _makeStarListArgumentToTupleStatement( provider, called_variable_ref,
+def _makeStarListArgumentToTupleStatement( called_variable_ref,
                                            star_list_target_variable_ref,
                                            star_list_variable_ref ):
     raise_statement = StatementRaiseException(
@@ -335,7 +348,7 @@ def _makeStarListArgumentToTupleStatement( provider, called_variable_ref,
                             ExpressionFunctionCall(
                                 function   = ExpressionFunctionCreation(
                                     function_ref = ExpressionFunctionRef(
-                                        function_body = getCallableNameDescBody( provider = provider ),
+                                        function_body = getCallableNameDescBody(),
                                         source_ref    = source_ref
                                     ),
                                     defaults     = (),
@@ -405,7 +418,7 @@ def _makeStarListArgumentToTupleStatement( provider, called_variable_ref,
     )
 
 
-def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
+def _makeStarDictArgumentToDictStatement( called_variable_ref,
                                           star_dict_target_variable_ref,
                                           star_dict_variable_ref ):
     raise_statement = StatementRaiseException(
@@ -423,7 +436,7 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
                             ExpressionFunctionCall(
                                 function   = ExpressionFunctionCreation(
                                     function_ref = ExpressionFunctionRef(
-                                        function_body = getCallableNameDescBody( provider = provider ),
+                                        function_body = getCallableNameDescBody(),
                                         source_ref    = source_ref
                                     ),
                                     defaults     = (),
@@ -520,9 +533,9 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
     )
 
     statements = (
-        # Initializing the temp variable outside of try/except, because code generation
-        # does not yet detect that case properly. TODO: Can be removed once code
-        # generation is apt enough.
+        # Initializing the temp variable outside of try/except, because code
+        # generation does not yet detect that case properly. TODO: Can be
+        # removed once code generation is apt enough.
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_keys_variable.makeReference( temp_block ),
@@ -626,7 +639,7 @@ def _makeStarDictArgumentToDictStatement( provider, called_variable_ref,
         )
 
 
-def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
+def _makeStarDictArgumentMergeToKwStatement( called_variable_ref,
                                              kw_target_variable_ref, kw_variable_ref,
                                              star_dict_variable_ref ):
     # This is plain terribly complex, pylint: disable=R0914
@@ -646,7 +659,7 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
                             ExpressionFunctionCall(
                                 function   = ExpressionFunctionCreation(
                                     function_ref = ExpressionFunctionRef(
-                                        function_body = getCallableNameDescBody( provider = provider ),
+                                        function_body = getCallableNameDescBody(),
                                         source_ref    = source_ref
                                     ),
                                     defaults     = (),
@@ -705,7 +718,7 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
                             ExpressionFunctionCall(
                                 function   = ExpressionFunctionCreation(
                                     function_ref = ExpressionFunctionRef(
-                                        function_body = getCallableNameDescBody( provider = provider ),
+                                        function_body = getCallableNameDescBody(),
                                         source_ref    = source_ref
                                     ),
                                     defaults     = (),
@@ -1052,12 +1065,13 @@ def _makeStarDictArgumentMergeToKwStatement( provider, called_variable_ref,
 
 
 @once_decorator
-def getFunctionCallHelperStarList( provider ):
+def getFunctionCallHelperStarList():
     helper_name = "complex_call_helper_star_list"
 
-    # Only need to check if the star argument value is a sequence and then convert to tuple.
+    # Only need to check if the star argument value is a sequence and then
+    # convert to tuple.
     result = ExpressionFunctionBody(
-        provider   = provider, # We shouldn't need that.
+        provider   = getInternalModule(),
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
@@ -1113,10 +1127,13 @@ def getFunctionCallHelperStarList( provider ):
 
     statements = (
         _makeStarListArgumentToTupleStatement(
-            provider = provider,
             called_variable_ref           = makeCalledVariableRef(),
-            star_list_variable_ref        = makeStarListArgVariableRef( assign = False ),
-            star_list_target_variable_ref = makeStarListArgVariableRef( assign = True )
+            star_list_variable_ref        = makeStarListArgVariableRef(
+                assign = False
+            ),
+            star_list_target_variable_ref = makeStarListArgVariableRef(
+                assign = True
+            )
         ),
         StatementReturn(
             expression = ExpressionCallNoKeywords(
@@ -1144,12 +1161,13 @@ def getFunctionCallHelperStarList( provider ):
     return result
 
 @once_decorator
-def getFunctionCallHelperKeywordsStarList( provider ):
+def getFunctionCallHelperKeywordsStarList():
     helper_name = "complex_call_helper_keywords_star_list"
 
-    # Only need to check if the star argument value is a sequence and then convert to tuple.
+    # Only need to check if the star argument value is a sequence and then
+    # convert to tuple.
     result = ExpressionFunctionBody(
-        provider   = provider, # We shouldn't need that.
+        provider   = getInternalModule(),
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
@@ -1215,10 +1233,13 @@ def getFunctionCallHelperKeywordsStarList( provider ):
 
     statements = (
         _makeStarListArgumentToTupleStatement(
-            provider = provider,
             called_variable_ref           = makeCalledVariableRef(),
-            star_list_variable_ref        = makeStarListArgVariableRef( assign = False ),
-            star_list_target_variable_ref = makeStarListArgVariableRef( assign = True )
+            star_list_variable_ref        = makeStarListArgVariableRef(
+                assign = False
+            ),
+            star_list_target_variable_ref = makeStarListArgVariableRef(
+                assign = True
+            )
         ),
         StatementReturn(
             expression = ExpressionCall(
@@ -1247,12 +1268,13 @@ def getFunctionCallHelperKeywordsStarList( provider ):
     return result
 
 @once_decorator
-def getFunctionCallHelperPosStarList( provider ):
+def getFunctionCallHelperPosStarList():
     helper_name = "complex_call_helper_pos_star_list"
 
-    # Only need to check if the star argument value is a sequence and then convert to tuple.
+    # Only need to check if the star argument value is a sequence and then
+    # convert to tuple.
     result = ExpressionFunctionBody(
-        provider   = provider, # We shouldn't need that.
+        provider   = getInternalModule(),
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
@@ -1318,10 +1340,13 @@ def getFunctionCallHelperPosStarList( provider ):
 
     statements = (
         _makeStarListArgumentToTupleStatement(
-            provider = provider,
             called_variable_ref           = makeCalledVariableRef(),
-            star_list_variable_ref        = makeStarListArgVariableRef( assign = False ),
-            star_list_target_variable_ref = makeStarListArgVariableRef( assign = True )
+            star_list_variable_ref        = makeStarListArgVariableRef(
+                assign = False
+            ),
+            star_list_target_variable_ref = makeStarListArgVariableRef(
+                assign = True
+            )
         ),
         StatementReturn(
             expression = ExpressionCallNoKeywords(
@@ -1353,12 +1378,13 @@ def getFunctionCallHelperPosStarList( provider ):
 
     return result
 
-def getFunctionCallHelperPosKeywordsStarList( provider ):
+def getFunctionCallHelperPosKeywordsStarList():
     helper_name = "complex_call_helper_pos_keywords_star_list"
 
-    # Only need to check if the star argument value is a sequence and then convert to tuple.
+    # Only need to check if the star argument value is a sequence and then
+    # convert to tuple.
     result = ExpressionFunctionBody(
-        provider   = provider, # We shouldn't need that.
+        provider   = getInternalModule(),
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
@@ -1434,10 +1460,13 @@ def getFunctionCallHelperPosKeywordsStarList( provider ):
 
     statements = (
         _makeStarListArgumentToTupleStatement(
-            provider = provider,
             called_variable_ref           = makeCalledVariableRef(),
-            star_list_variable_ref        = makeStarListArgVariableRef( assign = False ),
-            star_list_target_variable_ref = makeStarListArgVariableRef( assign = True )
+            star_list_variable_ref        = makeStarListArgVariableRef(
+                assign = False
+            ),
+            star_list_target_variable_ref = makeStarListArgVariableRef(
+                assign = True
+            )
         ),
         StatementReturn(
             expression = ExpressionCall(
@@ -1471,12 +1500,13 @@ def getFunctionCallHelperPosKeywordsStarList( provider ):
     return result
 
 @once_decorator
-def getFunctionCallHelperStarDict( provider ):
+def getFunctionCallHelperStarDict():
     helper_name = "complex_call_helper_star_dict"
 
-    # Only need to check if the star argument value is a sequence and then convert to tuple.
+    # Only need to check if the star argument value is a sequence and then
+    # convert to tuple.
     result = ExpressionFunctionBody(
-        provider   = provider, # We shouldn't need that.
+        provider   = getInternalModule(),
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
@@ -1546,10 +1576,13 @@ def getFunctionCallHelperStarDict( provider ):
 
     statements = (
         _makeStarDictArgumentToDictStatement(
-            provider = provider,
             called_variable_ref           = makeCalledVariableRef(),
-            star_dict_variable_ref        = makeStarDictArgVariableRef( assign = False ),
-            star_dict_target_variable_ref = makeStarDictArgVariableRef( assign = True )
+            star_dict_variable_ref        = makeStarDictArgVariableRef(
+                assign = False
+            ),
+            star_dict_target_variable_ref = makeStarDictArgVariableRef(
+                assign = True
+            )
         ),
         StatementReturn(
             expression = ExpressionCallKeywordsOnly(
@@ -1575,12 +1608,13 @@ def getFunctionCallHelperStarDict( provider ):
     return result
 
 @once_decorator
-def getFunctionCallHelperPosStarDict( provider ):
+def getFunctionCallHelperPosStarDict():
     helper_name = "complex_call_helper_pos_star_dict"
 
-    # Only need to check if the star argument value is a sequence and then convert to tuple.
+    # Only need to check if the star argument value is a sequence and then
+    # convert to tuple.
     result = ExpressionFunctionBody(
-        provider   = provider, # We shouldn't need that.
+        provider   = getInternalModule(),
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
@@ -1660,10 +1694,13 @@ def getFunctionCallHelperPosStarDict( provider ):
 
     statements = (
         _makeStarDictArgumentToDictStatement(
-            provider = provider,
             called_variable_ref           = makeCalledVariableRef(),
-            star_dict_variable_ref        = makeStarDictArgVariableRef( assign = False ),
-            star_dict_target_variable_ref = makeStarDictArgVariableRef( assign = True )
+            star_dict_variable_ref        = makeStarDictArgVariableRef(
+                assign = False
+            ),
+            star_dict_target_variable_ref = makeStarDictArgVariableRef(
+                assign = True
+            )
         ),
         StatementReturn(
             expression = ExpressionCall(
@@ -1691,12 +1728,13 @@ def getFunctionCallHelperPosStarDict( provider ):
 
 
 @once_decorator
-def getFunctionCallHelperKeywordsStarDict( provider ):
+def getFunctionCallHelperKeywordsStarDict():
     helper_name = "complex_call_helper_keywords_star_dict"
 
-    # Only need to check if the star argument value is a sequence and then convert to tuple.
+    # Only need to check if the star argument value is a sequence and then
+    # convert to tuple.
     result = ExpressionFunctionBody(
-        provider   = provider, # We shouldn't need that.
+        provider   = getInternalModule(),
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
@@ -1805,7 +1843,6 @@ def getFunctionCallHelperKeywordsStarDict( provider ):
 
     statements = (
         _makeStarDictArgumentMergeToKwStatement(
-            provider = provider,
             called_variable_ref           = makeCalledVariableRef(),
             kw_variable_ref               = makeKwVariableRef( assign = False ),
             kw_target_variable_ref        = makeKwVariableRef( assign = True ),
@@ -1835,12 +1872,13 @@ def getFunctionCallHelperKeywordsStarDict( provider ):
     return result
 
 @once_decorator
-def getFunctionCallHelperPosKeywordsStarDict( provider ):
+def getFunctionCallHelperPosKeywordsStarDict():
     helper_name = "complex_call_helper_pos_keywords_star_dict"
 
-    # Only need to check if the star argument value is a sequence and then convert to tuple.
+    # Only need to check if the star argument value is a sequence and then
+    # convert to tuple.
     result = ExpressionFunctionBody(
-        provider   = provider, # We shouldn't need that.
+        provider   = getInternalModule(),
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
@@ -1959,7 +1997,6 @@ def getFunctionCallHelperPosKeywordsStarDict( provider ):
 
     statements = (
         _makeStarDictArgumentMergeToKwStatement(
-            provider = provider,
             called_variable_ref           = makeCalledVariableRef(),
             kw_variable_ref               = makeKwVariableRef( assign = False ),
             kw_target_variable_ref        = makeKwVariableRef( assign = True ),
@@ -1991,12 +2028,13 @@ def getFunctionCallHelperPosKeywordsStarDict( provider ):
 
 
 @once_decorator
-def getFunctionCallHelperStarListStarDict( provider ):
+def getFunctionCallHelperStarListStarDict():
     helper_name = "complex_call_helper_star_list_star_dict"
 
-    # Only need to check if the star argument value is a sequence and then convert to tuple.
+    # Only need to check if the star argument value is a sequence and then
+    # convert to tuple.
     result = ExpressionFunctionBody(
-        provider   = provider, # We shouldn't need that.
+        provider   = getInternalModule(),
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
@@ -2049,16 +2087,22 @@ def getFunctionCallHelperStarListStarDict( provider ):
 
     statements = (
         _makeStarDictArgumentToDictStatement(
-            provider = provider,
             called_variable_ref           = makeCalledVariableRef(),
-            star_dict_variable_ref        = makeStarDictArgVariableRef( assign = False ),
-            star_dict_target_variable_ref = makeStarDictArgVariableRef( assign = True )
+            star_dict_variable_ref        = makeStarDictArgVariableRef(
+                assign = False
+            ),
+            star_dict_target_variable_ref = makeStarDictArgVariableRef(
+                assign = True
+            )
         ),
         _makeStarListArgumentToTupleStatement(
-            provider = provider,
             called_variable_ref           = makeCalledVariableRef(),
-            star_list_variable_ref        = makeStarListArgVariableRef( assign = False ),
-            star_list_target_variable_ref = makeStarListArgVariableRef( assign = True )
+            star_list_variable_ref        = makeStarListArgVariableRef(
+                assign = False
+            ),
+            star_list_target_variable_ref = makeStarListArgVariableRef(
+                assign = True
+            )
         ),
         StatementReturn(
             expression = ExpressionCall(
@@ -2085,17 +2129,20 @@ def getFunctionCallHelperStarListStarDict( provider ):
     return result
 
 @once_decorator
-def getFunctionCallHelperPosStarListStarDict( provider ):
+def getFunctionCallHelperPosStarListStarDict():
     helper_name = "complex_call_helper_pos_star_list_star_dict"
 
-    # Only need to check if the star argument value is a sequence and then convert to tuple.
+    # Only need to check if the star argument value is a sequence and then
+    # convert to tuple.
     result = ExpressionFunctionBody(
-        provider   = provider, # We shouldn't need that.
+        provider   = getInternalModule(),
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = ( "called", "args", "star_arg_list", "star_arg_dict" ),
+            normal_args   = (
+                "called", "args", "star_arg_list", "star_arg_dict"
+            ),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
@@ -2105,8 +2152,12 @@ def getFunctionCallHelperPosStarListStarDict( provider ):
         is_class   = False
     )
 
-    called_variable, args_variable, star_arg_list_variable, star_arg_dict_variable = \
-        result.getParameters().getAllVariables()
+    (
+        called_variable,
+        args_variable,
+        star_arg_list_variable,
+        star_arg_dict_variable
+    ) = result.getParameters().getAllVariables()
 
     def makeCalledVariableRef():
         variable_ref = ExpressionVariableRef(
@@ -2154,16 +2205,22 @@ def getFunctionCallHelperPosStarListStarDict( provider ):
 
     statements = (
         _makeStarDictArgumentToDictStatement(
-            provider = provider,
             called_variable_ref           = makeCalledVariableRef(),
-            star_dict_variable_ref        = makeStarDictArgVariableRef( assign = False ),
-            star_dict_target_variable_ref = makeStarDictArgVariableRef( assign = True )
+            star_dict_variable_ref        = makeStarDictArgVariableRef(
+                assign = False
+            ),
+            star_dict_target_variable_ref = makeStarDictArgVariableRef(
+                assign = True
+            )
         ),
         _makeStarListArgumentToTupleStatement(
-            provider = provider,
             called_variable_ref           = makeCalledVariableRef(),
-            star_list_variable_ref        = makeStarListArgVariableRef( assign = False ),
-            star_list_target_variable_ref = makeStarListArgVariableRef( assign = True )
+            star_list_variable_ref        = makeStarListArgVariableRef(
+                assign = False
+            ),
+            star_list_target_variable_ref = makeStarListArgVariableRef(
+                assign = True
+            )
         ),
         StatementReturn(
             expression = ExpressionCall(
@@ -2196,17 +2253,19 @@ def getFunctionCallHelperPosStarListStarDict( provider ):
 
 
 @once_decorator
-def getFunctionCallHelperKeywordsStarListStarDict( provider ):
+def getFunctionCallHelperKeywordsStarListStarDict():
     helper_name = "complex_call_helper_keywords_star_list_star_dict"
 
     # Only need to check if the star argument value is a sequence and then convert to tuple.
     result = ExpressionFunctionBody(
-        provider   = provider, # We shouldn't need that.
+        provider   = getInternalModule(),
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = ( "called", "kw", "star_arg_list", "star_arg_dict" ),
+            normal_args   = (
+                "called", "kw", "star_arg_list", "star_arg_dict"
+            ),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
@@ -2267,17 +2326,19 @@ def getFunctionCallHelperKeywordsStarListStarDict( provider ):
 
     statements = (
         _makeStarDictArgumentMergeToKwStatement(
-            provider = provider,
             called_variable_ref           = makeCalledVariableRef(),
             kw_variable_ref               = makeKwVariableRef( assign = False ),
             kw_target_variable_ref        = makeKwVariableRef( assign = True ),
             star_dict_variable_ref        = makeStarDictArgVariableRef()
         ),
         _makeStarListArgumentToTupleStatement(
-            provider = provider,
             called_variable_ref           = makeCalledVariableRef(),
-            star_list_variable_ref        = makeStarListArgVariableRef( assign = False ),
-            star_list_target_variable_ref = makeStarListArgVariableRef( assign = True )
+            star_list_variable_ref        = makeStarListArgVariableRef(
+                assign = False
+            ),
+            star_list_target_variable_ref = makeStarListArgVariableRef(
+                assign = True
+            )
         ),
         StatementReturn(
             expression = ExpressionCall(
@@ -2305,17 +2366,20 @@ def getFunctionCallHelperKeywordsStarListStarDict( provider ):
 
 
 @once_decorator
-def getFunctionCallHelperPosKeywordsStarListStarDict( provider ):
+def getFunctionCallHelperPosKeywordsStarListStarDict():
     helper_name = "complex_call_helper_pos_keywords_star_list_star_dict"
 
-    # Only need to check if the star argument value is a sequence and then convert to tuple.
+    # Only need to check if the star argument value is a sequence and then
+    # convert to tuple.
     result = ExpressionFunctionBody(
-        provider   = provider, # We shouldn't need that.
+        provider   = getInternalModule(),
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = ( "called", "args", "kw", "star_arg_list", "star_arg_dict" ),
+            normal_args   = (
+                "called", "args", "kw", "star_arg_list", "star_arg_dict"
+            ),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
@@ -2386,17 +2450,19 @@ def getFunctionCallHelperPosKeywordsStarListStarDict( provider ):
 
     statements = (
         _makeStarDictArgumentMergeToKwStatement(
-            provider = provider,
             called_variable_ref           = makeCalledVariableRef(),
             kw_variable_ref               = makeKwVariableRef( assign = False ),
             kw_target_variable_ref        = makeKwVariableRef( assign = True ),
             star_dict_variable_ref        = makeStarDictArgVariableRef()
         ),
         _makeStarListArgumentToTupleStatement(
-            provider = provider,
             called_variable_ref           = makeCalledVariableRef(),
-            star_list_variable_ref        = makeStarListArgVariableRef( assign = False ),
-            star_list_target_variable_ref = makeStarListArgVariableRef( assign = True )
+            star_list_variable_ref        = makeStarListArgVariableRef(
+                assign = False
+            ),
+            star_list_target_variable_ref = makeStarListArgVariableRef(
+                assign = True
+            )
         ),
         StatementReturn(
             expression = ExpressionCall(

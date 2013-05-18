@@ -72,7 +72,7 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *INCREASE_REFCOUNT_X( PyTracebackO
     return traceback_object;
 }
 
-NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *frame )
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TRACEBACK( PyFrameObject *frame )
 {
     // assertFrameObject( frame );
 
@@ -86,10 +86,12 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *fr
 
     Nuitka_GC_Track( result );
 
-    return result;
+    return (PyObject *)result;
 }
 
+#if PYTHON_VERSION < 300
 extern PyObject *_python_str_plain_exc_type, *_python_str_plain_exc_value, *_python_str_plain_exc_traceback;
+#endif
 
 // Helper that sets the current thread exception, releasing the current one, for use in this
 // file only.
@@ -109,6 +111,7 @@ inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exceptio
     Py_XDECREF( old_value );
     Py_XDECREF( old_tb );
 
+#if PYTHON_VERSION < 300
     // Set sys attributes in the fastest possible way.
     PyObject *sys_dict = thread_state->interp->sysdict;
     assertObject( sys_dict );
@@ -116,6 +119,7 @@ inline void _SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exceptio
     PyDict_SetItem( sys_dict, _python_str_plain_exc_type, exception_type ? exception_type : Py_None );
     PyDict_SetItem( sys_dict, _python_str_plain_exc_value, exception_value ? exception_value : Py_None );
     PyDict_SetItem( sys_dict, _python_str_plain_exc_traceback, exception_tb ? (PyObject *)exception_tb : Py_None );
+#endif
 }
 
 inline void NORMALIZE_EXCEPTION( PyObject **exception_type, PyObject **exception_value, PyTracebackObject **exception_tb )
@@ -305,7 +309,7 @@ public:
         if ( this->exception_tb->tb_frame != frame || this->exception_tb->tb_lineno != frame->f_lineno )
         {
             Py_INCREF( frame );
-            PyTracebackObject *traceback_new = MAKE_TRACEBACK( frame );
+            PyTracebackObject *traceback_new = (PyTracebackObject *)MAKE_TRACEBACK( frame );
 
             traceback_new->tb_next = this->exception_tb;
             this->exception_tb = traceback_new;
@@ -321,6 +325,12 @@ public:
         this->exception_tb = traceback;
 
         Py_XDECREF( old );
+    }
+
+    inline void setTraceback( PyObject *traceback )
+    {
+        assert( PyTraceBack_Check( traceback ) );
+        return this->setTraceback( (PyTracebackObject *)traceback );
     }
 
     inline bool hasTraceback() const

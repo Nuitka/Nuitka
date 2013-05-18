@@ -21,8 +21,6 @@ These are all very simple and have predictable properties, because we know their
 that should allow some important optimizations.
 """
 
-from nuitka import Utils
-
 from .NodeBases import (
     ExpressionSpecBasedComputationMixin,
     ExpressionBuiltinSingleArgBase,
@@ -69,7 +67,7 @@ class ExpressionBuiltinBool( ExpressionBuiltinTypeBase ):
         value = self.getValue()
 
         if value is not None:
-            truth_value = self.getValue().getTruthValue( constraint_collection )
+            truth_value = self.getValue().getTruthValue()
 
             if truth_value is not None:
                 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects, makeConstantReplacementNode
@@ -91,12 +89,19 @@ class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
                                     ExpressionSpecBasedComputationMixin ):
     named_children = ( "value", "base" )
 
+    try:
+        int( base = 2 )
+    except TypeError:
+        base_only_value = False
+    else:
+        base_only_value = True
+
     def __init__( self, value, base, source_ref ):
         from .NodeMakingHelpers import makeConstantReplacementNode
 
         NodeBase.__init__( self, source_ref = source_ref )
 
-        if value is None and Utils.python_version < 330:
+        if value is None and self.base_only_value:
             value = makeConstantReplacementNode(
                 constant = "0",
                 node     = self
@@ -114,6 +119,8 @@ class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
     getBase = ChildrenHavingMixin.childGetter( "base" )
 
     def computeExpression( self, constraint_collection ):
+        # Children can tell all we need to know, pylint: disable=W0613
+
         value = self.getValue()
         base = self.getBase()
 
@@ -121,7 +128,7 @@ class ExpressionBuiltinIntLongBase( ChildrenHavingMixin, NodeBase,
 
         if value is None:
             if base is not None:
-                if Utils.python_version >= 330:
+                if not self.base_only_value:
                     from .NodeMakingHelpers import getComputationResult
 
                     return getComputationResult(
@@ -166,6 +173,8 @@ class ExpressionBuiltinUnicodeBase( ChildrenHavingMixin, NodeBase,
     getErrors = ChildrenHavingMixin.childGetter( "errors" )
 
     def computeExpression( self, constraint_collection ):
+        # Children can tell all we need to know, pylint: disable=W0613
+
         args = [
             self.getValue(),
             self.getEncoding(),
@@ -191,7 +200,7 @@ if python_version < 300:
             )
 
             if new_node is self:
-                str_value = self.getValue().getStrValue( constraint_collection )
+                str_value = self.getValue().getStrValue()
 
                 if str_value is not None:
                     from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects

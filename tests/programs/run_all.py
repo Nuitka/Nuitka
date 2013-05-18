@@ -34,7 +34,7 @@ else:
     active = True
 
 if "PYTHON" not in os.environ:
-    os.environ[ "PYTHON" ] = "python" if os.name != "nt" else sys.executable
+    os.environ[ "PYTHON" ] = sys.executable
 
 def check_output(*popenargs, **kwargs):
     from subprocess import Popen, PIPE, CalledProcessError

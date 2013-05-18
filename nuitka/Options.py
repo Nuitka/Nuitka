@@ -18,14 +18,14 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.4.2
+Nuitka V0.4.3
 Copyright (C) 2013 Kay Hayen."""
 
 from . import Utils
 
 from optparse import OptionParser, OptionGroup
 
-import os, sys, logging
+import sys, logging
 
 # Indicator if we were called as "nuitka-python" in which case we assume some other
 # defaults and work a bit different with parameters.
@@ -414,6 +414,15 @@ parser.add_option(
 Given warnings for implicit exceptions detected at compile time.""",
 )
 
+if False:
+    parser.add_option(
+        "--portable",
+        action  = "store_true",
+        dest    = "is_portable_mode",
+        default = False,
+        help    = """\
+Enable portable mode in build.""",
+    )
 
 if is_nuitka_python:
     count = 0
@@ -440,12 +449,6 @@ if not positional_args:
 
 if options.verbose:
     logging.getLogger().setLevel( logging.DEBUG )
-
-if options.recurse_all and not options.executable:
-    sys.exit( "Error, options '--recurse-all' makes no sense without option '--exe'." )
-
-if options.recurse_stdlib and not options.executable:
-    sys.exit( "Error, options '--recurse-stdlib' makes no sense without option '--exe'." )
 
 def shallTraceExecution():
     return options.trace_execution
@@ -554,3 +557,8 @@ def getIntendedPythonVersion():
 
 def isExperimental():
     return hasattr( options, "experimental" ) and options.experimental
+
+def isPortableMode():
+    # Temporarily disabled, until it becomes more usable.
+    return False
+    # return options.is_portable_mode

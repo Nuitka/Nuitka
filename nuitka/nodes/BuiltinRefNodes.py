@@ -30,7 +30,6 @@ from .NodeBases import NodeBase, CompileTimeConstantExpressionMixin
 from .ConstantRefNodes import ExpressionConstantRef
 
 from nuitka.optimizations import BuiltinOptimization
-from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
 
 from nuitka.Builtins import (
     builtin_exception_names,
@@ -57,7 +56,7 @@ class ExpressionBuiltinRefBase( CompileTimeConstantExpressionMixin, NodeBase ):
     def getBuiltinName( self ):
         return self.builtin_name
 
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         # Referencing the builtin name has no side effect
         return False
 
@@ -101,13 +100,14 @@ class ExpressionBuiltinRef( ExpressionBuiltinRefBase ):
         return self, None, None
 
     def computeExpressionCall( self, call_node, constraint_collection ):
+        from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
 
         return computeBuiltinCall(
             call_node = call_node,
             called    = self
         )
 
-    def getStringValue( self, constraint_collection ):
+    def getStringValue( self ):
         return repr( self.getCompileTimeConstant() )
 
     def isKnownToBeIterable( self, count ):
@@ -164,7 +164,7 @@ class ExpressionBuiltinAnonymousRef( ExpressionBuiltinRefBase ):
     def computeExpression( self, constraint_collection ):
         return self, None, None
 
-    def getStringValue( self, constraint_collection ):
+    def getStringValue( self ):
         return repr( self.getCompileTimeConstant() )
 
 
@@ -198,6 +198,8 @@ class ExpressionBuiltinExceptionRef( ExpressionBuiltinRefBase ):
         return builtin_exception_values[ self.builtin_name ]
 
     def computeExpression( self, constraint_collection ):
+        # Children can tell all we need to know, pylint: disable=W0613
+
         return self, None, None
 
     def computeExpressionCall( self, call_node, constraint_collection ):

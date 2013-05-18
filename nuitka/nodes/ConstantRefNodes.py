@@ -46,6 +46,9 @@ class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
 
         self.constant = constant
 
+        # TODO: Make this a warning, and cover all constant types.
+        # assert type( constant ) is not str or len( constant ) < 30000
+
     def __repr__( self ):
         return "<Node %s value %s at %s>" % ( self.kind, self.constant, self.source_ref )
 
@@ -59,6 +62,8 @@ class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
         return repr( self.constant )
 
     def computeExpression( self, constraint_collection ):
+        # No need to check anything, pylint: disable=W0613
+
         # Cannot compute any further, this is already the best.
         return self, None, None
 
@@ -103,20 +108,20 @@ class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
         else:
             return False
 
-    def isKnownToBeIterableAtMin( self, count, constraint_collection ):
-        length = self.getIterationLength( constraint_collection )
+    def isKnownToBeIterableAtMin( self, count ):
+        length = self.getIterationLength()
 
         return length is not None and length >= count
 
-    def canPredictIterationValues( self, constraint_collection ):
+    def canPredictIterationValues( self ):
         return self.isKnownToBeIterable( None )
 
-    def getIterationValue( self, count, constraint_collection ):
+    def getIterationValue( self, count ):
         assert count < len( self.constant )
 
         return ExpressionConstantRef( self.constant[ count ], self.source_ref )
 
-    def getIterationValues( self, constraint_collection ):
+    def getIterationValues( self ):
         source_ref = self.getSourceReference()
 
         return tuple(
@@ -185,7 +190,7 @@ class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
     def isBoolConstant( self ):
         return type( self.constant ) is bool
 
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         # Constants have no side effects
         return False
 
@@ -202,25 +207,25 @@ class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
     def mayProvideReference( self ):
         return self.isMutable()
 
-    def getIntegerValue( self, constraint_collection ):
+    def getIntegerValue( self ):
         if self.isNumberConstant():
             return int( self.constant )
         else:
             return None
 
-    def getStringValue( self, constraint_collection ):
+    def getStringValue( self ):
         if self.isStringConstant():
             return self.constant
         else:
             return None
 
-    def getIterationLength( self, constraint_collection ):
+    def getIterationLength( self ):
         if isIterableConstant( self.constant ):
             return getConstantIterationLength( self.constant )
         else:
             return None
 
-    def getStrValue( self, constraint_collection ):
+    def getStrValue( self ):
         if type( self.constant ) is str:
             return self
         else:

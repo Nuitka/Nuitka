@@ -28,7 +28,9 @@ assert branch_name in ( b"master", b"develop", b"release/" + nuitka_version, b"h
 
 assert 0 == os.system( "rsync -rvlpt --exclude=deb_dist dist/ root@nuitka.net:/var/www/releases/" )
 
-assert 0 == os.system( "scp README.pdf Changelog.pdf Developer_Manual.pdf doc/man-nuitka.html doc/man-nuitka-python.html root@nuitka.net:/var/www/doc/" )
+for filename in ( "README.pdf", "Changelog.pdf", "Developer_Manual.pdf",
+                  "doc/man-nuitka.html", "doc/man-nuitka-python.html" ):
+    assert 0 == os.system( "rsync %s root@nuitka.net:/var/www/doc/" % filename )
 
 # Upload only stable releases to OpenSUSE Build Service: TODO: Not yet there.
 if branch_name.startswith( "release" ) or branch_name == "master":
@@ -40,3 +42,17 @@ if branch_name.startswith( "release" ) or branch_name == "master":
 
     # Cleanup the osc directory.
     shutil.rmtree( "osc", ignore_errors = True )
+elif branch_name == "develop":
+    # Cleanup the osc directory.
+    shutil.rmtree( "osc", ignore_errors = True )
+
+    os.makedirs( "osc" )
+    os.system( "cd osc && osc init home:kayhayen Nuitka-Unstable && osc repairwc && cp ../dist/Nuitka-*.tar.gz . && cp ../misc/nuitka.spec ./nuitka-unstable.spec && sed -i nuitka-unstable.spec -e 's/Name: *nuitka/Name:           nuitka-unstable/' && cp ../misc/nuitka-python3 . && cp ../misc/nuitka-rpmlintrc . && osc addremove && echo 'New release' >ci_message && osc ci --file ci_message" )
+
+    # Cleanup the osc directory.
+    shutil.rmtree( "osc", ignore_errors = True )
+
+    for remote in "origin", "bitbucket", "github", "gitorious", "googlecode":
+        assert 0 == os.system( "git push --tags -f %s develop" % remote )
+else:
+    sys.stdout.write( "Skipping OSC for branch '%s'" % branch_name )

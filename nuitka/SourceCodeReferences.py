@@ -73,13 +73,16 @@ class SourceCodeReference:
     def getAsString( self ):
         return "%s:%s" % ( self.filename, self.line )
 
-    def getExecReference( self ):
-        return self.__class__.fromFilenameAndLine(
-            filename    = self.filename,
-            line        = self.line,
-            future_spec = self.future_spec.clone(),
-            inside_exec = True
-        )
+    def getExecReference( self, value ):
+        if self.inside_exec != value:
+            return self.__class__.fromFilenameAndLine(
+                filename    = self.filename,
+                line        = self.line,
+                future_spec = self.future_spec.clone(),
+                inside_exec = value
+            )
+        else:
+            return self
 
     def isExecReference( self ):
         return self.inside_exec

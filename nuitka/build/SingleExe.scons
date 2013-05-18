@@ -93,6 +93,9 @@ clang_mode = getBoolOption( "clang_mode", False )
 if sys.platform == "darwin" or "freebsd" in sys.platform:
     clang_mode = True
 
+# Portable mode
+portable_mode = getBoolOption( "portable_mode", False )
+
 def createEnvironment( compiler_tools ):
     return Environment(
         # We want the outside environment to be passed through.
@@ -378,9 +381,12 @@ if debug_mode:
     if gcc_mode:
         # Allow g++/clang to point out all kinds of inconsistency to us by raising an error.
         env.Append( CCFLAGS = [ "-Wall", "-Werror" ] )
+
+        if os.name == "nt":
+           env.Append( CCFLAGS = [ "-Wno-error=format", "-Wno-format" ] )
     elif msvc_mode:
-        # Disable warnings that system headers already show
-        env.Append( CCFLAGS = [ "/W4", "/wd4505", "/wd4127", "/wd4100", "/wd4702", "/wd4189" ] )
+        # Disable warnings that system headers already show.
+        env.Append( CCFLAGS = [ "/W4", "/wd4505", "/wd4127", "/wd4100", "/wd4702", "/wd4189", "/wd4211" ] )
 
 
     # As for sequence points, we are abusing it, so we have to allow it.
@@ -397,6 +403,9 @@ if full_compat_mode:
 if experimental_mode:
     env.Append( CPPDEFINES = [ "_NUITKA_EXPERIMENTAL" ] )
 
+if portable_mode:
+    env.Append( CPPDEFINES = [ "_NUITKA_PORTABLE" ] )
+
 # Python version, use the scons one if not given.
 python_version = ARGUMENTS.get( "python_version", None )
 
@@ -404,8 +413,6 @@ if python_version is None:
     python_version = "%d.%d" % ( sys.version_info[0], sys.version_info[1] )
 
 if win_target:
-    python_version = python_version.replace( ".", "" )
-
     def guessPythonHome():
         """ Guess the Python home directory.
 
@@ -415,9 +422,12 @@ if win_target:
         """
 
         if os.name == "nt":
-            return os.path.dirname( sys.executable )
+            if python_version == "%d.%d" % ( sys.version_info[0], sys.version_info[1] ):
+                return os.path.dirname( sys.executable )
+            else:
+                return r"C:\Python" + python_version.replace( ".", "" )
         else:
-            return os.path.expanduser( "~/.wine/drive_c/Python" + python_version )
+            return os.path.expanduser( "~/.wine/drive_c/Python" + python_version.replace( ".", "" ) )
 
     python_home = os.environ.get( "PYTHON_HOME", guessPythonHome() )
 
@@ -434,23 +444,26 @@ if win_target:
 else:
     # The python header path is a combination of python version and debug indication, make
     # sure the headers are found by adding it to the C++ include path.
-    python_header_path = "/usr/include/python" + python_version
 
-    # If that directory doesn't exist, give it another shot, under /usr/local
-    if not os.path.exists( python_header_path ):
-        alternate_path = "/usr/local/include/python" + python_version
+    for candidate_path in ( "/usr/include", "/usr/local/include", "/usr/pkg/include" ):
+        python_header_path = os.path.join( candidate_path, "python" + python_version )
 
-        if os.path.exists( alternate_path ):
-            python_header_path = alternate_path
-
-    # The Python library path is not in the standard path for freebsd.
-    if "freebsd" in sys.platform:
-        env.Append( LIBPATH = [ "/usr/local/lib" ] )
+        if os.path.exists( python_header_path ):
+            break
 
 if not os.path.exists( os.path.join( python_header_path, "Python.h" ) ):
-    sys.exit( "Error, no 'Python.h' development headers can be found at '%s', dependency not satisfied!" % python_header_path )
+    sys.exit( "Error, no 'Python.h' development headers can be found, dependency not satisfied!" )
 
 env.Append( CPPPATH  = [ python_header_path ] )
+
+# The Python library path is not in the standard path for FreeBSD, add it manually.
+if "freebsd" in sys.platform:
+    env.Append( LIBPATH = [ "/usr/local/lib" ] )
+
+# The Python library path is not in the standard path for NetBSD, add it manually.
+if "netbsd" in sys.platform:
+    env.Append( LIBPATH = [ "/usr/pkg/lib" ] )
+    env.Append( LINKFLAGS = [ "-rpath=/usr/pkg/lib" ] )
 
 def detectHostMultiarch():
     import commands
@@ -468,7 +481,10 @@ if gcc_mode and "linux" in sys.platform:
         if host_multiarch is not None:
             env.Append( CCFLAGS = [ "-I/usr/include/" + host_multiarch + "/python" + python_version ] )
 
-env.Append( LIBS = [ "python" + python_version ] )
+if win_target:
+    env.Append( LIBS = [ "python" + python_version.replace( ".", "" ) ] )
+else:
+    env.Append( LIBS = [ "python" + python_version ] )
 
 nuitka_include = os.path.join( os.environ[ "NUITKA_SCONS" ], "include" )
 env.Append( CPPPATH = [ source_dir, nuitka_include ] )
@@ -503,6 +519,11 @@ if optimize_mode:
         env.Append( CCFLAGS = [ "-O3" ] )
     elif msvc_mode:
         env.Append( CCFLAGS = [ "/Ox" ] )
+
+
+# Set load libpython from binary directory default
+if portable_mode and gcc_mode:
+    env.Append( LINKFLAGS = [ "-Wl,-R,'$$ORIGIN'" ] )
 
 # Tell compiler to create a shared library or program.
 if module_mode:
@@ -562,48 +583,7 @@ def discoverSourceFiles():
     if module_count > 1:
         result.append( static_src + "/ModuleUnfreezer.cpp" )
 
-    # Add the resource file for the manifest to be included in the executable.
-    if win_target and not module_mode:
-        result.append( env.RES( os.path.join( source_dir, source_name + ".exe.rc" ) ) )
-
     return result
-
-# Prepare the use of a custom specs file for windows targets. We change the used specs for
-# linking to avoid the use of the wrong (for CPython) run time library.
-if win_target and not module_mode:
-    manifest_file = open( os.path.join(source_dir, source_name + ".exe.manifest" ), "w" )
-    manifest_file.write( r"""
-<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
-    <security>
-      <requestedPrivileges>
-        <requestedExecutionLevel level="asInvoker" uiAccess="false"></requestedExecutionLevel>
-      </requestedPrivileges>
-    </security>
-  </trustInfo>
-  <dependency>
-    <dependentAssembly>
-      <assemblyIdentity
-         type="win32"
-         name="Microsoft.VC90.CRT"
-         version="9.0.21022.8"
-         processorArchitecture="x86"
-         publicKeyToken="1fc8b3b9a1e18e3b">
-      </assemblyIdentity>
-    </dependentAssembly>
-  </dependency>
-</assembly>
-"""
-    )
-    manifest_file.close()
-
-    rc_file = open( os.path.join( source_dir, source_name + ".exe.rc" ), "w" )
-    rc_file.write( r"""
-#include "winuser.h"
-1 RT_MANIFEST %s
-""" % ( source_name + ".exe.manifest" )
-    )
-    rc_file.close()
 
 if module_mode:
     if win_target:
@@ -620,6 +600,12 @@ else:
         env.Append( LINKFLAGS = [ "-static-libgcc",  "-static-libstdc++" ] )
 
     target = env.Program( result_file + ".exe", discoverSourceFiles() )
+
+if "CCFLAGS" in os.environ:
+    env.Append( CCFLAGS = os.environ[ "CCFLAGS" ].split() )
+
+if "LDFLAGS" in os.environ:
+    env.Append( LINKFLAGS = os.environ[ "LDFLAGS" ].split() )
 
 # Remove the target file to avoid cases where it falsely didn't get rebuilt.
 if os.path.exists( target[0].abspath ):

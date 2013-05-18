@@ -43,8 +43,6 @@ try:
 except ImportError:
     extra_path = os_path
 
-
-
 os_path = os.path.normpath( os_path )
 extra_path = os.path.normpath( extra_path )
 
@@ -80,17 +78,21 @@ def compilePath( path ):
             if not active:
                 continue
 
-            command = "%s %s --output-dir %s --recurse-none --remove-output %s %s" % (
+            command = [
                 sys.executable,
                 os.path.join( os.path.dirname( __file__ ), "..", "..", "bin", "nuitka" ),
+                "--output-dir",
                 stage_dir,
-                os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ),
-                path,
-            )
+                "--recurse-none",
+                "--remove-output"
+            ]
 
+            command += os.environ.get( "NUITKA_EXTRA_OPTIONS", "" ).split()
+
+            command.append( path )
             print path
 
-            subprocess.check_call( command.split() )
+            subprocess.check_call( command )
 
             os.unlink( os.path.join( stage_dir, os.path.basename( path ).replace( ".py", ".so" ) ) )
 

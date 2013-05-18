@@ -239,7 +239,7 @@ class ExpressionCaughtExceptionTypeRef( NodeBase, ExpressionMixin ):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         # Referencing the expression type has no side effect
         return False
 
@@ -254,7 +254,7 @@ class ExpressionCaughtExceptionValueRef( NodeBase, ExpressionMixin ):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         # Referencing the expression type has no side effect
         return False
 
@@ -273,6 +273,6 @@ class ExpressionCaughtExceptionTracebackRef( NodeBase, ExpressionMixin ):
     def computeExpression( self, constraint_collection ):
         return self, None, None
 
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         # Referencing the expression type has no side effect
         return False

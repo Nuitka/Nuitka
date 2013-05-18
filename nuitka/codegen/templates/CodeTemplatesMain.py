@@ -47,7 +47,42 @@ main_program = """\
 
 int main( int argc, char *argv[] )
 {
+#ifdef _NUITKA_PORTABLE
+    _initPortableEnvironment( argv[0] );
+#endif
+
+    // Initialize Python environment.
+    Py_DebugFlag = %(python_sysflag_debug)d;
+#if %(python_sysflag_py3k_warning)d
+    Py_Py3kWarningFlag = %(python_sysflag_py3k_warning)d;
+#endif
+#if %(python_sysflag_division_warning)d
+    Py_DivisionWarningFlag =
+#if %(python_sysflag_py3k_warning)d
+        Py_Py3kWarningFlag ||
+#endif
+        %(python_sysflag_division_warning)d;
+#endif
+    Py_InspectFlag = %(python_sysflag_inspect)d;
+    Py_InteractiveFlag = %(python_sysflag_interactive)d;
+    Py_OptimizeFlag = %(python_sysflag_optimize)d;
+    Py_DontWriteBytecodeFlag = %(python_sysflag_dont_write_bytecode)d;
+    Py_NoUserSiteDirectory = %(python_sysflag_no_user_site)d;
+    Py_NoSiteFlag = %(python_sysflag_no_site)d;
+    Py_IgnoreEnvironmentFlag = %(python_sysflag_ignore_environment)d;
+#if %(python_sysflag_tabcheck)d
+    Py_TabcheckFlag = %(python_sysflag_tabcheck)d;
+#endif
+    Py_VerboseFlag = %(python_sysflag_verbose)d;
+#if %(python_sysflag_unicode)d
+    Py_UnicodeFlag = %(python_sysflag_unicode)d;
+#endif
+    Py_BytesWarningFlag = %(python_sysflag_bytes_warning)d;
+#if %(python_sysflag_hash_randomization)d
+    Py_HashRandomizationFlag = %(python_sysflag_hash_randomization)d;
+#endif
     Py_Initialize();
+
     setCommandLineParameters( argc, argv );
 
     // Initialize the constant values used.
@@ -365,9 +400,6 @@ MOD_INIT_DECL( %(module_identifier)s )
     PyDict_SetItem( module_dict, _python_str_plain___loader__, Py_None );
 #endif
 #endif
-
-    // Temporary variables if any
-%(module_inits)s
 
     // Module code
 %(module_code)s

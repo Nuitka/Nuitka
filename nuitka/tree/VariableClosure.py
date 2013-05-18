@@ -54,13 +54,23 @@ class VariableClosureLookupVisitorPhase1( VisitorNoopMixin ):
     def onEnterNode( self, node ):
         if node.isExpressionTargetVariableRef():
             if node.getVariable() is None:
+                variable_name = node.getVariableName()
                 provider = node.getParentVariableProvider()
 
-                node.setVariable(
-                    provider.getVariableForAssignment(
-                        variable_name = node.getVariableName()
-                    )
+                variable = provider.getVariableForAssignment(
+                    variable_name = variable_name
                 )
+
+                # Inside an exec, we need to ignore global declarations that are
+                # not ours, so we replace it with ours, unless it came from an
+                # 'global' declaration inside the exec
+                if node.source_ref.isExecReference() and not provider.isPythonModule():
+                    if variable.isModuleVariableReference() and not variable.isFromExecStatement():
+                        variable = provider.providing[ variable_name ] = provider.createProvidedVariable(
+                            variable_name = variable_name
+                        )
+
+                node.setVariable( variable )
         elif node.isExpressionVariableRef():
             if node.getVariable() is None:
                 provider = node.getParentVariableProvider()
@@ -222,15 +232,18 @@ class VariableClosureLookupVisitorPhase2( VisitorNoopMixin ):
 
                 parent_provider = provider.getParentVariableProvider()
 
-                while parent_provider.isExpressionFunctionBody() and parent_provider.isClassDictCreation():
+                while parent_provider.isExpressionFunctionBody() and \
+                      parent_provider.isClassDictCreation():
                     parent_provider = parent_provider.getParentVariableProvider()
 
-                if parent_provider.isExpressionFunctionBody() and parent_provider.isUnqualifiedExec():
+                if parent_provider.isExpressionFunctionBody() and \
+                   parent_provider.isUnqualifiedExec():
                     lines = open( node.source_ref.getFilename(), "rU" ).readlines()
                     exec_line_number = parent_provider.getExecSourceRef().getLineNumber()
 
                     raise SyntaxError(
-                        "unqualified exec is not allowed in function '%s' it contains a nested function with free variables" % parent_provider.getName(), # pylint: disable=C0301
+                        """unqualified exec is not allowed in function '%s' it contains \
+a nested function with free variables""" % parent_provider.getName(),
                         (
                             node.source_ref.getFilename(),
                             exec_line_number,

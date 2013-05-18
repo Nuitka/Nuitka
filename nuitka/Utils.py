@@ -17,8 +17,8 @@
 #
 """ Utility module.
 
-Here the small things for file/dir names, Python version, CPU counting, etc. that
-fit nowhere else and don't deserve their own names.
+Here the small things for file/dir names, Python version, CPU counting,
+etc. that fit nowhere else and don't deserve their own names.
 
 """
 

@@ -21,13 +21,17 @@ from __future__ import print_function
 
 import os, sys, shutil, tempfile, time, difflib, subprocess
 
+# No random hashing, it makes comparing outputs futile.
+if "PYTHONHASHSEED" not in os.environ:
+    os.environ[ "PYTHONHASHSEED" ] = "0"
+
 # Go its own directory, to have it easy with path knowledge.
 os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
 
 nuitka_main_path = os.path.join( "..", "..", "bin", "nuitka" )
 
 if "PYTHON" not in os.environ:
-    os.environ[ "PYTHON" ] = "python"
+    os.environ[ "PYTHON" ] = sys.executable
 
 def check_output(*popenargs, **kwargs):
     from subprocess import Popen, PIPE, CalledProcessError
@@ -82,7 +86,9 @@ def diffRecursive( dir1, dir2 ):
         done.add( path1 )
 
         # Skip these binary files of course.
-        if filename.endswith( ".o" ) or filename.endswith( ".os" ):
+        if filename.endswith( ".o" ) or \
+           filename.endswith( ".os" ) or \
+           filename.endswith( ".obj" ):
             continue
 
         # Skip scons build database
@@ -160,7 +166,7 @@ def executePASS1():
                 print( "Compiling", path )
 
                 result = subprocess.call(
-                    "%s %s %s --output-dir %s %s" % (
+                    "%s %s %s --recurse-none --output-dir %s %s" % (
                         os.environ[ "PYTHON" ],
                         nuitka_main_path,
                         path,
@@ -238,7 +244,7 @@ def compileAndCompareWith( nuitka ):
                     shutil.rmtree( target_dir )
 
                 result = subprocess.call(
-                    "%s %s --output-dir %s %s" % (
+                    "%s %s --recurse-none --output-dir %s %s" % (
                         nuitka,
                         path,
                         tmp_dir,
@@ -310,7 +316,7 @@ def executePASS5():
     path = os.path.join( "..", "..", "nuitka" )
 
     result = subprocess.call(
-        "%s %s %s --output-dir %s --recurse-dir=%s" % (
+        "%s %s %s --recurse-all --output-dir %s --recurse-dir=%s" % (
             os.environ[ "PYTHON" ],
             nuitka_main_path,
             path,

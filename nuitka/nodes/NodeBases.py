@@ -284,13 +284,16 @@ class NodeBase( NodeMetaClassBase ):
         # Virtual method, pylint: disable=R0201,W0613
         return None
 
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         """ Unless we are told otherwise, everything may have a side effect. """
         # Virtual method, pylint: disable=R0201,W0613
 
         return True
 
-    def mayHaveSideEffectsBool( self, constraint_collection ):
+    def isOrderRelevant( self ):
+        return self.mayHaveSideEffects()
+
+    def mayHaveSideEffectsBool( self ):
         """ Unless we are told otherwise, everything may have a side effect. """
         # Virtual method, pylint: disable=R0201,W0613
 
@@ -337,7 +340,7 @@ class NodeBase( NodeMetaClassBase ):
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
-    def getIntegerValue( self, constraint_collection ):
+    def getIntegerValue( self ):
         """ Node as integer value, if possible."""
         # Virtual method, pylint: disable=R0201,W0613
         return None
@@ -703,11 +706,8 @@ class ClosureTakerMixin:
 
         return self.addClosureVariable( result )
 
-    def addClosureVariable( self, variable, global_statement = False ):
+    def addClosureVariable( self, variable ):
         variable = variable.makeReference( self )
-
-        if variable.isModuleVariable() and global_statement:
-            variable.markFromGlobalStatement()
 
         self.taken.add( variable )
 
@@ -765,7 +765,7 @@ class ExpressionMixin:
 
         assert False
 
-    def getTruthValue( self, constraint_collection ):
+    def getTruthValue( self ):
         """ Return known truth value. The "None" value indicates unknown. """
 
         if self.isCompileTimeConstant():
@@ -783,15 +783,15 @@ class ExpressionMixin:
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
-    def isKnownToBeIterableAtMin( self, count, constraint_collection ):
+    def isKnownToBeIterableAtMin( self, count ):
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
-    def isKnownToBeIterableAtMax( self, count, constraint_collection ):
+    def isKnownToBeIterableAtMax( self, count ):
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
-    def getIterationNext( self, constraint_collection ):
+    def getIterationNext( self ):
         # Virtual method, pylint: disable=R0201,W0613
         return None
 
@@ -804,7 +804,7 @@ class ExpressionMixin:
         # Virtual method, pylint: disable=R0201
         return True
 
-    def getIterationLength( self, constraint_collection ):
+    def getIterationLength( self ):
         """ Value that "len" or "PyObject_Size" would give, if known.
 
         Otherwise it is "None" to indicate unknown.
@@ -813,20 +813,23 @@ class ExpressionMixin:
         # Virtual method, pylint: disable=R0201
         return None
 
-    def getStringValue( self, constraint_collection ):
+    def getStringValue( self ):
         """ Node as integer value, if possible."""
         # Virtual method, pylint: disable=R0201,W0613
         return None
 
-    def getStrValue( self, constraint_collection ):
+    def getStrValue( self ):
         """ Value that "str" or "PyObject_Str" would give, if known.
 
         Otherwise it is "None" to indicate unknown.
         """
-        string_value = self.getStringValue( constraint_collection )
+        string_value = self.getStringValue()
 
         if string_value is not None:
             from .NodeMakingHelpers import makeConstantReplacementNode
+
+            # TODO: Side effects should be considered, getStringValue may be omitting
+            # effects.
 
             return makeConstantReplacementNode(
                 node     = self,
@@ -885,10 +888,10 @@ class CompileTimeConstantExpressionMixin( ExpressionMixin ):
 
         return True
 
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         return False
 
-    def mayHaveSideEffectsBool( self, constraint_collection ):
+    def mayHaveSideEffectsBool( self ):
         return False
 
     def computeExpressionOperationNot( self, not_node, constraint_collection ):
@@ -1069,9 +1072,9 @@ class ExpressionBuiltinSingleArgBase( ExpressionChildrenHavingBase,
 
 
 class SideEffectsFromChildrenMixin:
-    def mayHaveSideEffects( self, constraint_collection ):
+    def mayHaveSideEffects( self ):
         for child in self.getVisitableNodes():
-            if child.mayHaveSideEffects( constraint_collection ):
+            if child.mayHaveSideEffects():
                 return True
         else:
             return False

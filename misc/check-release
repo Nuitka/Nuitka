@@ -89,7 +89,7 @@ parser.add_option(
     dest    = "cpython32",
     default = True,
     help    = """\
-The standard CPython3.2 test suite. Execute this for all corner cases to be covered. With Python 2.6 (and currently 3.2) these are not run. Default is %default."""
+The standard CPython3.2 test suite. Execute this for all corner cases to be covered. With Python 2.x these are not run. Default is %default."""
 )
 
 options, positional_args = parser.parse_args()
@@ -104,7 +104,7 @@ if positional_args:
 os.chdir( os.path.dirname( os.path.abspath( __file__ ) ) )
 os.chdir( ".." )
 
-path_sep = ";" if os.name == "nt" in sys.platform else ":"
+path_sep = ";" if os.name == "nt" else ":"
 
 # Add the local bin directory to search path start.
 os.environ[ "PATH" ] = os.path.join( os.getcwd(), "bin" ) + path_sep + os.environ[ "PATH" ]
@@ -119,6 +119,8 @@ def checkExecutableCommand( command ):
     if command == "python2.7" and sys.version_info[0:2] == (2,7):
        return True
     if command == "python3.2" and sys.version_info[0:2] == (3,2):
+       return True
+    if command == "python3.3" and sys.version_info[0:2] == (3,3):
        return True
 
     path = os.environ[ "PATH" ]
@@ -186,6 +188,8 @@ def execute_tests( where, use_python, flags ):
             os.environ[ "PYTHON" ] = r"C:\Python27\python.exe"
         elif use_python == "python3.2":
             os.environ[ "PYTHON" ] = r"C:\Python32\python.exe"
+        elif use_python == "python3.3":
+            os.environ[ "PYTHON" ] = r"C:\Python33\python.exe"
         else:
             assert False, use_python
     else:
@@ -246,7 +250,7 @@ def execute_tests( where, use_python, flags ):
     if "NUITKA_EXTRA_OPTIONS" in os.environ:
         del os.environ[ "NUITKA_EXTRA_OPTIONS" ]
 
-assert checkExecutableCommand( "python2.6" ) or checkExecutableCommand( "python2.7" )
+assert checkExecutableCommand( "python2.6" ) or checkExecutableCommand( "python2.7" ) or checkExecutableCommand( "python3.2" ) or checkExecutableCommand( "python3.3" )
 
 # Just the quick syntax test, full tests are run later.
 if checkExecutableCommand( "python3.2" ):
@@ -283,6 +287,12 @@ if checkExecutableCommand( "python3.2" ):
     execute_tests( "python3.2-nodebug", "python3.2", "" )
 else:
     print( "Cannot execute Python 3.2 tests, not installed." )
+
+if checkExecutableCommand( "python3.3" ):
+    execute_tests( "python3.2-nodebug", "python3.3", "" )
+else:
+    print( "Cannot execute Python 3.2 tests with Python3.3, not installed." )
+
 
 if "linux" in sys.platform and checkExecutableCommand( "wine" ) :
     execute_tests( "python-wine", "python", "--windows-target" )

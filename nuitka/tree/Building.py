@@ -17,19 +17,21 @@
 #
 """ Build the internal node tree from source code.
 
-Does all the Python parsing and puts it into a tree structure for use in later stages of
-the compiler.
+Does all the Python parsing and puts it into a tree structure for use in later
+stages of the compilation process.
 
-At the bottom of the file, the dispatching is happening. One function deals with every
-node kind as found in the AST. The parsing is centered around the module "ast" output.
+At the bottom of the file, the dispatching is happening. One function deals
+with every node kind as found in the AST. The parsing is centered around the
+module "ast" output.
 
-Many higher level language features and translated into lower level ones. Inplace
-assignments, for loops, while loops, classes, complex calls, with statements, and even
-or/and etc. are all translated to simpler constructs.
+Many higher level language features and translated into lower level ones.
 
-The output of this module is a node tree, which contains only relatively low level
-operations. A property of the output module is also an overlaid tree of provider structure
-that indicates variable provision.
+Inplace assignments, for loops, while loops, classes, complex calls, with
+statements, and even or/and etc. are all translated to simpler constructs.
+
+The output of this module is a node tree, which contains only relatively low
+level operations. A property of the output module is also an overlaid tree
+of provider structure that indicates variable provision.
 
 """
 
@@ -53,7 +55,6 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
-from nuitka.nodes.ExecEvalNodes import StatementExec
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.SliceNodes import (
@@ -100,17 +101,18 @@ from nuitka.nodes.TryNodes import StatementTryFinally
 
 from .VariableClosure import completeVariableClosures
 
-# Classes are handled in a separate file. They are re-formulated into functions producing
-# dictionaries used to call the metaclass with.
+# Classes are handled in a separate file. They are re-formulated into functions
+# producing dictionaries used to call the metaclass with.
 from .ReformulationClasses import buildClassNode
 
-# Try/except/else statements are handled in a separate file. They are re-formulated into
-# using a temporary variable to track if the else branch should execute.
+# Try/except/else statements are handled in a separate file. They are
+# re-formulated into using a temporary variable to track if the else branch
+# should execute.
 from .ReformulationTryExceptStatements import buildTryExceptionNode
 
-# With statements are handled in a separate file. They are re-formulated into special
-# attribute lookups for "__enter__" and "__exit__", calls of them, catching and passing in
-# exceptions raised.
+# With statements are handled in a separate file. They are re-formulated into
+# special attribute lookups for "__enter__" and "__exit__", calls of them,
+# catching and passing in exceptions raised.
 from .ReformulationWithStatements import buildWithNode
 
 from .ReformulationAssignmentStatements import (
@@ -145,6 +147,8 @@ from .ReformulationContractionExpressions import (
 )
 
 from .ReformulationCallExpressions import buildCallNode
+
+from .ReformulationExecStatements import buildExecNode
 
 # Some helpers.
 from .Helpers import (
@@ -517,7 +521,13 @@ def buildImportFromNode( provider, node, source_ref ):
 
     # Importing from "__future__" module may enable flags.
     if module_name == "__future__":
-        assert provider.isPythonModule() or source_ref.isExecReference()
+        if not provider.isPythonModule() and not source_ref.isExecReference():
+            SyntaxErrors.raiseSyntaxError(
+                reason     = "from __future__ imports must occur at the beginning of the file",
+                col_offset = 8 if Utils.python_version >= 300 or not Options.isFullCompat() else None,
+                source_ref = source_ref
+            )
+
 
         for import_desc in node.names:
             object_name, _local_name = import_desc.name, import_desc.asname
@@ -601,99 +611,60 @@ def buildImportFromNode( provider, node, source_ref ):
             source_ref = source_ref
         )
 
-def buildExecNode( provider, node, source_ref ):
-    # "exec" statements, should only occur with Python2.
-
-    exec_globals = node.globals
-    exec_locals = node.locals
-    body = node.body
-
-    orig_globals = exec_globals
-
-    # Handle exec(a,b,c) to be same as exec a, b, c
-    if exec_locals is None and exec_globals is None and getKind( body ) == "Tuple":
-        parts = body.elts
-        body  = parts[0]
-
-        if len( parts ) > 1:
-            exec_globals = parts[1]
-
-            if len( parts ) > 2:
-                exec_locals = parts[2]
-        else:
-            return StatementRaiseException(
-                exception_type = ExpressionBuiltinExceptionRef(
-                    exception_name = "TypeError",
-                    source_ref     = source_ref
-                ),
-                exception_value = ExpressionConstantRef(
-                    constant   = "exec: arg 1 must be a string, file, or code object",
-                    source_ref = source_ref
-                ),
-                exception_trace = None,
-                exception_cause = None,
-                source_ref      = source_ref
-            )
-
-    globals_node = buildNode( provider, exec_globals, source_ref, True )
-    locals_node = buildNode( provider, exec_locals, source_ref, True )
-
-    if provider.isExpressionFunctionBody():
-        provider.markAsExecContaining()
-
-        if orig_globals is None:
-            provider.markAsUnqualifiedExecContaining( source_ref )
-
-    if locals_node is not None and locals_node.isExpressionConstantRef() and locals_node.getConstant() is None:
-        locals_node = None
-
-    if locals_node is None and globals_node is not None:
-        if globals_node.isExpressionConstantRef() and globals_node.getConstant() is None:
-            globals_node = None
-
-    return StatementExec(
-        source_code = buildNode( provider, body, source_ref ),
-        globals_arg = globals_node,
-        locals_arg  = locals_node,
-        source_ref  = source_ref
-    )
-
 
 def handleGlobalDeclarationNode( provider, node, source_ref ):
-    # The source reference of the global really doesn't matter, pylint: disable=W0613
 
-    # On the module level, there is nothing to do.
-    if provider.isPythonModule():
-        return None
+    if not source_ref.isExecReference():
+        # On the module level, there is nothing to do.
+        if provider.isPythonModule():
+            return None
 
-    # Need to catch the error of declaring a parameter variable as global ourselves
-    # here. The AST parsing doesn't catch it.
-    try:
-        parameters = provider.getParameters()
+        # Need to catch the error of declaring a parameter variable as global ourselves
+        # here. The AST parsing doesn't catch it.
+        try:
+            parameters = provider.getParameters()
 
-        for variable_name in node.names:
-            if variable_name in parameters.getParameterNames():
-                SyntaxErrors.raiseSyntaxError(
-                    reason     = "name '%s' is %s and global" % (
-                        variable_name,
-                        "local" if Utils.python_version < 300 else "parameter"
-                    ),
-                    source_ref = provider.getSourceReference()
-                )
-    except AttributeError:
-        pass
+            for variable_name in node.names:
+                if variable_name in parameters.getParameterNames():
+                    SyntaxErrors.raiseSyntaxError(
+                        reason     = "name '%s' is %s and global" % (
+                            variable_name,
+                            "local" if Utils.python_version < 300 else "parameter"
+                        ),
+                        source_ref = provider.getSourceReference()
+                    )
+        except AttributeError:
+            pass
 
     module = provider.getParentModule()
 
     for variable_name in node.names:
-        module_variable = module.getVariableForAssignment(
-            variable_name = variable_name
-        )
+        closure_variable = None
 
-        closure_variable = provider.addClosureVariable(
-            variable         = module_variable,
-            global_statement = True
-        )
+        # Re-use already taken global variables, in order to avoid creating yet
+        # another instance, esp. as the markups could then potentially not be
+        # shared.
+        if provider.hasTakenVariable( variable_name ):
+            closure_variable = provider.getTakenVariable( variable_name )
+
+            if not closure_variable.isModuleVariableReference():
+                closure_variable = None
+
+        if closure_variable is None:
+            module_variable = module.getVariableForAssignment(
+                variable_name = variable_name
+            )
+
+            closure_variable = provider.addClosureVariable(
+                variable = module_variable
+            )
+
+        assert closure_variable.isModuleVariableReference()
+
+        closure_variable.markFromGlobalStatement()
+
+        if source_ref.isExecReference():
+            closure_variable.markFromExecStatement()
 
         provider.registerProvidedVariable(
             variable = closure_variable
@@ -916,7 +887,7 @@ setBuildDispatchers(
     }
 )
 
-def buildParseTree( provider, source_code, source_ref ):
+def buildParseTree( provider, source_code, source_ref, is_module ):
     # Workaround: ast.parse cannot cope with some situations where a file is not terminated
     # by a new line.
     if not source_code.endswith( "\n" ):
@@ -938,7 +909,7 @@ def buildParseTree( provider, source_code, source_ref ):
         provider   = provider,
         nodes      = body,
         source_ref = source_ref,
-        frame      = True
+        frame      = is_module
     )
 
     # Check if a __future__ imports really were at the beginning of the file.
@@ -957,50 +928,51 @@ def buildParseTree( provider, source_code, source_ref ):
 
     statements = []
 
-    statements.append(
-        StatementAssignmentVariable(
-            variable_ref = ExpressionTargetVariableRef(
-                variable_name = "__doc__",
-                source_ref    = internal_source_ref
-            ),
-            source       = ExpressionConstantRef(
-                constant   = doc,
-                source_ref = internal_source_ref
-            ),
-            source_ref   = internal_source_ref
-        )
-    )
-
-    statements.append(
-        StatementAssignmentVariable(
-            variable_ref = ExpressionTargetVariableRef(
-                variable_name = "__file__",
-                source_ref    = internal_source_ref
-            ),
-            source       = ExpressionConstantRef(
-                constant   = source_ref.getFilename(),
-                source_ref = internal_source_ref
-            ),
-            source_ref   = internal_source_ref
-        )
-    )
-
-    if provider.isPythonPackage():
-        # TODO: __package__ is not set here, but automatically, which makes it invisible
-        # though
+    if is_module:
         statements.append(
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
-                    variable_name = "__path__",
+                    variable_name = "__doc__",
                     source_ref    = internal_source_ref
                 ),
                 source       = ExpressionConstantRef(
-                    constant   = [ Utils.dirname( source_ref.getFilename() ) ],
+                    constant   = doc,
                     source_ref = internal_source_ref
                 ),
                 source_ref   = internal_source_ref
             )
         )
+
+        statements.append(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetVariableRef(
+                    variable_name = "__file__",
+                    source_ref    = internal_source_ref
+                ),
+                source       = ExpressionConstantRef(
+                    constant   = source_ref.getFilename(),
+                    source_ref = internal_source_ref
+                ),
+                source_ref   = internal_source_ref
+            )
+        )
+
+        if provider.isPythonPackage():
+            # TODO: __package__ is not set here, but automatically, which makes it invisible
+            # though
+            statements.append(
+                StatementAssignmentVariable(
+                    variable_ref = ExpressionTargetVariableRef(
+                        variable_name = "__path__",
+                        source_ref    = internal_source_ref
+                    ),
+                    source       = ExpressionConstantRef(
+                        constant   = [ Utils.dirname( source_ref.getFilename() ) ],
+                        source_ref = internal_source_ref
+                    ),
+                    source_ref   = internal_source_ref
+                )
+            )
 
     if Utils.python_version >= 300:
         statements.append(
@@ -1034,7 +1006,7 @@ def buildParseTree( provider, source_code, source_ref ):
             )
         )
 
-    if Utils.python_version >= 330:
+    if Utils.python_version >= 330 and not provider.isMainModule():
         # Set initialzing at the beginning to True
         statements.append(
             StatementAssignmentVariable(
@@ -1055,7 +1027,7 @@ def buildParseTree( provider, source_code, source_ref ):
     if result is not None:
         statements.extend( result.getStatements() )
 
-    if Utils.python_version >= 330:
+    if Utils.python_version >= 330 and not provider.isMainModule():
         # Set initialzing at the beginning to True
         statements.append(
             StatementAssignmentVariable(
@@ -1079,8 +1051,6 @@ def buildParseTree( provider, source_code, source_ref ):
         )
     else:
         result.setStatements( statements )
-
-    provider.setBody( result )
 
     return result
 
@@ -1115,7 +1085,7 @@ def getImportedModule( module_relpath ):
     return imported_modules[ key ]
 
 def getImportedModules():
-    return imported_modules.values()
+    return list( imported_modules.values() )
 
 def buildModuleTree( filename, package, is_top, is_main ):
     # Many variables, branches, due to the many cases, pylint: disable=R0912
@@ -1213,11 +1183,14 @@ def buildModuleTree( filename, package, is_top, is_main ):
 
     source_code = readSourceCodeFromFilename( source_filename )
 
-    buildParseTree(
+    module_body = buildParseTree(
         provider    = result,
         source_code = source_code,
-        source_ref  = source_ref
+        source_ref  = source_ref,
+        is_module   = True
     )
+
+    result.setBody( module_body )
 
     addImportedModule( Utils.relpath( filename ), result )
 
