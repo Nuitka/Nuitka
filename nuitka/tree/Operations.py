@@ -17,8 +17,8 @@
 #
 """ Operations on the tree.
 
-This is mostly for the different kinds of visits that the node tree can have. You
-can visit a scope, a tree (module), or every scope of a tree (module).
+This is mostly for the different kinds of visits that the node tree can have.
+You can visit a scope, a tree (module), or every scope of a tree (module).
 
 """
 

@@ -27,13 +27,16 @@ from nuitka.Constants import (
     isIndexConstant,
     isNumberConstant,
     isConstant,
-    isMutable,
+    isMutable
 )
+
+from nuitka.Options import isDebug
 
 # pylint: disable=W0622
 from nuitka.__past__ import iterItems, unicode
 # pylint: enable=W0622
 
+from logging import warning
 
 class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
     kind = "EXPRESSION_CONSTANT_REF"
@@ -45,6 +48,24 @@ class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
         assert isConstant( constant ), constant
 
         self.constant = constant
+
+        if isDebug():
+            try:
+                size = len( constant )
+
+                if type( constant ) in ( str, unicode ):
+                    max_size = 20000
+                else:
+                    max_size = 256
+
+                if size > max_size:
+                    warning(
+                        "Too large constant (%d) encountered at %s.",
+                        size,
+                        source_ref.getAsString()
+                    )
+            except TypeError:
+                pass
 
         # TODO: Make this a warning, and cover all constant types.
         # assert type( constant ) is not str or len( constant ) < 30000
@@ -224,6 +245,9 @@ class ExpressionConstantRef( CompileTimeConstantExpressionMixin, NodeBase ):
             return getConstantIterationLength( self.constant )
         else:
             return None
+
+    def isIterableConstant( self ):
+        return isIterableConstant( self.constant )
 
     def getStrValue( self ):
         if type( self.constant ) is str:

@@ -17,8 +17,8 @@
 #
 """ Nodes for unary and binary operations.
 
-No short-circuit involved, boolean 'not' is an unary operation like '-' is, no real
-difference.
+No short-circuit involved, boolean 'not' is an unary operation like '-' is,
+no real difference.
 """
 
 from .NodeBases import ExpressionChildrenHavingBase
@@ -82,7 +82,11 @@ class ExpressionOperationBinary( ExpressionOperationBase ):
         left, right = operands
 
         if left.willRaiseException( BaseException ):
-            return left, "new_raise", "Left argument of binary operation raises exception"
+            return (
+                left,
+                "new_raise",
+                "Left argument of binary operation raises exception"
+            )
 
         if right.willRaiseException( BaseException ):
             from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
@@ -92,7 +96,11 @@ class ExpressionOperationBinary( ExpressionOperationBase ):
                 old_node = left
             )
 
-            return result, "new_raise", "Right argument of binary operation raises exception"
+            return (
+                result,
+                "new_raise",
+                "Right argument of binary operation raises exception"
+            )
 
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
@@ -210,7 +218,11 @@ class ExpressionOperationNOT( ExpressionOperationUnary ):
         operand = self.getOperand()
 
         if operand.willRaiseException( BaseException ):
-            return operand, "new_raise", "Argument of 'not' operation raises exception"
+            return (
+                operand,
+                "new_raise",
+                "Argument of 'not' operation raises exception"
+            )
 
         return operand.computeExpressionOperationNot(
             not_node              = self,
@@ -236,7 +248,8 @@ class ExpressionOperationNOT( ExpressionOperationUnary ):
     def extractSideEffects( self ):
         operand = self.getOperand()
 
-        # TODO: Find the common ground of these, and make it an expression method.
+        # TODO: Find the common ground of these, and make it an expression
+        # method.
         if operand.isExpressionMakeSequence():
             return self.getOperand().extractSideEffects()
 
@@ -246,8 +259,8 @@ class ExpressionOperationNOT( ExpressionOperationUnary ):
         return ( self, )
 
     def mayProvideReference( self ):
-        # Dedicated code returns "True" or "False" only, which requires no reference,
-        # except for rich comparisons, which do.
+        # Dedicated code returns "True" or "False" only, which requires no
+        # reference, except for rich comparisons, which do.
         return False
 
 
@@ -266,5 +279,6 @@ class ExpressionOperationBinaryInplace( ExpressionOperationBinary ):
         )
 
     def computeExpression( self, constraint_collection ):
-        # TODO: Inplace operation requires extra care to avoid corruption of values.
+        # TODO: Inplace operation requires extra care to avoid corruption of
+        # values.
         return self, None, None
