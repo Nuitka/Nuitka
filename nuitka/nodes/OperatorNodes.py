@@ -122,7 +122,15 @@ class ExpressionOperationBinary( ExpressionOperationBase ):
                 if iter_length is not None:
                     if iter_length * left_value > 256:
                         return self, None, None
+            elif operator == "Add" and \
+                left.isKnownToBeIterable( None ) and \
+                right.isKnownToBeIterable( None ):
 
+                iter_length = left.getIterationLength() + \
+                              right.getIterationLength()
+
+                if iter_length > 256:
+                    return self, None, None
 
             from .NodeMakingHelpers import getComputationResult
 
