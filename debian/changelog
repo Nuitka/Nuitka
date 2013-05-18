@@ -1,11 +1,8 @@
-nuitka (0.4.3~pre5+ds-1) UNRELEASED; urgency=low
+nuitka (0.4.3+ds-1) unstable; urgency=low
 
-  * New upstream pre-release.
-  * Moved X-Python-Version to the source package, where it actually
-    is used. Otherwise Squeeze attempts to build it with Python2.5
-    which is not supported by upstream.
+  * New upstream release.
 
- -- Kay Hayen <kayhayen@gmx.de>  Fri, 10 May 2013 10:52:59 +0200
+ -- Kay Hayen <kayhayen@gmx.de>  Sat, 18 May 2013 10:16:25 +0200
 
 nuitka (0.4.2+ds-1) unstable; urgency=low
 
