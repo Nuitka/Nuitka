@@ -66,7 +66,7 @@ C:\\Python27 to execute scons which is not Python3 compatible.""" )
     else:
         python_exe = "python"
 
-    scons_command = """%(python)s %(binary)s %(quiet)s -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
+    scons_command = """%(python)s %(binary)s %(quiet)s --warn=no-deprecated -f %(scons_file)s --jobs %(job_limit)d %(options)s""" % {
         "python"     : python_exe,
         "binary"     : getSconsBinaryPath(),
         "quiet"      : "--quiet" if quiet else "",
