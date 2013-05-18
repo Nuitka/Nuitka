@@ -46,8 +46,8 @@ def getConstantCode( context, constant ):
 
     return constant_identifier.getCode()
 
-# TODO: The determination of this should already happen in Building or in a helper not
-# during code generation.
+# TODO: The determination of this should already happen in Building or in a
+# helper not during code generation.
 _match_attribute_names = re.compile( r"[a-zA-Z_][a-zA-Z0-9_]*$" )
 
 def getConstantCodeName( context, constant ):
@@ -79,12 +79,17 @@ def _getUnstreamCode( constant_value, constant_identifier ):
     )
 
 
+def _packFloat( value ):
+    return struct.pack( "<d", value )
+
 def _addConstantInitCode( context, emit, constant_type, constant_value,
                           constant_identifier ):
-    # This has many cases, that all return, and do a lot pylint: disable=R0911,R0912,R0915
+    # This has many cases, that all return, and do a lot.
+    #  pylint: disable=R0911,R0912,R0915
 
-    # Use shortest code for ints and longs, except when they are big, then fall fallback
-    # to pickling. TODO: Avoid the use of pickle even for larger values.
+    # Use shortest code for ints and longs, except when they are big, then fall
+    # fallback to pickling. TODO: Avoid the use of pickle even for larger
+    # values.
     if constant_type is int and abs( constant_value ) < 2**31:
         emit(
             "%s = PyInt_FromLong( %s );" % (
@@ -95,8 +100,8 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
 
         return
 
-    # See above, same for long values. Note: These are of course not existant with Python3
-    # which would have covered it before.
+    # See above, same for long values. Note: These are of course not existant
+    # with Python3 which would have covered it before.
     if constant_type is long and abs( constant_value ) < 2**31:
         emit (
             "%s = PyLong_FromLong( %s );" % (
@@ -107,8 +112,9 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
 
         return
 
-    # Strings that can be encoded as UTF-8 are done more or less directly. When they
-    # cannot be expressed as UTF-8, that is rare not we can indeed use pickling.
+    # Strings that can be encoded as UTF-8 are done more or less directly. When
+    # they cannot be expressed as UTF-8, that is rare not we can indeed use
+    # pickling.
     if constant_type is str:
         if str is not unicode:
             emit(
@@ -145,7 +151,7 @@ def _addConstantInitCode( context, emit, constant_type, constant_value,
         emit(
             "%s = UNSTREAM_FLOAT( %s );" % (
                 constant_identifier,
-                encodeString( struct.pack( ">d", constant_value ) )
+                encodeString( _packFloat( constant_value ) )
             )
         )
 

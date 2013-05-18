@@ -1007,7 +1007,7 @@ PyObject *UNSTREAM_STRING( char const *buffer, Py_ssize_t size, bool intern )
 
 PyObject *UNSTREAM_FLOAT( char const *buffer )
 {
-    double x = _PyFloat_Unpack8( (unsigned char *)buffer, 0 );
+    double x = _PyFloat_Unpack8( (unsigned char *)buffer, 1 );
     assert( x != -1.0 || !PyErr_Occurred() );
 
     PyObject *result = PyFloat_FromDouble(x);
